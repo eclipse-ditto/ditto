@@ -1,0 +1,109 @@
+#set( $h1 = '#' )
+#set( $h2 = '##' )
+#set( $h3 = '###' )
+#set( $snippetName = "" )
+
+$h3 Policy Created
+
+#set( $snippetFile = "/target/generated-resources/policies/events/policyCreated.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Policy Modified
+
+#set( $snippetFile = "/target/generated-resources/policies/events/policyModified.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Policy Deleted
+
+#set( $snippetFile = "/target/generated-resources/policies/events/policyDeleted.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Policy Entries Modified
+
+#set( $snippetFile = "/target/generated-resources/policies/events/policyEntriesModified.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Policy Entry Created
+
+#set( $snippetFile = "/target/generated-resources/policies/events/policyEntryCreated.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Policy Entry Modified
+
+#set( $snippetFile = "/target/generated-resources/policies/events/policyEntryModified.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Policy Entry Deleted
+
+#set( $snippetFile = "/target/generated-resources/policies/events/policyEntryDeleted.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Subjects Modified
+
+#set( $snippetFile = "/target/generated-resources/policies/events/subjectsModified.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Subject Created
+
+#set( $snippetFile = "/target/generated-resources/policies/events/subjectCreated.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Subject Modified
+
+#set( $snippetFile = "/target/generated-resources/policies/events/subjectModified.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Subject Deleted
+
+#set( $snippetFile = "/target/generated-resources/policies/events/subjectDeleted.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Resources Modified
+
+#set( $snippetFile = "/target/generated-resources/policies/events/resourcesModified.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Resource Created
+
+#set( $snippetFile = "/target/generated-resources/policies/events/resourceCreated.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Resource Modified
+
+#set( $snippetFile = "/target/generated-resources/policies/events/resourceModified.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Resource Deleted
+
+#set( $snippetFile = "/target/generated-resources/policies/events/resourceDeleted.json" )
+```
+#parse( "snippet" )
+```

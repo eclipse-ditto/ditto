@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE aspectj PUBLIC "-//AspectJ//DTD//EN" "http://www.eclipse.org/aspectj/dtd/aspectj.dtd">
+<!--
+  ~ Copyright (c) 2017 Bosch Software Innovations GmbH.
+  ~
+  ~ All rights reserved. This program and the accompanying materials
+  ~ are made available under the terms of the Eclipse Public License v2.0
+  ~ which accompanies this distribution, and is available at
+  ~ https://www.eclipse.org/org/documents/epl-2.0/index.php
+  ~
+  ~ Contributors:
+  ~    Bosch Software Innovations GmbH - initial contribution
+  -->
+<aspectj>
+    <aspects>
+
+        <!-- Notify that AspectJ is present -->
+        <aspect name="kamon.AspectJPresent"/>
+
+        <!-- Futures -->
+        <aspect name="kamon.scala.instrumentation.FutureInstrumentation"/>
+        <aspect name="kamon.scalaz.instrumentation.FutureInstrumentation"/>
+
+        <!-- Actors -->
+        <aspect name="akka.kamon.instrumentation.TraceContextIntoRepointableActorRefMixin"/>
+        <aspect name="akka.kamon.instrumentation.TraceContextIntoSystemMessageMixin"/>
+        <aspect name="akka.kamon.instrumentation.ActorSystemMessageInstrumentation"/>
+        <aspect name="akka.kamon.instrumentation.EnvelopeContextIntoEnvelopeMixin"/>
+        <aspect name="akka.kamon.instrumentation.MetricsIntoActorCellsMixin"/>
+        <aspect name="akka.kamon.instrumentation.MetricsIntoRouterCellsMixin"/>
+        <aspect name="akka.kamon.instrumentation.ActorCellInstrumentation"/>
+        <aspect name="akka.kamon.instrumentation.RoutedActorCellInstrumentation"/>
+        <aspect name="akka.kamon.instrumentation.ActorLoggingInstrumentation"/>
+
+        <!-- Dispatchers -->
+        <aspect name="akka.kamon.instrumentation.DispatcherInstrumentation"/>
+        <aspect name="akka.kamon.instrumentation.DispatcherMetricCollectionInfoIntoDispatcherMixin"/>
+
+        <!-- Patterns -->
+        <aspect name="akka.kamon.instrumentation.AskPatternInstrumentation"/>
+
+        <!-- Remoting and Cluster -->
+        <aspect name="akka.kamon.instrumentation.RemotingInstrumentation"/>
+    </aspects>
+
+    <weaver options="-warn:none -Xlint:ignore">
+        <include within="kamon..*"/>
+        <include within="akka..*"/>
+
+        <include within="scala.concurrent..*"/>
+        <include within="scalaz.concurrent..*"/>
+
+        <!-- For some weird reason ByteString produces a java.lang.VerifyError after going through the weaver. -->
+        <exclude within="akka.util.ByteString"/>
+
+        <!-- Exclude CallingThreadDispatcher, is only for test purposes -->
+        <exclude within="akka.testkit.CallingThreadDispatcher"/>
+    </weaver>
+
+</aspectj>

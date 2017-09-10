@@ -1,0 +1,148 @@
+/*
+ * Copyright (c) 2017 Bosch Software Innovations GmbH.
+ *
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License v2.0
+ * which accompanies this distribution, and is available at
+ * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ *
+ * Contributors:
+ *    Bosch Software Innovations GmbH - initial contribution
+ */
+package org.eclipse.ditto.services.utils.health.cluster;
+
+import static org.eclipse.ditto.json.JsonFactory.newFieldDefinition;
+
+import java.util.Collections;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+
+import javax.annotation.concurrent.Immutable;
+
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonCollectors;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.json.Jsonifiable;
+
+/**
+ * Holds the status of a specific akka cluster role.
+ */
+@Immutable
+public final class ClusterRoleStatus implements Jsonifiable {
+
+    /**
+     * JSON array of reachable members.
+     */
+    public static final JsonFieldDefinition JSON_KEY_REACHABLE = newFieldDefinition("reachable", JsonArray.class);
+
+    /**
+     * JSON array of unreachable members.
+     */
+    public static final JsonFieldDefinition JSON_KEY_UNREACHABLE = newFieldDefinition("unreachable", JsonArray.class);
+
+    /**
+     * JSON value of the leaders address.
+     */
+    public static final JsonFieldDefinition JSON_KEY_LEADER = newFieldDefinition("leader", String.class);
+
+    private final String role;
+    private final Set<String> reachable;
+    private final Set<String> unreachable;
+    private final String leader;
+
+    private ClusterRoleStatus(final String role, final Set<String> reachable, final Set<String> unreachable,
+            final String leader) {
+        this.role = role;
+        this.reachable = Collections.unmodifiableSet(reachable);
+        this.unreachable = Collections.unmodifiableSet(unreachable);
+        this.leader = leader;
+    }
+
+    /**
+     * Returns a new {@code ClusterRoleStatus} instance with the specified {@code leader}, {@code reachable} and
+     * {@code unreachable} members.
+     *
+     * @param role the cluster role.
+     * @param reachable a list of all reachable members.
+     * @param unreachable a list of all unreachable members.
+     * @param leader the leader.
+     * @return the ClusterRoleStatus instance.
+     */
+    public static ClusterRoleStatus of(final String role, final Set<String> reachable, final Set<String> unreachable,
+            final String leader) {
+        return new ClusterRoleStatus(role, reachable, unreachable, leader);
+    }
+
+    /**
+     * Returns the cluster role.
+     *
+     * @return the cluster role.
+     */
+    public String getRole() { return role; }
+
+    /**
+     * Returns a list of all reachable members for the given {@code role}.
+     *
+     * @return a list of all reachable members for the given {@code role}.
+     */
+    public Set<String> getReachable() {
+        return reachable;
+    }
+
+    /**
+     * Returns a list of all unreachable members for the given {@code role}.
+     *
+     * @return a list of all unreachable members for the given {@code role}.
+     */
+    public Set<String> getUnreachable() {
+        return unreachable;
+    }
+
+    /**
+     * Returns the optional leader for the given {@code role}.
+     *
+     * @return the leader or an empty optional.
+     */
+    public Optional<String> getLeader() {
+        return Optional.ofNullable(leader);
+    }
+
+    @Override
+    public JsonValue toJson() {
+        final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
+
+        jsonObjectBuilder.set(JSON_KEY_REACHABLE,
+                reachable.stream().map(JsonValue::newInstance).collect(JsonCollectors.valuesToArray()));
+        jsonObjectBuilder.set(JSON_KEY_UNREACHABLE,
+                unreachable.stream().map(JsonValue::newInstance).collect(JsonCollectors.valuesToArray()));
+        jsonObjectBuilder.set(JSON_KEY_LEADER, getLeader().orElse("<unknown>"));
+
+        return jsonObjectBuilder.build();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (!(o instanceof ClusterRoleStatus))
+            return false;
+        ClusterRoleStatus that = (ClusterRoleStatus) o;
+        return Objects.equals(reachable, that.reachable) && Objects.equals(unreachable, that.unreachable) && Objects
+                .equals(role, that.role) && Objects.equals(leader, that.leader);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(role, reachable, unreachable, leader);
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "[" + "role=" + role + ", reachable=" + reachable + ", unreachable="
+                + unreachable + ", leader='" + leader + '\'' + ']';
+    }
+}

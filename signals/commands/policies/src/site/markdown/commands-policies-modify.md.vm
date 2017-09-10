@@ -1,0 +1,88 @@
+#set( $h1 = '#' )
+#set( $h2 = '##' )
+#set( $h3 = '###' )
+#set( $snippetName = "" )
+
+$h3 Create Policy
+
+#set( $snippetFile = "/target/generated-resources/policies/commands/modify/createPolicy.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Modify Policy
+
+#set( $snippetFile = "/target/generated-resources/policies/commands/modify/modifyPolicy.json" )
+```
+#parse( "snippet" )
+```
+   
+$h3 Delete Policy
+
+#set( $snippetFile = "/target/generated-resources/policies/commands/modify/deletePolicy.json" )
+```
+#parse( "snippet" )
+```
+   
+$h3 Modify PolicyEntries
+
+#set( $snippetFile = "/target/generated-resources/policies/commands/modify/modifyPolicyEntries.json" )
+```
+#parse( "snippet" )
+```
+   
+$h3 Modify PolicyEntry
+
+#set( $snippetFile = "/target/generated-resources/policies/commands/modify/modifyPolicyEntry.json" )
+```
+#parse( "snippet" )
+```
+   
+$h3 Delete PolicyEntry
+
+#set( $snippetFile = "/target/generated-resources/policies/commands/modify/deletePolicyEntry.json" )
+```
+#parse( "snippet" )
+```
+   
+$h3 Modify Subjects
+
+#set( $snippetFile = "/target/generated-resources/policies/commands/modify/modifySubjects.json" )
+```
+#parse( "snippet" )
+```
+   
+$h3 Modify Subject
+
+#set( $snippetFile = "/target/generated-resources/policies/commands/modify/modifySubject.json" )
+```
+#parse( "snippet" )
+```
+   
+$h3 Delete Subject
+
+#set( $snippetFile = "/target/generated-resources/policies/commands/modify/deleteSubject.json" )
+```
+#parse( "snippet" )
+```
+   
+$h3 Modify Resources
+
+#set( $snippetFile = "/target/generated-resources/policies/commands/modify/modifyResources.json" )
+```
+#parse( "snippet" )
+```
+   
+$h3 Modify Resource
+
+#set( $snippetFile = "/target/generated-resources/policies/commands/modify/modifyResource.json" )
+```
+#parse( "snippet" )
+```
+   
+$h3 Delete Resource
+
+#set( $snippetFile = "/target/generated-resources/policies/commands/modify/deleteResource.json" )
+```
+#parse( "snippet" )
+```

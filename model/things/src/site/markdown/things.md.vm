@@ -1,0 +1,46 @@
+#set( $h1 = '#' )
+#set( $h2 = '##' )
+#set( $h3 = '###' )
+#set( $h4 = '####' )
+#set( $snippetName = "" )
+
+These are example JSONs for the entities relating to Things & Features.
+
+$h2 Thing
+
+$h4 Minimalistic Thing without custom payload
+
+#set( $snippetFile = "/target/generated-resources/model/thing.json" )
+```
+#parse( "snippet" )
+```
+
+$h4 Thing with some attributes
+
+#set( $snippetFile = "/target/generated-resources/model/thing-filled.json" )
+```
+#parse( "snippet" )
+```
+
+$h4 Thing with both attributes and features
+
+#set( $snippetFile = "/target/generated-resources/model/thing-filled-features.json" )
+```
+#parse( "snippet" )
+```
+
+$h4 Thing with all special fields
+
+#set( $snippetFile = "/target/generated-resources/model/thing-filled-features-special.json" )
+```
+#parse( "snippet" )
+```
+
+$h2 Feature
+
+$h4 Feature with properties
+
+#set( $snippetFile = "/target/generated-resources/model/feature.json" )
+```
+#parse( "snippet" )
+```

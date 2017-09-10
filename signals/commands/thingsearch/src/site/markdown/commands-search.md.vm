@@ -1,0 +1,8 @@
+#set( $h1 = '#' )
+#set( $h2 = '##' )
+#set( $h3 = '###' )
+#set( $snippetName = "" )
+
+These are the commands *for Search*.
+
+* <a href="commands-search-query.html">Commands for searching Things</a>

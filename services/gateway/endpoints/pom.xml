@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) 2017 Bosch Software Innovations GmbH.
+  ~
+  ~ All rights reserved. This program and the accompanying materials
+  ~ are made available under the terms of the Eclipse Public License v2.0
+  ~ which accompanies this distribution, and is available at
+  ~ https://www.eclipse.org/org/documents/epl-2.0/index.php
+  ~
+  ~ Contributors:
+  ~    Bosch Software Innovations GmbH - initial contribution
+  -->
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.eclipse.ditto.services.gateway</groupId>
+        <artifactId>ditto-services-gateway</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>ditto-services-gateway-endpoints</artifactId>
+    <name>Eclipse Ditto :: Services :: Gateway :: Endpoints</name>
+
+    <properties>
+        <the.build.timestamp>${maven.build.timestamp}</the.build.timestamp>
+        <maven.build.timestamp.format>yyyy-MM-dd HH:mm</maven.build.timestamp.format>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>ditto-services-gateway-util</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>ditto-services-gateway-health</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>ditto-services-gateway-security</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>ditto-services-gateway-streaming</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.eclipse.ditto.signals.commands</groupId>
+            <artifactId>ditto-signals-commands-base</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto.signals.commands</groupId>
+            <artifactId>ditto-signals-commands-devops</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto.signals.commands</groupId>
+            <artifactId>ditto-signals-commands-things</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.eclipse.ditto.signals.events</groupId>
+            <artifactId>ditto-signals-events-things</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.eclipse.ditto.protocol</groupId>
+            <artifactId>ditto-protocol-adapter</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.eclipse.ditto.services.models</groupId>
+            <artifactId>ditto-services-models-thingsearch</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.eclipse.ditto.services.endpoints</groupId>
+            <artifactId>ditto-services-endpoints-base</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto.services.endpoints</groupId>
+            <artifactId>ditto-services-endpoints-policies</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto.services.endpoints</groupId>
+            <artifactId>ditto-services-endpoints-things</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto.services.endpoints</groupId>
+            <artifactId>ditto-services-endpoints-thingsearch</artifactId>
+        </dependency>
+
+
+        <dependency>
+            <groupId>org.eclipse.ditto.services.utils</groupId>
+            <artifactId>ditto-services-utils-akka</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto.services.utils</groupId>
+            <artifactId>ditto-services-utils-health</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto.services.utils</groupId>
+            <artifactId>ditto-services-utils-config</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto.services.utils</groupId>
+            <artifactId>ditto-services-utils-cluster</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.typesafe.akka</groupId>
+            <artifactId>akka-actor_${scala.version}</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.typesafe.akka</groupId>
+            <artifactId>akka-stream_${scala.version}</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.typesafe.akka</groupId>
+            <artifactId>akka-http_${scala.version}</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.typesafe.akka</groupId>
+            <artifactId>akka-slf4j_${scala.version}</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>de.heikoseeberger</groupId>
+            <artifactId>akka-sse_${scala.version}</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.typesafe.akka</groupId>
+            <artifactId>akka-cluster_${scala.version}</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.typesafe.akka</groupId>
+            <artifactId>akka-cluster-sharding_${scala.version}</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.kamon</groupId>
+            <artifactId>kamon-core_${scala.version}</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.eclipse.ditto.services.endpoints</groupId>
+            <artifactId>ditto-services-endpoints-base</artifactId>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.typesafe.akka</groupId>
+            <artifactId>akka-http-testkit_${scala.version}</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.scalatest</groupId>
+            <artifactId>scalatest_${scala.version}</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <resources>
+            <resource>
+                <filtering>true</filtering>
+                <directory>src/main/resources</directory>
+                <includes>
+                    <include>versions.json</include>
+                </includes>
+            </resource>
+            <resource>
+                <filtering>false</filtering>
+                <directory>src/main/resources</directory>
+                <excludes>
+                    <exclude>versions.json</exclude>
+                </excludes>
+            </resource>
+        </resources>
+    </build>
+
+</project>

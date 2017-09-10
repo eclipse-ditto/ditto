@@ -1,0 +1,16 @@
+#set( $h1 = '#' )
+#set( $h2 = '##' )
+#set( $h3 = '###' )
+#set( $h4 = '####' )
+#set( $snippetName = "" )
+
+These are example JSONs for the search.
+
+$h2 Search
+
+$h4 Search Result
+
+#set( $snippetFile = "/target/generated-resources/model/search-result.json" )
+```
+#parse( "snippet" )
+```

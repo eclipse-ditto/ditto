@@ -1,0 +1,20 @@
+#set( $h1 = '#' )
+#set( $h2 = '##' )
+#set( $h3 = '###' )
+#set( $snippetName = "" )
+
+These are the Responses (containing example JSON payload) which are sent for <a href="commands.html">Commands</a>.
+
+$h3 Query Things Response
+
+#set( $snippetFile = "/target/generated-resources/search/responses/query-things-response.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Count Things Response
+
+#set( $snippetFile = "/target/generated-resources/search/responses/count-things-response.json" )
+```
+#parse( "snippet" )
+```

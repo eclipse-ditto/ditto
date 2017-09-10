@@ -1,0 +1,15 @@
+#set( $h1 = '#' )
+#set( $h2 = '##' )
+#set( $h3 = '###' )
+#set( $snippetName = "" )
+
+These are example JSONs for the known entities of the Search Model.
+
+$h3 Search
+
+Search Result:
+
+#set( $snippetFile = "/target/generated-resources/search/model/search-model.json" )
+```
+#parse( "snippet" )
+```

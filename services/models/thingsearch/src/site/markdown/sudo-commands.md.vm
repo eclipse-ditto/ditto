@@ -1,0 +1,37 @@
+#set( $h1 = '#' )
+#set( $h2 = '##' )
+#set( $h3 = '###' )
+#set( $h4 = '####' )
+#set( $snippetName = "" )
+
+These are example JSONs of the Ditto internal Commands for searching entities bypassing ACL checks.
+
+$h2 Sudo Search Commands
+
+$h4 Sudo Count Things Command:
+
+#set( $snippetFile = "/target/generated-resources/sudo/sudo-count-things-command.json" )
+```
+#parse( "snippet" )
+```
+
+Example response:
+
+#set( $snippetFile = "/target/generated-resources/sudo/sudo-count-things-response.json" )
+```
+#parse( "snippet" )
+```
+
+$h4 Sudo Retrieve Namespace Report Command:
+
+#set( $snippetFile = "/target/generated-resources/sudo/sudo-retrieve-namespace-report-command.json" )
+```
+#parse( "snippet" )
+```
+
+Example response:
+
+#set( $snippetFile = "/target/generated-resources/sudo/sudo-retrieve-namespace-report-response.json" )
+```
+#parse( "snippet" )
+```

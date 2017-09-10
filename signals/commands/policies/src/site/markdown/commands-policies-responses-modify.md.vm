@@ -1,0 +1,131 @@
+#set( $h1 = '#' )
+#set( $h2 = '##' )
+#set( $h3 = '###' )
+#set( $snippetName = "" )
+
+$h3 Modify Policy
+
+Example response for a command that created a policy.
+
+#set( $snippetFile = "/target/generated-resources/policies/commands/modify/modifyPolicyResponseCreated.json" )
+```
+#parse( "snippet" )
+```
+
+Example response for a command that updated a policy.
+
+#set( $snippetFile = "/target/generated-resources/policies/commands/modify/modifyPolicyResponse.json" )
+```
+#parse( "snippet" )
+```
+   
+$h3 Delete Policy
+
+Example response for a command that deleted a policy.
+
+#set( $snippetFile = "/target/generated-resources/policies/commands/modify/deletePolicyResponse.json" )
+```
+#parse( "snippet" )
+```
+   
+$h3 Modify Policy Entries
+
+Example response for a command that modified the policy entries.
+
+#set( $snippetFile = "/target/generated-resources/policies/commands/modify/modifyPolicyEntriesResponse.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Modify Policy Entry
+
+Example response for a command that created a policy entry.
+
+#set( $snippetFile = "/target/generated-resources/policies/commands/modify/modifyPolicyEntryResponseCreated.json" )
+```
+#parse( "snippet" )
+```
+
+Example response for a command that updated a policy entry.
+
+#set( $snippetFile = "/target/generated-resources/policies/commands/modify/modifyPolicyEntryResponse.json" )
+```
+#parse( "snippet" )
+```
+   
+$h3 Delete Policy Entry
+
+Example response for a command that deleted a policy entry.
+
+#set( $snippetFile = "/target/generated-resources/policies/commands/modify/deletePolicyEntryResponse.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Modify Subjects
+
+Example response for a command that updated subjects.
+
+#set( $snippetFile = "/target/generated-resources/policies/commands/modify/modifySubjectsResponse.json" )
+```
+#parse( "snippet" )
+```
+   
+$h3 Modify Subject
+
+Example response for a command that created a subject.
+
+#set( $snippetFile = "/target/generated-resources/policies/commands/modify/modifySubjectResponseCreated.json" )
+```
+#parse( "snippet" )
+```
+
+Example response for a command that updated a subject.
+
+#set( $snippetFile = "/target/generated-resources/policies/commands/modify/modifySubjectResponse.json" )
+```
+#parse( "snippet" )
+```
+   
+$h3 Delete Subject
+
+Example response for a command that deleted a subject.
+
+#set( $snippetFile = "/target/generated-resources/policies/commands/modify/deleteSubjectResponse.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Modify Resources
+
+Example response for a command that updated resources.
+
+#set( $snippetFile = "/target/generated-resources/policies/commands/modify/modifyResourcesResponse.json" )
+```
+#parse( "snippet" )
+```
+   
+$h3 Modify Resource
+
+Example response for a command that created a resource.
+
+#set( $snippetFile = "/target/generated-resources/policies/commands/modify/modifyResourceResponseCreated.json" )
+```
+#parse( "snippet" )
+```
+
+Example response for a command that updated a resource.
+
+#set( $snippetFile = "/target/generated-resources/policies/commands/modify/modifyResourceResponse.json" )
+```
+#parse( "snippet" )
+```
+   
+$h3 Delete Resource
+
+Example response for a command that deleted a resource.
+
+#set( $snippetFile = "/target/generated-resources/policies/commands/modify/deleteResourceResponse.json" )
+```
+#parse( "snippet" )
+```

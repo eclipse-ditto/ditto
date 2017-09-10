@@ -1,0 +1,21 @@
+#set( $h1 = '#' )
+#set( $h2 = '##' )
+#set( $h3 = '###' )
+#set( $snippetName = "" )
+
+These are example JSONs for the known entities of the Search Commands.
+
+$h3 Query Things Command
+
+#set( $snippetFile = "/target/generated-resources/search/commands/query-things-command.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Count Things Command
+
+#set( $snippetFile = "/target/generated-resources/search/commands/count-things-command.json" )
+```
+#parse( "snippet" )
+```
+

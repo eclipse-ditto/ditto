@@ -1,0 +1,282 @@
+/*
+ * Copyright (c) 2017 Bosch Software Innovations GmbH.
+ *
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License v2.0
+ * which accompanies this distribution, and is available at
+ * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ *
+ * Contributors:
+ *    Bosch Software Innovations GmbH - initial contribution
+ */
+package org.eclipse.ditto.model.things;
+
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.function.Predicate;
+import java.util.stream.Stream;
+
+import javax.annotation.concurrent.Immutable;
+
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonKey;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+
+/**
+ * A null implementation of {@link FeatureProperties}.
+ */
+@Immutable
+final class NullFeatureProperties implements FeatureProperties {
+
+    private final JsonObject wrapped;
+
+    private NullFeatureProperties() {
+        wrapped = JsonFactory.nullObject();
+    }
+
+    /**
+     * Creates new Properties with JSON NULL value.
+     *
+     * @return the new Properties.
+     */
+    public static FeatureProperties newInstance() {
+        return new NullFeatureProperties();
+    }
+
+    @Override
+    public boolean isBoolean() {
+        return false;
+    }
+
+    @Override
+    public boolean isNumber() {
+        return false;
+    }
+
+    @Override
+    public boolean isString() {
+        return false;
+    }
+
+    @Override
+    public boolean isObject() {
+        return true;
+    }
+
+    @Override
+    public boolean isArray() {
+        return false;
+    }
+
+    @Override
+    public boolean isNull() {
+        return true;
+    }
+
+    @Override
+    public boolean asBoolean() {
+        return wrapped.asBoolean();
+    }
+
+    @Override
+    public int asInt() {
+        return wrapped.asInt();
+    }
+
+    @Override
+    public long asLong() {
+        return wrapped.asLong();
+    }
+
+    @Override
+    public double asDouble() {
+        return wrapped.asDouble();
+    }
+
+    @Override
+    public String asString() {
+        return wrapped.asString();
+    }
+
+    @Override
+    public JsonObject asObject() {
+        return this;
+    }
+
+    @Override
+    public JsonArray asArray() {
+        return wrapped.asArray();
+    }
+
+    @Override
+    public FeatureProperties setValue(final CharSequence key, final int value) {
+        return ThingsModelFactory.newFeaturePropertiesBuilder()
+                .set(key, value)
+                .build();
+    }
+
+    @Override
+    public FeatureProperties setValue(final CharSequence key, final long value) {
+        return ThingsModelFactory.newFeaturePropertiesBuilder()
+                .set(key, value)
+                .build();
+    }
+
+    @Override
+    public FeatureProperties setValue(final CharSequence key, final double value) {
+        return ThingsModelFactory.newFeaturePropertiesBuilder()
+                .set(key, value)
+                .build();
+    }
+
+    @Override
+    public FeatureProperties setValue(final CharSequence key, final boolean value) {
+        return ThingsModelFactory.newFeaturePropertiesBuilder()
+                .set(key, value)
+                .build();
+    }
+
+    @Override
+    public FeatureProperties setValue(final CharSequence key, final String value) {
+        return ThingsModelFactory.newFeaturePropertiesBuilder()
+                .set(key, value)
+                .build();
+    }
+
+    @Override
+    public FeatureProperties setValue(final CharSequence key, final JsonValue value) {
+        return ThingsModelFactory.newFeaturePropertiesBuilder()
+                .set(key, value)
+                .build();
+    }
+
+    @Override
+    public JsonObject set(final JsonFieldDefinition fieldDefinition, final JsonValue value) {
+        return ThingsModelFactory.newFeaturePropertiesBuilder()
+                .set(fieldDefinition, value)
+                .build();
+    }
+
+    @Override
+    public FeatureProperties set(final JsonField field) {
+        return ThingsModelFactory.newFeaturePropertiesBuilder()
+                .set(field)
+                .build();
+    }
+
+    @Override
+    public FeatureProperties setAll(final Iterable<JsonField> jsonFields) {
+        return ThingsModelFactory.newFeaturePropertiesBuilder()
+                .setAll(jsonFields)
+                .build();
+    }
+
+    @Override
+    public boolean contains(final CharSequence key) {
+        return false;
+    }
+
+    @Override
+    public JsonObject get(final JsonPointer pointer) {
+        return this;
+    }
+
+    @Override
+    public JsonObject get(final JsonFieldDefinition fieldDefinition) {
+        return this;
+    }
+
+    @Override
+    public Optional<JsonValue> getValue(final CharSequence name) {
+        return Optional.empty();
+    }
+
+    @Override
+    public Optional<JsonValue> getValue(final JsonFieldDefinition fieldDefinition) {
+        return Optional.empty();
+    }
+
+    @Override
+    public JsonObject get(final JsonFieldSelector fieldSelector) {
+        return this;
+    }
+
+    @Override
+    public FeatureProperties remove(final CharSequence index) {
+        return this;
+    }
+
+    @Override
+    public List<JsonKey> getKeys() {
+        return Collections.emptyList();
+    }
+
+    @Override
+    public Optional<JsonField> getField(final CharSequence index) {
+        return Optional.empty();
+    }
+
+    @Override
+    public Iterator<JsonField> iterator() {
+        return Collections.emptyIterator();
+    }
+
+    @Override
+    public boolean isEmpty() {
+        return true;
+    }
+
+    @Override
+    public int getSize() {
+        return 0;
+    }
+
+    @Override
+    public Stream<JsonField> stream() {
+        return Stream.empty();
+    }
+
+    @Override
+    public JsonObject toJson() {
+        return wrapped;
+    }
+
+    @Override
+    public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
+        return wrapped;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(wrapped);
+    }
+
+    @SuppressWarnings("squid:MethodCyclomaticComplexity")
+    @Override
+    public boolean equals(final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        final NullFeatureProperties other = (NullFeatureProperties) o;
+        return Objects.equals(wrapped, other.wrapped);
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + " [wrapped=" + wrapped + "]";
+    }
+
+}

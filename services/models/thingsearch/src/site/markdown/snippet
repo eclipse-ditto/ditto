@@ -1,0 +1,24 @@
+#set( $snippetFilePath = "${project.basedir}" + $snippetFile )
+#set( $snippetWasFound = "$snippetName" == "" )
+#if( $snippetWasFound )
+#set( $snippetStartString = "
+" )
+#set( $snippetEndString = "
+" )
+#else
+#set( $snippetStartString = "START SNIPPET: " + $snippetName )
+#set( $snippetEndString = "END SNIPPET: " + $snippetName )
+#end
+#foreach( $snippetLine in $StringUtils.split($FileUtils.fileRead( $snippetFilePath ),"
+") )
+#set( $checkLine = $StringUtils.removeDuplicateWhitespace( $snippetLine ) )
+#if( $StringUtils.contains( $checkLine, $snippetEndString ) )
+#set($snippetWasFound = false)
+#end
+#if( $snippetWasFound )
+$snippetLine
+#end
+#if( $StringUtils.contains( $checkLine, $snippetStartString ) )
+#set($snippetWasFound = true)
+#end
+#end

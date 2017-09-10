@@ -1,0 +1,32 @@
+#set( $h1 = '#' )
+#set( $h2 = '##' )
+#set( $h3 = '###' )
+#set( $snippetName = "" )
+
+$h3 Json Parse Exception
+
+#set( $snippetFile = "/target/generated-resources/json/errors/jsonParseException.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Json Missing Field
+
+#set( $snippetFile = "/target/generated-resources/json/errors/jsonMissingFieldException.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Json Pointer Invalid
+
+#set( $snippetFile = "/target/generated-resources/json/errors/jsonPointerInvalidException.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Json Field Selector Invalid
+
+#set( $snippetFile = "/target/generated-resources/json/errors/jsonFieldSelectorInvalidException.json" )
+```
+#parse( "snippet" )
+```

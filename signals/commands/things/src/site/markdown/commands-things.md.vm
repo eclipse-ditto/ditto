@@ -1,0 +1,9 @@
+#set( $h1 = '#' )
+#set( $h2 = '##' )
+#set( $h3 = '###' )
+#set( $snippetName = "" )
+
+These are the commands *for Things*.
+
+* <a href="commands-things-query.html">Commands for retrieving Things</a>
+* <a href="commands-things-modify.html">Commands for modifying Things</a>

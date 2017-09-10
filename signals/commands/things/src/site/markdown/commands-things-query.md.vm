@@ -1,0 +1,123 @@
+#set( $h1 = '#' )
+#set( $h2 = '##' )
+#set( $h3 = '###' )
+#set( $snippetName = "" )
+
+$h3 Retrieve Thing
+
+Without field selector:
+
+#set( $snippetFile = "/target/generated-resources/things/commands/query/retrieveThing.json" )
+```
+#parse( "snippet" )
+```
+
+With field selector:
+
+#set( $snippetFile = "/target/generated-resources/things/commands/query/retrieveThing-withFieldSelector.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Retrieve Things
+
+Without field selector:
+
+#set( $snippetFile = "/target/generated-resources/things/commands/query/retrieveThings.json" )
+```
+#parse( "snippet" )
+```
+
+With field selector:
+
+#set( $snippetFile = "/target/generated-resources/things/commands/query/retrieveThings-withFieldSelector.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Retrieve Thing ACL
+
+#set( $snippetFile = "/target/generated-resources/things/commands/query/retrieveAcl.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Retrieve Thing ACL Entry
+
+#set( $snippetFile = "/target/generated-resources/things/commands/query/retrieveAclEntry.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Retrieve Thing Policy ID
+
+#set( $snippetFile = "/target/generated-resources/things/commands/query/retrievePolicyId.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Retrieve Thing Attributes
+
+All Thing attributes:
+
+#set( $snippetFile = "/target/generated-resources/things/commands/query/retrieveAttributes.json" )
+```
+#parse( "snippet" )
+```
+
+With field selector:
+
+#set( $snippetFile = "/target/generated-resources/things/commands/query/retrieveAttributes-selectedFields.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Retrieve Thing Attribute
+
+#set( $snippetFile = "/target/generated-resources/things/commands/query/retrieveAttribute.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Retrieve Features
+
+All Features:
+
+#set( $snippetFile = "/target/generated-resources/things/commands/query/retrieveFeatures.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Retrieve Feature
+
+A specific Feature:
+
+#set( $snippetFile = "/target/generated-resources/things/commands/query/retrieveFeature.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Retrieve Feature Properties
+
+All Feature properties:
+
+#set( $snippetFile = "/target/generated-resources/things/commands/query/retrieveFeatureProperties.json" )
+```
+#parse( "snippet" )
+```
+
+With field selector:
+
+#set( $snippetFile = "/target/generated-resources/things/commands/query/retrieveFeatureProperties-selectedFields.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Retrieve Feature Property
+
+A specific Feature Property:
+
+#set( $snippetFile = "/target/generated-resources/things/commands/query/retrieveFeatureProperty.json" )
+```
+#parse( "snippet" )
+```
