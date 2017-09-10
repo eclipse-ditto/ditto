@@ -1,0 +1,10 @@
+#set( $h1 = '#' )
+#set( $h2 = '##' )
+#set( $h3 = '###' )
+#set( $h4 = '####' )
+#set( $snippetName = "" )
+
+These are the responses which are sent for <a href="commands-policies.html">Policy commands</a>.
+
+* <a href="commands-policies-responses-query.html">Respones for Query Commands</a>
+* <a href="commands-policies-responses-modify.html">Respones for Modify Commands</a>

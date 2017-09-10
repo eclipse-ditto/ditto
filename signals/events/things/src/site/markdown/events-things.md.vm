@@ -1,0 +1,193 @@
+#set( $h1 = '#' )
+#set( $h2 = '##' )
+#set( $h3 = '###' )
+#set( $snippetName = "" )
+
+$h3 Thing Created
+
+#set( $snippetFile = "/target/generated-resources/things/events/thingCreated.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Thing Modified
+
+#set( $snippetFile = "/target/generated-resources/things/events/thingModified.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Thing Deleted
+
+#set( $snippetFile = "/target/generated-resources/things/events/thingDeleted.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 ACL Modified
+
+#set( $snippetFile = "/target/generated-resources/things/events/aclModified.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 ACL Entry Created
+
+#set( $snippetFile = "/target/generated-resources/things/events/aclEntryCreated.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 ACL Entry Modified
+
+#set( $snippetFile = "/target/generated-resources/things/events/aclEntryModified.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 ACL Entry Deleted
+
+#set( $snippetFile = "/target/generated-resources/things/events/aclEntryDeleted.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Policy ID Created
+
+#set( $snippetFile = "/target/generated-resources/things/events/policyIdCreated.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Policy ID Modified
+
+#set( $snippetFile = "/target/generated-resources/things/events/policyIdModified.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Attributes (all at once) Created
+
+#set( $snippetFile = "/target/generated-resources/things/events/attributesCreated.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Attributes (all at once) Modified
+
+#set( $snippetFile = "/target/generated-resources/things/events/attributesModified.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Attributes (all at once) Deleted
+
+#set( $snippetFile = "/target/generated-resources/things/events/attributesDeleted.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Attribute Created
+
+#set( $snippetFile = "/target/generated-resources/things/events/attributeCreated.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Attribute Modified
+
+#set( $snippetFile = "/target/generated-resources/things/events/attributeModified.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Attribute Deleted
+
+#set( $snippetFile = "/target/generated-resources/things/events/attributeDeleted.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Features Created
+
+#set( $snippetFile = "/target/generated-resources/things/events/featuresCreated.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Features Modified
+
+#set( $snippetFile = "/target/generated-resources/things/events/featuresModified.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Features Deleted
+
+#set( $snippetFile = "/target/generated-resources/things/events/featuresDeleted.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Feature Created
+
+#set( $snippetFile = "/target/generated-resources/things/events/featureCreated.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Feature Modified
+
+#set( $snippetFile = "/target/generated-resources/things/events/featureModified.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Feature Deleted
+
+#set( $snippetFile = "/target/generated-resources/things/events/featureDeleted.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Feature Properties Created
+
+#set( $snippetFile = "/target/generated-resources/things/events/featurePropertiesCreated.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Feature Properties Modified
+
+#set( $snippetFile = "/target/generated-resources/things/events/featurePropertiesModified.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Feature Properties Deleted
+
+#set( $snippetFile = "/target/generated-resources/things/events/featurePropertiesDeleted.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Feature Property Created
+
+#set( $snippetFile = "/target/generated-resources/things/events/featurePropertyCreated.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Feature Property Modified
+
+#set( $snippetFile = "/target/generated-resources/things/events/featurePropertyModified.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Feature Property Deleted
+
+#set( $snippetFile = "/target/generated-resources/things/events/featurePropertyDeleted.json" )
+```
+#parse( "snippet" )
+```

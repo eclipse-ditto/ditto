@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) 2017 Bosch Software Innovations GmbH.
+  ~
+  ~ All rights reserved. This program and the accompanying materials
+  ~ are made available under the terms of the Eclipse Public License v2.0
+  ~ which accompanies this distribution, and is available at
+  ~ https://www.eclipse.org/org/documents/epl-2.0/index.php
+  ~
+  ~ Contributors:
+  ~    Bosch Software Innovations GmbH - initial contribution
+  -->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.eclipse.ditto</groupId>
+        <artifactId>ditto-bom</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+        <relativePath>../bom</relativePath>
+    </parent>
+
+    <groupId>org.eclipse.ditto.services</groupId>
+    <artifactId>ditto-services</artifactId>
+    <packaging>pom</packaging>
+    <name>Eclipse Ditto :: Services</name>
+
+    <modules>
+        <module>models</module>
+        <module>endpoints</module>
+        <module>utils</module>
+        <module>policies</module>
+        <module>things</module>
+        <module>thingsearch</module>
+        <module>gateway</module>
+    </modules>
+
+    <properties>
+        <docker.daemon.hostname/> <!-- inject into maven build via -Ddocker.daemon.hostname=the.hostname -->
+        <docker.daemon.port>2375</docker.daemon.port>
+        <docker.daemon.protocol>http</docker.daemon.protocol>
+        <docker.daemon.url>${docker.daemon.protocol}://${docker.daemon.hostname}:${docker.daemon.port}
+        </docker.daemon.url>
+
+        <docker.registry>docker.io</docker.registry>
+        <docker.repository>${docker.registry}/eclipse-ditto</docker.repository>
+        <docker.image.version.suffix/>
+        <docker.image.jdk>docker.io/openjdk:8-jdk-alpine</docker.image.jdk>
+        <docker.image.port>8080</docker.image.port>
+
+        <policies.docker.image.name>ditto-policies</policies.docker.image.name>
+        <things.docker.image.name>ditto-things</things.docker.image.name>
+        <things-search.docker.image.name>ditto-things-search</things-search.docker.image.name>
+        <gateway.docker.image.name>ditto-gateway</gateway.docker.image.name>
+    </properties>
+
+    <dependencies>
+        <!-- ### Provided ### -->
+        <dependency>
+            <groupId>com.google.code.findbugs</groupId>
+            <artifactId>jsr305</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto.utils</groupId>
+            <artifactId>ditto-utils-jsr305</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- ### Testing ### -->
+        <dependency>
+            <groupId>org.eclipse.ditto.json</groupId>
+            <artifactId>ditto-json</artifactId>
+            <type>test-jar</type>
+        </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mutabilitydetector</groupId>
+            <artifactId>MutabilityDetector</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>nl.jqno.equalsverifier</groupId>
+            <artifactId>equalsverifier</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.skyscreamer</groupId>
+            <artifactId>jsonassert</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>io.fabric8</groupId>
+                    <artifactId>docker-maven-plugin</artifactId>
+                    <configuration>
+                        <dockerHost>${docker.daemon.url}</dockerHost>
+                        <verbose>true</verbose>
+                        <autoCreateCustomNetworks>true</autoCreateCustomNetworks>
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
+
+    <profiles>
+        <profile>
+            <id>docker-dev-image</id>
+            <properties>
+                <docker.image.version.suffix>-dev</docker.image.version.suffix>
+            </properties>
+        </profile>
+
+        <profile>
+            <id>docker-build-image</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>io.fabric8</groupId>
+                        <artifactId>docker-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>docker-build-image</id>
+                                <phase>install</phase>
+                                <goals>
+                                    <goal>remove</goal>
+                                    <!-- In order to clean up! -->
+                                    <goal>build</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <profile>
+            <id>docker-push-image</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>io.fabric8</groupId>
+                        <artifactId>docker-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>docker-push-image</id>
+                                <phase>install</phase>
+                                <goals>
+                                    <goal>push</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+
+</project>

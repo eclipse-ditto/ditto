@@ -1,0 +1,204 @@
+#set( $h1 = '#' )
+#set( $h2 = '##' )
+#set( $h3 = '###' )
+#set( $snippetName = "" )
+
+$h3 Create Thing
+
+Example response for a command that created a thing.
+
+#set( $snippetFile = "/target/generated-resources/things/commands/modify/createThingResponse.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Modify Thing
+
+Example response for a command that created a thing.
+
+#set( $snippetFile = "/target/generated-resources/things/commands/modify/modifyThingResponseCreated.json" )
+```
+#parse( "snippet" )
+```
+
+Example response for a command that updated a thing.
+
+#set( $snippetFile = "/target/generated-resources/things/commands/modify/modifyThingResponse.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Delete Thing
+
+Example response for a command that deleted a thing.
+
+#set( $snippetFile = "/target/generated-resources/things/commands/modify/deleteThingResponse.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Modify Policy Id
+
+Example response for a command that created a Policy ID.
+
+#set( $snippetFile = "/target/generated-resources/things/commands/modify/modifyPolicyIdResponseCreated.json" )
+```
+#parse( "snippet" )
+```
+
+Example response for a command that modified a Policy ID.
+
+#set( $snippetFile = "/target/generated-resources/things/commands/modify/modifyPolicyIdResponseModified.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Modify Attributes
+
+Example response for a command that created attributes.
+
+#set( $snippetFile = "/target/generated-resources/things/commands/modify/modifyAttributesResponseCreated.json" )
+```
+#parse( "snippet" )
+```
+
+Example response for a command that updated attributes.
+
+#set( $snippetFile = "/target/generated-resources/things/commands/modify/modifyAttributesResponse.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Delete Attributes
+
+Example response for a command that deleted attributes.
+
+#set( $snippetFile = "/target/generated-resources/things/commands/modify/deleteAttributesResponse.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Modify Attribute
+
+Example response for a command that created an attribute.
+
+#set( $snippetFile = "/target/generated-resources/things/commands/modify/modifyAttributeResponseCreated.json" )
+```
+#parse( "snippet" )
+```
+
+Example response for a command that updated an attribute.
+
+#set( $snippetFile = "/target/generated-resources/things/commands/modify/modifyAttributeResponse.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Delete Attribute
+
+Example response for a command that deleted an attribute.
+
+#set( $snippetFile = "/target/generated-resources/things/commands/modify/deleteAttributeResponse.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Modify Features
+
+Example response for a command that created features.
+
+#set( $snippetFile = "/target/generated-resources/things/commands/modify/modifyFeaturesResponseCreated.json" )
+```
+#parse( "snippet" )
+```
+
+Example response for a command that updated features.
+
+#set( $snippetFile = "/target/generated-resources/things/commands/modify/modifyFeaturesResponse.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Delete Features
+
+Example response for a command that deleted features.
+
+#set( $snippetFile = "/target/generated-resources/things/commands/modify/deleteFeaturesResponse.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Modify Feature
+
+Example response for a command that created a feature.
+
+#set( $snippetFile = "/target/generated-resources/things/commands/modify/modifyFeatureResponseCreated.json" )
+```
+#parse( "snippet" )
+```
+
+Example response for a command that updated a feature.
+
+#set( $snippetFile = "/target/generated-resources/things/commands/modify/modifyFeatureResponse.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Delete Feature
+
+Example response for a command that deleted a feature.
+
+#set( $snippetFile = "/target/generated-resources/things/commands/modify/deleteFeatureResponse.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Modify FeatureProperties
+
+Example response for a command that created feature properties.
+
+#set( $snippetFile = "/target/generated-resources/things/commands/modify/modifyFeaturePropertiesResponseCreated.json" )
+```
+#parse( "snippet" )
+```
+
+Example response for a command that updated feature properties.
+
+#set( $snippetFile = "/target/generated-resources/things/commands/modify/modifyFeaturePropertiesResponse.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Delete FeatureProperties
+
+Example response for a command that deleted feature properties.
+
+#set( $snippetFile = "/target/generated-resources/things/commands/modify/deleteFeaturePropertiesResponse.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Modify FeatureProperty
+
+Example response for a command that created a feature property.
+
+#set( $snippetFile = "/target/generated-resources/things/commands/modify/modifyFeaturePropertyResponseCreated.json" )
+```
+#parse( "snippet" )
+```
+
+Example response for a command that updated a feature property.
+
+#set( $snippetFile = "/target/generated-resources/things/commands/modify/modifyFeaturePropertyResponse.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Delete FeatureProperty
+
+Example response for a command that deleted a feature property.
+
+#set( $snippetFile = "/target/generated-resources/things/commands/modify/deleteFeaturePropertyResponse.json" )
+```
+#parse( "snippet" )
+```

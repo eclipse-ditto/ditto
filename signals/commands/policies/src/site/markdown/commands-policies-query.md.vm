@@ -1,0 +1,54 @@
+#set( $h1 = '#' )
+#set( $h2 = '##' )
+#set( $h3 = '###' )
+#set( $snippetName = "" )
+
+$h3 Retrieve Policy
+
+#set( $snippetFile = "/target/generated-resources/policies/commands/query/retrievePolicy.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Retrieve Policy Entries
+
+#set( $snippetFile = "/target/generated-resources/policies/commands/query/retrievePolicyEntries.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Retrieve Policy Entry
+
+#set( $snippetFile = "/target/generated-resources/policies/commands/query/retrievePolicyEntry.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Retrieve Subjects
+
+#set( $snippetFile = "/target/generated-resources/policies/commands/query/retrieveSubjects.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Retrieve Subject
+
+#set( $snippetFile = "/target/generated-resources/policies/commands/query/retrieveSubject.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Retrieve Resources
+
+#set( $snippetFile = "/target/generated-resources/policies/commands/query/retrieveResources.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Retrieve Resource
+
+#set( $snippetFile = "/target/generated-resources/policies/commands/query/retrieveResource.json" )
+```
+#parse( "snippet" )
+```
+

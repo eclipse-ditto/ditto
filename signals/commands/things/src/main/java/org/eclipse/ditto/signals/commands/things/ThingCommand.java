@@ -1,0 +1,57 @@
+/*
+ * Copyright (c) 2017 Bosch Software Innovations GmbH.
+ *
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License v2.0
+ * which accompanies this distribution, and is available at
+ * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ *
+ * Contributors:
+ *    Bosch Software Innovations GmbH - initial contribution
+ */
+package org.eclipse.ditto.signals.commands.things;
+
+
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.signals.base.WithThingId;
+import org.eclipse.ditto.signals.commands.base.Command;
+
+/**
+ * Aggregates all {@link Command}s which are related to a {@link org.eclipse.ditto.model.things.Thing}.
+ *
+ * @param <T> the type of the implementing class.
+ */
+public interface ThingCommand<T extends ThingCommand> extends Command<T>, WithThingId {
+
+    /**
+     * Type Prefix of Thing commands.
+     */
+    String TYPE_PREFIX = "things." + TYPE_QUALIFIER + ":";
+
+    @Override
+    default String getId() {
+        return getThingId();
+    }
+
+    @Override
+    T setDittoHeaders(DittoHeaders dittoHeaders);
+
+    /**
+     * This class contains definitions for all specific fields of a {@code ThingCommand}'s JSON representation.
+     *
+     */
+    class JsonFields extends Command.JsonFields {
+
+        /**
+         * JSON field containing the ThingCommand's thingId.
+         */
+        public static final JsonFieldDefinition JSON_THING_ID =
+                JsonFactory.newFieldDefinition("thingId", String.class, FieldType.REGULAR,
+                        // available in schema versions:
+                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+    }
+}

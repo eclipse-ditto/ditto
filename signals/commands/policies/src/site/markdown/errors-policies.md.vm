@@ -1,0 +1,144 @@
+#set( $h1 = '#' )
+#set( $h2 = '##' )
+#set( $h3 = '###' )
+#set( $snippetName = "" )
+
+$h3 Policy ID Invalid
+
+#set( $snippetFile = "/target/generated-resources/policies/errors/policyIdInvalidException.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Policy Conflict
+
+#set( $snippetFile = "/target/generated-resources/policies/errors/policyConflictException.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Policy Not Accessible
+
+#set( $snippetFile = "/target/generated-resources/policies/errors/policyNotAccessibleException.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Policy Not Modifiable
+
+#set( $snippetFile = "/target/generated-resources/policies/errors/policyNotModifiableException.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Policy Too Many Modifying Requests Error
+
+#set( $snippetFile = "/target/generated-resources/policies/errors/policyTooManyModifyingRequestsException.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Policy Unavailable Error
+
+#set( $snippetFile = "/target/generated-resources/policies/errors/policyUnavailableException.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Policy Modification Invalid
+
+#set( $snippetFile = "/target/generated-resources/policies/errors/policyModificationInvalidException.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 PolicyEntry Invalid
+
+#set( $snippetFile = "/target/generated-resources/policies/errors/policyEntryInvalidException.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 PolicyEntry Not Accessible
+
+#set( $snippetFile = "/target/generated-resources/policies/errors/policyEntryNotAccessibleException.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 PolicyEntry Not Modifiable
+
+#set( $snippetFile = "/target/generated-resources/policies/errors/policyEntryNotModifiableException.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 PolicyEntry Modification Invalid
+
+#set( $snippetFile = "/target/generated-resources/policies/errors/policyEntryModificationInvalidException.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Resources Not Modifiable
+
+#set( $snippetFile = "/target/generated-resources/policies/errors/resourcesNotModifiableException.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Resource Not Accessible
+
+#set( $snippetFile = "/target/generated-resources/policies/errors/resourceNotAccessibleException.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Resources Not Accessible
+
+#set( $snippetFile = "/target/generated-resources/policies/errors/resourcesNotAccessibleException.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Resource Not Modifiable
+
+#set( $snippetFile = "/target/generated-resources/policies/errors/resourceNotModifiableException.json" )
+```
+#parse( "snippet" )
+```
+   
+$h3 Subjects Not Modifiable
+
+#set( $snippetFile = "/target/generated-resources/policies/errors/subjectsNotModifiableException.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Subject ID Invalid
+
+#set( $snippetFile = "/target/generated-resources/policies/errors/subjectIdInvalidException.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Subject Not Accessible
+
+#set( $snippetFile = "/target/generated-resources/policies/errors/subjectNotAccessibleException.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Subjects Not Accessible
+
+#set( $snippetFile = "/target/generated-resources/policies/errors/subjectsNotAccessibleException.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Subject Not Modifiable
+
+#set( $snippetFile = "/target/generated-resources/policies/errors/subjectNotModifiableException.json" )
+```
+#parse( "snippet" )
+```

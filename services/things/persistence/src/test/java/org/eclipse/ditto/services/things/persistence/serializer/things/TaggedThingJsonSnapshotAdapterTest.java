@@ -1,0 +1,80 @@
+/*
+ * Copyright (c) 2017 Bosch Software Innovations GmbH.
+ *
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License v2.0
+ * which accompanies this distribution, and is available at
+ * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ *
+ * Contributors:
+ *    Bosch Software Innovations GmbH - initial contribution
+ */
+package org.eclipse.ditto.services.things.persistence.serializer.things;
+
+import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
+
+import org.bson.BSONObject;
+import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.things.TestConstants;
+import org.junit.Before;
+import org.junit.Test;
+
+import com.mongodb.DBObject;
+import com.mongodb.util.DittoBsonJSON;
+
+import akka.persistence.SnapshotMetadata;
+import akka.persistence.SnapshotOffer;
+
+/**
+ * Unit test for {@link TaggedThingJsonSnapshotAdapter}.
+ */
+public final class TaggedThingJsonSnapshotAdapterTest {
+
+    private static final String PERSISTENCE_ID = "thing:fajofj904q2";
+    private static final SnapshotMetadata SNAPSHOT_METADATA = new SnapshotMetadata(PERSISTENCE_ID, 0, 0);
+
+    private TaggedThingJsonSnapshotAdapter underTest = null;
+
+    /** */
+    @Before
+    public void setUp() {
+        underTest = new TaggedThingJsonSnapshotAdapter(null);
+    }
+
+    /** */
+    @Test
+    public void toSnapshotStoreReturnsExpected() {
+        final SnapshotTag snapshotTag = SnapshotTag.PROTECTED;
+
+        final ThingWithSnapshotTag thingWithSnapshotTag =
+                ThingWithSnapshotTag.newInstance(TestConstants.Thing.THING_V1, snapshotTag);
+
+        final Object rawSnapshotEntity = underTest.toSnapshotStore(thingWithSnapshotTag);
+
+        assertThat(rawSnapshotEntity).isInstanceOf(DBObject.class);
+
+        final BSONObject dbObject = (BSONObject) rawSnapshotEntity;
+
+        assertThat(dbObject.get(TaggedThingJsonSnapshotAdapter.TAG_JSON_KEY)).isEqualTo(snapshotTag.toString());
+    }
+
+    /** */
+    @Test
+    public void restoreThingFromSnapshotOfferReturnsExpected() {
+        final SnapshotTag snapshotTag = SnapshotTag.PROTECTED;
+
+        final ThingWithSnapshotTag thingWithSnapshotTag =
+                ThingWithSnapshotTag.newInstance(TestConstants.Thing.THING_V1, snapshotTag);
+        final String jsonString = thingWithSnapshotTag.toJsonString(thingWithSnapshotTag.getImplementedSchemaVersion(),
+                FieldType.regularOrSpecial());
+        final DBObject snapshotEntity = (DBObject) DittoBsonJSON.parse(jsonString);
+        snapshotEntity.put(TaggedThingJsonSnapshotAdapter.TAG_JSON_KEY, snapshotTag.toString());
+
+        final SnapshotOffer snapshotOffer = new SnapshotOffer(SNAPSHOT_METADATA, snapshotEntity);
+
+        final ThingWithSnapshotTag restoredThingWithSnapshotTag = underTest.fromSnapshotStore(snapshotOffer);
+
+        assertThat(restoredThingWithSnapshotTag).isEqualTo(thingWithSnapshotTag);
+    }
+
+}

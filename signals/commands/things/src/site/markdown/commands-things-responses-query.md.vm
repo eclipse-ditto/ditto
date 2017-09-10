@@ -1,0 +1,81 @@
+#set( $h1 = '#' )
+#set( $h2 = '##' )
+#set( $h3 = '###' )
+#set( $snippetName = "" )
+
+$h3 Retrieve Things
+
+#set( $snippetFile = "/target/generated-resources/things/commands/query/retrieveThingsResponse.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Retrieve Thing
+
+#set( $snippetFile = "/target/generated-resources/things/commands/query/retrieveThingResponse.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Retrieve Thing ACL
+
+#set( $snippetFile = "/target/generated-resources/things/commands/query/retrieveAclResponse.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Retrieve Thing ACL Entry
+
+#set( $snippetFile = "/target/generated-resources/things/commands/query/retrieveAclEntryResponse.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Retrieve Thing Policy ID
+
+#set( $snippetFile = "/target/generated-resources/things/commands/query/retrievePolicyIdResponse.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Retrieve Attributes
+
+#set( $snippetFile = "/target/generated-resources/things/commands/query/retrieveAttributesResponse.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Retrieve Attribute
+
+#set( $snippetFile = "/target/generated-resources/things/commands/query/retrieveAttributeResponse.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Retrieve Features
+
+#set( $snippetFile = "/target/generated-resources/things/commands/query/retrieveFeaturesResponse.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Retrieve Feature
+
+#set( $snippetFile = "/target/generated-resources/things/commands/query/retrieveFeatureResponse.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Retrieve Feature Properties
+
+#set( $snippetFile = "/target/generated-resources/things/commands/query/retrieveFeaturePropertiesResponse.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Retrieve Feature Property
+
+#set( $snippetFile = "/target/generated-resources/things/commands/query/retrieveFeaturePropertyResponse.json" )
+```
+#parse( "snippet" )
+```

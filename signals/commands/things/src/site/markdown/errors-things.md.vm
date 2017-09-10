@@ -1,0 +1,230 @@
+#set( $h1 = '#' )
+#set( $h2 = '##' )
+#set( $h3 = '###' )
+#set( $snippetName = "" )
+
+$h3 API Token invalid
+
+#set( $snippetFile = "/target/generated-resources/things/errors/apiTokenInvalidException.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Thing ID Invalid
+
+#set( $snippetFile = "/target/generated-resources/things/errors/thingIdInvalidException.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Thing Id Not Explicitily Settable
+
+For HTTP POST requests:
+
+#set( $snippetFile = "/target/generated-resources/things/errors/thingIdNotExplicitlySettableException_post.json" )
+```
+#parse( "snippet" )
+```
+
+For HTTP PUT requests:
+
+#set( $snippetFile = "/target/generated-resources/things/errors/thingIdNotExplicitlySettableException_put.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Thing Conflict
+
+#set( $snippetFile = "/target/generated-resources/things/errors/thingConflictException.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Thing Not Accessible
+
+#set( $snippetFile = "/target/generated-resources/things/errors/thingNotAccessibleException.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Thing Not Creatable
+
+#set( $snippetFile = "/target/generated-resources/things/errors/thingNotCreatableException.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Thing Not Modifiable
+
+#set( $snippetFile = "/target/generated-resources/things/errors/thingNotModifiableException.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Thing Not Deletable
+
+#set( $snippetFile = "/target/generated-resources/things/errors/thingNotDeletableException.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Thing Too Many Modifying Requests Error
+
+#set( $snippetFile = "/target/generated-resources/things/errors/thingTooManyModifyingRequestsException.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Thing Unavailable Error
+
+#set( $snippetFile = "/target/generated-resources/things/errors/thingUnavailableException.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 ACL Invalid
+
+#set( $snippetFile = "/target/generated-resources/things/errors/aclInvalidException.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 ACL Entry Invalid
+
+#set( $snippetFile = "/target/generated-resources/things/errors/aclEntryInvalidException.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 ACL Not Allowed
+
+#set( $snippetFile = "/target/generated-resources/things/errors/aclNotAllowedException.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 ACL Modification Invalid
+
+#set( $snippetFile = "/target/generated-resources/things/errors/aclModificationInvalidException.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 ACL Not Accessible
+
+#set( $snippetFile = "/target/generated-resources/things/errors/aclNotAccessibleException.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 ACL Not Modifiable
+
+#set( $snippetFile = "/target/generated-resources/things/errors/aclNotModifiableException.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Policy ID Not Modifiable
+
+#set( $snippetFile = "/target/generated-resources/things/errors/policyIdNotModifiableException.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Policy ID Not Allowed
+
+#set( $snippetFile = "/target/generated-resources/things/errors/policyIdNotAllowedException.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Policy Not Allowed
+
+#set( $snippetFile = "/target/generated-resources/things/errors/policyNotAllowedException.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Attributes Not Accessible
+
+#set( $snippetFile = "/target/generated-resources/things/errors/attributesNotAccessibleException.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Attributes Not Modifiable
+
+#set( $snippetFile = "/target/generated-resources/things/errors/attributesNotModifiableException.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Attribute Not Accessible
+
+#set( $snippetFile = "/target/generated-resources/things/errors/attributeNotAccessibleException.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Attribute Not Modifiable
+
+#set( $snippetFile = "/target/generated-resources/things/errors/attributeNotModifiableException.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Features Not Accessible
+
+#set( $snippetFile = "/target/generated-resources/things/errors/featuresNotAccessibleException.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Features Not Modifiable
+
+#set( $snippetFile = "/target/generated-resources/things/errors/featuresNotModifiableException.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Feature Not Accessible
+
+#set( $snippetFile = "/target/generated-resources/things/errors/featureNotAccessibleException.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Feature Not Modifiable
+
+#set( $snippetFile = "/target/generated-resources/things/errors/featureNotModifiableException.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Feature Properties Not Accessible
+
+#set( $snippetFile = "/target/generated-resources/things/errors/featurePropertiesNotAccessibleException.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Feature Properties Not Modifiable
+
+#set( $snippetFile = "/target/generated-resources/things/errors/featurePropertiesNotModifiableException.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Feature Property Not Accessible
+
+#set( $snippetFile = "/target/generated-resources/things/errors/featurePropertyNotAccessibleException.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Feature Property Not Modifiable
+
+#set( $snippetFile = "/target/generated-resources/things/errors/featurePropertyNotModifiableException.json" )
+```
+#parse( "snippet" )
+```

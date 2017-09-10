@@ -1,0 +1,10 @@
+.checkstyle
+.classpath
+.idea
+*.iml
+.project
+.settings
+.metadata
+target/
+/ditto_all_dependencies/
+dependencies.txt

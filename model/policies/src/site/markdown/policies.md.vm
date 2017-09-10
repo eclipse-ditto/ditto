@@ -1,0 +1,16 @@
+#set( $h1 = '#' )
+#set( $h2 = '##' )
+#set( $h3 = '###' )
+#set( $h4 = '####' )
+#set( $snippetName = "" )
+
+These are example JSONs for the entities relating to Policies.
+
+$h2 Policy
+
+$h4 Example Policy
+
+#set( $snippetFile = "/target/generated-resources/model/policy.json" )
+```
+#parse( "snippet" )
+```

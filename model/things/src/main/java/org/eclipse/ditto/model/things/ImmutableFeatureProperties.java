@@ -1,0 +1,297 @@
+/*
+ * Copyright (c) 2017 Bosch Software Innovations GmbH.
+ *
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License v2.0
+ * which accompanies this distribution, and is available at
+ * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ *
+ * Contributors:
+ *    Bosch Software Innovations GmbH - initial contribution
+ */
+package org.eclipse.ditto.model.things;
+
+import static org.eclipse.ditto.json.JsonFactory.newKey;
+import static org.eclipse.ditto.json.JsonFactory.newValue;
+
+import java.util.Iterator;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
+import java.util.stream.Stream;
+
+import javax.annotation.concurrent.Immutable;
+
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonCollectors;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonKey;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.common.ConditionChecker;
+import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+
+/**
+ * An immutable implementation of {@link FeatureProperties}.
+ */
+@Immutable
+final class ImmutableFeatureProperties implements FeatureProperties {
+
+    private final JsonObject wrapped;
+
+    private ImmutableFeatureProperties(final JsonObject toWrap) {
+        wrapped = toWrap;
+    }
+
+    /**
+     * Returns an new empty instance of {@code ImmutableFeatureProperties}.
+     *
+     * @return the new empty properties.
+     */
+    public static FeatureProperties empty() {
+        return new ImmutableFeatureProperties(JsonFactory.newObject());
+    }
+
+    /**
+     * Returns a new instance of {@code ImmutableFeatureProperties} which is initialized with the data of the given JSON
+     * object.
+     *
+     * @param jsonObject provides the data to initialize the new properties with.
+     * @return the new properties.
+     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     */
+    public static FeatureProperties of(final JsonObject jsonObject) {
+        ConditionChecker.checkNotNull(jsonObject, "JSON object");
+
+        if (jsonObject instanceof ImmutableFeatureProperties) {
+            return (FeatureProperties) jsonObject;
+        }
+        return new ImmutableFeatureProperties(jsonObject);
+    }
+
+    @Override
+    public boolean isBoolean() {
+        return wrapped.isBoolean();
+    }
+
+    @Override
+    public boolean isNumber() {
+        return wrapped.isNumber();
+    }
+
+    @Override
+    public boolean isString() {
+        return wrapped.isString();
+    }
+
+    @Override
+    public boolean isObject() {
+        return wrapped.isObject();
+    }
+
+    @Override
+    public boolean isArray() {
+        return wrapped.isArray();
+    }
+
+    @Override
+    public boolean isNull() {
+        return wrapped.isNull();
+    }
+
+    @Override
+    public boolean asBoolean() {
+        return wrapped.asBoolean();
+    }
+
+    @Override
+    public int asInt() {
+        return wrapped.asInt();
+    }
+
+    @Override
+    public long asLong() {
+        return wrapped.asLong();
+    }
+
+    @Override
+    public double asDouble() {
+        return wrapped.asDouble();
+    }
+
+    @Override
+    public String asString() {
+        return wrapped.asString();
+    }
+
+    @Override
+    public JsonObject asObject() {
+        return wrapped.asObject();
+    }
+
+    @Override
+    public JsonArray asArray() {
+        return wrapped.asArray();
+    }
+
+    @Override
+    public FeatureProperties setValue(final CharSequence key, final int value) {
+        return setValue(key, newValue(value));
+    }
+
+    @Override
+    public FeatureProperties setValue(final CharSequence key, final long value) {
+        return setValue(key, newValue(value));
+    }
+
+    @Override
+    public FeatureProperties setValue(final CharSequence key, final double value) {
+        return setValue(key, newValue(value));
+    }
+
+    @Override
+    public FeatureProperties setValue(final CharSequence key, final boolean value) {
+        return setValue(key, newValue(value));
+    }
+
+    @Override
+    public FeatureProperties setValue(final CharSequence key, final String value) {
+        return setValue(key, newValue(value));
+    }
+
+    @Override
+    public FeatureProperties setValue(final CharSequence key, final JsonValue value) {
+        return determineResult(() -> wrapped.setValue(key, value));
+    }
+
+    @Override
+    public JsonObject set(final JsonFieldDefinition fieldDefinition, final JsonValue value) {
+        return determineResult(() -> wrapped.set(fieldDefinition, value));
+    }
+
+    @Override
+    public FeatureProperties set(final JsonField field) {
+        return determineResult(() -> wrapped.set(field));
+    }
+
+    @Override
+    public FeatureProperties setAll(final Iterable<JsonField> jsonFields) {
+        return determineResult(() -> wrapped.setAll(jsonFields));
+    }
+
+    @Override
+    public boolean contains(final CharSequence key) {
+        return wrapped.contains(key);
+    }
+
+    @Override
+    public Optional<JsonValue> getValue(final CharSequence key) {
+        return wrapped.getValue(key);
+    }
+
+    @Override
+    public JsonObject get(final JsonPointer pointer) {
+        return wrapped.get(pointer);
+    }
+
+    @Override
+    public JsonObject get(final JsonFieldDefinition fieldDefinition) {
+        return wrapped.get(fieldDefinition);
+    }
+
+    @Override
+    public Optional<JsonValue> getValue(final JsonFieldDefinition fieldDefinition) {
+        return wrapped.getValue(fieldDefinition);
+    }
+
+    @Override
+    public JsonObject get(final JsonFieldSelector fieldSelector) {
+        return wrapped.get(fieldSelector);
+    }
+
+    @Override
+    public FeatureProperties remove(final CharSequence index) {
+        return determineResult(() -> wrapped.remove(newKey(index)));
+    }
+
+    @Override
+    public List<JsonKey> getKeys() {
+        return wrapped.getKeys();
+    }
+
+    @Override
+    public Optional<JsonField> getField(final CharSequence index) {
+        return wrapped.getField(index);
+    }
+
+    @Override
+    public boolean isEmpty() {
+        return wrapped.isEmpty();
+    }
+
+    @Override
+    public int getSize() {
+        return wrapped.getSize();
+    }
+
+    @Override
+    public Iterator<JsonField> iterator() {
+        return wrapped.iterator();
+    }
+
+    @Override
+    public Stream<JsonField> stream() {
+        return wrapped.stream();
+    }
+
+    @SuppressWarnings({"squid:MethodCyclomaticComplexity", "squid:S1067"})
+    @Override
+    public boolean equals(final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        final ImmutableFeatureProperties that = (ImmutableFeatureProperties) o;
+        return Objects.equals(wrapped, that.wrapped);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(wrapped);
+    }
+
+    @Override
+    public JsonObject toJson() {
+        return this;
+    }
+
+    @Override
+    public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
+        final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
+        return stream() //
+                .filter(field -> !field.getDefinition().isPresent() || predicate.test(field)) //
+                .collect(JsonCollectors.fieldsToObject());
+    }
+
+    @Override
+    public String toString() {
+        return wrapped.toString();
+    }
+
+    private FeatureProperties determineResult(final Supplier<JsonObject> newWrappedSupplier) {
+        final JsonObject newWrapped = newWrappedSupplier.get();
+        if (!newWrapped.equals(wrapped)) {
+            return of(newWrapped);
+        }
+        return this;
+    }
+
+}

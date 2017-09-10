@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) 2017 Bosch Software Innovations GmbH.
+  ~
+  ~ All rights reserved. This program and the accompanying materials
+  ~ are made available under the terms of the Eclipse Public License v2.0
+  ~ which accompanies this distribution, and is available at
+  ~ https://www.eclipse.org/org/documents/epl-2.0/index.php
+  ~
+  ~ Contributors:
+  ~    Bosch Software Innovations GmbH - initial contribution
+  -->
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.eclipse.ditto.services.thingsearch</groupId>
+        <artifactId>ditto-services-thingsearch</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>ditto-services-thingsearch-persistence</artifactId>
+    <name>Eclipse Ditto :: Services :: Thing Search :: Persistence</name>
+
+    <properties>
+        <search.persistence.test.activeRandomPort>true</search.persistence.test.activeRandomPort>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>ditto-services-thingsearch-common</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>ditto-services-thingsearch-query-model</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.eclipse.ditto.model</groupId>
+            <artifactId>ditto-model-base</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto.model</groupId>
+            <artifactId>ditto-model-policies</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto.model</groupId>
+            <artifactId>ditto-model-policies-enforcers</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto.model</groupId>
+            <artifactId>ditto-model-things</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto.model</groupId>
+            <artifactId>ditto-model-thingsearch</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.eclipse.ditto.signals.commands</groupId>
+            <artifactId>ditto-signals-commands-base</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto.signals.commands</groupId>
+            <artifactId>ditto-signals-commands-thingsearch</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.eclipse.ditto.signals.events</groupId>
+            <artifactId>ditto-signals-events-things</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.eclipse.ditto.services.models</groupId>
+            <artifactId>ditto-services-models-policies</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto.services.models</groupId>
+            <artifactId>ditto-services-models-thingsearch</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.eclipse.ditto.services.utils</groupId>
+            <artifactId>ditto-services-utils-cluster</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto.services.utils</groupId>
+            <artifactId>ditto-services-utils-health</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.typesafe.akka</groupId>
+            <artifactId>akka-stream_${scala.version}</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.mongodb</groupId>
+            <artifactId>mongodb-driver-reactivestreams</artifactId>
+        </dependency>
+
+        <!-- Test -->
+        <dependency>
+            <groupId>org.eclipse.ditto.json</groupId>
+            <artifactId>ditto-json</artifactId>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto.model</groupId>
+            <artifactId>ditto-model-base</artifactId>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.eclipse.ditto.services.utils</groupId>
+            <artifactId>ditto-services-utils-test</artifactId>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.typesafe.akka</groupId>
+            <artifactId>akka-testkit_${scala.version}</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.typesafe.akka</groupId>
+            <artifactId>akka-stream-testkit_${scala.version}</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.typesafe.akka</groupId>
+            <artifactId>akka-slf4j_${scala.version}</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>de.flapdoodle.embed</groupId>
+            <artifactId>de.flapdoodle.embed.mongo</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.sonatype.plugins</groupId>
+                <artifactId>port-allocator-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>allocate-ports</goal>
+                        </goals>
+                        <configuration>
+                            <ports>
+                                <port>
+                                    <name>random-akka-tcp-port</name>
+                                </port>
+                            </ports>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <configuration>
+                        <systemPropertyVariables>
+                            <ACTIVE_RANDOM_PORT>
+                                ${search.persistence.test.activeRandomPort}
+                            </ACTIVE_RANDOM_PORT>
+                            <RANDOM_TEST_PORT>${random-akka-tcp-port}</RANDOM_TEST_PORT>
+                        </systemPropertyVariables>
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
+
+</project>

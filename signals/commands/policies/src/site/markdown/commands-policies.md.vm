@@ -1,0 +1,9 @@
+#set( $h1 = '#' )
+#set( $h2 = '##' )
+#set( $h3 = '###' )
+#set( $snippetName = "" )
+
+These are the commands *for Policies*.
+
+* <a href="commands-policies-query.html">Commands for retrieving Policies</a>
+* <a href="commands-policies-modify.html">Commands for modifying Policies</a>

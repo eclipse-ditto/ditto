@@ -1,0 +1,17 @@
+{
+  "_id": "&rand_string&",
+  "attributes": [
+    {
+      "k": "myKey",
+      "v": "&rand_string&"
+    },
+    {
+      "k": "myKey2",
+      "v": "&rand_string&"
+    },
+    {
+      "k": "myKey3",
+      "v": "&rand_string&"
+    }
+  ]
+}

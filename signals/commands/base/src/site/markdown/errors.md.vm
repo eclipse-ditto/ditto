@@ -1,0 +1,20 @@
+#set( $h1 = '#' )
+#set( $h2 = '##' )
+#set( $h3 = '###' )
+#set( $snippetName = "" )
+
+Ditto publishes JSON based Errors in response to <a href="commands.html">Commands</a> in case any Error occured.
+
+$h2 Errors
+
+The Error JSON always includes following fields:
+
+* `status` the Error's status code (HTTP based), e.g. `404`
+* `error` the Error's String ID
+* `message` the Error's message
+* `description` the Error's detailed description, containing a hint how to resolve it
+
+These are the available Errors:
+
+* <a href="errors-json.html">Errors related to JSON</a>
+* <a href="errors-gateway.html">Errors emitted by API Gateway</a>

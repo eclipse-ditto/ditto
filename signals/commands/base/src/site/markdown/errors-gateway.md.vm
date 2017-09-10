@@ -1,0 +1,76 @@
+#set( $h1 = '#' )
+#set( $h2 = '##' )
+#set( $h3 = '###' )
+#set( $snippetName = "" )
+
+$h3 API Token Invalid
+
+#set( $snippetFile = "/target/generated-resources/gateway/errors/gatewayApiTokenInvalidException.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Authentication Failed
+
+#set( $snippetFile = "/target/generated-resources/gateway/errors/gatewayAuthenticationFailedException.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Authentication Prodider Unavailable
+
+#set( $snippetFile =
+    "/target/generated-resources/gateway/errors/gatewayAuthenticationProviderUnavailableException.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Bad Gateway
+
+#set( $snippetFile = "/target/generated-resources/gateway/errors/gatewayBadGatewayException.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Internal Error
+
+#set( $snippetFile = "/target/generated-resources/gateway/errors/gatewayInternalErrorException.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Key Prodider Unavailable
+
+#set( $snippetFile = "/target/generated-resources/gateway/errors/gatewayKeyProviderUnavailableException.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Method Not Allowed
+
+#set( $snippetFile = "/target/generated-resources/gateway/errors/gatewayMethodNotAllowedException.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Service Timeout
+
+#set( $snippetFile = "/target/generated-resources/gateway/errors/gatewayServiceTimeoutException.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Service Unavailable
+
+#set( $snippetFile = "/target/generated-resources/gateway/errors/gatewayServiceUnavailableException.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Service Too Many Requests
+
+#set( $snippetFile = "/target/generated-resources/gateway/errors/gatewayServiceTooManyRequestsException.json" )
+```
+#parse( "snippet" )
+```
+

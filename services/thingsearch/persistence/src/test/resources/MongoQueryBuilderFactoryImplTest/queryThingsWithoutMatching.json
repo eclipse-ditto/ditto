@@ -1,0 +1,153 @@
+[
+  {
+    "$match": {
+      "$or": [
+        {
+          "__internal.gr": {
+            "$in": [
+              "u1"
+            ]
+          }
+        },
+        {
+          "__internal.acl": {
+            "$in": [
+              "u1"
+            ]
+          }
+        }
+      ],
+      "__deleted": {
+        "$exists": false
+      },
+      "$nor": [
+        {
+          "__internal": {
+            "$elemMatch": {
+              "k": "attribute/myKey",
+              "v": "notMatched"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "$unwind": {
+      "path": "$_id",
+      "preserveNullAndEmptyArrays": true
+    }
+  },
+  {
+    "$sort": {
+      "_id": 1
+    }
+  },
+  {
+    "$unwind": "$__internal"
+  },
+  {
+    "$match": {
+      "$nor": [
+        {
+          "__internal.k": "attribute/myKey",
+          "__internal.v": "notMatched"
+        }
+      ]
+    }
+  },
+  {
+    "$project": {
+      "policyIndexId": {
+        "$concat": [
+          "$_id",
+          ":",
+          {
+            "$ifNull": [
+              "$__internal.f",
+              ""
+            ]
+          },
+          {
+            "$ifNull": [
+              "$__internal.k",
+              ""
+            ]
+          }
+        ]
+      },
+      "attributes": true,
+      "features": true,
+      "__internal": true,
+      "__deleted": true,
+      "__rev": true
+    }
+  },
+  {
+    "$lookup": {
+      "from": "policiesBasedSearchIndex",
+      "localField": "policyIndexId",
+      "foreignField": "_id",
+      "as": "grants"
+    }
+  },
+  {
+    "$unwind": {
+      "path": "$grants",
+      "preserveNullAndEmptyArrays": true
+    }
+  },
+  {
+    "$match": {
+      "$or": [
+        {
+          "$or": [
+            {
+              "__internal.k": {
+                "$regex": "^attribute/myKey(/|\\z)",
+                "$options": ""
+              },
+              "grants.resource": {
+                "$regex": "^attribute/myKey(/|\\z)",
+                "$options": ""
+              },
+              "grants.granted": {
+                "$in": [
+                  "u1"
+                ]
+              },
+              "grants.revoked": {
+                "$not": {
+                  "$in": [
+                    "u1"
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "grants": null
+        },
+        {
+          "__internal.gr": {
+            "$exists": true
+          }
+        },
+        {
+          "__internal.acl": {
+            "$exists": true
+          }
+        }
+      ]
+    }
+  },
+  {
+    "$project": {
+      "_id": "$_id",
+      "__internal": "$__internal",
+      "__deleted": true,
+      "__rev": true
+    }
+  }
+]

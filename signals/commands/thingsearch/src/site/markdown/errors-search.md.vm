@@ -1,0 +1,18 @@
+#set( $h1 = '#' )
+#set( $h2 = '##' )
+#set( $h3 = '###' )
+#set( $snippetName = "" )
+
+$h3 Invalid Filter
+
+#set( $snippetFile = "/target/generated-resources/search/errors/invalidFilterException.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Invalid Option
+
+#set( $snippetFile = "/target/generated-resources/search/errors/invalidOptionException.json" )
+```
+#parse( "snippet" )
+```

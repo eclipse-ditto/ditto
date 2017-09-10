@@ -1,0 +1,137 @@
+#set( $h1 = '#' )
+#set( $h2 = '##' )
+#set( $h3 = '###' )
+#set( $snippetName = "" )
+
+$h3 Create Thing
+
+#set( $snippetFile = "/target/generated-resources/things/commands/modify/createThing.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Modify Thing
+
+#set( $snippetFile = "/target/generated-resources/things/commands/modify/modifyThing.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Delete Thing
+
+#set( $snippetFile = "/target/generated-resources/things/commands/modify/deleteThing.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Modify Thing ACL
+
+#set( $snippetFile = "/target/generated-resources/things/commands/modify/modifyAcl.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Modify Thing ACL Entry
+
+#set( $snippetFile = "/target/generated-resources/things/commands/modify/modifyAclEntry.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Delete Thing ACL Entry
+
+#set( $snippetFile = "/target/generated-resources/things/commands/modify/deleteAclEntry.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Modify Thing Policy ID
+
+#set( $snippetFile = "/target/generated-resources/things/commands/modify/modifyPolicyId.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Modify Thing Attributes
+
+#set( $snippetFile = "/target/generated-resources/things/commands/modify/modifyAttributes.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Modify Thing Attribute
+
+#set( $snippetFile = "/target/generated-resources/things/commands/modify/modifyAttribute.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Delete Thing Attributes
+
+#set( $snippetFile = "/target/generated-resources/things/commands/modify/deleteAttributes.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Delete Thing Attribute
+
+#set( $snippetFile = "/target/generated-resources/things/commands/modify/deleteAttribute.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Modify Features
+
+#set( $snippetFile = "/target/generated-resources/things/commands/modify/modifyFeatures.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Modify Feature
+
+#set( $snippetFile = "/target/generated-resources/things/commands/modify/modifyFeature.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Delete Feature
+
+#set( $snippetFile = "/target/generated-resources/things/commands/modify/deleteFeature.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Delete Features
+
+#set( $snippetFile = "/target/generated-resources/things/commands/modify/deleteFeatures.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Modify Feature Properties
+
+#set( $snippetFile = "/target/generated-resources/things/commands/modify/modifyFeatureProperties.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Modify Feature Property
+
+#set( $snippetFile = "/target/generated-resources/things/commands/modify/modifyFeatureProperty.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Delete Feature Properties
+
+#set( $snippetFile = "/target/generated-resources/things/commands/modify/deleteFeatureProperties.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Delete Feature Property
+
+#set( $snippetFile = "/target/generated-resources/things/commands/modify/deleteFeatureProperty.json" )
+```
+#parse( "snippet" )
+```
