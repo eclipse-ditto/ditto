@@ -20,6 +20,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -34,8 +35,13 @@ final class ImmutableJsonPointer implements JsonPointer {
 
     private static final String SLASH = "/";
     private static final String SLASH_REGEX = "/(?!/)"; // a SLASH which is not followed by another slash
+    private static final Pattern SINGLE_SLASH_REGEX_PATTERN = Pattern.compile(SLASH_REGEX);
+    private static final Pattern ESCAPED_SLASH_PATTERN = Pattern.compile("~1");
+    private static final Pattern DECODED_SLASH_PATTERN = Pattern.compile(SLASH);
+    private static final Pattern ESCAPED_TILDE_PATTERN = Pattern.compile("~0");
+    private static final Pattern DECODED_TILDE_PATTERN = Pattern.compile("~");
+
     private static final ImmutableJsonPointer EMPTY = new ImmutableJsonPointer(Collections.emptyList());
-    private static final Pattern PATTERN = Pattern.compile(SLASH_REGEX);
 
     private final List<JsonKey> jsonKeyHierarchy;
 
@@ -56,7 +62,8 @@ final class ImmutableJsonPointer implements JsonPointer {
      * Parses the given character sequence to obtain a new JSON pointer instance. This method is the inverse of
      * {@link ImmutableJsonPointer#toString()}.
      *
-     * @param slashDelimitedCharSequence a character sequence representing a JSON pointer.
+     * @param slashDelimitedCharSequence a character sequence representing a JSON pointer. The leading slash may be
+     * omitted.
      * @return a new JSON pointer consisting of the JSON keys which were extracted from {@code
      * slashDelimitedCharSequence}.
      * @throws NullPointerException if {@code slashDelimitedCharSequence} is {@code null}.
@@ -64,22 +71,40 @@ final class ImmutableJsonPointer implements JsonPointer {
     public static JsonPointer ofParsed(final CharSequence slashDelimitedCharSequence) {
         requireNonNull(slashDelimitedCharSequence, "The JSON pointer character sequence must not be null!");
 
-        if (slashDelimitedCharSequence instanceof JsonPointer) {
-            return (JsonPointer) slashDelimitedCharSequence;
+        final JsonPointer result;
+
+        if (JsonPointer.class.isAssignableFrom(slashDelimitedCharSequence.getClass())) {
+            result = (JsonPointer) slashDelimitedCharSequence;
+        } else if (JsonKey.class.isAssignableFrom(slashDelimitedCharSequence.getClass())) {
+            result = newInstance(Collections.singletonList(((JsonKey) slashDelimitedCharSequence)));
         } else if (0 == slashDelimitedCharSequence.length()) {
-            return empty();
+            result = empty();
+        } else {
+            final List<JsonKey> jsonKeys = Stream.of(SINGLE_SLASH_REGEX_PATTERN.split(slashDelimitedCharSequence))
+                    .filter(keyName -> !keyName.isEmpty()) // ignore empty segments
+                    .filter(keyName -> !keyName.equals(SLASH)) // ignore "/" segments
+                    .map(ImmutableJsonPointer::decodeSlash)
+                    .map(ImmutableJsonPointer::decodeTilde)
+                    .map(JsonFactory::newKey)
+                    .collect(toList());
+
+            result = newInstance(jsonKeys);
         }
 
-        final List<JsonKey> jsonKeys = Stream.of(PATTERN.split(slashDelimitedCharSequence.toString()))
-                .filter(keyName -> !keyName.isEmpty()) // ignore empty segments
-                .filter(keyName -> !keyName.equals(SLASH)) // ignore "/" segments
-                .map(ImmutableJsonKey::of)
-                .collect(toList());
-
-        return getAppropriatePointerImplementation(jsonKeys);
+        return result;
     }
 
-    private static JsonPointer getAppropriatePointerImplementation(final List<JsonKey> jsonKeyHierarchy) {
+    private static String decodeSlash(final CharSequence keyString) {
+        final Matcher matcher = ESCAPED_SLASH_PATTERN.matcher(keyString);
+        return matcher.replaceAll(SLASH);
+    }
+
+    private static String decodeTilde(final CharSequence keyString) {
+        final Matcher matcher = ESCAPED_TILDE_PATTERN.matcher(keyString);
+        return matcher.replaceAll(DECODED_TILDE_PATTERN.toString());
+    }
+
+    private static ImmutableJsonPointer newInstance(final List<JsonKey> jsonKeyHierarchy) {
         return new ImmutableJsonPointer(jsonKeyHierarchy);
     }
 
@@ -91,18 +116,18 @@ final class ImmutableJsonPointer implements JsonPointer {
      * @return a new JSON pointer consisting of hierarchical JSON keys.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static JsonPointer of(final JsonKey rootLevel, final JsonKey... subLevels) {
+    public static ImmutableJsonPointer of(final JsonKey rootLevel, final JsonKey... subLevels) {
         checkRootLevel(rootLevel);
-        requireNonNull(subLevels, "The sub levels must not be null."
+        requireNonNull(subLevels, "The sub levels must not be null!"
                 + " If the JSON pointer does not require sub levels, just omit this argument.");
 
-        final JsonPointer result;
+        final ImmutableJsonPointer result;
 
         final List<JsonKey> keyHierarchy = new ArrayList<>(1 + subLevels.length);
         keyHierarchy.add(rootLevel);
         Collections.addAll(keyHierarchy, subLevels);
 
-        result = new ImmutableJsonPointer(keyHierarchy);
+        result = newInstance(keyHierarchy);
 
         return result;
     }
@@ -119,17 +144,17 @@ final class ImmutableJsonPointer implements JsonPointer {
      * @return a new JSON pointer consisting of hierarchical JSON keys.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    static JsonPointer of(final JsonKey rootLevel, final JsonPointer subPointer) {
+    static ImmutableJsonPointer of(final JsonKey rootLevel, final JsonPointer subPointer) {
         checkRootLevel(rootLevel);
         checkSubPointer(subPointer);
 
-        final JsonPointer result;
+        final ImmutableJsonPointer result;
 
         final List<JsonKey> keyHierarchy = new ArrayList<>(1 + subPointer.getLevelCount());
         keyHierarchy.add(rootLevel);
         subPointer.forEach(keyHierarchy::add);
 
-        result = new ImmutableJsonPointer(keyHierarchy);
+        result = newInstance(keyHierarchy);
 
         return result;
     }
@@ -147,26 +172,27 @@ final class ImmutableJsonPointer implements JsonPointer {
      * @throws NullPointerException if {@code jsonField} is {@code null}.
      */
     @Override
-    public JsonPointer addLeaf(final JsonKey key) {
-        requireNonNull(key, "The JSON field of the new level must not be null!");
+    public ImmutableJsonPointer addLeaf(final JsonKey key) {
+        requireNonNull(key, "The level to be added must not be null!");
 
         final List<JsonKey> newJsonKeys = new ArrayList<>(jsonKeyHierarchy);
         newJsonKeys.add(key);
-        return new ImmutableJsonPointer(newJsonKeys);
+
+        return newInstance(newJsonKeys);
     }
 
     @Override
-    public JsonPointer append(final JsonPointer subPointer) {
+    public ImmutableJsonPointer append(final JsonPointer subPointer) {
         checkSubPointer(subPointer);
 
-        final JsonPointer result;
+        final ImmutableJsonPointer result;
 
         if (subPointer.isEmpty()) {
             result = this;
         } else {
             final List<JsonKey> newJsonKeys = new ArrayList<>(jsonKeyHierarchy);
             subPointer.forEach(newJsonKeys::add);
-            result = new ImmutableJsonPointer(newJsonKeys);
+            result = newInstance(newJsonKeys);
         }
 
         return result;
@@ -213,7 +239,7 @@ final class ImmutableJsonPointer implements JsonPointer {
         final List<JsonKey> jsonKeysCopy = new ArrayList<>(jsonKeyHierarchy);
         try {
             final List<JsonKey> subList = jsonKeysCopy.subList(level, jsonKeysCopy.size());
-            return Optional.of(getAppropriatePointerImplementation(subList));
+            return Optional.of(newInstance(subList));
         } catch (final IllegalArgumentException | IndexOutOfBoundsException e) {
             return Optional.empty();
         }
@@ -225,29 +251,25 @@ final class ImmutableJsonPointer implements JsonPointer {
 
         try {
             final List<JsonKey> subList = jsonKeysCopy.subList(0, level);
-            return Optional.of(getAppropriatePointerImplementation(subList));
+            return Optional.of(newInstance(subList));
         } catch (final IllegalArgumentException | IndexOutOfBoundsException e) {
             return Optional.empty();
         }
     }
 
     @Override
-    public JsonPointer cutLeaf() {
-        JsonPointer result = this;
+    public ImmutableJsonPointer cutLeaf() {
+        ImmutableJsonPointer result = this;
         if (!isEmpty()) {
             final List<JsonKey> subList = jsonKeyHierarchy.subList(0, getLevelCount() - 1);
-            result = getAppropriatePointerImplementation(subList);
+            result = newInstance(subList);
         }
         return result;
     }
 
     @Override
     public JsonPointer nextLevel() {
-        JsonPointer result = this;
-        if (!isEmpty()) {
-            result = getSubPointer(1).get();
-        }
-        return result;
+        return getSubPointer(1).orElse(this);
     }
 
     @Override
@@ -310,10 +332,22 @@ final class ImmutableJsonPointer implements JsonPointer {
             stringRepresentation = SLASH;
         } else {
             stringRepresentation = SLASH + jsonKeyHierarchy.stream()
-                    .map(JsonKey::toString)
+                    .map(ImmutableJsonPointer::escapeTilde)
+                    .map(ImmutableJsonPointer::escapeSlash)
                     .collect(Collectors.joining(SLASH));
         }
         return stringRepresentation;
+    }
+
+    private static String escapeTilde(final JsonKey jsonKey) {
+        final String keyString = jsonKey.toString();
+        final Matcher matcher = DECODED_TILDE_PATTERN.matcher(keyString);
+        return matcher.replaceAll(ESCAPED_TILDE_PATTERN.toString());
+    }
+
+    private static String escapeSlash(final CharSequence jsonKeyString) {
+        final Matcher matcher = DECODED_SLASH_PATTERN.matcher(jsonKeyString);
+        return matcher.replaceAll(ESCAPED_SLASH_PATTERN.toString());
     }
 
 }

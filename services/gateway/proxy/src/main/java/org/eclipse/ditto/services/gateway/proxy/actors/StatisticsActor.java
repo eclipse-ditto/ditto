@@ -55,7 +55,7 @@ public final class StatisticsActor extends AbstractActor {
     /**
      * The name of this Actor in the ActorSystem.
      */
-    static final String ACTOR_NAME = "statistics";
+    public static final String ACTOR_NAME = "statistics";
 
     private static final String SR_THING = "thing";
     private static final String SR_POLICY = "policy";

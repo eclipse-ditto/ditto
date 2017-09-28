@@ -188,7 +188,7 @@ public final class FeaturePropertyModified extends AbstractThingEvent<FeaturePro
     @Override
     public JsonPointer getResourcePath() {
         final String path = "/features/" + featureId + "/properties" + propertyPointer;
-        return JsonPointer.newInstance(path);
+        return JsonPointer.of(path);
     }
 
     @Override

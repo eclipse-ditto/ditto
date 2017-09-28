@@ -161,14 +161,14 @@ public final class ClusterStatus implements Jsonifiable<JsonObject> {
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
 
         jsonObjectBuilder.set(JSON_KEY_REACHABLE,
-                reachable.stream().map(JsonValue::newInstance).collect(JsonCollectors.valuesToArray()));
+                reachable.stream().map(JsonValue::of).collect(JsonCollectors.valuesToArray()));
         jsonObjectBuilder.set(JSON_KEY_UNREACHABLE,
-                unreachable.stream().map(JsonValue::newInstance).collect(JsonCollectors.valuesToArray()));
+                unreachable.stream().map(JsonValue::of).collect(JsonCollectors.valuesToArray()));
         jsonObjectBuilder.set(JSON_KEY_SEEN_BY,
-                seenBy.stream().map(JsonValue::newInstance).collect(JsonCollectors.valuesToArray()));
+                seenBy.stream().map(JsonValue::of).collect(JsonCollectors.valuesToArray()));
         jsonObjectBuilder.set(JSON_KEY_LEADER, getLeader().orElse("<unknown>"));
         jsonObjectBuilder.set(JSON_KEY_OWN_ROLES,
-                ownRoles.stream().map(JsonValue::newInstance).collect(JsonCollectors.valuesToArray()));
+                ownRoles.stream().map(JsonValue::of).collect(JsonCollectors.valuesToArray()));
 
         final JsonObjectBuilder rolesObjectBuilder = JsonFactory.newObjectBuilder();
         roles.stream().forEach(roleStatus -> {

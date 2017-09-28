@@ -22,7 +22,7 @@ import java.util.Optional;
 public interface JsonArray extends JsonValue, JsonValueContainer<JsonValue> {
 
     /**
-     * Returns a new mutable builder for a {@code JsonArray}.
+     * Returns a new mutable builder with a fluent API for a {@code JsonArray}.
      *
      * @return a new JSON array builder.
      */
@@ -31,9 +31,9 @@ public interface JsonArray extends JsonValue, JsonValueContainer<JsonValue> {
     }
 
     /**
-     * Returns a new mutable builder for a {@code JsonArray}. The returned builder is already initialised with the data
-     * of the this JSON array. This method is useful if an existing JSON array should be strongly modified but the
-     * amount of creating objects should be kept low at the same time.
+     * Returns a new mutable builder with a fluent API for a {@code JsonArray}. The returned builder is already
+     * initialised with the data of the this JSON array. This method is useful if an existing JSON array should be
+     * strongly modified but the amount of creating objects should be kept low at the same time.
      *
      * @return a new JSON array builder with pre-filled data of this JSON array.
      */
@@ -134,5 +134,10 @@ public interface JsonArray extends JsonValue, JsonValueContainer<JsonValue> {
      * @throws NullPointerException if {@code value} is {@code null}.
      */
     int indexOf(JsonValue value);
+
+    @Override
+    default boolean isRepresentationOfJavaType(final Class<?> expectedType) {
+        return JsonValue.class == expectedType || JsonArray.class.isAssignableFrom(expectedType);
+    }
 
 }

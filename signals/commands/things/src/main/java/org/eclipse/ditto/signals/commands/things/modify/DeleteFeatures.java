@@ -111,7 +111,7 @@ public final class DeleteFeatures extends AbstractCommand<DeleteFeatures>
 
     @Override
     public JsonPointer getResourcePath() {
-        return JsonPointer.newInstance("/features");
+        return JsonPointer.of("/features");
     }
 
     @Override

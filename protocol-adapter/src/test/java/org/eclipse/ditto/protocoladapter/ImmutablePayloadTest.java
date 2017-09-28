@@ -31,7 +31,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class ImmutablePayloadTest {
 
     private static final JsonPointer KNOWN_PATH = JsonPointer.empty();
-    private static final JsonValue KNOWN_VALUE = JsonValue.newInstance("foo");
+    private static final JsonValue KNOWN_VALUE = JsonValue.of("foo");
     private static final HttpStatusCode KNOWN_STATUS = HttpStatusCode.OK;
     private static final long KNOWN_REVISION = 1337;
     private static final JsonFieldSelector KNOWN_FIELDS = JsonFieldSelector.newInstance("/foo");

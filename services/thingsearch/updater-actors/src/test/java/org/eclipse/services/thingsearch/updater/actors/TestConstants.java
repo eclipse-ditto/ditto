@@ -65,7 +65,7 @@ public final class TestConstants {
         /**
          * A known resource path.
          */
-        public static final JsonPointer RESOURCE_PATH = JsonPointer.newInstance("/foo/bar");
+        public static final JsonPointer RESOURCE_PATH = JsonPointer.of("/foo/bar");
 
         /**
          * A known resource path char sequence.

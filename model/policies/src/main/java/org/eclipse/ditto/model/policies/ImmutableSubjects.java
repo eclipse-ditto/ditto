@@ -169,7 +169,7 @@ final class ImmutableSubjects implements Subjects {
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
 
         subjects.values().forEach(subject -> {
-            final JsonKey key = JsonKey.newInstance(subject.getId());
+            final JsonKey key = JsonKey.of(subject.getId());
             final JsonValue value = subject.toJson(schemaVersion, thePredicate);
             final JsonFieldDefinition fieldDefinition =
                     JsonFactory.newFieldDefinition(key, JsonObject.class, FieldType.REGULAR, JsonSchemaVersion.V_2);

@@ -163,7 +163,7 @@ public final class ModifyPolicyEntryResponse extends AbstractCommandResponse<Mod
         }
 
         final String path = "/entries/" + policyEntryCreated.getLabel();
-        return JsonPointer.newInstance(path);
+        return JsonPointer.of(path);
     }
 
     @Override

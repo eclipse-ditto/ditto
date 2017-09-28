@@ -17,6 +17,7 @@ import java.net.URI;
 import java.text.MessageFormat;
 import java.util.function.Supplier;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 /**
@@ -62,7 +63,7 @@ public abstract class AbstractJsonExceptionBuilder<T extends JsonException> impl
     }
 
     @Override
-    public JsonExceptionBuilder<T> message(final String message) {
+    public JsonExceptionBuilder<T> message(@Nullable final String message) {
         this.message = message;
         return this;
     }
@@ -74,7 +75,7 @@ public abstract class AbstractJsonExceptionBuilder<T extends JsonException> impl
     }
 
     @Override
-    public JsonExceptionBuilder<T> description(final String description) {
+    public JsonExceptionBuilder<T> description(@Nullable final String description) {
         this.description = description;
         return this;
     }
@@ -86,7 +87,7 @@ public abstract class AbstractJsonExceptionBuilder<T extends JsonException> impl
     }
 
     @Override
-    public JsonExceptionBuilder<T> cause(final Throwable cause) {
+    public JsonExceptionBuilder<T> cause(@Nullable final Throwable cause) {
         this.cause = cause;
         return this;
     }
@@ -98,7 +99,7 @@ public abstract class AbstractJsonExceptionBuilder<T extends JsonException> impl
     }
 
     @Override
-    public JsonExceptionBuilder<T> href(final URI href) {
+    public JsonExceptionBuilder<T> href(@Nullable final URI href) {
         this.href = href;
         return this;
     }

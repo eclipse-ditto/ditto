@@ -139,7 +139,7 @@ public final class AclEntryDeleted extends AbstractThingEvent<AclEntryDeleted>
     @Override
     public JsonPointer getResourcePath() {
         final String path = "/acl/" + authorizationSubject.getId();
-        return JsonPointer.newInstance(path);
+        return JsonPointer.of(path);
     }
 
     @Override

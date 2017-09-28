@@ -23,12 +23,10 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  */
 public final class ImmutableJsonParseOptionsTest {
 
-
     @Test
     public void assertImmutability() {
         assertInstancesOf(ImmutableJsonParseOptions.class, areImmutable());
     }
-
 
     @Test
     public void testHashCodeAndEquals() {

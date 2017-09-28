@@ -150,7 +150,7 @@ public final class ModifyPolicyEntry extends AbstractCommand<ModifyPolicyEntry> 
     @Override
     public JsonPointer getResourcePath() {
         final String path = "/entries/" + policyEntry.getLabel();
-        return JsonPointer.newInstance(path);
+        return JsonPointer.of(path);
     }
 
     @Override

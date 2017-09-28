@@ -158,7 +158,7 @@ public final class ResourceDeleted extends AbstractPolicyEvent<ResourceDeleted>
     @Override
     public JsonPointer getResourcePath() {
         final String path = "/entries/" + label + "/resources/" + resourceKey.toString();
-        return JsonPointer.newInstance(path);
+        return JsonPointer.of(path);
     }
 
     @Override

@@ -79,42 +79,42 @@ final class ImmutableJsonArray extends AbstractImmutableJsonValue implements Jso
     }
 
     @Override
-    public JsonArray asArray() {
+    public ImmutableJsonArray asArray() {
         return this;
     }
 
     @Override
-    public JsonArray add(final int value, final int... furtherValues) {
+    public ImmutableJsonArray add(final int value, final int... furtherValues) {
         checkFurtherValues(furtherValues);
 
         return add(JsonFactory.newValue(value),
-                Arrays.stream(furtherValues) //
-                        .mapToObj(JsonFactory::newValue) //
+                Arrays.stream(furtherValues)
+                        .mapToObj(JsonFactory::newValue)
                         .toArray(JsonValue[]::new));
     }
 
     @Override
-    public JsonArray add(final long value, final long... furtherValues) {
+    public ImmutableJsonArray add(final long value, final long... furtherValues) {
         checkFurtherValues(furtherValues);
 
         return add(JsonFactory.newValue(value),
-                Arrays.stream(furtherValues) //
-                        .mapToObj(JsonFactory::newValue) //
+                Arrays.stream(furtherValues)
+                        .mapToObj(JsonFactory::newValue)
                         .toArray(JsonValue[]::new));
     }
 
     @Override
-    public JsonArray add(final double value, final double... furtherValues) {
+    public ImmutableJsonArray add(final double value, final double... furtherValues) {
         checkFurtherValues(furtherValues);
 
         return add(JsonFactory.newValue(value),
-                Arrays.stream(furtherValues) //
-                        .mapToObj(JsonFactory::newValue) //
+                Arrays.stream(furtherValues)
+                        .mapToObj(JsonFactory::newValue)
                         .toArray(JsonValue[]::new));
     }
 
     @Override
-    public JsonArray add(final boolean value, final boolean... furtherValues) {
+    public ImmutableJsonArray add(final boolean value, final boolean... furtherValues) {
         checkFurtherValues(furtherValues);
 
         final List<JsonValue> valuesCopy = copyValues();
@@ -127,18 +127,18 @@ final class ImmutableJsonArray extends AbstractImmutableJsonValue implements Jso
     }
 
     @Override
-    public JsonArray add(final String value, final String... furtherValues) {
+    public ImmutableJsonArray add(final String value, final String... furtherValues) {
         checkValue(value);
         checkFurtherValues(furtherValues);
 
         return add(JsonFactory.newValue(value),
-                Arrays.stream(furtherValues) //
-                        .map(JsonFactory::newValue) //
+                Arrays.stream(furtherValues)
+                        .map(JsonFactory::newValue)
                         .toArray(JsonValue[]::new));
     }
 
     @Override
-    public JsonArray add(final JsonValue value, final JsonValue... furtherValues) {
+    public ImmutableJsonArray add(final JsonValue value, final JsonValue... furtherValues) {
         checkValue(value);
         checkFurtherValues(furtherValues);
 

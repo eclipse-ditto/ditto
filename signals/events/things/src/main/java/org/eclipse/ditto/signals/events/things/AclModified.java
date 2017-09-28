@@ -145,7 +145,7 @@ public final class AclModified extends AbstractThingEvent<AclModified> implement
 
     @Override
     public JsonPointer getResourcePath() {
-        return JsonPointer.newInstance("/acl");
+        return JsonPointer.of("/acl");
     }
 
     @Override

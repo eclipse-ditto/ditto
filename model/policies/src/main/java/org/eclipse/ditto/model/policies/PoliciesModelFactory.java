@@ -212,7 +212,7 @@ public final class PoliciesModelFactory {
         argumentNotEmpty(typeWithPath, "typeWithPath");
 
         final String[] typeWithPathSplit = splitTypeWithPath(typeWithPath.toString());
-        return ImmutableResourceKey.newInstance(typeWithPathSplit[0], JsonPointer.newInstance(typeWithPathSplit[1]));
+        return ImmutableResourceKey.newInstance(typeWithPathSplit[0], JsonPointer.of(typeWithPathSplit[1]));
     }
 
     private static String[] splitTypeWithPath(final String typeWithPath) {
@@ -236,7 +236,7 @@ public final class PoliciesModelFactory {
      */
     public static ResourceKey newResourceKey(final CharSequence resourceType, final CharSequence resourcePath) {
         checkNotNull(resourcePath, "resource path");
-        return ImmutableResourceKey.newInstance(resourceType, JsonPointer.newInstance(resourcePath));
+        return ImmutableResourceKey.newInstance(resourceType, JsonPointer.of(resourcePath));
     }
 
     /**

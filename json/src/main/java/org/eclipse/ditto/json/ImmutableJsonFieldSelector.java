@@ -83,6 +83,7 @@ final class ImmutableJsonFieldSelector implements JsonFieldSelector {
      */
     public static ImmutableJsonFieldSelector of(final Iterable<JsonPointer> pointers,
             @Nullable final String fieldSelectorString) {
+
         requireNonNull(pointers, "The JSON pointers must not be null!");
 
         return new ImmutableJsonFieldSelector(pointers, fieldSelectorString);

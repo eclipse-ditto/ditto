@@ -58,4 +58,16 @@ public final class ImmutableJsonKeyTest {
         assertThat(underTest.toString()).isEqualTo(expected);
     }
 
+    @Test
+    public void getKeyWithSlashesAsPointer() {
+        final String keyValue = "foo/bar/baz";
+        final JsonKey underTest = ImmutableJsonKey.of(keyValue);
+        final JsonPointer expected = JsonFactory.newPointer(underTest);
+
+        final JsonPointer jsonPointer = underTest.asPointer();
+
+        assertThat(jsonPointer).hasLevelCount(1);
+        assertThat(jsonPointer).isEqualTo(expected);
+    }
+
 }

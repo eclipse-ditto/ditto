@@ -34,11 +34,10 @@ public final class ThingCommandToModifyExceptionRegistryTest {
 
     @Test
     public void mapModifyThingToThingNotModifiable() {
-        final DeleteAttribute modifyThing = DeleteAttribute.of(":thingId", JsonPointer.newInstance("abc"),
-                DittoHeaders.empty());
+        final DeleteAttribute modifyThing = DeleteAttribute.of(":thingId", JsonPointer.of("abc"), DittoHeaders.empty());
         final DittoRuntimeException mappedException = registryUnderTest.exceptionFrom(modifyThing);
         final DittoRuntimeException expectedException = AttributeNotModifiableException.newBuilder(":thingId",
-                JsonPointer.newInstance("abc")).build();
+                JsonPointer.of("abc")).build();
 
         assertThat(mappedException).isEqualTo(expectedException);
     }

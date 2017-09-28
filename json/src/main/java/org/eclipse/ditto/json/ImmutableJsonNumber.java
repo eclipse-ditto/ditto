@@ -35,8 +35,18 @@ final class ImmutableJsonNumber extends AbstractMinimalJsonValueWrapper {
      * @throws NullPointerException if {@code minimalJsonValue} is {@code null}.
      * @throws IllegalArgumentException if {@code minimalJsonValue} is not a number.
      */
-    public static JsonValue of(final com.eclipsesource.json.JsonValue minimalJsonValue) {
+    public static ImmutableJsonNumber of(final com.eclipsesource.json.JsonValue minimalJsonValue) {
         return new ImmutableJsonNumber(minimalJsonValue);
+    }
+
+    @Override
+    public boolean isRepresentationOfJavaType(final Class<?> expectedType) {
+        return JsonValue.class == expectedType ||
+                int.class == expectedType ||
+                double.class == expectedType ||
+                long.class == expectedType ||
+                float.class == expectedType ||
+                Number.class.isAssignableFrom(expectedType);
     }
 
 }

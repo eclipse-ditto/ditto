@@ -166,7 +166,7 @@ public final class ThingEnforcerLookupFunction implements EnforcerLookupFunction
     private static void enhanceLogWithCorrelationId(final String correlationId) {
         MDC.clear();
         final Map<String, String> mdcMap = new HashMap<>();
-        mdcMap.put("x-cr-correlation-id", correlationId);
+        mdcMap.put("x-correlation-id", correlationId);
         MDC.setContextMap(mdcMap);
     }
 

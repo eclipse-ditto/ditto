@@ -86,7 +86,7 @@ final class MessageAdaptableHelper {
                         .map(JsonValue::asString)
                         .filter(MessageAdaptableHelper::shouldBeInterpretedAsText)
                         .map(MessageAdaptableHelper::determineCharset)
-                        .map(charset -> JsonValue.newInstance(
+                        .map(charset -> JsonValue.of(
                                 new String(BASE_64_DECODER.decode(p.asString()), charset)))
                         .orElse(p))
                 .ifPresent(payloadBuilder::withValue);

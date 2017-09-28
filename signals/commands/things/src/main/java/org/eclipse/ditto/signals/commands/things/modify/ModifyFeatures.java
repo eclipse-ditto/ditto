@@ -146,7 +146,7 @@ public final class ModifyFeatures extends AbstractCommand<ModifyFeatures>
 
     @Override
     public JsonPointer getResourcePath() {
-        return JsonPointer.newInstance("/features");
+        return JsonPointer.of("/features");
     }
 
     @Override

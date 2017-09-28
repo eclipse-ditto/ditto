@@ -39,7 +39,7 @@ public final class ThingCommandToAccessExceptionRegistryTest {
                 RetrieveAttribute.of(":thingId", JsonFactory.newPointer("abc"), DittoHeaders.empty());
         final DittoRuntimeException mappedException = registryUnderTest.exceptionFrom(retrieveAttribute);
         final DittoRuntimeException expectedException =
-                AttributeNotAccessibleException.newBuilder(":thingId", JsonPointer.newInstance("abc")).build();
+                AttributeNotAccessibleException.newBuilder(":thingId", JsonPointer.of("abc")).build();
         assertThat(mappedException).isEqualTo(expectedException);
     }
 

@@ -13,6 +13,7 @@ package org.eclipse.ditto.signals.events.things.assertions;
 
 import org.eclipse.ditto.model.base.assertions.DittoBaseAssertions;
 import org.eclipse.ditto.signals.events.base.Event;
+import org.eclipse.ditto.signals.events.base.assertions.EventAssert;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
 

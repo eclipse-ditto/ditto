@@ -11,16 +11,21 @@
  */
 package org.eclipse.ditto.protocoladapter;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+
 import java.util.Objects;
 import java.util.Optional;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonObjectReader;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonReader;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 
@@ -30,16 +35,19 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 @Immutable
 final class ImmutablePayload implements Payload {
 
-    @Nullable private final JsonPointer path;
+    private final JsonPointer path;
     @Nullable private final JsonValue value;
     @Nullable private final HttpStatusCode status;
     @Nullable private final Long revision;
     @Nullable private final JsonFieldSelector fields;
 
-    private ImmutablePayload(@Nullable final JsonPointer path, @Nullable final JsonValue value,
+    private ImmutablePayload(final JsonPointer path,
+            @Nullable final JsonValue value,
             @Nullable final HttpStatusCode status,
-            @Nullable final Long revision, @Nullable final JsonFieldSelector fields) {
-        this.path = path;
+            @Nullable final Long revision,
+            @Nullable final JsonFieldSelector fields) {
+
+        this.path = checkNotNull(path, "path");
         this.value = value;
         this.status = status;
         this.revision = revision;
@@ -58,9 +66,11 @@ final class ImmutablePayload implements Payload {
      * @return the payload.
      * @throws NullPointerException if {@code path} is {@code null}.
      */
-    public static ImmutablePayload of(@Nullable final JsonPointer path, @Nullable final JsonValue value,
+    public static ImmutablePayload of(final JsonPointer path,
+            @Nullable final JsonValue value,
             @Nullable final HttpStatusCode status,
-            @Nullable final Long revision, @Nullable final JsonFieldSelector fields) {
+            @Nullable final Long revision,
+            @Nullable final JsonFieldSelector fields) {
 
         return new ImmutablePayload(path, value, status, revision, fields);
     }
@@ -73,26 +83,20 @@ final class ImmutablePayload implements Payload {
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if {@code jsonObject} is missing required JSON fields.
      */
     public static ImmutablePayload fromJson(final JsonObject jsonObject) {
-        final JsonPointer path = jsonObject.getValue(JsonFields.PATH) //
-                .map(JsonValue::asString)//
-                .map(JsonPointer::newInstance) //
+        final JsonObjectReader jsonObjectReader = JsonReader.from(jsonObject);
+
+        final JsonPointer path = JsonFactory.newPointer(jsonObjectReader.get(JsonFields.PATH));
+
+        final JsonValue value = jsonObjectReader.<JsonValue>getAsOptional(JsonFields.VALUE).orElse(null);
+
+        final HttpStatusCode status = jsonObjectReader.<Integer>getAsOptional(JsonFields.STATUS)
+                .flatMap(HttpStatusCode::forInt)
                 .orElse(null);
 
-        final JsonValue value = jsonObject.getValue(JsonFields.VALUE) //
-                .orElse(null);
+        final Long revision = jsonObjectReader.<Long>getAsOptional(JsonFields.REVISION).orElse(null);
 
-        final HttpStatusCode status = jsonObject.getValue(JsonFields.STATUS) //
-                .map(JsonValue::asInt) //
-                .flatMap(HttpStatusCode::forInt) //
-                .orElse(null);
-
-        final Long revision = jsonObject.getValue(JsonFields.REVISION) //
-                .map(JsonValue::asLong) //
-                .orElse(null);
-
-        final JsonFieldSelector fields = jsonObject.getValue(JsonFields.FIELDS) //
-                .map(JsonValue::asString) //
-                .map(JsonFieldSelector::newInstance) //
+        final JsonFieldSelector fields = jsonObjectReader.<String>getAsOptional(JsonFields.FIELDS)
+                .map(JsonFieldSelector::newInstance)
                 .orElse(null);
 
         return of(path, value, status, revision, fields);
@@ -126,10 +130,7 @@ final class ImmutablePayload implements Payload {
     @Override
     public JsonObject toJson() {
         final JsonObjectBuilder jsonObjectBuilder = JsonObject.newBuilder();
-
-        if (null != path) {
-            jsonObjectBuilder.set(JsonFields.PATH, path.toString());
-        }
+        jsonObjectBuilder.set(JsonFields.PATH, path.toString());
 
         if (null != value) {
             jsonObjectBuilder.set(JsonFields.VALUE, value);

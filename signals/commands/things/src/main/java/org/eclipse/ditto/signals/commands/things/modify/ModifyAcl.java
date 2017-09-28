@@ -145,7 +145,7 @@ public final class ModifyAcl extends AbstractCommand<ModifyAcl> implements Thing
 
     @Override
     public JsonPointer getResourcePath() {
-        return JsonPointer.newInstance("/acl");
+        return JsonPointer.of("/acl");
     }
 
     @Override

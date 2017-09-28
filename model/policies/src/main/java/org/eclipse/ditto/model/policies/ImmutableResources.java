@@ -158,7 +158,7 @@ final class ImmutableResources implements Resources {
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
 
         resources.values().forEach(resource -> {
-            final JsonKey key = JsonKey.newInstance(resource.getFullQualifiedPath());
+            final JsonKey key = JsonKey.of(resource.getFullQualifiedPath());
             final JsonValue value = resource.toJson(schemaVersion, thePredicate);
             final JsonFieldDefinition fieldDefinition =
                     JsonFactory.newFieldDefinition(key, JsonObject.class, FieldType.REGULAR, JsonSchemaVersion.V_2);

@@ -141,8 +141,7 @@ public final class RetrieveThing extends AbstractCommand<RetrieveThing> implemen
                             JsonFactory.newParseOptionsBuilder().withoutUrlDecoding().build()))
                     .ifPresent(builder::withSelectedFields);
 
-            jsonObjectReader.getAsOptionalLong(JSON_SNAPSHOT_REVISION.getPointer())
-                    .ifPresent(builder::withSnapshotRevision);
+            jsonObjectReader.<Long>getAsOptional(JSON_SNAPSHOT_REVISION).ifPresent(builder::withSnapshotRevision);
 
             return builder.build();
         });

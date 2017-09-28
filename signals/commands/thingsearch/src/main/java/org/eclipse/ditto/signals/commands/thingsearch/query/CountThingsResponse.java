@@ -105,7 +105,7 @@ public final class CountThingsResponse extends AbstractCommandResponse<CountThin
 
     @Override
     public JsonValue getEntity(final JsonSchemaVersion schemaVersion) {
-        return JsonValue.newInstance(count);
+        return JsonValue.of(count);
     }
 
     @Override

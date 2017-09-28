@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Represents a JSON object. A JSON object is a set of key-value-pairs where the field keys are unique.
+ * Represents a JSON object. A JSON object is a set of key-value-pairs with unique keys.
  * <p>
  * <em>Implementations of this interface are required to be immutable!</em>
  * </p>
@@ -23,23 +23,28 @@ import java.util.Optional;
 public interface JsonObject extends JsonValue, JsonValueContainer<JsonField> {
 
     /**
-     * Returns a new mutable builder for a {@code JsonObject}.
+     * Returns a new mutable builder with a fluent API for a {@code JsonObject}.
      *
-     * @return a new JSON object builder.
+     * @return the builder.
      */
     static JsonObjectBuilder newBuilder() {
         return JsonFactory.newObjectBuilder();
     }
 
     /**
-     * Returns a new mutable builder for a {@code JsonObject}. The returned builder is already initialised with the data
-     * of the this JSON object. This method is useful if an existing JSON object should be strongly modified but the
-     * amount of creating objects should be kept low at the same time.
+     * Returns a new mutable builder with a fluent API for a {@code JsonObject}. The returned builder is already
+     * initialised with the data of the this JSON object. This method is useful if an existing JSON object should be
+     * strongly modified but the amount of creating objects should be kept low at the same time.
      *
-     * @return a new JSON object builder with pre-filled data of this JSON object.
+     * @return the builder which is initialised with the data of this JSON object instance.
      */
     default JsonObjectBuilder toBuilder() {
         return JsonFactory.newObjectBuilder(this);
+    }
+
+    @Override
+    default boolean isRepresentationOfJavaType(final Class<?> expectedType) {
+        return JsonValue.class == expectedType || JsonObject.class.isAssignableFrom(expectedType);
     }
 
     /**
@@ -47,11 +52,13 @@ public interface JsonObject extends JsonValue, JsonValueContainer<JsonField> {
      * specified {@code int} value to the new object. If this object previously contained a field with the same key,
      * the old field is replaced by the new field in the new object.
      *
-     * @param key the key of the field to be set.
+     * @param key the JSON key or JSON pointer of the field to be set.
      * @param value the value of the field to be set.
-     * @return a new JSON object with an association between {@code key} and {@code value}.
+     * @return a new JSON object with an association between {@code key} and {@code value} or this instance if it
+     * already contains a field with {@code key} and {@code value}.
      * @throws NullPointerException if {@code key} is {@code null}.
-     * @throws IllegalArgumentException if {@code key} is empty.
+     * @throws IllegalArgumentException if {@code key} is empty or if {@code key} is an empty JsonPointer. Setting a
+     * value with slash as JsonKey object explicitly works.
      */
     JsonObject setValue(CharSequence key, int value);
 
@@ -60,11 +67,13 @@ public interface JsonObject extends JsonValue, JsonValueContainer<JsonField> {
      * specified {@code long} value to the new object. If this object previously contained a field with the same key,
      * the old field is replaced by the new field in the new object.
      *
-     * @param key the key of the field to be set.
+     * @param key the JSON key or JSON pointer of the field to be set.
      * @param value the value of the field to be set.
-     * @return a new JSON object with an association between {@code key} and {@code value}.
+     * @return a new JSON object with an association between {@code key} and {@code value} or this instance if it
+     * already contains a field with {@code key} and {@code value}.
      * @throws NullPointerException if {@code key} is {@code null}.
-     * @throws IllegalArgumentException if {@code key} is empty.
+     * @throws IllegalArgumentException if {@code key} is empty or if {@code key} is an empty JsonPointer. Setting a
+     * value with slash as JsonKey object explicitly works.
      */
     JsonObject setValue(CharSequence key, long value);
 
@@ -73,11 +82,13 @@ public interface JsonObject extends JsonValue, JsonValueContainer<JsonField> {
      * specified {@code double} value to the new object. If this object previously contained a field with the same key,
      * the old field is replaced by the new field in the new object.
      *
-     * @param key the key of the field to be set.
+     * @param key the JSON key or JSON pointer of the field to be set.
      * @param value the value of the field to be set.
-     * @return a new JSON object with an association between {@code key} and {@code value}.
+     * @return a new JSON object with an association between {@code key} and {@code value} or this instance if it
+     * already contains a field with {@code key} and {@code value}.
      * @throws NullPointerException if {@code key} is {@code null}.
-     * @throws IllegalArgumentException if {@code key} is empty.
+     * @throws IllegalArgumentException if {@code key} is empty or if {@code key} is an empty JsonPointer. Setting a
+     * value with slash as JsonKey object explicitly works.
      */
     JsonObject setValue(CharSequence key, double value);
 
@@ -86,11 +97,12 @@ public interface JsonObject extends JsonValue, JsonValueContainer<JsonField> {
      * specified {@code boolean} value to the new object. If this object previously contained a field with the same
      * key, the old field is replaced by the new field in the new object.
      *
-     * @param key the key of the field to be set.
+     * @param key the JSON key or JSON pointer of the field to be set.
      * @param value the value of the field to be set.
      * @return a new JSON object with an association between {@code key} and {@code value}.
      * @throws NullPointerException if {@code key} is {@code null}.
-     * @throws IllegalArgumentException if {@code key} is empty.
+     * @throws IllegalArgumentException if {@code key} is empty or if {@code key} is an empty JsonPointer. Setting a
+     * value with slash as JsonKey object explicitly works.
      */
     JsonObject setValue(CharSequence key, boolean value);
 
@@ -99,11 +111,12 @@ public interface JsonObject extends JsonValue, JsonValueContainer<JsonField> {
      * specified {@code String} value to the new object. If this object previously contained a field with the same key,
      * the old field is replaced by the new field in the new object.
      *
-     * @param key the key of the field to be set.
+     * @param key the JSON key or JSON pointer of the field to be set.
      * @param value the value of the field to be set.
      * @return a new JSON object with an association between {@code key} and {@code value}.
      * @throws NullPointerException if {@code key} is {@code null}.
-     * @throws IllegalArgumentException if {@code key} is empty.
+     * @throws IllegalArgumentException if {@code key} is empty or if {@code key} is an empty JsonPointer. Setting a
+     * value with slash as JsonKey object explicitly works.
      */
     JsonObject setValue(CharSequence key, String value);
 
@@ -112,11 +125,12 @@ public interface JsonObject extends JsonValue, JsonValueContainer<JsonField> {
      * new object. If this object previously contained a field with the same key, the old field is replaced by the new
      * field in the new object.
      *
-     * @param key the key of the field to be set.
+     * @param key the JSON key or JSON pointer of the field to be set.
      * @param value the value of the field to be set.
      * @return a new JSON object with an association between {@code key} and {@code value}.
      * @throws NullPointerException if {@code key} is {@code null}.
-     * @throws IllegalArgumentException if {@code key} is empty.
+     * @throws IllegalArgumentException if {@code key} is empty or if {@code key} is an empty JsonPointer. Setting a
+     * value with slash as JsonKey object explicitly works.
      */
     JsonObject setValue(CharSequence key, JsonValue value);
 
@@ -155,7 +169,7 @@ public interface JsonObject extends JsonValue, JsonValueContainer<JsonField> {
     /**
      * Indicates whether this JSON object contains a field at the key defined position.
      *
-     * @param key defines the position of the field whose presence in this JSON object is to be tested.
+     * @param key the JSON key or JSON pointer to be looked up.
      * @return {@code true} if this JSON object contains a field at {@code key}, {@code false} else.
      * @throws NullPointerException if {@code key} is {@code null}.
      */
@@ -190,10 +204,9 @@ public interface JsonObject extends JsonValue, JsonValueContainer<JsonField> {
      * </pre>
      *
      * @param pointer defines which value to get.
-     * @return a new hierarchical JSON object containing the pointer-defined value or an empty object if the pointer
-     * refers to a non-existing value.
+     * @return this object if the pointer is empty, a new hierarchical JSON object containing the pointer-defined
+     * value or an empty object if the pointer refers to a non-existing value.
      * @throws NullPointerException if {@code pointer} is {@code null}.
-     * @throws IllegalArgumentException if {@code pointer} is empty.
      */
     JsonObject get(JsonPointer pointer);
 
@@ -272,7 +285,6 @@ public interface JsonObject extends JsonValue, JsonValueContainer<JsonField> {
      * @param key defines which value to get.
      * @return the JSON value at the key-defined position within this object.
      * @throws NullPointerException if {@code key} is {@code null}.
-     * @throws IllegalArgumentException if {@code key} is empty.
      */
     Optional<JsonValue> getValue(CharSequence key);
 
@@ -308,12 +320,11 @@ public interface JsonObject extends JsonValue, JsonValueContainer<JsonField> {
      *    }
      * </pre>
      *
-     * @param index the index which defines the field to be removed.
+     * @param key the key or JSON pointer which denotes the field to be removed.
      * @return a new JSON object without the JSON field which is defined by the pointer.
-     * @throws NullPointerException if {@code pointer} is {@code null}.
-     * @throws IllegalArgumentException if {@code pointer} is empty.
+     * @throws NullPointerException if {@code key} is {@code null}.
      */
-    JsonObject remove(CharSequence index);
+    JsonObject remove(CharSequence key);
 
     /**
      * Returns a list of the keys in this JSON object in document order. The returned list cannot be used to modify this
@@ -324,12 +335,12 @@ public interface JsonObject extends JsonValue, JsonValueContainer<JsonField> {
     List<JsonKey> getKeys();
 
     /**
-     * Returns the JsonField which contains both JsonKey and JsonValue for the passed {@code index}.
+     * Returns the JsonField which contains both JsonKey and JsonValue for the passed key.
      *
+     * @param key the JSON key or JSON pointer which denotes the field to be get.
      * @return the JSON field containing key and value.
      * @throws NullPointerException if {@code index} is {@code null}.
-     * @throws IllegalArgumentException if {@code index} is empty.
      */
-    Optional<JsonField> getField(CharSequence index);
+    Optional<JsonField> getField(CharSequence key);
 
 }

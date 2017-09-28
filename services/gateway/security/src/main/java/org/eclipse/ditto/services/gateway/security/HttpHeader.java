@@ -51,9 +51,9 @@ public enum HttpHeader {
 
 
     /**
-     * x-ditto-correlation-id HTTP header.
+     * x-correlation-id HTTP header.
      */
-    X_DITTO_CORRELATION_ID("x-ditto-correlation-id"),
+    X_CORRELATION_ID("x-correlation-id"),
 
     /**
      * HTTP header for dummy authentication (for dev purposes).

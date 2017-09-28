@@ -61,12 +61,12 @@ import scala.concurrent.duration.Duration;
 /**
  * Actor to aggregate the retrieved Things from persistence.
  */
-final class ThingsAggregatorActor extends AbstractActor {
+public final class ThingsAggregatorActor extends AbstractActor {
 
     /**
      * The name of this Actor in the ActorSystem.
      */
-    static final String ACTOR_NAME = "aggregator";
+    public static final String ACTOR_NAME = "aggregator";
 
     private static final int RETRIEVE_DURATION_VALUE = 5000;
     private static final Timeout RETRIEVE_TIMEOUT =
@@ -91,7 +91,7 @@ final class ThingsAggregatorActor extends AbstractActor {
      * @param targetActor the Actor selection to delegate "asks" for the aggregation to.
      * @return the Akka configuration Props object
      */
-    static Props props(final ActorRef targetActor) {
+    public static Props props(final ActorRef targetActor) {
         return Props.create(ThingsAggregatorActor.class, new Creator<ThingsAggregatorActor>() {
             private static final long serialVersionUID = 1L;
 

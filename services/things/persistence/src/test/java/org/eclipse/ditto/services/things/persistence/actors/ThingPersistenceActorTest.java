@@ -165,7 +165,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersMockV1);
 
         final String featureId = "myFeature";
-        final JsonPointer jsonPointer = JsonPointer.newInstance("/state");
+        final JsonPointer jsonPointer = JsonPointer.of("/state");
         final JsonValue jsonValue = JsonFactory.newValue("on");
         final ModifyFeatureProperty modifyFeatureProperty =
                 ModifyFeatureProperty.of(thingId, featureId, jsonPointer, jsonValue, dittoHeadersMockV1);

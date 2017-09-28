@@ -41,7 +41,7 @@ public final class RqlOptionsParserTest {
                 .anyMatch("/username"::equals)
         );
         assertThat(sortOption.getEntries().stream()
-                .filter(soe -> JsonPointer.newInstance("/username").equals(soe.getPropertyPath()))
+                .filter(soe -> JsonPointer.of("/username").equals(soe.getPropertyPath()))
                 .map(SortOptionEntry::getOrder)
                 .anyMatch(SortOptionEntry.SortOrder.ASC::equals)
         );
@@ -58,7 +58,7 @@ public final class RqlOptionsParserTest {
                 .anyMatch("/attributes/username"::equals)
         );
         assertThat(sortOption.getEntries().stream()
-                .filter(soe -> JsonPointer.newInstance("/attributes/username").equals(soe.getPropertyPath()))
+                .filter(soe -> JsonPointer.of("/attributes/username").equals(soe.getPropertyPath()))
                 .map(SortOptionEntry::getOrder)
                 .anyMatch(SortOptionEntry.SortOrder.DESC::equals)
         );
@@ -86,7 +86,7 @@ public final class RqlOptionsParserTest {
         for (int i = 0; i < expectedCount; i++) {
             final int idx = i;
             assertThat(sortOption.getEntries().stream()
-                    .filter(soe -> JsonPointer.newInstance("field" + idx).equals(soe.getPropertyPath()))
+                    .filter(soe -> JsonPointer.of("field" + idx).equals(soe.getPropertyPath()))
                     .map(SortOptionEntry::getOrder)
                     .anyMatch(so -> idx % 2 == 0 ? SortOptionEntry.SortOrder.ASC.equals(so) :
                             SortOptionEntry.SortOrder.DESC.equals(so))
@@ -139,7 +139,7 @@ public final class RqlOptionsParserTest {
                 .anyMatch("/attributes/username"::equals)
         );
         assertThat(sortOption.getEntries().stream()
-                .filter(soe -> JsonPointer.newInstance("/attributes/username").equals(soe.getPropertyPath()))
+                .filter(soe -> JsonPointer.of("/attributes/username").equals(soe.getPropertyPath()))
                 .map(SortOptionEntry::getOrder)
                 .anyMatch(SortOptionEntry.SortOrder.DESC::equals)
         );

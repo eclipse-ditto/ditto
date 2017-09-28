@@ -119,7 +119,7 @@ public final class PoliciesAclMigrations {
 
             final Optional<Resource> policyResource =
                     policyEntry.getResources()
-                            .getResource(PoliciesResourceType.thingResource("_policy"));
+                            .getResource(PoliciesResourceType.thingResource(Policy.INLINED_FIELD_NAME));
 
             policyEntry.getResources().getResource(PoliciesResourceType.thingResource(ROOT_PATH)).ifPresent(root -> {
                 final Permissions grantedPermissions = root.getEffectedPermissions().getGrantedPermissions();

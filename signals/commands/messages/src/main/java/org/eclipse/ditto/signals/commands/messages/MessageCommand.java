@@ -87,13 +87,13 @@ public interface MessageCommand<T, C extends MessageCommand> extends Command<C>,
         final Message<?> message = getMessage();
         final String box = message.getDirection() == MessageDirection.TO ? INBOX_PREFIX : OUTBOX_PREFIX;
         final JsonPointer pathSuffix = JsonPointer.empty()
-                .addLeaf(JsonKey.newInstance(box))
-                .addLeaf(JsonKey.newInstance(MESSAGES_PREFIX))
-                .addLeaf(JsonKey.newInstance(message.getSubject()));
+                .addLeaf(JsonKey.of(box))
+                .addLeaf(JsonKey.of(MESSAGES_PREFIX))
+                .addLeaf(JsonKey.of(message.getSubject()));
 
         final JsonPointer path = message.getFeatureId().map(fId -> JsonPointer.empty()
-                .addLeaf(JsonKey.newInstance(FEATURES_PREFIX))
-                .addLeaf(JsonKey.newInstance(fId)))
+                .addLeaf(JsonKey.of(FEATURES_PREFIX))
+                .addLeaf(JsonKey.of(fId)))
                 .orElse(JsonPointer.empty());
         return path.append(pathSuffix);
     }

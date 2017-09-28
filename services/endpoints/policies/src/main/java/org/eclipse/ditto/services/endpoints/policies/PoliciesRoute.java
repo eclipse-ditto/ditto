@@ -113,7 +113,7 @@ public final class PoliciesRoute extends AbstractRoute {
                         throw PolicyIdNotExplicitlySettableException.newBuilder().build();
                     }
                 });
-        return policyJsonObject.setValue(Policy.JsonFields.ID.getPointer(), JsonValue.newInstance(policyId));
+        return policyJsonObject.setValue(Policy.JsonFields.ID.getPointer(), JsonValue.of(policyId));
     }
 
     /*

@@ -34,27 +34,23 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  */
 public final class ImmutableJsonFieldSelectorTest {
 
-
     @Test
     public void assertImmutability() {
-        assertInstancesOf(ImmutableJsonFieldSelector.class, //
-                areImmutable(), //
-                assumingFields("pointers").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements(), //
+        assertInstancesOf(ImmutableJsonFieldSelector.class,
+                areImmutable(),
+                assumingFields("pointers").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements(),
                 provided(JsonPointer.class).isAlsoImmutable());
     }
-
 
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(ImmutableJsonFieldSelector.class).verify();
     }
 
-
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullJsonPointers() {
         ImmutableJsonFieldSelector.of(null);
     }
-
 
     @Test(expected = UnsupportedOperationException.class)
     public void getPointersReturnsUnmodifiableSet() {
@@ -63,7 +59,6 @@ public final class ImmutableJsonFieldSelectorTest {
 
         actualPointers.add(JsonFactory.newPointer("gehtNicht"));
     }
-
 
     @Test
     public void getSizeReturnsExpected() {
@@ -78,7 +73,6 @@ public final class ImmutableJsonFieldSelectorTest {
 
         assertThat(underTest.getSize()).isEqualTo(pointersCount);
     }
-
 
     @Test(expected = UnsupportedOperationException.class)
     public void iteratorDoesNotAllowAlteringTheState() {
@@ -98,15 +92,16 @@ public final class ImmutableJsonFieldSelectorTest {
         }
     }
 
-
     @Test
     public void usingJsonPointerCollectionResultsInSameToStringAsJsonFieldSelectorString() {
         final byte pointersCount = 7;
-        final List<String> pointers =
-                IntStream.range(0, pointersCount).mapToObj(String::valueOf).map("/pointer/"::concat)
-                        .collect(Collectors.toList());
-        final Set<JsonPointer> jsonPointers =
-                pointers.stream().map(JsonFactory::newPointer).collect(Collectors.toCollection(LinkedHashSet::new));
+        final List<String> pointers = IntStream.range(0, pointersCount)
+                .mapToObj(String::valueOf)
+                .map("/pointer/"::concat)
+                .collect(Collectors.toList());
+        final Set<JsonPointer> jsonPointers = pointers.stream()
+                .map(JsonFactory::newPointer)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
         final String jsonFieldSelector = pointers.stream().collect(Collectors.joining(","));
 
         final JsonFieldSelector underTest1 = ImmutableJsonFieldSelector.of(jsonPointers);

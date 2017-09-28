@@ -154,7 +154,7 @@ public final class RetrieveAttributes extends AbstractCommand<RetrieveAttributes
 
     @Override
     public JsonPointer getResourcePath() {
-        return JsonPointer.newInstance("/attributes");
+        return JsonPointer.of("/attributes");
     }
 
     @Override

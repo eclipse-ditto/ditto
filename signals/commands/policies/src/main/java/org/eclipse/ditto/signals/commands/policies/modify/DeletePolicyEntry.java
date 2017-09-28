@@ -134,7 +134,7 @@ public final class DeletePolicyEntry extends AbstractCommand<DeletePolicyEntry>
     @Override
     public JsonPointer getResourcePath() {
         final String path = "/entries/" + label;
-        return JsonPointer.newInstance(path);
+        return JsonPointer.of(path);
     }
 
     @Override

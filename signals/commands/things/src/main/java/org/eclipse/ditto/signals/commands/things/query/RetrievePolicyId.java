@@ -121,7 +121,7 @@ public final class RetrievePolicyId extends AbstractCommand<RetrievePolicyId>
 
     @Override
     public JsonPointer getResourcePath() {
-        return JsonPointer.newInstance("/policyId");
+        return JsonPointer.of("/policyId");
     }
 
     @Override

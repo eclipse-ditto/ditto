@@ -177,7 +177,7 @@ public final class RetrieveFeature extends AbstractCommand<RetrieveFeature> impl
     @Override
     public JsonPointer getResourcePath() {
         final String path = "/features/" + featureId;
-        return JsonPointer.newInstance(path);
+        return JsonPointer.of(path);
     }
 
     @Override

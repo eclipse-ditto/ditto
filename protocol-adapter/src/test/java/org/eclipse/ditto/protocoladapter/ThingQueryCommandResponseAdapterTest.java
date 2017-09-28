@@ -12,6 +12,9 @@
 package org.eclipse.ditto.protocoladapter;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.eclipse.ditto.protocoladapter.TestConstants.DITTO_HEADERS_V_1;
+import static org.eclipse.ditto.protocoladapter.TestConstants.FEATURE_ID;
+import static org.eclipse.ditto.protocoladapter.TestConstants.THING_ID;
 
 import java.util.function.Predicate;
 
@@ -52,9 +55,8 @@ public final class ThingQueryCommandResponseAdapterTest {
         underTest = ThingQueryCommandResponseAdapter.newInstance();
     }
 
-    /** */
     @Test(expected = UnknownCommandResponseException.class)
-    public void unknownCommandResponseTodaptable() {
+    public void unknownCommandResponseToAdaptable() {
         underTest.toAdaptable(new ThingQueryCommandResponse() {
             @Override
             public JsonValue getEntity(final JsonSchemaVersion schemaVersion) {
@@ -63,7 +65,7 @@ public final class ThingQueryCommandResponseAdapterTest {
 
             @Override
             public String getThingId() {
-                return TestConstants.THING_ID;
+                return THING_ID;
             }
 
             @Override
@@ -78,9 +80,9 @@ public final class ThingQueryCommandResponseAdapterTest {
 
             @Override
             public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate predicate) {
-                return JsonObject.newBuilder() //
-                        .set(Command.JsonFields.TYPE, getType()) //
-                        .set("policyId", TestConstants.THING_ID) //
+                return JsonObject.newBuilder()
+                        .set(Command.JsonFields.TYPE, getType())
+                        .set("policyId", THING_ID)
                         .build();
             }
 
@@ -91,7 +93,7 @@ public final class ThingQueryCommandResponseAdapterTest {
 
             @Override
             public JsonPointer getResourcePath() {
-                return JsonPointer.newInstance("/policyId");
+                return JsonPointer.of("/policyId");
             }
 
             @Override
@@ -111,62 +113,57 @@ public final class ThingQueryCommandResponseAdapterTest {
         });
     }
 
-    /** */
     @Test
     public void retrieveThingResponseFromAdaptable() {
         final RetrieveThingResponse expected =
-                RetrieveThingResponse.of(TestConstants.THING_ID, TestConstants.THING,
-                        TestConstants.DITTO_HEADERS_V_2);
+                RetrieveThingResponse.of(THING_ID, TestConstants.THING, TestConstants.DITTO_HEADERS_V_2);
 
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID) //
-                .things() //
-                .twin() //
-                .commands() //
-                .retrieve() //
+        final TopicPath topicPath = TopicPath.newBuilder(THING_ID)
+                .things()
+                .twin()
+                .commands()
+                .retrieve()
                 .build();
         final JsonPointer path = JsonPointer.empty();
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withStatus(HttpStatusCode.OK) //
-                        .withValue(TestConstants.THING.toJson()) //
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_2) //
+        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.OK)
+                        .withValue(TestConstants.THING.toJson())
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
         final ThingQueryCommandResponse actual = underTest.fromAdaptable(adaptable);
 
         assertThat(actual).isEqualTo(expected);
     }
 
-    /** */
     @Test
     public void retrieveThingResponseToAdaptable() {
         final JsonPointer path = JsonPointer.empty();
 
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
+        final TopicPath topicPath = TopicPath.newBuilder(THING_ID)
                 .things()
                 .twin()
                 .commands()
                 .retrieve()
                 .build();
 
-        final Adaptable expected = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withStatus(HttpStatusCode.OK) //
-                        .withValue(TestConstants.THING.toJson()) //
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_2) //
+        final Adaptable expected = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.OK)
+                        .withValue(TestConstants.THING.toJson())
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
 
         final RetrieveThingResponse retrieveThing =
-                RetrieveThingResponse.of(TestConstants.THING_ID, TestConstants.THING,
-                        TestConstants.DITTO_HEADERS_V_2);
+                RetrieveThingResponse.of(THING_ID, TestConstants.THING, TestConstants.DITTO_HEADERS_V_2);
         final Adaptable actual = underTest.toAdaptable(retrieveThing);
 
         assertThat(actual).isEqualTo(expected);
     }
 
-    /** */
     @Test
     public void retrieveThingsResponseToAdaptable() {
         final JsonPointer path = JsonPointer.empty();
@@ -178,15 +175,15 @@ public final class ThingQueryCommandResponseAdapterTest {
                 .retrieve()
                 .build();
 
-        final Adaptable expected = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path).withValue(JsonFactory.newArray() //
-                        .add(TestConstants.THING.toJsonString()) //
-                        .add(TestConstants.THING2.toJsonString())) //
-                        .withStatus(HttpStatusCode.OK).build()) //
+        final Adaptable expected = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path).withValue(JsonFactory.newArray()
+                        .add(TestConstants.THING.toJsonString())
+                        .add(TestConstants.THING2.toJsonString()))
+                        .withStatus(HttpStatusCode.OK).build())
                 .withHeaders(TestConstants.HEADERS_V_2).build();
 
-        final RetrieveThingsResponse retrieveThingsResponse = RetrieveThingsResponse.of(JsonFactory.newArray() //
-                        .add(TestConstants.THING.toJsonString()) //
+        final RetrieveThingsResponse retrieveThingsResponse = RetrieveThingsResponse.of(JsonFactory.newArray()
+                        .add(TestConstants.THING.toJsonString())
                         .add(TestConstants.THING2.toJsonString()),
                 TestConstants.DITTO_HEADERS_V_2);
 
@@ -195,447 +192,417 @@ public final class ThingQueryCommandResponseAdapterTest {
         assertThat(actual).isEqualTo(expected);
     }
 
-    /** */
     @Test
     public void retrieveAclResponseFromAdaptable() {
         final RetrieveAclResponse expected =
-                RetrieveAclResponse.of(TestConstants.THING_ID, TestConstants.ACL, TestConstants.DITTO_HEADERS_V_1);
+                RetrieveAclResponse.of(THING_ID, TestConstants.ACL, DITTO_HEADERS_V_1);
 
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID) //
-                .things() //
-                .twin() //
-                .commands() //
-                .retrieve() //
+        final TopicPath topicPath = TopicPath.newBuilder(THING_ID)
+                .things()
+                .twin()
+                .commands()
+                .retrieve()
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/acl");
+        final JsonPointer path = JsonPointer.of("/acl");
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withStatus(HttpStatusCode.OK) //
-                        .withValue(TestConstants.ACL.toJson()) //
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_1) //
+        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.OK)
+                        .withValue(TestConstants.ACL.toJson())
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_1)
                 .build();
         final ThingQueryCommandResponse actual = underTest.fromAdaptable(adaptable);
 
         assertThat(actual).isEqualTo(expected);
     }
 
-    /** */
     @Test
     public void retrieveAclResponseTodaptable() {
-        final JsonPointer path = JsonPointer.newInstance("/acl");
+        final JsonPointer path = JsonPointer.of("/acl");
 
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
+        final TopicPath topicPath = TopicPath.newBuilder(THING_ID)
                 .things()
                 .twin()
                 .commands()
                 .retrieve()
                 .build();
 
-        final Adaptable expected = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withStatus(HttpStatusCode.OK) //
-                        .withValue(TestConstants.ACL.toJson()) //
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_1) //
+        final Adaptable expected = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.OK)
+                        .withValue(TestConstants.ACL.toJson())
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_1)
                 .build();
 
         final RetrieveAclResponse retrieveAcl =
-                RetrieveAclResponse.of(TestConstants.THING_ID, TestConstants.ACL, TestConstants.DITTO_HEADERS_V_1);
+                RetrieveAclResponse.of(THING_ID, TestConstants.ACL, DITTO_HEADERS_V_1);
         final Adaptable actual = underTest.toAdaptable(retrieveAcl);
 
         assertThat(actual).isEqualTo(expected);
     }
 
-    /** */
     @Test
     public void retrieveAclEntryResponseFromAdaptable() {
         final RetrieveAclEntryResponse expected =
-                RetrieveAclEntryResponse.of(TestConstants.THING_ID, TestConstants.ACL_ENTRY,
-                        TestConstants.DITTO_HEADERS_V_1);
+                RetrieveAclEntryResponse.of(THING_ID, TestConstants.ACL_ENTRY, DITTO_HEADERS_V_1);
 
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID) //
-                .things() //
-                .twin() //
-                .commands() //
-                .retrieve() //
+        final TopicPath topicPath = TopicPath.newBuilder(THING_ID)
+                .things()
+                .twin()
+                .commands()
+                .retrieve()
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/acl/" + TestConstants.AUTHORIZATION_SUBJECT.getId());
+        final JsonPointer path = JsonPointer.of("/acl/" + TestConstants.AUTHORIZATION_SUBJECT.getId());
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withStatus(HttpStatusCode.OK) //
-                        .withValue(TestConstants.ACL_ENTRY.getPermissions().toJson()) //
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_1) //
+        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.OK)
+                        .withValue(TestConstants.ACL_ENTRY.getPermissions().toJson())
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_1)
                 .build();
         final ThingQueryCommandResponse actual = underTest.fromAdaptable(adaptable);
 
         assertThat(actual).isEqualTo(expected);
     }
 
-    /** */
     @Test
     public void retrieveAclEntryResponseTodaptable() {
-        final JsonPointer path = JsonPointer.newInstance("/acl/" + TestConstants.AUTHORIZATION_SUBJECT.getId());
+        final JsonPointer path = JsonPointer.of("/acl/" + TestConstants.AUTHORIZATION_SUBJECT.getId());
 
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
+        final TopicPath topicPath = TopicPath.newBuilder(THING_ID)
                 .things()
                 .twin()
                 .commands()
                 .retrieve()
                 .build();
 
-        final Adaptable expected = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withStatus(HttpStatusCode.OK) //
-                        .withValue(TestConstants.ACL_ENTRY.getPermissions().toJson()) //
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_1) //
+        final Adaptable expected = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.OK)
+                        .withValue(TestConstants.ACL_ENTRY.getPermissions().toJson())
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_1)
                 .build();
 
         final RetrieveAclEntryResponse retrieveAclEntry =
-                RetrieveAclEntryResponse.of(TestConstants.THING_ID, TestConstants.ACL_ENTRY,
-                        TestConstants.DITTO_HEADERS_V_1);
+                RetrieveAclEntryResponse.of(THING_ID, TestConstants.ACL_ENTRY, DITTO_HEADERS_V_1);
         final Adaptable actual = underTest.toAdaptable(retrieveAclEntry);
 
         assertThat(actual).isEqualTo(expected);
     }
 
-    /** */
     @Test
     public void retrieveAttributesResponseFromAdaptable() {
         final RetrieveAttributesResponse expected =
-                RetrieveAttributesResponse.of(TestConstants.THING_ID, TestConstants.ATTRIBUTES,
-                        TestConstants.DITTO_HEADERS_V_1);
+                RetrieveAttributesResponse.of(THING_ID, TestConstants.ATTRIBUTES, DITTO_HEADERS_V_1);
 
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID) //
-                .things() //
-                .twin() //
-                .commands() //
-                .retrieve() //
+        final TopicPath topicPath = TopicPath.newBuilder(THING_ID)
+                .things()
+                .twin()
+                .commands()
+                .retrieve()
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/attributes");
+        final JsonPointer path = JsonPointer.of("/attributes");
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withStatus(HttpStatusCode.OK) //
-                        .withValue(TestConstants.ATTRIBUTES) //
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_1) //
+        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.OK)
+                        .withValue(TestConstants.ATTRIBUTES)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_1)
                 .build();
         final ThingQueryCommandResponse actual = underTest.fromAdaptable(adaptable);
 
         assertThat(actual).isEqualTo(expected);
     }
 
-    /** */
     @Test
     public void retrieveAttributesResponseTodaptable() {
-        final JsonPointer path = JsonPointer.newInstance("/attributes");
+        final JsonPointer path = JsonPointer.of("/attributes");
 
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
+        final TopicPath topicPath = TopicPath.newBuilder(THING_ID)
                 .things()
                 .twin()
                 .commands()
                 .retrieve()
                 .build();
 
-        final Adaptable expected = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withStatus(HttpStatusCode.OK) //
-                        .withValue(TestConstants.ATTRIBUTES_JSON) //
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_1) //
+        final Adaptable expected = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.OK)
+                        .withValue(TestConstants.ATTRIBUTES_JSON)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_1)
                 .build();
 
         final RetrieveAttributesResponse retrieveAttributes =
-                RetrieveAttributesResponse.of(TestConstants.THING_ID, TestConstants.ATTRIBUTES,
-                        TestConstants.DITTO_HEADERS_V_1);
+                RetrieveAttributesResponse.of(THING_ID, TestConstants.ATTRIBUTES, DITTO_HEADERS_V_1);
         final Adaptable actual = underTest.toAdaptable(retrieveAttributes);
 
         assertThat(actual).isEqualTo(expected);
     }
 
-    /** */
     @Test
     public void retrieveAttributeResponseFromAdaptable() {
         final RetrieveAttributeResponse expected =
-                RetrieveAttributeResponse.of(TestConstants.THING_ID, TestConstants.ATTRIBUTE_POINTER,
-                TestConstants.ATTRIBUTE_VALUE, TestConstants.DITTO_HEADERS_V_1);
+                RetrieveAttributeResponse.of(THING_ID, TestConstants.ATTRIBUTE_POINTER, TestConstants.ATTRIBUTE_VALUE,
+                        DITTO_HEADERS_V_1);
 
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID) //
-                .things() //
-                .twin() //
-                .commands() //
-                .retrieve() //
+        final TopicPath topicPath = TopicPath.newBuilder(THING_ID)
+                .things()
+                .twin()
+                .commands()
+                .retrieve()
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/attributes" + TestConstants.ATTRIBUTE_POINTER.toString());
+        final JsonPointer path = JsonPointer.of("/attributes" + TestConstants.ATTRIBUTE_POINTER);
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withStatus(HttpStatusCode.OK) //
-                        .withValue(TestConstants.ATTRIBUTE_VALUE) //
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_1) //
+        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.OK)
+                        .withValue(TestConstants.ATTRIBUTE_VALUE)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_1)
                 .build();
         final ThingQueryCommandResponse actual = underTest.fromAdaptable(adaptable);
 
         assertThat(actual).isEqualTo(expected);
     }
 
-    /** */
     @Test
-    public void retrieveAttributeResponseTodaptable() {
-        final JsonPointer path = JsonPointer.newInstance("/attributes" + TestConstants.ATTRIBUTE_POINTER.toString());
+    public void retrieveAttributeResponseToAdaptable() {
+        final JsonPointer path = JsonPointer.of("/attributes" + TestConstants.ATTRIBUTE_POINTER);
 
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
+        final TopicPath topicPath = TopicPath.newBuilder(THING_ID)
                 .things()
                 .twin()
                 .commands()
                 .retrieve()
                 .build();
 
-        final Adaptable expected = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withStatus(HttpStatusCode.OK) //
-                        .withValue(TestConstants.ATTRIBUTE_VALUE) //
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_1) //
+        final Adaptable expected = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.OK)
+                        .withValue(TestConstants.ATTRIBUTE_VALUE)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_1)
                 .build();
 
         final RetrieveAttributeResponse retrieveAttribute =
-                RetrieveAttributeResponse.of(TestConstants.THING_ID, TestConstants.ATTRIBUTE_POINTER,
-                        TestConstants.ATTRIBUTE_VALUE, TestConstants.DITTO_HEADERS_V_1);
+                RetrieveAttributeResponse.of(THING_ID, TestConstants.ATTRIBUTE_POINTER, TestConstants.ATTRIBUTE_VALUE,
+                        DITTO_HEADERS_V_1);
         final Adaptable actual = underTest.toAdaptable(retrieveAttribute);
 
         assertThat(actual).isEqualTo(expected);
     }
 
-    /** */
     @Test
     public void retrieveFeaturesResponseFromAdaptable() {
         final RetrieveFeaturesResponse expected =
-                RetrieveFeaturesResponse.of(TestConstants.THING_ID, TestConstants.FEATURES,
-                        TestConstants.DITTO_HEADERS_V_1);
+                RetrieveFeaturesResponse.of(THING_ID, TestConstants.FEATURES, DITTO_HEADERS_V_1);
 
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID) //
-                .things() //
-                .twin() //
-                .commands() //
-                .retrieve() //
+        final TopicPath topicPath = TopicPath.newBuilder(THING_ID)
+                .things()
+                .twin()
+                .commands()
+                .retrieve()
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/features");
+        final JsonPointer path = JsonPointer.of("/features");
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withStatus(HttpStatusCode.OK) //
-                        .withValue(TestConstants.FEATURES.toJson()) //
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_1) //
+        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.OK)
+                        .withValue(TestConstants.FEATURES.toJson())
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_1)
                 .build();
         final ThingQueryCommandResponse actual = underTest.fromAdaptable(adaptable);
 
         assertThat(actual).isEqualTo(expected);
     }
 
-    /** */
     @Test
-    public void retrieveFeaturesResponseTodaptable() {
-        final JsonPointer path = JsonPointer.newInstance("/features");
+    public void retrieveFeaturesResponseToAdaptable() {
+        final JsonPointer path = JsonPointer.of("/features");
 
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
+        final TopicPath topicPath = TopicPath.newBuilder(THING_ID)
                 .things()
                 .twin()
                 .commands()
                 .retrieve()
                 .build();
 
-        final Adaptable expected = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withStatus(HttpStatusCode.OK) //
-                        .withValue(TestConstants.FEATURES.toJson()) //
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_1) //
+        final Adaptable expected = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.OK)
+                        .withValue(TestConstants.FEATURES.toJson())
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_1)
                 .build();
 
         final RetrieveFeaturesResponse retrieveFeatures =
-                RetrieveFeaturesResponse.of(TestConstants.THING_ID, TestConstants.FEATURES,
-                        TestConstants.DITTO_HEADERS_V_1);
+                RetrieveFeaturesResponse.of(THING_ID, TestConstants.FEATURES, DITTO_HEADERS_V_1);
         final Adaptable actual = underTest.toAdaptable(retrieveFeatures);
 
         assertThat(actual).isEqualTo(expected);
     }
 
-    /** */
     @Test
     public void retrieveFeatureResponseFromAdaptable() {
         final RetrieveFeatureResponse expected =
-                RetrieveFeatureResponse.of(TestConstants.THING_ID, TestConstants.FEATURE_ID,
-                        TestConstants.FEATURE.toJson(),
-                        TestConstants.DITTO_HEADERS_V_1);
+                RetrieveFeatureResponse.of(THING_ID, FEATURE_ID, TestConstants.FEATURE.toJson(), DITTO_HEADERS_V_1);
 
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID) //
-                .things() //
-                .twin() //
-                .commands() //
-                .retrieve() //
+        final TopicPath topicPath = TopicPath.newBuilder(THING_ID)
+                .things()
+                .twin()
+                .commands()
+                .retrieve()
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/features/" + TestConstants.FEATURE_ID);
+        final JsonPointer path = JsonPointer.of("/features/" + FEATURE_ID);
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withStatus(HttpStatusCode.OK) //
-                        .withValue(TestConstants.FEATURE.toJson()) //
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_1) //
+        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.OK)
+                        .withValue(TestConstants.FEATURE.toJson())
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_1)
                 .build();
         final ThingQueryCommandResponse actual = underTest.fromAdaptable(adaptable);
 
         assertThat(actual).isEqualTo(expected);
     }
 
-    /** */
     @Test
-    public void retrieveFeatureResponseTodaptable() {
-        final JsonPointer path = JsonPointer.newInstance("/features/" + TestConstants.FEATURE_ID);
+    public void retrieveFeatureResponseToAdaptable() {
+        final JsonPointer path = JsonPointer.of("/features/" + FEATURE_ID);
 
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
+        final TopicPath topicPath = TopicPath.newBuilder(THING_ID)
                 .things()
                 .twin()
                 .commands()
                 .retrieve()
                 .build();
 
-        final Adaptable expected = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withStatus(HttpStatusCode.OK) //
-                        .withValue(TestConstants.FEATURE.toJson()) //
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_1) //
+        final Adaptable expected = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.OK)
+                        .withValue(TestConstants.FEATURE.toJson())
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_1)
                 .build();
 
         final RetrieveFeatureResponse retrieveFeature =
-                RetrieveFeatureResponse.of(TestConstants.THING_ID, TestConstants.FEATURE_ID,
-                        TestConstants.FEATURE.toJson(),
-                        TestConstants.DITTO_HEADERS_V_1);
+                RetrieveFeatureResponse.of(THING_ID, FEATURE_ID, TestConstants.FEATURE.toJson(), DITTO_HEADERS_V_1);
         final Adaptable actual = underTest.toAdaptable(retrieveFeature);
 
         assertThat(actual).isEqualTo(expected);
     }
 
-    /** */
     @Test
     public void retrieveFeaturePropertiesResponseFromAdaptable() {
         final RetrieveFeaturePropertiesResponse expected =
-                RetrieveFeaturePropertiesResponse.of(TestConstants.THING_ID, TestConstants.FEATURE_ID,
-                        TestConstants.FEATURE_PROPERTIES, TestConstants.DITTO_HEADERS_V_1);
+                RetrieveFeaturePropertiesResponse.of(THING_ID, FEATURE_ID, TestConstants.FEATURE_PROPERTIES,
+                        DITTO_HEADERS_V_1);
 
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID) //
-                .things() //
-                .twin() //
-                .commands() //
-                .retrieve() //
+        final TopicPath topicPath = TopicPath.newBuilder(THING_ID)
+                .things()
+                .twin()
+                .commands()
+                .retrieve()
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/features/" + TestConstants.FEATURE_ID + "/properties");
+        final JsonPointer path = JsonPointer.of("/features/" + FEATURE_ID + "/properties");
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withStatus(HttpStatusCode.OK) //
-                        .withValue(TestConstants.FEATURE_PROPERTIES) //
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_1) //
+        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.OK)
+                        .withValue(TestConstants.FEATURE_PROPERTIES)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_1)
                 .build();
         final ThingQueryCommandResponse actual = underTest.fromAdaptable(adaptable);
 
         assertThat(actual).isEqualTo(expected);
     }
 
-    /** */
     @Test
-    public void retrieveFeaturePropertiesResponseTodaptable() {
-        final JsonPointer path = JsonPointer.newInstance("/features/" + TestConstants.FEATURE_ID + "/properties");
+    public void retrieveFeaturePropertiesResponseToAdaptable() {
+        final JsonPointer path = JsonPointer.of("/features/" + FEATURE_ID + "/properties");
 
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
+        final TopicPath topicPath = TopicPath.newBuilder(THING_ID)
                 .things()
                 .twin()
                 .commands()
                 .retrieve()
                 .build();
 
-        final Adaptable expected = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withStatus(HttpStatusCode.OK) //
-                        .withValue(TestConstants.FEATURE_PROPERTIES_JSON) //
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_1) //
+        final Adaptable expected = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.OK)
+                        .withValue(TestConstants.FEATURE_PROPERTIES_JSON)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_1)
                 .build();
 
-        final RetrieveFeaturePropertiesResponse retrieveFeatureProperties = RetrieveFeaturePropertiesResponse
-                .of(TestConstants.THING_ID, TestConstants.FEATURE_ID, TestConstants.FEATURE_PROPERTIES,
-                        TestConstants.DITTO_HEADERS_V_1);
+        final RetrieveFeaturePropertiesResponse retrieveFeatureProperties =
+                RetrieveFeaturePropertiesResponse.of(THING_ID, FEATURE_ID, TestConstants.FEATURE_PROPERTIES,
+                        DITTO_HEADERS_V_1);
         final Adaptable actual = underTest.toAdaptable(retrieveFeatureProperties);
 
         assertThat(actual).isEqualTo(expected);
     }
 
-    /** */
     @Test
     public void retrieveFeaturePropertyResponseFromAdaptable() {
         final RetrieveFeaturePropertyResponse expected =
-                RetrieveFeaturePropertyResponse.of(TestConstants.THING_ID, TestConstants.FEATURE_ID,
-                        TestConstants.FEATURE_PROPERTY_POINTER,
-                        TestConstants.FEATURE_PROPERTY_VALUE, TestConstants.DITTO_HEADERS_V_1);
+                RetrieveFeaturePropertyResponse.of(THING_ID, FEATURE_ID, TestConstants.FEATURE_PROPERTY_POINTER,
+                        TestConstants.FEATURE_PROPERTY_VALUE, DITTO_HEADERS_V_1);
 
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID) //
-                .things() //
-                .twin() //
-                .commands() //
-                .retrieve() //
+        final TopicPath topicPath = TopicPath.newBuilder(THING_ID)
+                .things()
+                .twin()
+                .commands()
+                .retrieve()
                 .build();
-        final JsonPointer path = JsonPointer.newInstance(
-                "/features/" + TestConstants.FEATURE_ID + "/properties/" +
-                        TestConstants.FEATURE_PROPERTY_POINTER.toString());
+        final JsonPointer path = JsonPointer.of("/features/" + FEATURE_ID + "/properties" +
+                TestConstants.FEATURE_PROPERTY_POINTER);
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withStatus(HttpStatusCode.OK) //
-                        .withValue(TestConstants.FEATURE_PROPERTY_VALUE) //
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_1) //
+        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.OK)
+                        .withValue(TestConstants.FEATURE_PROPERTY_VALUE)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_1)
                 .build();
         final ThingQueryCommandResponse actual = underTest.fromAdaptable(adaptable);
 
         assertThat(actual).isEqualTo(expected);
     }
 
-    /** */
     @Test
-    public void retrieveFeaturePropertyResponseTodaptable() {
-        final JsonPointer path = JsonPointer.newInstance(
-                "/features/" + TestConstants.FEATURE_ID + "/properties" +
-                        TestConstants.FEATURE_PROPERTY_POINTER.toString());
+    public void retrieveFeaturePropertyResponseToAdaptable() {
+        final JsonPointer path = JsonPointer.of("/features/" + FEATURE_ID + "/properties" +
+                TestConstants.FEATURE_PROPERTY_POINTER);
 
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
+        final TopicPath topicPath = TopicPath.newBuilder(THING_ID)
                 .things()
                 .twin()
                 .commands()
                 .retrieve()
                 .build();
 
-        final Adaptable expected = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withStatus(HttpStatusCode.OK) //
-                        .withValue(TestConstants.FEATURE_PROPERTY_VALUE) //
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_1) //
+        final Adaptable expected = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.OK)
+                        .withValue(TestConstants.FEATURE_PROPERTY_VALUE)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_1)
                 .build();
 
         final RetrieveFeaturePropertyResponse retrieveFeatureProperty =
-                RetrieveFeaturePropertyResponse.of(TestConstants.THING_ID, TestConstants.FEATURE_ID,
-                        TestConstants.FEATURE_PROPERTY_POINTER,
-                        TestConstants.FEATURE_PROPERTY_VALUE, TestConstants.DITTO_HEADERS_V_1);
+                RetrieveFeaturePropertyResponse.of(THING_ID, FEATURE_ID, TestConstants.FEATURE_PROPERTY_POINTER,
+                        TestConstants.FEATURE_PROPERTY_VALUE, DITTO_HEADERS_V_1);
         final Adaptable actual = underTest.toAdaptable(retrieveFeatureProperty);
 
         assertThat(actual).isEqualTo(expected);

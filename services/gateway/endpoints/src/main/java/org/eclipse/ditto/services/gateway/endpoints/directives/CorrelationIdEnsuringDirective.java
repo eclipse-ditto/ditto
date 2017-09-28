@@ -33,7 +33,7 @@ public final class CorrelationIdEnsuringDirective {
     private static final Logger LOGGER = LoggerFactory.getLogger(CorrelationIdEnsuringDirective.class);
 
     private static final String CORRELATION_ID_HEADER =
-            org.eclipse.ditto.services.gateway.security.HttpHeader.X_DITTO_CORRELATION_ID.getName();
+            org.eclipse.ditto.services.gateway.security.HttpHeader.X_CORRELATION_ID.getName();
 
     private CorrelationIdEnsuringDirective() {
         // no op

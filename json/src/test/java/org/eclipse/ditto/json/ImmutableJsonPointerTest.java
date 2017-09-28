@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.json;
 
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
@@ -35,14 +36,13 @@ public final class ImmutableJsonPointerTest {
 
     private static final JsonKey KNOWN_KEY_NAME = JsonFactory.newKey("foo");
 
-    /** */
     @Test
     public void assertImmutability() {
-        assertInstancesOf(ImmutableJsonPointer.class, areImmutable(), provided(JsonKey.class).isAlsoImmutable(),
-                assumingFields("jsonFields").areNotModifiedAndDoNotEscape());
+        assertInstancesOf(ImmutableJsonPointer.class,
+                areImmutable(),
+                provided(JsonKey.class).isAlsoImmutable(), assumingFields("jsonFields").areNotModifiedAndDoNotEscape());
     }
 
-    /** */
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(ImmutableJsonPointer.class)
@@ -50,7 +50,6 @@ public final class ImmutableJsonPointerTest {
                 .verify();
     }
 
-    /** */
     @Test
     public void createInstanceFromStringWithLeadingSlash() {
         final JsonPointer underTest = ImmutableJsonPointer.ofParsed("/foo/bar/baz");
@@ -81,7 +80,7 @@ public final class ImmutableJsonPointerTest {
     /** */
     @Test
     public void createInstanceFromStringWithTrailingSlash() {
-        final JsonPointer underTest = ImmutableJsonPointer.ofParsed("foo/bar/baz/");
+        final JsonPointer underTest = ImmutableJsonPointer.ofParsed("/foo/bar/baz/");
         final byte expectedLevelCount = 3;
 
         assertThat(underTest).hasLevelCount(expectedLevelCount);
@@ -90,7 +89,7 @@ public final class ImmutableJsonPointerTest {
     /** */
     @Test
     public void createInstanceFromStringWithTwoDelimitingSlashes() {
-        final JsonPointer underTest = ImmutableJsonPointer.ofParsed("foo//bar/baz/");
+        final JsonPointer underTest = ImmutableJsonPointer.ofParsed("/foo//bar/baz/");
         final byte expectedLevelCount = 3;
 
         assertThat(underTest).hasLevelCount(expectedLevelCount);
@@ -139,7 +138,7 @@ public final class ImmutableJsonPointerTest {
         final String thirdLevel = "third";
 
         // The trailing slash is only there to prove some resilience of the parse method.
-        final String slashDelimited = firstLevel + "/" + secondLevel + "/" + thirdLevel + "/";
+        final String slashDelimited = "/" + firstLevel + "/" + secondLevel + "/" + thirdLevel + "/";
         final JsonPointer underTest = ImmutableJsonPointer.ofParsed(slashDelimited);
 
         assertThat(underTest.getLevelCount()).isEqualTo(3);
@@ -181,7 +180,7 @@ public final class ImmutableJsonPointerTest {
     /** */
     @Test
     public void addingNewLevelReturnsNewJsonPointer() {
-        final JsonPointer originalJsonPointer = ImmutableJsonPointer.ofParsed("foo/bar");
+        final JsonPointer originalJsonPointer = ImmutableJsonPointer.ofParsed("/foo/bar");
 
         assertThat(originalJsonPointer.getLevelCount()).isEqualTo(2);
 
@@ -189,6 +188,16 @@ public final class ImmutableJsonPointerTest {
 
         assertThat(extendedJsonPointer.getLevelCount()).isEqualTo(3);
         assertThat(extendedJsonPointer).isNotEqualTo(originalJsonPointer);
+    }
+
+    @Test
+    public void tryToAddNullLeaf() {
+        final JsonPointer underTest = ImmutableJsonPointer.ofParsed("/foo/bar");
+
+        assertThatExceptionOfType(NullPointerException.class)
+                .isThrownBy(() -> underTest.addLeaf(null))
+                .withMessage("The %s must not be null!", "level to be added")
+                .withNoCause();
     }
 
     /** */
@@ -204,7 +213,7 @@ public final class ImmutableJsonPointerTest {
     /** */
     @Test
     public void getSubPointerWithNegativeLevelNumber() {
-        final JsonPointer underTest = ImmutableJsonPointer.ofParsed("foo/bar/baz");
+        final JsonPointer underTest = ImmutableJsonPointer.ofParsed("/foo/bar/baz");
         final Optional<JsonPointer> subPointer = underTest.getSubPointer(-1);
 
         assertThat(subPointer).isEmpty();
@@ -213,7 +222,7 @@ public final class ImmutableJsonPointerTest {
     /** */
     @Test
     public void getSubPointerWithTooHighLevelNumberReturnsEmptyOptional() {
-        final JsonPointer underTest = ImmutableJsonPointer.ofParsed("foo/bar/baz");
+        final JsonPointer underTest = ImmutableJsonPointer.ofParsed("/foo/bar/baz");
         final byte levelNumber = 23;
         final Optional<JsonPointer> subPointer = underTest.getSubPointer(levelNumber);
 
@@ -223,10 +232,10 @@ public final class ImmutableJsonPointerTest {
     /** */
     @Test
     public void getSubPointerReturnsExpected() {
-        final JsonPointer underTest = ImmutableJsonPointer.ofParsed("foo/bar/baz/oogle/foogle");
+        final JsonPointer underTest = ImmutableJsonPointer.ofParsed("/foo/bar/baz/oogle/foogle");
         final byte levelNumber = 3;
         final Optional<JsonPointer> actual = underTest.getSubPointer(levelNumber);
-        final JsonPointer expected = ImmutableJsonPointer.ofParsed("oogle/foogle");
+        final JsonPointer expected = ImmutableJsonPointer.ofParsed("/oogle/foogle");
 
         assertThat(actual).contains(expected);
     }
@@ -243,7 +252,7 @@ public final class ImmutableJsonPointerTest {
     /** */
     @Test
     public void cutLeafWorksAsExpected() {
-        final JsonPointer jsonPointer = ImmutableJsonPointer.ofParsed("foo/bar/baz/oogle/foogle");
+        final JsonPointer jsonPointer = ImmutableJsonPointer.ofParsed("/foo/bar/baz/oogle/foogle");
         final JsonPointer underTest = jsonPointer.cutLeaf();
         final JsonKey expectedNewLeaf = JsonFactory.newKey("oogle");
 
@@ -268,6 +277,49 @@ public final class ImmutableJsonPointerTest {
         final JsonPointer newPointer = root.append(empty);
 
         assertThat(newPointer).isSameAs(root);
+    }
+
+    @Test
+    public void createInstanceFromParsedStringWithEscapedSlashesWorksAsExpected() {
+        final String key1 = "foo";
+        final String key2 = "dum~1die~1dum";
+        final String key3 = "baz";
+
+        final String pointerString = "/" + key1 + "/" + key2 + "/" + key3;
+
+        final JsonPointer underTest = ImmutableJsonPointer.ofParsed(pointerString);
+
+        assertThat(underTest).hasLevelCount(3);
+        assertThat(underTest.get(1)).contains(JsonFactory.newKey("dum/die/dum"));
+        assertThat(underTest.toString()).isEqualTo("/foo/dum~1die~1dum/baz");
+    }
+
+    @Test
+    public void createInstanceFromParsedStringWithEscapedTildesAndSlashesWorksAsExpected() {
+        final String key1 = "foo";
+        final String key2 = "~0dum~1~0die~1~0dum";
+        final String key3 = "baz";
+
+        final String pointerString = "/" + key1 + "/" + key2 + "/" + key3;
+
+        final JsonPointer underTest = ImmutableJsonPointer.ofParsed(pointerString);
+
+        assertThat(underTest).hasLevelCount(3);
+        assertThat(underTest.get(1)).contains(JsonFactory.newKey("~dum/~die/~dum"));
+        assertThat(underTest.toString()).isEqualTo("/foo/~0dum~1~0die~1~0dum/baz");
+    }
+
+    @Test
+    public void createInstanceFromJsonKeysWithEscapedTildesAndSlashesWorksAsExpected() {
+        final JsonKey key1 = JsonFactory.newKey("foo");
+        final JsonKey key2 = JsonFactory.newKey("~dum/~die/~dum");
+        final JsonKey key3 = JsonFactory.newKey("baz");
+
+        final JsonPointer underTest = ImmutableJsonPointer.of(key1, key2, key3);
+
+        assertThat(underTest).hasLevelCount(3);
+        assertThat(underTest.get(1)).contains(key2);
+        assertThat(underTest.toString()).isEqualTo("/foo/~0dum~1~0die~1~0dum/baz");
     }
 
 }

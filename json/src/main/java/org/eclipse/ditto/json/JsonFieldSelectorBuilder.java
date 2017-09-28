@@ -99,9 +99,14 @@ public interface JsonFieldSelectorBuilder extends Iterable<JsonPointer> {
      * "thingId,attributes(acceleration,someData(foo,bar/baz)),acl,features/key"
      * </pre>
      * <p>
-     * would lead to a JSON field selector which consists of the following JSON pointers: <ul> <li>{@code
-     * "thingId"},</li> <li>{@code "attributes/acceleration"},</li> <li>{@code "attributes/someData/foo"},</li>
-     * <li>{@code "attributes/someData/bar/baz"},</li> <li>{@code "acl"} and</li> <li>{@code "features/key"}.</li>
+     * would lead to a JSON field selector which consists of the following JSON pointers:
+     * <ul>
+     *     <li>{@code "thingId"},</li>
+     *     <li>{@code "attributes/acceleration"},</li>
+     *     <li>{@code "attributes/someData/foo"},</li>
+     *     <li>{@code "attributes/someData/bar/baz"},</li>
+     *     <li>{@code "acl"} and</li>
+     *     <li>{@code "features/key"}.</li>
      * </ul>
      *
      * @param fieldSelectorString string to be transformed into a JSON field selector object.
@@ -126,9 +131,14 @@ public interface JsonFieldSelectorBuilder extends Iterable<JsonPointer> {
      * "thingId,attributes(acceleration,someData(foo,bar/baz)),acl,features/key"
      * </pre>
      * <p>
-     * would lead to a JSON field selector which consists of the following JSON pointers: <ul> <li>{@code
-     * "thingId"},</li> <li>{@code "attributes/acceleration"},</li> <li>{@code "attributes/someData/foo"},</li>
-     * <li>{@code "attributes/someData/bar/baz"},</li> <li>{@code "acl"} and</li> <li>{@code "features/key"}.</li>
+     * would lead to a JSON field selector which consists of the following JSON pointers:
+     * <ul>
+     *     <li>{@code "thingId"},</li>
+     *     <li>{@code "attributes/acceleration"},</li>
+     *     <li>{@code "attributes/someData/foo"},</li>
+     *     <li>{@code "attributes/someData/bar/baz"},</li>
+     *     <li>{@code "acl"} and</li>
+     *     <li>{@code "features/key"}.</li>
      * </ul>
      *
      * @param fieldSelectorString string to be transformed into a JSON field selector object.

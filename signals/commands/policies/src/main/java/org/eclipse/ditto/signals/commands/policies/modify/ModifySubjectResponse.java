@@ -188,7 +188,7 @@ public final class ModifySubjectResponse extends AbstractCommandResponse<ModifyS
         }
 
         final String path = "/entries/" + label + "/subjects/" + subjectCreated.getId();
-        return JsonPointer.newInstance(path);
+        return JsonPointer.of(path);
     }
 
     @Override

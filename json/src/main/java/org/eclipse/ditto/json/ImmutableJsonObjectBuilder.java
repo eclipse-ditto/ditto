@@ -12,7 +12,6 @@
 package org.eclipse.ditto.json;
 
 import static java.util.Objects.requireNonNull;
-import static org.eclipse.ditto.json.JsonFactory.newPointer;
 import static org.eclipse.ditto.json.JsonFactory.newValue;
 
 import java.text.MessageFormat;
@@ -31,7 +30,7 @@ import javax.annotation.concurrent.NotThreadSafe;
 @NotThreadSafe
 final class ImmutableJsonObjectBuilder implements JsonObjectBuilder {
 
-    private static final JsonKey ROOT_KEY = JsonKey.newInstance("/");
+    private static final JsonKey ROOT_KEY = JsonFactory.newKey("/");
 
     private final Map<String, JsonField> fields;
 
@@ -53,15 +52,6 @@ final class ImmutableJsonObjectBuilder implements JsonObjectBuilder {
             final Predicate<JsonField> predicate) {
 
         return set(key, JsonFactory.newValue(value), predicate);
-    }
-
-    private static <T> boolean testPredicate(final Predicate<T> predicate, final T value) {
-        checkPredicate(predicate);
-        return predicate.test(value);
-    }
-
-    private static void checkPredicate(final Predicate<?> predicate) {
-        requireNonNull(predicate, "The predicate must not be null!");
     }
 
     @Override
@@ -96,54 +86,31 @@ final class ImmutableJsonObjectBuilder implements JsonObjectBuilder {
     public ImmutableJsonObjectBuilder set(final CharSequence key, final JsonValue value,
             final Predicate<JsonField> predicate) {
 
-        checkKey(key);
+        final JsonPointer pointer = JsonFactory.getNonEmptyPointer(key);
         checkValue(value);
+        checkPredicate(predicate);
 
-        final JsonIndex jsonIndex = JsonFactory.newIndex(key);
-        if (jsonIndex.isPointer()) {
-            return setValueForPointer(jsonIndex.asPointer(), value, predicate);
-        }
-        setValueForKey(jsonIndex.asKey(), value, predicate);
+        pointer.getLeaf()
+                .map(leafKey -> JsonFactory.newField(leafKey, value))
+                .filter(predicate)
+                .ifPresent(jsonField -> setFieldInHierarchy(this, pointer, jsonField));
 
         return this;
-    }
-
-    private static void checkKey(final CharSequence key) {
-        final String pattern = "The key of the value must not be {0}!";
-        requireNonNull(key, () -> MessageFormat.format(pattern, "null"));
     }
 
     private static void checkValue(final Object value) {
         requireNonNull(value, "The value must not be null!");
     }
 
-    private ImmutableJsonObjectBuilder setValueForPointer(final JsonPointer pointer, final JsonValue value,
-            final Predicate<JsonField> predicate) {
-
-        if (pointer.isEmpty()) {
-            setValueForKey(ROOT_KEY, value, predicate);
-        } else if (1 == pointer.getLevelCount()) {
-            setValueForKey(pointer.getRoot().orElse(ROOT_KEY), value, predicate);
-        } else {
-            final JsonKey leafKey = getLeafKey(pointer);
-            final JsonField jsonField = JsonFactory.newField(leafKey, value);
-            if (predicate.test(jsonField)) {
-                return setFieldInHierarchy(this, pointer, jsonField);
-            }
-        }
-
-        return this;
+    private static void checkPredicate(final Predicate<JsonField> predicate) {
+        requireNonNull(predicate, "The predicate must not be null!");
     }
 
-    private static JsonKey getLeafKey(final JsonPointer pointer) {
-        return pointer.getLeaf().orElseThrow(() -> new IllegalArgumentException("The pointer must not be empty!"));
-    }
-
-    private static ImmutableJsonObjectBuilder setFieldInHierarchy(final ImmutableJsonObjectBuilder target,
+    private static JsonObjectBuilder setFieldInHierarchy(final ImmutableJsonObjectBuilder target,
             final JsonPointer pointer, final JsonField field) {
 
         if (1 >= pointer.getLevelCount()) {
-            return (ImmutableJsonObjectBuilder) target.set(field);
+            return target.set(field);
         }
 
         final JsonKey rootKey = pointer.getRoot().orElse(ROOT_KEY);
@@ -159,14 +126,7 @@ final class ImmutableJsonObjectBuilder implements JsonObjectBuilder {
 
         // let the recursion begin >:-(
         final JsonObject jsonObject = setFieldInHierarchy(newTarget, pointer.nextLevel(), field).build();
-        return (ImmutableJsonObjectBuilder) target.set(rootKey, jsonObject);
-    }
-
-    private void setValueForKey(final JsonKey key, final JsonValue value, final Predicate<JsonField> predicate) {
-        final JsonField jsonField = JsonFactory.newField(key, value);
-        if (predicate.test(jsonField)) {
-            fields.put(jsonField.getKeyName(), jsonField);
-        }
+        return target.set(rootKey, jsonObject);
     }
 
     @Override
@@ -220,23 +180,32 @@ final class ImmutableJsonObjectBuilder implements JsonObjectBuilder {
 
         requireNonNull(fieldDefinition, "The definition of the JSON field to set the value for must not be null!");
         checkValue(value);
-        final JsonKey leafKey = getLeafKey(fieldDefinition.getPointer());
-        final JsonField jsonField = JsonFactory.newField(leafKey, value, fieldDefinition);
+        validateDefinitionValueType(fieldDefinition, value);
+        checkPredicate(predicate);
 
-        if (predicate.test(jsonField)) {
-            return setFieldInHierarchy(this, fieldDefinition.getPointer(), jsonField);
-        }
+        final JsonPointer pointer = fieldDefinition.getPointer();
+        pointer.getLeaf()
+                .map(leafKey -> JsonFactory.newField(leafKey, value, fieldDefinition))
+                .filter(predicate)
+                .ifPresent(jsonField -> setFieldInHierarchy(this, pointer, jsonField));
+
         return this;
     }
 
-    @Override
-    public JsonObjectBuilder remove(final CharSequence key) {
-        checkKey(key);
-
-        return remove(newPointer(key));
+    private static void validateDefinitionValueType(final JsonFieldDefinition fieldDefinition, final JsonValue value) {
+        final Class<?> expectedValueType = fieldDefinition.getValueType();
+        if (!value.isRepresentationOfJavaType(expectedValueType)) {
+            final String msgTemplate = "Type of value <{0}> is not the expected <{1}>!";
+            throw new IllegalArgumentException(MessageFormat.format(msgTemplate, value, expectedValueType));
+        }
     }
 
-    private JsonObjectBuilder remove(final JsonPointer pointer) {
+    @Override
+    public ImmutableJsonObjectBuilder remove(final CharSequence key) {
+        return remove(JsonFactory.newPointer(key));
+    }
+
+    private ImmutableJsonObjectBuilder remove(final JsonPointer pointer) {
         pointer.getRoot()
                 .map(JsonKey::toString)
                 .map(fields::get)
@@ -257,13 +226,13 @@ final class ImmutableJsonObjectBuilder implements JsonObjectBuilder {
     }
 
     @Override
-    public JsonObjectBuilder remove(final JsonFieldDefinition fieldDefinition) {
+    public ImmutableJsonObjectBuilder remove(final JsonFieldDefinition fieldDefinition) {
         requireNonNull(fieldDefinition, "The field definition must not be null!");
         return remove(fieldDefinition.getPointer());
     }
 
     @Override
-    public JsonObjectBuilder setAll(final Iterable<JsonField> fields, final Predicate<JsonField> predicate) {
+    public ImmutableJsonObjectBuilder setAll(final Iterable<JsonField> fields, final Predicate<JsonField> predicate) {
         requireNonNull(fields, "The JSON fields to be set must not be null!");
         checkPredicate(predicate);
 
@@ -275,7 +244,7 @@ final class ImmutableJsonObjectBuilder implements JsonObjectBuilder {
     }
 
     @Override
-    public JsonObjectBuilder setAll(final Iterable<JsonField> fields) {
+    public ImmutableJsonObjectBuilder setAll(final Iterable<JsonField> fields) {
         requireNonNull(fields, "The JSON fields to be set must not be null!");
 
         for (final JsonField jsonField : fields) {
@@ -286,7 +255,7 @@ final class ImmutableJsonObjectBuilder implements JsonObjectBuilder {
     }
 
     @Override
-    public JsonObjectBuilder removeAll() {
+    public ImmutableJsonObjectBuilder removeAll() {
         fields.clear();
         return this;
     }

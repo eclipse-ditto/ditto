@@ -14,6 +14,7 @@ package org.eclipse.ditto.json;
 import java.net.URI;
 import java.text.MessageFormat;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 /**
@@ -30,8 +31,11 @@ public final class JsonPointerInvalidException extends JsonRuntimeException {
 
     private static final long serialVersionUID = -6773700329225961931L;
 
-    private JsonPointerInvalidException(final String message, final String description, final Throwable cause,
-            final URI href) {
+    private JsonPointerInvalidException(@Nullable final String message,
+            @Nullable final String description,
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
+
         super(ERROR_CODE, message, description, cause, href);
     }
 
@@ -46,7 +50,6 @@ public final class JsonPointerInvalidException extends JsonRuntimeException {
 
     /**
      * A mutable builder for a {@code JsonPointerInvalidException}.
-     *
      */
     @NotThreadSafe
     public static final class Builder extends AbstractJsonExceptionBuilder<JsonPointerInvalidException> {
@@ -63,28 +66,21 @@ public final class JsonPointerInvalidException extends JsonRuntimeException {
          * @param jsonPointerString the string representation of the invalid JSON pointer.
          * @return this builder to allow method chaining.
          */
-        public Builder jsonPointer(final CharSequence jsonPointerString) {
-            message(MessageFormat.format("The JSON pointer is invalid: ''{0}''!", jsonPointerString));
-            return this;
-        }
-
-        /**
-         * Sets a message which points to the name of the invalid JSON pointer. Thus if this method is called,
-         * {@link #message} should not be called.
-         *
-         * @param jsonPointer the invalid JSON pointer.
-         * @return this builder to allow method chaining.
-         */
-        public Builder jsonPointer(final JsonPointer jsonPointer) {
-            message(MessageFormat.format("The JSON pointer is invalid: ''{0}''!", jsonPointer));
+        public Builder jsonPointer(@Nullable final CharSequence jsonPointerString) {
+            message(MessageFormat.format("The JSON pointer <{0}> is invalid!", jsonPointerString));
             return this;
         }
 
         @Override
-        protected JsonPointerInvalidException doBuild(final String errorCode, final String message,
-                final String description, final Throwable cause, final URI href) {
+        protected JsonPointerInvalidException doBuild(final String errorCode,
+                @Nullable final String message,
+                @Nullable final String description,
+                @Nullable final Throwable cause,
+                @Nullable final URI href) {
+
             return new JsonPointerInvalidException(message, description, cause, href);
         }
+
     }
 
 }

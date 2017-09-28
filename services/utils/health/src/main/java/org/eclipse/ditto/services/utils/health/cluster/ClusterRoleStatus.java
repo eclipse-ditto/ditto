@@ -116,9 +116,9 @@ public final class ClusterRoleStatus implements Jsonifiable {
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
 
         jsonObjectBuilder.set(JSON_KEY_REACHABLE,
-                reachable.stream().map(JsonValue::newInstance).collect(JsonCollectors.valuesToArray()));
+                reachable.stream().map(JsonValue::of).collect(JsonCollectors.valuesToArray()));
         jsonObjectBuilder.set(JSON_KEY_UNREACHABLE,
-                unreachable.stream().map(JsonValue::newInstance).collect(JsonCollectors.valuesToArray()));
+                unreachable.stream().map(JsonValue::of).collect(JsonCollectors.valuesToArray()));
         jsonObjectBuilder.set(JSON_KEY_LEADER, getLeader().orElse("<unknown>"));
 
         return jsonObjectBuilder.build();

@@ -33,7 +33,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class ImmutableResourcesTest {
 
     private static final JsonPointer KNOWN_RESOURCE_PATH_0 = JsonPointer.empty();
-    private static final JsonPointer KNOWN_RESOURCE_PATH_1 = JsonPointer.newInstance("/foo/bar");
+    private static final JsonPointer KNOWN_RESOURCE_PATH_1 = JsonPointer.of("/foo/bar");
 
     @Test
     public void assertImmutability() {

@@ -110,7 +110,7 @@ public final class RetrieveAcl extends AbstractCommand<RetrieveAcl> implements T
 
     @Override
     public JsonPointer getResourcePath() {
-        return JsonPointer.newInstance("/acl");
+        return JsonPointer.of("/acl");
     }
 
     @Override

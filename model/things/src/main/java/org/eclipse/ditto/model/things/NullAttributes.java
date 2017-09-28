@@ -136,8 +136,8 @@ final class NullAttributes implements Attributes {
     }
 
     @Override
-    public Attributes setValue(final CharSequence name, final boolean value) {
-        return ImmutableAttributes.of(JsonFactory.newObject().setValue(name, value));
+    public Attributes setValue(final CharSequence key, final boolean value) {
+        return ImmutableAttributes.of(JsonFactory.newObject().setValue(key, value));
     }
 
     @Override
@@ -196,7 +196,7 @@ final class NullAttributes implements Attributes {
     }
 
     @Override
-    public Attributes remove(final CharSequence name) {
+    public Attributes remove(final CharSequence key) {
         return this;
     }
 
@@ -206,7 +206,7 @@ final class NullAttributes implements Attributes {
     }
 
     @Override
-    public Optional<JsonField> getField(final CharSequence index) {
+    public Optional<JsonField> getField(final CharSequence key) {
         return Optional.empty();
     }
 

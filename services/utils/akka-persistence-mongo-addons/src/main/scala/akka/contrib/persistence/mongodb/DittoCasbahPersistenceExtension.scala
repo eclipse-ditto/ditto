@@ -40,7 +40,12 @@ class DittoCasbahPersistenceExtension(val actorSystem: ActorSystem) extends Ditt
       override private[mongodb] val breaker = driver.breaker
     }
     override lazy val readJournal = new DittoCasbahPersistenceReadJournaller(driver)
-    val driver = new CasbahMongoDriver(actorSystem, config)
+    val driver = {
+      val theDriver = new CasbahMongoDriver(actorSystem, config)
+      // log the driver options
+      actorSystem.log.info("DittoCasbahPersistenceExtension created MongoDriver with options <{}>", theDriver.client.underlying.getMongoClientOptions)
+      theDriver
+    }
   }
 
 }

@@ -244,8 +244,7 @@ public final class TreeBasedPolicyEnforcer implements PolicyEnforcer {
                 permissions);
         final List<PointerAndValue> flatPointers = new ArrayList<>();
         StreamSupport.stream(jsonFields.spliterator(), false)
-                .forEach(jsonField -> collectFlatPointers(JsonPointer.newInstance(jsonField.getKey()),
-                        jsonField, flatPointers));
+                .forEach(jsonField -> collectFlatPointers(JsonPointer.of(jsonField.getKey()), jsonField, flatPointers));
         final Set<JsonPointer> grantedResources = extractJsonPointers(effectedResources.getGrantedResources());
         final Set<JsonPointer> revokedResources = extractJsonPointers(effectedResources.getRevokedResources());
         return filterEntries(flatPointers, grantedResources, revokedResources, resourceKey.getResourcePath());
@@ -435,7 +434,7 @@ public final class TreeBasedPolicyEnforcer implements PolicyEnforcer {
             } else {
                 policyTreeNode.getChildren()
                         .forEach((s, child) -> traverseSubtreeForPermissionAccess(permission,
-                                resource.addLeaf(JsonKey.newInstance(s)), type, child, grantedResources,
+                                resource.addLeaf(JsonKey.of(s)), type, child, grantedResources,
                                 revokedResources, level + 1, false));
             }
         }

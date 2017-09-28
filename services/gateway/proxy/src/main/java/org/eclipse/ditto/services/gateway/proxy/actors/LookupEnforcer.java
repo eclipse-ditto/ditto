@@ -25,7 +25,7 @@ import org.eclipse.ditto.services.utils.distributedcache.actors.ReadConsistency;
  * initial sender and the recipient of the {@link LookupEnforcerResponse} message.
  */
 @Immutable
-final class LookupEnforcer {
+public final class LookupEnforcer {
 
     private final String signalId;
     private final LookupContext<?> context;
@@ -37,21 +37,22 @@ final class LookupEnforcer {
      * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code signalId} is empty.
      */
-    LookupEnforcer(final CharSequence signalId, final LookupContext<?> context, final ReadConsistency readConsistency) {
+    public LookupEnforcer(final CharSequence signalId, final LookupContext<?> context,
+            final ReadConsistency readConsistency) {
         this.signalId = argumentNotEmpty(signalId, "ID").toString();
         this.context = checkNotNull(context, "Lookup Context");
         this.readConsistency = checkNotNull(readConsistency, "Read Consistency");
     }
 
-    String getId() {
+    public String getId() {
         return signalId;
     }
 
-    LookupContext<?> getContext() {
+    public LookupContext<?> getContext() {
         return context;
     }
 
-    ReadConsistency getReadConsistency() {
+    public ReadConsistency getReadConsistency() {
         return readConsistency;
     }
 

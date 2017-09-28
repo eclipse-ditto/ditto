@@ -26,7 +26,7 @@ import org.slf4j.MDC;
  */
 public final class DirectivesLoggingUtils {
 
-    private static final String X_CR_CORRELATION_ID = HttpHeader.X_DITTO_CORRELATION_ID.getName();
+    private static final String X_CR_CORRELATION_ID = HttpHeader.X_CORRELATION_ID.getName();
 
     private DirectivesLoggingUtils() {
         throw new AssertionError();

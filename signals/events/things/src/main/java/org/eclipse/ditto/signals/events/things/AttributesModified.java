@@ -149,7 +149,7 @@ public final class AttributesModified extends AbstractThingEvent<AttributesModif
 
     @Override
     public JsonPointer getResourcePath() {
-        return JsonPointer.newInstance("/attributes");
+        return JsonPointer.of("/attributes");
     }
 
     @Override

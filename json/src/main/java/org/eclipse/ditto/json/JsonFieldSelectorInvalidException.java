@@ -14,6 +14,7 @@ package org.eclipse.ditto.json;
 import java.net.URI;
 import java.text.MessageFormat;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 /**
@@ -31,8 +32,11 @@ public final class JsonFieldSelectorInvalidException extends JsonRuntimeExceptio
 
     private static final long serialVersionUID = -8483368816839385508L;
 
-    private JsonFieldSelectorInvalidException(final String message, final String description, final Throwable cause,
-            final URI href) {
+    private JsonFieldSelectorInvalidException(@Nullable final String message,
+            @Nullable final String description,
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
+
         super(ERROR_CODE, message, description, cause, href);
     }
 
@@ -47,7 +51,6 @@ public final class JsonFieldSelectorInvalidException extends JsonRuntimeExceptio
 
     /**
      * A mutable builder for a {@code JsonPointerInvalidException}.
-     *
      */
     @NotThreadSafe
     public static final class Builder extends AbstractJsonExceptionBuilder<JsonFieldSelectorInvalidException> {
@@ -65,15 +68,20 @@ public final class JsonFieldSelectorInvalidException extends JsonRuntimeExceptio
          * @return this builder to allow method chaining.
          */
         public Builder fieldSelector(final String fieldSelector) {
-            message(MessageFormat.format("The field selector is invalid: ''{0}''!", fieldSelector));
+            message(MessageFormat.format("The field selector <{0}> is invalid!", fieldSelector));
             return this;
         }
 
         @Override
-        protected JsonFieldSelectorInvalidException doBuild(final String errorCode, final String message,
-                final String description, final Throwable cause, final URI href) {
+        protected JsonFieldSelectorInvalidException doBuild(final String errorCode,
+                @Nullable final String message,
+                @Nullable final String description,
+                @Nullable final Throwable cause,
+                @Nullable final URI href) {
+
             return new JsonFieldSelectorInvalidException(message, description, cause, href);
         }
+
     }
 
 }

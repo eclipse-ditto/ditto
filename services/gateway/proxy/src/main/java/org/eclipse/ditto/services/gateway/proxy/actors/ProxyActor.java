@@ -22,6 +22,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.services.gateway.proxy.actors.handlers.CreateThingHandlerActor;
 import org.eclipse.ditto.services.gateway.proxy.actors.handlers.ModifyPolicyHandlerActor;
 import org.eclipse.ditto.services.gateway.proxy.actors.handlers.ModifyThingHandlerActor;
@@ -250,7 +251,9 @@ public final class ProxyActor extends AbstractActor {
                 .match(LookupEnforcerResponse.class, isRetrieveThingWithAggregationNeeded(), response -> {
                     final LookupContext<?> lookupContext = response.getContext();
                     final RetrieveThing retrieveThing = (RetrieveThing) lookupContext.getInitialCommandOrEvent();
-                    log.debug("Got 'RetrieveThing' message with a '_policy' lookup: {}", retrieveThing);
+                    log.debug("Got 'RetrieveThing' message with a '{}' lookup: {}",
+                            Policy.INLINED_FIELD_NAME,
+                            retrieveThing);
                     final ActorRef actor = getThingHandlerActor(response, RetrieveThingHandlerActor::props);
                     actor.tell(getSignal(response), lookupContext.getInitialSender());
                 })

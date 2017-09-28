@@ -25,7 +25,7 @@ import akka.actor.ActorRef;
  * Contains contextual fields for an EnforcerLookup.
  */
 @Immutable
-final class LookupContext<T extends Signal<T>> {
+public final class LookupContext<T extends Signal<T>> {
 
     private final Signal<T> initialCommandOrEvent;
     private final ActorRef initialSender;
@@ -45,21 +45,21 @@ final class LookupContext<T extends Signal<T>> {
      * @return the instance.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    static <T extends Signal<T>> LookupContext<T> getInstance(final Signal<T> initialCommandOrEvent,
+    public static <T extends Signal<T>> LookupContext<T> getInstance(final Signal<T> initialCommandOrEvent,
             final ActorRef initialSender, final ActorRef lookupRecipient) {
 
         return new LookupContext<>(initialCommandOrEvent, initialSender, lookupRecipient);
     }
 
-    Signal<T> getInitialCommandOrEvent() {
+    public Signal<T> getInitialCommandOrEvent() {
         return initialCommandOrEvent;
     }
 
-    ActorRef getInitialSender() {
+    public ActorRef getInitialSender() {
         return initialSender;
     }
 
-    ActorRef getLookupRecipient() {
+    public ActorRef getLookupRecipient() {
         return lookupRecipient;
     }
 

@@ -139,7 +139,7 @@ public final class DeleteAttribute extends AbstractCommand<DeleteAttribute>
     @Override
     public JsonPointer getResourcePath() {
         final String path = "/attributes" + attributePointer;
-        return JsonPointer.newInstance(path);
+        return JsonPointer.of(path);
     }
 
     @Override

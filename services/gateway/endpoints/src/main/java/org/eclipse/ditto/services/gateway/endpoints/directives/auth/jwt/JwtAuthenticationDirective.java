@@ -17,7 +17,6 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.services.gateway.endpoints.utils.HttpUtils.getRequestHeader;
 
 import java.security.PublicKey;
-import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
@@ -33,7 +32,6 @@ import org.eclipse.ditto.services.gateway.endpoints.utils.DirectivesLoggingUtils
 import org.eclipse.ditto.services.gateway.security.HttpHeader;
 import org.eclipse.ditto.services.gateway.security.jwt.ImmutableJsonWebToken;
 import org.eclipse.ditto.services.gateway.security.jwt.JsonWebToken;
-import org.eclipse.ditto.services.gateway.starter.service.util.HttpClientFacade;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationFailedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -64,18 +62,13 @@ public final class JwtAuthenticationDirective implements AuthenticationDirective
      * Constructs a new {@link JwtAuthenticationDirective}.
      *
      * @param blockingDispatcher a {@link MessageDispatcher} used for blocking calls.
-     * @param httpClient the http client to connect to JWT providers.
-     * @param maxPublicKeyCacheEntries the max amount of PublicKey entries to cache.
-     * @param expiry the expiry of cache entries.
+     * @param publicKeyProvider the provider for JWT public keys.
      *
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public JwtAuthenticationDirective(final MessageDispatcher blockingDispatcher, final HttpClientFacade httpClient,
-            final int maxPublicKeyCacheEntries, final Duration expiry) {
+    public JwtAuthenticationDirective(final MessageDispatcher blockingDispatcher, final PublicKeyProvider publicKeyProvider) {
         this.blockingDispatcher = checkNotNull(blockingDispatcher, "blockingDispatcher");
-        checkNotNull(httpClient, "httpClient");
-
-        publicKeyProvider = PublicKeyProvider.of(httpClient, maxPublicKeyCacheEntries, expiry);
+        this.publicKeyProvider = checkNotNull(publicKeyProvider, "publicKeyProvider");
     }
 
     @Override

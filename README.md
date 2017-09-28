@@ -33,12 +33,12 @@ mvn clean install -Pdocker-build-image
 mvn clean install -Pdocker-build-image -Ddocker.daemon.hostname=<ip/host of your docker daemon>
 
 cd docker/
-docker-compose -f docker-compose.yml -p ditto up -d
+docker-compose up -d
 ```
 
 Check the logs after starting up:
 ```bash
-docker-compose -f docker-compose.yml logs -f
+docker-compose logs -f
 ```
 
 You have now running:
@@ -48,7 +48,8 @@ You have now running:
    * Things
    * Thing-Search
    * Gateway
-* an nginx acting as a reverse proxy performing a simple "basic authentication" listeing on port `8080`
+* an nginx acting as a reverse proxy performing a simple "basic authentication" listening on port `8080`
+   * including some static HTTP + API documentation on [http://localhost:8080](http://localhost:8080)
 
 ### Try it out
 

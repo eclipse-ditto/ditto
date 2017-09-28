@@ -14,6 +14,8 @@ package org.eclipse.ditto.json;
 import java.util.Optional;
 import java.util.function.Predicate;
 
+import javax.annotation.Nullable;
+
 /**
  * Represents a single JSON field. A JSON field in its simplest form is a key-value-pair. Additionally a field can be
  * aware of its definition which allows to obtain meta information like the Java type of the value or the markers of the
@@ -32,7 +34,7 @@ public interface JsonField {
      * @return a new JSON field containing the specified key value pair.
      * @throws NullPointerException if {@code key} is null.
      */
-    static JsonField newInstance(final CharSequence key, final JsonValue value) {
+    static JsonField newInstance(final CharSequence key, @Nullable final JsonValue value) {
         return JsonFactory.newField(JsonFactory.newKey(key), value);
     }
 
@@ -45,7 +47,9 @@ public interface JsonField {
      * @return a new JSON field containing the specified key value pair and definition.
      * @throws NullPointerException if {@code key} is {@code null}.
      */
-    static JsonField newInstance(final CharSequence key, final JsonValue value, final JsonFieldDefinition definition) {
+    static JsonField newInstance(final CharSequence key, @Nullable final JsonValue value,
+            @Nullable final JsonFieldDefinition definition) {
+
         return JsonFactory.newField(JsonFactory.newKey(key), value, definition);
     }
 
@@ -88,13 +92,13 @@ public interface JsonField {
     Optional<JsonFieldDefinition> getDefinition();
 
     /**
-     * Indicates whether this field is marked with at least all specified markers. This method can only return {@code
-     * true} if it has a definition.
+     * Indicates whether this field is marked with at least all specified markers. This method can only return
+     * {@code true} if it has a definition.
      *
      * @param fieldMarker the mandatory fieldMarker to check this field for.
      * @param furtherFieldMarkers additional markers to check this field for.
      * @return {@code true} if this field is marked with at least all specified markers, {@code false} else.
-     * @throws NullPointerException if {@code fieldMarker} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      */
     boolean isMarkedAs(JsonFieldMarker fieldMarker, JsonFieldMarker... furtherFieldMarkers);
 

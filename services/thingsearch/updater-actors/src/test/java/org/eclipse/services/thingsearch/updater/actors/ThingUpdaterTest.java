@@ -434,7 +434,7 @@ public final class ThingUpdaterTest {
                         .thenThrow(new IllegalStateException("justForTest"));
 
                 final ThingEvent changeEvent =
-                        AttributeCreated.of(THING_ID, JsonPointer.newInstance("/foo"), JsonValue.newInstance("bar"),
+                        AttributeCreated.of(THING_ID, JsonPointer.of("/foo"), JsonValue.of("bar"),
                                 revision + 1, dittoHeaders);
                 underTest.tell(changeEvent, getRef());
 

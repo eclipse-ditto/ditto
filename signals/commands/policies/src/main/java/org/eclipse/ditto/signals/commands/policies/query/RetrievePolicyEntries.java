@@ -114,7 +114,7 @@ public final class RetrievePolicyEntries extends AbstractCommand<RetrievePolicyE
 
     @Override
     public JsonPointer getResourcePath() {
-        return JsonPointer.newInstance("/entries");
+        return JsonPointer.of("/entries");
     }
 
     @Override

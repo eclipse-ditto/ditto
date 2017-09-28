@@ -73,7 +73,7 @@ public interface Attributes extends JsonObject, Jsonifiable.WithFieldSelectorAnd
     Attributes setAll(Iterable<JsonField> jsonFields);
 
     @Override
-    Attributes remove(CharSequence index);
+    Attributes remove(CharSequence key);
 
     @Override
     default JsonObject toJson(final JsonSchemaVersion schemaVersion, final JsonFieldSelector fieldSelector) {

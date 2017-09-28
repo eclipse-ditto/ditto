@@ -49,6 +49,8 @@ import org.eclipse.ditto.services.gateway.endpoints.routes.sse.SseThingsRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.stats.StatsRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.status.OverallStatusRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.websocket.WebsocketRoute;
+import org.eclipse.ditto.services.gateway.health.DittoStatusHealthHelper;
+import org.eclipse.ditto.services.gateway.health.StatusHealthHelper;
 import org.eclipse.ditto.services.gateway.starter.service.util.ConfigKeys;
 import org.eclipse.ditto.services.gateway.starter.service.util.HttpClientFacade;
 import org.eclipse.ditto.services.utils.health.cluster.ClusterStatus;
@@ -86,8 +88,6 @@ public final class RootRoute {
 
     private static final String BLOCKING_DISPATCHER_NAME = "blocking-dispatcher";
 
-    private final MessageDispatcher blockingDispatcher;
-
     private final OverallStatusRoute overallStatusRoute;
     private final CachingHealthRoute cachingHealthRoute;
 
@@ -104,6 +104,7 @@ public final class RootRoute {
 
     /**
      * Constructs the {@code /} route builder.
+     *
      * @param actorSystem the Actor System.
      * @param config the configuration of the service.
      * @param proxyActor the proxy actor delegating commands.
@@ -121,11 +122,14 @@ public final class RootRoute {
         checkNotNull(actorSystem, "Actor System");
         checkNotNull(proxyActor, "proxyActor");
 
-        blockingDispatcher = actorSystem.dispatchers().lookup(BLOCKING_DISPATCHER_NAME);
+        final MessageDispatcher blockingDispatcher = actorSystem.dispatchers().lookup(BLOCKING_DISPATCHER_NAME);
+        final StatusHealthHelper statusHealthHelper = DittoStatusHealthHelper.of(actorSystem, clusterStateSupplier);
 
         statsRoute = new StatsRoute(proxyActor, actorSystem);
-        overallStatusRoute = new OverallStatusRoute(actorSystem, clusterStateSupplier, healthCheckingActor);
-        cachingHealthRoute = new CachingHealthRoute(actorSystem, clusterStateSupplier);
+        overallStatusRoute = new OverallStatusRoute(actorSystem, clusterStateSupplier, healthCheckingActor,
+                statusHealthHelper);
+        cachingHealthRoute = new CachingHealthRoute(statusHealthHelper,
+                config.getDuration(ConfigKeys.STATUS_HEALTH_EXTERNAL_CACHE_TIMEOUT));
 
         policiesRoute = new PoliciesRoute(proxyActor, actorSystem);
         sseThingsRoute = new SseThingsRoute(proxyActor, actorSystem, streamingActor);
@@ -154,7 +158,7 @@ public final class RootRoute {
      * @return the {@code /} route.
      */
     public Route buildRoute() {
-        return wrapWithRootDirectives(correlationId -> route(
+        return wrapWithRootDirectives(correlationId -> Directives.route(
                 statsRoute.buildStatsRoute(correlationId), // /stats
                 overallStatusRoute.buildStatusRoute(), // /status
                 cachingHealthRoute.buildHealthRoute(), // /health
@@ -263,7 +267,7 @@ public final class RootRoute {
     }
 
     private Route buildApiSubRoutes(final RequestContext ctx, final DittoHeaders dittoHeaders) {
-        return Directives.route(
+        return route(
                 // /api/{apiVersion}/policies
                 policiesRoute.buildPoliciesRoute(ctx, dittoHeaders),
                 // /api/{apiVersion}/things SSE support

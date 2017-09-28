@@ -151,7 +151,7 @@ public final class AclEntryCreated extends AbstractThingEvent<AclEntryCreated>
     @Override
     public JsonPointer getResourcePath() {
         final String path = "/acl/" + aclEntry.getAuthorizationSubject().getId();
-        return JsonPointer.newInstance(path);
+        return JsonPointer.of(path);
     }
 
     @Override

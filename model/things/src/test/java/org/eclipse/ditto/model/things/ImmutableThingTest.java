@@ -989,7 +989,7 @@ public final class ImmutableThingTest {
         final JsonObject jsonObject =
                 TestConstants.Thing.THING_V1.toJson(JsonSchemaVersion.V_1, FieldType.regularOrSpecial());
         DittoJsonAssertions.assertThat(jsonObject)
-                .contains(Thing.JsonFields.SCHEMA_VERSION, JsonValue.newInstance(JsonSchemaVersion.V_1.toInt()));
+                .contains(Thing.JsonFields.SCHEMA_VERSION, JsonValue.of(JsonSchemaVersion.V_1.toInt()));
         DittoJsonAssertions.assertThat(jsonObject).contains(Thing.JsonFields.ID, TestConstants.Thing.THING_ID);
         DittoJsonAssertions.assertThat(jsonObject)
                 .contains(Thing.JsonFields.ATTRIBUTES, TestConstants.Thing.ATTRIBUTES);
@@ -997,13 +997,13 @@ public final class ImmutableThingTest {
                 .contains(Thing.JsonFields.FEATURES, TestConstants.Feature.FEATURES.toJson());
         DittoJsonAssertions.assertThat(jsonObject).contains(Thing.JsonFields.ACL, TestConstants.Thing.ACL.toJson());
         DittoJsonAssertions.assertThat(jsonObject)
-                .contains(Thing.JsonFields.REVISION, JsonValue.newInstance(TestConstants.Thing.REVISION_NUMBER));
+                .contains(Thing.JsonFields.REVISION, JsonValue.of(TestConstants.Thing.REVISION_NUMBER));
         DittoJsonAssertions.assertThat(jsonObject)
-                .contains(Thing.JsonFields.LIFECYCLE, JsonValue.newInstance(TestConstants.Thing.LIFECYCLE.name()));
-        DittoJsonAssertions.assertThat(jsonObject).contains(Thing.JsonFields.NAMESPACE, JsonValue.newInstance(
+                .contains(Thing.JsonFields.LIFECYCLE, JsonValue.of(TestConstants.Thing.LIFECYCLE.name()));
+        DittoJsonAssertions.assertThat(jsonObject).contains(Thing.JsonFields.NAMESPACE, JsonValue.of(
                 TestConstants.Thing.NAMEPSACE));
         DittoJsonAssertions.assertThat(jsonObject)
-                .contains(Thing.JsonFields.MODIFIED, JsonValue.newInstance(TestConstants.Thing.MODIFIED.toString()));
+                .contains(Thing.JsonFields.MODIFIED, JsonValue.of(TestConstants.Thing.MODIFIED.toString()));
     }
 
 
@@ -1030,7 +1030,7 @@ public final class ImmutableThingTest {
         final JsonObject jsonObject =
                 TestConstants.Thing.THING_V2_WITH_POLICY.toJson(JsonSchemaVersion.V_2, FieldType.regularOrSpecial());
         DittoJsonAssertions.assertThat(jsonObject)
-                .contains(Thing.JsonFields.SCHEMA_VERSION, JsonValue.newInstance(JsonSchemaVersion.V_2.toInt()));
+                .contains(Thing.JsonFields.SCHEMA_VERSION, JsonValue.of(JsonSchemaVersion.V_2.toInt()));
         DittoJsonAssertions.assertThat(jsonObject).contains(Thing.JsonFields.ID, TestConstants.Thing.THING_ID);
         DittoJsonAssertions.assertThat(jsonObject).contains(Thing.JsonFields.POLICY_ID, TestConstants.Thing.POLICY_ID);
         DittoJsonAssertions.assertThat(jsonObject)
@@ -1038,13 +1038,13 @@ public final class ImmutableThingTest {
         DittoJsonAssertions.assertThat(jsonObject)
                 .contains(Thing.JsonFields.FEATURES, TestConstants.Feature.FEATURES.toJson());
         DittoJsonAssertions.assertThat(jsonObject)
-                .contains(Thing.JsonFields.REVISION, JsonValue.newInstance(TestConstants.Thing.REVISION_NUMBER));
+                .contains(Thing.JsonFields.REVISION, JsonValue.of(TestConstants.Thing.REVISION_NUMBER));
         DittoJsonAssertions.assertThat(jsonObject)
-                .contains(Thing.JsonFields.LIFECYCLE, JsonValue.newInstance(TestConstants.Thing.LIFECYCLE.name()));
-        DittoJsonAssertions.assertThat(jsonObject).contains(Thing.JsonFields.NAMESPACE, JsonValue.newInstance(
+                .contains(Thing.JsonFields.LIFECYCLE, JsonValue.of(TestConstants.Thing.LIFECYCLE.name()));
+        DittoJsonAssertions.assertThat(jsonObject).contains(Thing.JsonFields.NAMESPACE, JsonValue.of(
                 TestConstants.Thing.NAMEPSACE));
         DittoJsonAssertions.assertThat(jsonObject)
-                .contains(Thing.JsonFields.MODIFIED, JsonValue.newInstance(TestConstants.Thing.MODIFIED.toString()));
+                .contains(Thing.JsonFields.MODIFIED, JsonValue.of(TestConstants.Thing.MODIFIED.toString()));
     }
 
 }

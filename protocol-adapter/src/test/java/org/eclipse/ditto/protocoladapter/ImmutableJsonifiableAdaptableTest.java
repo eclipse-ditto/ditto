@@ -38,12 +38,11 @@ public final class ImmutableJsonifiableAdaptableTest {
             .build();
 
     private static final JsonPointer KNOWN_PATH = JsonPointer.empty();
-    private static final JsonValue KNOWN_VALUE = JsonValue.newInstance("foo");
+    private static final JsonValue KNOWN_VALUE = JsonValue.of("foo");
     private static final HttpStatusCode KNOWN_STATUS = HttpStatusCode.OK;
     private static final long KNOWN_REVISION = 1337;
     private static final JsonFieldSelector KNOWN_FIELDS = JsonFieldSelector.newInstance("/foo");
 
-    /** */
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(ImmutableJsonifiableAdaptable.class)
@@ -51,38 +50,34 @@ public final class ImmutableJsonifiableAdaptableTest {
                 .verify();
     }
 
-    /** */
     @Test
     public void assertImmutability() {
-        assertInstancesOf(ImmutableJsonifiableAdaptable.class, areImmutable(), //
+        assertInstancesOf(ImmutableJsonifiableAdaptable.class, areImmutable(),
                 provided(Adaptable.class).areAlsoImmutable());
     }
 
-    /** */
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullAdaptable() {
         ImmutableJsonifiableAdaptable.of(null);
     }
 
-    /** */
     @Test
     public void jsonSerializationWorksAsExpected() {
-        final JsonObject expected = JsonObject.newBuilder() //
-                .set(JsonifiableAdaptable.JsonFields.TOPIC, KNOWN_TOPIC) //
-                .set(JsonifiableAdaptable.JsonFields.HEADERS, KNOWN_HEADERS) //
-                .set(Payload.JsonFields.PATH, KNOWN_PATH.toString()) //
-                .set(Payload.JsonFields.VALUE, KNOWN_VALUE) //
-                .set(Payload.JsonFields.STATUS, KNOWN_STATUS.toInt()) //
-                .set(Payload.JsonFields.REVISION, KNOWN_REVISION) //
-                .set(Payload.JsonFields.FIELDS, KNOWN_FIELDS.toString()) //
+        final JsonObject expected = JsonObject.newBuilder()
+                .set(JsonifiableAdaptable.JsonFields.TOPIC, KNOWN_TOPIC)
+                .set(JsonifiableAdaptable.JsonFields.HEADERS, KNOWN_HEADERS)
+                .set(Payload.JsonFields.PATH, KNOWN_PATH.toString())
+                .set(Payload.JsonFields.VALUE, KNOWN_VALUE)
+                .set(Payload.JsonFields.STATUS, KNOWN_STATUS.toInt())
+                .set(Payload.JsonFields.REVISION, KNOWN_REVISION)
+                .set(Payload.JsonFields.FIELDS, KNOWN_FIELDS.toString())
                 .build();
 
         final ImmutablePayload payload =
                 ImmutablePayload.of(KNOWN_PATH, KNOWN_VALUE, KNOWN_STATUS, KNOWN_REVISION, KNOWN_FIELDS);
 
-        final Adaptable adaptable = ImmutableAdaptable
-                .of(DittoProtocolAdapter.newTopicPath(KNOWN_TOPIC), payload,
-                        DittoHeaders.newBuilder(KNOWN_HEADERS).build());
+        final Adaptable adaptable = ImmutableAdaptable.of(DittoProtocolAdapter.newTopicPath(KNOWN_TOPIC), payload,
+                DittoHeaders.newBuilder(KNOWN_HEADERS).build());
         final JsonifiableAdaptable jsonifiableAdaptable = ImmutableJsonifiableAdaptable.of(adaptable);
 
         final JsonObject actual = jsonifiableAdaptable.toJson().asObject();
@@ -90,7 +85,6 @@ public final class ImmutableJsonifiableAdaptableTest {
         assertThat(actual).isEqualTo(expected);
     }
 
-    /** */
     @Test
     public void jsonDeserializationWorksAsExpected() {
         final ImmutablePayload payload =
@@ -100,14 +94,14 @@ public final class ImmutableJsonifiableAdaptableTest {
                 DittoHeaders.newBuilder(KNOWN_HEADERS).build());
         final JsonifiableAdaptable expected = ImmutableJsonifiableAdaptable.of(adaptable);
 
-        final JsonObject payloadJsonObject = JsonObject.newBuilder() //
-                .set(JsonifiableAdaptable.JsonFields.TOPIC, KNOWN_TOPIC) //
-                .set(JsonifiableAdaptable.JsonFields.HEADERS, KNOWN_HEADERS) //
-                .set(Payload.JsonFields.PATH, KNOWN_PATH.toString()) //
-                .set(Payload.JsonFields.VALUE, KNOWN_VALUE) //
-                .set(Payload.JsonFields.STATUS, KNOWN_STATUS.toInt()) //
-                .set(Payload.JsonFields.REVISION, KNOWN_REVISION) //
-                .set(Payload.JsonFields.FIELDS, KNOWN_FIELDS.toString()) //
+        final JsonObject payloadJsonObject = JsonObject.newBuilder()
+                .set(JsonifiableAdaptable.JsonFields.TOPIC, KNOWN_TOPIC)
+                .set(JsonifiableAdaptable.JsonFields.HEADERS, KNOWN_HEADERS)
+                .set(Payload.JsonFields.PATH, KNOWN_PATH.toString())
+                .set(Payload.JsonFields.VALUE, KNOWN_VALUE)
+                .set(Payload.JsonFields.STATUS, KNOWN_STATUS.toInt())
+                .set(Payload.JsonFields.REVISION, KNOWN_REVISION)
+                .set(Payload.JsonFields.FIELDS, KNOWN_FIELDS.toString())
                 .build();
 
         final ImmutableJsonifiableAdaptable actual = ImmutableJsonifiableAdaptable.fromJson(payloadJsonObject);

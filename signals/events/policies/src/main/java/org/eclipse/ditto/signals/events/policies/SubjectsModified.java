@@ -169,7 +169,7 @@ public final class SubjectsModified extends AbstractPolicyEvent<SubjectsModified
     @Override
     public JsonPointer getResourcePath() {
         final String path = "/entries/" + label + "/subjects";
-        return JsonPointer.newInstance(path);
+        return JsonPointer.of(path);
     }
 
     @Override

@@ -39,13 +39,13 @@ public interface JsonKey extends CharSequence {
      * @throws NullPointerException if {@code keyValue} is {@code null}.
      * @throws IllegalArgumentException if {@code keyValue} is empty.
      */
-    static JsonKey newInstance(final CharSequence keyValue) {
+    static JsonKey of(final CharSequence keyValue) {
         return JsonFactory.newKey(keyValue);
     }
 
     /**
-     * Returns a {@link JsonPointer} for this key. If, for example, this key is {@code "foo"} the returned pointer is
-     * {@code "/foo"}.
+     * Returns this key as {@link JsonPointer} with one level. If, for example, this key is {@code "foo"} the returned
+     * pointer is {@code "/foo"}.
      *
      * @return this key as JSON pointer.
      */

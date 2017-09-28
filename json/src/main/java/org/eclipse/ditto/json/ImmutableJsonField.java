@@ -45,8 +45,8 @@ final class ImmutableJsonField implements JsonField {
      * @return a new JSON field object.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static JsonField of(final JsonKey key, final JsonValue value) {
-        return of(key, value, null);
+    public static JsonField newInstance(final JsonKey key, final JsonValue value) {
+        return newInstance(key, value, null);
     }
 
     /**
@@ -58,7 +58,7 @@ final class ImmutableJsonField implements JsonField {
      * @return a new JSON field object.
      * @throws NullPointerException if any argument but {@code definition} is {@code null}.
      */
-    public static JsonField of(final JsonKey key, final JsonValue value,
+    public static JsonField newInstance(final JsonKey key, final JsonValue value,
             @Nullable final JsonFieldDefinition definition) {
 
         return new ImmutableJsonField(key, value, definition);

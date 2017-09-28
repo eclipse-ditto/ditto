@@ -153,7 +153,7 @@ public final class DeleteFeatureProperty extends AbstractCommand<DeleteFeaturePr
     @Override
     public JsonPointer getResourcePath() {
         final String path = "/features/" + featureId + "/properties" + propertyPointer;
-        return JsonPointer.newInstance(path);
+        return JsonPointer.of(path);
     }
 
     @Override

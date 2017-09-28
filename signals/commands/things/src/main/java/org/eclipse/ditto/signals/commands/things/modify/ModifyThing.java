@@ -20,7 +20,6 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
-import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
@@ -113,23 +112,18 @@ public final class ModifyThing extends AbstractCommand<ModifyThing> implements T
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if {@code jsonObject} did not contain a field for
+     * {@link ThingModifyCommand.JsonFields#JSON_THING_ID} or {@link #JSON_THING}.
      */
     public static ModifyThing fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<ModifyThing>(TYPE, jsonObject).deserialize(jsonObjectReader -> {
-            final Optional<String> thingId = jsonObjectReader
-                    .getAsOptionalString(ThingModifyCommand.JsonFields.JSON_THING_ID.getPointer());
+            final String thingId = jsonObjectReader.get(ThingModifyCommand.JsonFields.JSON_THING_ID);
             final JsonObject thingJsonObject = jsonObjectReader.get(JSON_THING);
             final Thing extractedThing = ThingsModelFactory.newThing(thingJsonObject);
             final JsonObject initialPolicyObject =
                     jsonObjectReader.<JsonObject>getAsOptional(JSON_INITIAL_POLICY).orElse(null);
 
-            return of(thingId.orElseGet(() ->
-                    extractedThing.getId().orElseThrow(() ->
-                            JsonMissingFieldException.newBuilder()
-                                    .fieldName(ThingModifyCommand.JsonFields.JSON_THING_ID.getPointer().toString())
-                                    .build()
-                    )
-            ), extractedThing, initialPolicyObject, dittoHeaders);
+            return of(thingId, extractedThing, initialPolicyObject, dittoHeaders);
         });
     }
 

@@ -12,8 +12,8 @@
 package org.eclipse.ditto.json;
 
 /**
- * A mutable builder for a {@link JsonArray}. Implementations of this interface are normally not thread safe and not
- * reusable.
+ * A mutable builder with a fluent API for a {@link JsonArray}. Implementations of this interface are normally not
+ * thread safe and not reusable.
  */
 public interface JsonArrayBuilder extends Iterable<JsonValue> {
 
@@ -28,6 +28,15 @@ public interface JsonArrayBuilder extends Iterable<JsonValue> {
     JsonArrayBuilder add(int value, int... furtherValues);
 
     /**
+     * Adds all given values to the array to be built.
+     *
+     * @param intValues the values to be added.
+     * @return this builder to allow method chaining.
+     * @throws NullPointerException if {@code intValues} is {@code null}.
+     */
+    JsonArrayBuilder addIntegers(Iterable<Integer> intValues);
+
+    /**
      * Adds at least one long value to the JSON array to be built.
      *
      * @param value the long to add to the array.
@@ -36,6 +45,15 @@ public interface JsonArrayBuilder extends Iterable<JsonValue> {
      * @throws NullPointerException if {@code furtherValues} is {@code null}.
      */
     JsonArrayBuilder add(long value, long... furtherValues);
+
+    /**
+     * Adds all given values to the array to be built.
+     *
+     * @param longValues the values to be added.
+     * @return this builder to allow method chaining.
+     * @throws NullPointerException if {@code longValues} is {@code null}.
+     */
+    JsonArrayBuilder addLongs(Iterable<Long> longValues);
 
     /**
      * Adds at least one double value to the JSON array to be built.
@@ -48,6 +66,15 @@ public interface JsonArrayBuilder extends Iterable<JsonValue> {
     JsonArrayBuilder add(double value, double... furtherValues);
 
     /**
+     * Adds all given values to the array to be built.
+     *
+     * @param doubleValues the values to be added.
+     * @return this builder to allow method chaining.
+     * @throws NullPointerException if {@code doubleValues} is {@code null}.
+     */
+    JsonArrayBuilder addDoubles(Iterable<Double> doubleValues);
+
+    /**
      * Adds at least one boolean value to the array to be built.
      *
      * @param value the boolean to add to the array.
@@ -58,6 +85,15 @@ public interface JsonArrayBuilder extends Iterable<JsonValue> {
     JsonArrayBuilder add(boolean value, boolean... furtherValues);
 
     /**
+     * Adds all given values to the array to be built.
+     *
+     * @param booleanValues the values to be added.
+     * @return this builder to allow method chaining.
+     * @throws NullPointerException if {@code booleanValues} is {@code null}.
+     */
+    JsonArrayBuilder addBooleans(Iterable<Boolean> booleanValues);
+
+    /**
      * Adds at least one string value to the array to be built.
      *
      * @param value the string to add to the array.
@@ -66,6 +102,15 @@ public interface JsonArrayBuilder extends Iterable<JsonValue> {
      * @throws NullPointerException if any argument is {@code null}.
      */
     JsonArrayBuilder add(String value, String... furtherValues);
+
+    /**
+     * Adds all given values to the array to be built.
+     *
+     * @param stringValues the values to be added.
+     * @return this builder to allow method chaining.
+     * @throws NullPointerException if {@code stringValues} is {@code null}.
+     */
+    JsonArrayBuilder addStrings(Iterable<String> stringValues);
 
     /**
      * Adds at least one {@link JsonValue} to the array to be built.

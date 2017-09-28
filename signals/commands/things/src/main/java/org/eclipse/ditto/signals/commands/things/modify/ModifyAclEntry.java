@@ -145,7 +145,7 @@ public final class ModifyAclEntry extends AbstractCommand<ModifyAclEntry>
     @Override
     public JsonPointer getResourcePath() {
         final String path = "/acl/" + aclEntry.getAuthorizationSubject().getId();
-        return JsonPointer.newInstance(path);
+        return JsonPointer.of(path);
     }
 
     @Override

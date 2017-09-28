@@ -103,7 +103,7 @@ public interface Feature extends Jsonifiable.WithFieldSelectorAndPredicate<JsonF
      * @throws NullPointerException if {@code pointer} is {@code null}.
      */
     default Optional<JsonValue> getProperty(final CharSequence pointer) {
-        return getProperty(JsonPointer.newInstance(pointer));
+        return getProperty(JsonPointer.of(pointer));
     }
 
     /**
@@ -124,7 +124,7 @@ public interface Feature extends Jsonifiable.WithFieldSelectorAndPredicate<JsonF
      * @throws NullPointerException if any argument is {@code null}.
      */
     default Feature setProperty(final CharSequence pointer, final JsonValue propertyValue) {
-        return setProperty(JsonPointer.newInstance(pointer), propertyValue);
+        return setProperty(JsonPointer.of(pointer), propertyValue);
     }
 
     /**
@@ -136,7 +136,7 @@ public interface Feature extends Jsonifiable.WithFieldSelectorAndPredicate<JsonF
      * @throws NullPointerException if any argument is {@code null}.
      */
     default Feature setProperty(final CharSequence pointer, final boolean propertyValue) {
-        return setProperty(JsonPointer.newInstance(pointer), JsonValue.newInstance(propertyValue));
+        return setProperty(JsonPointer.of(pointer), JsonValue.of(propertyValue));
     }
 
     /**
@@ -148,7 +148,7 @@ public interface Feature extends Jsonifiable.WithFieldSelectorAndPredicate<JsonF
      * @throws NullPointerException if any argument is {@code null}.
      */
     default Feature setProperty(final CharSequence pointer, final int propertyValue) {
-        return setProperty(JsonPointer.newInstance(pointer), JsonValue.newInstance(propertyValue));
+        return setProperty(JsonPointer.of(pointer), JsonValue.of(propertyValue));
     }
 
     /**
@@ -160,7 +160,7 @@ public interface Feature extends Jsonifiable.WithFieldSelectorAndPredicate<JsonF
      * @throws NullPointerException if any argument is {@code null}.
      */
     default Feature setProperty(final CharSequence pointer, final long propertyValue) {
-        return setProperty(JsonPointer.newInstance(pointer), JsonValue.newInstance(propertyValue));
+        return setProperty(JsonPointer.of(pointer), JsonValue.of(propertyValue));
     }
 
     /**
@@ -172,7 +172,7 @@ public interface Feature extends Jsonifiable.WithFieldSelectorAndPredicate<JsonF
      * @throws NullPointerException if any argument is {@code null}.
      */
     default Feature setProperty(final CharSequence pointer, final double propertyValue) {
-        return setProperty(JsonPointer.newInstance(pointer), JsonValue.newInstance(propertyValue));
+        return setProperty(JsonPointer.of(pointer), JsonValue.of(propertyValue));
     }
 
     /**
@@ -184,7 +184,7 @@ public interface Feature extends Jsonifiable.WithFieldSelectorAndPredicate<JsonF
      * @throws NullPointerException if any argument is {@code null}.
      */
     default Feature setProperty(final CharSequence pointer, final String propertyValue) {
-        return setProperty(JsonPointer.newInstance(pointer), JsonValue.newInstance(propertyValue));
+        return setProperty(JsonPointer.of(pointer), JsonValue.of(propertyValue));
     }
 
     /**
@@ -205,7 +205,7 @@ public interface Feature extends Jsonifiable.WithFieldSelectorAndPredicate<JsonF
      * @throws NullPointerException if {@code pointer} is {@code null}.
      */
     default Feature removeProperty(final CharSequence pointer) {
-        return removeProperty(JsonPointer.newInstance(pointer));
+        return removeProperty(JsonPointer.of(pointer));
     }
 
     /**

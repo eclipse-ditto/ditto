@@ -11,9 +11,6 @@
  */
 package org.eclipse.ditto.model.things;
 
-import static org.eclipse.ditto.json.JsonFactory.newKey;
-import static org.eclipse.ditto.json.JsonFactory.newValue;
-
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
@@ -142,27 +139,27 @@ final class ImmutableFeatureProperties implements FeatureProperties {
 
     @Override
     public FeatureProperties setValue(final CharSequence key, final int value) {
-        return setValue(key, newValue(value));
+        return setValue(key, JsonFactory.newValue(value));
     }
 
     @Override
     public FeatureProperties setValue(final CharSequence key, final long value) {
-        return setValue(key, newValue(value));
+        return setValue(key, JsonFactory.newValue(value));
     }
 
     @Override
     public FeatureProperties setValue(final CharSequence key, final double value) {
-        return setValue(key, newValue(value));
+        return setValue(key, JsonFactory.newValue(value));
     }
 
     @Override
     public FeatureProperties setValue(final CharSequence key, final boolean value) {
-        return setValue(key, newValue(value));
+        return setValue(key, JsonFactory.newValue(value));
     }
 
     @Override
     public FeatureProperties setValue(final CharSequence key, final String value) {
-        return setValue(key, newValue(value));
+        return setValue(key, JsonFactory.newValue(value));
     }
 
     @Override
@@ -216,8 +213,8 @@ final class ImmutableFeatureProperties implements FeatureProperties {
     }
 
     @Override
-    public FeatureProperties remove(final CharSequence index) {
-        return determineResult(() -> wrapped.remove(newKey(index)));
+    public FeatureProperties remove(final CharSequence key) {
+        return determineResult(() -> wrapped.remove(key));
     }
 
     @Override
@@ -226,8 +223,8 @@ final class ImmutableFeatureProperties implements FeatureProperties {
     }
 
     @Override
-    public Optional<JsonField> getField(final CharSequence index) {
-        return wrapped.getField(index);
+    public Optional<JsonField> getField(final CharSequence key) {
+        return wrapped.getField(key);
     }
 
     @Override

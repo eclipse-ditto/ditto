@@ -42,7 +42,7 @@ public interface Scenario {
             final String permission,
             final String... permissions) {
 
-        return new ScenarioSetup(policy, authorizationContext, JsonPointer.newInstance(resource), THING_TYPE,
+        return new ScenarioSetup(policy, authorizationContext, JsonPointer.of(resource), THING_TYPE,
                 Permissions.newInstance(permission, permissions), expectedResult, description, null);
     }
 
@@ -55,7 +55,7 @@ public interface Scenario {
             final String permission,
             final String... permissions) {
 
-        return new ScenarioSetup(policy, authorizationContext, JsonPointer.newInstance(resource), THING_TYPE,
+        return new ScenarioSetup(policy, authorizationContext, JsonPointer.of(resource), THING_TYPE,
                 Permissions.newInstance(permission, permissions), expectedResult, description, expectedSubjectIds);
     }
 
@@ -69,7 +69,7 @@ public interface Scenario {
             final String permission,
             final String... permissions) {
 
-        return new ScenarioSetup(policy, authorizationContext, JsonPointer.newInstance(resource), THING_TYPE,
+        return new ScenarioSetup(policy, authorizationContext, JsonPointer.of(resource), THING_TYPE,
                 Permissions.newInstance(permission, permissions), expectedResult, description, expectedSubjectIds,
                 additionalAlgorithmFunction);
     }
@@ -85,7 +85,7 @@ public interface Scenario {
             final String permission,
             final String... permissions) {
 
-        return new ScenarioSetup(policy, authorizationContext, JsonPointer.newInstance(resource), THING_TYPE,
+        return new ScenarioSetup(policy, authorizationContext, JsonPointer.of(resource), THING_TYPE,
                 Permissions.newInstance(permission, permissions), expectedResult, fullJsonifiable, expectedJsonView,
                 description, expectedSubjectIds);
     }

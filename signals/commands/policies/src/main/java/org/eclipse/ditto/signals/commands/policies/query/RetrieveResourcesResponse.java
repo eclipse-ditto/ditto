@@ -183,7 +183,7 @@ public final class RetrieveResourcesResponse extends AbstractCommandResponse<Ret
     @Override
     public JsonPointer getResourcePath() {
         final String path = "/entries/" + label + "/resources";
-        return JsonPointer.newInstance(path);
+        return JsonPointer.of(path);
     }
 
     @Override

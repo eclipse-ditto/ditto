@@ -29,6 +29,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.base.EventRegistry;
 import org.eclipse.ditto.signals.events.things.AclEntryCreated;
@@ -72,7 +73,7 @@ public final class MongoThingEventAdapter implements EventAdapter {
     private static final Predicate<JsonField> IS_REVISION =
             field -> field.getDefinition().map(definition -> definition == Event.JsonFields.REVISION).orElse(false);
     private static final JsonPointer POLICY_IN_THING_EVENT_PAYLOAD = ThingEvent.JsonFields.THING.getPointer()
-            .append(JsonPointer.newInstance("_policy"));
+            .append(JsonPointer.of(Policy.INLINED_FIELD_NAME));
 
     private final Map<String, Function<JsonObject, JsonObject>> migrationMappings;
     private final ExtendedActorSystem system;
@@ -194,7 +195,7 @@ public final class MongoThingEventAdapter implements EventAdapter {
                 .map(name -> name.replaceFirst("thing", ""))
                 .map(Introspector::decapitalize)
                 .map(name -> ThingEvent.TYPE_PREFIX + name)
-                .map(JsonValue::newInstance)
+                .map(JsonValue::of)
                 .map(type -> jsonObject.setValue(Event.JsonFields.TYPE.getPointer(), type))
                 .orElse(jsonObject);
     }
@@ -223,7 +224,7 @@ public final class MongoThingEventAdapter implements EventAdapter {
                 .map(JsonValue::asBoolean)
                 .filter(created -> created)
                 .map(created -> createdType)
-                .map(JsonValue::newInstance)
+                .map(JsonValue::of)
                 .map(type -> jsonObject.setValue(Event.JsonFields.TYPE.getPointer(), type))
                 .orElse(jsonObject);
     }

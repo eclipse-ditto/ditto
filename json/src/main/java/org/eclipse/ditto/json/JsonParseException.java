@@ -13,6 +13,7 @@ package org.eclipse.ditto.json;
 
 import java.net.URI;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 /**
@@ -30,7 +31,11 @@ public final class JsonParseException extends JsonRuntimeException {
 
     private static final long serialVersionUID = -7585793723086474449L;
 
-    private JsonParseException(final String message, final String description, final Throwable cause, final URI href) {
+    private JsonParseException(@Nullable final String message,
+            @Nullable final String description,
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
+
         super(ERROR_CODE, message, description, cause, href);
     }
 
@@ -39,7 +44,7 @@ public final class JsonParseException extends JsonRuntimeException {
      *
      * @param message the detail message.
      */
-    public JsonParseException(final String message) {
+    public JsonParseException(@Nullable final String message) {
         this(message, DEFAULT_DESCRIPTION, null, null);
     }
 
@@ -54,7 +59,6 @@ public final class JsonParseException extends JsonRuntimeException {
 
     /**
      * A mutable builder for a {@code JsonParseException}.
-     *
      */
     @NotThreadSafe
     public static final class Builder extends AbstractJsonExceptionBuilder<JsonParseException> {
@@ -65,10 +69,15 @@ public final class JsonParseException extends JsonRuntimeException {
         }
 
         @Override
-        protected JsonParseException doBuild(final String errorCode, final String message, final String description,
-                final Throwable cause, final URI href) {
+        protected JsonParseException doBuild(final String errorCode,
+                @Nullable final String message,
+                @Nullable final String description,
+                @Nullable final Throwable cause,
+                @Nullable final URI href) {
+
             return new JsonParseException(message, description, cause, href);
         }
+
     }
 
 }
