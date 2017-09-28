@@ -9,23 +9,24 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package org.eclipse.ditto.signals.events.things.assertions;
+package org.eclipse.ditto.signals.events.base.assertions;
 
+import org.eclipse.ditto.model.base.assertions.DittoBaseAssertions;
 import org.eclipse.ditto.signals.events.base.Event;
-import org.eclipse.ditto.signals.events.base.assertions.AbstractEventAssert;
 
 /**
- * An Assert for {@link Event}s.
+ * Custom assertions for commands.
  */
-public class EventAssert extends AbstractEventAssert<EventAssert, Event> {
+public class EventAssertions extends DittoBaseAssertions {
 
     /**
-     * Constructs a new {@code EventAssert} object.
+     * Returns an assert for an {@link Event}.
      *
-     * @param actual the event to be checked.
+     * @param event the event to be checked.
+     * @return the Assert.
      */
-    public EventAssert(final Event actual) {
-        super(actual, EventAssert.class);
+    public static EventAssert assertThat(final Event<?> event) {
+        return new EventAssert(event);
     }
 
 }

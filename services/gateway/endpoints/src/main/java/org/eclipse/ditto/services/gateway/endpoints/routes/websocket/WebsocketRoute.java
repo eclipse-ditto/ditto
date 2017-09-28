@@ -214,7 +214,7 @@ public final class WebsocketRoute {
                             .schemaVersion(JsonSchemaVersion.forInt(version).orElse(JsonSchemaVersion.LATEST))
                             .authorizationContext(authContext)
                             .correlationId(jsonObject.getValue(JsonifiableAdaptable.JsonFields.HEADERS.getPointer()
-                                    .append(JsonPointer.newInstance(DittoHeaderDefinition.CORRELATION_ID.getKey())))
+                                    .append(JsonPointer.of(DittoHeaderDefinition.CORRELATION_ID.getKey())))
                                     .filter(JsonValue::isString)
                                     .map(JsonValue::asString)
                                     .orElse(connectionCorrelationId)

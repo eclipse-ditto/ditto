@@ -140,7 +140,7 @@ public final class RetrieveAttribute extends AbstractCommand<RetrieveAttribute>
     @Override
     public JsonPointer getResourcePath() {
         final String path = "/attributes" + attributePointer;
-        return JsonPointer.newInstance(path);
+        return JsonPointer.of(path);
     }
 
     @Override

@@ -17,7 +17,6 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import java.lang.ref.SoftReference;
 
-import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -32,12 +31,10 @@ public final class ImmutableJsonStringTest {
     private static final com.eclipsesource.json.JsonValue KNOWN_JSON_STRING =
             com.eclipsesource.json.Json.value(KNOWN_STRING_VALUE);
 
-
     @Test
     public void assertImmutability() {
         assertInstancesOf(ImmutableJsonString.class, areImmutable());
     }
-
 
     @Test
     public void testHashCodeAndEquals() {
@@ -52,12 +49,10 @@ public final class ImmutableJsonStringTest {
                 .verify();
     }
 
-
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceFromNullValue() {
         ImmutableJsonString.of(null);
     }
-
 
     @Test(expected = IllegalArgumentException.class)
     public void tryToCreateInstanceFromNonStringValue() {
@@ -65,40 +60,58 @@ public final class ImmutableJsonStringTest {
         ImmutableJsonString.of(booleanJsonValue);
     }
 
-
     @Test
     public void immutableJsonStringIsNothingElse() {
-        final JsonValue underTest = ImmutableJsonString.of(KNOWN_JSON_STRING);
+        final ImmutableJsonString underTest = ImmutableJsonString.of(KNOWN_JSON_STRING);
 
-        DittoJsonAssertions.assertThat(underTest).isString();
-        DittoJsonAssertions.assertThat(underTest).isNotNullLiteral();
-        DittoJsonAssertions.assertThat(underTest).isNotBoolean();
-        DittoJsonAssertions.assertThat(underTest).isNotNumber();
-        DittoJsonAssertions.assertThat(underTest).isNotArray();
-        DittoJsonAssertions.assertThat(underTest).isNotObject();
-        DittoJsonAssertions.assertThat(underTest).doesNotSupport(JsonValue::asBoolean);
-        DittoJsonAssertions.assertThat(underTest).doesNotSupport(JsonValue::asInt);
-        DittoJsonAssertions.assertThat(underTest).doesNotSupport(JsonValue::asLong);
-        DittoJsonAssertions.assertThat(underTest).doesNotSupport(JsonValue::asDouble);
-        DittoJsonAssertions.assertThat(underTest).doesNotSupport(JsonValue::asArray);
-        DittoJsonAssertions.assertThat(underTest).doesNotSupport(JsonValue::asObject);
+        assertThat(underTest).isString();
+        assertThat(underTest).isNotNullLiteral();
+        assertThat(underTest).isNotBoolean();
+        assertThat(underTest).isNotNumber();
+        assertThat(underTest).isNotArray();
+        assertThat(underTest).isNotObject();
+        assertThat(underTest).doesNotSupport(JsonValue::asBoolean);
+        assertThat(underTest).doesNotSupport(JsonValue::asInt);
+        assertThat(underTest).doesNotSupport(JsonValue::asLong);
+        assertThat(underTest).doesNotSupport(JsonValue::asDouble);
+        assertThat(underTest).doesNotSupport(JsonValue::asArray);
+        assertThat(underTest).doesNotSupport(JsonValue::asObject);
     }
-
 
     @Test
     public void toStringReturnsExpected() {
         final String expected = "\"" + KNOWN_STRING_VALUE + "\"";
-        final JsonValue underTest = ImmutableJsonString.of(KNOWN_JSON_STRING);
+        final ImmutableJsonString underTest = ImmutableJsonString.of(KNOWN_JSON_STRING);
 
         assertThat(underTest.toString()).isEqualTo(expected);
     }
 
-
     @Test
     public void asStringReturnsExpected() {
-        final JsonValue underTest = ImmutableJsonString.of(KNOWN_JSON_STRING);
+        final ImmutableJsonString underTest = ImmutableJsonString.of(KNOWN_JSON_STRING);
 
         assertThat(underTest.asString()).isEqualTo(KNOWN_STRING_VALUE);
+    }
+
+    @Test
+    public void jsonStringIsRepresentationOfJsonValue() {
+        final ImmutableJsonString underTest = ImmutableJsonString.of(KNOWN_JSON_STRING);
+
+        assertThat(underTest.isRepresentationOfJavaType(JsonValue.class)).isTrue();
+    }
+
+    @Test
+    public void jsonStringIsRepresentationOfString() {
+        final ImmutableJsonString underTest = ImmutableJsonString.of(KNOWN_JSON_STRING);
+
+        assertThat(underTest.isRepresentationOfJavaType(String.class)).isTrue();
+    }
+
+    @Test
+    public void jsonStringIsRepresentationOfInt() {
+        final ImmutableJsonString underTest = ImmutableJsonString.of(KNOWN_JSON_STRING);
+
+        assertThat(underTest.isRepresentationOfJavaType(int.class)).isFalse();
     }
 
 }

@@ -313,7 +313,7 @@ public class CreateThingHandlerActor extends AbstractActor {
     private static Policy extractPolicy(final CreateThing command, final DittoHeaders dittoHeaders) {
         final String thingId = extractThingId(command.getThing(), dittoHeaders);
         return command.getInitialPolicy()
-                .map(jsonObj -> jsonObj.set(Policy.JsonFields.ID, JsonValue.newInstance(thingId)))
+                .map(jsonObj -> jsonObj.set(Policy.JsonFields.ID, JsonValue.of(thingId)))
                 .map(PoliciesModelFactory::newPolicy)
                 .filter(it -> it.iterator().hasNext())
                 .orElse(getDefaultPolicy(dittoHeaders.getAuthorizationContext(), thingId));

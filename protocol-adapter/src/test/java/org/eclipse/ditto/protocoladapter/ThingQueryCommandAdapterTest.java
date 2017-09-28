@@ -164,7 +164,7 @@ public class ThingQueryCommandAdapterTest {
                 .commands() //
                 .retrieve() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/acl");
+        final JsonPointer path = JsonPointer.of("/acl");
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -185,7 +185,7 @@ public class ThingQueryCommandAdapterTest {
                 .commands() //
                 .retrieve() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/acl");
+        final JsonPointer path = JsonPointer.of("/acl");
 
         final Adaptable expected = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -211,7 +211,7 @@ public class ThingQueryCommandAdapterTest {
                 .commands() //
                 .retrieve() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/acl/" + TestConstants.AUTHORIZATION_SUBJECT);
+        final JsonPointer path = JsonPointer.of("/acl/" + TestConstants.AUTHORIZATION_SUBJECT);
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -232,7 +232,7 @@ public class ThingQueryCommandAdapterTest {
                 .commands() //
                 .retrieve() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/acl/" + TestConstants.AUTHORIZATION_SUBJECT);
+        final JsonPointer path = JsonPointer.of("/acl/" + TestConstants.AUTHORIZATION_SUBJECT);
 
         final Adaptable expected = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -261,7 +261,7 @@ public class ThingQueryCommandAdapterTest {
                 .commands() //
                 .retrieve() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/acl/" + TestConstants.AUTHORIZATION_SUBJECT);
+        final JsonPointer path = JsonPointer.of("/acl/" + TestConstants.AUTHORIZATION_SUBJECT);
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -284,7 +284,7 @@ public class ThingQueryCommandAdapterTest {
                 .commands() //
                 .retrieve() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/acl/" + TestConstants.AUTHORIZATION_SUBJECT);
+        final JsonPointer path = JsonPointer.of("/acl/" + TestConstants.AUTHORIZATION_SUBJECT);
 
         final Adaptable expected = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -313,7 +313,7 @@ public class ThingQueryCommandAdapterTest {
                 .commands() //
                 .retrieve() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/attributes");
+        final JsonPointer path = JsonPointer.of("/attributes");
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -334,7 +334,7 @@ public class ThingQueryCommandAdapterTest {
                 .commands() //
                 .retrieve() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/attributes");
+        final JsonPointer path = JsonPointer.of("/attributes");
 
         final Adaptable expected = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -362,7 +362,7 @@ public class ThingQueryCommandAdapterTest {
                 .commands() //
                 .retrieve() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/attributes");
+        final JsonPointer path = JsonPointer.of("/attributes");
         final Adaptable adaptable = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
                         .withFields(selectedFields) //
@@ -384,7 +384,7 @@ public class ThingQueryCommandAdapterTest {
                 .commands() //
                 .retrieve() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/attributes");
+        final JsonPointer path = JsonPointer.of("/attributes");
 
         final Adaptable expected = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -411,7 +411,7 @@ public class ThingQueryCommandAdapterTest {
                 .commands() //
                 .retrieve() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/attributes" + TestConstants.ATTRIBUTE_POINTER);
+        final JsonPointer path = JsonPointer.of("/attributes" + TestConstants.ATTRIBUTE_POINTER);
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -432,7 +432,7 @@ public class ThingQueryCommandAdapterTest {
                 .commands() //
                 .retrieve() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/attributes" + TestConstants.ATTRIBUTE_POINTER);
+        final JsonPointer path = JsonPointer.of("/attributes" + TestConstants.ATTRIBUTE_POINTER);
 
         final Adaptable expected = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -459,7 +459,7 @@ public class ThingQueryCommandAdapterTest {
                 .commands() //
                 .retrieve() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/features");
+        final JsonPointer path = JsonPointer.of("/features");
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -480,7 +480,7 @@ public class ThingQueryCommandAdapterTest {
                 .commands() //
                 .retrieve() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/features");
+        final JsonPointer path = JsonPointer.of("/features");
 
         final Adaptable expected = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -508,7 +508,7 @@ public class ThingQueryCommandAdapterTest {
                 .commands() //
                 .retrieve() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/features");
+        final JsonPointer path = JsonPointer.of("/features");
         final Adaptable adaptable = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
                         .withFields(selectedFields) //
@@ -530,7 +530,7 @@ public class ThingQueryCommandAdapterTest {
                 .commands() //
                 .retrieve() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/features");
+        final JsonPointer path = JsonPointer.of("/features");
 
         final Adaptable expected = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -557,7 +557,7 @@ public class ThingQueryCommandAdapterTest {
                 .commands() //
                 .retrieve() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/features/" + TestConstants.FEATURE_ID);
+        final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID);
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -578,7 +578,7 @@ public class ThingQueryCommandAdapterTest {
                 .commands() //
                 .retrieve() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/features/" + TestConstants.FEATURE_ID);
+        final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID);
 
         final Adaptable expected = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -605,7 +605,7 @@ public class ThingQueryCommandAdapterTest {
                 .commands() //
                 .retrieve() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/features/" + TestConstants.FEATURE_ID + "/properties");
+        final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID + "/properties");
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -626,7 +626,7 @@ public class ThingQueryCommandAdapterTest {
                 .commands() //
                 .retrieve() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/features/" + TestConstants.FEATURE_ID + "/properties");
+        final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID + "/properties");
 
         final Adaptable expected = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -655,7 +655,7 @@ public class ThingQueryCommandAdapterTest {
                 .commands() //
                 .retrieve() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/features/" + TestConstants.FEATURE_ID + "/properties");
+        final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID + "/properties");
         final Adaptable adaptable = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
                         .withFields(selectedFields) //
@@ -677,7 +677,7 @@ public class ThingQueryCommandAdapterTest {
                 .commands() //
                 .retrieve() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/features/" + TestConstants.FEATURE_ID + "/properties");
+        final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID + "/properties");
 
         final Adaptable expected = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -707,7 +707,7 @@ public class ThingQueryCommandAdapterTest {
                 .retrieve() //
                 .build();
         final JsonPointer path = JsonPointer
-                .newInstance("/features/" + TestConstants.FEATURE_ID + "/properties" +
+                .of("/features/" + TestConstants.FEATURE_ID + "/properties" +
                         TestConstants.FEATURE_PROPERTY_POINTER);
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath) //
@@ -730,7 +730,7 @@ public class ThingQueryCommandAdapterTest {
                 .retrieve() //
                 .build();
         final JsonPointer path = JsonPointer
-                .newInstance("/features/" + TestConstants.FEATURE_ID + "/properties" +
+                .of("/features/" + TestConstants.FEATURE_ID + "/properties" +
                         TestConstants.FEATURE_PROPERTY_POINTER);
 
         final Adaptable expected = Adaptable.newBuilder(topicPath) //
@@ -773,7 +773,7 @@ public class ThingQueryCommandAdapterTest {
 
         @Override
         public JsonPointer getResourcePath() {
-            return JsonPointer.newInstance("/policyId");
+            return JsonPointer.of("/policyId");
         }
 
         @Override

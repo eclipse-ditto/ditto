@@ -18,17 +18,13 @@ import static akka.http.javadsl.server.Directives.path;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.CompletionStage;
-import java.util.function.Supplier;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.services.gateway.endpoints.directives.DevopsBasicAuthenticationDirective;
 import org.eclipse.ditto.services.gateway.health.StatusHealthHelper;
-import org.eclipse.ditto.services.gateway.starter.service.util.ConfigKeys;
 import org.eclipse.ditto.services.utils.health.HealthStatus;
-import org.eclipse.ditto.services.utils.health.cluster.ClusterStatus;
 
-import akka.actor.ActorSystem;
 import akka.http.javadsl.model.ContentTypes;
 import akka.http.javadsl.model.HttpResponse;
 import akka.http.javadsl.model.StatusCodes;
@@ -41,8 +37,7 @@ public final class CachingHealthRoute {
 
     private static final String PATH_HEALTH = "health";
 
-    private final ActorSystem actorSystem;
-    private final Supplier<ClusterStatus> clusterStateSupplier;
+    private final StatusHealthHelper statusHealthHelper;
     private final Duration refreshInterval;
 
     private CompletionStage<JsonObject> cachedHealth;
@@ -51,13 +46,12 @@ public final class CachingHealthRoute {
     /**
      * Constructs the {@code /health} route builder.
      *
-     * @param actorSystem the Actor System.
-     * @param clusterStateSupplier the supplier to get the cluster state.
+     * @param statusHealthHelper the helper for retrieving health status of the cluster.
+     * @param refreshInterval the interval for refreshing the health status.
      */
-    public CachingHealthRoute(final ActorSystem actorSystem, final Supplier<ClusterStatus> clusterStateSupplier) {
-        this.actorSystem = actorSystem;
-        this.clusterStateSupplier = clusterStateSupplier;
-        refreshInterval = actorSystem.settings().config().getDuration(ConfigKeys.STATUS_HEALTH_EXTERNAL_CACHE_TIMEOUT);
+    public CachingHealthRoute(final StatusHealthHelper statusHealthHelper, final Duration refreshInterval) {
+        this.statusHealthHelper = statusHealthHelper;
+        this.refreshInterval = refreshInterval;
     }
 
     /**
@@ -82,17 +76,17 @@ public final class CachingHealthRoute {
 
     private CompletionStage<HttpResponse> createOverallHealthResponse() {
         if (cachedHealth == null || isCacheTimedOut()) {
-            cachedHealth = StatusHealthHelper.calculateOverallHealthJson(actorSystem, clusterStateSupplier)
+            cachedHealth = statusHealthHelper.calculateOverallHealthJson()
                     .thenApply(overallHealth -> JsonObject.newBuilder()
                             .set(HealthStatus.JSON_KEY_STATUS, overallHealth.getValue(HealthStatus.JSON_KEY_STATUS)
-                                    .orElse(JsonValue.newInstance(HealthStatus.Status.DOWN.toString())))
+                                    .orElse(JsonValue.of(HealthStatus.Status.DOWN.toString())))
                             .build()
                     );
             lastCheckInstant = Instant.now();
         }
 
         return cachedHealth.thenApply(overallHealth -> {
-            if (StatusHealthHelper.checkIfAllSubStatusAreUp(overallHealth)) {
+            if (statusHealthHelper.checkIfAllSubStatusAreUp(overallHealth)) {
                 return HttpResponse.create()
                         .withStatus(StatusCodes.OK)
                         .withEntity(ContentTypes.APPLICATION_JSON, overallHealth.toString());

@@ -70,13 +70,20 @@ services:
       - ENABLE_DUMMY_AUTH=true
       - _JAVA_OPTIONS=-Xms256m -Xmx256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError
 
+  swagger-ui:
+    image: docker.io/swaggerapi/swagger-ui:v2.2.9
+    volumes:
+       - ../documentation/openapi:/usr/share/nginx/html/openapi:ro
+
   nginx:
     image: docker.io/nginx:1.13-alpine
     volumes:
        - ./nginx.conf:/etc/nginx/nginx.conf:ro
        - ./nginx.htpasswd:/etc/nginx/nginx.htpasswd:ro
        - ./nginx-cors.conf:/etc/nginx/nginx-cors.conf:ro
+       - ./index.html:/etc/nginx/html/index.html:ro
     ports:
       - "8080:80"
     depends_on:
       - gateway
+      - swagger-ui

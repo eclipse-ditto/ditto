@@ -73,7 +73,7 @@ public interface Thing extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFie
             ThingsModelFactory.newUnmodifiablePermissions(Permission.READ, Permission.WRITE, Permission.ADMINISTRATE);
 
     /**
-     * Returns a mutable builder with a fluent API for an immutable {@link Thing} from scratch.
+     * Returns a mutable builder with a fluent API for an immutable {@code Thing} from scratch.
      *
      * @return the new builder.
      */
@@ -82,7 +82,7 @@ public interface Thing extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFie
     }
 
     /**
-     * Returns a mutable builder with a fluent API for immutable {@link Thing}. The builder is initialised with the
+     * Returns a mutable builder with a fluent API for immutable {@code Thing}. The builder is initialised with the
      * entries of this instance.
      *
      * @return the new builder.
@@ -143,7 +143,7 @@ public interface Thing extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFie
      * @throws IllegalArgumentException if {@code attributePath} is empty.
      */
     default Thing setAttribute(final CharSequence attributePath, final JsonValue attributeValue) {
-        return setAttribute(JsonPointer.newInstance(attributePath), attributeValue);
+        return setAttribute(JsonPointer.of(attributePath), attributeValue);
     }
 
     /**
@@ -156,7 +156,7 @@ public interface Thing extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFie
      * @throws IllegalArgumentException if {@code attributePath} is empty.
      */
     default Thing setAttribute(final CharSequence attributePath, final boolean attributeValue) {
-        return setAttribute(JsonPointer.newInstance(attributePath), JsonValue.newInstance(attributeValue));
+        return setAttribute(JsonPointer.of(attributePath), JsonValue.of(attributeValue));
     }
 
     /**
@@ -169,7 +169,7 @@ public interface Thing extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFie
      * @throws IllegalArgumentException if {@code attributePath} is empty.
      */
     default Thing setAttribute(final CharSequence attributePath, final int attributeValue) {
-        return setAttribute(JsonPointer.newInstance(attributePath), JsonValue.newInstance(attributeValue));
+        return setAttribute(JsonPointer.of(attributePath), JsonValue.of(attributeValue));
     }
 
     /**
@@ -182,7 +182,7 @@ public interface Thing extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFie
      * @throws IllegalArgumentException if {@code attributePath} is empty.
      */
     default Thing setAttribute(final CharSequence attributePath, final long attributeValue) {
-        return setAttribute(JsonPointer.newInstance(attributePath), JsonValue.newInstance(attributeValue));
+        return setAttribute(JsonPointer.of(attributePath), JsonValue.of(attributeValue));
     }
 
     /**
@@ -195,7 +195,7 @@ public interface Thing extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFie
      * @throws IllegalArgumentException if {@code attributePath} is empty.
      */
     default Thing setAttribute(final CharSequence attributePath, final double attributeValue) {
-        return setAttribute(JsonPointer.newInstance(attributePath), JsonValue.newInstance(attributeValue));
+        return setAttribute(JsonPointer.of(attributePath), JsonValue.of(attributeValue));
     }
 
     /**
@@ -208,7 +208,7 @@ public interface Thing extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFie
      * @throws IllegalArgumentException if {@code attributePath} is empty.
      */
     default Thing setAttribute(final CharSequence attributePath, final String attributeValue) {
-        return setAttribute(JsonPointer.newInstance(attributePath), JsonValue.newInstance(attributeValue));
+        return setAttribute(JsonPointer.of(attributePath), JsonValue.of(attributeValue));
     }
 
     /**
@@ -231,7 +231,7 @@ public interface Thing extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFie
      * @throws IllegalArgumentException if {@code pointer} is empty.
      */
     default Thing removeAttribute(final CharSequence attributePath) {
-        return removeAttribute(JsonPointer.newInstance(attributePath));
+        return removeAttribute(JsonPointer.of(attributePath));
     }
 
     /**
@@ -265,7 +265,8 @@ public interface Thing extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFie
      */
     default Thing setFeatureProperty(final String featureId, final CharSequence propertyPath,
             final JsonValue propertyValue) {
-        return setFeatureProperty(featureId, JsonPointer.newInstance(propertyPath), propertyValue);
+
+        return setFeatureProperty(featureId, JsonPointer.of(propertyPath), propertyValue);
     }
 
     /**
@@ -279,8 +280,8 @@ public interface Thing extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFie
      */
     default Thing setFeatureProperty(final String featureId, final CharSequence propertyPath,
             final boolean propertyValue) {
-        return setFeatureProperty(featureId, JsonPointer.newInstance(propertyPath),
-                JsonValue.newInstance(propertyValue));
+
+        return setFeatureProperty(featureId, JsonPointer.of(propertyPath), JsonValue.of(propertyValue));
     }
 
     /**
@@ -293,8 +294,7 @@ public interface Thing extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFie
      * @throws NullPointerException if any argument is {@code null}.
      */
     default Thing setFeatureProperty(final String featureId, final CharSequence propertyPath, final int propertyValue) {
-        return setFeatureProperty(featureId, JsonPointer.newInstance(propertyPath),
-                JsonValue.newInstance(propertyValue));
+        return setFeatureProperty(featureId, JsonPointer.of(propertyPath), JsonValue.of(propertyValue));
     }
 
     /**
@@ -308,8 +308,8 @@ public interface Thing extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFie
      */
     default Thing setFeatureProperty(final String featureId, final CharSequence propertyPath,
             final long propertyValue) {
-        return setFeatureProperty(featureId, JsonPointer.newInstance(propertyPath),
-                JsonValue.newInstance(propertyValue));
+
+        return setFeatureProperty(featureId, JsonPointer.of(propertyPath), JsonValue.of(propertyValue));
     }
 
     /**
@@ -323,8 +323,8 @@ public interface Thing extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFie
      */
     default Thing setFeatureProperty(final String featureId, final CharSequence propertyPath,
             final double propertyValue) {
-        return setFeatureProperty(featureId, JsonPointer.newInstance(propertyPath),
-                JsonValue.newInstance(propertyValue));
+
+        return setFeatureProperty(featureId, JsonPointer.of(propertyPath), JsonValue.of(propertyValue));
     }
 
     /**
@@ -338,8 +338,8 @@ public interface Thing extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFie
      */
     default Thing setFeatureProperty(final String featureId, final CharSequence propertyPath,
             final String propertyValue) {
-        return setFeatureProperty(featureId, JsonPointer.newInstance(propertyPath),
-                JsonValue.newInstance(propertyValue));
+
+        return setFeatureProperty(featureId, JsonPointer.of(propertyPath), JsonValue.of(propertyValue));
     }
 
     /**
@@ -371,7 +371,7 @@ public interface Thing extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFie
      * @throws NullPointerException if any argument is {@code null}.
      */
     default Thing removeFeatureProperty(final String featureId, final CharSequence propertyPath) {
-        return removeFeatureProperty(featureId, JsonPointer.newInstance(propertyPath));
+        return removeFeatureProperty(featureId, JsonPointer.of(propertyPath));
     }
 
     /**
@@ -407,8 +407,8 @@ public interface Thing extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFie
      * @return {@code true} if this Thing has {@code lifecycle} as its lifecycle, {@code false} else.
      */
     default boolean hasLifecycle(final ThingLifecycle lifecycle) {
-        return getLifecycle() //
-                .filter(actualLifecycle -> Objects.equals(actualLifecycle, lifecycle)) //
+        return getLifecycle()
+                .filter(actualLifecycle -> Objects.equals(actualLifecycle, lifecycle))
                 .isPresent();
     }
 
@@ -533,8 +533,8 @@ public interface Thing extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFie
 
     /**
      * An enumeration of the known {@link JsonField}s of a Thing.
-     *
      */
+    @Immutable
     final class JsonFields {
 
         /**
@@ -542,7 +542,6 @@ public interface Thing extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFie
          */
         public static final JsonFieldDefinition SCHEMA_VERSION =
                 newFieldDefinition(JsonSchemaVersion.getJsonKey(), int.class, FieldType.SPECIAL, FieldType.HIDDEN,
-                        // available in schema versions:
                         JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         /**
@@ -550,7 +549,6 @@ public interface Thing extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFie
          */
         public static final JsonFieldDefinition LIFECYCLE =
                 newFieldDefinition("__lifecycle", String.class, FieldType.SPECIAL, FieldType.HIDDEN,
-                        // available in schema versions:
                         JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         /**
@@ -558,7 +556,6 @@ public interface Thing extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFie
          */
         public static final JsonFieldDefinition NAMESPACE =
                 newFieldDefinition("_namespace", String.class, FieldType.SPECIAL, FieldType.HIDDEN,
-                        // available in schema versions:
                         JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         /**
@@ -566,7 +563,6 @@ public interface Thing extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFie
          */
         public static final JsonFieldDefinition REVISION =
                 newFieldDefinition("_revision", long.class, FieldType.SPECIAL, FieldType.HIDDEN,
-                        // available in schema versions:
                         JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         /**
@@ -575,51 +571,44 @@ public interface Thing extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFie
          */
         public static final JsonFieldDefinition MODIFIED =
                 newFieldDefinition("_modified", String.class, FieldType.SPECIAL, FieldType.HIDDEN,
-                        // available in schema versions:
                         JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the Thing's identifier.
          */
         public static final JsonFieldDefinition ID = newFieldDefinition("thingId", String.class, FieldType.REGULAR,
-                // available in schema versions:
                 JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the Thing's Access Control List (ACL).
          */
         public static final JsonFieldDefinition ACL = newFieldDefinition("acl", JsonObject.class, FieldType.REGULAR,
-                // available in schema versions:
                 JsonSchemaVersion.V_1);
 
         /**
          * JSON field containing the Thing's Policy identifier.
-         *
          */
         public static final JsonFieldDefinition POLICY_ID =
-                newFieldDefinition("policyId", String.class, FieldType.REGULAR,
-                        // available in schema versions:
-                        JsonSchemaVersion.V_2);
+                newFieldDefinition("policyId", String.class, FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the Thing's attributes.
          */
         public static final JsonFieldDefinition ATTRIBUTES =
-                newFieldDefinition("attributes", JsonObject.class, FieldType.REGULAR,
-                        // available in schema versions:
-                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+                newFieldDefinition("attributes", JsonObject.class, FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the Thing's features.
          */
         public static final JsonFieldDefinition FEATURES =
-                newFieldDefinition("features", JsonObject.class, FieldType.REGULAR,
-                        // available in schema versions:
-                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+                newFieldDefinition("features", JsonObject.class, FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
 
         private JsonFields() {
             throw new AssertionError();
         }
+
     }
 
 }

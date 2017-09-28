@@ -19,7 +19,6 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import java.lang.ref.SoftReference;
 import java.util.function.Supplier;
 
-import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
 import org.junit.Test;
 
 import com.eclipsesource.json.Json;
@@ -41,12 +40,10 @@ public final class ImmutableJsonNumberTest {
         }
     }
 
-
     @Test
     public void assertImmutability() {
         assertInstancesOf(ImmutableJsonNumber.class, areImmutable());
     }
-
 
     @Test
     public void testHashCodeAndEquals() {
@@ -61,13 +58,11 @@ public final class ImmutableJsonNumberTest {
                 .verify();
     }
 
-
     @Test(expected = IllegalArgumentException.class)
     public void tryToCreateInstanceFromStringJsonValue() {
         final com.eclipsesource.json.JsonValue jsonString = com.eclipsesource.json.Json.value("foo");
         ImmutableJsonNumber.of(jsonString);
     }
-
 
     @Test
     public void jsonNumberValueForIntBehavesAsExpected() {
@@ -75,21 +70,20 @@ public final class ImmutableJsonNumberTest {
         final com.eclipsesource.json.JsonValue jsonValue = com.eclipsesource.json.Json.value(intValue);
         final JsonValue underTest = ImmutableJsonNumber.of(jsonValue);
 
-        DittoJsonAssertions.assertThat(underTest).isNumber();
-        DittoJsonAssertions.assertThat(underTest).isNotNullLiteral();
-        DittoJsonAssertions.assertThat(underTest).isNotBoolean();
-        DittoJsonAssertions.assertThat(underTest).isNotString();
-        DittoJsonAssertions.assertThat(underTest).isNotObject();
-        DittoJsonAssertions.assertThat(underTest).isNotArray();
+        assertThat(underTest).isNumber();
+        assertThat(underTest).isNotNullLiteral();
+        assertThat(underTest).isNotBoolean();
+        assertThat(underTest).isNotString();
+        assertThat(underTest).isNotObject();
+        assertThat(underTest).isNotArray();
         assertThat(underTest.asInt()).isEqualTo(intValue);
         assertThat(underTest.toString()).isEqualTo(String.valueOf(intValue));
         assertThat(underTest.asDouble()).isEqualTo((double) intValue);
-        DittoJsonAssertions.assertThat(underTest).doesNotSupport(JsonValue::asBoolean);
-        DittoJsonAssertions.assertThat(underTest).doesNotSupport(JsonValue::asString);
-        DittoJsonAssertions.assertThat(underTest).doesNotSupport(JsonValue::asArray);
-        DittoJsonAssertions.assertThat(underTest).doesNotSupport(JsonValue::asObject);
+        assertThat(underTest).doesNotSupport(JsonValue::asBoolean);
+        assertThat(underTest).doesNotSupport(JsonValue::asString);
+        assertThat(underTest).doesNotSupport(JsonValue::asArray);
+        assertThat(underTest).doesNotSupport(JsonValue::asObject);
     }
-
 
     @Test
     public void jsonNumberValueForDoubleBehavesAsExpected() {
@@ -97,18 +91,18 @@ public final class ImmutableJsonNumberTest {
         final com.eclipsesource.json.JsonValue jsonValue = com.eclipsesource.json.Json.value(doubleValue);
         final JsonValue underTest = ImmutableJsonNumber.of(jsonValue);
 
-        DittoJsonAssertions.assertThat(underTest).isNumber();
-        DittoJsonAssertions.assertThat(underTest).isNotNullLiteral();
-        DittoJsonAssertions.assertThat(underTest).isNotBoolean();
-        DittoJsonAssertions.assertThat(underTest).isNotString();
-        DittoJsonAssertions.assertThat(underTest).isNotObject();
-        DittoJsonAssertions.assertThat(underTest).isNotArray();
+        assertThat(underTest).isNumber();
+        assertThat(underTest).isNotNullLiteral();
+        assertThat(underTest).isNotBoolean();
+        assertThat(underTest).isNotString();
+        assertThat(underTest).isNotObject();
+        assertThat(underTest).isNotArray();
         assertThat(underTest.asDouble()).isEqualTo(doubleValue);
         assertThat(underTest.toString()).isEqualTo(String.valueOf(doubleValue));
-        DittoJsonAssertions.assertThat(underTest).doesNotSupport(JsonValue::asBoolean);
-        DittoJsonAssertions.assertThat(underTest).doesNotSupport(JsonValue::asString);
-        DittoJsonAssertions.assertThat(underTest).doesNotSupport(JsonValue::asArray);
-        DittoJsonAssertions.assertThat(underTest).doesNotSupport(JsonValue::asObject);
+        assertThat(underTest).doesNotSupport(JsonValue::asBoolean);
+        assertThat(underTest).doesNotSupport(JsonValue::asString);
+        assertThat(underTest).doesNotSupport(JsonValue::asArray);
+        assertThat(underTest).doesNotSupport(JsonValue::asObject);
         assertNumberFormatException(underTest::asInt);
         assertNumberFormatException(underTest::asLong);
     }
@@ -122,22 +116,84 @@ public final class ImmutableJsonNumberTest {
         assertThat(underTest.toString()).isEqualTo("0");
     }
 
-
     @Test
     public void toStringOfZeroIntValueReturnsExpected() {
         final int intValue = 0;
         final com.eclipsesource.json.JsonValue jsonValue = Json.value(intValue);
-        final JsonValue underTest = ImmutableJsonNumber.of(jsonValue);
+        final ImmutableJsonNumber underTest = ImmutableJsonNumber.of(jsonValue);
 
         assertThat(underTest.toString()).isEqualTo("0");
     }
 
     @Test
     public void zeroIntIsEqualToZeroDouble() {
-        final JsonValue doubleZero = ImmutableJsonNumber.of(Json.value(0.0D));
-        final JsonValue intZero = ImmutableJsonNumber.of(Json.value(0));
+        final ImmutableJsonNumber doubleZero = ImmutableJsonNumber.of(Json.value(0.0D));
+        final ImmutableJsonNumber intZero = ImmutableJsonNumber.of(Json.value(0));
 
-        DittoJsonAssertions.assertThat(doubleZero).isEqualTo(intZero);
+        assertThat(doubleZero).isEqualTo(intZero);
+    }
+
+    @Test
+    public void jsonNumberIsRepresentationOfJsonValue() {
+        final ImmutableJsonNumber underTest = ImmutableJsonNumber.of(Json.value(0.0D));
+
+        assertThat(underTest.isRepresentationOfJavaType(JsonValue.class)).isTrue();
+    }
+
+    @Test
+    public void jsonNumberIsRepresentationOfInt() {
+        final int intValue = 42;
+        final ImmutableJsonNumber underTest = ImmutableJsonNumber.of(Json.value(intValue));
+
+        assertThat(underTest.isRepresentationOfJavaType(int.class)).isTrue();
+    }
+
+    @Test
+    public void jsonNumberIsRepresentationOfInteger() {
+        final int intValue = 42;
+        final ImmutableJsonNumber underTest = ImmutableJsonNumber.of(Json.value(intValue));
+
+        assertThat(underTest.isRepresentationOfJavaType(Integer.class)).isTrue();
+    }
+
+    @Test
+    public void jsonNumberIsRepresentationOfPrimitiveLong() {
+        final long longValue = 4223L;
+        final ImmutableJsonNumber underTest = ImmutableJsonNumber.of(Json.value(longValue));
+
+        assertThat(underTest.isRepresentationOfJavaType(long.class)).isTrue();
+    }
+
+    @Test
+    public void jsonNumberIsRepresentationOfLong() {
+        final long longValue = 4223L;
+        final ImmutableJsonNumber underTest = ImmutableJsonNumber.of(Json.value(longValue));
+
+        assertThat(underTest.isRepresentationOfJavaType(Long.class)).isTrue();
+    }
+
+    @Test
+    public void jsonNumberIsRepresentationOfPrimitiveDouble() {
+        final double doubleValue = 42.23D;
+        final ImmutableJsonNumber underTest = ImmutableJsonNumber.of(Json.value(doubleValue));
+
+        assertThat(underTest.isRepresentationOfJavaType(double.class)).isTrue();
+    }
+
+    @Test
+    public void jsonNumberIsRepresentationOfDouble() {
+        final Double doubleValue = 42.23D;
+        final ImmutableJsonNumber underTest = ImmutableJsonNumber.of(Json.value(doubleValue));
+
+        assertThat(underTest.isRepresentationOfJavaType(Double.class)).isTrue();
+    }
+
+    @Test
+    public void jsonNumberIsNotRepresentationOfString() {
+        final long longValue = 4223L;
+        final ImmutableJsonNumber underTest = ImmutableJsonNumber.of(Json.value(longValue));
+
+        assertThat(underTest.isRepresentationOfJavaType(String.class)).isFalse();
     }
 
 }

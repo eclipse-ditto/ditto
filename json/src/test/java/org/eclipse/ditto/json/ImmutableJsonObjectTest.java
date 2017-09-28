@@ -24,6 +24,7 @@ import java.lang.ref.SoftReference;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -67,11 +68,6 @@ public final class ImmutableJsonObjectTest {
         return toMap(keyName, JsonFactory.newValue(rawValue));
     }
 
-    private static Map<String, JsonField> toMap(final CharSequence keyName, final JsonValue value) {
-        return Collections.singletonMap(keyName.toString(), JsonFactory.newField(JsonFactory.newKey(keyName), value));
-    }
-
-    /** */
     @Test
     public void assertImmutability() {
         assertInstancesOf(ImmutableJsonObject.class,
@@ -79,7 +75,6 @@ public final class ImmutableJsonObjectTest {
                 assumingFields("fields").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
     }
 
-    /** */
     @Test
     public void testHashCodeAndEquals() {
         final SoftReference<JsonObject> red = new SoftReference<>(JsonFactory.newObject("{\"foo\": 1}"));
@@ -91,7 +86,6 @@ public final class ImmutableJsonObjectTest {
                 .verify();
     }
 
-    /** */
     @Test
     public void orderOfFieldsDoesNotAffectEquality() {
         final JsonObjectBuilder barJsonObjectBuilder = JsonFactory.newObjectBuilder();
@@ -118,13 +112,11 @@ public final class ImmutableJsonObjectTest {
         assertThat(leftJsonObject).isEqualTo(rightJsonObject);
     }
 
-    /** */
     @Test(expected = NullPointerException.class)
     public void tryToGetInstanceFromNullJsonObject() {
         ImmutableJsonObject.of((Map<String, JsonField>) null);
     }
 
-    /** */
     @Test
     public void getEmptyInstanceReturnsExpected() {
         final JsonObject underTest = ImmutableJsonObject.empty();
@@ -136,7 +128,6 @@ public final class ImmutableJsonObjectTest {
         assertThat(underTest.toString()).isEqualTo("{}");
     }
 
-    /** */
     @Test
     public void objectIsNothingElse() {
         final JsonValue underTest = ImmutableJsonObject.empty();
@@ -149,7 +140,6 @@ public final class ImmutableJsonObjectTest {
         assertThat(underTest).isNotArray();
     }
 
-    /** */
     @Test
     public void checkUnsupportedOperations() {
         final JsonValue underTest = ImmutableJsonObject.of(KNOWN_FIELDS);
@@ -162,7 +152,6 @@ public final class ImmutableJsonObjectTest {
         assertThat(underTest).doesNotSupport(JsonValue::asDouble);
     }
 
-    /** */
     @Test
     public void getInstanceReturnsExpected() {
         final JsonObject underTest = ImmutableJsonObject.of(KNOWN_FIELDS);
@@ -174,7 +163,6 @@ public final class ImmutableJsonObjectTest {
         assertThat(underTest.toString()).isEqualTo(KNOWN_JSON_STRING);
     }
 
-    /** */
     @Test
     public void getReturnsExpected() {
         final JsonObject underTest = ImmutableJsonObject.of(KNOWN_FIELDS);
@@ -184,7 +172,6 @@ public final class ImmutableJsonObjectTest {
         assertThat(underTest).contains(key, expectedValue);
     }
 
-    /** */
     @Test
     public void setWorksAsExpected() {
         final JsonKey key = JsonFactory.newKey("key");
@@ -203,25 +190,22 @@ public final class ImmutableJsonObjectTest {
         assertThat(newJsonObject).contains(key, valueToAdd);
     }
 
-    /** */
     @Test(expected = NullPointerException.class)
     public void tryToSetIntValueWithNullKey() {
         final JsonObject underTest = ImmutableJsonObject.empty();
         underTest.setValue((String) null, KNOWN_INT_23);
     }
 
-    /** */
     @Test
     public void tryToSetIntValueWithEmptyKey() {
         final JsonObject underTest = ImmutableJsonObject.empty();
 
         assertThatExceptionOfType(IllegalArgumentException.class)
                 .isThrownBy(() -> underTest.setValue("", KNOWN_INT_23))
-                .withMessage("The key of the value to set, get or remove must not be empty!")
+                .withMessage("The key or pointer must not be empty!")
                 .withNoCause();
     }
 
-    /** */
     @Test
     public void setIntCreatesDisjointJsonObject() {
         final JsonObject underTest = ImmutableJsonObject.empty();
@@ -238,7 +222,17 @@ public final class ImmutableJsonObjectTest {
         assertThat(afterAdd).doesNotContain(KNOWN_KEY_FOO);
     }
 
-    /** */
+    @Test
+    public void setExistingIntReturnsSameInstance() {
+        final JsonKey key = KNOWN_KEY_FOO;
+        final int value = KNOWN_INT_23;
+        final ImmutableJsonObject underTest = ImmutableJsonObject.of(toMap(key, JsonFactory.newValue(value)));
+
+        final JsonObject jsonObject = underTest.setValue(key, value);
+
+        assertThat(jsonObject).isSameAs(underTest);
+    }
+
     @Test
     public void setIntWithKeyContainingSlashes() {
         final CharSequence key = "foo/bar/baz";
@@ -250,7 +244,6 @@ public final class ImmutableJsonObjectTest {
         assertThat(jsonObjectWithIntValue).contains(jsonKey, KNOWN_INT_42);
     }
 
-    /** */
     @Test
     public void setFieldTwiceReturnsSameInstance() {
         final JsonKey jsonKey = JsonFactory.newKey("foo/bar/baz");
@@ -264,7 +257,6 @@ public final class ImmutableJsonObjectTest {
                 .isSameAs(jsonObjectWithIntValue1);
     }
 
-    /** */
     @Test
     public void setLongCreatesDisjunctJsonObject() {
         final JsonObject underTest = ImmutableJsonObject.empty();
@@ -281,7 +273,6 @@ public final class ImmutableJsonObjectTest {
         assertThat(afterAdd).doesNotContain(KNOWN_KEY_FOO);
     }
 
-    /** */
     @Test
     public void setDoubleCreatesDisjunctJsonObject() {
         final JsonObject underTest = ImmutableJsonObject.empty();
@@ -298,7 +289,6 @@ public final class ImmutableJsonObjectTest {
         assertThat(afterAdd).doesNotContain(KNOWN_KEY_FOO);
     }
 
-    /** */
     @Test
     public void setBooleanCreatesDisjunctJsonObject() {
         final JsonObject underTest = ImmutableJsonObject.empty();
@@ -315,7 +305,6 @@ public final class ImmutableJsonObjectTest {
         assertThat(afterAdd).doesNotContain(KNOWN_KEY_FOO);
     }
 
-    /** */
     @Test
     public void setStringCreatesDisjunctJsonObject() {
         final JsonObject underTest = ImmutableJsonObject.empty();
@@ -332,29 +321,44 @@ public final class ImmutableJsonObjectTest {
         assertThat(afterAdd).doesNotContain(KNOWN_KEY_FOO);
     }
 
-    /** */
     @Test(expected = NullPointerException.class)
     public void tryToSetValueWithNullJsonPointer() {
         final JsonObject underTest = ImmutableJsonObject.empty();
         underTest.setValue((JsonPointer) null, mock(JsonValue.class));
     }
 
-    /** */
     @Test
     public void tryToSetValueWithEmptyJsonPointer() {
-        final JsonPointer jsonPointer = newPointer("foo");
-        final JsonPointer emptyJsonPointer = jsonPointer.nextLevel();
+        final ImmutableJsonObject underTest = ImmutableJsonObject.empty();
 
-        assertThat(emptyJsonPointer).isEmpty();
-
-        final JsonObject underTest = ImmutableJsonObject.empty();
-        final JsonValue value = JsonValue.newInstance(42);
-        final JsonObject returned = underTest.setValue(emptyJsonPointer, value);
-
-        assertThat((Iterable) returned).containsOnlyOnce(JsonField.newInstance("/", value));
+        assertThatExceptionOfType(IllegalArgumentException.class)
+                .isThrownBy(() -> underTest.setValue(JsonFactory.emptyPointer(), KNOWN_INT_42))
+                .withMessage("The key or pointer must not be empty!")
+                .withNoCause();
     }
 
-    /** */
+    @Test
+    public void tryToSetValueWithSlashCharSequence() {
+        final String slash = "/";
+        final ImmutableJsonObject underTest = ImmutableJsonObject.empty();
+
+        assertThatExceptionOfType(IllegalArgumentException.class)
+                .isThrownBy(() -> underTest.setValue(slash, KNOWN_VALUE_BAR))
+                .withMessage("The key or pointer must not be empty!")
+                .withNoCause();
+    }
+
+    @Test
+    public void setValueWithSlashJsonKeyWorksAsExpected() {
+        final JsonKey jsonKey = JsonFactory.newKey("/");
+        final JsonValue value = KNOWN_VALUE_BAR;
+        final ImmutableJsonObject underTest = ImmutableJsonObject.empty();
+
+        final JsonObject withValue = underTest.setValue(jsonKey, value);
+
+        assertThat(withValue).hasSize(1).contains(jsonKey, value);
+    }
+
     @Test
     public void setValueWithJsonPointerToEmptyJsonObject() {
         final JsonObject underTest = ImmutableJsonObject.empty();
@@ -387,7 +391,6 @@ public final class ImmutableJsonObjectTest {
         assertThat(actual).isEqualTo(expected);
     }
 
-    /** */
     @Test
     public void setValueWithJsonPointerToExistingJsonObject() {
 
@@ -443,23 +446,20 @@ public final class ImmutableJsonObjectTest {
         assertThat(actual).isEqualTo(expected);
     }
 
-    /** */
     @Test(expected = NullPointerException.class)
     public void tryToAddAllWithNullJsonFieldsIterable() {
         final JsonObject underTest = ImmutableJsonObject.empty();
         underTest.setAll(null);
     }
 
-    /** */
     @Test
     public void setAllWithEmptyJsonFieldIterableReturnsSameJsonObject() {
         final JsonObject underTest = ImmutableJsonObject.empty();
         final JsonObject sameAsBefore = underTest.setAll(Collections.emptyList());
 
-        assertThat(underTest).isSameAs(sameAsBefore);
+        assertThat(sameAsBefore).isSameAs(underTest);
     }
 
-    /** */
     @Test
     public void setAllJsonFieldsWorksAsExpected() {
         final Collection<JsonField> jsonFieldsToAdd = new ArrayList<>();
@@ -475,28 +475,25 @@ public final class ImmutableJsonObjectTest {
                 .containsExactlyElementsOf(jsonFieldsToAdd);
     }
 
-    /** */
     @Test(expected = NullPointerException.class)
     public void tryToGetValueByNullName() {
         final JsonObject underTest = ImmutableJsonObject.of(KNOWN_FIELDS);
         underTest.getValue((String) null);
     }
 
-    /** */
-    @Test(expected = IllegalArgumentException.class)
-    public void tryToGetValueByEmptyName() {
+    @Test
+    public void getValueWithEmptyStringReturnsEmptyOptional() {
         final JsonObject underTest = ImmutableJsonObject.of(KNOWN_FIELDS);
-        underTest.getValue("");
+
+        assertThat(underTest.getValue("")).isEmpty();
     }
 
-    /** */
     @Test(expected = NullPointerException.class)
     public void tryToGetValueByNullKey() {
         final JsonObject underTest = ImmutableJsonObject.of(KNOWN_FIELDS);
         underTest.getValue((JsonKey) null);
     }
 
-    /** */
     @Test
     public void getExistingValueByName() {
         final JsonObject underTest = ImmutableJsonObject.of(KNOWN_FIELDS);
@@ -504,7 +501,6 @@ public final class ImmutableJsonObjectTest {
         assertThat(underTest.getValue(KNOWN_KEY_BAZ)).contains(KNOWN_VALUE_BAZ);
     }
 
-    /** */
     @Test
     public void getNonExistingValueByNameReturnsEmptyOptional() {
         final JsonObject underTest = ImmutableJsonObject.of(KNOWN_FIELDS);
@@ -512,7 +508,6 @@ public final class ImmutableJsonObjectTest {
         assertThat(underTest.getValue("waldo")).isEmpty();
     }
 
-    /** */
     @Test
     public void getExistingValueByKeyReturnsExpected() {
         final JsonObject underTest = ImmutableJsonObject.of(KNOWN_FIELDS);
@@ -520,21 +515,12 @@ public final class ImmutableJsonObjectTest {
         assertThat(underTest).contains(KNOWN_KEY_BAZ, KNOWN_VALUE_BAZ);
     }
 
-    /** */
     @Test(expected = NullPointerException.class)
     public void tryToRemoveJsonFieldByNullName() {
         final JsonObject underTest = ImmutableJsonObject.of(KNOWN_FIELDS);
         underTest.remove((String) null);
     }
 
-    /** */
-    @Test(expected = IllegalArgumentException.class)
-    public void tryToRemoveJsonFieldByEmptyName() {
-        final JsonObject underTest = ImmutableJsonObject.of(KNOWN_FIELDS);
-        underTest.remove("");
-    }
-
-    /** */
     @Test
     public void removeNonExistingJsonFieldByNameReturnsSameJsonObject() {
         final JsonObject underTest = ImmutableJsonObject.of(KNOWN_FIELDS);
@@ -543,7 +529,6 @@ public final class ImmutableJsonObjectTest {
         assertThat(afterRemoval).isSameAs(underTest);
     }
 
-    /** */
     @Test
     public void removeNonExistingJsonFieldByKeyReturnsSameJsonObject() {
         final JsonObject underTest = ImmutableJsonObject.of(KNOWN_FIELDS);
@@ -552,7 +537,6 @@ public final class ImmutableJsonObjectTest {
         assertThat(afterRemoval).isSameAs(underTest);
     }
 
-    /** */
     @Test
     public void removingExistingJsonFieldByNameReturnsDisjunctJsonObject() {
         final String nameToRemove = KNOWN_KEY_BAR.toString();
@@ -572,7 +556,6 @@ public final class ImmutableJsonObjectTest {
                 + " JSON object has no influence on the JSON object which was created after first removal.");
     }
 
-    /** */
     @Test
     public void removingSubAttributesWorksAsExpected() {
         final Map<String, JsonField> jsonFields = new LinkedHashMap<>();
@@ -596,34 +579,26 @@ public final class ImmutableJsonObjectTest {
         assertThat(afterRemoval).containsExactlyElementsOf(jsonFields.values());
     }
 
-    /** */
     @Test(expected = NullPointerException.class)
     public void tryToRemoveJsonFieldByNullKey() {
         final JsonObject underTest = ImmutableJsonObject.of(KNOWN_FIELDS);
         underTest.remove((JsonKey) null);
     }
 
-    /** */
     @Test(expected = NullPointerException.class)
     public void tryToRemoveWithNullJsonPointer() {
         final JsonObject underTest = ImmutableJsonObject.empty();
         underTest.remove((JsonPointer) null);
     }
 
-    /** */
     @Test
-    public void tryToRemoveWithEmptyJsonPointer() {
-        final JsonPointer jsonPointer = newPointer("foo");
-        final JsonPointer emptyJsonPointer = jsonPointer.nextLevel();
-
-        assertThat((Iterable) emptyJsonPointer).isEmpty();
-
+    public void removeEmptyJsonPointerReturnsSameInstance() {
         final JsonObject underTest = ImmutableJsonObject.empty();
-        final JsonObject returned = underTest.remove(emptyJsonPointer);
-        assertThat(returned).isEqualTo(underTest);
+        final JsonObject returned = underTest.remove(JsonFactory.emptyPointer());
+
+        assertThat(returned).isSameAs(underTest);
     }
 
-    /** */
     @Test
     public void removeExistingValueByPointerReturnsExpected() {
       /*
@@ -663,7 +638,6 @@ public final class ImmutableJsonObjectTest {
         assertThat(actual).isEqualTo(expected);
     }
 
-    /** */
     @Test
     public void getKeysReturnsExpected() {
         final JsonObject underTest = ImmutableJsonObject.of(KNOWN_FIELDS);
@@ -673,7 +647,6 @@ public final class ImmutableJsonObjectTest {
         assertThat(actualKeys).containsOnly(expectedKeys);
     }
 
-    /** */
     @Test
     public void setExistingFieldWithJsonPointerWorksAsExpected() {
       /*
@@ -713,7 +686,6 @@ public final class ImmutableJsonObjectTest {
         assertThat(actual).isEqualTo(expected);
     }
 
-    /** */
     @Test
     public void setAttributeByPointerToExistingJsonObject() {
       /*
@@ -793,7 +765,6 @@ public final class ImmutableJsonObjectTest {
         assertThat(jsonValueOptional).contains(expectedFoo);
     }
 
-    /** */
     @Test
     public void setNonExistingFieldWithJsonPointerWorksAsExpected() {
       /*
@@ -840,7 +811,6 @@ public final class ImmutableJsonObjectTest {
         assertThat(actual).isEqualTo(expected);
     }
 
-    /** */
     @Test
     public void setValueThroughPointerOnEmptyJsonObject() {
         final JsonObject underTest = ImmutableJsonObject.empty();
@@ -873,7 +843,6 @@ public final class ImmutableJsonObjectTest {
         assertThat(actual).isEqualTo(expected);
     }
 
-    /** */
     @Test
     public void setValueThroughPointerOnNonEmptyJsonObject() {
         final JsonValue jsonValue = JsonFactory.readFrom("{\"thingId\":\"the_thing\"}");
@@ -890,7 +859,6 @@ public final class ImmutableJsonObjectTest {
         assertThat(actual).isEqualTo(expected);
     }
 
-    /** */
     @Test
     public void iteratorWorksAsExpected() {
         final JsonObject jsonObject = ImmutableJsonObject.of(KNOWN_FIELDS);
@@ -910,7 +878,6 @@ public final class ImmutableJsonObjectTest {
         assertThat(actualSize).isEqualTo(expectedJsonFields.size());
     }
 
-    /** */
     @Test(expected = UnsupportedOperationException.class)
     public void iteratorDoesNotAllowChangingTheJsonObject() {
         final JsonObject jsonObject = ImmutableJsonObject.of(KNOWN_FIELDS);
@@ -923,29 +890,25 @@ public final class ImmutableJsonObjectTest {
         }
     }
 
-    /** */
     @Test(expected = NullPointerException.class)
     public void tryToCallContainsWithNullJsonPointer() {
         final JsonObject underTest = ImmutableJsonObject.empty();
         underTest.contains((JsonPointer) null);
     }
 
-    /** */
     @Test
-    public void tryToCallContainsWithEmptyJsonPointer() {
-        final JsonPointer jsonPointer = newPointer("foo");
-        final JsonPointer emptyJsonPointer = jsonPointer.nextLevel();
+    public void containsWithEmptyJsonPointerReturnsExpected() {
+        final JsonPointer emptyPointer = JsonFactory.emptyPointer();
+        ImmutableJsonObject underTest = ImmutableJsonObject.empty();
 
-        assertThat((Iterable) emptyJsonPointer).isEmpty();
+        assertThat(underTest.contains(emptyPointer)).isFalse();
 
-        final JsonObject underTest = ImmutableJsonObject.empty();
-        assertThat(underTest.contains(emptyJsonPointer)).isFalse();
+        final JsonKey key = JsonFactory.newKey("/");
+        underTest = ImmutableJsonObject.of(toMap(key, KNOWN_VALUE_BAR));
 
-        final JsonObject underTest2 = JsonFactory.newObjectBuilder().set("/", true).build();
-        assertThat(underTest2.contains(emptyJsonPointer)).isTrue();
+        assertThat(underTest.contains(emptyPointer)).isFalse();
     }
 
-    /** */
     @Test
     public void containsJsonPointerReturnsExpected() {
       /*
@@ -964,109 +927,94 @@ public final class ImmutableJsonObjectTest {
        * }
        */
 
-        final JsonObject barJsonObject = JsonFactory.newObjectBuilder().set("baz", KNOWN_INT_23).set("oogle", "boogle").build();
+        final Map<String, JsonField> barValues = toMap(KNOWN_KEY_BAZ, KNOWN_INT_23);
+        barValues.put("oogle", JsonFactory.newField(JsonFactory.newKey("oogle"), JsonFactory.newValue("boogle")));
+        final ImmutableJsonObject barJsonObject = ImmutableJsonObject.of(barValues);
+
+        final Map<String, JsonField> fooValues = toMap(KNOWN_KEY_BAR, barJsonObject);
         final int intValue10 = 10;
-        final JsonObject fooJsonObject = JsonFactory.newObjectBuilder().set("bar", barJsonObject).set("yo", intValue10).build();
-        final JsonObject underTest =
-                JsonFactory.newObjectBuilder().set("thingId", "0x1337").set("foo", fooJsonObject).set("isOn", false).build();
-        final JsonPointer jsonPointer = newPointer("foo/bar/baz");
+        fooValues.put("yo", JsonFactory.newField(JsonFactory.newKey("yo"), JsonFactory.newValue(intValue10)));
+        final JsonObject fooJsonObject = ImmutableJsonObject.of(fooValues);
+
+        final Map<String, JsonField> values = toMap("thingId", JsonFactory.newValue("0x1337"));
+        values.put(KNOWN_KEY_FOO.toString(), JsonFactory.newField(KNOWN_KEY_FOO, fooJsonObject));
+        values.put("isOn", JsonFactory.newField(JsonFactory.newKey("isOn"), JsonFactory.newValue(false)));
+
+        final JsonObject underTest = ImmutableJsonObject.of(values);
+
+        final CharSequence jsonPointer = JsonFactory.newPointer(KNOWN_KEY_FOO, KNOWN_KEY_BAR, KNOWN_KEY_BAZ);
 
         assertThat(underTest.contains(jsonPointer)).isTrue();
     }
 
-    /** */
     @Test(expected = NullPointerException.class)
     public void tryToGetJsonObjectWithNullJsonPointer() {
         final JsonObject underTest = ImmutableJsonObject.empty();
         underTest.get((JsonPointer) null);
     }
 
-    /** */
     @Test
     public void tryToGetJsonObjectWithEmptyJsonPointer() {
-        final JsonPointer jsonPointer = newPointer("foo");
-        final JsonPointer emptyJsonPointer = jsonPointer.nextLevel();
+        final JsonObject underTest = ImmutableJsonObject.of(toMap(KNOWN_KEY_FOO, JsonFactory.newValue(KNOWN_INT_42)));
 
-        assertThat((Iterable) emptyJsonPointer).isEmpty();
+        final JsonObject resultForEmptyPointer = underTest.get(JsonFactory.emptyPointer());
 
-        final JsonObject underTest = ImmutableJsonObject.empty();
-        final JsonObject returned = underTest.get(emptyJsonPointer);
-        assertThat(returned).isEqualTo(underTest);
-
-        final JsonObject underTest2 = JsonFactory.newObjectBuilder().set("/", "foo").build();
-        final JsonObject returned2 = underTest2.get(JsonPointer.empty());
-        assertThat(returned2).isEqualTo(underTest2);
+        assertThat(resultForEmptyPointer).isSameAs(underTest);
     }
 
-    /** */
     @Test
-    public void getJsonPointerReturnsExpected() {
-        JsonObject underTest = ImmutableJsonObject.empty();
-        underTest = underTest.setValue("thingId", "myThing");
+    public void getWithJsonPointerReturnsExpected() {
+        final ImmutableJsonObject someAttr = ImmutableJsonObject.of(toMap("subsel", JsonFactory.newValue
+                (KNOWN_INT_42)));
 
-        final JsonObject someAttr = JsonFactory.newObject().setValue("subsel", KNOWN_INT_42);
+        final JsonObject expected = JsonFactory.newObjectBuilder()
+                .set("attributes", JsonFactory.newObjectBuilder()
+                        .set("someAttr", someAttr)
+                        .build())
+                .build();
 
-        final JsonObjectBuilder attributesJsonObjectBuilder = JsonFactory.newObjectBuilder();
-        attributesJsonObjectBuilder.set("someAttr", someAttr);
-        attributesJsonObjectBuilder.set("anotherAttr", KNOWN_VALUE_BAR);
-        underTest = underTest.setValue("attributes", attributesJsonObjectBuilder.build());
+        final JsonObject underTest = ImmutableJsonObject.of(toMap("thingId", JsonFactory.newValue("myThing")))
+                .setValue("attributes", JsonFactory.newObjectBuilder()
+                        .set("someAttr", someAttr)
+                        .set("anotherAttr", KNOWN_VALUE_BAR)
+                        .build());
 
         final JsonPointer jsonPointer = newPointer("attributes/someAttr/subsel");
         final JsonObject actual = underTest.get(jsonPointer);
 
-        final JsonObjectBuilder expectedAttributesJsonObjectBuilder = JsonFactory.newObjectBuilder();
-        expectedAttributesJsonObjectBuilder.set("someAttr", someAttr);
-
-        final JsonObjectBuilder expectedJsonObjectBuilder = JsonFactory.newObjectBuilder();
-        expectedJsonObjectBuilder.set("attributes", expectedAttributesJsonObjectBuilder.build());
-
-        assertThat(actual).isEqualTo(expectedJsonObjectBuilder.build());
+        assertThat(actual).isEqualTo(expected);
     }
 
-    /** */
     @Test
     public void getEmptyJsonObjectIfJsonPointerPointsAtNonExistingValue() {
-        final JsonObjectBuilder subNestedJsonObjectBuilder = JsonFactory.newObjectBuilder();
-        subNestedJsonObjectBuilder.set("key", "value");
-
-        final JsonObjectBuilder nestedJsonObjectBuilder = JsonFactory.newObjectBuilder();
-        nestedJsonObjectBuilder.set("subNested", subNestedJsonObjectBuilder.build());
-
-        JsonObject underTest = ImmutableJsonObject.of(KNOWN_FIELDS);
-        underTest = underTest.setValue("nested", nestedJsonObjectBuilder.build());
-
-        final JsonPointer jsonPointer = newPointer("nested/bla/blub");
-        final JsonObject actual = underTest.get(jsonPointer);
+        final JsonPointer jsonPointer = JsonFactory.newPointer("/nested/bla/blub");
         final JsonObject expected = ImmutableJsonObject.empty();
+
+        final JsonObject underTest = ImmutableJsonObject.of(KNOWN_FIELDS)
+                .setValue("nested", ImmutableJsonObject.empty()
+                        .setValue("subnested", ImmutableJsonObject.empty()
+                                .setValue("key", "value")));
+
+        final JsonObject actual = underTest.get(jsonPointer);
 
         assertThat(actual).isEqualTo(expected);
     }
 
-    /** */
     @Test(expected = NullPointerException.class)
     public void tryToGetValueForNullJsonPointer() {
         final JsonObject underTest = ImmutableJsonObject.empty();
         underTest.getValue((JsonPointer) null);
     }
 
-    /** */
     @Test
-    public void tryToGetValueForEmptyJsonPointer() {
-        final JsonPointer jsonPointer = newPointer("foo");
-        final JsonPointer emptyJsonPointer = jsonPointer.nextLevel();
+    public void getValueForEmptyJsonPointerReturnsEmptyOptional() {
+        final JsonObject underTest = ImmutableJsonObject.of(toMap(KNOWN_KEY_FOO, KNOWN_INT_23));
 
-        assertThat((Iterable) emptyJsonPointer).isEmpty();
+        final Optional<JsonValue> value = underTest.getValue(JsonFactory.emptyPointer());
 
-        final JsonObject underTest = ImmutableJsonObject.empty();
-        final Optional<JsonValue> returned = underTest.getValue(emptyJsonPointer);
-        assertThat(returned).isEmpty();
-
-        final JsonObject underTest2 = JsonFactory.newObjectBuilder().set(JsonPointer.empty(), "bumlux").build();
-        final Optional<JsonValue> returned2 = underTest2.getValue("/");
-        assertThat(returned2).contains(JsonValue.newInstance("bumlux"));
+        assertThat(value).isEmpty();
     }
 
-    /** */
     @Test
     public void getExistingValueForPointerReturnsExpected() {
       /*
@@ -1091,14 +1039,45 @@ public final class ImmutableJsonObjectTest {
         assertThat(actual).contains(expected);
     }
 
-    /** */
+    @Test
+    public void getFieldWithEmptyStringReturnsEmptyOptional() {
+        final ImmutableJsonObject underTest = ImmutableJsonObject.of(toMap(KNOWN_KEY_FOO, KNOWN_VALUE_FOO));
+
+        assertThat(underTest.getField("")).isEmpty();
+    }
+
+    @Test
+    public void getFieldWithSlashStringReturnsEmptyOptional() {
+        final ImmutableJsonObject underTest = ImmutableJsonObject.of(toMap(KNOWN_KEY_FOO, KNOWN_VALUE_FOO));
+
+        assertThat(underTest.getField("/")).isEmpty();
+    }
+
+    @Test
+    public void getFieldWithSlashJsonKeyReturnsExpected() {
+        final JsonKey jsonKey = JsonFactory.newKey("/");
+        final JsonValue jsonValue = KNOWN_VALUE_FOO;
+        final ImmutableJsonObject underTest = ImmutableJsonObject.of(toMap(jsonKey, jsonValue));
+
+        assertThat(underTest.getField(jsonKey)).contains(JsonFactory.newField(jsonKey, jsonValue));
+    }
+
+    @Test
+    public void getNestedFieldWithJsonPointerReturnsExpected() {
+        final JsonKey jsonKey = KNOWN_KEY_BAR;
+        final JsonValue jsonValue = KNOWN_VALUE_BAR;
+        final ImmutableJsonObject barJsonObject = ImmutableJsonObject.of(toMap(jsonKey, jsonValue));
+        final ImmutableJsonObject underTest = ImmutableJsonObject.of(toMap(KNOWN_KEY_FOO, barJsonObject));
+
+        assertThat(underTest.getField("/foo/bar")).contains(JsonFactory.newField(jsonKey, jsonValue));
+    }
+
     @Test(expected = NullPointerException.class)
     public void tryToGetJsonObjectWithNullJsonFieldSelector() {
         final JsonObject underTest = ImmutableJsonObject.empty();
         underTest.get((JsonFieldSelector) null);
     }
 
-    /** */
     @Test
     public void getWithEmptyJsonFieldSelectorReturnsEmptyJsonObject() {
         final JsonObject underTest = ImmutableJsonObject.of(KNOWN_FIELDS);
@@ -1108,7 +1087,6 @@ public final class ImmutableJsonObjectTest {
         assertThat(actual).isEmpty();
     }
 
-    /** */
     @Test
     public void getWithJsonFieldSelectorReturnsExpected() {
       /*
@@ -1160,7 +1138,6 @@ public final class ImmutableJsonObjectTest {
         assertThat(actual).isEqualTo(expected);
     }
 
-    /** */
     @Test
     public void getWithEmptyFieldSelectorReturnsEmptyObject() {
         final JsonObject underTest = ImmutableJsonObject.of(KNOWN_FIELDS);
@@ -1170,7 +1147,6 @@ public final class ImmutableJsonObjectTest {
         assertThat(underTest.get(fieldSelector)).isEmpty();
     }
 
-    /** */
     @Test
     public void getWithFieldSelectorOnEmptyObjectReturnsEmptyObject() {
         final JsonObject empty = ImmutableJsonObject.empty();
@@ -1180,7 +1156,6 @@ public final class ImmutableJsonObjectTest {
         assertThat(empty.get(fieldSelector)).isSameAs(empty);
     }
 
-    /** */
     @Test
     public void toStringReturnsExpected() {
         final JsonObject underTest = ImmutableJsonObject.of(KNOWN_FIELDS);
@@ -1188,7 +1163,6 @@ public final class ImmutableJsonObjectTest {
         assertThat(underTest.toString()).isEqualTo(KNOWN_JSON_STRING);
     }
 
-    /** */
     @Test
     public void createJsonObjectFromStringWhereFieldValueIsStringNull() {
         final StringBuilder stringBuilder = new StringBuilder();
@@ -1205,7 +1179,6 @@ public final class ImmutableJsonObjectTest {
         assertThat(owner).isEmpty();
     }
 
-    /** */
     @Test
     public void setFieldAppendsFieldIfNoPreviousFieldWithSameKeyExists() {
         final JsonField newField = JsonFactory.newField(JsonFactory.newKey("myKey"), JsonFactory.newValue("myValue"));
@@ -1216,7 +1189,6 @@ public final class ImmutableJsonObjectTest {
         assertThat(underTest).contains(newField);
     }
 
-    /** */
     @Test
     public void setFieldReplacesExistingFieldWithSameKey() {
         final JsonField changedField = JsonFactory.newField(KNOWN_KEY_BAR, JsonFactory.newValue("myValue"));
@@ -1227,7 +1199,6 @@ public final class ImmutableJsonObjectTest {
         assertThat(underTest).contains(changedField);
     }
 
-    /** */
     @Test
     public void setValueViaFieldDefinitionOnEmptyObject() {
         final JsonPointer pointer = JsonFactory.newPointer("foo/bar/baz");
@@ -1240,7 +1211,6 @@ public final class ImmutableJsonObjectTest {
         assertThat(withValue).contains(fieldDefinition, value);
     }
 
-    /** */
     @Test
     public void setValueViaFieldDefinitionOnNonEmptyObject() {
         // ARRANGE
@@ -1268,6 +1238,40 @@ public final class ImmutableJsonObjectTest {
 
         // ASSERT
         assertThat(withValue).isEqualTo(expectedJsonObject);
+    }
+
+    @Test
+    public void jsonObjectIsOfTypeJsonObject() {
+        final ImmutableJsonObject underTest = ImmutableJsonObject.empty();
+
+        assertThat(underTest.isRepresentationOfJavaType(JsonObject.class)).isTrue();
+    }
+
+    @Test
+    public void jsonObjectIsRepresentationOfJsonValue() {
+        final ImmutableJsonObject underTest = ImmutableJsonObject.empty();
+
+        assertThat(underTest.isRepresentationOfJavaType(JsonValue.class)).isTrue();
+    }
+
+    @Test
+    public void jsonObjectIsRepresentationOfJsonObject() {
+        final ImmutableJsonObject underTest = ImmutableJsonObject.empty();
+
+        assertThat(underTest.isRepresentationOfJavaType(JsonObject.class)).isTrue();
+    }
+
+    @Test
+    public void jsonObjectIsNotRepresentationOfBoolean() {
+        final ImmutableJsonObject underTest = ImmutableJsonObject.empty();
+
+        assertThat(underTest.isRepresentationOfJavaType(boolean.class)).isFalse();
+    }
+
+    private static Map<String, JsonField> toMap(final CharSequence key, final JsonValue value) {
+        final Map<String, JsonField> result = new HashMap<>();
+        result.put(key.toString(), JsonFactory.newField(JsonFactory.newKey(key), value));
+        return result;
     }
 
 }

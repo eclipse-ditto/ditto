@@ -455,8 +455,7 @@ final class ImmutablePolicy implements Policy {
         jsonObjectBuilder.set(JsonFields.ENTRIES, stream()
                 .map(policyEntry -> JsonFactory.newObjectBuilder()
                         .set(policyEntry.getLabel().getJsonFieldDefinition(),
-                                policyEntry.toJson(schemaVersion, thePredicate.and(
-                                        FieldType.notHidden())),
+                                policyEntry.toJson(schemaVersion, thePredicate.and(FieldType.notHidden())),
                                 predicate) // notice: only "not HIDDEN" sub-fields of PolicyEntry are included
                         .build())
                 .collect(JsonCollectors.objectsToObject()), predicate);

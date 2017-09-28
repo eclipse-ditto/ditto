@@ -44,7 +44,6 @@ public final class BaseCacheEntryTest {
 
     private BaseCacheEntry underTest;
 
-    /** */
     @BeforeClass
     public static void createJsonRepresentation() {
         fullJsonRepresentation = JsonFactory.newObjectBuilder()
@@ -55,13 +54,11 @@ public final class BaseCacheEntryTest {
                 .build();
     }
 
-    /** */
     @Before
     public void setUp() {
         underTest = BaseCacheEntry.newInstance(POLICY_ID, REVISION, DELETED, JSON_SCHEMA_VERSION);
     }
 
-    /** */
     @Test
     public void assertImmutability() {
         assertInstancesOf(BaseCacheEntry.class,
@@ -69,7 +66,6 @@ public final class BaseCacheEntryTest {
                 provided(JsonSchemaVersion.class).isAlsoImmutable());
     }
 
-    /** */
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(BaseCacheEntry.class)
@@ -77,7 +73,6 @@ public final class BaseCacheEntryTest {
                 .verify();
     }
 
-    /** */
     @Test
     public void toJsonWithAllPropertiesReturnsExpected() {
         final JsonObject actualJsonObject = underTest.toJson();
@@ -85,7 +80,6 @@ public final class BaseCacheEntryTest {
         assertThat(actualJsonObject).isEqualTo(fullJsonRepresentation);
     }
 
-    /** */
     @Test
     public void toJsonWithoutPolicyIdReturnsExpected() {
         final JsonObject expectedJsonObject =
@@ -97,7 +91,6 @@ public final class BaseCacheEntryTest {
         assertThat(actualJsonObject).isEqualTo(expectedJsonObject);
     }
 
-    /** */
     @Test
     public void toJsonWithoutJsonSchemaVersionReturnsExpected() {
         final JsonObject expectedJsonObject =
@@ -109,7 +102,6 @@ public final class BaseCacheEntryTest {
         assertThat(actualJsonObject).isEqualTo(expectedJsonObject);
     }
 
-    /** */
     @Test
     public void getPolicyIdReturnsExpected() {
         final Optional<String> policyIdOptional = underTest.getPolicyId();
@@ -117,7 +109,6 @@ public final class BaseCacheEntryTest {
         assertThat(policyIdOptional).contains(POLICY_ID);
     }
 
-    /** */
     @Test
     public void getRevisionReturnsExpected() {
         final long revision = underTest.getRevision();
@@ -125,7 +116,6 @@ public final class BaseCacheEntryTest {
         assertThat(revision).isEqualTo(REVISION);
     }
 
-    /** */
     @Test
     public void isDeletedReturnsExpected() {
         final boolean deleted = underTest.isDeleted();
@@ -133,7 +123,6 @@ public final class BaseCacheEntryTest {
         assertThat(deleted).isEqualTo(DELETED);
     }
 
-    /** */
     @Test
     public void getJsonSchemaVersionReturnsExpected() {
         final Optional<JsonSchemaVersion> jsonSchemaVersionOptional = underTest.getJsonSchemaVersion();
@@ -141,7 +130,6 @@ public final class BaseCacheEntryTest {
         assertThat(jsonSchemaVersionOptional).contains(JSON_SCHEMA_VERSION);
     }
 
-    /** */
     @Test
     public void getInstanceFromFullJsonReturnsExpected() {
         final BaseCacheEntry expected = underTest;
@@ -151,7 +139,6 @@ public final class BaseCacheEntryTest {
         assertThat(underTest).isEqualTo(expected);
     }
 
-    /** */
     @Test
     public void getInstanceFromJsonWithoutPolicyIdReturnsExpected() {
         final BaseCacheEntry expected = BaseCacheEntry.newInstance(null, REVISION, DELETED, JSON_SCHEMA_VERSION);
@@ -163,7 +150,6 @@ public final class BaseCacheEntryTest {
         assertThat(underTest).isEqualTo(expected);
     }
 
-    /** */
     @Test
     public void getInstanceFromJsonWithoutJsonSchemaVersionReturnsExpected() {
         final BaseCacheEntry expected = BaseCacheEntry.newInstance(POLICY_ID, REVISION, DELETED, null);
@@ -175,7 +161,6 @@ public final class BaseCacheEntryTest {
         assertThat(underTest).isEqualTo(expected);
     }
 
-    /** */
     @Test
     public void tryToGetInstanceFromJsonWithoutRevision() {
         final JsonPointer revisionPointer = BaseCacheEntry.JsonFields.REVISION.getPointer();
@@ -183,11 +168,10 @@ public final class BaseCacheEntryTest {
 
         assertThatExceptionOfType(JsonMissingFieldException.class)
                 .isThrownBy(() -> BaseCacheEntry.fromJson(jsonWithoutRevision))
-                .withMessage("JSON did not include required '%s' field.", revisionPointer)
+                .withMessage("JSON did not include required <%s> field!", revisionPointer)
                 .withNoCause();
     }
 
-    /** */
     @Test
     public void tryToCreateInstanceFromJsonWithoutDeleted() {
         final JsonPointer deletedPointer = BaseCacheEntry.JsonFields.DELETED.getPointer();
@@ -195,11 +179,10 @@ public final class BaseCacheEntryTest {
 
         assertThatExceptionOfType(JsonMissingFieldException.class)
                 .isThrownBy(() -> BaseCacheEntry.fromJson(jsonWithoutDeleted))
-                .withMessage("JSON did not include required '%s' field.", deletedPointer)
+                .withMessage("JSON did not include required <%s> field!", deletedPointer)
                 .withNoCause();
     }
 
-    /** */
     @Test
     public void asDeletedReturnsExpected() {
         final long newRevision = REVISION + 1;

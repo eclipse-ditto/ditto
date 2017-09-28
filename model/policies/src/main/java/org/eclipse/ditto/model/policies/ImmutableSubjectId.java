@@ -66,6 +66,10 @@ final class ImmutableSubjectId implements SubjectId {
         argumentNotEmpty(subjectIssuerWithId, "subjectIssuerWithId");
 
         final String subjectIdAsString = subjectIssuerWithId.toString();
+        if (!subjectIdAsString.contains(ISSUER_DELIMITER)) {
+            throw SubjectIdInvalidException.newBuilder(subjectIssuerWithId).build();
+        }
+
         final int lastDelimiter = subjectIdAsString.indexOf(ISSUER_DELIMITER,
                 subjectIdAsString.indexOf(IGNORED_DELIMITER) + IGNORED_DELIMITER.length());
         final SubjectIssuer issuer =

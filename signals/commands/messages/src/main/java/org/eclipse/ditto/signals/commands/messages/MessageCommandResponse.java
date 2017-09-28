@@ -70,13 +70,13 @@ public interface MessageCommandResponse<T, C extends MessageCommandResponse>
         final Message<?> message = getMessage();
         final String box = message.getDirection() == MessageDirection.TO ? MessageCommand.INBOX_PREFIX : MessageCommand.OUTBOX_PREFIX;
         final JsonPointer pathSuffix = JsonPointer.empty()
-                .addLeaf(JsonKey.newInstance(box))
-                .addLeaf(JsonKey.newInstance(MessageCommand.MESSAGES_PREFIX))
-                .addLeaf(JsonKey.newInstance(message.getSubject()));
+                .addLeaf(JsonKey.of(box))
+                .addLeaf(JsonKey.of(MessageCommand.MESSAGES_PREFIX))
+                .addLeaf(JsonKey.of(message.getSubject()));
 
         final JsonPointer path = message.getFeatureId().map(fId -> JsonPointer.empty()
-                .addLeaf(JsonKey.newInstance(MessageCommand.FEATURES_PREFIX))
-                .addLeaf(JsonKey.newInstance(fId)))
+                .addLeaf(JsonKey.of(MessageCommand.FEATURES_PREFIX))
+                .addLeaf(JsonKey.of(fId)))
                 .orElse(JsonPointer.empty());
         return path.append(pathSuffix);
     }

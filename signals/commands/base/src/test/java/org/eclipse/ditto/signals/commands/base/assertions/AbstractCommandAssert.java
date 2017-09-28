@@ -15,6 +15,7 @@ import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.assertions.AbstractJsonifiableAssert;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.signals.base.assertions.WithDittoHeadersChecker;
 import org.eclipse.ditto.signals.commands.base.Command;
 
 /**
@@ -22,6 +23,8 @@ import org.eclipse.ditto.signals.commands.base.Command;
  */
 public abstract class AbstractCommandAssert<S extends AbstractCommandAssert<S, C>, C extends Command>
         extends AbstractJsonifiableAssert<S, C> {
+
+    private final WithDittoHeadersChecker withDittoHeadersChecker;
 
     /**
      * Constructs a new {@code AbstractCommandAssert} object.
@@ -31,10 +34,23 @@ public abstract class AbstractCommandAssert<S extends AbstractCommandAssert<S, C
      */
     protected AbstractCommandAssert(final C actual, final Class<? extends AbstractCommandAssert> selfType) {
         super(actual, selfType);
+        withDittoHeadersChecker = new WithDittoHeadersChecker(actual);
     }
 
     public S withType(final CharSequence expectedType) {
         return assertThatEquals(actual.getType(), String.valueOf(expectedType), "type");
+    }
+
+    public S hasDittoHeaders(final DittoHeaders expectedDittoHeaders) {
+        isNotNull();
+        withDittoHeadersChecker.hasDittoHeaders(expectedDittoHeaders);
+        return myself;
+    }
+
+    public S hasCorrelationId(final CharSequence expectedCorrelationId) {
+        isNotNull();
+        withDittoHeadersChecker.hasCorrelationId(expectedCorrelationId);
+        return myself;
     }
 
     public S withDittoHeaders(final DittoHeaders expectedDittoHeaders) {

@@ -242,7 +242,7 @@ public final class ThingEventAdapterTest {
                 .events() //
                 .modified() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/acl");
+        final JsonPointer path = JsonPointer.of("/acl");
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -265,7 +265,7 @@ public final class ThingEventAdapterTest {
                 .events() //
                 .modified() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/acl");
+        final JsonPointer path = JsonPointer.of("/acl");
 
         final Adaptable expected = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -295,7 +295,7 @@ public final class ThingEventAdapterTest {
                 .events() //
                 .created() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/acl/" + TestConstants.AUTHORIZATION_SUBJECT.getId());
+        final JsonPointer path = JsonPointer.of("/acl/" + TestConstants.AUTHORIZATION_SUBJECT.getId());
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -318,7 +318,7 @@ public final class ThingEventAdapterTest {
                 .events() //
                 .created() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/acl/" + TestConstants.AUTHORIZATION_SUBJECT.getId());
+        final JsonPointer path = JsonPointer.of("/acl/" + TestConstants.AUTHORIZATION_SUBJECT.getId());
 
         final Adaptable expected = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -347,7 +347,7 @@ public final class ThingEventAdapterTest {
                 .events() //
                 .modified() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/acl/" + TestConstants.AUTHORIZATION_SUBJECT.getId());
+        final JsonPointer path = JsonPointer.of("/acl/" + TestConstants.AUTHORIZATION_SUBJECT.getId());
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -370,7 +370,7 @@ public final class ThingEventAdapterTest {
                 .events() //
                 .modified() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/acl/" + TestConstants.AUTHORIZATION_SUBJECT.getId());
+        final JsonPointer path = JsonPointer.of("/acl/" + TestConstants.AUTHORIZATION_SUBJECT.getId());
 
         final Adaptable expected = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -399,7 +399,7 @@ public final class ThingEventAdapterTest {
                 .events() //
                 .deleted() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/acl/" + TestConstants.AUTHORIZATION_SUBJECT.getId());
+        final JsonPointer path = JsonPointer.of("/acl/" + TestConstants.AUTHORIZATION_SUBJECT.getId());
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -421,7 +421,7 @@ public final class ThingEventAdapterTest {
                 .events() //
                 .deleted() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/acl/" + TestConstants.AUTHORIZATION_SUBJECT.getId());
+        final JsonPointer path = JsonPointer.of("/acl/" + TestConstants.AUTHORIZATION_SUBJECT.getId());
 
         final Adaptable expected = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -449,7 +449,7 @@ public final class ThingEventAdapterTest {
                 .events() //
                 .created() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/attributes");
+        final JsonPointer path = JsonPointer.of("/attributes");
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -472,7 +472,7 @@ public final class ThingEventAdapterTest {
                 .events() //
                 .created() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/attributes");
+        final JsonPointer path = JsonPointer.of("/attributes");
 
         final Adaptable expected = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -502,7 +502,7 @@ public final class ThingEventAdapterTest {
                 .events() //
                 .modified() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/attributes");
+        final JsonPointer path = JsonPointer.of("/attributes");
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -525,7 +525,7 @@ public final class ThingEventAdapterTest {
                 .events() //
                 .modified() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/attributes");
+        final JsonPointer path = JsonPointer.of("/attributes");
 
         final Adaptable expected = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -554,7 +554,7 @@ public final class ThingEventAdapterTest {
                 .events() //
                 .deleted() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/attributes");
+        final JsonPointer path = JsonPointer.of("/attributes");
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -576,7 +576,7 @@ public final class ThingEventAdapterTest {
                 .events() //
                 .deleted() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/attributes");
+        final JsonPointer path = JsonPointer.of("/attributes");
 
         final Adaptable expected = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -604,7 +604,7 @@ public final class ThingEventAdapterTest {
                 .events() //
                 .created() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/attributes" + TestConstants.ATTRIBUTE_POINTER);
+        final JsonPointer path = JsonPointer.of("/attributes" + TestConstants.ATTRIBUTE_POINTER);
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -627,7 +627,7 @@ public final class ThingEventAdapterTest {
                 .events() //
                 .created() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/attributes" + TestConstants.ATTRIBUTE_POINTER);
+        final JsonPointer path = JsonPointer.of("/attributes" + TestConstants.ATTRIBUTE_POINTER);
 
         final Adaptable expected = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -658,7 +658,7 @@ public final class ThingEventAdapterTest {
                 .events() //
                 .modified() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/attributes" + TestConstants.ATTRIBUTE_POINTER);
+        final JsonPointer path = JsonPointer.of("/attributes" + TestConstants.ATTRIBUTE_POINTER);
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -681,7 +681,7 @@ public final class ThingEventAdapterTest {
                 .events() //
                 .modified() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/attributes" + TestConstants.ATTRIBUTE_POINTER);
+        final JsonPointer path = JsonPointer.of("/attributes" + TestConstants.ATTRIBUTE_POINTER);
 
         final Adaptable expected = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -712,7 +712,7 @@ public final class ThingEventAdapterTest {
                 .events() //
                 .deleted() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/attributes" + TestConstants.ATTRIBUTE_POINTER);
+        final JsonPointer path = JsonPointer.of("/attributes" + TestConstants.ATTRIBUTE_POINTER);
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -734,7 +734,7 @@ public final class ThingEventAdapterTest {
                 .events() //
                 .deleted() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/attributes" + TestConstants.ATTRIBUTE_POINTER);
+        final JsonPointer path = JsonPointer.of("/attributes" + TestConstants.ATTRIBUTE_POINTER);
 
         final Adaptable expected = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -762,7 +762,7 @@ public final class ThingEventAdapterTest {
                 .events() //
                 .created() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/features");
+        final JsonPointer path = JsonPointer.of("/features");
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -785,7 +785,7 @@ public final class ThingEventAdapterTest {
                 .events() //
                 .created() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/features");
+        final JsonPointer path = JsonPointer.of("/features");
 
         final Adaptable expected = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -814,7 +814,7 @@ public final class ThingEventAdapterTest {
                 .events() //
                 .modified() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/features");
+        final JsonPointer path = JsonPointer.of("/features");
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -837,7 +837,7 @@ public final class ThingEventAdapterTest {
                 .events() //
                 .modified() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/features");
+        final JsonPointer path = JsonPointer.of("/features");
 
         final Adaptable expected = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -866,7 +866,7 @@ public final class ThingEventAdapterTest {
                 .events() //
                 .deleted() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/features");
+        final JsonPointer path = JsonPointer.of("/features");
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -888,7 +888,7 @@ public final class ThingEventAdapterTest {
                 .events() //
                 .deleted() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/features");
+        final JsonPointer path = JsonPointer.of("/features");
 
         final Adaptable expected = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -916,7 +916,7 @@ public final class ThingEventAdapterTest {
                 .events() //
                 .created() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/features/" + TestConstants.FEATURE_ID);
+        final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID);
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -939,7 +939,7 @@ public final class ThingEventAdapterTest {
                 .events() //
                 .created() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/features/" + TestConstants.FEATURE_ID);
+        final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID);
 
         final Adaptable expected = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -968,7 +968,7 @@ public final class ThingEventAdapterTest {
                 .events() //
                 .modified() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/features/" + TestConstants.FEATURE_ID);
+        final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID);
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -991,7 +991,7 @@ public final class ThingEventAdapterTest {
                 .events() //
                 .modified() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/features/" + TestConstants.FEATURE_ID);
+        final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID);
 
         final Adaptable expected = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -1020,7 +1020,7 @@ public final class ThingEventAdapterTest {
                 .events() //
                 .deleted() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/features/" + TestConstants.FEATURE_ID);
+        final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID);
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -1042,7 +1042,7 @@ public final class ThingEventAdapterTest {
                 .events() //
                 .deleted() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/features/" + TestConstants.FEATURE_ID);
+        final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID);
 
         final Adaptable expected = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -1072,7 +1072,7 @@ public final class ThingEventAdapterTest {
                 .events() //
                 .created() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/features/" + TestConstants.FEATURE_ID + "/properties");
+        final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID + "/properties");
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -1095,7 +1095,7 @@ public final class ThingEventAdapterTest {
                 .events() //
                 .created() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/features/" + TestConstants.FEATURE_ID + "/properties");
+        final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID + "/properties");
 
         final Adaptable expected = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -1127,7 +1127,7 @@ public final class ThingEventAdapterTest {
                 .events() //
                 .modified() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/features/" + TestConstants.FEATURE_ID + "/properties");
+        final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID + "/properties");
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -1150,7 +1150,7 @@ public final class ThingEventAdapterTest {
                 .events() //
                 .modified() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/features/" + TestConstants.FEATURE_ID + "/properties");
+        final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID + "/properties");
 
         final Adaptable expected = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -1180,7 +1180,7 @@ public final class ThingEventAdapterTest {
                 .events() //
                 .deleted() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/features/" + TestConstants.FEATURE_ID + "/properties");
+        final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID + "/properties");
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -1202,7 +1202,7 @@ public final class ThingEventAdapterTest {
                 .events() //
                 .deleted() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/features/" + TestConstants.FEATURE_ID + "/properties");
+        final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID + "/properties");
 
         final Adaptable expected = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -1232,7 +1232,7 @@ public final class ThingEventAdapterTest {
                 .created() //
                 .build();
         final JsonPointer path = JsonPointer
-                .newInstance("/features/" + TestConstants.FEATURE_ID + "/properties" +
+                .of("/features/" + TestConstants.FEATURE_ID + "/properties" +
                         TestConstants.FEATURE_PROPERTY_POINTER);
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath) //
@@ -1258,7 +1258,7 @@ public final class ThingEventAdapterTest {
                 .created() //
                 .build();
         final JsonPointer path = JsonPointer
-                .newInstance("/features/" + TestConstants.FEATURE_ID + "/properties" +
+                .of("/features/" + TestConstants.FEATURE_ID + "/properties" +
                         TestConstants.FEATURE_PROPERTY_POINTER);
 
         final Adaptable expected = Adaptable.newBuilder(topicPath) //
@@ -1292,7 +1292,7 @@ public final class ThingEventAdapterTest {
                 .modified() //
                 .build();
         final JsonPointer path = JsonPointer
-                .newInstance("/features/" + TestConstants.FEATURE_ID + "/properties" +
+                .of("/features/" + TestConstants.FEATURE_ID + "/properties" +
                         TestConstants.FEATURE_PROPERTY_POINTER);
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath) //
@@ -1317,7 +1317,7 @@ public final class ThingEventAdapterTest {
                 .modified() //
                 .build();
         final JsonPointer path = JsonPointer
-                .newInstance("/features/" + TestConstants.FEATURE_ID + "/properties" +
+                .of("/features/" + TestConstants.FEATURE_ID + "/properties" +
                         TestConstants.FEATURE_PROPERTY_POINTER);
 
         final Adaptable expected = Adaptable.newBuilder(topicPath) //
@@ -1351,7 +1351,7 @@ public final class ThingEventAdapterTest {
                 .deleted() //
                 .build();
         final JsonPointer path = JsonPointer
-                .newInstance("/features/" + TestConstants.FEATURE_ID + "/properties" +
+                .of("/features/" + TestConstants.FEATURE_ID + "/properties" +
                         TestConstants.FEATURE_PROPERTY_POINTER);
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath) //
@@ -1375,7 +1375,7 @@ public final class ThingEventAdapterTest {
                 .deleted() //
                 .build();
         final JsonPointer path = JsonPointer
-                .newInstance("/features/" + TestConstants.FEATURE_ID + "/properties" +
+                .of("/features/" + TestConstants.FEATURE_ID + "/properties" +
                         TestConstants.FEATURE_PROPERTY_POINTER);
 
         final Adaptable expected = Adaptable.newBuilder(topicPath) //
@@ -1406,11 +1406,11 @@ public final class ThingEventAdapterTest {
                 .events()
                 .created()
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/policyId");
+        final JsonPointer path = JsonPointer.of("/policyId");
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withValue(JsonValue.newInstance(TestConstants.THING_ID))
+                        .withValue(JsonValue.of(TestConstants.THING_ID))
                         .withRevision(TestConstants.REVISION)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
@@ -1432,11 +1432,11 @@ public final class ThingEventAdapterTest {
                 .events() //
                 .modified() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/policyId");
+        final JsonPointer path = JsonPointer.of("/policyId");
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
-                        .withValue(JsonValue.newInstance(TestConstants.THING_ID)) //
+                        .withValue(JsonValue.of(TestConstants.THING_ID)) //
                         .withRevision(TestConstants.REVISION) //
                         .build()) //
                 .withHeaders(TestConstants.HEADERS_V_2) //
@@ -1455,11 +1455,11 @@ public final class ThingEventAdapterTest {
                 .events() //
                 .modified() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/policyId");
+        final JsonPointer path = JsonPointer.of("/policyId");
 
         final Adaptable expected = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
-                        .withValue(JsonValue.newInstance(TestConstants.THING_ID)) //
+                        .withValue(JsonValue.of(TestConstants.THING_ID)) //
                         .withRevision(TestConstants.REVISION) //
                         .build()) //
                 .withHeaders(TestConstants.HEADERS_V_2) //
@@ -1514,7 +1514,7 @@ public final class ThingEventAdapterTest {
 
         @Override
         public JsonPointer getResourcePath() {
-            return JsonPointer.newInstance("/acl");
+            return JsonPointer.of("/acl");
         }
 
         @Override

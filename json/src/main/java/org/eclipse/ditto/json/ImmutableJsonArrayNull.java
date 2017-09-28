@@ -104,7 +104,7 @@ final class ImmutableJsonArrayNull extends AbstractImmutableJsonValue implements
 
     @Override
     public Stream<JsonValue> stream() {
-        return Collections.<JsonValue>emptyList().stream();
+        return Stream.empty();
     }
 
     @Override

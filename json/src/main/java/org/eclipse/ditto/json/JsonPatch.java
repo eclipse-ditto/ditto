@@ -11,9 +11,12 @@
  */
 package org.eclipse.ditto.json;
 
-import static org.eclipse.ditto.json.JsonFactory.newFieldDefinition;
-
+import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Stream;
+
+import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 
 /**
  * Defines a JSON Patch which can be used to specify modifications on JSON Objects. For example, the following
@@ -104,7 +107,7 @@ public interface JsonPatch {
 
         private final String name;
 
-        Operation(final String name) {
+        private Operation(final String name) {
             this.name = name;
         }
 
@@ -112,43 +115,47 @@ public interface JsonPatch {
          * Defines the reverse operation of #toString method to be able to convert a string representation of an
          * operation to its corresponding enumeration element.
          *
-         * @param name the operation name
-         * @return {@code Operation}
+         * @param name the operation name.
+         * @return the Operation.
          */
-        public static Operation fromString(final String name) {
-            return valueOf(name.toUpperCase());
+        public static Optional<Operation> fromString(@Nullable final String name) {
+            return Stream.of(values())
+                    .filter(operation -> Objects.equals(operation.name, name))
+                    .findAny();
         }
 
         @Override
         public String toString() {
             return name;
         }
+
     }
 
     /**
      * An enumeration of the known {@link JsonField}s of a Thing.
-     *
      */
+    @Immutable
     final class JsonFields {
 
         /**
-         * JSON field containing the JSON Patch's operation.
+         * JSON field containing the JSON Patch's operation as {@code String}.
          */
-        public static final JsonFieldDefinition OPERATION = newFieldDefinition("op", String.class);
+        public static final JsonFieldDefinition OPERATION = JsonFactory.newFieldDefinition("op", String.class);
 
         /**
-         * JSON field containing the JSON Patch's path.
+         * JSON field containing the JSON Patch's path as {@code String}.
          */
-        public static final JsonFieldDefinition PATH = newFieldDefinition("path", String.class);
+        public static final JsonFieldDefinition PATH = JsonFactory.newFieldDefinition("path", String.class);
 
         /**
-         * JSON field containing the JSON Patch's value.
+         * JSON field containing the JSON Patch's value as {@link JsonValue}.
          */
-        public static final JsonFieldDefinition VALUE = newFieldDefinition("value", JsonValue.class);
+        public static final JsonFieldDefinition VALUE = JsonFactory.newFieldDefinition("value", JsonValue.class);
 
         private JsonFields() {
             throw new AssertionError();
         }
+
     }
 
 }

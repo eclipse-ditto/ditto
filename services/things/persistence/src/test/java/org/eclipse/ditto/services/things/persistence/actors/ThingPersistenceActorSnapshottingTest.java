@@ -302,7 +302,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                 assertSnapshotsEmpty(thingId);
 
                 final Thing thingForModify = ThingsModelFactory.newThingBuilder(thing)
-                        .setAttribute(JsonFactory.newPointer("/foo"), JsonValue.newInstance("bar"))
+                        .setAttribute(JsonFactory.newPointer("/foo"), JsonValue.of("bar"))
                         .setRevision(2)
                         .build();
                 final ModifyThing modifyThing = ModifyThing.of(thingId, thingForModify, null, dittoHeadersMockV2);
@@ -371,7 +371,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                 assertSnapshots(thingId, Collections.singletonList(createdThing));
 
                 final Thing thingForModify1 = ThingsModelFactory.newThingBuilder(thing)
-                        .setAttribute(JsonFactory.newPointer("/foo"), JsonValue.newInstance("bar1"))
+                        .setAttribute(JsonFactory.newPointer("/foo"), JsonValue.of("bar1"))
                         .setRevision(2)
                         .build();
                 final ModifyThing modifyThing1 = ModifyThing.of(thingId, thingForModify1, null, dittoHeadersMockV2);
@@ -386,7 +386,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                 assertSnapshots(thingId, Collections.singletonList(createdThing));
 
                 final Thing thingForModify2 = ThingsModelFactory.newThingBuilder(thing).setAttribute(JsonFactory
-                        .newPointer("/foo"), JsonValue.newInstance("bar2")).setRevision(3).build();
+                        .newPointer("/foo"), JsonValue.of("bar2")).setRevision(3).build();
                 final ModifyThing modifyThing2 = ModifyThing.of(thingId, thingForModify2, null, dittoHeadersMockV2);
                 underTest.tell(modifyThing2, getRef());
 
@@ -434,7 +434,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                 assertSnapshots(thingId, Collections.singletonList(createdThing));
 
                 final Thing thingForModify1 = ThingsModelFactory.newThingBuilder(thing)
-                        .setAttribute(JsonFactory.newPointer("/foo"), JsonValue.newInstance("bar1"))
+                        .setAttribute(JsonFactory.newPointer("/foo"), JsonValue.of("bar1"))
                         .setRevision(2)
                         .build();
                 final ModifyThing modifyThing1 = ModifyThing.of(thingId, thingForModify1, null, dittoHeadersMockV2);
@@ -449,7 +449,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                 assertSnapshots(thingId, Collections.singletonList(createdThing));
 
                 final Thing thingForModify2 = ThingsModelFactory.newThingBuilder(thing).setAttribute(JsonFactory
-                        .newPointer("/foo"), JsonValue.newInstance("bar2")).setRevision(3).build();
+                        .newPointer("/foo"), JsonValue.of("bar2")).setRevision(3).build();
                 final ModifyThing modifyThing2 = ModifyThing.of(thingId, thingForModify2, null, dittoHeadersMockV2);
                 underTest.tell(modifyThing2, getRef());
 
@@ -507,7 +507,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                 assertSnapshots(thingId, Collections.singletonList(createdThing));
 
                 final Thing thingForModify = ThingsModelFactory.newThingBuilder(thing)
-                        .setAttribute(JsonFactory.newPointer("/foo"), JsonValue.newInstance("bar"))
+                        .setAttribute(JsonFactory.newPointer("/foo"), JsonValue.of("bar"))
                         .setRevision(2)
                         .build();
                 final ModifyThing modifyThing = ModifyThing.of(thingId, thingForModify, null, dittoHeadersMockV2);
@@ -559,7 +559,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                 assertSnapshotsEmpty(thingId);
 
                 final Thing thingForModify = ThingsModelFactory.newThingBuilder(thing)
-                        .setAttribute(JsonFactory.newPointer("/foo"), JsonValue.newInstance("bar"))
+                        .setAttribute(JsonFactory.newPointer("/foo"), JsonValue.of("bar"))
                         .setRevision(2)
                         .build();
                 final ModifyThing modifyThing = ModifyThing.of(thingId, thingForModify, null, dittoHeadersMockV2);
@@ -606,7 +606,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                 assertSnapshotsEmpty(thingId);
 
                 final Thing thingForModify = ThingsModelFactory.newThingBuilder(thing)
-                        .setAttribute(JsonFactory.newPointer("/foo"), JsonValue.newInstance("bar"))
+                        .setAttribute(JsonFactory.newPointer("/foo"), JsonValue.of("bar"))
                         .setRevision(2)
                         .build();
                 final ModifyThing modifyThing = ModifyThing.of(thingId, thingForModify, null, dittoHeadersMockV2);
@@ -622,7 +622,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                 assertSnapshots(thingId, Collections.singletonList(thingForModify));
 
                 final Thing thingForModify2 = ThingsModelFactory.newThingBuilder(thing)
-                        .setAttribute(JsonFactory.newPointer("/foo"), JsonValue.newInstance("bar2"))
+                        .setAttribute(JsonFactory.newPointer("/foo"), JsonValue.of("bar2"))
                         .setRevision(3)
                         .build();
 
@@ -667,7 +667,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                 assertSnapshotsEmpty(thingId);
 
                 final Thing thingForModify = ThingsModelFactory.newThingBuilder(thing)
-                        .setAttribute(JsonFactory.newPointer("/foo"), JsonValue.newInstance("bar"))
+                        .setAttribute(JsonFactory.newPointer("/foo"), JsonValue.of("bar"))
                         .setRevision(2)
                         .build();
                 final ModifyThing modifyThing = ModifyThing.of(thingId, thingForModify, null, dittoHeadersMockV2);
@@ -684,7 +684,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                 final long revision = takeSnapshotResponse.getSnapshotRevision();
 
                 final Thing thingForModify2 = ThingsModelFactory.newThingBuilder(thing)
-                        .setAttribute(JsonFactory.newPointer("/foo"), JsonValue.newInstance("bar2"))
+                        .setAttribute(JsonFactory.newPointer("/foo"), JsonValue.of("bar2"))
                         .setRevision(3)
                         .build();
 

@@ -73,7 +73,7 @@ public interface FeatureProperties extends JsonObject, Jsonifiable.WithFieldSele
     FeatureProperties setAll(Iterable<JsonField> jsonFields);
 
     @Override
-    FeatureProperties remove(CharSequence index);
+    FeatureProperties remove(CharSequence key);
 
     @Override
     default JsonObject toJson(final JsonSchemaVersion schemaVersion, final JsonFieldSelector fieldSelector) {

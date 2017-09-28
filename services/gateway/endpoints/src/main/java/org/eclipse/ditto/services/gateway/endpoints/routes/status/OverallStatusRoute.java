@@ -50,8 +50,8 @@ public final class OverallStatusRoute {
     public static final String PATH_CLUSTER = "cluster";
     public static final String PATH_OWN = "own";
 
-    private final ActorSystem actorSystem;
     private final Supplier<ClusterStatus> clusterStateSupplier;
+    private final StatusHealthHelper statusHealthHelper;
 
     private final StatusRoute ownStatusRoute;
 
@@ -60,11 +60,13 @@ public final class OverallStatusRoute {
      *
      * @param actorSystem the Actor System.
      * @param clusterStateSupplier the supplier to get the cluster state.
+     * @param healthCheckingActor the actor for checking the gateways own health.
+     * @param statusHealthHelper the helper for retrieving health status of the cluster.
      */
     public OverallStatusRoute(final ActorSystem actorSystem, final Supplier<ClusterStatus> clusterStateSupplier,
-            final ActorRef healthCheckingActor) {
-        this.actorSystem = actorSystem;
+            final ActorRef healthCheckingActor, final StatusHealthHelper statusHealthHelper) {
         this.clusterStateSupplier = clusterStateSupplier;
+        this.statusHealthHelper = statusHealthHelper;
 
         ownStatusRoute = new StatusRoute(clusterStateSupplier, healthCheckingActor, actorSystem);
     }
@@ -107,7 +109,7 @@ public final class OverallStatusRoute {
         overallStatusBuilder.setAll(Status.provideStaticStatus());
 
         // aggregate completion of all completable futures:
-        return StatusHealthHelper.retrieveOverallRolesStatus(actorSystem, clusterStateSupplier)
+        return statusHealthHelper.retrieveOverallRolesStatus()
                 .thenApply(statusObjects -> {
                     final JsonObjectBuilder rolesStatusBuilder = JsonFactory.newObjectBuilder();
                     statusObjects.forEach(subStatusObj -> subStatusObj.forEach(rolesStatusBuilder::set));
@@ -118,9 +120,9 @@ public final class OverallStatusRoute {
     }
 
     private CompletionStage<HttpResponse> createOverallHealthResponse() {
-        return StatusHealthHelper.calculateOverallHealthJson(actorSystem, clusterStateSupplier)
+        return statusHealthHelper.calculateOverallHealthJson()
                 .thenApply(overallHealth -> {
-                    if (StatusHealthHelper.checkIfAllSubStatusAreUp(overallHealth)) {
+                    if (statusHealthHelper.checkIfAllSubStatusAreUp(overallHealth)) {
                         return HttpResponse.create()
                                 .withStatus(StatusCodes.OK)
                                 .withEntity(ContentTypes.APPLICATION_JSON, overallHealth.toString());

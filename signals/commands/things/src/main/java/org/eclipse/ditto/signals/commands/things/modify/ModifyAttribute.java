@@ -163,7 +163,7 @@ public final class ModifyAttribute extends AbstractCommand<ModifyAttribute>
     @Override
     public JsonPointer getResourcePath() {
         final String path = "/attributes" + attributePointer;
-        return JsonPointer.newInstance(path);
+        return JsonPointer.of(path);
     }
 
     @Override

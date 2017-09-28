@@ -22,309 +22,169 @@ public interface JsonObjectBuilder extends Iterable<JsonField> {
     /**
      * Sets a new int value field to the JSON object to be built if the specified predicate evaluates to {@code true}.
      *
-     * @param key the key of the value to be set.
+     * @param key the JSON key or JSON pointer of the field to be set.
      * @param value the value to be set.
      * @param predicate the predicate which finally determines if the value is to be set.
      * @return this builder to allow method chaining.
-     * @throws NullPointerException if {@code key} or {@code predicate} is {@code null}.
-     * @throws IllegalArgumentException if {@code key} is empty.
+     * @throws NullPointerException if {@code keyOrPointer} or {@code predicate} is {@code null}.
+     * @throws IllegalArgumentException if {@code key} is empty or if {@code key} is an empty JsonPointer. Setting a
+     * value with slash as JsonKey object explicitly works.
      */
     JsonObjectBuilder set(CharSequence key, int value, Predicate<JsonField> predicate);
 
     /**
      * Sets a new int value field to the JSON object to be built.
      *
-     * @param key the key of the value to be set.
+     * @param key the JSON key or JSON pointer of the field to be set.
      * @param value the value to be set.
      * @return this builder to allow method chaining.
      * @throws NullPointerException if {@code key} is {@code null}.
-     * @throws IllegalArgumentException if {@code key} is empty.
+     * @throws IllegalArgumentException if {@code key} is empty or if {@code key} is an empty JsonPointer. Setting a
+     * value with slash as JsonKey object explicitly works.
      */
     default JsonObjectBuilder set(final CharSequence key, final int value) {
         return set(key, value, field -> true);
     }
 
-//    /**
-//     * Sets a new int value field to the JSON object to be built if the specified predicate evaluates to {@code true}.
-//     *
-//     * @param pointer the pointer to the field to be set.
-//     * @param value the value of the field to be set.
-//     * @param predicate the predicate which finally determines if the field is to be set.
-//     * @return this builder to allow method chaining.
-//     * @throws NullPointerException if {@code pointer} is {@code null}.
-//     * @throws IllegalArgumentException if {@code pointer} is empty.
-//     */
-//    JsonObjectBuilder set(JsonPointer pointer, int value, Predicate<JsonField> predicate);
-//
-//    /**
-//     * Sets a new int value field to the JSON object to be built.
-//     *
-//     * @param pointer the pointer to the field to be set.
-//     * @param value the value of the field to be set.
-//     * @return this builder to allow method chaining.
-//     * @throws NullPointerException if {@code pointer} is {@code null}.
-//     * @throws IllegalArgumentException if {@code pointer} is empty.
-//     */
-//    default JsonObjectBuilder set(final JsonPointer pointer, final int value) {
-//        return set(pointer, value, field -> true);
-//    }
-
     /**
      * Sets a new long value field to the JSON object to be built if the specified predicate evaluates to {@code true}.
      *
-     * @param key the name of the value to be set.
+     * @param key the JSON key or JSON pointer of the field to be set.
      * @param value the value to be set.
      * @param predicate the predicate which finally determines if the value is to be set.
      * @return this builder to allow method chaining.
      * @throws NullPointerException if {@code key} or {@code predicate} is {@code null}.
-     * @throws IllegalArgumentException if {@code key} is empty.
+     * @throws IllegalArgumentException if {@code key} is empty or if {@code key} is an empty JsonPointer. Setting a
+     * value with slash as JsonKey object explicitly works.
      */
     JsonObjectBuilder set(CharSequence key, long value, Predicate<JsonField> predicate);
 
     /**
      * Sets a new long value field to the JSON object to be built.
      *
-     * @param key the key of the value to be set.
+     * @param key the JSON key or JSON pointer of the field to be set.
      * @param value the value to be set.
      * @return this builder to allow method chaining.
      * @throws NullPointerException if {@code key} is {@code null}.
-     * @throws IllegalArgumentException if {@code key} is empty.
+     * @throws IllegalArgumentException if {@code key} is empty or if {@code key} is an empty JsonPointer. Setting a
+     * value with slash as JsonKey object explicitly works.
      */
     default JsonObjectBuilder set(final CharSequence key, final long value) {
         return set(key, value, field -> true);
     }
 
-//    /**
-//     * Sets a new long value field to the JSON object to be built if the specified predicate evaluates to {@code true}.
-//     *
-//     * @param pointer the pointer to the field to be set.
-//     * @param value the value of the field to be set.
-//     * @param predicate the predicate which finally determines if the field is to be set.
-//     * @return this builder to allow method chaining.
-//     * @throws NullPointerException if {@code pointer} is {@code null}.
-//     * @throws IllegalArgumentException if {@code pointer} is empty.
-//     */
-//    JsonObjectBuilder set(JsonPointer pointer, long value, Predicate<JsonField> predicate);
-//
-//    /**
-//     * Sets a new long value field to the JSON object to be built.
-//     *
-//     * @param pointer the pointer to the field to be set.
-//     * @param value the value of the field to be set.
-//     * @return this builder to allow method chaining.
-//     * @throws NullPointerException if {@code pointer} is {@code null}.
-//     * @throws IllegalArgumentException if {@code pointer} is empty.
-//     */
-//    default JsonObjectBuilder set(final JsonPointer pointer, final long value) {
-//        return set(pointer, value, field -> true);
-//    }
-
     /**
      * Sets a new double value field to the JSON object to be built if the specified predicate evaluates to
      * {@code true}.
      *
-     * @param key the key of the value to be set.
+     * @param key the JSON key or JSON pointer of the field to be set.
      * @param value the value to be set.
      * @param predicate the predicate which finally determines if the field is to be set.
      * @return this builder to allow method chaining.
-     * @throws NullPointerException if {@code key} is {@code null}.
-     * @throws IllegalArgumentException if {@code key} is empty.
+     * @throws NullPointerException if {@code key} or {@code predicate} is {@code null}.
+     * @throws IllegalArgumentException if {@code key} is empty or if {@code key} is an empty JsonPointer. Setting a
+     * value with slash as JsonKey object explicitly works.
      */
     JsonObjectBuilder set(CharSequence key, double value, Predicate<JsonField> predicate);
 
     /**
      * Sets a new double value field to the JSON object to be built.
      *
-     * @param key the key of the value to be set.
+     * @param key the JSON key or JSON pointer of the field to be set.
      * @param value the value to be set.
      * @return this builder to allow method chaining.
      * @throws NullPointerException if {@code key} is {@code null}.
-     * @throws IllegalArgumentException if {@code key} is empty.
+     * @throws IllegalArgumentException if {@code key} is empty or if {@code key} is an empty JsonPointer. Setting a
+     * value with slash as JsonKey object explicitly works.
      */
     default JsonObjectBuilder set(final CharSequence key, final double value) {
         return set(key, value, field -> true);
     }
 
-//    /**
-//     * Sets a new double value field to the JSON object to be built if the specified predicate evaluates to {@code
-//     * true}.
-//     *
-//     * @param pointer the pointer to the field to be set.
-//     * @param value the value of the field to be set.
-//     * @param predicate the predicate which finally determines if the field is to be set.
-//     * @return this builder to allow method chaining.
-//     * @throws NullPointerException if {@code pointer} is {@code null}.
-//     */
-//    JsonObjectBuilder set(JsonPointer pointer, double value, Predicate<JsonField> predicate);
-//
-//    /**
-//     * Sets a new double value field to the JSON object to be built.
-//     *
-//     * @param pointer the pointer to the field to be set.
-//     * @param value the value of the field to be set.
-//     * @return this builder to allow method chaining.
-//     * @throws NullPointerException if {@code pointer} is {@code null}.
-//     * @throws IllegalArgumentException if {@code pointer} is empty.
-//     */
-//    default JsonObjectBuilder set(final JsonPointer pointer, final double value) {
-//        return set(pointer, value, field -> true);
-//    }
-
     /**
      * Sets a new boolean value field to the JSON object to be built if the specified predicate evaluates to
      * {@code true}.
      *
-     * @param key the key of the value to be set.
+     * @param key the JSON key or JSON pointer of the field to be set.
      * @param value the value to be set.
      * @param predicate the predicate which finally determines if the value is to be set.
      * @return this builder to allow method chaining.
-     * @throws NullPointerException if {@code key} is {@code null}.
-     * @throws IllegalArgumentException if {@code key} is empty.
+     * @throws NullPointerException if {@code key} or {@code predicate} is {@code null}.
+     * @throws IllegalArgumentException if {@code key} is empty or if {@code key} is an empty JsonPointer. Setting a
+     * value with slash as JsonKey object explicitly works.
      */
     JsonObjectBuilder set(CharSequence key, boolean value, Predicate<JsonField> predicate);
 
     /**
      * Sets a new boolean value field to the JSON object to be built.
      *
-     * @param key the key of the value to be set.
+     * @param key the JSON key or JSON pointer of the field to be set.
      * @param value the value to be set.
      * @return this builder to allow method chaining.
      * @throws NullPointerException if {@code key} is {@code null}.
-     * @throws IllegalArgumentException if {@code key} is empty.
+     * @throws IllegalArgumentException if {@code key} is empty or if {@code key} is an empty JsonPointer. Setting a
+     * value with slash as JsonKey object explicitly works.
      */
     default JsonObjectBuilder set(final CharSequence key, final boolean value) {
         return set(key, value, field -> true);
     }
 
-//    /**
-//     * Sets a new boolean value field to the JSON object to be built if the specified predicate evaluates to {@code
-//     * true}.
-//     *
-//     * @param pointer the pointer to the field to be set.
-//     * @param value the value of the field to be set.
-//     * @param predicate the predicate which finally determines if the field is to be set.
-//     * @return this builder to allow method chaining.
-//     * @throws NullPointerException if {@code pointer} is {@code null}.
-//     * @throws IllegalArgumentException if {@code pointer} is empty.
-//     */
-//    JsonObjectBuilder set(JsonPointer pointer, boolean value, Predicate<JsonField> predicate);
-//
-//    /**
-//     * Sets a new boolean value field to the JSON object to be built.
-//     *
-//     * @param pointer the pointer to the field to be set.
-//     * @param value the value of the field to be set.
-//     * @return this builder to allow method chaining.
-//     * @throws NullPointerException if {@code pointer} is {@code null}.
-//     * @throws IllegalArgumentException if {@code pointer} is empty.
-//     */
-//    default JsonObjectBuilder set(final JsonPointer pointer, final boolean value) {
-//        return set(pointer, value, field -> true);
-//    }
-
     /**
      * Sets a new string value field to the JSON object to be built if the specified predicate evaluates to {@code
      * true}.
      *
-     * @param key the key of the value to be set.
+     * @param key the JSON key or JSON pointer of the field to be set.
      * @param value the value to be set.
      * @param predicate the predicate which finally determines if the field is to be set.
      * @return this builder to allow method chaining.
-     * @throws NullPointerException if {@code key} is {@code null}.
-     * @throws IllegalArgumentException if {@code key} is empty.
+     * @throws NullPointerException if {@code key} or {@code predicate} is {@code null}.
+     * @throws IllegalArgumentException if {@code key} is empty or if {@code key} is an empty JsonPointer. Setting a
+     * value with slash as JsonKey object explicitly works.
      */
     JsonObjectBuilder set(CharSequence key, String value, Predicate<JsonField> predicate);
 
     /**
      * Sets a new string value field to the JSON object to be built.
      *
-     * @param key the key of the value to be set.
+     * @param key the JSON key or JSON pointer of the field to be set.
      * @param value the value to be set.
      * @return this builder to allow method chaining.
      * @throws NullPointerException if {@code key} is {@code null}.
-     * @throws IllegalArgumentException if {@code key} is empty.
+     * @throws IllegalArgumentException if {@code key} is empty or if {@code key} is an empty JsonPointer. Setting a
+     * value with slash as JsonKey object explicitly works.
      */
     default JsonObjectBuilder set(final CharSequence key, final String value) {
         return set(key, value, field -> true);
     }
 
-//    /**
-//     * Sets a new string value field to the JSON object to be built if the specified predicate evaluates to {@code
-//     * true}.
-//     *
-//     * @param pointer the pointer to the field to be set.
-//     * @param value the value of the field to be set.
-//     * @param predicate the predicate which finally determines if the field is to be set.
-//     * @return this builder to allow method chaining.
-//     * @throws NullPointerException if {@code pointer} is {@code null}.
-//     */
-//    JsonObjectBuilder set(JsonPointer pointer, String value, Predicate<JsonField> predicate);
-//
-//    /**
-//     * Sets a new string value field to the JSON object to be built.
-//     *
-//     * @param pointer the pointer to the field to be set.
-//     * @param value the value of the field to be set.
-//     * @return this builder to allow method chaining.
-//     * @throws NullPointerException if {@code pointer} is {@code null}.
-//     * @throws IllegalArgumentException if {@code pointer} is empty.
-//     */
-//    default JsonObjectBuilder set(final JsonPointer pointer, final String value) {
-//        return set(pointer, value, field -> true);
-//    }
-
     /**
      * Sets a new {@link JsonValue} field to the JSON object to be built if the specified predicate evaluates to {@code
      * true}.
      *
-     * @param key the key of the value to be set.
+     * @param key the JSON key or JSON pointer of the field to be set.
      * @param value the value to be set.
      * @param predicate the predicate which finally determines if the field is to be set.
      * @return this builder to allow method chaining.
      * @throws NullPointerException if any argument is {@code null}; the predicate is evaluated before the null check
      * of the value.
-     * @throws IllegalArgumentException if {@code key} is empty.
+     * @throws IllegalArgumentException if {@code key} is empty or if {@code key} is an empty JsonPointer. Setting a
+     * value with slash as JsonKey object explicitly works.
      */
     JsonObjectBuilder set(CharSequence key, JsonValue value, Predicate<JsonField> predicate);
 
     /**
      * Sets a new {@link JsonValue} field to the JSON object to be built.
      *
-     * @param key the key of the field to be set.
+     * @param key the JSON key or JSON pointer of the field to be set.
      * @param value the value of the field to be set.
      * @return this builder to allow method chaining.
      * @throws NullPointerException if any argument is {@code null}.
-     * @throws IllegalArgumentException if {@code key} is empty.
+     * @throws IllegalArgumentException if {@code key} is empty or if {@code key} is an empty JsonPointer. Setting a
+     * value with slash as JsonKey object explicitly works.
      */
     default JsonObjectBuilder set(final CharSequence key, final JsonValue value) {
         return set(key, value, field -> true);
     }
-
-//    /**
-//     * Sets a new {@link JsonValue} field to the JSON object to be built if the specified predicate evaluates to {@code
-//     * true}.
-//     *
-//     * @param pointer the pointer to the field to be set.
-//     * @param value the value of the field to be set.
-//     * @param predicate the predicate which finally determines if the field is to be set.
-//     * @return this builder to allow method chaining.
-//     * @throws NullPointerException if any argument is {@code null}.
-//     * @throws IllegalArgumentException if {@code pointer} is empty.
-//     */
-//    JsonObjectBuilder set(JsonPointer pointer, JsonValue value, Predicate<JsonField> predicate);
-//
-//    /**
-//     * Sets a new {@link JsonValue} field to the JSON object to be built.
-//     *
-//     * @param pointer the pointer to the field to be set.
-//     * @param value the value of the field to be set.
-//     * @return this builder to allow method chaining.
-//     * @throws NullPointerException if any argument is {@code null}.
-//     * @throws IllegalArgumentException if {@code pointer} is empty.
-//     */
-//    default JsonObjectBuilder set(final JsonPointer pointer, final JsonValue value) {
-//        return set(pointer, value, field -> true);
-//    }
 
     /**
      * Sets a new int value field to the JSON object to be built if the specified predicate evaluates to
@@ -334,7 +194,8 @@ public interface JsonObjectBuilder extends Iterable<JsonField> {
      * @param value the value of the field to be set.
      * @param predicate the predicate which finally determines if the field is to be set.
      * @return this builder to allow method chaining.
-     * @throws NullPointerException if {@code fieldDefinition} is null.
+     * @throws NullPointerException if {@code fieldDefinition} or {@code predicate} is null.
+     * @throws IllegalArgumentException if the value type of {@code fieldDefinition} is not a {@code int}.
      * @see #set(CharSequence, int)
      */
     JsonObjectBuilder set(JsonFieldDefinition fieldDefinition, int value, Predicate<JsonField> predicate);
@@ -346,6 +207,7 @@ public interface JsonObjectBuilder extends Iterable<JsonField> {
      * @param value the value of the field to be set.
      * @return this builder to allow method chaining.
      * @throws NullPointerException if {@code fieldDefinition} is null.
+     * @throws IllegalArgumentException if the value type of {@code fieldDefinition} is not a {@code int}.
      * @see #set(CharSequence, int)
      */
     default JsonObjectBuilder set(final JsonFieldDefinition fieldDefinition, final int value) {
@@ -360,7 +222,8 @@ public interface JsonObjectBuilder extends Iterable<JsonField> {
      * @param value the value of the field to be set.
      * @param predicate the predicate which finally determines if the field is to be set.
      * @return this builder to allow method chaining.
-     * @throws NullPointerException if {@code fieldDefinition} is null.
+     * @throws NullPointerException if {@code fieldDefinition} or {@code predicate} is null.
+     * @throws IllegalArgumentException if the value type of {@code fieldDefinition} is not a {@code long}.
      * @see #set(CharSequence, long)
      */
     JsonObjectBuilder set(JsonFieldDefinition fieldDefinition, long value, Predicate<JsonField> predicate);
@@ -372,6 +235,7 @@ public interface JsonObjectBuilder extends Iterable<JsonField> {
      * @param value the value of the field to be set.
      * @return this builder to allow method chaining.
      * @throws NullPointerException if {@code fieldDefinition} is null.
+     * @throws IllegalArgumentException if the value type of {@code fieldDefinition} is not a {@code long}.
      * @see #set(CharSequence, long)
      */
     default JsonObjectBuilder set(final JsonFieldDefinition fieldDefinition, final long value) {
@@ -387,6 +251,7 @@ public interface JsonObjectBuilder extends Iterable<JsonField> {
      * @param predicate the predicate which finally determines if the field is to be set.
      * @return this builder to allow method chaining.
      * @throws NullPointerException if {@code fieldDefinition} is null.
+     * @throws IllegalArgumentException if the value type of {@code fieldDefinition} is not a {@code double}.
      * @see #set(CharSequence, double)
      */
     JsonObjectBuilder set(JsonFieldDefinition fieldDefinition, double value, Predicate<JsonField> predicate);
@@ -398,6 +263,7 @@ public interface JsonObjectBuilder extends Iterable<JsonField> {
      * @param value the value of the field to be set.
      * @return this builder to allow method chaining.
      * @throws NullPointerException if {@code fieldDefinition} is null.
+     * @throws IllegalArgumentException if the value type of {@code fieldDefinition} is not a {@code double}.
      * @see #set(CharSequence, double)
      */
     default JsonObjectBuilder set(final JsonFieldDefinition fieldDefinition, final double value) {
@@ -413,6 +279,7 @@ public interface JsonObjectBuilder extends Iterable<JsonField> {
      * @param predicate the predicate which finally determines if the field is to be set.
      * @return this builder to allow method chaining.
      * @throws NullPointerException if {@code fieldDefinition} is null.
+     * @throws IllegalArgumentException if the value type of {@code fieldDefinition} is not a {@code boolean}.
      * @see #set(CharSequence, boolean)
      */
     JsonObjectBuilder set(JsonFieldDefinition fieldDefinition, boolean value, Predicate<JsonField> predicate);
@@ -424,6 +291,7 @@ public interface JsonObjectBuilder extends Iterable<JsonField> {
      * @param value the value of the field to be set.
      * @return this builder to allow method chaining.
      * @throws NullPointerException if {@code fieldDefinition} is null.
+     * @throws IllegalArgumentException if the value type of {@code fieldDefinition} is not a {@code boolean}.
      * @see #set(CharSequence, boolean)
      */
     default JsonObjectBuilder set(final JsonFieldDefinition fieldDefinition, final boolean value) {
@@ -466,6 +334,7 @@ public interface JsonObjectBuilder extends Iterable<JsonField> {
      * @return this builder to allow method chaining.
      * @throws NullPointerException if any argument is {@code null}; the predicate is evaluated before the null check
      * of the value.
+     * @throws IllegalArgumentException if the value type of {@code fieldDefinition} is not a {@code JsonValue}.
      * @see #set(CharSequence, JsonValue)
      */
     JsonObjectBuilder set(JsonFieldDefinition fieldDefinition, JsonValue value, Predicate<JsonField> predicate);
@@ -490,7 +359,7 @@ public interface JsonObjectBuilder extends Iterable<JsonField> {
      * @param field the field to be set.
      * @param predicate the predicate which finally determines if the field is to be set.
      * @return this builder to allow method chaining.
-     * @throws NullPointerException if {@code field} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      */
     JsonObjectBuilder set(JsonField field, Predicate<JsonField> predicate);
 
@@ -516,17 +385,6 @@ public interface JsonObjectBuilder extends Iterable<JsonField> {
      */
     JsonObjectBuilder remove(CharSequence key);
 
-//    /**
-//     * Removes the field from the JSON object to be built which is associated with the given pointer. This method
-//     * has no effect if no such field exists.
-//     *
-//     * @param pointer the pointer to the field to be removed.
-//     * @return this builder to allow method chaining.
-//     * @throws NullPointerException if {@code pointer} is {@code null}.
-//     * @throws IllegalArgumentException if {@code pointer} is empty.
-//     */
-//    JsonObjectBuilder remove(JsonPointer pointer);
-
     /**
      * Removes the field from the JSON object to be built which is associated with the pointer of the specified JSON
      * field definition. This method has no effect if no such field exists.
@@ -547,7 +405,7 @@ public interface JsonObjectBuilder extends Iterable<JsonField> {
      * @param fields the fields to set.
      * @param predicate the predicate which finally determines for each field if it is to be set.
      * @return this builder to allow method chaining.
-     * @throws NullPointerException if {@code fields} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      */
     JsonObjectBuilder setAll(Iterable<JsonField> fields, Predicate<JsonField> predicate);
 

@@ -178,7 +178,7 @@ public final class DefaultDittoHeadersBuilderTest {
 
         assertThat(jsonObject)
                 .hasSize(1)
-                .contains(JsonKey.newInstance(DittoHeaderDefinition.RESPONSE_REQUIRED.getKey()), JsonFactory.newValue(false));
+                .contains(JsonKey.of(DittoHeaderDefinition.RESPONSE_REQUIRED.getKey()), JsonFactory.newValue(false));
     }
 
     @Test

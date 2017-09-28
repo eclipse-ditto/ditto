@@ -334,7 +334,7 @@ public final class SearchActor extends AbstractActor {
             // if only "thingId" was selected in the fieldSelectors
             // we don't need to make a lookup of the Things at the Things-Service
             final JsonArray items = thingIds.stream()
-                    .map(JsonValue::newInstance)
+                    .map(JsonValue::of)
                     .map(jsonStr -> JsonObject.newBuilder()
                             .set(Thing.JsonFields.ID.getPointer(), jsonStr)
                             .build()

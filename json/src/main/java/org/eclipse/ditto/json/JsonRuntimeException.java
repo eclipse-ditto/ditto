@@ -17,6 +17,7 @@ import java.net.URI;
 import java.text.MessageFormat;
 import java.util.Optional;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 /**
@@ -27,8 +28,8 @@ public class JsonRuntimeException extends RuntimeException implements JsonExcept
     private static final long serialVersionUID = -5415257195206366631L;
 
     private final String errorCode;
-    private final String description;
-    private final URI href;
+    @Nullable private final String description;
+    @Nullable private final URI href;
 
     /**
      * Constructs a new {@code JsonRuntimeException} object with the specified values.
@@ -41,8 +42,12 @@ public class JsonRuntimeException extends RuntimeException implements JsonExcept
      * @throws NullPointerException if {@code errorCode} is {@code null}.
      * @throws IllegalArgumentException if {@code errorCode} is empty.
      */
-    protected JsonRuntimeException(final String errorCode, final String message, final String description,
-            final Throwable cause, final URI href) {
+    protected JsonRuntimeException(final String errorCode,
+            @Nullable final String message,
+            @Nullable final String description,
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
+
         super(message, cause);
         checkErrorCode(errorCode);
         this.errorCode = errorCode;
@@ -88,7 +93,6 @@ public class JsonRuntimeException extends RuntimeException implements JsonExcept
 
     /**
      * A mutable builder for a {@code JsonRuntimeException}.
-     *
      */
     @NotThreadSafe
     public static final class Builder extends AbstractJsonExceptionBuilder<JsonRuntimeException> {
@@ -98,10 +102,15 @@ public class JsonRuntimeException extends RuntimeException implements JsonExcept
         }
 
         @Override
-        protected JsonRuntimeException doBuild(final String errorCode, final String message, final String description,
-                final Throwable cause, final URI href) {
+        protected JsonRuntimeException doBuild(final String errorCode,
+                @Nullable final String message,
+                @Nullable final String description,
+                @Nullable final Throwable cause,
+                @Nullable final URI href) {
+
             return new JsonRuntimeException(errorCode, message, description, cause, href);
         }
+
     }
 
 }

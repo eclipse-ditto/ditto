@@ -166,7 +166,7 @@ public final class RetrieveFeaturesResponse extends AbstractCommandResponse<Retr
 
     @Override
     public JsonPointer getResourcePath() {
-        return JsonPointer.newInstance("/features");
+        return JsonPointer.of("/features");
     }
 
     @Override

@@ -11,10 +11,16 @@
  */
 package org.eclipse.ditto.json;
 
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.json.JsonPatch.Operation.ADD;
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
+import static org.mutabilitydetector.unittesting.AllowedReason.provided;
+import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
+import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.junit.Test;
+
+import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
  * Unit test for {@link ImmutableJsonPatch}.
@@ -25,19 +31,31 @@ public final class ImmutableJsonPatchTest {
     private static final JsonPointer PATH = JsonFactory.newPointer("new");
     private static final JsonValue VALUE = JsonFactory.newValue(2);
 
-    /** */
     @Test
-    public void testOf() {
-        final ImmutableJsonPatch jsonPatch = ImmutableJsonPatch.of(OPERATION, PATH, VALUE);
+    public void assertImmutability() {
+        assertInstancesOf(ImmutableJsonPatch.class,
+                areImmutable(),
+                provided(JsonPointer.class, JsonValue.class).areAlsoImmutable());
+    }
+
+    @Test
+    public void testHashCodeAndEquals() {
+        EqualsVerifier.forClass(ImmutableJsonPatch.class)
+                .usingGetClass()
+                .verify();
+    }
+
+    @Test
+    public void createNewInstanceReturnsExpected() {
+        final ImmutableJsonPatch jsonPatch = ImmutableJsonPatch.newInstance(OPERATION, PATH, VALUE);
 
         assertThat(jsonPatch.getOperation()).isEqualTo(OPERATION);
         assertThat(jsonPatch.getPath()).isEqualTo(PATH);
         assertThat(jsonPatch.getValue()).contains(VALUE);
     }
 
-    /** */
     @Test
-    public void testFromJson() {
+    public void fromJsonReturnsExpected() {
         final JsonObject jsonObject = JsonFactory.newObjectBuilder()
                 .set(JsonPatch.JsonFields.OPERATION, OPERATION.toString())
                 .set(JsonPatch.JsonFields.PATH, PATH.toString())
@@ -51,10 +69,9 @@ public final class ImmutableJsonPatchTest {
         assertThat(jsonPatch.getValue()).contains(VALUE);
     }
 
-    /** */
     @Test
-    public void testToJson() {
-        final ImmutableJsonPatch jsonPatch = ImmutableJsonPatch.of(OPERATION, PATH, VALUE);
+    public void toJsonReturnsExpected() {
+        final ImmutableJsonPatch jsonPatch = ImmutableJsonPatch.newInstance(OPERATION, PATH, VALUE);
         final JsonObject jsonObject = jsonPatch.toJson();
 
         assertThat(jsonObject)
@@ -63,21 +80,33 @@ public final class ImmutableJsonPatchTest {
                 .contains(JsonPatch.JsonFields.VALUE, VALUE);
     }
 
-    // ------------------ similar tests with null as value ----------------
-
-    /** */
     @Test
-    public void testOfWithNull() {
-        final ImmutableJsonPatch jsonPatch = ImmutableJsonPatch.of(OPERATION, PATH, null);
+    public void newInstanceWithNullValueReturnsExpected() {
+        final ImmutableJsonPatch jsonPatch = ImmutableJsonPatch.newInstance(OPERATION, PATH, null);
 
         assertThat(jsonPatch.getOperation()).isEqualTo(OPERATION);
         assertThat(jsonPatch.getPath()).isEqualTo(PATH);
         assertThat(jsonPatch.getValue()).isEmpty();
     }
 
-    /** */
     @Test
-    public void testFromJsonWithNull() {
+    public void tryToParseJsonStringContainingUnknownOperationName() {
+        final String unknownOperationName = "swap";
+
+        final JsonObject jsonObject = JsonFactory.newObjectBuilder()
+                .set(JsonPatch.JsonFields.OPERATION, unknownOperationName)
+                .set(JsonPatch.JsonFields.PATH, PATH.toString())
+                .set(JsonPatch.JsonFields.VALUE, VALUE)
+                .build();
+
+        assertThatExceptionOfType(IllegalArgumentException.class)
+                .isThrownBy(() -> ImmutableJsonPatch.fromJson(jsonObject.toString()))
+                .withMessage("Operation <%s> is unknown!", unknownOperationName)
+                .withNoCause();
+    }
+
+    @Test
+    public void fromJsonWithoutValueReturnsExpected() {
         final JsonObject jsonObject = JsonFactory.newObjectBuilder()
                 .set(JsonPatch.JsonFields.OPERATION, OPERATION.toString())
                 .set(JsonPatch.JsonFields.PATH, PATH.toString())
@@ -90,9 +119,8 @@ public final class ImmutableJsonPatchTest {
         assertThat(jsonPatch.getValue()).isEmpty();
     }
 
-    /** */
     @Test
-    public void testFromJsonWithNullLiteral() {
+    public void fromJsonWithNullLiteralReturnsExpected() {
         final JsonObject jsonObject = JsonFactory.newObjectBuilder()
                 .set(JsonPatch.JsonFields.OPERATION, OPERATION.toString())
                 .set(JsonPatch.JsonFields.PATH, PATH.toString())
@@ -106,11 +134,11 @@ public final class ImmutableJsonPatchTest {
         assertThat(jsonPatch.getValue()).contains(JsonFactory.nullLiteral());
     }
 
-    /** */
     @Test
-    public void testToJsonWithNull() {
-        final ImmutableJsonPatch jsonPatch = ImmutableJsonPatch.of(OPERATION, PATH, null);
-        final JsonObject jsonObject = jsonPatch.toJson();
+    public void toJsonWithoutValueReturnsExpected() {
+        final ImmutableJsonPatch underTest = ImmutableJsonPatch.newInstance(OPERATION, PATH, null);
+
+        final JsonObject jsonObject = underTest.toJson();
 
         assertThat(jsonObject)
                 .contains(JsonPatch.JsonFields.OPERATION, OPERATION.toString())
@@ -118,11 +146,11 @@ public final class ImmutableJsonPatchTest {
                 .doesNotContain(JsonPatch.JsonFields.VALUE);
     }
 
-    /** */
     @Test
-    public void testToJsonWithNullLiteral() {
-        final ImmutableJsonPatch jsonPatch = ImmutableJsonPatch.of(OPERATION, PATH, JsonFactory.nullLiteral());
-        final JsonObject jsonObject = jsonPatch.toJson();
+    public void toJsonWithNullLiteralReturnsExpected() {
+        final ImmutableJsonPatch underTest = ImmutableJsonPatch.newInstance(OPERATION, PATH, JsonFactory.nullLiteral());
+
+        final JsonObject jsonObject = underTest.toJson();
 
         assertThat(jsonObject)
                 .contains(JsonPatch.JsonFields.OPERATION, OPERATION.toString())
@@ -130,23 +158,23 @@ public final class ImmutableJsonPatchTest {
                 .contains(JsonPatch.JsonFields.VALUE, JsonFactory.nullLiteral());
     }
 
-    /** */
     @Test
-    public void testToString() {
-        final ImmutableJsonPatch jsonPatch = ImmutableJsonPatch.of(OPERATION, PATH, VALUE);
-        final String actual = jsonPatch.toString();
+    public void toStringReturnsExpected() {
         final String expected = "{\"op\":\"" + OPERATION + "\",\"path\":\"" + PATH + "\",\"value\":" + VALUE + "}";
+        final ImmutableJsonPatch underTest = ImmutableJsonPatch.newInstance(OPERATION, PATH, VALUE);
+
+        final String actual = underTest.toString();
 
         assertThat(actual).isEqualTo(expected);
     }
 
-    /** */
     @Test
-    public void testToStringWithNullLiteral() {
-        final ImmutableJsonPatch jsonPatch = ImmutableJsonPatch.of(OPERATION, PATH, JsonFactory.nullLiteral());
-        final String actual = jsonPatch.toString();
+    public void toStringWithNullLiteralReturnsExpected() {
         final String expected =
                 "{\"op\":\"" + OPERATION + "\",\"path\":\"" + PATH + "\",\"value\":" + JsonFactory.nullLiteral() + "}";
+        final ImmutableJsonPatch underTest = ImmutableJsonPatch.newInstance(OPERATION, PATH, JsonFactory.nullLiteral());
+
+        final String actual = underTest.toString();
 
         assertThat(actual).isEqualTo(expected);
     }

@@ -39,9 +39,12 @@ final class ImmutableJsonKey implements JsonKey {
      * @throws IllegalArgumentException if {@code keyValue} is empty.
      */
     public static JsonKey of(final CharSequence keyValue) {
-        requireNonNull(keyValue, "The keyValue must not be null!");
-        if (0 == keyValue.length()) {
-            throw new IllegalArgumentException("The keyValue string must not be empty!");
+        requireNonNull(keyValue, "The key string must not be null!");
+
+        if (JsonKey.class.isAssignableFrom(keyValue.getClass())) {
+            return ((JsonKey) keyValue);
+        } else  if (0 == keyValue.length()) {
+            throw new IllegalArgumentException("The key string must not be empty!");
         }
 
         return new ImmutableJsonKey(keyValue.toString());
@@ -49,7 +52,7 @@ final class ImmutableJsonKey implements JsonKey {
 
     @Override
     public JsonPointer asPointer() {
-        return JsonFactory.newPointer("/" + keyValue);
+        return JsonFactory.newPointer(this);
     }
 
     @Override

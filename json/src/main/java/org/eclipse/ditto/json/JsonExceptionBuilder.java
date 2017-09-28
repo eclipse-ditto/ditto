@@ -14,6 +14,8 @@ package org.eclipse.ditto.json;
 import java.net.URI;
 import java.util.function.Supplier;
 
+import javax.annotation.Nullable;
+
 /**
  * A mutable builder for a {@link JsonException}.
  *
@@ -27,7 +29,7 @@ public interface JsonExceptionBuilder<T extends JsonException> {
      * @param message the detail message.
      * @return this builder to allow method chaining.
      */
-    JsonExceptionBuilder<T> message(String message);
+    JsonExceptionBuilder<T> message(@Nullable String message);
 
     /**
      * Sets the detail message of the exception to be built.
@@ -44,7 +46,7 @@ public interface JsonExceptionBuilder<T extends JsonException> {
      * @param description a description.
      * @return this builder to allow method chaining.
      */
-    JsonExceptionBuilder<T> description(String description);
+    JsonExceptionBuilder<T> description(@Nullable String description);
 
     /**
      * Sets a description with further information about the exception to be built.
@@ -61,7 +63,7 @@ public interface JsonExceptionBuilder<T extends JsonException> {
      * @param cause the cause.
      * @return this builder to allow method chaining.
      */
-    JsonExceptionBuilder<T> cause(Throwable cause);
+    JsonExceptionBuilder<T> cause(@Nullable Throwable cause);
 
     /**
      * Sets the cause which led to the exception to be built.
@@ -78,7 +80,7 @@ public interface JsonExceptionBuilder<T extends JsonException> {
      * @param href a link to further information.
      * @return this builder to allow method chaining.
      */
-    JsonExceptionBuilder<T> href(URI href);
+    JsonExceptionBuilder<T> href(@Nullable URI href);
 
     /**
      * Sets a link to a resource which provides further information about the exception to be built.

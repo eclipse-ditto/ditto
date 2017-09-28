@@ -129,7 +129,7 @@ public final class FeatureDeleted extends AbstractThingEvent<FeatureDeleted> imp
     @Override
     public JsonPointer getResourcePath() {
         final String path = "/features/" + getFeatureId();
-        return JsonPointer.newInstance(path);
+        return JsonPointer.of(path);
     }
 
     @Override

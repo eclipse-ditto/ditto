@@ -38,6 +38,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
+import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
@@ -183,7 +184,7 @@ public final class ThingsRoute extends AbstractRoute {
 
     private static JsonObject createInlinePolicyJson(final String jsonString) {
         final JsonObject inputJson = wrapJsonRuntimeException(() -> JsonFactory.newObject(jsonString));
-        return inputJson.getValue("_policy")
+        return inputJson.getValue(Policy.INLINED_FIELD_NAME)
                 .filter(JsonValue::isObject)
                 .map(JsonValue::asObject)
                 .filter(obj -> {

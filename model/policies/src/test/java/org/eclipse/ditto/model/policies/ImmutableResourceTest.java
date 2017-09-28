@@ -91,7 +91,7 @@ public final class ImmutableResourceTest {
     public void createResourceWithJsonValueMissingFields() {
         ImmutableResource.of(RESOURCE_KEY,
                 JsonFactory.newObjectBuilder()
-                        .set(Resource.JsonFields.SCHEMA_VERSION, JsonSchemaVersion.V_2.toString())
+                        .set(Resource.JsonFields.SCHEMA_VERSION, JsonSchemaVersion.V_2.toInt())
                         .build());
     }
 

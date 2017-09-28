@@ -143,7 +143,7 @@ public final class DeleteAclEntry extends AbstractCommand<DeleteAclEntry>
     @Override
     public JsonPointer getResourcePath() {
         final String path = "/acl/" + authorizationSubject.getId();
-        return JsonPointer.newInstance(path);
+        return JsonPointer.of(path);
     }
 
     @Override

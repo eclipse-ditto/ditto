@@ -212,7 +212,7 @@ final class NullFeatureProperties implements FeatureProperties {
     }
 
     @Override
-    public FeatureProperties remove(final CharSequence index) {
+    public FeatureProperties remove(final CharSequence key) {
         return this;
     }
 
@@ -222,7 +222,7 @@ final class NullFeatureProperties implements FeatureProperties {
     }
 
     @Override
-    public Optional<JsonField> getField(final CharSequence index) {
+    public Optional<JsonField> getField(final CharSequence key) {
         return Optional.empty();
     }
 

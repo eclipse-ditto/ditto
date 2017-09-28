@@ -166,7 +166,7 @@ public final class AttributeModified extends AbstractThingEvent<AttributeModifie
     @Override
     public JsonPointer getResourcePath() {
         final String path = "/attributes" + attributePointer;
-        return JsonPointer.newInstance(path);
+        return JsonPointer.of(path);
     }
 
     @Override

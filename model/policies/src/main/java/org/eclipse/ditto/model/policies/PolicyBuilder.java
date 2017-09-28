@@ -225,7 +225,7 @@ public interface PolicyBuilder {
          */
         default LabelScoped setGrantedPermissions(final String resourceType, final CharSequence resourcePath,
                 final Permissions grantedPermissions) {
-            setGrantedPermissions(resourceType, JsonPointer.newInstance(resourcePath), grantedPermissions);
+            setGrantedPermissions(resourceType, JsonPointer.of(resourcePath), grantedPermissions);
             return this;
         }
 
@@ -295,7 +295,7 @@ public interface PolicyBuilder {
                 final String grantedPermission,
                 final String... furtherGrantedPermissions) {
 
-            setGrantedPermissions(resourceType, JsonPointer.newInstance(resourcePath), grantedPermission,
+            setGrantedPermissions(resourceType, JsonPointer.of(resourcePath), grantedPermission,
                     furtherGrantedPermissions);
             return this;
         }
@@ -335,7 +335,7 @@ public interface PolicyBuilder {
         default LabelScoped setRevokedPermissions(final String resourceType, final CharSequence resourcePath,
                 final Permissions revokedPermissions) {
 
-            setRevokedPermissions(resourceType, JsonPointer.newInstance(resourcePath), revokedPermissions);
+            setRevokedPermissions(resourceType, JsonPointer.of(resourcePath), revokedPermissions);
             return this;
         }
 
@@ -396,7 +396,7 @@ public interface PolicyBuilder {
          */
         default LabelScoped setRevokedPermissions(final String resourceType, final CharSequence resourcePath,
                 final String revokedPermission, final String... furtherRevokedPermissions) {
-            setRevokedPermissions(resourceType, JsonPointer.newInstance(resourcePath), revokedPermission,
+            setRevokedPermissions(resourceType, JsonPointer.of(resourcePath), revokedPermission,
                     furtherRevokedPermissions);
             return this;
         }
@@ -831,7 +831,7 @@ public interface PolicyBuilder {
             final String... furtherRevokedPermissions) {
 
         return setRevokedPermissionsFor(label,
-                ResourceKey.newInstance(resourceType, JsonPointer.newInstance(resourcePath)),
+                ResourceKey.newInstance(resourceType, JsonPointer.of(resourcePath)),
                 Permissions.newInstance(revokedPermission, furtherRevokedPermissions));
     }
 

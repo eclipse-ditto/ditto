@@ -23,7 +23,7 @@ import akka.actor.ActorRef;
 /**
  * Provides the Shard ID, {@link CacheEntry} and {@link ActorRef} of an entity in the cluster.
  */
-final class LookupResult {
+public final class LookupResult {
 
     @Nullable private final String shardId;
     @Nullable private final CacheEntry cacheEntry;
@@ -49,7 +49,7 @@ final class LookupResult {
      * @param actorRef the actor ref of the entity.
      * @return the LookupResult.
      */
-    static LookupResult of(@Nullable final String shardId, @Nullable final CacheEntry cacheEntry,
+    public static LookupResult of(@Nullable final String shardId, @Nullable final CacheEntry cacheEntry,
             @Nullable final ActorRef actorRef) {
 
         return new LookupResult(shardId, cacheEntry, actorRef, null);
@@ -60,7 +60,7 @@ final class LookupResult {
      *
      * @return the LookupResult.
      */
-    static LookupResult notFound() {
+    public static LookupResult notFound() {
         return new LookupResult(null, null, null, null);
     }
 
@@ -70,7 +70,7 @@ final class LookupResult {
      * @param error the Error which occurred during the lookup.
      * @return the LookupResult.
      */
-    static LookupResult withError(final Throwable error) {
+    public static LookupResult withError(final Throwable error) {
         return new LookupResult(null, null, null, error);
     }
 
@@ -79,7 +79,7 @@ final class LookupResult {
      *
      * @return the Shard ID.
      */
-    Optional<String> getShardId() {
+    public Optional<String> getShardId() {
         return Optional.ofNullable(shardId);
     }
 
@@ -88,7 +88,7 @@ final class LookupResult {
      *
      * @return the CacheEntry.
      */
-    Optional<CacheEntry> getCacheEntry() {
+    public Optional<CacheEntry> getCacheEntry() {
         return Optional.ofNullable(cacheEntry);
     }
 
@@ -97,7 +97,7 @@ final class LookupResult {
      *
      * @return the ActorRef.
      */
-    Optional<ActorRef> getActorRef() {
+    public Optional<ActorRef> getActorRef() {
         return Optional.ofNullable(actorRef);
     }
 
@@ -106,7 +106,7 @@ final class LookupResult {
      *
      * @return the Error.
      */
-    Optional<Throwable> getError() {
+    public Optional<Throwable> getError() {
         return Optional.ofNullable(error);
     }
 

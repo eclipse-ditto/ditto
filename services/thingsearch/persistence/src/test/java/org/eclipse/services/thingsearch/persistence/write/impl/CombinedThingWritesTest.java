@@ -148,7 +148,7 @@ public final class CombinedThingWritesTest {
     public void escapeAttributeModifiedEvent() {
         // WHEN
         final AttributeModified event = AttributeModified.of("thing:id",
-                JsonPointer.newInstance("attribute.0"),
+                JsonPointer.of("attribute.0"),
                 JsonFactory.newObject("{\"Ac.0\":4}"),
                 2,
                 HEADERS);

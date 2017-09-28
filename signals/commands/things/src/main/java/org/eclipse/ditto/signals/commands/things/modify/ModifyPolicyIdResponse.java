@@ -152,13 +152,13 @@ public final class ModifyPolicyIdResponse extends AbstractCommandResponse<Modify
 
     @Override
     public Optional<JsonValue> getEntity(final JsonSchemaVersion schemaVersion) {
-        return Optional.ofNullable(policyId).map(JsonValue::newInstance);
+        return Optional.ofNullable(policyId).map(JsonValue::of);
     }
 
     @Override
     public JsonPointer getResourcePath() {
         final String path = Thing.JsonFields.POLICY_ID.getPointer().toString();
-        return JsonPointer.newInstance(path);
+        return JsonPointer.of(path);
     }
 
     @Override

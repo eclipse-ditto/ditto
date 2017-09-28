@@ -155,7 +155,7 @@ public final class DeleteResource extends AbstractCommand<DeleteResource>
     @Override
     public JsonPointer getResourcePath() {
         final String p = "/entries/" + label + "/resources/" + resourceKey.toString();
-        return JsonPointer.newInstance(p);
+        return JsonPointer.of(p);
     }
 
     @Override

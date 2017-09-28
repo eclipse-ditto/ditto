@@ -269,7 +269,7 @@ public final class QueryThings extends AbstractCommand<QueryThings> implements T
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         getFilter().ifPresent(presentFilter -> jsonObjectBuilder.set(JSON_FILTER, presentFilter, predicate));
         getOptions().ifPresent(presentOptions -> jsonObjectBuilder.set(JSON_OPTIONS, presentOptions.stream()
-                        .map(JsonValue::newInstance)
+                        .map(JsonValue::of)
                         .collect(JsonCollectors.valuesToArray()),
                 predicate));
         getFields().ifPresent(presentFields -> jsonObjectBuilder.set(JSON_FIELDS, presentFields.toString(), predicate));

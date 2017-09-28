@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.json;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.json.JsonFactory.newField;
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
@@ -26,7 +27,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.junit.MockitoJUnitRunner;
 
 /**
  * Unit test for {@link ImmutableJsonObjectBuilder}.
@@ -50,7 +51,6 @@ public final class ImmutableJsonObjectBuilderTest {
 
     private ImmutableJsonObjectBuilder underTest;
 
-    /** */
     @BeforeClass
     public static void initTestConstants() {
         fooKey = JsonFactory.newKey("foo");
@@ -68,13 +68,11 @@ public final class ImmutableJsonObjectBuilderTest {
         return JsonFactory.newField(JsonFactory.newKey(key), JsonFactory.newValue(value));
     }
 
-    /** */
     @Before
     public void setUp() {
         underTest = ImmutableJsonObjectBuilder.newInstance();
     }
 
-    /** */
     @Test
     public void tryToInvokeSetAllWithNullIterator() {
         assertThatExceptionOfType(NullPointerException.class)
@@ -83,7 +81,6 @@ public final class ImmutableJsonObjectBuilderTest {
                 .withNoCause();
     }
 
-    /** */
     @Test
     public void setAllSetsAllSpecifiedFieldsWithoutDuplicates() {
         final Collection<JsonField> fieldsToBeSet = new ArrayList<>();
@@ -94,7 +91,6 @@ public final class ImmutableJsonObjectBuilderTest {
         assertThat(underTest).containsExactly(eddard, cersei, robert, john, hodor);
     }
 
-    /** */
     @Test
     public void removeAllReturnsEmptyObject() {
         underTest.set(eddard);
@@ -108,16 +104,40 @@ public final class ImmutableJsonObjectBuilderTest {
         assertThat(underTest).isEmpty();
     }
 
-    /** */
     @Test
-    public void tryToSetFieldWithNullJsonPointer() {
-        assertThatExceptionOfType(NullPointerException.class)
-                .isThrownBy(() -> underTest.set((CharSequence) null, cersei.getValue(), Objects::nonNull))
-                .withMessage("The %s must not be null!", "key of the value")
+    public void tryToSetValueWithEmptyKey() {
+        assertThatExceptionOfType(IllegalArgumentException.class)
+                .isThrownBy(() -> underTest.set("", eddard.getValue()))
+                .withMessage("The key or pointer must not be empty!")
                 .withNoCause();
     }
 
-    /** */
+    @Test
+    public void tryToSetValueWithNullJsonPointer() {
+        assertThatExceptionOfType(NullPointerException.class)
+                .isThrownBy(() -> underTest.set((CharSequence) null, cersei.getValue(), Objects::nonNull))
+                .withMessage("The %s must not be null!", "key or pointer char sequence")
+                .withNoCause();
+    }
+
+    @Test
+    public void tryToSetValueWithSlashString() {
+        assertThatExceptionOfType(IllegalArgumentException.class)
+                .isThrownBy(() -> underTest.set("/", eddard.getValue()))
+                .withMessage("The key or pointer must not be empty!")
+                .withNoCause();
+    }
+
+    @Test
+    public void setValueWithSlashAsJsonKey() {
+        final JsonKey key = JsonFactory.newKey("/");
+        final JsonField expected = JsonFactory.newField(key, cersei.getValue());
+
+        underTest.set(key, expected.getValue());
+
+        assertThat(underTest).containsOnly(expected);
+    }
+
     @Test
     public void doNotSetFieldIfPredicateEvaluatesToFalse() {
         underTest.set(pointer, jsonValueMock, jsonValue -> false);
@@ -125,7 +145,6 @@ public final class ImmutableJsonObjectBuilderTest {
         assertThat(underTest).isEmpty();
     }
 
-    /** */
     @Test
     public void doSetFieldIfPredicateEvaluatesToTrue() {
         final JsonField bazField = newField(bazKey, eddard.getValue());
@@ -137,12 +156,10 @@ public final class ImmutableJsonObjectBuilderTest {
         assertThat(underTest).containsExactly(expectedField);
     }
 
-    /** */
     @Test
     public void setWithJsonPointerWorksAsExpected1() {
         final JsonObject expectedJsonObject = ImmutableJsonObjectBuilder.newInstance()
-                .set(fooKey, ImmutableJsonObjectBuilder
-                        .newInstance()
+                .set(fooKey, ImmutableJsonObjectBuilder.newInstance()
                         .set(barKey, ImmutableJsonObjectBuilder.newInstance()
                                 .set(bazKey, ImmutableJsonObjectBuilder.newInstance()
                                         .set(hodor)
@@ -158,7 +175,6 @@ public final class ImmutableJsonObjectBuilderTest {
         assertThat(actualJsonObject).isEqualTo(expectedJsonObject);
     }
 
-    /** */
     @Test
     public void setWithJsonPointerWorksAsExpected2() {
         final JsonObject expectedJsonObject = ImmutableJsonObjectBuilder.newInstance()
@@ -180,7 +196,6 @@ public final class ImmutableJsonObjectBuilderTest {
         assertThat(actualJsonObject).isEqualTo(expectedJsonObject);
     }
 
-    /** */
     @Test
     public void setWithJsonPointerWorksAsExpected3() {
         final JsonObject expectedJsonObject = ImmutableJsonObjectBuilder.newInstance()
@@ -199,7 +214,6 @@ public final class ImmutableJsonObjectBuilderTest {
         assertThat(actualJsonObject).isEqualTo(expectedJsonObject);
     }
 
-    /** */
     @Test
     public void setWithJsonPointerWorksAsExpected4() {
         final JsonObject expectedJsonObject = ImmutableJsonObjectBuilder.newInstance()
@@ -220,7 +234,6 @@ public final class ImmutableJsonObjectBuilderTest {
         assertThat(actualJsonObject).isEqualTo(expectedJsonObject);
     }
 
-    /** */
     @Test
     public void setWithJsonPointerAndPredicateWorksAsExpected() {
         final JsonObject expectedJsonObject = JsonFactory.newObject();
@@ -232,7 +245,17 @@ public final class ImmutableJsonObjectBuilderTest {
         assertThat(actualJsonObject).isEqualTo(expectedJsonObject);
     }
 
-    /** */
+    @Test
+    public void tryToSetIntValueWithBooleanFieldDefinition() {
+        final int value = 42;
+        final JsonFieldDefinition definition = JsonFactory.newFieldDefinition(fooKey, boolean.class);
+
+        assertThatExceptionOfType(IllegalArgumentException.class)
+                .isThrownBy(() -> underTest.set(definition, value))
+                .withMessage("Type of value <%s> is not the expected <boolean>!", value)
+                .withNoCause();
+    }
+
     @Test
     public void removeWithJsonKeyWorksAsExpected() {
         final JsonObject expectedJsonObject = ImmutableJsonObjectBuilder.newInstance()
@@ -250,7 +273,6 @@ public final class ImmutableJsonObjectBuilderTest {
         assertThat(actualJsonObject).isEqualTo(expectedJsonObject);
     }
 
-    /** */
     @Test
     public void removeWithJsonPointerWorksAsExpected() {
         final JsonObject expectedJsonObject = ImmutableJsonObjectBuilder.newInstance()
@@ -274,7 +296,43 @@ public final class ImmutableJsonObjectBuilderTest {
         assertThat(actualJsonObject).isEqualTo(expectedJsonObject);
     }
 
-    /** */
+    @Test
+    public void removeWithEmptyStringDoesNothing() {
+        final JsonObjectBuilder underTest = ImmutableJsonObjectBuilder.newInstance()
+                .set(JsonFactory.newKey("/"), "Boo!")
+                .set(bazKey, john.getValue())
+                .set(barKey, ImmutableJsonObjectBuilder.newInstance()
+                        .set(robert)
+                        .build());
+
+        final JsonObject beforeRemoval = underTest.build();
+
+        underTest.remove("");
+
+        final JsonObject afterRemoval = underTest.build();
+
+        assertThat(afterRemoval).isEqualTo(beforeRemoval);
+    }
+
+    @Test
+    public void removeSlashOnlyKeyWorksAsExpected() {
+        final JsonKey key = JsonFactory.newKey("/");
+        final JsonObjectBuilder underTest = ImmutableJsonObjectBuilder.newInstance()
+                .set(key, "Boo!")
+                .set(bazKey, john.getValue())
+                .set(barKey, ImmutableJsonObjectBuilder.newInstance()
+                        .set(robert)
+                        .build());
+
+        final JsonObject beforeRemoval = underTest.build();
+
+        underTest.remove(key);
+
+        final JsonObject afterRemoval = underTest.build();
+
+        assertThat(afterRemoval).isEqualTo(beforeRemoval.remove(key));
+    }
+
     @Test
     public void removePreviouslyAddedObjectByPointer() {
         final JsonPointer pointer = JsonFactory.newPointer(fooKey, bazKey);
@@ -293,7 +351,6 @@ public final class ImmutableJsonObjectBuilderTest {
         assertThat(jsonObject.getValue(pointer)).isEmpty();
     }
 
-    /** */
     @Test
     public void setNestedObjectWithImplicitDefinition() {
         final JsonKey payloadKey = JsonFactory.newKey("payload");
@@ -318,10 +375,8 @@ public final class ImmutableJsonObjectBuilderTest {
         assertThat(actualJsonObject).isEqualToIgnoringFieldDefinitions(expectedJsonObject);
     }
 
-    /** */
     @Test
     public void setFieldsWithPartialExcludeBasedOnFieldDefinition() {
-        final JsonKey payloadKey = JsonFactory.newKey("payload");
         final JsonFieldDefinition fooDefinition = JsonFieldDefinition.newInstance(fooKey, String.class);
         final JsonFieldDefinition barDefinition = JsonFieldDefinition.newInstance(barKey, String.class);
         final JsonFieldDefinition bazDefinition = JsonFieldDefinition.newInstance(bazKey, String.class);
@@ -342,61 +397,16 @@ public final class ImmutableJsonObjectBuilderTest {
         assertThat(actualJsonObject).isEqualToIgnoringFieldDefinitions(expectedJsonObject);
     }
 
-//    /** */
-//    @Test
-//    public void ignoreFieldDefinitionsFromPreviouslySetFields() {
-//        final String payloadImplicitInclude = "payloadImplicitInclude";
-//        final String payloadExplicitInclude = "payloadExplicitInclude";
-//        final String payloadExplicitExclude = "payloadExplicitExclude";
-//
-//        final ImmutableJsonObjectBuilder jsonObjectBuilder = ImmutableJsonObjectBuilder.newInstance();
-//
-//        final JsonFieldDefinition implicitInclude = JsonFieldDefinition.newInstance(payloadImplicitInclude, JsonObject
-//                .class);
-//        final JsonFieldDefinition explicitInclude = JsonFieldDefinition.newInstance(payloadExplicitInclude, JsonObject
-//                .class);
-//        final JsonFieldDefinition explicitExclude = JsonFieldDefinition.newInstance(payloadExplicitExclude, JsonObject
-//                .class);
-//        jsonObjectBuilder.set(implicitInclude, JsonFactory.newObjectBuilder().build(), hasFieldDefinition(implicitInclude));
-//        jsonObjectBuilder.set(explicitInclude, JsonFactory.newObjectBuilder().build(), hasFieldDefinition(explicitInclude));
-//        jsonObjectBuilder.set(explicitExclude, JsonFactory.newObjectBuilder().build(), hasFieldDefinition(explicitExclude).negate());
-//
-//        //payloadExpliciteExclude is excluded by its field definition, thus not contained in the expected result
-//        final JsonObject expectedTopLevelObjects = JsonFactory.newObjectBuilder().set(payloadImplicitInclude, JsonFactory
-//                .newObject()).set(payloadExplicitInclude, JsonFactory.newObject()).build();
-//        assertThat(jsonObjectBuilder.build().toString()).isEqualTo(expectedTopLevelObjects.toString());
-//
-//        Stream.of(payloadImplicitInclude, payloadExplicitInclude, payloadExplicitExclude).forEach(payloadKey -> {
-//            final JsonFieldDefinition foo = JsonFieldDefinition.newInstance(payloadKey + "/foo", String.class);
-//            final JsonFieldDefinition bar = JsonFieldDefinition.newInstance(payloadKey + "/bar", String.class);
-//            final JsonFieldDefinition baz = JsonFieldDefinition.newInstance(payloadKey + "/baz", String.class);
-//
-//            jsonObjectBuilder.set(bar, "bar", hasFieldDefinition(bar));
-//            jsonObjectBuilder.set(baz, "baz", hasFieldDefinition(baz));
-//            // negate the "foo" field definition on purpose to exclude it from the result
-//            jsonObjectBuilder.set(foo, "foo", hasFieldDefinition(foo).negate());
-//        });
-//
-//        final JsonObject expectedInnerJsonObject = ImmutableJsonObjectBuilder.newInstance()
-//                .set("bar", "bar")
-//                .set("baz", "baz")
-//                .build();
-//        final JsonObject expectedJsonObject = ImmutableJsonObjectBuilder.newInstance()
-//                .set(payloadImplicitInclude, expectedInnerJsonObject)
-//                .set(payloadExplicitInclude, expectedInnerJsonObject)
-//                /*
-//                 * in the final result, we expect the payloadExplicitExclude element, because it has been directly
-//                 * set by means of lower-level fields.
-//                 */
-//                .set(payloadExplicitExclude, expectedInnerJsonObject)
-//                .build();
-//
-//        final JsonObject actualJsonObject = jsonObjectBuilder.build();
-//
-//        assertThat(actualJsonObject.toString()).isEqualTo(expectedJsonObject.toString());
-//    }
+    @Test
+    public void tryToSetBooleanWithDivergingValueType() {
+        final JsonFieldDefinition fieldDefinition = JsonFactory.newFieldDefinition(fooKey, int.class);
 
-    /** */
+        assertThatExceptionOfType(IllegalArgumentException.class)
+                .isThrownBy(() -> underTest.set(fieldDefinition, true))
+                .withMessage("Type of value <true> is not the expected <int>!")
+                .withNoCause();
+    }
+
     @Test
     public void setIntValueWithPredicateWhichEvaluatesToTrue() {
         final JsonKey intKey = JsonFactory.newKey("myIntValue");

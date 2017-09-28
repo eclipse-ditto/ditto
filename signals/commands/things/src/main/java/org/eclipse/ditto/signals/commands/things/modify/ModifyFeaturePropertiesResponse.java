@@ -177,7 +177,7 @@ public final class ModifyFeaturePropertiesResponse extends AbstractCommandRespon
     @Override
     public JsonPointer getResourcePath() {
         final String path = "/features/" + featureId + "/properties";
-        return JsonPointer.newInstance(path);
+        return JsonPointer.of(path);
     }
 
     @Override

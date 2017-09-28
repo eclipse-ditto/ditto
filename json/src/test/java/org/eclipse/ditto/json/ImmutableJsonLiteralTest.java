@@ -17,7 +17,6 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import java.lang.ref.SoftReference;
 
-import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -28,52 +27,69 @@ import nl.jqno.equalsverifier.Warning;
  */
 public final class ImmutableJsonLiteralTest {
 
-
     @Test
     public void assertImmutability() {
         assertInstancesOf(ImmutableJsonLiteral.class, areImmutable());
     }
-
 
     @Test
     public void testHashCodeAndEquals() {
         final SoftReference<JsonValue> red = new SoftReference<>(ImmutableJsonLiteral.TRUE);
         final SoftReference<JsonValue> black = new SoftReference<>(ImmutableJsonLiteral.FALSE);
 
-        EqualsVerifier.forClass(ImmutableJsonLiteral.class) //
-                .withIgnoredFields("stringRepresentation") //
-                .withRedefinedSuperclass() //
-                .withPrefabValues(SoftReference.class, red, black) //
-                .suppress(Warning.REFERENCE_EQUALITY) //
+        EqualsVerifier.forClass(ImmutableJsonLiteral.class)
+                .withIgnoredFields("stringRepresentation")
+                .withRedefinedSuperclass()
+                .withPrefabValues(SoftReference.class, red, black)
+                .suppress(Warning.REFERENCE_EQUALITY)
                 .verify();
     }
 
-
     @Test
     public void trueBehavesAsExpected() {
-        final JsonValue underTest = ImmutableJsonLiteral.TRUE;
+        final ImmutableJsonLiteral underTest = ImmutableJsonLiteral.TRUE;
 
-        DittoJsonAssertions.assertThat(underTest).isNotArray();
-        DittoJsonAssertions.assertThat(underTest).isBoolean();
-        DittoJsonAssertions.assertThat(underTest).isNotNullLiteral();
-        DittoJsonAssertions.assertThat(underTest).isNotNumber();
-        DittoJsonAssertions.assertThat(underTest).isNotObject();
-        DittoJsonAssertions.assertThat(underTest).isNotString();
+        assertThat(underTest).isNotArray();
+        assertThat(underTest).isBoolean();
+        assertThat(underTest).isNotNullLiteral();
+        assertThat(underTest).isNotNumber();
+        assertThat(underTest).isNotObject();
+        assertThat(underTest).isNotString();
         assertThat(underTest.toString()).isEqualTo("true");
     }
 
-
     @Test
     public void falseBehavesAsExpected() {
-        final JsonValue underTest = ImmutableJsonLiteral.FALSE;
+        final ImmutableJsonLiteral underTest = ImmutableJsonLiteral.FALSE;
 
-        DittoJsonAssertions.assertThat(underTest).isNotArray();
-        DittoJsonAssertions.assertThat(underTest).isBoolean();
-        DittoJsonAssertions.assertThat(underTest).isNotNullLiteral();
-        DittoJsonAssertions.assertThat(underTest).isNotNumber();
-        DittoJsonAssertions.assertThat(underTest).isNotObject();
-        DittoJsonAssertions.assertThat(underTest).isNotString();
+        assertThat(underTest).isNotArray();
+        assertThat(underTest).isBoolean();
+        assertThat(underTest).isNotNullLiteral();
+        assertThat(underTest).isNotNumber();
+        assertThat(underTest).isNotObject();
+        assertThat(underTest).isNotString();
         assertThat(underTest.toString()).isEqualTo("false");
+    }
+
+    @Test
+    public void jsonLiteralIsRepresentationOfJsonValue() {
+        final ImmutableJsonLiteral underTest = ImmutableJsonLiteral.FALSE;
+
+        assertThat(underTest.isRepresentationOfJavaType(JsonValue.class)).isTrue();
+    }
+
+    @Test
+    public void jsonLiteralIsRepresentationOfBoolean() {
+        final ImmutableJsonLiteral underTest = ImmutableJsonLiteral.FALSE;
+
+        assertThat(underTest.isRepresentationOfJavaType(boolean.class)).isTrue();
+    }
+
+    @Test
+    public void jsonLiteralIsNotRepresentationOfInt() {
+        final ImmutableJsonLiteral underTest = ImmutableJsonLiteral.FALSE;
+
+        assertThat(underTest.isRepresentationOfJavaType(int.class)).isFalse();
     }
 
 }

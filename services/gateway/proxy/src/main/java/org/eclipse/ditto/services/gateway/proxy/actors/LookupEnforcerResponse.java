@@ -33,7 +33,7 @@ public final class LookupEnforcerResponse {
     @Nullable private final CacheEntry cacheEntry;
     @Nullable private final Throwable error;
 
-    LookupEnforcerResponse(@Nullable final ActorRef enforcerRef,
+    public LookupEnforcerResponse(@Nullable final ActorRef enforcerRef,
             @Nullable final String shardId,
             final LookupContext<?> context,
             @Nullable final CacheEntry cacheEntry) {
@@ -41,7 +41,7 @@ public final class LookupEnforcerResponse {
         this(enforcerRef, shardId, context, cacheEntry, null);
     }
 
-    LookupEnforcerResponse(@Nullable final ActorRef enforcerRef,
+    public LookupEnforcerResponse(@Nullable final ActorRef enforcerRef,
             @Nullable final String shardId,
             final LookupContext<?> context,
             @Nullable final CacheEntry cacheEntry,
@@ -59,7 +59,7 @@ public final class LookupEnforcerResponse {
      *
      * @return Reference of the shard region.
      */
-    Optional<ActorRef> getEnforcerRef() {
+    public Optional<ActorRef> getEnforcerRef() {
         return Optional.ofNullable(enforcerRef);
     }
 
@@ -68,19 +68,19 @@ public final class LookupEnforcerResponse {
      *
      * @return ID of the enforcer actor within the shard region.
      */
-    Optional<String> getShardId() {
+    public Optional<String> getShardId() {
         return Optional.ofNullable(shardId);
     }
 
-    LookupContext<?> getContext() {
+    public LookupContext<?> getContext() {
         return context;
     }
 
-    Optional<CacheEntry> getCacheEntry() {
+    public Optional<CacheEntry> getCacheEntry() {
         return Optional.ofNullable(cacheEntry);
     }
 
-    Optional<Throwable> getError() {
+    public Optional<Throwable> getError() {
         return Optional.ofNullable(error);
     }
 

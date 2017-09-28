@@ -104,7 +104,7 @@ public interface JsonFieldDefinition {
      * @param fieldMarker the mandatory fieldMarker to check this definition for.
      * @param furtherFieldMarkers additional markers to check this definition for.
      * @return true if this definition is marked with at least all specified markers, {@code false} else.
-     * @throws NullPointerException if {@code fieldMarker} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      */
     boolean isMarkedAs(JsonFieldMarker fieldMarker, JsonFieldMarker... furtherFieldMarkers);
 

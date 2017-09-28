@@ -164,7 +164,7 @@ public final class ModifyResources extends AbstractCommand<ModifyResources>
     @Override
     public JsonPointer getResourcePath() {
         final String path = "/entries/" + label + "/resources";
-        return JsonPointer.newInstance(path);
+        return JsonPointer.of(path);
     }
 
     @Override

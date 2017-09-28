@@ -18,7 +18,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.List;
+import java.util.Collection;
 import java.util.UUID;
 
 import org.eclipse.ditto.json.JsonField;
@@ -33,7 +33,6 @@ import org.eclipse.ditto.model.policies.SubjectIssuer;
 import org.eclipse.ditto.model.policies.SubjectType;
 import org.eclipse.ditto.model.policies.TestConstants;
 
-
 public final class PolicyModelJsonExamplesProducer {
 
     public static void main(final String... args) throws IOException {
@@ -45,7 +44,7 @@ public final class PolicyModelJsonExamplesProducer {
     }
 
     private static void produce(final Path rootPath) throws IOException {
-        final List<AuthorizationSubject> authorizationSubjects = new ArrayList<>();
+        final Collection<AuthorizationSubject> authorizationSubjects = new ArrayList<>();
         authorizationSubjects.add(newAuthSubject("the_firstSubject"));
         authorizationSubjects.add(newAuthSubject("the_anotherSubject"));
         final AuthorizationContext authContext = AuthorizationModelFactory.newAuthContext(authorizationSubjects);
@@ -57,26 +56,25 @@ public final class PolicyModelJsonExamplesProducer {
         producePolicyModel(rootPath);
     }
 
-
     private static void producePolicyModel(final Path rootPath) throws IOException {
         final Path modelDir = rootPath.resolve(Paths.get("model"));
         Files.createDirectories(modelDir);
 
         final String policyId = "org.eclipse.ditto.example:the_thingId";
 
-        final Policy policy = PoliciesModelFactory.newPolicyBuilder(policyId) //
-                .forLabel("EndUser") //
+        final Policy policy = PoliciesModelFactory.newPolicyBuilder(policyId)
+                .forLabel("EndUser")
                 .setSubject(SubjectIssuer.GOOGLE_URL, UUID.randomUUID().toString(),
-                        SubjectType.JWT) //
+                        SubjectType.JWT)
                 .setGrantedPermissions("thing", "/",
                         TestConstants.Policy.PERMISSION_READ,
-                        TestConstants.Policy.PERMISSION_WRITE) //
+                        TestConstants.Policy.PERMISSION_WRITE)
                 .setRevokedPermissions("thing", "/attributes",
-                        TestConstants.Policy.PERMISSION_WRITE) //
-                .forLabel("Support") //
+                        TestConstants.Policy.PERMISSION_WRITE)
+                .forLabel("Support")
                 .setRevokedPermissions("thing", "/features",
                         TestConstants.Policy.PERMISSION_READ,
-                        TestConstants.Policy.PERMISSION_WRITE) //
+                        TestConstants.Policy.PERMISSION_WRITE)
                 .build();
         writeJson(modelDir.resolve(Paths.get("policy.json")), policy);
     }
@@ -91,4 +89,5 @@ public final class PolicyModelJsonExamplesProducer {
         System.out.println("Writing file: " + path.toAbsolutePath());
         Files.write(path, jsonString.getBytes());
     }
+
 }

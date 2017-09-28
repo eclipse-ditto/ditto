@@ -172,7 +172,7 @@ public final class ModifyAttributeResponse extends AbstractCommandResponse<Modif
     @Override
     public JsonPointer getResourcePath() {
         final String path = "/attributes" + attributePointer;
-        return JsonPointer.newInstance(path);
+        return JsonPointer.of(path);
     }
 
     @Override

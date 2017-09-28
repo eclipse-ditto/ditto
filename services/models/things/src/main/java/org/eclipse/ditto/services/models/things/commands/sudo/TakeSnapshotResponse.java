@@ -116,7 +116,7 @@ public final class TakeSnapshotResponse extends AbstractCommandResponse<TakeSnap
 
     @Override
     public JsonValue getEntity(final JsonSchemaVersion schemaVersion) {
-        return JsonValue.newInstance(snapshotRevision);
+        return JsonValue.of(snapshotRevision);
     }
 
     @Override

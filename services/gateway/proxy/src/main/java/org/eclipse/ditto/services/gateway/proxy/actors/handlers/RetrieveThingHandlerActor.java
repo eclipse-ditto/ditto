@@ -79,8 +79,8 @@ public class RetrieveThingHandlerActor extends AbstractActor {
      * @param enforcerShard Reference to the shard region actor containing the enforcer for this command, or null if it
      * does not exist.
      * @param enforcerId ID of the enforcer actor within the shard for this command.
-     * @param aclEnforcerShard The shard region of ACL enforcer actors. Not used but kept to conform to the
-     * functional interface {@link ThingHandlerCreator}
+     * @param aclEnforcerShard The shard region of ACL enforcer actors. Not used but kept to conform to the functional
+     * interface {@link ThingHandlerCreator}
      * @param policyEnforcerShard The shard region of policy enforcer actors. Not used but kept to conform to the
      * functional interface {@link ThingHandlerCreator}
      * @return the Akka configuration Props object.
@@ -105,7 +105,10 @@ public class RetrieveThingHandlerActor extends AbstractActor {
         }
 
         return command.getSelectedFields().isPresent() &&
-                command.getSelectedFields().get().getPointers().contains(JsonPointer.newInstance("/_policy"));
+                command.getSelectedFields()
+                        .get()
+                        .getPointers()
+                        .contains(JsonPointer.of("/" + Policy.INLINED_FIELD_NAME));
     }
 
     @Override
@@ -200,9 +203,10 @@ public class RetrieveThingHandlerActor extends AbstractActor {
 
     private void sendResponse(final RetrieveThing command, final ActorRef requester) {
         final Optional<JsonFieldSelector> selectedFields = command.getSelectedFields();
-        final JsonObject thingWithPolicy = JsonFactory.newObject()
+        final JsonObject thingWithPolicy = JsonFactory.newObjectBuilder()
                 .setAll(thing.toJson(command.getImplementedSchemaVersion(), selectedFields.get()))
-                .setValue("_policy", policy.toJson(command.getImplementedSchemaVersion()));
+                .setAll(policy.toInlinedJson(command.getImplementedSchemaVersion(), FieldType.notHidden()))
+                .build();
 
         requester.tell(RetrieveThingResponse.of(command.getThingId(), thingWithPolicy, command.getDittoHeaders()),
                 getSelf());

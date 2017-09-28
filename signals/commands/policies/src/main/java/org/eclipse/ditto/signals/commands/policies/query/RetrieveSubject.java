@@ -161,7 +161,7 @@ public final class RetrieveSubject extends AbstractCommand<RetrieveSubject>
     @Override
     public JsonPointer getResourcePath() {
         final String path = "/entries/" + label + "/subjects/" + subjectId;
-        return JsonPointer.newInstance(path);
+        return JsonPointer.of(path);
     }
 
     @Override

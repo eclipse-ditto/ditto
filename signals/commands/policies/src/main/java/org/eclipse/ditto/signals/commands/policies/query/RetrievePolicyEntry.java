@@ -139,7 +139,7 @@ public final class RetrievePolicyEntry extends AbstractCommand<RetrievePolicyEnt
     @Override
     public JsonPointer getResourcePath() {
         final String path = "/entries/" + label;
-        return JsonPointer.newInstance(path);
+        return JsonPointer.of(path);
     }
 
     @Override

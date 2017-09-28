@@ -64,10 +64,6 @@ public final class JsonFactory {
      * @throws IllegalArgumentException if {@code keyValue} is empty.
      */
     public static JsonKey newKey(final CharSequence keyValue) {
-        // JsonKey is also CharSequence thus object creation can be spared maybe?
-        if (JsonKey.class.isAssignableFrom(keyValue.getClass())) {
-            return (JsonKey) keyValue;
-        }
         return ImmutableJsonKey.of(keyValue);
     }
 
@@ -130,7 +126,7 @@ public final class JsonFactory {
      * @throws IllegalArgumentException if {@code jsonString} is empty.
      * @see #nullLiteral()
      */
-    public static JsonValue newValue(final String jsonString) {
+    public static JsonValue newValue(@Nullable final String jsonString) {
         final JsonValue result;
 
         if (null != jsonString) {
@@ -197,9 +193,9 @@ public final class JsonFactory {
             return Json.parse(reader);
         }
         catch (final ParseException | IOException | StackOverflowError e) {
-            throw JsonParseException.newBuilder() //
-                    .message("Failed to parse JSON from reader!") //
-                    .cause(e) //
+            throw JsonParseException.newBuilder()
+                    .message("Failed to parse JSON from reader!")
+                    .cause(e)
                     .build();
         }
     }
@@ -271,9 +267,7 @@ public final class JsonFactory {
      */
     public static JsonObject newObject(final Map<JsonKey, JsonValue> fields) {
         final Map<String, JsonField> jsonFields = new LinkedHashMap<>(fields.size());
-        fields.forEach(((jsonKey, jsonValue) -> {
-            jsonFields.put(jsonKey.toString(), newField(jsonKey, jsonValue));
-        }));
+        fields.forEach(((jsonKey, jsonValue) -> jsonFields.put(jsonKey.toString(), newField(jsonKey, jsonValue))));
         return ImmutableJsonObject.of(jsonFields);
     }
 
@@ -292,9 +286,9 @@ public final class JsonFactory {
             return parsedJsonString.asObject();
         }
         catch (final ParseException | UnsupportedOperationException | StackOverflowError e) {
-            throw JsonParseException.newBuilder() //
-                    .message("Failed to create JSON object from string!") //
-                    .cause(e) //
+            throw JsonParseException.newBuilder()
+                    .message("Failed to create JSON object from string!")
+                    .cause(e)
                     .build();
         }
     }
@@ -370,9 +364,9 @@ public final class JsonFactory {
             return parsedJsonString.asArray();
         }
         catch (final ParseException | UnsupportedOperationException | StackOverflowError e) {
-            throw JsonParseException.newBuilder() //
-                    .message("Failed to create JSON array from string!") //
-                    .cause(e) //
+            throw JsonParseException.newBuilder()
+                    .message("Failed to create JSON array from string!")
+                    .cause(e)
                     .build();
         }
     }
@@ -404,8 +398,8 @@ public final class JsonFactory {
      * @return a new JSON field containing the specified key value pair.
      * @throws NullPointerException if {@code key} is null;
      */
-    public static JsonField newField(final JsonKey key, final JsonValue value) {
-        return ImmutableJsonField.of(key, (null != value) ? value : NULL_LITERAL);
+    public static JsonField newField(final JsonKey key, @Nullable final JsonValue value) {
+        return ImmutableJsonField.newInstance(key, (null != value) ? value : NULL_LITERAL);
     }
 
     /**
@@ -417,10 +411,10 @@ public final class JsonFactory {
      * @return a new JSON field containing the specified key value pair and definition.
      * @throws NullPointerException if {@code key} is {@code null}.
      */
-    public static JsonField newField(final JsonKey key, final JsonValue value,
+    public static JsonField newField(final JsonKey key, @Nullable final JsonValue value,
             @Nullable final JsonFieldDefinition definition) {
 
-        return ImmutableJsonField.of(key, (null != value) ? value : NULL_LITERAL, definition);
+        return ImmutableJsonField.newInstance(key, (null != value) ? value : NULL_LITERAL, definition);
     }
 
     /**
@@ -433,8 +427,9 @@ public final class JsonFactory {
      * @throws NullPointerException if {@code operation} or {@code path} is {@code null}.
      */
     public static JsonPatch newPatch(final JsonPatch.Operation operation, final JsonPointer path,
-            final JsonValue value) {
-        return ImmutableJsonPatch.of(operation, path, value);
+            @Nullable final JsonValue value) {
+
+        return ImmutableJsonPatch.newInstance(operation, path, value);
     }
 
     /**
@@ -445,6 +440,8 @@ public final class JsonFactory {
      * @throws NullPointerException if {@code jsonString} is {@code null}.
      * @throws IllegalArgumentException if {@code jsonString} is empty.
      * @throws JsonParseException if {@code jsonString} does not contain a valid JSON Patch JSON object.
+     * @throws JsonMissingFieldException if {@code jsonString} did not contain {@link JsonPatch.JsonFields#OPERATION} or
+     * {@link JsonPatch.JsonFields#PATH}.
      */
     public static JsonPatch newPatch(final String jsonString) {
         return ImmutableJsonPatch.fromJson(jsonString);
@@ -460,19 +457,6 @@ public final class JsonFactory {
     }
 
     /**
-     * Parses the given string to obtain a new JSON pointer. This method is the inverse of {@link
-     * JsonPointer#toString()} .
-     *
-     * @param slashDelimitedCharSequence a string representing a JSON pointer.
-     * @return a new JSON pointer consisting of the JSON keys which were extracted from {@code
-     * slashDelimitedCharSequence}.
-     * @throws NullPointerException if {@code slashDelimitedCharSequence} is {@code null}.
-     */
-    public static JsonPointer newPointer(final CharSequence slashDelimitedCharSequence) {
-        return ImmutableJsonPointer.ofParsed(slashDelimitedCharSequence);
-    }
-
-    /**
      * Returns a new JSON pointer which consist of the specified hierarchical keys..
      *
      * @param rootLevel the JSON key which is the root level of the JSON pointer to create.
@@ -482,6 +466,30 @@ public final class JsonFactory {
      */
     public static JsonPointer newPointer(final JsonKey rootLevel, final JsonKey... subLevels) {
         return ImmutableJsonPointer.of(rootLevel, subLevels);
+    }
+
+    /**
+     * Parses the given string to obtain a new JSON pointer. This method is the inverse of
+     * {@link JsonPointer#toString()} with one exception: both strings {@code "/"} and {@code ""} lead to an empty
+     * pointer while the string representation of an empty string is always {@code "/"}.
+     * <p>
+     * As a JsonPointer is a hierarchy of JsonKeys it has to support JsonKeys containing slashes. Because of this, a
+     * JsonPointer string has to escape each slash of a JsonKey with {@code "~1"}. To support, tildes in JsonKeys,
+     * too, they have to be escaped with {@code "~0"}. For example, parsing the string
+     * {@code "/foo/~0dum~1~0die~1~0dum/baz"} would result in a JsonPointer consisting of the JsonKeys
+     * <ol>
+     *     <li>{@code "foo"},</li>
+     *     <li>{@code "~dum/~die/~dum"} and</li>
+     *     <li>{@code "baz"}.</li>
+     * </ol>
+     *
+     * @param slashDelimitedCharSequence a string representing a JSON pointer.
+     * @return a new JSON pointer consisting of the JSON keys which were extracted from {@code
+     * slashDelimitedCharSequence}.
+     * @throws NullPointerException if {@code slashDelimitedCharSequence} is {@code null}.
+     */
+    public static JsonPointer newPointer(final CharSequence slashDelimitedCharSequence) {
+        return ImmutableJsonPointer.ofParsed(slashDelimitedCharSequence);
     }
 
     /**
@@ -525,13 +533,14 @@ public final class JsonFactory {
      * @param fieldSelectorString string to be transformed into a JSON field selector object.
      * @param options the JsonParseOptions to apply when parsing the {@code fieldSelectorString}.
      * @return a new JSON field selector.
-     * @throws NullPointerException if {@code fieldSelectorString} is {@code null}.
      * @throws JsonFieldSelectorInvalidException if {@code fieldSelectorString} is empty or if {@code
      * fieldSelectorString} does not contain a closing parenthesis ({@code )}) for each opening parenthesis ({@code
      * (}).
      * @throws IllegalStateException if {@code fieldSelectorString} cannot be decoded as UTF-8.
      */
-    public static JsonFieldSelector newFieldSelector(final String fieldSelectorString, final JsonParseOptions options) {
+    public static JsonFieldSelector newFieldSelector(@Nullable final String fieldSelectorString,
+            final JsonParseOptions options) {
+
         final JsonFieldSelector result;
 
         if (null == fieldSelectorString || fieldSelectorString.isEmpty()) {
@@ -588,14 +597,15 @@ public final class JsonFactory {
      * @return a new JSON field selector.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static JsonFieldSelector newFieldSelector(final String pointerString,
-            final String... furtherPointerStrings) {
+    public static JsonFieldSelector newFieldSelector(final CharSequence pointerString,
+            final CharSequence... furtherPointerStrings) {
+
         requireNonNull(pointerString, "The JSON pointer string must not be null!");
         requireNonNull(furtherPointerStrings, "The optional JSON keys must not be null!");
 
         final Collection<JsonPointer> jsonPointers = new LinkedHashSet<>(1 + furtherPointerStrings.length);
         jsonPointers.add(newPointer(pointerString));
-        for (final String furtherPointerString : furtherPointerStrings) {
+        for (final CharSequence furtherPointerString : furtherPointerStrings) {
             jsonPointers.add(newPointer(furtherPointerString));
         }
 
@@ -612,6 +622,7 @@ public final class JsonFactory {
      */
     public static JsonFieldSelector newFieldSelector(final JsonFieldDefinition fieldDefinition,
             final JsonFieldDefinition... furtherFieldDefinitions) {
+
         requireNonNull(fieldDefinition, "The JSON field definition must not be null!");
         requireNonNull(furtherFieldDefinitions, "The optional JSON field definitions must not be null!");
 
@@ -646,70 +657,8 @@ public final class JsonFactory {
      * @see #newFieldDefinition(JsonPointer, Class, Set)
      */
     public static JsonFieldDefinition newFieldDefinition(final CharSequence pointer, final Class<?> valueType,
-            final JsonFieldMarker... markers) {
-        return newFieldDefinition(newPointer(pointer), valueType, markers);
-    }
+            @Nullable final JsonFieldMarker... markers) {
 
-    /**
-     * Returns a new JSON field definition which is based on the given arguments.
-     *
-     * @param pointer a character sequence consisting of either a single JSON key or a slash delimited hierarchy of JSON
-     * keys aka JSON pointer.
-     * @param valueType the type of the value of the defined JSON field.
-     * @param markers an optional array of markers which add user defined semantics to the defined JSON field.
-     * @return the new JSON field definition.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @throws IllegalArgumentException if {@code pointer} is empty.
-     * @see #newFieldDefinition(JsonPointer, Class, Set)
-     */
-    public static JsonFieldDefinition newFieldDefinition(final CharSequence pointer, final Class<?> valueType,
-            final Set<JsonFieldMarker> markers) {
-        return newFieldDefinition(newPointer(pointer), valueType, markers);
-    }
-
-    /**
-     * Returns a new JSON field definition which is based on the given arguments.
-     *
-     * @param key the key of the defined JSON field.
-     * @param valueType the type of the value of the defined JSON field.
-     * @param markers an optional array of markers which add user defined semantics to the defined JSON field.
-     * @return the new JSON field definition.
-     * @throws NullPointerException if any argument but {@code markers} is {@code null}.
-     * @see #newFieldDefinition(JsonPointer, Class, Set)
-     */
-    public static JsonFieldDefinition newFieldDefinition(final JsonKey key, final Class<?> valueType,
-            final JsonFieldMarker... markers) {
-        return newFieldDefinition(newPointer(key), valueType, markers);
-    }
-
-    /**
-     * Returns a new JSON field definition which is based on the given arguments.
-     *
-     * @param key the key of the defined JSON field.
-     * @param valueType the type of the value of the defined JSON field.
-     * @param markers an optional array of markers which add user defined semantics to the defined JSON field.
-     * @return the new JSON field definition.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @see #newFieldDefinition(JsonPointer, Class, Set)
-     */
-    public static JsonFieldDefinition newFieldDefinition(final JsonKey key, final Class<?> valueType,
-            final Set<JsonFieldMarker> markers) {
-        return newFieldDefinition(newPointer(key), valueType, markers);
-    }
-
-    /**
-     * Returns a new JSON field definition which is based on the given arguments.
-     *
-     * @param pointer a character sequence consisting of either a single JSON key or a slash delimited hierarchy of JSON
-     * keys aka JSON pointer.
-     * @param valueType the type of the value of the defined JSON field.
-     * @param markers an optional array of markers which add user defined semantics to the defined JSON field.
-     * @return the new JSON field definition.
-     * @throws NullPointerException if any argument but {@code markers} is {@code null}.
-     * @see #newFieldDefinition(JsonPointer, Class, Set)
-     */
-    public static JsonFieldDefinition newFieldDefinition(final JsonPointer pointer, final Class<?> valueType,
-            final JsonFieldMarker... markers) {
         final Set<JsonFieldMarker> jsonFieldMarkers;
         if (null != markers) {
             jsonFieldMarkers = new HashSet<>(markers.length);
@@ -729,22 +678,29 @@ public final class JsonFactory {
      * @param markers an optional array of markers which add user defined semantics to the defined JSON field.
      * @return the new JSON field definition.
      * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code pointer} is empty.
+     * @see #newFieldDefinition(JsonPointer, Class, Set)
      */
-    public static JsonFieldDefinition newFieldDefinition(final JsonPointer pointer, final Class<?> valueType,
+    public static JsonFieldDefinition newFieldDefinition(final CharSequence pointer, final Class<?> valueType,
             final Set<JsonFieldMarker> markers) {
-        return ImmutableJsonFieldDefinition.of(pointer, valueType, markers);
+
+        return newFieldDefinition(newPointer(pointer), valueType, markers);
     }
 
     /**
-     * Parses the specified CharSequence to a {@link JsonIndex} which in turn provides either a {@link JsonKey} or
-     * {@link JsonPointer}.
+     * Returns a new JSON field definition which is based on the given arguments.
      *
-     * @param indexValue the char sequence to be parsed.
-     * @return the new JSON index.
-     * @throws NullPointerException if {@code indexValue} is {@code null}.
+     * @param pointer a character sequence consisting of either a single JSON key or a slash delimited hierarchy of JSON
+     * keys aka JSON pointer.
+     * @param valueType the type of the value of the defined JSON field.
+     * @param markers an optional array of markers which add user defined semantics to the defined JSON field.
+     * @return the new JSON field definition.
+     * @throws NullPointerException if any argument is {@code null}.
      */
-    static JsonIndex newIndex(final CharSequence indexValue) {
-        return ImmutableJsonIndex.of(indexValue);
+    public static JsonFieldDefinition newFieldDefinition(final JsonPointer pointer, final Class<?> valueType,
+            final Set<JsonFieldMarker> markers) {
+
+        return ImmutableJsonFieldDefinition.of(pointer, valueType, markers);
     }
 
     /**
@@ -758,7 +714,8 @@ public final class JsonFactory {
      */
     @SuppressWarnings({"squid:MethodCyclomaticComplexity",
             "checkstyle:com.puppycrawl.tools.checkstyle.checks.metrics.CyclomaticComplexityCheck"})
-    static JsonValue convert(final com.eclipsesource.json.JsonValue minimalJsonValue) {
+    @Nullable
+    static JsonValue convert(@Nullable final com.eclipsesource.json.JsonValue minimalJsonValue) {
         final JsonValue result;
 
         if (null == minimalJsonValue) {
@@ -795,7 +752,8 @@ public final class JsonFactory {
      */
     @SuppressWarnings({"checkstyle:com.puppycrawl.tools.checkstyle.checks.metrics.CyclomaticComplexityCheck",
             "squid:MethodCyclomaticComplexity"})
-    static com.eclipsesource.json.JsonValue convert(final JsonValue jsonValue) {
+    @Nullable
+    static com.eclipsesource.json.JsonValue convert(@Nullable final JsonValue jsonValue) {
         final com.eclipsesource.json.JsonValue result;
 
         if (null == jsonValue) {
@@ -825,6 +783,40 @@ public final class JsonFactory {
         }
 
         return result;
+    }
+
+    /**
+     * Converts the specified char sequence to a {@link JsonPointer} which is guaranteed to be not empty.
+     * @param keyOrPointer a string representation of a JSON pointer or a JsonKey.
+     * @return the pointer.
+     * @throws NullPointerException if {@code keyOrPointer} is {@code null}.
+     * @throws IllegalArgumentException if {@code keyOrPointer} would lead to an empty JsonPointer.
+     */
+    static JsonPointer getNonEmptyPointer(final CharSequence keyOrPointer) {
+        requireNonNull(keyOrPointer, "The key or pointer char sequence must not be null!");
+
+        final JsonPointer result;
+
+        if (isPointer(keyOrPointer)) {
+            result = JsonFactory.newPointer(keyOrPointer);
+        } else {
+            final JsonKey jsonKey = JsonFactory.newKey(keyOrPointer);
+            result = jsonKey.asPointer();
+        }
+        if (result.isEmpty()) {
+            throw new IllegalArgumentException("The key or pointer must not be empty!");
+        }
+
+        return result;
+    }
+
+    private static boolean isPointer(@Nullable final CharSequence charSequence) {
+        return null != charSequence &&
+                !JsonKey.class.isAssignableFrom(charSequence.getClass()) &&
+                (JsonPointer.class.isAssignableFrom(charSequence.getClass()) ||
+                        (0 == charSequence.length()) ||
+                        ('/' == charSequence.charAt(0))
+                );
     }
 
 }

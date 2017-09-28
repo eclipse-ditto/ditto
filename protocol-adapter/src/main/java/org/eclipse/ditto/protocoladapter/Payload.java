@@ -11,10 +11,9 @@
  */
 package org.eclipse.ditto.protocoladapter;
 
-import static org.eclipse.ditto.json.JsonFactory.newFieldDefinition;
-
 import java.util.Optional;
 
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
@@ -92,27 +91,27 @@ public interface Payload extends Jsonifiable<JsonObject> {
         /**
          * JSON field containing the path.
          */
-        static final JsonFieldDefinition PATH = newFieldDefinition("path", JsonPointer.class);
+        static final JsonFieldDefinition PATH = JsonFactory.newFieldDefinition("path", String.class);
 
         /**
          * JSON field containing the value.
          */
-        static final JsonFieldDefinition VALUE = newFieldDefinition("value", JsonValue.class);
+        static final JsonFieldDefinition VALUE = JsonFactory.newFieldDefinition("value", JsonValue.class);
 
         /**
          * JSON field containing the status.
          */
-        static final JsonFieldDefinition STATUS = newFieldDefinition("status", int.class);
+        static final JsonFieldDefinition STATUS = JsonFactory.newFieldDefinition("status", int.class);
 
         /**
          * JSON field containing the revision.
          */
-        static final JsonFieldDefinition REVISION = newFieldDefinition("revision", long.class);
+        static final JsonFieldDefinition REVISION = JsonFactory.newFieldDefinition("revision", long.class);
 
         /**
          * JSON field containing the fields.
          */
-        static final JsonFieldDefinition FIELDS = newFieldDefinition("fields", String.class);
+        static final JsonFieldDefinition FIELDS = JsonFactory.newFieldDefinition("fields", String.class);
 
         private JsonFields() {
             throw new AssertionError();

@@ -37,7 +37,7 @@ import javax.annotation.concurrent.Immutable;
 @Immutable
 final class ImmutableJsonObject extends AbstractImmutableJsonValue implements JsonObject {
 
-    private static final JsonKey ROOT_KEY = JsonKey.newInstance("/");
+    private static final JsonKey ROOT_KEY = JsonFactory.newKey("/");
 
     private final Map<String, JsonField> fields;
 
@@ -102,37 +102,15 @@ final class ImmutableJsonObject extends AbstractImmutableJsonValue implements Js
 
     @Override
     public JsonObject setValue(final CharSequence key, final JsonValue value) {
-        checkKey(key);
+        final JsonPointer pointer = JsonFactory.getNonEmptyPointer(key);
+        final JsonKey leafKey = pointer.getLeaf().orElse(ROOT_KEY);
+        final Optional<JsonFieldDefinition> keyDefinition = getDefinitionForKey(leafKey);
 
-        JsonObject result = this;
-
-        final JsonIndex jsonIndex = JsonFactory.newIndex(key);
-        if (jsonIndex.isPointer()) {
-            final JsonPointer pointer = jsonIndex.asPointer();
-            final JsonKey leafKey = pointer.getLeaf().orElse(ROOT_KEY);
-            final Optional<JsonFieldDefinition> keyDefinition = getDefinitionForKey(leafKey);
-            result = setFieldInHierarchy(this, pointer,
-                    JsonFactory.newField(leafKey, value, keyDefinition.orElse(null)));
-        } else {
-            final Optional<JsonFieldDefinition> keyDefinition = getDefinitionForKey(jsonIndex.asKey());
-            final JsonField fieldToBeAdded = JsonFactory.newField(jsonIndex.asKey(), value, keyDefinition.orElse(null));
-            final JsonField existingJsonField = fields.get(key.toString());
-            if (!fieldToBeAdded.equals(existingJsonField)) {
-                final Map<String, JsonField> fieldsCopy = copyFields();
-                fieldsCopy.put(key.toString(), fieldToBeAdded);
-                result = new ImmutableJsonObject(fieldsCopy);
-            }
-        }
-
-        return result;
+        return setFieldInHierarchy(this, pointer, JsonFactory.newField(leafKey, value, keyDefinition.orElse(null)));
     }
 
-    private static void checkKey(final CharSequence name) {
-        final String pattern = "The key of the value to set, get or remove must not be {0}!";
-        requireNonNull(name, MessageFormat.format(pattern, "null"));
-        if (0 == name.length()) {
-            throw new IllegalArgumentException(MessageFormat.format(pattern, "empty"));
-        }
+    private Optional<JsonFieldDefinition> getDefinitionForKey(final CharSequence key) {
+        return getField(key).flatMap(JsonField::getDefinition);
     }
 
     @Override
@@ -212,29 +190,25 @@ final class ImmutableJsonObject extends AbstractImmutableJsonValue implements Js
 
     @Override
     public boolean contains(final CharSequence key) {
-        requireNonNull(key, "The key to check the existence of a value for must not be null!");
+        requireNonNull(key, "The key or pointer to check the existence of a value for must not be null!");
 
         final boolean result;
 
-        final JsonIndex jsonIndex = JsonFactory.newIndex(key);
-        if (jsonIndex.isPointer()) {
-            final JsonPointer pointer = jsonIndex.asPointer();
-            final JsonKey rootKey = pointer.getRoot().orElse(ROOT_KEY);
-            if (1 >= pointer.getLevelCount()) {
-                result = containsKey(rootKey);
-            } else {
-                result = getValueForKey(rootKey)
-                        .map(jsonValue -> !jsonValue.isObject() ||
-                                jsonValue.asObject().contains(pointer.nextLevel()) // Recursion
-                        )
-                        .orElse(false);
-            }
+        final JsonPointer pointer = JsonFactory.newPointer(key);
 
+        if (1 >= pointer.getLevelCount()) {
+            result = pointer.getRoot().map(this::containsKey).orElse(false);
         } else {
-            result = containsKey(key);
+            result = pointer.getRoot()
+                    .flatMap(this::getValueForKey)
+                    .map(jsonValue -> !jsonValue.isObject() || jsonValue.asObject().contains(pointer.nextLevel())) // Recursion
+                    .orElse(false);
         }
 
         return result;
+    }
+    private boolean containsKey(final CharSequence key) {
+        return fields.containsKey(key.toString());
     }
 
     private Optional<JsonValue> getValueForKey(final CharSequence key) {
@@ -242,34 +216,17 @@ final class ImmutableJsonObject extends AbstractImmutableJsonValue implements Js
         return null != jsonField ? Optional.of(jsonField.getValue()) : Optional.empty();
     }
 
-    private Optional<JsonFieldDefinition> getDefinitionForKey(final CharSequence key) {
-        final JsonField jsonField = fields.get(key.toString());
-        return null != jsonField ? jsonField.getDefinition() : Optional.empty();
-    }
-
     @Override
     public Optional<JsonValue> getValue(final CharSequence key) {
-        checkKey(key);
-
-        return getValueForIndex(JsonFactory.newIndex(key));
-    }
-
-    private Optional<JsonValue> getValueForIndex(final JsonIndex index) {
-        if (index.isPointer()) {
-            return getValueForPointer(index.asPointer());
-        }
-        final JsonField jsonField = fields.get(index.toString());
-        if (null != jsonField) {
-            return Optional.of(jsonField.getValue());
-        }
-        return Optional.empty();
+        requireNonNull(key, "The key or pointer of the value to be retrieved must not be null!");
+        return getValueForPointer(JsonFactory.newPointer(key));
     }
 
     private Optional<JsonValue> getValueForPointer(final JsonPointer pointer) {
         final Optional<JsonValue> result;
 
         final JsonKey rootKey = pointer.getRoot().orElse(ROOT_KEY);
-        if (pointer.isEmpty() || 1 == pointer.getLevelCount()) {
+        if (1 >= pointer.getLevelCount()) {
             // same as getting a value for a key
             result = getValueForKey(rootKey);
         } else {
@@ -305,12 +262,16 @@ final class ImmutableJsonObject extends AbstractImmutableJsonValue implements Js
     public JsonObject get(final JsonPointer pointer) {
         checkPointer(pointer);
 
+        if (pointer.isEmpty()) {
+            return this;
+        }
+
         final JsonObject result;
 
         final JsonKey rootKey = pointer.getRoot().orElse(ROOT_KEY);
         final Optional<JsonValue> rootKeyValue = getValueForKey(rootKey);
         final Optional<JsonFieldDefinition> rootKeyDefinition = getDefinitionForKey(rootKey);
-        if (pointer.isEmpty() || 1 == pointer.getLevelCount()) {
+        if (1 >= pointer.getLevelCount()) {
             result = rootKeyValue.map(
                     jsonValue -> JsonFactory.newField(rootKey, jsonValue, rootKeyDefinition.orElse(null)))
                     .map(jsonField -> Collections.singletonMap(jsonField.getKeyName(), jsonField))
@@ -342,10 +303,6 @@ final class ImmutableJsonObject extends AbstractImmutableJsonValue implements Js
         }
 
         return result;
-    }
-
-    private boolean containsKey(final CharSequence key) {
-        return fields.containsKey(key.toString());
     }
 
     @Override
@@ -405,17 +362,9 @@ final class ImmutableJsonObject extends AbstractImmutableJsonValue implements Js
     }
 
     @Override
-    public JsonObject remove(final CharSequence index) {
-        checkKey(index);
-
-        return removeForIndex(JsonFactory.newIndex(index));
-    }
-
-    private JsonObject removeForIndex(final JsonIndex index) {
-        if (index.isPointer()) {
-            return removeForPointer(index.asPointer());
-        }
-        return removeValueForKey(index);
+    public JsonObject remove(final CharSequence key) {
+        requireNonNull(key, "The key or pointer of the field to be removed must not be null!");
+        return removeForPointer(JsonFactory.newPointer(key));
     }
 
     private JsonObject removeForPointer(final JsonPointer pointer) {
@@ -431,8 +380,8 @@ final class ImmutableJsonObject extends AbstractImmutableJsonValue implements Js
             final JsonPointer nextPointerLevel = pointer.nextLevel();
 
             final Predicate<JsonObject> containsNextLevelRootKey = jsonObject -> nextPointerLevel.getRoot()
-                    .filter(jsonObject::contains)
-                    .isPresent();
+                    .map(jsonObject::contains)
+                    .orElse(false);
 
             result = getValueForKey(rootKey)
                     .filter(JsonValue::isObject)
@@ -461,47 +410,32 @@ final class ImmutableJsonObject extends AbstractImmutableJsonValue implements Js
 
     @Override
     public List<JsonKey> getKeys() {
-        final List<JsonKey> keys = getKeysAsStream()
+        final List<JsonKey> keys = fields.values()
+                .stream()
+                .map(JsonField::getKey)
                 .collect(Collectors.toList());
 
         return Collections.unmodifiableList(keys);
     }
 
     @Override
-    public Optional<JsonField> getField(final CharSequence index) {
-        checkKey(index);
+    public Optional<JsonField> getField(final CharSequence key) {
+        requireNonNull(key, "The key or pointer of the field to be retrieved must not be null!");
 
-        final Optional<JsonField> result;
-        final JsonIndex jsonIndex = JsonFactory.newIndex(index);
-        if (jsonIndex.isPointer()) {
-            result = getField(jsonIndex.asPointer());
-        } else {
-            result = getFieldForKey(index);
-        }
+        final JsonPointer pointer = JsonFactory.newPointer(key);
 
-        return result;
-    }
+        Optional<JsonField> result = pointer.getRoot()
+                .map(JsonKey::toString)
+                .map(fields::get);
 
-    private Optional<JsonField> getField(final JsonPointer pointer) {
-        final Optional<JsonField> result;
-
-        final JsonKey rootKey = pointer.getRoot().orElse(ROOT_KEY);
-        if (1 >= pointer.getLevelCount()) {
-            // same as getting a field for a key
-            result = getFieldForKey(rootKey);
-        } else {
-            result = getFieldForKey(rootKey)
-                    .map(JsonField::getValue)
+        if (1 < pointer.getLevelCount()) {
+            result = result.map(JsonField::getValue)
                     .filter(JsonValue::isObject)
                     .map(JsonValue::asObject)
-                    .flatMap(jsonObject -> jsonObject.getField(pointer.nextLevel()));
+                    .flatMap(jsonObject -> jsonObject.getField(pointer.nextLevel())); // Recursion
         }
 
         return result;
-    }
-
-    private Optional<JsonField> getFieldForKey(final CharSequence key) {
-        return Optional.ofNullable(fields.get(key.toString()));
     }
 
     @Override
@@ -558,18 +492,12 @@ final class ImmutableJsonObject extends AbstractImmutableJsonValue implements Js
         }
         final ImmutableJsonObject that = (ImmutableJsonObject) o;
 
-        return fields.equals(that.fields);
+        return Objects.equals(fields, that.fields);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(fields);
-    }
-
-    private Stream<JsonKey> getKeysAsStream() {
-        return fields.values()
-                .stream()
-                .map(JsonField::getKey);
     }
 
 }

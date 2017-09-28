@@ -104,7 +104,7 @@ public final class ModifyPolicyEntriesResponse extends AbstractCommandResponse<M
 
     @Override
     public JsonPointer getResourcePath() {
-        return JsonPointer.newInstance("/entries");
+        return JsonPointer.of("/entries");
     }
 
     @Override

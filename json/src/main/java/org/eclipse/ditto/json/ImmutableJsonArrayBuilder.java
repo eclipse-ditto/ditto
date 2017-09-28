@@ -11,13 +11,17 @@
  */
 package org.eclipse.ditto.json;
 
-import static java.util.Arrays.stream;
 import static java.util.Objects.requireNonNull;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -34,7 +38,7 @@ final class ImmutableJsonArrayBuilder implements JsonArrayBuilder {
     }
 
     /**
-     * Creates a new {@link ImmutableJsonArrayBuilder} object.
+     * Creates a new {@code ImmutableJsonArrayBuilder} object.
      *
      * @return a new ImmutableJsonArrayBuilder object.
      */
@@ -52,56 +56,102 @@ final class ImmutableJsonArrayBuilder implements JsonArrayBuilder {
     }
 
     @Override
-    public JsonArrayBuilder add(final int value, final int... furtherValues) {
+    public ImmutableJsonArrayBuilder add(final int value, final int... furtherValues) {
         checkFurtherValues(furtherValues);
 
-        return add(JsonFactory.newValue(value), stream(furtherValues) //
-                .mapToObj(JsonFactory::newValue) //
-                .toArray(JsonValue[]::new));
+        values.add(JsonFactory.newValue(value));
+        addAll(Arrays.stream(furtherValues).mapToObj(JsonFactory::newValue));
+        return this;
+    }
+
+    private void addAll(final Stream<JsonValue> jsonValueStream) {
+        jsonValueStream.forEach(values::add);
     }
 
     @Override
-    public JsonArrayBuilder add(final long value, final long... furtherValues) {
-        checkFurtherValues(furtherValues);
-
-        return add(JsonFactory.newValue(value), stream(furtherValues) //
-                .mapToObj(JsonFactory::newValue) //
-                .toArray(JsonValue[]::new));
+    public ImmutableJsonArrayBuilder addIntegers(final Iterable<Integer> intValues) {
+        return addAll(getStream(requireNonNull(intValues, "The int values to be added must not be null!"))
+                .map(JsonFactory::newValue)
+                .collect(Collectors.toList()));
     }
 
     @Override
-    public JsonArrayBuilder add(final double value, final double... furtherValues) {
+    public ImmutableJsonArrayBuilder add(final long value, final long... furtherValues) {
         checkFurtherValues(furtherValues);
 
-        return add(JsonFactory.newValue(value), stream(furtherValues) //
-                .mapToObj(JsonFactory::newValue) //
-                .toArray(JsonValue[]::new));
+        values.add(JsonFactory.newValue(value));
+        addAll(Arrays.stream(furtherValues).mapToObj(JsonFactory::newValue));
+        return this;
+    }
+
+
+
+    @Override
+    public ImmutableJsonArrayBuilder addLongs(final Iterable<Long> longValues) {
+        return addAll(getStream(requireNonNull(longValues, "The long values to be added must not be null!"))
+                .map(JsonFactory::newValue)
+                .collect(Collectors.toList()));
     }
 
     @Override
-    public JsonArrayBuilder add(final boolean value, final boolean... furtherValues) {
+    public ImmutableJsonArrayBuilder add(final double value, final double... furtherValues) {
+        checkFurtherValues(furtherValues);
+
+        values.add(JsonFactory.newValue(value));
+        addAll(Arrays.stream(furtherValues).mapToObj(JsonFactory::newValue));
+        return this;
+    }
+
+    @Override
+    public ImmutableJsonArrayBuilder addDoubles(final Iterable<Double> doubleValues) {
+        return addAll(getStream(requireNonNull(doubleValues, "The double values to be added must not be null!"))
+                .map(JsonFactory::newValue)
+                .collect(Collectors.toList()));
+    }
+
+    @Override
+    public ImmutableJsonArrayBuilder add(final boolean value, final boolean... furtherValues) {
         checkFurtherValues(furtherValues);
 
         values.add(JsonFactory.newValue(value));
         for (final boolean furtherValue : furtherValues) {
             values.add(JsonFactory.newValue(furtherValue));
         }
-
         return this;
     }
 
     @Override
-    public JsonArrayBuilder add(final String value, final String... furtherValues) {
-        checkValue(value);
-        checkFurtherValues(furtherValues);
-
-        return add(JsonFactory.newValue(value), stream(furtherValues) //
-                .map(JsonFactory::newValue) //
-                .toArray(JsonValue[]::new));
+    public ImmutableJsonArrayBuilder addBooleans(final Iterable<Boolean> booleanValues) {
+        return addAll(getStream(requireNonNull(booleanValues, "The boolean values to be added must not be null!"))
+                .map(JsonFactory::newValue)
+                .collect(Collectors.toList()));
     }
 
     @Override
-    public JsonArrayBuilder add(final JsonValue value, final JsonValue... furtherValues) {
+    public ImmutableJsonArrayBuilder add(final String value, final String... furtherValues) {
+        checkValue(value);
+        checkFurtherValues(furtherValues);
+
+        final Collection<String> allStringValues = new ArrayList<>(1 + furtherValues.length);
+        allStringValues.add(value);
+        Collections.addAll(allStringValues, furtherValues);
+
+        return addStrings(allStringValues);
+    }
+
+    @Override
+    public ImmutableJsonArrayBuilder addStrings(final Iterable<String> stringValues) {
+        return addAll(getStream(requireNonNull(stringValues, "The String values to be added must not be null!"))
+                .map(JsonFactory::newValue)
+                .collect(Collectors.toList()));
+    }
+
+    private static <T> Stream<T> getStream(final Iterable<T> iterable) {
+        return StreamSupport.stream(iterable.spliterator(), false);
+    }
+
+    @Override
+    public ImmutableJsonArrayBuilder add(final JsonValue value, final JsonValue... furtherValues) {
         checkValue(value);
         checkFurtherValues(furtherValues);
 
@@ -112,14 +162,14 @@ final class ImmutableJsonArrayBuilder implements JsonArrayBuilder {
     }
 
     @Override
-    public JsonArrayBuilder addAll(final Iterable<? extends JsonValue> values) {
+    public ImmutableJsonArrayBuilder addAll(final Iterable<? extends JsonValue> values) {
         values.forEach(this.values::add);
 
         return this;
     }
 
     @Override
-    public JsonArrayBuilder remove(final JsonValue value) {
+    public ImmutableJsonArrayBuilder remove(final JsonValue value) {
         requireNonNull(value, "The value to be removed must not be null!");
 
         values.remove(value);

@@ -164,7 +164,7 @@ public final class ModifySubjects extends AbstractCommand<ModifySubjects>
     @Override
     public JsonPointer getResourcePath() {
         final String path = "/entries/" + label + "/subjects";
-        return JsonPointer.newInstance(path);
+        return JsonPointer.of(path);
     }
 
     @Override

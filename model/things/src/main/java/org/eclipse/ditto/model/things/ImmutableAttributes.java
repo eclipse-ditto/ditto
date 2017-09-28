@@ -184,8 +184,8 @@ final class ImmutableAttributes implements Attributes {
     }
 
     @Override
-    public Attributes remove(final CharSequence index) {
-        return determineResult(() -> wrapped.remove(index));
+    public Attributes remove(final CharSequence key) {
+        return determineResult(() -> wrapped.remove(key));
     }
 
     @Override
@@ -224,8 +224,8 @@ final class ImmutableAttributes implements Attributes {
     }
 
     @Override
-    public Optional<JsonField> getField(final CharSequence index) {
-        return wrapped.getField(index);
+    public Optional<JsonField> getField(final CharSequence key) {
+        return wrapped.getField(key);
     }
 
     @Override

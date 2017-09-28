@@ -11,6 +11,8 @@
  */
 package org.eclipse.ditto.json;
 
+import javax.annotation.Nullable;
+
 /**
  * Represents a JSON value. A JSON value can be
  * <ul>
@@ -43,7 +45,7 @@ public interface JsonValue {
      * @param value the value to get a JSON literal for.
      * @return a JSON literal that represents the given boolean value.
      */
-    static JsonValue newInstance(final boolean value) {
+    static JsonValue of(final boolean value) {
         return JsonFactory.newValue(value);
     }
 
@@ -53,7 +55,7 @@ public interface JsonValue {
      * @param value the value to get a JSON number for.
      * @return a JSON number that represents the given value.
      */
-    static JsonValue newInstance(final int value) {
+    static JsonValue of(final int value) {
         return JsonFactory.newValue(value);
     }
 
@@ -63,7 +65,7 @@ public interface JsonValue {
      * @param value the value to get a JSON number for.
      * @return a JSON number that represents the given value.
      */
-    static JsonValue newInstance(final long value) {
+    static JsonValue of(final long value) {
         return JsonFactory.newValue(value);
     }
 
@@ -73,7 +75,7 @@ public interface JsonValue {
      * @param value the value to get a JSON number for.
      * @return a JSON number that represents the given value.
      */
-    static JsonValue newInstance(final double value) {
+    static JsonValue of(final double value) {
         return JsonFactory.newValue(value);
     }
 
@@ -87,7 +89,7 @@ public interface JsonValue {
      * @throws IllegalArgumentException if {@code jsonString} is empty.
      * @see JsonFactory#nullLiteral()
      */
-    static JsonValue newInstance(final String jsonString) {
+    static JsonValue of(@Nullable final String jsonString) {
         return JsonFactory.newValue(jsonString);
     }
 
@@ -132,6 +134,42 @@ public interface JsonValue {
      * @return {@code true} this value represents a {@code null} JSON literal, {@code false} else.
      */
     boolean isNull();
+
+    /**
+     * Indicates whether this JsonValue represents the specified Java type. Assuming that this JsonValue is a String
+     * then calling this method would behave as shown by the following examples:
+     * <table border="1">
+     *     <tr>
+     *         <th>Method argument</th>
+     *         <th>Return value</th>
+     *     </tr>
+     *     <tr>
+     *         <td>{@code JsonValue.class}</td>
+     *         <td>{@code true}</td>
+     *     </tr>
+     *     <tr>
+     *         <td>{@code String.class}</td>
+     *         <td>{@code true}</td>
+     *     </tr>
+     *     <tr>
+     *         <td>{@code int.class}</td>
+     *         <td>{@code false}</td>
+     *     </tr>
+     *     <tr>
+     *         <td>{@code Boolean.class}</td>
+     *         <td>{@code false}</td>
+     *     </tr>
+     *     <tr>
+     *         <td>Every other type</td>
+     *         <td>{@code false}</td>
+     *     </tr>
+     * </table>
+     *
+     * @param expectedType the Java type to compare.
+     * @return {@code true} if this JsonValue represents the {@code expectedType}, {@code false} else.
+     * @throws NullPointerException if {@code expectedType} is {@code null}.
+     */
+    boolean isRepresentationOfJavaType(Class<?> expectedType);
 
     /**
      * Returns this JSON value as a {@code boolean} value, assuming that this value is either {@code true} or

@@ -159,7 +159,7 @@ public final class PolicyEntriesModified extends AbstractPolicyEvent<PolicyEntri
 
     @Override
     public JsonPointer getResourcePath() {
-        return JsonPointer.newInstance("/entries");
+        return JsonPointer.of("/entries");
     }
 
     @Override

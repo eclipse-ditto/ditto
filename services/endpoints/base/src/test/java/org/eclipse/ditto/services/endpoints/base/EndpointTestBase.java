@@ -53,7 +53,7 @@ import akka.stream.ActorMaterializer;
  */
 public abstract class EndpointTestBase extends JUnitRouteTest {
 
-    public static final JsonValue DEFAULT_DUMMY_ENTITY_JSON = JsonValue.newInstance("dummy");
+    public static final JsonValue DEFAULT_DUMMY_ENTITY_JSON = JsonValue.of("dummy");
     public static final String DEFAULT_DUMMY_ENTITY = DEFAULT_DUMMY_ENTITY_JSON.toString();
 
     private static final Function<Object, Optional<Object>> DUMMY_RESPONSE_PROVIDER = m -> Optional.of(new

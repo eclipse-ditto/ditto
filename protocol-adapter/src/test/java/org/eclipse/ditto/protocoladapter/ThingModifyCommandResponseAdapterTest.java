@@ -93,7 +93,7 @@ public final class ThingModifyCommandResponseAdapterTest {
 
             @Override
             public JsonPointer getResourcePath() {
-                return JsonPointer.newInstance("/policyId");
+                return JsonPointer.of("/policyId");
             }
 
             @Override
@@ -300,7 +300,7 @@ public final class ThingModifyCommandResponseAdapterTest {
                 .commands() //
                 .modify() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/acl");
+        final JsonPointer path = JsonPointer.of("/acl");
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -323,7 +323,7 @@ public final class ThingModifyCommandResponseAdapterTest {
                 .commands()
                 .modify()
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/acl");
+        final JsonPointer path = JsonPointer.of("/acl");
 
         final Adaptable expected = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -349,7 +349,7 @@ public final class ThingModifyCommandResponseAdapterTest {
                 .commands() //
                 .modify() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/acl/" + TestConstants.AUTHORIZATION_SUBJECT.getId());
+        final JsonPointer path = JsonPointer.of("/acl/" + TestConstants.AUTHORIZATION_SUBJECT.getId());
 
         final ModifyAclEntryResponse expectedCreated =
                 ModifyAclEntryResponse.created(TestConstants.THING_ID, TestConstants.ACL_ENTRY,
@@ -391,7 +391,7 @@ public final class ThingModifyCommandResponseAdapterTest {
                 .commands()
                 .modify()
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/acl/" + TestConstants.AUTHORIZATION_SUBJECT.getId());
+        final JsonPointer path = JsonPointer.of("/acl/" + TestConstants.AUTHORIZATION_SUBJECT.getId());
 
         final Adaptable expectedCreated = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -436,7 +436,7 @@ public final class ThingModifyCommandResponseAdapterTest {
                 .commands() //
                 .delete() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/acl/" + TestConstants.AUTHORIZATION_SUBJECT.getId());
+        final JsonPointer path = JsonPointer.of("/acl/" + TestConstants.AUTHORIZATION_SUBJECT.getId());
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -458,7 +458,7 @@ public final class ThingModifyCommandResponseAdapterTest {
                 .commands()
                 .delete()
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/acl/" + TestConstants.AUTHORIZATION_SUBJECT.getId());
+        final JsonPointer path = JsonPointer.of("/acl/" + TestConstants.AUTHORIZATION_SUBJECT.getId());
 
         final Adaptable expected = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -484,7 +484,7 @@ public final class ThingModifyCommandResponseAdapterTest {
                 .commands() //
                 .modify() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/attributes");
+        final JsonPointer path = JsonPointer.of("/attributes");
 
         final ModifyAttributesResponse expectedCreated =
                 ModifyAttributesResponse.created(TestConstants.THING_ID, TestConstants.ATTRIBUTES,
@@ -524,7 +524,7 @@ public final class ThingModifyCommandResponseAdapterTest {
                 .commands()
                 .modify()
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/attributes");
+        final JsonPointer path = JsonPointer.of("/attributes");
 
         final Adaptable expectedCreated = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -568,7 +568,7 @@ public final class ThingModifyCommandResponseAdapterTest {
                 .commands() //
                 .delete() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/attributes");
+        final JsonPointer path = JsonPointer.of("/attributes");
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -590,7 +590,7 @@ public final class ThingModifyCommandResponseAdapterTest {
                 .commands()
                 .delete()
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/attributes");
+        final JsonPointer path = JsonPointer.of("/attributes");
 
         final Adaptable expected = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -615,7 +615,7 @@ public final class ThingModifyCommandResponseAdapterTest {
                 .commands() //
                 .modify() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/attributes" + TestConstants.ATTRIBUTE_POINTER);
+        final JsonPointer path = JsonPointer.of("/attributes" + TestConstants.ATTRIBUTE_POINTER);
 
         final ModifyAttributeResponse expectedCreated =
                 ModifyAttributeResponse.created(TestConstants.THING_ID, TestConstants.ATTRIBUTE_POINTER,
@@ -656,7 +656,7 @@ public final class ThingModifyCommandResponseAdapterTest {
                 .commands()
                 .modify()
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/attributes" + TestConstants.ATTRIBUTE_POINTER);
+        final JsonPointer path = JsonPointer.of("/attributes" + TestConstants.ATTRIBUTE_POINTER);
 
         final Adaptable expectedCreated = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -701,7 +701,7 @@ public final class ThingModifyCommandResponseAdapterTest {
                 .commands() //
                 .delete() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/attributes" + TestConstants.ATTRIBUTE_POINTER);
+        final JsonPointer path = JsonPointer.of("/attributes" + TestConstants.ATTRIBUTE_POINTER);
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -723,7 +723,7 @@ public final class ThingModifyCommandResponseAdapterTest {
                 .commands()
                 .delete()
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/attributes" + TestConstants.ATTRIBUTE_POINTER);
+        final JsonPointer path = JsonPointer.of("/attributes" + TestConstants.ATTRIBUTE_POINTER);
 
         final Adaptable expected = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -749,7 +749,7 @@ public final class ThingModifyCommandResponseAdapterTest {
                 .commands() //
                 .modify() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/features");
+        final JsonPointer path = JsonPointer.of("/features");
 
         final ModifyFeaturesResponse expectedCreated =
                 ModifyFeaturesResponse.created(TestConstants.THING_ID, TestConstants.FEATURES,
@@ -789,7 +789,7 @@ public final class ThingModifyCommandResponseAdapterTest {
                 .commands()
                 .modify()
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/features");
+        final JsonPointer path = JsonPointer.of("/features");
 
         final Adaptable expectedCreated = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -833,7 +833,7 @@ public final class ThingModifyCommandResponseAdapterTest {
                 .commands() //
                 .delete() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/features");
+        final JsonPointer path = JsonPointer.of("/features");
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -855,7 +855,7 @@ public final class ThingModifyCommandResponseAdapterTest {
                 .commands()
                 .delete()
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/features");
+        final JsonPointer path = JsonPointer.of("/features");
 
         final Adaptable expected = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -880,7 +880,7 @@ public final class ThingModifyCommandResponseAdapterTest {
                 .commands() //
                 .modify() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/features/" + TestConstants.FEATURE_ID);
+        final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID);
 
         final ModifyFeatureResponse expectedCreated =
                 ModifyFeatureResponse.created(TestConstants.THING_ID, TestConstants.FEATURE,
@@ -921,7 +921,7 @@ public final class ThingModifyCommandResponseAdapterTest {
                 .commands()
                 .modify()
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/features/" + TestConstants.FEATURE_ID);
+        final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID);
 
         final Adaptable expectedCreated = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -967,7 +967,7 @@ public final class ThingModifyCommandResponseAdapterTest {
                 .commands() //
                 .delete() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/features/" + TestConstants.FEATURE_ID);
+        final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID);
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -989,7 +989,7 @@ public final class ThingModifyCommandResponseAdapterTest {
                 .commands()
                 .delete()
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/features/" + TestConstants.FEATURE_ID);
+        final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID);
 
         final Adaptable expected = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -1015,7 +1015,7 @@ public final class ThingModifyCommandResponseAdapterTest {
                 .commands() //
                 .modify() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/features/" + TestConstants.FEATURE_ID + "/properties");
+        final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID + "/properties");
 
         final ModifyFeaturePropertiesResponse expectedCreated = ModifyFeaturePropertiesResponse
                 .created(TestConstants.THING_ID, TestConstants.FEATURE_ID, TestConstants.FEATURE_PROPERTIES,
@@ -1056,7 +1056,7 @@ public final class ThingModifyCommandResponseAdapterTest {
                 .commands()
                 .modify()
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/features/" + TestConstants.FEATURE_ID + "/properties");
+        final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID + "/properties");
 
         final Adaptable expectedCreated = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -1101,7 +1101,7 @@ public final class ThingModifyCommandResponseAdapterTest {
                 .commands() //
                 .delete() //
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/features/" + TestConstants.FEATURE_ID + "/properties");
+        final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID + "/properties");
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -1123,7 +1123,7 @@ public final class ThingModifyCommandResponseAdapterTest {
                 .commands()
                 .delete()
                 .build();
-        final JsonPointer path = JsonPointer.newInstance("/features/" + TestConstants.FEATURE_ID + "/properties");
+        final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID + "/properties");
 
         final Adaptable expected = Adaptable.newBuilder(topicPath) //
                 .withPayload(Payload.newBuilder(path) //
@@ -1150,7 +1150,7 @@ public final class ThingModifyCommandResponseAdapterTest {
                 .modify() //
                 .build();
         final JsonPointer path = JsonPointer
-                .newInstance("/features/" + TestConstants.FEATURE_ID + "/properties" +
+                .of("/features/" + TestConstants.FEATURE_ID + "/properties" +
                         TestConstants.FEATURE_PROPERTY_POINTER);
 
         final ModifyFeaturePropertyResponse expectedCreated =
@@ -1194,7 +1194,7 @@ public final class ThingModifyCommandResponseAdapterTest {
                 .modify()
                 .build();
         final JsonPointer path = JsonPointer
-                .newInstance("/features/" + TestConstants.FEATURE_ID + "/properties" +
+                .of("/features/" + TestConstants.FEATURE_ID + "/properties" +
                         TestConstants.FEATURE_PROPERTY_POINTER);
 
         final Adaptable expectedCreated = Adaptable.newBuilder(topicPath) //
@@ -1243,7 +1243,7 @@ public final class ThingModifyCommandResponseAdapterTest {
                 .delete() //
                 .build();
         final JsonPointer path = JsonPointer
-                .newInstance("/features/" + TestConstants.FEATURE_ID + "/properties" +
+                .of("/features/" + TestConstants.FEATURE_ID + "/properties" +
                         TestConstants.FEATURE_PROPERTY_POINTER);
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath) //
@@ -1267,7 +1267,7 @@ public final class ThingModifyCommandResponseAdapterTest {
                 .delete()
                 .build();
         final JsonPointer path = JsonPointer
-                .newInstance("/features/" + TestConstants.FEATURE_ID + "/properties" +
+                .of("/features/" + TestConstants.FEATURE_ID + "/properties" +
                         TestConstants.FEATURE_PROPERTY_POINTER);
 
         final Adaptable expected = Adaptable.newBuilder(topicPath) //

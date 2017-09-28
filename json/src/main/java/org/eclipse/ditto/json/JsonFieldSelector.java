@@ -17,20 +17,24 @@ import java.util.Set;
  * A {@code JsonFieldSelector} is basically a set of {@link JsonPointer}s. While a pointer refers to a single value, a
  * field selector points to multiple values at once. It can be used to compose a new JSON object from an existing JSON
  * object; thereby the field selector defines the set of fields of the new JSON object. This comes in handy when
- * applying REST field selectors or even addressing a REST sub resource. <p> <em>Implementations of this interface are
- * required to be immutable!</em> </p>
+ * applying REST field selectors or even addressing a REST sub resource.
+ * <p>
+ * <em>Implementations of this interface are required to be immutable!</em>
  */
 public interface JsonFieldSelector extends Iterable<JsonPointer> {
 
     /**
      * Returns a new JSON field selector which is based on the given {@link JsonPointer}(s).
      *
-     * @param pointerString a JSON pointer of the field selector to be created.
-     * @param furtherPointerStrings additional JSON pointers to form the field selector to be created by this method.
+     * @param pointerString representation of a JSON pointer of the field selector to be created.
+     * @param furtherPointerStrings additional representations of JSON pointers to form the field selector to be created
+     * by this method.
      * @return a new JSON field selector.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    static JsonFieldSelector newInstance(final String pointerString, final String... furtherPointerStrings) {
+    static JsonFieldSelector newInstance(final CharSequence pointerString,
+            final CharSequence... furtherPointerStrings) {
+
         return JsonFactory.newFieldSelector(pointerString, furtherPointerStrings);
     }
 

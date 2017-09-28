@@ -138,7 +138,7 @@ final class ImmutableJsonObjectNull extends AbstractImmutableJsonValue implement
     }
 
     @Override
-    public JsonObject remove(final CharSequence index) {
+    public JsonObject remove(final CharSequence key) {
         return this;
     }
 
@@ -148,7 +148,7 @@ final class ImmutableJsonObjectNull extends AbstractImmutableJsonValue implement
     }
 
     @Override
-    public Optional<JsonField> getField(final CharSequence index) {
+    public Optional<JsonField> getField(final CharSequence key) {
         return Optional.empty();
     }
 

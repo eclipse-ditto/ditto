@@ -21,5 +21,5 @@
  * invoking this method does not change the state of that object but a new object with the altered state is returned
  * instead. This is the same behavior like it is shown by java.lang.String for example.
  */
-@org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault
+@org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault
 package org.eclipse.ditto.json;

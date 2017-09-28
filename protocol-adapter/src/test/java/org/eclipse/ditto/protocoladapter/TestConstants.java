@@ -46,9 +46,9 @@ final class TestConstants {
 
     static final AccessControlList ACL = AccessControlListModelFactory.newAcl(ACL_ENTRY);
 
-    static final JsonPointer ATTRIBUTE_POINTER = JsonPointer.newInstance("/foo");
+    static final JsonPointer ATTRIBUTE_POINTER = JsonPointer.of("/foo");
 
-    static final JsonValue ATTRIBUTE_VALUE = JsonValue.newInstance("bar");
+    static final JsonValue ATTRIBUTE_VALUE = JsonValue.of("bar");
 
     static final JsonObject ATTRIBUTES_JSON = JsonObject.newBuilder().set(ATTRIBUTE_POINTER, ATTRIBUTE_VALUE).build();
 
@@ -56,9 +56,9 @@ final class TestConstants {
 
     static final String FEATURE_ID = "fluxCompensator";
 
-    static final JsonPointer FEATURE_PROPERTY_POINTER = JsonPointer.newInstance("/baz");
+    static final JsonPointer FEATURE_PROPERTY_POINTER = JsonPointer.of("/baz");
 
-    static final JsonValue FEATURE_PROPERTY_VALUE = JsonValue.newInstance(42);
+    static final JsonValue FEATURE_PROPERTY_VALUE = JsonValue.of(42);
 
     static final JsonObject FEATURE_PROPERTIES_JSON =
             JsonObject.newBuilder().set(FEATURE_PROPERTY_POINTER, FEATURE_PROPERTY_VALUE).build();

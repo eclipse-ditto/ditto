@@ -20,7 +20,9 @@ import java.util.function.Function;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.services.gateway.endpoints.directives.auth.dummy.DummyAuthenticationDirective;
+import org.eclipse.ditto.services.gateway.endpoints.directives.auth.jwt.DittoPublicKeyProvider;
 import org.eclipse.ditto.services.gateway.endpoints.directives.auth.jwt.JwtAuthenticationDirective;
+import org.eclipse.ditto.services.gateway.endpoints.directives.auth.jwt.PublicKeyProvider;
 import org.eclipse.ditto.services.gateway.endpoints.utils.DirectivesLoggingUtils;
 import org.eclipse.ditto.services.gateway.security.HttpHeader;
 import org.eclipse.ditto.services.gateway.starter.service.util.ConfigKeys;
@@ -61,10 +63,12 @@ public final class GatewayAuthenticationDirective implements AuthenticationDirec
             final HttpClientFacade httpClient) {
         checkNotNull(config, "config");
 
+        final PublicKeyProvider publicKeyProvider = DittoPublicKeyProvider.of(httpClient,
+                config.getInt(ConfigKeys.CACHE_PUBLIC_KEYS_MAX),
+                config.getDuration(ConfigKeys.CACHE_PUBLIC_KEYS_EXPIRY));
+
         jwtAuthenticationDirective =
-                new JwtAuthenticationDirective(blockingDispatcher, httpClient,
-                        config.getInt(ConfigKeys.CACHE_PUBLIC_KEYS_MAX),
-                        config.getDuration(ConfigKeys.CACHE_PUBLIC_KEYS_EXPIRY));
+                new JwtAuthenticationDirective(blockingDispatcher, publicKeyProvider);
 
         dummyAuthenticationEnabled = config.getBoolean(ConfigKeys.AUTHENTICATION_DUMMY_ENABLED);
     }

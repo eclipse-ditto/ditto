@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.json;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.when;
@@ -25,7 +26,7 @@ import java.util.Set;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
@@ -47,47 +48,38 @@ public final class ImmutableJsonFieldTest {
     @Mock
     private JsonFieldMarker schemaVersionMarkerMock;
 
-    @Mock
-    private JsonFieldMarker regularFieldTypeMarkerMock;
-
-
     @Test
     public void assertImmutability() {
-        assertInstancesOf(ImmutableJsonField.class, //
-                areImmutable(), //
+        assertInstancesOf(ImmutableJsonField.class,
+                areImmutable(),
                 provided(JsonKey.class, JsonValue.class, JsonField.class,
                         JsonFieldDefinition.class).areAlsoImmutable());
     }
 
-
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(ImmutableJsonField.class) //
-                .verify();
+        EqualsVerifier.forClass(ImmutableJsonField.class).usingGetClass().verify();
     }
-
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullKey() {
-        ImmutableJsonField.of(null, jsonValueMock);
+        ImmutableJsonField.newInstance(null, jsonValueMock);
     }
 
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullValue() {
-        ImmutableJsonField.of(jsonKeyMock, null);
+        ImmutableJsonField.newInstance(jsonKeyMock, null);
     }
-
 
     @Test
     public void getKeyNameReturnsExpected() {
         final String keyName = "key";
         when(jsonKeyMock.toString()).thenReturn(keyName);
-        final JsonField underTest = ImmutableJsonField.of(jsonKeyMock, jsonValueMock);
+        final JsonField underTest = ImmutableJsonField.newInstance(jsonKeyMock, jsonValueMock);
 
         assertThat(underTest.getKeyName()).isEqualTo(keyName);
     }
-
 
     @Test
     public void twoHashSetsWithSameJsonFieldsAreEqual() {
@@ -106,45 +98,50 @@ public final class ImmutableJsonFieldTest {
         assertThat(left).isEqualTo(right);
     }
 
-
     @Test
     public void fieldHasNoDefinitionByDefault() {
-        final JsonField underTest = ImmutableJsonField.of(jsonKeyMock, jsonValueMock);
+        final JsonField underTest = ImmutableJsonField.newInstance(jsonKeyMock, jsonValueMock);
 
         assertThat(underTest.getDefinition()).isEmpty();
     }
 
-
     @Test
     public void getDefinitionReturnsExpected() {
-        final JsonField underTest = ImmutableJsonField.of(jsonKeyMock, jsonValueMock, fieldDefinitionMock);
+        final JsonField underTest = ImmutableJsonField.newInstance(jsonKeyMock, jsonValueMock, fieldDefinitionMock);
 
         assertThat(underTest.getDefinition()).contains(fieldDefinitionMock);
     }
 
-
     @Test
     public void fieldWithoutDefinitionIsNotMarkedAtAll() {
-        final JsonField underTest = ImmutableJsonField.of(jsonKeyMock, jsonValueMock);
+        final JsonField underTest = ImmutableJsonField.newInstance(jsonKeyMock, jsonValueMock);
 
         assertThat(underTest.isMarkedAs(schemaVersionMarkerMock)).isFalse();
     }
 
-
     @Test
     public void fieldWithSchemaVersionMarkerIsMarkedCorrectly() {
         when(fieldDefinitionMock.isMarkedAs(eq(schemaVersionMarkerMock))).thenReturn(true);
-        final JsonField underTest = ImmutableJsonField.of(jsonKeyMock, jsonValueMock, fieldDefinitionMock);
+        final JsonField underTest = ImmutableJsonField.newInstance(jsonKeyMock, jsonValueMock, fieldDefinitionMock);
 
         assertThat(underTest.isMarkedAs(schemaVersionMarkerMock)).isTrue();
     }
 
-
     @Test
     public void stringRepresentationContainsExpectedWords() {
-        final JsonField underTest = ImmutableJsonField.of(jsonKeyMock, jsonValueMock, fieldDefinitionMock);
+        final JsonField underTest = ImmutableJsonField.newInstance(jsonKeyMock, jsonValueMock, fieldDefinitionMock);
 
         assertThat(underTest.toString()).contains("key").contains("value").contains("definition");
+    }
+
+    @Test
+    public void createInstanceViaInterfaceReturnsExpected() {
+        final JsonValue jsonValue = JsonFactory.newValue(3);
+        final JsonKey expectedKey = JsonFactory.newKey("/foo/bar/baz");
+        final JsonField underTest = JsonField.newInstance(JsonFactory.newPointer("/foo/bar/baz"), jsonValue);
+
+        assertThat(underTest.getKey()).isEqualTo(expectedKey);
+        assertThat(underTest.getValue()).isEqualTo(jsonValue);
     }
 
 }

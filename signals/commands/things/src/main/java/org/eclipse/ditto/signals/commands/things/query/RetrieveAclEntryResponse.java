@@ -160,7 +160,7 @@ public final class RetrieveAclEntryResponse extends AbstractCommandResponse<Retr
     @Override
     public JsonPointer getResourcePath() {
         final String path = "/acl/" + aclEntrySubject;
-        return JsonPointer.newInstance(path);
+        return JsonPointer.of(path);
     }
 
     @Override

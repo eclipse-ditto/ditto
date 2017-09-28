@@ -50,6 +50,11 @@ final class ImmutableJsonNull extends AbstractMinimalJsonValueWrapper implements
     }
 
     @Override
+    public boolean isRepresentationOfJavaType(final Class<?> expectedType) {
+        return true;
+    }
+
+    @Override
     public JsonObject asObject() {
         return JsonFactory.nullObject();
     }

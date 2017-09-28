@@ -24,16 +24,16 @@ ditto:A6BgmB8IEtPTs
 ## Start Eclipse Ditto
 
 ```bash
-docker-compose -f docker-compose.yml -p ditto up -d
+docker-compose up -d
 ```
 
 Check the logs after starting up:
 ```bash
-docker-compose -f docker-compose.yml logs -f
+docker-compose logs -f
 ```
 
 ## Stop Eclipse Ditto
 
 ```bash
-docker-compose -f docker-compose.yml down
+docker-compose down
 ```

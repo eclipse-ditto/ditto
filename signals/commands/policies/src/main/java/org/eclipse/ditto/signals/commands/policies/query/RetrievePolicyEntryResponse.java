@@ -174,7 +174,7 @@ public final class RetrievePolicyEntryResponse extends AbstractCommandResponse<R
     @Override
     public JsonPointer getResourcePath() {
         final String path = "/entries/" + policyEntryLabel;
-        return JsonPointer.newInstance(path);
+        return JsonPointer.of(path);
     }
 
     @Override

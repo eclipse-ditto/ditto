@@ -18,11 +18,13 @@ import java.time.Instant;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonFieldSelector;
@@ -36,6 +38,11 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
  * which {@link Permissions} on which {@link Resources}.
  */
 public interface Policy extends Iterable<PolicyEntry>, Jsonifiable.WithFieldSelectorAndPredicate<JsonField> {
+
+    /**
+     * The name of the Json field when a policy is inlined in another Json object.
+     */
+    String INLINED_FIELD_NAME = "_policy";
 
     /**
      * The regex pattern a Policy Namespace has to conform to.
@@ -400,6 +407,34 @@ public interface Policy extends Iterable<PolicyEntry>, Jsonifiable.WithFieldSele
     @Override
     default JsonObject toJson(final JsonSchemaVersion schemaVersion, final JsonFieldSelector fieldSelector) {
         return toJson(schemaVersion, FieldType.regularOrSpecial()).get(fieldSelector);
+    }
+
+    /**
+     * Returns a JSON object representation of this policy to embed in another JSON object.
+     *
+     * @param schemaVersion the JsonSchemaVersion in which to return the JSON.
+     * @param predicate determines the content of the result.
+     * @return a JSON object representation of this policy to embed in another JSON object.
+     * @throws NullPointerException if {@code predicate} is {@code null}.
+     */
+    default JsonObject toInlinedJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> predicate) {
+        return JsonFactory.newObjectBuilder()
+                .set(INLINED_FIELD_NAME, toJson(schemaVersion, predicate))
+                .build();
+    }
+
+    /**
+     * Returns a JSON object representation of this policy to embed in another JSON object.
+     *
+     * @param schemaVersion the JsonSchemaVersion in which to return the JSON.
+     * @param fieldSelector determines the content of the result.
+     * @return a JSON object representation of this policy to embed in another JSON object.
+     * @throws NullPointerException if {@code predicate} is {@code null}.
+     */
+    default JsonObject toInlinedJson(final JsonSchemaVersion schemaVersion, final JsonFieldSelector fieldSelector) {
+        return JsonFactory.newObjectBuilder()
+                .set(INLINED_FIELD_NAME, toJson(schemaVersion, fieldSelector))
+                .build();
     }
 
     /**

@@ -145,7 +145,7 @@ public final class PolicyIdModified extends AbstractThingEvent<PolicyIdModified>
     @Override
     public JsonPointer getResourcePath() {
         final String path = Thing.JsonFields.POLICY_ID.getPointer().toString();
-        return JsonPointer.newInstance(path);
+        return JsonPointer.of(path);
     }
 
     @Override

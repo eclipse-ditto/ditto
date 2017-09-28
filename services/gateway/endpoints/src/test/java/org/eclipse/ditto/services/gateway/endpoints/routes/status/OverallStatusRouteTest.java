@@ -17,6 +17,8 @@ import java.util.function.Supplier;
 
 import org.eclipse.ditto.services.endpoints.base.EndpointTestBase;
 import org.eclipse.ditto.services.endpoints.base.EndpointTestConstants;
+import org.eclipse.ditto.services.gateway.health.DittoStatusHealthHelper;
+import org.eclipse.ditto.services.gateway.health.StatusHealthHelper;
 import org.eclipse.ditto.services.utils.health.cluster.ClusterStatus;
 import org.junit.Before;
 import org.junit.Test;
@@ -48,8 +50,9 @@ public class OverallStatusRouteTest extends EndpointTestBase {
     public void setUp() {
         final ActorRef healthCheckingActor = createHealthCheckingActorMock();
         final Supplier<ClusterStatus> clusterStateSupplier = createClusterStatusSupplierMock();
+        final StatusHealthHelper statusHealthHelper = DittoStatusHealthHelper.of(system(), clusterStateSupplier);
         final OverallStatusRoute statusRoute =
-                new OverallStatusRoute(system(), clusterStateSupplier, healthCheckingActor);
+                new OverallStatusRoute(system(), clusterStateSupplier, healthCheckingActor, statusHealthHelper);
         statusTestRoute = testRoute(statusRoute.buildStatusRoute());
     }
 

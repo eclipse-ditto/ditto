@@ -35,8 +35,8 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class ImmutablePolicyTest {
 
     private static final Label END_USER_LABEL = Label.of("EndUser");
-    private static final JsonPointer END_USER_RESOURCE_1 = JsonPointer.newInstance("foo/bar");
-    private static final JsonPointer END_USER_RESOURCE_2 = JsonPointer.newInstance("/attributes");
+    private static final JsonPointer END_USER_RESOURCE_1 = JsonPointer.of("foo/bar");
+    private static final JsonPointer END_USER_RESOURCE_2 = JsonPointer.of("/attributes");
     private static final SubjectId END_USER_SUBJECT_ID_1 =
             SubjectId.newInstance(SubjectIssuer.GOOGLE_URL, "myself");
     private static final SubjectType END_USER_SUBJECT_TYPE_1 = SubjectType.JWT;

@@ -22,12 +22,12 @@ final class ImmutableJsonLiteral extends AbstractMinimalJsonValueWrapper {
     /**
      * The JSON literal for the boolean value {@code true}.
      */
-    static final JsonValue TRUE = ImmutableJsonLiteral.of(com.eclipsesource.json.Json.TRUE);
+    static final ImmutableJsonLiteral TRUE = ImmutableJsonLiteral.of(com.eclipsesource.json.Json.TRUE);
 
     /**
      * The JSON literal for the boolean value {@code false}.
      */
-    static final JsonValue FALSE = ImmutableJsonLiteral.of(com.eclipsesource.json.Json.FALSE);
+    static final ImmutableJsonLiteral FALSE = ImmutableJsonLiteral.of(com.eclipsesource.json.Json.FALSE);
 
     private ImmutableJsonLiteral(final com.eclipsesource.json.JsonValue toWrap) {
         super(toWrap);
@@ -39,8 +39,13 @@ final class ImmutableJsonLiteral extends AbstractMinimalJsonValueWrapper {
      * @param minimalJsonLiteral the Minimal Json Literal.
      * @return a new ImmutableJsonLiteral object.
      */
-    public static JsonValue of(final com.eclipsesource.json.JsonValue minimalJsonLiteral) {
+    public static ImmutableJsonLiteral of(final com.eclipsesource.json.JsonValue minimalJsonLiteral) {
         return new ImmutableJsonLiteral(minimalJsonLiteral);
+    }
+
+    @Override
+    public boolean isRepresentationOfJavaType(final Class<?> expectedType) {
+        return JsonValue.class == expectedType || boolean.class == expectedType || Boolean.class == expectedType;
     }
 
 }

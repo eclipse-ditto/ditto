@@ -15,7 +15,11 @@ import static java.util.Objects.requireNonNull;
 
 import java.net.URI;
 import java.text.MessageFormat;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 /**
@@ -28,24 +32,27 @@ public final class JsonMissingFieldException extends JsonRuntimeException {
      */
     public static final String ERROR_CODE = "json.field.missing";
 
-    private static final String MESSAGE_TEMPLATE = "JSON did not include required ''{0}'' field.";
+    private static final String MESSAGE_TEMPLATE = "JSON did not include required <{0}> field!";
 
     private static final String DEFAULT_DESCRIPTION = "Check if all required JSON fields were set.";
 
     private static final long serialVersionUID = -2569054723339845869L;
 
-    private JsonMissingFieldException(final String message, final String description, final Throwable cause,
-            final URI href) {
+    private JsonMissingFieldException(@Nullable final String message,
+            @Nullable final String description,
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
+
         super(ERROR_CODE, message, description, cause, href);
     }
 
     /**
-     * Constructs a new {@code JsonMissingFieldException} object for the specified JSON pointer.
+     * Constructs a new {@code JsonMissingFieldException} object for the specified JSON key or pointer.
      *
-     * @param pointer refers to the missing field.
+     * @param key JsonKey or JsonPointer which refers to the missing field.
      */
-    public JsonMissingFieldException(final JsonPointer pointer) {
-        this(MessageFormat.format(MESSAGE_TEMPLATE, pointer), DEFAULT_DESCRIPTION, null, null);
+    public JsonMissingFieldException(final CharSequence key) {
+        this(MessageFormat.format(MESSAGE_TEMPLATE, key), DEFAULT_DESCRIPTION, null, null);
     }
 
     /**
@@ -59,7 +66,6 @@ public final class JsonMissingFieldException extends JsonRuntimeException {
 
     /**
      * A mutable builder for a {@code JsonMissingFieldException}.
-     *
      */
     @NotThreadSafe
     public static final class Builder extends AbstractJsonExceptionBuilder<JsonMissingFieldException> {
@@ -82,8 +88,9 @@ public final class JsonMissingFieldException extends JsonRuntimeException {
         }
 
         /**
-         * Sets a message which points to the name of the missing field within a hierarchy. Thus if this method is
-         * called, {@link #message} <p> Given the following valid JSON object: </p>
+         * Sets a message which points to the name of the missing field within a hierarchy.
+         * <p>
+         * Given the following valid JSON object:
          * <p>
          * <pre>
          *    {
@@ -100,30 +107,38 @@ public final class JsonMissingFieldException extends JsonRuntimeException {
          *    }
          * </pre>
          * <p>
-         * If, for example, the field {@code state} is missing the call to this method would be {@code
-         * fieldName("attributes", "localSeason", "location", "state")}.
+         * If, for example, the field {@code state} is missing the call to this method would be
+         * {@code fieldName("attributes", "localSeason", "location", "state")}.
          *
          * @param missingFieldNameRoot the root of the hierarchy.
          * @param missingFieldNameChildren all children, grand children etc. of {@code missingFieldNameRoot}.
          * @return this builder to allow method chaining.
-         * @throws NullPointerException if {@code missingFieldNameChildren} is {@code null}.
+         * @throws NullPointerException if any argument is {@code null}.
+         * @see #message(String)
          */
         public Builder fieldName(final CharSequence missingFieldNameRoot,
                 final CharSequence... missingFieldNameChildren) {
-            requireNonNull(missingFieldNameChildren, "missingFieldNameChildren must not be null!");
 
-            final CharSequence[] fieldNameHierarchy = new CharSequence[1 + missingFieldNameChildren.length];
-            System.arraycopy(missingFieldNameChildren, 0, fieldNameHierarchy, 1, missingFieldNameChildren.length);
-            fieldNameHierarchy[0] = missingFieldNameRoot;
+            requireNonNull(missingFieldNameRoot, "The root of the field name hierarchy must not be null!");
+            requireNonNull(missingFieldNameChildren, "The field name children must not be null!");
 
-            return fieldName(String.join(".", fieldNameHierarchy));
+            final Collection<CharSequence> allFieldNames = new ArrayList<>(1 + missingFieldNameChildren.length);
+            allFieldNames.add(missingFieldNameRoot);
+            Collections.addAll(allFieldNames, missingFieldNameChildren);
+
+            return fieldName(String.join(".", allFieldNames));
         }
 
         @Override
-        protected JsonMissingFieldException doBuild(final String errorCode, final String message,
-                final String description, final Throwable cause, final URI href) {
+        protected JsonMissingFieldException doBuild(final String errorCode,
+                @Nullable final String message,
+                @Nullable final String description,
+                @Nullable final Throwable cause,
+                @Nullable final URI href) {
+
             return new JsonMissingFieldException(message, description, cause, href);
         }
+
     }
 
 }

@@ -36,8 +36,13 @@ final class ImmutableJsonString extends AbstractMinimalJsonValueWrapper {
      * @throws IllegalArgumentException if {@code minimalJsonValue} is not a string.
      * @see JsonValue#isString()
      */
-    public static JsonValue of(final com.eclipsesource.json.JsonValue minimalJsonValue) {
+    public static ImmutableJsonString of(final com.eclipsesource.json.JsonValue minimalJsonValue) {
         return new ImmutableJsonString(minimalJsonValue);
+    }
+
+    @Override
+    public boolean isRepresentationOfJavaType(final Class<?> expectedType) {
+        return JsonValue.class == expectedType || String.class.isAssignableFrom(expectedType);
     }
 
 }

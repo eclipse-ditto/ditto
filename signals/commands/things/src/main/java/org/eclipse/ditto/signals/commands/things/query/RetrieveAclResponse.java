@@ -161,7 +161,7 @@ public final class RetrieveAclResponse extends AbstractCommandResponse<RetrieveA
 
     @Override
     public JsonPointer getResourcePath() {
-        return JsonPointer.newInstance("/acl");
+        return JsonPointer.of("/acl");
     }
 
     @Override

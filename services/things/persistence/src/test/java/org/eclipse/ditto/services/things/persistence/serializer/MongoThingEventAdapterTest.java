@@ -81,7 +81,7 @@ public class MongoThingEventAdapterTest {
     @Test
     public void deserializeAttributeCreatedV1() {
         final String attributePointer = "test1";
-        final JsonValue attributeValue = JsonValue.newInstance(1234);
+        final JsonValue attributeValue = JsonValue.of(1234);
 
         final JsonObject eventJson = JsonFactory.newObjectBuilder() //
                 .set("event", "thingAttributeModified") //
@@ -105,14 +105,14 @@ public class MongoThingEventAdapterTest {
         assertThat(event).isInstanceOf(AttributeCreated.class);
         final AttributeCreated attributeCreated = (AttributeCreated) event;
         assertThat(attributeCreated.getThingId()).isEqualTo(TestConstants.Thing.THING_ID);
-        assertThat(attributeCreated.getAttributePointer()).isEqualTo(JsonPointer.newInstance(attributePointer));
+        assertThat(attributeCreated.getAttributePointer()).isEqualTo(JsonPointer.of(attributePointer));
         assertThat(attributeCreated.getAttributeValue()).isEqualTo(attributeValue);
     }
 
     @Test
     public void deserializeAttributeModifiedV1() {
         final String attributePointer = "test1";
-        final JsonValue attributeValue = JsonValue.newInstance(1234);
+        final JsonValue attributeValue = JsonValue.of(1234);
 
         final JsonObject eventJson = JsonFactory.newObjectBuilder() //
                 .set("event", "thingAttributeModified") //
@@ -136,7 +136,7 @@ public class MongoThingEventAdapterTest {
         assertThat(event).isInstanceOf(AttributeModified.class);
         final AttributeModified attributeModified = (AttributeModified) event;
         assertThat(attributeModified.getThingId()).isEqualTo(TestConstants.Thing.THING_ID);
-        assertThat(attributeModified.getAttributePointer()).isEqualTo(JsonPointer.newInstance(attributePointer));
+        assertThat(attributeModified.getAttributePointer()).isEqualTo(JsonPointer.of(attributePointer));
         assertThat(attributeModified.getAttributeValue()).isEqualTo(attributeValue);
     }
 
@@ -164,7 +164,7 @@ public class MongoThingEventAdapterTest {
         assertThat(event).isInstanceOf(AttributeDeleted.class);
         final AttributeDeleted attributeDeleted = (AttributeDeleted) event;
         assertThat(attributeDeleted.getThingId()).isEqualTo(TestConstants.Thing.THING_ID);
-        assertThat(attributeDeleted.getAttributePointer()).isEqualTo(JsonPointer.newInstance(attributePointer));
+        assertThat(attributeDeleted.getAttributePointer()).isEqualTo(JsonPointer.of(attributePointer));
     }
 
     @Test
@@ -461,7 +461,7 @@ public class MongoThingEventAdapterTest {
 
     @Test
     public void deserializeFeaturePropertyDeletedV1() {
-        final JsonPointer propertyPointer = JsonPointer.newInstance("test");
+        final JsonPointer propertyPointer = JsonPointer.of("test");
 
         final JsonObject eventJson = JsonFactory.newObjectBuilder() //
                 .set("event", FeaturePropertyDeleted.NAME) //
@@ -490,8 +490,8 @@ public class MongoThingEventAdapterTest {
 
     @Test
     public void deserializeFeaturePropertyCreatedV1() {
-        final JsonPointer propertyPointer = JsonPointer.newInstance("test");
-        final JsonValue propertyValue = JsonValue.newInstance(1234);
+        final JsonPointer propertyPointer = JsonPointer.of("test");
+        final JsonValue propertyValue = JsonValue.of(1234);
 
         final JsonObject eventJson = JsonFactory.newObjectBuilder() //
                 .set("event",
@@ -524,8 +524,8 @@ public class MongoThingEventAdapterTest {
 
     @Test
     public void deserializeFeaturePropertyModifiedV1() {
-        final JsonPointer propertyPointer = JsonPointer.newInstance("test");
-        final JsonValue propertyValue = JsonValue.newInstance(1234);
+        final JsonPointer propertyPointer = JsonPointer.of("test");
+        final JsonValue propertyValue = JsonValue.of(1234);
 
         final JsonObject eventJson = JsonFactory.newObjectBuilder() //
                 .set("event", FeaturePropertyModified.NAME) //

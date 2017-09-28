@@ -563,15 +563,13 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
             throws ExecutionException, InterruptedException {
         final JsonPointer pointer = JsonFactory.newPointer(key);
         final AttributeModified attributeModified =
-                AttributeModified.of(KNOWN_THING_ID, pointer, JsonValue.newInstance(value), 2L,
-                        DittoHeaders.empty());
+                AttributeModified.of(KNOWN_THING_ID, pointer, JsonValue.of(value), 2L, DittoHeaders.empty());
 
         final CombinedThingWrites writes = CombinedThingWrites.newBuilder(1L, policyEnforcer)
                 .addEvent(attributeModified, JsonSchemaVersion.LATEST)
                 .build();
 
-        assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes)))
-                .isTrue();
+        assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes))).isTrue();
 
         final PolicyRestrictedSearchAggregation aggregation1 =
                 abf.newBuilder(cf.fieldCriteria(fef.filterByAttribute(key), cf.eq(value)))

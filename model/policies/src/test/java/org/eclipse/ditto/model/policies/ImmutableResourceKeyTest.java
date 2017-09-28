@@ -62,7 +62,7 @@ public final class ImmutableResourceKeyTest {
     @Test
     public void testToStringWorksAsExpected() {
         final String expected = "thing:/foo/bar";
-        final ResourceKey underTest = ImmutableResourceKey.newInstance("thing", JsonPointer.newInstance("/foo/bar"));
+        final ResourceKey underTest = ImmutableResourceKey.newInstance("thing", JsonPointer.of("/foo/bar"));
 
         assertThat(underTest.toString()).isEqualTo(expected);
     }

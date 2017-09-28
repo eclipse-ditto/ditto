@@ -134,7 +134,7 @@ public final class RetrievePolicyIdResponse extends AbstractCommandResponse<Retr
 
     @Override
     public JsonValue getEntity(final JsonSchemaVersion schemaVersion) {
-        return JsonValue.newInstance(policyId);
+        return JsonValue.of(policyId);
     }
 
     @Override
@@ -150,7 +150,7 @@ public final class RetrievePolicyIdResponse extends AbstractCommandResponse<Retr
 
     @Override
     public JsonPointer getResourcePath() {
-        return JsonPointer.newInstance("/policyId");
+        return JsonPointer.of("/policyId");
     }
 
     @Override

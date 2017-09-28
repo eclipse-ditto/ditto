@@ -88,13 +88,12 @@ final class ImmutableJsonFieldDefinition implements JsonFieldDefinition {
     @Override
     public boolean isMarkedAs(final JsonFieldMarker fieldMarker, final JsonFieldMarker... furtherFieldMarkers) {
         requireNonNull(fieldMarker, "At least one marker has to be specified!");
+        requireNonNull(furtherFieldMarkers, "The further field markers must not be null!");
 
-        final Collection<JsonFieldMarker> askedMarkers =
-                new HashSet<>(1 + (null != furtherFieldMarkers ? furtherFieldMarkers.length : 0));
+        final Collection<JsonFieldMarker> askedMarkers = new HashSet<>(1 + furtherFieldMarkers.length);
         askedMarkers.add(fieldMarker);
-        if (null != furtherFieldMarkers) {
-            Collections.addAll(askedMarkers, furtherFieldMarkers);
-        }
+        Collections.addAll(askedMarkers, furtherFieldMarkers);
+
         return markers.containsAll(askedMarkers);
     }
 

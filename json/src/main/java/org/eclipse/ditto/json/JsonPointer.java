@@ -31,7 +31,7 @@ import javax.annotation.Nonnull;
  *       "features": {}
  *    }
  * </pre>
- * The root of the JSON pointer {@code "/attributes/location/longitude"} is {@code "attributes"} and the leaf is
+ * The root of the JSON pointer {@code "/attributes/location/longitude"} is {@code "/attributes"} and the leaf is
  * {@code "longitude"}. This pointer points to the field with key {@code "longitude"} and value {@code 9.0815} of the
  * aforementioned JSON object.
  * <p>
@@ -41,7 +41,7 @@ import javax.annotation.Nonnull;
 public interface JsonPointer extends CharSequence, Iterable<JsonKey> {
 
     /**
-     * Returns an empty JSON pointer.
+     * Returns an empty JSON pointer. An empty pointer is represented by string {@code "/"}.
      *
      * @return the pointer.
      */
@@ -51,15 +51,27 @@ public interface JsonPointer extends CharSequence, Iterable<JsonKey> {
     }
 
     /**
-     * Parses the given string to obtain a new JSON pointer. This method is the inverse of {@link
-     * JsonPointer#toString()} .
+     * Parses the given string to obtain a new JSON pointer. This method is the inverse of
+     * {@link JsonPointer#toString()} with one exception: both strings {@code "/"} and {@code ""} lead to an empty
+     * pointer while the string representation of an empty string is always {@code "/"}.
+     * <p>
+     * As a JsonPointer is a hierarchy of JsonKeys it has to support JsonKeys containing slashes. Because of this, a
+     * JsonPointer string has to escape each slash of a JsonKey with {@code "~1"}. To support, tildes in JsonKeys,
+     * too, they have to be escaped with {@code "~0"}. For example, parsing the string
+     * {@code "/foo/~0dum~1~0die~1~0dum/baz"} would result in a JsonPointer consisting of the JsonKeys
+     * <ol>
+     *     <li>{@code "foo"},</li>
+     *     <li>{@code "~dum/~die/~dum"} and</li>
+     *     <li>{@code "baz"}.</li>
+     * </ol>
      *
-     * @param slashDelimitedCharSequence a string representing a JSON pointer.
-     * @return a new JSON pointer consisting of the JSON keys which were extracted from {@code
-     * slashDelimitedCharSequence}.
+     * @param slashDelimitedCharSequence slash-delimited string representing of a JSON pointer. The leading slash may
+     * be omitted.
+     * @return a new JSON pointer consisting of the JSON keys which were extracted from
+     * {@code slashDelimitedCharSequence}.
      * @throws NullPointerException if {@code slashDelimitedCharSequence} is {@code null}.
      */
-    static JsonPointer newInstance(final CharSequence slashDelimitedCharSequence) {
+    static JsonPointer of(final CharSequence slashDelimitedCharSequence) {
         return JsonFactory.newPointer(slashDelimitedCharSequence);
     }
 
@@ -84,7 +96,7 @@ public interface JsonPointer extends CharSequence, Iterable<JsonKey> {
     JsonPointer append(JsonPointer pointer);
 
     /**
-     * Returns the number of levels of this JSON pointer. For example if the pointer is {@code "foo/bar/baz"} this
+     * Returns the number of levels of this JSON pointer. For example, if the pointer is {@code "foo/bar/baz"} this
      * method will return the value {@literal 3}.
      *
      * @return the number of levels of this pointer.
@@ -92,7 +104,8 @@ public interface JsonPointer extends CharSequence, Iterable<JsonKey> {
     int getLevelCount();
 
     /**
-     * Indicates whether this pointer does contain any elements or not, i. e. if the level count is zero.
+     * Indicates whether this pointer does contain any elements or not. If the level count is zero the pointer is
+     * regarded to be empty.
      *
      * @return {@code true} if this pointer does <em>not</em> contain any elements, {@code false} else.
      */
@@ -126,56 +139,56 @@ public interface JsonPointer extends CharSequence, Iterable<JsonKey> {
     /**
      * Creates a new pointer by removing the leaf element of this pointer.
      *
-     * @return a new pointer which does not contain the leaf element of this pointer. If this pointer is empty when
-     * calling this method, this pointer is returned.
+     * @return a new pointer which does not contain the leaf element of this pointer. If this pointer is empty this
+     * pointer instance is returned.
      */
     JsonPointer cutLeaf();
 
     /**
      * Goes to the next sub level of this pointer.
      *
-     * @return a new pointer beginning with the element after the root of this pointer. If this pointer is empty when
-     * this method is called, this pointer is returned.
+     * @return a new pointer beginning with the element after the root of this pointer. If this pointer is empty this
+     * pointer instance is returned.
      */
     JsonPointer nextLevel();
 
     /**
      * Returns a new JSON pointer including all JSON keys from to the passed level and upwards. For example, if this
-     * pointer is {@code /foo/bar/baz} then calling this method with level {@code 1} returns the pointer {@code
-     * /bar/baz}.
+     * pointer is {@code /foo/bar/baz} then calling this method with level {@literal 1} returns the pointer
+     * {@code /bar/baz}.
      *
-     * @param level the level from which (upwards) JSON keys should be included in the new ImmutableJsonPointer. The key
-     * at the specified level is included in the result, too.
+     * @param level the level from which (upwards) JSON keys should be included in the result. The key at the specified
+     * level is part of the result.
      * @return the sub pointer starting from {@code level}. If the level is outside the bounds of this pointer the
      * result is empty.
      */
     Optional<JsonPointer> getSubPointer(int level);
 
     /**
-     * Returns a new JSON pointer including all JSON keys from the start until the passed in level. For example, if this
-     * pointer is {@code /foo/bar/baz} then calling this method with level {@code 1} returns the pointer {@code
-     * /foo/bar}.
+     * Returns a new JSON pointer including all JSON keys from the root until the passed in level. For example, if this
+     * pointer is {@code /foo/bar/baz} then calling this method with level {@literal 1} returns the pointer
+     * {@code /foo/bar}.
      *
-     * @param level the level until which (upwards) JSON keys should be included in the new ImmutableJsonPointer. The
-     * key at the specified level is included in the result, too.
-     * @return the sub pointer starting from 0 until the level. If the level is outside the bounds of this pointer the
-     * result is empty.
+     * @param level the level from which (downwards) JSON keys should be included in the result. The key at the
+     * specified level is part of the result.
+     * @return the sub pointer starting from the root until {@code level}. If {@code level} is outside the bounds of
+     * this pointer the result is empty.
      */
     Optional<JsonPointer> getPrefixPointer(int level);
 
     /**
-     * Returns a new JsonFieldSelector containing this pointer as its only element.
+     * Returns a new {@link JsonFieldSelector} containing this pointer as its only element.
      *
      * @return a new JSON field selector containing only this pointer.
      */
     JsonFieldSelector toFieldSelector();
 
     /**
-     * The string representation of this JSON pointer, i. e. all of its levels concatenated by {@literal "/"}. For
-     * example if this pointer consists of the three levels {@code "foo"}, {@code "bar"} and {@code "baz"}, this method
+     * The string representation of this pointer, i. e. all of its levels concatenated by {@code "/"}. For example,
+     * if this pointer consists of the three levels {@code "foo"}, {@code "bar"} and {@code "baz"}, this method
      * will return the string {@code "/foo/bar/baz"}.
      *
-     * @return the string representation of this JSON pointer.
+     * @return the string representation of this pointer.
      */
     @Override
     String toString();

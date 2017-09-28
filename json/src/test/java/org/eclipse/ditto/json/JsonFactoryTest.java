@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.json;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
@@ -22,8 +23,6 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import org.assertj.core.api.Assertions;
-import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
 import org.junit.Test;
 
 import com.eclipsesource.json.Json;
@@ -40,24 +39,20 @@ public final class JsonFactoryTest {
 
     private static final String KNOWN_JSON_ARRAY_STRING = "[\"one\",\"two\",\"three\"]";
 
-
     @Test
     public void assertImmutability() {
         assertInstancesOf(JsonFactory.class, areImmutable());
     }
-
 
     @Test(expected = NullPointerException.class)
     public void tryToGetNewKeyFromNullString() {
         JsonFactory.newKey(null);
     }
 
-
     @Test(expected = IllegalArgumentException.class)
     public void tryToGetNewKeyFromEmptyString() {
         JsonFactory.newKey("");
     }
-
 
     @Test
     public void newKeyFromAlreadyExistingKeyReturnsExistingKey() {
@@ -67,7 +62,6 @@ public final class JsonFactoryTest {
         assertThat((Object) newJsonKey).isSameAs(oldJsonKey);
     }
 
-
     @Test
     public void newJsonStringFromNullReturnsNullValue() {
         final JsonValue jsonString = JsonFactory.newValue(null);
@@ -75,7 +69,6 @@ public final class JsonFactoryTest {
         assertThat(jsonString.isString()).isFalse();
         assertThat(jsonString.isNull()).isTrue();
     }
-
 
     @Test
     public void newJsonStringReturnsExpected() {
@@ -87,84 +80,74 @@ public final class JsonFactoryTest {
         assertThat(jsonString.toString()).isEqualTo(expectedJsonString);
     }
 
-
     @Test
     public void nullLiteralReturnsExpected() {
         final JsonValue underTest = JsonFactory.nullLiteral();
 
-        DittoJsonAssertions.assertThat(underTest).isNullLiteral();
+        assertThat(underTest).isNullLiteral();
     }
-
 
     @Test
     public void newValueFromTrueReturnsExpected() {
         final JsonValue underTest = JsonFactory.newValue(true);
 
-        DittoJsonAssertions.assertThat(underTest).isBoolean();
+        assertThat(underTest).isBoolean();
         assertThat(underTest.asBoolean()).isTrue();
     }
-
 
     @Test
     public void newValueFromFalseReturnsExpected() {
         final JsonValue underTest = JsonFactory.newValue(false);
 
-        DittoJsonAssertions.assertThat(underTest).isBoolean();
+        assertThat(underTest).isBoolean();
         assertThat(underTest.asBoolean()).isFalse();
     }
-
 
     @Test
     public void newValueFromIntReturnsExpected() {
         final int intValue = 42;
         final JsonValue underTest = JsonFactory.newValue(intValue);
 
-        DittoJsonAssertions.assertThat(underTest).isNumber();
+        assertThat(underTest).isNumber();
         assertThat(underTest.asInt()).isEqualTo(intValue);
     }
-
 
     @Test
     public void newValueFromLongReturnsExpected() {
         final long longValue = 1337L;
         final JsonValue underTest = JsonFactory.newValue(longValue);
 
-        DittoJsonAssertions.assertThat(underTest).isNumber();
+        assertThat(underTest).isNumber();
         assertThat(underTest.asLong()).isEqualTo(longValue);
     }
-
 
     @Test
     public void newValueFromDoubleReturnsExpected() {
         final double doubleValue = 23.7D;
         final JsonValue underTest = JsonFactory.newValue(doubleValue);
 
-        DittoJsonAssertions.assertThat(underTest).isNumber();
+        assertThat(underTest).isNumber();
         assertThat(underTest.asDouble()).isEqualTo(doubleValue);
     }
-
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateNewObjectBuilderFromNullObject() {
         JsonFactory.newObjectBuilder(null);
     }
 
-
     @Test
     public void newObjectReturnsExpected() {
         final JsonObject underTest = JsonFactory.newObject();
 
-        DittoJsonAssertions.assertThat(underTest).isObject();
-        DittoJsonAssertions.assertThat(underTest).isEmpty();
-        DittoJsonAssertions.assertThat(underTest).isNotNullLiteral();
+        assertThat(underTest).isObject();
+        assertThat(underTest).isEmpty();
+        assertThat(underTest).isNotNullLiteral();
     }
-
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateNewObjectFromNullMap() {
         JsonFactory.newObject((Map<JsonKey, JsonValue>) null);
     }
-
 
     @Test
     public void createNewObjectFromMap() {
@@ -178,40 +161,35 @@ public final class JsonFactoryTest {
 
         final JsonObject underTest = JsonFactory.newObject(fields);
 
-        DittoJsonAssertions.assertThat(underTest).hasSize(fields.size()).contains(key1, value1).contains(key2, value2);
+        assertThat(underTest).hasSize(fields.size()).contains(key1, value1).contains(key2, value2);
     }
-
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateNewObjectFromNullString() {
         JsonFactory.newObject((String) null);
     }
 
-
     @Test(expected = IllegalArgumentException.class)
     public void tryToCreateNewObjectFromEmptyString() {
         JsonFactory.newObject("");
     }
-
 
     @Test(expected = JsonParseException.class)
     public void tryToCreateNewObjectFromNonsenseString() {
         JsonFactory.newObject("Ma-O-Am");
     }
 
-
     @Test
     public void newObjectFromStringReturnsExpected() {
         final JsonObject underTest = JsonFactory.newObject(KNOWN_JSON_OBJECT_STRING);
         final byte expectedSize = 3;
 
-        DittoJsonAssertions.assertThat(underTest).isObject();
-        DittoJsonAssertions.assertThat(underTest).isNotNullLiteral();
-        DittoJsonAssertions.assertThat(underTest).isNotEmpty();
-        DittoJsonAssertions.assertThat(underTest).hasSize(expectedSize);
-        DittoJsonAssertions.assertThat(underTest).contains(JsonFactory.newKey("featureId"), "1");
-        DittoJsonAssertions.assertThat(underTest)
-                .contains(JsonFactory.newKey("functionblock"), JsonFactory.nullLiteral());
+        assertThat(underTest).isObject();
+        assertThat(underTest).isNotNullLiteral();
+        assertThat(underTest).isNotEmpty();
+        assertThat(underTest).hasSize(expectedSize);
+        assertThat(underTest).contains(JsonFactory.newKey("featureId"), "1");
+        assertThat(underTest).contains(JsonFactory.newKey("functionblock"), JsonFactory.nullLiteral());
 
         JsonObject expectedProperties = JsonFactory.newObject();
         expectedProperties = expectedProperties.setValue("someInt", 42);
@@ -222,62 +200,54 @@ public final class JsonFactoryTest {
         someObject = someObject.setValue("aKey", "aValue");
         expectedProperties = expectedProperties.setValue("someObj", someObject);
 
-        DittoJsonAssertions.assertThat(underTest).contains(JsonFactory.newKey("properties"), expectedProperties);
+        assertThat(underTest).contains(JsonFactory.newKey("properties"), expectedProperties);
     }
-
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateNewObjectBuilderFromNullIterable() {
         JsonFactory.newArrayBuilder(null);
     }
 
-
     @Test
     public void createNewEmptyArray() {
         final JsonArray underTest = JsonFactory.newArray();
 
-        DittoJsonAssertions.assertThat(underTest).isArray();
-        DittoJsonAssertions.assertThat(underTest).isEmpty();
+        assertThat(underTest).isArray();
+        assertThat(underTest).isEmpty();
     }
-
 
     @Test(expected = IllegalArgumentException.class)
     public void tryToCreateNewArrayFromEmptyString() {
         JsonFactory.newArray("");
     }
 
-
     @Test(expected = JsonParseException.class)
     public void tryToCreateNewArrayFromNonsenseString() {
         JsonFactory.newArray("Ma-O-Am");
     }
 
-
     @Test
     public void newArrayFromStringReturnsExpected() {
-        final String jsonString = KNOWN_JSON_ARRAY_STRING;
-        final JsonArray underTest = JsonFactory.newArray(jsonString);
+        final JsonArray underTest = JsonFactory.newArray(KNOWN_JSON_ARRAY_STRING);
         final byte expectedSize = 3;
 
-        DittoJsonAssertions.assertThat(underTest).isArray();
-        DittoJsonAssertions.assertThat(underTest).isNotNullLiteral();
-        DittoJsonAssertions.assertThat(underTest).isNotEmpty();
-        DittoJsonAssertions.assertThat(underTest).hasSize(expectedSize);
-        DittoJsonAssertions.assertThat(underTest).isNotObject();
-        DittoJsonAssertions.assertThat(underTest).contains("one");
-        DittoJsonAssertions.assertThat(underTest).contains("two");
-        DittoJsonAssertions.assertThat(underTest).contains("three");
+        assertThat(underTest).isArray();
+        assertThat(underTest).isNotNullLiteral();
+        assertThat(underTest).isNotEmpty();
+        assertThat(underTest).hasSize(expectedSize);
+        assertThat(underTest).isNotObject();
+        assertThat(underTest).contains("one");
+        assertThat(underTest).contains("two");
+        assertThat(underTest).contains("three");
     }
-
 
     @Test
     public void convertMinimalJsonNullReturnsNull() {
         final com.eclipsesource.json.JsonValue minimalJsonValue = null;
         final JsonValue underTest = JsonFactory.convert(minimalJsonValue);
 
-        DittoJsonAssertions.assertThat(underTest).isNull();
+        assertThat(underTest).isNull();
     }
-
 
     @Test
     public void convertMinimalJsonObjectReturnsExpected() {
@@ -287,10 +257,9 @@ public final class JsonFactoryTest {
         final JsonValue underTest = JsonFactory.convert(minimalJsonObject);
         final byte expectedSize = 3;
 
-        DittoJsonAssertions.assertThat(underTest).isObject();
-        DittoJsonAssertions.assertThat((JsonObject) underTest).hasSize(expectedSize);
+        assertThat(underTest).isObject();
+        assertThat((JsonObject) underTest).hasSize(expectedSize);
     }
-
 
     @Test
     public void convertMinimalJsonStringReturnsExpected() {
@@ -298,10 +267,9 @@ public final class JsonFactoryTest {
         final com.eclipsesource.json.JsonValue minimalJsonString = Json.value(javaString);
         final JsonValue underTest = JsonFactory.convert(minimalJsonString);
 
-        DittoJsonAssertions.assertThat(underTest).isString();
+        assertThat(underTest).isString();
         assertThat(underTest.asString()).isEqualTo(javaString);
     }
-
 
     @Test
     public void convertMinimalJsonArrayReturnsExpected() {
@@ -311,29 +279,26 @@ public final class JsonFactoryTest {
         final JsonValue underTest = JsonFactory.convert(minimalJsonArray);
         final byte expectedSize = 3;
 
-        DittoJsonAssertions.assertThat(underTest).isArray();
-        DittoJsonAssertions.assertThat((JsonArray) underTest).hasSize(expectedSize);
+        assertThat(underTest).isArray();
+        assertThat((JsonArray) underTest).hasSize(expectedSize);
     }
-
 
     @Test
     public void convertMinimalJsonBooleanReturnsExpected() {
         final com.eclipsesource.json.JsonValue minimalJsonBoolean = Json.FALSE;
         final JsonValue underTest = JsonFactory.convert(minimalJsonBoolean);
 
-        DittoJsonAssertions.assertThat(underTest).isBoolean();
+        assertThat(underTest).isBoolean();
         assertThat(underTest.asBoolean()).isFalse();
     }
-
 
     @Test
     public void convertMinimalJsonNullLiteralReturnsExpected() {
         final com.eclipsesource.json.JsonValue minimalJsonNullLiteral = Json.NULL;
         final JsonValue underTest = JsonFactory.convert(minimalJsonNullLiteral);
 
-        DittoJsonAssertions.assertThat(underTest).isNullLiteral();
+        assertThat(underTest).isNullLiteral();
     }
-
 
     @Test
     public void convertMinimalJsonNumberReturnsExpected() {
@@ -341,10 +306,9 @@ public final class JsonFactoryTest {
         final com.eclipsesource.json.JsonValue minimalJsonNumber = Json.value(numberValue);
         final JsonValue underTest = JsonFactory.convert(minimalJsonNumber);
 
-        DittoJsonAssertions.assertThat(underTest).isNumber();
+        assertThat(underTest).isNumber();
         assertThat(underTest.asDouble()).isEqualTo(numberValue);
     }
-
 
     @Test
     public void convertNullReturnsNull() {
@@ -353,7 +317,6 @@ public final class JsonFactoryTest {
 
         assertThat(underTest).isNull();
     }
-
 
     @Test
     public void convertObjectToMinimalJsonObject() {
@@ -374,7 +337,6 @@ public final class JsonFactoryTest {
         assertThat(underTestAsObject.get("properties")).isEqualTo(expectedProperties);
     }
 
-
     @Test
     public void convertJsonStringToMinimalJsonString() {
         final String stringValue = "winter";
@@ -384,7 +346,6 @@ public final class JsonFactoryTest {
         assertThat(underTest.isString()).isTrue();
         assertThat(underTest.asString()).isEqualTo(stringValue);
     }
-
 
     @Test
     public void convertArrayToMinimalJsonArray() {
@@ -402,7 +363,6 @@ public final class JsonFactoryTest {
         assertThat(underTestAsArray).containsSequence(Json.value("one"), Json.value("two"), Json.value("three"));
     }
 
-
     @Test
     public void convertJsonBooleanToMinimalJsonBoolean() {
         final JsonValue jsonBoolean = JsonFactory.newValue(true);
@@ -412,7 +372,6 @@ public final class JsonFactoryTest {
         assertThat(underTest.asBoolean()).isTrue();
     }
 
-
     @Test
     public void convertJsonNullLiteralToMinimalJsonNullLiteral() {
         final JsonValue jsonNullLiteral = JsonFactory.nullLiteral();
@@ -420,7 +379,6 @@ public final class JsonFactoryTest {
 
         assertThat(underTest.isNull()).isTrue();
     }
-
 
     @Test
     public void convertJsonNumberToMinimalJsonNumber() {
@@ -432,59 +390,51 @@ public final class JsonFactoryTest {
         assertThat(underTest.asDouble()).isEqualTo(numberValue);
     }
 
-
     @Test(expected = JsonParseException.class)
     public void tryToReadJsonValueFromInvalidString() {
         JsonFactory.readFrom("{\"foo\":\"bar\"");
     }
-
 
     @Test(expected = JsonParseException.class)
     public void tryToReadJsonObjectFromInvalidInput() {
         JsonFactory.readFrom("\"42");
     }
 
-
     @Test
     public void readFromJsonObjectString() {
         final JsonValue expected = JsonFactory.newObject().setValue("foo", "bar");
         final JsonValue actual = JsonFactory.readFrom("{\"foo\":\"bar\"}");
 
-        DittoJsonAssertions.assertThat(actual).isEqualTo(expected);
+        assertThat(actual).isEqualTo(expected);
     }
-
 
     @Test
     public void readFromJsonPrimitiveString() {
         final JsonValue expected = JsonFactory.newValue("foo");
         final JsonValue actual = JsonFactory.readFrom("\"foo\"");
 
-        DittoJsonAssertions.assertThat(actual).isEqualTo(expected);
+        assertThat(actual).isEqualTo(expected);
     }
-
 
     @Test(expected = NullPointerException.class)
     public void tryToReadFromNullReader() {
         JsonFactory.readFrom((Reader) null);
     }
 
-
     @Test
     public void readFromJsonArrayStringReader() {
         final StringReader stringReader = new StringReader(KNOWN_JSON_ARRAY_STRING);
         final JsonValue jsonValue = JsonFactory.readFrom(stringReader);
 
-        DittoJsonAssertions.assertThat(jsonValue).isNotNull();
-        DittoJsonAssertions.assertThat(jsonValue).isArray();
-        DittoJsonAssertions.assertThat((JsonArray) jsonValue).contains("two");
+        assertThat(jsonValue).isNotNull();
+        assertThat(jsonValue).isArray();
+        assertThat((JsonArray) jsonValue).contains("two");
     }
-
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateNewFieldSelectorWithNullSet() {
         JsonFactory.newFieldSelector((Iterable<JsonPointer>) null);
     }
-
 
     @Test
     public void emptyFieldSelector() {
@@ -492,7 +442,6 @@ public final class JsonFactoryTest {
 
         assertThat(actual).isEmpty();
     }
-
 
     @Test
     public void newFieldSelectorBuilder() {
@@ -502,26 +451,22 @@ public final class JsonFactoryTest {
         assertThat(builder.build()).isEmpty();
     }
 
-
     @Test
     public void newFieldSelectorWithEmptySetReturnsEmptyFieldSelector() {
         final JsonFieldSelector fieldSelector = JsonFactory.newFieldSelector(Collections.emptySet());
 
-        assertThat(fieldSelector.isEmpty());
+        assertThat(fieldSelector).isEmpty();
     }
-
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateNewFieldSelectorWithNullMandatoryPointer() {
         JsonFactory.newFieldSelector((JsonPointer) null);
     }
 
-
     @Test(expected = NullPointerException.class)
     public void tryToCreateNewFieldSelectorWithNullFurtherPointers() {
         JsonFactory.newFieldSelector(mock(JsonPointer.class), null);
     }
-
 
     @Test
     public void newFieldSelectorFromPointersReturnsExpected() {
@@ -535,7 +480,6 @@ public final class JsonFactoryTest {
 
         assertThat(fieldSelector.getPointers()).containsExactly(root, child, sibling, sub, subsub);
     }
-
 
     @Test
     public void newFieldSelectorFromPointerStringsReturnsExpected() {
@@ -557,24 +501,21 @@ public final class JsonFactoryTest {
         assertThat(fieldSelector.getPointers()).containsExactly(root, child, sibling, sub, subsub);
     }
 
-
     @Test
     public void newFieldSelectorFromNullStringIsEmpty() {
         final JsonFieldSelector fieldSelector = JsonFactory.newFieldSelector(null,
                 JsonFactory.newParseOptionsBuilder().withoutUrlDecoding().build());
 
-        Assertions.assertThat(fieldSelector).isEmpty();
+        assertThat(fieldSelector).isEmpty();
     }
-
 
     @Test
     public void newFieldSelectorFromEmptyStringIsEmpty() {
         final JsonFieldSelector fieldSelector = JsonFactory.newFieldSelector("",
                 JsonFactory.newParseOptionsBuilder().withoutUrlDecoding().build());
 
-        Assertions.assertThat(fieldSelector).isEmpty();
+        assertThat(fieldSelector).isEmpty();
     }
-
 
     @Test
     public void newFieldDefinitionWithDifferentKeyArgumentsYieldsEqualObject() {
@@ -592,7 +533,6 @@ public final class JsonFactoryTest {
         assertThat(definition1).isEqualTo(definition2).isEqualTo(definition3);
     }
 
-
     @Test
     public void convertLongJsonValueToMinimalJsonValue() {
         final long longValue = System.currentTimeMillis();
@@ -601,7 +541,6 @@ public final class JsonFactoryTest {
 
         assertThat(minimalJsonValue.toString()).isEqualTo(String.valueOf(longValue));
     }
-
 
     @Test
     public void convertMaxLongJsonValueToMinimalJsonValue() {
@@ -612,7 +551,6 @@ public final class JsonFactoryTest {
         assertThat(minimalJsonValue.toString()).isEqualTo(String.valueOf(longValue));
     }
 
-
     @Test
     public void convertMinLongJsonValueToMinimalJsonValue() {
         final long longValue = Long.MIN_VALUE;
@@ -621,7 +559,6 @@ public final class JsonFactoryTest {
 
         assertThat(minimalJsonValue.toString()).isEqualTo(String.valueOf(longValue));
     }
-
 
     @Test
     public void convertIntegerAsDoubleJsonValueToMinimalJsonValue() {
@@ -633,7 +570,6 @@ public final class JsonFactoryTest {
         assertThat(minimalJsonValue.toString()).isEqualTo("1449662035141");
     }
 
-
     @Test
     public void convertPureDoubleJsonValueToMinimalJsonValue() {
         final double doubleValue = 42.23D;
@@ -642,7 +578,6 @@ public final class JsonFactoryTest {
 
         assertThat(minimalJsonValue.toString()).isEqualTo(String.valueOf(doubleValue));
     }
-
 
     @Test
     public void convertMaxDoubleJsonValueToMinimalJsonValue() {
@@ -653,7 +588,6 @@ public final class JsonFactoryTest {
         assertThat(minimalJsonValue.toString()).isEqualTo(String.valueOf(doubleValue));
     }
 
-
     @Test
     public void convertMinDoubleJsonValueToMinimalJsonValue() {
         final double doubleValue = Double.MIN_VALUE;
@@ -663,7 +597,6 @@ public final class JsonFactoryTest {
         assertThat(minimalJsonValue.toString()).isEqualTo(String.valueOf(doubleValue));
     }
 
-
     @Test
     public void convertMaxIntegerJsonValueToMinimalJsonValue() {
         final int intValue = Integer.MAX_VALUE;
@@ -672,7 +605,6 @@ public final class JsonFactoryTest {
 
         assertThat(minimalJsonValue.toString()).isEqualTo(String.valueOf(intValue));
     }
-
 
     @Test
     public void convertMinIntegerJsonValueToMinimalJsonValue() {
