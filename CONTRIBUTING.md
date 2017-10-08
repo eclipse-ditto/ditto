@@ -7,7 +7,7 @@ In order to get you started as fast as possible we need to go through some organ
 
 ## Legal Requirements
 
-Hono is an [Eclipse IoT](https://iot.eclipse.org) project and as such is governed by the Eclipse Development process.
+Ditto is an [Eclipse IoT](https://iot.eclipse.org) project and as such is governed by the Eclipse Development process.
 This process helps us in creating great open source software within a safe legal framework.
 
 For you as a contributor, the following preliminary steps are required in order for us to be able to accept your contribution:
