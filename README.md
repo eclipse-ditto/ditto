@@ -22,6 +22,7 @@ Support finding and selecting sets of Digital Twins by providing search function
 ## Getting started
 
 In order to start up Ditto, you'll need
+* JDK 8 >= 1.8.0_92 (due to a bug in older versions of the JDK you'll get a compile error)
 * Apache Maven 3.x installed
 * a running Docker daemon (at least version 17.06 CE)
 * Docker Compose installed (at least version 1.16)
