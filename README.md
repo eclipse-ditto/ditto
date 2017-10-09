@@ -54,6 +54,24 @@ You have now running:
 * an nginx acting as a reverse proxy performing a simple "basic authentication" listening on port `8080`
    * including some static HTTP + API documentation on [http://localhost:8080](http://localhost:8080)
 
+#### Build from within Docker image
+
+If you do not have the right Maven and JDK version available, you can also use a Maven Docker image as build environment:
+
+```bash
+# Start up the docker image with maven:
+docker run -it --rm --name mvn-ditto \
+    -v /var/run/docker.sock:/var/run/docker.sock \
+    -v "$PWD":/usr/src/mymaven -w /usr/src/mymaven \
+    -u root \
+    maven:3.5.0-jdk-8 \
+    /bin/bash
+# From within the docker image, build the docker images:
+mvn clean install -Pdocker-build-image \
+    -Ddocker.daemon.url=unix:///var/run/docker.sock
+# Docker images are now available on your Docker host
+```
+
 ### Try it out
 
 Have a look at the [Getting Started](documentation/getting-started/README.md)
