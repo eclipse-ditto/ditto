@@ -32,6 +32,7 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.messages.Message;
+import org.eclipse.ditto.model.messages.MessageBuilder;
 import org.eclipse.ditto.model.messages.MessageHeaders;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 
@@ -43,6 +44,9 @@ import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
  */
 abstract class AbstractMessageCommandResponse<T, C extends AbstractMessageCommandResponse>
         extends AbstractCommandResponse<C> implements MessageCommandResponse<T, C> {
+
+    private static final String TEXT_PLAIN = "text/plain";
+    private static final String APPLICATION_JSON = "application/json";
 
     private static final Base64.Encoder BASE64_ENCODER = Base64.getEncoder();
     private static final Base64.Decoder BASE64_DECODER = Base64.getDecoder();
@@ -81,12 +85,21 @@ abstract class AbstractMessageCommandResponse<T, C extends AbstractMessageComman
         final JsonObject messageHeadersObject = message.getHeaders().toJson();
         messageBuilder.set(MessageCommandResponse.JsonFields.JSON_MESSAGE_HEADERS, messageHeadersObject, predicate);
 
-        final String encodedString = message.getRawPayload()
-                .map(BASE64_ENCODER::encode)
-                .map(encoded -> new String(encoded.array(), StandardCharsets.UTF_8))
-                .orElse("");
-
-        messageBuilder.set(MessageCommandResponse.JsonFields.JSON_MESSAGE_PAYLOAD, encodedString, predicate);
+        if (message.getPayload().isPresent()) {
+            final T payload = message.getPayload().get();
+            if (payload instanceof JsonValue) {
+                messageBuilder.set(MessageCommand.JsonFields.JSON_MESSAGE_PAYLOAD, (JsonValue) payload, predicate);
+            } else {
+                messageBuilder.set(MessageCommand.JsonFields.JSON_MESSAGE_PAYLOAD, JsonValue.of(payload.toString()),
+                        predicate);
+            }
+        } else {
+            final String encodedString = message.getRawPayload()
+                    .map(BASE64_ENCODER::encode)
+                    .map(base64Encoded -> new String(base64Encoded.array(), StandardCharsets.UTF_8))
+                    .orElse("");
+            messageBuilder.set(MessageCommand.JsonFields.JSON_MESSAGE_PAYLOAD, JsonValue.of(encodedString), predicate);
+        }
 
         final JsonObject messageObject = messageBuilder.build();
         jsonObjectBuilder.set(MessageCommandResponse.JsonFields.JSON_MESSAGE, messageObject, predicate);
@@ -109,22 +122,29 @@ abstract class AbstractMessageCommandResponse<T, C extends AbstractMessageComman
                                 .fieldName(
                                         MessageCommandResponse.JsonFields.JSON_MESSAGE_HEADERS.getPointer().toString())
                                 .build());
-        final String messagePayloadString =
-                messageObject.getValue(MessageCommandResponse.JsonFields.JSON_MESSAGE_PAYLOAD)
-                        .filter(JsonValue::isString)
-                        .map(JsonValue::asString)
-                        .orElseThrow(() -> JsonMissingFieldException.newBuilder()
-                                .fieldName(
-                                        MessageCommandResponse.JsonFields.JSON_MESSAGE_PAYLOAD.getPointer().toString())
-                                .build());
+        final JsonValue messagePayloadValue = messageObject.getValue(MessageCommand.JsonFields.JSON_MESSAGE_PAYLOAD)
+                .orElseThrow(() -> JsonMissingFieldException.newBuilder()
+                        .fieldName(MessageCommand.JsonFields.JSON_MESSAGE_PAYLOAD.getPointer().toString()).build());
 
         final MessageHeaders messageHeaders = MessageHeaders.of(messageHeadersObject);
 
-        return Message.<T>newBuilder(messageHeaders)
-                .rawPayload(ByteBuffer.wrap(
-                        BASE64_DECODER.decode(messagePayloadString.getBytes(StandardCharsets.UTF_8)))
-                )
-                .build();
+        final MessageBuilder<T> messageBuilder = Message.<T>newBuilder(messageHeaders);
+        if (messagePayloadValue.isString()) {
+            final String payloadStr = messagePayloadValue.asString();
+            if (shouldBeInterpretedAsText(messageHeaders.getContentType().orElse(""))) {
+                messageBuilder.payload((T) payloadStr);
+            } else {
+                messageBuilder.rawPayload(ByteBuffer.wrap(
+                        BASE64_DECODER.decode(payloadStr.getBytes(StandardCharsets.UTF_8))));
+            }
+        } else {
+            messageBuilder.payload((T) messagePayloadValue);
+        }
+        return messageBuilder.build();
+    }
+
+    private static boolean shouldBeInterpretedAsText(final String contentType) {
+        return contentType.startsWith(TEXT_PLAIN) || contentType.startsWith(APPLICATION_JSON);
     }
 
     @Override

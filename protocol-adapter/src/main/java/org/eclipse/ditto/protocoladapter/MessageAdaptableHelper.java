@@ -15,6 +15,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.Optional;
 import java.util.regex.Pattern;
 
 import org.eclipse.ditto.json.JsonFactory;
@@ -25,10 +26,12 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.messages.Message;
+import org.eclipse.ditto.model.messages.MessageBuilder;
 import org.eclipse.ditto.model.messages.MessageHeaderDefinition;
 import org.eclipse.ditto.model.messages.MessageHeaders;
 import org.eclipse.ditto.model.messages.MessageHeadersBuilder;
 import org.eclipse.ditto.model.messages.MessagesModelFactory;
+import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 
 /**
@@ -40,12 +43,16 @@ final class MessageAdaptableHelper {
     private static final Base64.Decoder BASE_64_DECODER = Base64.getDecoder();
     private static final Pattern CHARSET_PATTERN = Pattern.compile(";.?charset=");
 
+    private static final String TEXT_PLAIN = "text/plain";
+    private static final String APPLICATION_JSON = "application/json";
+
     /**
      * Creates an {@link Adaptable} from the passed {@link Message} and its related arguments.
      *
      * @param channel the Channel.
      * @param thingId the Thing ID.
      * @param messageCommandJson the JSON representation of the MessageCommand.
+     * @param resourcePath the resource Path of the MessageCommand.
      * @param message the Message to created the Adaptable from.
      * @param dittoHeaders the used DittoHeaders.
      * @return the Adaptable.
@@ -53,6 +60,7 @@ final class MessageAdaptableHelper {
     static Adaptable adaptableFrom(final TopicPath.Channel channel,
             final String thingId,
             final JsonObject messageCommandJson,
+            final JsonPointer resourcePath,
             final Message<?> message,
             final DittoHeaders dittoHeaders) {
 
@@ -78,7 +86,7 @@ final class MessageAdaptableHelper {
         final DittoHeadersBuilder allHeadersBuilder = DittoHeaders.newBuilder(messageCommandHeadersJsonObject);
         allHeadersBuilder.putHeaders(dittoHeaders);
 
-        final PayloadBuilder payloadBuilder = Payload.newBuilder();
+        final PayloadBuilder payloadBuilder = Payload.newBuilder(resourcePath);
 
         messageCommandJson.getValue(messagePointer.append(MessageCommand.JsonFields.JSON_MESSAGE_PAYLOAD.getPointer()))
                 .map(p -> messageCommandHeadersJsonObject.getValue(MessageHeaderDefinition.CONTENT_TYPE.getKey())
@@ -86,17 +94,21 @@ final class MessageAdaptableHelper {
                         .map(JsonValue::asString)
                         .filter(MessageAdaptableHelper::shouldBeInterpretedAsText)
                         .map(MessageAdaptableHelper::determineCharset)
-                        .map(charset -> JsonValue.of(
+                        .map(charset -> !p.isString() ? p : JsonValue.of(
                                 new String(BASE_64_DECODER.decode(p.asString()), charset)))
                         .orElse(p))
                 .ifPresent(payloadBuilder::withValue);
 
         message.getStatusCode().ifPresent(payloadBuilder::withStatus);
 
+        messageCommandJson.getValue(CommandResponse.JsonFields.STATUS)
+                .filter(JsonValue::isNumber)
+                .map(JsonValue::asInt)
+                .ifPresent(payloadBuilder::withStatus);
+
         return Adaptable.newBuilder(messagesTopicPathBuilder.build())
                 .withPayload(payloadBuilder.build())
-                .withHeaders(allHeadersBuilder.build())
-                .build();
+                .withHeaders(allHeadersBuilder.build()).build();
     }
 
     /**
@@ -125,15 +137,22 @@ final class MessageAdaptableHelper {
         final boolean isPlainText = shouldBeInterpretedAsText(contentType);
         final Charset charset = isPlainText ? determineCharset(contentType) : StandardCharsets.UTF_8;
 
-        final byte[] messagePayloadBytes = adaptable.getPayload()
-                .getValue()
-                .map(jsonValue -> jsonValue.isString() ? jsonValue.asString() : jsonValue.toString())
-                .map(payloadString -> payloadString.getBytes(charset))
-                .orElseThrow(() -> JsonParseException.newBuilder().build());
-
-        return MessagesModelFactory.<T>newMessageBuilder(messageHeaders)
-                .rawPayload(ByteBuffer.wrap(isPlainText ? messagePayloadBytes : tryToDecode(messagePayloadBytes)))
-                .build();
+        final MessageBuilder<T> messageBuilder = MessagesModelFactory.<T>newMessageBuilder(messageHeaders);
+        final Optional<JsonValue> value = adaptable.getPayload().getValue();
+        if (isPlainText) {
+            if (value.filter(JsonValue::isString).isPresent()) {
+                messageBuilder.payload((T) value.get().asString());
+            } else {
+                value.ifPresent(jsonValue -> messageBuilder.payload((T) jsonValue));
+            }
+        } else {
+            final byte[] messagePayloadBytes = value
+                    .map(jsonValue -> jsonValue.isString() ? jsonValue.asString() : jsonValue.toString())
+                    .map(payloadString -> payloadString.getBytes(charset))
+                    .orElseThrow(() -> JsonParseException.newBuilder().build());
+            messageBuilder.rawPayload(ByteBuffer.wrap(tryToDecode(messagePayloadBytes)));
+        }
+        return messageBuilder.build();
     }
 
     private static byte[] tryToDecode(final byte[] bytes) {
@@ -145,7 +164,7 @@ final class MessageAdaptableHelper {
     }
 
     private static boolean shouldBeInterpretedAsText(final String contentType) {
-        return contentType.startsWith("text/plain") || contentType.startsWith("application/json");
+        return contentType.startsWith(TEXT_PLAIN) || contentType.startsWith(APPLICATION_JSON);
     }
 
     private static Charset determineCharset(final CharSequence contentType) {

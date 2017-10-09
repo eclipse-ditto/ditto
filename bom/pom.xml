@@ -37,7 +37,7 @@
         <akka.version>2.5.4</akka.version>
         <akka-http.version>10.0.10</akka-http.version>
         <akka-sse.version>3.0.0</akka-sse.version>
-        <akka-persistence-mongo.version>2.0.3</akka-persistence-mongo.version>
+        <akka-persistence-mongo.version>2.0.4</akka-persistence-mongo.version>
         <casbah.version>3.1.1</casbah.version>
         <mongo-java-driver.version>3.5.0</mongo-java-driver.version>
         <mongo-reactivestreams.version>1.6.0</mongo-reactivestreams.version>

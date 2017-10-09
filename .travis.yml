@@ -1,0 +1,17 @@
+dist: trusty
+sudo: required
+language: java
+jdk:
+  - oraclejdk8
+env:
+  global:
+  - COMMIT=${TRAVIS_COMMIT::8}
+# TODO add docker user + password as encrypted vars
+before_install:
+  - cp .travis.settings.xml $HOME/.m2/settings.xml
+install: true
+script:
+  - export PROJECT_VERSION=$(mvn org.apache.maven.plugins:maven-help-plugin:evaluate -Dexpression=project.version -B | grep -v '\[')
+  - export IMAGE_SUFFIX=`if [[ "$TRAVIS_BRANCH" == "master" ]] && [[ "${PROJECT_VERSION}" =~ .*SNAPSHOT ]]; then echo ""; else echo $TRAVIS_BRANCH ; fi`
+  - export MAVEN_ARGUMENTS=`if [ "$TRAVIS_EVENT_TYPE" != "pull_request" ]; then echo "-Ddocker.daemon.url=unix:///var/run/docker.sock -Ddocker.image.version.suffix=$IMAGE_SUFFIX -Pdocker-build-image"; else echo "" ; fi`
+  - mvn install -DcreateJavadoc=true $MAVEN_ARGUMENTS

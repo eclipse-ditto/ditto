@@ -9,7 +9,7 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package org.eclipse.ditto.services.policies.util;
+package org.eclipse.ditto.services.models.policies;
 
 import java.util.Map;
 import java.util.function.BiFunction;
@@ -20,8 +20,6 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
-import org.eclipse.ditto.services.models.policies.PolicyCacheEntry;
-import org.eclipse.ditto.services.models.policies.PolicyTag;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoCommandRegistry;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoCommandResponseRegistry;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategiesBuilder;
@@ -33,7 +31,7 @@ import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyErrorRegistr
 import org.eclipse.ditto.signals.events.policies.PolicyEventRegistry;
 
 /**
- * {@link MappingStrategy} for the Policies service containing all {@link Jsonifiable} types known to this service.
+ * {@link MappingStrategy} for the Policies service containing all {@link Jsonifiable} types known to Policies.
  */
 public final class PoliciesMappingStrategy implements MappingStrategy {
 

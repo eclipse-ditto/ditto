@@ -24,44 +24,4 @@
     <artifactId>ditto-services-policies-util</artifactId>
     <name>Eclipse Ditto :: Services :: Policies :: Util</name>
 
-    <dependencies>
-        <dependency>
-            <groupId>org.eclipse.ditto.json</groupId>
-            <artifactId>ditto-json</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>org.eclipse.ditto.model</groupId>
-            <artifactId>ditto-model-base</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.ditto.model</groupId>
-            <artifactId>ditto-model-policies</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>org.eclipse.ditto.signals.commands</groupId>
-            <artifactId>ditto-signals-commands-policies</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.ditto.signals.events</groupId>
-            <artifactId>ditto-signals-events-policies</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>org.eclipse.ditto.services.models</groupId>
-            <artifactId>ditto-services-models-policies</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>org.eclipse.ditto.services.utils</groupId>
-            <artifactId>ditto-services-utils-distributed-cache-model</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>org.eclipse.ditto.services.utils</groupId>
-            <artifactId>ditto-services-utils-cluster</artifactId>
-        </dependency>
-    </dependencies>
-
 </project>

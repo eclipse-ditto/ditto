@@ -24,43 +24,4 @@
     <artifactId>ditto-services-things-util</artifactId>
     <name>Eclipse Ditto :: Services :: Things :: Util</name>
 
-    <dependencies>
-        <dependency>
-            <groupId>org.eclipse.ditto.json</groupId>
-            <artifactId>ditto-json</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>org.eclipse.ditto.model</groupId>
-            <artifactId>ditto-model-base</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.ditto.model</groupId>
-            <artifactId>ditto-model-things</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>org.eclipse.ditto.signals.commands</groupId>
-            <artifactId>ditto-signals-commands-things</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.ditto.signals.events</groupId>
-            <artifactId>ditto-signals-events-things</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>org.eclipse.ditto.services.models</groupId>
-            <artifactId>ditto-services-models-things</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>org.eclipse.ditto.services.utils</groupId>
-            <artifactId>ditto-services-utils-distributed-cache-model</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>org.eclipse.ditto.services.utils</groupId>
-            <artifactId>ditto-services-utils-cluster</artifactId>
-        </dependency>
-    </dependencies>
 </project>

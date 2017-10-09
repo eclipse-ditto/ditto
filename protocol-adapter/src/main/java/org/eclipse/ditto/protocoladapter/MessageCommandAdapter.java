@@ -56,6 +56,11 @@ final class MessageCommandAdapter extends AbstractAdapter<MessageCommand> {
     }
 
     @Override
+    public Adaptable toAdaptable(final MessageCommand t) {
+        return toAdaptable(t, TopicPath.Channel.LIVE);
+    }
+
+    @Override
     protected String getType(final Adaptable adaptable) {
         if (adaptable.getTopicPath().getSubject().filter(KnownMessageSubjects.CLAIM_SUBJECT::equals).isPresent()) {
             return SendClaimMessage.TYPE;
@@ -70,8 +75,7 @@ final class MessageCommandAdapter extends AbstractAdapter<MessageCommand> {
     public Adaptable toAdaptable(final MessageCommand command, final TopicPath.Channel channel) {
 
         return MessageAdaptableHelper.adaptableFrom(channel, command.getThingId(), command.toJson(),
-                command.getMessage(),
-                command.getDittoHeaders());
+                command.getResourcePath(), command.getMessage(), command.getDittoHeaders());
     }
 
 }

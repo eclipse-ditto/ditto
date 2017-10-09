@@ -35,6 +35,20 @@
         </dependency>
 
         <dependency>
+            <groupId>org.eclipse.ditto.signals.commands</groupId>
+            <artifactId>ditto-signals-commands-policies</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.eclipse.ditto.signals.events</groupId>
+            <artifactId>ditto-signals-events-policies</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.eclipse.ditto.services.utils</groupId>
+            <artifactId>ditto-services-utils-cluster</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.eclipse.ditto.services.utils</groupId>
             <artifactId>ditto-services-utils-distributed-cache-model</artifactId>
         </dependency>

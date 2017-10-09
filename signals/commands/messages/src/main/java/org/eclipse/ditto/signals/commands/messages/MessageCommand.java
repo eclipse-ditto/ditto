@@ -16,6 +16,7 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -133,7 +134,7 @@ public interface MessageCommand<T, C extends MessageCommand> extends Command<C>,
          * JSON field containing the MessageCommand's Message payload.
          */
         public static JsonFieldDefinition JSON_MESSAGE_PAYLOAD =
-                JsonFactory.newFieldDefinition("payload", String.class, FieldType.REGULAR,
+                JsonFactory.newFieldDefinition("payload", JsonValue.class, FieldType.REGULAR,
                         // available in schema versions:
                         JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
     }
