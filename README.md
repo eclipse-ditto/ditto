@@ -56,7 +56,7 @@ You have now running:
 
 #### Build from within Docker image
 
-If you do not have the right Maven and JDK version available, you can also use a Maven Docker image as build environment:
+If you do not have the right Maven and JDK version available, you can also use a Maven Docker image as build environment. On a Linux or macOS host, you can expose the docker socket to Maven like this:
 
 ```bash
 # Start up the docker image with maven:
