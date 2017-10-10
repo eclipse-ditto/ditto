@@ -5,6 +5,7 @@
 .project
 .settings
 .metadata
+.vscode/
 target/
 /ditto_all_dependencies/
 dependencies.txt

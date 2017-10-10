@@ -44,8 +44,9 @@
         </docker.daemon.url>
 
         <docker.registry>docker.io</docker.registry>
-        <docker.repository>${docker.registry}/eclipse-ditto</docker.repository>
+        <docker.repository>${docker.registry}/eclipseditto</docker.repository>
         <docker.image.version.suffix/>
+        <docker.image.additional.tag/>
         <docker.image.jdk>docker.io/openjdk:8-jdk-alpine</docker.image.jdk>
         <docker.image.port>8080</docker.image.port>
 
@@ -123,13 +124,6 @@
     </build>
 
     <profiles>
-        <profile>
-            <id>docker-dev-image</id>
-            <properties>
-                <docker.image.version.suffix>-dev</docker.image.version.suffix>
-            </properties>
-        </profile>
-
         <profile>
             <id>docker-build-image</id>
             <build>

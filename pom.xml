@@ -426,6 +426,9 @@
                     <value>true</value>
                 </property>
             </activation>
+            <properties>
+                <docker.image.additional.tag>latest</docker.image.additional.tag>
+            </properties>
             <build>
                 <plugins>
                     <plugin>

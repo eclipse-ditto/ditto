@@ -252,7 +252,7 @@
                             <build>
                                 <from>${docker.image.jdk}</from>
                                 <tags>
-                                    <tag>latest${docker.image.version.suffix}</tag>
+                                    <tag>${docker.image.additional.tag}</tag>
                                 </tags>
                                 <ports>
                                     <port>${docker.image.port}</port>

@@ -9,7 +9,7 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package org.eclipse.ditto.services.gateway.starter.service.util;
+package org.eclipse.ditto.services.models.thingsearch;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -20,38 +20,34 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.services.models.policies.PoliciesMappingStrategy;
 import org.eclipse.ditto.services.models.things.ThingsMappingStrategy;
-import org.eclipse.ditto.services.models.thingsearch.ThingSearchMappingStrategy;
+import org.eclipse.ditto.services.models.thingsearch.commands.sudo.ThingSearchSudoCommandRegistry;
+import org.eclipse.ditto.services.models.thingsearch.commands.sudo.ThingSearchSudoCommandResponseRegistry;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategiesBuilder;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
 import org.eclipse.ditto.services.utils.distributedcache.model.BaseCacheEntry;
-import org.eclipse.ditto.signals.commands.devops.DevOpsCommandRegistry;
-import org.eclipse.ditto.signals.commands.devops.DevOpsCommandResponseRegistry;
-import org.eclipse.ditto.signals.commands.messages.MessageCommandRegistry;
-import org.eclipse.ditto.signals.commands.messages.MessageCommandResponseRegistry;
-import org.eclipse.ditto.signals.commands.messages.MessageErrorRegistry;
+import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommandRegistry;
+import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommandResponseRegistry;
+import org.eclipse.ditto.signals.commands.thingsearch.exceptions.ThingSearchErrorRegistry;
 
 /**
- * {@link MappingStrategy} for the Gateway service containing all {@link Jsonifiable} types known to Gateway.
+ * {@link MappingStrategy} for the Thing Search service containing all {@link Jsonifiable} types known to Things Search.
  */
-public final class GatewayMappingStrategy implements MappingStrategy {
+public final class ThingSearchMappingStrategy implements MappingStrategy {
 
     private final PoliciesMappingStrategy policiesMappingStrategy;
     private final ThingsMappingStrategy thingsMappingStrategy;
-    private final ThingSearchMappingStrategy thingSearchMappingStrategy;
 
     /**
-     * Constructs a new Mapping Strategy for Gateway.
+     * Constructs a new Mapping Strategy for Things Search.
      */
-    public GatewayMappingStrategy() {
+    public ThingSearchMappingStrategy() {
         policiesMappingStrategy = new PoliciesMappingStrategy();
         thingsMappingStrategy = new ThingsMappingStrategy();
-        thingSearchMappingStrategy = new ThingSearchMappingStrategy();
     }
 
     @Override
     public Map<String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>> determineStrategy() {
         final Map<String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>> combinedStrategy = new HashMap<>();
-        combinedStrategy.putAll(thingSearchMappingStrategy.determineStrategy());
         combinedStrategy.putAll(policiesMappingStrategy.determineStrategy());
         combinedStrategy.putAll(thingsMappingStrategy.determineStrategy());
 
@@ -60,21 +56,18 @@ public final class GatewayMappingStrategy implements MappingStrategy {
         builder.add(BaseCacheEntry.class,
                 jsonObject -> BaseCacheEntry.fromJson(jsonObject)); // do not replace with lambda!
 
-        addMessagesStrategies(builder);
-        addDevOpsStrategies(builder);
+        addThingSearchStrategies(builder);
 
         combinedStrategy.putAll(builder.build());
         return combinedStrategy;
     }
 
-    private static void addMessagesStrategies(final MappingStrategiesBuilder builder) {
-        builder.add(MessageCommandRegistry.newInstance());
-        builder.add(MessageCommandResponseRegistry.newInstance());
-        builder.add(MessageErrorRegistry.newInstance());
+    private static void addThingSearchStrategies(final MappingStrategiesBuilder builder) {
+        builder.add(ThingSearchCommandRegistry.newInstance());
+        builder.add(ThingSearchCommandResponseRegistry.newInstance());
+        builder.add(ThingSearchErrorRegistry.newInstance());
+        builder.add(ThingSearchSudoCommandRegistry.newInstance());
+        builder.add(ThingSearchSudoCommandResponseRegistry.newInstance());
     }
 
-    private static void addDevOpsStrategies(final MappingStrategiesBuilder builder) {
-        builder.add(DevOpsCommandRegistry.newInstance())
-                .add(DevOpsCommandResponseRegistry.newInstance());
-    }
 }

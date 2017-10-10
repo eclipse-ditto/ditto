@@ -9,7 +9,7 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package org.eclipse.ditto.services.things.starter.util;
+package org.eclipse.ditto.services.models.things;
 
 import java.util.Map;
 import java.util.function.BiFunction;
@@ -19,8 +19,6 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
-import org.eclipse.ditto.services.models.things.ThingCacheEntry;
-import org.eclipse.ditto.services.models.things.ThingTag;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoCommandRegistry;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoCommandResponseRegistry;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategiesBuilder;
@@ -32,7 +30,7 @@ import org.eclipse.ditto.signals.commands.things.exceptions.ThingErrorRegistry;
 import org.eclipse.ditto.signals.events.things.ThingEventRegistry;
 
 /**
- * {@link MappingStrategy} for the Things service containing all {@link Jsonifiable} types known to this service.
+ * {@link MappingStrategy} for the Things service containing all {@link Jsonifiable} types known to Things.
  */
 public final class ThingsMappingStrategy implements MappingStrategy {
 

@@ -14,9 +14,6 @@ package org.eclipse.ditto.signals.commands.messages;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
 import java.util.UUID;
 
 import org.eclipse.ditto.json.JsonFactory;
@@ -51,20 +48,18 @@ public final class SendFeatureMessageTest {
     private static final DittoHeaders DITTO_HEADERS = DittoHeaders.newBuilder().correlationId(CORRELATION_ID).build();
 
     private static final String KNOWN_RAW_PAYLOAD_STR = "{\"some\": 42}";
-    private static final byte[] KNOWN_RAW_PAYLOAD_BYTES = KNOWN_RAW_PAYLOAD_STR.getBytes(StandardCharsets.UTF_8);
 
     private static final Message<?> MESSAGE = MessagesModelFactory.newMessageBuilder(
             MessageHeaders.newBuilder(MessageDirection.TO, THING_ID, SUBJECT)
                     .contentType(CONTENT_TYPE)
                     .featureId(FEATURE_ID)
                     .build())
-            .rawPayload(ByteBuffer.wrap(KNOWN_RAW_PAYLOAD_BYTES))
+            .payload(JsonFactory.newObject(KNOWN_RAW_PAYLOAD_STR))
             .build();
 
     private static final JsonObject KNOWN_MESSAGE_AS_JSON = JsonFactory.newObjectBuilder()
             .set(MessageCommand.JsonFields.JSON_MESSAGE_HEADERS, MESSAGE.getHeaders().toJson())
-            .set(MessageCommand.JsonFields.JSON_MESSAGE_PAYLOAD,
-                    new String(Base64.getEncoder().encode(KNOWN_RAW_PAYLOAD_BYTES), StandardCharsets.UTF_8))
+            .set(MessageCommand.JsonFields.JSON_MESSAGE_PAYLOAD, JsonFactory.newObject(KNOWN_RAW_PAYLOAD_STR))
             .build();
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()

@@ -31,14 +31,10 @@ class DittoCasbahPersistenceExtension(val actorSystem: ActorSystem) extends Ditt
 
   case class Configured(config: Config) extends DittoConfiguredExtension {
 
-    override lazy val journaler = new CasbahPersistenceJournaller(driver) with MongoPersistenceJournalMetrics with MongoPersistenceJournalFailFast {
+    override lazy val journaler = new CasbahPersistenceJournaller(driver) with MongoPersistenceJournalMetrics {
       override def driverName = "casbah"
-
-      override private[mongodb] val breaker = driver.breaker
     }
-    override lazy val snapshotter = new CasbahPersistenceSnapshotter(driver) with MongoPersistenceSnapshotFailFast {
-      override private[mongodb] val breaker = driver.breaker
-    }
+    override lazy val snapshotter = new CasbahPersistenceSnapshotter(driver)
     override lazy val readJournal = new DittoCasbahPersistenceReadJournaller(driver)
     val driver = {
       val theDriver = new CasbahMongoDriver(actorSystem, config)

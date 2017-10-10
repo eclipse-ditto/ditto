@@ -10,8 +10,8 @@
    com.github.jnr:jnr-ffi:jar:2.1.2:compile
    com.github.jnr:jnr-x86asm:jar:1.0.2:compile
    com.github.nscala-time:nscala-time_2.12:jar:2.14.0:compile
-   com.github.scullxbones:akka-persistence-mongo-casbah_2.12:jar:2.0.3:compile
-   com.github.scullxbones:akka-persistence-mongo-common_2.12:jar:2.0.3:compile
+   com.github.scullxbones:akka-persistence-mongo-casbah_2.12:jar:2.0.4:compile
+   com.github.scullxbones:akka-persistence-mongo-common_2.12:jar:2.0.4:compile
    com.google.guava:guava:jar:21.0:compile
    com.typesafe.akka:akka-actor_2.12:jar:2.5.4:compile
    com.typesafe.akka:akka-cluster_2.12:jar:2.5.4:compile
