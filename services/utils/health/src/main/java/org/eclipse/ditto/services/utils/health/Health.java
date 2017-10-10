@@ -23,13 +23,12 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.json.Jsonifiable;
 
 /**
  * Representation of the health of underlying systems, such as messaging and persistence.
  */
 @Immutable
-public final class Health implements Jsonifiable<JsonObject> {
+public final class Health implements HealthRepresentation {
 
     /**
      * JSON field of the persistence status.
@@ -78,8 +77,8 @@ public final class Health implements Jsonifiable<JsonObject> {
      * @return the Health which was created from the given JSON string.
      * @throws NullPointerException if {@code jsonString} is {@code null}.
      * @throws IllegalArgumentException if {@code jsonString} is empty.
-     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} does not contain a JSON object
-     * or if it is not valid JSON.
+     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} does not contain a JSON
+     * object or if it is not valid JSON.
      */
     public static Health fromJson(final String jsonString) {
         return fromJson(JsonFactory.newObject(jsonString));
@@ -149,11 +148,7 @@ public final class Health implements Jsonifiable<JsonObject> {
         return Health.of(this.healthStatusPersistence, healthStatus);
     }
 
-    /**
-     * Returns the overall {@code HealthStatus}.
-     *
-     * @return the status.
-     */
+    @Override
     public HealthStatus getHealthStatus() {
         boolean allUp = true;
         if (null != healthStatusPersistence) {
@@ -209,5 +204,4 @@ public final class Health implements Jsonifiable<JsonObject> {
                 "healthStatusPersistence=" + healthStatusPersistence +
                 ", healthStatusCluster=" + healthStatusCluster + "]";
     }
-
 }
