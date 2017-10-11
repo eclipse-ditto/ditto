@@ -41,6 +41,11 @@ public interface SudoCommandResponse<T extends SudoCommandResponse> extends Comm
     }
 
     @Override
+    default String getResourceType() {
+        return SudoCommand.RESOURCE_TYPE;
+    }
+
+    @Override
     T setEntity(JsonValue entity);
 
     @Override

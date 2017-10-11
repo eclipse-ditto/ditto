@@ -17,8 +17,8 @@ import org.eclipse.ditto.signals.commands.base.Command;
 
 /**
  * Base Interface for all commands which are understood by the Search service. Is aware of a command name (e.g.:
- * "queryThings") and a command version. The version is used to support multiple command versions in one Search
- * service runtime.
+ * "queryThings") and a command version. The version is used to support multiple command versions in one Search service
+ * runtime.
  *
  * @param <T> the type of the implementing class.
  */
@@ -29,9 +29,24 @@ public interface ThingSearchCommand<T extends ThingSearchCommand> extends Comman
      */
     String TYPE_PREFIX = "thing-search." + TYPE_QUALIFIER + ":";
 
+    /**
+     * Thing Search resource type.
+     */
+    String RESOURCE_TYPE = "thing-search";
+
+    @Override
+    default String getTypePrefix() {
+        return TYPE_PREFIX;
+    }
+
     @Override
     default JsonPointer getResourcePath() {
         return JsonPointer.empty();
+    }
+
+    @Override
+    default String getResourceType() {
+        return RESOURCE_TYPE;
     }
 
     @Override

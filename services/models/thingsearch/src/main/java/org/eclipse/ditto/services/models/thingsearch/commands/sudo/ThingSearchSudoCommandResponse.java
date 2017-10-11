@@ -36,6 +36,11 @@ public interface ThingSearchSudoCommandResponse<T extends ThingSearchSudoCommand
         return JsonPointer.empty();
     }
 
+    @Override
+    default String getResourceType() {
+        return ThingSearchSudoCommand.RESOURCE_TYPE;
+    }
+
     /**
      * Sudo commands do not have an ID. Thus this implementation always returns an empty string.
      *

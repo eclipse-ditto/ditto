@@ -34,6 +34,13 @@ public interface Command<T extends Command> extends Signal<T> {
     String TYPE_QUALIFIER = "commands";
 
     /**
+     * Returns the type prefix of this command.
+     *
+     * @return the prefix.
+     */
+    String getTypePrefix();
+
+    /**
      * Returns the type of this command.
      *
      * @return the type.

@@ -35,6 +35,11 @@ public interface BatchCommandResponse<T extends BatchCommandResponse> extends Co
         return getBatchId();
     }
 
+    @Override
+    default String getResourceType() {
+        return BatchCommand.RESOURCE_TYPE;
+    }
+
     /**
      * Returns the identifier of the batch.
      *

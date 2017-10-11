@@ -31,10 +31,25 @@ public interface SudoCommand<T extends SudoCommand> extends Command<T> {
      */
     String TYPE_PREFIX = "things.sudo." + TYPE_QUALIFIER + ":";
 
+    /**
+     * Thing sudo resource type.
+     */
+    String RESOURCE_TYPE = "thing-sudo";
+
     @Override
     default JsonPointer getResourcePath() {
         // return empty resource path for SudoCommands as this path is currently not needed for SudoCommands:
         return JsonPointer.empty();
+    }
+
+    @Override
+    default String getResourceType() {
+        return RESOURCE_TYPE;
+    }
+
+    @Override
+    default String getTypePrefix() {
+        return TYPE_PREFIX;
     }
 
     @Override
