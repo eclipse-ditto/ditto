@@ -30,9 +30,24 @@ public interface BatchCommand<T extends BatchCommand> extends Command<T> {
      */
     String TYPE_PREFIX = "batch." + TYPE_QUALIFIER + ":";
 
+    /**
+     * Batch resource type.
+     */
+    String RESOURCE_TYPE = "batch";
+
+    @Override
+    default String getTypePrefix() {
+        return TYPE_PREFIX;
+    }
+
     @Override
     default String getId() {
         return getBatchId();
+    }
+
+    @Override
+    default String getResourceType() {
+        return RESOURCE_TYPE;
     }
 
     /**

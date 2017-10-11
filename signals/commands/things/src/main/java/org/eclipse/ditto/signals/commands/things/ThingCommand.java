@@ -32,9 +32,24 @@ public interface ThingCommand<T extends ThingCommand> extends Command<T>, WithTh
      */
     String TYPE_PREFIX = "things." + TYPE_QUALIFIER + ":";
 
+    /**
+     * Thing resource type.
+     */
+    String RESOURCE_TYPE = "thing";
+
+    @Override
+    default String getTypePrefix() {
+        return TYPE_PREFIX;
+    }
+
     @Override
     default String getId() {
         return getThingId();
+    }
+
+    @Override
+    default String getResourceType() {
+        return RESOURCE_TYPE;
     }
 
     @Override

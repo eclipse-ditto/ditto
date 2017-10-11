@@ -52,6 +52,13 @@ public interface Event<T extends Event> extends Signal<T>, WithOptionalEntity {
     @Override
     String getType();
 
+    /**
+     * Returns the external type prefix of this event.
+     *
+     * @return the prefix.
+     */
+    String getExternalTypePrefix();
+
     @Override
     default JsonSchemaVersion getImplementedSchemaVersion() {
         return getDittoHeaders().getSchemaVersion().orElse(getLatestSchemaVersion());
@@ -91,7 +98,6 @@ public interface Event<T extends Event> extends Signal<T>, WithOptionalEntity {
 
     /**
      * An enumeration of the known {@link org.eclipse.ditto.json.JsonField}s of an event.
-     *
      */
     class JsonFields {
 

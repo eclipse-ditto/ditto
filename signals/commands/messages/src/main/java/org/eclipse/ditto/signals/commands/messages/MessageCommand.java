@@ -59,11 +59,21 @@ public interface MessageCommand<T, C extends MessageCommand> extends Command<C>,
     String MESSAGES_PREFIX = "messages";
 
     /**
+     * Message resource type.
+     */
+    String RESOURCE_TYPE = "message";
+
+    /**
      * Retrieves the Message to be delivered.
      *
      * @return the Message to be delivered.
      */
     Message<T> getMessage();
+
+    @Override
+    default String getTypePrefix() {
+        return TYPE_PREFIX;
+    }
 
     /**
      * Retrieves the type of the message to be delivered. This will be used as routingKey for delivering the message
@@ -78,6 +88,11 @@ public interface MessageCommand<T, C extends MessageCommand> extends Command<C>,
     @Override
     default String getId() {
         return getThingId();
+    }
+
+    @Override
+    default String getResourceType() {
+        return RESOURCE_TYPE;
     }
 
     @Override

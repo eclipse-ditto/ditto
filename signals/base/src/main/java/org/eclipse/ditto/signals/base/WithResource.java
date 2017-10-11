@@ -11,19 +11,25 @@
  */
 package org.eclipse.ditto.signals.base;
 
-
 import org.eclipse.ditto.json.JsonPointer;
 
 /**
- * Implementations of this interface are associated with a path.
+ * Implementations of this interface are associated with an entity represented by a resource path and type.
  */
-public interface WithResourcePath {
+public interface WithResource {
 
     /**
-     * Returns the path.
+     * Returns the path of the {@code Resource} represented by this entity.
      *
      * @return the path.
      */
     JsonPointer getResourcePath();
+
+    /**
+     * Returns the type of the {@code Resource} represented by this entity.
+     *
+     * @return the type.
+     */
+    String getResourceType();
 
 }

@@ -37,11 +37,15 @@ public interface ThingCommandResponse<T extends ThingCommandResponse> extends Co
     }
 
     @Override
+    default String getResourceType() {
+        return ThingCommand.RESOURCE_TYPE;
+    }
+
+    @Override
     T setDittoHeaders(DittoHeaders dittoHeaders);
 
     /**
      * This class contains definitions for all specific fields of a {@code ThingCommandResponse}'s JSON representation.
-     *
      */
     class JsonFields extends CommandResponse.JsonFields {
 

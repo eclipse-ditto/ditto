@@ -38,6 +38,11 @@ public interface ThingEvent<T extends ThingEvent> extends Event<T>, WithThingId 
     String TYPE_PREFIX_EXTERNAL = "things." + TYPE_QUALIFIER + "." + EXTERNAL + ":";
 
     /**
+     * Thing resource type.
+     */
+    String RESOURCE_TYPE = "thing";
+
+    /**
      * Returns the ID of {@link org.eclipse.ditto.model.things.Thing} which was modified.
      *
      * @return the ID of the modified Thing.
@@ -47,6 +52,16 @@ public interface ThingEvent<T extends ThingEvent> extends Event<T>, WithThingId 
     @Override
     default String getId() {
         return getThingId();
+    }
+
+    @Override
+    default String getResourceType() {
+        return RESOURCE_TYPE;
+    }
+
+    @Override
+    default String getExternalTypePrefix() {
+        return TYPE_PREFIX_EXTERNAL;
     }
 
     @Override

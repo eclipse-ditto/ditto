@@ -31,10 +31,25 @@ public interface SudoCommand<T extends SudoCommand> extends Command<T> {
      */
     String TYPE_PREFIX = "policies.sudo." + TYPE_QUALIFIER + ":";
 
+    /**
+     * Policy sudo resource type.
+     */
+    String RESOURCE_TYPE = "policy-sudo";
+
+    @Override
+    default String getTypePrefix() {
+        return TYPE_PREFIX;
+    }
+
     @Override
     default JsonPointer getResourcePath() {
         // return empty resource path for SudoCommands as this path is currently not needed for SudoCommands:
         return JsonPointer.empty();
+    }
+
+    @Override
+    default String getResourceType() {
+        return RESOURCE_TYPE;
     }
 
     @Override

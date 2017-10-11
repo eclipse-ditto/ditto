@@ -41,12 +41,16 @@ public interface PolicyCommandResponse<T extends PolicyCommandResponse> extends 
     }
 
     @Override
+    default String getResourceType() {
+        return PolicyCommand.RESOURCE_TYPE;
+    }
+
+    @Override
     T setDittoHeaders(DittoHeaders dittoHeaders);
 
     /**
      * This class contains definitions for all specific fields of a {@code PolicyCommandResponse}'s JSON
      * representation.
-     *
      */
     class JsonFields extends CommandResponse.JsonFields {
 

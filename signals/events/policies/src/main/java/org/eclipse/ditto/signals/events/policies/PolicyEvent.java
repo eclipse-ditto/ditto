@@ -37,6 +37,11 @@ public interface PolicyEvent<T extends PolicyEvent> extends Event<T> {
     String TYPE_PREFIX_EXTERNAL = "policies." + TYPE_QUALIFIER + "." + EXTERNAL + ":";
 
     /**
+     * Policy resource type.
+     */
+    String RESOURCE_TYPE = "policy";
+
+    /**
      * PolicyEvents are only available in JsonSchemaVersion V_2.
      *
      * @return the supported JsonSchemaVersions of PolicyEvents.
@@ -56,6 +61,16 @@ public interface PolicyEvent<T extends PolicyEvent> extends Event<T> {
     @Override
     default String getId() {
         return getPolicyId();
+    }
+
+    @Override
+    default String getResourceType() {
+        return RESOURCE_TYPE;
+    }
+
+    @Override
+    default String getExternalTypePrefix() {
+        return TYPE_PREFIX_EXTERNAL;
     }
 
     @Override

@@ -63,6 +63,11 @@ public interface MessageCommandResponse<T, C extends MessageCommandResponse>
     }
 
     @Override
+    default String getResourceType() {
+        return MessageCommand.RESOURCE_TYPE;
+    }
+
+    @Override
     C setDittoHeaders(DittoHeaders dittoHeaders);
 
     @Override

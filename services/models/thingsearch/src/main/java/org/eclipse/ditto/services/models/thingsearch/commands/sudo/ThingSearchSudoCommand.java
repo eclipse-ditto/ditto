@@ -27,10 +27,25 @@ public interface ThingSearchSudoCommand<T extends ThingSearchSudoCommand> extend
      */
     String TYPE_PREFIX = "thing-search.sudo." + TYPE_QUALIFIER + ":";
 
+    /**
+     * Thing search sudo resource type.
+     */
+    String RESOURCE_TYPE = "thing-search-sudo";
+
     @Override
     default JsonPointer getResourcePath() {
         // return empty resource path for SudoCommands as this path is currently not needed for SudoCommands:
         return JsonPointer.empty();
+    }
+
+    @Override
+    default String getResourceType() {
+        return RESOURCE_TYPE;
+    }
+
+    @Override
+    default String getTypePrefix() {
+        return TYPE_PREFIX;
     }
 
     @Override

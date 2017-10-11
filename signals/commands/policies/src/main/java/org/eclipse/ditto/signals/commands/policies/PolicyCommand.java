@@ -31,6 +31,16 @@ public interface PolicyCommand<T extends PolicyCommand> extends Command<T> {
     String TYPE_PREFIX = "policies." + TYPE_QUALIFIER + ":";
 
     /**
+     * Policy resource type.
+     */
+    String RESOURCE_TYPE = "policy";
+
+    @Override
+    default String getTypePrefix() {
+        return TYPE_PREFIX;
+    }
+
+    /**
      * PolicyCommands are only available in JsonSchemaVersion V_2.
      *
      * @return the supported JsonSchemaVersions of PolicyCommands.
@@ -41,11 +51,15 @@ public interface PolicyCommand<T extends PolicyCommand> extends Command<T> {
     }
 
     @Override
+    default String getResourceType() {
+        return RESOURCE_TYPE;
+    }
+
+    @Override
     T setDittoHeaders(DittoHeaders dittoHeaders);
 
     /**
      * This class contains definitions for all specific fields of a {@code PolicyCommand}'s JSON representation.
-     *
      */
     class JsonFields extends Command.JsonFields {
 

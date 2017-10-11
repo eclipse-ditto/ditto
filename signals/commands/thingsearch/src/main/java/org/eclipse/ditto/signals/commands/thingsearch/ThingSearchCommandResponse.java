@@ -33,6 +33,11 @@ public interface ThingSearchCommandResponse<T extends ThingSearchCommandResponse
     }
 
     @Override
+    default String getResourceType() {
+        return ThingSearchCommand.RESOURCE_TYPE;
+    }
+
+    @Override
     T setDittoHeaders(DittoHeaders dittoHeaders);
 
     /**
