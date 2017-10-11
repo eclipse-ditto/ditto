@@ -145,11 +145,15 @@ public abstract class AbstractThingSearchPersistenceTestBase {
 
     @AfterClass
     public static void stopMongoResource() {
-        if (mongoClient != null) {
-            mongoClient.getMongoClient().close();
-        }
-        if (mongoResource != null) {
-            mongoResource.stop();
+        try {
+            if (mongoClient != null) {
+                mongoClient.getMongoClient().close();
+            }
+            if (mongoResource != null) {
+                mongoResource.stop();
+            }
+        } catch (final IllegalStateException e) {
+            System.err.println("IllegalStateException during shutdown of MongoDB: " + e.getMessage());
         }
     }
 
