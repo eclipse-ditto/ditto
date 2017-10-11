@@ -187,11 +187,12 @@ final class ThingsRootActor extends AbstractActor {
                         createRoute(getContext().system(), healthCheckingActor).flow(getContext().system(),
                                 materializer),
                         ConnectHttp.toHost(hostname, config.getInt(ConfigKeys.Http.PORT)), materializer);
-        binding.exceptionally(failure -> {
-            log.error(failure, "Something very bad happened: {}", failure.getMessage());
-            getContext().system().terminate();
-            return null;
-        });
+        binding.thenAccept(this::logServerBinding)
+                .exceptionally(failure -> {
+                    log.error(failure, "Something very bad happened: {}", failure.getMessage());
+                    getContext().system().terminate();
+                    return null;
+                });
     }
 
     /**
@@ -248,5 +249,10 @@ final class ThingsRootActor extends AbstractActor {
                 healthCheckingActor, actorSystem);
 
         return logRequest("http-request", () -> logResult("http-response", statusRoute::buildStatusRoute));
+    }
+
+    private void logServerBinding(final ServerBinding serverBinding) {
+        log.info("Bound to address {}:{}", serverBinding.localAddress().getHostString(),
+                serverBinding.localAddress().getPort());
     }
 }

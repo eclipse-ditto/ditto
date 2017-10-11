@@ -8,5 +8,5 @@ before_install:
 install: true
 script:
   - export PROJECT_VERSION=$(mvn org.apache.maven.plugins:maven-help-plugin:evaluate -Dexpression=project.version -B | grep -v '\[')
-  - export MAVEN_ARGUMENTS=`if [ "$TRAVIS_EVENT_TYPE" != "pull_request" ]; then echo "-Ddocker.daemon.url=unix:///var/run/docker.sock -Pdocker-build-image"; else echo "" ; fi`
+  - export MAVEN_ARGUMENTS=`if [ "$TRAVIS_TAG" != "" ]; then echo "-Ddocker.daemon.url=unix:///var/run/docker.sock -Ddocker.image.additional.tag=latest -Pdocker-build-image,docker-push-image"; else echo "" ; fi`
   - mvn install --batch-mode --errors -DcreateJavadoc=true $MAVEN_ARGUMENTS

@@ -53,11 +53,11 @@ public final class MongoHealthCheckTest {
 
     @Test
     public void healthCheckTest() {
-        final MongoDbResource mongoResource = new MongoDbResource();
+        final MongoDbResource mongoResource = new MongoDbResource("localhost");
         mongoResource.start();
 
         final MongoHealthCheck persistenceUnderTest =
-                new MongoHealthCheck(new MongoClientWrapper("localhost", mongoResource.getPort(), UUID.randomUUID()
+                new MongoHealthCheck(new MongoClientWrapper(mongoResource.getBindIp(), mongoResource.getPort(), UUID.randomUUID()
                         .toString(), CONFIG), actorSystem, actorSystem.log());
 
         assertThat(persistenceUnderTest.checkHealth()).isTrue();
