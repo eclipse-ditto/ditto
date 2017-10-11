@@ -54,7 +54,7 @@
         <logstash-logback-encoder.version>4.11</logstash-logback-encoder.version>
         <janino.version>2.7.8</janino.version>
 
-        <kamon.version>0.6.6</kamon.version>
+        <kamon.version>0.6.7</kamon.version>
         <kamon-core.version>0.6.7</kamon-core.version>
         <metrics.version>3.1.2</metrics.version>
         <metrics-statsd.version>1.0.0</metrics-statsd.version>
@@ -279,7 +279,12 @@
             </dependency>
             <dependency>
                 <groupId>io.kamon</groupId>
-                <artifactId>kamon-akka-2.4_${scala.version}</artifactId>
+                <artifactId>kamon-akka-2.5_${scala.version}</artifactId>
+                <version>${kamon.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.kamon</groupId>
+                <artifactId>kamon-scala_${scala.version}</artifactId>
                 <version>${kamon.version}</version>
             </dependency>
             <dependency>

@@ -132,7 +132,7 @@
         </dependency>
         <dependency>
             <groupId>io.kamon</groupId>
-            <artifactId>kamon-akka-2.4_${scala.version}</artifactId>
+            <artifactId>kamon-akka-2.5_${scala.version}</artifactId>
         </dependency>
         <dependency>
             <groupId>io.kamon</groupId>
