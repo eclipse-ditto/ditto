@@ -67,6 +67,7 @@ import akka.actor.ActorRef;
 import akka.actor.ExtendedActorSystem;
 import akka.actor.PoisonPill;
 import akka.testkit.JavaTestKit;
+import akka.testkit.javadsl.TestKit;
 import scala.concurrent.duration.FiniteDuration;
 
 /**
@@ -79,23 +80,27 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
     private static final boolean DEFAULT_TEST_SNAPSHOT_DELETE_OLD = true;
     private static final boolean DEFAULT_TEST_EVENTS_DELETE_OLD = true;
     private static final Duration VERY_LONG_DURATION = Duration.ofDays(100);
-    private static final Config DEFAULT_TEST_CONFIG = ConfigFactory.empty()
-            .withValue(ConfigKeys.Thing.SNAPSHOT_THRESHOLD, ConfigValueFactory.fromAnyRef(
-                    DEFAULT_TEST_SNAPSHOT_THRESHOLD))
-            .withValue(ConfigKeys.Thing.ACTIVITY_CHECK_INTERVAL, ConfigValueFactory.fromAnyRef(VERY_LONG_DURATION))
-            .withValue(ConfigKeys.Thing.ACTIVITY_CHECK_DELETED_INTERVAL,
-                    ConfigValueFactory.fromAnyRef(VERY_LONG_DURATION))
-            .withValue(ConfigKeys.Thing.SNAPSHOT_DELETE_OLD, ConfigValueFactory.fromAnyRef(
-                    DEFAULT_TEST_SNAPSHOT_DELETE_OLD))
-            .withValue(ConfigKeys.Thing.EVENTS_DELETE_OLD,
-                    ConfigValueFactory.fromAnyRef(DEFAULT_TEST_EVENTS_DELETE_OLD))
-            .withValue(ConfigKeys.Thing.SNAPSHOT_INTERVAL, ConfigValueFactory.fromAnyRef(VERY_LONG_DURATION));
     private static final int PERSISTENCE_ASSERT_RETRY_COUNT = 3;
     private static final long PERSISTENCE_ASSERT_RETRY_DELAY_MS = 500;
 
     private static final JsonFieldSelector FIELD_SELECTOR = JsonFactory.newFieldSelector(Thing.JsonFields.ATTRIBUTES,
             Thing.JsonFields.FEATURES, Thing.JsonFields.ID, Thing.JsonFields.MODIFIED, Thing.JsonFields.REVISION,
             Thing.JsonFields.POLICY_ID, Thing.JsonFields.LIFECYCLE);
+
+    private static Config createNewDefaultTestConfig() {
+        return ConfigFactory.empty()
+                .withValue(ConfigKeys.Thing.SNAPSHOT_THRESHOLD, ConfigValueFactory.fromAnyRef(
+                        DEFAULT_TEST_SNAPSHOT_THRESHOLD))
+                .withValue(ConfigKeys.Thing.ACTIVITY_CHECK_INTERVAL, ConfigValueFactory.fromAnyRef(VERY_LONG_DURATION))
+                .withValue(ConfigKeys.Thing.ACTIVITY_CHECK_DELETED_INTERVAL,
+                        ConfigValueFactory.fromAnyRef(VERY_LONG_DURATION))
+                .withValue(ConfigKeys.Thing.SNAPSHOT_DELETE_OLD, ConfigValueFactory.fromAnyRef(
+                        DEFAULT_TEST_SNAPSHOT_DELETE_OLD))
+                .withValue(ConfigKeys.Thing.EVENTS_DELETE_OLD,
+                        ConfigValueFactory.fromAnyRef(DEFAULT_TEST_EVENTS_DELETE_OLD))
+                .withValue(ConfigKeys.Thing.SNAPSHOT_INTERVAL, ConfigValueFactory.fromAnyRef(VERY_LONG_DURATION));
+    }
+    
     private MongoThingEventAdapter eventAdapter;
     private ThingsJournalTestHelper<ThingEvent> journalTestHelper;
     private ThingsSnapshotTestHelper<Thing> snapshotTestHelper;
@@ -135,7 +140,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
      */
     @Test
     public void deletedThingIsSnapshotWithCorrectDataAndCanBeRecreated() {
-        setup(DEFAULT_TEST_CONFIG);
+        setup(createNewDefaultTestConfig());
 
         new JavaTestKit(actorSystem) {
             {
@@ -207,12 +212,12 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
     public void snapshotOfDeletedThingIsNotDeletedWhenAlreadySnapshotAndTheActivityIntervalPassed() throws
             Exception {
         final int activityCheckDeletedIntervalSecs = 2;
-        final Config customConfig = DEFAULT_TEST_CONFIG.
+        final Config customConfig = createNewDefaultTestConfig().
                 withValue(ConfigKeys.Thing.ACTIVITY_CHECK_DELETED_INTERVAL, ConfigValueFactory.fromAnyRef(Duration
                         .ofSeconds(activityCheckDeletedIntervalSecs)));
         setup(customConfig);
 
-        new JavaTestKit(actorSystem) {
+        new TestKit(actorSystem) {
             {
                 final Thing thing = createThingV2WithRandomId();
                 final String thingId = thing.getId().orElse(null);
@@ -244,7 +249,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                 assertJournal(thingId, Collections.singletonList(expectedDeletedEvent));
 
                 // wait for the actor to be terminated due to the end of the activity interval
-                expectTerminated(FiniteDuration.apply(activityCheckDeletedIntervalSecs + 2, TimeUnit.SECONDS),
+                expectTerminated(FiniteDuration.apply(activityCheckDeletedIntervalSecs + 5, TimeUnit.SECONDS),
                         underTest);
 
                 underTest = createSupervisorActorFor(thingId);
@@ -282,7 +287,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
      */
     @Test
     public void thingInArbitraryStateIsSnapshotCorrectly() {
-        setup(DEFAULT_TEST_CONFIG);
+        setup(createNewDefaultTestConfig());
 
         new JavaTestKit(actorSystem) {
             {
@@ -347,7 +352,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
      */
     @Test
     public void oldSnapshotIsNotDeletedWhenSnapshotDeleteOldIsFalse() {
-        final Config customConfig = DEFAULT_TEST_CONFIG.
+        final Config customConfig = createNewDefaultTestConfig().
                 withValue(ConfigKeys.Thing.SNAPSHOT_DELETE_OLD, ConfigValueFactory.fromAnyRef(false)).
                 withValue(ConfigKeys.Thing.SNAPSHOT_THRESHOLD, ConfigValueFactory.fromAnyRef(1));
         setup(customConfig);
@@ -410,7 +415,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
      */
     @Test
     public void oldEventsAreNotDeletedWhenEventsDeleteOldIsFalse() {
-        final Config customConfig = DEFAULT_TEST_CONFIG.
+        final Config customConfig = createNewDefaultTestConfig().
                 withValue(ConfigKeys.Thing.EVENTS_DELETE_OLD, ConfigValueFactory.fromAnyRef(false)).
                 withValue(ConfigKeys.Thing.SNAPSHOT_THRESHOLD, ConfigValueFactory.fromAnyRef(1));
         setup(customConfig);
@@ -475,7 +480,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
     @Test
     public void snapshotIsCreatedAfterSnapshotIntervalHasPassed() {
         final int snapshotIntervalMillisecs = 3;
-        final Config customConfig = DEFAULT_TEST_CONFIG.
+        final Config customConfig = createNewDefaultTestConfig().
                 withValue(ConfigKeys.Thing.SNAPSHOT_THRESHOLD, ConfigValueFactory.fromAnyRef(Long.MAX_VALUE)).
                 withValue(ConfigKeys.Thing.SNAPSHOT_INTERVAL,
                         ConfigValueFactory.fromAnyRef(Duration.ofSeconds(snapshotIntervalMillisecs)));
@@ -535,7 +540,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
     @Test
     public void snapshotsAreNotCreatedTwiceIfSnapshotHasBeenAlreadyBeenCreatedDueToThresholdAndSnapshotIntervalHasPassed() {
         final int snapshotIntervalMillisecs = 3;
-        final Config customConfig = DEFAULT_TEST_CONFIG.
+        final Config customConfig = createNewDefaultTestConfig().
                 withValue(ConfigKeys.Thing.SNAPSHOT_INTERVAL,
                         ConfigValueFactory.fromAnyRef(Duration.ofSeconds(snapshotIntervalMillisecs)));
         setup(customConfig);
@@ -582,7 +587,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
 
     @Test
     public void lastSnapshotIsNotDeletedIfProtected() {
-        final Config customConfig = DEFAULT_TEST_CONFIG
+        final Config customConfig = createNewDefaultTestConfig()
                 .withValue(ConfigKeys.Thing.SNAPSHOT_THRESHOLD,
                         ConfigValueFactory.fromAnyRef(NEVER_TAKE_SNAPSHOT_THRESHOLD));
         setup(customConfig);
@@ -644,7 +649,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
 
     @Test
     public void retrieveThingWithSnapshotRevision() {
-        final Config customConfig = DEFAULT_TEST_CONFIG.withValue(ConfigKeys.Thing.SNAPSHOT_THRESHOLD,
+        final Config customConfig = createNewDefaultTestConfig().withValue(ConfigKeys.Thing.SNAPSHOT_THRESHOLD,
                 ConfigValueFactory.fromAnyRef(NEVER_TAKE_SNAPSHOT_THRESHOLD));
         setup(customConfig);
 
@@ -729,7 +734,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
     /** */
     @Test
     public void actorCannotBeStartedWithNegativeSnapshotThreshold() {
-        final Config customConfig = DEFAULT_TEST_CONFIG.withValue(ConfigKeys.Thing.SNAPSHOT_THRESHOLD,
+        final Config customConfig = createNewDefaultTestConfig().withValue(ConfigKeys.Thing.SNAPSHOT_THRESHOLD,
                 ConfigValueFactory.fromAnyRef(-1));
         setup(customConfig);
 
