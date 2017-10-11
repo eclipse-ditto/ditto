@@ -24,6 +24,20 @@ import java.util.function.Supplier;
 import org.bson.Document;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.utils.test.mongo.MongoDbResource;
+import org.eclipse.services.thingsearch.common.model.ResultList;
+import org.eclipse.services.thingsearch.persistence.read.MongoThingsSearchPersistence;
+import org.eclipse.services.thingsearch.persistence.read.query.MongoAggregationBuilderFactory;
+import org.eclipse.services.thingsearch.persistence.read.query.MongoQueryBuilderFactory;
+import org.eclipse.services.thingsearch.persistence.write.impl.MongoThingsSearchUpdaterPersistence;
+import org.eclipse.services.thingsearch.querymodel.criteria.Criteria;
+import org.eclipse.services.thingsearch.querymodel.criteria.CriteriaFactory;
+import org.eclipse.services.thingsearch.querymodel.criteria.CriteriaFactoryImpl;
+import org.eclipse.services.thingsearch.querymodel.expression.ThingsFieldExpressionFactory;
+import org.eclipse.services.thingsearch.querymodel.expression.ThingsFieldExpressionFactoryImpl;
+import org.eclipse.services.thingsearch.querymodel.query.AggregationBuilderFactory;
+import org.eclipse.services.thingsearch.querymodel.query.PolicyRestrictedSearchAggregation;
+import org.eclipse.services.thingsearch.querymodel.query.Query;
+import org.eclipse.services.thingsearch.querymodel.query.QueryBuilderFactory;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -43,22 +57,6 @@ import akka.stream.ActorMaterializer;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 import akka.testkit.JavaTestKit;
-
-import org.eclipse.services.thingsearch.common.model.ResultList;
-
-import org.eclipse.services.thingsearch.persistence.read.MongoThingsSearchPersistence;
-import org.eclipse.services.thingsearch.persistence.read.query.MongoAggregationBuilderFactory;
-import org.eclipse.services.thingsearch.persistence.read.query.MongoQueryBuilderFactory;
-import org.eclipse.services.thingsearch.persistence.write.impl.MongoThingsSearchUpdaterPersistence;
-import org.eclipse.services.thingsearch.querymodel.criteria.Criteria;
-import org.eclipse.services.thingsearch.querymodel.criteria.CriteriaFactory;
-import org.eclipse.services.thingsearch.querymodel.criteria.CriteriaFactoryImpl;
-import org.eclipse.services.thingsearch.querymodel.expression.ThingsFieldExpressionFactory;
-import org.eclipse.services.thingsearch.querymodel.expression.ThingsFieldExpressionFactoryImpl;
-import org.eclipse.services.thingsearch.querymodel.query.AggregationBuilderFactory;
-import org.eclipse.services.thingsearch.querymodel.query.PolicyRestrictedSearchAggregation;
-import org.eclipse.services.thingsearch.querymodel.query.Query;
-import org.eclipse.services.thingsearch.querymodel.query.QueryBuilderFactory;
 
 
 /**
@@ -94,7 +92,7 @@ public abstract class AbstractThingSearchPersistenceTestBase {
 
     @BeforeClass
     public static void startMongoResource() {
-        mongoResource = new MongoDbResource();
+        mongoResource = new MongoDbResource("localhost");
         mongoResource.start();
         mongoClient = provideClientWrapper();
     }
@@ -126,7 +124,7 @@ public abstract class AbstractThingSearchPersistenceTestBase {
     }
 
     protected static MongoClientWrapper provideClientWrapper() {
-        return new MongoClientWrapper("localhost", mongoResource.getPort(), "testSearchDB", CONFIG);
+        return new MongoClientWrapper(mongoResource.getBindIp(), mongoResource.getPort(), "testSearchDB", CONFIG);
     }
 
     /** */

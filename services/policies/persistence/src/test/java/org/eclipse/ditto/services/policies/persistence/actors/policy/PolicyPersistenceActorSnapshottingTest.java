@@ -69,13 +69,16 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
 
     private static final int DEFAULT_TEST_SNAPSHOT_THRESHOLD = 2;
     private static final Duration VERY_LONG_DURATION = Duration.ofDays(100);
-    private static final Config DEFAULT_TEST_CONFIG = ConfigFactory.empty()
-            .withValue(ConfigKeys.Policy.SNAPSHOT_THRESHOLD, ConfigValueFactory.fromAnyRef(
-                    DEFAULT_TEST_SNAPSHOT_THRESHOLD))
-            .withValue(ConfigKeys.Policy.ACTIVITY_CHECK_INTERVAL, ConfigValueFactory.fromAnyRef(VERY_LONG_DURATION))
-            .withValue(ConfigKeys.Policy.SNAPSHOT_INTERVAL, ConfigValueFactory.fromAnyRef(VERY_LONG_DURATION));
     private static final int PERSISTENCE_ASSERT_RETRY_COUNT = 3;
     private static final long PERSISTENCE_ASSERT_RETRY_DELAY_MS = 500;
+
+    private static Config createNewDefaultTestConfig() {
+        return ConfigFactory.empty()
+                .withValue(ConfigKeys.Policy.SNAPSHOT_THRESHOLD, ConfigValueFactory.fromAnyRef(
+                        DEFAULT_TEST_SNAPSHOT_THRESHOLD))
+                .withValue(ConfigKeys.Policy.ACTIVITY_CHECK_INTERVAL, ConfigValueFactory.fromAnyRef(VERY_LONG_DURATION))
+                .withValue(ConfigKeys.Policy.SNAPSHOT_INTERVAL, ConfigValueFactory.fromAnyRef(VERY_LONG_DURATION));
+    }
 
     private MongoPolicyEventAdapter eventAdapter;
     private PoliciesJournalTestHelper<Event> journalTestHelper;
@@ -109,13 +112,12 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
     }
 
     /**
-     * Check that a deleted policy is snapshotted correctly and can be recreated. Before the bugfix, the
-     * deleted policy was snapshotted with incorrect data (previous version), thus it would be handled as created
-     * after actor restart.
+     * Check that a deleted policy is snapshotted correctly and can be recreated. Before the bugfix, the deleted policy
+     * was snapshotted with incorrect data (previous version), thus it would be handled as created after actor restart.
      */
     @Test
     public void deletedPolicyIsSnapshottedWithCorrectDataAndCanBeRecreated() {
-        setup(DEFAULT_TEST_CONFIG);
+        setup(createNewDefaultTestConfig());
 
         new JavaTestKit(actorSystem) {
             {
@@ -178,12 +180,12 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
     }
 
     /**
-     * Checks that the snapshots (in general) contain the expected revision no and data. Before the bugfix,
-     * policys sometimes were snapshotted with incorrect data (from previous version).
+     * Checks that the snapshots (in general) contain the expected revision no and data. Before the bugfix, policys
+     * sometimes were snapshotted with incorrect data (from previous version).
      */
     @Test
     public void policyInArbitraryStateIsSnapshottedCorrectly() {
-        setup(DEFAULT_TEST_CONFIG);
+        setup(createNewDefaultTestConfig());
 
         new JavaTestKit(actorSystem) {
             {
@@ -245,7 +247,7 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
     @Test
     public void snapshotIsCreatedAfterSnapshotIntervalHasPassed() {
         final int snapshotIntervalSecs = 3;
-        final Config customConfig = DEFAULT_TEST_CONFIG.
+        final Config customConfig = createNewDefaultTestConfig().
                 withValue(ConfigKeys.Policy.SNAPSHOT_THRESHOLD, ConfigValueFactory.fromAnyRef(Long.MAX_VALUE)).
                 withValue(ConfigKeys.Policy.SNAPSHOT_INTERVAL,
                         ConfigValueFactory.fromAnyRef(Duration.ofSeconds(snapshotIntervalSecs)));
@@ -304,7 +306,7 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
     @Test
     public void snapshotsAreNotCreatedTwiceIfSnapshotHasBeenAlreadyBeenCreatedDueToThresholdAndSnapshotIntervalHasPassed() {
         final int snapshotIntervalSecs = 3;
-        final Config customConfig = DEFAULT_TEST_CONFIG.
+        final Config customConfig = createNewDefaultTestConfig().
                 withValue(ConfigKeys.Policy.SNAPSHOT_INTERVAL,
                         ConfigValueFactory.fromAnyRef(Duration.ofSeconds(snapshotIntervalSecs)));
         setup(customConfig);
@@ -351,7 +353,7 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
      */
     @Test
     public void actorCannotBeStartedWithNegativeSnapshotThreshold() {
-        final Config customConfig = DEFAULT_TEST_CONFIG.
+        final Config customConfig = createNewDefaultTestConfig().
                 withValue(ConfigKeys.Policy.SNAPSHOT_THRESHOLD, ConfigValueFactory.fromAnyRef(-1));
         setup(customConfig);
 
@@ -406,7 +408,8 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
                 assertThat(actual.getRevision()).isEqualTo(expected.getRevision());
 
                 if (actual instanceof PolicyModified) {
-                    assertPolicyInJournal(((PolicyModified) actual).getPolicy(), ((PolicyModified) expected).getPolicy());
+                    assertPolicyInJournal(((PolicyModified) actual).getPolicy(),
+                            ((PolicyModified) expected).getPolicy());
                 } else if (actual instanceof PolicyCreated) {
                     assertPolicyInJournal(((PolicyCreated) actual).getPolicy(), ((PolicyCreated) expected).getPolicy());
                 } else if (actual instanceof PolicyDeleted) {

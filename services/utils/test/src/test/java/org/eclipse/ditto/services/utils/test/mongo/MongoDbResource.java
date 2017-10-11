@@ -48,6 +48,8 @@ public final class MongoDbResource extends ExternalResource {
     private static final int MONGO_DB_PORT_DEFAULT = 27030;
     private static final String HTTP_PROXY_ENV_KEY = "HTTP_PROXY";
 
+    private final String bindIp;
+
     /**
      * The MongoDB executable.
      */
@@ -60,8 +62,11 @@ public final class MongoDbResource extends ExternalResource {
 
     /**
      * Constructs a new {@code MongoDbResource} object.
+     *
+     * @param bindIp the IP to bind the DB on
      */
-    public MongoDbResource() {
+    public MongoDbResource(final String bindIp) {
+        this.bindIp = bindIp;
         mongodExecutable = null;
         mongodProcess = null;
     }
@@ -89,7 +94,7 @@ public final class MongoDbResource extends ExternalResource {
         if (System.getProperty("ACTIVE_RANDOM_PORT") != null) {
             mongoDbPort = findFreePort();
         }
-        mongodExecutable = tryToConfigureMongoDb(mongoDbPort, proxyFactory);
+        mongodExecutable = tryToConfigureMongoDb(bindIp, mongoDbPort, proxyFactory);
         mongodProcess = tryToStartMongoDb(mongodExecutable);
         Assume.assumeTrue("MongoDBResource failed to start.", isHealthy());
     }
@@ -119,6 +124,13 @@ public final class MongoDbResource extends ExternalResource {
     }
 
     /**
+     * @return the IP on which the db was bound.
+     */
+    public String getBindIp() {
+        return mongodProcess.getConfig().net().getBindIp();
+    }
+
+    /**
      * This method will return a free port number.
      *
      * @return the port number.
@@ -129,16 +141,16 @@ public final class MongoDbResource extends ExternalResource {
         return freePortFinder.get();
     }
 
-    private MongodExecutable tryToConfigureMongoDb(final int mongoDbPort,
+    private MongodExecutable tryToConfigureMongoDb(final String bindIp, final int mongoDbPort,
             final IProxyFactory proxyFactory) {
         try {
-            return configureMongoDb(mongoDbPort, proxyFactory);
+            return configureMongoDb(bindIp, mongoDbPort, proxyFactory);
         } catch (final Throwable e) {
             return null;
         }
     }
 
-    private static MongodExecutable configureMongoDb(final int mongoDbPort,
+    private static MongodExecutable configureMongoDb(final String bindIp, final int mongoDbPort,
             final IProxyFactory proxyFactory) throws IOException {
         final Command command = Command.MongoD;
 
@@ -155,8 +167,8 @@ public final class MongoDbResource extends ExternalResource {
                 .build());
 
         return mongodStarter.prepare(new MongodConfigBuilder()
-                .net(new Net(mongoDbPort, false))
-                .version(Version.Main.V3_2)
+                .net(new Net(bindIp, mongoDbPort, false))
+                .version(Version.Main.PRODUCTION)
                 .cmdOptions(new MongoCmdOptionsBuilder()
                         .useStorageEngine("wiredTiger")
                         .useNoJournal(false)

@@ -941,9 +941,10 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash implements
     // keeps stashing messages in the mean time.
     private void updateSearchIndexWithPolicy(final Cancellable timeout, final Thing newThing) {
         becomeSyncResultAwaiting();
+        final PolicyEnforcer thePolicyEnforcer = policyEnforcer; // may be "null" again in the async "whenComplete"
         updateThing(newThing)
                 .whenComplete((thingIndexChanged, thingError) ->
-                        updatePolicy(newThing, policyEnforcer)
+                        updatePolicy(newThing, thePolicyEnforcer)
                                 .whenComplete(
                                         (policyIndexChanged, policyError) -> {
                                             final Throwable error = thingError == null ? policyError : thingError;
