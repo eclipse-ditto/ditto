@@ -843,7 +843,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash implements
         // always synchronize policy if the schema version calls for it
         if (schemaVersionHasPolicy(schemaVersion)) {
             if (policyEnforcer != null) {
-                updateSearchIndexWithPolicy(timeout, withThing);
+                updateSearchIndexWithPolicy(timeout, withThing, null);
             } else {
                 syncPolicy(withThing);
             }
@@ -866,11 +866,12 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash implements
                 .isPresent();
         if (isExpectedPolicyId) {
             policyRevision = policy.getRevision().map(PolicyRevision::toLong).orElse(UNKNOWN_REVISION);
-            policyEnforcer = PolicyEnforcers.defaultEvaluator(policy);
+            final PolicyEnforcer thePolicyEnforcer = PolicyEnforcers.defaultEvaluator(policy);
+            this.policyEnforcer = thePolicyEnforcer;
 
             if (syncedThing != null) {
                 // update search index:
-                updateSearchIndexWithPolicy(timeout, syncedThing);
+                updateSearchIndexWithPolicy(timeout, syncedThing, thePolicyEnforcer);
             } else {
                 // Thing was not synced before
                 syncThing();
@@ -939,12 +940,12 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash implements
 
     // eventually writes the Thing to the persistence, updates policy, then ends the synchronization cycle.
     // keeps stashing messages in the mean time.
-    private void updateSearchIndexWithPolicy(final Cancellable timeout, final Thing newThing) {
+    private void updateSearchIndexWithPolicy(final Cancellable timeout, final Thing newThing,
+            final PolicyEnforcer thePolicyEnforcer) {
         becomeSyncResultAwaiting();
-        final PolicyEnforcer thePolicyEnforcer = policyEnforcer; // may be "null" again in the async "whenComplete"
         updateThing(newThing)
                 .whenComplete((thingIndexChanged, thingError) ->
-                        updatePolicy(newThing, thePolicyEnforcer)
+                        updatePolicy(newThing, thePolicyEnforcer != null ? thePolicyEnforcer : policyEnforcer)
                                 .whenComplete(
                                         (policyIndexChanged, policyError) -> {
                                             final Throwable error = thingError == null ? policyError : thingError;
