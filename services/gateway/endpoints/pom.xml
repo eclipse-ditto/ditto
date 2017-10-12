@@ -62,10 +62,22 @@
             <groupId>org.eclipse.ditto.signals.commands</groupId>
             <artifactId>ditto-signals-commands-things</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto.signals.commands</groupId>
+            <artifactId>ditto-signals-commands-messages</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto.signals.commands</groupId>
+            <artifactId>ditto-signals-commands-thingsearch</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>org.eclipse.ditto.signals.events</groupId>
             <artifactId>ditto-signals-events-things</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto.signals.events</groupId>
+            <artifactId>ditto-signals-events-policies</artifactId>
         </dependency>
 
         <dependency>
@@ -77,24 +89,6 @@
             <groupId>org.eclipse.ditto.services.models</groupId>
             <artifactId>ditto-services-models-thingsearch</artifactId>
         </dependency>
-
-        <dependency>
-            <groupId>org.eclipse.ditto.services.endpoints</groupId>
-            <artifactId>ditto-services-endpoints-base</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.ditto.services.endpoints</groupId>
-            <artifactId>ditto-services-endpoints-policies</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.ditto.services.endpoints</groupId>
-            <artifactId>ditto-services-endpoints-things</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.ditto.services.endpoints</groupId>
-            <artifactId>ditto-services-endpoints-thingsearch</artifactId>
-        </dependency>
-
 
         <dependency>
             <groupId>org.eclipse.ditto.services.utils</groupId>
@@ -160,13 +154,6 @@
         </dependency>
 
         <dependency>
-            <groupId>org.eclipse.ditto.services.endpoints</groupId>
-            <artifactId>ditto-services-endpoints-base</artifactId>
-            <type>test-jar</type>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
             <groupId>com.typesafe.akka</groupId>
             <artifactId>akka-http-testkit_${scala.version}</artifactId>
             <scope>test</scope>
@@ -200,6 +187,25 @@
                 </excludes>
             </resource>
         </resources>
+
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>test-jar</goal>
+                        </goals>
+                        <configuration>
+                            <includes>
+                                <include>org/eclipse/ditto/services/gateway/endpoints/*</include>
+                            </includes>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
     </build>
 
 </project>

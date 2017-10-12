@@ -3,7 +3,6 @@
 This module contains the service
 * **models** - specific service-internal model classes
 * **utils** - common functionality shared across all services
-* **endpoints** - the HTTP API of the services
 
 and the actual services:
 * **policies** - persistence of `Policy`s

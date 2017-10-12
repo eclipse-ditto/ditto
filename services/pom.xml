@@ -28,7 +28,6 @@
 
     <modules>
         <module>models</module>
-        <module>endpoints</module>
         <module>utils</module>
         <module>policies</module>
         <module>things</module>
