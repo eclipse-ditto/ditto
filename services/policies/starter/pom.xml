@@ -21,7 +21,7 @@
     </parent>
 
     <artifactId>ditto-services-policies-starter</artifactId>
-    <name>Eclipse Ditto :: Services :: Policies :: Service-Starter</name>
+    <name>Eclipse Ditto :: Services :: Policies :: Starter</name>
 
     <properties>
         <the.build.timestamp>${maven.build.timestamp}</the.build.timestamp>

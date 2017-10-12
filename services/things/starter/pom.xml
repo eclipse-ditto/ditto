@@ -21,7 +21,7 @@
     </parent>
 
     <artifactId>ditto-services-things-starter</artifactId>
-    <name>Eclipse Ditto :: Services :: Things :: Service-Starter</name>
+    <name>Eclipse Ditto :: Services :: Things :: Starter</name>
 
     <properties>
         <the.build.timestamp>${maven.build.timestamp}</the.build.timestamp>
