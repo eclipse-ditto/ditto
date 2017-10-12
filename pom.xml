@@ -396,6 +396,38 @@
                 </executions>
             </plugin>
             <plugin>
+                <groupId>com.mycila</groupId>
+                <artifactId>license-maven-plugin</artifactId>
+                <inherited>false</inherited>
+                <configuration>
+                    <header>${project.basedir}/src/license-header.txt</header>
+                    <aggregate>true</aggregate>
+                    <quiet>false</quiet>
+                    <failIfMissing>true</failIfMissing>
+                    <strictCheck>false</strictCheck>
+                    <headerDefinitions>
+                        <headerDefinition>${project.basedir}/src/license-header-xml-def.xml</headerDefinition>
+                    </headerDefinitions>
+                    <includes>
+                        <include>**/*.java</include>
+                        <include>**/*.sh</include>
+                        <include>**/pom.xml</include>
+                    </includes>
+                    <excludes>
+                        <exclude>target/**</exclude>
+                    </excludes>
+                    <useDefaultExcludes>true</useDefaultExcludes>
+                    <encoding>UTF-8</encoding>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
                 <executions>
