@@ -12,6 +12,7 @@
    com.github.nscala-time:nscala-time_2.12:jar:2.14.0:compile
    com.github.scullxbones:akka-persistence-mongo-casbah_2.12:jar:2.0.4:compile
    com.github.scullxbones:akka-persistence-mongo-common_2.12:jar:2.0.4:compile
+   com.google.code.findbugs:jsr305:jar:3.0.1:compile
    com.google.guava:guava:jar:21.0:compile
    com.typesafe.akka:akka-actor_2.12:jar:2.5.6:compile
    com.typesafe.akka:akka-cluster_2.12:jar:2.5.6:compile
