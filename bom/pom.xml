@@ -58,10 +58,8 @@
         <kamon-core.version>0.6.7</kamon-core.version>
         <metrics.version>3.1.2</metrics.version>
         <metrics-statsd.version>1.0.0</metrics-statsd.version>
-
-        <!-- ### Provided dependencies versions -->
         <jsr302.version>3.0.1</jsr302.version>
-        <jmh.version>1.4.1</jmh.version>
+
 
         <!-- ### Testing dependencies versions -->
         <junit.version>4.12</junit.version>
@@ -71,6 +69,8 @@
         <mockito.version>2.9.0</mockito.version>
         <jsonassert.version>1.2.3</jsonassert.version>
         <akka-persistence-inmemory.version>2.5.1.1</akka-persistence-inmemory.version>
+
+        <jmh.version>1.4.1</jmh.version>
 
         <scalatest.version>3.0.0</scalatest.version>
         <flapdoodle.version>2.0.0</flapdoodle.version>
@@ -499,25 +499,10 @@
                 <version>${project.version}</version>
             </dependency>
 
-            <!-- ### Provided ### -->
             <dependency>
                 <groupId>com.google.code.findbugs</groupId>
                 <artifactId>jsr305</artifactId>
                 <version>${jsr302.version}</version>
-                <scope>provided</scope>
-            </dependency>
-
-            <dependency>
-                <groupId>org.openjdk.jmh</groupId>
-                <artifactId>jmh-core</artifactId>
-                <version>${jmh.version}</version>
-                <scope>provided</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.openjdk.jmh</groupId>
-                <artifactId>jmh-generator-annprocess</artifactId>
-                <version>${jmh.version}</version>
-                <scope>provided</scope>
             </dependency>
 
             <!-- ### Provided - own artifacts ### -->
@@ -602,6 +587,19 @@
                 <groupId>de.flapdoodle.embed</groupId>
                 <artifactId>de.flapdoodle.embed.mongo</artifactId>
                 <version>${flapdoodle.version}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>org.openjdk.jmh</groupId>
+                <artifactId>jmh-core</artifactId>
+                <version>${jmh.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.openjdk.jmh</groupId>
+                <artifactId>jmh-generator-annprocess</artifactId>
+                <version>${jmh.version}</version>
                 <scope>test</scope>
             </dependency>
 
