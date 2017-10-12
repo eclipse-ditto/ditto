@@ -18,7 +18,7 @@ import static akka.http.javadsl.server.Directives.path;
 import static akka.http.javadsl.server.Directives.pathEndOrSingleSlash;
 import static akka.http.javadsl.server.Directives.rawPathPrefix;
 import static akka.http.javadsl.server.Directives.route;
-import static org.eclipse.ditto.services.endpoints.base.CustomPathMatchers.mergeDoubleSlashes;
+import static org.eclipse.ditto.services.gateway.endpoints.directives.CustomPathMatchers.mergeDoubleSlashes;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.DevopsBasicAuthenticationDirective.REALM_DEVOPS;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.DevopsBasicAuthenticationDirective.authenticateDevopsBasic;
 
@@ -46,9 +46,9 @@ import akka.http.javadsl.server.Route;
 public final class OverallStatusRoute {
 
     public static final String PATH_STATUS = "status";
-    public static final String PATH_HEALTH = "health";
-    public static final String PATH_CLUSTER = "cluster";
-    public static final String PATH_OWN = "own";
+    static final String PATH_HEALTH = "health";
+    static final String PATH_CLUSTER = "cluster";
+    static final String PATH_OWN = "own";
 
     private final Supplier<ClusterStatus> clusterStateSupplier;
     private final StatusHealthHelper statusHealthHelper;

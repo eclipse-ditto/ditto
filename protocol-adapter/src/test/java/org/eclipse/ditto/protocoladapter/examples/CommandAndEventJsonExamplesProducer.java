@@ -77,7 +77,6 @@ import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.model.thingsearch.SearchModelFactory;
 import org.eclipse.ditto.model.thingsearch.SearchQuery;
 import org.eclipse.ditto.model.thingsearch.SearchResult;
-import org.eclipse.ditto.signals.commands.base.exceptions.GatewayApiTokenInvalidException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationFailedException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationProviderUnavailableException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayBadGatewayException;
@@ -1444,11 +1443,6 @@ class CommandAndEventJsonExamplesProducer {
     private void produceGatewayExceptions(final Path rootPath) throws IOException {
         final Path exceptionsDir = rootPath.resolve(Paths.get("exceptions"));
         Files.createDirectories(exceptionsDir);
-
-        final GatewayApiTokenInvalidException gatewayApiTokenInvalidException =
-                GatewayApiTokenInvalidException.newBuilder().build();
-        writeJson(exceptionsDir.resolve(Paths.get("gatewayApiTokenInvalidException.json")),
-                gatewayApiTokenInvalidException);
 
         final GatewayAuthenticationFailedException gatewayAuthenticationFailedException =
                 GatewayAuthenticationFailedException.newBuilder("devops authentication failed!").build();

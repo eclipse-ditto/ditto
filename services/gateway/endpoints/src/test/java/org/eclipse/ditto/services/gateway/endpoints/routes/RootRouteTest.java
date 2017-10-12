@@ -11,20 +11,20 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.routes;
 
-import static org.eclipse.ditto.services.endpoints.base.EndpointTestConstants.KNOWN_DOMAIN;
-import static org.eclipse.ditto.services.endpoints.base.EndpointTestConstants.UNKNOWN_PATH;
+import static org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants.KNOWN_DOMAIN;
+import static org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants.UNKNOWN_PATH;
 import static org.mockito.Mockito.mock;
 
 import java.util.function.Supplier;
 
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.services.endpoints.base.EndpointTestBase;
-import org.eclipse.ditto.services.endpoints.base.EndpointTestConstants;
-import org.eclipse.ditto.services.endpoints.things.ThingsParameter;
-import org.eclipse.ditto.services.endpoints.things.ThingsRoute;
-import org.eclipse.ditto.services.endpoints.thingsearch.ThingSearchRoute;
+import org.eclipse.ditto.services.gateway.endpoints.EndpointTestBase;
+import org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants;
 import org.eclipse.ditto.services.gateway.endpoints.directives.HttpsEnsuringDirective;
 import org.eclipse.ditto.services.gateway.endpoints.routes.status.OverallStatusRoute;
+import org.eclipse.ditto.services.gateway.endpoints.routes.things.ThingsParameter;
+import org.eclipse.ditto.services.gateway.endpoints.routes.things.ThingsRoute;
+import org.eclipse.ditto.services.gateway.endpoints.routes.thingsearch.ThingSearchRoute;
 import org.eclipse.ditto.services.gateway.security.HttpHeader;
 import org.eclipse.ditto.services.gateway.starter.service.util.HttpClientFacade;
 import org.eclipse.ditto.services.utils.health.cluster.ClusterStatus;

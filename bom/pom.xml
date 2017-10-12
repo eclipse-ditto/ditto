@@ -499,27 +499,6 @@
                 <version>${project.version}</version>
             </dependency>
 
-            <dependency>
-                <groupId>org.eclipse.ditto.services.endpoints</groupId>
-                <artifactId>ditto-services-endpoints-base</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.eclipse.ditto.services.endpoints</groupId>
-                <artifactId>ditto-services-endpoints-policies</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.eclipse.ditto.services.endpoints</groupId>
-                <artifactId>ditto-services-endpoints-things</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.eclipse.ditto.services.endpoints</groupId>
-                <artifactId>ditto-services-endpoints-thingsearch</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
             <!-- ### Provided ### -->
             <dependency>
                 <groupId>com.google.code.findbugs</groupId>
@@ -712,14 +691,6 @@
             <dependency>
                 <groupId>org.eclipse.ditto.services.utils</groupId>
                 <artifactId>ditto-services-utils-test</artifactId>
-                <type>test-jar</type>
-                <version>${project.version}</version>
-                <scope>test</scope>
-            </dependency>
-
-            <dependency>
-                <groupId>org.eclipse.ditto.services.endpoints</groupId>
-                <artifactId>ditto-services-endpoints-base</artifactId>
                 <type>test-jar</type>
                 <version>${project.version}</version>
                 <scope>test</scope>

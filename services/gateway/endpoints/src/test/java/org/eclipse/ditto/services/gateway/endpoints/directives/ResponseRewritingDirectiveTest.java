@@ -11,12 +11,12 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.directives;
 
-import static org.eclipse.ditto.services.endpoints.base.EndpointTestConstants.KNOWN_CORRELATION_ID;
+import static org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants.KNOWN_CORRELATION_ID;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.ResponseRewritingDirective.INTERNAL_SERVER_ERROR_RESULT;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.ResponseRewritingDirective.UNAVAILABLE_ROUT_RESULT;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.ResponseRewritingDirective.rewriteResponse;
 
-import org.eclipse.ditto.services.endpoints.base.EndpointTestBase;
+import org.eclipse.ditto.services.gateway.endpoints.EndpointTestBase;
 import org.junit.Test;
 
 import akka.http.javadsl.model.HttpRequest;

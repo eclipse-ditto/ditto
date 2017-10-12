@@ -27,7 +27,6 @@ import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
-import org.eclipse.ditto.signals.commands.base.exceptions.GatewayApiTokenInvalidException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationFailedException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationProviderUnavailableException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayBadGatewayException;
@@ -65,11 +64,6 @@ public class JsonExamplesProducer {
     private void produceGatewayExceptions(final Path rootPath) throws IOException {
         final Path exceptionsDir = rootPath.resolve(Paths.get("errors"));
         Files.createDirectories(exceptionsDir);
-
-        final GatewayApiTokenInvalidException gatewayApiTokenInvalidException =
-                GatewayApiTokenInvalidException.newBuilder().build();
-        writeJson(exceptionsDir.resolve(Paths.get("gatewayApiTokenInvalidException.json")),
-                gatewayApiTokenInvalidException);
 
         final GatewayAuthenticationFailedException gatewayAuthenticationFailedException =
                 GatewayAuthenticationFailedException.newBuilder("devops authentication failed!").build();

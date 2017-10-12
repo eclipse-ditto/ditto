@@ -28,7 +28,6 @@ import org.eclipse.ditto.signals.base.AbstractErrorRegistry;
 import org.eclipse.ditto.signals.base.ErrorRegistry;
 import org.eclipse.ditto.signals.base.JsonParsable;
 import org.eclipse.ditto.signals.base.JsonTypeNotParsableException;
-import org.eclipse.ditto.signals.commands.base.exceptions.GatewayApiTokenInvalidException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationFailedException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationProviderUnavailableException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayBadGatewayException;
@@ -84,12 +83,6 @@ public final class CommonErrorRegistry extends AbstractErrorRegistry<DittoRuntim
         parseStrategies.put(JsonTypeNotParsableException.ERROR_CODE, JsonTypeNotParsableException::fromJson);
 
         // Gateway exceptions
-        parseStrategies.put(GatewayApiTokenInvalidException.ERROR_CODE,
-                (jsonObject, dittoHeaders) -> GatewayApiTokenInvalidException.newBuilder()
-                        .message(getMessage(jsonObject))
-                        .dittoHeaders(dittoHeaders)
-                        .build());
-
         parseStrategies.put(GatewayAuthenticationFailedException.ERROR_CODE,
                 (jsonObject, dittoHeaders) -> GatewayAuthenticationFailedException.newBuilder(getMessage(jsonObject))
                         .dittoHeaders(dittoHeaders).build());

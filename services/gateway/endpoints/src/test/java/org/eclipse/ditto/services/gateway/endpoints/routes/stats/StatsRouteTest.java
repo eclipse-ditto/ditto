@@ -11,14 +11,14 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.routes.stats;
 
-import static org.eclipse.ditto.services.endpoints.base.EndpointTestConstants.KNOWN_CORRELATION_ID;
-import static org.eclipse.ditto.services.endpoints.base.EndpointTestConstants.UNKNOWN_PATH;
+import static org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants.KNOWN_CORRELATION_ID;
+import static org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants.UNKNOWN_PATH;
 
 import java.util.Optional;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.services.endpoints.base.EndpointTestBase;
-import org.eclipse.ditto.services.endpoints.base.EndpointTestConstants;
+import org.eclipse.ditto.services.gateway.endpoints.EndpointTestBase;
+import org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants;
 import org.eclipse.ditto.signals.commands.thingsearch.query.CountThingsResponse;
 import org.junit.Before;
 import org.junit.Test;

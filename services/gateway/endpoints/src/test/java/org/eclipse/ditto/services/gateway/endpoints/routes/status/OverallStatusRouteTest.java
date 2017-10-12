@@ -11,12 +11,12 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.routes.status;
 
-import static org.eclipse.ditto.services.endpoints.base.EndpointTestConstants.UNKNOWN_PATH;
+import static org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants.UNKNOWN_PATH;
 
 import java.util.function.Supplier;
 
-import org.eclipse.ditto.services.endpoints.base.EndpointTestBase;
-import org.eclipse.ditto.services.endpoints.base.EndpointTestConstants;
+import org.eclipse.ditto.services.gateway.endpoints.EndpointTestBase;
+import org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants;
 import org.eclipse.ditto.services.gateway.health.DittoStatusHealthHelper;
 import org.eclipse.ditto.services.gateway.health.StatusHealthHelper;
 import org.eclipse.ditto.services.utils.health.cluster.ClusterStatus;

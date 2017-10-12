@@ -3,13 +3,6 @@
 #set( $h3 = '###' )
 #set( $snippetName = "" )
 
-$h3 API Token Invalid
-
-#set( $snippetFile = "/target/generated-resources/gateway/errors/gatewayApiTokenInvalidException.json" )
-```
-#parse( "snippet" )
-```
-
 $h3 Authentication Failed
 
 #set( $snippetFile = "/target/generated-resources/gateway/errors/gatewayAuthenticationFailedException.json" )
