@@ -100,7 +100,6 @@ public final class ThingErrorRegistry extends AbstractErrorRegistry<DittoRuntime
                 FeaturePropertyNotAccessibleException::fromJson);
         parseStrategies.put(FeaturePropertyNotModifiableException.ERROR_CODE,
                 FeaturePropertyNotModifiableException::fromJson);
-        parseStrategies.put(ApiTokenInvalidException.ERROR_CODE, ApiTokenInvalidException::fromJson);
 
         return new ThingErrorRegistry(parseStrategies);
     }

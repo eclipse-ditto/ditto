@@ -50,7 +50,6 @@ import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 import org.eclipse.ditto.signals.commands.things.exceptions.AclModificationInvalidException;
 import org.eclipse.ditto.signals.commands.things.exceptions.AclNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.exceptions.AclNotModifiableException;
-import org.eclipse.ditto.signals.commands.things.exceptions.ApiTokenInvalidException;
 import org.eclipse.ditto.signals.commands.things.exceptions.AttributeNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.exceptions.AttributeNotModifiableException;
 import org.eclipse.ditto.signals.commands.things.exceptions.AttributesNotAccessibleException;
@@ -675,12 +674,6 @@ public class JsonExamplesProducer {
         final AclNotModifiableException aclNotModifiableException =
                 AclNotModifiableException.newBuilder(THING_ID).dittoHeaders(DITTO_HEADERS).build();
         writeJson(exceptionsDir.resolve(Paths.get("aclNotModifiableException.json")), aclNotModifiableException,
-                JsonSchemaVersion.V_1);
-
-        final ApiTokenInvalidException apiTokenInvalidException = ApiTokenInvalidException.newBuilder()
-                .dittoHeaders(DITTO_HEADERS)
-                .build();
-        writeJson(exceptionsDir.resolve(Paths.get("apiTokenInvalidException.json")), apiTokenInvalidException,
                 JsonSchemaVersion.V_1);
 
         final ThingTooManyModifyingRequestsException thingTooManyModifyingRequestsException =

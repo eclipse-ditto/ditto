@@ -3,13 +3,6 @@
 #set( $h3 = '###' )
 #set( $snippetName = "" )
 
-$h3 API Token invalid
-
-#set( $snippetFile = "/target/generated-resources/things/errors/apiTokenInvalidException.json" )
-```
-#parse( "snippet" )
-```
-
 $h3 Thing ID Invalid
 
 #set( $snippetFile = "/target/generated-resources/things/errors/thingIdInvalidException.json" )
