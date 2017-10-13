@@ -30,10 +30,10 @@ In order to start up Ditto, you'll need
 ### Build and start Ditto
 
 ```bash
-# if you have the docker daemon running on your machine:
-mvn clean install -Pdocker-build-image
-# if you have the docker daemon running on another machine with remote access enabled:
+# if you have the docker daemon running with remote access enabled (e.g. in a Vagrant box or on localhost):
 mvn clean install -Pdocker-build-image -Ddocker.daemon.hostname=<ip/host of your docker daemon>
+# if you have the docker daemon running on your machine and you are running on Unix, you can also connect against the docker socket:
+mvn clean install -Pdocker-build-image -Ddocker.daemon.url=unix:///var/run/docker.sock
 
 cd docker/
 docker-compose up -d
