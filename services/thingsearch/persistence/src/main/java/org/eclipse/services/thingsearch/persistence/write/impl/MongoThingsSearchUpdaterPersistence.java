@@ -218,7 +218,7 @@ public final class MongoThingsSearchUpdaterPersistence implements ThingsSearchUp
     @Override
     public Source<Boolean, NotUsed> updatePolicy(final Thing thing, final PolicyEnforcer policyEnforcer) {
         if (thing == null || policyEnforcer == null) {
-            log.warning("Thing or policyEnforcer was null when trying to update policy search index. Thing: <{}>, " +
+            log.error("Thing or policyEnforcer was null when trying to update policy search index. Thing: <{}>, " +
                     "PolicyEnforcer: <{}>", thing, policyEnforcer);
             return Source.single(Boolean.FALSE);
         }

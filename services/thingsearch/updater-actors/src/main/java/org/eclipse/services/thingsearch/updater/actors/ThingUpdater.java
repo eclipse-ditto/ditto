@@ -22,6 +22,7 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
@@ -974,6 +975,13 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash implements
     }
 
     private CompletionStage<Boolean> updatePolicy(final Thing thing, final PolicyEnforcer policyEnforcer) {
+
+        if (policyEnforcer == null) {
+            log.warning("PolicyEnforcer was null when trying to update Policy search index - resyncing Policy!");
+            syncPolicy(thing);
+            return CompletableFuture.completedFuture(Boolean.FALSE);
+        }
+
         final TraceContext traceContext = Kamon.tracer().newContext(TRACE_POLICY_UPDATE);
         return circuitBreaker.callWithCircuitBreakerCS(() -> searchUpdaterPersistence
                 .updatePolicy(thing, policyEnforcer)
