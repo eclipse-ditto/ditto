@@ -50,21 +50,16 @@ public final class ModifyPolicyEntry extends AbstractCommand<ModifyPolicyEntry> 
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition JSON_LABEL =
-            JsonFactory.newFieldDefinition("label", String.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<String> JSON_LABEL =
+            JsonFactory.newStringFieldDefinition("label", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
-    static final JsonFieldDefinition JSON_POLICY_ENTRY =
-            JsonFactory.newFieldDefinition("policyEntry", JsonObject.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<JsonObject> JSON_POLICY_ENTRY =
+            JsonFactory.newJsonObjectFieldDefinition("policyEntry", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private final String policyId;
     private final PolicyEntry policyEntry;
 
-    private ModifyPolicyEntry(final String policyId, final PolicyEntry policyEntry,
-            final DittoHeaders dittoHeaders) {
+    private ModifyPolicyEntry(final String policyId, final PolicyEntry policyEntry, final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
         this.policyId = policyId;
         this.policyEntry = policyEntry;
@@ -81,6 +76,7 @@ public final class ModifyPolicyEntry extends AbstractCommand<ModifyPolicyEntry> 
      */
     public static ModifyPolicyEntry of(final String policyId, final PolicyEntry policyEntry,
             final DittoHeaders dittoHeaders) {
+
         Objects.requireNonNull(policyId, "The Policy identifier must not be null!");
         Objects.requireNonNull(policyEntry, "The PolicyEntry must not be null!");
         return new ModifyPolicyEntry(policyId, policyEntry, dittoHeaders);
@@ -112,10 +108,10 @@ public final class ModifyPolicyEntry extends AbstractCommand<ModifyPolicyEntry> 
      * format.
      */
     public static ModifyPolicyEntry fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandJsonDeserializer<ModifyPolicyEntry>(TYPE, jsonObject).deserialize(jsonObjectReader -> {
-            final String policyId = jsonObjectReader.get(PolicyModifyCommand.JsonFields.JSON_POLICY_ID);
-            final String policyEntryLabel = jsonObjectReader.get(JSON_LABEL);
-            final JsonObject policyEntryJsonObject = jsonObjectReader.get(JSON_POLICY_ENTRY);
+        return new CommandJsonDeserializer<ModifyPolicyEntry>(TYPE, jsonObject).deserialize(() -> {
+            final String policyId = jsonObject.getValueOrThrow(PolicyModifyCommand.JsonFields.JSON_POLICY_ID);
+            final String policyEntryLabel = jsonObject.getValueOrThrow(JSON_LABEL);
+            final JsonObject policyEntryJsonObject = jsonObject.getValueOrThrow(JSON_POLICY_ENTRY);
             final PolicyEntry policyEntry =
                     PoliciesModelFactory.newPolicyEntry(policyEntryLabel, policyEntryJsonObject);
 
@@ -156,6 +152,7 @@ public final class ModifyPolicyEntry extends AbstractCommand<ModifyPolicyEntry> 
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(PolicyModifyCommand.JsonFields.JSON_POLICY_ID, policyId, predicate);
         jsonObjectBuilder.set(JSON_LABEL, policyEntry.getLabel().toString(), predicate);
@@ -168,8 +165,8 @@ public final class ModifyPolicyEntry extends AbstractCommand<ModifyPolicyEntry> 
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof ModifyPolicyEntry);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof ModifyPolicyEntry;
     }
 
     @SuppressWarnings("squid:MethodCyclomaticComplexity")

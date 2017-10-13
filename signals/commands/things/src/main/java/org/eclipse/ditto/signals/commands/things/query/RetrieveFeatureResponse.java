@@ -47,15 +47,13 @@ public final class RetrieveFeatureResponse extends AbstractCommandResponse<Retri
      */
     public static final String TYPE = TYPE_PREFIX + RetrieveFeature.NAME;
 
-    static final JsonFieldDefinition JSON_FEATURE_ID =
-            JsonFactory.newFieldDefinition("featureId", String.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<String> JSON_FEATURE_ID =
+            JsonFactory.newStringFieldDefinition("featureId", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
 
-    static final JsonFieldDefinition JSON_FEATURE =
-            JsonFactory.newFieldDefinition("feature", JsonObject.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<JsonObject> JSON_FEATURE =
+            JsonFactory.newJsonObjectFieldDefinition("feature", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
 
     private final String thingId;
     private final Feature feature;
@@ -129,15 +127,16 @@ public final class RetrieveFeatureResponse extends AbstractCommandResponse<Retri
      */
     public static RetrieveFeatureResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<RetrieveFeatureResponse>(TYPE, jsonObject)
-                .deserialize((statusCode, jsonObjectReader) -> {
-                    final String thingId = jsonObjectReader.get(ThingQueryCommandResponse.JsonFields.JSON_THING_ID);
-                    final String extractedFeatureId = jsonObjectReader.get(JSON_FEATURE_ID);
-                    final JsonObject extractedFeatureJsonObject = jsonObjectReader.get(JSON_FEATURE);
+                .deserialize((statusCode) -> {
+                    final String thingId =
+                            jsonObject.getValueOrThrow(ThingQueryCommandResponse.JsonFields.JSON_THING_ID);
+                    final String extractedFeatureId = jsonObject.getValueOrThrow(JSON_FEATURE_ID);
+                    final JsonObject extractedFeatureJsonObject = jsonObject.getValueOrThrow(JSON_FEATURE);
 
                     final Feature extractedFeature = (null != extractedFeatureJsonObject)
                             ? ThingsModelFactory.newFeatureBuilder(extractedFeatureJsonObject)
-                            .useId(extractedFeatureId)
-                            .build()
+                                .useId(extractedFeatureId)
+                                .build()
                             : ThingsModelFactory.nullFeature(extractedFeatureId);
 
                     return of(thingId, extractedFeature, dittoHeaders);
@@ -168,7 +167,7 @@ public final class RetrieveFeatureResponse extends AbstractCommandResponse<Retri
     }
 
     @Override
-    public JsonValue getEntity(final JsonSchemaVersion schemaVersion) {
+    public JsonObject getEntity(final JsonSchemaVersion schemaVersion) {
         return feature.toJson(schemaVersion);
     }
 
@@ -201,7 +200,7 @@ public final class RetrieveFeatureResponse extends AbstractCommandResponse<Retri
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return (other instanceof RetrieveFeatureResponse);
+        return other instanceof RetrieveFeatureResponse;
     }
 
     @Override

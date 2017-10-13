@@ -81,7 +81,7 @@ public final class JsonifiableSerializerTest {
         Assertions.assertThat(o).isEqualTo(DITTO_HEADERS);
     }
 
-    static class DittoHeadersStrategy implements MappingStrategy {
+    static final class DittoHeadersStrategy implements MappingStrategy {
 
         @Override
         public Map<String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>> determineStrategy() {
@@ -89,6 +89,7 @@ public final class JsonifiableSerializerTest {
                     .add(DittoHeaders.class, jsonObject -> DittoHeaders.newBuilder(jsonObject).build())
                     .build();
         }
+
     }
 
     @Test
@@ -142,7 +143,7 @@ public final class JsonifiableSerializerTest {
                 .isEqualTo(shardedMessageEnvelope.getDittoHeaders());
     }
 
-    static class ThingCommandsStrategy implements MappingStrategy {
+    static final class ThingCommandsStrategy implements MappingStrategy {
 
         @Override
         public Map<String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>> determineStrategy() {
@@ -150,12 +151,11 @@ public final class JsonifiableSerializerTest {
                     .add(ThingErrorRegistry.newInstance())
                     .add(ThingCommandRegistry.newInstance())
                     .add(ThingCommandResponseRegistry.newInstance())
-                    .add(Thing.class, (jsonObject) -> ThingsModelFactory.newThing(
-                            jsonObject)) // do not replace with lambda!
-                    .add(ShardedMessageEnvelope.class,
-                            (jsonObject) -> ShardedMessageEnvelope.fromJson(jsonObject)) // do not replace with lambda!
+                    .add(Thing.class, (jsonObject) -> ThingsModelFactory.newThing(jsonObject)) // do not replace with lambda!
+                    .add(ShardedMessageEnvelope.class, (jsonObject) -> ShardedMessageEnvelope.fromJson(jsonObject)) // do not replace with lambda!
                     .build();
         }
+
     }
 
 }

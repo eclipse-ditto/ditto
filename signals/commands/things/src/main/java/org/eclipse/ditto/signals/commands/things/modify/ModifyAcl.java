@@ -52,10 +52,8 @@ public final class ModifyAcl extends AbstractCommand<ModifyAcl> implements Thing
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition JSON_ACCESS_CONTROL_LIST =
-            JsonFactory.newFieldDefinition("acl", JsonObject.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_1);
+    static final JsonFieldDefinition<JsonObject> JSON_ACCESS_CONTROL_LIST =
+            JsonFactory.newJsonObjectFieldDefinition("acl", FieldType.REGULAR, JsonSchemaVersion.V_1);
 
     private final String thingId;
     private final AccessControlList accessControlList;
@@ -116,10 +114,11 @@ public final class ModifyAcl extends AbstractCommand<ModifyAcl> implements Thing
      * org.eclipse.ditto.model.things.Thing#ID_REGEX}.
      */
     public static ModifyAcl fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandJsonDeserializer<ModifyAcl>(TYPE, jsonObject).deserialize(jsonObjectReader -> {
-            final String thingId = jsonObjectReader.get(ThingModifyCommand.JsonFields.JSON_THING_ID);
-            final JsonObject aclJsonObject = jsonObjectReader.get(JSON_ACCESS_CONTROL_LIST);
+        return new CommandJsonDeserializer<ModifyAcl>(TYPE, jsonObject).deserialize(() -> {
+            final String thingId = jsonObject.getValueOrThrow(ThingModifyCommand.JsonFields.JSON_THING_ID);
+            final JsonObject aclJsonObject = jsonObject.getValueOrThrow(JSON_ACCESS_CONTROL_LIST);
             final AccessControlList extractedAccessControlList = ThingsModelFactory.newAcl(aclJsonObject);
+
             return of(thingId, extractedAccessControlList, dittoHeaders);
         });
     }
@@ -186,7 +185,7 @@ public final class ModifyAcl extends AbstractCommand<ModifyAcl> implements Thing
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
+    protected boolean canEqual(@Nullable final Object other) {
         return (other instanceof ModifyAcl);
     }
 

@@ -54,26 +54,25 @@ public final class ResourceCreated extends AbstractPolicyEvent<ResourceCreated>
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition JSON_LABEL =
-            JsonFactory.newFieldDefinition("label", String.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<String> JSON_LABEL =
+            JsonFactory.newStringFieldDefinition("label", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
-    static final JsonFieldDefinition JSON_RESOURCE_KEY =
-            JsonFactory.newFieldDefinition("resourceKey", String.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<String> JSON_RESOURCE_KEY =
+            JsonFactory.newStringFieldDefinition("resourceKey", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
-    static final JsonFieldDefinition JSON_RESOURCE =
-            JsonFactory.newFieldDefinition("resource", JsonObject.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<JsonObject> JSON_RESOURCE =
+            JsonFactory.newJsonObjectFieldDefinition("resource", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private final Label label;
     private final Resource resource;
 
-    private ResourceCreated(final String policyId, final Label label, final Resource resource, final long revision,
-            final Instant timestamp, final DittoHeaders dittoHeaders) {
+    private ResourceCreated(final String policyId,
+            final Label label,
+            final Resource resource,
+            final long revision,
+            @Nullable final Instant timestamp,
+            final DittoHeaders dittoHeaders) {
+
         super(TYPE, checkNotNull(policyId, "Policy identifier"), revision, timestamp, dittoHeaders);
         this.label = checkNotNull(label, "Label");
         this.resource = checkNotNull(resource, "Resource");
@@ -90,8 +89,12 @@ public final class ResourceCreated extends AbstractPolicyEvent<ResourceCreated>
      * @return the created ResourceCreated.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static ResourceCreated of(final String policyId, final Label label, final Resource resource,
-            final long revision, final DittoHeaders dittoHeaders) {
+    public static ResourceCreated of(final String policyId,
+            final Label label,
+            final Resource resource,
+            final long revision,
+            final DittoHeaders dittoHeaders) {
+
         return of(policyId, label, resource, revision, null, dittoHeaders);
     }
 
@@ -105,10 +108,15 @@ public final class ResourceCreated extends AbstractPolicyEvent<ResourceCreated>
      * @param timestamp the timestamp of this event.
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the created ResourceCreated.
-     * @throws NullPointerException if any argument is {@code null}.
+     * @throws NullPointerException if any argument {@code timestamp} is {@code null}.
      */
-    public static ResourceCreated of(final String policyId, final Label label, final Resource resource,
-            final long revision, final Instant timestamp, final DittoHeaders dittoHeaders) {
+    public static ResourceCreated of(final String policyId,
+            final Label label,
+            final Resource resource,
+            final long revision,
+            @Nullable final Instant timestamp,
+            final DittoHeaders dittoHeaders) {
+
         return new ResourceCreated(policyId, label, resource, revision, timestamp, dittoHeaders);
     }
 
@@ -135,15 +143,12 @@ public final class ResourceCreated extends AbstractPolicyEvent<ResourceCreated>
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected 'ResourceCreated' format.
      */
     public static ResourceCreated fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new EventJsonDeserializer<ResourceCreated>(TYPE, jsonObject).deserialize((revision, timestamp,
-                jsonObjectReader) -> {
-            final String policyId = jsonObjectReader.get(JsonFields.POLICY_ID);
-            final Label label = Label.of(jsonObjectReader.get(JSON_LABEL));
-            final String resourceKey = jsonObjectReader.get(JSON_RESOURCE_KEY);
-            final JsonObject resourceJsonObject = jsonObjectReader.get(JSON_RESOURCE);
-            final Resource extractedCreatedResource =
-                    PoliciesModelFactory.newResource(ResourceKey.newInstance(resourceKey),
-                            resourceJsonObject);
+        return new EventJsonDeserializer<ResourceCreated>(TYPE, jsonObject).deserialize((revision, timestamp) -> {
+            final String policyId = jsonObject.getValueOrThrow(JsonFields.POLICY_ID);
+            final Label label = Label.of(jsonObject.getValueOrThrow(JSON_LABEL));
+            final ResourceKey resourceKey = ResourceKey.newInstance(jsonObject.getValueOrThrow(JSON_RESOURCE_KEY));
+            final JsonObject resourceJsonObject = jsonObject.getValueOrThrow(JSON_RESOURCE);
+            final Resource extractedCreatedResource = PoliciesModelFactory.newResource(resourceKey, resourceJsonObject);
 
             return of(policyId, label, extractedCreatedResource, revision, timestamp, dittoHeaders);
         });
@@ -169,7 +174,7 @@ public final class ResourceCreated extends AbstractPolicyEvent<ResourceCreated>
 
     @Override
     public Optional<JsonValue> getEntity(final JsonSchemaVersion schemaVersion) {
-        return Optional.ofNullable(resource.toJson(schemaVersion, FieldType.regularOrSpecial()));
+        return Optional.of(resource.toJson(schemaVersion, FieldType.regularOrSpecial()));
     }
 
     @Override
@@ -222,8 +227,8 @@ public final class ResourceCreated extends AbstractPolicyEvent<ResourceCreated>
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof ResourceCreated);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof ResourceCreated;
     }
 
     @Override

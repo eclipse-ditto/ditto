@@ -31,7 +31,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 /**
  * Unit test for {@link ModifyAttributesResponse}.
  */
-public class ModifyAttributesResponseTest {
+public final class ModifyAttributesResponseTest {
 
     private static final JsonObject KNOWN_JSON_CREATED = JsonFactory.newObjectBuilder()
             .set(ThingCommandResponse.JsonFields.TYPE, ModifyAttributesResponse.TYPE)
@@ -49,7 +49,6 @@ public class ModifyAttributesResponseTest {
                     ThingsModelFactory.nullAttributes().toJson(FieldType.regularOrSpecial()))
             .build();
 
-
     @Test
     public void assertImmutability() {
         assertInstancesOf(ModifyAttributesResponse.class,
@@ -57,14 +56,12 @@ public class ModifyAttributesResponseTest {
                 provided(Attributes.class).isAlsoImmutable());
     }
 
-
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(ModifyAttributesResponse.class)
                 .withRedefinedSuperclass()
                 .verify();
     }
-
 
     @Test
     public void toJsonReturnsExpected() {
@@ -81,7 +78,6 @@ public class ModifyAttributesResponseTest {
 
         assertThat(actualJsonUpdated).isEqualTo(KNOWN_JSON_UPDATED);
     }
-
 
     @Test
     public void createInstanceFromValidJson() {

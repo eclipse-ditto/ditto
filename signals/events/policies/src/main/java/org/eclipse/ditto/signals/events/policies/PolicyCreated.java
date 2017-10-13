@@ -51,15 +51,16 @@ public final class PolicyCreated extends AbstractPolicyEvent<PolicyCreated> impl
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition JSON_POLICY =
-            JsonFactory.newFieldDefinition("policy", JsonObject.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<JsonObject> JSON_POLICY =
+            JsonFactory.newJsonObjectFieldDefinition("policy", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private final Policy policy;
 
-    private PolicyCreated(final Policy policy, final long revision, final Instant timestamp,
+    private PolicyCreated(final Policy policy,
+            final long revision,
+            @Nullable final Instant timestamp,
             final DittoHeaders dittoHeaders) {
+
         super(TYPE, checkNotNull(policy, "Policy").getId().orElse(null), revision, timestamp, dittoHeaders);
         this.policy = policy;
     }
@@ -85,10 +86,13 @@ public final class PolicyCreated extends AbstractPolicyEvent<PolicyCreated> impl
      * @param timestamp the timestamp of this event.
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return a event object indicating the creation of the Policy.
-     * @throws NullPointerException if any argument is {@code null}.
+     * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
      */
-    public static PolicyCreated of(final Policy policy, final long revision, final Instant timestamp,
+    public static PolicyCreated of(final Policy policy,
+            final long revision,
+            @Nullable final Instant timestamp,
             final DittoHeaders dittoHeaders) {
+
         return new PolicyCreated(checkNotNull(policy, "Policy"), revision, timestamp, dittoHeaders);
     }
 
@@ -115,9 +119,8 @@ public final class PolicyCreated extends AbstractPolicyEvent<PolicyCreated> impl
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected 'PolicyCreated' format.
      */
     public static PolicyCreated fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new EventJsonDeserializer<PolicyCreated>(TYPE, jsonObject).deserialize((revision, timestamp,
-                jsonObjectReader) -> {
-            final JsonObject policyJsonObject = jsonObjectReader.get(JSON_POLICY);
+        return new EventJsonDeserializer<PolicyCreated>(TYPE, jsonObject).deserialize((revision, timestamp) -> {
+            final JsonObject policyJsonObject = jsonObject.getValueOrThrow(JSON_POLICY);
             final Policy extractedModifiedPolicy = PoliciesModelFactory.newPolicy(policyJsonObject);
 
             return new PolicyCreated(extractedModifiedPolicy, revision, timestamp, dittoHeaders);
@@ -135,7 +138,7 @@ public final class PolicyCreated extends AbstractPolicyEvent<PolicyCreated> impl
 
     @Override
     public Optional<JsonValue> getEntity(final JsonSchemaVersion schemaVersion) {
-        return Optional.ofNullable(policy.toJson(schemaVersion, FieldType.regularOrSpecial()));
+        return Optional.of(policy.toJson(schemaVersion, FieldType.regularOrSpecial()));
     }
 
     @Override
@@ -183,8 +186,8 @@ public final class PolicyCreated extends AbstractPolicyEvent<PolicyCreated> impl
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof PolicyCreated);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof PolicyCreated;
     }
 
     @Override

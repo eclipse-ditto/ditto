@@ -46,6 +46,7 @@ public final class DeletePolicyResponse extends AbstractCommandResponse<DeletePo
 
     private DeletePolicyResponse(final String policyId, final HttpStatusCode statusCode,
             final DittoHeaders dittoHeaders) {
+
         super(TYPE, statusCode, dittoHeaders);
         this.policyId = checkNotNull(policyId, "Policy ID");
     }
@@ -89,8 +90,10 @@ public final class DeletePolicyResponse extends AbstractCommandResponse<DeletePo
      */
     public static DeletePolicyResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<DeletePolicyResponse>(TYPE, jsonObject)
-                .deserialize((statusCode, jsonObjectReader) -> {
-                    final String policyId = jsonObjectReader.get(PolicyModifyCommandResponse.JsonFields.JSON_POLICY_ID);
+                .deserialize((statusCode) -> {
+                    final String policyId =
+                            jsonObject.getValueOrThrow(PolicyModifyCommandResponse.JsonFields.JSON_POLICY_ID);
+
                     return of(policyId, dittoHeaders);
                 });
     }
@@ -108,6 +111,7 @@ public final class DeletePolicyResponse extends AbstractCommandResponse<DeletePo
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(PolicyModifyCommandResponse.JsonFields.JSON_POLICY_ID, policyId, predicate);
     }
@@ -118,8 +122,8 @@ public final class DeletePolicyResponse extends AbstractCommandResponse<DeletePo
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof DeletePolicyResponse);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof DeletePolicyResponse;
     }
 
     @Override

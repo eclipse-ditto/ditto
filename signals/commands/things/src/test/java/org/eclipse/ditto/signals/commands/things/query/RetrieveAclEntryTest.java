@@ -29,7 +29,6 @@ import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
-
 /**
  * Unit test for {@link RetrieveAclEntry}.
  */
@@ -43,14 +42,12 @@ public final class RetrieveAclEntryTest {
             .set(RetrieveAclEntry.JSON_AUTHORIZATION_SUBJECT, TestConstants.Authorization.AUTH_SUBJECT_OLDMAN.getId())
             .build();
 
-
     @Test
     public void assertImmutability() {
         assertInstancesOf(RetrieveAclEntry.class,
                 areImmutable(),
                 provided(JsonFieldSelector.class, AuthorizationSubject.class).isAlsoImmutable());
     }
-
 
     @Test
     public void testHashCodeAndEquals() {
@@ -59,18 +56,15 @@ public final class RetrieveAclEntryTest {
                 .verify();
     }
 
-
     @Test(expected = ThingIdInvalidException.class)
     public void tryToCreateInstanceWithNullThingId() {
         RetrieveAclEntry.of(null, TestConstants.Authorization.AUTH_SUBJECT_OLDMAN, TestConstants.EMPTY_DITTO_HEADERS);
     }
 
-
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullAuthorizationSubject() {
         RetrieveAclEntry.of(TestConstants.Thing.THING_ID, null, TestConstants.EMPTY_DITTO_HEADERS);
     }
-
 
     @Test
     public void toJsonReturnsExpected() {
@@ -81,7 +75,6 @@ public final class RetrieveAclEntryTest {
 
         assertThat(actualJson).isEqualTo(KNOWN_JSON);
     }
-
 
     @Test
     public void createInstanceFromValidJson() {

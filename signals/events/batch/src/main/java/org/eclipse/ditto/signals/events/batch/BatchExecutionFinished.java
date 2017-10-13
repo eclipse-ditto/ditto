@@ -44,8 +44,8 @@ import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
  * This event is emitted after a batch finished.
  */
 @Immutable
-public final class BatchExecutionFinished extends AbstractBatchEvent<BatchExecutionFinished> implements
-        BatchEvent<BatchExecutionFinished> {
+public final class BatchExecutionFinished extends AbstractBatchEvent<BatchExecutionFinished>
+        implements BatchEvent<BatchExecutionFinished> {
 
     /**
      * The name of this event.
@@ -59,8 +59,11 @@ public final class BatchExecutionFinished extends AbstractBatchEvent<BatchExecut
 
     private final List<CommandResponse> commandResponses;
 
-    private BatchExecutionFinished(final String batchId, final Instant timestamp,
-            final List<CommandResponse> commandResponses, final DittoHeaders dittoHeaders) {
+    private BatchExecutionFinished(final String batchId,
+            @Nullable final Instant timestamp,
+            final List<CommandResponse> commandResponses,
+            final DittoHeaders dittoHeaders) {
+
         super(TYPE, batchId, timestamp, dittoHeaders);
         this.commandResponses = Collections.unmodifiableList(new ArrayList<>(commandResponses));
     }
@@ -77,9 +80,11 @@ public final class BatchExecutionFinished extends AbstractBatchEvent<BatchExecut
      */
     public static BatchExecutionFinished of(final String batchId, final List<CommandResponse> commandResponses,
             final DittoHeaders dittoHeaders) {
+
         requireNonNull(batchId);
         requireNonNull(commandResponses);
         requireNonNull(dittoHeaders);
+
         return of(batchId, null, commandResponses, dittoHeaders);
     }
 
@@ -92,13 +97,17 @@ public final class BatchExecutionFinished extends AbstractBatchEvent<BatchExecut
      * @param commandResponses the responses to the commands of the batch.
      * @param dittoHeaders the command headers of the batch.
      * @return the event.
-     * @throws NullPointerException if any argument is {@code null}.
+     * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
      */
-    public static BatchExecutionFinished of(final String batchId, final Instant timestamp,
-            final List<CommandResponse> commandResponses, final DittoHeaders dittoHeaders) {
+    public static BatchExecutionFinished of(final String batchId,
+            @Nullable final Instant timestamp,
+            final List<CommandResponse> commandResponses,
+            final DittoHeaders dittoHeaders) {
+
         requireNonNull(batchId);
         requireNonNull(commandResponses);
         requireNonNull(dittoHeaders);
+
         return new BatchExecutionFinished(batchId, timestamp, commandResponses, dittoHeaders);
     }
 
@@ -117,6 +126,7 @@ public final class BatchExecutionFinished extends AbstractBatchEvent<BatchExecut
      */
     public static BatchExecutionFinished fromJson(final String jsonString, final DittoHeaders dittoHeaders,
             final CommandResponseRegistry<? extends CommandResponse> commandResponseRegistry) {
+
         return fromJson(JsonFactory.newObject(jsonString), dittoHeaders, commandResponseRegistry);
     }
 
@@ -134,11 +144,12 @@ public final class BatchExecutionFinished extends AbstractBatchEvent<BatchExecut
      */
     public static BatchExecutionFinished fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders,
             final CommandResponseRegistry<? extends CommandResponse> commandResponseRegistry) {
-        return new EventJsonDeserializer<BatchExecutionFinished>(TYPE, jsonObject).deserialize((revision, timestamp,
-                jsonObjectReader) -> {
-            final String id = jsonObjectReader.get(JsonFields.BATCH_ID);
+
+        return new EventJsonDeserializer<BatchExecutionFinished>(TYPE, jsonObject)
+                .deserialize((revision, timestamp) -> {
+            final String id = jsonObject.getValueOrThrow(JsonFields.BATCH_ID);
             final List<CommandResponse> commandResponses =
-                    jsonObjectReader.<JsonArray>get(JsonFields.RESPONSES).stream()
+                    jsonObject.getValueOrThrow(JsonFields.RESPONSES).stream()
                             .filter(JsonValue::isObject)
                             .map(JsonValue::asObject)
                             .map(json -> {
@@ -177,6 +188,7 @@ public final class BatchExecutionFinished extends AbstractBatchEvent<BatchExecut
     @Override
     protected void appendPayloadAndBuild(final JsonObjectBuilder jsonObjectBuilder,
             final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(JsonFields.BATCH_ID, getBatchId(), predicate);
         final JsonArray commandResponsesJson = commandResponses.stream()
@@ -191,9 +203,15 @@ public final class BatchExecutionFinished extends AbstractBatchEvent<BatchExecut
 
     @Override
     public boolean equals(@Nullable final Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        if (!super.equals(o)) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        if (!super.equals(o)) {
+            return false;
+        }
         final BatchExecutionFinished that = (BatchExecutionFinished) o;
         return Objects.equals(commandResponses, that.commandResponses);
     }

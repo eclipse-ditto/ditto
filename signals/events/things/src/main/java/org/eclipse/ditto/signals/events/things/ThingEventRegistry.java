@@ -19,7 +19,6 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.signals.base.JsonParsable;
 import org.eclipse.ditto.signals.events.base.AbstractEventRegistry;
 import org.eclipse.ditto.signals.events.base.Event;
@@ -84,13 +83,14 @@ public final class ThingEventRegistry extends AbstractEventRegistry<ThingEvent> 
 
     @Override
     protected String resolveType(final JsonObject jsonObject) {
-        final Optional<String> typeOpt = jsonObject.getValue(Event.JsonFields.TYPE).map(JsonValue::asString);
-        final Optional<String> eventOpt = jsonObject.getValue(Event.JsonFields.ID).map(JsonValue::asString);
-        return typeOpt.orElseGet(() -> // if type was not present (was included in V2)
-                eventOpt // take "event" instead
-                        .map(event -> ThingEvent.TYPE_PREFIX + event) // and transform to V2 format
-                        .orElseThrow(() -> JsonMissingFieldException.newBuilder() // fail if "event" also is not present
-                                .fieldName(Event.JsonFields.TYPE.getPointer().toString()).build()));
+        final Optional<String> eventOpt = jsonObject.getValue(Event.JsonFields.ID);
+        /*
+         * If type was not present (was included in V2) take "event" instead and transform to V2 format.
+          * Fail if "event" also is not present.
+         */
+        return jsonObject.getValue(Event.JsonFields.TYPE)
+                .orElseGet(() -> eventOpt.map(event -> ThingEvent.TYPE_PREFIX + event)
+                        .orElseThrow(() -> new JsonMissingFieldException(Event.JsonFields.TYPE)));
     }
 
 }

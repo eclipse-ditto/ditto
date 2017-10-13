@@ -24,4 +24,5 @@ public interface PolicyModifyCommand<T extends PolicyModifyCommand> extends Poli
 
     @Override
     T setDittoHeaders(DittoHeaders dittoHeaders);
+
 }

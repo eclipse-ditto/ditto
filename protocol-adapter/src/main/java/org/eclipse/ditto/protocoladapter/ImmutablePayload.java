@@ -23,9 +23,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.json.JsonObjectReader;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.json.JsonReader;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 
@@ -83,19 +81,18 @@ final class ImmutablePayload implements Payload {
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if {@code jsonObject} is missing required JSON fields.
      */
     public static ImmutablePayload fromJson(final JsonObject jsonObject) {
-        final JsonObjectReader jsonObjectReader = JsonReader.from(jsonObject);
 
-        final JsonPointer path = JsonFactory.newPointer(jsonObjectReader.get(JsonFields.PATH));
+        final JsonPointer path = JsonFactory.newPointer(jsonObject.getValueOrThrow(JsonFields.PATH));
 
-        final JsonValue value = jsonObjectReader.<JsonValue>getAsOptional(JsonFields.VALUE).orElse(null);
+        final JsonValue value = jsonObject.getValue(JsonFields.VALUE).orElse(null);
 
-        final HttpStatusCode status = jsonObjectReader.<Integer>getAsOptional(JsonFields.STATUS)
+        final HttpStatusCode status = jsonObject.getValue(JsonFields.STATUS)
                 .flatMap(HttpStatusCode::forInt)
                 .orElse(null);
 
-        final Long revision = jsonObjectReader.<Long>getAsOptional(JsonFields.REVISION).orElse(null);
+        final Long revision = jsonObject.getValue(JsonFields.REVISION).orElse(null);
 
-        final JsonFieldSelector fields = jsonObjectReader.<String>getAsOptional(JsonFields.FIELDS)
+        final JsonFieldSelector fields = jsonObject.getValue(JsonFields.FIELDS)
                 .map(JsonFieldSelector::newInstance)
                 .orElse(null);
 

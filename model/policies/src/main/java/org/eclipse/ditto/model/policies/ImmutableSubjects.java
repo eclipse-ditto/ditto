@@ -171,8 +171,8 @@ final class ImmutableSubjects implements Subjects {
         subjects.values().forEach(subject -> {
             final JsonKey key = JsonKey.of(subject.getId());
             final JsonValue value = subject.toJson(schemaVersion, thePredicate);
-            final JsonFieldDefinition fieldDefinition =
-                    JsonFactory.newFieldDefinition(key, JsonObject.class, FieldType.REGULAR, JsonSchemaVersion.V_2);
+            final JsonFieldDefinition<JsonObject> fieldDefinition =
+                    JsonFactory.newJsonObjectFieldDefinition(key, FieldType.REGULAR, JsonSchemaVersion.V_2);
             final JsonField field = JsonFactory.newField(key, value, fieldDefinition);
 
             jsonObjectBuilder.set(field, predicate);

@@ -24,8 +24,6 @@ import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonObjectReader;
-import org.eclipse.ditto.json.JsonReader;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
@@ -75,10 +73,8 @@ final class ImmutableSearchResult implements SearchResult {
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if {@code jsonObject} did not contain all required data.
      */
     public static ImmutableSearchResult fromJson(final JsonObject jsonObject) {
-        final JsonObjectReader reader = JsonReader.from(jsonObject);
-
-        final JsonArray extractedItems = reader.get(JsonFields.ITEMS);
-        final long extractedNextPageOffset = reader.get(JsonFields.NEXT_PAGE_OFFSET);
+        final JsonArray extractedItems = jsonObject.getValueOrThrow(JsonFields.ITEMS);
+        final long extractedNextPageOffset = jsonObject.getValueOrThrow(JsonFields.NEXT_PAGE_OFFSET);
 
         return of(extractedItems, extractedNextPageOffset);
     }

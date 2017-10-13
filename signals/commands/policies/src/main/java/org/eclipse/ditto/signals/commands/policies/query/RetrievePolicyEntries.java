@@ -95,8 +95,8 @@ public final class RetrievePolicyEntries extends AbstractCommand<RetrievePolicyE
      * format.
      */
     public static RetrievePolicyEntries fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandJsonDeserializer<RetrievePolicyEntries>(TYPE, jsonObject).deserialize(jsonObjectReader -> {
-            final String policyId = jsonObjectReader.get(PolicyQueryCommand.JsonFields.JSON_POLICY_ID);
+        return new CommandJsonDeserializer<RetrievePolicyEntries>(TYPE, jsonObject).deserialize(() -> {
+            final String policyId = jsonObject.getValueOrThrow(PolicyQueryCommand.JsonFields.JSON_POLICY_ID);
 
             return of(policyId, dittoHeaders);
         });
@@ -120,6 +120,7 @@ public final class RetrievePolicyEntries extends AbstractCommand<RetrievePolicyE
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(PolicyQueryCommand.JsonFields.JSON_POLICY_ID, policyId, predicate);
     }
@@ -143,8 +144,8 @@ public final class RetrievePolicyEntries extends AbstractCommand<RetrievePolicyE
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof RetrievePolicyEntries);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof RetrievePolicyEntries;
     }
 
     @SuppressWarnings("squid:S109")

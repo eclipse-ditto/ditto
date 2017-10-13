@@ -23,11 +23,7 @@ import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJso
 import static org.eclipse.ditto.services.gateway.endpoints.directives.CustomPathMatchers.mergeDoubleSlashes;
 
 import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonObjectReader;
-import org.eclipse.ditto.json.JsonReader;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
@@ -160,13 +156,13 @@ class PolicyEntriesRoute extends AbstractRoute {
         );
     }
 
-    private PolicyEntry createPolicyEntryForPut(final String jsonString, final String labelString) {
+    private static PolicyEntry createPolicyEntryForPut(final String jsonString, final CharSequence labelString) {
         final JsonObject jsonObject = wrapJsonRuntimeException(() -> JsonFactory.newObject(jsonString));
-        final JsonObjectReader objectReader = JsonReader.from(jsonObject);
-        final Subjects subjects = PoliciesModelFactory.newSubjects(
-                (JsonObject) objectReader.get(PolicyEntry.JsonFields.SUBJECTS));
-        final Resources resources = PoliciesModelFactory.newResources(
-                (JsonObject) objectReader.get(PolicyEntry.JsonFields.RESOURCES));
+        final Subjects subjects =
+                PoliciesModelFactory.newSubjects(jsonObject.getValueOrThrow(PolicyEntry.JsonFields.SUBJECTS));
+        final Resources resources =
+                PoliciesModelFactory.newResources(jsonObject.getValueOrThrow(PolicyEntry.JsonFields.RESOURCES));
+
         return PoliciesModelFactory.newPolicyEntry(Label.of(labelString), subjects, resources);
     }
 
@@ -243,12 +239,11 @@ class PolicyEntriesRoute extends AbstractRoute {
         );
     }
 
-    private Subject createSubjectForPut(final String jsonString, final String subjectId) {
+    private static Subject createSubjectForPut(final String jsonString, final CharSequence subjectId) {
         final JsonObject jsonObject = wrapJsonRuntimeException(() -> JsonFactory.newObject(jsonString));
-        final SubjectType subjectType = jsonObject.getValue(Subject.JsonFields.TYPE)
-                .map(JsonValue::asString)
-                .map(PoliciesModelFactory::newSubjectType)
-                .orElseThrow(() -> new JsonMissingFieldException(Subject.JsonFields.TYPE.getPointer()));
+        final String subjectTypeString = jsonObject.getValueOrThrow(Subject.JsonFields.TYPE);
+        final SubjectType subjectType = PoliciesModelFactory.newSubjectType(subjectTypeString);
+
         return PoliciesModelFactory.newSubject(SubjectId.newInstance(subjectId), subjectType);
     }
 
@@ -329,14 +324,16 @@ class PolicyEntriesRoute extends AbstractRoute {
         );
     }
 
-    private ResourceKey resourceKeyFromUnmatchedPath(final String resource) {
+    private static ResourceKey resourceKeyFromUnmatchedPath(final String resource) {
         // cut off leading "/" if there is one:
-        return resource.startsWith("/") ? ResourceKey.newInstance(resource.substring(1)) : ResourceKey.newInstance
-                (resource);
+        return resource.startsWith("/")
+                ? ResourceKey.newInstance(resource.substring(1))
+                : ResourceKey.newInstance(resource);
     }
 
-    private Resource createResourceForPut(final String jsonString, final ResourceKey resourceKey) {
+    private static Resource createResourceForPut(final String jsonString, final ResourceKey resourceKey) {
         final JsonObject jsonObject = wrapJsonRuntimeException(() -> JsonFactory.newObject(jsonString));
         return PoliciesModelFactory.newResource(resourceKey, jsonObject);
     }
+
 }

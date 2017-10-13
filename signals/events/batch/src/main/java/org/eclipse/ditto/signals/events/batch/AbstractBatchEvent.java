@@ -40,7 +40,7 @@ public abstract class AbstractBatchEvent<T extends AbstractBatchEvent> implement
 
     private final String type;
     private final String batchId;
-    private final Instant timestamp;
+    @Nullable private final Instant timestamp;
     private final DittoHeaders dittoHeaders;
 
     /**
@@ -52,8 +52,11 @@ public abstract class AbstractBatchEvent<T extends AbstractBatchEvent> implement
      * @param dittoHeaders the headers of the command which was the cause of this event.   @throws
      * NullPointerException if any argument is {@code null}.
      */
-    protected AbstractBatchEvent(final String type, final String batchId, final Instant timestamp,
+    protected AbstractBatchEvent(final String type,
+            final String batchId,
+            @Nullable final Instant timestamp,
             final DittoHeaders dittoHeaders) {
+
         this.type = checkNotNull(type, "Event type");
         this.batchId = checkNotNull(batchId, "batch ID");
         this.timestamp = timestamp;
@@ -125,8 +128,8 @@ public abstract class AbstractBatchEvent<T extends AbstractBatchEvent> implement
                 && Objects.equals(dittoHeaders, that.dittoHeaders);
     }
 
-    protected boolean canEqual(final Object other) {
-        return (other instanceof AbstractBatchEvent);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof AbstractBatchEvent;
     }
 
     @Override

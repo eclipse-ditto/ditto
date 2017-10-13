@@ -18,6 +18,7 @@ import java.time.format.DateTimeParseException;
 import java.util.Objects;
 import java.util.function.Predicate;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFactory;
@@ -27,7 +28,6 @@ import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonParseException;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -53,15 +53,13 @@ public final class SudoRetrieveModifiedThingTags extends AbstractCommand<SudoRet
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition JSON_TIMESPAN =
-            JsonFactory.newFieldDefinition("payload/timespan", String.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<String> JSON_TIMESPAN =
+            JsonFactory.newStringFieldDefinition("payload/timespan", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
 
-    static final JsonFieldDefinition JSON_OFFSET =
-            JsonFactory.newFieldDefinition("payload/offset", String.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<String> JSON_OFFSET =
+            JsonFactory.newStringFieldDefinition("payload/offset", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
 
     private static final String NULL_OFFSET = "PT0M";
 
@@ -131,24 +129,16 @@ public final class SudoRetrieveModifiedThingTags extends AbstractCommand<SudoRet
      */
     public static SudoRetrieveModifiedThingTags fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
-        final String extractedTimespan = jsonObject.getValue(JSON_TIMESPAN) //
-                .filter(JsonValue::isString) //
-                .map(JsonValue::asString) //
-                .orElseThrow(() -> new JsonMissingFieldException(JSON_TIMESPAN.getPointer()));
-
-        final String extractedOffset = jsonObject.getValue(JSON_OFFSET) //
-                .filter(JsonValue::isString) //
-                .map(JsonValue::asString) //
-                .orElseGet(() -> NULL_OFFSET);
 
         try {
-            return SudoRetrieveModifiedThingTags
-                    .of(Duration.parse(extractedTimespan), Duration.parse(extractedOffset), dittoHeaders);
+            final Duration extractedTimespan = Duration.parse(jsonObject.getValueOrThrow(JSON_TIMESPAN));
+            final Duration extractedOffset = Duration.parse(jsonObject.getValue(JSON_OFFSET).orElse(NULL_OFFSET));
+            return SudoRetrieveModifiedThingTags.of(extractedTimespan, extractedOffset, dittoHeaders);
         } catch (final DateTimeParseException e) {
-            throw JsonParseException.newBuilder() //
-                    .message("The given timespan is no valid Duration.") //
-                    .description("The timespan must be given in the format 'PnDTnHnMn.nS'.") //
-                    .cause(e) //
+            throw JsonParseException.newBuilder()
+                    .message("The given timespan is no valid Duration.")
+                    .description("The timespan must be given in the format 'PnDTnHnMn.nS'.")
+                    .cause(e)
                     .build();
         }
     }
@@ -195,7 +185,7 @@ public final class SudoRetrieveModifiedThingTags extends AbstractCommand<SudoRet
 
     @SuppressWarnings({"squid:MethodCyclomaticComplexity", "squid:S1067", "pmd:SimplifyConditional"})
     @Override
-    public boolean equals(final Object obj) {
+    public boolean equals(@Nullable final Object obj) {
         if (this == obj) {
             return true;
         }
@@ -208,8 +198,8 @@ public final class SudoRetrieveModifiedThingTags extends AbstractCommand<SudoRet
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof SudoRetrieveModifiedThingTags);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof SudoRetrieveModifiedThingTags;
     }
 
     @Override
@@ -217,4 +207,5 @@ public final class SudoRetrieveModifiedThingTags extends AbstractCommand<SudoRet
         return getClass().getSimpleName() + " [" + super.toString() + ", timespan=" + timespan + ", offset= " + offset
                 + "]";
     }
+
 }

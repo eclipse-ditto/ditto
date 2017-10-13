@@ -49,20 +49,17 @@ public final class ModifyFeaturePropertiesResponse extends AbstractCommandRespon
      */
     public static final String TYPE = TYPE_PREFIX + ModifyFeatureProperties.NAME;
 
-    static final JsonFieldDefinition JSON_FEATURE_ID =
-            JsonFactory.newFieldDefinition("featureId", String.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<String> JSON_FEATURE_ID =
+            JsonFactory.newStringFieldDefinition("featureId", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
 
-    static final JsonFieldDefinition JSON_FEATURE_PROPERTIES =
-            JsonFactory.newFieldDefinition("properties", JsonObject.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<JsonObject> JSON_FEATURE_PROPERTIES =
+            JsonFactory.newJsonObjectFieldDefinition("properties", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
 
     private final String thingId;
     private final String featureId;
-    @Nullable
-    private final FeatureProperties featurePropertiesCreated;
+    @Nullable private final FeatureProperties featurePropertiesCreated;
 
     private ModifyFeaturePropertiesResponse(final String thingId, final String featureId,
             @Nullable final FeatureProperties featurePropertiesCreated,
@@ -74,7 +71,7 @@ public final class ModifyFeaturePropertiesResponse extends AbstractCommandRespon
     }
 
     /**
-     * Returns a new {@link ModifyFeaturePropertiesResponse} for a created FeatureProperties. This corresponds to the
+     * Returns a new {@code ModifyFeaturePropertiesResponse} for a created FeatureProperties. This corresponds to the
      * HTTP status code {@link HttpStatusCode#CREATED}.
      *
      * @param thingId the Thing ID of the created feature properties.
@@ -91,7 +88,7 @@ public final class ModifyFeaturePropertiesResponse extends AbstractCommandRespon
     }
 
     /**
-     * Returns a new {@link ModifyFeaturePropertiesResponse} for a modified FeatureProperties. This corresponds to the
+     * Returns a new {@code ModifyFeaturePropertiesResponse} for a modified FeatureProperties. This corresponds to the
      * HTTP status code {@link HttpStatusCode#NO_CONTENT}.
      *
      * @param thingId the Thing ID of the modified feature properties.
@@ -134,13 +131,15 @@ public final class ModifyFeaturePropertiesResponse extends AbstractCommandRespon
     public static ModifyFeaturePropertiesResponse fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<ModifyFeaturePropertiesResponse>(TYPE, jsonObject)
-                .deserialize((statusCode, jsonObjectReader) -> {
-                    final String thingId = jsonObjectReader.get(ThingModifyCommandResponse.JsonFields.JSON_THING_ID);
-                    final String extractedFeatureId = jsonObjectReader.get(JSON_FEATURE_ID);
+                .deserialize((statusCode) -> {
+                    final String thingId =
+                            jsonObject.getValueOrThrow(ThingModifyCommandResponse.JsonFields.JSON_THING_ID);
+
+                    final String extractedFeatureId = jsonObject.getValueOrThrow(JSON_FEATURE_ID);
                     final FeatureProperties extractedFeatureCreated = jsonObject.getValue(JSON_FEATURE_PROPERTIES)
-                            .map(JsonValue::asObject)
                             .map(ThingsModelFactory::newFeatureProperties)
                             .orElse(null);
+
                     return new ModifyFeaturePropertiesResponse(thingId, extractedFeatureId, extractedFeatureCreated,
                             statusCode, dittoHeaders);
                 });
@@ -200,8 +199,8 @@ public final class ModifyFeaturePropertiesResponse extends AbstractCommandRespon
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof ModifyFeaturePropertiesResponse);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof ModifyFeaturePropertiesResponse;
     }
 
     @Override

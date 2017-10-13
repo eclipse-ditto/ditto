@@ -53,10 +53,8 @@ public final class ModifyAclEntry extends AbstractCommand<ModifyAclEntry>
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition JSON_ACL_ENTRY =
-            JsonFactory.newFieldDefinition("aclEntry", JsonObject.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_1);
+    static final JsonFieldDefinition<JsonObject> JSON_ACL_ENTRY =
+            JsonFactory.newJsonObjectFieldDefinition("aclEntry", FieldType.REGULAR, JsonSchemaVersion.V_1);
 
     private final String thingId;
     private final AclEntry aclEntry;
@@ -115,10 +113,11 @@ public final class ModifyAclEntry extends AbstractCommand<ModifyAclEntry>
      * org.eclipse.ditto.model.things.Thing#ID_REGEX}.
      */
     public static ModifyAclEntry fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandJsonDeserializer<ModifyAclEntry>(TYPE, jsonObject).deserialize(jsonObjectReader -> {
-            final String thingId = jsonObjectReader.get(ThingModifyCommand.JsonFields.JSON_THING_ID);
-            final JsonObject aclEntryJsonObject = jsonObjectReader.get(JSON_ACL_ENTRY);
+        return new CommandJsonDeserializer<ModifyAclEntry>(TYPE, jsonObject).deserialize(() -> {
+            final String thingId = jsonObject.getValueOrThrow(ThingModifyCommand.JsonFields.JSON_THING_ID);
+            final JsonObject aclEntryJsonObject = jsonObject.getValueOrThrow(JSON_ACL_ENTRY);
             final AclEntry extractedAclEntry = ThingsModelFactory.newAclEntry(aclEntryJsonObject);
+
             return of(thingId, extractedAclEntry, dittoHeaders);
         });
     }
@@ -186,7 +185,7 @@ public final class ModifyAclEntry extends AbstractCommand<ModifyAclEntry>
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
+    protected boolean canEqual(@Nullable final Object other) {
         return (other instanceof ModifyAclEntry);
     }
 

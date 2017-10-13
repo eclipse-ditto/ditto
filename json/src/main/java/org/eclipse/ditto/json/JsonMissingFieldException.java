@@ -56,6 +56,17 @@ public final class JsonMissingFieldException extends JsonRuntimeException {
     }
 
     /**
+     * Constructs a new {@code JsonMissingFieldException} object for the JsonPointer of the specified
+     * JsonFieldDefinition.
+     *
+     * @param fieldDefinition provides the JsonPointer which refers to the missing field.
+     * @throws NullPointerException if {@code jsonFieldDefinition} is {@code null}.
+     */
+    public JsonMissingFieldException(final JsonFieldDefinition<?> fieldDefinition) {
+        this(requireNonNull(fieldDefinition, "The JSON Field Definition must not be null!").getPointer());
+    }
+
+    /**
      * Returns a builder for fluently creating instances of {@code JsonMissingFieldException}s..
      *
      * @return a new builder for JsonMissingFieldException objects.

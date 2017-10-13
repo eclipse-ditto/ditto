@@ -25,7 +25,7 @@ import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
@@ -41,14 +41,12 @@ public final class DeleteAclEntryTest {
             .set(DeleteAclEntry.JSON_AUTHORIZATION_SUBJECT, TestConstants.Authorization.AUTH_SUBJECT_GRIMES.getId())
             .build();
 
-
     @Test
     public void assertImmutability() {
         assertInstancesOf(DeleteAclEntry.class,
                 areImmutable(),
                 provided(AuthorizationSubject.class).isAlsoImmutable());
     }
-
 
     @Test
     public void testHashCodeAndEquals() {
@@ -57,12 +55,10 @@ public final class DeleteAclEntryTest {
                 .verify();
     }
 
-
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullAuthorizationSubject() {
         DeleteAclEntry.of(TestConstants.Thing.THING_ID, null, TestConstants.EMPTY_DITTO_HEADERS);
     }
-
 
     @Test
     public void toJsonReturnsExpected() {
@@ -72,7 +68,6 @@ public final class DeleteAclEntryTest {
 
         assertThat(actualJson).isEqualTo(KNOWN_JSON);
     }
-
 
     @Test
     public void createInstanceFromValidJson() {

@@ -52,20 +52,20 @@ public final class PolicyEntryCreated extends AbstractPolicyEvent<PolicyEntryCre
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition JSON_LABEL =
-            JsonFactory.newFieldDefinition("label", String.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<String> JSON_LABEL =
+            JsonFactory.newStringFieldDefinition("label", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
-    static final JsonFieldDefinition JSON_POLICY_ENTRY =
-            JsonFactory.newFieldDefinition("policyEntry", JsonObject.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<JsonObject> JSON_POLICY_ENTRY =
+            JsonFactory.newJsonObjectFieldDefinition("policyEntry", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private final PolicyEntry policyEntry;
 
-    private PolicyEntryCreated(final String policyId, final PolicyEntry policyEntry, final long revision,
-            final Instant timestamp, final DittoHeaders dittoHeaders) {
+    private PolicyEntryCreated(final String policyId,
+            final PolicyEntry policyEntry,
+            final long revision,
+            @Nullable final Instant timestamp,
+            final DittoHeaders dittoHeaders) {
+
         super(TYPE, checkNotNull(policyId, "Policy identifier"), revision, timestamp, dittoHeaders);
         this.policyEntry = checkNotNull(policyEntry, "Policy Entry");
     }
@@ -80,8 +80,11 @@ public final class PolicyEntryCreated extends AbstractPolicyEvent<PolicyEntryCre
      * @return the created PolicyEntryCreated.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static PolicyEntryCreated of(final String policyId, final PolicyEntry policyEntry, final long revision,
+    public static PolicyEntryCreated of(final String policyId,
+            final PolicyEntry policyEntry,
+            final long revision,
             final DittoHeaders dittoHeaders) {
+
         return of(policyId, policyEntry, revision, null, dittoHeaders);
     }
 
@@ -94,10 +97,14 @@ public final class PolicyEntryCreated extends AbstractPolicyEvent<PolicyEntryCre
      * @param timestamp the timestamp of this event.
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the created PolicyEntryCreated.
-     * @throws NullPointerException if any argument is {@code null}.
+     * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
      */
-    public static PolicyEntryCreated of(final String policyId, final PolicyEntry policyEntry, final long revision,
-            final Instant timestamp, final DittoHeaders dittoHeaders) {
+    public static PolicyEntryCreated of(final String policyId,
+            final PolicyEntry policyEntry,
+            final long revision,
+            @Nullable final Instant timestamp,
+            final DittoHeaders dittoHeaders) {
+
         return new PolicyEntryCreated(policyId, policyEntry, revision, timestamp, dittoHeaders);
     }
 
@@ -127,13 +134,12 @@ public final class PolicyEntryCreated extends AbstractPolicyEvent<PolicyEntryCre
      */
     public static PolicyEntryCreated fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new EventJsonDeserializer<PolicyEntryCreated>(TYPE, jsonObject)
-                .deserialize((revision, timestamp, jsonObjectReader) -> {
-                    final String policyId = jsonObjectReader.get(JsonFields.POLICY_ID);
-                    final String policyEntryLabel = jsonObjectReader.get(JSON_LABEL);
-                    final JsonObject policyEntryJsonObject = jsonObjectReader.get(JSON_POLICY_ENTRY);
+                .deserialize((revision, timestamp) -> {
+                    final String policyId = jsonObject.getValueOrThrow(JsonFields.POLICY_ID);
+                    final String policyEntryLabel = jsonObject.getValueOrThrow(JSON_LABEL);
+                    final JsonObject policyEntryJsonObject = jsonObject.getValueOrThrow(JSON_POLICY_ENTRY);
                     final PolicyEntry extractedModifiedPolicyEntry =
-                            PoliciesModelFactory.newPolicyEntry(policyEntryLabel,
-                                    policyEntryJsonObject);
+                            PoliciesModelFactory.newPolicyEntry(policyEntryLabel, policyEntryJsonObject);
 
                     return of(policyId, extractedModifiedPolicyEntry, revision, timestamp, dittoHeaders);
                 });
@@ -150,7 +156,7 @@ public final class PolicyEntryCreated extends AbstractPolicyEvent<PolicyEntryCre
 
     @Override
     public Optional<JsonValue> getEntity(final JsonSchemaVersion schemaVersion) {
-        return Optional.ofNullable(policyEntry.toJson(schemaVersion, FieldType.regularOrSpecial()));
+        return Optional.of(policyEntry.toJson(schemaVersion, FieldType.regularOrSpecial()));
     }
 
     @Override
@@ -200,8 +206,8 @@ public final class PolicyEntryCreated extends AbstractPolicyEvent<PolicyEntryCre
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof PolicyEntryCreated);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof PolicyEntryCreated;
     }
 
     @Override

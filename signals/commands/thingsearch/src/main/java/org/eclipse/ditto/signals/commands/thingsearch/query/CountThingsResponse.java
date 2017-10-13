@@ -88,8 +88,9 @@ public final class CountThingsResponse extends AbstractCommandResponse<CountThin
      */
     public static CountThingsResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<CountThingsResponse>(TYPE, jsonObject)
-                .deserialize((statusCode, jsonObjectReader) -> {
-                    final JsonValue count = jsonObjectReader.get(JsonFields.PAYLOAD);
+                .deserialize((statusCode) -> {
+                    final JsonValue count = jsonObject.getValueOrThrow(JsonFields.PAYLOAD);
+
                     return of(count.asLong(), dittoHeaders);
                 });
     }
@@ -117,8 +118,9 @@ public final class CountThingsResponse extends AbstractCommandResponse<CountThin
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(JsonFields.PAYLOAD, count, predicate);
+        jsonObjectBuilder.set(JsonFields.PAYLOAD, JsonFactory.newValue(count), predicate);
     }
 
     @Override

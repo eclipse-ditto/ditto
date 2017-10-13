@@ -47,16 +47,17 @@ public final class RetrievePolicyResponse extends AbstractCommandResponse<Retrie
      */
     public static final String TYPE = TYPE_PREFIX + RetrievePolicy.NAME;
 
-    static final JsonFieldDefinition JSON_POLICY =
-            JsonFactory.newFieldDefinition("policy", JsonObject.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<JsonObject> JSON_POLICY =
+            JsonFactory.newJsonObjectFieldDefinition("policy", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private final String policyId;
     private final JsonObject policy;
 
-    private RetrievePolicyResponse(final String policyId, final HttpStatusCode statusCode,
-            final JsonObject policy, final DittoHeaders dittoHeaders) {
+    private RetrievePolicyResponse(final String policyId,
+            final HttpStatusCode statusCode,
+            final JsonObject policy,
+            final DittoHeaders dittoHeaders) {
+
         super(TYPE, statusCode, dittoHeaders);
         this.policyId = checkNotNull(policyId, "Policy ID");
         this.policy = checkNotNull(policy, "Policy");
@@ -73,10 +74,10 @@ public final class RetrievePolicyResponse extends AbstractCommandResponse<Retrie
      */
     public static RetrievePolicyResponse of(final String policyId, final Policy policy,
             final DittoHeaders dittoHeaders) {
+
         return new RetrievePolicyResponse(policyId, HttpStatusCode.OK,
-                checkNotNull(policy, "Policy")
-                        .toJson(dittoHeaders.getSchemaVersion().orElse(policy.getLatestSchemaVersion())),
-                dittoHeaders);
+                checkNotNull(policy, "Policy").toJson(
+                        dittoHeaders.getSchemaVersion().orElse(policy.getLatestSchemaVersion())), dittoHeaders);
     }
 
     /**
@@ -90,6 +91,7 @@ public final class RetrievePolicyResponse extends AbstractCommandResponse<Retrie
      */
     public static RetrievePolicyResponse of(final String policyId, final JsonObject policy,
             final DittoHeaders dittoHeaders) {
+
         return new RetrievePolicyResponse(policyId, HttpStatusCode.OK, policy, dittoHeaders);
     }
 
@@ -120,9 +122,11 @@ public final class RetrievePolicyResponse extends AbstractCommandResponse<Retrie
      */
     public static RetrievePolicyResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<RetrievePolicyResponse>(TYPE, jsonObject)
-                .deserialize((statusCode, jsonObjectReader) -> {
-                    final String policyId = jsonObjectReader.get(PolicyQueryCommandResponse.JsonFields.JSON_POLICY_ID);
-                    final JsonObject extractedPolicy = jsonObjectReader.get(JSON_POLICY);
+                .deserialize((statusCode) -> {
+                    final String policyId =
+                            jsonObject.getValueOrThrow(PolicyQueryCommandResponse.JsonFields.JSON_POLICY_ID);
+                    final JsonObject extractedPolicy = jsonObject.getValueOrThrow(JSON_POLICY);
+
                     return of(policyId, extractedPolicy, dittoHeaders);
                 });
     }
@@ -165,14 +169,15 @@ public final class RetrievePolicyResponse extends AbstractCommandResponse<Retrie
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(PolicyQueryCommandResponse.JsonFields.JSON_POLICY_ID, policyId, predicate);
         jsonObjectBuilder.set(JSON_POLICY, policy, predicate);
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof RetrievePolicyResponse);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof RetrievePolicyResponse;
     }
 
     @Override
@@ -198,4 +203,5 @@ public final class RetrievePolicyResponse extends AbstractCommandResponse<Retrie
         return getClass().getSimpleName() + " [" + super.toString() + ", policyId=" + policyId + ", policy=" + policy +
                 "]";
     }
+
 }

@@ -26,7 +26,6 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.json.JsonObjectReader;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -109,11 +108,11 @@ abstract class AbstractMessageCommandResponse<T, C extends AbstractMessageComman
      * Deserializes the {@link Message} from the JSON representation - the {@code rawPayload} is decoded with Base64.
      *
      * @param <T> the type of the message's payload.
-     * @param jsonObjectReader the JsonObjectReader to use for reading the message
+     * @param jsonObject the JsonObjectReader to use for reading the message
      * @return the Message
      */
-    protected static <T> Message<T> deserializeMessageFromJson(final JsonObjectReader jsonObjectReader) {
-        final JsonObject messageObject = jsonObjectReader.get(MessageCommandResponse.JsonFields.JSON_MESSAGE);
+    protected static <T> Message<T> deserializeMessageFromJson(final JsonObject jsonObject) {
+        final JsonObject messageObject = jsonObject.getValueOrThrow(MessageCommandResponse.JsonFields.JSON_MESSAGE);
         final JsonObject messageHeadersObject =
                 messageObject.getValue(MessageCommandResponse.JsonFields.JSON_MESSAGE_HEADERS)
                         .filter(JsonValue::isObject)

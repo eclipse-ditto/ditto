@@ -53,10 +53,14 @@ public abstract class AbstractThingEvent<T extends AbstractThingEvent> implement
      * @param revision the revision of the Thing.
      * @param timestamp the timestamp of the event.
      * @param dittoHeaders the headers of the command which was the cause of this event.
-     * @throws NullPointerException if any argument is {@code null}.
+     * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
      */
-    protected AbstractThingEvent(final String type, final String thingId, final long revision,
-            @Nullable final Instant timestamp, final DittoHeaders dittoHeaders) {
+    protected AbstractThingEvent(final String type,
+            final String thingId,
+            final long revision,
+            @Nullable final Instant timestamp,
+            final DittoHeaders dittoHeaders) {
+
         this.type = checkNotNull(type, "Event type");
         this.thingId = checkNotNull(thingId, "Thing identifier");
         this.revision = revision;

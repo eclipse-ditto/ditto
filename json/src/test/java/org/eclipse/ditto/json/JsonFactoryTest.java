@@ -518,22 +518,6 @@ public final class JsonFactoryTest {
     }
 
     @Test
-    public void newFieldDefinitionWithDifferentKeyArgumentsYieldsEqualObject() {
-        final CharSequence charSequence = "myField";
-        final JsonKey key = JsonFactory.newKey(charSequence);
-        final JsonPointer pointer = JsonFactory.newPointer(key);
-
-        final Class<?> valueType = int.class;
-        final JsonFieldMarker markerMock = mock(JsonFieldMarker.class);
-
-        final JsonFieldDefinition definition1 = JsonFactory.newFieldDefinition(charSequence, valueType, markerMock);
-        final JsonFieldDefinition definition2 = JsonFactory.newFieldDefinition(key, valueType, markerMock);
-        final JsonFieldDefinition definition3 = JsonFactory.newFieldDefinition(pointer, valueType, markerMock);
-
-        assertThat(definition1).isEqualTo(definition2).isEqualTo(definition3);
-    }
-
-    @Test
     public void convertLongJsonValueToMinimalJsonValue() {
         final long longValue = System.currentTimeMillis();
         final JsonValue jsonValue = JsonFactory.newValue(longValue);
@@ -613,6 +597,58 @@ public final class JsonFactoryTest {
         final com.eclipsesource.json.JsonValue minimalJsonValue = JsonFactory.convert(jsonValue);
 
         assertThat(minimalJsonValue.toString()).isEqualTo(String.valueOf(intValue));
+    }
+
+    @Test
+    public void getAppropriateValueForNullReturnsNullLiteral() {
+        assertThat(JsonFactory.getAppropriateValue(null)).isEqualTo(JsonFactory.nullLiteral());
+    }
+
+    @Test
+    public void getAppropriateValueForJsonArrayReturnsJsonArray() {
+        final JsonArray jsonArray = JsonFactory.newArrayBuilder()
+                .add("foo", "bar")
+                .add(1, 2)
+                .add(true)
+                .build();
+
+        assertThat(JsonFactory.getAppropriateValue(jsonArray)).isEqualTo(jsonArray);
+    }
+
+    @Test
+    public void getAppropriateValueForCharSequenceReturnsJsonStringValue() {
+        final String stringValue = "Harambe";
+        final JsonKey jsonKey = JsonFactory.newKey(stringValue);
+        final JsonValue expected = JsonFactory.newValue(stringValue);
+
+        assertThat(JsonFactory.getAppropriateValue(jsonKey)).isEqualTo(expected);
+    }
+
+    @Test
+    public void getAppropriateValueForBoxedBooleanReturnsJsonBooleanValue() {
+        final Boolean booleanValue = Boolean.TRUE;
+        final JsonValue expected = JsonFactory.newValue(booleanValue);
+
+        assertThat(JsonFactory.getAppropriateValue(booleanValue)).isEqualTo(expected);
+    }
+
+    @Test
+    public void getAppropriateValueForBoxedDoubleReturnsJsonDoubleValue() {
+        final Double doubleValue = Double.parseDouble("23.42");
+        final JsonValue expected = JsonFactory.newValue(doubleValue);
+
+        assertThat(JsonFactory.getAppropriateValue(doubleValue)).isEqualTo(expected);
+    }
+
+    @Test
+    public void getAppropriateValueForJsonObjectStringReturnsJsonStringValue() {
+        final JsonObject jsonObject = JsonFactory.newObjectBuilder()
+                .set("foo", true)
+                .set("/bar/baz", "Hallo")
+                .build();
+        final JsonValue expected = JsonFactory.newValue(jsonObject.toString());
+
+        assertThat(JsonFactory.getAppropriateValue(jsonObject.toString())).isEqualTo(expected);
     }
 
 }

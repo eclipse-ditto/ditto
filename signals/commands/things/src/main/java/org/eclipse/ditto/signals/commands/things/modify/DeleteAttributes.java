@@ -98,8 +98,8 @@ public final class DeleteAttributes extends AbstractCommand<DeleteAttributes>
      * org.eclipse.ditto.model.things.Thing#ID_REGEX}.
      */
     public static DeleteAttributes fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandJsonDeserializer<DeleteAttributes>(TYPE, jsonObject).deserialize(jsonObjectReader -> {
-            final String thingId = jsonObjectReader.get(ThingModifyCommand.JsonFields.JSON_THING_ID);
+        return new CommandJsonDeserializer<DeleteAttributes>(TYPE, jsonObject).deserialize(() -> {
+            final String thingId = jsonObject.getValueOrThrow(ThingModifyCommand.JsonFields.JSON_THING_ID);
             return of(thingId, dittoHeaders);
         });
     }

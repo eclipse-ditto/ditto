@@ -246,17 +246,6 @@ public final class ImmutableJsonObjectBuilderTest {
     }
 
     @Test
-    public void tryToSetIntValueWithBooleanFieldDefinition() {
-        final int value = 42;
-        final JsonFieldDefinition definition = JsonFactory.newFieldDefinition(fooKey, boolean.class);
-
-        assertThatExceptionOfType(IllegalArgumentException.class)
-                .isThrownBy(() -> underTest.set(definition, value))
-                .withMessage("Type of value <%s> is not the expected <boolean>!", value)
-                .withNoCause();
-    }
-
-    @Test
     public void removeWithJsonKeyWorksAsExpected() {
         final JsonObject expectedJsonObject = ImmutableJsonObjectBuilder.newInstance()
                 .set(john)
@@ -364,8 +353,8 @@ public final class ImmutableJsonObjectBuilderTest {
                 .build();
 
         final Marker marker = new Marker();
-        final JsonFieldDefinition foo = JsonFieldDefinition.newInstance(fooPointer, String.class, marker);
-        final JsonFieldDefinition bar = JsonFieldDefinition.newInstance(barPointer, String.class, marker);
+        final JsonFieldDefinition<String> foo = JsonFactory.newStringFieldDefinition(fooPointer, marker);
+        final JsonFieldDefinition<String> bar = JsonFactory.newStringFieldDefinition(barPointer, marker);
 
         underTest.set(foo, fooValue);
         underTest.set(bar, barValue);
@@ -377,9 +366,9 @@ public final class ImmutableJsonObjectBuilderTest {
 
     @Test
     public void setFieldsWithPartialExcludeBasedOnFieldDefinition() {
-        final JsonFieldDefinition fooDefinition = JsonFieldDefinition.newInstance(fooKey, String.class);
-        final JsonFieldDefinition barDefinition = JsonFieldDefinition.newInstance(barKey, String.class);
-        final JsonFieldDefinition bazDefinition = JsonFieldDefinition.newInstance(bazKey, String.class);
+        final JsonFieldDefinition<String> fooDefinition = JsonFactory.newStringFieldDefinition(fooKey);
+        final JsonFieldDefinition<String> barDefinition = JsonFactory.newStringFieldDefinition(barKey);
+        final JsonFieldDefinition<String> bazDefinition = JsonFactory.newStringFieldDefinition(bazKey);
         final JsonField fooField = JsonFactory.newField(fooKey, john.getValue(), fooDefinition);
         final JsonField barField = JsonFactory.newField(barKey, robert.getValue(), barDefinition);
         final JsonField bazField = JsonFactory.newField(bazKey, cersei.getValue(), bazDefinition);
@@ -395,16 +384,6 @@ public final class ImmutableJsonObjectBuilderTest {
                 .build();
 
         assertThat(actualJsonObject).isEqualToIgnoringFieldDefinitions(expectedJsonObject);
-    }
-
-    @Test
-    public void tryToSetBooleanWithDivergingValueType() {
-        final JsonFieldDefinition fieldDefinition = JsonFactory.newFieldDefinition(fooKey, int.class);
-
-        assertThatExceptionOfType(IllegalArgumentException.class)
-                .isThrownBy(() -> underTest.set(fieldDefinition, true))
-                .withMessage("Type of value <true> is not the expected <int>!")
-                .withNoCause();
     }
 
     @Test

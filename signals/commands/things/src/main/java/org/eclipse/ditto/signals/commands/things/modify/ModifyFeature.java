@@ -54,15 +54,13 @@ public final class ModifyFeature extends AbstractCommand<ModifyFeature> implemen
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition JSON_FEATURE_ID =
-            JsonFactory.newFieldDefinition("featureId", String.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<String> JSON_FEATURE_ID =
+            JsonFactory.newStringFieldDefinition("featureId", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
 
-    static final JsonFieldDefinition JSON_FEATURE =
-            JsonFactory.newFieldDefinition("feature", JsonObject.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<JsonObject> JSON_FEATURE =
+            JsonFactory.newJsonObjectFieldDefinition("feature", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
 
     private final String thingId;
     private final Feature feature;
@@ -119,13 +117,13 @@ public final class ModifyFeature extends AbstractCommand<ModifyFeature> implemen
      * org.eclipse.ditto.model.things.Thing#ID_REGEX}.
      */
     public static ModifyFeature fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandJsonDeserializer<ModifyFeature>(TYPE, jsonObject).deserialize(jsonObjectReader -> {
-            final String thingId = jsonObjectReader.get(ThingModifyCommand.JsonFields.JSON_THING_ID);
-            final String extractedFeatureId = jsonObjectReader.get(JSON_FEATURE_ID);
-            final JsonObject featureJsonObject = jsonObjectReader.get(JSON_FEATURE);
+        return new CommandJsonDeserializer<ModifyFeature>(TYPE, jsonObject).deserialize(() -> {
+            final String thingId = jsonObject.getValueOrThrow(ThingModifyCommand.JsonFields.JSON_THING_ID);
+            final String extractedFeatureId = jsonObject.getValueOrThrow(JSON_FEATURE_ID);
+            final JsonObject featureJsonObject = jsonObject.getValueOrThrow(JSON_FEATURE);
 
             final Feature extractedFeature;
-            if (featureJsonObject == null || featureJsonObject.isNull()) {
+            if (featureJsonObject.isNull()) {
                 extractedFeature = ThingsModelFactory.nullFeature(extractedFeatureId);
             } else {
                 extractedFeature = ThingsModelFactory.newFeatureBuilder(featureJsonObject)
@@ -158,7 +156,7 @@ public final class ModifyFeature extends AbstractCommand<ModifyFeature> implemen
 
     @Override
     public Optional<JsonValue> getEntity(final JsonSchemaVersion schemaVersion) {
-        return Optional.ofNullable(feature.toJson(schemaVersion, FieldType.regularOrSpecial()));
+        return Optional.of(feature.toJson(schemaVersion, FieldType.regularOrSpecial()));
     }
 
     @Override

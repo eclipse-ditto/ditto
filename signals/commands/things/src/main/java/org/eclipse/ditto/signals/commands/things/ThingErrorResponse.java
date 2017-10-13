@@ -25,7 +25,6 @@ import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -161,17 +160,15 @@ public final class ThingErrorResponse extends AbstractCommandResponse<ThingError
      */
     public static ThingErrorResponse fromJson(final ThingErrorRegistry thingErrorRegistry, final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
-        final String thingId =
-                jsonObject.getValue(ThingCommandResponse.JsonFields.JSON_THING_ID).map(JsonValue::asString)
-                        .orElseThrow(() ->
-                                JsonMissingFieldException.newBuilder()
-                                        .fieldName(
-                                                ThingCommandResponse.JsonFields.JSON_THING_ID.getPointer().toString())
-                                        .build());
-        final JsonObject payload = jsonObject.getValue(ThingCommandResponse.JsonFields.PAYLOAD)
-                .map(JsonValue::asObject)
-                .orElseThrow(() -> new JsonMissingFieldException(ThingCommandResponse.JsonFields.PAYLOAD.getPointer()));
+
+        final String thingId = jsonObject.getValue(ThingCommandResponse.JsonFields.JSON_THING_ID)
+                .orElseThrow(() -> JsonMissingFieldException.newBuilder()
+                        .fieldName(ThingCommandResponse.JsonFields.JSON_THING_ID.getPointer())
+                        .build());
+        final JsonObject payload = jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.PAYLOAD).asObject();
+
         final DittoRuntimeException exception = thingErrorRegistry.parse(payload, dittoHeaders);
+
         return of(thingId, exception, dittoHeaders);
     }
 
@@ -193,6 +190,7 @@ public final class ThingErrorResponse extends AbstractCommandResponse<ThingError
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(ThingCommandResponse.JsonFields.JSON_THING_ID, thingId, predicate);
         jsonObjectBuilder.set(ThingCommandResponse.JsonFields.PAYLOAD,
@@ -225,8 +223,8 @@ public final class ThingErrorResponse extends AbstractCommandResponse<ThingError
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof ThingErrorResponse);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof ThingErrorResponse;
     }
 
     @Override

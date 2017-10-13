@@ -29,7 +29,6 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -53,13 +52,13 @@ public final class RetrieveThing extends AbstractCommand<RetrieveThing> implemen
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition JSON_SELECTED_FIELDS =
-            JsonFactory.newFieldDefinition("selectedFields", String.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<String> JSON_SELECTED_FIELDS =
+            JsonFactory.newStringFieldDefinition("selectedFields", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
 
-    static final JsonFieldDefinition JSON_SNAPSHOT_REVISION = JsonFactory.newFieldDefinition("snapshotRevision",
-            Long.class, FieldType.REGULAR, JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<Long> JSON_SNAPSHOT_REVISION =
+            JsonFactory.newLongFieldDefinition("snapshotRevision", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
 
     private static final long NULL_SNAPSHOT_REVISION = -1L;
 
@@ -130,18 +129,17 @@ public final class RetrieveThing extends AbstractCommand<RetrieveThing> implemen
      * format.
      */
     public static RetrieveThing fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandJsonDeserializer<RetrieveThing>(TYPE, jsonObject).deserialize(jsonObjectReader -> {
-            final String thingId = jsonObjectReader.get(ThingQueryCommand.JsonFields.JSON_THING_ID);
+        return new CommandJsonDeserializer<RetrieveThing>(TYPE, jsonObject).deserialize(() -> {
+            final String thingId = jsonObject.getValueOrThrow(ThingQueryCommand.JsonFields.JSON_THING_ID);
             final Builder builder = getBuilder(thingId, dittoHeaders);
 
             jsonObject.getValue(JSON_SELECTED_FIELDS)
-                    .filter(JsonValue::isString)
-                    .map(JsonValue::asString)
-                    .map(str -> JsonFactory.newFieldSelector(str,
-                            JsonFactory.newParseOptionsBuilder().withoutUrlDecoding().build()))
+                    .map(str -> JsonFactory.newFieldSelector(str, JsonFactory.newParseOptionsBuilder()
+                            .withoutUrlDecoding()
+                            .build()))
                     .ifPresent(builder::withSelectedFields);
 
-            jsonObjectReader.<Long>getAsOptional(JSON_SNAPSHOT_REVISION).ifPresent(builder::withSnapshotRevision);
+            jsonObject.getValue(JSON_SNAPSHOT_REVISION).ifPresent(builder::withSnapshotRevision);
 
             return builder.build();
         });
@@ -219,7 +217,7 @@ public final class RetrieveThing extends AbstractCommand<RetrieveThing> implemen
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
+    protected boolean canEqual(@Nullable final Object other) {
         return other instanceof RetrieveThing;
     }
 

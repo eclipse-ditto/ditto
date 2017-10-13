@@ -23,10 +23,8 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.json.JsonObjectReader;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.IdValidator;
 import org.eclipse.ditto.model.base.common.Validator;
@@ -134,19 +132,15 @@ abstract class AbstractMessageCommand<T, C extends AbstractMessageCommand> exten
      * Deserializes the {@link Message} from the JSON representation - the {@code rawPayload} is decoded with Base64.
      *
      * @param <T> the type of the message's payload.
-     * @param jsonObjectReader the JsonObjectReader to use for reading the message
+     * @param jsonObject the JsonObjectReader to use for reading the message
      * @return the Message
      */
-    protected static <T> Message<T> deserializeMessageFromJson(final JsonObjectReader jsonObjectReader) {
-        final JsonObject messageObject = jsonObjectReader.get(MessageCommand.JsonFields.JSON_MESSAGE);
-        final JsonObject messageHeadersObject = messageObject.getValue(MessageCommand.JsonFields.JSON_MESSAGE_HEADERS)
-                .filter(JsonValue::isObject)
-                .map(JsonValue::asObject)
-                .orElseThrow(() -> JsonMissingFieldException.newBuilder()
-                        .fieldName(MessageCommand.JsonFields.JSON_MESSAGE_HEADERS.getPointer().toString()).build());
-        final JsonValue messagePayloadValue = messageObject.getValue(MessageCommand.JsonFields.JSON_MESSAGE_PAYLOAD)
-                .orElseThrow(() -> JsonMissingFieldException.newBuilder()
-                        .fieldName(MessageCommand.JsonFields.JSON_MESSAGE_PAYLOAD.getPointer().toString()).build());
+    protected static <T> Message<T> deserializeMessageFromJson(final JsonObject jsonObject) {
+        final JsonObject messageObject = jsonObject.getValueOrThrow(MessageCommand.JsonFields.JSON_MESSAGE);
+        final JsonObject messageHeadersObject =
+                messageObject.getValueOrThrow(MessageCommand.JsonFields.JSON_MESSAGE_HEADERS);
+        final JsonValue messagePayloadValue =
+                messageObject.getValueOrThrow(MessageCommand.JsonFields.JSON_MESSAGE_PAYLOAD);
 
         final MessageHeaders messageHeaders = MessageHeaders.of(messageHeadersObject);
 

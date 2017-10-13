@@ -31,4 +31,5 @@ public interface MappingStrategy {
      * DittoHeaders) -> (Jsonifiable)} with which to deserialize JsonObjects to Jsonifiables again.
      */
     Map<String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>> determineStrategy();
+
 }

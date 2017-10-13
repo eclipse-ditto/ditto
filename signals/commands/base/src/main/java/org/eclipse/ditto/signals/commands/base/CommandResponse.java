@@ -11,9 +11,12 @@
  */
 package org.eclipse.ditto.signals.commands.base;
 
+import java.util.function.Predicate;
+
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
@@ -89,6 +92,9 @@ public interface CommandResponse<T extends CommandResponse> extends Signal<T> {
         return toJson(FieldType.notHidden());
     }
 
+    @Override
+    JsonObject toJson(JsonSchemaVersion schemaVersion, Predicate<JsonField> predicate);
+
     /**
      * This class contains common definitions for all fields of a {@code CommandResponse}'s JSON representation.
      * Implementation of {@code CommandResponse} may add additional fields by extending this class.
@@ -100,19 +106,19 @@ public interface CommandResponse<T extends CommandResponse> extends Signal<T> {
         /**
          * JSON field containing the response type as String.
          */
-        public static final JsonFieldDefinition TYPE = JsonFactory.newFieldDefinition("type", String.class,
+        public static final JsonFieldDefinition<String> TYPE = JsonFactory.newStringFieldDefinition("type",
                 FieldType.REGULAR, JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the message's status code as int.
          */
-        public static final JsonFieldDefinition STATUS = JsonFactory.newFieldDefinition("status", int.class,
+        public static final JsonFieldDefinition<Integer> STATUS = JsonFactory.newIntFieldDefinition("status",
                 FieldType.REGULAR, JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the message's payload as {@link JsonValue}.
          */
-        public static final JsonFieldDefinition PAYLOAD = JsonFactory.newFieldDefinition("payload", JsonValue.class,
+        public static final JsonFieldDefinition<JsonValue> PAYLOAD = JsonFactory.newJsonValueFieldDefinition("payload",
                 FieldType.REGULAR, JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         /**

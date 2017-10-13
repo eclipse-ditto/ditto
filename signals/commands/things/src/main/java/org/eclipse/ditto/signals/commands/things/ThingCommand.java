@@ -57,16 +57,16 @@ public interface ThingCommand<T extends ThingCommand> extends Command<T>, WithTh
 
     /**
      * This class contains definitions for all specific fields of a {@code ThingCommand}'s JSON representation.
-     *
      */
     class JsonFields extends Command.JsonFields {
 
         /**
          * JSON field containing the ThingCommand's thingId.
          */
-        public static final JsonFieldDefinition JSON_THING_ID =
-                JsonFactory.newFieldDefinition("thingId", String.class, FieldType.REGULAR,
-                        // available in schema versions:
-                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+        public static final JsonFieldDefinition<String> JSON_THING_ID =
+                JsonFactory.newStringFieldDefinition("thingId", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
+
     }
+
 }

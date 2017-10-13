@@ -21,8 +21,8 @@ import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
  *
  * @param <T> the type of the implementing class.
  */
-public interface ThingQueryCommandResponse<T extends ThingQueryCommandResponse> extends
-        ThingCommandResponse<T>, WithEntity<T> {
+public interface ThingQueryCommandResponse<T extends ThingQueryCommandResponse>
+        extends ThingCommandResponse<T>, WithEntity<T> {
 
     @Override
     T setEntity(JsonValue entity);

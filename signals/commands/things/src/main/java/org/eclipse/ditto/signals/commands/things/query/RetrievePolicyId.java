@@ -98,8 +98,8 @@ public final class RetrievePolicyId extends AbstractCommand<RetrievePolicyId>
      * org.eclipse.ditto.model.things.Thing#ID_REGEX}.
      */
     public static RetrievePolicyId fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandJsonDeserializer<RetrievePolicyId>(TYPE, jsonObject).deserialize(jsonObjectReader -> {
-            final String thingId = jsonObjectReader.get(ThingQueryCommand.JsonFields.JSON_THING_ID);
+        return new CommandJsonDeserializer<RetrievePolicyId>(TYPE, jsonObject).deserialize(() -> {
+            final String thingId = jsonObject.getValueOrThrow(ThingQueryCommand.JsonFields.JSON_THING_ID);
             return of(thingId, dittoHeaders);
         });
     }

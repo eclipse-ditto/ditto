@@ -46,15 +46,18 @@ public final class AttributeDeleted extends AbstractThingEvent<AttributeDeleted>
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition JSON_ATTRIBUTE =
-            JsonFactory.newFieldDefinition("attribute", String.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<String> JSON_ATTRIBUTE =
+            JsonFactory.newStringFieldDefinition("attribute", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
 
     private final JsonPointer attributePointer;
 
-    private AttributeDeleted(final String thingId, final JsonPointer attributePointer, final long revision,
-            final Instant timestamp, final DittoHeaders dittoHeaders) {
+    private AttributeDeleted(final String thingId,
+            final JsonPointer attributePointer,
+            final long revision,
+            @Nullable final Instant timestamp,
+            final DittoHeaders dittoHeaders) {
+
         super(TYPE, thingId, revision, timestamp, dittoHeaders);
         this.attributePointer = Objects.requireNonNull(attributePointer, "The attributes key must not be null!");
     }
@@ -69,8 +72,11 @@ public final class AttributeDeleted extends AbstractThingEvent<AttributeDeleted>
      * @return the AttributeDeleted created.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static AttributeDeleted of(final String thingId, final JsonPointer attributePointer, final long revision,
+    public static AttributeDeleted of(final String thingId,
+            final JsonPointer attributePointer,
+            final long revision,
             final DittoHeaders dittoHeaders) {
+
         return of(thingId, attributePointer, revision, null, dittoHeaders);
     }
 
@@ -83,10 +89,14 @@ public final class AttributeDeleted extends AbstractThingEvent<AttributeDeleted>
      * @param timestamp the timestamp of this event.
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the AttributeDeleted created.
-     * @throws NullPointerException if any argument is {@code null}.
+     * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
      */
-    public static AttributeDeleted of(final String thingId, final JsonPointer attributePointer, final long revision,
-            final Instant timestamp, final DittoHeaders dittoHeaders) {
+    public static AttributeDeleted of(final String thingId,
+            final JsonPointer attributePointer,
+            final long revision,
+            @Nullable final Instant timestamp,
+            final DittoHeaders dittoHeaders) {
+
         return new AttributeDeleted(thingId, attributePointer, revision, timestamp, dittoHeaders);
     }
 
@@ -115,10 +125,9 @@ public final class AttributeDeleted extends AbstractThingEvent<AttributeDeleted>
      * 'AttributeDeleted' format.
      */
     public static AttributeDeleted fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new EventJsonDeserializer<AttributeDeleted>(TYPE, jsonObject).deserialize((revision, timestamp,
-                jsonObjectReader) -> {
-            final String extractedThingId = jsonObjectReader.get(JsonFields.THING_ID);
-            final String pointerString = jsonObjectReader.get(JSON_ATTRIBUTE);
+        return new EventJsonDeserializer<AttributeDeleted>(TYPE, jsonObject).deserialize((revision, timestamp) -> {
+            final String extractedThingId = jsonObject.getValueOrThrow(JsonFields.THING_ID);
+            final String pointerString = jsonObject.getValueOrThrow(JSON_ATTRIBUTE);
             final JsonPointer extractedAttributePointer = JsonFactory.newPointer(pointerString);
 
             return of(extractedThingId, extractedAttributePointer, revision, timestamp, dittoHeaders);
@@ -181,8 +190,8 @@ public final class AttributeDeleted extends AbstractThingEvent<AttributeDeleted>
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof AttributeDeleted);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof AttributeDeleted;
     }
 
     @Override

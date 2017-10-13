@@ -11,6 +11,8 @@
  */
 package org.eclipse.ditto.signals.commands.messages;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
@@ -92,16 +94,17 @@ public final class SendThingMessageResponse<T> extends AbstractMessageCommandRes
     public static <T> SendThingMessageResponse<T> fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<SendThingMessageResponse<T>>(TYPE, jsonObject).deserialize(
-                (statusCode, jsonObjectReader) -> {
-                    final String thingId = jsonObjectReader.get(MessageCommandResponse.JsonFields.JSON_THING_ID);
-                    final Message<T> message = deserializeMessageFromJson(jsonObjectReader);
+                (statusCode) -> {
+                    final String thingId = jsonObject.getValueOrThrow(MessageCommandResponse.JsonFields.JSON_THING_ID);
+                    final Message<T> message = deserializeMessageFromJson(jsonObject);
+
                     return of(thingId, message, statusCode, dittoHeaders);
                 });
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof SendThingMessageResponse);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof SendThingMessageResponse;
     }
 
     @Override

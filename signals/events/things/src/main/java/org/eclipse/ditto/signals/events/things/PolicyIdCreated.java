@@ -50,10 +50,8 @@ public final class PolicyIdCreated extends AbstractThingEvent<PolicyIdCreated>
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition JSON_POLICY_ID =
-            JsonFactory.newFieldDefinition("policyId", String.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<String> JSON_POLICY_ID =
+            JsonFactory.newStringFieldDefinition("policyId", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private final String policyId;
 
@@ -120,10 +118,9 @@ public final class PolicyIdCreated extends AbstractThingEvent<PolicyIdCreated>
      * 'PolicyIdCreated' format.
      */
     public static PolicyIdCreated fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new EventJsonDeserializer<PolicyIdCreated>(TYPE, jsonObject).deserialize((revision, timestamp,
-                jsonObjectReader) -> {
-            final String extractedThingId = jsonObjectReader.get(JsonFields.THING_ID);
-            final String extractedPolicyId = jsonObjectReader.get(JSON_POLICY_ID);
+        return new EventJsonDeserializer<PolicyIdCreated>(TYPE, jsonObject).deserialize((revision, timestamp) -> {
+            final String extractedThingId = jsonObject.getValueOrThrow(JsonFields.THING_ID);
+            final String extractedPolicyId = jsonObject.getValueOrThrow(JSON_POLICY_ID);
 
             return of(extractedThingId, extractedPolicyId, revision, timestamp, dittoHeaders);
         });

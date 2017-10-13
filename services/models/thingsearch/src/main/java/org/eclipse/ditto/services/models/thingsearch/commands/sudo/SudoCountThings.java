@@ -16,6 +16,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFactory;
@@ -23,7 +24,6 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -48,14 +48,13 @@ public final class SudoCountThings extends AbstractCommand<SudoCountThings>
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition JSON_FILTER =
-            JsonFactory.newFieldDefinition("filter", String.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<String> JSON_FILTER =
+            JsonFactory.newStringFieldDefinition("filter", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
 
     private final String filter;
 
-    private SudoCountThings(final DittoHeaders dittoHeaders, final String filter) {
+    private SudoCountThings(final DittoHeaders dittoHeaders, @Nullable final String filter) {
         super(TYPE, dittoHeaders);
         this.filter = filter;
     }
@@ -66,9 +65,9 @@ public final class SudoCountThings extends AbstractCommand<SudoCountThings>
      * @param filter the optional filter string
      * @param dittoHeaders the headers of the command.
      * @return a new command for counting Things.
-     * @throws NullPointerException if any argument is {@code null}.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
-    public static SudoCountThings of(final String filter, final DittoHeaders dittoHeaders) {
+    public static SudoCountThings of(@Nullable final String filter, final DittoHeaders dittoHeaders) {
         return new SudoCountThings(dittoHeaders, filter);
     }
 
@@ -105,15 +104,14 @@ public final class SudoCountThings extends AbstractCommand<SudoCountThings>
      * @param dittoHeaders the headers of the command.
      * @return the command.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if {@code jsonObject} did not contain a value for
+     * "filter".
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */
     public static SudoCountThings fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandJsonDeserializer<SudoCountThings>(TYPE, jsonObject).deserialize(jsonObjectReader -> {
-            final String extractedFilter = jsonObject.getValue(JSON_FILTER) //
-                    .filter(JsonValue::isString) //
-                    .map(JsonValue::asString) //
-                    .orElse(null);
+        return new CommandJsonDeserializer<SudoCountThings>(TYPE, jsonObject).deserialize(() -> {
+            final String extractedFilter = jsonObject.getValue(JSON_FILTER).orElse(null);
 
             return new SudoCountThings(dittoHeaders, extractedFilter);
         });
@@ -131,6 +129,7 @@ public final class SudoCountThings extends AbstractCommand<SudoCountThings>
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         getFilter().ifPresent(filter -> jsonObjectBuilder.set(JSON_FILTER, filter, predicate));
     }
@@ -141,7 +140,7 @@ public final class SudoCountThings extends AbstractCommand<SudoCountThings>
     }
 
     @Override
-    public boolean equals(final Object o) {
+    public boolean equals(@Nullable final Object o) {
         if (this == o)
             return true;
         if (!(o instanceof SudoCountThings))
@@ -161,4 +160,5 @@ public final class SudoCountThings extends AbstractCommand<SudoCountThings>
     public String toString() {
         return getClass().getSimpleName() + "[" + "filter='" + filter + "']";
     }
+
 }

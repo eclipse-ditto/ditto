@@ -46,16 +46,15 @@ public final class DeletePolicyEntryResponse extends AbstractCommandResponse<Del
      */
     public static final String TYPE = TYPE_PREFIX + DeletePolicyEntry.NAME;
 
-    static final JsonFieldDefinition JSON_LABEL =
-            JsonFactory.newFieldDefinition("label", String.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<String> JSON_LABEL =
+            JsonFactory.newStringFieldDefinition("label", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private final String policyId;
     private final Label label;
 
     private DeletePolicyEntryResponse(final String policyId, final Label label,
             final HttpStatusCode statusCode, final DittoHeaders dittoHeaders) {
+
         super(TYPE, statusCode, dittoHeaders);
         this.policyId = checkNotNull(policyId, "Policy ID");
         this.label = checkNotNull(label, "Label");
@@ -72,6 +71,7 @@ public final class DeletePolicyEntryResponse extends AbstractCommandResponse<Del
      */
     public static DeletePolicyEntryResponse of(final String policyId, final Label label,
             final DittoHeaders dittoHeaders) {
+
         return new DeletePolicyEntryResponse(policyId, label, HttpStatusCode.NO_CONTENT, dittoHeaders);
     }
 
@@ -102,10 +102,11 @@ public final class DeletePolicyEntryResponse extends AbstractCommandResponse<Del
      */
     public static DeletePolicyEntryResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<DeletePolicyEntryResponse>(TYPE, jsonObject)
-                .deserialize((statusCode, jsonObjectReader) -> {
-                    final String policyId = jsonObjectReader.get(PolicyModifyCommandResponse.JsonFields.JSON_POLICY_ID);
-                    final String stringLabel = jsonObjectReader.get(JSON_LABEL);
-                    final Label label = PoliciesModelFactory.newLabel(stringLabel);
+                .deserialize((statusCode) -> {
+                    final String policyId =
+                            jsonObject.getValueOrThrow(PolicyModifyCommandResponse.JsonFields.JSON_POLICY_ID);
+                    final Label label = PoliciesModelFactory.newLabel(jsonObject.getValueOrThrow(JSON_LABEL));
+
                     return of(policyId, label, dittoHeaders);
                 });
     }
@@ -144,8 +145,8 @@ public final class DeletePolicyEntryResponse extends AbstractCommandResponse<Del
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof DeletePolicyEntryResponse);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof DeletePolicyEntryResponse;
     }
 
     @Override

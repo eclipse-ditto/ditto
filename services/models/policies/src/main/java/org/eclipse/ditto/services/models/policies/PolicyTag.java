@@ -11,7 +11,6 @@
  */
 package org.eclipse.ditto.services.models.policies;
 
-import static org.eclipse.ditto.json.JsonFactory.newFieldDefinition;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Objects;
@@ -21,8 +20,6 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonObjectReader;
-import org.eclipse.ditto.json.JsonReader;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 
@@ -87,9 +84,8 @@ public final class PolicyTag implements Jsonifiable {
      * expected 'PolicyTag' format.
      */
     public static PolicyTag fromJson(final JsonObject jsonObject) {
-        final JsonObjectReader jsonObjectReader = JsonReader.from(jsonObject);
-        final String extractedPolicyId = jsonObjectReader.get(JsonFields.ID);
-        final long extractedRevision = jsonObjectReader.get(JsonFields.REVISION);
+        final String extractedPolicyId = jsonObject.getValueOrThrow(JsonFields.ID);
+        final long extractedRevision = jsonObject.getValueOrThrow(JsonFields.REVISION);
 
         return of(extractedPolicyId, extractedRevision);
     }
@@ -145,19 +141,19 @@ public final class PolicyTag implements Jsonifiable {
 
     /**
      * An enumeration of the known {@link org.eclipse.ditto.json.JsonField}s of a PolicyTag.
-     *
      */
+    @Immutable
     public static final class JsonFields {
 
         /**
          * JSON field containing the PolicyTag's ID as String.
          */
-        public static final JsonFieldDefinition ID = newFieldDefinition("policyId", String.class);
+        public static final JsonFieldDefinition<String> ID = JsonFactory.newStringFieldDefinition("policyId");
 
         /**
          * JSON field containing the PolicyTag's revision as long value.
          */
-        public static final JsonFieldDefinition REVISION = newFieldDefinition("revision", long.class);
+        public static final JsonFieldDefinition<Long> REVISION = JsonFactory.newLongFieldDefinition("revision");
 
         private JsonFields() {
             throw new AssertionError();

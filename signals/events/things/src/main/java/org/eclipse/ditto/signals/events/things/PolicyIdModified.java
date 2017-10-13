@@ -49,15 +49,17 @@ public final class PolicyIdModified extends AbstractThingEvent<PolicyIdModified>
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition JSON_POLICY_ID =
-            JsonFactory.newFieldDefinition("policyId", String.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<String> JSON_POLICY_ID =
+            JsonFactory.newStringFieldDefinition("policyId", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private final String policyId;
 
-    private PolicyIdModified(final String thingId, final String policyId, final long revision,
-            @Nullable final Instant timestamp, final DittoHeaders dittoHeaders) {
+    private PolicyIdModified(final String thingId,
+            final String policyId,
+            final long revision,
+            @Nullable final Instant timestamp,
+            final DittoHeaders dittoHeaders) {
+
         super(TYPE, thingId, revision, timestamp, dittoHeaders);
         this.policyId = policyId;
     }
@@ -72,8 +74,11 @@ public final class PolicyIdModified extends AbstractThingEvent<PolicyIdModified>
      * @return the {@code PolicyIdModified}
      * @throws NullPointerException if {@code thingId}, {@code revision} or {@code dittoHeaders} are {@code null}.
      */
-    public static PolicyIdModified of(final String thingId, final String policyId, final long revision,
+    public static PolicyIdModified of(final String thingId,
+            final String policyId,
+            final long revision,
             final DittoHeaders dittoHeaders) {
+
         return of(thingId, policyId, revision, null, dittoHeaders);
     }
 
@@ -88,8 +93,12 @@ public final class PolicyIdModified extends AbstractThingEvent<PolicyIdModified>
      * @return the {@code PolicyIdModified}
      * @throws NullPointerException if {@code thingId}, {@code revision} or {@code dittoHeaders} are {@code null}.
      */
-    public static PolicyIdModified of(final String thingId, final String policyId, final long revision,
-            @Nullable final Instant timestamp, final DittoHeaders dittoHeaders) {
+    public static PolicyIdModified of(final String thingId,
+            final String policyId,
+            final long revision,
+            @Nullable final Instant timestamp,
+            final DittoHeaders dittoHeaders) {
+
         return new PolicyIdModified(thingId, policyId, revision, timestamp, dittoHeaders);
     }
 
@@ -119,10 +128,9 @@ public final class PolicyIdModified extends AbstractThingEvent<PolicyIdModified>
      * 'PolicyIdModified' format.
      */
     public static PolicyIdModified fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new EventJsonDeserializer<PolicyIdModified>(TYPE, jsonObject).deserialize((revision, timestamp,
-                jsonObjectReader) -> {
-            final String extractedThingId = jsonObjectReader.get(JsonFields.THING_ID);
-            final String extractedPolicyId = jsonObjectReader.get(JSON_POLICY_ID);
+        return new EventJsonDeserializer<PolicyIdModified>(TYPE, jsonObject).deserialize((revision, timestamp) -> {
+            final String extractedThingId = jsonObject.getValueOrThrow(JsonFields.THING_ID);
+            final String extractedPolicyId = jsonObject.getValueOrThrow(JSON_POLICY_ID);
 
             return of(extractedThingId, extractedPolicyId, revision, timestamp, dittoHeaders);
         });
@@ -188,8 +196,8 @@ public final class PolicyIdModified extends AbstractThingEvent<PolicyIdModified>
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof PolicyIdModified);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof PolicyIdModified;
     }
 
     @Override

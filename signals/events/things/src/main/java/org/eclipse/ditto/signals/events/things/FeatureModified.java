@@ -40,8 +40,8 @@ import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
  * This event is emitted after a {@link Feature} was modified.
  */
 @Immutable
-public final class FeatureModified extends AbstractThingEvent<FeatureModified> implements
-        ThingModifiedEvent<FeatureModified>, WithFeatureId {
+public final class FeatureModified extends AbstractThingEvent<FeatureModified>
+        implements ThingModifiedEvent<FeatureModified>, WithFeatureId {
 
     /**
      * Name of the "Feature Modified" event.
@@ -53,10 +53,9 @@ public final class FeatureModified extends AbstractThingEvent<FeatureModified> i
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition JSON_FEATURE =
-            JsonFactory.newFieldDefinition("feature", JsonObject.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<JsonObject> JSON_FEATURE =
+            JsonFactory.newJsonObjectFieldDefinition("feature", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
 
     private final Feature feature;
 
@@ -134,16 +133,14 @@ public final class FeatureModified extends AbstractThingEvent<FeatureModified> i
      * 'FeatureModified' format.
      */
     public static FeatureModified fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new EventJsonDeserializer<FeatureModified>(TYPE, jsonObject).deserialize((revision, timestamp,
-                jsonObjectReader) -> {
+        return new EventJsonDeserializer<FeatureModified>(TYPE, jsonObject).deserialize((revision, timestamp) -> {
 
-            final String extractedThingId = jsonObjectReader.get(JsonFields.THING_ID);
-            final String extractedFeatureId = jsonObjectReader.get(JsonFields.FEATURE_ID);
-            final JsonObject featureJsonObject = jsonObjectReader.get(JSON_FEATURE);
-
-            final Feature extractedFeature = (null != featureJsonObject)
-                    ? ThingsModelFactory.newFeatureBuilder(featureJsonObject).useId(extractedFeatureId).build()
-                    : ThingsModelFactory.nullFeature(extractedFeatureId);
+            final String extractedThingId = jsonObject.getValueOrThrow(JsonFields.THING_ID);
+            final String extractedFeatureId = jsonObject.getValueOrThrow(JsonFields.FEATURE_ID);
+            final JsonObject extractedFeatureJson = jsonObject.getValueOrThrow(JSON_FEATURE);
+            final Feature extractedFeature = ThingsModelFactory.newFeatureBuilder(extractedFeatureJson)
+                    .useId(extractedFeatureId)
+                    .build();
 
             return of(extractedThingId, extractedFeature, revision, timestamp, dittoHeaders);
         });
@@ -165,7 +162,7 @@ public final class FeatureModified extends AbstractThingEvent<FeatureModified> i
 
     @Override
     public Optional<JsonValue> getEntity(final JsonSchemaVersion schemaVersion) {
-        return Optional.ofNullable(feature.toJson(schemaVersion, FieldType.notHidden()));
+        return Optional.of(feature.toJson(schemaVersion, FieldType.notHidden()));
     }
 
     @Override

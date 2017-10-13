@@ -49,20 +49,14 @@ public final class ModifySubjectResponse extends AbstractCommandResponse<ModifyS
      */
     public static final String TYPE = TYPE_PREFIX + ModifySubject.NAME;
 
-    static final JsonFieldDefinition JSON_LABEL =
-            JsonFactory.newFieldDefinition("label", String.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<String> JSON_LABEL =
+            JsonFactory.newStringFieldDefinition("label", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
-    static final JsonFieldDefinition JSON_SUBJECT_ID =
-            JsonFactory.newFieldDefinition("subjectId", String.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<String> JSON_SUBJECT_ID =
+            JsonFactory.newStringFieldDefinition("subjectId", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
-    static final JsonFieldDefinition JSON_SUBJECT =
-            JsonFactory.newFieldDefinition("subject", JsonValue.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<JsonValue> JSON_SUBJECT =
+            JsonFactory.newJsonValueFieldDefinition("subject", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
 
     private final String policyId;
@@ -70,9 +64,12 @@ public final class ModifySubjectResponse extends AbstractCommandResponse<ModifyS
     @Nullable
     private final Subject subjectCreated;
 
-    private ModifySubjectResponse(final String policyId, final Label label,
-            @Nullable final Subject subjectCreated, final HttpStatusCode statusCode,
+    private ModifySubjectResponse(final String policyId,
+            final Label label,
+            @Nullable final Subject subjectCreated,
+            final HttpStatusCode statusCode,
             final DittoHeaders dittoHeaders) {
+
         super(TYPE, statusCode, dittoHeaders);
         this.policyId = checkNotNull(policyId, "Policy ID");
         this.label = checkNotNull(label, "Label");
@@ -89,8 +86,11 @@ public final class ModifySubjectResponse extends AbstractCommandResponse<ModifyS
      * @return the response.
      * @throws NullPointerException if {@code statusCode} or {@code dittoHeaders} is {@code null}.
      */
-    public static ModifySubjectResponse created(final String policyId, final Label label, final Subject subjectCreated,
+    public static ModifySubjectResponse created(final String policyId,
+            final Label label,
+            final Subject subjectCreated,
             final DittoHeaders dittoHeaders) {
+
         return new ModifySubjectResponse(policyId, label, subjectCreated, HttpStatusCode.CREATED, dittoHeaders);
     }
 
@@ -105,6 +105,7 @@ public final class ModifySubjectResponse extends AbstractCommandResponse<ModifyS
      */
     public static ModifySubjectResponse modified(final String policyId, final Label label,
             final DittoHeaders dittoHeaders) {
+
         return new ModifySubjectResponse(policyId, label, null, HttpStatusCode.NO_CONTENT, dittoHeaders);
     }
 
@@ -133,19 +134,17 @@ public final class ModifySubjectResponse extends AbstractCommandResponse<ModifyS
      */
     public static ModifySubjectResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<ModifySubjectResponse>(TYPE, jsonObject)
-                .deserialize((statusCode, jsonObjectReader) -> {
-                    final String policyId = jsonObjectReader.get(PolicyModifyCommandResponse.JsonFields.JSON_POLICY_ID);
-                    final String stringLabel = jsonObjectReader.get(JSON_LABEL);
-                    final Label label = PoliciesModelFactory.newLabel(stringLabel);
+                .deserialize((statusCode) -> {
+                    final String policyId =
+                            jsonObject.getValueOrThrow(PolicyModifyCommandResponse.JsonFields.JSON_POLICY_ID);
+                    final Label label = PoliciesModelFactory.newLabel(jsonObject.getValueOrThrow(JSON_LABEL));
 
-                    final Optional<String> extractedSubjectId = jsonObject.getValue(JSON_SUBJECT_ID)
-                            .filter(JsonValue::isString)
-                            .map(JsonValue::asString);
+                    final Optional<String> extractedSubjectId = jsonObject.getValue(JSON_SUBJECT_ID);
 
                     final Subject extractedSubjectCreated = jsonObject.getValue(JSON_SUBJECT)
                             .map(JsonValue::asObject)
-                            .map(obj -> extractedSubjectId.isPresent() ?
-                                    PoliciesModelFactory.newSubject(extractedSubjectId.get(), obj) : null)
+                            .map(obj -> extractedSubjectId.map(s -> PoliciesModelFactory.newSubject(s, obj))
+                                    .orElse(null))
                             .orElse(null);
 
                     return new ModifySubjectResponse(policyId, label, extractedSubjectCreated, statusCode,
@@ -194,6 +193,7 @@ public final class ModifySubjectResponse extends AbstractCommandResponse<ModifyS
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(PolicyModifyCommandResponse.JsonFields.JSON_POLICY_ID, policyId, predicate);
         jsonObjectBuilder.set(JSON_LABEL, label.toString(), predicate);
@@ -210,8 +210,8 @@ public final class ModifySubjectResponse extends AbstractCommandResponse<ModifyS
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof ModifySubjectResponse);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof ModifySubjectResponse;
     }
 
     @Override

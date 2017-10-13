@@ -79,7 +79,7 @@ import scala.concurrent.duration.Duration;
  * <p>
  * This actor will terminate after it has handled the request.
  */
-public class CreateThingHandlerActor extends AbstractActor {
+public final class CreateThingHandlerActor extends AbstractActor {
 
     private static final String DEFAULT_POLICY_ENTRY_LABEL = "DEFAULT";
     private static final int ASK_DURATION_VALUE = 20000;
@@ -313,13 +313,15 @@ public class CreateThingHandlerActor extends AbstractActor {
     private static Policy extractPolicy(final CreateThing command, final DittoHeaders dittoHeaders) {
         final String thingId = extractThingId(command.getThing(), dittoHeaders);
         return command.getInitialPolicy()
-                .map(jsonObj -> jsonObj.set(Policy.JsonFields.ID, JsonValue.of(thingId)))
+                .map(jsonObj -> jsonObj.set(Policy.JsonFields.ID, thingId))
                 .map(PoliciesModelFactory::newPolicy)
                 .filter(it -> it.iterator().hasNext())
                 .orElse(getDefaultPolicy(dittoHeaders.getAuthorizationContext(), thingId));
     }
 
-    private static Policy getDefaultPolicy(final AuthorizationContext authorizationContext, final String thingId) {
+    private static Policy getDefaultPolicy(final AuthorizationContext authorizationContext,
+            final CharSequence thingId) {
+
         final Subject subject = authorizationContext.getFirstAuthorizationSubject()
                 .map(AuthorizationSubject::getId)
                 .map(SubjectId::newInstance)
@@ -360,11 +362,11 @@ public class CreateThingHandlerActor extends AbstractActor {
         }
     }
 
-    private boolean isAclPresent(final CreateThing command) {
+    private static boolean isAclPresent(final CreateThing command) {
         return command.getThing().getAccessControlList().isPresent();
     }
 
-    private boolean isPolicyIdValid(final CreateThing command) {
+    private static boolean isPolicyIdValid(final CreateThing command) {
         final Thing thing = command.getThing();
         final Optional<String> thingIdOpt = thing.getId();
         final Optional<String> policyIdOpt = thing.getPolicyId();
@@ -372,19 +374,12 @@ public class CreateThingHandlerActor extends AbstractActor {
                 .flatMap(o -> o.getValue("policyId").filter(JsonValue::isString).map(JsonValue::asString));
 
         if (policyIdOpt.isPresent()) {
-            if (policyIdInPolicyOpt.isPresent()) {
-                return policyIdInPolicyOpt.equals(policyIdOpt);
-            } else {
-                return true;
-            }
-        } else if (policyIdInPolicyOpt.isPresent()) {
-            return policyIdInPolicyOpt.equals(thingIdOpt);
-        } else {
-            return true;
-        }
+            return !policyIdInPolicyOpt.isPresent() || policyIdInPolicyOpt.equals(policyIdOpt);
+        } else
+            return !policyIdInPolicyOpt.isPresent() || policyIdInPolicyOpt.equals(thingIdOpt);
     }
 
-    private boolean isJsonSchemaVersionV1(final CreateThing command) {
+    private static boolean isJsonSchemaVersionV1(final CreateThing command) {
         return command.getDittoHeaders().getSchemaVersion()
                 .orElse(JsonSchemaVersion.LATEST)
                 .equals(JsonSchemaVersion.V_1);

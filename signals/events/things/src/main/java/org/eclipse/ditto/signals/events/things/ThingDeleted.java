@@ -99,9 +99,8 @@ public final class ThingDeleted extends AbstractThingEvent<ThingDeleted> impleme
      * 'ThingDeleted' format.
      */
     public static ThingDeleted fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new EventJsonDeserializer<ThingDeleted>(TYPE, jsonObject).deserialize((revision, timestamp,
-                jsonObjectReader) -> {
-            final String extractedThingId = jsonObjectReader.get(JsonFields.THING_ID);
+        return new EventJsonDeserializer<ThingDeleted>(TYPE, jsonObject).deserialize((revision, timestamp) -> {
+            final String extractedThingId = jsonObject.getValueOrThrow(JsonFields.THING_ID);
 
             return of(extractedThingId, revision, timestamp, dittoHeaders);
         });

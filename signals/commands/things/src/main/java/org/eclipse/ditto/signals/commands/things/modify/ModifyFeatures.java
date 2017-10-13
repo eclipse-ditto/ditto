@@ -51,10 +51,9 @@ public final class ModifyFeatures extends AbstractCommand<ModifyFeatures>
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition JSON_FEATURES =
-            JsonFactory.newFieldDefinition("features", JsonObject.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<JsonObject> JSON_FEATURES =
+            JsonFactory.newJsonObjectFieldDefinition("features", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
 
     private final String thingId;
     private final Features features;
@@ -113,13 +112,10 @@ public final class ModifyFeatures extends AbstractCommand<ModifyFeatures>
      * org.eclipse.ditto.model.things.Thing#ID_REGEX}.
      */
     public static ModifyFeatures fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandJsonDeserializer<ModifyFeatures>(TYPE, jsonObject).deserialize(jsonObjectReader -> {
-            final String thingId = jsonObjectReader.get(ThingModifyCommand.JsonFields.JSON_THING_ID);
-            final JsonObject featuresJsonObject = jsonObjectReader.get(JSON_FEATURES);
-
-            final Features extractedFeatures = (null != featuresJsonObject)
-                    ? ThingsModelFactory.newFeatures(featuresJsonObject)
-                    : ThingsModelFactory.nullFeatures();
+        return new CommandJsonDeserializer<ModifyFeatures>(TYPE, jsonObject).deserialize(() -> {
+            final String thingId = jsonObject.getValueOrThrow(ThingModifyCommand.JsonFields.JSON_THING_ID);
+            final JsonObject featuresJsonObject = jsonObject.getValueOrThrow(JSON_FEATURES);
+            final Features extractedFeatures = ThingsModelFactory.newFeatures(featuresJsonObject);
 
             return of(thingId, extractedFeatures, dittoHeaders);
         });

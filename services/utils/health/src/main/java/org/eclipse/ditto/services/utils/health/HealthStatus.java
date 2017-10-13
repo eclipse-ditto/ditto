@@ -12,7 +12,6 @@
 package org.eclipse.ditto.services.utils.health;
 
 import static java.util.Objects.requireNonNull;
-import static org.eclipse.ditto.json.JsonFactory.newFieldDefinition;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -24,7 +23,6 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 
 /**
@@ -37,12 +35,12 @@ public final class HealthStatus implements Jsonifiable<JsonObject> {
     /**
      * JSON field of the status.
      */
-    public static final JsonFieldDefinition JSON_KEY_STATUS = newFieldDefinition("status", String.class);
+    public static final JsonFieldDefinition<String> JSON_KEY_STATUS = JsonFactory.newStringFieldDefinition("status");
 
     /**
      * JSON field of the detail.
      */
-    public static final JsonFieldDefinition JSON_KEY_DETAIL = newFieldDefinition("detail", String.class);
+    public static final JsonFieldDefinition<String> JSON_KEY_DETAIL = JsonFactory.newStringFieldDefinition("detail");
 
     private final Status status;
     private final String detail;
@@ -102,17 +100,8 @@ public final class HealthStatus implements Jsonifiable<JsonObject> {
      * format.
      */
     public static HealthStatus fromJson(final JsonObject jsonObject) {
-
-        final Status status = jsonObject.getValue(JSON_KEY_STATUS)
-                .filter(JsonValue::isString)
-                .map(JsonValue::asString)
-                .map(Status::valueOf)
-                .orElseThrow(() -> new JsonMissingFieldException(JSON_KEY_STATUS.getPointer()));
-
-        final String detail = jsonObject.getValue(JSON_KEY_DETAIL)
-                .filter(JsonValue::isString)
-                .map(JsonValue::asString)
-                .orElse(null);
+        final Status status = Status.valueOf(jsonObject.getValueOrThrow(JSON_KEY_STATUS));
+        final String detail = jsonObject.getValue(JSON_KEY_DETAIL).orElse(null);
 
         return of(status, detail);
     }
@@ -193,4 +182,5 @@ public final class HealthStatus implements Jsonifiable<JsonObject> {
          */
         OUT_OF_SERVICE
     }
+
 }

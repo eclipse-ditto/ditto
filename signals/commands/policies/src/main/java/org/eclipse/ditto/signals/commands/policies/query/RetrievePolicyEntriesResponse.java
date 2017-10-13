@@ -47,16 +47,17 @@ public final class RetrievePolicyEntriesResponse extends AbstractCommandResponse
      */
     public static final String TYPE = TYPE_PREFIX + RetrievePolicyEntries.NAME;
 
-    static final JsonFieldDefinition JSON_POLICY_ENTRIES =
-            JsonFactory.newFieldDefinition("policyEntries", JsonObject.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<JsonObject> JSON_POLICY_ENTRIES =
+            JsonFactory.newJsonObjectFieldDefinition("policyEntries", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private final String policyId;
     private final JsonObject policyEntries;
 
-    private RetrievePolicyEntriesResponse(final String policyId, final HttpStatusCode statusCode,
-            final JsonObject policyEntries, final DittoHeaders dittoHeaders) {
+    private RetrievePolicyEntriesResponse(final String policyId,
+            final HttpStatusCode statusCode,
+            final JsonObject policyEntries,
+            final DittoHeaders dittoHeaders) {
+
         super(TYPE, statusCode, dittoHeaders);
         this.policyId = checkNotNull(policyId, "Policy ID");
         this.policyEntries = checkNotNull(policyEntries, "Policy entry");
@@ -73,6 +74,7 @@ public final class RetrievePolicyEntriesResponse extends AbstractCommandResponse
      */
     public static RetrievePolicyEntriesResponse of(final String policyId, final Iterable<PolicyEntry> policyEntries,
             final DittoHeaders dittoHeaders) {
+
         final JsonObjectBuilder objectBuilder = JsonFactory.newObjectBuilder();
         checkNotNull(policyEntries, "Policy Entries").forEach(entry -> objectBuilder
                 .set(entry.getLabel().toString(),
@@ -91,6 +93,7 @@ public final class RetrievePolicyEntriesResponse extends AbstractCommandResponse
      */
     public static RetrievePolicyEntriesResponse of(final String policyId, final JsonObject policyEntries,
             final DittoHeaders dittoHeaders) {
+
         return new RetrievePolicyEntriesResponse(policyId, HttpStatusCode.OK, policyEntries, dittoHeaders);
     }
 
@@ -119,10 +122,12 @@ public final class RetrievePolicyEntriesResponse extends AbstractCommandResponse
      */
     public static RetrievePolicyEntriesResponse fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
+
         return new CommandResponseJsonDeserializer<RetrievePolicyEntriesResponse>(TYPE, jsonObject)
-                .deserialize((statusCode, jsonObjectReader) -> {
-                    final String policyId = jsonObjectReader.get(PolicyQueryCommandResponse.JsonFields.JSON_POLICY_ID);
-                    final JsonObject extractedPolicyEntries = jsonObjectReader.get(JSON_POLICY_ENTRIES);
+                .deserialize((statusCode) -> {
+                    final String policyId =
+                            jsonObject.getValueOrThrow(PolicyQueryCommandResponse.JsonFields.JSON_POLICY_ID);
+                    final JsonObject extractedPolicyEntries = jsonObject.getValueOrThrow(JSON_POLICY_ENTRIES);
 
                     return of(policyId, extractedPolicyEntries, dittoHeaders);
                 });
@@ -166,14 +171,15 @@ public final class RetrievePolicyEntriesResponse extends AbstractCommandResponse
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(PolicyQueryCommandResponse.JsonFields.JSON_POLICY_ID, policyId, predicate);
         jsonObjectBuilder.set(JSON_POLICY_ENTRIES, policyEntries, predicate);
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof RetrievePolicyEntriesResponse);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof RetrievePolicyEntriesResponse;
     }
 
     @Override
@@ -199,4 +205,5 @@ public final class RetrievePolicyEntriesResponse extends AbstractCommandResponse
         return getClass().getSimpleName() + " [" + super.toString() + ", policyId=" + policyId + ", policyEntries=" +
                 policyEntries + "]";
     }
+
 }

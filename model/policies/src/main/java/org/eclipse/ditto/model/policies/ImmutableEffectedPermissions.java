@@ -23,12 +23,11 @@ import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonObjectReader;
-import org.eclipse.ditto.json.JsonReader;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
@@ -93,16 +92,15 @@ final class ImmutableEffectedPermissions implements EffectedPermissions {
     public static EffectedPermissions fromJson(final JsonObject jsonObject) {
         checkNotNull(jsonObject, "JSON object");
 
-        final JsonObjectReader reader = JsonReader.from(jsonObject);
-        final Set<String> granted = wrapJsonRuntimeException(() -> getPermissionsForEffect(reader, JsonFields.GRANT));
-        final Set<String> revoked = wrapJsonRuntimeException(() -> getPermissionsForEffect(reader, JsonFields.REVOKE));
+        final Set<String> granted = wrapJsonRuntimeException(() -> getPermissionsFor(jsonObject, JsonFields.GRANT));
+        final Set<String> revoked = wrapJsonRuntimeException(() -> getPermissionsFor(jsonObject, JsonFields.REVOKE));
         return of(granted, revoked);
     }
 
-    private static Set<String> getPermissionsForEffect(final JsonObjectReader reader,
-            final JsonFieldDefinition effect) {
+    private static Set<String> getPermissionsFor(final JsonObject jsonObject,
+            final JsonFieldDefinition<JsonArray> effect) {
 
-        return reader.getAsJsonArray(effect.getPointer())
+        return jsonObject.getValueOrThrow(effect)
                 .stream()
                 .filter(JsonValue::isString)
                 .map(JsonValue::asString)

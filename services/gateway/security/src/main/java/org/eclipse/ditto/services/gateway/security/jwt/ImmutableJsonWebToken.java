@@ -11,18 +11,15 @@
  */
 package org.eclipse.ditto.services.gateway.security.jwt;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.argumentNotNull;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
@@ -40,33 +37,28 @@ public final class ImmutableJsonWebToken extends AbstractJsonWebToken {
     private ImmutableJsonWebToken(final String authorizationString) {
         super(authorizationString);
 
-        final List<AuthorizationSubject> authorizationSubjectsModifiable = new ArrayList<>();
         final JsonObject body = getBody();
-        final SubjectIssuer issuer = body.getValue(JsonFields.ISSUER)
-                .map(JsonValue::asString)
-                .map(PoliciesModelFactory::newSubjectIssuer)
-                .orElseThrow(() -> new JsonMissingFieldException(JsonFields.ISSUER.getPointer()));
 
-        body.getValue(JsonFields.USER_ID)
-                .map(JsonValue::asString)
+        final String issuerString = body.getValueOrThrow(JsonFields.ISSUER);
+        final SubjectIssuer issuer = PoliciesModelFactory.newSubjectIssuer(issuerString);
+
+        authorizationSubjects = body.getValue(JsonFields.USER_ID)
+                .map(userId -> SubjectId.newInstance(issuer, userId))
                 .map(AuthorizationModelFactory::newAuthSubject)
-                .ifPresent(authorizationSubject -> authorizationSubjectsModifiable.add(AuthorizationSubject.newInstance(
-                        SubjectId.newInstance(issuer, authorizationSubject.getId()).toString())));
-
-        this.authorizationSubjects = Collections.unmodifiableList(authorizationSubjectsModifiable);
+                .map(Collections::singletonList)
+                .map(Collections::unmodifiableList)
+                .orElseGet(Collections::emptyList);
     }
 
     /**
      * Returns a new {@code ImmutableJsonWebToken} for the given {@code authorizationString}.
      *
      * @param authorizationString the authorization string.
-     * @return the ImmutableJsonWebToken
-     * @throws NullPointerException if {@code authorizationString} is {@code null}
+     * @return the ImmutableJsonWebToken.
+     * @throws NullPointerException if {@code authorizationString} is {@code null}.
      */
     public static JsonWebToken fromAuthorizationString(final String authorizationString) {
-        argumentNotNull(authorizationString);
-
-        return new ImmutableJsonWebToken(authorizationString);
+        return new ImmutableJsonWebToken(checkNotNull(authorizationString));
     }
 
     @Override
@@ -99,4 +91,5 @@ public final class ImmutableJsonWebToken extends AbstractJsonWebToken {
         return getClass().getSimpleName() + " [" + super.toString() + ", authorizationSubjects=" +
                 authorizationSubjects + "]";
     }
+
 }

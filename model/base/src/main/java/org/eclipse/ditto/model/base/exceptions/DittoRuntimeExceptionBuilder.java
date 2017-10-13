@@ -23,8 +23,6 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonObjectReader;
-import org.eclipse.ditto.json.JsonReader;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 
 /**
@@ -55,6 +53,7 @@ public abstract class DittoRuntimeExceptionBuilder<T extends DittoRuntimeExcepti
      *
      * @param dittoHeaders the command headers to be set.
      * @return this builder to allow method chaining.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
     public DittoRuntimeExceptionBuilder<T> dittoHeaders(final DittoHeaders dittoHeaders) {
         this.dittoHeaders = checkNotNull(dittoHeaders, "Ditto Headers");
@@ -174,7 +173,7 @@ public abstract class DittoRuntimeExceptionBuilder<T extends DittoRuntimeExcepti
      * @return the new exception.
      * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
-    protected abstract T doBuild(DittoHeaders dittoHeaders,
+    protected abstract T doBuild(final DittoHeaders dittoHeaders,
             @Nullable String message,
             @Nullable String description,
             @Nullable Throwable cause,
@@ -187,10 +186,9 @@ public abstract class DittoRuntimeExceptionBuilder<T extends DittoRuntimeExcepti
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      */
     public DittoRuntimeExceptionBuilder<T> loadJson(final JsonObject jsonObject) {
-        final JsonObjectReader reader = JsonReader.from(jsonObject);
-        reader.<String>getAsOptional(MESSAGE).ifPresent(this::message);
-        reader.<String>getAsOptional(DESCRIPTION).ifPresent(this::description);
-        reader.<String>getAsOptional(HREF).map(URI::create).ifPresent(this::href);
+        jsonObject.getValue(MESSAGE).ifPresent(this::message);
+        jsonObject.getValue(DESCRIPTION).ifPresent(this::description);
+        jsonObject.getValue(HREF).map(URI::create).ifPresent(this::href);
         return this;
     }
 

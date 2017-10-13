@@ -16,6 +16,7 @@ import static java.util.Objects.requireNonNull;
 import java.util.Objects;
 import java.util.function.Predicate;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFactory;
@@ -46,10 +47,9 @@ public final class ChangeLogLevel extends AbstractDevOpsCommand<ChangeLogLevel> 
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition JSON_LOGGER_CONFIG =
-            JsonFactory.newFieldDefinition("loggerConfig", JsonObject.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<JsonObject> JSON_LOGGER_CONFIG =
+            JsonFactory.newJsonObjectFieldDefinition("loggerConfig", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
 
     private final LoggerConfig loggerConfig;
 
@@ -95,8 +95,8 @@ public final class ChangeLogLevel extends AbstractDevOpsCommand<ChangeLogLevel> 
      * format.
      */
     public static ChangeLogLevel fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new DevOpsCommandJsonDeserializer<ChangeLogLevel>(TYPE, jsonObject).deserialize(jsonObjectReader -> {
-            final JsonObject loggerConfigJsonObject = jsonObjectReader.get(JSON_LOGGER_CONFIG);
+        return new DevOpsCommandJsonDeserializer<ChangeLogLevel>(TYPE, jsonObject).deserialize(() -> {
+            final JsonObject loggerConfigJsonObject = jsonObject.getValueOrThrow(JSON_LOGGER_CONFIG);
             final LoggerConfig loggerConfig = ImmutableLoggerConfig.fromJson(loggerConfigJsonObject);
 
             return of(loggerConfig, dittoHeaders);
@@ -126,7 +126,7 @@ public final class ChangeLogLevel extends AbstractDevOpsCommand<ChangeLogLevel> 
 
     @SuppressWarnings("squid:MethodCyclomaticComplexity")
     @Override
-    public boolean equals(final Object o) {
+    public boolean equals(@Nullable final Object o) {
         if (this == o) {
             return true;
         }
@@ -138,8 +138,8 @@ public final class ChangeLogLevel extends AbstractDevOpsCommand<ChangeLogLevel> 
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof ChangeLogLevel);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof ChangeLogLevel;
     }
 
     @Override
@@ -151,4 +151,5 @@ public final class ChangeLogLevel extends AbstractDevOpsCommand<ChangeLogLevel> 
     public String toString() {
         return getClass().getSimpleName() + " [" + super.toString() + "loggerConfig=" + loggerConfig + "]";
     }
+
 }

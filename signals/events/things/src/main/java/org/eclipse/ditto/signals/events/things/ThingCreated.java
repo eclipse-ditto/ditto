@@ -50,8 +50,11 @@ public final class ThingCreated extends AbstractThingEvent<ThingCreated> impleme
 
     private final Thing thing;
 
-    private ThingCreated(final Thing thing, final long revision, final Instant timestamp,
+    private ThingCreated(final Thing thing,
+            final long revision,
+            @Nullable final Instant timestamp,
             final DittoHeaders dittoHeaders) {
+
         super(TYPE, thing.getId().orElse(null), revision, timestamp, dittoHeaders);
         this.thing = thing;
     }
@@ -77,10 +80,13 @@ public final class ThingCreated extends AbstractThingEvent<ThingCreated> impleme
      * @param timestamp the timestamp of this event.
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the ThingCreated created.
-     * @throws NullPointerException if any argument is {@code null}.
+     * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
      */
-    public static ThingCreated of(final Thing thing, final long revision, final Instant timestamp,
+    public static ThingCreated of(final Thing thing,
+            final long revision,
+            @Nullable final Instant timestamp,
             final DittoHeaders dittoHeaders) {
+
         return new ThingCreated(thing, revision, timestamp, dittoHeaders);
     }
 
@@ -109,9 +115,8 @@ public final class ThingCreated extends AbstractThingEvent<ThingCreated> impleme
      * 'ThingCreated' format.
      */
     public static ThingCreated fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new EventJsonDeserializer<ThingCreated>(TYPE, jsonObject).deserialize((revision, timestamp,
-                jsonObjectReader) -> {
-            final JsonObject thingJsonObject = jsonObjectReader.get(JsonFields.THING);
+        return new EventJsonDeserializer<ThingCreated>(TYPE, jsonObject).deserialize((revision, timestamp) -> {
+            final JsonObject thingJsonObject = jsonObject.getValueOrThrow(JsonFields.THING);
             final Thing extractedThing = ThingsModelFactory.newThing(thingJsonObject);
 
             return of(extractedThing, revision, timestamp, dittoHeaders);

@@ -12,13 +12,10 @@
 package org.eclipse.ditto.signals.events.base;
 
 import java.util.Map;
-import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.signals.base.AbstractJsonParsableRegistry;
 import org.eclipse.ditto.signals.base.JsonParsable;
 
@@ -43,8 +40,7 @@ public abstract class AbstractEventRegistry<T extends Event> extends AbstractJso
 
     @Override
     protected String resolveType(final JsonObject jsonObject) {
-        final Optional<String> typeOpt = jsonObject.getValue(Event.JsonFields.TYPE).map(JsonValue::asString);
-        return typeOpt.orElseThrow(() -> JsonMissingFieldException.newBuilder() // fail if "event" also is not present
-                .fieldName(Event.JsonFields.TYPE.getPointer().toString()).build());
+        return jsonObject.getValueOrThrow(Event.JsonFields.TYPE);
     }
+
 }

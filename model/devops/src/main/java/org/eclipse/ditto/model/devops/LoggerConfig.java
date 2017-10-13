@@ -11,10 +11,11 @@
  */
 package org.eclipse.ditto.model.devops;
 
-import static org.eclipse.ditto.json.JsonFactory.newFieldDefinition;
-
 import java.util.Optional;
 
+import javax.annotation.concurrent.Immutable;
+
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
@@ -54,25 +55,26 @@ public interface LoggerConfig extends Jsonifiable.WithPredicate<JsonObject, Json
     /**
      * An enumeration of the known {@link JsonField}s of a LoggerConfig.
      */
+    @Immutable
     final class JsonFields {
 
         /**
          * JSON field containing the {@link LogLevel} to set.
          */
-        public static final JsonFieldDefinition LEVEL = newFieldDefinition("level", String.class, FieldType.REGULAR,
-                // available in schema versions:
-                JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+        public static final JsonFieldDefinition<String> LEVEL = JsonFactory.newStringFieldDefinition("level",
+                FieldType.REGULAR, JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the logger to change.
          */
-        public static final JsonFieldDefinition LOGGER = newFieldDefinition("logger", String.class, FieldType.REGULAR,
-                // available in schema versions:
-                JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+        public static final JsonFieldDefinition<String> LOGGER =
+                JsonFactory.newStringFieldDefinition("logger", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
 
         private JsonFields() {
             throw new AssertionError();
         }
+
     }
 
 }

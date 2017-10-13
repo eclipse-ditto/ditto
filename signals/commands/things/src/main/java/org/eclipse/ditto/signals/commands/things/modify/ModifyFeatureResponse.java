@@ -48,15 +48,13 @@ public final class ModifyFeatureResponse extends AbstractCommandResponse<ModifyF
      */
     public static final String TYPE = TYPE_PREFIX + ModifyFeature.NAME;
 
-    static final JsonFieldDefinition JSON_FEATURE_ID =
-            JsonFactory.newFieldDefinition("featureId", String.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<String> JSON_FEATURE_ID =
+            JsonFactory.newStringFieldDefinition("featureId", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
 
-    static final JsonFieldDefinition JSON_FEATURE =
-            JsonFactory.newFieldDefinition("feature", JsonObject.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<JsonObject> JSON_FEATURE =
+            JsonFactory.newJsonObjectFieldDefinition("feature", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
 
     private final String thingId;
     private final Feature featureCreated;
@@ -131,10 +129,11 @@ public final class ModifyFeatureResponse extends AbstractCommandResponse<ModifyF
      */
     public static ModifyFeatureResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<ModifyFeatureResponse>(TYPE, jsonObject)
-                .deserialize((statusCode, jsonObjectReader) -> {
-                    final String thingId = jsonObjectReader.get(ThingModifyCommandResponse.JsonFields.JSON_THING_ID);
-                    final String extractedFeatureId = jsonObjectReader.get(JSON_FEATURE_ID);
-                    final JsonObject featureJsonObject = jsonObjectReader.get(JSON_FEATURE);
+                .deserialize((statusCode) -> {
+                    final String thingId =
+                            jsonObject.getValueOrThrow(ThingModifyCommandResponse.JsonFields.JSON_THING_ID);
+                    final String extractedFeatureId = jsonObject.getValueOrThrow(JSON_FEATURE_ID);
+                    final JsonObject featureJsonObject = jsonObject.getValueOrThrow(JSON_FEATURE);
 
                     final Feature extractedFeature;
                     if (featureJsonObject == null || featureJsonObject.isNull()) {

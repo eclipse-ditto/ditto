@@ -27,7 +27,6 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -53,15 +52,13 @@ public final class RetrieveFeatureProperties extends AbstractCommand<RetrieveFea
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition JSON_FEATURE_ID =
-            JsonFactory.newFieldDefinition("featureId", String.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<String> JSON_FEATURE_ID =
+            JsonFactory.newStringFieldDefinition("featureId", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
 
-    static final JsonFieldDefinition JSON_SELECTED_FIELDS =
-            JsonFactory.newFieldDefinition("selectedFields", String.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<String> JSON_SELECTED_FIELDS =
+            JsonFactory.newStringFieldDefinition("selectedFields", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
 
     private final String thingId;
     private final String featureId;
@@ -146,18 +143,17 @@ public final class RetrieveFeatureProperties extends AbstractCommand<RetrieveFea
      * org.eclipse.ditto.model.things.Thing#ID_REGEX}.
      */
     public static RetrieveFeatureProperties fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandJsonDeserializer<RetrieveFeatureProperties>(TYPE, jsonObject).deserialize(
-                jsonObjectReader -> {
-                    final String thingId = jsonObjectReader.get(ThingQueryCommand.JsonFields.JSON_THING_ID);
-                    final String extractedFeatureId = jsonObjectReader.get(JSON_FEATURE_ID);
-                    final JsonFieldSelector extractedFieldSelector = jsonObject.getValue(JSON_SELECTED_FIELDS)
-                            .filter(JsonValue::isString)
-                            .map(JsonValue::asString)
-                            .map(str -> JsonFactory.newFieldSelector(str,
-                                    JsonFactory.newParseOptionsBuilder().withoutUrlDecoding().build()))
-                            .orElse(null);
-                    return of(thingId, extractedFeatureId, extractedFieldSelector, dittoHeaders);
-                });
+        return new CommandJsonDeserializer<RetrieveFeatureProperties>(TYPE, jsonObject).deserialize(() -> {
+            final String thingId = jsonObject.getValueOrThrow(ThingQueryCommand.JsonFields.JSON_THING_ID);
+            final String extractedFeatureId = jsonObject.getValueOrThrow(JSON_FEATURE_ID);
+            final JsonFieldSelector extractedFieldSelector = jsonObject.getValue(JSON_SELECTED_FIELDS)
+                    .map(str -> JsonFactory.newFieldSelector(str, JsonFactory.newParseOptionsBuilder()
+                            .withoutUrlDecoding()
+                            .build()))
+                    .orElse(null);
+
+            return of(thingId, extractedFeatureId, extractedFieldSelector, dittoHeaders);
+        });
     }
 
     @Override
@@ -219,8 +215,8 @@ public final class RetrieveFeatureProperties extends AbstractCommand<RetrieveFea
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof RetrieveFeatureProperties);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof RetrieveFeatureProperties;
     }
 
     @Override

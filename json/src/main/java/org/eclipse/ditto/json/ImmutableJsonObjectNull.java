@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 /**
@@ -54,57 +55,53 @@ final class ImmutableJsonObjectNull extends AbstractImmutableJsonValue implement
     }
 
     @Override
-    public JsonObject asObject() {
+    public ImmutableJsonObjectNull asObject() {
         return this;
     }
 
     @Override
-    public JsonObject setValue(final CharSequence key, final int value) {
+    public ImmutableJsonObjectNull setValue(final CharSequence key, final int value) {
         return this;
     }
 
     @Override
-    public JsonObject setValue(final CharSequence key, final long value) {
+    public ImmutableJsonObjectNull setValue(final CharSequence key, final long value) {
         return this;
     }
 
     @Override
-    public JsonObject setValue(final CharSequence key, final double value) {
+    public ImmutableJsonObjectNull setValue(final CharSequence key, final double value) {
         return this;
     }
 
     @Override
-    public JsonObject setValue(final CharSequence key, final boolean value) {
+    public ImmutableJsonObjectNull setValue(final CharSequence key, final boolean value) {
         return this;
     }
 
     @Override
-    public JsonObject setValue(final CharSequence key, final String value) {
+    public ImmutableJsonObjectNull setValue(final CharSequence key, final String value) {
         return this;
     }
 
     @Override
-    public JsonObject setValue(final CharSequence key, final JsonValue value) {
+    public ImmutableJsonObjectNull setValue(final CharSequence key, final JsonValue value) {
         return this;
     }
 
     @Override
-    public JsonObject set(final JsonFieldDefinition fieldDefinition, final JsonValue value) {
+    public <T> ImmutableJsonObjectNull set(final JsonFieldDefinition<T> fieldDefinition, @Nullable final T value) {
         return this;
     }
 
     @Override
-    public JsonObject set(final JsonField field) {
+    public ImmutableJsonObjectNull set(final JsonField field) {
         return this;
     }
 
     @Override
-    public JsonObject setAll(final Iterable<JsonField> jsonFields) {
+    public ImmutableJsonObjectNull setAll(final Iterable<JsonField> jsonFields) {
         return this;
-    }
-
-    private boolean containsKey(final CharSequence key) {
-        return false;
     }
 
     @Override
@@ -113,12 +110,12 @@ final class ImmutableJsonObjectNull extends AbstractImmutableJsonValue implement
     }
 
     @Override
-    public JsonObject get(final JsonPointer pointer) {
+    public ImmutableJsonObjectNull get(final JsonPointer pointer) {
         return this;
     }
 
     @Override
-    public JsonObject get(final JsonFieldDefinition fieldDefinition) {
+    public ImmutableJsonObjectNull get(final JsonFieldDefinition fieldDefinition) {
         return this;
     }
 
@@ -128,17 +125,22 @@ final class ImmutableJsonObjectNull extends AbstractImmutableJsonValue implement
     }
 
     @Override
-    public Optional<JsonValue> getValue(final JsonFieldDefinition fieldDefinition) {
+    public <T> Optional<T> getValue(final JsonFieldDefinition<T> fieldDefinition) {
         return Optional.empty();
     }
 
     @Override
-    public JsonObject get(final JsonFieldSelector fieldSelector) {
+    public <T> T getValueOrThrow(final JsonFieldDefinition<T> fieldDefinition) {
+        throw JsonMissingFieldException.newBuilder().fieldName(fieldDefinition.getPointer()).build();
+    }
+
+    @Override
+    public ImmutableJsonObjectNull get(final JsonFieldSelector fieldSelector) {
         return this;
     }
 
     @Override
-    public JsonObject remove(final CharSequence key) {
+    public ImmutableJsonObjectNull remove(final CharSequence key) {
         return this;
     }
 

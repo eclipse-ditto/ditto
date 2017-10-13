@@ -102,12 +102,11 @@ public final class AttributesDeleted extends AbstractThingEvent<AttributesDelete
      * 'AttributesDeleted' format.
      */
     public static AttributesDeleted fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new EventJsonDeserializer<AttributesDeleted>(TYPE, jsonObject)
-                .deserialize((revision, timestamp, jsonObjectReader) -> {
-                    final String extractedThingId = jsonObjectReader.get(JsonFields.THING_ID);
+        return new EventJsonDeserializer<AttributesDeleted>(TYPE, jsonObject).deserialize((revision, timestamp) -> {
+            final String extractedThingId = jsonObject.getValueOrThrow(JsonFields.THING_ID);
 
-                    return of(extractedThingId, revision, dittoHeaders);
-                });
+            return of(extractedThingId, revision, dittoHeaders);
+        });
     }
 
     @Override

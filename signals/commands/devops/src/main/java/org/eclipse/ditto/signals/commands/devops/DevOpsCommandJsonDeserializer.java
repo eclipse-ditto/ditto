@@ -15,30 +15,26 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.argumentNotEm
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.text.MessageFormat;
+import java.util.function.Supplier;
 
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonObjectReader;
 import org.eclipse.ditto.json.JsonParseException;
-import org.eclipse.ditto.json.JsonReader;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 
 /**
  * This class helps to deserialize JSON to a sub-class of {@link DevOpsCommand}. Hereby this class extracts the values
- * which are common for all commands. All remaining required values have to be extracted in {@link
- * FactoryMethodFunction#create(JsonObjectReader)}. There the actual command object is created, too.
+ * which are common for all commands. All remaining required values have to be extracted in a user provided
+ * Supplier.  There the actual command object is created, too.
  */
+// TODO Replace with simple type check.
 @Immutable
 public final class DevOpsCommandJsonDeserializer<T extends DevOpsCommand> {
 
     private final JsonObject jsonObject;
-    private final JsonObjectReader jsonReader;
     private final String expectedCommandType;
-    private final String commandTypePrefix;
 
     /**
      * Constructs a new {@code CommandJsonDeserializer} object.
@@ -53,9 +49,15 @@ public final class DevOpsCommandJsonDeserializer<T extends DevOpsCommand> {
         checkNotNull(jsonObject, "JSON object to be deserialized");
 
         this.jsonObject = jsonObject;
-        jsonReader = JsonReader.from(jsonObject);
         expectedCommandType = type;
-        commandTypePrefix = type.split(":")[0];
+    }
+
+    private static void validateType(final String type) {
+        // for backward compatibility, extract the prefix for later use:
+        if (!type.contains(":")) {
+            final String msgPattern = "The type <{0}> does not contain a prefix separated by a colon (':')!";
+            throw new IllegalArgumentException(MessageFormat.format(msgPattern, type));
+        }
     }
 
     /**
@@ -71,63 +73,33 @@ public final class DevOpsCommandJsonDeserializer<T extends DevOpsCommand> {
         this(type, JsonFactory.newObject(jsonString));
     }
 
-    private void validateType(final String type) {
-        // for backward compatibility, extract the prefix for later use:
-        if (!type.contains(":")) {
-            throw new IllegalArgumentException(
-                    MessageFormat.format("The type ''{0}'' does not contain a prefix separated by a colon (':').",
-                            type));
-        }
-    }
-
     /**
-     * Partly deserializes the JSON which was given to this object's constructor. The factory method function which is
-     * given to this method is responsible for creating the actual {@code CommandType}. This method receives the partly
-     * deserialized values as well as the {@link JsonReader} for the JSON to obtain further values if required.
+     * Validates the command type and invokes the specified Supplier which provides the actual {@link DevOpsCommand}.
      *
-     * @param factoryMethodFunction creates the actual {@code CommandType} object.
+     * @param commandSupplier creates the actual {@code DevOpsCommand} object.
      * @return the command.
-     * @throws NullPointerException if {@code factoryMethodFunction} is {@code null}.
-     * @throws JsonParseException if the JSON is invalid or if the command type differs from the expected one.
+     * @throws NullPointerException if {@code commandSupplier} is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if the JSON object did not contain a field for
+     * {@link DevOpsCommand.JsonFields#TYPE}.
+     * @throws DittoJsonException if the JSON object did not contain the expected value for
+     * {@link DevOpsCommand.JsonFields#TYPE}.
      */
-    public T deserialize(final FactoryMethodFunction<T> factoryMethodFunction) {
-        checkNotNull(factoryMethodFunction, "method for creating a command object");
+    public T deserialize(final Supplier<T> commandSupplier) {
+        checkNotNull(commandSupplier, "Supplier for a command object");
         validateCommandType();
 
-        return factoryMethodFunction.create(jsonReader);
+        return commandSupplier.get();
     }
 
     private void validateCommandType() {
-        final String type = jsonObject.getValue(DevOpsCommand.JsonFields.TYPE) //
-                .map(JsonValue::asString) //
-                .orElseThrow(() -> JsonMissingFieldException.newBuilder()
-                        .fieldName(DevOpsCommand.JsonFields.TYPE.getPointer().toString()).build());
+        final String actualCommandType = jsonObject.getValueOrThrow(DevOpsCommand.JsonFields.TYPE);
 
-        if (!expectedCommandType.equals(type)) {
-            final String msg = MessageFormat
-                    .format("DevOpsCommand JSON was not a ''{0}'' command but a ''{1}''!", expectedCommandType, type);
-            final JsonParseException jsonParseException = new JsonParseException(msg);
-            throw new DittoJsonException(jsonParseException);
+        if (!expectedCommandType.equals(actualCommandType)) {
+            final String msgPattern = "DevOpsCommand JSON was not a <{0}> command but a <{1}>!";
+            final String msg = MessageFormat.format(msgPattern, expectedCommandType, actualCommandType);
+
+            throw new DittoJsonException(new JsonParseException(msg));
         }
-    }
-
-    /**
-     * Represents a function that accepts three arguments to produce a {@code DevOpsCommand}. The arguments were
-     * extracted from a given JSON beforehand.
-     *
-     * @param <T> the type of the result of the function.
-     */
-    @FunctionalInterface
-    public interface FactoryMethodFunction<T extends DevOpsCommand> {
-
-        /**
-         * Creates a {@code DevOpsCommand} with the help of the given arguments.
-         *
-         * @param jsonObjectReader the reader which was initialized with the JSON to be deserialized. It can be used to
-         * obtain further values from JSON.
-         * @return the command.
-         */
-        T create(JsonObjectReader jsonObjectReader);
     }
 
 }

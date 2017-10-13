@@ -13,6 +13,7 @@ package org.eclipse.ditto.model.policies;
 
 import javax.annotation.Nonnull;
 
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -60,7 +61,7 @@ public interface SubjectId extends CharSequence {
      * @return the JsonFieldDefinition for this Subject.
      */
     default JsonFieldDefinition getJsonFieldDefinition() {
-        return JsonFieldDefinition.newInstance(this, String.class, FieldType.REGULAR, JsonSchemaVersion.V_2);
+        return JsonFactory.newStringFieldDefinition(this, FieldType.REGULAR, JsonSchemaVersion.V_2);
     }
 
     /**

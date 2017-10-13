@@ -19,7 +19,6 @@ import javax.annotation.Nonnull;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -932,7 +931,7 @@ public class ThingModifyCommandAdapterTest {
         }
 
         @Override
-        public JsonValue toJson(final JsonSchemaVersion schemaVersion, final Predicate predicate) {
+        public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate predicate) {
             return JsonObject.newBuilder()
                     .set(JsonFields.TYPE, getType())
                     .set("thingId", getThingId())

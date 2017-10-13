@@ -51,22 +51,21 @@ public final class ModifyResources extends AbstractCommand<ModifyResources>
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition JSON_LABEL =
-            JsonFactory.newFieldDefinition("label", String.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<String> JSON_LABEL =
+            JsonFactory.newStringFieldDefinition("label", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
-    static final JsonFieldDefinition JSON_RESOURCES =
-            JsonFactory.newFieldDefinition("resources", JsonObject.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<JsonObject> JSON_RESOURCES =
+            JsonFactory.newJsonObjectFieldDefinition("resources", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private final String policyId;
     private final Label label;
     private final Resources resources;
 
-    private ModifyResources(final String policyId, final Label label, final Resources resources,
+    private ModifyResources(final String policyId,
+            final Label label,
+            final Resources resources,
             final DittoHeaders dittoHeaders) {
+
         super(TYPE, dittoHeaders);
         this.policyId = policyId;
         this.label = label;
@@ -83,8 +82,11 @@ public final class ModifyResources extends AbstractCommand<ModifyResources>
      * @return the command.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static ModifyResources of(final String policyId, final Label label, final Resources resources,
+    public static ModifyResources of(final String policyId,
+            final Label label,
+            final Resources resources,
             final DittoHeaders dittoHeaders) {
+
         Objects.requireNonNull(policyId, "The Policy identifier must not be null!");
         Objects.requireNonNull(label, "The Label must not be null!");
         Objects.requireNonNull(resources, "The Resources must not be null!");
@@ -117,11 +119,10 @@ public final class ModifyResources extends AbstractCommand<ModifyResources>
      * format.
      */
     public static ModifyResources fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandJsonDeserializer<ModifyResources>(TYPE, jsonObject).deserialize(jsonObjectReader -> {
-            final String policyId = jsonObjectReader.get(PolicyModifyCommand.JsonFields.JSON_POLICY_ID);
-            final String stringLabel = jsonObjectReader.get(JSON_LABEL);
-            final Label label = PoliciesModelFactory.newLabel(stringLabel);
-            final JsonObject resourcesJsonObject = jsonObjectReader.get(JSON_RESOURCES);
+        return new CommandJsonDeserializer<ModifyResources>(TYPE, jsonObject).deserialize(() -> {
+            final String policyId = jsonObject.getValueOrThrow(PolicyModifyCommand.JsonFields.JSON_POLICY_ID);
+            final Label label = PoliciesModelFactory.newLabel(jsonObject.getValueOrThrow(JSON_LABEL));
+            final JsonObject resourcesJsonObject = jsonObject.getValueOrThrow(JSON_RESOURCES);
             final Resources resources = PoliciesModelFactory.newResources(resourcesJsonObject);
 
             return of(policyId, label, resources, dittoHeaders);
@@ -170,6 +171,7 @@ public final class ModifyResources extends AbstractCommand<ModifyResources>
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(PolicyModifyCommand.JsonFields.JSON_POLICY_ID, policyId, predicate);
         jsonObjectBuilder.set(JSON_LABEL, label.toString(), predicate);
@@ -182,8 +184,8 @@ public final class ModifyResources extends AbstractCommand<ModifyResources>
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof ModifyResources);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof ModifyResources;
     }
 
     @SuppressWarnings("squid:MethodCyclomaticComplexity")

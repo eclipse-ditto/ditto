@@ -21,6 +21,7 @@ import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonArray;
@@ -31,8 +32,6 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.json.JsonObjectReader;
-import org.eclipse.ditto.json.JsonReader;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
@@ -58,16 +57,16 @@ public final class SudoRetrieveThings extends AbstractCommand<SudoRetrieveThings
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition JSON_THING_IDS =
-            JsonFactory.newFieldDefinition("payload/thingIds", JsonArray.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<JsonArray> JSON_THING_IDS =
+            JsonFactory.newArrayFieldDefinition("payload/thingIds", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
 
     private final List<String> thingIds;
-    private final JsonFieldSelector selectedFields;
+    @Nullable private final JsonFieldSelector selectedFields;
 
-    private SudoRetrieveThings(final List<String> thingIds, final JsonFieldSelector selectedFields,
+    private SudoRetrieveThings(final List<String> thingIds, @Nullable final JsonFieldSelector selectedFields,
             final DittoHeaders dittoHeaders) {
+
         super(TYPE, dittoHeaders);
 
         requireNonNull(thingIds, "The Thing IDs must not be null!");
@@ -94,10 +93,11 @@ public final class SudoRetrieveThings extends AbstractCommand<SudoRetrieveThings
      * @param selectedFields the Fields which should be included in the Thing's JSON representation.
      * @param dittoHeaders the command headers of the request.
      * @return a command for retrieving Things without authorization.
-     * @throws NullPointerException if any argument is {@code null} except the {@code selectedFields}
+     * @throws NullPointerException if any argument but {@code selectedFields} is {@code null}.
      */
-    public static SudoRetrieveThings of(final List<String> thingIds, final JsonFieldSelector selectedFields,
+    public static SudoRetrieveThings of(final List<String> thingIds, @Nullable final JsonFieldSelector selectedFields,
             final DittoHeaders dittoHeaders) {
+
         return new SudoRetrieveThings(thingIds, selectedFields, dittoHeaders);
     }
 
@@ -129,21 +129,18 @@ public final class SudoRetrieveThings extends AbstractCommand<SudoRetrieveThings
      * expected format.
      */
     public static SudoRetrieveThings fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        final JsonObjectReader jsonReader = JsonReader.from(jsonObject);
 
-        final List<String> extractedThingIds = jsonReader.<JsonArray>get(JSON_THING_IDS) //
-                .stream() //
-                .filter(JsonValue::isString) //
-                .map(JsonValue::asString) //
+        final List<String> extractedThingIds = jsonObject.getValueOrThrow(JSON_THING_IDS)
+                .stream()
+                .filter(JsonValue::isString)
+                .map(JsonValue::asString)
                 .collect(Collectors.toList());
 
-        final JsonFieldSelector extractedFieldSelector =
-                jsonObject.getValue(SudoCommand.JsonFields.SELECTED_FIELDS) //
-                        .filter(JsonValue::isString) //
-                        .map(JsonValue::asString) //
-                        .map(str -> JsonFactory.newFieldSelector(str,
-                                JsonFactory.newParseOptionsBuilder().withoutUrlDecoding().build())) //
-                        .orElse(null);
+        final JsonFieldSelector extractedFieldSelector = jsonObject.getValue(SudoCommand.JsonFields.SELECTED_FIELDS)
+                .map(str -> JsonFactory.newFieldSelector(str, JsonFactory.newParseOptionsBuilder()
+                        .withoutUrlDecoding()
+                        .build()))
+                .orElse(null);
 
         return SudoRetrieveThings.of(extractedThingIds, extractedFieldSelector, dittoHeaders);
     }
@@ -170,10 +167,11 @@ public final class SudoRetrieveThings extends AbstractCommand<SudoRetrieveThings
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
 
-        final JsonArray thingIdsJsonArray = thingIds.stream() //
-                .map(JsonFactory::newValue) //
+        final JsonArray thingIdsJsonArray = thingIds.stream()
+                .map(JsonFactory::newValue)
                 .collect(JsonCollectors.valuesToArray());
 
         jsonObjectBuilder.set(JSON_THING_IDS, thingIdsJsonArray, predicate);
@@ -191,16 +189,12 @@ public final class SudoRetrieveThings extends AbstractCommand<SudoRetrieveThings
     @SuppressWarnings("squid:S109")
     @Override
     public int hashCode() {
-        final int prime = 31;
-        int result = super.hashCode();
-        result = prime * result + Objects.hashCode(thingIds);
-        result = prime * result + Objects.hashCode(selectedFields);
-        return result;
+        return Objects.hash(thingIds, selectedFields, super.hashCode());
     }
 
     @SuppressWarnings({"squid:MethodCyclomaticComplexity", "squid:S1067", "pmd:SimplifyConditional"})
     @Override
-    public boolean equals(final Object obj) {
+    public boolean equals(@Nullable final Object obj) {
         if (this == obj) {
             return true;
         }
@@ -213,8 +207,8 @@ public final class SudoRetrieveThings extends AbstractCommand<SudoRetrieveThings
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof SudoRetrieveThings);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof SudoRetrieveThings;
     }
 
     @Override

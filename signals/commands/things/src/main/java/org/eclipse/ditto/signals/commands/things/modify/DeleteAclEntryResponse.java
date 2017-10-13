@@ -46,9 +46,8 @@ public final class DeleteAclEntryResponse extends AbstractCommandResponse<Delete
      */
     public static final String TYPE = TYPE_PREFIX + DeleteAclEntry.NAME;
 
-    static final JsonFieldDefinition JSON_AUTHORIZATION_SUBJECT =
-            JsonFactory.newFieldDefinition("authorizationSubject", String.class, FieldType.REGULAR,
-                    JsonSchemaVersion.V_1);
+    static final JsonFieldDefinition<String> JSON_AUTHORIZATION_SUBJECT =
+            JsonFactory.newStringFieldDefinition("authorizationSubject", FieldType.REGULAR, JsonSchemaVersion.V_1);
 
     private final String thingId;
     private final AuthorizationSubject authorizationSubject;
@@ -103,11 +102,13 @@ public final class DeleteAclEntryResponse extends AbstractCommandResponse<Delete
      */
     public static DeleteAclEntryResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<DeleteAclEntryResponse>(TYPE, jsonObject)
-                .deserialize((statusCode, jsonObjectReader) -> {
-                    final String thingId = jsonObjectReader.get(ThingModifyCommandResponse.JsonFields.JSON_THING_ID);
-                    final String authSubjectId = jsonObjectReader.get(JSON_AUTHORIZATION_SUBJECT);
+                .deserialize((statusCode) -> {
+                    final String thingId =
+                            jsonObject.getValueOrThrow(ThingModifyCommandResponse.JsonFields.JSON_THING_ID);
+                    final String authSubjectId = jsonObject.getValueOrThrow(JSON_AUTHORIZATION_SUBJECT);
                     final AuthorizationSubject extractedAuthSubject =
                             AuthorizationModelFactory.newAuthSubject(authSubjectId);
+
                     return of(thingId, extractedAuthSubject, dittoHeaders);
                 });
     }

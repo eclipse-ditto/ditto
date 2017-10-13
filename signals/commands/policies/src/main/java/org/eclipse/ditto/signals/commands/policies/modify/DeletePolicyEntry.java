@@ -48,10 +48,8 @@ public final class DeletePolicyEntry extends AbstractCommand<DeletePolicyEntry>
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition JSON_LABEL =
-            JsonFactory.newFieldDefinition("label", String.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<String> JSON_LABEL =
+            JsonFactory.newStringFieldDefinition("label", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private final String policyId;
     private final Label label;
@@ -103,9 +101,9 @@ public final class DeletePolicyEntry extends AbstractCommand<DeletePolicyEntry>
      * format.
      */
     public static DeletePolicyEntry fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandJsonDeserializer<DeletePolicyEntry>(TYPE, jsonObject).deserialize(jsonObjectReader -> {
-            final String policyId = jsonObjectReader.get(PolicyModifyCommand.JsonFields.JSON_POLICY_ID);
-            final String stringLabel = jsonObjectReader.get(JSON_LABEL);
+        return new CommandJsonDeserializer<DeletePolicyEntry>(TYPE, jsonObject).deserialize(() -> {
+            final String policyId = jsonObject.getValueOrThrow(PolicyModifyCommand.JsonFields.JSON_POLICY_ID);
+            final String stringLabel = jsonObject.getValueOrThrow(JSON_LABEL);
             final Label label = PoliciesModelFactory.newLabel(stringLabel);
 
             return of(policyId, label, dittoHeaders);
@@ -140,6 +138,7 @@ public final class DeletePolicyEntry extends AbstractCommand<DeletePolicyEntry>
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(PolicyModifyCommand.JsonFields.JSON_POLICY_ID, policyId, predicate);
         jsonObjectBuilder.set(JSON_LABEL, label.toString(), predicate);
@@ -151,8 +150,8 @@ public final class DeletePolicyEntry extends AbstractCommand<DeletePolicyEntry>
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof DeletePolicyEntry);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof DeletePolicyEntry;
     }
 
     @SuppressWarnings("squid:MethodCyclomaticComplexity")

@@ -18,7 +18,6 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.signals.base.AbstractJsonParsableRegistry;
 import org.eclipse.ditto.signals.base.JsonParsable;
 
@@ -43,7 +42,6 @@ public abstract class AbstractCommandRegistry<T extends Command> extends Abstrac
     @Override
     protected String resolveType(final JsonObject jsonObject) {
         final Supplier<String> command = () -> jsonObject.getValue(Command.JsonFields.ID)
-                .map(JsonValue::asString)
                 .map(cmd -> getTypePrefix() + cmd) // and transform to V2 format
                 // fail if "command" also is not present
                 .orElseThrow(() -> JsonMissingFieldException.newBuilder()
@@ -51,9 +49,7 @@ public abstract class AbstractCommandRegistry<T extends Command> extends Abstrac
                         .build());
 
         // if type was not present (was included in V2) take "command" instead
-        return jsonObject.getValue(Command.JsonFields.TYPE)
-                .map(JsonValue::asString)
-                .orElseGet(command);
+        return jsonObject.getValue(Command.JsonFields.TYPE).orElseGet(command);
     }
 
     /**

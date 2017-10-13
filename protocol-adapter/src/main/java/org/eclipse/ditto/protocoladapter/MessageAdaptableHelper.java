@@ -101,10 +101,7 @@ final class MessageAdaptableHelper {
 
         message.getStatusCode().ifPresent(payloadBuilder::withStatus);
 
-        messageCommandJson.getValue(CommandResponse.JsonFields.STATUS)
-                .filter(JsonValue::isNumber)
-                .map(JsonValue::asInt)
-                .ifPresent(payloadBuilder::withStatus);
+        messageCommandJson.getValue(CommandResponse.JsonFields.STATUS).ifPresent(payloadBuilder::withStatus);
 
         return Adaptable.newBuilder(messagesTopicPathBuilder.build())
                 .withPayload(payloadBuilder.build())

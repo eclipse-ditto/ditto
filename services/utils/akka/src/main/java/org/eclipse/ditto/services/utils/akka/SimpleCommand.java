@@ -41,7 +41,7 @@ public final class SimpleCommand implements Jsonifiable<JsonObject> {
     }
 
     /**
-     * Returns a new {@link SimpleCommand} instance.
+     * Returns a new {@code SimpleCommand} instance.
      *
      * @param commandName the name of the command.
      * @param correlationId an optional identifier correlating a SimpleCommand to a SimpleCommandResponse.
@@ -53,7 +53,7 @@ public final class SimpleCommand implements Jsonifiable<JsonObject> {
     }
 
     /**
-     * Creates a new {@link SimpleCommand} from a JSON string.
+     * Creates a new {@code SimpleCommand} from a JSON string.
      *
      * @param jsonString the JSON string of which a new SimpleCommand is to be created.
      * @return the SimpleCommand which was created from the given JSON string.
@@ -69,7 +69,7 @@ public final class SimpleCommand implements Jsonifiable<JsonObject> {
     }
 
     /**
-     * Creates a new {@link SimpleCommand} from a JSON object.
+     * Creates a new {@code SimpleCommand} from a JSON object.
      *
      * @param jsonObject the JSON object of which a new SimpleCommand is to be created.
      * @return the SimpleCommand which was created from the given JSON object.
@@ -80,16 +80,8 @@ public final class SimpleCommand implements Jsonifiable<JsonObject> {
      * format.
      */
     public static SimpleCommand fromJson(final JsonObject jsonObject) {
-        final String extractedCommandName = jsonObject.getValue(JsonFields.NAME)
-                .filter(JsonValue::isString)
-                .map(JsonValue::asString)
-                .orElseThrow(() -> new JsonMissingFieldException(JsonFields.NAME.getPointer()));
-
-        final String extractedCorrelationId = jsonObject.getValue(JsonFields.CORRELATION_ID)
-                .filter(JsonValue::isString)
-                .map(JsonValue::asString)
-                .orElse(null);
-
+        final String extractedCommandName = jsonObject.getValueOrThrow(JsonFields.NAME);
+        final String extractedCorrelationId = jsonObject.getValue(JsonFields.CORRELATION_ID).orElse(null);
         final JsonValue extractedPayload = jsonObject.getValue(JsonFields.PAYLOAD).orElse(null);
 
         return of(extractedCommandName, extractedCorrelationId, extractedPayload);
@@ -133,8 +125,12 @@ public final class SimpleCommand implements Jsonifiable<JsonObject> {
 
     @Override
     public boolean equals(final Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         final SimpleCommand that = (SimpleCommand) o;
         return Objects.equals(commandName, that.commandName) &&
                 Objects.equals(correlationId, that.correlationId) &&
@@ -158,25 +154,28 @@ public final class SimpleCommand implements Jsonifiable<JsonObject> {
     /**
      * An enumeration of the known {@link JsonFieldDefinition}s of a SimpleCommand.
      */
+    @Immutable
     public static final class JsonFields {
 
         /**
          * JSON field containing the command name.
          */
-        static final JsonFieldDefinition NAME = JsonFactory.newFieldDefinition("command", String.class);
+        static final JsonFieldDefinition<String> NAME = JsonFactory.newStringFieldDefinition("command");
 
         /**
          * JSON field containing the correlationId.
          */
-        static final JsonFieldDefinition CORRELATION_ID = JsonFactory.newFieldDefinition("correlationId", String.class);
+        static final JsonFieldDefinition<String> CORRELATION_ID = JsonFactory.newStringFieldDefinition("correlationId");
 
         /**
          * JSON field containing optional payload.
          */
-        static final JsonFieldDefinition PAYLOAD = JsonFactory.newFieldDefinition("payload", JsonValue.class);
+        static final JsonFieldDefinition<JsonValue> PAYLOAD = JsonFactory.newJsonValueFieldDefinition("payload");
 
         private JsonFields() {
             throw new AssertionError();
         }
+
     }
+
 }

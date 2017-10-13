@@ -45,28 +45,28 @@ public final class RetrieveAttributeResponse extends AbstractCommandResponse<Ret
      */
     public static final String TYPE = TYPE_PREFIX + RetrieveAttribute.NAME;
 
-    static final JsonFieldDefinition JSON_ATTRIBUTE =
-            JsonFactory.newFieldDefinition("attribute", String.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<String> JSON_ATTRIBUTE =
+            JsonFactory.newStringFieldDefinition("attribute", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
 
-    static final JsonFieldDefinition JSON_VALUE =
-            JsonFactory.newFieldDefinition("value", JsonValue.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<JsonValue> JSON_VALUE =
+            JsonFactory.newJsonValueFieldDefinition("value", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
 
     private final String thingId;
     private final JsonPointer attributePointer;
     private final JsonValue attributeValue;
 
-    private RetrieveAttributeResponse(final String thingId, final JsonPointer attributePointer,
+    private RetrieveAttributeResponse(final String thingId,
+            final JsonPointer attributePointer,
             final JsonValue attributeValue,
-            final HttpStatusCode statusCode, final DittoHeaders dittoHeaders) {
+            final HttpStatusCode statusCode,
+            final DittoHeaders dittoHeaders) {
+
         super(TYPE, statusCode, dittoHeaders);
         this.thingId = checkNotNull(thingId, "thing ID");
-        this.attributePointer =
-                Objects.requireNonNull(attributePointer,
-                        "The JSON pointer which attribute to retrieve must not be null!");
+        this.attributePointer = Objects.requireNonNull(attributePointer,
+                "The JSON pointer which attribute to retrieve must not be null!");
         this.attributeValue = checkNotNull(attributeValue, "Attribute Value");
     }
 
@@ -80,8 +80,11 @@ public final class RetrieveAttributeResponse extends AbstractCommandResponse<Ret
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static RetrieveAttributeResponse of(final String thingId, final JsonPointer attributePointer,
-            final JsonValue attributeValue, final DittoHeaders dittoHeaders) {
+    public static RetrieveAttributeResponse of(final String thingId,
+            final JsonPointer attributePointer,
+            final JsonValue attributeValue,
+            final DittoHeaders dittoHeaders) {
+
         return new RetrieveAttributeResponse(thingId, attributePointer, attributeValue, HttpStatusCode.OK,
                 dittoHeaders);
     }
@@ -113,11 +116,13 @@ public final class RetrieveAttributeResponse extends AbstractCommandResponse<Ret
      */
     public static RetrieveAttributeResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<RetrieveAttributeResponse>(TYPE, jsonObject)
-                .deserialize((statusCode, jsonObjectReader) -> {
-                    final String thingId = jsonObjectReader.get(ThingQueryCommandResponse.JsonFields.JSON_THING_ID);
-                    final String extractedPointerString = jsonObjectReader.get(JSON_ATTRIBUTE);
+                .deserialize((statusCode) -> {
+                    final String thingId =
+                            jsonObject.getValueOrThrow(ThingQueryCommandResponse.JsonFields.JSON_THING_ID);
+                    final String extractedPointerString = jsonObject.getValueOrThrow(JSON_ATTRIBUTE);
                     final JsonPointer extractedPointer = JsonFactory.newPointer(extractedPointerString);
-                    final JsonValue extractedAttribute = jsonObjectReader.get(JSON_VALUE);
+                    final JsonValue extractedAttribute = jsonObject.getValueOrThrow(JSON_VALUE);
+
                     return of(thingId, extractedPointer, extractedAttribute, dittoHeaders);
                 });
     }
@@ -161,6 +166,7 @@ public final class RetrieveAttributeResponse extends AbstractCommandResponse<Ret
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(ThingQueryCommandResponse.JsonFields.JSON_THING_ID, thingId, predicate);
         if (null != attributePointer) {
@@ -170,8 +176,8 @@ public final class RetrieveAttributeResponse extends AbstractCommandResponse<Ret
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof RetrieveAttributeResponse);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof RetrieveAttributeResponse;
     }
 
     @Override

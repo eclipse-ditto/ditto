@@ -44,10 +44,8 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 @Immutable
 final class ImmutableAclEntry implements AclEntry {
 
-    private static final JsonFieldDefinition JSON_SCHEMA_VERSION =
-            JsonFactory.newFieldDefinition(JsonSchemaVersion.getJsonKey(), int.class, FieldType.SPECIAL,
-                    FieldType.HIDDEN,
-                    // available in schema versions:
+    private static final JsonFieldDefinition<Integer> JSON_SCHEMA_VERSION =
+            JsonFactory.newIntFieldDefinition(JsonSchemaVersion.getJsonKey(), FieldType.SPECIAL, FieldType.HIDDEN,
                     JsonSchemaVersion.V_1);
 
     private final AuthorizationSubject authSubject;

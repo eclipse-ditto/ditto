@@ -30,7 +30,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 /**
  * Unit test for {@link ModifyResource}.
  */
-public class ModifyResourceTest {
+public final class ModifyResourceTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(PolicyCommand.JsonFields.TYPE, ModifyResource.TYPE)
@@ -40,14 +40,12 @@ public class ModifyResourceTest {
             .set(ModifyResource.JSON_RESOURCE, TestConstants.Policy.RESOURCE.toJson(FieldType.regularOrSpecial()))
             .build();
 
-
     @Test
     public void assertImmutability() {
         assertInstancesOf(ModifyResource.class,
                 areImmutable(),
                 provided(Label.class, Resource.class, JsonObject.class).areAlsoImmutable());
     }
-
 
     @Test
     public void testHashCodeAndEquals() {
@@ -56,38 +54,32 @@ public class ModifyResourceTest {
                 .verify();
     }
 
-
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullPolicyId() {
-        ModifyResource.of(null, TestConstants.Policy.LABEL,
-                TestConstants.Policy.RESOURCE, TestConstants.EMPTY_DITTO_HEADERS);
+        ModifyResource.of(null, TestConstants.Policy.LABEL, TestConstants.Policy.RESOURCE,
+                TestConstants.EMPTY_DITTO_HEADERS);
     }
-
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullLabel() {
-        ModifyResource.of(TestConstants.Policy.POLICY_ID, null,
-                TestConstants.Policy.RESOURCE, TestConstants.EMPTY_DITTO_HEADERS);
+        ModifyResource.of(TestConstants.Policy.POLICY_ID, null, TestConstants.Policy.RESOURCE,
+                TestConstants.EMPTY_DITTO_HEADERS);
     }
-
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullResource() {
-        ModifyResource.of(TestConstants.Policy.POLICY_ID,
-                TestConstants.Policy.LABEL, null, TestConstants.EMPTY_DITTO_HEADERS);
+        ModifyResource.of(TestConstants.Policy.POLICY_ID, TestConstants.Policy.LABEL, null,
+                TestConstants.EMPTY_DITTO_HEADERS);
     }
-
 
     @Test
     public void toJsonReturnsExpected() {
-        final ModifyResource underTest =
-                ModifyResource.of(TestConstants.Policy.POLICY_ID,
-                        TestConstants.Policy.LABEL, TestConstants.Policy.RESOURCE, TestConstants.EMPTY_DITTO_HEADERS);
+        final ModifyResource underTest = ModifyResource.of(TestConstants.Policy.POLICY_ID, TestConstants.Policy.LABEL,
+                TestConstants.Policy.RESOURCE, TestConstants.EMPTY_DITTO_HEADERS);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
         assertThat(actualJson).isEqualTo(KNOWN_JSON);
     }
-
 
     @Test
     public void createInstanceFromValidJson() {

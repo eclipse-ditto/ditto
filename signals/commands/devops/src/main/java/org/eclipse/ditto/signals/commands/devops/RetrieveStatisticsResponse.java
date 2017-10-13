@@ -14,6 +14,7 @@ package org.eclipse.ditto.signals.commands.devops;
 import java.util.Objects;
 import java.util.function.Predicate;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFactory;
@@ -37,10 +38,9 @@ public final class RetrieveStatisticsResponse extends AbstractDevOpsCommandRespo
      */
     public static final String TYPE = TYPE_PREFIX + RetrieveStatistics.NAME;
 
-    static final JsonFieldDefinition JSON_STATISTICS =
-            JsonFactory.newFieldDefinition("statistics", JsonObject.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<JsonObject> JSON_STATISTICS =
+            JsonFactory.newJsonObjectFieldDefinition("statistics", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
 
     private final JsonObject statistics;
 
@@ -62,7 +62,7 @@ public final class RetrieveStatisticsResponse extends AbstractDevOpsCommandRespo
     }
 
     /**
-     * Creates a response to a {@link RetrieveStatisticsResponse} command from a JSON string.
+     * Creates a response to a {@code RetrieveStatisticsResponse} command from a JSON string.
      *
      * @param jsonString contains the data of the RetrieveStatisticsResponse command.
      * @param dittoHeaders the headers of the request.
@@ -77,7 +77,7 @@ public final class RetrieveStatisticsResponse extends AbstractDevOpsCommandRespo
     }
 
     /**
-     * Creates a response to a {@link RetrieveStatisticsResponse} command from a JSON object.
+     * Creates a response to a {@code RetrieveStatisticsResponse} command from a JSON object.
      *
      * @param jsonObject the JSON object of which the response is to be created.
      * @param dittoHeaders the headers of the preceding command.
@@ -86,11 +86,10 @@ public final class RetrieveStatisticsResponse extends AbstractDevOpsCommandRespo
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */
-    public static RetrieveStatisticsResponse fromJson(final JsonObject jsonObject,
-            final DittoHeaders dittoHeaders) {
+    public static RetrieveStatisticsResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new DevOpsCommandResponseJsonDeserializer<RetrieveStatisticsResponse>(TYPE, jsonObject)
-                .deserialize((statusCode, jsonObjectReader) -> {
-                    final JsonObject statistics = jsonObjectReader.get(JSON_STATISTICS);
+                .deserialize(() -> {
+                    final JsonObject statistics = jsonObject.getValueOrThrow(JSON_STATISTICS);
                     return RetrieveStatisticsResponse.of(statistics, dittoHeaders);
                 });
     }
@@ -127,7 +126,7 @@ public final class RetrieveStatisticsResponse extends AbstractDevOpsCommandRespo
 
     @SuppressWarnings("squid:MethodCyclomaticComplexity")
     @Override
-    public boolean equals(final Object o) {
+    public boolean equals(@Nullable final Object o) {
         if (this == o) {
             return true;
         }
@@ -139,8 +138,8 @@ public final class RetrieveStatisticsResponse extends AbstractDevOpsCommandRespo
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof RetrieveStatisticsResponse);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof RetrieveStatisticsResponse;
     }
 
     @Override

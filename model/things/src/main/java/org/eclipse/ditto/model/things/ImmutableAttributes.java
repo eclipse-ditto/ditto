@@ -23,6 +23,7 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonArray;
@@ -169,7 +170,7 @@ final class ImmutableAttributes implements Attributes {
     }
 
     @Override
-    public JsonObject set(final JsonFieldDefinition fieldDefinition, final JsonValue value) {
+    public <T> Attributes set(final JsonFieldDefinition<T> fieldDefinition, @Nullable final T value) {
         return determineResult(() -> wrapped.set(fieldDefinition, value));
     }
 
@@ -204,8 +205,13 @@ final class ImmutableAttributes implements Attributes {
     }
 
     @Override
-    public Optional<JsonValue> getValue(final JsonFieldDefinition fieldDefinition) {
+    public <T> Optional<T> getValue(final JsonFieldDefinition<T> fieldDefinition) {
         return wrapped.getValue(fieldDefinition);
+    }
+
+    @Override
+    public <T> T getValueOrThrow(final JsonFieldDefinition<T> fieldDefinition) {
+        return wrapped.getValueOrThrow(fieldDefinition);
     }
 
     @Override

@@ -58,8 +58,6 @@ final class ImmutableJsonifiableAdaptable implements JsonifiableAdaptable {
      */
     public static ImmutableJsonifiableAdaptable fromJson(final JsonObject jsonObject) {
         final TopicPath topicPath = jsonObject.getValue(JsonFields.TOPIC)
-                .filter(JsonValue::isString)
-                .map(JsonValue::asString)
                 .map(DittoProtocolAdapter::newTopicPath)
                 .orElseGet(DittoProtocolAdapter::emptyTopicPath);
 

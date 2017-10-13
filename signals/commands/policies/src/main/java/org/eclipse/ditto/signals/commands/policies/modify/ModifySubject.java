@@ -51,27 +51,24 @@ public final class ModifySubject extends AbstractCommand<ModifySubject> implemen
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition JSON_LABEL =
-            JsonFactory.newFieldDefinition("label", String.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<String> JSON_LABEL =
+            JsonFactory.newStringFieldDefinition("label", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
-    static final JsonFieldDefinition JSON_SUBJECT_ID =
-            JsonFactory.newFieldDefinition("subjectId", String.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<String> JSON_SUBJECT_ID =
+            JsonFactory.newStringFieldDefinition("subjectId", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
-    static final JsonFieldDefinition JSON_SUBJECT =
-            JsonFactory.newFieldDefinition("subject", JsonObject.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<JsonObject> JSON_SUBJECT =
+            JsonFactory.newJsonObjectFieldDefinition("subject", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private final String policyId;
     private final Label label;
     private final Subject subject;
 
-    private ModifySubject(final String policyId, final Label label, final Subject subject,
+    private ModifySubject(final String policyId,
+            final Label label,
+            final Subject subject,
             final DittoHeaders dittoHeaders) {
+
         super(TYPE, dittoHeaders);
         this.policyId = policyId;
         this.label = label;
@@ -88,8 +85,11 @@ public final class ModifySubject extends AbstractCommand<ModifySubject> implemen
      * @return the command.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static ModifySubject of(final String policyId, final Label label, final Subject subject,
+    public static ModifySubject of(final String policyId,
+            final Label label,
+            final Subject subject,
             final DittoHeaders dittoHeaders) {
+
         Objects.requireNonNull(policyId, "The Policy identifier must not be null!");
         Objects.requireNonNull(label, "The Label must not be null!");
         Objects.requireNonNull(subject, "The Subject must not be null!");
@@ -122,12 +122,11 @@ public final class ModifySubject extends AbstractCommand<ModifySubject> implemen
      * format.
      */
     public static ModifySubject fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandJsonDeserializer<ModifySubject>(TYPE, jsonObject).deserialize(jsonObjectReader -> {
-            final String policyId = jsonObjectReader.get(PolicyModifyCommand.JsonFields.JSON_POLICY_ID);
-            final String stringLabel = jsonObjectReader.get(JSON_LABEL);
-            final Label label = PoliciesModelFactory.newLabel(stringLabel);
-            final String subjectId = jsonObjectReader.get(JSON_SUBJECT_ID);
-            final JsonObject subjectJsonObject = jsonObjectReader.get(JSON_SUBJECT);
+        return new CommandJsonDeserializer<ModifySubject>(TYPE, jsonObject).deserialize(() -> {
+            final String policyId = jsonObject.getValueOrThrow(PolicyModifyCommand.JsonFields.JSON_POLICY_ID);
+            final Label label = PoliciesModelFactory.newLabel(jsonObject.getValueOrThrow(JSON_LABEL));
+            final String subjectId = jsonObject.getValueOrThrow(JSON_SUBJECT_ID);
+            final JsonObject subjectJsonObject = jsonObject.getValueOrThrow(JSON_SUBJECT);
             final Subject subject = PoliciesModelFactory.newSubject(subjectId, subjectJsonObject);
 
             return of(policyId, label, subject, dittoHeaders);
@@ -176,6 +175,7 @@ public final class ModifySubject extends AbstractCommand<ModifySubject> implemen
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(PolicyModifyCommand.JsonFields.JSON_POLICY_ID, policyId, predicate);
         jsonObjectBuilder.set(JSON_LABEL, label.toString(), predicate);
@@ -189,8 +189,8 @@ public final class ModifySubject extends AbstractCommand<ModifySubject> implemen
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof ModifySubject);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof ModifySubject;
     }
 
     @SuppressWarnings("squid:MethodCyclomaticComplexity")

@@ -31,7 +31,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 /**
  * Unit test for {@link ModifyResourceResponse}.
  */
-public class ModifyResourceResponseTest {
+public final class ModifyResourceResponseTest {
 
     private static final JsonObject KNOWN_JSON_CREATED = JsonFactory.newObjectBuilder()
             .set(PolicyCommandResponse.JsonFields.TYPE, ModifyResourceResponse.TYPE)
@@ -50,14 +50,12 @@ public class ModifyResourceResponseTest {
             .set(ModifyResourceResponse.JSON_LABEL, TestConstants.Policy.LABEL.toString())
             .build();
 
-
     @Test
     public void assertImmutability() {
         assertInstancesOf(ModifyResourceResponse.class,
                 areImmutable(),
                 provided(Label.class, Resource.class).areAlsoImmutable());
     }
-
 
     @Test
     public void testHashCodeAndEquals() {
@@ -66,12 +64,10 @@ public class ModifyResourceResponseTest {
                 .verify();
     }
 
-
     @Test
     public void toJsonReturnsExpected() {
         final ModifyResourceResponse underTestCreated = ModifyResourceResponse.created(TestConstants.Policy.POLICY_ID,
-                TestConstants.Policy.LABEL,
-                TestConstants.Policy.RESOURCE, TestConstants.EMPTY_DITTO_HEADERS);
+                TestConstants.Policy.LABEL, TestConstants.Policy.RESOURCE, TestConstants.EMPTY_DITTO_HEADERS);
         final JsonObject actualJsonCreated = underTestCreated.toJson(FieldType.regularOrSpecial());
 
         assertThat(actualJsonCreated).isEqualTo(KNOWN_JSON_CREATED);
@@ -83,7 +79,6 @@ public class ModifyResourceResponseTest {
 
         assertThat(actualJsonUpdated).isEqualTo(KNOWN_JSON_UPDATED);
     }
-
 
     @Test
     public void createInstanceFromValidJson() {

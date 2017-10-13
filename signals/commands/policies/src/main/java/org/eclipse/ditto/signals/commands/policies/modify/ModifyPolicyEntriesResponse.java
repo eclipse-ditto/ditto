@@ -44,9 +44,9 @@ public final class ModifyPolicyEntriesResponse extends AbstractCommandResponse<M
 
     private final String policyId;
 
-
     private ModifyPolicyEntriesResponse(final String policyId, final HttpStatusCode statusCode,
             final DittoHeaders dittoHeaders) {
+
         super(TYPE, statusCode, dittoHeaders);
         this.policyId = checkNotNull(policyId, "Policy ID");
     }
@@ -90,9 +90,12 @@ public final class ModifyPolicyEntriesResponse extends AbstractCommandResponse<M
      */
     public static ModifyPolicyEntriesResponse fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
+
         return new CommandResponseJsonDeserializer<ModifyPolicyEntriesResponse>(TYPE, jsonObject)
-                .deserialize((statusCode, jsonObjectReader) -> {
-                    final String policyId = jsonObjectReader.get(PolicyModifyCommandResponse.JsonFields.JSON_POLICY_ID);
+                .deserialize((statusCode) -> {
+                    final String policyId =
+                            jsonObject.getValueOrThrow(PolicyModifyCommandResponse.JsonFields.JSON_POLICY_ID);
+
                     return of(policyId, dittoHeaders);
                 });
     }
@@ -132,14 +135,13 @@ public final class ModifyPolicyEntriesResponse extends AbstractCommandResponse<M
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hash(super.hashCode(), policyId);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof ModifyPolicyEntriesResponse;
     }
 
-
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof ModifyPolicyEntriesResponse);
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), policyId);
     }
 
     @Override

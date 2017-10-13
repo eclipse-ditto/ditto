@@ -12,15 +12,14 @@
 package org.eclipse.ditto.json;
 
 import static java.util.Objects.requireNonNull;
-import static org.eclipse.ditto.json.JsonFactory.newValue;
 
-import java.text.MessageFormat;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Predicate;
 import java.util.stream.StreamSupport;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 /**
@@ -98,6 +97,22 @@ final class ImmutableJsonObjectBuilder implements JsonObjectBuilder {
         return this;
     }
 
+    @Override
+    public <T> JsonObjectBuilder set(final JsonFieldDefinition<T> fieldDefinition, @Nullable final T value,
+            final Predicate<JsonField> predicate) {
+
+        requireNonNull(fieldDefinition, "The definition of the JSON field to set the value for must not be null!");
+        checkPredicate(predicate);
+
+        final JsonPointer pointer = fieldDefinition.getPointer();
+        pointer.getLeaf()
+                .map(leafKey -> JsonFactory.newField(leafKey, JsonFactory.getAppropriateValue(value), fieldDefinition))
+                .filter(predicate)
+                .ifPresent(jsonField -> setFieldInHierarchy(this, pointer, jsonField));
+
+        return this;
+    }
+
     private static void checkValue(final Object value) {
         requireNonNull(value, "The value must not be null!");
     }
@@ -137,67 +152,6 @@ final class ImmutableJsonObjectBuilder implements JsonObjectBuilder {
             fields.put(field.getKeyName(), field);
         }
         return this;
-    }
-
-    @Override
-    public JsonObjectBuilder set(final JsonFieldDefinition fieldDefinition, final boolean value,
-            final Predicate<JsonField> predicate) {
-
-        return set(fieldDefinition, JsonFactory.newValue(value), predicate);
-    }
-
-    @Override
-    public JsonObjectBuilder set(final JsonFieldDefinition fieldDefinition, final int value,
-            final Predicate<JsonField> predicate) {
-
-        return set(fieldDefinition, JsonFactory.newValue(value), predicate);
-    }
-
-    @Override
-    public JsonObjectBuilder set(final JsonFieldDefinition fieldDefinition, final long value,
-            final Predicate<JsonField> predicate) {
-
-        return set(fieldDefinition, newValue(value), predicate);
-    }
-
-    @Override
-    public JsonObjectBuilder set(final JsonFieldDefinition fieldDefinition, final double value,
-            final Predicate<JsonField> predicate) {
-
-        return set(fieldDefinition, JsonFactory.newValue(value), predicate);
-    }
-
-    @Override
-    public JsonObjectBuilder set(final JsonFieldDefinition fieldDefinition, final String value,
-            final Predicate<JsonField> predicate) {
-
-        return set(fieldDefinition, newValue(value), predicate);
-    }
-
-    @Override
-    public JsonObjectBuilder set(final JsonFieldDefinition fieldDefinition, final JsonValue value,
-            final Predicate<JsonField> predicate) {
-
-        requireNonNull(fieldDefinition, "The definition of the JSON field to set the value for must not be null!");
-        checkValue(value);
-        validateDefinitionValueType(fieldDefinition, value);
-        checkPredicate(predicate);
-
-        final JsonPointer pointer = fieldDefinition.getPointer();
-        pointer.getLeaf()
-                .map(leafKey -> JsonFactory.newField(leafKey, value, fieldDefinition))
-                .filter(predicate)
-                .ifPresent(jsonField -> setFieldInHierarchy(this, pointer, jsonField));
-
-        return this;
-    }
-
-    private static void validateDefinitionValueType(final JsonFieldDefinition fieldDefinition, final JsonValue value) {
-        final Class<?> expectedValueType = fieldDefinition.getValueType();
-        if (!value.isRepresentationOfJavaType(expectedValueType)) {
-            final String msgTemplate = "Type of value <{0}> is not the expected <{1}>!";
-            throw new IllegalArgumentException(MessageFormat.format(msgTemplate, value, expectedValueType));
-        }
     }
 
     @Override

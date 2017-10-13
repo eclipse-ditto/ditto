@@ -23,7 +23,6 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -46,10 +45,9 @@ public final class CountThings extends AbstractCommand<CountThings> implements T
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition JSON_FILTER =
-            JsonFactory.newFieldDefinition("filter", String.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<String> JSON_FILTER =
+            JsonFactory.newStringFieldDefinition("filter", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
 
     @Nullable
     private final String filter;
@@ -107,11 +105,8 @@ public final class CountThings extends AbstractCommand<CountThings> implements T
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected format.
      */
     public static CountThings fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandJsonDeserializer<CountThings>(TYPE, jsonObject).deserialize(jsonObjectReader -> {
-            final String extractedFilter = jsonObject.getValue(JSON_FILTER)
-                    .filter(JsonValue::isString)
-                    .map(JsonValue::asString)
-                    .orElse(null);
+        return new CommandJsonDeserializer<CountThings>(TYPE, jsonObject).deserialize(() -> {
+            final String extractedFilter = jsonObject.getValue(JSON_FILTER).orElse(null);
 
             return new CountThings(dittoHeaders, extractedFilter);
         });

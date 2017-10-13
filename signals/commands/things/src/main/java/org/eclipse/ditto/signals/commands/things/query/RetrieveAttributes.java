@@ -25,7 +25,6 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -50,10 +49,9 @@ public final class RetrieveAttributes extends AbstractCommand<RetrieveAttributes
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition JSON_SELECTED_FIELDS =
-            JsonFactory.newFieldDefinition("selectedFields", String.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<String> JSON_SELECTED_FIELDS =
+            JsonFactory.newStringFieldDefinition("selectedFields", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
 
     private final String thingId;
     @Nullable private final JsonFieldSelector selectedFields;
@@ -130,14 +128,14 @@ public final class RetrieveAttributes extends AbstractCommand<RetrieveAttributes
      * org.eclipse.ditto.model.things.Thing#ID_REGEX}.
      */
     public static RetrieveAttributes fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandJsonDeserializer<RetrieveAttributes>(TYPE, jsonObject).deserialize(jsonObjectReader -> {
-            final String thingId = jsonObjectReader.get(ThingQueryCommand.JsonFields.JSON_THING_ID);
+        return new CommandJsonDeserializer<RetrieveAttributes>(TYPE, jsonObject).deserialize(() -> {
+            final String thingId = jsonObject.getValueOrThrow(ThingQueryCommand.JsonFields.JSON_THING_ID);
             final JsonFieldSelector extractedFieldSelector = jsonObject.getValue(JSON_SELECTED_FIELDS)
-                    .filter(JsonValue::isString)
-                    .map(JsonValue::asString)
-                    .map(str -> JsonFactory.newFieldSelector(str,
-                            JsonFactory.newParseOptionsBuilder().withoutUrlDecoding().build()))
+                    .map(str -> JsonFactory.newFieldSelector(str, JsonFactory.newParseOptionsBuilder()
+                            .withoutUrlDecoding()
+                            .build()))
                     .orElse(null);
+
             return of(thingId, extractedFieldSelector, dittoHeaders);
         });
     }
@@ -192,8 +190,8 @@ public final class RetrieveAttributes extends AbstractCommand<RetrieveAttributes
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof RetrieveAttributes);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof RetrieveAttributes;
     }
 
     @Override

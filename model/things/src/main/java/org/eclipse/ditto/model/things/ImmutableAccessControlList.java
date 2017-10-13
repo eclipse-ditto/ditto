@@ -46,9 +46,8 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 @Immutable
 final class ImmutableAccessControlList implements AccessControlList {
 
-    private static final JsonFieldDefinition JSON_SCHEMA_VERSION = JsonFactory
-            .newFieldDefinition(JsonSchemaVersion.getJsonKey(), int.class, FieldType.SPECIAL, FieldType.HIDDEN,
-                    // available in schema versions:
+    private static final JsonFieldDefinition<Integer> JSON_SCHEMA_VERSION =
+            JsonFactory.newIntFieldDefinition(JsonSchemaVersion.getJsonKey(), FieldType.SPECIAL, FieldType.HIDDEN,
                     JsonSchemaVersion.V_1);
 
     private final Map<AuthorizationSubject, AclEntry> entries;
@@ -412,4 +411,5 @@ final class ImmutableAccessControlList implements AccessControlList {
     private Map<AuthorizationSubject, AclEntry> copyEntries() {
         return new HashMap<>(entries);
     }
+
 }

@@ -12,13 +12,10 @@
 package org.eclipse.ditto.signals.commands.base;
 
 import java.util.Map;
-import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.signals.base.AbstractJsonParsableRegistry;
 import org.eclipse.ditto.signals.base.JsonParsable;
 
@@ -42,8 +39,7 @@ public abstract class AbstractCommandResponseRegistry<T extends CommandResponse>
 
     @Override
     protected String resolveType(final JsonObject jsonObject) {
-        final Optional<String> typeOpt = jsonObject.getValue(CommandResponse.JsonFields.TYPE).map(JsonValue::asString);
-        return typeOpt.orElseThrow(() -> JsonMissingFieldException.newBuilder() // fail if "type" is not present
-                .fieldName(CommandResponse.JsonFields.TYPE.getPointer().toString()).build());
+        return jsonObject.getValueOrThrow(CommandResponse.JsonFields.TYPE);
     }
+
 }

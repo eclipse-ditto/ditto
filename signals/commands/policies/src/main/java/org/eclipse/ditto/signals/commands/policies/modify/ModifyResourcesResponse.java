@@ -46,16 +46,17 @@ public final class ModifyResourcesResponse extends AbstractCommandResponse<Modif
      */
     public static final String TYPE = TYPE_PREFIX + ModifyResources.NAME;
 
-    static final JsonFieldDefinition JSON_LABEL =
-            JsonFactory.newFieldDefinition("label", String.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<String> JSON_LABEL =
+            JsonFactory.newStringFieldDefinition("label", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private final String policyId;
     private final Label label;
 
-    private ModifyResourcesResponse(final String policyId, final Label label, final HttpStatusCode statusCode,
+    private ModifyResourcesResponse(final String policyId,
+            final Label label,
+            final HttpStatusCode statusCode,
             final DittoHeaders dittoHeaders) {
+
         super(TYPE, statusCode, dittoHeaders);
         this.policyId = checkNotNull(policyId, "Policy ID");
         this.label = checkNotNull(label, "Label");
@@ -72,6 +73,7 @@ public final class ModifyResourcesResponse extends AbstractCommandResponse<Modif
      */
     public static ModifyResourcesResponse of(final String policyId, final Label label,
             final DittoHeaders dittoHeaders) {
+
         return new ModifyResourcesResponse(policyId, label, HttpStatusCode.NO_CONTENT, dittoHeaders);
     }
 
@@ -102,10 +104,11 @@ public final class ModifyResourcesResponse extends AbstractCommandResponse<Modif
      */
     public static ModifyResourcesResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<ModifyResourcesResponse>(TYPE, jsonObject)
-                .deserialize((statusCode, jsonObjectReader) -> {
-                    final String policyId = jsonObjectReader.get(PolicyModifyCommandResponse.JsonFields.JSON_POLICY_ID);
-                    final String stringLabel = jsonObjectReader.get(JSON_LABEL);
-                    final Label label = PoliciesModelFactory.newLabel(stringLabel);
+                .deserialize((statusCode) -> {
+                    final String policyId =
+                            jsonObject.getValueOrThrow(PolicyModifyCommandResponse.JsonFields.JSON_POLICY_ID);
+                    final Label label = PoliciesModelFactory.newLabel(jsonObject.getValueOrThrow(JSON_LABEL));
+
                     return new ModifyResourcesResponse(policyId, label, statusCode, dittoHeaders);
                 });
     }
@@ -133,6 +136,7 @@ public final class ModifyResourcesResponse extends AbstractCommandResponse<Modif
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(PolicyModifyCommandResponse.JsonFields.JSON_POLICY_ID, policyId, predicate);
         jsonObjectBuilder.set(JSON_LABEL, label.toString(), predicate);
@@ -144,8 +148,8 @@ public final class ModifyResourcesResponse extends AbstractCommandResponse<Modif
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof ModifyResourcesResponse);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof ModifyResourcesResponse;
     }
 
     @Override

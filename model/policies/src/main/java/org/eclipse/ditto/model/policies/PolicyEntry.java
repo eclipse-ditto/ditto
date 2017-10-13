@@ -11,10 +11,9 @@
  */
 package org.eclipse.ditto.model.policies;
 
-import static org.eclipse.ditto.json.JsonFactory.newFieldDefinition;
-
 import javax.annotation.Nonnull;
 
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonFieldSelector;
@@ -99,21 +98,21 @@ public interface PolicyEntry extends Jsonifiable.WithFieldSelectorAndPredicate<J
         /**
          * JSON field containing the {@link JsonSchemaVersion}.
          */
-        public static final JsonFieldDefinition SCHEMA_VERSION =
-                newFieldDefinition(JsonSchemaVersion.getJsonKey(), int.class, FieldType.SPECIAL, FieldType.HIDDEN,
+        public static final JsonFieldDefinition<Integer> SCHEMA_VERSION =
+                JsonFactory.newIntFieldDefinition(JsonSchemaVersion.getJsonKey(), FieldType.SPECIAL, FieldType.HIDDEN,
                         JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the PolicyEntry's subjects type.
          */
-        public static final JsonFieldDefinition SUBJECTS =
-                newFieldDefinition("subjects", JsonObject.class, FieldType.REGULAR, JsonSchemaVersion.V_2);
+        public static final JsonFieldDefinition<JsonObject> SUBJECTS =
+                JsonFactory.newJsonObjectFieldDefinition("subjects", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the PolicyEntry's resources type.
          */
-        public static final JsonFieldDefinition RESOURCES =
-                newFieldDefinition("resources", JsonObject.class, FieldType.REGULAR, JsonSchemaVersion.V_2);
+        public static final JsonFieldDefinition<JsonObject> RESOURCES =
+                JsonFactory.newJsonObjectFieldDefinition("resources", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         private JsonFields() {
             throw new AssertionError();

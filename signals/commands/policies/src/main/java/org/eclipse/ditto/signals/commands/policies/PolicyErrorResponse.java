@@ -21,11 +21,9 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -53,6 +51,7 @@ public final class PolicyErrorResponse extends AbstractCommandResponse<PolicyErr
 
     private PolicyErrorResponse(final String policyId, final DittoRuntimeException dittoRuntimeException,
             final DittoHeaders dittoHeaders) {
+
         super(TYPE, dittoRuntimeException.getStatusCode(), dittoHeaders);
         this.policyId = requireNonNull(policyId, "Policy ID");
         this.dittoRuntimeException =
@@ -92,6 +91,7 @@ public final class PolicyErrorResponse extends AbstractCommandResponse<PolicyErr
      */
     public static PolicyErrorResponse of(final DittoRuntimeException dittoRuntimeException,
             final DittoHeaders dittoHeaders) {
+
         return of("unknown:unknown", dittoRuntimeException, dittoHeaders);
     }
 
@@ -106,6 +106,7 @@ public final class PolicyErrorResponse extends AbstractCommandResponse<PolicyErr
      */
     public static PolicyErrorResponse of(final String policyId, final DittoRuntimeException dittoRuntimeException,
             final DittoHeaders dittoHeaders) {
+
         return new PolicyErrorResponse(policyId, dittoRuntimeException, dittoHeaders);
     }
 
@@ -116,18 +117,10 @@ public final class PolicyErrorResponse extends AbstractCommandResponse<PolicyErr
     }
 
     public static PolicyErrorResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        final String policyId =
-                jsonObject.getValue(PolicyCommandResponse.JsonFields.JSON_POLICY_ID).map(JsonValue::asString)
-                        .orElseThrow(() ->
-                                JsonMissingFieldException.newBuilder()
-                                        .fieldName(
-                                                PolicyCommandResponse.JsonFields.JSON_POLICY_ID.getPointer().toString())
-                                        .build());
-        final JsonObject payload = jsonObject.getValue(PolicyCommandResponse.JsonFields.PAYLOAD)
-                .map(JsonValue::asObject)
-                .orElseThrow(
-                        () -> new JsonMissingFieldException(PolicyCommandResponse.JsonFields.PAYLOAD.getPointer()));
+        final String policyId = jsonObject.getValueOrThrow(PolicyCommandResponse.JsonFields.JSON_POLICY_ID);
+        final JsonObject payload = jsonObject.getValueOrThrow(PolicyCommandResponse.JsonFields.PAYLOAD).asObject();
         final DittoRuntimeException exception = POLICY_ERROR_REGISTRY.parse(payload, dittoHeaders);
+
         return of(policyId, exception, dittoHeaders);
     }
 

@@ -28,13 +28,11 @@ import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
-import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
@@ -61,32 +59,25 @@ public final class ExecuteBatch extends AbstractCommand<ExecuteBatch> implements
     /**
      * JSON field containing the commands.
      */
-    public static final JsonFieldDefinition JSON_COMMANDS =
-            JsonFactory.newFieldDefinition("commands", JsonArray.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_2);
+    public static final JsonFieldDefinition<JsonArray> JSON_COMMANDS =
+            JsonFactory.newArrayFieldDefinition("commands", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     /**
      * JSON field containing a single command.
      */
-    public static final JsonFieldDefinition JSON_COMMAND =
-            JsonFactory.newFieldDefinition("command", JsonObject.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_2);
+    public static final JsonFieldDefinition<JsonObject> JSON_COMMAND =
+            JsonFactory.newJsonObjectFieldDefinition("command", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     /**
      * JSON field containing a single command's headers.
      */
-    public static final JsonFieldDefinition JSON_DITTO_HEADERS =
-            JsonFactory.newFieldDefinition("dittoHeaders", JsonObject.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_2);
+    public static final JsonFieldDefinition<JsonObject> JSON_DITTO_HEADERS =
+            JsonFactory.newJsonObjectFieldDefinition("dittoHeaders", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private final String batchId;
     private final List<Command> commands;
 
-    private ExecuteBatch(final String batchId, final List<Command> commands,
-            final DittoHeaders dittoHeaders) {
+    private ExecuteBatch(final String batchId, final List<Command> commands, final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
         this.batchId = batchId;
         this.commands = Collections.unmodifiableList(new ArrayList<>(commands));
@@ -138,21 +129,17 @@ public final class ExecuteBatch extends AbstractCommand<ExecuteBatch> implements
      */
     public static ExecuteBatch fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders,
             final CommandRegistry<? extends Command> commandRegistry) {
-        return new CommandJsonDeserializer<ExecuteBatch>(TYPE, jsonObject).deserialize(jsonObjectReader -> {
-            final String batchId = jsonObjectReader.get(BatchCommand.JsonFields.BATCH_ID);
-            final List<Command> commands = jsonObjectReader.<JsonArray>get(JSON_COMMANDS).stream()
+
+        return new CommandJsonDeserializer<ExecuteBatch>(TYPE, jsonObject).deserialize(() -> {
+            final String batchId = jsonObject.getValueOrThrow(BatchCommand.JsonFields.BATCH_ID);
+            final List<Command> commands = jsonObject.getValueOrThrow(JSON_COMMANDS)
+                    .stream()
                     .filter(JsonValue::isObject)
                     .map(JsonValue::asObject)
                     .map(json -> {
-                        final DittoHeaders cmdHeaders = json.getValue(JSON_DITTO_HEADERS)
-                                .map(JsonValue::asObject)
-                                .map(DittoHeaders::newBuilder)
-                                .map(DittoHeadersBuilder::build)
-                                .orElseThrow(() -> new JsonMissingFieldException(JSON_DITTO_HEADERS.getPointer()));
-                        return json.getValue(JSON_COMMAND)
-                                .map(JsonValue::asObject)
-                                .map(commandJson -> commandRegistry.parse(commandJson, cmdHeaders))
-                                .orElseThrow(() -> new JsonMissingFieldException(JSON_COMMAND.getPointer()));
+                        final DittoHeaders headers =
+                                DittoHeaders.newBuilder(json.getValueOrThrow(JSON_DITTO_HEADERS)).build();
+                        return commandRegistry.parse(json.getValueOrThrow(JSON_COMMAND), headers);
                     })
                     .collect(Collectors.toList());
 
@@ -226,4 +213,5 @@ public final class ExecuteBatch extends AbstractCommand<ExecuteBatch> implements
                 ", commands=" + commands +
                 "]";
     }
+
 }

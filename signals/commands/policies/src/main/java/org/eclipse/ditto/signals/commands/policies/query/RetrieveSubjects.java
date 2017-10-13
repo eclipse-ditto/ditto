@@ -49,10 +49,8 @@ public final class RetrieveSubjects extends AbstractCommand<RetrieveSubjects>
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition JSON_LABEL =
-            JsonFactory.newFieldDefinition("label", String.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<String> JSON_LABEL =
+            JsonFactory.newStringFieldDefinition("label", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private final String policyId;
     private final Label label;
@@ -106,11 +104,9 @@ public final class RetrieveSubjects extends AbstractCommand<RetrieveSubjects>
      * format.
      */
     public static RetrieveSubjects fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandJsonDeserializer<RetrieveSubjects>(TYPE, jsonObject).deserialize(jsonObjectReader -> {
-            final String policyId = jsonObjectReader.get(PolicyQueryCommand.JsonFields.JSON_POLICY_ID);
-
-            final String labelValue = jsonObjectReader.get(JSON_LABEL);
-            final Label extractedLabel = Label.of(labelValue);
+        return new CommandJsonDeserializer<RetrieveSubjects>(TYPE, jsonObject).deserialize(() -> {
+            final String policyId = jsonObject.getValueOrThrow(PolicyQueryCommand.JsonFields.JSON_POLICY_ID);
+            final Label extractedLabel = Label.of(jsonObject.getValueOrThrow(JSON_LABEL));
 
             return of(policyId, extractedLabel, dittoHeaders);
         });
@@ -144,6 +140,7 @@ public final class RetrieveSubjects extends AbstractCommand<RetrieveSubjects>
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(PolicyQueryCommand.JsonFields.JSON_POLICY_ID, policyId, predicate);
         jsonObjectBuilder.set(JSON_LABEL, label.toString(), predicate);
@@ -169,8 +166,8 @@ public final class RetrieveSubjects extends AbstractCommand<RetrieveSubjects>
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof RetrieveSubjects);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof RetrieveSubjects;
     }
 
     @SuppressWarnings("squid:S109")

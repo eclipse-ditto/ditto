@@ -87,8 +87,8 @@ public final class DeletePolicy extends AbstractCommand<DeletePolicy> implements
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected format.
      */
     public static DeletePolicy fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandJsonDeserializer<DeletePolicy>(TYPE, jsonObject).deserialize(jsonObjectReader -> {
-            final String policyId = jsonObjectReader.get(PolicyModifyCommand.JsonFields.JSON_POLICY_ID);
+        return new CommandJsonDeserializer<DeletePolicy>(TYPE, jsonObject).deserialize(() -> {
+            final String policyId = jsonObject.getValueOrThrow(PolicyModifyCommand.JsonFields.JSON_POLICY_ID);
 
             return of(policyId, dittoHeaders);
         });
@@ -112,6 +112,7 @@ public final class DeletePolicy extends AbstractCommand<DeletePolicy> implements
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(PolicyModifyCommand.JsonFields.JSON_POLICY_ID, policyId, predicate);
     }
@@ -122,8 +123,8 @@ public final class DeletePolicy extends AbstractCommand<DeletePolicy> implements
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof DeletePolicy);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof DeletePolicy;
     }
 
     @SuppressWarnings("squid:MethodCyclomaticComplexity")

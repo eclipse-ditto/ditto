@@ -53,8 +53,11 @@ public final class ThingModified extends AbstractThingEvent<ThingModified>
 
     private final Thing thing;
 
-    private ThingModified(final Thing thing, final long revision, final Instant timestamp,
+    private ThingModified(final Thing thing,
+            final long revision,
+            @Nullable final Instant timestamp,
             final DittoHeaders dittoHeaders) {
+
         super(TYPE, requireNonNull(thing, "The Thing must not be null!").getId().orElse(null), revision, timestamp,
                 dittoHeaders);
         this.thing = thing;
@@ -81,10 +84,13 @@ public final class ThingModified extends AbstractThingEvent<ThingModified>
      * @param timestamp the timestamp of this event.
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the ThingModified created.
-     * @throws NullPointerException if {@code thing} is {@code null}.
+     * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
      */
-    public static ThingModified of(final Thing thing, final long revision, final Instant timestamp,
+    public static ThingModified of(final Thing thing,
+            final long revision,
+            @Nullable final Instant timestamp,
             final DittoHeaders dittoHeaders) {
+
         return new ThingModified(thing, revision, timestamp, dittoHeaders);
     }
 
@@ -113,9 +119,8 @@ public final class ThingModified extends AbstractThingEvent<ThingModified>
      * 'ThingModified' format.
      */
     public static ThingModified fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new EventJsonDeserializer<ThingModified>(TYPE, jsonObject).deserialize((revision, timestamp,
-                jsonObjectReader) -> {
-            final JsonObject thingJsonObject = jsonObjectReader.get(JsonFields.THING); // THING was in V1 and V2
+        return new EventJsonDeserializer<ThingModified>(TYPE, jsonObject).deserialize((revision, timestamp) -> {
+            final JsonObject thingJsonObject = jsonObject.getValueOrThrow(JsonFields.THING); // THING was in V1 and V2
             final Thing extractedModifiedThing = ThingsModelFactory.newThing(thingJsonObject);
 
             return of(extractedModifiedThing, revision, timestamp, dittoHeaders);

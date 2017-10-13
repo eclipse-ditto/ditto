@@ -43,9 +43,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.json.JsonObjectReader;
 import org.eclipse.ditto.json.JsonParseException;
-import org.eclipse.ditto.json.JsonReader;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -137,23 +135,21 @@ final class ImmutablePolicy implements Policy {
      * @throws PolicyIdInvalidException if the parsed policy ID did not comply to {@link Policy#ID_REGEX}.
      */
     public static Policy fromJson(final JsonObject jsonObject) {
-        final JsonObjectReader jsonObjectReader = JsonReader.from(jsonObject);
+        final String readId = jsonObject.getValue(JsonFields.ID).orElse(null);
 
-        final String readId = jsonObjectReader.<String>getAsOptional(JsonFields.ID).orElse(null);
-
-        final PolicyLifecycle readLifecycle = jsonObjectReader.<String>getAsOptional(JsonFields.LIFECYCLE)
+        final PolicyLifecycle readLifecycle = jsonObject.getValue(JsonFields.LIFECYCLE)
                 .flatMap(PolicyLifecycle::forName)
                 .orElse(null);
 
-        final PolicyRevision readRevision = jsonObjectReader.<Long>getAsOptional(JsonFields.REVISION)
+        final PolicyRevision readRevision = jsonObject.getValue(JsonFields.REVISION)
                 .map(PolicyRevision::newInstance)
                 .orElse(null);
 
-        final Instant readModified = jsonObjectReader.<String>getAsOptional(JsonFields.MODIFIED)
+        final Instant readModified = jsonObject.getValue(JsonFields.MODIFIED)
                 .map(ImmutablePolicy::tryToParseModified)
                 .orElse(null);
 
-        final JsonObject readEntries = jsonObjectReader.get(JsonFields.ENTRIES);
+        final JsonObject readEntries = jsonObject.getValueOrThrow(JsonFields.ENTRIES);
 
         final Function<JsonField, PolicyEntry> toPolicyEntry = jsonField -> {
             final JsonValue jsonValue = jsonField.getValue();

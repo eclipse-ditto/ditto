@@ -17,6 +17,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFactory;
@@ -25,8 +26,6 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.json.JsonObjectReader;
-import org.eclipse.ditto.json.JsonReader;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -50,16 +49,19 @@ public final class SudoRetrieveThing extends AbstractCommand<SudoRetrieveThing> 
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition JSON_USE_ORIGINAL_SCHEMA_VERSION =
-            JsonFactory.newFieldDefinition("payload/useOriginalSchemaVersion", Boolean.class, FieldType.REGULAR,
+    static final JsonFieldDefinition<Boolean> JSON_USE_ORIGINAL_SCHEMA_VERSION =
+            JsonFactory.newBooleanFieldDefinition("payload/useOriginalSchemaVersion", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     private final String thingId;
-    private final JsonFieldSelector selectedFields;
+    @Nullable private final JsonFieldSelector selectedFields;
     private final boolean useOriginalSchemaVersion;
 
-    private SudoRetrieveThing(final String thingId, final JsonFieldSelector selectedFields,
-            final DittoHeaders dittoHeaders, final boolean useOriginalSchemaVersion) {
+    private SudoRetrieveThing(final String thingId,
+            @Nullable final JsonFieldSelector selectedFields,
+            final DittoHeaders dittoHeaders,
+            final boolean useOriginalSchemaVersion) {
+
         super(TYPE, dittoHeaders);
         this.thingId = checkNotNull(thingId, "Thing ID");
         this.selectedFields = selectedFields;
@@ -87,8 +89,9 @@ public final class SudoRetrieveThing extends AbstractCommand<SudoRetrieveThing> 
      * @return a command for retrieving a Thing without authorization.
      * @throws NullPointerException if any argument is {@code null} except the {@code selectedFields}
      */
-    public static SudoRetrieveThing of(final String thingId, final JsonFieldSelector selectedFields,
+    public static SudoRetrieveThing of(final String thingId, @Nullable final JsonFieldSelector selectedFields,
             final DittoHeaders dittoHeaders) {
+
         return new SudoRetrieveThing(thingId, selectedFields, dittoHeaders, false);
     }
 
@@ -101,8 +104,9 @@ public final class SudoRetrieveThing extends AbstractCommand<SudoRetrieveThing> 
      * @return a command for retrieving a Thing without authorization.
      * @throws NullPointerException if any argument is {@code null} except the {@code selectedFields}.
      */
-    public static SudoRetrieveThing withOriginalSchemaVersion(final String thingId, final JsonFieldSelector
-            selectedFields, final DittoHeaders dittoHeaders) {
+    public static SudoRetrieveThing withOriginalSchemaVersion(final String thingId,
+            @Nullable final JsonFieldSelector selectedFields, final DittoHeaders dittoHeaders) {
+
         return new SudoRetrieveThing(thingId, selectedFields, dittoHeaders, true);
     }
 
@@ -116,6 +120,7 @@ public final class SudoRetrieveThing extends AbstractCommand<SudoRetrieveThing> 
      */
     public static SudoRetrieveThing withOriginalSchemaVersion(final String thingId,
             final DittoHeaders dittoHeaders) {
+
         return new SudoRetrieveThing(thingId, null, dittoHeaders, true);
     }
 
@@ -147,19 +152,14 @@ public final class SudoRetrieveThing extends AbstractCommand<SudoRetrieveThing> 
      * expected format.
      */
     public static SudoRetrieveThing fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        final JsonObjectReader jsonReader = JsonReader.from(jsonObject);
-
-        final String readThingId = jsonReader.get(SudoCommand.JsonFields.JSON_THING_ID);
-        final JsonFieldSelector readFieldSelector =
-                jsonReader.<String>getAsOptional(SudoCommand.JsonFields.SELECTED_FIELDS)
+        final String readThingId = jsonObject.getValueOrThrow(SudoCommand.JsonFields.JSON_THING_ID);
+        final JsonFieldSelector readFieldSelector = jsonObject.getValue(SudoCommand.JsonFields.SELECTED_FIELDS)
                 .map(str -> JsonFactory.newFieldSelector(str, JsonFactory.newParseOptionsBuilder()
                         .withoutUrlDecoding()
                         .build())
                 )
                 .orElse(null);
-        final boolean isUseOriginalSchemaVersion = jsonReader.getAsOptional(JSON_USE_ORIGINAL_SCHEMA_VERSION)
-                .filter(Boolean.TRUE::equals)
-                .isPresent();
+        final boolean isUseOriginalSchemaVersion = jsonObject.getValue(JSON_USE_ORIGINAL_SCHEMA_VERSION).orElse(false);
 
         return new SudoRetrieveThing(readThingId, readFieldSelector, dittoHeaders, isUseOriginalSchemaVersion);
     }
@@ -207,7 +207,7 @@ public final class SudoRetrieveThing extends AbstractCommand<SudoRetrieveThing> 
     }
 
     @Override
-    public boolean equals(final Object o) {
+    public boolean equals(@Nullable final Object o) {
         if (this == o) {
             return true;
         }
@@ -226,8 +226,8 @@ public final class SudoRetrieveThing extends AbstractCommand<SudoRetrieveThing> 
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof SudoRetrieveThing);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof SudoRetrieveThing;
     }
 
     @Override

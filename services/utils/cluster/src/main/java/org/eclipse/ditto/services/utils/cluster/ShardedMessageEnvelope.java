@@ -15,10 +15,9 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Objects;
 
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonObjectReader;
-import org.eclipse.ditto.json.JsonReader;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
@@ -33,31 +32,35 @@ public final class ShardedMessageEnvelope
     /**
      * JSON field containing the identifier of a {@code ShardedMessageEnvelope}.
      */
-    public static final JsonFieldDefinition JSON_ID = JsonFieldDefinition.newInstance("id", String.class);
+    public static final JsonFieldDefinition<String> JSON_ID = JsonFactory.newStringFieldDefinition("id");
 
     /**
      * JSON field containing the type of the message of a {@code ShardedMessageEnvelope}.
      */
-    public static final JsonFieldDefinition JSON_TYPE = JsonFieldDefinition.newInstance("type", String.class);
+    public static final JsonFieldDefinition<String> JSON_TYPE = JsonFactory.newStringFieldDefinition("type");
 
     /**
      * JSON field containing the message of a {@code ShardedMessageEnvelope}.
      */
-    public static final JsonFieldDefinition JSON_MESSAGE = JsonFieldDefinition.newInstance("message", JsonObject.class);
+    public static final JsonFieldDefinition<JsonObject> JSON_MESSAGE =
+            JsonFactory.newJsonObjectFieldDefinition("message");
 
     /**
      * JSON field containing the {@code DittoHeaders} of a {@code ShardedMessageEnvelope}.
      */
-    public static final JsonFieldDefinition JSON_DITTO_HEADERS =
-            JsonFieldDefinition.newInstance("dittoHeaders", JsonObject.class);
+    public static final JsonFieldDefinition<JsonObject> JSON_DITTO_HEADERS =
+            JsonFactory.newJsonObjectFieldDefinition("dittoHeaders");
 
     private final String id;
     private final String type;
     private final JsonObject message;
     private final DittoHeaders dittoHeaders;
 
-    private ShardedMessageEnvelope(final String id, final String type, final JsonObject message,
+    private ShardedMessageEnvelope(final String id,
+            final String type,
+            final JsonObject message,
             final DittoHeaders dittoHeaders) {
+
         this.id = checkNotNull(id, "Message ID");
         this.type = checkNotNull(type, "Type");
         this.message = checkNotNull(message, "Message");
@@ -73,8 +76,11 @@ public final class ShardedMessageEnvelope
      * @param dittoHeaders the command headers.
      * @return the ShardedMessageEnvelope.
      */
-    public static ShardedMessageEnvelope of(final String id, final String type, final JsonObject message,
+    public static ShardedMessageEnvelope of(final String id,
+            final String type,
+            final JsonObject message,
             final DittoHeaders dittoHeaders) {
+
         return new ShardedMessageEnvelope(id, type, message, dittoHeaders);
     }
 
@@ -85,11 +91,10 @@ public final class ShardedMessageEnvelope
      * @return the ShardedMessageEnvelope.
      */
     public static ShardedMessageEnvelope fromJson(final JsonObject jsonObject) {
-        final JsonObjectReader reader = JsonReader.from(jsonObject);
-        final String extractedId = reader.get(JSON_ID);
-        final String extractedType = reader.get(JSON_TYPE);
-        final JsonObject extractedMessage = reader.get(JSON_MESSAGE);
-        final JsonObject jsonDittoHeaders = reader.get(JSON_DITTO_HEADERS);
+        final String extractedId = jsonObject.getValueOrThrow(JSON_ID);
+        final String extractedType = jsonObject.getValueOrThrow(JSON_TYPE);
+        final JsonObject extractedMessage = jsonObject.getValueOrThrow(JSON_MESSAGE);
+        final JsonObject jsonDittoHeaders = jsonObject.getValueOrThrow(JSON_DITTO_HEADERS);
         final DittoHeaders extractedDittoHeaders = DittoHeaders.newBuilder(jsonDittoHeaders).build();
 
         return of(extractedId, extractedType, extractedMessage, extractedDittoHeaders);
@@ -134,11 +139,11 @@ public final class ShardedMessageEnvelope
 
     @Override
     public JsonObject toJson() {
-        return JsonObject.newBuilder() //
-                .set(JSON_ID, id) //
-                .set(JSON_TYPE, type) //
-                .set(JSON_MESSAGE, message) //
-                .set(JSON_DITTO_HEADERS, dittoHeaders.toJson()) //
+        return JsonObject.newBuilder()
+                .set(JSON_ID, id)
+                .set(JSON_TYPE, type)
+                .set(JSON_MESSAGE, message)
+                .set(JSON_DITTO_HEADERS, dittoHeaders.toJson())
                 .build();
     }
 

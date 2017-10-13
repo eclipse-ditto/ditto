@@ -91,8 +91,8 @@ public final class ExecuteBatchResponse extends AbstractCommandResponse<ExecuteB
      */
     public static ExecuteBatchResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<ExecuteBatchResponse>(TYPE, jsonObject)
-                .deserialize((statusCode, jsonObjectReader) -> {
-                    final String batchId = jsonObjectReader.get(BatchCommandResponse.JsonFields.BATCH_ID);
+                .deserialize((statusCode) -> {
+                    final String batchId = jsonObject.getValueOrThrow(BatchCommandResponse.JsonFields.BATCH_ID);
                     return of(batchId, dittoHeaders);
                 });
     }

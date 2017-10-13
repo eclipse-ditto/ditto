@@ -67,15 +67,14 @@ public interface SudoCommand<T extends SudoCommand> extends Command<T> {
 
     /**
      * An enumeration of the known {@link org.eclipse.ditto.json.JsonField}s of a Thing command.
-     *
      */
     class JsonFields extends Command.JsonFields {
 
         /**
          * JSON field containing the Thing ID.
          */
-        public static final JsonFieldDefinition JSON_THING_ID =
-                JsonFactory.newFieldDefinition("payload/thingId", String.class, FieldType.REGULAR,
+        public static final JsonFieldDefinition<String> JSON_THING_ID =
+                JsonFactory.newStringFieldDefinition("payload/thingId", FieldType.REGULAR,
                         JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
@@ -83,14 +82,14 @@ public interface SudoCommand<T extends SudoCommand> extends Command<T> {
          * JSON field containing a {@link org.eclipse.ditto.json.JsonFieldSelector} to specify the JSON fields included
          * in the things to retrieve.
          */
-        public static final JsonFieldDefinition SELECTED_FIELDS =
-                JsonFactory.newFieldDefinition("payload/selectedFields", String.class, FieldType.REGULAR,
-                        // available in schema versions:
+        public static final JsonFieldDefinition<String> SELECTED_FIELDS =
+                JsonFactory.newStringFieldDefinition("payload/selectedFields", FieldType.REGULAR,
                         JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         private JsonFields() {
             throw new AssertionError();
         }
+
     }
 
 }

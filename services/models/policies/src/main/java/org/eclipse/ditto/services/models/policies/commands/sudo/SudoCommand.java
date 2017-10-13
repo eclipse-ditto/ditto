@@ -63,23 +63,21 @@ public interface SudoCommand<T extends SudoCommand> extends Command<T> {
         /**
          * JSON field containing the Policy ID.
          */
-        public static final JsonFieldDefinition JSON_POLICY_ID =
-                JsonFactory.newFieldDefinition("payload/policyId", String.class, FieldType.REGULAR,
-                        // available in schema versions:
-                        JsonSchemaVersion.V_2);
+        public static final JsonFieldDefinition<String> JSON_POLICY_ID =
+                JsonFactory.newStringFieldDefinition("payload/policyId", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing a {@link org.eclipse.ditto.json.JsonFieldSelector} to specify the JSON fields included in the things to
          * retrieve.
          */
-        public static final JsonFieldDefinition SELECTED_FIELDS =
-                JsonFactory.newFieldDefinition("payload/selectedFields", String.class, FieldType.REGULAR,
-                        // available in schema versions:
-                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+        public static final JsonFieldDefinition<String> SELECTED_FIELDS =
+                JsonFactory.newStringFieldDefinition("payload/selectedFields", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
 
         private JsonFields() {
             throw new AssertionError();
         }
+
     }
 
 }

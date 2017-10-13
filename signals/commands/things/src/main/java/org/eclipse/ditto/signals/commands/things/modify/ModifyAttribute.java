@@ -51,15 +51,13 @@ public final class ModifyAttribute extends AbstractCommand<ModifyAttribute>
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition JSON_ATTRIBUTE =
-            JsonFactory.newFieldDefinition("attribute", String.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<String> JSON_ATTRIBUTE =
+            JsonFactory.newStringFieldDefinition("attribute", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
 
-    static final JsonFieldDefinition JSON_ATTRIBUTE_VALUE =
-            JsonFactory.newFieldDefinition("value", JsonValue.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<JsonValue> JSON_ATTRIBUTE_VALUE =
+            JsonFactory.newJsonValueFieldDefinition("value", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
 
     private final String thingId;
     private final JsonPointer attributePointer;
@@ -123,11 +121,12 @@ public final class ModifyAttribute extends AbstractCommand<ModifyAttribute>
      * org.eclipse.ditto.model.things.Thing#ID_REGEX}.
      */
     public static ModifyAttribute fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandJsonDeserializer<ModifyAttribute>(TYPE, jsonObject).deserialize(jsonObjectReader -> {
-            final String thingId = jsonObjectReader.get(ThingModifyCommand.JsonFields.JSON_THING_ID);
-            final String pointerString = jsonObjectReader.get(JSON_ATTRIBUTE);
+        return new CommandJsonDeserializer<ModifyAttribute>(TYPE, jsonObject).deserialize(() -> {
+            final String thingId = jsonObject.getValueOrThrow(ThingModifyCommand.JsonFields.JSON_THING_ID);
+            final String pointerString = jsonObject.getValueOrThrow(JSON_ATTRIBUTE);
             final JsonPointer extractedPointer = JsonFactory.newPointer(pointerString);
-            final JsonValue extractedAttributeValue = jsonObjectReader.get(JSON_ATTRIBUTE_VALUE);
+            final JsonValue extractedAttributeValue = jsonObject.getValueOrThrow(JSON_ATTRIBUTE_VALUE);
+
             return of(thingId, extractedPointer, extractedAttributeValue, dittoHeaders);
         });
     }
@@ -206,7 +205,7 @@ public final class ModifyAttribute extends AbstractCommand<ModifyAttribute>
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
+    protected boolean canEqual(@Nullable final Object other) {
         return (other instanceof ModifyAttribute);
     }
 

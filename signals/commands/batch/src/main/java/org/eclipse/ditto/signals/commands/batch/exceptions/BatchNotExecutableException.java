@@ -26,7 +26,6 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
@@ -54,12 +53,17 @@ public final class BatchNotExecutableException extends DittoRuntimeException imp
 
     private static final long serialVersionUID = 93438481409773848L;
 
-    private final String batchId;
-    private final String commandCorrelationId;
+    @Nullable private final String batchId;
+    @Nullable private final String commandCorrelationId;
 
-    private BatchNotExecutableException(final String batchId, final String commandCorrelationId,
-            final DittoHeaders dittoHeaders, final String message, final String description, final Throwable cause,
-            final URI href) {
+    private BatchNotExecutableException(@Nullable final String batchId,
+            @Nullable final String commandCorrelationId,
+            final DittoHeaders dittoHeaders,
+            @Nullable final String message,
+            @Nullable final String description,
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
+
         super(ERROR_CODE, HttpStatusCode.BAD_REQUEST, dittoHeaders, message, description, cause, href);
         this.batchId = batchId;
         this.commandCorrelationId = commandCorrelationId;
@@ -84,6 +88,7 @@ public final class BatchNotExecutableException extends DittoRuntimeException imp
      * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new BatchNotExecutableException.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
     public static BatchNotExecutableException fromMessage(final String message, final DittoHeaders dittoHeaders) {
         return new Builder()
@@ -98,13 +103,15 @@ public final class BatchNotExecutableException extends DittoRuntimeException imp
      * @param jsonObject the JSON to read the message,
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new BatchNotExecutableException.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if the {@code jsonObject} does not have the message field.
      */
     public static BatchNotExecutableException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
-        final String batchId = jsonObject.getValue(JsonFields.BATCH_ID).map(JsonValue::asString).orElse(null);
-        final String commandCorrelationId =
-                jsonObject.getValue(JsonFields.COMMAND_CORRELATION_ID).map(JsonValue::asString).orElse(null);
+
+        final String batchId = jsonObject.getValue(JsonFields.BATCH_ID).orElse(null);
+        final String commandCorrelationId = jsonObject.getValue(JsonFields.COMMAND_CORRELATION_ID).orElse(null);
+
         return new Builder()
                 .batchId(batchId)
                 .commandCorrelationId(commandCorrelationId)
@@ -124,6 +131,7 @@ public final class BatchNotExecutableException extends DittoRuntimeException imp
         return Optional.ofNullable(batchId);
     }
 
+    @Nullable
     @Override
     public String getId() {
         return batchId;
@@ -169,39 +177,37 @@ public final class BatchNotExecutableException extends DittoRuntimeException imp
         return Objects.hash(super.hashCode(), batchId, commandCorrelationId);
     }
 
+    @Immutable
     private static final class JsonFields {
 
         /**
          * JSON field containing the Batch ID.
          */
-        static final JsonFieldDefinition BATCH_ID =
-                JsonFactory.newFieldDefinition("batchId", String.class, FieldType.REGULAR,
-                        // available in schema versions:
-                        JsonSchemaVersion.V_2);
+        static final JsonFieldDefinition<String> BATCH_ID =
+                JsonFactory.newStringFieldDefinition("batchId", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
-         * JSON field containing the command's correlation ID.
+         * JSON field containing the command's correlation<String> ID.
          */
-        static final JsonFieldDefinition COMMAND_CORRELATION_ID =
-                JsonFactory.newFieldDefinition("commandCorrelationId", String.class, FieldType.REGULAR,
-                        // available in schema versions:
-                        JsonSchemaVersion.V_2);
+        static final JsonFieldDefinition<String> COMMAND_CORRELATION_ID =
+                JsonFactory.newStringFieldDefinition("commandCorrelationId", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
     }
 
     /**
      * A mutable builder with a fluent API for a {@link BatchNotExecutableException}.
-     *
      */
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<BatchNotExecutableException> {
 
-        private String batchId;
-        private String commandCorrelationId;
+        @Nullable private String batchId;
+        @Nullable private String commandCorrelationId;
 
         private Builder() {}
 
         private Builder(final String batchId, final String commandCorrelationId,
                 final DittoRuntimeException dittoRuntimeException) {
+
             this.batchId = batchId;
             this.commandCorrelationId = commandCorrelationId;
 
@@ -213,22 +219,27 @@ public final class BatchNotExecutableException extends DittoRuntimeException imp
             description(description);
         }
 
-        private Builder batchId(final String batchId) {
+        private Builder batchId(@Nullable final String batchId) {
             this.batchId = batchId;
             return this;
         }
 
-        private Builder commandCorrelationId(final String commandCorrelationId) {
+        private Builder commandCorrelationId(@Nullable final String commandCorrelationId) {
             this.commandCorrelationId = commandCorrelationId;
             return this;
         }
 
         @Override
-        protected BatchNotExecutableException doBuild(final DittoHeaders dittoHeaders, final String message,
-                final String description, final Throwable cause, final URI href) {
+        protected BatchNotExecutableException doBuild(final DittoHeaders dittoHeaders,
+                @Nullable final String message,
+                @Nullable final String description,
+                @Nullable final Throwable cause,
+                @Nullable final URI href) {
+
             return new BatchNotExecutableException(batchId, commandCorrelationId, dittoHeaders, message,
                     description, cause, href);
         }
+
     }
 
 }

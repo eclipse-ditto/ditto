@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.model.policies;
 
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.json.FieldType;
@@ -39,8 +40,8 @@ public interface Label extends CharSequence {
      *
      * @return the field definition.
      */
-    default JsonFieldDefinition getJsonFieldDefinition() {
-        return JsonFieldDefinition.newInstance(this, JsonObject.class, FieldType.REGULAR, JsonSchemaVersion.V_2);
+    default JsonFieldDefinition<JsonObject> getJsonFieldDefinition() {
+        return JsonFactory.newJsonObjectFieldDefinition(this, FieldType.REGULAR, JsonSchemaVersion.V_2);
     }
 
 }

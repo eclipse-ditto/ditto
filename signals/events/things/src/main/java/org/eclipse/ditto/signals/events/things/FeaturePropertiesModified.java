@@ -53,10 +53,8 @@ public final class FeaturePropertiesModified extends AbstractThingEvent<FeatureP
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition JSON_PROPERTIES =
-            JsonFactory.newFieldDefinition("properties", JsonObject.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_1,
+    static final JsonFieldDefinition<JsonObject> JSON_PROPERTIES =
+            JsonFactory.newJsonObjectFieldDefinition("properties", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
     private final String featureId;
@@ -143,10 +141,10 @@ public final class FeaturePropertiesModified extends AbstractThingEvent<FeatureP
      */
     public static FeaturePropertiesModified fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new EventJsonDeserializer<FeaturePropertiesModified>(TYPE, jsonObject)
-                .deserialize((revision, timestamp, jsonObjectReader) -> {
-                    final String extractedThingId = jsonObjectReader.get(JsonFields.THING_ID);
-                    final String extractedFeatureId = jsonObjectReader.get(JsonFields.FEATURE_ID);
-                    final JsonObject propertiesJsonObject = jsonObjectReader.get(JSON_PROPERTIES);
+                .deserialize((revision, timestamp) -> {
+                    final String extractedThingId = jsonObject.getValueOrThrow(JsonFields.THING_ID);
+                    final String extractedFeatureId = jsonObject.getValueOrThrow(JsonFields.FEATURE_ID);
+                    final JsonObject propertiesJsonObject = jsonObject.getValueOrThrow(JSON_PROPERTIES);
 
                     final FeatureProperties extractedProperties = (null != propertiesJsonObject)
                             ? ThingsModelFactory.newFeatureProperties(propertiesJsonObject)

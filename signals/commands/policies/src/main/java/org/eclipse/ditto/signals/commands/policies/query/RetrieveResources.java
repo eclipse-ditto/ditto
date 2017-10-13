@@ -49,10 +49,8 @@ public final class RetrieveResources extends AbstractCommand<RetrieveResources>
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition JSON_LABEL =
-            JsonFactory.newFieldDefinition("label", String.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<String> JSON_LABEL =
+            JsonFactory.newStringFieldDefinition("label", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private final String policyId;
     private final Label label;
@@ -106,15 +104,12 @@ public final class RetrieveResources extends AbstractCommand<RetrieveResources>
      * format.
      */
     public static RetrieveResources fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandJsonDeserializer<RetrieveResources>(TYPE, jsonObject)
-                .deserialize(jsonObjectReader -> {
-                    final String policyId = jsonObjectReader.get(PolicyQueryCommand.JsonFields.JSON_POLICY_ID);
+        return new CommandJsonDeserializer<RetrieveResources>(TYPE, jsonObject).deserialize(() -> {
+            final String policyId = jsonObject.getValueOrThrow(PolicyQueryCommand.JsonFields.JSON_POLICY_ID);
+            final Label extractedLabel = Label.of(jsonObject.getValueOrThrow(JSON_LABEL));
 
-                    final String labelValue = jsonObjectReader.get(JSON_LABEL);
-                    final Label extractedLabel = Label.of(labelValue);
-
-                    return of(policyId, extractedLabel, dittoHeaders);
-                });
+            return of(policyId, extractedLabel, dittoHeaders);
+        });
     }
 
     /**
@@ -145,6 +140,7 @@ public final class RetrieveResources extends AbstractCommand<RetrieveResources>
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(PolicyQueryCommand.JsonFields.JSON_POLICY_ID, policyId, predicate);
         jsonObjectBuilder.set(JSON_LABEL, label.toString(), predicate);
@@ -170,8 +166,8 @@ public final class RetrieveResources extends AbstractCommand<RetrieveResources>
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof RetrieveResources);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof RetrieveResources;
     }
 
     @SuppressWarnings("squid:S109")

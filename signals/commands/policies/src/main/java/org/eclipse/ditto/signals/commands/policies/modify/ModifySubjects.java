@@ -51,22 +51,21 @@ public final class ModifySubjects extends AbstractCommand<ModifySubjects>
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition JSON_LABEL =
-            JsonFactory.newFieldDefinition("label", String.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<String> JSON_LABEL =
+            JsonFactory.newStringFieldDefinition("label", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
-    static final JsonFieldDefinition JSON_SUBJECTS =
-            JsonFactory.newFieldDefinition("subjects", JsonObject.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<JsonObject> JSON_SUBJECTS =
+            JsonFactory.newJsonObjectFieldDefinition("subjects", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private final String policyId;
     private final Label label;
     private final Subjects subjects;
 
-    private ModifySubjects(final String policyId, final Label label, final Subjects subjects,
+    private ModifySubjects(final String policyId,
+            final Label label,
+            final Subjects subjects,
             final DittoHeaders dittoHeaders) {
+
         super(TYPE, dittoHeaders);
         this.policyId = policyId;
         this.label = label;
@@ -83,8 +82,11 @@ public final class ModifySubjects extends AbstractCommand<ModifySubjects>
      * @return the command.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static ModifySubjects of(final String policyId, final Label label, final Subjects subjects,
+    public static ModifySubjects of(final String policyId,
+            final Label label,
+            final Subjects subjects,
             final DittoHeaders dittoHeaders) {
+
         Objects.requireNonNull(policyId, "The Policy identifier must not be null!");
         Objects.requireNonNull(label, "The Label must not be null!");
         Objects.requireNonNull(subjects, "The Subjects must not be null!");
@@ -117,12 +119,10 @@ public final class ModifySubjects extends AbstractCommand<ModifySubjects>
      * format.
      */
     public static ModifySubjects fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandJsonDeserializer<ModifySubjects>(TYPE, jsonObject).deserialize(jsonObjectReader -> {
-            final String policyId = jsonObjectReader.get(PolicyModifyCommand.JsonFields.JSON_POLICY_ID);
-            final String stringLabel = jsonObjectReader.get(JSON_LABEL);
-            final Label label = PoliciesModelFactory.newLabel(stringLabel);
-            final JsonObject subjectsJsonObject = jsonObjectReader.get(JSON_SUBJECTS);
-            final Subjects subjects = PoliciesModelFactory.newSubjects(subjectsJsonObject);
+        return new CommandJsonDeserializer<ModifySubjects>(TYPE, jsonObject).deserialize(() -> {
+            final String policyId = jsonObject.getValueOrThrow(PolicyModifyCommand.JsonFields.JSON_POLICY_ID);
+            final Label label = PoliciesModelFactory.newLabel(jsonObject.getValueOrThrow(JSON_LABEL));
+            final Subjects subjects = PoliciesModelFactory.newSubjects(jsonObject.getValueOrThrow(JSON_SUBJECTS));
 
             return of(policyId, label, subjects, dittoHeaders);
         });
@@ -158,7 +158,7 @@ public final class ModifySubjects extends AbstractCommand<ModifySubjects>
 
     @Override
     public Optional<JsonValue> getEntity(final JsonSchemaVersion schemaVersion) {
-        return Optional.ofNullable(subjects.toJson(schemaVersion, FieldType.regularOrSpecial()));
+        return Optional.of(subjects.toJson(schemaVersion, FieldType.regularOrSpecial()));
     }
 
     @Override
@@ -182,8 +182,8 @@ public final class ModifySubjects extends AbstractCommand<ModifySubjects>
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof ModifySubjects);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof ModifySubjects;
     }
 
     @SuppressWarnings("squid:MethodCyclomaticComplexity")

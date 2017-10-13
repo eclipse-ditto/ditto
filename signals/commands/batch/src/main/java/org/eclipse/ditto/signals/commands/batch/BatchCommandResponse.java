@@ -55,9 +55,9 @@ public interface BatchCommandResponse<T extends BatchCommandResponse> extends Co
         /**
          * JSON field containing the batch ID.
          */
-        public static final JsonFieldDefinition BATCH_ID =
-                JsonFactory.newFieldDefinition("batchId", String.class, FieldType.REGULAR,
-                        // available in schema versions:
-                        JsonSchemaVersion.V_2);
+        public static final JsonFieldDefinition<String> BATCH_ID =
+                JsonFactory.newStringFieldDefinition("batchId", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
     }
+
 }

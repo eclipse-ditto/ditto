@@ -89,8 +89,8 @@ public abstract class AbstractCommand<T extends AbstractCommand> implements Comm
      * @param schemaVersion the JsonSchemaVersion used in toJson().
      * @param predicate the predicate to evaluate when adding the payload.
      */
-    protected abstract void appendPayload(JsonObjectBuilder jsonObjectBuilder, JsonSchemaVersion schemaVersion,
-            Predicate<JsonField> predicate);
+    protected abstract void appendPayload(final JsonObjectBuilder jsonObjectBuilder,
+            final JsonSchemaVersion schemaVersion, final Predicate<JsonField> predicate);
 
     @Override
     public int hashCode() {

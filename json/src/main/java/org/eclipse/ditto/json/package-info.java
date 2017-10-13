@@ -12,9 +12,9 @@
 
 /**
  * Ditto JSON is a general purpose JSON library. This package provides the corresponding interfaces as well as
- * implementations. There is one central place for obtaining instances of the various interfaces: {@link
- * org.eclipse.ditto.json.JsonFactory}. JsonFactory provides only {@code static} methods which means that they can be
- * imported statically and by thus make calls concise to assist the readability of your code.
+ * implementations. There is one central place for obtaining instances of the various interfaces:
+ * {@link org.eclipse.ditto.json.JsonFactory}. JsonFactory provides only {@code static} methods which means that they
+ * can be imported statically and by thus make calls concise to assist the readability of your code.
  * <p>
  * Please note that Ditto JSON is designed for <em>immutability</em>. Therefore each object returned by JsonFactory -
  * apart from builders - is immutable and thus thread safe. If interfaces provide methods for altering an object then

@@ -11,15 +11,14 @@
  */
 package org.eclipse.ditto.services.models.thingsearch;
 
-import static org.eclipse.ditto.json.JsonFactory.newFieldDefinition;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
-import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -29,7 +28,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonReader;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
@@ -40,12 +39,12 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
 @Immutable
 public final class SearchNamespaceReportResult implements Jsonifiable.WithPredicate<JsonObject, JsonField> {
 
-    private static final JsonFieldDefinition SCHEMA_VERSION =
-            newFieldDefinition(JsonSchemaVersion.getJsonKey(), int.class, FieldType.SPECIAL, JsonSchemaVersion.V_1);
-    private static final JsonFieldDefinition NAMESPACES =
-            newFieldDefinition("namespaces", JsonArray.class, FieldType.REGULAR, JsonSchemaVersion.V_1);
-    private final Map<String, SearchNamespaceResultEntry> searchNamespaceResultEntries;
+    private static final JsonFieldDefinition<Integer> SCHEMA_VERSION =
+            JsonFactory.newIntFieldDefinition(JsonSchemaVersion.getJsonKey(), FieldType.SPECIAL, JsonSchemaVersion.V_1);
+    private static final JsonFieldDefinition<JsonArray> NAMESPACES =
+            JsonFactory.newArrayFieldDefinition("namespaces", FieldType.REGULAR, JsonSchemaVersion.V_1);
 
+    private final Map<String, SearchNamespaceResultEntry> searchNamespaceResultEntries;
 
     /**
      * Creates the Namespace Report.
@@ -86,13 +85,14 @@ public final class SearchNamespaceReportResult implements Jsonifiable.WithPredic
      * 'SearchNamespaceReportResult' format.
      */
     public static SearchNamespaceReportResult fromJson(final JsonObject jsonObject) {
-        final List<SearchNamespaceResultEntry> entries = new ArrayList<>();
-        final JsonArray array = JsonReader.from(jsonObject).get(NAMESPACES);
-        array.forEach(jsonValue -> {
-            final SearchNamespaceResultEntry entry = SearchNamespaceResultEntry.fromJson(jsonValue.asObject());
-            entries.add(entry);
-        });
-        return new SearchNamespaceReportResult(entries);
+        final JsonArray namespacesJsonArray = jsonObject.getValueOrThrow(NAMESPACES);
+
+        final Collection<SearchNamespaceResultEntry> resultEntries = namespacesJsonArray.stream()
+                .map(JsonValue::asObject)
+                .map(SearchNamespaceResultEntry::fromJson)
+                .collect(Collectors.toList());
+
+        return new SearchNamespaceReportResult(resultEntries);
     }
 
     /**
@@ -112,9 +112,9 @@ public final class SearchNamespaceReportResult implements Jsonifiable.WithPredic
         searchNamespaceResultEntries.forEach((id, entry) -> jsonArrayBuilder.add(entry.toJson()));
         final JsonArray jsonArray = jsonArrayBuilder.build();
 
-        return JsonFactory.newObjectBuilder() //
-                .set(SCHEMA_VERSION, jsonSchemaVersion.toInt(), predicate) //
-                .set(NAMESPACES, jsonArray, predicate) //
+        return JsonFactory.newObjectBuilder()
+                .set(SCHEMA_VERSION, jsonSchemaVersion.toInt(), predicate)
+                .set(NAMESPACES, jsonArray, predicate)
                 .build();
     }
 
@@ -124,9 +124,9 @@ public final class SearchNamespaceReportResult implements Jsonifiable.WithPredic
         searchNamespaceResultEntries.forEach((id, entry) -> jsonArrayBuilder.add(entry.toJson()));
         final JsonArray jsonArray = jsonArrayBuilder.build();
 
-        return JsonFactory.newObjectBuilder() //
-                .set(SCHEMA_VERSION, schemaVersion.toInt(), predicate) //
-                .set(NAMESPACES, jsonArray, predicate) //
+        return JsonFactory.newObjectBuilder()
+                .set(SCHEMA_VERSION, schemaVersion.toInt(), predicate)
+                .set(NAMESPACES, jsonArray, predicate)
                 .build();
     }
 
@@ -156,4 +156,5 @@ public final class SearchNamespaceReportResult implements Jsonifiable.WithPredic
                 "searchNamespaceResultEntries=" + searchNamespaceResultEntries +
                 '}';
     }
+
 }

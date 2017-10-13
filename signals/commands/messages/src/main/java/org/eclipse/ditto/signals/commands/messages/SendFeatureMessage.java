@@ -50,15 +50,17 @@ public final class SendFeatureMessage<T> extends AbstractMessageCommand<T, SendF
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition JSON_FEATURE_ID =
-            JsonFactory.newFieldDefinition("featureId", String.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<String> JSON_FEATURE_ID =
+            JsonFactory.newStringFieldDefinition("featureId", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
 
     private final String featureId;
 
-    private SendFeatureMessage(final String thingId, final String featureId, final Message<T> message,
+    private SendFeatureMessage(final String thingId,
+            final String featureId,
+            final Message<T> message,
             final DittoHeaders dittoHeaders) {
+
         super(TYPE, thingId, message, dittoHeaders);
         this.featureId = requireNonNull(featureId, "The featureId cannot be null.");
     }
@@ -89,7 +91,7 @@ public final class SendFeatureMessage<T> extends AbstractMessageCommand<T, SendF
      * @param message the message to send to the Feature
      * @param dittoHeaders the DittoHeaders of this message.
      * @param <T> the type of the message's payload.
-     * @return new instance of {@link SendFeatureMessage}.
+     * @return new instance of {@code SendFeatureMessage}.
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static <T> SendFeatureMessage<T> of(final String thingId, final String featureId, final Message<T> message,
@@ -125,17 +127,18 @@ public final class SendFeatureMessage<T> extends AbstractMessageCommand<T, SendF
      * format.
      */
     public static <T> SendFeatureMessage<T> fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandJsonDeserializer<SendFeatureMessage<T>>(TYPE, jsonObject).deserialize(jsonObjectReader -> {
-            final String thingId = jsonObjectReader.get(MessageCommand.JsonFields.JSON_THING_ID);
-            final String featureId = jsonObjectReader.get(JSON_FEATURE_ID);
-            final Message<T> message = deserializeMessageFromJson(jsonObjectReader);
+        return new CommandJsonDeserializer<SendFeatureMessage<T>>(TYPE, jsonObject).deserialize(() -> {
+            final String thingId = jsonObject.getValueOrThrow(MessageCommand.JsonFields.JSON_THING_ID);
+            final String featureId = jsonObject.getValueOrThrow(JSON_FEATURE_ID);
+            final Message<T> message = deserializeMessageFromJson(jsonObject);
+
             return of(thingId, featureId, message, dittoHeaders);
         });
     }
 
     @Override
     public String getFeatureId() {
-        return this.featureId;
+        return featureId;
     }
 
     @SuppressWarnings("squid:S109")
@@ -162,11 +165,12 @@ public final class SendFeatureMessage<T> extends AbstractMessageCommand<T, SendF
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return (other instanceof SendFeatureMessage);
+        return other instanceof SendFeatureMessage;
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" + super.toString() + ", featureId=" + featureId + "]";
     }
+
 }

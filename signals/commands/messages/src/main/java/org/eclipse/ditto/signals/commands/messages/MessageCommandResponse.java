@@ -73,16 +73,18 @@ public interface MessageCommandResponse<T, C extends MessageCommandResponse>
     @Override
     default JsonPointer getResourcePath() {
         final Message<?> message = getMessage();
-        final String box = message.getDirection() == MessageDirection.TO ? MessageCommand.INBOX_PREFIX : MessageCommand.OUTBOX_PREFIX;
-        final JsonPointer pathSuffix = JsonPointer.empty()
-                .addLeaf(JsonKey.of(box))
-                .addLeaf(JsonKey.of(MessageCommand.MESSAGES_PREFIX))
-                .addLeaf(JsonKey.of(message.getSubject()));
+        final String box = message.getDirection() == MessageDirection.TO
+                ? MessageCommand.INBOX_PREFIX
+                : MessageCommand.OUTBOX_PREFIX;
 
-        final JsonPointer path = message.getFeatureId().map(fId -> JsonPointer.empty()
-                .addLeaf(JsonKey.of(MessageCommand.FEATURES_PREFIX))
-                .addLeaf(JsonKey.of(fId)))
+        final JsonPointer pathSuffix =
+                JsonFactory.newPointer(JsonKey.of(box), JsonKey.of(MessageCommand.MESSAGES_PREFIX),
+                        JsonKey.of(message.getSubject()));
+
+        final JsonPointer path = message.getFeatureId()
+                .map(fId -> JsonFactory.newPointer(JsonKey.of(MessageCommand.FEATURES_PREFIX), JsonKey.of(fId)))
                 .orElse(JsonPointer.empty());
+
         return path.append(pathSuffix);
     }
 
@@ -96,33 +98,31 @@ public interface MessageCommandResponse<T, C extends MessageCommandResponse>
         /**
          * JSON field containing the MessageCommandResponse's thingId.
          */
-        public static final JsonFieldDefinition JSON_THING_ID =
-                JsonFactory.newFieldDefinition("thingId", String.class, FieldType.REGULAR,
-                        // available in schema versions:
-                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+        public static final JsonFieldDefinition<String> JSON_THING_ID =
+                JsonFactory.newStringFieldDefinition("thingId", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the MessageCommandResponse's Message.
          */
-        public static JsonFieldDefinition JSON_MESSAGE =
-                JsonFactory.newFieldDefinition("message", JsonObject.class, FieldType.REGULAR,
-                        // available in schema versions:
-                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+        public static final JsonFieldDefinition<JsonObject> JSON_MESSAGE =
+                JsonFactory.newJsonObjectFieldDefinition("message", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the MessageCommandResponse's Message headers.
          */
-        public static JsonFieldDefinition JSON_MESSAGE_HEADERS =
-                JsonFactory.newFieldDefinition("headers", JsonObject.class, FieldType.REGULAR,
-                        // available in schema versions:
-                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+        public static final JsonFieldDefinition<JsonObject> JSON_MESSAGE_HEADERS =
+                JsonFactory.newJsonObjectFieldDefinition("headers", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the MessageCommandResponse's Message payload.
          */
-        public static JsonFieldDefinition JSON_MESSAGE_PAYLOAD =
-                JsonFactory.newFieldDefinition("payload", String.class, FieldType.REGULAR,
-                        // available in schema versions:
-                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+        public static final JsonFieldDefinition<String> JSON_MESSAGE_PAYLOAD =
+                JsonFactory.newStringFieldDefinition("payload", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
+
     }
+
 }

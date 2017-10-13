@@ -71,14 +71,14 @@ final class ImmutableJsonPatch implements JsonPatch {
         }
 
         final JsonObject jsonObject = JsonFactory.newObject(jsonString);
-        final JsonObjectReader reader = JsonReader.from(jsonObject);
 
-        final String operationName = reader.get(JsonFields.OPERATION);
+        final String operationName = jsonObject.getValueOrThrow(JsonFields.OPERATION);
         final Operation operation = Operation.fromString(operationName).orElseThrow(
                 () -> new IllegalArgumentException(MessageFormat.format("Operation <{0}> is unknown!", operationName))
         );
-        final JsonPointer path = JsonFactory.newPointer(reader.get(JsonFields.PATH));
+        final JsonPointer path = JsonFactory.newPointer(jsonObject.getValueOrThrow(JsonFields.PATH));
         final JsonValue value = jsonObject.getValue(JsonFields.VALUE).orElse(null);
+
         return new ImmutableJsonPatch(operation, path, value);
     }
 

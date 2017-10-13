@@ -50,8 +50,8 @@ public final class ModifyAclEntryResponse extends AbstractCommandResponse<Modify
      */
     public static final String TYPE = TYPE_PREFIX + ModifyAclEntry.NAME;
 
-    static final JsonFieldDefinition JSON_ACL_ENTRY =
-            JsonFactory.newFieldDefinition("aclEntry", JsonObject.class, FieldType.REGULAR, JsonSchemaVersion.V_1);
+    static final JsonFieldDefinition<JsonObject> JSON_ACL_ENTRY =
+            JsonFactory.newJsonObjectFieldDefinition("aclEntry", FieldType.REGULAR, JsonSchemaVersion.V_1);
 
     private final String thingId;
     private final AclEntry modifiedAclEntry;
@@ -122,9 +122,10 @@ public final class ModifyAclEntryResponse extends AbstractCommandResponse<Modify
      */
     public static ModifyAclEntryResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<ModifyAclEntryResponse>(TYPE, jsonObject)
-                .deserialize((statusCode, jsonObjectReader) -> {
-                    final String thingId = jsonObjectReader.get(ThingModifyCommandResponse.JsonFields.JSON_THING_ID);
-                    final JsonObject aclEntryJsonObject = jsonObjectReader.get(JSON_ACL_ENTRY);
+                .deserialize((statusCode) -> {
+                    final String thingId =
+                            jsonObject.getValueOrThrow(ThingModifyCommandResponse.JsonFields.JSON_THING_ID);
+                    final JsonObject aclEntryJsonObject = jsonObject.getValueOrThrow(JSON_ACL_ENTRY);
                     final AclEntry extractedAclEntry = ThingsModelFactory.newAclEntry(aclEntryJsonObject);
 
                     return new ModifyAclEntryResponse(thingId, extractedAclEntry, statusCode, dittoHeaders);

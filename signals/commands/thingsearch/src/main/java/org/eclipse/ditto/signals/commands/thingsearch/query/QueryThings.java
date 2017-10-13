@@ -53,27 +53,21 @@ public final class QueryThings extends AbstractCommand<QueryThings> implements T
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition JSON_FILTER =
-            JsonFactory.newFieldDefinition("filter", String.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<String> JSON_FILTER =
+            JsonFactory.newStringFieldDefinition("filter", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
 
-    static final JsonFieldDefinition JSON_OPTIONS =
-            JsonFactory.newFieldDefinition("options", JsonArray.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<JsonArray> JSON_OPTIONS =
+            JsonFactory.newArrayFieldDefinition("options", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
 
-    static final JsonFieldDefinition JSON_FIELDS =
-            JsonFactory.newFieldDefinition("fields", String.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<String> JSON_FIELDS =
+            JsonFactory.newStringFieldDefinition("fields", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
 
-    @Nullable
-    private final String filter;
-    @Nullable
-    private final List<String> options;
-    @Nullable
-    private final JsonFieldSelector fields;
+    @Nullable private final String filter;
+    @Nullable private final List<String> options;
+    @Nullable private final JsonFieldSelector fields;
 
     private QueryThings(final DittoHeaders dittoHeaders, @Nullable final String filter,
             @Nullable final List<String> options, @Nullable final JsonFieldSelector fields) {
@@ -216,20 +210,18 @@ public final class QueryThings extends AbstractCommand<QueryThings> implements T
      * format.
      */
     public static QueryThings fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandJsonDeserializer<QueryThings>(TYPE, jsonObject).deserialize(jsonObjectReader -> {
-            final String extractedFilter = jsonObjectReader.<String>getAsOptional(JSON_FILTER)
-                    .orElse(null);
+        return new CommandJsonDeserializer<QueryThings>(TYPE, jsonObject).deserialize(() -> {
+            final String extractedFilter = jsonObject.getValue(JSON_FILTER).orElse(null);
 
-            final List<String> extractedOptions = jsonObjectReader.<JsonArray>getAsOptional(JSON_OPTIONS)
+            final List<String> extractedOptions = jsonObject.getValue(JSON_OPTIONS)
                     .map(jsonArray -> jsonArray.stream()
                             .filter(JsonValue::isString)
                             .map(JsonValue::asString)
                             .collect(Collectors.toList()))
                     .orElse(null);
 
-            final JsonFieldSelector extractedFieldSelector = jsonObjectReader.<String>getAsOptional(JSON_FIELDS)
-                    .map(fields -> JsonFactory.newFieldSelector(fields,
-                            JsonFactory.newParseOptionsBuilder().build()))
+            final JsonFieldSelector extractedFieldSelector = jsonObject.getValue(JSON_FIELDS)
+                    .map(fields -> JsonFactory.newFieldSelector(fields, JsonFactory.newParseOptionsBuilder().build()))
                     .orElse(null);
 
             return new QueryThings(dittoHeaders, extractedFilter, extractedOptions, extractedFieldSelector);

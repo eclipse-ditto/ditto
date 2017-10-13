@@ -19,14 +19,13 @@ import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.Optional;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonObjectReader;
 import org.eclipse.ditto.json.JsonParseException;
-import org.eclipse.ditto.json.JsonReader;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 
@@ -34,7 +33,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
  * This class helps to deserialize JSON to a sub-class of {@link Event}. Hereby this class extracts the values which
  * are
  * common for all events. All remaining required values have to be extracted in
- * {@link FactoryMethodFunction#create(long, Instant, JsonObjectReader)}. There the actual event object is created, too.
+ * {@link FactoryMethodFunction#create(long, Instant)}. There the actual event object is created, too.
  *
  * @param <T> the type of the Event.
  */
@@ -42,7 +41,6 @@ import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 public final class EventJsonDeserializer<T extends Event> {
 
     private final JsonObject jsonObject;
-    private final JsonObjectReader jsonObjectReader;
     private final String expectedType;
     private final String eventTypePrefix;
 
@@ -59,9 +57,16 @@ public final class EventJsonDeserializer<T extends Event> {
         checkNotNull(jsonObject, "JSON object to be deserialized");
 
         this.jsonObject = jsonObject;
-        jsonObjectReader = JsonReader.from(jsonObject);
         expectedType = type;
         eventTypePrefix = type.split(":")[0];
+    }
+
+    private static void validateType(final String type) {
+        // for backward compatibility, extract the prefix for later use:
+        if (!type.contains(":")) {
+            final String msgPattern = "The type <{0}> does not contain a prefix separated by a colon (':')!";
+            throw new IllegalArgumentException(MessageFormat.format(msgPattern, type));
+        }
     }
 
     /**
@@ -77,19 +82,10 @@ public final class EventJsonDeserializer<T extends Event> {
         this(type, JsonFactory.newObject(jsonString));
     }
 
-    private void validateType(final String type) {
-        // for backward compatibility, extract the prefix for later use:
-        if (!type.contains(":")) {
-            throw new IllegalArgumentException(
-                    MessageFormat.format("The type ''{0}'' does not contain a prefix separated by a colon (':').",
-                            type));
-        }
-    }
-
     /**
      * Partly deserializes the JSON which was given to this object's constructor. The factory method function which is
      * given to this method is responsible for creating the actual {@code Event}. This method receives the partly
-     * deserialized values as well as the {@link JsonReader} for the JSON to obtain further values if required.
+     * deserialized values which can be completed by the implementor by further values if required.
      *
      * @param factoryMethodFunction creates the actual {@code Event} object.
      * @return the created event.
@@ -101,35 +97,34 @@ public final class EventJsonDeserializer<T extends Event> {
         validateEventType();
 
         // added in V2 for V1, fallback to revision "0":
-        final Long revision = jsonObject.getValue(Event.JsonFields.REVISION).map(JsonValue::asLong).orElse(0L);
+        final Long revision = jsonObject.getValue(Event.JsonFields.REVISION).orElse(0L);
 
-        final Instant timestamp = jsonObject.getValue(Event.JsonFields.TIMESTAMP)
+        final Instant timestamp = jsonObject.getValue(Event.JsonFields.TIMESTAMP.getPointer())
                 .filter(JsonValue::isString)
                 .map(JsonValue::asString)
-                .map(this::tryToParseModified)
+                .map(EventJsonDeserializer::tryToParseModified)
                 .orElse(null);
 
-        return factoryMethodFunction.create(revision, timestamp, jsonObjectReader);
+        return factoryMethodFunction.create(revision, timestamp);
     }
 
     private void validateEventType() {
-        final Optional<String> typeOpt = jsonObject.getValue(Event.JsonFields.TYPE).map(JsonValue::asString);
-        final Optional<String> eventOpt = jsonObject.getValue(Event.JsonFields.ID).map(JsonValue::asString);
-        final String type = typeOpt.orElseGet(() -> // if type was not present (was included in V2)
-                eventOpt // take "event" instead
-                        .map(event -> eventTypePrefix + ':' + event) // and transform to V2 format
-                        .orElseThrow(() -> JsonMissingFieldException.newBuilder() // fail if "event" also is not present
-                                .fieldName(Event.JsonFields.TYPE.getPointer().toString()).build()));
+        final Optional<String> eventOpt = jsonObject.getValue(Event.JsonFields.ID);
+        final String type = jsonObject.getValue(Event.JsonFields.TYPE)
+                .orElseGet(() -> // if type was not present (was included in V2)
+                        // take event instead and transform to V2 format, fail if "event" is not present, too
+                        eventOpt.map(event -> eventTypePrefix + ':' + event)
+                                .orElseThrow(() -> new JsonMissingFieldException(Event.JsonFields.TYPE.getPointer()))
+                );
 
         if (!expectedType.equals(type)) {
-            final String msg =
-                    MessageFormat.format("Event JSON was not a ''{0}'' event but a ''{1}''!", expectedType, type);
-            final JsonParseException jsonParseException = new JsonParseException(msg);
-            throw new DittoJsonException(jsonParseException);
+            final String msgPattern = "Event JSON was not a <{0}> event but a <{1}>!";
+            final String msg = MessageFormat.format(msgPattern, expectedType, type);
+            throw new DittoJsonException(new JsonParseException(msg));
         }
     }
 
-    private Instant tryToParseModified(final String dateTime) {
+    private static Instant tryToParseModified(final CharSequence dateTime) {
         try {
             return Instant.parse(dateTime);
         } catch (final DateTimeParseException e) {
@@ -139,8 +134,7 @@ public final class EventJsonDeserializer<T extends Event> {
 
     /**
      * Represents a function that accepts three arguments to produce a {@code Event}. The arguments were extracted from
-     * a
-     * given JSON beforehand.
+     * a given JSON beforehand.
      *
      * @param <T> the type of the result of the function.
      */
@@ -152,11 +146,10 @@ public final class EventJsonDeserializer<T extends Event> {
          *
          * @param revision the revision of the Entity.
          * @param timestamp the event's timestamp.
-         * @param jsonObjectReader the reader which was initialized with the JSON to be deserialized. It can be used to
-         * obtain further values from JSON.
          * @return the created event.
          */
-        T create(long revision, Instant timestamp, JsonObjectReader jsonObjectReader);
+        T create(long revision, @Nullable Instant timestamp);
+
     }
 
 }

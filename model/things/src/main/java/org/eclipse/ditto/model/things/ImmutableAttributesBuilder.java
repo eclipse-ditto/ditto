@@ -11,11 +11,10 @@
  */
 package org.eclipse.ditto.model.things;
 
-import static org.eclipse.ditto.json.JsonFactory.newValue;
-
 import java.util.Iterator;
 import java.util.function.Predicate;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonFactory;
@@ -96,56 +95,64 @@ final class ImmutableAttributesBuilder implements AttributesBuilder {
     }
 
     @Override
+    public <T> AttributesBuilder set(final JsonFieldDefinition<T> fieldDefinition, @Nullable final T value,
+            final Predicate<JsonField> predicate) {
+
+        jsonObjectBuilder.set(fieldDefinition, value, predicate);
+        return this;
+    }
+
+    @Override
     public AttributesBuilder set(final JsonField field, final Predicate<JsonField> predicate) {
         jsonObjectBuilder.set(field, predicate);
         return this;
     }
 
-    @Override
-    public AttributesBuilder set(final JsonFieldDefinition fieldDefinition, final boolean value,
-            final Predicate<JsonField> predicate) {
-
-        jsonObjectBuilder.set(fieldDefinition, value, predicate);
-        return this;
-    }
-
-    @Override
-    public AttributesBuilder set(final JsonFieldDefinition fieldDefinition, final double value,
-            final Predicate<JsonField> predicate) {
-
-        jsonObjectBuilder.set(fieldDefinition, value, predicate);
-        return this;
-    }
-
-    @Override
-    public AttributesBuilder set(final JsonFieldDefinition fieldDefinition, final int value,
-            final Predicate<JsonField> predicate) {
-
-        jsonObjectBuilder.set(fieldDefinition, value, predicate);
-        return this;
-    }
-
-    @Override
-    public AttributesBuilder set(final JsonFieldDefinition fieldDefinition, final JsonValue value,
-            final Predicate<JsonField> predicate) {
-
-        jsonObjectBuilder.set(fieldDefinition, value, predicate);
-        return this;
-    }
-
-    @Override
-    public AttributesBuilder set(final JsonFieldDefinition fieldDefinition, final long value,
-            final Predicate<JsonField> predicate) {
-
-        return set(fieldDefinition, newValue(value), predicate);
-    }
-
-    @Override
-    public AttributesBuilder set(final JsonFieldDefinition fieldDefinition, final String value,
-            final Predicate<JsonField> predicate) {
-
-        return set(fieldDefinition, newValue(value), predicate);
-    }
+//    @Override
+//    public AttributesBuilder set(final JsonFieldDefinition fieldDefinition, final boolean value,
+//            final Predicate<JsonField> predicate) {
+//
+//        jsonObjectBuilder.set(fieldDefinition, value, predicate);
+//        return this;
+//    }
+//
+//    @Override
+//    public AttributesBuilder set(final JsonFieldDefinition fieldDefinition, final double value,
+//            final Predicate<JsonField> predicate) {
+//
+//        jsonObjectBuilder.set(fieldDefinition, value, predicate);
+//        return this;
+//    }
+//
+//    @Override
+//    public AttributesBuilder set(final JsonFieldDefinition fieldDefinition, final int value,
+//            final Predicate<JsonField> predicate) {
+//
+//        jsonObjectBuilder.set(fieldDefinition, value, predicate);
+//        return this;
+//    }
+//
+//    @Override
+//    public AttributesBuilder set(final JsonFieldDefinition fieldDefinition, final JsonValue value,
+//            final Predicate<JsonField> predicate) {
+//
+//        jsonObjectBuilder.set(fieldDefinition, value, predicate);
+//        return this;
+//    }
+//
+//    @Override
+//    public AttributesBuilder set(final JsonFieldDefinition fieldDefinition, final long value,
+//            final Predicate<JsonField> predicate) {
+//
+//        return set(fieldDefinition, newValue(value), predicate);
+//    }
+//
+//    @Override
+//    public AttributesBuilder set(final JsonFieldDefinition fieldDefinition, final String value,
+//            final Predicate<JsonField> predicate) {
+//
+//        return set(fieldDefinition, newValue(value), predicate);
+//    }
 
     @Override
     public AttributesBuilder remove(final CharSequence key) {

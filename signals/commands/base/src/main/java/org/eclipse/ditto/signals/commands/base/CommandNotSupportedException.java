@@ -14,6 +14,7 @@ package org.eclipse.ditto.signals.commands.base;
 import java.net.URI;
 import java.text.MessageFormat;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -40,8 +41,12 @@ public final class CommandNotSupportedException extends DittoRuntimeException {
 
     private static final long serialVersionUID = 317333904099138238L;
 
-    private CommandNotSupportedException(final DittoHeaders dittoHeaders, final String message,
-            final String description, final Throwable cause, final URI href) {
+    private CommandNotSupportedException(final DittoHeaders dittoHeaders,
+            @Nullable final String message,
+            @Nullable final String description,
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
+
         super(ERROR_CODE, HttpStatusCode.NOT_FOUND, dittoHeaders, message, description, cause, href);
     }
 
@@ -61,8 +66,11 @@ public final class CommandNotSupportedException extends DittoRuntimeException {
      * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new CommandNotSupportedException.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
-    public static CommandNotSupportedException fromMessage(final String message, final DittoHeaders dittoHeaders) {
+    public static CommandNotSupportedException fromMessage(@Nullable final String message,
+            final DittoHeaders dittoHeaders) {
+
         return new Builder()
                 .dittoHeaders(dittoHeaders)
                 .message(message)
@@ -76,11 +84,11 @@ public final class CommandNotSupportedException extends DittoRuntimeException {
      * @param jsonObject the JSON to read the {@link JsonFields#MESSAGE} field from.
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new CommandNotSupportedException.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if the {@code jsonObject} does not have the {@link
      * JsonFields#MESSAGE} field.
      */
-    public static CommandNotSupportedException fromJson(final JsonObject jsonObject,
-            final DittoHeaders dittoHeaders) {
+    public static CommandNotSupportedException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return fromMessage(readMessage(jsonObject), dittoHeaders);
     }
 
@@ -101,9 +109,15 @@ public final class CommandNotSupportedException extends DittoRuntimeException {
         }
 
         @Override
-        protected CommandNotSupportedException doBuild(final DittoHeaders dittoHeaders, final String message,
-                final String description, final Throwable cause, final URI href) {
+        protected CommandNotSupportedException doBuild(final DittoHeaders dittoHeaders,
+                @Nullable final String message,
+                @Nullable final String description,
+                @Nullable final Throwable cause,
+                @Nullable final URI href) {
+
             return new CommandNotSupportedException(dittoHeaders, message, description, cause, href);
         }
+
     }
+
 }

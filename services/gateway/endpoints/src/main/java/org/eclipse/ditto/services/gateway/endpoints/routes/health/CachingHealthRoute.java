@@ -20,7 +20,6 @@ import java.time.Instant;
 import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.services.gateway.endpoints.directives.DevopsBasicAuthenticationDirective;
 import org.eclipse.ditto.services.gateway.health.StatusHealthHelper;
 import org.eclipse.ditto.services.utils.health.HealthStatus;
@@ -79,7 +78,7 @@ public final class CachingHealthRoute {
             cachedHealth = statusHealthHelper.calculateOverallHealthJson()
                     .thenApply(overallHealth -> JsonObject.newBuilder()
                             .set(HealthStatus.JSON_KEY_STATUS, overallHealth.getValue(HealthStatus.JSON_KEY_STATUS)
-                                    .orElse(JsonValue.of(HealthStatus.Status.DOWN.toString())))
+                                    .orElse(HealthStatus.Status.DOWN.toString()))
                             .build()
                     );
             lastCheckInstant = Instant.now();

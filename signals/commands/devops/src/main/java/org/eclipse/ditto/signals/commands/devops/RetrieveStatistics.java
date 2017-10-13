@@ -78,7 +78,7 @@ public final class RetrieveStatistics extends AbstractDevOpsCommand<RetrieveStat
      */
     public static RetrieveStatistics fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new DevOpsCommandJsonDeserializer<RetrieveStatistics>(TYPE, jsonObject)
-                .deserialize(jsonObjectReader -> RetrieveStatistics.of(dittoHeaders));
+                .deserialize(() -> RetrieveStatistics.of(dittoHeaders));
     }
 
     @Override

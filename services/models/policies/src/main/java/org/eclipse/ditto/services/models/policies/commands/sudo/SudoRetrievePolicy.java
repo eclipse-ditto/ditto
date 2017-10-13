@@ -16,13 +16,13 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import java.util.Objects;
 import java.util.function.Predicate;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
@@ -32,8 +32,8 @@ import org.eclipse.ditto.signals.commands.base.AbstractCommand;
  * authorization context.
  */
 @Immutable
-public final class SudoRetrievePolicy extends AbstractCommand<SudoRetrievePolicy> implements
-        SudoCommand<SudoRetrievePolicy> {
+public final class SudoRetrievePolicy extends AbstractCommand<SudoRetrievePolicy>
+        implements SudoCommand<SudoRetrievePolicy> {
 
     /**
      * Name of the "Sudo Retrieve Policy" command.
@@ -93,10 +93,7 @@ public final class SudoRetrievePolicy extends AbstractCommand<SudoRetrievePolicy
      * format.
      */
     public static SudoRetrievePolicy fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        final String extractedPolicyId = jsonObject.getValue(SudoCommand.JsonFields.JSON_POLICY_ID) //
-                .filter(JsonValue::isString) //
-                .map(JsonValue::asString) //
-                .orElse(null);
+        final String extractedPolicyId = jsonObject.getValueOrThrow(SudoCommand.JsonFields.JSON_POLICY_ID);
 
         return SudoRetrievePolicy.of(extractedPolicyId, dittoHeaders);
     }
@@ -114,6 +111,7 @@ public final class SudoRetrievePolicy extends AbstractCommand<SudoRetrievePolicy
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(SudoCommand.JsonFields.JSON_POLICY_ID, policyId, predicate);
     }
@@ -125,7 +123,7 @@ public final class SudoRetrievePolicy extends AbstractCommand<SudoRetrievePolicy
 
     @SuppressWarnings({"squid:MethodCyclomaticComplexity", "squid:S1067"})
     @Override
-    public boolean equals(final Object obj) {
+    public boolean equals(@Nullable final Object obj) {
         if (this == obj) {
             return true;
         }
@@ -137,8 +135,8 @@ public final class SudoRetrievePolicy extends AbstractCommand<SudoRetrievePolicy
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof SudoRetrievePolicy);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof SudoRetrievePolicy;
     }
 
     @SuppressWarnings("squid:S109")
@@ -151,4 +149,5 @@ public final class SudoRetrievePolicy extends AbstractCommand<SudoRetrievePolicy
     public String toString() {
         return getClass().getSimpleName() + " [" + super.toString() + ", policyId=" + policyId + "]";
     }
+
 }

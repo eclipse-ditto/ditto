@@ -88,8 +88,9 @@ public final class DeleteAttributesResponse extends AbstractCommandResponse<Dele
      */
     public static DeleteAttributesResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<DeleteAttributesResponse>(TYPE, jsonObject)
-                .deserialize((statusCode, jsonObjectReader) -> {
-                    final String thingId = jsonObjectReader.get(ThingModifyCommandResponse.JsonFields.JSON_THING_ID);
+                .deserialize((statusCode) -> {
+                    final String thingId =
+                            jsonObject.getValueOrThrow(ThingModifyCommandResponse.JsonFields.JSON_THING_ID);
                     return of(thingId, dittoHeaders);
                 });
     }

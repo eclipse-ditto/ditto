@@ -11,10 +11,9 @@
  */
 package org.eclipse.ditto.model.policies;
 
-import static org.eclipse.ditto.json.JsonFactory.newFieldDefinition;
-
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonFieldSelector;
@@ -114,15 +113,15 @@ public interface Subject extends Jsonifiable.WithFieldSelectorAndPredicate<JsonF
         /**
          * JSON field containing the {@link JsonSchemaVersion} of a Subject.
          */
-        public static final JsonFieldDefinition SCHEMA_VERSION =
-                newFieldDefinition(JsonSchemaVersion.getJsonKey(), int.class, FieldType.SPECIAL, FieldType.HIDDEN,
+        public static final JsonFieldDefinition<Integer> SCHEMA_VERSION =
+                JsonFactory.newIntFieldDefinition(JsonSchemaVersion.getJsonKey(), FieldType.SPECIAL, FieldType.HIDDEN,
                         JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the Subject's type.
          */
-        public static final JsonFieldDefinition TYPE = newFieldDefinition("type", String.class, FieldType.REGULAR,
-                JsonSchemaVersion.V_2);
+        public static final JsonFieldDefinition<String> TYPE =
+                JsonFactory.newStringFieldDefinition("type", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         private JsonFields() {
             throw new AssertionError();

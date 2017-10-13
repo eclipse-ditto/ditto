@@ -17,6 +17,7 @@ import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
@@ -81,10 +82,7 @@ public final class DeleteThing extends AbstractCommand<DeleteThing> implements T
      * org.eclipse.ditto.model.things.Thing#ID_REGEX}.
      */
     public static DeleteThing fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
-        return new CommandJsonDeserializer<DeleteThing>(TYPE, jsonString).deserialize(jsonObjectReader -> {
-            final String thingId = jsonObjectReader.get(ThingModifyCommand.JsonFields.JSON_THING_ID);
-            return of(thingId, dittoHeaders);
-        });
+        return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
     }
 
     /**
@@ -100,8 +98,8 @@ public final class DeleteThing extends AbstractCommand<DeleteThing> implements T
      * org.eclipse.ditto.model.things.Thing#ID_REGEX}.
      */
     public static DeleteThing fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandJsonDeserializer<DeleteThing>(TYPE, jsonObject).deserialize(jsonObjectReader -> {
-            final String thingId = jsonObjectReader.get(ThingModifyCommand.JsonFields.JSON_THING_ID);
+        return new CommandJsonDeserializer<DeleteThing>(TYPE, jsonObject).deserialize(() -> {
+            final String thingId = jsonObject.getValueOrThrow(ThingModifyCommand.JsonFields.JSON_THING_ID);
             return of(thingId, dittoHeaders);
         });
     }

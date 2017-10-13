@@ -35,8 +35,8 @@ import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
  * This event is emitted after a command was executed.
  */
 @Immutable
-public final class BatchCommandExecuted
-        extends AbstractBatchEvent<BatchCommandExecuted> implements BatchEvent<BatchCommandExecuted> {
+public final class BatchCommandExecuted extends AbstractBatchEvent<BatchCommandExecuted>
+        implements BatchEvent<BatchCommandExecuted> {
 
     /**
      * The name of this event.
@@ -50,7 +50,9 @@ public final class BatchCommandExecuted
 
     private final CommandResponse response;
 
-    private BatchCommandExecuted(final String batchId, final CommandResponse response, final Instant timestamp) {
+    private BatchCommandExecuted(final String batchId, final CommandResponse response,
+            @Nullable final Instant timestamp) {
+
         super(TYPE, batchId, timestamp, response.getDittoHeaders());
         this.response = response;
     }
@@ -74,12 +76,14 @@ public final class BatchCommandExecuted
      * @param response the response to the executed command.
      * @param timestamp the timestamp of the event
      * @return the CommandExecuted.
-     * @throws NullPointerException if any argument is {@code null}.
+     * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
      */
     public static BatchCommandExecuted of(final String batchId, final CommandResponse response,
-            final Instant timestamp) {
+            @Nullable final Instant timestamp) {
+
         requireNonNull(batchId);
         requireNonNull(response);
+
         return new BatchCommandExecuted(batchId, response, timestamp);
     }
 
@@ -98,6 +102,7 @@ public final class BatchCommandExecuted
      */
     public static BatchCommandExecuted fromJson(final String jsonString, final DittoHeaders dittoHeaders,
             final CommandResponseRegistry<? extends CommandResponse> commandResponseRegistry) {
+
         return fromJson(JsonFactory.newObject(jsonString), dittoHeaders, commandResponseRegistry);
     }
 
@@ -115,13 +120,13 @@ public final class BatchCommandExecuted
      */
     public static BatchCommandExecuted fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders,
             final CommandResponseRegistry<? extends CommandResponse> commandResponseRegistry) {
-        return new EventJsonDeserializer<BatchCommandExecuted>(TYPE, jsonObject).deserialize((revision, timestamp,
-                jsonObjectReader) -> {
-            final String batchId = jsonObjectReader.get(JsonFields.BATCH_ID);
-            final JsonObject cmdHeadersJson = jsonObjectReader.get(JsonFields.DITTO_HEADERS);
-            final DittoHeaders cmdHeaders = DittoHeaders.newBuilder(cmdHeadersJson).build();
 
-            final JsonObject responseJson = jsonObjectReader.get(JsonFields.RESPONSE);
+        return new EventJsonDeserializer<BatchCommandExecuted>(TYPE, jsonObject).deserialize((revision, timestamp) -> {
+            final String batchId = jsonObject.getValueOrThrow(JsonFields.BATCH_ID);
+            final JsonObject cmdHeadersJson = jsonObject.getValueOrThrow(JsonFields.DITTO_HEADERS);
+            final DittoHeaders cmdHeaders = DittoHeaders.newBuilder(cmdHeadersJson).build();
+            final JsonObject responseJson = jsonObject.getValueOrThrow(JsonFields.RESPONSE);
+
             final CommandResponse commandResponse = commandResponseRegistry.parse(responseJson, cmdHeaders);
 
             return of(batchId, commandResponse, timestamp);
@@ -145,6 +150,7 @@ public final class BatchCommandExecuted
     @Override
     protected void appendPayloadAndBuild(final JsonObjectBuilder jsonObjectBuilder,
             final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
+
         jsonObjectBuilder.set(JsonFields.BATCH_ID, getBatchId());
         jsonObjectBuilder.set(JsonFields.RESPONSE, response.toJson(response.getImplementedSchemaVersion(),
                 FieldType.regularOrSpecial()));

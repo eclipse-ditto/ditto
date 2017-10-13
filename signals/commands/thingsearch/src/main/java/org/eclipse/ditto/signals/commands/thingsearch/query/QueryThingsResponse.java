@@ -93,9 +93,10 @@ public final class QueryThingsResponse extends AbstractCommandResponse<QueryThin
      */
     public static QueryThingsResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<QueryThingsResponse>(TYPE, jsonObject)
-                .deserialize((statusCode, jsonObjectReader) -> {
-                    final JsonObject searchResultJson = jsonObjectReader.get(JsonFields.PAYLOAD);
+                .deserialize((statusCode) -> {
+                    final JsonObject searchResultJson = jsonObject.getValueOrThrow(JsonFields.PAYLOAD).asObject();
                     final SearchResult extractedSearchResult = SearchModelFactory.newSearchResult(searchResultJson);
+
                     return of(extractedSearchResult, dittoHeaders);
                 });
     }
