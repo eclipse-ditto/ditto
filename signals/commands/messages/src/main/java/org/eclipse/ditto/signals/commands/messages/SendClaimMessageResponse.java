@@ -11,6 +11,8 @@
  */
 package org.eclipse.ditto.signals.commands.messages;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
@@ -35,8 +37,11 @@ public final class SendClaimMessageResponse<T> extends AbstractMessageCommandRes
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    private SendClaimMessageResponse(final String thingId, final Message<T> message,
-            final HttpStatusCode responseStatusCode, final DittoHeaders dittoHeaders) {
+    private SendClaimMessageResponse(final String thingId,
+            final Message<T> message,
+            final HttpStatusCode responseStatusCode,
+            final DittoHeaders dittoHeaders) {
+
         super(TYPE, thingId, message, responseStatusCode, dittoHeaders);
     }
 
@@ -46,18 +51,21 @@ public final class SendClaimMessageResponse<T> extends AbstractMessageCommandRes
     }
 
     /**
-     * Creates a new instance of {@link SendClaimMessageResponse}.
+     * Creates a new instance of {@code SendClaimMessageResponse}.
      *
      * @param thingId the ID of the Thing to send the message from.
      * @param message the claim response message to send from the Thing.
      * @param responseStatusCode the optional status code of this response.
      * @param dittoHeaders the DittoHeaders of this message.
      * @param <T> the type of the message's payload.
-     * @return new instance of {@link SendClaimMessageResponse}.
+     * @return new instance of {@code SendClaimMessageResponse}.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static <T> SendClaimMessageResponse<T> of(final String thingId, final Message<T> message,
-            final HttpStatusCode responseStatusCode, final DittoHeaders dittoHeaders) {
+    public static <T> SendClaimMessageResponse<T> of(final String thingId,
+            final Message<T> message,
+            final HttpStatusCode responseStatusCode,
+            final DittoHeaders dittoHeaders) {
+
         return new SendClaimMessageResponse<>(thingId, message, responseStatusCode, dittoHeaders);
     }
 
@@ -72,8 +80,7 @@ public final class SendClaimMessageResponse<T> extends AbstractMessageCommandRes
      * @throws IllegalArgumentException if {@code jsonString} is empty.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected format.
      */
-    public static <T> SendClaimMessageResponse<T> fromJson(final String jsonString,
-            final DittoHeaders dittoHeaders) {
+    public static <T> SendClaimMessageResponse<T> fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
         return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
     }
 
@@ -89,8 +96,9 @@ public final class SendClaimMessageResponse<T> extends AbstractMessageCommandRes
      */
     public static <T> SendClaimMessageResponse<T> fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<SendClaimMessageResponse<T>>(TYPE, jsonObject).deserialize(
-                (statusCode) -> {
+
+        return new CommandResponseJsonDeserializer<SendClaimMessageResponse<T>>(TYPE, jsonObject)
+                .deserialize(statusCode -> {
                     final String thingId = jsonObject.getValueOrThrow(MessageCommandResponse.JsonFields.JSON_THING_ID);
                     final Message<T> message = deserializeMessageFromJson(jsonObject);
 
@@ -99,8 +107,8 @@ public final class SendClaimMessageResponse<T> extends AbstractMessageCommandRes
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof SendClaimMessageResponse);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof SendClaimMessageResponse;
     }
 
     @Override

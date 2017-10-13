@@ -21,7 +21,6 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 
 /**
@@ -61,11 +60,9 @@ final class ImmutableJsonifiableAdaptable implements JsonifiableAdaptable {
                 .map(DittoProtocolAdapter::newTopicPath)
                 .orElseGet(DittoProtocolAdapter::emptyTopicPath);
 
-        final JsonObject headersJson = jsonObject.getValue(JsonFields.HEADERS)
-                .filter(JsonValue::isObject)
-                .map(JsonValue::asObject)
-                .orElse(JsonObject.newBuilder().build());
-        final DittoHeaders headers = DittoProtocolAdapter.newHeaders(headersJson);
+        final DittoHeaders headers = jsonObject.getValue(JsonFields.HEADERS)
+                .map(DittoProtocolAdapter::newHeaders)
+                .orElse(DittoHeaders.empty());
 
         return new ImmutableJsonifiableAdaptable(ImmutableAdaptable.of(topicPath,
                 DittoProtocolAdapter.newPayload(jsonObject), headers));

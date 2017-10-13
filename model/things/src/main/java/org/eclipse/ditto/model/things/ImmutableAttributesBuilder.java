@@ -108,52 +108,6 @@ final class ImmutableAttributesBuilder implements AttributesBuilder {
         return this;
     }
 
-//    @Override
-//    public AttributesBuilder set(final JsonFieldDefinition fieldDefinition, final boolean value,
-//            final Predicate<JsonField> predicate) {
-//
-//        jsonObjectBuilder.set(fieldDefinition, value, predicate);
-//        return this;
-//    }
-//
-//    @Override
-//    public AttributesBuilder set(final JsonFieldDefinition fieldDefinition, final double value,
-//            final Predicate<JsonField> predicate) {
-//
-//        jsonObjectBuilder.set(fieldDefinition, value, predicate);
-//        return this;
-//    }
-//
-//    @Override
-//    public AttributesBuilder set(final JsonFieldDefinition fieldDefinition, final int value,
-//            final Predicate<JsonField> predicate) {
-//
-//        jsonObjectBuilder.set(fieldDefinition, value, predicate);
-//        return this;
-//    }
-//
-//    @Override
-//    public AttributesBuilder set(final JsonFieldDefinition fieldDefinition, final JsonValue value,
-//            final Predicate<JsonField> predicate) {
-//
-//        jsonObjectBuilder.set(fieldDefinition, value, predicate);
-//        return this;
-//    }
-//
-//    @Override
-//    public AttributesBuilder set(final JsonFieldDefinition fieldDefinition, final long value,
-//            final Predicate<JsonField> predicate) {
-//
-//        return set(fieldDefinition, newValue(value), predicate);
-//    }
-//
-//    @Override
-//    public AttributesBuilder set(final JsonFieldDefinition fieldDefinition, final String value,
-//            final Predicate<JsonField> predicate) {
-//
-//        return set(fieldDefinition, newValue(value), predicate);
-//    }
-
     @Override
     public AttributesBuilder remove(final CharSequence key) {
         jsonObjectBuilder.remove(key);

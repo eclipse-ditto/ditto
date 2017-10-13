@@ -210,7 +210,7 @@ final class NullFeatureProperties implements FeatureProperties {
 
     @Override
     public <T> T getValueOrThrow(final JsonFieldDefinition<T> fieldDefinition) {
-        throw JsonMissingFieldException.newBuilder().fieldName(fieldDefinition.getPointer()).build();
+        throw new JsonMissingFieldException(fieldDefinition.getPointer());
     }
 
     @Override
