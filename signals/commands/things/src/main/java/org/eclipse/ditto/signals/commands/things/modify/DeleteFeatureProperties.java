@@ -50,10 +50,9 @@ public final class DeleteFeatureProperties extends AbstractCommand<DeleteFeature
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition JSON_FEATURE_ID =
-            JsonFactory.newFieldDefinition("featureId", String.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<String> JSON_FEATURE_ID =
+            JsonFactory.newStringFieldDefinition("featureId", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
 
     private final String thingId;
     private final String featureId;
@@ -112,9 +111,10 @@ public final class DeleteFeatureProperties extends AbstractCommand<DeleteFeature
      * org.eclipse.ditto.model.things.Thing#ID_REGEX}.
      */
     public static DeleteFeatureProperties fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandJsonDeserializer<DeleteFeatureProperties>(TYPE, jsonObject).deserialize(jsonObjectReader -> {
-            final String thingId = jsonObjectReader.get(ThingModifyCommand.JsonFields.JSON_THING_ID);
-            final String extractedFeatureId = jsonObjectReader.get(JSON_FEATURE_ID);
+        return new CommandJsonDeserializer<DeleteFeatureProperties>(TYPE, jsonObject).deserialize(() -> {
+            final String thingId = jsonObject.getValueOrThrow(ThingModifyCommand.JsonFields.JSON_THING_ID);
+            final String extractedFeatureId = jsonObject.getValueOrThrow(JSON_FEATURE_ID);
+
             return of(thingId, extractedFeatureId, dittoHeaders);
         });
     }
@@ -173,8 +173,8 @@ public final class DeleteFeatureProperties extends AbstractCommand<DeleteFeature
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof DeleteFeatureProperties);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof DeleteFeatureProperties;
     }
 
     @Override

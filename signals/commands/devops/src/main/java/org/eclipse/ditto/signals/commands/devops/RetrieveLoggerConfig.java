@@ -19,6 +19,7 @@ import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonArray;
@@ -49,15 +50,13 @@ public final class RetrieveLoggerConfig extends AbstractDevOpsCommand<RetrieveLo
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition JSON_ALL_KNOWN_LOGGERS =
-            JsonFactory.newFieldDefinition("allKnownLoggers", boolean.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<Boolean> JSON_ALL_KNOWN_LOGGERS =
+            JsonFactory.newBooleanFieldDefinition("allKnownLoggers", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
 
-    static final JsonFieldDefinition JSON_SPECIFIC_LOGGERS =
-            JsonFactory.newFieldDefinition("specificLoggers", JsonArray.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<JsonArray> JSON_SPECIFIC_LOGGERS =
+            JsonFactory.newArrayFieldDefinition("specificLoggers", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
 
     private final boolean allKnownLoggers;
     private final List<String> specificLoggers;
@@ -127,22 +126,21 @@ public final class RetrieveLoggerConfig extends AbstractDevOpsCommand<RetrieveLo
      * format.
      */
     public static RetrieveLoggerConfig fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new DevOpsCommandJsonDeserializer<RetrieveLoggerConfig>(TYPE, jsonObject).deserialize(
-                jsonObjectReader -> {
-                    final boolean isAllKnownLoggers = jsonObjectReader.get(JSON_ALL_KNOWN_LOGGERS);
+        return new DevOpsCommandJsonDeserializer<RetrieveLoggerConfig>(TYPE, jsonObject).deserialize(() -> {
+            final boolean isAllKnownLoggers = jsonObject.getValueOrThrow(JSON_ALL_KNOWN_LOGGERS);
 
-                    if (isAllKnownLoggers) {
-                        return ofAllKnownLoggers(dittoHeaders);
-                    } else {
-                        final List<String> extractedSpecificLoggers =
-                                jsonObjectReader.<JsonArray>get(JSON_SPECIFIC_LOGGERS) //
-                                        .stream() //
-                                        .filter(JsonValue::isString) //
-                                        .map(JsonValue::asString) //
-                                        .collect(Collectors.toList());
-                        return of(dittoHeaders, extractedSpecificLoggers);
-                    }
-                });
+            if (isAllKnownLoggers) {
+                return ofAllKnownLoggers(dittoHeaders);
+            } else {
+                final JsonArray loggersJsonArray = jsonObject.getValueOrThrow(JSON_SPECIFIC_LOGGERS);
+                final List<String> extractedSpecificLoggers = loggersJsonArray.stream()
+                        .filter(JsonValue::isString)
+                        .map(JsonValue::asString)
+                        .collect(Collectors.toList());
+
+                return of(dittoHeaders, extractedSpecificLoggers);
+            }
+        });
     }
 
     @Override
@@ -170,22 +168,21 @@ public final class RetrieveLoggerConfig extends AbstractDevOpsCommand<RetrieveLo
 
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
-            final Predicate<JsonField> thePredicate)
+            final Predicate<JsonField> thePredicate) {
 
-    {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(JSON_ALL_KNOWN_LOGGERS, allKnownLoggers, predicate);
 
         if (specificLoggers.size() > 0) {
-            jsonObjectBuilder.set(JSON_SPECIFIC_LOGGERS, specificLoggers.stream() //
-                    .map(JsonFactory::newValue) //
+            jsonObjectBuilder.set(JSON_SPECIFIC_LOGGERS, specificLoggers.stream()
+                    .map(JsonFactory::newValue)
                     .collect(JsonCollectors.valuesToArray()), predicate);
         }
     }
 
     @SuppressWarnings("squid:MethodCyclomaticComplexity")
     @Override
-    public boolean equals(final Object o) {
+    public boolean equals(@Nullable final Object o) {
         if (this == o) {
             return true;
         }
@@ -198,8 +195,8 @@ public final class RetrieveLoggerConfig extends AbstractDevOpsCommand<RetrieveLo
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof RetrieveLoggerConfig);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof RetrieveLoggerConfig;
     }
 
     @Override
@@ -212,4 +209,5 @@ public final class RetrieveLoggerConfig extends AbstractDevOpsCommand<RetrieveLo
         return getClass().getSimpleName() + " [" + super.toString() + "allKnownLoggers=" + allKnownLoggers
                 + ", specificLoggers=" + specificLoggers + "]";
     }
+
 }

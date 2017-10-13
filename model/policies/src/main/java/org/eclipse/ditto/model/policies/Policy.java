@@ -11,7 +11,6 @@
  */
 package org.eclipse.ditto.model.policies;
 
-import static org.eclipse.ditto.json.JsonFactory.newFieldDefinition;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.time.Instant;
@@ -446,48 +445,49 @@ public interface Policy extends Iterable<PolicyEntry>, Jsonifiable.WithFieldSele
         /**
          * JSON field containing the {@link JsonSchemaVersion}.
          */
-        public static final JsonFieldDefinition SCHEMA_VERSION =
-                newFieldDefinition(JsonSchemaVersion.getJsonKey(), int.class, FieldType.SPECIAL, FieldType.HIDDEN,
+        public static final JsonFieldDefinition<Integer> SCHEMA_VERSION =
+                JsonFactory.newIntFieldDefinition(JsonSchemaVersion.getJsonKey(), FieldType.SPECIAL, FieldType.HIDDEN,
                         JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the Policy's lifecycle.
          */
-        public static final JsonFieldDefinition LIFECYCLE =
-                newFieldDefinition("__lifecycle", String.class, FieldType.SPECIAL, FieldType.HIDDEN,
+        public static final JsonFieldDefinition<String> LIFECYCLE =
+                JsonFactory.newStringFieldDefinition("__lifecycle", FieldType.SPECIAL, FieldType.HIDDEN,
                         JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the Policy's namespace.
          */
-        public static final JsonFieldDefinition NAMESPACE =
-                newFieldDefinition("_namespace", String.class, FieldType.SPECIAL, FieldType.HIDDEN,
+        public static final JsonFieldDefinition<String> NAMESPACE =
+                JsonFactory.newStringFieldDefinition("_namespace", FieldType.SPECIAL, FieldType.HIDDEN,
                         JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the Policy's revision.
          */
-        public static final JsonFieldDefinition REVISION =
-                newFieldDefinition("_revision", long.class, FieldType.SPECIAL, FieldType.HIDDEN, JsonSchemaVersion.V_2);
+        public static final JsonFieldDefinition<Long> REVISION =
+                JsonFactory.newLongFieldDefinition("_revision", FieldType.SPECIAL, FieldType.HIDDEN,
+                        JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the Policy's modified timestamp in ISO-8601 format.
          */
-        public static final JsonFieldDefinition MODIFIED =
-                newFieldDefinition("_modified", String.class, FieldType.SPECIAL, FieldType.HIDDEN,
+        public static final JsonFieldDefinition<String> MODIFIED =
+                JsonFactory.newStringFieldDefinition("_modified", FieldType.SPECIAL, FieldType.HIDDEN,
                         JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the Policy's ID.
          */
-        public static final JsonFieldDefinition ID = newFieldDefinition("policyId", String.class, FieldType.REGULAR,
-                JsonSchemaVersion.V_2);
+        public static final JsonFieldDefinition<String> ID =
+                JsonFactory.newStringFieldDefinition("policyId", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the Policy's entries.
          */
-        public static final JsonFieldDefinition ENTRIES =
-                newFieldDefinition("entries", JsonObject.class, FieldType.REGULAR, JsonSchemaVersion.V_2);
+        public static final JsonFieldDefinition<JsonObject> ENTRIES =
+                JsonFactory.newJsonObjectFieldDefinition("entries", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         private JsonFields() {
             throw new AssertionError();

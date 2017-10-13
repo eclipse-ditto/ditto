@@ -46,10 +46,9 @@ public final class SyncThing extends AbstractCommand<SyncThing> implements Thing
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition JSON_THING_ID =
-            JsonFactory.newFieldDefinition("thingId", String.class, FieldType.REGULAR,
-                    // supported schema versions:
-                    JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<String> JSON_THING_ID =
+            JsonFactory.newStringFieldDefinition("thingId", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
 
     private final String thingId;
 
@@ -96,8 +95,8 @@ public final class SyncThing extends AbstractCommand<SyncThing> implements Thing
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected format.
      */
     public static SyncThing fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandJsonDeserializer<SyncThing>(TYPE, jsonObject).deserialize(jsonObjectReader -> {
-            final String extractedThingId = jsonObjectReader.get(JSON_THING_ID);
+        return new CommandJsonDeserializer<SyncThing>(TYPE, jsonObject).deserialize(() -> {
+            final String extractedThingId = jsonObject.getValueOrThrow(JSON_THING_ID);
             return of(extractedThingId, dittoHeaders);
         });
     }

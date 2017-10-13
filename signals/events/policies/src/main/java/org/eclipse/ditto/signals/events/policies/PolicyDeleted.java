@@ -16,6 +16,7 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import java.time.Instant;
 import java.util.function.Predicate;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFactory;
@@ -43,8 +44,11 @@ public final class PolicyDeleted extends AbstractPolicyEvent<PolicyDeleted> impl
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    private PolicyDeleted(final String policyId, final long revision, final Instant timestamp,
+    private PolicyDeleted(final String policyId,
+            final long revision,
+            @Nullable final Instant timestamp,
             final DittoHeaders dittoHeaders) {
+
         super(TYPE, checkNotNull(policyId, "Policy identifier"), revision, timestamp, dittoHeaders);
     }
 
@@ -69,10 +73,13 @@ public final class PolicyDeleted extends AbstractPolicyEvent<PolicyDeleted> impl
      * @param timestamp the timestamp of this event.
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return a event object indicating the deletion of the Policy
-     * @throws NullPointerException if any argument is {@code null}.
+     * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
      */
-    public static PolicyDeleted of(final String policyId, final long revision, final Instant timestamp,
+    public static PolicyDeleted of(final String policyId,
+            final long revision,
+            @Nullable final Instant timestamp,
             final DittoHeaders dittoHeaders) {
+
         return new PolicyDeleted(policyId, revision, timestamp, dittoHeaders);
     }
 
@@ -101,9 +108,9 @@ public final class PolicyDeleted extends AbstractPolicyEvent<PolicyDeleted> impl
      * 'PolicyDeleted' format.
      */
     public static PolicyDeleted fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new EventJsonDeserializer<PolicyDeleted>(TYPE, jsonObject).deserialize((revision, timestamp,
-                jsonObjectReader) -> of(jsonObjectReader.get(JsonFields.POLICY_ID), revision,
-                timestamp, dittoHeaders));
+        return new EventJsonDeserializer<PolicyDeleted>(TYPE, jsonObject).deserialize(
+                (revision, timestamp) -> of(jsonObject.getValueOrThrow(JsonFields.POLICY_ID), revision, timestamp,
+                        dittoHeaders));
     }
 
     @Override
@@ -128,8 +135,8 @@ public final class PolicyDeleted extends AbstractPolicyEvent<PolicyDeleted> impl
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof PolicyDeleted);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof PolicyDeleted;
     }
 
     @Override

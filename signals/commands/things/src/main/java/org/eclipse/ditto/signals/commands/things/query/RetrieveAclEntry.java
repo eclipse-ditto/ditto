@@ -53,10 +53,8 @@ public final class RetrieveAclEntry extends AbstractCommand<RetrieveAclEntry>
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition JSON_AUTHORIZATION_SUBJECT =
-            JsonFactory.newFieldDefinition("authorizationSubject", String.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_1);
+    static final JsonFieldDefinition<String> JSON_AUTHORIZATION_SUBJECT =
+            JsonFactory.newStringFieldDefinition("authorizationSubject", FieldType.REGULAR, JsonSchemaVersion.V_1);
 
     private final String thingId;
     private final AuthorizationSubject authorizationSubject;
@@ -145,10 +143,11 @@ public final class RetrieveAclEntry extends AbstractCommand<RetrieveAclEntry>
      * org.eclipse.ditto.model.things.Thing#ID_REGEX}.
      */
     public static RetrieveAclEntry fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandJsonDeserializer<RetrieveAclEntry>(TYPE, jsonObject).deserialize(jsonObjectReader -> {
-            final String thingId = jsonObjectReader.get(ThingQueryCommand.JsonFields.JSON_THING_ID);
-            final String authSubjectId = jsonObjectReader.get(JSON_AUTHORIZATION_SUBJECT);
+        return new CommandJsonDeserializer<RetrieveAclEntry>(TYPE, jsonObject).deserialize(() -> {
+            final String thingId = jsonObject.getValueOrThrow(ThingQueryCommand.JsonFields.JSON_THING_ID);
+            final String authSubjectId = jsonObject.getValueOrThrow(JSON_AUTHORIZATION_SUBJECT);
             final AuthorizationSubject extractedAuthSubject = AuthorizationModelFactory.newAuthSubject(authSubjectId);
+
             return of(thingId, extractedAuthSubject, dittoHeaders);
         });
     }
@@ -222,8 +221,8 @@ public final class RetrieveAclEntry extends AbstractCommand<RetrieveAclEntry>
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof RetrieveAclEntry);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof RetrieveAclEntry;
     }
 
     @Override

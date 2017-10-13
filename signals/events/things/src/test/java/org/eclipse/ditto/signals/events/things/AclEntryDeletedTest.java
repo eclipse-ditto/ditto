@@ -34,11 +34,10 @@ public final class AclEntryDeletedTest {
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(Event.JsonFields.TIMESTAMP, TestConstants.TIMESTAMP.toString())
             .set(Event.JsonFields.ID, AclEntryDeleted.NAME)
-            .set(Event.JsonFields.REVISION, 2)
+            .set(Event.JsonFields.REVISION, 2L)
             .set(ThingEvent.JsonFields.THING_ID, TestConstants.Thing.THING_ID)
             .set(AclEntryDeleted.JSON_AUTHORIZATION_SUBJECT, TestConstants.Authorization.AUTH_SUBJECT_GRIMES.getId())
             .build();
-
 
     @Test
     public void assertImmutability() {
@@ -47,7 +46,6 @@ public final class AclEntryDeletedTest {
                 provided(AuthorizationSubject.class).isAlsoImmutable());
     }
 
-
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(AclEntryDeleted.class)
@@ -55,21 +53,17 @@ public final class AclEntryDeletedTest {
                 .verify();
     }
 
-
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullThingId() {
         AclEntryDeleted.of(null, TestConstants.Authorization.AUTH_SUBJECT_GRIMES, TestConstants.Thing.REVISION_NUMBER,
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
 
-
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullAclSubject() {
         AclEntryDeleted.of(TestConstants.Thing.THING_ID, null, TestConstants.Thing.REVISION_NUMBER,
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
-
-
     @Test
     public void createInstanceFromValidJson() {
         final AclEntryDeleted underTest =
@@ -77,7 +71,6 @@ public final class AclEntryDeletedTest {
 
         assertThat(underTest.getAuthorizationSubject()).isEqualTo(TestConstants.Authorization.AUTH_SUBJECT_GRIMES);
     }
-
 
     @Test
     public void toJsonReturnsExpected() {

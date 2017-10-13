@@ -13,6 +13,7 @@ package org.eclipse.ditto.model.things;
 
 import java.util.function.Predicate;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonField;
@@ -198,173 +199,182 @@ public interface FeaturePropertiesBuilder extends JsonObjectBuilder {
         return set(key, value, field -> true);
     }
 
-    /**
-     * Sets a new int property to the {@code FeatureProperties} to be built if the specified predicate evaluates to
-     * {@code true}.
-     *
-     * @param fieldDefinition this field definition provides the JSON pointer to the property to be set.
-     * @param value the value of the property to be set.
-     * @param predicate the predicate which finally determines if the property is to be set.
-     * @return this builder to allow method chaining.
-     * @throws NullPointerException if {@code fieldDefinition} is null.
-     * @see #set(CharSequence, int)
-     */
     @Override
-    FeaturePropertiesBuilder set(JsonFieldDefinition fieldDefinition, int value, Predicate<JsonField> predicate);
+    <T> FeaturePropertiesBuilder set(JsonFieldDefinition<T> fieldDefinition, @Nullable T value,
+            Predicate<JsonField> predicate);
 
-    /**
-     * Sets a new int property to the {@code FeatureProperties} to be built.
-     *
-     * @param fieldDefinition this field definition provides the JSON pointer to the property to be set.
-     * @param value the value of the property to be set.
-     * @return this builder to allow method chaining.
-     * @throws NullPointerException if {@code fieldDefinition} is null.
-     * @see #set(CharSequence, int)
-     */
     @Override
-    default FeaturePropertiesBuilder set(final JsonFieldDefinition fieldDefinition, final int value) {
-        return set(fieldDefinition, value, field -> true);
+    default <T> JsonObjectBuilder set(final JsonFieldDefinition<T> fieldDefinition, @Nullable final T value) {
+        return set(fieldDefinition, value, jsonField -> true);
     }
 
-    /**
-     * Sets a new long property to the {@code FeatureProperties} to be built if the specified predicate evaluates to
-     * {@code true}.
-     *
-     * @param fieldDefinition this field definition provides the JSON pointer to the property to be set.
-     * @param value the value of the property to be set.
-     * @param predicate the predicate which finally determines if the property is to be set.
-     * @return this builder to allow method chaining.
-     * @throws NullPointerException if {@code fieldDefinition} is null.
-     * @see #set(CharSequence, long)
-     */
-    @Override
-    FeaturePropertiesBuilder set(JsonFieldDefinition fieldDefinition, long value, Predicate<JsonField> predicate);
-
-    /**
-     * Sets a new long property to the {@code FeatureProperties} to be built.
-     *
-     * @param fieldDefinition this field definition provides the JSON pointer to the property to be set.
-     * @param value the value of the property to be set.
-     * @return this builder to allow method chaining.
-     * @throws NullPointerException if {@code fieldDefinition} is null.
-     * @see #set(CharSequence, long)
-     */
-    @Override
-    default FeaturePropertiesBuilder set(final JsonFieldDefinition fieldDefinition, final long value) {
-        return set(fieldDefinition, value, field -> true);
-    }
-
-    /**
-     * Sets a new double property to the {@code FeatureProperties} to be built if the specified predicate evaluates to
-     * {@code true}.
-     *
-     * @param fieldDefinition this field definition provides the JSON pointer to the property to be set.
-     * @param value the value of the property to be set.
-     * @param predicate the predicate which finally determines if the property is to be set.
-     * @return this builder to allow method chaining.
-     * @throws NullPointerException if {@code fieldDefinition} is null.
-     * @see #set(CharSequence, double)
-     */
-    @Override
-    FeaturePropertiesBuilder set(JsonFieldDefinition fieldDefinition, double value, Predicate<JsonField> predicate);
-
-    /**
-     * Sets a new double property to the {@code FeatureProperties} to be built.
-     *
-     * @param fieldDefinition this field definition provides the JSON pointer to the property to be set.
-     * @param value the value of the property to be set.
-     * @return this builder to allow method chaining.
-     * @throws NullPointerException if {@code fieldDefinition} is null.
-     * @see #set(CharSequence, double)
-     */
-    @Override
-    default FeaturePropertiesBuilder set(final JsonFieldDefinition fieldDefinition, final double value) {
-        return set(fieldDefinition, value, field -> true);
-    }
-
-    /**
-     * Sets a new boolean property to the {@code FeatureProperties} to be built if the specified predicate evaluates to
-     * {@code true}.
-     *
-     * @param fieldDefinition this field definition provides the JSON pointer to the property to be set.
-     * @param value the value of the property to be set.
-     * @param predicate the predicate which finally determines if the property is to be set.
-     * @return this builder to allow method chaining.
-     * @throws NullPointerException if {@code fieldDefinition} is null.
-     * @see #set(CharSequence, boolean)
-     */
-    @Override
-    FeaturePropertiesBuilder set(JsonFieldDefinition fieldDefinition, boolean value, Predicate<JsonField> predicate);
-
-    /**
-     * Sets a new boolean property to the {@code FeatureProperties} to be built.
-     *
-     * @param fieldDefinition this field definition provides the JSON pointer to the property to be set.
-     * @param value the value of the property to be set.
-     * @return this builder to allow method chaining.
-     * @throws NullPointerException if {@code fieldDefinition} is null.
-     * @see #set(CharSequence, boolean)
-     */
-    @Override
-    default FeaturePropertiesBuilder set(final JsonFieldDefinition fieldDefinition, final boolean value) {
-        return set(fieldDefinition, value, field -> true);
-    }
-
-    /**
-     * Sets a new string property to the {@code FeatureProperties} to be built if the specified predicate evaluates to
-     * {@code true}.
-     *
-     * @param fieldDefinition this field definition provides the JSON pointer to the property to be set.
-     * @param value the value of the property to be set.
-     * @param predicate the predicate which finally determines if the property is to be set.
-     * @return this builder to allow method chaining.
-     * @throws NullPointerException if {@code fieldDefinition} is null.
-     * @see #set(CharSequence, String)
-     */
-    @Override
-    FeaturePropertiesBuilder set(JsonFieldDefinition fieldDefinition, String value, Predicate<JsonField> predicate);
-
-    /**
-     * Sets a new string property to the {@code FeatureProperties} to be built.
-     *
-     * @param fieldDefinition this field definition provides the JSON pointer to the property to be set.
-     * @param value the value of the property to be set.
-     * @return this builder to allow method chaining.
-     * @throws NullPointerException if {@code fieldDefinition} is null.
-     * @see #set(CharSequence, String)
-     */
-    @Override
-    default FeaturePropertiesBuilder set(final JsonFieldDefinition fieldDefinition, final String value) {
-        return set(fieldDefinition, value, field -> true);
-    }
-
-    /**
-     * Sets a new {@link JsonValue} property to the {@code FeatureProperties} to be built if the specified predicate
-     * evaluates to {@code true}.
-     *
-     * @param fieldDefinition this field definition provides the JSON pointer to the property to be set.
-     * @param value the value of the property to be set.
-     * @param predicate the predicate which finally determines if the property is to be set.
-     * @return this builder to allow method chaining.
-     * @throws NullPointerException if any argument but {@code value} is {@code null}.
-     * @see #set(CharSequence, JsonValue)
-     */
-    @Override
-    FeaturePropertiesBuilder set(JsonFieldDefinition fieldDefinition, JsonValue value, Predicate<JsonField> predicate);
-
-    /**
-     * Sets a new {@link JsonValue} property to the {@code FeatureProperties} to be built.
-     *
-     * @param fieldDefinition this field definition provides the JSON pointer to the property to be set.
-     * @param value the value of the property to be set.
-     * @return this builder to allow method chaining.
-     * @throws NullPointerException if {@code fieldDefinition} is {@code null}.
-     * @see #set(CharSequence, JsonValue)
-     */
-    @Override
-    default FeaturePropertiesBuilder set(final JsonFieldDefinition fieldDefinition, final JsonValue value) {
-        return set(fieldDefinition, value, field -> true);
-    }
+    //    /**
+//     * Sets a new int property to the {@code FeatureProperties} to be built if the specified predicate evaluates to
+//     * {@code true}.
+//     *
+//     * @param fieldDefinition this field definition provides the JSON pointer to the property to be set.
+//     * @param value the value of the property to be set.
+//     * @param predicate the predicate which finally determines if the property is to be set.
+//     * @return this builder to allow method chaining.
+//     * @throws NullPointerException if {@code fieldDefinition} is null.
+//     * @see #set(CharSequence, int)
+//     */
+//    @Override
+//    FeaturePropertiesBuilder set(JsonFieldDefinition fieldDefinition, int value, Predicate<JsonField> predicate);
+//
+//    /**
+//     * Sets a new int property to the {@code FeatureProperties} to be built.
+//     *
+//     * @param fieldDefinition this field definition provides the JSON pointer to the property to be set.
+//     * @param value the value of the property to be set.
+//     * @return this builder to allow method chaining.
+//     * @throws NullPointerException if {@code fieldDefinition} is null.
+//     * @see #set(CharSequence, int)
+//     */
+//    @Override
+//    default FeaturePropertiesBuilder set(final JsonFieldDefinition fieldDefinition, final int value) {
+//        return set(fieldDefinition, value, field -> true);
+//    }
+//
+//    /**
+//     * Sets a new long property to the {@code FeatureProperties} to be built if the specified predicate evaluates to
+//     * {@code true}.
+//     *
+//     * @param fieldDefinition this field definition provides the JSON pointer to the property to be set.
+//     * @param value the value of the property to be set.
+//     * @param predicate the predicate which finally determines if the property is to be set.
+//     * @return this builder to allow method chaining.
+//     * @throws NullPointerException if {@code fieldDefinition} is null.
+//     * @see #set(CharSequence, long)
+//     */
+//    @Override
+//    FeaturePropertiesBuilder set(JsonFieldDefinition fieldDefinition, long value, Predicate<JsonField> predicate);
+//
+//    /**
+//     * Sets a new long property to the {@code FeatureProperties} to be built.
+//     *
+//     * @param fieldDefinition this field definition provides the JSON pointer to the property to be set.
+//     * @param value the value of the property to be set.
+//     * @return this builder to allow method chaining.
+//     * @throws NullPointerException if {@code fieldDefinition} is null.
+//     * @see #set(CharSequence, long)
+//     */
+//    @Override
+//    default FeaturePropertiesBuilder set(final JsonFieldDefinition fieldDefinition, final long value) {
+//        return set(fieldDefinition, value, field -> true);
+//    }
+//
+//    /**
+//     * Sets a new double property to the {@code FeatureProperties} to be built if the specified predicate evaluates to
+//     * {@code true}.
+//     *
+//     * @param fieldDefinition this field definition provides the JSON pointer to the property to be set.
+//     * @param value the value of the property to be set.
+//     * @param predicate the predicate which finally determines if the property is to be set.
+//     * @return this builder to allow method chaining.
+//     * @throws NullPointerException if {@code fieldDefinition} is null.
+//     * @see #set(CharSequence, double)
+//     */
+//    @Override
+//    FeaturePropertiesBuilder set(JsonFieldDefinition fieldDefinition, double value, Predicate<JsonField> predicate);
+//
+//    /**
+//     * Sets a new double property to the {@code FeatureProperties} to be built.
+//     *
+//     * @param fieldDefinition this field definition provides the JSON pointer to the property to be set.
+//     * @param value the value of the property to be set.
+//     * @return this builder to allow method chaining.
+//     * @throws NullPointerException if {@code fieldDefinition} is null.
+//     * @see #set(CharSequence, double)
+//     */
+//    @Override
+//    default FeaturePropertiesBuilder set(final JsonFieldDefinition fieldDefinition, final double value) {
+//        return set(fieldDefinition, value, field -> true);
+//    }
+//
+//    /**
+//     * Sets a new boolean property to the {@code FeatureProperties} to be built if the specified predicate evaluates to
+//     * {@code true}.
+//     *
+//     * @param fieldDefinition this field definition provides the JSON pointer to the property to be set.
+//     * @param value the value of the property to be set.
+//     * @param predicate the predicate which finally determines if the property is to be set.
+//     * @return this builder to allow method chaining.
+//     * @throws NullPointerException if {@code fieldDefinition} is null.
+//     * @see #set(CharSequence, boolean)
+//     */
+//    @Override
+//    FeaturePropertiesBuilder set(JsonFieldDefinition fieldDefinition, boolean value, Predicate<JsonField> predicate);
+//
+//    /**
+//     * Sets a new boolean property to the {@code FeatureProperties} to be built.
+//     *
+//     * @param fieldDefinition this field definition provides the JSON pointer to the property to be set.
+//     * @param value the value of the property to be set.
+//     * @return this builder to allow method chaining.
+//     * @throws NullPointerException if {@code fieldDefinition} is null.
+//     * @see #set(CharSequence, boolean)
+//     */
+//    @Override
+//    default FeaturePropertiesBuilder set(final JsonFieldDefinition fieldDefinition, final boolean value) {
+//        return set(fieldDefinition, value, field -> true);
+//    }
+//
+//    /**
+//     * Sets a new string property to the {@code FeatureProperties} to be built if the specified predicate evaluates to
+//     * {@code true}.
+//     *
+//     * @param fieldDefinition this field definition provides the JSON pointer to the property to be set.
+//     * @param value the value of the property to be set.
+//     * @param predicate the predicate which finally determines if the property is to be set.
+//     * @return this builder to allow method chaining.
+//     * @throws NullPointerException if {@code fieldDefinition} is null.
+//     * @see #set(CharSequence, String)
+//     */
+//    @Override
+//    FeaturePropertiesBuilder set(JsonFieldDefinition fieldDefinition, String value, Predicate<JsonField> predicate);
+//
+//    /**
+//     * Sets a new string property to the {@code FeatureProperties} to be built.
+//     *
+//     * @param fieldDefinition this field definition provides the JSON pointer to the property to be set.
+//     * @param value the value of the property to be set.
+//     * @return this builder to allow method chaining.
+//     * @throws NullPointerException if {@code fieldDefinition} is null.
+//     * @see #set(CharSequence, String)
+//     */
+//    @Override
+//    default FeaturePropertiesBuilder set(final JsonFieldDefinition fieldDefinition, final String value) {
+//        return set(fieldDefinition, value, field -> true);
+//    }
+//
+//    /**
+//     * Sets a new {@link JsonValue} property to the {@code FeatureProperties} to be built if the specified predicate
+//     * evaluates to {@code true}.
+//     *
+//     * @param fieldDefinition this field definition provides the JSON pointer to the property to be set.
+//     * @param value the value of the property to be set.
+//     * @param predicate the predicate which finally determines if the property is to be set.
+//     * @return this builder to allow method chaining.
+//     * @throws NullPointerException if any argument but {@code value} is {@code null}.
+//     * @see #set(CharSequence, JsonValue)
+//     */
+//    @Override
+//    FeaturePropertiesBuilder set(JsonFieldDefinition fieldDefinition, JsonValue value, Predicate<JsonField> predicate);
+//
+//    /**
+//     * Sets a new {@link JsonValue} property to the {@code FeatureProperties} to be built.
+//     *
+//     * @param fieldDefinition this field definition provides the JSON pointer to the property to be set.
+//     * @param value the value of the property to be set.
+//     * @return this builder to allow method chaining.
+//     * @throws NullPointerException if {@code fieldDefinition} is {@code null}.
+//     * @see #set(CharSequence, JsonValue)
+//     */
+//    @Override
+//    default FeaturePropertiesBuilder set(final JsonFieldDefinition fieldDefinition, final JsonValue value) {
+//        return set(fieldDefinition, value, field -> true);
+//    } // TODO
 
     /**
      * Sets the specified property to the {@code FeatureProperties} to be built if the specified predicate evaluates to

@@ -15,10 +15,12 @@ import static java.util.Objects.requireNonNull;
 
 import java.io.NotSerializableException;
 import java.nio.charset.Charset;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -28,6 +30,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonRuntimeException;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
@@ -46,8 +49,8 @@ import scala.reflect.ClassTag;
 import scala.util.Try;
 
 /**
- * Abstract {@link SerializerWithStringManifest} which handles serializing and deserializing {@link Jsonifiable}s {@link
- * WithDittoHeaders}.
+ * Abstract {@link SerializerWithStringManifest} which handles serializing and deserializing {@link Jsonifiable}s
+ * {@link WithDittoHeaders}.
  */
 public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends SerializerWithStringManifest {
 
@@ -55,11 +58,11 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
 
     private static final Charset UTF8_CHARSET = Charset.forName("UTF-8");
 
-    private static final JsonFieldDefinition JSON_DITTO_HEADERS =
-            JsonFieldDefinition.newInstance("dittoHeaders", JsonObject.class);
+    private static final JsonFieldDefinition<JsonObject> JSON_DITTO_HEADERS =
+            JsonFactory.newJsonObjectFieldDefinition("dittoHeaders");
 
-    private static final JsonFieldDefinition JSON_PAYLOAD =
-            JsonFieldDefinition.newInstance("payload", JsonObject.class);
+    private static final JsonFieldDefinition<JsonValue> JSON_PAYLOAD =
+            JsonFactory.newJsonValueFieldDefinition("payload");
 
     private final int identifier;
     private final Map<String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>> mappingStrategies;
@@ -68,9 +71,9 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
     /**
      * Constructs a new {@code AbstractJsonifiableWithDittoHeadersSerializer} object.
      */
-    protected AbstractJsonifiableWithDittoHeadersSerializer(final int identifier,
-            final ExtendedActorSystem actorSystem,
+    protected AbstractJsonifiableWithDittoHeadersSerializer(final int identifier, final ExtendedActorSystem actorSystem,
             final Function<Object, String> manifestProvider) {
+
         this.identifier = identifier;
 
         // load via config the class implementing MappingStrategy:
@@ -124,8 +127,8 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
 
             jsonObjectBuilder.set(JSON_PAYLOAD, jsonValue);
 
-            return jsonObjectBuilder.build() //
-                    .toString() //
+            return jsonObjectBuilder.build()
+                    .toString()
                     .getBytes(UTF8_CHARSET);
         } else {
             LOG.error("Could not serialize class '{}' as it does not implement '{}'", object.getClass(),
@@ -158,6 +161,7 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
 
     private Jsonifiable createJsonifiableFrom(final String manifest, final String json)
             throws NotSerializableException {
+
         final BiFunction<JsonObject, DittoHeaders, Jsonifiable> mappingFunction = mappingStrategies.get(manifest);
         if (null == mappingFunction) {
             LOG.warn("No strategy found to map manifest '{}' to a Jsonifiable.WithPredicate!", manifest);
@@ -166,16 +170,34 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
 
         final JsonObject jsonObject = JsonFactory.newObject(json);
 
-        final JsonObject payload = jsonObject.getValue(JSON_PAYLOAD)
-                .map(JsonValue::asObject)
-                .orElse(JsonFactory.newObject());
+        final JsonObject payload = getPayload(jsonObject);
 
         final DittoHeadersBuilder dittoHeadersBuilder = jsonObject.getValue(JSON_DITTO_HEADERS)
-                .map(JsonValue::asObject)
                 .map(DittoHeaders::newBuilder)
-                .orElse(DittoHeaders.newBuilder());
+                .orElseGet(DittoHeaders::newBuilder);
 
         return mappingFunction.apply(payload, dittoHeadersBuilder.build());
+    }
+
+    private static JsonObject getPayload(final JsonObject sourceJsonObject) {
+        final JsonObject result;
+
+        final Optional<JsonValue> payloadJsonOptional = sourceJsonObject.getValue(JSON_PAYLOAD);
+        if (payloadJsonOptional.isPresent()) {
+            final JsonValue payloadJson = payloadJsonOptional.get();
+            if (!payloadJson.isObject()) {
+                final String msgPattern = "Value <{0}> for <{1}> was not of type <{2}>!";
+                final String simpleName = JSON_PAYLOAD.getValueType().getSimpleName();
+                final String msg = MessageFormat.format(msgPattern, payloadJson, JSON_PAYLOAD.getPointer(), simpleName);
+                throw new DittoJsonException(new IllegalArgumentException(msg));
+            } else {
+                result = payloadJson.asObject();
+            }
+        } else {
+            result = JsonFactory.newObject();
+        }
+
+        return result;
     }
 
 }

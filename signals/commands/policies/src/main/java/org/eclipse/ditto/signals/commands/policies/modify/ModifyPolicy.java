@@ -21,7 +21,6 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
-import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
@@ -50,10 +49,8 @@ public final class ModifyPolicy extends AbstractCommand<ModifyPolicy> implements
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition JSON_POLICY =
-            JsonFactory.newFieldDefinition("policy", JsonObject.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<JsonObject> JSON_POLICY =
+            JsonFactory.newJsonObjectFieldDefinition("policy", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private final String policyId;
     private final Policy policy;
@@ -103,22 +100,16 @@ public final class ModifyPolicy extends AbstractCommand<ModifyPolicy> implements
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if {@code jsonObject} did not contain a field for
+     * {@link PolicyModifyCommand.JsonFields#JSON_POLICY_ID} or {@link #JSON_POLICY}.
      */
     public static ModifyPolicy fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandJsonDeserializer<ModifyPolicy>(TYPE, jsonObject).deserialize(jsonObjectReader -> {
-            final Optional<String> policyId = jsonObjectReader
-                    .getAsOptionalString(PolicyModifyCommand.JsonFields.JSON_POLICY_ID.getPointer());
-
-            final JsonObject policyJsonObject = jsonObjectReader.get(JSON_POLICY);
+        return new CommandJsonDeserializer<ModifyPolicy>(TYPE, jsonObject).deserialize(() -> {
+            final String policyId = jsonObject.getValueOrThrow(PolicyModifyCommand.JsonFields.JSON_POLICY_ID);
+            final JsonObject policyJsonObject = jsonObject.getValueOrThrow(JSON_POLICY);
             final Policy policy = PoliciesModelFactory.newPolicy(policyJsonObject);
 
-            return of(policyId.orElseGet(() ->
-                    policy.getId().orElseThrow(() ->
-                            JsonMissingFieldException.newBuilder()
-                                    .fieldName(PolicyModifyCommand.JsonFields.JSON_POLICY_ID.getPointer().toString())
-                                    .build()
-                    )
-            ), policy, dittoHeaders);
+            return of(policyId, policy, dittoHeaders);
         });
     }
 
@@ -138,7 +129,7 @@ public final class ModifyPolicy extends AbstractCommand<ModifyPolicy> implements
 
     @Override
     public Optional<JsonValue> getEntity(final JsonSchemaVersion schemaVersion) {
-        return Optional.ofNullable(policy.toJson(schemaVersion, FieldType.regularOrSpecial()));
+        return Optional.of(policy.toJson(schemaVersion, FieldType.regularOrSpecial()));
     }
 
     @Override
@@ -160,7 +151,7 @@ public final class ModifyPolicy extends AbstractCommand<ModifyPolicy> implements
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
+    protected boolean canEqual(@Nullable final Object other) {
         return (other instanceof ModifyPolicy);
     }
 

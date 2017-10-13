@@ -11,8 +11,6 @@
  */
 package org.eclipse.ditto.model.messages;
 
-import static org.eclipse.ditto.json.JsonFactory.newFieldDefinition;
-
 import java.net.URI;
 import java.util.Objects;
 import java.util.function.Predicate;
@@ -50,10 +48,9 @@ public final class MessageFormatInvalidException extends DittoRuntimeException i
     private static final String DEFAULT_DESCRIPTION =
             "Please make sure that the message has the correct format or change the used json schema for validation.";
 
-    private static final JsonFieldDefinition VALIDATION_ERRORS = newFieldDefinition("validationErrors", int.class,
-            FieldType.REGULAR,
-            // available in schema versions:
-            JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+    private static final JsonFieldDefinition<JsonArray> VALIDATION_ERRORS =
+            JsonFactory.newArrayFieldDefinition("validationErrors", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
 
     private static final long serialVersionUID = -7767643705375184157L;
 
@@ -124,7 +121,6 @@ public final class MessageFormatInvalidException extends DittoRuntimeException i
 
     /**
      * A mutable builder with a fluent API for a {@link MessageFormatInvalidException}.
-     *
      */
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<MessageFormatInvalidException> {

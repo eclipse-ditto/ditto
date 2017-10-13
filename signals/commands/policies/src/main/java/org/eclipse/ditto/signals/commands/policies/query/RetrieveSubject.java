@@ -50,22 +50,21 @@ public final class RetrieveSubject extends AbstractCommand<RetrieveSubject>
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition JSON_LABEL =
-            JsonFactory.newFieldDefinition("label", String.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<String> JSON_LABEL =
+            JsonFactory.newStringFieldDefinition("label", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
-    static final JsonFieldDefinition JSON_SUBJECT_ID =
-            JsonFactory.newFieldDefinition("subjectId", String.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<String> JSON_SUBJECT_ID =
+            JsonFactory.newStringFieldDefinition("subjectId", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private final String policyId;
     private final Label label;
     private final SubjectId subjectId;
 
-    private RetrieveSubject(final String policyId, final Label label, final SubjectId subjectId,
+    private RetrieveSubject(final String policyId,
+            final Label label,
+            final SubjectId subjectId,
             final DittoHeaders dittoHeaders) {
+
         super(TYPE, dittoHeaders);
 
         this.policyId = checkNotNull(policyId, "Policy identifier");
@@ -84,8 +83,11 @@ public final class RetrieveSubject extends AbstractCommand<RetrieveSubject>
      * is readable from the passed authorization context.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static RetrieveSubject of(final String policyId, final Label label, final SubjectId subjectId,
+    public static RetrieveSubject of(final String policyId,
+            final Label label,
+            final SubjectId subjectId,
             final DittoHeaders dittoHeaders) {
+
         return new RetrieveSubject(policyId, label, subjectId, dittoHeaders);
     }
 
@@ -117,13 +119,10 @@ public final class RetrieveSubject extends AbstractCommand<RetrieveSubject>
      * format.
      */
     public static RetrieveSubject fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandJsonDeserializer<RetrieveSubject>(TYPE, jsonObject).deserialize(jsonObjectReader -> {
-            final String policyId = jsonObjectReader.get(PolicyQueryCommand.JsonFields.JSON_POLICY_ID);
-
-            final String labelValue = jsonObjectReader.get(JSON_LABEL);
-            final Label extractedLabel = Label.of(labelValue);
-
-            final String subjectIdValue = jsonObjectReader.get(JSON_SUBJECT_ID);
+        return new CommandJsonDeserializer<RetrieveSubject>(TYPE, jsonObject).deserialize(() -> {
+            final String policyId = jsonObject.getValueOrThrow(PolicyQueryCommand.JsonFields.JSON_POLICY_ID);
+            final Label extractedLabel = Label.of(jsonObject.getValueOrThrow(JSON_LABEL));
+            final String subjectIdValue = jsonObject.getValueOrThrow(JSON_SUBJECT_ID);
             final SubjectId extractedSubjectId = SubjectId.newInstance(subjectIdValue);
 
             return of(policyId, extractedLabel, extractedSubjectId, dittoHeaders);
@@ -167,6 +166,7 @@ public final class RetrieveSubject extends AbstractCommand<RetrieveSubject>
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(PolicyQueryCommand.JsonFields.JSON_POLICY_ID, policyId, predicate);
         jsonObjectBuilder.set(JSON_LABEL, label.toString(), predicate);
@@ -193,8 +193,8 @@ public final class RetrieveSubject extends AbstractCommand<RetrieveSubject>
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof RetrieveSubject);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof RetrieveSubject;
     }
 
     @SuppressWarnings("squid:S109")

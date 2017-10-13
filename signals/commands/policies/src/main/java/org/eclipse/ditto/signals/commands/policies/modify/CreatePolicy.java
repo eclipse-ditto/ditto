@@ -52,10 +52,8 @@ public final class CreatePolicy extends AbstractCommand<CreatePolicy> implements
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition JSON_POLICY =
-            JsonFactory.newFieldDefinition("policy", JsonObject.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<JsonObject> JSON_POLICY =
+            JsonFactory.newJsonObjectFieldDefinition("policy", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private final Policy policy;
 
@@ -110,9 +108,8 @@ public final class CreatePolicy extends AbstractCommand<CreatePolicy> implements
      * format.
      */
     public static CreatePolicy fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandJsonDeserializer<CreatePolicy>(TYPE, jsonObject).deserialize(jsonObjectReader -> {
-            final JsonObject policyJsonObject = jsonObjectReader.get(JSON_POLICY);
-            final Policy policy = PoliciesModelFactory.newPolicy(policyJsonObject);
+        return new CommandJsonDeserializer<CreatePolicy>(TYPE, jsonObject).deserialize(() -> {
+            final Policy policy = PoliciesModelFactory.newPolicy(jsonObject.getValueOrThrow(JSON_POLICY));
 
             return of(policy, dittoHeaders);
         });
@@ -134,7 +131,7 @@ public final class CreatePolicy extends AbstractCommand<CreatePolicy> implements
 
     @Override
     public Optional<JsonValue> getEntity(final JsonSchemaVersion schemaVersion) {
-        return Optional.ofNullable(policy.toJson(schemaVersion, FieldType.regularOrSpecial()));
+        return Optional.of(policy.toJson(schemaVersion, FieldType.regularOrSpecial()));
     }
 
     @Override
@@ -145,6 +142,7 @@ public final class CreatePolicy extends AbstractCommand<CreatePolicy> implements
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(JSON_POLICY, policy.toJson(schemaVersion, thePredicate), predicate);
     }
@@ -155,8 +153,8 @@ public final class CreatePolicy extends AbstractCommand<CreatePolicy> implements
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof CreatePolicy);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof CreatePolicy;
     }
 
     @SuppressWarnings("squid:MethodCyclomaticComplexity")

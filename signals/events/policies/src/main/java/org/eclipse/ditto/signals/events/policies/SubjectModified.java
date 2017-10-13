@@ -53,26 +53,25 @@ public final class SubjectModified extends AbstractPolicyEvent<SubjectModified>
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition JSON_LABEL =
-            JsonFactory.newFieldDefinition("label", String.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<String> JSON_LABEL =
+            JsonFactory.newStringFieldDefinition("label", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
-    static final JsonFieldDefinition JSON_SUBJECT_ID =
-            JsonFactory.newFieldDefinition("subjectId", String.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<String> JSON_SUBJECT_ID =
+            JsonFactory.newStringFieldDefinition("subjectId", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
-    static final JsonFieldDefinition JSON_SUBJECT =
-            JsonFactory.newFieldDefinition("subject", JsonObject.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<JsonObject> JSON_SUBJECT =
+            JsonFactory.newJsonObjectFieldDefinition("subject", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private final Label label;
     private final Subject subject;
 
-    private SubjectModified(final String policyId, final Label label, final Subject subject, final long revision,
-            final Instant timestamp, final DittoHeaders dittoHeaders) {
+    private SubjectModified(final String policyId,
+            final Label label,
+            final Subject subject,
+            final long revision,
+            @Nullable final Instant timestamp,
+            final DittoHeaders dittoHeaders) {
+        
         super(TYPE, checkNotNull(policyId, "Policy identifier"), revision, timestamp, dittoHeaders);
         this.label = checkNotNull(label, "Label");
         this.subject = checkNotNull(subject, "Subject");
@@ -89,8 +88,12 @@ public final class SubjectModified extends AbstractPolicyEvent<SubjectModified>
      * @return the created SubjectModified.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static SubjectModified of(final String policyId, final Label label, final Subject subject,
-            final long revision, final DittoHeaders dittoHeaders) {
+    public static SubjectModified of(final String policyId,
+            final Label label,
+            final Subject subject,
+            final long revision,
+            final DittoHeaders dittoHeaders) {
+        
         return of(policyId, label, subject, revision, null, dittoHeaders);
     }
 
@@ -104,10 +107,15 @@ public final class SubjectModified extends AbstractPolicyEvent<SubjectModified>
      * @param timestamp the timestamp of this event.
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the created SubjectModified.
-     * @throws NullPointerException if any argument is {@code null}.
+     * @throws NullPointerException if any argument {@code timestamp} is {@code null}.
      */
-    public static SubjectModified of(final String policyId, final Label label, final Subject subject,
-            final long revision, final Instant timestamp, final DittoHeaders dittoHeaders) {
+    public static SubjectModified of(final String policyId,
+            final Label label,
+            final Subject subject,
+            final long revision,
+            @Nullable final Instant timestamp,
+            final DittoHeaders dittoHeaders) {
+        
         return new SubjectModified(policyId, label, subject, revision, timestamp, dittoHeaders);
     }
 
@@ -134,12 +142,11 @@ public final class SubjectModified extends AbstractPolicyEvent<SubjectModified>
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected 'SubjectModified' format.
      */
     public static SubjectModified fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new EventJsonDeserializer<SubjectModified>(TYPE, jsonObject).deserialize((revision, timestamp,
-                jsonObjectReader) -> {
-            final String policyId = jsonObjectReader.get(JsonFields.POLICY_ID);
-            final Label label = Label.of(jsonObjectReader.get(JSON_LABEL));
-            final String subjectId = jsonObjectReader.get(JSON_SUBJECT_ID);
-            final JsonObject subjectJsonObject = jsonObjectReader.get(JSON_SUBJECT);
+        return new EventJsonDeserializer<SubjectModified>(TYPE, jsonObject).deserialize((revision, timestamp) -> {
+            final String policyId = jsonObject.getValueOrThrow(JsonFields.POLICY_ID);
+            final Label label = Label.of(jsonObject.getValueOrThrow(JSON_LABEL));
+            final String subjectId = jsonObject.getValueOrThrow(JSON_SUBJECT_ID);
+            final JsonObject subjectJsonObject = jsonObject.getValueOrThrow(JSON_SUBJECT);
             final Subject extractedModifiedSubject = PoliciesModelFactory.newSubject(subjectId, subjectJsonObject);
 
             return of(policyId, label, extractedModifiedSubject, revision, timestamp, dittoHeaders);
@@ -166,7 +173,7 @@ public final class SubjectModified extends AbstractPolicyEvent<SubjectModified>
 
     @Override
     public Optional<JsonValue> getEntity(final JsonSchemaVersion schemaVersion) {
-        return Optional.ofNullable(subject.toJson(schemaVersion, FieldType.regularOrSpecial()));
+        return Optional.of(subject.toJson(schemaVersion, FieldType.regularOrSpecial()));
     }
 
     @Override
@@ -220,8 +227,8 @@ public final class SubjectModified extends AbstractPolicyEvent<SubjectModified>
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof SubjectModified);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof SubjectModified;
     }
 
     @Override

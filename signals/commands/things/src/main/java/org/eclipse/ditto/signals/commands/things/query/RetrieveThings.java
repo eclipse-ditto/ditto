@@ -32,9 +32,7 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.json.JsonObjectReader;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.json.JsonReader;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
@@ -58,25 +56,24 @@ public final class RetrieveThings extends AbstractCommand<RetrieveThings> implem
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition JSON_THING_IDS =
-            JsonFactory.newFieldDefinition("thingIds", JsonArray.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<JsonArray> JSON_THING_IDS =
+            JsonFactory.newArrayFieldDefinition("thingIds", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
 
-    static final JsonFieldDefinition JSON_SELECTED_FIELDS =
-            JsonFactory.newFieldDefinition("selectedFields", String.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<String> JSON_SELECTED_FIELDS =
+            JsonFactory.newStringFieldDefinition("selectedFields", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
 
     private final List<String> thingIds;
-    private final JsonFieldSelector selectedFields;
+    @Nullable private final JsonFieldSelector selectedFields;
 
     private RetrieveThings(final Builder builder) {
         this(builder.thingIds, builder.selectedFields, builder.dittoHeaders);
     }
 
-    private RetrieveThings(final List<String> thingIds, final JsonFieldSelector selectedFields,
+    private RetrieveThings(final List<String> thingIds, @Nullable final JsonFieldSelector selectedFields,
             final DittoHeaders dittoHeaders) {
+
         super(TYPE, dittoHeaders);
 
         this.thingIds = Collections.unmodifiableList(new ArrayList<>(thingIds));
@@ -157,21 +154,17 @@ public final class RetrieveThings extends AbstractCommand<RetrieveThings> implem
      * format.
      */
     public static RetrieveThings fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        final JsonObjectReader jsonReader = JsonReader.from(jsonObject);
-
-        final List<String> extractedThingIds = jsonReader.<JsonArray>get(JSON_THING_IDS)
+        final List<String> extractedThingIds = jsonObject.getValueOrThrow(JSON_THING_IDS)
                 .stream()
                 .filter(JsonValue::isString)
                 .map(JsonValue::asString)
                 .collect(Collectors.toList());
 
-        final JsonFieldSelector extractedFieldSelector =
-                jsonObject.getValue(JSON_SELECTED_FIELDS)
-                        .filter(JsonValue::isString)
-                        .map(JsonValue::asString)
-                        .map(str -> JsonFactory.newFieldSelector(str,
-                                JsonFactory.newParseOptionsBuilder().withoutUrlDecoding().build()))
-                        .orElse(null);
+        final JsonFieldSelector extractedFieldSelector = jsonObject.getValue(JSON_SELECTED_FIELDS)
+                .map(str -> JsonFactory.newFieldSelector(str, JsonFactory.newParseOptionsBuilder()
+                        .withoutUrlDecoding()
+                        .build()))
+                .orElse(null);
 
         return new RetrieveThings(extractedThingIds, extractedFieldSelector, dittoHeaders);
     }
@@ -238,8 +231,8 @@ public final class RetrieveThings extends AbstractCommand<RetrieveThings> implem
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof RetrieveThings);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof RetrieveThings;
     }
 
     @Override
@@ -259,7 +252,7 @@ public final class RetrieveThings extends AbstractCommand<RetrieveThings> implem
         private final List<String> thingIds;
 
         private DittoHeaders dittoHeaders;
-        private JsonFieldSelector selectedFields;
+        @Nullable private JsonFieldSelector selectedFields;
 
         private Builder(final List<String> thingIds) {
             this.thingIds = new ArrayList<>(thingIds);
@@ -290,7 +283,7 @@ public final class RetrieveThings extends AbstractCommand<RetrieveThings> implem
          * @param selectedFields the selected JSON fields to be shown in the resulting JSON document.
          * @return this builder to allow method chaining.
          */
-        public Builder selectedFields(final JsonFieldSelector selectedFields) {
+        public Builder selectedFields(@Nullable final JsonFieldSelector selectedFields) {
             if (selectedFields == null || selectedFields.isEmpty()) {
                 this.selectedFields = null;
             } else {

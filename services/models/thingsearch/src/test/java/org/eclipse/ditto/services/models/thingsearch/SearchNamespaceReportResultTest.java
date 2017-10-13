@@ -26,7 +26,7 @@ import org.mutabilitydetector.unittesting.MutabilityMatchers;
 /**
  * Tests {@link SearchNamespaceReportResult}.
  */
-public class SearchNamespaceReportResultTest {
+public final class SearchNamespaceReportResultTest {
 
     @Ignore("The class is immutable")
     @Test
@@ -52,4 +52,5 @@ public class SearchNamespaceReportResultTest {
 
         assertThat(result).isEqualTo(reportResult);
     }
+
 }

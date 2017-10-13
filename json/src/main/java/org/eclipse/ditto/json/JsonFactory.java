@@ -19,13 +19,12 @@ import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
+import java.util.function.Function;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -74,6 +73,30 @@ public final class JsonFactory {
      */
     public static JsonValue nullLiteral() {
         return NULL_LITERAL;
+    }
+
+    /**
+     * Tries to guess the associated JsonValue for the specified object.
+     *
+     * @param value the value to be converted.
+     * @param <T> the type of {@code value}.
+     * @return a JsonValue representation of {@code value}.
+     * @throws JsonParseException if {@code value} is not defined for JSON.
+     */
+    static <T> JsonValue getAppropriateValue(@Nullable final T value) {
+        final JsonValue result;
+
+        if (null == value) {
+            result = nullLiteral();
+        } else if (value instanceof JsonValue) {
+            result = ((JsonValue) value);
+        } else if (value instanceof String || value instanceof CharSequence) {
+            result = newValue(String.valueOf(value));
+        } else {
+            result = convert(tryToRead(String.valueOf(value)));
+        }
+
+        return result;
     }
 
     /**
@@ -645,62 +668,131 @@ public final class JsonFactory {
     }
 
     /**
-     * Returns a new JSON field definition which is based on the given arguments.
+     * Returns a new definition of a JSON field which contains a String value.
      *
      * @param pointer a character sequence consisting of either a single JSON key or a slash delimited hierarchy of JSON
      * keys aka JSON pointer.
-     * @param valueType the type of the value of the defined JSON field.
      * @param markers an optional array of markers which add user defined semantics to the defined JSON field.
      * @return the new JSON field definition.
      * @throws NullPointerException if any argument but {@code markers} is {@code null}.
      * @throws IllegalArgumentException if {@code pointer} is empty.
-     * @see #newFieldDefinition(JsonPointer, Class, Set)
      */
-    public static JsonFieldDefinition newFieldDefinition(final CharSequence pointer, final Class<?> valueType,
-            @Nullable final JsonFieldMarker... markers) {
+    public static JsonFieldDefinition<String> newStringFieldDefinition(final CharSequence pointer,
+            final JsonFieldMarker... markers) {
 
-        final Set<JsonFieldMarker> jsonFieldMarkers;
-        if (null != markers) {
-            jsonFieldMarkers = new HashSet<>(markers.length);
-            Collections.addAll(jsonFieldMarkers, markers);
-        } else {
-            jsonFieldMarkers = Collections.emptySet();
-        }
-        return newFieldDefinition(pointer, valueType, jsonFieldMarkers);
+        return ImmutableJsonFieldDefinition.newInstance(pointer, String.class, JsonValue::asString, markers);
     }
 
     /**
-     * Returns a new JSON field definition which is based on the given arguments.
+     * Returns a new definition of a JSON field which contains a boolean value.
      *
      * @param pointer a character sequence consisting of either a single JSON key or a slash delimited hierarchy of JSON
      * keys aka JSON pointer.
-     * @param valueType the type of the value of the defined JSON field.
      * @param markers an optional array of markers which add user defined semantics to the defined JSON field.
      * @return the new JSON field definition.
-     * @throws NullPointerException if any argument is {@code null}.
+     * @throws NullPointerException if any argument but {@code markers} is {@code null}.
      * @throws IllegalArgumentException if {@code pointer} is empty.
-     * @see #newFieldDefinition(JsonPointer, Class, Set)
      */
-    public static JsonFieldDefinition newFieldDefinition(final CharSequence pointer, final Class<?> valueType,
-            final Set<JsonFieldMarker> markers) {
+    public static JsonFieldDefinition<Boolean> newBooleanFieldDefinition(final CharSequence pointer,
+            final JsonFieldMarker... markers) {
 
-        return newFieldDefinition(newPointer(pointer), valueType, markers);
+        return ImmutableJsonFieldDefinition.newInstance(pointer, Boolean.class, JsonValue::asBoolean, markers);
     }
 
     /**
-     * Returns a new JSON field definition which is based on the given arguments.
+     * Returns a new definition of a JSON field which contains an int value.
      *
      * @param pointer a character sequence consisting of either a single JSON key or a slash delimited hierarchy of JSON
      * keys aka JSON pointer.
-     * @param valueType the type of the value of the defined JSON field.
      * @param markers an optional array of markers which add user defined semantics to the defined JSON field.
      * @return the new JSON field definition.
-     * @throws NullPointerException if any argument is {@code null}.
+     * @throws NullPointerException if any argument but {@code markers} is {@code null}.
+     * @throws IllegalArgumentException if {@code pointer} is empty.
      */
-    public static JsonFieldDefinition newFieldDefinition(final JsonPointer pointer, final Class<?> valueType,
-            final Set<JsonFieldMarker> markers) {
+    public static JsonFieldDefinition<Integer> newIntFieldDefinition(final CharSequence pointer,
+            final JsonFieldMarker... markers) {
 
-        return ImmutableJsonFieldDefinition.of(pointer, valueType, markers);
+        return ImmutableJsonFieldDefinition.newInstance(pointer, Integer.class, JsonValue::asInt, markers);
+    }
+
+    /**
+     * Returns a new definition of a JSON field which contains an long value.
+     *
+     * @param pointer a character sequence consisting of either a single JSON key or a slash delimited hierarchy of JSON
+     * keys aka JSON pointer.
+     * @param markers an optional array of markers which add user defined semantics to the defined JSON field.
+     * @return the new JSON field definition.
+     * @throws NullPointerException if any argument but {@code markers} is {@code null}.
+     * @throws IllegalArgumentException if {@code pointer} is empty.
+     */
+    public static JsonFieldDefinition<Long> newLongFieldDefinition(final CharSequence pointer,
+            final JsonFieldMarker... markers) {
+
+        return ImmutableJsonFieldDefinition.newInstance(pointer, Long.class, JsonValue::asLong, markers);
+    }
+
+    /**
+     * Returns a new definition of a JSON field which contains an double value.
+     *
+     * @param pointer a character sequence consisting of either a single JSON key or a slash delimited hierarchy of JSON
+     * keys aka JSON pointer.
+     * @param markers an optional array of markers which add user defined semantics to the defined JSON field.
+     * @return the new JSON field definition.
+     * @throws NullPointerException if any argument but {@code markers} is {@code null}.
+     * @throws IllegalArgumentException if {@code pointer} is empty.
+     */
+    public static JsonFieldDefinition<Double> newDoubleFieldDefinition(final CharSequence pointer,
+            final JsonFieldMarker... markers) {
+
+        return ImmutableJsonFieldDefinition.newInstance(pointer, Double.class, JsonValue::asDouble, markers);
+    }
+
+    /**
+     * Returns a new definition of a JSON field which contains an {@link JsonArray} value.
+     *
+     * @param pointer a character sequence consisting of either a single JSON key or a slash delimited hierarchy of JSON
+     * keys aka JSON pointer.
+     * @param markers an optional array of markers which add user defined semantics to the defined JSON field.
+     * @return the new JSON field definition.
+     * @throws NullPointerException if any argument but {@code markers} is {@code null}.
+     * @throws IllegalArgumentException if {@code pointer} is empty.
+     */
+    public static JsonFieldDefinition<JsonArray> newArrayFieldDefinition(final CharSequence pointer,
+            final JsonFieldMarker... markers) {
+
+        return ImmutableJsonFieldDefinition.newInstance(pointer, JsonArray.class, JsonValue::asArray, markers);
+    }
+
+    /**
+     * Returns a new definition of a JSON field which contains an {@link JsonObject} value.
+     *
+     * @param pointer a character sequence consisting of either a single JSON key or a slash delimited hierarchy of JSON
+     * keys aka JSON pointer.
+     * @param markers an optional array of markers which add user defined semantics to the defined JSON field.
+     * @return the new JSON field definition.
+     * @throws NullPointerException if any argument but {@code markers} is {@code null}.
+     * @throws IllegalArgumentException if {@code pointer} is empty.
+     */
+    public static JsonFieldDefinition<JsonObject> newJsonObjectFieldDefinition(final CharSequence pointer,
+            final JsonFieldMarker... markers) {
+
+        return ImmutableJsonFieldDefinition.newInstance(pointer, JsonObject.class, JsonValue::asObject, markers);
+    }
+
+    /**
+     * Returns a new definition of a JSON field which contains an {@link JsonValue} value.
+     *
+     * @param pointer a character sequence consisting of either a single JSON key or a slash delimited hierarchy of JSON
+     * keys aka JSON pointer.
+     * @param markers an optional array of markers which add user defined semantics to the defined JSON field.
+     * @return the new JSON field definition.
+     * @throws NullPointerException if any argument but {@code markers} is {@code null}.
+     * @throws IllegalArgumentException if {@code pointer} is empty.
+     */
+    public static JsonFieldDefinition<JsonValue> newJsonValueFieldDefinition(final CharSequence pointer,
+            final JsonFieldMarker... markers) {
+
+        return ImmutableJsonFieldDefinition.newInstance(pointer, JsonValue.class, Function.identity(), markers);
     }
 
     /**

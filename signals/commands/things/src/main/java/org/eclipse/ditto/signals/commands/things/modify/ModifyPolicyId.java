@@ -52,10 +52,8 @@ public final class ModifyPolicyId extends AbstractCommand<ModifyPolicyId>
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition JSON_POLICY_ID =
-            JsonFactory.newFieldDefinition("policyId", String.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<String> JSON_POLICY_ID =
+            JsonFactory.newStringFieldDefinition("policyId", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private final String thingId;
     private final String policyId;
@@ -65,7 +63,6 @@ public final class ModifyPolicyId extends AbstractCommand<ModifyPolicyId>
         ThingIdValidator.getInstance().accept(thingId, dittoHeaders);
         this.thingId = thingId;
         this.policyId = requireNonNull(policyId, "The policy ID must not be null!");
-        ;
     }
 
     /**
@@ -123,9 +120,10 @@ public final class ModifyPolicyId extends AbstractCommand<ModifyPolicyId>
      * org.eclipse.ditto.model.things.Thing#ID_REGEX}.
      */
     public static ModifyPolicyId fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandJsonDeserializer<ModifyPolicyId>(TYPE, jsonObject).deserialize(jsonObjectReader -> {
-            final String thingId = jsonObjectReader.get(ThingModifyCommand.JsonFields.JSON_THING_ID);
-            final String policyId = jsonObjectReader.get(JSON_POLICY_ID);
+        return new CommandJsonDeserializer<ModifyPolicyId>(TYPE, jsonObject).deserialize(() -> {
+            final String thingId = jsonObject.getValueOrThrow(ThingModifyCommand.JsonFields.JSON_THING_ID);
+            final String policyId = jsonObject.getValueOrThrow(JSON_POLICY_ID);
+
             return of(thingId, policyId, dittoHeaders);
         });
     }
@@ -146,7 +144,7 @@ public final class ModifyPolicyId extends AbstractCommand<ModifyPolicyId>
 
     @Override
     public Optional<JsonValue> getEntity(final JsonSchemaVersion schemaVersion) {
-        return Optional.ofNullable(JsonValue.of(policyId));
+        return Optional.of(JsonValue.of(policyId));
     }
 
     @Override
@@ -194,7 +192,7 @@ public final class ModifyPolicyId extends AbstractCommand<ModifyPolicyId>
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
+    protected boolean canEqual(@Nullable final Object other) {
         return (other instanceof ModifyPolicyId);
     }
 

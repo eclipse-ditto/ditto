@@ -11,8 +11,6 @@
  */
 package org.eclipse.ditto.model.things;
 
-import static org.eclipse.ditto.json.JsonFactory.newValue;
-
 import java.util.Iterator;
 import java.util.function.Predicate;
 
@@ -107,50 +105,58 @@ final class ImmutableFeaturePropertiesBuilder implements FeaturePropertiesBuilde
     }
 
     @Override
-    public FeaturePropertiesBuilder set(final JsonFieldDefinition fieldDefinition, final boolean value,
+    public <T> FeaturePropertiesBuilder set(final JsonFieldDefinition<T> fieldDefinition, final T value,
             final Predicate<JsonField> predicate) {
 
         jsonObjectBuilder.set(fieldDefinition, value, predicate);
         return this;
     }
 
-    @Override
-    public FeaturePropertiesBuilder set(final JsonFieldDefinition fieldDefinition, final double value,
-            final Predicate<JsonField> predicate) {
-
-        jsonObjectBuilder.set(fieldDefinition, value, predicate);
-        return this;
-    }
-
-    @Override
-    public FeaturePropertiesBuilder set(final JsonFieldDefinition fieldDefinition, final int value,
-            final Predicate<JsonField> predicate) {
-
-        jsonObjectBuilder.set(fieldDefinition, value, predicate);
-        return this;
-    }
-
-    @Override
-    public FeaturePropertiesBuilder set(final JsonFieldDefinition fieldDefinition, final JsonValue value,
-            final Predicate<JsonField> predicate) {
-
-        jsonObjectBuilder.set(fieldDefinition, value, predicate);
-        return this;
-    }
-
-    @Override
-    public FeaturePropertiesBuilder set(final JsonFieldDefinition fieldDefinition, final long value,
-            final Predicate<JsonField> predicate) {
-
-        return set(fieldDefinition, newValue(value), predicate);
-    }
-
-    @Override
-    public FeaturePropertiesBuilder set(final JsonFieldDefinition fieldDefinition, final String value,
-            final Predicate<JsonField> predicate) {
-
-        return set(fieldDefinition, newValue(value), predicate);
-    }
+//    @Override
+//    public FeaturePropertiesBuilder set(final JsonFieldDefinition fieldDefinition, final boolean value,
+//            final Predicate<JsonField> predicate) {
+//
+//        jsonObjectBuilder.set(fieldDefinition, value, predicate);
+//        return this;
+//    }
+//
+//    @Override
+//    public FeaturePropertiesBuilder set(final JsonFieldDefinition fieldDefinition, final double value,
+//            final Predicate<JsonField> predicate) {
+//
+//        jsonObjectBuilder.set(fieldDefinition, value, predicate);
+//        return this;
+//    }
+//
+//    @Override
+//    public FeaturePropertiesBuilder set(final JsonFieldDefinition fieldDefinition, final int value,
+//            final Predicate<JsonField> predicate) {
+//
+//        jsonObjectBuilder.set(fieldDefinition, value, predicate);
+//        return this;
+//    }
+//
+//    @Override
+//    public FeaturePropertiesBuilder set(final JsonFieldDefinition fieldDefinition, final JsonValue value,
+//            final Predicate<JsonField> predicate) {
+//
+//        jsonObjectBuilder.set(fieldDefinition, value, predicate);
+//        return this;
+//    }
+//
+//    @Override
+//    public FeaturePropertiesBuilder set(final JsonFieldDefinition fieldDefinition, final long value,
+//            final Predicate<JsonField> predicate) {
+//
+//        return set(fieldDefinition, newValue(value), predicate);
+//    }
+//
+//    @Override
+//    public FeaturePropertiesBuilder set(final JsonFieldDefinition fieldDefinition, final String value,
+//            final Predicate<JsonField> predicate) {
+//
+//        return set(fieldDefinition, newValue(value), predicate);
+//    } // TODO
 
     @Override
     public FeaturePropertiesBuilder set(final JsonField field, final Predicate<JsonField> predicate) {

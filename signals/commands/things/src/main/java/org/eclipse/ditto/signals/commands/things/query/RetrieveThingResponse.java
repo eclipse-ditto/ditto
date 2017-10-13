@@ -47,10 +47,9 @@ public final class RetrieveThingResponse extends AbstractCommandResponse<Retriev
      */
     public static final String TYPE = TYPE_PREFIX + RetrieveThing.NAME;
 
-    static final JsonFieldDefinition JSON_THING =
-            JsonFactory.newFieldDefinition("thing", JsonObject.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<JsonObject> JSON_THING =
+            JsonFactory.newJsonObjectFieldDefinition("thing", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
 
     private final String thingId;
     private final JsonObject thing;
@@ -120,9 +119,11 @@ public final class RetrieveThingResponse extends AbstractCommandResponse<Retriev
      */
     public static RetrieveThingResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<RetrieveThingResponse>(TYPE, jsonObject)
-                .deserialize((statusCode, jsonObjectReader) -> {
-                    final String thingId = jsonObjectReader.get(ThingQueryCommandResponse.JsonFields.JSON_THING_ID);
-                    final JsonObject extractedThing = jsonObjectReader.get(JSON_THING);
+                .deserialize((statusCode) -> {
+                    final String thingId =
+                            jsonObject.getValueOrThrow(ThingQueryCommandResponse.JsonFields.JSON_THING_ID);
+                    final JsonObject extractedThing = jsonObject.getValueOrThrow(JSON_THING);
+
                     return of(thingId, extractedThing, dittoHeaders);
                 });
     }
@@ -171,7 +172,7 @@ public final class RetrieveThingResponse extends AbstractCommandResponse<Retriev
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
+    protected boolean canEqual(@Nullable final Object other) {
         return (other instanceof RetrieveThingResponse);
     }
 
@@ -197,4 +198,5 @@ public final class RetrieveThingResponse extends AbstractCommandResponse<Retriev
     public String toString() {
         return getClass().getSimpleName() + " [" + super.toString() + ", thingId=" + thingId + ", thing=" + thing + "]";
     }
+
 }

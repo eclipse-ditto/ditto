@@ -45,10 +45,8 @@ public final class RetrievePolicyIdResponse extends AbstractCommandResponse<Retr
      */
     public static final String TYPE = TYPE_PREFIX + RetrievePolicyId.NAME;
 
-    static final JsonFieldDefinition JSON_POLICY_ID =
-            JsonFactory.newFieldDefinition("policyId", String.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<String> JSON_POLICY_ID =
+            JsonFactory.newStringFieldDefinition("policyId", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private final String thingId;
     private final String policyId;
@@ -111,9 +109,11 @@ public final class RetrievePolicyIdResponse extends AbstractCommandResponse<Retr
      */
     public static RetrievePolicyIdResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<RetrievePolicyIdResponse>(TYPE, jsonObject)
-                .deserialize((statusCode, jsonObjectReader) -> {
-                    final String thingId = jsonObjectReader.get(ThingQueryCommandResponse.JsonFields.JSON_THING_ID);
-                    final String retrievePolicyId = jsonObjectReader.get(JSON_POLICY_ID);
+                .deserialize((statusCode) -> {
+                    final String thingId =
+                            jsonObject.getValueOrThrow(ThingQueryCommandResponse.JsonFields.JSON_THING_ID);
+                    final String retrievePolicyId = jsonObject.getValueOrThrow(JSON_POLICY_ID);
+
                     return of(thingId, retrievePolicyId, dittoHeaders);
                 });
     }
@@ -162,7 +162,7 @@ public final class RetrievePolicyIdResponse extends AbstractCommandResponse<Retr
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
+    protected boolean canEqual(@Nullable final Object other) {
         return (other instanceof RetrievePolicyIdResponse);
     }
 
@@ -189,4 +189,5 @@ public final class RetrievePolicyIdResponse extends AbstractCommandResponse<Retr
         return getClass().getSimpleName() + " [" + super.toString() + ", thingId=" + thingId + ", policyId=" +
                 policyId + "]";
     }
+
 }

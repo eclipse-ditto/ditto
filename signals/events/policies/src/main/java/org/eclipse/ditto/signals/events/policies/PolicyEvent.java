@@ -11,6 +11,8 @@
  */
 package org.eclipse.ditto.signals.events.policies;
 
+import javax.annotation.concurrent.Immutable;
+
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -78,21 +80,20 @@ public interface PolicyEvent<T extends PolicyEvent> extends Event<T> {
 
     /**
      * An enumeration of the known {@link org.eclipse.ditto.json.JsonField}s of a {@link PolicyEvent}.
-     *
      */
+    @Immutable
     final class JsonFields {
 
         /**
          * Payload JSON field containing the Policy TYPE.
          */
-        public static final JsonFieldDefinition POLICY_ID =
-                JsonFactory.newFieldDefinition("policyId", String.class, FieldType.REGULAR,
-                        // available in schema versions:
-                        JsonSchemaVersion.V_2);
+        public static final JsonFieldDefinition<String> POLICY_ID =
+                JsonFactory.newStringFieldDefinition("policyId", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         private JsonFields() {
             throw new AssertionError();
         }
+
     }
 
 }

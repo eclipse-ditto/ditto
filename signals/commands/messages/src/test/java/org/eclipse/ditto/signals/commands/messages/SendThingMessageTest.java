@@ -62,8 +62,9 @@ public final class SendThingMessageTest {
 
     private static final JsonObject KNOWN_MESSAGE_AS_JSON = JsonFactory.newObjectBuilder()
             .set(MessageCommand.JsonFields.JSON_MESSAGE_HEADERS, MESSAGE.getHeaders().toJson())
-            .set(MessageCommand.JsonFields.JSON_MESSAGE_PAYLOAD,
-                    new String(Base64.getEncoder().encode(KNOWN_RAW_PAYLOAD_BYTES), StandardCharsets.UTF_8))
+            .set(MessageCommand.JsonFields.JSON_MESSAGE_PAYLOAD, JsonFactory.newValue(new String(Base64.getEncoder()
+                            .encode(KNOWN_RAW_PAYLOAD_BYTES), StandardCharsets.UTF_8))
+            )
             .build();
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()

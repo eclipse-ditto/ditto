@@ -101,8 +101,6 @@ public abstract class AbstractStatusHealthHelper implements StatusHealthHelper {
                 .filter(JsonValue::isObject)
                 .map(JsonValue::asObject)
                 .allMatch(statusObject -> statusObject.getValue(HealthStatus.JSON_KEY_STATUS)
-                        .filter(JsonValue::isString)
-                        .map(JsonValue::asString)
                         .map(statusStr -> statusStr.equalsIgnoreCase(HealthStatus.Status.UP.toString()) || statusStr
                                 .equalsIgnoreCase(HealthStatus.Status.UNKNOWN.toString()))
                         .orElse(false));
@@ -205,10 +203,8 @@ public abstract class AbstractStatusHealthHelper implements StatusHealthHelper {
                         .map(JsonValue::asObject)
                         .flatMap(obj -> obj.getValue(HealthStatus.JSON_KEY_STATUS))
                 )
-                .allMatch(statusValue -> statusValue
-                        .filter(JsonValue::isString)
-                        .map(JsonValue::asString)
-                        .filter(status -> HealthStatus.Status.UP.toString().equals(status) ||
+                .allMatch(statusValue -> statusValue.filter(
+                        status -> HealthStatus.Status.UP.toString().equals(status) ||
                                 HealthStatus.Status.UNKNOWN.toString().equals(status))
                         .isPresent());
         return JsonObject.newBuilder()
@@ -218,9 +214,11 @@ public abstract class AbstractStatusHealthHelper implements StatusHealthHelper {
                 .build();
     }
 
-    protected List<CompletableFuture<JsonObject>> sendCommandToRemoteAddresses(final ActorSystem actorSystem,
-            final SimpleCommand command, final Set<String> reachable,
+    protected static List<CompletableFuture<JsonObject>> sendCommandToRemoteAddresses(final ActorSystem actorSystem,
+            final SimpleCommand command,
+            final Set<String> reachable,
             final Function<Object, JsonObject> responseFunction) {
+
         final Duration healthCheckServiceTimeout =
                 actorSystem.settings().config().getDuration(ConfigKeys.HEALTH_CHECK_SERVICE_TIMEOUT);
         return reachable.stream()
@@ -228,8 +226,7 @@ public abstract class AbstractStatusHealthHelper implements StatusHealthHelper {
                 .map(actorSystem::actorSelection)
                 .map(selection -> {
                     final String addressString = selection.toSerializationFormat()
-                            .substring(selection.toSerializationFormat()
-                                    .indexOf("@") + 1)
+                            .substring(selection.toSerializationFormat().indexOf("@") + 1)
                             .replace(STATUS_SUPPLIER_PATH, "");
                     return PatternsCS.ask(selection, command,
                             Timeout.apply(healthCheckServiceTimeout.getSeconds(), TimeUnit.SECONDS))
@@ -245,8 +242,9 @@ public abstract class AbstractStatusHealthHelper implements StatusHealthHelper {
                 .collect(Collectors.toList());
     }
 
-    protected <T> CompletableFuture<List<T>> sequence(final List<CompletableFuture<T>> com) {
+    protected static <T> CompletableFuture<List<T>> sequence(final List<CompletableFuture<T>> com) {
         return CompletableFuture.allOf(com.toArray(new CompletableFuture[com.size()]))
                 .thenApply(v -> com.stream().map(CompletableFuture::join).collect(Collectors.toList()));
     }
+
 }

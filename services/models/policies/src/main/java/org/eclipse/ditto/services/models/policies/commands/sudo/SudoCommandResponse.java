@@ -59,13 +59,13 @@ public interface SudoCommandResponse<T extends SudoCommandResponse> extends Comm
         /**
          * JSON field containing the Policy ID.
          */
-        public static final JsonFieldDefinition JSON_POLICY_ID =
-                JsonFactory.newFieldDefinition("payload/policyId", String.class, FieldType.REGULAR,
-                        // available in schema versions:
-                        JsonSchemaVersion.V_2);
+        public static final JsonFieldDefinition<String> JSON_POLICY_ID =
+                JsonFactory.newStringFieldDefinition("payload/policyId", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         private JsonFields() {
             throw new AssertionError();
         }
+
     }
+
 }

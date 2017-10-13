@@ -42,13 +42,11 @@ public final class FeatureCreatedTest {
             .set(FeatureCreated.JSON_FEATURE, TestConstants.Feature.FLUX_CAPACITOR.toJson(FieldType.regularOrSpecial()))
             .build();
 
-
     @Test
     public void assertImmutability() {
         assertInstancesOf(FeatureCreated.class, areImmutable(),
                 provided(Feature.class).isAlsoImmutable());
     }
-
 
     @Test
     public void testHashCodeAndEquals() {
@@ -57,20 +55,17 @@ public final class FeatureCreatedTest {
                 .verify();
     }
 
-
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullThingId() {
         FeatureCreated.of(null, TestConstants.Feature.FLUX_CAPACITOR, TestConstants.Thing.REVISION_NUMBER,
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
 
-
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullFeature() {
         FeatureCreated.of(TestConstants.Thing.THING_ID, null, TestConstants.Thing.REVISION_NUMBER,
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
-
 
     @Test
     public void toJsonReturnsExpected() {
@@ -83,7 +78,6 @@ public final class FeatureCreatedTest {
         assertThat(actualJson).isEqualTo(KNOWN_JSON);
     }
 
-
     @Test
     public void createInstanceFromValidJson() {
         final FeatureCreated underTest =
@@ -92,7 +86,6 @@ public final class FeatureCreatedTest {
         assertThat(underTest).isNotNull();
         assertThat(underTest.getFeature()).isEqualTo(TestConstants.Feature.FLUX_CAPACITOR);
     }
-
 
     @Test
     public void createInstanceFromJsonWithNullFeature() {
@@ -103,7 +96,6 @@ public final class FeatureCreatedTest {
         assertThat(parsedEvent.getFeature()).isEqualTo(
                 ThingsModelFactory.nullFeature(TestConstants.Feature.FLUX_CAPACITOR_ID));
     }
-
 
     @Test
     public void getResourcePathReturnsExpected() {

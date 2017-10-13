@@ -11,7 +11,6 @@
  */
 package org.eclipse.ditto.model.base.exceptions;
 
-import static org.eclipse.ditto.json.JsonFactory.newFieldDefinition;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotEmpty;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
@@ -21,15 +20,14 @@ import java.util.Optional;
 import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
-import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
@@ -144,18 +142,11 @@ public class DittoRuntimeException extends RuntimeException implements
 
     protected static String readMessage(final JsonObject jsonObject) {
         checkNotNull(jsonObject, "JSON object");
-        return jsonObject.getValue(JsonFields.MESSAGE)
-                .filter(JsonValue::isString)
-                .map(JsonValue::asString)
-                .orElseThrow(() -> JsonMissingFieldException.newBuilder()
-                        .fieldName(DittoRuntimeException.JsonFields.MESSAGE.getPointer().toString())
-                        .build());
+        return jsonObject.getValueOrThrow(JsonFields.MESSAGE);
     }
 
     protected static Optional<String> readDescription(final JsonObject jsonObject) {
-        return jsonObject.getValue(JsonFields.DESCRIPTION)
-                .filter(JsonValue::isString)
-                .map(JsonValue::asString);
+        return jsonObject.getValue(JsonFields.DESCRIPTION);
     }
 
     /**
@@ -302,47 +293,49 @@ public class DittoRuntimeException extends RuntimeException implements
 
     /**
      * An enumeration of the known {@link JsonField}s of a {@code DittoRuntimeException}.
-     *
      */
+    @Immutable
     public static final class JsonFields {
 
         /**
          * JSON field containing the HTTP status code of the exception.
          */
-        public static final JsonFieldDefinition STATUS =
-                newFieldDefinition("status", int.class, FieldType.REGULAR, JsonSchemaVersion.V_1,
+        public static final JsonFieldDefinition<Integer> STATUS =
+                JsonFactory.newIntFieldDefinition("status", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the error code of the exception.
          */
-        public static final JsonFieldDefinition ERROR_CODE =
-                newFieldDefinition("error", String.class, FieldType.REGULAR, JsonSchemaVersion.V_1,
+        public static final JsonFieldDefinition<String> ERROR_CODE =
+                JsonFactory.newStringFieldDefinition("error", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the message of the exception.
          */
-        public static final JsonFieldDefinition MESSAGE = newFieldDefinition("message", String.class, FieldType.REGULAR,
-                JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+        public static final JsonFieldDefinition<String> MESSAGE =
+                JsonFactory.newStringFieldDefinition("message", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the description of the message.
          */
-        public static final JsonFieldDefinition DESCRIPTION =
-                newFieldDefinition("description", String.class, FieldType.REGULAR, JsonSchemaVersion.V_1,
+        public static final JsonFieldDefinition<String> DESCRIPTION =
+                JsonFactory.newStringFieldDefinition("description", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the link to further information about the exception.
          */
-        public static final JsonFieldDefinition HREF =
-                newFieldDefinition("href", String.class, FieldType.REGULAR, JsonSchemaVersion.V_1,
+        public static final JsonFieldDefinition<String> HREF =
+                JsonFactory.newStringFieldDefinition("href", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
         private JsonFields() {
             throw new AssertionError();
         }
+
     }
 
 }

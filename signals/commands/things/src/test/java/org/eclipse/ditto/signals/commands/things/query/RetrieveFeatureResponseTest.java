@@ -59,7 +59,7 @@ public final class RetrieveFeatureResponseTest {
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullFeature() {
-        RetrieveFeatureResponse.of(TestConstants.Thing.THING_ID, (Feature) null, TestConstants.EMPTY_DITTO_HEADERS);
+        RetrieveFeatureResponse.of(TestConstants.Thing.THING_ID, null, TestConstants.EMPTY_DITTO_HEADERS);
     }
 
 
@@ -91,7 +91,7 @@ public final class RetrieveFeatureResponseTest {
                 .set(ThingCommandResponse.JsonFields.STATUS, HttpStatusCode.OK.toInt())
                 .set(ThingCommandResponse.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID)
                 .set(RetrieveFeaturePropertiesResponse.JSON_FEATURE_ID, TestConstants.Feature.FLUX_CAPACITOR_ID)
-                .set(RetrieveFeatureResponse.JSON_FEATURE, JsonFactory.nullLiteral())
+                .set(RetrieveFeatureResponse.JSON_FEATURE, JsonFactory.nullObject())
                 .build();
 
         final RetrieveFeatureResponse parsedResponse =

@@ -48,17 +48,17 @@ public final class ModifyPolicyResponse extends AbstractCommandResponse<ModifyPo
      */
     public static final String TYPE = TYPE_PREFIX + ModifyPolicy.NAME;
 
-    static final JsonFieldDefinition JSON_POLICY =
-            JsonFactory.newFieldDefinition("policy", JsonValue.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<JsonValue> JSON_POLICY =
+            JsonFactory.newJsonValueFieldDefinition("policy", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private final String policyId;
-    @Nullable
-    private final Policy policyCreated;
+    @Nullable private final Policy policyCreated;
 
-    private ModifyPolicyResponse(final String policyId, final HttpStatusCode statusCode,
-            @Nullable final Policy policyCreated, final DittoHeaders dittoHeaders) {
+    private ModifyPolicyResponse(final String policyId,
+            final HttpStatusCode statusCode,
+            @Nullable final Policy policyCreated,
+            final DittoHeaders dittoHeaders) {
+
         super(TYPE, statusCode, dittoHeaders);
         this.policyId = checkNotNull(policyId, "Policy ID");
         this.policyCreated = policyCreated;
@@ -76,6 +76,7 @@ public final class ModifyPolicyResponse extends AbstractCommandResponse<ModifyPo
      */
     public static ModifyPolicyResponse created(final String policyId, final Policy policy,
             final DittoHeaders dittoHeaders) {
+
         return new ModifyPolicyResponse(policyId, HttpStatusCode.CREATED, policy, dittoHeaders);
     }
 
@@ -117,8 +118,9 @@ public final class ModifyPolicyResponse extends AbstractCommandResponse<ModifyPo
      */
     public static ModifyPolicyResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<ModifyPolicyResponse>(TYPE, jsonObject)
-                .deserialize((statusCode, jsonObjectReader) -> {
-                    final String policyId = jsonObjectReader.get(PolicyModifyCommandResponse.JsonFields.JSON_POLICY_ID);
+                .deserialize((statusCode) -> {
+                    final String policyId =
+                            jsonObject.getValueOrThrow(PolicyModifyCommandResponse.JsonFields.JSON_POLICY_ID);
                     final Policy extractedPolicyCreated = jsonObject.getValue(JSON_POLICY)
                             .map(JsonValue::asObject)
                             .map(PoliciesModelFactory::newPolicy)
@@ -169,8 +171,8 @@ public final class ModifyPolicyResponse extends AbstractCommandResponse<ModifyPo
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof ModifyPolicyResponse);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof ModifyPolicyResponse;
     }
 
     @Override

@@ -69,13 +69,14 @@ public interface SudoCommandResponse<T extends SudoCommandResponse> extends Comm
         /**
          * JSON field containing the Thing ID.
          */
-        public static final JsonFieldDefinition JSON_THING_ID =
-                JsonFactory.newFieldDefinition("payload/thingId", String.class, FieldType.REGULAR,
-                        JsonSchemaVersion.V_1,
+        public static final JsonFieldDefinition<String> JSON_THING_ID =
+                JsonFactory.newStringFieldDefinition("payload/thingId", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
         private JsonFields() {
             throw new AssertionError();
         }
+
     }
+
 }

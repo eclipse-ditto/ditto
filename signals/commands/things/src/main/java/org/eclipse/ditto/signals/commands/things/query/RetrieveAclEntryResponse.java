@@ -48,23 +48,22 @@ public final class RetrieveAclEntryResponse extends AbstractCommandResponse<Retr
      */
     public static final String TYPE = TYPE_PREFIX + RetrieveAclEntry.NAME;
 
-    static final JsonFieldDefinition JSON_ACL_ENTRY_SUBJECT =
-            JsonFactory.newFieldDefinition("aclEntrySubject", String.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_1);
+    static final JsonFieldDefinition<String> JSON_ACL_ENTRY_SUBJECT =
+            JsonFactory.newStringFieldDefinition("aclEntrySubject", FieldType.REGULAR, JsonSchemaVersion.V_1);
 
-    static final JsonFieldDefinition JSON_ACL_ENTRY_PERMISSIONS =
-            JsonFactory.newFieldDefinition("aclEntryPermissions", JsonObject.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_1);
+    static final JsonFieldDefinition<JsonObject> JSON_ACL_ENTRY_PERMISSIONS =
+            JsonFactory.newJsonObjectFieldDefinition("aclEntryPermissions", FieldType.REGULAR, JsonSchemaVersion.V_1);
 
     private final String thingId;
     private final String aclEntrySubject;
     private final JsonObject aclEntryPermissions;
 
-    private RetrieveAclEntryResponse(final String thingId, final HttpStatusCode statusCode,
+    private RetrieveAclEntryResponse(final String thingId,
+            final HttpStatusCode statusCode,
             final String aclEntrySubject,
-            final JsonObject aclEntryPermissions, final DittoHeaders dittoHeaders) {
+            final JsonObject aclEntryPermissions,
+            final DittoHeaders dittoHeaders) {
+
         super(TYPE, statusCode, dittoHeaders);
         this.thingId = checkNotNull(thingId, "thing ID");
         this.aclEntrySubject = checkNotNull(aclEntrySubject, "AclEntry Subject");
@@ -82,6 +81,7 @@ public final class RetrieveAclEntryResponse extends AbstractCommandResponse<Retr
      */
     public static RetrieveAclEntryResponse of(final String thingId, final AclEntry aclEntry,
             final DittoHeaders dittoHeaders) {
+
         checkNotNull(aclEntry, "AclEntry");
         return new RetrieveAclEntryResponse(thingId, HttpStatusCode.OK, aclEntry.getAuthorizationSubject().getId(),
                 aclEntry.getPermissions()
@@ -116,12 +116,14 @@ public final class RetrieveAclEntryResponse extends AbstractCommandResponse<Retr
      */
     public static RetrieveAclEntryResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<RetrieveAclEntryResponse>(TYPE, jsonObject)
-                .deserialize((statusCode, jsonObjectReader) -> {
-                    final String thingId = jsonObjectReader.get(ThingQueryCommandResponse.JsonFields.JSON_THING_ID);
-                    final String aclEntrySubject = jsonObjectReader.get(JSON_ACL_ENTRY_SUBJECT);
-                    final JsonObject aclEntryPermissions = jsonObjectReader.get(JSON_ACL_ENTRY_PERMISSIONS);
+                .deserialize((statusCode) -> {
+                    final String thingId =
+                            jsonObject.getValueOrThrow(ThingQueryCommandResponse.JsonFields.JSON_THING_ID);
+                    final String aclEntrySubject = jsonObject.getValueOrThrow(JSON_ACL_ENTRY_SUBJECT);
+                    final JsonObject aclEntryPermissions = jsonObject.getValueOrThrow(JSON_ACL_ENTRY_PERMISSIONS);
                     final AclEntry extractedAclEntry =
                             ThingsModelFactory.newAclEntry(aclEntrySubject, aclEntryPermissions);
+
                     return of(thingId, extractedAclEntry, dittoHeaders);
                 });
     }
@@ -183,8 +185,8 @@ public final class RetrieveAclEntryResponse extends AbstractCommandResponse<Retr
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof RetrieveAclEntryResponse);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof RetrieveAclEntryResponse;
     }
 
     @Override
@@ -211,4 +213,5 @@ public final class RetrieveAclEntryResponse extends AbstractCommandResponse<Retr
         return getClass().getSimpleName() + " [" + super.toString() + ", thingId=" + thingId + ", aclEntrySubject=" +
                 aclEntrySubject + ", aclEntryPermissions=" + aclEntryPermissions + "]";
     }
+
 }

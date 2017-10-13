@@ -90,9 +90,10 @@ public final class SendClaimMessageResponse<T> extends AbstractMessageCommandRes
     public static <T> SendClaimMessageResponse<T> fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<SendClaimMessageResponse<T>>(TYPE, jsonObject).deserialize(
-                (statusCode, jsonObjectReader) -> {
-                    final String thingId = jsonObjectReader.get(MessageCommandResponse.JsonFields.JSON_THING_ID);
-                    final Message<T> message = deserializeMessageFromJson(jsonObjectReader);
+                (statusCode) -> {
+                    final String thingId = jsonObject.getValueOrThrow(MessageCommandResponse.JsonFields.JSON_THING_ID);
+                    final Message<T> message = deserializeMessageFromJson(jsonObject);
+
                     return of(thingId, message, statusCode, dittoHeaders);
                 });
     }

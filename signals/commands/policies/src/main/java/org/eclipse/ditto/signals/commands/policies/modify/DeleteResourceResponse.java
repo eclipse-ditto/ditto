@@ -47,22 +47,22 @@ public final class DeleteResourceResponse extends AbstractCommandResponse<Delete
      */
     public static final String TYPE = TYPE_PREFIX + DeleteResource.NAME;
 
-    static final JsonFieldDefinition JSON_LABEL =
-            JsonFactory.newFieldDefinition("label", String.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<String> JSON_LABEL =
+            JsonFactory.newStringFieldDefinition("label", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
-    static final JsonFieldDefinition JSON_RESOURCE_KEY =
-            JsonFactory.newFieldDefinition("resourceKey", String.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<String> JSON_RESOURCE_KEY =
+            JsonFactory.newStringFieldDefinition("resourceKey", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private final String policyId;
     private final Label label;
     private final ResourceKey resourceKey;
 
-    private DeleteResourceResponse(final String policyId, final Label label, final ResourceKey resourceKey,
-            final HttpStatusCode statusCode, final DittoHeaders dittoHeaders) {
+    private DeleteResourceResponse(final String policyId,
+            final Label label,
+            final ResourceKey resourceKey,
+            final HttpStatusCode statusCode,
+            final DittoHeaders dittoHeaders) {
+
         super(TYPE, statusCode, dittoHeaders);
         this.policyId = checkNotNull(policyId, "Policy ID");
         this.label = checkNotNull(label, "Label");
@@ -79,8 +79,11 @@ public final class DeleteResourceResponse extends AbstractCommandResponse<Delete
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static DeleteResourceResponse of(final String policyId, final Label label,
-            final ResourceKey resourceKey, final DittoHeaders dittoHeaders) {
+    public static DeleteResourceResponse of(final String policyId,
+            final Label label,
+            final ResourceKey resourceKey,
+            final DittoHeaders dittoHeaders) {
+
         return new DeleteResourceResponse(policyId, label, resourceKey, HttpStatusCode.NO_CONTENT, dittoHeaders);
     }
 
@@ -111,11 +114,12 @@ public final class DeleteResourceResponse extends AbstractCommandResponse<Delete
      */
     public static DeleteResourceResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<DeleteResourceResponse>(TYPE, jsonObject)
-                .deserialize((statusCode, jsonObjectReader) -> {
-                    final String policyId = jsonObjectReader.get(PolicyModifyCommandResponse.JsonFields.JSON_POLICY_ID);
-                    final String stringLabel = jsonObjectReader.get(JSON_LABEL);
-                    final Label label = PoliciesModelFactory.newLabel(stringLabel);
-                    final String path = jsonObjectReader.get(JSON_RESOURCE_KEY);
+                .deserialize((statusCode) -> {
+                    final String policyId =
+                            jsonObject.getValueOrThrow(PolicyModifyCommandResponse.JsonFields.JSON_POLICY_ID);
+                    final Label label = PoliciesModelFactory.newLabel(jsonObject.getValueOrThrow(JSON_LABEL));
+                    final String path = jsonObject.getValueOrThrow(JSON_RESOURCE_KEY);
+
                     return of(policyId, label, ResourceKey.newInstance(path), dittoHeaders);
                 });
     }
@@ -152,6 +156,7 @@ public final class DeleteResourceResponse extends AbstractCommandResponse<Delete
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(PolicyModifyCommandResponse.JsonFields.JSON_POLICY_ID, policyId, predicate);
         jsonObjectBuilder.set(JSON_LABEL, label.toString(), predicate);
@@ -164,8 +169,8 @@ public final class DeleteResourceResponse extends AbstractCommandResponse<Delete
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof DeleteResourceResponse);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof DeleteResourceResponse;
     }
 
     @Override

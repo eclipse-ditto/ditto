@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.models.thingsearch.commands.sudo;
 import java.util.Objects;
 import java.util.function.Predicate;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFactory;
@@ -82,10 +83,9 @@ public final class SudoRetrieveNamespaceReport extends AbstractCommand<SudoRetri
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */
-    public static SudoRetrieveNamespaceReport fromJson(final JsonObject jsonObject,
-            final DittoHeaders dittoHeaders) {
+    public static SudoRetrieveNamespaceReport fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<SudoRetrieveNamespaceReport>(TYPE, jsonObject)
-                .deserialize(jsonObjectReader -> of(dittoHeaders));
+                .deserialize(() -> of(dittoHeaders));
     }
 
     @Override
@@ -101,7 +101,7 @@ public final class SudoRetrieveNamespaceReport extends AbstractCommand<SudoRetri
 
     @SuppressWarnings({"squid:MethodCyclomaticComplexity", "squid:S1067"})
     @Override
-    public boolean equals(final Object o) {
+    public boolean equals(@Nullable final Object o) {
         if (this == o) {
             return true;
         }

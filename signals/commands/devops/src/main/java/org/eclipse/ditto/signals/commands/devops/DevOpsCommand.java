@@ -11,6 +11,8 @@
  */
 package org.eclipse.ditto.signals.commands.devops;
 
+import javax.annotation.concurrent.Immutable;
+
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
@@ -72,19 +74,20 @@ public interface DevOpsCommand<T extends DevOpsCommand> extends Jsonifiable.With
     /**
      * An enumeration of the known {@link JsonField}s of a {@code DevOpsCommand}.
      */
+    @Immutable
     final class JsonFields {
 
         /**
          * JSON field containing the command's type.
          */
-        public static final JsonFieldDefinition TYPE =
-                JsonFactory.newFieldDefinition("type", String.class, FieldType.REGULAR,
-                        // available in schema versions:
-                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+        public static final JsonFieldDefinition<String> TYPE =
+                JsonFactory.newStringFieldDefinition("type", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
 
         private JsonFields() {
             throw new AssertionError();
         }
+
     }
 
 }

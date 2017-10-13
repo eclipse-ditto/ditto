@@ -70,12 +70,12 @@ final class ImmutableSubject implements Subject {
         checkNotNull(subjectIssuerWithId, "Subject ID");
         checkNotNull(jsonObject, "JSON object");
 
-        return of(SubjectId.newInstance(subjectIssuerWithId), ImmutableSubjectType.of(jsonObject
-                .getValue(JsonFields.TYPE)
+        final String subjectTypeValue = jsonObject.getValue(JsonFields.TYPE)
                 .orElseThrow(() -> new DittoJsonException(JsonMissingFieldException.newBuilder()
                         .message("The JSON object is either empty or contains only fields with the schema version.")
-                        .build()))
-                .asString()));
+                        .build()));
+
+        return of(SubjectId.newInstance(subjectIssuerWithId), ImmutableSubjectType.of(subjectTypeValue));
     }
 
     @Override

@@ -140,17 +140,17 @@ public interface JsonPatch {
         /**
          * JSON field containing the JSON Patch's operation as {@code String}.
          */
-        public static final JsonFieldDefinition OPERATION = JsonFactory.newFieldDefinition("op", String.class);
+        public static final JsonFieldDefinition<String> OPERATION = JsonFactory.newStringFieldDefinition("op");
 
         /**
          * JSON field containing the JSON Patch's path as {@code String}.
          */
-        public static final JsonFieldDefinition PATH = JsonFactory.newFieldDefinition("path", String.class);
+        public static final JsonFieldDefinition<String> PATH = JsonFactory.newStringFieldDefinition("path");
 
         /**
          * JSON field containing the JSON Patch's value as {@link JsonValue}.
          */
-        public static final JsonFieldDefinition VALUE = JsonFactory.newFieldDefinition("value", JsonValue.class);
+        public static final JsonFieldDefinition<JsonValue> VALUE = JsonFactory.newJsonValueFieldDefinition("value");
 
         private JsonFields() {
             throw new AssertionError();

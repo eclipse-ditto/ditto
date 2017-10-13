@@ -53,17 +53,20 @@ public final class FeaturePropertiesCreated extends AbstractThingEvent<FeaturePr
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition JSON_PROPERTIES =
-            JsonFactory.newFieldDefinition("properties", JsonObject.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_1,
+    static final JsonFieldDefinition<JsonObject> JSON_PROPERTIES =
+            JsonFactory.newJsonObjectFieldDefinition("properties", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
     private final String featureId;
     private final FeatureProperties properties;
 
-    private FeaturePropertiesCreated(final String thingId, final String featureId, final FeatureProperties properties,
-            final long revision, final Instant timestamp, final DittoHeaders dittoHeaders) {
+    private FeaturePropertiesCreated(final String thingId,
+            final String featureId,
+            final FeatureProperties properties,
+            final long revision,
+            @Nullable final Instant timestamp,
+            final DittoHeaders dittoHeaders) {
+
         super(TYPE, thingId, revision, timestamp, dittoHeaders);
         this.featureId = requireNonNull(featureId, "The Feature ID must not be null!");
         this.properties = Objects.requireNonNull(properties, "The Properties must not be null!");
@@ -80,8 +83,12 @@ public final class FeaturePropertiesCreated extends AbstractThingEvent<FeaturePr
      * @return the {@code FeaturePropertiesCreated}
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static FeaturePropertiesCreated of(final String thingId, final String featureId,
-            final FeatureProperties properties, final long revision, final DittoHeaders dittoHeaders) {
+    public static FeaturePropertiesCreated of(final String thingId,
+            final String featureId,
+            final FeatureProperties properties,
+            final long revision,
+            final DittoHeaders dittoHeaders) {
+
         return of(thingId, featureId, properties, revision, null, dittoHeaders);
     }
 
@@ -95,11 +102,15 @@ public final class FeaturePropertiesCreated extends AbstractThingEvent<FeaturePr
      * @param timestamp the timestamp of this event.
      * @param dittoHeaders the headers of the command which was the cause of this event. FeatureModified
      * @return the {@code FeaturePropertiesCreated}
-     * @throws NullPointerException if any argument is {@code null}.
+     * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
      */
-    public static FeaturePropertiesCreated of(final String thingId, final String featureId,
-            final FeatureProperties properties, final long revision, final Instant timestamp,
+    public static FeaturePropertiesCreated of(final String thingId,
+            final String featureId,
+            final FeatureProperties properties,
+            final long revision,
+            @Nullable final Instant timestamp,
             final DittoHeaders dittoHeaders) {
+
         return new FeaturePropertiesCreated(thingId, featureId, properties, revision, timestamp, dittoHeaders);
     }
 
@@ -130,13 +141,13 @@ public final class FeaturePropertiesCreated extends AbstractThingEvent<FeaturePr
      */
     public static FeaturePropertiesCreated fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new EventJsonDeserializer<FeaturePropertiesCreated>(TYPE, jsonObject)
-                .deserialize((revision, timestamp, jsonObjectReader) -> {
-                    final String extractedThingId = jsonObjectReader.get(JsonFields.THING_ID);
-                    final String extractedFeatureId = jsonObjectReader.get(JsonFields.FEATURE_ID);
-                    final JsonObject propertiesJsonObject = jsonObjectReader.get(JSON_PROPERTIES);
+                .deserialize((revision, timestamp) -> {
+                    final String extractedThingId = jsonObject.getValueOrThrow(JsonFields.THING_ID);
+                    final String extractedFeatureId = jsonObject.getValueOrThrow(JsonFields.FEATURE_ID);
+                    final JsonObject propertiesJsonObject = jsonObject.getValueOrThrow(JSON_PROPERTIES);
 
                     final FeatureProperties extractedProperties;
-                    if (propertiesJsonObject == null || propertiesJsonObject.isNull()) {
+                    if (propertiesJsonObject.isNull()) {
                         extractedProperties = ThingsModelFactory.nullFeatureProperties();
                     } else {
                         extractedProperties = ThingsModelFactory.newFeatureProperties(propertiesJsonObject);
@@ -162,7 +173,7 @@ public final class FeaturePropertiesCreated extends AbstractThingEvent<FeaturePr
 
     @Override
     public Optional<JsonValue> getEntity(final JsonSchemaVersion schemaVersion) {
-        return Optional.ofNullable(properties.toJson(schemaVersion, FieldType.regularOrSpecial()));
+        return Optional.of(properties.toJson(schemaVersion, FieldType.regularOrSpecial()));
     }
 
     @Override
@@ -214,8 +225,8 @@ public final class FeaturePropertiesCreated extends AbstractThingEvent<FeaturePr
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof FeaturePropertiesCreated);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof FeaturePropertiesCreated;
     }
 
     @Override

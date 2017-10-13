@@ -44,20 +44,18 @@ public final class BatchCommandExecutedTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(Event.JsonFields.TYPE, BatchCommandExecuted.TYPE)
-            .set(Event.JsonFields.TIMESTAMP, JsonFactory.nullLiteral())
+            .set(Event.JsonFields.TIMESTAMP, null)
             .set(BatchCommandExecuted.JsonFields.RESPONSE,
                     KNOWN_RESPONSE.toJson(JsonSchemaVersion.V_2, FieldType.regularOrSpecial()))
             .set(BatchEvent.JsonFields.BATCH_ID, KNOWN_BATCH_ID)
             .set(BatchCommandExecuted.JsonFields.DITTO_HEADERS, KNOWN_RESPONSE.getDittoHeaders().toJson())
             .build();
 
-
     @Test
     public void assertImmutability() {
         assertInstancesOf(BatchCommandExecuted.class, areImmutable(),
                 provided(CommandResponse.class, DittoHeaders.class).areAlsoImmutable());
     }
-
 
     @Test
     public void testHashCodeAndEquals() {
@@ -66,18 +64,15 @@ public final class BatchCommandExecutedTest {
                 .verify();
     }
 
-
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullBatchId() {
         BatchCommandExecuted.of(null, KNOWN_RESPONSE);
     }
 
-
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullResponse() {
         BatchCommandExecuted.of(KNOWN_BATCH_ID, null);
     }
-
 
     @Test
     public void toJsonReturnsExpected() {
@@ -87,7 +82,6 @@ public final class BatchCommandExecutedTest {
 
         assertThat(actualJson).isEqualTo(KNOWN_JSON);
     }
-
 
     @Test
     public void createInstanceFromValidJson() {
@@ -103,6 +97,7 @@ public final class BatchCommandExecutedTest {
     public void retrieveEventName() {
         final String name = BatchCommandExecuted.fromJson(KNOWN_JSON.toString(), DittoHeaders.empty(),
                 ThingCommandResponseRegistry.newInstance()).getName();
+
         assertThat(name).isEqualTo(BatchCommandExecuted.NAME);
     }
 

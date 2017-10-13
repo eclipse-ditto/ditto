@@ -20,7 +20,6 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 
 /**
@@ -68,8 +67,6 @@ public abstract class AbstractErrorRegistry<T extends DittoRuntimeException> ext
     @Override
     protected String resolveType(final JsonObject jsonObject) {
         return jsonObject.getValue(DittoRuntimeException.JsonFields.ERROR_CODE)
-                .filter(JsonValue::isString)
-                .map(JsonValue::asString)
                 .orElseThrow(() -> JsonMissingFieldException.newBuilder()
                         .fieldName(DittoRuntimeException.JsonFields.ERROR_CODE.getPointer().toString())
                         .build());

@@ -12,7 +12,6 @@
 package org.eclipse.ditto.services.models.things;
 
 import static java.util.Objects.requireNonNull;
-import static org.eclipse.ditto.json.JsonFactory.newFieldDefinition;
 
 import java.util.Objects;
 
@@ -48,7 +47,6 @@ public final class ThingTag implements Jsonifiable {
      */
     public static ThingTag of(final String thingId, final long revision) {
         requireNonNull(thingId, "The Thing ID must not be null!");
-        requireNonNull(revision, "The Revision must not be null!");
 
         return new ThingTag(thingId, revision);
     }
@@ -75,19 +73,12 @@ public final class ThingTag implements Jsonifiable {
      * @return the ThingTag which was created from the given JSON object.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      * @throws IllegalArgumentException if {@code jsonObject} is empty.
-     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} is not valid JSON.
      * @throws JsonMissingFieldException if the passed in {@code jsonObject} was not in the expected 'ThingTag' format.
+     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} is not valid JSON.
      */
     public static ThingTag fromJson(final JsonObject jsonObject) {
-        final String extractedThingId = jsonObject.getValue(JsonFields.ID) //
-                .filter(JsonValue::isString) //
-                .map(JsonValue::asString) //
-                .orElseThrow(() -> new JsonMissingFieldException(JsonFields.ID.getPointer()));
-
-        final Long extractedRevision = jsonObject.getValue(JsonFields.REVISION) //
-                .filter(JsonValue::isNumber) //
-                .map(JsonValue::asLong) //
-                .orElseThrow(() -> new JsonMissingFieldException(JsonFields.REVISION.getPointer()));
+        final String extractedThingId = jsonObject.getValueOrThrow(JsonFields.ID);
+        final Long extractedRevision = jsonObject.getValueOrThrow(JsonFields.REVISION);
 
         return of(extractedThingId, extractedRevision);
     }
@@ -112,9 +103,9 @@ public final class ThingTag implements Jsonifiable {
 
     @Override
     public JsonValue toJson() {
-        return JsonFactory.newObjectBuilder() //
-                .set(JsonFields.ID, thingId) //
-                .set(JsonFields.REVISION, revision) //
+        return JsonFactory.newObjectBuilder()
+                .set(JsonFields.ID, thingId)
+                .set(JsonFields.REVISION, revision)
                 .build();
     }
 
@@ -143,22 +134,24 @@ public final class ThingTag implements Jsonifiable {
 
     /**
      * An enumeration of the known {@link org.eclipse.ditto.json.JsonField}s of a ThingTag.
-     *
      */
+    @Immutable
     public static final class JsonFields {
 
         /**
          * JSON field containing the ThingTag's ID.
          */
-        public static final JsonFieldDefinition ID = newFieldDefinition("thingId", String.class);
+        public static final JsonFieldDefinition<String> ID = JsonFactory.newStringFieldDefinition("thingId");
 
         /**
          * JSON field containing the ThingTag's revision.
          */
-        public static final JsonFieldDefinition REVISION = newFieldDefinition("revision", long.class);
+        public static final JsonFieldDefinition<Long> REVISION = JsonFactory.newLongFieldDefinition("revision");
 
         private JsonFields() {
             throw new AssertionError();
         }
+
     }
+
 }

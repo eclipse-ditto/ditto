@@ -48,8 +48,8 @@ public final class ModifyAclResponse extends AbstractCommandResponse<ModifyAclRe
      */
     public static final String TYPE = TYPE_PREFIX + ModifyAcl.NAME;
 
-    static final JsonFieldDefinition JSON_ACL =
-            JsonFactory.newFieldDefinition("acl", JsonObject.class, FieldType.REGULAR, JsonSchemaVersion.V_1);
+    static final JsonFieldDefinition<JsonObject> JSON_ACL =
+            JsonFactory.newJsonObjectFieldDefinition("acl", FieldType.REGULAR, JsonSchemaVersion.V_1);
 
     private final String thingId;
     private final AccessControlList modifiedAcl;
@@ -120,10 +120,12 @@ public final class ModifyAclResponse extends AbstractCommandResponse<ModifyAclRe
      */
     public static ModifyAclResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<ModifyAclResponse>(TYPE, jsonObject)
-                .deserialize((statusCode, jsonObjectReader) -> {
-                    final String thingId = jsonObjectReader.get(ThingModifyCommandResponse.JsonFields.JSON_THING_ID);
-                    final JsonObject aclJsonObject = jsonObjectReader.get(JSON_ACL);
+                .deserialize((statusCode) -> {
+                    final String thingId =
+                            jsonObject.getValueOrThrow(ThingModifyCommandResponse.JsonFields.JSON_THING_ID);
+                    final JsonObject aclJsonObject = jsonObject.getValueOrThrow(JSON_ACL);
                     final AccessControlList extractedAcl = ThingsModelFactory.newAcl(aclJsonObject);
+
                     return new ModifyAclResponse(thingId, statusCode, extractedAcl, dittoHeaders);
                 });
     }

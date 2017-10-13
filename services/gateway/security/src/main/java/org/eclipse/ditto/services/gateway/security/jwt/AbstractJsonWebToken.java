@@ -19,10 +19,8 @@ import java.util.Base64;
 import java.util.Objects;
 
 import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationFailedException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayJwtInvalidException;
 
@@ -104,16 +102,12 @@ public abstract class AbstractJsonWebToken implements JsonWebToken {
 
     @Override
     public String getKeyId() {
-        return header.getValue(JsonFields.KEY_ID)
-                .map(JsonValue::asString)
-                .orElseThrow(() -> new JsonMissingFieldException(JsonFields.KEY_ID.getPointer()));
+        return header.getValueOrThrow(JsonFields.KEY_ID);
     }
 
     @Override
     public String getIssuer() {
-        return body.getValue(JsonFields.ISSUER)
-                .map(JsonValue::asString)
-                .orElseThrow(() -> new JsonMissingFieldException(JsonFields.ISSUER.getPointer()));
+        return body.getValueOrThrow(JsonFields.ISSUER);
     }
 
     @Override

@@ -20,6 +20,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFactory;
@@ -246,41 +247,41 @@ public final class StatisticsActor extends AbstractActor {
     @Immutable
     private static final class Statistics implements Jsonifiable.WithPredicate<JsonObject, JsonField> {
 
-        private static final JsonFieldDefinition HOT_THINGS_COUNT =
-                JsonFactory.newFieldDefinition("hotThingsCount", long.class, FieldType.REGULAR);
+        private static final JsonFieldDefinition<Long> HOT_THINGS_COUNT =
+                JsonFactory.newLongFieldDefinition("hotThingsCount", FieldType.REGULAR);
 
-        private static final JsonFieldDefinition THINGS_NAMESPACE_HOTNESS =
-                JsonFactory.newFieldDefinition("thingsNamespacesHotness", long.class, FieldType.REGULAR);
+        private static final JsonFieldDefinition<JsonObject> THINGS_NAMESPACE_HOTNESS =
+                JsonFactory.newJsonObjectFieldDefinition("thingsNamespacesHotness", FieldType.REGULAR);
 
-        private static final JsonFieldDefinition HOT_POLICIES_COUNT =
-                JsonFactory.newFieldDefinition("hotPoliciesCount", long.class, FieldType.REGULAR);
+        private static final JsonFieldDefinition<Long> HOT_POLICIES_COUNT =
+                JsonFactory.newLongFieldDefinition("hotPoliciesCount", FieldType.REGULAR);
 
-        private static final JsonFieldDefinition POLICIES_NAMESPACE_HOTNESS =
-                JsonFactory.newFieldDefinition("policiesNamespacesHotness", long.class, FieldType.REGULAR);
+        private static final JsonFieldDefinition<JsonObject> POLICIES_NAMESPACE_HOTNESS =
+                JsonFactory.newJsonObjectFieldDefinition("policiesNamespacesHotness", FieldType.REGULAR);
 
-        private static final JsonFieldDefinition HOT_TOPOLOGIES_COUNT =
-                JsonFactory.newFieldDefinition("hotTopologiesCount", long.class, FieldType.REGULAR);
+        private static final JsonFieldDefinition<Long> HOT_TOPOLOGIES_COUNT =
+                JsonFactory.newLongFieldDefinition("hotTopologiesCount", FieldType.REGULAR);
 
-        private static final JsonFieldDefinition TOPOLOGIES_NAMESPACE_HOTNESS =
-                JsonFactory.newFieldDefinition("topologiesNamespacesHotness", long.class, FieldType.REGULAR);
+        private static final JsonFieldDefinition<Long> TOPOLOGIES_NAMESPACE_HOTNESS =
+                JsonFactory.newLongFieldDefinition("topologiesNamespacesHotness", FieldType.REGULAR);
 
-        private static final JsonFieldDefinition HOT_POLICY_ENFORCERS_COUNT =
-                JsonFactory.newFieldDefinition("hotPolicyEnforcersCount", long.class, FieldType.REGULAR);
+        private static final JsonFieldDefinition<Long> HOT_POLICY_ENFORCERS_COUNT =
+                JsonFactory.newLongFieldDefinition("hotPolicyEnforcersCount", FieldType.REGULAR);
 
-        private static final JsonFieldDefinition POLICY_ENFORCERS_NAMESPACE_HOTNESS =
-                JsonFactory.newFieldDefinition("policyEnforcersNamespacesHotness", long.class, FieldType.REGULAR);
+        private static final JsonFieldDefinition<JsonObject> POLICY_ENFORCERS_NAMESPACE_HOTNESS =
+                JsonFactory.newJsonObjectFieldDefinition("policyEnforcersNamespacesHotness", FieldType.REGULAR);
 
-        private static final JsonFieldDefinition HOT_ACL_ENFORCERS_COUNT =
-                JsonFactory.newFieldDefinition("hotAclEnforcersCount", long.class, FieldType.REGULAR);
+        private static final JsonFieldDefinition<Long> HOT_ACL_ENFORCERS_COUNT =
+                JsonFactory.newLongFieldDefinition("hotAclEnforcersCount", FieldType.REGULAR);
 
-        private static final JsonFieldDefinition ACL_ENFORCERS_NAMESPACE_HOTNESS =
-                JsonFactory.newFieldDefinition("aclEnforcersNamespacesHotness", long.class, FieldType.REGULAR);
+        private static final JsonFieldDefinition<JsonObject> ACL_ENFORCERS_NAMESPACE_HOTNESS =
+                JsonFactory.newJsonObjectFieldDefinition("aclEnforcersNamespacesHotness", FieldType.REGULAR);
 
-        private static final JsonFieldDefinition HOT_SEARCH_UPDATERS_COUNT =
-                JsonFactory.newFieldDefinition("hotSearchUpdatersCount", long.class, FieldType.REGULAR);
+        private static final JsonFieldDefinition<Long> HOT_SEARCH_UPDATERS_COUNT =
+                JsonFactory.newLongFieldDefinition("hotSearchUpdatersCount", FieldType.REGULAR);
 
-        private static final JsonFieldDefinition SEARCH_UPDATERS_NAMESPACE_HOTNESS =
-                JsonFactory.newFieldDefinition("searchUpdatersNamespacesHotness", long.class, FieldType.REGULAR);
+        private static final JsonFieldDefinition<JsonObject> SEARCH_UPDATERS_NAMESPACE_HOTNESS =
+                JsonFactory.newJsonObjectFieldDefinition("searchUpdatersNamespacesHotness", FieldType.REGULAR);
 
         private final long hotThingsCount;
         private final Map<String, Long> thingsNamespacesHotness;
@@ -293,11 +294,17 @@ public final class StatisticsActor extends AbstractActor {
         private final long hotSearchUpdatersCount;
         private final Map<String, Long> searchUpdatersNamespacesHotness;
 
-        private Statistics(final long hotThingsCount, final Map<String, Long> thingsNamespacesHotness,
-                final long hotPoliciesCount, final Map<String, Long> policiesNamespacesHotness,
-                final long hotPolicyEnforcersCount, final Map<String, Long> policyEnforcersNamespacesHotness,
-                final long hotAclEnforcersCount, final Map<String, Long> aclEnforcersNamespacesHotness,
-                final long hotSearchUpdatersCount, final Map<String, Long> searchUpdatersNamespacesHotness) {
+        private Statistics(final long hotThingsCount,
+                final Map<String, Long> thingsNamespacesHotness,
+                final long hotPoliciesCount,
+                final Map<String, Long> policiesNamespacesHotness,
+                final long hotPolicyEnforcersCount,
+                final Map<String, Long> policyEnforcersNamespacesHotness,
+                final long hotAclEnforcersCount,
+                final Map<String, Long> aclEnforcersNamespacesHotness,
+                final long hotSearchUpdatersCount,
+                final Map<String, Long> searchUpdatersNamespacesHotness) {
+
             this.hotThingsCount = hotThingsCount;
             this.thingsNamespacesHotness = thingsNamespacesHotness;
             this.hotPoliciesCount = hotPoliciesCount;
@@ -339,7 +346,7 @@ public final class StatisticsActor extends AbstractActor {
                     .build();
         }
 
-        private JsonObject buildNamespaceHotnessJson(final Map<String, Long> namespaceHotnessMap) {
+        private static JsonObject buildNamespaceHotnessJson(final Map<String, Long> namespaceHotnessMap) {
             final JsonObjectBuilder objectBuilder = JsonFactory.newObjectBuilder();
             // sort it:
             namespaceHotnessMap.entrySet().stream()
@@ -348,10 +355,12 @@ public final class StatisticsActor extends AbstractActor {
             return objectBuilder.build();
         }
 
-
+        @SuppressWarnings("OverlyComplexMethod")
         @Override
-        public boolean equals(final Object o) {
-            if (this == o) return true;
+        public boolean equals(@Nullable final Object o) {
+            if (this == o) {
+                return true;
+            }
             if (o == null || getClass() != o.getClass()) return false;
             final Statistics that = (Statistics) o;
             return hotThingsCount == that.hotThingsCount &&
@@ -389,6 +398,7 @@ public final class StatisticsActor extends AbstractActor {
                     ", searchUpdatersNamespacesHotness=" + searchUpdatersNamespacesHotness +
                     "]";
         }
+
     }
 
 }

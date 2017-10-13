@@ -11,6 +11,8 @@
  */
 package org.eclipse.ditto.signals.events.things;
 
+import javax.annotation.concurrent.Immutable;
+
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
@@ -69,37 +71,35 @@ public interface ThingEvent<T extends ThingEvent> extends Event<T>, WithThingId 
 
     /**
      * An enumeration of the known {@link org.eclipse.ditto.json.JsonField}s of an event.
-     *
      */
+    @Immutable
     final class JsonFields {
 
         /**
          * Payload JSON field containing the Thing ID.
          */
-        public static final JsonFieldDefinition THING_ID =
-                JsonFactory.newFieldDefinition("thingId", String.class, FieldType.REGULAR,
-                        // available in schema versions:
-                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+        public static final JsonFieldDefinition<String> THING_ID =
+                JsonFactory.newStringFieldDefinition("thingId", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
 
         /**
          * Payload JSON field containing the Feature ID.
          */
-        public static final JsonFieldDefinition FEATURE_ID =
-                JsonFactory.newFieldDefinition("featureId", String.class, FieldType.REGULAR,
-                        // available in schema versions:
-                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+        public static final JsonFieldDefinition<String> FEATURE_ID =
+                JsonFactory.newStringFieldDefinition("featureId", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
 
         /**
          * Payload JSON field containing the Thing.
          */
-        public static final JsonFieldDefinition THING =
-                JsonFactory.newFieldDefinition("thing", JsonObject.class, FieldType.REGULAR,
-                        // available in schema versions:
-                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+        public static final JsonFieldDefinition<JsonObject> THING =
+                JsonFactory.newJsonObjectFieldDefinition("thing", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
 
         private JsonFields() {
             throw new AssertionError();
         }
+
     }
 
 }

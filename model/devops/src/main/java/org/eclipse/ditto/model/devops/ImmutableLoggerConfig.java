@@ -26,7 +26,6 @@ import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonParseException;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
 /**
@@ -89,17 +88,12 @@ public final class ImmutableLoggerConfig implements LoggerConfig {
      * @throws JsonParseException if {@code jsonObject} contains invalid JSON.
      */
     public static LoggerConfig fromJson(final JsonObject jsonObject) {
-        final LogLevel level = LogLevel.forIdentifier(jsonObject.getValue(JsonFields.LEVEL) //
-                .filter(JsonValue::isString) //
-                .map(JsonValue::asString) //
-                .orElseThrow(() -> new JsonMissingFieldException(JsonFields.LEVEL.getPointer()))) //
+        final LogLevel level = LogLevel.forIdentifier(jsonObject.getValueOrThrow(JsonFields.LEVEL))
                 .orElseThrow(() -> new JsonParseException("Invalid LogLevel!"));
 
-        final Optional<String> logger = jsonObject.getValue(JsonFields.LOGGER) //
-                .filter(JsonValue::isString) //
-                .map(JsonValue::asString);
+        final Optional<String> logger = jsonObject.getValue(JsonFields.LOGGER);
 
-        return logger.isPresent() ? of(level, logger.get()) : of(level);
+        return logger.map(s -> of(level, s)).orElseGet(() -> of(level));
     }
 
     @Override
@@ -119,7 +113,7 @@ public final class ImmutableLoggerConfig implements LoggerConfig {
 
         jsonObjectBuilder.set(JsonFields.LEVEL, level.getIdentifier(), predicate);
 
-        getLogger().ifPresent(logger -> jsonObjectBuilder.set(JsonFields.LOGGER, logger, predicate));
+        getLogger().ifPresent(l -> jsonObjectBuilder.set(JsonFields.LOGGER, l, predicate));
 
         return jsonObjectBuilder.build();
     }

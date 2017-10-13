@@ -26,6 +26,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 /**
@@ -114,7 +115,7 @@ final class ImmutableJsonObject extends AbstractImmutableJsonValue implements Js
     }
 
     @Override
-    public JsonObject set(final JsonFieldDefinition fieldDefinition, final JsonValue value) {
+    public <T> JsonObject set(final JsonFieldDefinition<T> fieldDefinition, @Nullable final T value) {
         requireNonNull(fieldDefinition, "The JSON field definition to set the value for must not be null!");
 
         final JsonPointer pointer = fieldDefinition.getPointer();
@@ -123,8 +124,8 @@ final class ImmutableJsonObject extends AbstractImmutableJsonValue implements Js
             final String msgTemplate = "The pointer of the field definition <{0}> must not be empty!";
             return new IllegalArgumentException(MessageFormat.format(msgTemplate, fieldDefinition));
         });
-        final JsonField jsonField = JsonFactory.newField(leafKey, value, fieldDefinition);
-        return setFieldInHierarchy(this, pointer, jsonField);
+        final JsonField field = JsonFactory.newField(leafKey, JsonFactory.getAppropriateValue(value), fieldDefinition);
+        return setFieldInHierarchy(this, pointer, field);
     }
 
     private static JsonObject setFieldInHierarchy(final JsonObject target, final JsonPointer pointer,
@@ -253,9 +254,15 @@ final class ImmutableJsonObject extends AbstractImmutableJsonValue implements Js
     }
 
     @Override
-    public Optional<JsonValue> getValue(final JsonFieldDefinition fieldDefinition) {
+    public <T> Optional<T> getValue(final JsonFieldDefinition<T> fieldDefinition) {
         checkFieldDefinition(fieldDefinition);
-        return getValueForPointer(fieldDefinition.getPointer());
+
+        return getValueForPointer(fieldDefinition.getPointer()).map(fieldDefinition::mapValue);
+    }
+
+    @Override
+    public <T> T getValueOrThrow(final JsonFieldDefinition<T> fieldDefinition) {
+        return getValue(fieldDefinition).orElseThrow(() -> new JsonMissingFieldException(fieldDefinition));
     }
 
     @Override

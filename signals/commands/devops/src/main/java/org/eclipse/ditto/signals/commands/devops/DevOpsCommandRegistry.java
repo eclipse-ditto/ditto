@@ -16,9 +16,7 @@ import java.util.Map;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.signals.base.AbstractJsonParsableRegistry;
 import org.eclipse.ditto.signals.base.JsonParsable;
 import org.eclipse.ditto.signals.base.JsonParsableRegistry;
@@ -27,8 +25,8 @@ import org.eclipse.ditto.signals.base.JsonParsableRegistry;
  * A {@link JsonParsableRegistry} aware of all {@link DevOpsCommand}s.
  */
 @Immutable
-public final class DevOpsCommandRegistry extends AbstractJsonParsableRegistry<DevOpsCommand> implements
-        JsonParsableRegistry<DevOpsCommand> {
+public final class DevOpsCommandRegistry extends AbstractJsonParsableRegistry<DevOpsCommand>
+        implements JsonParsableRegistry<DevOpsCommand> {
 
     private DevOpsCommandRegistry(final Map<String, JsonParsable<DevOpsCommand>> parseStrategies) {
         super(parseStrategies);
@@ -51,10 +49,7 @@ public final class DevOpsCommandRegistry extends AbstractJsonParsableRegistry<De
 
     @Override
     protected String resolveType(final JsonObject jsonObject) {
-        return jsonObject.getValue(DevOpsCommand.JsonFields.TYPE) //
-                .map(JsonValue::asString) //
-                .orElseThrow(() -> JsonMissingFieldException.newBuilder()
-                        .fieldName(DevOpsCommand.JsonFields.TYPE.getPointer().toString()).build());
+        return jsonObject.getValueOrThrow(DevOpsCommand.JsonFields.TYPE);
     }
 
 }

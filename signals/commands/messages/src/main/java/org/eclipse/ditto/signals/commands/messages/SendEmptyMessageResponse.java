@@ -99,8 +99,8 @@ public final class SendEmptyMessageResponse extends AbstractMessageCommandRespon
      */
     public static SendEmptyMessageResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<SendEmptyMessageResponse>(TYPE, jsonObject).deserialize(
-                (statusCode, jsonObjectReader) -> {
-                    final String thingId = jsonObjectReader.get(MessageCommandResponse.JsonFields.JSON_THING_ID);
+                (statusCode) -> {
+                    final String thingId = jsonObject.getValueOrThrow(MessageCommandResponse.JsonFields.JSON_THING_ID);
                     return of(thingId, statusCode, dittoHeaders);
                 });
     }

@@ -12,6 +12,7 @@
 package org.eclipse.ditto.signals.events.batch;
 
 import javax.annotation.Nonnull;
+import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
@@ -91,59 +92,49 @@ public interface BatchEvent<T extends BatchEvent> extends Event<T> {
     /**
      * An enumeration of the known {@link org.eclipse.ditto.json.JsonField}s of an event.
      */
+    @Immutable
     final class JsonFields {
 
         /**
          * JSON field containing the Batch ID.
          */
-        public static final JsonFieldDefinition BATCH_ID =
-                JsonFactory.newFieldDefinition("batchId", String.class, FieldType.REGULAR,
-                        // available in schema versions:
-                        JsonSchemaVersion.V_2);
+        public static final JsonFieldDefinition<String> BATCH_ID =
+                JsonFactory.newStringFieldDefinition("batchId", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the commands.
          */
-        public static final JsonFieldDefinition COMMANDS =
-                JsonFactory.newFieldDefinition("commands", JsonArray.class, FieldType.REGULAR,
-                        // available in schema versions:
-                        JsonSchemaVersion.V_2);
+        public static final JsonFieldDefinition<JsonArray> COMMANDS =
+                JsonFactory.newArrayFieldDefinition("commands", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the command.
          */
-        public static final JsonFieldDefinition COMMAND =
-                JsonFactory.newFieldDefinition("command", JsonObject.class, FieldType.REGULAR,
-                        // available in schema versions:
-                        JsonSchemaVersion.V_2);
+        public static final JsonFieldDefinition<JsonObject> COMMAND =
+                JsonFactory.newJsonObjectFieldDefinition("command", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the commands.
          */
-        public static final JsonFieldDefinition RESPONSES =
-                JsonFactory.newFieldDefinition("responses", JsonArray.class, FieldType.REGULAR,
-                        // available in schema versions:
-                        JsonSchemaVersion.V_2);
+        public static final JsonFieldDefinition<JsonArray> RESPONSES =
+                JsonFactory.newArrayFieldDefinition("responses", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the command.
          */
-        public static final JsonFieldDefinition RESPONSE =
-                JsonFactory.newFieldDefinition("response", JsonObject.class, FieldType.REGULAR,
-                        // available in schema versions:
-                        JsonSchemaVersion.V_2);
+        public static final JsonFieldDefinition<JsonObject> RESPONSE =
+                JsonFactory.newJsonObjectFieldDefinition("response", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the command header.
          */
-        public static final JsonFieldDefinition DITTO_HEADERS =
-                JsonFactory.newFieldDefinition("dittoHeaders", JsonObject.class, FieldType.REGULAR,
-                        // available in schema versions:
-                        JsonSchemaVersion.V_2);
+        public static final JsonFieldDefinition<JsonObject> DITTO_HEADERS =
+                JsonFactory.newJsonObjectFieldDefinition("dittoHeaders", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         private JsonFields() {
             throw new AssertionError();
         }
+
     }
 
 }

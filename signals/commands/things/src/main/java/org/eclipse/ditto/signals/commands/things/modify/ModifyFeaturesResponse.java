@@ -48,15 +48,15 @@ public final class ModifyFeaturesResponse extends AbstractCommandResponse<Modify
      */
     public static final String TYPE = TYPE_PREFIX + ModifyFeatures.NAME;
 
-    static final JsonFieldDefinition JSON_FEATURES =
-            JsonFactory.newFieldDefinition("features", JsonObject.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<JsonObject> JSON_FEATURES =
+            JsonFactory.newJsonObjectFieldDefinition("features", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
 
     private final String thingId;
     private final Features featuresCreated;
 
-    private ModifyFeaturesResponse(final String thingId, final HttpStatusCode statusCode,
+    private ModifyFeaturesResponse(final String thingId,
+            final HttpStatusCode statusCode,
             final Features featuresCreated,
             final DittoHeaders dittoHeaders) {
 
@@ -77,6 +77,7 @@ public final class ModifyFeaturesResponse extends AbstractCommandResponse<Modify
      */
     public static ModifyFeaturesResponse created(final String thingId, final Features features,
             final DittoHeaders dittoHeaders) {
+
         checkNotNull(features, "created Features");
         return new ModifyFeaturesResponse(thingId, HttpStatusCode.CREATED, features, dittoHeaders);
     }
@@ -122,9 +123,10 @@ public final class ModifyFeaturesResponse extends AbstractCommandResponse<Modify
      */
     public static ModifyFeaturesResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<ModifyFeaturesResponse>(TYPE, jsonObject)
-                .deserialize((statusCode, jsonObjectReader) -> {
-                    final String thingId = jsonObjectReader.get(ThingModifyCommandResponse.JsonFields.JSON_THING_ID);
-                    final JsonObject featuresJsonObject = jsonObjectReader.get(JSON_FEATURES);
+                .deserialize((statusCode) -> {
+                    final String thingId =
+                            jsonObject.getValueOrThrow(ThingModifyCommandResponse.JsonFields.JSON_THING_ID);
+                    final JsonObject featuresJsonObject = jsonObject.getValueOrThrow(JSON_FEATURES);
 
                     final Features extractedFeatures = (null != featuresJsonObject)
                             ? ThingsModelFactory.newFeatures(featuresJsonObject)

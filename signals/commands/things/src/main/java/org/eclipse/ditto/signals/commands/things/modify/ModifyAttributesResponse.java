@@ -40,32 +40,33 @@ import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
  * Response to a {@link ModifyAttributes} command.
  */
 @Immutable
-public final class ModifyAttributesResponse extends AbstractCommandResponse<ModifyAttributesResponse> implements
-        ThingModifyCommandResponse<ModifyAttributesResponse> {
+public final class ModifyAttributesResponse extends AbstractCommandResponse<ModifyAttributesResponse>
+        implements ThingModifyCommandResponse<ModifyAttributesResponse> {
 
     /**
      * Type of this response.
      */
     public static final String TYPE = TYPE_PREFIX + ModifyAttributes.NAME;
 
-    static final JsonFieldDefinition JSON_ATTRIBUTES =
-            JsonFactory.newFieldDefinition("attributes", JsonObject.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<JsonObject> JSON_ATTRIBUTES =
+            JsonFactory.newJsonObjectFieldDefinition("attributes", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
 
     private final String thingId;
     private final Attributes attributesCreated;
 
-    private ModifyAttributesResponse(final String thingId, final HttpStatusCode statusCode,
+    private ModifyAttributesResponse(final String thingId,
+            final HttpStatusCode statusCode,
             final Attributes attributesCreated,
             final DittoHeaders dittoHeaders) {
+
         super(TYPE, statusCode, dittoHeaders);
         this.thingId = checkNotNull(thingId, "Thing ID");
         this.attributesCreated = checkNotNull(attributesCreated, "Attributes");
     }
 
     /**
-     * Returns a new {@link ModifyAttributesResponse} for a created Attributes. This corresponds to the HTTP status code
+     * Returns a new {@code ModifyAttributesResponse} for a created Attributes. This corresponds to the HTTP status code
      * {@link HttpStatusCode#CREATED}.
      *
      * @param thingId the Thing ID of the created Attributes.
@@ -76,11 +77,12 @@ public final class ModifyAttributesResponse extends AbstractCommandResponse<Modi
      */
     public static ModifyAttributesResponse created(final String thingId, final Attributes attributes,
             final DittoHeaders dittoHeaders) {
+
         return new ModifyAttributesResponse(thingId, HttpStatusCode.CREATED, attributes, dittoHeaders);
     }
 
     /**
-     * Returns a new {@link ModifyAttributesResponse} for a modified Attributes. This corresponds to the HTTP status
+     * Returns a new {@code ModifyAttributesResponse} for a modified Attributes. This corresponds to the HTTP status
      * code {@link HttpStatusCode#NO_CONTENT}.
      *
      * @param thingId the Thing ID of the modified Attributes.
@@ -119,13 +121,14 @@ public final class ModifyAttributesResponse extends AbstractCommandResponse<Modi
      * format.
      */
     public static ModifyAttributesResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<ModifyAttributesResponse>(TYPE, jsonObject)
-                .deserialize((statusCode, jsonObjectReader) -> {
+        return new CommandResponseJsonDeserializer<ModifyAttributesResponse>(TYPE, jsonObject).deserialize(
+                statusCode -> {
 
-                    final String thingId = jsonObjectReader.get(ThingModifyCommandResponse.JsonFields.JSON_THING_ID);
-                    final JsonObject attributesJsonObject = jsonObjectReader.get(JSON_ATTRIBUTES);
+                    final String thingId =
+                            jsonObject.getValueOrThrow(ThingModifyCommandResponse.JsonFields.JSON_THING_ID);
+                    final JsonObject attributesJsonObject = jsonObject.getValueOrThrow(JSON_ATTRIBUTES);
 
-                    final Attributes extractedAttributes = (null != attributesJsonObject)
+                    final Attributes extractedAttributes = (!attributesJsonObject.isNull())
                             ? ThingsModelFactory.newAttributes(attributesJsonObject)
                             : ThingsModelFactory.nullAttributes();
 

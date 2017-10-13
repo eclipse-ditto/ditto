@@ -11,8 +11,6 @@
  */
 package org.eclipse.ditto.model.base.auth;
 
-import static org.eclipse.ditto.json.JsonFactory.newFieldDefinition;
-
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -21,6 +19,7 @@ import java.util.stream.Stream;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
@@ -113,29 +112,28 @@ public interface AuthorizationContext
 
     /**
      * The known {@link JsonField}s of an {@code AuthorizationContext}.
-     *
      */
+    @Immutable
     final class JsonFields {
 
         /**
          * JSON field containing the {@link JsonSchemaVersion}.
          */
-        public static final JsonFieldDefinition JSON_SCHEMA_VERSION =
-                newFieldDefinition(JsonSchemaVersion.getJsonKey(), int.class, FieldType.SPECIAL, FieldType.HIDDEN,
-                        // available in schema versions:
+        public static final JsonFieldDefinition<Integer> JSON_SCHEMA_VERSION =
+                JsonFactory.newIntFieldDefinition(JsonSchemaVersion.getJsonKey(), FieldType.SPECIAL, FieldType.HIDDEN,
                         JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the authorized subjects as JSON array.
          */
-        public static final JsonFieldDefinition AUTH_SUBJECTS =
-                newFieldDefinition("authorizedSubjects", JsonArray.class, FieldType.REGULAR,
-                        // available in schema versions:
-                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+        public static final JsonFieldDefinition<JsonArray> AUTH_SUBJECTS =
+                JsonFactory.newArrayFieldDefinition("authorizedSubjects", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
 
         private JsonFields() {
             throw new AssertionError();
         }
+
     }
 
 }

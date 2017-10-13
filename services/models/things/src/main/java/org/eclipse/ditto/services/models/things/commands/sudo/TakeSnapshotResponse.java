@@ -23,8 +23,6 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.json.JsonObjectReader;
-import org.eclipse.ditto.json.JsonReader;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -43,10 +41,9 @@ public final class TakeSnapshotResponse extends AbstractCommandResponse<TakeSnap
      */
     public static final String TYPE = TYPE_PREFIX + TakeSnapshot.NAME;
 
-    static final JsonFieldDefinition JSON_SNAPSHOT_REVISION = JsonFactory.newFieldDefinition(
-            "snapshotRevision", Long.class,
-            FieldType.REGULAR,
-            JsonSchemaVersion.V_1, JsonSchemaVersion.V_2); // available in schema versions
+    static final JsonFieldDefinition<Long> JSON_SNAPSHOT_REVISION =
+            JsonFactory.newLongFieldDefinition("snapshotRevision", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
 
     private final long snapshotRevision;
 
@@ -70,7 +67,7 @@ public final class TakeSnapshotResponse extends AbstractCommandResponse<TakeSnap
     }
 
     /**
-     * Creates a response to a {@link TakeSnapshotResponse} command from a JSON string.
+     * Creates a response to a {@code TakeSnapshotResponse} command from a JSON string.
      *
      * @param jsonString the JSON string of which the response is to be created.
      * @param dittoHeaders the headers of the preceding command.
@@ -85,7 +82,7 @@ public final class TakeSnapshotResponse extends AbstractCommandResponse<TakeSnap
     }
 
     /**
-     * Creates a response to a {@link TakeSnapshotResponse} command from a JSON object.
+     * Creates a response to a {@code TakeSnapshotResponse} command from a JSON object.
      *
      * @param jsonObject the JSON object of which the response is to be created.
      * @param dittoHeaders the headers of the preceding command.
@@ -95,8 +92,7 @@ public final class TakeSnapshotResponse extends AbstractCommandResponse<TakeSnap
      * format.
      */
     public static TakeSnapshotResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        final JsonObjectReader jsonReader = JsonReader.from(jsonObject);
-        return of(jsonReader.get(JSON_SNAPSHOT_REVISION), dittoHeaders);
+        return of(jsonObject.getValueOrThrow(JSON_SNAPSHOT_REVISION), dittoHeaders);
     }
 
     /**

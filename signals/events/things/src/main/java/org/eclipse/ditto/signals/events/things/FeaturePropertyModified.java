@@ -52,29 +52,29 @@ public final class FeaturePropertyModified extends AbstractThingEvent<FeaturePro
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition JSON_PROPERTY =
-            JsonFactory.newFieldDefinition("property", String.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_1,
+    static final JsonFieldDefinition<String> JSON_PROPERTY =
+            JsonFactory.newStringFieldDefinition("property", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
-    static final JsonFieldDefinition JSON_VALUE =
-            JsonFactory.newFieldDefinition("value", JsonValue.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_1,
+    static final JsonFieldDefinition<JsonValue> JSON_VALUE =
+            JsonFactory.newJsonValueFieldDefinition("value", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
     private final String featureId;
     private final JsonPointer propertyPointer;
     private final JsonValue propertyValue;
 
-    private FeaturePropertyModified(final String thingId, final String featureId, final JsonPointer propertyPointer,
-            final JsonValue propertyValue, final long revision, final Instant timestamp,
+    private FeaturePropertyModified(final String thingId,
+            final String featureId,
+            final JsonPointer propertyPointer,
+            final JsonValue propertyValue,
+            final long revision,
+            @Nullable final Instant timestamp,
             final DittoHeaders dittoHeaders) {
+
         super(TYPE, thingId, revision, timestamp, dittoHeaders);
         this.featureId = requireNonNull(featureId, "The Feature ID must not be null!");
-        this.propertyPointer =
-                Objects.requireNonNull(propertyPointer, "The Property JSON Pointer must not be null!");
+        this.propertyPointer = Objects.requireNonNull(propertyPointer, "The Property JSON Pointer must not be null!");
         this.propertyValue = Objects.requireNonNull(propertyValue, "The Property Value must not be null!");
     }
 
@@ -90,11 +90,14 @@ public final class FeaturePropertyModified extends AbstractThingEvent<FeaturePro
      * @return the FeaturePropertyModified created.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static FeaturePropertyModified of(final String thingId, final String featureId,
-            final JsonPointer propertyJsonPointer, final JsonValue propertyValue, final long revision,
+    public static FeaturePropertyModified of(final String thingId,
+            final String featureId,
+            final JsonPointer propertyJsonPointer,
+            final JsonValue propertyValue,
+            final long revision,
             final DittoHeaders dittoHeaders) {
-        return of(thingId, featureId, propertyJsonPointer, propertyValue, revision, null,
-                dittoHeaders);
+
+        return of(thingId, featureId, propertyJsonPointer, propertyValue, revision, null, dittoHeaders);
     }
 
     /**
@@ -108,11 +111,16 @@ public final class FeaturePropertyModified extends AbstractThingEvent<FeaturePro
      * @param timestamp the timestamp of this event.
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the FeaturePropertyModified created.
-     * @throws NullPointerException if any argument is {@code null}.
+     * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
      */
-    public static FeaturePropertyModified of(final String thingId, final String featureId,
-            final JsonPointer propertyJsonPointer, final JsonValue propertyValue, final long revision,
-            final Instant timestamp, final DittoHeaders dittoHeaders) {
+    public static FeaturePropertyModified of(final String thingId,
+            final String featureId,
+            final JsonPointer propertyJsonPointer,
+            final JsonValue propertyValue,
+            final long revision,
+            @Nullable final Instant timestamp,
+            final DittoHeaders dittoHeaders) {
+
         return new FeaturePropertyModified(thingId, featureId, propertyJsonPointer, propertyValue, revision, timestamp,
                 dittoHeaders);
     }
@@ -144,16 +152,15 @@ public final class FeaturePropertyModified extends AbstractThingEvent<FeaturePro
      */
     public static FeaturePropertyModified fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new EventJsonDeserializer<FeaturePropertyModified>(TYPE, jsonObject)
-                .deserialize((revision, timestamp, jsonObjectReader) -> {
-                    final String extractedThingId = jsonObjectReader.get(JsonFields.THING_ID);
-                    final String extractedFeatureId = jsonObjectReader.get(JsonFields.FEATURE_ID);
-                    final String pointerString = jsonObjectReader.get(JSON_PROPERTY);
+                .deserialize((revision, timestamp) -> {
+                    final String extractedThingId = jsonObject.getValueOrThrow(JsonFields.THING_ID);
+                    final String extractedFeatureId = jsonObject.getValueOrThrow(JsonFields.FEATURE_ID);
+                    final String pointerString = jsonObject.getValueOrThrow(JSON_PROPERTY);
                     final JsonPointer extractedPointer = JsonFactory.newPointer(pointerString);
-                    final JsonValue extractedValue = jsonObjectReader.get(JSON_VALUE);
+                    final JsonValue extractedValue = jsonObject.getValueOrThrow(JSON_VALUE);
 
                     return of(extractedThingId, extractedFeatureId, extractedPointer, extractedValue, revision,
-                            timestamp,
-                            dittoHeaders);
+                            timestamp, dittoHeaders);
                 });
     }
 
@@ -182,7 +189,7 @@ public final class FeaturePropertyModified extends AbstractThingEvent<FeaturePro
 
     @Override
     public Optional<JsonValue> getEntity(final JsonSchemaVersion schemaVersion) {
-        return Optional.ofNullable(propertyValue);
+        return Optional.of(propertyValue);
     }
 
     @Override
@@ -239,8 +246,8 @@ public final class FeaturePropertyModified extends AbstractThingEvent<FeaturePro
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof FeaturePropertyModified);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof FeaturePropertyModified;
     }
 
     @Override

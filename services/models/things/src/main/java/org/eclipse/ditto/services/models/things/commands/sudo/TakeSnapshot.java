@@ -22,8 +22,6 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.json.JsonObjectReader;
-import org.eclipse.ditto.json.JsonReader;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -34,8 +32,7 @@ import org.eclipse.ditto.signals.commands.base.AbstractCommand;
  * Command to trigger taking snapshot of a thing.
  */
 @Immutable
-public final class TakeSnapshot extends AbstractCommand<TakeSnapshot> implements SudoCommand<TakeSnapshot>,
-        WithId {
+public final class TakeSnapshot extends AbstractCommand<TakeSnapshot> implements SudoCommand<TakeSnapshot>, WithId {
 
     /**
      * Name of the "Take Snapshot" command.
@@ -47,11 +44,8 @@ public final class TakeSnapshot extends AbstractCommand<TakeSnapshot> implements
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition JSON_ID = JsonFactory.newFieldDefinition(
-            "id",
-            String.class,
-            FieldType.REGULAR,
-            JsonSchemaVersion.V_1, JsonSchemaVersion.V_2); // available in schema versions:
+    static final JsonFieldDefinition<String> JSON_ID =
+            JsonFactory.newStringFieldDefinition("id", FieldType.REGULAR, JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
     private final String id;
 
@@ -93,10 +87,7 @@ public final class TakeSnapshot extends AbstractCommand<TakeSnapshot> implements
      * format.
      */
     public static TakeSnapshot fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        final JsonObjectReader jsonReader = JsonReader.from(jsonObject);
-
-        final String id = jsonReader.get(JSON_ID);
-        return of(id, dittoHeaders);
+        return of(jsonObject.getValueOrThrow(JSON_ID), dittoHeaders);
     }
 
     private TakeSnapshot(final String id, final DittoHeaders dittoHeaders) {
@@ -128,7 +119,7 @@ public final class TakeSnapshot extends AbstractCommand<TakeSnapshot> implements
 
 
     @Override
-    protected boolean canEqual(final Object other) {
+    protected boolean canEqual(@Nullable final Object other) {
         return other instanceof TakeSnapshot;
     }
 
@@ -149,4 +140,5 @@ public final class TakeSnapshot extends AbstractCommand<TakeSnapshot> implements
     public String toString() {
         return getClass().getSimpleName() + " [" + super.toString() + ", id=" + id + "]";
     }
+
 }

@@ -90,20 +90,22 @@ public final class SendThingMessage<T> extends AbstractMessageCommand<T, SendThi
      * format.
      */
     public static <T> SendThingMessage<T> fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandJsonDeserializer<SendThingMessage<T>>(TYPE, jsonObject).deserialize(jsonObjectReader -> {
-            final String thingId = jsonObjectReader.get(MessageCommand.JsonFields.JSON_THING_ID);
-            final Message<T> message = deserializeMessageFromJson(jsonObjectReader);
+        return new CommandJsonDeserializer<SendThingMessage<T>>(TYPE, jsonObject).deserialize(() -> {
+            final String thingId = jsonObject.getValueOrThrow(MessageCommand.JsonFields.JSON_THING_ID);
+            final Message<T> message = deserializeMessageFromJson(jsonObject);
+
             return of(thingId, message, dittoHeaders);
         });
     }
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return (other instanceof SendThingMessage);
+        return other instanceof SendThingMessage;
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" + super.toString() + "]";
     }
+
 }

@@ -11,8 +11,9 @@
  */
 package org.eclipse.ditto.protocoladapter;
 
-import static org.eclipse.ditto.json.JsonFactory.newFieldDefinition;
+import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -35,17 +36,19 @@ public interface JsonifiableAdaptable extends Adaptable, Jsonifiable<JsonObject>
     /**
      * Json Fields of the Jsonifiable PlainJsonAdaptable.
      */
+    @Immutable
     final class JsonFields {
 
         /**
          * JSON field containing the topic.
          */
-        public static final JsonFieldDefinition TOPIC = newFieldDefinition("topic", String.class);
+        public static final JsonFieldDefinition<String> TOPIC = JsonFactory.newStringFieldDefinition("topic");
 
         /**
          * JSON field containing the headers.
          */
-        public static final JsonFieldDefinition HEADERS = newFieldDefinition("headers", JsonObject.class);
+        public static final JsonFieldDefinition<JsonObject> HEADERS =
+                JsonFactory.newJsonObjectFieldDefinition("headers");
 
 
         private JsonFields() {
@@ -53,4 +56,5 @@ public interface JsonifiableAdaptable extends Adaptable, Jsonifiable<JsonObject>
         }
 
     }
+
 }

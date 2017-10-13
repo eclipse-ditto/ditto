@@ -44,8 +44,8 @@ public final class DeleteAttributeResponse extends AbstractCommandResponse<Delet
      */
     public static final String TYPE = TYPE_PREFIX + DeleteAttribute.NAME;
 
-    static final JsonFieldDefinition JSON_ATTRIBUTE =
-            JsonFactory.newFieldDefinition("attribute", String.class, FieldType.REGULAR, JsonSchemaVersion.V_1,
+    static final JsonFieldDefinition<String> JSON_ATTRIBUTE =
+            JsonFactory.newStringFieldDefinition("attribute", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
     private final String thingId;
@@ -99,10 +99,12 @@ public final class DeleteAttributeResponse extends AbstractCommandResponse<Delet
      */
     public static DeleteAttributeResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<DeleteAttributeResponse>(TYPE, jsonObject)
-                .deserialize((statusCode, jsonObjectReader) -> {
-                    final String thingId = jsonObjectReader.get(ThingModifyCommandResponse.JsonFields.JSON_THING_ID);
-                    final String extractedPointerString = jsonObjectReader.get(JSON_ATTRIBUTE);
+                .deserialize((statusCode) -> {
+                    final String thingId =
+                            jsonObject.getValueOrThrow(ThingModifyCommandResponse.JsonFields.JSON_THING_ID);
+                    final String extractedPointerString = jsonObject.getValueOrThrow(JSON_ATTRIBUTE);
                     final JsonPointer extractedPointer = JsonFactory.newPointer(extractedPointerString);
+
                     return of(thingId, extractedPointer, dittoHeaders);
                 });
     }

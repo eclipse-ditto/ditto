@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.protocoladapter;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,8 +30,8 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
  */
 final class ThingSearchAdapter extends AbstractAdapter<RetrieveThings> {
 
-    private static final JsonFieldDefinition JSON_THING_IDS =
-            JsonFieldDefinition.newInstance("thingIds", JsonArray.class);
+    private static final JsonFieldDefinition<JsonArray> JSON_THING_IDS =
+            JsonFactory.newArrayFieldDefinition("thingIds");
 
     private ThingSearchAdapter(final Map<String, JsonifiableMapper<RetrieveThings>> mappingStrategies) {
         super(mappingStrategies);
@@ -42,10 +43,10 @@ final class ThingSearchAdapter extends AbstractAdapter<RetrieveThings> {
 
     private static String extractNamespace(final RetrieveThings retrieveThings) {
         final List<String> distinctNamespaces = retrieveThings.getThingIds().stream()//
-                .map(id -> id.split(":")) //
-                .filter(parts -> parts.length > 1) //
-                .map(parts -> parts[0]) //
-                .distinct() //
+                .map(id -> id.split(":"))
+                .filter(parts -> parts.length > 1)
+                .map(parts -> parts[0])
+                .distinct()
                 .collect(Collectors.toList());
 
         if (distinctNamespaces.size() != 1) {
@@ -55,7 +56,7 @@ final class ThingSearchAdapter extends AbstractAdapter<RetrieveThings> {
         return distinctNamespaces.get(0);
     }
 
-    private static JsonValue createIdsPayload(final List<String> ids) {
+    private static JsonValue createIdsPayload(final Collection<String> ids) {
         final JsonArray thingIdsArray = ids.stream().map(JsonFactory::newValue).collect(JsonCollectors.valuesToArray());
 
         return JsonFactory.newObject().setValue(JSON_THING_IDS.getPointer(), thingIdsArray);
@@ -73,7 +74,7 @@ final class ThingSearchAdapter extends AbstractAdapter<RetrieveThings> {
 
     private static List<String> idsFrom(final Adaptable adaptable) {
         final JsonArray array = adaptable.getPayload().getValue().filter(JsonValue::isObject).map(JsonValue::asObject)
-                .orElseThrow(() -> new JsonParseException("Adaptable payload was non existing or no JsonObject")) //
+                .orElseThrow(() -> new JsonParseException("Adaptable payload was non existing or no JsonObject"))
                 .getValue(JSON_THING_IDS).filter(JsonValue::isArray).map(JsonValue::asArray).orElseThrow(() ->
                         new JsonParseException("Could not map 'thingIds' value to expected JsonArray"));
 
@@ -107,9 +108,10 @@ final class ThingSearchAdapter extends AbstractAdapter<RetrieveThings> {
         retrieveThings.getSelectedFields().ifPresent(payloadBuilder::withFields);
         payloadBuilder.withValue(createIdsPayload(retrieveThings.getThingIds()));
 
-        return Adaptable.newBuilder(searchTopicPathBuilder.build()) //
-                .withPayload(payloadBuilder.build()) //
-                .withHeaders(DittoProtocolAdapter.newHeaders(retrieveThings.getDittoHeaders())) //
+        return Adaptable.newBuilder(searchTopicPathBuilder.build())
+                .withPayload(payloadBuilder.build())
+                .withHeaders(DittoProtocolAdapter.newHeaders(retrieveThings.getDittoHeaders()))
                 .build();
     }
+
 }

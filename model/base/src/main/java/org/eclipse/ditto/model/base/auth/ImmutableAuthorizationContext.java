@@ -30,8 +30,6 @@ import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonObjectReader;
-import org.eclipse.ditto.json.JsonReader;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
@@ -91,11 +89,10 @@ final class ImmutableAuthorizationContext implements AuthorizationContext {
      * 'AuthorizationContext' format.
      */
     public static AuthorizationContext fromJson(final JsonObject jsonObject) {
-        final JsonObjectReader reader = JsonReader.from(jsonObject);
-
-        final List<AuthorizationSubject> authSubjects = reader.<JsonArray>get(JsonFields.AUTH_SUBJECTS).stream() //
-                .map(JsonValue::asString) //
-                .map(AuthorizationModelFactory::newAuthSubject) //
+        final List<AuthorizationSubject> authSubjects = jsonObject.getValueOrThrow(JsonFields.AUTH_SUBJECTS)
+                .stream()
+                .map(JsonValue::asString)
+                .map(AuthorizationModelFactory::newAuthSubject)
                 .collect(Collectors.toList());
 
         return of(authSubjects);
@@ -121,20 +118,20 @@ final class ImmutableAuthorizationContext implements AuthorizationContext {
         return authorizationSubjects.isEmpty();
     }
 
-    private JsonValue authorizedSubjectsToJson() {
-        return authorizationSubjects.stream() //
-                .map(AuthorizationSubject::getId) //
-                .map(JsonFactory::newValue) //
-                .collect(JsonCollectors.valuesToArray());
-    }
-
     @Override
     public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        return JsonFactory.newObjectBuilder() //
-                .set(JsonFields.JSON_SCHEMA_VERSION, schemaVersion.toInt(), predicate) //
-                .set(JsonFields.AUTH_SUBJECTS, authorizedSubjectsToJson(), predicate) //
+        return JsonFactory.newObjectBuilder()
+                .set(JsonFields.JSON_SCHEMA_VERSION, schemaVersion.toInt(), predicate)
+                .set(JsonFields.AUTH_SUBJECTS, authorizedSubjectsToJson(), predicate)
                 .build();
+    }
+
+    private JsonArray authorizedSubjectsToJson() {
+        return authorizationSubjects.stream()
+                .map(AuthorizationSubject::getId)
+                .map(JsonFactory::newValue)
+                .collect(JsonCollectors.valuesToArray());
     }
 
     @Override

@@ -18,6 +18,7 @@ import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonArray;
@@ -56,10 +57,9 @@ public final class SudoRetrieveThingsResponse extends AbstractCommandResponse<Su
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition JSON_THINGS =
-            JsonFactory.newFieldDefinition("payload/things", JsonArray.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<JsonArray> JSON_THINGS =
+            JsonFactory.newArrayFieldDefinition("payload/things", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
 
     private final JsonArray things;
 
@@ -149,8 +149,9 @@ public final class SudoRetrieveThingsResponse extends AbstractCommandResponse<Su
     public static SudoRetrieveThingsResponse fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<SudoRetrieveThingsResponse>(TYPE, jsonObject)
-                .deserialize((statusCode, jsonObjectReader) -> {
-                    final JsonArray thingsJsonArray = jsonObjectReader.get(JSON_THINGS);
+                .deserialize((statusCode) -> {
+                    final JsonArray thingsJsonArray = jsonObject.getValueOrThrow(JSON_THINGS);
+
                     return of(thingsJsonArray, dittoHeaders);
                 });
     }
@@ -195,7 +196,7 @@ public final class SudoRetrieveThingsResponse extends AbstractCommandResponse<Su
 
     @SuppressWarnings({"squid:MethodCyclomaticComplexity", "squid:S1067", "pmd:SimplifyConditional"})
     @Override
-    public boolean equals(final Object o) {
+    public boolean equals(@Nullable final Object o) {
         if (this == o) {
             return true;
         }
@@ -207,8 +208,8 @@ public final class SudoRetrieveThingsResponse extends AbstractCommandResponse<Su
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof SudoRetrieveThingsResponse);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof SudoRetrieveThingsResponse;
     }
 
     @Override

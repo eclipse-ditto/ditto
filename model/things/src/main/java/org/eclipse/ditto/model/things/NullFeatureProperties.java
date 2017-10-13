@@ -19,6 +19,7 @@ import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonArray;
@@ -27,6 +28,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonKey;
+import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
@@ -161,7 +163,7 @@ final class NullFeatureProperties implements FeatureProperties {
     }
 
     @Override
-    public JsonObject set(final JsonFieldDefinition fieldDefinition, final JsonValue value) {
+    public <T> JsonObject set(final JsonFieldDefinition<T> fieldDefinition, @Nullable final T value) {
         return ThingsModelFactory.newFeaturePropertiesBuilder()
                 .set(fieldDefinition, value)
                 .build();
@@ -202,8 +204,13 @@ final class NullFeatureProperties implements FeatureProperties {
     }
 
     @Override
-    public Optional<JsonValue> getValue(final JsonFieldDefinition fieldDefinition) {
+    public <T> Optional<T> getValue(final JsonFieldDefinition<T> fieldDefinition) {
         return Optional.empty();
+    }
+
+    @Override
+    public <T> T getValueOrThrow(final JsonFieldDefinition<T> fieldDefinition) {
+        throw JsonMissingFieldException.newBuilder().fieldName(fieldDefinition.getPointer()).build();
     }
 
     @Override

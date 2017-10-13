@@ -48,25 +48,26 @@ public final class ModifyThingResponse extends AbstractCommandResponse<ModifyThi
      */
     public static final String TYPE = TYPE_PREFIX + ModifyThing.NAME;
 
-    static final JsonFieldDefinition JSON_THING =
-            JsonFactory.newFieldDefinition("thing", JsonValue.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<JsonValue> JSON_THING =
+            JsonFactory.newJsonValueFieldDefinition("thing", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
 
     private final String thingId;
-    @Nullable
-    private final Thing thingCreated;
+    @Nullable private final Thing thingCreated;
 
-    private ModifyThingResponse(final String thingId, final HttpStatusCode statusCode,
-            @Nullable final Thing thingCreated, final DittoHeaders dittoHeaders) {
+    private ModifyThingResponse(final String thingId,
+            final HttpStatusCode statusCode,
+            @Nullable final Thing thingCreated,
+            final DittoHeaders dittoHeaders) {
+
         super(TYPE, statusCode, dittoHeaders);
         this.thingId = checkNotNull(thingId, "Thing ID");
         this.thingCreated = thingCreated;
     }
 
     /**
-     * Returns a new {@link ModifyThingResponse} for a created Thing. This corresponds to the HTTP status code {@link
-     * HttpStatusCode#CREATED}.
+     * Returns a new {@code ModifyThingResponse} for a created Thing. This corresponds to the HTTP status code
+     * {@link HttpStatusCode#CREATED}.
      *
      * @param thing the created Thing.
      * @param dittoHeaders the headers of the ThingCommand which caused the new response.
@@ -78,7 +79,7 @@ public final class ModifyThingResponse extends AbstractCommandResponse<ModifyThi
     }
 
     /**
-     * Returns a new {@link ModifyThingResponse} for a modified Thing. This corresponds to the HTTP status code {@link
+     * Returns a new {@code ModifyThingResponse} for a modified Thing. This corresponds to the HTTP status code {@link
      * HttpStatusCode#NO_CONTENT}.
      *
      * @param thingId the Thing ID of the modified Thing.
@@ -117,12 +118,14 @@ public final class ModifyThingResponse extends AbstractCommandResponse<ModifyThi
      */
     public static ModifyThingResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<ModifyThingResponse>(TYPE, jsonObject)
-                .deserialize((statusCode, jsonObjectReader) -> {
-                    final String thingId = jsonObjectReader.get(ThingModifyCommandResponse.JsonFields.JSON_THING_ID);
+                .deserialize((statusCode) -> {
+                    final String thingId =
+                            jsonObject.getValueOrThrow(ThingModifyCommandResponse.JsonFields.JSON_THING_ID);
                     final Thing extractedThingCreated = jsonObject.getValue(JSON_THING)
                             .map(JsonValue::asObject)
                             .map(ThingsModelFactory::newThing)
                             .orElse(null);
+
                     return new ModifyThingResponse(thingId, statusCode, extractedThingCreated, dittoHeaders);
                 });
     }
@@ -168,8 +171,8 @@ public final class ModifyThingResponse extends AbstractCommandResponse<ModifyThi
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof ModifyThingResponse);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof ModifyThingResponse;
     }
 
     @Override

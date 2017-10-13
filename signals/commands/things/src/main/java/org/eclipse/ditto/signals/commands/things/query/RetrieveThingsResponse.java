@@ -53,10 +53,9 @@ public final class RetrieveThingsResponse extends AbstractCommandResponse<Retrie
      */
     public static final String TYPE = TYPE_PREFIX + RetrieveThings.NAME;
 
-    static final JsonFieldDefinition JSON_THINGS =
-            JsonFactory.newFieldDefinition("things", JsonArray.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<JsonArray> JSON_THINGS =
+            JsonFactory.newArrayFieldDefinition("things", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
 
     private final JsonArray things;
 
@@ -142,9 +141,8 @@ public final class RetrieveThingsResponse extends AbstractCommandResponse<Retrie
      */
     public static RetrieveThingsResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<RetrieveThingsResponse>(TYPE, jsonObject)
-                .deserialize((statusCode, jsonObjectReader) ->
-                {
-                    final JsonArray thingsJsonArray = jsonObjectReader.get(JSON_THINGS);
+                .deserialize((statusCode) -> {
+                    final JsonArray thingsJsonArray = jsonObject.getValueOrThrow(JSON_THINGS);
                     return of(thingsJsonArray, dittoHeaders);
                 });
     }
@@ -193,7 +191,7 @@ public final class RetrieveThingsResponse extends AbstractCommandResponse<Retrie
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
+    protected boolean canEqual(@Nullable final Object other) {
         return (other instanceof RetrieveThingsResponse);
     }
 
@@ -218,4 +216,5 @@ public final class RetrieveThingsResponse extends AbstractCommandResponse<Retrie
     public String toString() {
         return getClass().getSimpleName() + " [" + super.toString() + ", things=" + things + "]";
     }
+
 }

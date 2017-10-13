@@ -55,7 +55,7 @@ public final class SendClaimMessageTest {
 
     private static final JsonObject KNOWN_MESSAGE_AS_JSON = JsonFactory.newObjectBuilder()
             .set(MessageCommand.JsonFields.JSON_MESSAGE_HEADERS, MESSAGE_HEADERS.toJson())
-            .set(MessageCommand.JsonFields.JSON_MESSAGE_PAYLOAD, KNOWN_RAW_PAYLOAD_STR)
+            .set(MessageCommand.JsonFields.JSON_MESSAGE_PAYLOAD, JsonFactory.newValue(KNOWN_RAW_PAYLOAD_STR))
             .build();
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()

@@ -52,16 +52,15 @@ public final class ModifyPolicyEntries extends AbstractCommand<ModifyPolicyEntri
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition JSON_POLICY_ENTRIES =
-            JsonFactory.newFieldDefinition("policyEntries", JsonObject.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<JsonObject> JSON_POLICY_ENTRIES =
+            JsonFactory.newJsonObjectFieldDefinition("policyEntries", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private final String policyId;
     private final Iterable<PolicyEntry> policyEntries;
 
     private ModifyPolicyEntries(final String policyId, final Iterable<PolicyEntry> policyEntries,
             final DittoHeaders dittoHeaders) {
+
         super(TYPE, dittoHeaders);
         this.policyId = policyId;
         this.policyEntries = policyEntries;
@@ -78,6 +77,7 @@ public final class ModifyPolicyEntries extends AbstractCommand<ModifyPolicyEntri
      */
     public static ModifyPolicyEntries of(final String policyId, final Iterable<PolicyEntry> policyEntries,
             final DittoHeaders dittoHeaders) {
+
         Objects.requireNonNull(policyId, "The Policy identifier must not be null!");
         Objects.requireNonNull(policyEntries, "The PolicyEntries must not be null!");
         return new ModifyPolicyEntries(policyId, policyEntries, dittoHeaders);
@@ -109,9 +109,9 @@ public final class ModifyPolicyEntries extends AbstractCommand<ModifyPolicyEntri
      * format.
      */
     public static ModifyPolicyEntries fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandJsonDeserializer<ModifyPolicyEntries>(TYPE, jsonObject).deserialize(jsonObjectReader -> {
-            final String policyId = jsonObjectReader.get(PolicyModifyCommand.JsonFields.JSON_POLICY_ID);
-            final JsonObject policyEntriesJsonObject = jsonObjectReader.get(JSON_POLICY_ENTRIES);
+        return new CommandJsonDeserializer<ModifyPolicyEntries>(TYPE, jsonObject).deserialize(() -> {
+            final String policyId = jsonObject.getValueOrThrow(PolicyModifyCommand.JsonFields.JSON_POLICY_ID);
+            final JsonObject policyEntriesJsonObject = jsonObject.getValueOrThrow(JSON_POLICY_ENTRIES);
             final Iterable<PolicyEntry> policyEntries = PoliciesModelFactory.newPolicyEntries(policyEntriesJsonObject);
 
             return of(policyId, policyEntries, dittoHeaders);
@@ -139,13 +139,12 @@ public final class ModifyPolicyEntries extends AbstractCommand<ModifyPolicyEntri
 
     @Override
     public Optional<JsonValue> getEntity(final JsonSchemaVersion schemaVersion) {
-        final JsonObject jsonObject =
-                StreamSupport.stream(policyEntries.spliterator(), false)
-                        .map(entry -> JsonFactory.newObjectBuilder()
-                                .set(entry.getLabel().getJsonFieldDefinition(),
-                                        entry.toJson(schemaVersion, FieldType.regularOrSpecial()))
-                                .build())
-                        .collect(JsonCollectors.objectsToObject());
+        final JsonObject jsonObject = StreamSupport.stream(policyEntries.spliterator(), false)
+                .map(entry -> JsonFactory.newObjectBuilder()
+                        .set(entry.getLabel().getJsonFieldDefinition(),
+                                entry.toJson(schemaVersion, FieldType.regularOrSpecial()))
+                        .build())
+                .collect(JsonCollectors.objectsToObject());
         return Optional.ofNullable(jsonObject);
     }
 
@@ -159,8 +158,7 @@ public final class ModifyPolicyEntries extends AbstractCommand<ModifyPolicyEntri
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(PolicyModifyCommand.JsonFields.JSON_POLICY_ID, policyId, predicate);
-        jsonObjectBuilder.set(JSON_POLICY_ENTRIES,
-                StreamSupport.stream(policyEntries.spliterator(), false)
+        jsonObjectBuilder.set(JSON_POLICY_ENTRIES, StreamSupport.stream(policyEntries.spliterator(), false)
                         .map(entry -> JsonFactory.newObjectBuilder()
                                 .set(entry.getLabel().getJsonFieldDefinition(),
                                         entry.toJson(schemaVersion, thePredicate), predicate)
@@ -175,8 +173,8 @@ public final class ModifyPolicyEntries extends AbstractCommand<ModifyPolicyEntri
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof ModifyPolicyEntries);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof ModifyPolicyEntries;
     }
 
     @SuppressWarnings("squid:MethodCyclomaticComplexity")

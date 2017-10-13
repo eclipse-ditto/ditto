@@ -79,10 +79,9 @@ public final class MongoThingEventAdapter implements EventAdapter {
     private final ExtendedActorSystem system;
     private final EventRegistry<ThingEvent> eventRegistry;
     // JSON field containing the event's payload.
-    private final JsonFieldDefinition PAYLOAD =
-            JsonFactory.newFieldDefinition("payload", JsonObject.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+    private final JsonFieldDefinition<JsonObject> PAYLOAD =
+            JsonFactory.newJsonObjectFieldDefinition("payload", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
 
     public MongoThingEventAdapter(final ExtendedActorSystem system) {
         this.system = system;
@@ -190,8 +189,6 @@ public final class MongoThingEventAdapter implements EventAdapter {
 
     private static JsonObject migrateId(final JsonObject jsonObject) {
         return jsonObject.getValue(Event.JsonFields.ID)
-                .filter(JsonValue::isString)
-                .map(JsonValue::asString)
                 .map(name -> name.replaceFirst("thing", ""))
                 .map(Introspector::decapitalize)
                 .map(name -> ThingEvent.TYPE_PREFIX + name)
@@ -202,8 +199,6 @@ public final class MongoThingEventAdapter implements EventAdapter {
 
     private JsonObject migrateComplex(final JsonObject jsonObject) {
         return jsonObject.getValue(Event.JsonFields.ID)
-                .filter(JsonValue::isString)
-                .map(JsonValue::asString)
                 .map(migrationMappings::get)
                 .map(migration -> migration.apply(jsonObject))
                 .orElse(jsonObject);
@@ -217,7 +212,7 @@ public final class MongoThingEventAdapter implements EventAdapter {
      * true}.
      * @return migrated JSON object.
      */
-    private JsonObject migrateModifiedToCreated(final JsonObject jsonObject, final String createdType) {
+    private static JsonObject migrateModifiedToCreated(final JsonObject jsonObject, final String createdType) {
         // migrates old feature modified events with created true to
         return jsonObject.getValue("created")
                 .filter(JsonValue::isBoolean)

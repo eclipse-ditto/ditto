@@ -52,10 +52,9 @@ public final class FeaturesCreated extends AbstractThingEvent<FeaturesCreated>
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition JSON_FEATURES =
-            JsonFactory.newFieldDefinition("features", JsonObject.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<JsonObject> JSON_FEATURES =
+            JsonFactory.newJsonObjectFieldDefinition("features", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
 
     private final Features features;
 
@@ -133,13 +132,12 @@ public final class FeaturesCreated extends AbstractThingEvent<FeaturesCreated>
      * 'FeaturesCreated' format.
      */
     public static FeaturesCreated fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new EventJsonDeserializer<FeaturesCreated>(TYPE, jsonObject).deserialize((revision, timestamp,
-                jsonObjectReader) -> {
+        return new EventJsonDeserializer<FeaturesCreated>(TYPE, jsonObject).deserialize((revision, timestamp) -> {
 
-            final String extractedThingId = jsonObjectReader.get(JsonFields.THING_ID);
-            final JsonObject featuresJsonObject = jsonObjectReader.get(JSON_FEATURES);
+            final String extractedThingId = jsonObject.getValueOrThrow(JsonFields.THING_ID);
+            final JsonObject featuresJsonObject = jsonObject.getValueOrThrow(JSON_FEATURES);
 
-            final Features extractedFeatures = (null != featuresJsonObject)
+            final Features extractedFeatures = (null != featuresJsonObject && !featuresJsonObject.isNull())
                     ? ThingsModelFactory.newFeatures(featuresJsonObject)
                     : ThingsModelFactory.nullFeatures();
 

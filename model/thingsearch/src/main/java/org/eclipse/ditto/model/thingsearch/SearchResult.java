@@ -11,13 +11,12 @@
  */
 package org.eclipse.ditto.model.thingsearch;
 
-import static org.eclipse.ditto.json.JsonFactory.newFieldDefinition;
-
 import java.util.stream.Stream;
 
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonFieldSelector;
@@ -126,22 +125,22 @@ public interface SearchResult extends Iterable<JsonValue>, Jsonifiable.WithField
         /**
          * JSON field containing the {@link JsonSchemaVersion}.
          */
-        public static final JsonFieldDefinition SCHEMA_VERSION =
-                newFieldDefinition(JsonSchemaVersion.getJsonKey(), int.class, FieldType.SPECIAL, FieldType.HIDDEN,
+        public static final JsonFieldDefinition<Integer> SCHEMA_VERSION =
+                JsonFactory.newIntFieldDefinition(JsonSchemaVersion.getJsonKey(), FieldType.SPECIAL, FieldType.HIDDEN,
                         JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the items.
          */
-        public static final JsonFieldDefinition ITEMS =
-                newFieldDefinition("items", JsonArray.class, FieldType.REGULAR, JsonSchemaVersion.V_1,
+        public static final JsonFieldDefinition<JsonArray> ITEMS =
+                JsonFactory.newArrayFieldDefinition("items", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the nextPageOffset.
          */
-        public static final JsonFieldDefinition NEXT_PAGE_OFFSET =
-                newFieldDefinition("nextPageOffset", long.class, FieldType.REGULAR, JsonSchemaVersion.V_1,
+        public static final JsonFieldDefinition<Long> NEXT_PAGE_OFFSET =
+                JsonFactory.newLongFieldDefinition("nextPageOffset", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
         private JsonFields() {

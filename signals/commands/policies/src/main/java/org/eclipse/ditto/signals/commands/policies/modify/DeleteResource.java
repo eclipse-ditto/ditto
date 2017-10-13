@@ -50,15 +50,11 @@ public final class DeleteResource extends AbstractCommand<DeleteResource>
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition JSON_LABEL =
-            JsonFactory.newFieldDefinition("label", String.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<String> JSON_LABEL =
+            JsonFactory.newStringFieldDefinition("label", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
-    static final JsonFieldDefinition JSON_RESOURCE_KEY =
-            JsonFactory.newFieldDefinition("resourceKey", String.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<String> JSON_RESOURCE_KEY =
+            JsonFactory.newStringFieldDefinition("resourceKey", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private final String policyId;
     private final Label label;
@@ -66,6 +62,7 @@ public final class DeleteResource extends AbstractCommand<DeleteResource>
 
     private DeleteResource(final String policyId, final Label label, final ResourceKey resourceKey,
             final DittoHeaders dittoHeaders) {
+
         super(TYPE, dittoHeaders);
         this.policyId = policyId;
         this.label = label;
@@ -84,6 +81,7 @@ public final class DeleteResource extends AbstractCommand<DeleteResource>
      */
     public static DeleteResource of(final String policyId, final Label label, final ResourceKey resourceKey,
             final DittoHeaders dittoHeaders) {
+
         Objects.requireNonNull(policyId, "The Policy identifier must not be null!");
         Objects.requireNonNull(label, "The Label must not be null!");
         Objects.requireNonNull(resourceKey, "The ResourceKey must not be null!");
@@ -114,11 +112,10 @@ public final class DeleteResource extends AbstractCommand<DeleteResource>
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected format.
      */
     public static DeleteResource fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandJsonDeserializer<DeleteResource>(TYPE, jsonObject).deserialize(jsonObjectReader -> {
-            final String policyId = jsonObjectReader.get(PolicyModifyCommand.JsonFields.JSON_POLICY_ID);
-            final String stringLabel = jsonObjectReader.get(JSON_LABEL);
-            final Label label = PoliciesModelFactory.newLabel(stringLabel);
-            final String resourceKey = jsonObjectReader.get(JSON_RESOURCE_KEY);
+        return new CommandJsonDeserializer<DeleteResource>(TYPE, jsonObject).deserialize(() -> {
+            final String policyId = jsonObject.getValueOrThrow(PolicyModifyCommand.JsonFields.JSON_POLICY_ID);
+            final Label label = PoliciesModelFactory.newLabel(jsonObject.getValueOrThrow(JSON_LABEL));
+            final String resourceKey = jsonObject.getValueOrThrow(JSON_RESOURCE_KEY);
 
             return of(policyId, label, ResourceKey.newInstance(resourceKey), dittoHeaders);
         });
@@ -161,6 +158,7 @@ public final class DeleteResource extends AbstractCommand<DeleteResource>
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(PolicyModifyCommand.JsonFields.JSON_POLICY_ID, policyId, predicate);
         jsonObjectBuilder.set(JSON_LABEL, label.toString(), predicate);
@@ -173,8 +171,8 @@ public final class DeleteResource extends AbstractCommand<DeleteResource>
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof DeleteResource);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof DeleteResource;
     }
 
     @SuppressWarnings("squid:MethodCyclomaticComplexity")

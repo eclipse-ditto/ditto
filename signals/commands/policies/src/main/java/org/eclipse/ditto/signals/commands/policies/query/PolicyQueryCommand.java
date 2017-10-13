@@ -23,4 +23,5 @@ public interface PolicyQueryCommand<T extends PolicyQueryCommand> extends Policy
 
     @Override
     T setDittoHeaders(DittoHeaders dittoHeaders);
+
 }

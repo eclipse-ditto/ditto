@@ -50,22 +50,21 @@ public final class RetrieveResource extends AbstractCommand<RetrieveResource>
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition JSON_LABEL =
-            JsonFactory.newFieldDefinition("label", String.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<String> JSON_LABEL =
+            JsonFactory.newStringFieldDefinition("label", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
-    static final JsonFieldDefinition JSON_RESOURCE_KEY =
-            JsonFactory.newFieldDefinition("resourceKey", String.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<String> JSON_RESOURCE_KEY =
+            JsonFactory.newStringFieldDefinition("resourceKey", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private final String policyId;
     private final Label label;
     private final ResourceKey resourceKey;
 
-    private RetrieveResource(final String policyId, final Label label, final ResourceKey resourceKey,
+    private RetrieveResource(final String policyId,
+            final Label label,
+            final ResourceKey resourceKey,
             final DittoHeaders dittoHeaders) {
+
         super(TYPE, dittoHeaders);
 
         this.policyId = checkNotNull(policyId, "Policy identifier");
@@ -84,8 +83,11 @@ public final class RetrieveResource extends AbstractCommand<RetrieveResource>
      * which is readable from the passed authorization context.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static RetrieveResource of(final String policyId, final Label label, final ResourceKey resourceKey,
+    public static RetrieveResource of(final String policyId,
+            final Label label,
+            final ResourceKey resourceKey,
             final DittoHeaders dittoHeaders) {
+
         return new RetrieveResource(policyId, label, resourceKey, dittoHeaders);
     }
 
@@ -117,13 +119,10 @@ public final class RetrieveResource extends AbstractCommand<RetrieveResource>
      * format.
      */
     public static RetrieveResource fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandJsonDeserializer<RetrieveResource>(TYPE, jsonObject).deserialize(jsonObjectReader -> {
-            final String policyId = jsonObjectReader.get(PolicyQueryCommand.JsonFields.JSON_POLICY_ID);
-
-            final String labelValue = jsonObjectReader.get(JSON_LABEL);
-            final Label extractedLabel = Label.of(labelValue);
-
-            final String extractedKey = jsonObjectReader.get(JSON_RESOURCE_KEY);
+        return new CommandJsonDeserializer<RetrieveResource>(TYPE, jsonObject).deserialize(() -> {
+            final String policyId = jsonObject.getValueOrThrow(PolicyQueryCommand.JsonFields.JSON_POLICY_ID);
+            final Label extractedLabel = Label.of(jsonObject.getValueOrThrow(JSON_LABEL));
+            final String extractedKey = jsonObject.getValueOrThrow(JSON_RESOURCE_KEY);
 
             return of(policyId, extractedLabel, ResourceKey.newInstance(extractedKey), dittoHeaders);
         });
@@ -166,6 +165,7 @@ public final class RetrieveResource extends AbstractCommand<RetrieveResource>
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(PolicyQueryCommand.JsonFields.JSON_POLICY_ID, policyId, predicate);
         jsonObjectBuilder.set(JSON_LABEL, label.toString(), predicate);
@@ -192,8 +192,8 @@ public final class RetrieveResource extends AbstractCommand<RetrieveResource>
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof RetrieveResource);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof RetrieveResource;
     }
 
     @SuppressWarnings("squid:S109")

@@ -11,10 +11,9 @@
  */
 package org.eclipse.ditto.model.policies;
 
-import static org.eclipse.ditto.json.JsonFactory.newFieldDefinition;
-
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonFieldSelector;
@@ -143,8 +142,8 @@ public interface Resource extends Jsonifiable.WithFieldSelectorAndPredicate<Json
         /**
          * JSON field containing the {@link JsonSchemaVersion}.
          */
-        public static final JsonFieldDefinition SCHEMA_VERSION =
-                newFieldDefinition(JsonSchemaVersion.getJsonKey(), int.class, FieldType.SPECIAL, FieldType.HIDDEN,
+        public static final JsonFieldDefinition<Integer> SCHEMA_VERSION =
+                JsonFactory.newIntFieldDefinition(JsonSchemaVersion.getJsonKey(), FieldType.SPECIAL, FieldType.HIDDEN,
                         JsonSchemaVersion.V_2);
 
         private JsonFields() {

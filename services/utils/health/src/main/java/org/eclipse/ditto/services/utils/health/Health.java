@@ -11,8 +11,6 @@
  */
 package org.eclipse.ditto.services.utils.health;
 
-import static org.eclipse.ditto.json.JsonFactory.newFieldDefinition;
-
 import java.util.Objects;
 import java.util.Optional;
 
@@ -22,7 +20,6 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.json.JsonValue;
 
 /**
  * Representation of the health of underlying systems, such as messaging and persistence.
@@ -33,12 +30,13 @@ public final class Health implements HealthRepresentation {
     /**
      * JSON field of the persistence status.
      */
-    static final JsonFieldDefinition JSON_KEY_PERSISTENCE = newFieldDefinition("persistence", JsonObject.class);
+    static final JsonFieldDefinition<JsonObject> JSON_KEY_PERSISTENCE =
+            JsonFactory.newJsonObjectFieldDefinition("persistence");
 
     /**
      * JSON field of the cluster status.
      */
-    static final JsonFieldDefinition JSON_KEY_CLUSTER = newFieldDefinition("cluster", JsonObject.class);
+    static final JsonFieldDefinition<JsonObject> JSON_KEY_CLUSTER = JsonFactory.newJsonObjectFieldDefinition("cluster");
 
 
     private final HealthStatus healthStatusPersistence;
@@ -71,7 +69,7 @@ public final class Health implements HealthRepresentation {
     }
 
     /**
-     * Creates a new {@link Health} from a JSON string.
+     * Creates a new {@code Health} from a JSON string.
      *
      * @param jsonString the JSON string of which a new Health is to be created.
      * @return the Health which was created from the given JSON string.
@@ -85,7 +83,7 @@ public final class Health implements HealthRepresentation {
     }
 
     /**
-     * Creates a new {@link Health} from a JSON object.
+     * Creates a new {@code Health} from a JSON object.
      *
      * @param jsonObject the JSON object of which a new Health is to be created.
      * @return the Health which was created from the given JSON object.
@@ -94,16 +92,11 @@ public final class Health implements HealthRepresentation {
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} is not valid JSON.
      */
     public static Health fromJson(final JsonObject jsonObject) {
-
         final HealthStatus statusPersistence = jsonObject.getValue(JSON_KEY_PERSISTENCE)
-                .filter(JsonValue::isObject)
-                .map(JsonValue::asObject)
                 .map(HealthStatus::fromJson)
                 .orElse(null);
 
         final HealthStatus statusCluster = jsonObject.getValue(JSON_KEY_CLUSTER)
-                .filter(JsonValue::isObject)
-                .map(JsonValue::asObject)
                 .map(HealthStatus::fromJson)
                 .orElse(null);
 
@@ -126,7 +119,7 @@ public final class Health implements HealthRepresentation {
      * @return a copy of this object with the new healthStatus set.
      */
     public Health setHealthStatusPersistence(final HealthStatus healthStatus) {
-        return Health.of(healthStatus, this.healthStatusCluster);
+        return Health.of(healthStatus, healthStatusCluster);
     }
 
     /**
@@ -145,7 +138,7 @@ public final class Health implements HealthRepresentation {
      * @return a copy of this object with the new healthStatus set.
      */
     public Health setHealthStatusCluster(final HealthStatus healthStatus) {
-        return Health.of(this.healthStatusPersistence, healthStatus);
+        return Health.of(healthStatusPersistence, healthStatus);
     }
 
     @Override
@@ -204,4 +197,5 @@ public final class Health implements HealthRepresentation {
                 "healthStatusPersistence=" + healthStatusPersistence +
                 ", healthStatusCluster=" + healthStatusCluster + "]";
     }
+
 }

@@ -47,23 +47,22 @@ public final class RetrievePolicyEntryResponse extends AbstractCommandResponse<R
      */
     public static final String TYPE = TYPE_PREFIX + RetrievePolicyEntry.NAME;
 
-    static final JsonFieldDefinition JSON_LABEL =
-            JsonFactory.newFieldDefinition("label", String.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<String> JSON_LABEL =
+            JsonFactory.newStringFieldDefinition("label", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
-    static final JsonFieldDefinition JSON_POLICY_ENTRY =
-            JsonFactory.newFieldDefinition("policyEntry", JsonObject.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<JsonObject> JSON_POLICY_ENTRY =
+            JsonFactory.newJsonObjectFieldDefinition("policyEntry", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private final String policyId;
     private final String policyEntryLabel;
     private final JsonObject policyEntry;
 
-    private RetrievePolicyEntryResponse(final String policyId, final HttpStatusCode statusCode,
+    private RetrievePolicyEntryResponse(final String policyId,
+            final HttpStatusCode statusCode,
             final String policyEntryLabel,
-            final JsonObject policyEntry, final DittoHeaders dittoHeaders) {
+            final JsonObject policyEntry,
+            final DittoHeaders dittoHeaders) {
+
         super(TYPE, statusCode, dittoHeaders);
         this.policyId = checkNotNull(policyId, "Policy ID");
         this.policyEntryLabel = checkNotNull(policyEntryLabel, "Policy entry label");
@@ -81,6 +80,7 @@ public final class RetrievePolicyEntryResponse extends AbstractCommandResponse<R
      */
     public static RetrievePolicyEntryResponse of(final String policyId, final PolicyEntry policyEntry,
             final DittoHeaders dittoHeaders) {
+
         return new RetrievePolicyEntryResponse(policyId, HttpStatusCode.OK, policyEntry.getLabel().toString(),
                 checkNotNull(policyEntry, "Policy Entry")
                         .toJson(dittoHeaders.getSchemaVersion().orElse(policyEntry.getLatestSchemaVersion())),
@@ -97,9 +97,11 @@ public final class RetrievePolicyEntryResponse extends AbstractCommandResponse<R
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static RetrievePolicyEntryResponse of(final String policyId, final String policyEntryLabel,
+    public static RetrievePolicyEntryResponse of(final String policyId,
+            final String policyEntryLabel,
             final JsonObject policyEntry,
             final DittoHeaders dittoHeaders) {
+
         return new RetrievePolicyEntryResponse(policyId, HttpStatusCode.OK, policyEntryLabel, policyEntry,
                 dittoHeaders);
     }
@@ -131,11 +133,13 @@ public final class RetrievePolicyEntryResponse extends AbstractCommandResponse<R
      */
     public static RetrievePolicyEntryResponse fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
+
         return new CommandResponseJsonDeserializer<RetrievePolicyEntryResponse>(TYPE, jsonObject)
-                .deserialize((statusCode, jsonObjectReader) -> {
-                    final String policyId = jsonObjectReader.get(PolicyQueryCommandResponse.JsonFields.JSON_POLICY_ID);
-                    final String extractedLabel = jsonObjectReader.get(JSON_LABEL);
-                    final JsonObject extractedPolicyEntry = jsonObjectReader.get(JSON_POLICY_ENTRY);
+                .deserialize((statusCode) -> {
+                    final String policyId =
+                            jsonObject.getValueOrThrow(PolicyQueryCommandResponse.JsonFields.JSON_POLICY_ID);
+                    final String extractedLabel = jsonObject.getValueOrThrow(JSON_LABEL);
+                    final JsonObject extractedPolicyEntry = jsonObject.getValueOrThrow(JSON_POLICY_ENTRY);
 
                     return of(policyId, extractedLabel, extractedPolicyEntry, dittoHeaders);
                 });
@@ -180,6 +184,7 @@ public final class RetrievePolicyEntryResponse extends AbstractCommandResponse<R
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(PolicyQueryCommandResponse.JsonFields.JSON_POLICY_ID, policyId, predicate);
         jsonObjectBuilder.set(JSON_LABEL, policyEntryLabel, predicate);
@@ -187,8 +192,8 @@ public final class RetrievePolicyEntryResponse extends AbstractCommandResponse<R
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof RetrievePolicyEntryResponse);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof RetrievePolicyEntryResponse;
     }
 
     @Override
@@ -215,4 +220,5 @@ public final class RetrievePolicyEntryResponse extends AbstractCommandResponse<R
         return getClass().getSimpleName() + " [" + super.toString() + ", policyId=" + policyId
                 + ", policyEntryLabel=" + policyEntryLabel + ", policyEntry=" + policyEntry + "]";
     }
+
 }

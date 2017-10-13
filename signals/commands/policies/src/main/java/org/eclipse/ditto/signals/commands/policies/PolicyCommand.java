@@ -66,9 +66,9 @@ public interface PolicyCommand<T extends PolicyCommand> extends Command<T> {
         /**
          * JSON field containing the PolicyCommand's policyId.
          */
-        public static final JsonFieldDefinition JSON_POLICY_ID =
-                JsonFactory.newFieldDefinition("policyId", String.class, FieldType.REGULAR,
-                        // available in schema versions:
-                        JsonSchemaVersion.V_2);
+        public static final JsonFieldDefinition<String> JSON_POLICY_ID =
+                JsonFactory.newStringFieldDefinition("policyId", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
     }
+
 }

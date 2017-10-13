@@ -124,33 +124,31 @@ public interface MessageCommand<T, C extends MessageCommand> extends Command<C>,
         /**
          * JSON field containing the MessageCommand's thingId.
          */
-        public static final JsonFieldDefinition JSON_THING_ID =
-                JsonFactory.newFieldDefinition("thingId", String.class, FieldType.REGULAR,
-                        // available in schema versions:
-                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+        public static final JsonFieldDefinition<String> JSON_THING_ID =
+                JsonFactory.newStringFieldDefinition("thingId", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the MessageCommand's Message.
          */
-        public static JsonFieldDefinition JSON_MESSAGE =
-                JsonFactory.newFieldDefinition("message", JsonObject.class, FieldType.REGULAR,
-                        // available in schema versions:
-                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+        public static final JsonFieldDefinition<JsonObject> JSON_MESSAGE =
+                JsonFactory.newJsonObjectFieldDefinition("message", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the MessageCommand's Message headers.
          */
-        public static JsonFieldDefinition JSON_MESSAGE_HEADERS =
-                JsonFactory.newFieldDefinition("headers", JsonObject.class, FieldType.REGULAR,
-                        // available in schema versions:
-                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+        public static final JsonFieldDefinition<JsonObject> JSON_MESSAGE_HEADERS =
+                JsonFactory.newJsonObjectFieldDefinition("headers", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the MessageCommand's Message payload.
          */
-        public static JsonFieldDefinition JSON_MESSAGE_PAYLOAD =
-                JsonFactory.newFieldDefinition("payload", JsonValue.class, FieldType.REGULAR,
-                        // available in schema versions:
-                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+        public static final JsonFieldDefinition<JsonValue> JSON_MESSAGE_PAYLOAD =
+                JsonFactory.newJsonValueFieldDefinition("payload", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
+
     }
+
 }

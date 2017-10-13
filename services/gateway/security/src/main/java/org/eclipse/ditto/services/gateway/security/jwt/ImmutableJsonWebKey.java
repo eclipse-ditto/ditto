@@ -25,7 +25,6 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonValue;
 
 /**
  * Immutable implementation of {@link JsonWebKey}.
@@ -42,8 +41,13 @@ public final class ImmutableJsonWebKey implements JsonWebKey {
     private final BigInteger modulus;
     private final BigInteger exponent;
 
-    private ImmutableJsonWebKey(final String type, final String algorithm, final String usage, final String id,
-            final BigInteger modulus, final BigInteger exponent) {
+    private ImmutableJsonWebKey(final String type,
+            final String algorithm,
+            final String usage,
+            final String id,
+            final BigInteger modulus,
+            final BigInteger exponent) {
+
         this.type = type;
         this.algorithm = algorithm;
         this.usage = usage;
@@ -66,8 +70,13 @@ public final class ImmutableJsonWebKey implements JsonWebKey {
      * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if any {@code String} argument is empty.
      */
-    public static JsonWebKey of(final String type, final String algorithm, final String usage, final String id,
-            final BigInteger modulus, final BigInteger exponent) {
+    public static JsonWebKey of(final String type,
+            final String algorithm,
+            final String usage,
+            final String id,
+            final BigInteger modulus,
+            final BigInteger exponent) {
+
         argumentNotEmpty(type);
         argumentNotEmpty(id);
         argumentNotNull(modulus);
@@ -94,23 +103,19 @@ public final class ImmutableJsonWebKey implements JsonWebKey {
      * @throws JsonMissingFieldException if any {@code JsonField} is missing.
      */
     public static JsonWebKey fromJson(final JsonObject jsonObject) {
-        final String type = jsonObject.getValue(JsonFields.KEY_TYPE).map(JsonValue::asString)
-                .orElseThrow(() -> new JsonMissingFieldException(JsonFields.KEY_TYPE.getPointer()));
-        final String algorithm = jsonObject.getValue(JsonFields.KEY_ALGORITHM).map(JsonValue::asString).orElse(null);
-        final String usage = jsonObject.getValue(JsonFields.KEY_USAGE).map(JsonValue::asString).orElse(null);
-        final String id = jsonObject.getValue(JsonFields.KEY_ID).map(JsonValue::asString)
-                .orElseThrow(() -> new JsonMissingFieldException(JsonFields.KEY_ID.getPointer()));
-        final BigInteger modulus = jsonObject.getValue(JsonFields.KEY_MODULUS) //
-                .map(JsonValue::asString) //
-                .map(string -> string.getBytes(StandardCharsets.UTF_8)) //
-                .map(DECODER::decode) //
-                .map(bytes -> new BigInteger(1, bytes)) //
+        final String type = jsonObject.getValueOrThrow(JsonFields.KEY_TYPE);
+        final String algorithm = jsonObject.getValue(JsonFields.KEY_ALGORITHM).orElse(null);
+        final String usage = jsonObject.getValue(JsonFields.KEY_USAGE).orElse(null);
+        final String id = jsonObject.getValueOrThrow(JsonFields.KEY_ID);
+        final BigInteger modulus = jsonObject.getValue(JsonFields.KEY_MODULUS)
+                .map(string -> string.getBytes(StandardCharsets.UTF_8))
+                .map(DECODER::decode)
+                .map(bytes -> new BigInteger(1, bytes))
                 .orElseThrow(() -> new JsonMissingFieldException(JsonFields.KEY_MODULUS.getPointer()));
-        final BigInteger exponent = jsonObject.getValue(JsonFields.KEY_EXPONENT) //
-                .map(JsonValue::asString) //
-                .map(string -> string.getBytes(StandardCharsets.UTF_8)) //
-                .map(DECODER::decode) //
-                .map(bytes -> new BigInteger(1, bytes)) //
+        final BigInteger exponent = jsonObject.getValue(JsonFields.KEY_EXPONENT)
+                .map(string -> string.getBytes(StandardCharsets.UTF_8))
+                .map(DECODER::decode)
+                .map(bytes -> new BigInteger(1, bytes))
                 .orElseThrow(() -> new JsonMissingFieldException(JsonFields.KEY_EXPONENT.getPointer()));
 
         return of(type, algorithm, usage, id, modulus, exponent);

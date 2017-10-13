@@ -87,11 +87,10 @@ public final class DeleteThingResponse extends AbstractCommandResponse<DeleteThi
      * format.
      */
     public static DeleteThingResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<DeleteThingResponse>(TYPE, jsonObject)
-                .deserialize((statusCode, jsonObjectReader) -> {
-                    final String thingId = jsonObjectReader.get(ThingModifyCommandResponse.JsonFields.JSON_THING_ID);
-                    return of(thingId, dittoHeaders);
-                });
+        return new CommandResponseJsonDeserializer<DeleteThingResponse>(TYPE, jsonObject).deserialize(statusCode -> {
+            final String thingId = jsonObject.getValueOrThrow(ThingModifyCommandResponse.JsonFields.JSON_THING_ID);
+            return of(thingId, dittoHeaders);
+        });
     }
 
     @Override

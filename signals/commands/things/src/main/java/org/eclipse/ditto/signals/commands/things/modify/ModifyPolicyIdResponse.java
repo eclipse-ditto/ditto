@@ -47,15 +47,12 @@ public final class ModifyPolicyIdResponse extends AbstractCommandResponse<Modify
      */
     public static final String TYPE = TYPE_PREFIX + ModifyPolicyId.NAME;
 
-    static final JsonFieldDefinition JSON_POLICY_ID =
-            JsonFactory.newFieldDefinition("policyId", String.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<String> JSON_POLICY_ID =
+            JsonFactory.newStringFieldDefinition("policyId", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
 
     private final String thingId;
-    @Nullable
-    private final String policyId;
+    @Nullable private final String policyId;
 
     private ModifyPolicyIdResponse(final String thingId, final HttpStatusCode statusCode,
             @Nullable final String policyId, final DittoHeaders dittoHeaders) {
@@ -75,7 +72,7 @@ public final class ModifyPolicyIdResponse extends AbstractCommandResponse<Modify
     }
 
     /**
-     * Returns a new {@link ModifyPolicyIdResponse} for a created Policy ID. This corresponds to the HTTP status code
+     * Returns a new {@code ModifyPolicyIdResponse} for a created Policy ID. This corresponds to the HTTP status code
      * {@link HttpStatusCode#CREATED}.
      *
      * @param thingId the Thing ID of the created policy ID.
@@ -90,7 +87,7 @@ public final class ModifyPolicyIdResponse extends AbstractCommandResponse<Modify
     }
 
     /**
-     * Returns a new {@link ModifyPolicyIdResponse} for a modified Policy ID. This corresponds to the HTTP status code
+     * Returns a new {@code ModifyPolicyIdResponse} for a modified Policy ID. This corresponds to the HTTP status code
      * {@link HttpStatusCode#NO_CONTENT}.
      *
      * @param thingId the Thing ID of the modified policy ID.
@@ -129,9 +126,11 @@ public final class ModifyPolicyIdResponse extends AbstractCommandResponse<Modify
      */
     public static ModifyPolicyIdResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<ModifyPolicyIdResponse>(TYPE, jsonObject)
-                .deserialize((statusCode, jsonObjectReader) -> {
-                    final String thingId = jsonObjectReader.get(ThingModifyCommandResponse.JsonFields.JSON_THING_ID);
-                    final String policyId = (String) jsonObjectReader.getAsOptional(JSON_POLICY_ID).orElse(null);
+                .deserialize((statusCode) -> {
+                    final String thingId =
+                            jsonObject.getValueOrThrow(ThingModifyCommandResponse.JsonFields.JSON_THING_ID);
+                    final String policyId = jsonObject.getValue(JSON_POLICY_ID).orElse(null);
+
                     return new ModifyPolicyIdResponse(thingId, statusCode, policyId, dittoHeaders);
                 });
     }
@@ -177,8 +176,8 @@ public final class ModifyPolicyIdResponse extends AbstractCommandResponse<Modify
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof ModifyPolicyIdResponse);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof ModifyPolicyIdResponse;
     }
 
     @Override

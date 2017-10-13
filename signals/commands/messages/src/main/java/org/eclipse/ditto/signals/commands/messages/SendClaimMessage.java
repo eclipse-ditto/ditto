@@ -86,9 +86,10 @@ public final class SendClaimMessage<T> extends AbstractMessageCommand<T, SendCla
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected format.
      */
     public static <T> SendClaimMessage<T> fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandJsonDeserializer<SendClaimMessage<T>>(TYPE, jsonObject).deserialize(jsonObjectReader -> {
-            final String thingId = jsonObjectReader.get(MessageCommand.JsonFields.JSON_THING_ID);
-            final Message<T> message = deserializeMessageFromJson(jsonObjectReader);
+        return new CommandJsonDeserializer<SendClaimMessage<T>>(TYPE, jsonObject).deserialize(() -> {
+            final String thingId = jsonObject.getValueOrThrow(MessageCommand.JsonFields.JSON_THING_ID);
+            final Message<T> message = deserializeMessageFromJson(jsonObject);
+
             return of(thingId, message, dittoHeaders);
         });
     }

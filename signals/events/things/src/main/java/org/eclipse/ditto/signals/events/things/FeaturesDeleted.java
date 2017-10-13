@@ -14,6 +14,7 @@ package org.eclipse.ditto.signals.events.things;
 import java.time.Instant;
 import java.util.function.Predicate;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFactory;
@@ -42,8 +43,11 @@ public final class FeaturesDeleted extends AbstractThingEvent<FeaturesDeleted>
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    private FeaturesDeleted(final String thingId, final long revision, final Instant timestamp,
+    private FeaturesDeleted(final String thingId,
+            final long revision,
+            @Nullable final Instant timestamp,
             final DittoHeaders dittoHeaders) {
+
         super(TYPE, thingId, revision, timestamp, dittoHeaders);
     }
 
@@ -68,10 +72,13 @@ public final class FeaturesDeleted extends AbstractThingEvent<FeaturesDeleted>
      * @param timestamp the timestamp of this event.
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the FeaturesDeleted created.
-     * @throws NullPointerException if any argument is {@code null}.
+     * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
      */
-    public static FeaturesDeleted of(final String thingId, final long revision, final Instant timestamp,
+    public static FeaturesDeleted of(final String thingId,
+            final long revision,
+            @Nullable final Instant timestamp,
             final DittoHeaders dittoHeaders) {
+
         return new FeaturesDeleted(thingId, revision, timestamp, dittoHeaders);
     }
 
@@ -101,9 +108,8 @@ public final class FeaturesDeleted extends AbstractThingEvent<FeaturesDeleted>
      * 'FeaturesDeleted' format.
      */
     public static FeaturesDeleted fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new EventJsonDeserializer<FeaturesDeleted>(TYPE, jsonObject).deserialize((revision, timestamp,
-                jsonObjectReader) -> {
-            final String extractedThingId = jsonObjectReader.get(JsonFields.THING_ID);
+        return new EventJsonDeserializer<FeaturesDeleted>(TYPE, jsonObject).deserialize((revision, timestamp) -> {
+            final String extractedThingId = jsonObject.getValueOrThrow(JsonFields.THING_ID);
 
             return of(extractedThingId, revision, timestamp, dittoHeaders);
         });

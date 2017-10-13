@@ -104,38 +104,33 @@ public interface Event<T extends Event> extends Signal<T>, WithOptionalEntity {
         /**
          * JSON field containing the event's identifier - was used in SchemaVersion 1 instead of "type".
          */
-        public static final JsonFieldDefinition ID =
-                JsonFactory.newFieldDefinition("event", String.class, FieldType.REGULAR,
-                        // available in schema versions:
-                        JsonSchemaVersion.V_1);
+        public static final JsonFieldDefinition<String> ID =
+                JsonFactory.newStringFieldDefinition("event", FieldType.REGULAR, JsonSchemaVersion.V_1);
 
         /**
          * JSON field containing the event's type.
          */
-        public static final JsonFieldDefinition TYPE =
-                JsonFactory.newFieldDefinition("type", String.class, FieldType.REGULAR,
-                        // available in schema versions:
-                        JsonSchemaVersion.V_2);
+        public static final JsonFieldDefinition<String> TYPE =
+                JsonFactory.newStringFieldDefinition("type", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the event's revision.
          */
-        public static final JsonFieldDefinition REVISION =
-                JsonFactory.newFieldDefinition("revision", long.class, FieldType.REGULAR,
-                        // available in schema versions:
-                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+        public static final JsonFieldDefinition<Long> REVISION =
+                JsonFactory.newLongFieldDefinition("revision", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the event's timestamp.
          */
-        public static final JsonFieldDefinition TIMESTAMP =
-                JsonFactory.newFieldDefinition("_timestamp", String.class, FieldType.SPECIAL,
-                        // available in schema versions:
-                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+        public static final JsonFieldDefinition<String> TIMESTAMP =
+                JsonFactory.newStringFieldDefinition("_timestamp", FieldType.SPECIAL, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
 
         private JsonFields() {
             throw new AssertionError();
         }
+
     }
 
 }

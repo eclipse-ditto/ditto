@@ -29,7 +29,7 @@ import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
@@ -47,7 +47,6 @@ public final class ModifyAclEntryTest {
                             FieldType.regularOrSpecial()))
             .build();
 
-
     @Test
     public void assertImmutability() {
         assertInstancesOf(ModifyAclEntry.class,
@@ -55,7 +54,6 @@ public final class ModifyAclEntryTest {
                 provided(JsonObject.class, AclEntry.class, Permission.class).areAlsoImmutable(),
                 assumingFields("permissions").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
     }
-
 
     @Test
     public void testHashCodeAndEquals() {
@@ -68,18 +66,15 @@ public final class ModifyAclEntryTest {
                 .verify();
     }
 
-
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullPermissions() {
         ModifyAclEntry.of(TestConstants.Thing.THING_ID, null, TestConstants.EMPTY_DITTO_HEADERS);
     }
 
-
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullSubject() {
         ModifyAclEntry.of(TestConstants.Thing.THING_ID, null, TestConstants.EMPTY_DITTO_HEADERS);
     }
-
 
     @Test
     public void jsonSerializationWorksAsExpected() {
@@ -89,7 +84,6 @@ public final class ModifyAclEntryTest {
 
         assertThat(actualJson).isEqualTo(KNOWN_JSON);
     }
-
 
     @Test
     public void createInstanceFromValidJson() {

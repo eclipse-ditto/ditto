@@ -30,7 +30,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 /**
  * Unit test for {@link ModifyPolicyEntryResponse}.
  */
-public class ModifyPolicyEntryResponseTest {
+public final class ModifyPolicyEntryResponseTest {
 
     private static final JsonObject KNOWN_JSON_CREATED = JsonFactory.newObjectBuilder()
             .set(PolicyCommandResponse.JsonFields.TYPE, ModifyPolicyEntryResponse.TYPE)
@@ -47,7 +47,6 @@ public class ModifyPolicyEntryResponseTest {
             .set(PolicyCommandResponse.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID)
             .build();
 
-
     @Test
     public void assertImmutability() {
         assertInstancesOf(ModifyPolicyEntryResponse.class,
@@ -55,14 +54,12 @@ public class ModifyPolicyEntryResponseTest {
                 provided(PolicyEntry.class).isAlsoImmutable());
     }
 
-
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(ModifyPolicyEntryResponse.class)
                 .withRedefinedSuperclass()
                 .verify();
     }
-
 
     @Test
     public void toJsonReturnsExpected() {
@@ -79,7 +76,6 @@ public class ModifyPolicyEntryResponseTest {
 
         assertThat(actualJsonUpdated).isEqualTo(KNOWN_JSON_UPDATED);
     }
-
 
     @Test
     public void createInstanceFromValidJson() {

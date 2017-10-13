@@ -50,22 +50,22 @@ public final class ResourceDeleted extends AbstractPolicyEvent<ResourceDeleted>
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition JSON_LABEL =
-            JsonFactory.newFieldDefinition("label", String.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<String> JSON_LABEL =
+            JsonFactory.newStringFieldDefinition("label", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
-    static final JsonFieldDefinition JSON_RESOURCE_KEY =
-            JsonFactory.newFieldDefinition("resourceKey", String.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<String> JSON_RESOURCE_KEY =
+            JsonFactory.newStringFieldDefinition("resourceKey", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private final Label label;
     private final ResourceKey resourceKey;
 
-    private ResourceDeleted(final String policyId, final Label label, final ResourceKey resourceKey,
+    private ResourceDeleted(final String policyId,
+            final Label label,
+            final ResourceKey resourceKey,
             final long revision,
-            final Instant timestamp, final DittoHeaders dittoHeaders) {
+            @Nullable final Instant timestamp,
+            final DittoHeaders dittoHeaders) {
+
         super(TYPE, checkNotNull(policyId, "Policy identifier"), revision, timestamp, dittoHeaders);
         this.label = checkNotNull(label, "Label");
         this.resourceKey = checkNotNull(resourceKey, "ResourceKey");
@@ -82,8 +82,12 @@ public final class ResourceDeleted extends AbstractPolicyEvent<ResourceDeleted>
      * @return the created ResourceDeleted.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static ResourceDeleted of(final String policyId, final Label label, final ResourceKey resourceKey,
-            final long revision, final DittoHeaders dittoHeaders) {
+    public static ResourceDeleted of(final String policyId,
+            final Label label,
+            final ResourceKey resourceKey,
+            final long revision,
+            final DittoHeaders dittoHeaders) {
+
         return of(policyId, label, resourceKey, revision, null, dittoHeaders);
     }
 
@@ -97,10 +101,15 @@ public final class ResourceDeleted extends AbstractPolicyEvent<ResourceDeleted>
      * @param timestamp the timestamp of this event.
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the created ResourceDeleted.
-     * @throws NullPointerException if any argument is {@code null}.
+     * @throws NullPointerException if any argument {@code timestamp} is {@code null}.
      */
-    public static ResourceDeleted of(final String policyId, final Label label, final ResourceKey resourceKey,
-            final long revision, final Instant timestamp, final DittoHeaders dittoHeaders) {
+    public static ResourceDeleted of(final String policyId,
+            final Label label,
+            final ResourceKey resourceKey,
+            final long revision,
+            @Nullable final Instant timestamp,
+            final DittoHeaders dittoHeaders) {
+
         return new ResourceDeleted(policyId, label, resourceKey, revision, timestamp, dittoHeaders);
     }
 
@@ -127,11 +136,10 @@ public final class ResourceDeleted extends AbstractPolicyEvent<ResourceDeleted>
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected 'ResourceDeleted' format.
      */
     public static ResourceDeleted fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new EventJsonDeserializer<ResourceDeleted>(TYPE, jsonObject).deserialize((revision, timestamp,
-                jsonObjectReader) -> {
-            final String policyId = jsonObjectReader.get(JsonFields.POLICY_ID);
-            final Label label = Label.of(jsonObjectReader.get(JSON_LABEL));
-            final String resourceKey = jsonObjectReader.get(JSON_RESOURCE_KEY);
+        return new EventJsonDeserializer<ResourceDeleted>(TYPE, jsonObject).deserialize((revision, timestamp) -> {
+            final String policyId = jsonObject.getValueOrThrow(JsonFields.POLICY_ID);
+            final Label label = Label.of(jsonObject.getValueOrThrow(JSON_LABEL));
+            final String resourceKey = jsonObject.getValueOrThrow(JSON_RESOURCE_KEY);
 
             return of(policyId, label, ResourceKey.newInstance(resourceKey), revision, timestamp, dittoHeaders);
         });
@@ -204,8 +212,8 @@ public final class ResourceDeleted extends AbstractPolicyEvent<ResourceDeleted>
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof ResourceDeleted);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof ResourceDeleted;
     }
 
     @Override

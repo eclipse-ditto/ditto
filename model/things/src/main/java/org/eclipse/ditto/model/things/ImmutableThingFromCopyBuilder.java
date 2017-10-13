@@ -15,16 +15,13 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
-import java.util.Optional;
 import java.util.function.Predicate;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonObjectReader;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.json.JsonReader;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 
@@ -76,37 +73,34 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
      */
     public static ImmutableThingFromCopyBuilder of(final JsonObject jsonObject) {
         checkNotNull(jsonObject, "JSON object");
-        final JsonObjectReader jsonObjectReader = JsonReader.from(jsonObject);
 
         final ImmutableThingFromCopyBuilder result = new ImmutableThingFromCopyBuilder();
 
-        final Optional<String> readThingId = jsonObjectReader.getAsOptional(Thing.JsonFields.ID);
-        readThingId.ifPresent(result::setId);
+        jsonObject.getValue(Thing.JsonFields.ID).ifPresent(result::setId);
 
-        jsonObjectReader.<JsonObject>getAsOptional(Thing.JsonFields.ACL)
+        jsonObject.getValue(Thing.JsonFields.ACL)
                 .map(ThingsModelFactory::newAcl)
                 .ifPresent(result::setPermissions);
 
-        final Optional<String> policyIdOfThing = jsonObjectReader.getAsOptional(Thing.JsonFields.POLICY_ID);
-        policyIdOfThing.ifPresent(result::setPolicyId);
+        jsonObject.getValue(Thing.JsonFields.POLICY_ID).ifPresent(result::setPolicyId);
 
-        jsonObjectReader.<JsonObject>getAsOptional(Thing.JsonFields.ATTRIBUTES)
+        jsonObject.getValue(Thing.JsonFields.ATTRIBUTES)
                 .map(ThingsModelFactory::newAttributes)
                 .ifPresent(result::setAttributes);
 
-        jsonObjectReader.<JsonObject>getAsOptional(Thing.JsonFields.FEATURES)
+        jsonObject.getValue(Thing.JsonFields.FEATURES)
                 .map(ThingsModelFactory::newFeatures)
                 .ifPresent(result::setFeatures);
 
-        jsonObjectReader.<String>getAsOptional(Thing.JsonFields.LIFECYCLE)
+        jsonObject.getValue(Thing.JsonFields.LIFECYCLE)
                 .flatMap(ThingLifecycle::forName)
                 .ifPresent(result::setLifecycle);
 
-        jsonObjectReader.<Long>getAsOptional(Thing.JsonFields.REVISION)
+        jsonObject.getValue(Thing.JsonFields.REVISION)
                 .map(ThingsModelFactory::newThingRevision)
                 .ifPresent(result::setRevision);
 
-        jsonObjectReader.<String>getAsOptional(Thing.JsonFields.MODIFIED)
+        jsonObject.getValue(Thing.JsonFields.MODIFIED)
                 .map(ImmutableThingFromCopyBuilder::tryToParseModified)
                 .ifPresent(result::setModified);
 

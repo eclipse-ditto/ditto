@@ -48,16 +48,15 @@ public final class ModifyThing extends AbstractCommand<ModifyThing> implements T
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition JSON_THING =
-            JsonFactory.newFieldDefinition("thing", JsonObject.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<JsonObject> JSON_THING =
+            JsonFactory.newJsonObjectFieldDefinition("thing", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
 
     /**
      * Json Field definition for the optional initial "inline" policy when creating a Thing.
      */
-    public static final JsonFieldDefinition JSON_INITIAL_POLICY =
-            JsonFactory.newFieldDefinition("initialPolicy", JsonObject.class, FieldType.REGULAR, JsonSchemaVersion.V_1,
+    public static final JsonFieldDefinition<JsonObject> JSON_INITIAL_POLICY =
+            JsonFactory.newJsonObjectFieldDefinition("initialPolicy", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
     private final String thingId;
@@ -116,12 +115,13 @@ public final class ModifyThing extends AbstractCommand<ModifyThing> implements T
      * {@link ThingModifyCommand.JsonFields#JSON_THING_ID} or {@link #JSON_THING}.
      */
     public static ModifyThing fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandJsonDeserializer<ModifyThing>(TYPE, jsonObject).deserialize(jsonObjectReader -> {
-            final String thingId = jsonObjectReader.get(ThingModifyCommand.JsonFields.JSON_THING_ID);
-            final JsonObject thingJsonObject = jsonObjectReader.get(JSON_THING);
+        return new CommandJsonDeserializer<ModifyThing>(TYPE, jsonObject).deserialize(() -> {
+            final String thingId = jsonObject.getValueOrThrow(ThingModifyCommand.JsonFields.JSON_THING_ID);
+
+            final JsonObject thingJsonObject = jsonObject.getValueOrThrow(JSON_THING);
             final Thing extractedThing = ThingsModelFactory.newThing(thingJsonObject);
-            final JsonObject initialPolicyObject =
-                    jsonObjectReader.<JsonObject>getAsOptional(JSON_INITIAL_POLICY).orElse(null);
+
+            final JsonObject initialPolicyObject = jsonObject.getValue(JSON_INITIAL_POLICY).orElse(null);
 
             return of(thingId, extractedThing, initialPolicyObject, dittoHeaders);
         });
@@ -155,7 +155,7 @@ public final class ModifyThing extends AbstractCommand<ModifyThing> implements T
 
     @Override
     public Optional<JsonValue> getEntity(final JsonSchemaVersion schemaVersion) {
-        return Optional.ofNullable(thing.toJson(schemaVersion, FieldType.regularOrSpecial()));
+        return Optional.of(thing.toJson(schemaVersion, FieldType.regularOrSpecial()));
     }
 
     @Override
@@ -201,7 +201,7 @@ public final class ModifyThing extends AbstractCommand<ModifyThing> implements T
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
+    protected boolean canEqual(@Nullable final Object other) {
         return (other instanceof ModifyThing);
     }
 
@@ -210,4 +210,5 @@ public final class ModifyThing extends AbstractCommand<ModifyThing> implements T
         return getClass().getSimpleName() + " [" + super.toString() + ", thingId=" + thingId + ", thing=" + thing +
                 ", initialPolicy=" + initialPolicy + "]";
     }
+
 }

@@ -50,15 +50,17 @@ public final class AclEntryCreated extends AbstractThingEvent<AclEntryCreated>
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition JSON_ACL_ENTRY =
-            JsonFactory.newFieldDefinition("aclEntry", JsonObject.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_1);
+    static final JsonFieldDefinition<JsonObject> JSON_ACL_ENTRY =
+            JsonFactory.newJsonObjectFieldDefinition("aclEntry", FieldType.REGULAR, JsonSchemaVersion.V_1);
 
     private final AclEntry aclEntry;
 
-    private AclEntryCreated(final String thingId, final AclEntry aclEntry, final long revision,
-            final Instant timestamp, final DittoHeaders dittoHeaders) {
+    private AclEntryCreated(final String thingId,
+            final AclEntry aclEntry,
+            final long revision,
+            @Nullable final Instant timestamp,
+            final DittoHeaders dittoHeaders) {
+
         super(TYPE, thingId, revision, timestamp, dittoHeaders);
         this.aclEntry = Objects.requireNonNull(aclEntry, "The created ACL Entry must not be null!");
     }
@@ -73,8 +75,11 @@ public final class AclEntryCreated extends AbstractThingEvent<AclEntryCreated>
      * @return the created AclEntryCreated.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static AclEntryCreated of(final String thingId, final AclEntry aclEntry, final long revision,
+    public static AclEntryCreated of(final String thingId,
+            final AclEntry aclEntry,
+            final long revision,
             final DittoHeaders dittoHeaders) {
+
         return of(thingId, aclEntry, revision, null, dittoHeaders);
     }
 
@@ -87,10 +92,14 @@ public final class AclEntryCreated extends AbstractThingEvent<AclEntryCreated>
      * @param timestamp the timestamp of this event.
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the created AclEntryCreated.
-     * @throws NullPointerException if any argument is {@code null}.
+     * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
      */
-    public static AclEntryCreated of(final String thingId, final AclEntry aclEntry, final long revision,
-            final Instant timestamp, final DittoHeaders dittoHeaders) {
+    public static AclEntryCreated of(final String thingId,
+            final AclEntry aclEntry,
+            final long revision,
+            @Nullable final Instant timestamp,
+            final DittoHeaders dittoHeaders) {
+
         return new AclEntryCreated(thingId, aclEntry, revision, timestamp, dittoHeaders);
     }
 
@@ -119,10 +128,9 @@ public final class AclEntryCreated extends AbstractThingEvent<AclEntryCreated>
      * 'AclEntryCreated' format.
      */
     public static AclEntryCreated fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new EventJsonDeserializer<AclEntryCreated>(TYPE, jsonObject).deserialize((revision, timestamp,
-                jsonObjectReader) -> {
-            final String extractedThingId = jsonObjectReader.get(JsonFields.THING_ID);
-            final JsonObject aclEntryJsonObject = jsonObjectReader.get(JSON_ACL_ENTRY);
+        return new EventJsonDeserializer<AclEntryCreated>(TYPE, jsonObject).deserialize((revision, timestamp) -> {
+            final String extractedThingId = jsonObject.getValueOrThrow(JsonFields.THING_ID);
+            final JsonObject aclEntryJsonObject = jsonObject.getValueOrThrow(JSON_ACL_ENTRY);
             final AclEntry extractedAclEntry = ThingsModelFactory.newAclEntry(aclEntryJsonObject);
 
             return of(extractedThingId, extractedAclEntry, revision, timestamp, dittoHeaders);
@@ -145,7 +153,7 @@ public final class AclEntryCreated extends AbstractThingEvent<AclEntryCreated>
 
     @Override
     public Optional<JsonValue> getEntity(final JsonSchemaVersion schemaVersion) {
-        return Optional.ofNullable(aclEntry.toJson(FieldType.notHidden()));
+        return Optional.of(aclEntry.toJson(FieldType.notHidden()));
     }
 
     @Override
@@ -162,6 +170,7 @@ public final class AclEntryCreated extends AbstractThingEvent<AclEntryCreated>
     @Override
     protected void appendPayloadAndBuild(final JsonObjectBuilder jsonObjectBuilder,
             final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(JSON_ACL_ENTRY, aclEntry.toJson(schemaVersion, thePredicate), predicate);
     }
@@ -189,12 +198,13 @@ public final class AclEntryCreated extends AbstractThingEvent<AclEntryCreated>
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof AclEntryCreated);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof AclEntryCreated;
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" + super.toString() + ", aclEntry=" + aclEntry + "]";
     }
+
 }

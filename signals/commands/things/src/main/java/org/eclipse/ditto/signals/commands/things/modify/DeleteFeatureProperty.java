@@ -50,15 +50,13 @@ public final class DeleteFeatureProperty extends AbstractCommand<DeleteFeaturePr
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition JSON_FEATURE_ID =
-            JsonFactory.newFieldDefinition("featureId", String.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<String> JSON_FEATURE_ID =
+            JsonFactory.newStringFieldDefinition("featureId", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
 
-    static final JsonFieldDefinition JSON_PROPERTY =
-            JsonFactory.newFieldDefinition("property", String.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<String> JSON_PROPERTY =
+            JsonFactory.newStringFieldDefinition("property", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
 
     private final String thingId;
     private final String featureId;
@@ -122,11 +120,12 @@ public final class DeleteFeatureProperty extends AbstractCommand<DeleteFeaturePr
      * org.eclipse.ditto.model.things.Thing#ID_REGEX}.
      */
     public static DeleteFeatureProperty fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandJsonDeserializer<DeleteFeatureProperty>(TYPE, jsonObject).deserialize(jsonObjectReader -> {
-            final String thingId = jsonObjectReader.get(ThingModifyCommand.JsonFields.JSON_THING_ID);
-            final String extractedFeatureId = jsonObjectReader.get(JSON_FEATURE_ID);
-            final String extractedPointerString = jsonObjectReader.get(JSON_PROPERTY);
+        return new CommandJsonDeserializer<DeleteFeatureProperty>(TYPE, jsonObject).deserialize(() -> {
+            final String thingId = jsonObject.getValueOrThrow(ThingModifyCommand.JsonFields.JSON_THING_ID);
+            final String extractedFeatureId = jsonObject.getValueOrThrow(JSON_FEATURE_ID);
+            final String extractedPointerString = jsonObject.getValueOrThrow(JSON_PROPERTY);
             final JsonPointer extractedPointer = JsonFactory.newPointer(extractedPointerString);
+
             return of(thingId, extractedFeatureId, extractedPointer, dittoHeaders);
         });
     }
@@ -195,7 +194,7 @@ public final class DeleteFeatureProperty extends AbstractCommand<DeleteFeaturePr
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
+    protected boolean canEqual(@Nullable final Object other) {
         return (other instanceof DeleteFeatureProperty);
     }
 

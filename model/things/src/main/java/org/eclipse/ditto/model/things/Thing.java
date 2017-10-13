@@ -11,14 +11,13 @@
  */
 package org.eclipse.ditto.model.things;
 
-import static org.eclipse.ditto.json.JsonFactory.newFieldDefinition;
-
 import java.time.Instant;
 import java.util.Objects;
 import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonFieldSelector;
@@ -540,69 +539,69 @@ public interface Thing extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFie
         /**
          * JSON field containing the {@link JsonSchemaVersion}.
          */
-        public static final JsonFieldDefinition SCHEMA_VERSION =
-                newFieldDefinition(JsonSchemaVersion.getJsonKey(), int.class, FieldType.SPECIAL, FieldType.HIDDEN,
+        public static final JsonFieldDefinition<Integer> SCHEMA_VERSION =
+                JsonFactory.newIntFieldDefinition(JsonSchemaVersion.getJsonKey(), FieldType.SPECIAL, FieldType.HIDDEN,
                         JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the Thing's lifecycle.
          */
-        public static final JsonFieldDefinition LIFECYCLE =
-                newFieldDefinition("__lifecycle", String.class, FieldType.SPECIAL, FieldType.HIDDEN,
+        public static final JsonFieldDefinition<String> LIFECYCLE =
+                JsonFactory.newStringFieldDefinition("__lifecycle", FieldType.SPECIAL, FieldType.HIDDEN,
                         JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the Thing's namespace.
          */
-        public static final JsonFieldDefinition NAMESPACE =
-                newFieldDefinition("_namespace", String.class, FieldType.SPECIAL, FieldType.HIDDEN,
+        public static final JsonFieldDefinition<String> NAMESPACE =
+                JsonFactory.newStringFieldDefinition("_namespace", FieldType.SPECIAL, FieldType.HIDDEN,
                         JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the Thing's revision.
          */
-        public static final JsonFieldDefinition REVISION =
-                newFieldDefinition("_revision", long.class, FieldType.SPECIAL, FieldType.HIDDEN,
+        public static final JsonFieldDefinition<Long> REVISION =
+                JsonFactory.newLongFieldDefinition("_revision", FieldType.SPECIAL, FieldType.HIDDEN,
                         JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the Thing's modified timestamp in ISO-8601 format.
-         *
          */
-        public static final JsonFieldDefinition MODIFIED =
-                newFieldDefinition("_modified", String.class, FieldType.SPECIAL, FieldType.HIDDEN,
+        public static final JsonFieldDefinition<String> MODIFIED =
+                JsonFactory.newStringFieldDefinition("_modified", FieldType.SPECIAL, FieldType.HIDDEN,
                         JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the Thing's identifier.
          */
-        public static final JsonFieldDefinition ID = newFieldDefinition("thingId", String.class, FieldType.REGULAR,
-                JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+        public static final JsonFieldDefinition<String> ID =
+                JsonFactory.newStringFieldDefinition("thingId", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the Thing's Access Control List (ACL).
          */
-        public static final JsonFieldDefinition ACL = newFieldDefinition("acl", JsonObject.class, FieldType.REGULAR,
-                JsonSchemaVersion.V_1);
+        public static final JsonFieldDefinition<JsonObject> ACL =
+                JsonFactory.newJsonObjectFieldDefinition("acl", FieldType.REGULAR, JsonSchemaVersion.V_1);
 
         /**
          * JSON field containing the Thing's Policy identifier.
          */
-        public static final JsonFieldDefinition POLICY_ID =
-                newFieldDefinition("policyId", String.class, FieldType.REGULAR, JsonSchemaVersion.V_2);
+        public static final JsonFieldDefinition<String> POLICY_ID =
+                JsonFactory.newStringFieldDefinition("policyId", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the Thing's attributes.
          */
-        public static final JsonFieldDefinition ATTRIBUTES =
-                newFieldDefinition("attributes", JsonObject.class, FieldType.REGULAR, JsonSchemaVersion.V_1,
+        public static final JsonFieldDefinition<JsonObject> ATTRIBUTES =
+                JsonFactory.newJsonObjectFieldDefinition("attributes", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the Thing's features.
          */
-        public static final JsonFieldDefinition FEATURES =
-                newFieldDefinition("features", JsonObject.class, FieldType.REGULAR, JsonSchemaVersion.V_1,
+        public static final JsonFieldDefinition<JsonObject> FEATURES =
+                JsonFactory.newJsonObjectFieldDefinition("features", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
         private JsonFields() {

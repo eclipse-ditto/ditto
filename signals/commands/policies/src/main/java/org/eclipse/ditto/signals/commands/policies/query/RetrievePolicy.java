@@ -94,8 +94,8 @@ public final class RetrievePolicy extends AbstractCommand<RetrievePolicy>
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected format.
      */
     public static RetrievePolicy fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandJsonDeserializer<RetrievePolicy>(TYPE, jsonObject).deserialize(jsonObjectReader -> {
-            final String policyId = jsonObjectReader.get(PolicyQueryCommand.JsonFields.JSON_POLICY_ID);
+        return new CommandJsonDeserializer<RetrievePolicy>(TYPE, jsonObject).deserialize(() -> {
+            final String policyId = jsonObject.getValueOrThrow(PolicyQueryCommand.JsonFields.JSON_POLICY_ID);
 
             return of(policyId, dittoHeaders);
         });
@@ -119,6 +119,7 @@ public final class RetrievePolicy extends AbstractCommand<RetrievePolicy>
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(PolicyQueryCommand.JsonFields.JSON_POLICY_ID, policyId, predicate);
     }
@@ -142,8 +143,8 @@ public final class RetrievePolicy extends AbstractCommand<RetrievePolicy>
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof RetrievePolicy);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof RetrievePolicy;
     }
 
     @SuppressWarnings("squid:S109")
@@ -156,4 +157,5 @@ public final class RetrievePolicy extends AbstractCommand<RetrievePolicy>
     public String toString() {
         return getClass().getSimpleName() + " [" + super.toString() + ", policyId=" + policyId + "]";
     }
+
 }

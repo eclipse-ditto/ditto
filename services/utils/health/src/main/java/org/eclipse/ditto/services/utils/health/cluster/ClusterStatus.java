@@ -11,13 +11,12 @@
  */
 package org.eclipse.ditto.services.utils.health.cluster;
 
-import static org.eclipse.ditto.json.JsonFactory.newFieldDefinition;
-
 import java.util.Collections;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonArray;
@@ -41,32 +40,37 @@ public final class ClusterStatus implements Jsonifiable<JsonObject> {
     /**
      * JSON array of reachable members.
      */
-    public static final JsonFieldDefinition JSON_KEY_REACHABLE = newFieldDefinition("reachable", JsonArray.class);
+    public static final JsonFieldDefinition<JsonArray> JSON_KEY_REACHABLE =
+            JsonFactory.newArrayFieldDefinition("reachable");
 
     /**
      * JSON array of unreachable members.
      */
-    public static final JsonFieldDefinition JSON_KEY_UNREACHABLE = newFieldDefinition("unreachable", JsonArray.class);
+    public static final JsonFieldDefinition<JsonArray> JSON_KEY_UNREACHABLE =
+            JsonFactory.newArrayFieldDefinition("unreachable");
 
     /**
      * JSON array of all addresses of members which have seen this cluster state.
      */
-    public static final JsonFieldDefinition JSON_KEY_SEEN_BY = newFieldDefinition("seen-by", JsonArray.class);
+    public static final JsonFieldDefinition<JsonArray> JSON_KEY_SEEN_BY =
+            JsonFactory.newArrayFieldDefinition("seen-by");
 
     /**
      * JSON value of the leaders address.
      */
-    public static final JsonFieldDefinition JSON_KEY_LEADER = newFieldDefinition("leader", String.class);
+    public static final JsonFieldDefinition<String> JSON_KEY_LEADER = JsonFactory.newStringFieldDefinition("leader");
 
     /**
      * JSON array with all roles this cluster node has.
      */
-    public static final JsonFieldDefinition JSON_KEY_OWN_ROLES = newFieldDefinition("own-roles", JsonArray.class);
+    public static final JsonFieldDefinition<JsonArray> JSON_KEY_OWN_ROLES =
+            JsonFactory.newArrayFieldDefinition("own-roles");
 
     /**
      * JSON object with the cluster roles and their status.
      */
-    public static final JsonFieldDefinition JSON_KEY_ROLES = newFieldDefinition("roles", JsonObject.class);
+    public static final JsonFieldDefinition<JsonObject> JSON_KEY_ROLES =
+            JsonFactory.newJsonObjectFieldDefinition("roles");
 
     private final Set<String> reachable;
     private final Set<String> unreachable;
@@ -75,8 +79,13 @@ public final class ClusterStatus implements Jsonifiable<JsonObject> {
     private final Set<String> ownRoles;
     private final Set<ClusterRoleStatus> roles;
 
-    private ClusterStatus(final Set<String> reachable, final Set<String> unreachable, final Set<String> seenBy,
-            final String leader, final Set<String> ownRoles, final Set<ClusterRoleStatus> roles) {
+    private ClusterStatus(final Set<String> reachable,
+            final Set<String> unreachable,
+            final Set<String> seenBy,
+            final String leader,
+            final Set<String> ownRoles,
+            final Set<ClusterRoleStatus> roles) {
+
         this.reachable = Collections.unmodifiableSet(reachable);
         this.unreachable = Collections.unmodifiableSet(unreachable);
         this.seenBy = Collections.unmodifiableSet(seenBy);
@@ -96,9 +105,13 @@ public final class ClusterStatus implements Jsonifiable<JsonObject> {
      * @param roles the status of each cluster roles members.
      * @return the ClusterState instance.
      */
-    public static ClusterStatus of(final Set<String> reachable, final Set<String> unreachable,
-            final Set<String> seenBy, final String leader, final Set<String> ownRoles,
+    public static ClusterStatus of(final Set<String> reachable,
+            final Set<String> unreachable,
+            final Set<String> seenBy,
+            final String leader,
+            final Set<String> ownRoles,
             final Set<ClusterRoleStatus> roles) {
+
         return new ClusterStatus(reachable, unreachable, seenBy, leader, ownRoles, roles);
     }
 
@@ -171,11 +184,11 @@ public final class ClusterStatus implements Jsonifiable<JsonObject> {
                 ownRoles.stream().map(JsonValue::of).collect(JsonCollectors.valuesToArray()));
 
         final JsonObjectBuilder rolesObjectBuilder = JsonFactory.newObjectBuilder();
-        roles.stream().forEach(roleStatus -> {
+        roles.forEach(roleStatus -> {
             final JsonKey key = JsonFactory.newKey(roleStatus.getRole());
             final JsonValue value = roleStatus.toJson();
-            final JsonFieldDefinition fieldDefinition =
-                    newFieldDefinition(key, JsonObject.class, FieldType.REGULAR);
+            final JsonFieldDefinition<JsonObject> fieldDefinition =
+                    JsonFactory.newJsonObjectFieldDefinition(key, FieldType.REGULAR);
             final JsonField field = JsonFactory.newField(key, value, fieldDefinition);
             rolesObjectBuilder.set(field);
         });
@@ -185,11 +198,13 @@ public final class ClusterStatus implements Jsonifiable<JsonObject> {
     }
 
     @Override
-    public boolean equals(final Object o) {
-        if (this == o)
+    public boolean equals(@Nullable final Object o) {
+        if (this == o) {
             return true;
-        if (!(o instanceof ClusterStatus))
+        }
+        if (!(o instanceof ClusterStatus)) {
             return false;
+        }
         final ClusterStatus that = (ClusterStatus) o;
         return Objects.equals(reachable, that.reachable) && Objects.equals(unreachable, that.unreachable) && Objects
                 .equals(seenBy, that.seenBy) && Objects.equals(leader, that.leader) &&
@@ -207,4 +222,5 @@ public final class ClusterStatus implements Jsonifiable<JsonObject> {
         return getClass().getSimpleName() + "[" + "reachable=" + reachable + ", unreachable=" + unreachable +
                 ", seenBy=" + seenBy + ", leader=" + leader + ", ownRoles=" + ownRoles + ", roles=" + roles + ']';
     }
+
 }

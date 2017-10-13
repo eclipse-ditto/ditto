@@ -11,10 +11,11 @@
  */
 package org.eclipse.ditto.services.gateway.security.jwt;
 
-import static org.eclipse.ditto.json.JsonFactory.newFieldDefinition;
-
 import java.util.List;
 
+import javax.annotation.concurrent.Immutable;
+
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
@@ -79,22 +80,27 @@ public interface JsonWebToken {
     /**
      * An enumeration of the known {@link org.eclipse.ditto.json.JsonField}s of a JSON Web Token.
      */
+    @Immutable
     final class JsonFields {
 
         /**
          * JSON field containing the key id.
          */
-        public static final JsonFieldDefinition KEY_ID = newFieldDefinition("kid", String.class, FieldType.REGULAR);
+        public static final JsonFieldDefinition<String> KEY_ID =
+                JsonFactory.newStringFieldDefinition("kid", FieldType.REGULAR);
 
         /**
          * JSON field containing the issuer.
          */
-        public static final JsonFieldDefinition ISSUER = newFieldDefinition("iss", String.class, FieldType.REGULAR);
+        public static final JsonFieldDefinition<String> ISSUER =
+                JsonFactory.newStringFieldDefinition("iss", FieldType.REGULAR);
 
         /**
          * JSON field containing the user id.
          */
-        public static final JsonFieldDefinition USER_ID = newFieldDefinition("sub", String.class, FieldType.REGULAR);
+        public static final JsonFieldDefinition<String> USER_ID =
+                JsonFactory.newStringFieldDefinition("sub", FieldType.REGULAR);
+
     }
 
 }

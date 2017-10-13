@@ -48,8 +48,8 @@ public final class CreateThingResponse extends AbstractCommandResponse<CreateThi
      */
     public static final String TYPE = TYPE_PREFIX + CreateThing.NAME;
 
-    static final JsonFieldDefinition JSON_THING =
-            JsonFactory.newFieldDefinition("thing", JsonValue.class, FieldType.REGULAR, JsonSchemaVersion.V_1,
+    static final JsonFieldDefinition<JsonValue> JSON_THING =
+            JsonFactory.newJsonValueFieldDefinition("thing", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
     private final Thing createdThing;
@@ -99,7 +99,7 @@ public final class CreateThingResponse extends AbstractCommandResponse<CreateThi
      */
     public static CreateThingResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<CreateThingResponse>(TYPE, jsonObject)
-                .deserialize((statusCode, jsonObjectReader) -> {
+                .deserialize((statusCode) -> {
                     final Thing extractedCreatedThing = jsonObject.getValue(JSON_THING)
                             .map(JsonValue::asObject)
                             .map(ThingsModelFactory::newThing)

@@ -21,7 +21,6 @@ import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonPointerInvalidException;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.signals.base.AbstractErrorRegistry;
@@ -142,8 +141,6 @@ public final class CommonErrorRegistry extends AbstractErrorRegistry<DittoRuntim
 
     private static String getMessage(final JsonObject jsonObject) {
         return jsonObject.getValue(DittoJsonException.JsonFields.MESSAGE)
-                .filter(JsonValue::isString)
-                .map(JsonValue::asString)
                 .orElseThrow(() -> JsonMissingFieldException.newBuilder()
                         .fieldName(DittoRuntimeException.JsonFields.MESSAGE.getPointer().toString()).build());
     }

@@ -11,13 +11,12 @@
  */
 package org.eclipse.ditto.services.utils.health.cluster;
 
-import static org.eclipse.ditto.json.JsonFactory.newFieldDefinition;
-
 import java.util.Collections;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonArray;
@@ -37,25 +36,30 @@ public final class ClusterRoleStatus implements Jsonifiable {
     /**
      * JSON array of reachable members.
      */
-    public static final JsonFieldDefinition JSON_KEY_REACHABLE = newFieldDefinition("reachable", JsonArray.class);
+    public static final JsonFieldDefinition<JsonArray> JSON_KEY_REACHABLE =
+            JsonFactory.newArrayFieldDefinition("reachable");
 
     /**
      * JSON array of unreachable members.
      */
-    public static final JsonFieldDefinition JSON_KEY_UNREACHABLE = newFieldDefinition("unreachable", JsonArray.class);
+    public static final JsonFieldDefinition<JsonArray> JSON_KEY_UNREACHABLE =
+            JsonFactory.newArrayFieldDefinition("unreachable");
 
     /**
      * JSON value of the leaders address.
      */
-    public static final JsonFieldDefinition JSON_KEY_LEADER = newFieldDefinition("leader", String.class);
+    public static final JsonFieldDefinition<String> JSON_KEY_LEADER = JsonFactory.newStringFieldDefinition("leader");
 
     private final String role;
     private final Set<String> reachable;
     private final Set<String> unreachable;
     private final String leader;
 
-    private ClusterRoleStatus(final String role, final Set<String> reachable, final Set<String> unreachable,
+    private ClusterRoleStatus(final String role,
+            final Set<String> reachable,
+            final Set<String> unreachable,
             final String leader) {
+
         this.role = role;
         this.reachable = Collections.unmodifiableSet(reachable);
         this.unreachable = Collections.unmodifiableSet(unreachable);
@@ -63,8 +67,8 @@ public final class ClusterRoleStatus implements Jsonifiable {
     }
 
     /**
-     * Returns a new {@code ClusterRoleStatus} instance with the specified {@code leader}, {@code reachable} and
-     * {@code unreachable} members.
+     * Returns a new {@code ClusterRoleStatus} instance with the specified {@code leader}, {@code reachable} and {@code
+     * unreachable} members.
      *
      * @param role the cluster role.
      * @param reachable a list of all reachable members.
@@ -125,12 +129,14 @@ public final class ClusterRoleStatus implements Jsonifiable {
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o)
+    public boolean equals(@Nullable Object o) {
+        if (this == o) {
             return true;
-        if (!(o instanceof ClusterRoleStatus))
+        }
+        if (!(o instanceof ClusterRoleStatus)) {
             return false;
-        ClusterRoleStatus that = (ClusterRoleStatus) o;
+        }
+        final ClusterRoleStatus that = (ClusterRoleStatus) o;
         return Objects.equals(reachable, that.reachable) && Objects.equals(unreachable, that.unreachable) && Objects
                 .equals(role, that.role) && Objects.equals(leader, that.leader);
     }
@@ -145,4 +151,5 @@ public final class ClusterRoleStatus implements Jsonifiable {
         return getClass().getSimpleName() + "[" + "role=" + role + ", reachable=" + reachable + ", unreachable="
                 + unreachable + ", leader='" + leader + '\'' + ']';
     }
+
 }

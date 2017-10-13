@@ -50,10 +50,9 @@ public final class DeleteFeature extends AbstractCommand<DeleteFeature> implemen
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition JSON_FEATURE_ID =
-            JsonFactory.newFieldDefinition("featureId", String.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<String> JSON_FEATURE_ID =
+            JsonFactory.newStringFieldDefinition("featureId", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
 
     private final String thingId;
     private final String featureId;
@@ -110,9 +109,10 @@ public final class DeleteFeature extends AbstractCommand<DeleteFeature> implemen
      * org.eclipse.ditto.model.things.Thing#ID_REGEX}.
      */
     public static DeleteFeature fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandJsonDeserializer<DeleteFeature>(TYPE, jsonObject).deserialize(jsonObjectReader -> {
-            final String thingId = jsonObjectReader.get(ThingModifyCommand.JsonFields.JSON_THING_ID);
-            final String featureId = jsonObjectReader.get(JSON_FEATURE_ID);
+        return new CommandJsonDeserializer<DeleteFeature>(TYPE, jsonObject).deserialize(() -> {
+            final String thingId = jsonObject.getValueOrThrow(ThingModifyCommand.JsonFields.JSON_THING_ID);
+            final String featureId = jsonObject.getValueOrThrow(JSON_FEATURE_ID);
+
             return of(thingId, featureId, dittoHeaders);
         });
     }
@@ -172,7 +172,7 @@ public final class DeleteFeature extends AbstractCommand<DeleteFeature> implemen
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
+    protected boolean canEqual(@Nullable final Object other) {
         return (other instanceof DeleteFeature);
     }
 

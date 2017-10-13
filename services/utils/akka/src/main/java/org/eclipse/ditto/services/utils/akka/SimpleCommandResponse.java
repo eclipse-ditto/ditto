@@ -75,12 +75,7 @@ public final class SimpleCommandResponse implements Jsonifiable<JsonObject> {
      * expected 'SimpleCommandResponse' format.
      */
     public static SimpleCommandResponse fromJson(final JsonObject jsonObject) {
-
-        final String extractedCorrelationId = jsonObject.getValue(JsonFields.CORRELATION_ID)
-                .filter(JsonValue::isString)
-                .map(JsonValue::asString)
-                .orElse(null);
-
+        final String extractedCorrelationId = jsonObject.getValue(JsonFields.CORRELATION_ID).orElse(null);
         final JsonValue extractedPayload = jsonObject.getValue(JsonFields.PAYLOAD).orElse(null);
 
         return of(extractedCorrelationId, extractedPayload);
@@ -137,20 +132,23 @@ public final class SimpleCommandResponse implements Jsonifiable<JsonObject> {
     /**
      * An enumeration of the known {@link JsonFieldDefinition}s of a SimpleCommandResponse.
      */
+    @Immutable
     public static final class JsonFields {
 
         /**
          * JSON field containing the correlationId.
          */
-        static final JsonFieldDefinition CORRELATION_ID = JsonFactory.newFieldDefinition("correlationId", String.class);
+        static final JsonFieldDefinition<String> CORRELATION_ID = JsonFactory.newStringFieldDefinition("correlationId");
 
         /**
          * JSON field containing optional payload.
          */
-        static final JsonFieldDefinition PAYLOAD = JsonFactory.newFieldDefinition("payload", JsonValue.class);
+        static final JsonFieldDefinition<JsonValue> PAYLOAD = JsonFactory.newJsonValueFieldDefinition("payload");
 
         private JsonFields() {
             throw new AssertionError();
         }
+
     }
+
 }

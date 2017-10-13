@@ -113,9 +113,9 @@ public final class FeaturePropertiesDeleted extends AbstractThingEvent<FeaturePr
      */
     public static FeaturePropertiesDeleted fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new EventJsonDeserializer<FeaturePropertiesDeleted>(TYPE, jsonObject)
-                .deserialize((revision, timestamp, jsonObjectReader) -> {
-                    final String extractedThingId = jsonObjectReader.get(JsonFields.THING_ID);
-                    final String extractedFeatureId = jsonObjectReader.get(JsonFields.FEATURE_ID);
+                .deserialize((revision, timestamp) -> {
+                    final String extractedThingId = jsonObject.getValueOrThrow(JsonFields.THING_ID);
+                    final String extractedFeatureId = jsonObject.getValueOrThrow(JsonFields.FEATURE_ID);
 
                     return of(extractedThingId, extractedFeatureId, revision, timestamp, dittoHeaders);
                 });

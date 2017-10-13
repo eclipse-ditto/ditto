@@ -18,6 +18,7 @@ import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonArray;
@@ -46,10 +47,9 @@ public final class RetrieveLoggerConfigResponse extends AbstractDevOpsCommandRes
      */
     public static final String TYPE = TYPE_PREFIX + RetrieveLoggerConfig.NAME;
 
-    static final JsonFieldDefinition JSON_LOGGER_CONFIGS =
-            JsonFactory.newFieldDefinition("loggerConfigs", JsonArray.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<JsonArray> JSON_LOGGER_CONFIGS =
+            JsonFactory.newArrayFieldDefinition("loggerConfigs", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
 
     private final List<LoggerConfig> loggerConfigs;
 
@@ -71,7 +71,7 @@ public final class RetrieveLoggerConfigResponse extends AbstractDevOpsCommandRes
     }
 
     /**
-     * Creates a response to a {@link RetrieveLoggerConfigResponse} command from a JSON string.
+     * Creates a response to a {@code RetrieveLoggerConfigResponse} command from a JSON string.
      *
      * @param jsonString contains the data of the RetrieveLoggerConfigResponse command.
      * @param dittoHeaders the headers of the request.
@@ -86,7 +86,7 @@ public final class RetrieveLoggerConfigResponse extends AbstractDevOpsCommandRes
     }
 
     /**
-     * Creates a response to a {@link RetrieveLoggerConfigResponse} command from a JSON object.
+     * Creates a response to a {@code RetrieveLoggerConfigResponse} command from a JSON object.
      *
      * @param jsonObject the JSON object of which the response is to be created.
      * @param dittoHeaders the headers of the preceding command.
@@ -98,13 +98,14 @@ public final class RetrieveLoggerConfigResponse extends AbstractDevOpsCommandRes
     public static RetrieveLoggerConfigResponse fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
         return new DevOpsCommandResponseJsonDeserializer<RetrieveLoggerConfigResponse>(TYPE, jsonObject)
-                .deserialize((statusCode, jsonObjectReader) -> {
-                    final List<LoggerConfig> loggerConfigs = jsonObjectReader.<JsonArray>get(JSON_LOGGER_CONFIGS) //
-                            .stream() //
-                            .filter(JsonValue::isObject) //
-                            .map(JsonValue::asObject) //
-                            .map(ImmutableLoggerConfig::fromJson) //
+                .deserialize(() -> {
+                    final JsonArray loggerConfigsJsonArray = jsonObject.getValueOrThrow(JSON_LOGGER_CONFIGS);
+                    final List<LoggerConfig> loggerConfigs = loggerConfigsJsonArray.stream()
+                            .filter(JsonValue::isObject)
+                            .map(JsonValue::asObject)
+                            .map(ImmutableLoggerConfig::fromJson)
                             .collect(Collectors.toList());
+
                     return of(loggerConfigs, dittoHeaders);
                 });
     }
@@ -126,16 +127,17 @@ public final class RetrieveLoggerConfigResponse extends AbstractDevOpsCommandRes
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(JSON_LOGGER_CONFIGS, loggerConfigs.stream() //
-                .map(LoggerConfig::toJson) //
-                .collect(JsonCollectors.valuesToArray()), predicate) //
+        jsonObjectBuilder.set(JSON_LOGGER_CONFIGS, loggerConfigs.stream()
+                .map(LoggerConfig::toJson)
+                .collect(JsonCollectors.valuesToArray()), predicate)
                 .build();
     }
 
     @SuppressWarnings("squid:MethodCyclomaticComplexity")
     @Override
-    public boolean equals(final Object o) {
+    public boolean equals(@Nullable final Object o) {
         if (this == o) {
             return true;
         }
@@ -147,8 +149,8 @@ public final class RetrieveLoggerConfigResponse extends AbstractDevOpsCommandRes
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof RetrieveLoggerConfigResponse);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof RetrieveLoggerConfigResponse;
     }
 
     @Override
@@ -160,4 +162,5 @@ public final class RetrieveLoggerConfigResponse extends AbstractDevOpsCommandRes
     public String toString() {
         return getClass().getSimpleName() + " [" + super.toString() + "loggerConfigs=" + loggerConfigs + "]";
     }
+
 }

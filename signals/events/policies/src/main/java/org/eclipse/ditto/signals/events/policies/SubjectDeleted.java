@@ -49,21 +49,22 @@ public final class SubjectDeleted extends AbstractPolicyEvent<SubjectDeleted> im
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition JSON_LABEL =
-            JsonFactory.newFieldDefinition("label", String.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<String> JSON_LABEL =
+            JsonFactory.newStringFieldDefinition("label", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
-    static final JsonFieldDefinition JSON_SUBJECT_ID =
-            JsonFactory.newFieldDefinition("subjectId", String.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<String> JSON_SUBJECT_ID =
+            JsonFactory.newStringFieldDefinition("subjectId", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private final Label label;
     private final SubjectId subjectId;
 
-    private SubjectDeleted(final String policyId, final Label label, final SubjectId subjectId, final long revision,
-            final Instant timestamp, final DittoHeaders dittoHeaders) {
+    private SubjectDeleted(final String policyId,
+            final Label label,
+            final SubjectId subjectId,
+            final long revision,
+            @Nullable final Instant timestamp,
+            final DittoHeaders dittoHeaders) {
+
         super(TYPE, checkNotNull(policyId, "Policy identifier"), revision, timestamp, dittoHeaders);
         this.label = checkNotNull(label, "Label");
         this.subjectId = checkNotNull(subjectId, "Subject identifier");
@@ -80,8 +81,12 @@ public final class SubjectDeleted extends AbstractPolicyEvent<SubjectDeleted> im
      * @return the created SubjectDeleted.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static SubjectDeleted of(final String policyId, final Label label, final SubjectId subjectId,
-            final long revision, final DittoHeaders dittoHeaders) {
+    public static SubjectDeleted of(final String policyId,
+            final Label label,
+            final SubjectId subjectId,
+            final long revision,
+            final DittoHeaders dittoHeaders) {
+
         return new SubjectDeleted(policyId, label, subjectId, revision, null, dittoHeaders);
     }
 
@@ -95,10 +100,15 @@ public final class SubjectDeleted extends AbstractPolicyEvent<SubjectDeleted> im
      * @param timestamp the timestamp of this event.
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the created SubjectDeleted.
-     * @throws NullPointerException if any argument is {@code null}.
+     * @throws NullPointerException if any argument {@code timestamp} is {@code null}.
      */
-    public static SubjectDeleted of(final String policyId, final Label label, final SubjectId subjectId,
-            final long revision, final Instant timestamp, final DittoHeaders dittoHeaders) {
+    public static SubjectDeleted of(final String policyId,
+            final Label label,
+            final SubjectId subjectId,
+            final long revision,
+            @Nullable final Instant timestamp,
+            final DittoHeaders dittoHeaders) {
+
         return new SubjectDeleted(policyId, label, subjectId, revision, timestamp, dittoHeaders);
     }
 
@@ -125,11 +135,11 @@ public final class SubjectDeleted extends AbstractPolicyEvent<SubjectDeleted> im
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected 'SubjectDeleted' format.
      */
     public static SubjectDeleted fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new EventJsonDeserializer<SubjectDeleted>(TYPE, jsonObject).deserialize((revision, timestamp,
-                jsonObjectReader) -> {
-            final String policyId = jsonObjectReader.get(JsonFields.POLICY_ID);
-            final Label label = Label.of(jsonObjectReader.get(JSON_LABEL));
-            final SubjectId extractedDeletedSubjectId = SubjectId.newInstance(jsonObjectReader.get(JSON_SUBJECT_ID));
+        return new EventJsonDeserializer<SubjectDeleted>(TYPE, jsonObject).deserialize((revision, timestamp) -> {
+            final String policyId = jsonObject.getValueOrThrow(JsonFields.POLICY_ID);
+            final Label label = Label.of(jsonObject.getValueOrThrow(JSON_LABEL));
+            final SubjectId extractedDeletedSubjectId =
+                    SubjectId.newInstance(jsonObject.getValueOrThrow(JSON_SUBJECT_ID));
 
             return of(policyId, label, extractedDeletedSubjectId, revision, timestamp, dittoHeaders);
         });
@@ -202,8 +212,8 @@ public final class SubjectDeleted extends AbstractPolicyEvent<SubjectDeleted> im
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof SubjectDeleted);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof SubjectDeleted;
     }
 
     @Override

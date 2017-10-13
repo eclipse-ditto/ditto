@@ -54,15 +54,17 @@ public final class PolicyEntriesModified extends AbstractPolicyEvent<PolicyEntri
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition JSON_POLICY_ENTRIES =
-            JsonFactory.newFieldDefinition("policyEntries", JsonObject.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<JsonObject> JSON_POLICY_ENTRIES =
+            JsonFactory.newJsonObjectFieldDefinition("policyEntries", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private final Iterable<PolicyEntry> policyEntries;
 
-    private PolicyEntriesModified(final String policyId, final Iterable<PolicyEntry> policyEntries, final long revision,
-            final Instant timestamp, final DittoHeaders dittoHeaders) {
+    private PolicyEntriesModified(final String policyId,
+            final Iterable<PolicyEntry> policyEntries,
+            final long revision,
+            @Nullable final Instant timestamp,
+            final DittoHeaders dittoHeaders) {
+
         super(TYPE, checkNotNull(policyId, "Policy identifier"), revision, timestamp, dittoHeaders);
         this.policyEntries = checkNotNull(policyEntries, "Policy Entries");
     }
@@ -77,9 +79,11 @@ public final class PolicyEntriesModified extends AbstractPolicyEvent<PolicyEntri
      * @return the created PolicyEntriesModified.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static PolicyEntriesModified of(final String policyId, final Iterable<PolicyEntry> policyEntries,
+    public static PolicyEntriesModified of(final String policyId,
+            final Iterable<PolicyEntry> policyEntries,
             final long revision,
             final DittoHeaders dittoHeaders) {
+
         return of(policyId, policyEntries, revision, null, dittoHeaders);
     }
 
@@ -92,11 +96,14 @@ public final class PolicyEntriesModified extends AbstractPolicyEvent<PolicyEntri
      * @param timestamp the timestamp of this event.
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the created PolicyEntriesModified.
-     * @throws NullPointerException if any argument is {@code null}.
+     * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
      */
-    public static PolicyEntriesModified of(final String policyId, final Iterable<PolicyEntry> policyEntries,
+    public static PolicyEntriesModified of(final String policyId,
+            final Iterable<PolicyEntry> policyEntries,
             final long revision,
-            final Instant timestamp, final DittoHeaders dittoHeaders) {
+            @Nullable final Instant timestamp,
+            final DittoHeaders dittoHeaders) {
+
         return new PolicyEntriesModified(policyId, policyEntries, revision, timestamp, dittoHeaders);
     }
 
@@ -126,9 +133,9 @@ public final class PolicyEntriesModified extends AbstractPolicyEvent<PolicyEntri
      */
     public static PolicyEntriesModified fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new EventJsonDeserializer<PolicyEntriesModified>(TYPE, jsonObject)
-                .deserialize((revision, timestamp, jsonObjectReader) -> {
-                    final String policyId = jsonObjectReader.get(JsonFields.POLICY_ID);
-                    final JsonObject policyEntriesJsonObject = jsonObjectReader.get(JSON_POLICY_ENTRIES);
+                .deserialize((revision, timestamp) -> {
+                    final String policyId = jsonObject.getValueOrThrow(JsonFields.POLICY_ID);
+                    final JsonObject policyEntriesJsonObject = jsonObject.getValueOrThrow(JSON_POLICY_ENTRIES);
                     final Iterable<PolicyEntry> extractedModifiedPolicyEntry =
                             PoliciesModelFactory.newPolicyEntries(policyEntriesJsonObject);
 
@@ -205,8 +212,8 @@ public final class PolicyEntriesModified extends AbstractPolicyEvent<PolicyEntri
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof PolicyEntriesModified);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof PolicyEntriesModified;
     }
 
     @Override

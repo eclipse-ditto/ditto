@@ -48,22 +48,22 @@ public final class RetrieveSubjectsResponse extends AbstractCommandResponse<Retr
      */
     public static final String TYPE = TYPE_PREFIX + RetrieveSubjects.NAME;
 
-    static final JsonFieldDefinition JSON_LABEL =
-            JsonFactory.newFieldDefinition("label", String.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<String> JSON_LABEL =
+            JsonFactory.newStringFieldDefinition("label", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
-    static final JsonFieldDefinition JSON_SUBJECTS =
-            JsonFactory.newFieldDefinition("subjects", JsonObject.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<JsonObject> JSON_SUBJECTS =
+            JsonFactory.newJsonObjectFieldDefinition("subjects", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private final String policyId;
     private final Label label;
     private final JsonObject subjects;
 
-    private RetrieveSubjectsResponse(final String policyId, final Label label, final JsonObject subjects,
-            final HttpStatusCode statusCode, final DittoHeaders dittoHeaders) {
+    private RetrieveSubjectsResponse(final String policyId,
+            final Label label,
+            final JsonObject subjects,
+            final HttpStatusCode statusCode,
+            final DittoHeaders dittoHeaders) {
+
         super(TYPE, statusCode, dittoHeaders);
         this.policyId = checkNotNull(policyId, "Policy ID");
         this.label = checkNotNull(label, "Label");
@@ -80,12 +80,13 @@ public final class RetrieveSubjectsResponse extends AbstractCommandResponse<Retr
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static RetrieveSubjectsResponse of(final String policyId, final Label label, final Subjects subjects,
+    public static RetrieveSubjectsResponse of(final String policyId,
+            final Label label,
+            final Subjects subjects,
             final DittoHeaders dittoHeaders) {
-        return new RetrieveSubjectsResponse(policyId, label,
-                checkNotNull(subjects, "Subjects")
-                        .toJson(dittoHeaders.getSchemaVersion().orElse(subjects.getLatestSchemaVersion())),
-                HttpStatusCode.OK,
+
+        return new RetrieveSubjectsResponse(policyId, label, checkNotNull(subjects, "Subjects").toJson(
+                dittoHeaders.getSchemaVersion().orElse(subjects.getLatestSchemaVersion())), HttpStatusCode.OK,
                 dittoHeaders);
     }
 
@@ -99,9 +100,11 @@ public final class RetrieveSubjectsResponse extends AbstractCommandResponse<Retr
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static RetrieveSubjectsResponse of(final String policyId, final Label label,
+    public static RetrieveSubjectsResponse of(final String policyId,
+            final Label label,
             final JsonObject subjects,
             final DittoHeaders dittoHeaders) {
+
         return new RetrieveSubjectsResponse(policyId, label, subjects, HttpStatusCode.OK, dittoHeaders);
     }
 
@@ -132,11 +135,12 @@ public final class RetrieveSubjectsResponse extends AbstractCommandResponse<Retr
      */
     public static RetrieveSubjectsResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<RetrieveSubjectsResponse>(TYPE, jsonObject)
-                .deserialize((statusCode, jsonObjectReader) -> {
-                    final String policyId = jsonObjectReader.get(PolicyQueryCommandResponse.JsonFields.JSON_POLICY_ID);
-                    final String stringLabel = jsonObjectReader.get(JSON_LABEL);
-                    final Label label = PoliciesModelFactory.newLabel(stringLabel);
-                    final JsonObject extractedSubjects = jsonObjectReader.get(JSON_SUBJECTS);
+                .deserialize((statusCode) -> {
+                    final String policyId =
+                            jsonObject.getValueOrThrow(PolicyQueryCommandResponse.JsonFields.JSON_POLICY_ID);
+                    final Label label = PoliciesModelFactory.newLabel(jsonObject.getValueOrThrow(JSON_LABEL));
+                    final JsonObject extractedSubjects = jsonObject.getValueOrThrow(JSON_SUBJECTS);
+
                     return of(policyId, label, extractedSubjects, dittoHeaders);
                 });
     }
@@ -189,6 +193,7 @@ public final class RetrieveSubjectsResponse extends AbstractCommandResponse<Retr
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(PolicyQueryCommandResponse.JsonFields.JSON_POLICY_ID, policyId, predicate);
         jsonObjectBuilder.set(JSON_LABEL, label.toString(), predicate);
@@ -196,8 +201,8 @@ public final class RetrieveSubjectsResponse extends AbstractCommandResponse<Retr
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof RetrieveSubjectsResponse);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof RetrieveSubjectsResponse;
     }
 
     @Override

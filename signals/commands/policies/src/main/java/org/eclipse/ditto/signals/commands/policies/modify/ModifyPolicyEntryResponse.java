@@ -48,22 +48,20 @@ public final class ModifyPolicyEntryResponse extends AbstractCommandResponse<Mod
      */
     public static final String TYPE = TYPE_PREFIX + ModifyPolicyEntry.NAME;
 
-    static final JsonFieldDefinition JSON_LABEL =
-            JsonFactory.newFieldDefinition("label", String.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<String> JSON_LABEL =
+            JsonFactory.newStringFieldDefinition("label", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
-    static final JsonFieldDefinition JSON_POLICY_ENTRY =
-            JsonFactory.newFieldDefinition("policyEntry", JsonValue.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<JsonValue> JSON_POLICY_ENTRY =
+            JsonFactory.newJsonValueFieldDefinition("policyEntry", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private final String policyId;
-    @Nullable
-    private final PolicyEntry policyEntryCreated;
+    @Nullable private final PolicyEntry policyEntryCreated;
 
-    private ModifyPolicyEntryResponse(final String policyId, final HttpStatusCode statusCode,
-            @Nullable final PolicyEntry policyEntryCreated, final DittoHeaders dittoHeaders) {
+    private ModifyPolicyEntryResponse(final String policyId,
+            final HttpStatusCode statusCode,
+            @Nullable final PolicyEntry policyEntryCreated,
+            final DittoHeaders dittoHeaders) {
+
         super(TYPE, statusCode, dittoHeaders);
         this.policyId = checkNotNull(policyId, "Policy ID");
         this.policyEntryCreated = policyEntryCreated;
@@ -80,6 +78,7 @@ public final class ModifyPolicyEntryResponse extends AbstractCommandResponse<Mod
      */
     public static ModifyPolicyEntryResponse created(final String policyId, final PolicyEntry policyEntryCreated,
             final DittoHeaders dittoHeaders) {
+
         return new ModifyPolicyEntryResponse(policyId, HttpStatusCode.CREATED, policyEntryCreated, dittoHeaders);
     }
 
@@ -120,16 +119,15 @@ public final class ModifyPolicyEntryResponse extends AbstractCommandResponse<Mod
      */
     public static ModifyPolicyEntryResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<ModifyPolicyEntryResponse>(TYPE, jsonObject)
-                .deserialize((statusCode, jsonObjectReader) -> {
-                    final String policyId = jsonObjectReader.get(PolicyModifyCommandResponse.JsonFields.JSON_POLICY_ID);
-                    final Optional<String> extractedLabel = jsonObject.getValue(JSON_LABEL)
-                            .filter(JsonValue::isString)
-                            .map(JsonValue::asString);
+                .deserialize((statusCode) -> {
+                    final String policyId =
+                            jsonObject.getValueOrThrow(PolicyModifyCommandResponse.JsonFields.JSON_POLICY_ID);
+                    final Optional<String> readLabel = jsonObject.getValue(JSON_LABEL);
 
                     final PolicyEntry extractedPolicyEntryCreated = jsonObject.getValue(JSON_POLICY_ENTRY)
+                            .filter(JsonValue::isObject)
                             .map(JsonValue::asObject)
-                            .map(obj -> extractedLabel.isPresent() ?
-                                    PoliciesModelFactory.newPolicyEntry(extractedLabel.get(), obj) : null)
+                            .map(obj -> readLabel.map(s -> PoliciesModelFactory.newPolicyEntry(s, obj)).orElse(null))
                             .orElse(null);
 
                     return new ModifyPolicyEntryResponse(policyId, statusCode, extractedPolicyEntryCreated,
@@ -169,6 +167,7 @@ public final class ModifyPolicyEntryResponse extends AbstractCommandResponse<Mod
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(PolicyModifyCommandResponse.JsonFields.JSON_POLICY_ID, policyId, predicate);
         if (null != policyEntryCreated) {
@@ -184,8 +183,8 @@ public final class ModifyPolicyEntryResponse extends AbstractCommandResponse<Mod
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof ModifyPolicyEntryResponse);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof ModifyPolicyEntryResponse;
     }
 
     @Override

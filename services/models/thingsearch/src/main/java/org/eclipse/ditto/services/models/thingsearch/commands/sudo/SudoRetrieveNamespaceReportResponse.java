@@ -93,10 +93,11 @@ public final class SudoRetrieveNamespaceReportResponse extends
     public static SudoRetrieveNamespaceReportResponse fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<SudoRetrieveNamespaceReportResponse>(TYPE, jsonObject)
-                .deserialize((statusCode, jsonObjectReader) -> {
-                    final JsonObject namespaceReportJson = jsonObjectReader.get(JsonFields.PAYLOAD);
+                .deserialize((statusCode) -> {
+                    final JsonObject namespaceReportJson = jsonObject.getValueOrThrow(JsonFields.PAYLOAD).asObject();
                     final SearchNamespaceReportResult namespaceReportResult =
                             SearchNamespaceReportResult.fromJson(namespaceReportJson);
+
                     return of(namespaceReportResult, dittoHeaders);
                 });
     }

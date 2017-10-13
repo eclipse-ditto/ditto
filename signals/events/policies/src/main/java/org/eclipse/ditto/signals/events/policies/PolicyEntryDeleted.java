@@ -49,15 +49,17 @@ public final class PolicyEntryDeleted extends AbstractPolicyEvent<PolicyEntryDel
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition JSON_LABEL =
-            JsonFactory.newFieldDefinition("label", String.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<String> JSON_LABEL =
+            JsonFactory.newStringFieldDefinition("label", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private final Label label;
 
-    private PolicyEntryDeleted(final String policyId, final Label label, final long revision,
-            final Instant timestamp, final DittoHeaders dittoHeaders) {
+    private PolicyEntryDeleted(final String policyId,
+            final Label label,
+            final long revision,
+            @Nullable final Instant timestamp,
+            final DittoHeaders dittoHeaders) {
+
         super(TYPE, checkNotNull(policyId, "Policy identifier"), revision, timestamp, dittoHeaders);
         this.label = checkNotNull(label, "Label");
     }
@@ -72,8 +74,11 @@ public final class PolicyEntryDeleted extends AbstractPolicyEvent<PolicyEntryDel
      * @return the created PolicyEntryDeleted.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static PolicyEntryDeleted of(final String policyId, final Label label, final long revision,
+    public static PolicyEntryDeleted of(final String policyId,
+            final Label label,
+            final long revision,
             final DittoHeaders dittoHeaders) {
+
         return of(policyId, label, revision, null, dittoHeaders);
     }
 
@@ -86,10 +91,14 @@ public final class PolicyEntryDeleted extends AbstractPolicyEvent<PolicyEntryDel
      * @param timestamp the timestamp of this event.
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the created PolicyEntryDeleted.
-     * @throws NullPointerException if any argument is {@code null}.
+     * @throws NullPointerException if any argument {@code timestamp} is {@code null}.
      */
-    public static PolicyEntryDeleted of(final String policyId, final Label label, final long revision,
-            final Instant timestamp, final DittoHeaders dittoHeaders) {
+    public static PolicyEntryDeleted of(final String policyId,
+            final Label label,
+            final long revision,
+            @Nullable final Instant timestamp,
+            final DittoHeaders dittoHeaders) {
+
         return new PolicyEntryDeleted(policyId, label, revision, timestamp, dittoHeaders);
     }
 
@@ -119,9 +128,9 @@ public final class PolicyEntryDeleted extends AbstractPolicyEvent<PolicyEntryDel
      */
     public static PolicyEntryDeleted fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new EventJsonDeserializer<PolicyEntryDeleted>(TYPE, jsonObject)
-                .deserialize((revision, timestamp, jsonObjectReader) -> {
-                    final String policyId = jsonObjectReader.get(JsonFields.POLICY_ID);
-                    final Label extractedLabel = Label.of(jsonObjectReader.get(JSON_LABEL));
+                .deserialize((revision, timestamp) -> {
+                    final String policyId = jsonObject.getValueOrThrow(JsonFields.POLICY_ID);
+                    final Label extractedLabel = Label.of(jsonObject.getValueOrThrow(JSON_LABEL));
 
                     return of(policyId, extractedLabel, revision, timestamp, dittoHeaders);
                 });
@@ -155,6 +164,7 @@ public final class PolicyEntryDeleted extends AbstractPolicyEvent<PolicyEntryDel
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(JSON_LABEL, label.toString(), predicate);
     }
@@ -182,8 +192,8 @@ public final class PolicyEntryDeleted extends AbstractPolicyEvent<PolicyEntryDel
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof PolicyEntryDeleted);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof PolicyEntryDeleted;
     }
 
     @Override

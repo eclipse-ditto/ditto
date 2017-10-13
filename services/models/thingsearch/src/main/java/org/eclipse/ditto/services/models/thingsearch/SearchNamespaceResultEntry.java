@@ -11,8 +11,6 @@
  */
 package org.eclipse.ditto.services.models.thingsearch;
 
-import static org.eclipse.ditto.json.JsonFactory.newFieldDefinition;
-
 import java.util.Objects;
 import java.util.function.Predicate;
 
@@ -22,8 +20,6 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonReader;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
@@ -35,15 +31,17 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
 @Immutable
 public final class SearchNamespaceResultEntry implements Jsonifiable.WithPredicate<JsonObject, JsonField> {
 
-    private final static JsonFieldDefinition SCHEMA_VERSION =
-            newFieldDefinition(JsonSchemaVersion.getJsonKey(), int.class, FieldType.SPECIAL, JsonSchemaVersion.V_1);
-    private static final JsonFieldDefinition NAMESPACE =
-            newFieldDefinition("namespace", JsonValue.class, FieldType.REGULAR, JsonSchemaVersion.V_1);
-    private static final JsonFieldDefinition COUNT =
-            newFieldDefinition("count", JsonValue.class, FieldType.REGULAR, JsonSchemaVersion.V_1);
+    private final static JsonFieldDefinition<Integer> SCHEMA_VERSION_JSON_FIELD =
+            JsonFactory.newIntFieldDefinition(JsonSchemaVersion.getJsonKey(), FieldType.SPECIAL, JsonSchemaVersion.V_1);
+
+    private static final JsonFieldDefinition<String> NAMESPACE_JSON_FIELD =
+            JsonFactory.newStringFieldDefinition("namespace", FieldType.REGULAR, JsonSchemaVersion.V_1);
+
+    private static final JsonFieldDefinition<Long> COUNT_JSON_FIELD =
+            JsonFactory.newLongFieldDefinition("count", FieldType.REGULAR, JsonSchemaVersion.V_1);
+
     private final String namespace;
     private final long count;
-
 
     /**
      * Creates a Namespace Entry.
@@ -86,8 +84,9 @@ public final class SearchNamespaceResultEntry implements Jsonifiable.WithPredica
      * expected 'SearchNamespaceResultEntry' format.
      */
     public static SearchNamespaceResultEntry fromJson(final JsonObject jsonObject) {
-        final String namespace = JsonReader.from(jsonObject).getAsString(NAMESPACE.getPointer());
-        final long count = JsonReader.from(jsonObject).getAsLong(COUNT.getPointer());
+        final String namespace = jsonObject.getValueOrThrow(NAMESPACE_JSON_FIELD);
+        final long count = jsonObject.getValueOrThrow(COUNT_JSON_FIELD);
+
         return new SearchNamespaceResultEntry(namespace, count);
     }
 
@@ -95,19 +94,19 @@ public final class SearchNamespaceResultEntry implements Jsonifiable.WithPredica
     public JsonObject toJson(final Predicate<JsonField> predicate) {
         final JsonSchemaVersion jsonSchemaVersion = JsonSchemaVersion.V_1;
 
-        return JsonFactory.newObjectBuilder() //
-                .set(SCHEMA_VERSION, jsonSchemaVersion.toInt(), predicate) //
-                .set(NAMESPACE, namespace, predicate) //
-                .set(COUNT, count, predicate) //
+        return JsonFactory.newObjectBuilder()
+                .set(SCHEMA_VERSION_JSON_FIELD, jsonSchemaVersion.toInt(), predicate)
+                .set(NAMESPACE_JSON_FIELD, namespace, predicate)
+                .set(COUNT_JSON_FIELD, count, predicate)
                 .build();
     }
 
     @Override
     public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> predicate) {
-        return JsonFactory.newObjectBuilder() //
-                .set(SCHEMA_VERSION, schemaVersion.toInt(), predicate) //
-                .set(NAMESPACE, namespace, predicate) //
-                .set(COUNT, count, predicate) //
+        return JsonFactory.newObjectBuilder()
+                .set(SCHEMA_VERSION_JSON_FIELD, schemaVersion.toInt(), predicate)
+                .set(NAMESPACE_JSON_FIELD, namespace, predicate)
+                .set(COUNT_JSON_FIELD, count, predicate)
                 .build();
     }
 
@@ -130,7 +129,6 @@ public final class SearchNamespaceResultEntry implements Jsonifiable.WithPredica
     public int hashCode() {
         return Objects.hash(namespace, count);
     }
-
 
     /**
      * Get number of Things for this Report Entry.
@@ -156,7 +154,7 @@ public final class SearchNamespaceResultEntry implements Jsonifiable.WithPredica
      * @return the SCHEMA_VERSION.
      */
     public JsonFieldDefinition getSchemaVersion() {
-        return SCHEMA_VERSION;
+        return SCHEMA_VERSION_JSON_FIELD;
     }
 
     @Override
@@ -166,4 +164,5 @@ public final class SearchNamespaceResultEntry implements Jsonifiable.WithPredica
                 ", count=" + count +
                 '}';
     }
+
 }

@@ -19,22 +19,20 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonObjectReader;
 import org.eclipse.ditto.json.JsonParseException;
-import org.eclipse.ditto.json.JsonReader;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 
 /**
  * This class helps to deserialize JSON to a sub-class of {@link CommandResponse}. Hereby this class extracts the
  * values which are common for all command responses. All remaining required values have to be extracted in {@link
- * FactoryMethodFunction#create(HttpStatusCode, JsonObjectReader)}. There the actual command response object is
+ * FactoryMethodFunction#create(HttpStatusCode)}. There the actual command response object is
  * created, too.
  */
 @Immutable
 public final class CommandResponseJsonDeserializer<T extends CommandResponse> {
 
-    private final JsonObjectReader jsonReader;
+    private final JsonObject jsonObject;
     private final String expectedCommandResponseType;
     /**
      * Constructs a new {@code CommandResponseJsonDeserializer} object.
@@ -47,7 +45,7 @@ public final class CommandResponseJsonDeserializer<T extends CommandResponse> {
         checkNotNull(type, "command response type");
         checkNotNull(jsonObject, "JSON object to be deserialized");
 
-        jsonReader = JsonReader.from(jsonObject);
+        this.jsonObject = jsonObject;
         expectedCommandResponseType = type;
     }
 
@@ -67,7 +65,7 @@ public final class CommandResponseJsonDeserializer<T extends CommandResponse> {
     /**
      * Partly deserializes the JSON which was given to this object's constructor. The factory method function which is
      * given to this method is responsible for creating the actual {@code CommandResponseType}. This method receives the
-     * partly deserialized values as well as the {@link JsonReader} for the JSON to obtain further values if required.
+     * partly deserialized values which can be completed by implementors if further values are required.
      *
      * @param factoryMethodFunction creates the actual {@code CommandResponseType} object.
      * @return the command response.
@@ -78,20 +76,23 @@ public final class CommandResponseJsonDeserializer<T extends CommandResponse> {
         checkNotNull(factoryMethodFunction, "method for creating a command response object");
         validateCommandResponseType();
 
-        final HttpStatusCode statusCode = HttpStatusCode.forInt(jsonReader.get(CommandResponse.JsonFields.STATUS))
-                .orElseThrow(() -> new JsonParseException("The given HTTP status code is not supported."));
+        final int statusCode = jsonObject.getValueOrThrow(CommandResponse.JsonFields.STATUS);
+        final HttpStatusCode httpStatusCode = HttpStatusCode.forInt(statusCode).orElseThrow(() -> {
+            final String msgPattern = "HTTP status code <{0}> of JSON Object is not supported!";
+            return new JsonParseException(MessageFormat.format(msgPattern, statusCode));
+        });
 
-        return factoryMethodFunction.create(statusCode, jsonReader);
+        return factoryMethodFunction.create(httpStatusCode);
     }
 
     private void validateCommandResponseType() {
-        final String commandResponseType = jsonReader.get(CommandResponse.JsonFields.TYPE);
-        if (!expectedCommandResponseType.equals(commandResponseType)) {
-            final String msg =
-                    MessageFormat.format("Command Response JSON was not a ''{0}'' command response but a ''{1}''!",
-                            expectedCommandResponseType, commandResponseType);
-            final JsonParseException jsonParseException = new JsonParseException(msg);
-            throw new DittoJsonException(jsonParseException);
+        final String actualCommandResponseType = jsonObject.getValueOrThrow(CommandResponse.JsonFields.TYPE);
+
+        if (!expectedCommandResponseType.equals(actualCommandResponseType)) {
+            final String msgPattern = "Command Response JSON was not a <{0}> command response but a <{1}>!";
+            final String msg = MessageFormat.format(msgPattern, expectedCommandResponseType, actualCommandResponseType);
+
+            throw new DittoJsonException(new JsonParseException(msg));
         }
     }
 
@@ -108,11 +109,9 @@ public final class CommandResponseJsonDeserializer<T extends CommandResponse> {
          * Creates a {@code CommandResponse} with the help of the given arguments.
          *
          * @param statusCode the status of the response.
-         * @param jsonObjectReader the reader which was initialized with the JSON to be deserialized. It can be used to
-         * obtain further values from JSON.
          * @return the command response.
          */
-        T create(HttpStatusCode statusCode, JsonObjectReader jsonObjectReader);
+        T create(HttpStatusCode statusCode);
     }
 
 }

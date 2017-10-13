@@ -13,6 +13,8 @@ package org.eclipse.ditto.json;
 
 import java.util.function.Predicate;
 
+import javax.annotation.Nullable;
+
 /**
  * A mutable builder for a {@link JsonObject}. Implementations of this interface are normally not thread safe and not
  * reusable.
@@ -187,169 +189,36 @@ public interface JsonObjectBuilder extends Iterable<JsonField> {
     }
 
     /**
-     * Sets a new int value field to the JSON object to be built if the specified predicate evaluates to
-     * {@code true}.
+     * Sets a new field to the JSON object to be built if the specified predicate evaluates to {@code true}.
      *
-     * @param fieldDefinition this field definition provides the JSON pointer to the field to be set.
+     * @param fieldDefinition defines the location via JsonPointer, the Java value type and optional
+     * JsonFieldMarkers of the field to be set.
      * @param value the value of the field to be set.
-     * @param predicate the predicate which finally determines if the field is to be set.
+     * @param <T> the type of {@code value}.
+     * @param predicate the predicate which finally determines if the field is to be set. The field was derived from
+     * {@code fieldDefinition} and {@code value}.
      * @return this builder to allow method chaining.
      * @throws NullPointerException if {@code fieldDefinition} or {@code predicate} is null.
      * @throws IllegalArgumentException if the value type of {@code fieldDefinition} is not a {@code int}.
      * @see #set(CharSequence, int)
      */
-    JsonObjectBuilder set(JsonFieldDefinition fieldDefinition, int value, Predicate<JsonField> predicate);
+    <T> JsonObjectBuilder set(JsonFieldDefinition<T> fieldDefinition, @Nullable T value,
+            Predicate<JsonField> predicate);
 
     /**
-     * Sets a new int value field to the JSON object to be built.
+     * Sets a new field to the JSON object to be built.
      *
-     * @param fieldDefinition this field definition provides the JSON pointer to the field to be set.
+     * @param fieldDefinition defines the location via JsonPointer, the Java value type and optional
+     * JsonFieldMarkers of the field to be set.
      * @param value the value of the field to be set.
+     * @param <T> the type of {@code value}.
      * @return this builder to allow method chaining.
-     * @throws NullPointerException if {@code fieldDefinition} is null.
+     * @throws NullPointerException if {@code fieldDefinition} or {@code predicate} is null.
      * @throws IllegalArgumentException if the value type of {@code fieldDefinition} is not a {@code int}.
      * @see #set(CharSequence, int)
      */
-    default JsonObjectBuilder set(final JsonFieldDefinition fieldDefinition, final int value) {
-        return set(fieldDefinition, value, field -> true);
-    }
-
-    /**
-     * Sets a new long value field to the JSON object to be built if the specified predicate evaluates to
-     * {@code true}.
-     *
-     * @param fieldDefinition this field definition provides the JSON pointer to the field to be set.
-     * @param value the value of the field to be set.
-     * @param predicate the predicate which finally determines if the field is to be set.
-     * @return this builder to allow method chaining.
-     * @throws NullPointerException if {@code fieldDefinition} or {@code predicate} is null.
-     * @throws IllegalArgumentException if the value type of {@code fieldDefinition} is not a {@code long}.
-     * @see #set(CharSequence, long)
-     */
-    JsonObjectBuilder set(JsonFieldDefinition fieldDefinition, long value, Predicate<JsonField> predicate);
-
-    /**
-     * Sets a new long value field to the JSON object to be built.
-     *
-     * @param fieldDefinition this field definition provides the JSON pointer to the field to be set.
-     * @param value the value of the field to be set.
-     * @return this builder to allow method chaining.
-     * @throws NullPointerException if {@code fieldDefinition} is null.
-     * @throws IllegalArgumentException if the value type of {@code fieldDefinition} is not a {@code long}.
-     * @see #set(CharSequence, long)
-     */
-    default JsonObjectBuilder set(final JsonFieldDefinition fieldDefinition, final long value) {
-        return set(fieldDefinition, value, field -> true);
-    }
-
-    /**
-     * Sets a new double value field to the JSON object to be built if the specified predicate evaluates to {@code
-     * true}.
-     *
-     * @param fieldDefinition this field definition provides the JSON pointer to the field to be set.
-     * @param value the value of the field to be set.
-     * @param predicate the predicate which finally determines if the field is to be set.
-     * @return this builder to allow method chaining.
-     * @throws NullPointerException if {@code fieldDefinition} is null.
-     * @throws IllegalArgumentException if the value type of {@code fieldDefinition} is not a {@code double}.
-     * @see #set(CharSequence, double)
-     */
-    JsonObjectBuilder set(JsonFieldDefinition fieldDefinition, double value, Predicate<JsonField> predicate);
-
-    /**
-     * Sets a new double value field to the JSON object to be built.
-     *
-     * @param fieldDefinition this field definition provides the JSON pointer to the field to be set.
-     * @param value the value of the field to be set.
-     * @return this builder to allow method chaining.
-     * @throws NullPointerException if {@code fieldDefinition} is null.
-     * @throws IllegalArgumentException if the value type of {@code fieldDefinition} is not a {@code double}.
-     * @see #set(CharSequence, double)
-     */
-    default JsonObjectBuilder set(final JsonFieldDefinition fieldDefinition, final double value) {
-        return set(fieldDefinition, value, field -> true);
-    }
-
-    /**
-     * Sets a new boolean value field to the JSON object to be built if the specified predicate evaluates to {@code
-     * true}.
-     *
-     * @param fieldDefinition this field definition provides the JSON pointer to the field to be set.
-     * @param value the value of the field to be set.
-     * @param predicate the predicate which finally determines if the field is to be set.
-     * @return this builder to allow method chaining.
-     * @throws NullPointerException if {@code fieldDefinition} is null.
-     * @throws IllegalArgumentException if the value type of {@code fieldDefinition} is not a {@code boolean}.
-     * @see #set(CharSequence, boolean)
-     */
-    JsonObjectBuilder set(JsonFieldDefinition fieldDefinition, boolean value, Predicate<JsonField> predicate);
-
-    /**
-     * Sets a new boolean value field to the JSON object to be built.
-     *
-     * @param fieldDefinition this field definition provides the JSON pointer to the field to be set.
-     * @param value the value of the field to be set.
-     * @return this builder to allow method chaining.
-     * @throws NullPointerException if {@code fieldDefinition} is null.
-     * @throws IllegalArgumentException if the value type of {@code fieldDefinition} is not a {@code boolean}.
-     * @see #set(CharSequence, boolean)
-     */
-    default JsonObjectBuilder set(final JsonFieldDefinition fieldDefinition, final boolean value) {
-        return set(fieldDefinition, value, field -> true);
-    }
-
-    /**
-     * Sets a new string value field to the JSON object to be built if the specified predicate evaluates to {@code
-     * true}.
-     *
-     * @param fieldDefinition this field definition provides the JSON pointer to the field to be set.
-     * @param value the value of the field to be set.
-     * @param predicate the predicate which finally determines if the value is to be set.
-     * @return this builder to allow method chaining.
-     * @throws NullPointerException if {@code fieldDefinition} is null.
-     * @see #set(CharSequence, String)
-     */
-    JsonObjectBuilder set(JsonFieldDefinition fieldDefinition, String value, Predicate<JsonField> predicate);
-
-    /**
-     * Sets a new string value field to the JSON object to be built.
-     *
-     * @param fieldDefinition this field definition provides the JSON pointer to the field to be set.
-     * @param value the value to be set.
-     * @return this builder to allow method chaining.
-     * @throws NullPointerException if {@code fieldDefinition} is null.
-     * @see #set(CharSequence, String)
-     */
-    default JsonObjectBuilder set(final JsonFieldDefinition fieldDefinition, final String value) {
-        return set(fieldDefinition, value, field -> true);
-    }
-
-    /**
-     * Sets a new {@link JsonValue} field to the JSON object to be built if the specified predicate evaluates to {@code
-     * true}.
-     *
-     * @param fieldDefinition this field definition provides the JSON pointer to the field to be set.
-     * @param value the value of the field to be set.
-     * @param predicate the predicate which finally determines if the field is to be set.
-     * @return this builder to allow method chaining.
-     * @throws NullPointerException if any argument is {@code null}; the predicate is evaluated before the null check
-     * of the value.
-     * @throws IllegalArgumentException if the value type of {@code fieldDefinition} is not a {@code JsonValue}.
-     * @see #set(CharSequence, JsonValue)
-     */
-    JsonObjectBuilder set(JsonFieldDefinition fieldDefinition, JsonValue value, Predicate<JsonField> predicate);
-
-    /**
-     * Sets a new {@link JsonValue} field to the JSON object to be built.
-     *
-     * @param fieldDefinition this field definition provides the JSON pointer to the field to be set.
-     * @param value the value of the field to be set.
-     * @return this builder to allow method chaining.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @see #set(CharSequence, JsonValue)
-     */
-    default JsonObjectBuilder set(final JsonFieldDefinition fieldDefinition, final JsonValue value) {
-        return set(fieldDefinition, value, field -> true);
+    default <T> JsonObjectBuilder set(final JsonFieldDefinition<T> fieldDefinition, @Nullable final T value) {
+        return set(fieldDefinition, value, jsonField -> true);
     }
 
     /**

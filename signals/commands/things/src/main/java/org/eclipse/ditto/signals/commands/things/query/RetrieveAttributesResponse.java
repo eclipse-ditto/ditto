@@ -47,10 +47,9 @@ public final class RetrieveAttributesResponse extends AbstractCommandResponse<Re
      */
     public static final String TYPE = TYPE_PREFIX + RetrieveAttributes.NAME;
 
-    static final JsonFieldDefinition JSON_ATTRIBUTES =
-            JsonFactory.newFieldDefinition("attributes", JsonObject.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<JsonObject> JSON_ATTRIBUTES =
+            JsonFactory.newJsonObjectFieldDefinition("attributes", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
 
     private final String thingId;
     private final Attributes attributes;
@@ -123,13 +122,11 @@ public final class RetrieveAttributesResponse extends AbstractCommandResponse<Re
     public static RetrieveAttributesResponse fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<RetrieveAttributesResponse>(TYPE, jsonObject)
-                .deserialize((statusCode, jsonObjectReader) -> {
-                    final String thingId = jsonObjectReader.get(ThingQueryCommandResponse.JsonFields.JSON_THING_ID);
-                    final JsonObject attributesJsonObject = jsonObjectReader.get(JSON_ATTRIBUTES);
-
-                    final Attributes extractedAttributes = (null != attributesJsonObject)
-                            ? ThingsModelFactory.newAttributes(attributesJsonObject)
-                            : ThingsModelFactory.nullAttributes();
+                .deserialize((statusCode) -> {
+                    final String thingId =
+                            jsonObject.getValueOrThrow(ThingQueryCommandResponse.JsonFields.JSON_THING_ID);
+                    final JsonObject attributesJsonObject = jsonObject.getValueOrThrow(JSON_ATTRIBUTES);
+                    final Attributes extractedAttributes = ThingsModelFactory.newAttributes(attributesJsonObject);
 
                     return of(thingId, extractedAttributes, dittoHeaders);
                 });
@@ -206,4 +203,5 @@ public final class RetrieveAttributesResponse extends AbstractCommandResponse<Re
         return getClass().getSimpleName() + " [" + super.toString() + ", thingId=" + thingId + ", attributes=" +
                 attributes + "]";
     }
+
 }

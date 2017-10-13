@@ -11,9 +11,12 @@
  */
 package org.eclipse.ditto.signals.commands.base;
 
+import java.util.function.Predicate;
+
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -66,6 +69,9 @@ public interface Command<T extends Command> extends Signal<T> {
         return toJson(FieldType.notHidden());
     }
 
+    @Override
+    JsonObject toJson(JsonSchemaVersion schemaVersion, Predicate<JsonField> predicate);
+
     /**
      * This class contains common definitions for all fields of a {@code Command}'s JSON representation.
      * Implementation of {@code Command} may add additional fields by extending this class.
@@ -77,20 +83,20 @@ public interface Command<T extends Command> extends Signal<T> {
         /**
          * JSON field containing the command's identification as String.
          */
-        public static final JsonFieldDefinition ID = JsonFactory.newFieldDefinition("command", String.class,
-                FieldType.REGULAR, JsonSchemaVersion.V_1);
+        public static final JsonFieldDefinition<String> ID =
+                JsonFactory.newStringFieldDefinition("command", FieldType.REGULAR, JsonSchemaVersion.V_1);
 
         /**
          * JSON field containing the command's type as String.
          */
-        public static final JsonFieldDefinition TYPE = JsonFactory.newFieldDefinition("type", String.class,
-                FieldType.REGULAR, JsonSchemaVersion.V_2);
+        public static final JsonFieldDefinition<String> TYPE =
+                JsonFactory.newStringFieldDefinition("type", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the command's payload as {@link JsonObject}.
          */
-        public static final JsonFieldDefinition PAYLOAD = JsonFactory.newFieldDefinition("payload", JsonObject.class,
-                FieldType.REGULAR, JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+        public static final JsonFieldDefinition<JsonObject> PAYLOAD = JsonFactory.newJsonObjectFieldDefinition
+                ("payload", FieldType.REGULAR, JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         /**
          * Constructs a new {@code JsonFields} object.

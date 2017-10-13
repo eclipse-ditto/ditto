@@ -40,7 +40,7 @@ import org.junit.Test;
 /**
  * Unit test for {@link DittoProtocolAdapter}.
  */
-public class DittoProtocolAdapterTest {
+public final class DittoProtocolAdapterTest {
 
     private DittoProtocolAdapter underTest;
 
@@ -52,11 +52,11 @@ public class DittoProtocolAdapterTest {
     /** */
     @Test
     public void topicPathFromString() {
-        final TopicPath expected = TopicPath.newBuilder(THING_ID) //
-                .things() //
-                .twin()//
-                .commands() //
-                .modify() //
+        final TopicPath expected = TopicPath.newBuilder(THING_ID)
+                .things()
+                .twin()
+                .commands()
+                .modify()
                 .build();
 
         final TopicPath actual =
@@ -70,19 +70,19 @@ public class DittoProtocolAdapterTest {
     public void thingErrorResponseFromAdaptable() {
         final ThingNotAccessibleException thingNotAccessibleException =
                 ThingNotAccessibleException.newBuilder(THING_ID).build();
-        final TopicPath topicPath = TopicPath.newBuilder(THING_ID) //
-                .things() //
-                .twin()//
-                .commands() //
-                .modify() //
+        final TopicPath topicPath = TopicPath.newBuilder(THING_ID)
+                .things()
+                .twin()
+                .commands()
+                .modify()
                 .build();
         final JsonPointer path = JsonPointer.empty();
-        final Adaptable adaptable = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withStatus(thingNotAccessibleException.getStatusCode()) //
-                        .withValue(thingNotAccessibleException.toJson()) //
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_2) //
+        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(thingNotAccessibleException.getStatusCode())
+                        .withValue(thingNotAccessibleException.toJson())
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
 
         final ThingErrorResponse expected =
@@ -98,18 +98,18 @@ public class DittoProtocolAdapterTest {
         final ModifyThing modifyThing =
                 ModifyThing.of(TestConstants.THING_ID, TestConstants.THING, null, DITTO_HEADERS_V_2);
 
-        final TopicPath topicPath = TopicPath.newBuilder(THING_ID) //
-                .things() //
-                .twin()//
-                .commands() //
-                .modify() //
+        final TopicPath topicPath = TopicPath.newBuilder(THING_ID)
+                .things()
+                .twin()
+                .commands()
+                .modify()
                 .build();
         final JsonPointer path = JsonPointer.empty();
-        final Adaptable adaptable = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withValue(TestConstants.THING.toJson(FieldType.notHidden())) //
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_2) //
+        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withValue(TestConstants.THING.toJson(FieldType.notHidden()))
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
 
         final ThingModifyCommand actualCommand = (ThingModifyCommand) underTest.fromAdaptable(adaptable);
@@ -124,30 +124,30 @@ public class DittoProtocolAdapterTest {
         final ModifyThingResponse modifyThingResponseModified =
                 ModifyThingResponse.modified(TestConstants.THING_ID, DITTO_HEADERS_V_2);
 
-        final TopicPath topicPath = TopicPath.newBuilder(THING_ID) //
-                .things() //
-                .twin()//
-                .commands() //
-                .modify() //
+        final TopicPath topicPath = TopicPath.newBuilder(THING_ID)
+                .things()
+                .twin()
+                .commands()
+                .modify()
                 .build();
         final JsonPointer path = JsonPointer.empty();
 
         final ThingModifyCommandResponse actualCommandResponseCreated =
-                (ThingModifyCommandResponse) underTest.fromAdaptable(Adaptable.newBuilder(topicPath) //
-                        .withPayload(Payload.newBuilder(path) //
-                                .withStatus(HttpStatusCode.CREATED) //
-                                .withValue(TestConstants.THING.toJson(FieldType.notHidden())) //
-                                .build()) //
-                        .withHeaders(TestConstants.HEADERS_V_2) //
+                (ThingModifyCommandResponse) underTest.fromAdaptable(Adaptable.newBuilder(topicPath)
+                        .withPayload(Payload.newBuilder(path)
+                                .withStatus(HttpStatusCode.CREATED)
+                                .withValue(TestConstants.THING.toJson(FieldType.notHidden()))
+                                .build())
+                        .withHeaders(TestConstants.HEADERS_V_2)
                         .build());
         assertThat(actualCommandResponseCreated).isEqualTo(modifyThingResponseCreated);
 
         final ThingModifyCommandResponse actualCommandResponseModified =
-                (ThingModifyCommandResponse) underTest.fromAdaptable(Adaptable.newBuilder(topicPath) //
-                        .withPayload(Payload.newBuilder(path) //
-                                .withStatus(HttpStatusCode.NO_CONTENT) //
-                                .build()) //
-                        .withHeaders(TestConstants.HEADERS_V_2) //
+                (ThingModifyCommandResponse) underTest.fromAdaptable(Adaptable.newBuilder(topicPath)
+                        .withPayload(Payload.newBuilder(path)
+                                .withStatus(HttpStatusCode.NO_CONTENT)
+                                .build())
+                        .withHeaders(TestConstants.HEADERS_V_2)
                         .build());
         assertThat(actualCommandResponseModified).isEqualTo(modifyThingResponseModified);
     }
@@ -157,19 +157,19 @@ public class DittoProtocolAdapterTest {
     public void thingQueryCommandFromAdaptable() {
         final RetrieveThing retrieveThing = RetrieveThing.of(THING_ID, DITTO_HEADERS_V_2);
 
-        final TopicPath topicPath = TopicPath.newBuilder(THING_ID) //
-                .things() //
-                .twin()//
-                .commands() //
-                .retrieve() //
+        final TopicPath topicPath = TopicPath.newBuilder(THING_ID)
+                .things()
+                .twin()
+                .commands()
+                .retrieve()
                 .build();
         final JsonPointer path = JsonPointer.empty();
 
         final ThingQueryCommand actualCommand =
-                (ThingQueryCommand) underTest.fromAdaptable(Adaptable.newBuilder(topicPath) //
-                        .withPayload(Payload.newBuilder(path) //
-                                .build()) //
-                        .withHeaders(TestConstants.HEADERS_V_2) //
+                (ThingQueryCommand) underTest.fromAdaptable(Adaptable.newBuilder(topicPath)
+                        .withPayload(Payload.newBuilder(path)
+                                .build())
+                        .withHeaders(TestConstants.HEADERS_V_2)
                         .build());
 
         assertThat(actualCommand).isEqualTo(retrieveThing);
@@ -180,11 +180,11 @@ public class DittoProtocolAdapterTest {
                 .build();
 
         final ThingQueryCommand actualCommandWithFields =
-                (ThingQueryCommand) underTest.fromAdaptable(Adaptable.newBuilder(topicPath) //
-                        .withPayload(Payload.newBuilder(path) //
-                                .withFields(selectedFields) //
-                                .build()) //
-                        .withHeaders(TestConstants.HEADERS_V_2) //
+                (ThingQueryCommand) underTest.fromAdaptable(Adaptable.newBuilder(topicPath)
+                        .withPayload(Payload.newBuilder(path)
+                                .withFields(selectedFields)
+                                .build())
+                        .withHeaders(TestConstants.HEADERS_V_2)
                         .build());
         assertThat(actualCommandWithFields).isEqualTo(retrieveThingWithFields);
     }
@@ -195,20 +195,20 @@ public class DittoProtocolAdapterTest {
         final RetrieveThingResponse retrieveThingResponse =
                 RetrieveThingResponse.of(TestConstants.THING_ID, TestConstants.THING, DITTO_HEADERS_V_2);
 
-        final TopicPath topicPath = TopicPath.newBuilder(THING_ID) //
-                .things() //
-                .twin()//
-                .commands() //
-                .retrieve() //
+        final TopicPath topicPath = TopicPath.newBuilder(THING_ID)
+                .things()
+                .twin()
+                .commands()
+                .retrieve()
                 .build();
         final JsonPointer path = JsonPointer.empty();
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withStatus(HttpStatusCode.OK) //
-                        .withValue(TestConstants.THING.toJson()) //
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_2) //
+        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.OK)
+                        .withValue(TestConstants.THING.toJson())
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
         final ThingQueryCommandResponse actual = (ThingQueryCommandResponse) underTest.fromAdaptable(adaptable);
 
@@ -221,20 +221,20 @@ public class DittoProtocolAdapterTest {
         final ThingModified expected =
                 ThingModified.of(TestConstants.THING, TestConstants.REVISION, DITTO_HEADERS_V_2);
 
-        final TopicPath topicPath = TopicPath.newBuilder(THING_ID) //
-                .things() //
-                .twin()//
-                .events() //
-                .modified() //
+        final TopicPath topicPath = TopicPath.newBuilder(THING_ID)
+                .things()
+                .twin()
+                .events()
+                .modified()
                 .build();
         final JsonPointer path = JsonPointer.empty();
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withValue(TestConstants.THING.toJson(FieldType.notHidden())) //
-                        .withRevision(TestConstants.REVISION) //
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_2) //
+        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withValue(TestConstants.THING.toJson(FieldType.notHidden()))
+                        .withRevision(TestConstants.REVISION)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
         final ThingEvent actual = (ThingEvent) underTest.fromAdaptable(adaptable);
 

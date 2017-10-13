@@ -41,7 +41,7 @@ public abstract class AbstractPolicyEvent<T extends AbstractPolicyEvent> impleme
     private final String type;
     private final String policyId;
     private final long revision;
-    private final Instant timestamp;
+    @Nullable private final Instant timestamp;
     private final DittoHeaders dittoHeaders;
 
     /**
@@ -52,10 +52,14 @@ public abstract class AbstractPolicyEvent<T extends AbstractPolicyEvent> impleme
      * @param revision the revision of the Policy.
      * @param timestamp the timestamp of the event.
      * @param dittoHeaders the headers of the command which was the cause of this event.
-     * @throws NullPointerException if any argument is {@code null}.
+     * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
      */
-    protected AbstractPolicyEvent(final String type, final String policyId, final long revision,
-            final Instant timestamp, final DittoHeaders dittoHeaders) {
+    protected AbstractPolicyEvent(final String type,
+            final String policyId,
+            final long revision,
+            @Nullable final Instant timestamp,
+            final DittoHeaders dittoHeaders) {
+
         this.type = checkNotNull(type, "Event type");
         this.policyId = checkNotNull(policyId, "Policy identifier");
         this.revision = revision;
@@ -133,7 +137,7 @@ public abstract class AbstractPolicyEvent<T extends AbstractPolicyEvent> impleme
                 && Objects.equals(dittoHeaders, that.dittoHeaders);
     }
 
-    protected boolean canEqual(final Object other) {
+    protected boolean canEqual(@Nullable final Object other) {
         return other instanceof AbstractPolicyEvent;
     }
 

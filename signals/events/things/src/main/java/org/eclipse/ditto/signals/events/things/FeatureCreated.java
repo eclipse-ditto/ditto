@@ -53,10 +53,9 @@ public final class FeatureCreated extends AbstractThingEvent<FeatureCreated> imp
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition JSON_FEATURE =
-            JsonFactory.newFieldDefinition("feature", JsonObject.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<JsonObject> JSON_FEATURE =
+            JsonFactory.newJsonObjectFieldDefinition("feature", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
 
     private final Feature feature;
 
@@ -135,14 +134,12 @@ public final class FeatureCreated extends AbstractThingEvent<FeatureCreated> imp
      * 'FeatureCreated' format.
      */
     public static FeatureCreated fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new EventJsonDeserializer<FeatureCreated>(TYPE, jsonObject).deserialize((revision, timestamp,
-                jsonObjectReader) -> {
+        return new EventJsonDeserializer<FeatureCreated>(TYPE, jsonObject).deserialize((revision, timestamp) -> {
+            final String extractedThingId = jsonObject.getValueOrThrow(JsonFields.THING_ID);
+            final String extractedFeatureId = jsonObject.getValueOrThrow(JsonFields.FEATURE_ID);
+            final JsonObject featureJsonObject = jsonObject.getValueOrThrow(JSON_FEATURE);
 
-            final String extractedThingId = jsonObjectReader.get(JsonFields.THING_ID);
-            final String extractedFeatureId = jsonObjectReader.get(JsonFields.FEATURE_ID);
-            final JsonObject featureJsonObject = jsonObjectReader.get(JSON_FEATURE);
-
-            final Feature extractedFeature = (null != featureJsonObject)
+            final Feature extractedFeature = !featureJsonObject.isNull()
                     ? ThingsModelFactory.newFeatureBuilder(featureJsonObject).useId(extractedFeatureId).build()
                     : ThingsModelFactory.nullFeature(extractedFeatureId);
 
@@ -166,7 +163,7 @@ public final class FeatureCreated extends AbstractThingEvent<FeatureCreated> imp
 
     @Override
     public Optional<JsonValue> getEntity(final JsonSchemaVersion schemaVersion) {
-        return Optional.ofNullable(feature.toJson(schemaVersion, FieldType.notHidden()));
+        return Optional.of(feature.toJson(schemaVersion, FieldType.notHidden()));
     }
 
     @Override
@@ -213,8 +210,8 @@ public final class FeatureCreated extends AbstractThingEvent<FeatureCreated> imp
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof FeatureCreated);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof FeatureCreated;
     }
 
     @Override

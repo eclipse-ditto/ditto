@@ -53,10 +53,9 @@ public final class ModifyAttributes extends AbstractCommand<ModifyAttributes>
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition JSON_ATTRIBUTES =
-            JsonFactory.newFieldDefinition("attributes", JsonObject.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<JsonObject> JSON_ATTRIBUTES =
+            JsonFactory.newJsonObjectFieldDefinition("attributes", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
 
     private final String thingId;
     private final Attributes attributes;
@@ -111,17 +110,14 @@ public final class ModifyAttributes extends AbstractCommand<ModifyAttributes>
      * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
-     * @@throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to {@link
+     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to {@link
      * org.eclipse.ditto.model.things.Thing#ID_REGEX}.
      */
     public static ModifyAttributes fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandJsonDeserializer<ModifyAttributes>(TYPE, jsonObject).deserialize(jsonObjectReader -> {
-            final String thingId = jsonObjectReader.get(ThingModifyCommand.JsonFields.JSON_THING_ID);
-            final JsonObject attributesJsonObject = jsonObjectReader.get(JSON_ATTRIBUTES);
-
-            final Attributes extractedAttributes = (null != attributesJsonObject)
-                    ? ThingsModelFactory.newAttributes(attributesJsonObject)
-                    : ThingsModelFactory.nullAttributes();
+        return new CommandJsonDeserializer<ModifyAttributes>(TYPE, jsonObject).deserialize(() -> {
+            final String thingId = jsonObject.getValueOrThrow(ThingModifyCommand.JsonFields.JSON_THING_ID);
+            final JsonObject attributesJsonObject = jsonObject.getValueOrThrow(JSON_ATTRIBUTES);
+            final Attributes extractedAttributes = ThingsModelFactory.newAttributes(attributesJsonObject);
 
             return of(thingId, extractedAttributes, dittoHeaders);
         });
@@ -148,7 +144,7 @@ public final class ModifyAttributes extends AbstractCommand<ModifyAttributes>
 
     @Override
     public Optional<JsonValue> getEntity(final JsonSchemaVersion schemaVersion) {
-        return Optional.ofNullable(attributes.toJson(schemaVersion, FieldType.regularOrSpecial()));
+        return Optional.of(attributes.toJson(schemaVersion, FieldType.regularOrSpecial()));
     }
 
     @Override
@@ -191,7 +187,7 @@ public final class ModifyAttributes extends AbstractCommand<ModifyAttributes>
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
+    protected boolean canEqual(@Nullable final Object other) {
         return (other instanceof ModifyAttributes);
     }
 

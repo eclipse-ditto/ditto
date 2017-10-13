@@ -14,6 +14,8 @@ package org.eclipse.ditto.json;
 import java.util.List;
 import java.util.Optional;
 
+import javax.annotation.Nullable;
+
 /**
  * Represents a JSON object. A JSON object is a set of key-value-pairs with unique keys.
  * <p>
@@ -138,14 +140,15 @@ public interface JsonObject extends JsonValue, JsonValueContainer<JsonField> {
      * Sets the specified value to a field which is defined by the pointer of the given field definition on a copy of
      * this object.
      *
-     * @param fieldDefinition the definition of the JSON field containing the value, i. e. the field with {@link
-     * JsonPointer#getLeaf()} as key and {@code value} as value.
+     * @param fieldDefinition the definition of the JSON field containing the value, i. e. the field with
+     * {@link JsonPointer#getLeaf()} as key and {@code value} as value.
      * @param value the value to be set.
-     * @return a copy of this object with the value set at the pointer defined position.
-     * @throws NullPointerException if any argument but {@code fieldDefinition} is {@code null}.
+     * @param <T> the type of {@code value}.
+     * @return a copy of this object with the value set at the pointer defined location.
+     * @throws NullPointerException if {@code fieldDefinition} is {@code null}.
      * @throws IllegalArgumentException if the pointer of {@code fieldDefinition} is empty.
      */
-    JsonObject set(JsonFieldDefinition fieldDefinition, JsonValue value);
+    <T> JsonObject set(JsonFieldDefinition<T> fieldDefinition, @Nullable final T value);
 
     /**
      * Sets the specified field to a copy of this object. A previous field with the same key is replaced.
@@ -167,7 +170,7 @@ public interface JsonObject extends JsonValue, JsonValueContainer<JsonField> {
     JsonObject setAll(Iterable<JsonField> jsonFields);
 
     /**
-     * Indicates whether this JSON object contains a field at the key defined position.
+     * Indicates whether this JSON object contains a field at the key defined location.
      *
      * @param key the JSON key or JSON pointer to be looked up.
      * @return {@code true} if this JSON object contains a field at {@code key}, {@code false} else.
@@ -283,20 +286,39 @@ public interface JsonObject extends JsonValue, JsonValueContainer<JsonField> {
      * {@code "thingId"} used instead the returned Optional would contain {@code "myThing"}.
      *
      * @param key defines which value to get.
-     * @return the JSON value at the key-defined position within this object.
+     * @return the JSON value at the key-defined location within this object.
      * @throws NullPointerException if {@code key} is {@code null}.
      */
     Optional<JsonValue> getValue(CharSequence key);
 
     /**
-     * This is a convenience method which does the same as {@link #getValue(CharSequence)}. The pointer to the
-     * desired value is obtained from the specified field definition.
+     * Returns the plain Java typed value of the field whose location is defined by the JsonPointer of the specified
+     * JsonFieldDefinition. The expected Java type is the value type of the JsonFieldDefinition. If this JsonObject
+     * does not contain a value at the defined location an empty Optional is returned.
      *
-     * @param fieldDefinition supplies the JSON pointer of the desired value.
-     * @return the JSON value at the pointer-defined position within this object.
+     * @param fieldDefinition supplies the JsonPointer to and expected value type of the desired result value.
+     * @param <T> the expected type of the result.
+     * @return the JSON value at the defined location within this object or an empty Optional if this JsonObject did not
+     * contain a field at the location.
      * @throws NullPointerException if {@code fieldDefinition} is {@code null}.
+     * @throws JsonParseException if this JsonObject contained a value at the defined location with an unexpected type.
      */
-    Optional<JsonValue> getValue(JsonFieldDefinition fieldDefinition);
+    <T> Optional<T> getValue(JsonFieldDefinition<T> fieldDefinition);
+
+    /**
+     * Returns the plain Java typed value of the field whose location is defined by the JsonPointer of the specified
+     * JsonFieldDefinition. The expected Java type is the value type of the JsonFieldDefinition. If this JsonObject
+     * does not contain a value at the defined location a {@link JsonMissingFieldException} is thrown.
+     *
+     * @param fieldDefinition supplies the JsonPointer to and expected value type of the desired result value.
+     * @param <T> the expected type of the result.
+     * @return the JSON value at the defined location within this object.
+     * @throws NullPointerException if {@code fieldDefinition} is {@code null}.
+     * @throws JsonMissingFieldException if this JsonObject did not contain a value at all at the defined location.
+     * @throws JsonParseException if this JsonObject contained a value at the defined location with a type which is
+     * different from {@code T}.
+     */
+    <T> T getValueOrThrow(JsonFieldDefinition<T> fieldDefinition);
 
     /**
      * Removes the JSON field to which the given pointer points to. The pointer's leaf is the key of the field to be

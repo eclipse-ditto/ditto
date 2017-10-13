@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.model.policies;
 
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.json.FieldType;
@@ -73,7 +74,7 @@ public interface ResourceKey extends CharSequence {
      * @return the JsonFieldDefinition for this Label.
      */
     default JsonFieldDefinition getJsonFieldDefinition() {
-        return JsonFieldDefinition.newInstance(this, String.class, FieldType.REGULAR, JsonSchemaVersion.V_2);
+        return JsonFactory.newStringFieldDefinition(this, FieldType.REGULAR, JsonSchemaVersion.V_2);
     }
 
 }

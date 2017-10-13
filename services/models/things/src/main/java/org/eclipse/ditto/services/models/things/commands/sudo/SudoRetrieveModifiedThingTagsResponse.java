@@ -18,6 +18,7 @@ import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonArray;
@@ -41,9 +42,9 @@ import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
  * Response to a {@link SudoRetrieveModifiedThingTags} command.
  */
 @Immutable
-public final class SudoRetrieveModifiedThingTagsResponse extends
-        AbstractCommandResponse<SudoRetrieveModifiedThingTagsResponse> implements
-        SudoCommandResponse<SudoRetrieveModifiedThingTagsResponse> {
+public final class SudoRetrieveModifiedThingTagsResponse
+        extends AbstractCommandResponse<SudoRetrieveModifiedThingTagsResponse>
+        implements SudoCommandResponse<SudoRetrieveModifiedThingTagsResponse> {
 
     /**
      * Name of the response.
@@ -55,15 +56,15 @@ public final class SudoRetrieveModifiedThingTagsResponse extends
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition JSON_MODIFIED_THING_TAGS =
-            JsonFactory.newFieldDefinition("payload/modifiedThingTags", JsonArray.class, FieldType.REGULAR,
-                    // available in schema versions:
+    static final JsonFieldDefinition<JsonArray> JSON_MODIFIED_THING_TAGS =
+            JsonFactory.newArrayFieldDefinition("payload/modifiedThingTags", FieldType.REGULAR,
                     JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
     private final JsonArray modifiedThingTags;
 
     private SudoRetrieveModifiedThingTagsResponse(final HttpStatusCode statusCode, final JsonArray modifiedThingTags,
             final DittoHeaders dittoHeaders) {
+
         super(TYPE, statusCode, dittoHeaders);
         this.modifiedThingTags = checkNotNull(modifiedThingTags, "ThingTags");
     }
@@ -130,8 +131,8 @@ public final class SudoRetrieveModifiedThingTagsResponse extends
     public static SudoRetrieveModifiedThingTagsResponse fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<SudoRetrieveModifiedThingTagsResponse>(TYPE, jsonObject)
-                .deserialize((statusCode, jsonObjectReader) -> {
-                    final JsonArray thingTagsJsonArray = jsonObjectReader.get(JSON_MODIFIED_THING_TAGS);
+                .deserialize((statusCode) -> {
+                    final JsonArray thingTagsJsonArray = jsonObject.getValueOrThrow(JSON_MODIFIED_THING_TAGS);
                     return of(thingTagsJsonArray, dittoHeaders);
                 });
     }
@@ -176,7 +177,7 @@ public final class SudoRetrieveModifiedThingTagsResponse extends
 
     @SuppressWarnings({"squid:MethodCyclomaticComplexity", "squid:S1067", "pmd:SimplifyConditional"})
     @Override
-    public boolean equals(final Object o) {
+    public boolean equals(@Nullable final Object o) {
         if (this == o) {
             return true;
         }
@@ -188,8 +189,8 @@ public final class SudoRetrieveModifiedThingTagsResponse extends
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof SudoRetrieveModifiedThingTagsResponse);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof SudoRetrieveModifiedThingTagsResponse;
     }
 
     @Override

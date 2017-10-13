@@ -35,8 +35,8 @@ public final class ImmutableJsonFieldSelectorBuilderTest {
     private static String pointerBString;
     private static JsonPointer pointerA;
     private static JsonPointer pointerB;
-    private static JsonFieldDefinition fieldDefinitionA;
-    private static JsonFieldDefinition fieldDefinitionB;
+    private static JsonFieldDefinition<JsonObject> fieldDefinitionA;
+    private static JsonFieldDefinition<JsonObject> fieldDefinitionB;
 
     private ImmutableJsonFieldSelectorBuilder underTest;
 
@@ -48,8 +48,8 @@ public final class ImmutableJsonFieldSelectorBuilderTest {
         pointerBString = "/b";
         pointerA = JsonFactory.newPointer(pointerAString);
         pointerB = JsonFactory.newPointer(pointerBString);
-        fieldDefinitionA = JsonFactory.newFieldDefinition(pointerA, JsonObject.class);
-        fieldDefinitionB = JsonFactory.newFieldDefinition(pointerB, JsonObject.class);
+        fieldDefinitionA = JsonFactory.newJsonObjectFieldDefinition(pointerA);
+        fieldDefinitionB = JsonFactory.newJsonObjectFieldDefinition(pointerB);
     }
 
 

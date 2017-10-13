@@ -99,21 +99,21 @@ public interface DevOpsCommandResponse<T extends DevOpsCommandResponse> extends
         /**
          * JSON field containing the response type.
          */
-        public static final JsonFieldDefinition TYPE =
-                JsonFactory.newFieldDefinition("type", String.class, FieldType.REGULAR,
-                        // available in schema versions:
-                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+        public static final JsonFieldDefinition<String> TYPE =
+                JsonFactory.newStringFieldDefinition("type", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the message's status code.
          */
-        public static final JsonFieldDefinition STATUS =
-                JsonFactory.newFieldDefinition("status", int.class, FieldType.REGULAR,
-                        // available in schema versions:
-                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+        public static final JsonFieldDefinition<Integer> STATUS =
+                JsonFactory.newIntFieldDefinition("status", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
 
         private JsonFields() {
             throw new AssertionError();
         }
+
     }
+
 }

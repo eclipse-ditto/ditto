@@ -14,6 +14,7 @@ package org.eclipse.ditto.signals.commands.devops;
 import java.util.Objects;
 import java.util.function.Predicate;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFactory;
@@ -37,10 +38,9 @@ public final class ChangeLogLevelResponse extends AbstractDevOpsCommandResponse<
      */
     public static final String TYPE = TYPE_PREFIX + ChangeLogLevel.NAME;
 
-    static final JsonFieldDefinition JSON_SUCCESSFUL =
-            JsonFactory.newFieldDefinition("successful", boolean.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<Boolean> JSON_SUCCESSFUL =
+            JsonFactory.newBooleanFieldDefinition("successful", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
 
     private final boolean successful;
 
@@ -61,7 +61,7 @@ public final class ChangeLogLevelResponse extends AbstractDevOpsCommandResponse<
     }
 
     /**
-     * Creates a response to a {@link ChangeLogLevelResponse} command from a JSON string.
+     * Creates a response to a {@code ChangeLogLevelResponse} command from a JSON string.
      *
      * @param jsonString contains the data of the ChangeLogLevelResponse command.
      * @param dittoHeaders the headers of the request.
@@ -76,7 +76,7 @@ public final class ChangeLogLevelResponse extends AbstractDevOpsCommandResponse<
     }
 
     /**
-     * Creates a response to a {@link ChangeLogLevelResponse} command from a JSON object.
+     * Creates a response to a {@code ChangeLogLevelResponse} command from a JSON object.
      *
      * @param jsonObject the JSON object of which the response is to be created.
      * @param dittoHeaders the headers of the preceding command.
@@ -86,11 +86,10 @@ public final class ChangeLogLevelResponse extends AbstractDevOpsCommandResponse<
      * format.
      */
     public static ChangeLogLevelResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new DevOpsCommandResponseJsonDeserializer<ChangeLogLevelResponse>(TYPE, jsonObject)
-                .deserialize((statusCode, jsonObjectReader) -> {
-                    final boolean successful = jsonObjectReader.get(JSON_SUCCESSFUL);
-                    return ChangeLogLevelResponse.of(successful, dittoHeaders);
-                });
+        return new DevOpsCommandResponseJsonDeserializer<ChangeLogLevelResponse>(TYPE, jsonObject).deserialize(() -> {
+            final boolean successful = jsonObject.getValueOrThrow(JSON_SUCCESSFUL);
+            return ChangeLogLevelResponse.of(successful, dittoHeaders);
+        });
     }
 
     /**
@@ -116,7 +115,7 @@ public final class ChangeLogLevelResponse extends AbstractDevOpsCommandResponse<
 
     @SuppressWarnings("squid:MethodCyclomaticComplexity")
     @Override
-    public boolean equals(final Object o) {
+    public boolean equals(@Nullable final Object o) {
         if (this == o) {
             return true;
         }
@@ -128,8 +127,8 @@ public final class ChangeLogLevelResponse extends AbstractDevOpsCommandResponse<
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof ChangeLogLevelResponse);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof ChangeLogLevelResponse;
     }
 
     @Override
@@ -141,4 +140,5 @@ public final class ChangeLogLevelResponse extends AbstractDevOpsCommandResponse<
     public String toString() {
         return getClass().getSimpleName() + " [" + super.toString() + "successful=" + successful + "]";
     }
+
 }

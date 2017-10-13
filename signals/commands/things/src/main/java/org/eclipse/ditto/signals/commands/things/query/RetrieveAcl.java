@@ -97,8 +97,8 @@ public final class RetrieveAcl extends AbstractCommand<RetrieveAcl> implements T
      * org.eclipse.ditto.model.things.Thing#ID_REGEX}.
      */
     public static RetrieveAcl fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandJsonDeserializer<RetrieveAcl>(TYPE, jsonObject).deserialize(jsonObjectReader -> {
-            final String thingId = jsonObjectReader.get(ThingQueryCommand.JsonFields.JSON_THING_ID);
+        return new CommandJsonDeserializer<RetrieveAcl>(TYPE, jsonObject).deserialize(() -> {
+            final String thingId = jsonObject.getValueOrThrow(ThingQueryCommand.JsonFields.JSON_THING_ID);
             return of(thingId, dittoHeaders);
         });
     }

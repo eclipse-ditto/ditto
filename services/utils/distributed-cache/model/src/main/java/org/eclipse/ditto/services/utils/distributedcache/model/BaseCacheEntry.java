@@ -23,8 +23,6 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.json.JsonObjectReader;
-import org.eclipse.ditto.json.JsonReader;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
 /**
@@ -76,14 +74,12 @@ public final class BaseCacheEntry implements CacheEntry {
     public static BaseCacheEntry fromJson(final JsonObject cacheEntryJsonObject) {
         checkNotNull(cacheEntryJsonObject, "CacheEntry JSON object");
 
-        final JsonObjectReader jsonObjectReader = JsonReader.from(cacheEntryJsonObject);
-        final String readPolicyId = jsonObjectReader.<String>getAsOptional(JsonFields.POLICY_ID).orElse(null);
-        final long readRevision = jsonObjectReader.get(JsonFields.REVISION);
-        final boolean isDeleted = jsonObjectReader.get(JsonFields.DELETED);
-        final JsonSchemaVersion readJsonSchemaVersion =
-                jsonObjectReader.<Integer>getAsOptional(JsonFields.JSON_SCHEMA_VERSION)
-                        .flatMap(JsonSchemaVersion::forInt)
-                        .orElse(null);
+        final String readPolicyId = cacheEntryJsonObject.getValue(JsonFields.POLICY_ID).orElse(null);
+        final long readRevision = cacheEntryJsonObject.getValueOrThrow(JsonFields.REVISION);
+        final boolean isDeleted = cacheEntryJsonObject.getValueOrThrow(JsonFields.DELETED);
+        final JsonSchemaVersion readJsonSchemaVersion = cacheEntryJsonObject.getValue(JsonFields.JSON_SCHEMA_VERSION)
+                .flatMap(JsonSchemaVersion::forInt)
+                .orElse(null);
 
         return newInstance(readPolicyId, readRevision, isDeleted, readJsonSchemaVersion);
     }
@@ -171,23 +167,23 @@ public final class BaseCacheEntry implements CacheEntry {
         /**
          * JSON field containing the {@link JsonSchemaVersion} as {@code int}.
          */
-        public static final JsonFieldDefinition JSON_SCHEMA_VERSION =
-                JsonFactory.newFieldDefinition("schemaVersion", int.class);
+        public static final JsonFieldDefinition<Integer> JSON_SCHEMA_VERSION =
+                JsonFactory.newIntFieldDefinition("schemaVersion");
 
         /**
          * JSON field containing the ThingCacheEntry's Policy ID as {@code String}.
          */
-        public static final JsonFieldDefinition POLICY_ID = JsonFactory.newFieldDefinition("policyId", String.class);
+        public static final JsonFieldDefinition<String> POLICY_ID = JsonFactory.newStringFieldDefinition("policyId");
 
         /**
          * JSON field indicating whether the ThingCacheEntry is deleted or not.
          */
-        public static final JsonFieldDefinition DELETED = JsonFactory.newFieldDefinition("deleted", Boolean.class);
+        public static final JsonFieldDefinition<Boolean> DELETED = JsonFactory.newBooleanFieldDefinition("deleted");
 
         /**
          * JSON field containing the ThingCacheEntry's revision as {@code long}.
          */
-        public static final JsonFieldDefinition REVISION = JsonFactory.newFieldDefinition("revision", long.class);
+        public static final JsonFieldDefinition<Long> REVISION = JsonFactory.newLongFieldDefinition("revision");
 
         private JsonFields() {
             throw new AssertionError();

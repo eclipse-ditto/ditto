@@ -50,15 +50,18 @@ public final class AttributesModified extends AbstractThingEvent<AttributesModif
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition JSON_ATTRIBUTES =
-            JsonFactory.newFieldDefinition("attributes", JsonObject.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<JsonObject> JSON_ATTRIBUTES =
+            JsonFactory.newJsonObjectFieldDefinition("attributes", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
 
     private final Attributes attributesModified;
 
-    private AttributesModified(final String thingId, final Attributes attributesModified, final long revision,
-            @Nullable final Instant timestamp, final DittoHeaders dittoHeaders) {
+    private AttributesModified(final String thingId,
+            final Attributes attributesModified,
+            final long revision,
+            @Nullable final Instant timestamp,
+            final DittoHeaders dittoHeaders) {
+
         super(TYPE, thingId, revision, timestamp, dittoHeaders);
         this.attributesModified =
                 Objects.requireNonNull(attributesModified, "The modified attributes must not be null!");
@@ -74,8 +77,11 @@ public final class AttributesModified extends AbstractThingEvent<AttributesModif
      * @return the AttributesModified created.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static AttributesModified of(final String thingId, final Attributes attributesModified, final long revision,
+    public static AttributesModified of(final String thingId,
+            final Attributes attributesModified,
+            final long revision,
             final DittoHeaders dittoHeaders) {
+
         return of(thingId, attributesModified, revision, null, dittoHeaders);
     }
 
@@ -88,10 +94,14 @@ public final class AttributesModified extends AbstractThingEvent<AttributesModif
      * @param timestamp the timestamp of this event.
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the AttributesModified created.
-     * @throws NullPointerException if any argument is {@code null}.
+     * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
      */
-    public static AttributesModified of(final String thingId, final Attributes attributesModified, final long revision,
-            @Nullable final Instant timestamp, final DittoHeaders dittoHeaders) {
+    public static AttributesModified of(final String thingId,
+            final Attributes attributesModified,
+            final long revision,
+            @Nullable final Instant timestamp,
+            final DittoHeaders dittoHeaders) {
+
         return new AttributesModified(thingId, attributesModified, revision, timestamp, dittoHeaders);
     }
 
@@ -121,13 +131,10 @@ public final class AttributesModified extends AbstractThingEvent<AttributesModif
      */
     public static AttributesModified fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new EventJsonDeserializer<AttributesModified>(TYPE, jsonObject)
-                .deserialize((revision, timestamp, jsonObjectReader) -> {
-                    final String extractedThingId = jsonObjectReader.get(JsonFields.THING_ID);
-                    final JsonObject attributesJsonObject = jsonObjectReader.get(JSON_ATTRIBUTES);
-
-                    final Attributes extractedAttributes = (null != attributesJsonObject)
-                            ? ThingsModelFactory.newAttributes(attributesJsonObject)
-                            : ThingsModelFactory.nullAttributes();
+                .deserialize((revision, timestamp) -> {
+                    final String extractedThingId = jsonObject.getValueOrThrow(JsonFields.THING_ID);
+                    final JsonObject attributesJsonObject = jsonObject.getValueOrThrow(JSON_ATTRIBUTES);
+                    final Attributes extractedAttributes = ThingsModelFactory.newAttributes(attributesJsonObject);
 
                     return of(extractedThingId, extractedAttributes, revision, timestamp, dittoHeaders);
                 });
@@ -144,7 +151,7 @@ public final class AttributesModified extends AbstractThingEvent<AttributesModif
 
     @Override
     public Optional<JsonValue> getEntity(final JsonSchemaVersion schemaVersion) {
-        return Optional.ofNullable(attributesModified.toJson(schemaVersion, FieldType.regularOrSpecial()));
+        return Optional.of(attributesModified.toJson(schemaVersion, FieldType.regularOrSpecial()));
     }
 
     @Override
@@ -193,7 +200,7 @@ public final class AttributesModified extends AbstractThingEvent<AttributesModif
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return (other instanceof AttributesModified);
+        return other instanceof AttributesModified;
     }
 
     @Override

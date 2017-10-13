@@ -52,10 +52,9 @@ public final class FeaturesModified extends AbstractThingEvent<FeaturesModified>
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition JSON_FEATURES =
-            JsonFactory.newFieldDefinition("features", JsonObject.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<JsonObject> JSON_FEATURES =
+            JsonFactory.newJsonObjectFieldDefinition("features", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
 
     private final Features features;
 
@@ -133,15 +132,11 @@ public final class FeaturesModified extends AbstractThingEvent<FeaturesModified>
      * 'FeaturesModified' format.
      */
     public static FeaturesModified fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new EventJsonDeserializer<FeaturesModified>(TYPE, jsonObject).deserialize((revision, timestamp,
-                jsonObjectReader) -> {
+        return new EventJsonDeserializer<FeaturesModified>(TYPE, jsonObject).deserialize((revision, timestamp) -> {
 
-            final String extractedThingId = jsonObjectReader.get(JsonFields.THING_ID);
-            final JsonObject featuresJsonObject = jsonObjectReader.get(JSON_FEATURES);
-
-            final Features extractedFeatures = (null != featuresJsonObject)
-                    ? ThingsModelFactory.newFeatures(featuresJsonObject)
-                    : ThingsModelFactory.nullFeatures();
+            final String extractedThingId = jsonObject.getValueOrThrow(JsonFields.THING_ID);
+            final JsonObject featuresJsonObject = jsonObject.getValueOrThrow(JSON_FEATURES);
+            final Features extractedFeatures = ThingsModelFactory.newFeatures(featuresJsonObject);
 
             return of(extractedThingId, extractedFeatures, revision, timestamp, dittoHeaders);
         });
@@ -205,7 +200,7 @@ public final class FeaturesModified extends AbstractThingEvent<FeaturesModified>
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return (other instanceof FeaturesModified);
+        return other instanceof FeaturesModified;
     }
 
     @Override

@@ -47,15 +47,13 @@ public final class ModifyAttributeResponse extends AbstractCommandResponse<Modif
      */
     public static final String TYPE = TYPE_PREFIX + ModifyAttribute.NAME;
 
-    static final JsonFieldDefinition JSON_ATTRIBUTE =
-            JsonFactory.newFieldDefinition("attribute", String.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<String> JSON_ATTRIBUTE =
+            JsonFactory.newStringFieldDefinition("attribute", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
 
-    static final JsonFieldDefinition JSON_VALUE =
-            JsonFactory.newFieldDefinition("value", JsonValue.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<JsonValue> JSON_VALUE =
+            JsonFactory.newJsonValueFieldDefinition("value", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
 
     private final String thingId;
     private final JsonPointer attributePointer;
@@ -71,7 +69,7 @@ public final class ModifyAttributeResponse extends AbstractCommandResponse<Modif
     }
 
     /**
-     * Returns a new {@link ModifyAttributeResponse} for a created Attribute. This corresponds to the HTTP status code
+     * Returns a new {@code ModifyAttributeResponse} for a created Attribute. This corresponds to the HTTP status code
      * {@link HttpStatusCode#CREATED}.
      *
      * @param thingId the Thing ID of the created attribute.
@@ -89,7 +87,7 @@ public final class ModifyAttributeResponse extends AbstractCommandResponse<Modif
     }
 
     /**
-     * Returns a new {@link ModifyAttributeResponse} for a modified Attribute. This corresponds to the HTTP status code
+     * Returns a new {@code ModifyAttributeResponse} for a modified Attribute. This corresponds to the HTTP status code
      * {@link HttpStatusCode#NO_CONTENT}.
      *
      * @param thingId the Thing ID of the modified attribute.
@@ -130,12 +128,13 @@ public final class ModifyAttributeResponse extends AbstractCommandResponse<Modif
      */
     public static ModifyAttributeResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<ModifyAttributeResponse>(TYPE, jsonObject)
-                .deserialize((statusCode, jsonObjectReader) -> {
-                    final String thingId = jsonObjectReader.get(ThingModifyCommandResponse.JsonFields.JSON_THING_ID);
-                    final String pointerString = jsonObjectReader.get(JSON_ATTRIBUTE);
+                .deserialize((statusCode) -> {
+                    final String thingId =
+                            jsonObject.getValueOrThrow(ThingModifyCommandResponse.JsonFields.JSON_THING_ID);
+                    final String pointerString = jsonObject.getValueOrThrow(JSON_ATTRIBUTE);
                     final JsonPointer extractedAttributePointer = JsonFactory.newPointer(pointerString);
-                    final JsonValue extractedValue = jsonObject.getValue(JSON_VALUE)
-                            .orElse(null);
+                    final JsonValue extractedValue = jsonObject.getValue(JSON_VALUE).orElse(null);
+
                     return new ModifyAttributeResponse(thingId, statusCode, extractedAttributePointer, extractedValue,
                             dittoHeaders);
                 });
@@ -194,7 +193,7 @@ public final class ModifyAttributeResponse extends AbstractCommandResponse<Modif
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
+    protected boolean canEqual(@Nullable final Object other) {
         return (other instanceof ModifyAttributeResponse);
     }
 

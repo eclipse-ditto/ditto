@@ -36,12 +36,11 @@ public final class AclEntryModifiedTest {
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(Event.JsonFields.TIMESTAMP, TestConstants.TIMESTAMP.toString())
             .set(Event.JsonFields.ID, AclEntryModified.NAME)
-            .set(Event.JsonFields.REVISION, 2)
+            .set(Event.JsonFields.REVISION, 2L)
             .set(ThingEvent.JsonFields.THING_ID, TestConstants.Thing.THING_ID)
             .set(AclEntryModified.JSON_ACL_ENTRY,
                     TestConstants.Authorization.ACL_ENTRY_OLDMAN.toJson(FieldType.regularOrSpecial()))
             .build();
-
 
     @Test
     public void assertImmutability() {
@@ -49,7 +48,6 @@ public final class AclEntryModifiedTest {
                 areImmutable(),
                 provided(JsonObject.class, AclEntry.class).areAlsoImmutable());
     }
-
 
     @Test
     public void testHashCodeAndEquals() {
@@ -62,20 +60,17 @@ public final class AclEntryModifiedTest {
                 .verify();
     }
 
-
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullThingId() {
         AclEntryModified.of(null, TestConstants.Authorization.ACL_ENTRY_OLDMAN, TestConstants.Thing.REVISION_NUMBER,
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
 
-
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullAcl() {
         AclEntryModified.of(TestConstants.Thing.THING_ID, null, TestConstants.Thing.REVISION_NUMBER,
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
-
 
     @Test
     public void toJsonReturnsExpected() {
@@ -86,7 +81,6 @@ public final class AclEntryModifiedTest {
 
         assertThat(actualJson).isEqualTo(KNOWN_JSON);
     }
-
 
     @Test
     public void createInstanceFromValidJson() {

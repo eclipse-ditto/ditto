@@ -49,22 +49,21 @@ public final class DeleteSubject extends AbstractCommand<DeleteSubject> implemen
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition JSON_LABEL =
-            JsonFactory.newFieldDefinition("label", String.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<String> JSON_LABEL =
+            JsonFactory.newStringFieldDefinition("label", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
-    static final JsonFieldDefinition JSON_SUBJECT_ID =
-            JsonFactory.newFieldDefinition("subjectId", String.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<String> JSON_SUBJECT_ID =
+            JsonFactory.newStringFieldDefinition("subjectId", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private final String policyId;
     private final Label label;
     private final SubjectId subjectId;
 
-    private DeleteSubject(final String policyId, final Label label, final SubjectId subjectId,
+    private DeleteSubject(final String policyId,
+            final Label label,
+            final SubjectId subjectId,
             final DittoHeaders dittoHeaders) {
+
         super(TYPE, dittoHeaders);
         this.policyId = policyId;
         this.label = label;
@@ -81,8 +80,11 @@ public final class DeleteSubject extends AbstractCommand<DeleteSubject> implemen
      * @return the command.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static DeleteSubject of(final String policyId, final Label label, final SubjectId subjectId,
+    public static DeleteSubject of(final String policyId,
+            final Label label,
+            final SubjectId subjectId,
             final DittoHeaders dittoHeaders) {
+
         Objects.requireNonNull(policyId, "The Policy identifier must not be null!");
         Objects.requireNonNull(label, "The Label must not be null!");
         Objects.requireNonNull(subjectId, "The Subject identifier must not be null!");
@@ -115,11 +117,10 @@ public final class DeleteSubject extends AbstractCommand<DeleteSubject> implemen
      * format.
      */
     public static DeleteSubject fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandJsonDeserializer<DeleteSubject>(TYPE, jsonObject).deserialize(jsonObjectReader -> {
-            final String policyId = jsonObjectReader.get(PolicyModifyCommand.JsonFields.JSON_POLICY_ID);
-            final String stringLabel = jsonObjectReader.get(JSON_LABEL);
-            final Label label = PoliciesModelFactory.newLabel(stringLabel);
-            final String stringSubjectId = jsonObjectReader.get(JSON_SUBJECT_ID);
+        return new CommandJsonDeserializer<DeleteSubject>(TYPE, jsonObject).deserialize(() -> {
+            final String policyId = jsonObject.getValueOrThrow(PolicyModifyCommand.JsonFields.JSON_POLICY_ID);
+            final Label label = PoliciesModelFactory.newLabel(jsonObject.getValueOrThrow(JSON_LABEL));
+            final String stringSubjectId = jsonObject.getValueOrThrow(JSON_SUBJECT_ID);
             final SubjectId subjectId = PoliciesModelFactory.newSubjectId(stringSubjectId);
 
             return of(policyId, label, subjectId, dittoHeaders);
@@ -163,6 +164,7 @@ public final class DeleteSubject extends AbstractCommand<DeleteSubject> implemen
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(PolicyModifyCommand.JsonFields.JSON_POLICY_ID, policyId, predicate);
         jsonObjectBuilder.set(JSON_LABEL, label.toString(), predicate);
@@ -175,8 +177,8 @@ public final class DeleteSubject extends AbstractCommand<DeleteSubject> implemen
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof DeleteSubject);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof DeleteSubject;
     }
 
     @SuppressWarnings("squid:MethodCyclomaticComplexity")

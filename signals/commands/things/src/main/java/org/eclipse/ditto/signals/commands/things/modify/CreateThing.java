@@ -54,15 +54,15 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition JSON_THING =
-            JsonFactory.newFieldDefinition("thing", JsonObject.class, FieldType.REGULAR, JsonSchemaVersion.V_1,
+    static final JsonFieldDefinition<JsonObject> JSON_THING =
+            JsonFactory.newJsonObjectFieldDefinition("thing", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
     /**
      * Json Field definition for the optional initial "inline" policy when creating a Thing.
      */
-    public static final JsonFieldDefinition JSON_INITIAL_POLICY =
-            JsonFactory.newFieldDefinition("initialPolicy", JsonObject.class, FieldType.REGULAR, JsonSchemaVersion.V_1,
+    public static final JsonFieldDefinition<JsonObject> JSON_INITIAL_POLICY =
+            JsonFactory.newJsonObjectFieldDefinition("initialPolicy", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
     private final Thing thing;
@@ -126,10 +126,9 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
      * format.
      */
     public static CreateThing fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandJsonDeserializer<CreateThing>(TYPE, jsonObject).deserialize(jsonObjectReader -> {
-            final JsonObject thingJsonObject = jsonObjectReader.get(JSON_THING);
-            final JsonObject initialPolicyObject =
-                    jsonObjectReader.<JsonObject>getAsOptional(JSON_INITIAL_POLICY).orElse(null);
+        return new CommandJsonDeserializer<CreateThing>(TYPE, jsonObject).deserialize(() -> {
+            final JsonObject thingJsonObject = jsonObject.getValueOrThrow(JSON_THING);
+            final JsonObject initialPolicyObject = jsonObject.getValue(JSON_INITIAL_POLICY).orElse(null);
             final Thing thing = ThingsModelFactory.newThing(thingJsonObject);
 
             return of(thing, initialPolicyObject, dittoHeaders);
@@ -210,7 +209,7 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return (other instanceof CreateThing);
+        return other instanceof CreateThing;
     }
 
     @Override

@@ -59,8 +59,11 @@ public final class BatchExecutionStarted extends AbstractBatchEvent<BatchExecuti
 
     private final List<Command> commands;
 
-    private BatchExecutionStarted(final String batchId, final Instant timestamp,
-            final List<Command> commands, final DittoHeaders dittoHeaders) {
+    private BatchExecutionStarted(final String batchId,
+            @Nullable final Instant timestamp,
+            final List<Command> commands,
+            final DittoHeaders dittoHeaders) {
+
         super(TYPE, batchId, timestamp, dittoHeaders);
         this.commands = Collections.unmodifiableList(new ArrayList<>(commands));
     }
@@ -77,6 +80,7 @@ public final class BatchExecutionStarted extends AbstractBatchEvent<BatchExecuti
      */
     public static BatchExecutionStarted of(final String batchId, final List<Command> commands,
             final DittoHeaders dittoHeaders) {
+
         return of(batchId, null, commands, dittoHeaders);
     }
 
@@ -91,10 +95,13 @@ public final class BatchExecutionStarted extends AbstractBatchEvent<BatchExecuti
      * @param commands the commands of the batch.
      * @param dittoHeaders the command headers of the batch.
      * @return the event.
-     * @throws NullPointerException if any argument is {@code null}.
+     * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
      */
-    public static BatchExecutionStarted of(final String batchId, final Instant timestamp,
-            final List<Command> commands, final DittoHeaders dittoHeaders) {
+    public static BatchExecutionStarted of(final String batchId,
+            @Nullable final Instant timestamp,
+            final List<Command> commands,
+            final DittoHeaders dittoHeaders) {
+
         requireNonNull(batchId);
         requireNonNull(commands);
         requireNonNull(dittoHeaders);
@@ -116,6 +123,7 @@ public final class BatchExecutionStarted extends AbstractBatchEvent<BatchExecuti
      */
     public static BatchExecutionStarted fromJson(final String jsonString, final DittoHeaders dittoHeaders,
             final CommandRegistry<? extends Command> commandRegistry) {
+
         return fromJson(JsonFactory.newObject(jsonString), dittoHeaders, commandRegistry);
     }
 
@@ -132,10 +140,11 @@ public final class BatchExecutionStarted extends AbstractBatchEvent<BatchExecuti
      */
     public static BatchExecutionStarted fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders,
             final CommandRegistry<? extends Command> commandRegistry) {
-        return new EventJsonDeserializer<BatchExecutionStarted>(TYPE, jsonObject).deserialize((revision, timestamp,
-                jsonObjectReader) -> {
-            final String id = jsonObjectReader.get(JsonFields.BATCH_ID);
-            final List<Command> commands = jsonObjectReader.<JsonArray>get(JsonFields.COMMANDS).stream()
+
+        return new EventJsonDeserializer<BatchExecutionStarted>(TYPE, jsonObject).deserialize((revision, timestamp) -> {
+            final String id = jsonObject.getValueOrThrow(JsonFields.BATCH_ID);
+            final List<Command> commands = jsonObject.getValueOrThrow(JsonFields.COMMANDS)
+                    .stream()
                     .filter(JsonValue::isObject)
                     .map(JsonValue::asObject)
                     .map(json -> {

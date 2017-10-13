@@ -49,10 +49,9 @@ public final class DeleteAttribute extends AbstractCommand<DeleteAttribute>
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition JSON_ATTRIBUTE =
-            JsonFactory.newFieldDefinition("attribute", String.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<String> JSON_ATTRIBUTE =
+            JsonFactory.newStringFieldDefinition("attribute", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
 
     private final String thingId;
     private final JsonPointer attributePointer;
@@ -114,10 +113,11 @@ public final class DeleteAttribute extends AbstractCommand<DeleteAttribute>
      * org.eclipse.ditto.model.things.Thing#ID_REGEX}.
      */
     public static DeleteAttribute fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandJsonDeserializer<DeleteAttribute>(TYPE, jsonObject).deserialize(jsonObjectReader -> {
-            final String thingId = jsonObjectReader.get(ThingModifyCommand.JsonFields.JSON_THING_ID);
-            final String extractedPointerString = jsonObjectReader.get(JSON_ATTRIBUTE);
+        return new CommandJsonDeserializer<DeleteAttribute>(TYPE, jsonObject).deserialize(() -> {
+            final String thingId = jsonObject.getValueOrThrow(ThingModifyCommand.JsonFields.JSON_THING_ID);
+            final String extractedPointerString = jsonObject.getValueOrThrow(JSON_ATTRIBUTE);
             final JsonPointer extractedPointer = JsonFactory.newPointer(extractedPointerString);
+
             return of(thingId, extractedPointer, dittoHeaders);
         });
     }
@@ -180,8 +180,8 @@ public final class DeleteAttribute extends AbstractCommand<DeleteAttribute>
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof DeleteAttribute);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof DeleteAttribute;
     }
 
     @Override

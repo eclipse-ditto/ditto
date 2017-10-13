@@ -22,8 +22,6 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonObjectReader;
-import org.eclipse.ditto.json.JsonReader;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
@@ -78,11 +76,11 @@ final class ImmutablePolicyEntry implements PolicyEntry {
         final Label lbl = Label.of(label);
 
         try {
-            final JsonObjectReader jsonObjectReader = JsonReader.from(jsonObject);
-            final JsonObject subjectsJsonObject = jsonObjectReader.get(JsonFields.SUBJECTS);
+            final JsonObject subjectsJsonObject = jsonObject.getValueOrThrow(JsonFields.SUBJECTS);
             final Subjects subjectsFromJson = PoliciesModelFactory.newSubjects(subjectsJsonObject);
-            final JsonObject resourcesJsonObject = jsonObjectReader.get(JsonFields.RESOURCES);
+            final JsonObject resourcesJsonObject = jsonObject.getValueOrThrow(JsonFields.RESOURCES);
             final Resources resourcesFromJson = PoliciesModelFactory.newResources(resourcesJsonObject);
+
             return of(lbl, subjectsFromJson, resourcesFromJson);
         } catch (final JsonMissingFieldException e) {
             throw new DittoJsonException(e);

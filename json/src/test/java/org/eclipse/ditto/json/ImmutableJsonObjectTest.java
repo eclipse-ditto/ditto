@@ -1202,11 +1202,11 @@ public final class ImmutableJsonObjectTest {
     @Test
     public void setValueViaFieldDefinitionOnEmptyObject() {
         final JsonPointer pointer = JsonFactory.newPointer("foo/bar/baz");
-        final JsonFieldDefinition fieldDefinition = JsonFactory.newFieldDefinition(pointer, int.class);
+        final JsonFieldDefinition<Integer> fieldDefinition = JsonFactory.newIntFieldDefinition(pointer);
         final JsonValue value = JsonFactory.newValue(KNOWN_INT_23);
 
         final ImmutableJsonObject underTest = ImmutableJsonObject.empty();
-        final JsonObject withValue = underTest.set(fieldDefinition, value);
+        final JsonObject withValue = underTest.set(fieldDefinition, value.asInt());
 
         assertThat(withValue).contains(fieldDefinition, value);
     }
@@ -1215,7 +1215,7 @@ public final class ImmutableJsonObjectTest {
     public void setValueViaFieldDefinitionOnNonEmptyObject() {
         // ARRANGE
         final JsonPointer pointer = JsonFactory.newPointer("foo/bar/baz");
-        final JsonFieldDefinition fieldDefinition = JsonFactory.newFieldDefinition(pointer, int.class);
+        final JsonFieldDefinition<Integer> fieldDefinition = JsonFactory.newIntFieldDefinition(pointer);
         final JsonValue value = JsonFactory.newValue(KNOWN_INT_42);
 
         final JsonObject bar = ImmutableJsonObject.empty()
@@ -1234,7 +1234,7 @@ public final class ImmutableJsonObjectTest {
 
         // ACT
         final ImmutableJsonObject underTest = ImmutableJsonObject.of(fieldsFoo);
-        final JsonObject withValue = underTest.set(fieldDefinition, value);
+        final JsonObject withValue = underTest.set(fieldDefinition, value.asInt());
 
         // ASSERT
         assertThat(withValue).isEqualTo(expectedJsonObject);

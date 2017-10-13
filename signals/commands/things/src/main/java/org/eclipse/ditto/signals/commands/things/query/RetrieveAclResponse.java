@@ -48,10 +48,8 @@ public final class RetrieveAclResponse extends AbstractCommandResponse<RetrieveA
      */
     public static final String TYPE = TYPE_PREFIX + RetrieveAcl.NAME;
 
-    static final JsonFieldDefinition JSON_ACL =
-            JsonFactory.newFieldDefinition("acl", JsonObject.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_1);
+    static final JsonFieldDefinition<JsonObject> JSON_ACL =
+            JsonFactory.newJsonObjectFieldDefinition("acl", FieldType.REGULAR, JsonSchemaVersion.V_1);
 
     private final String thingId;
     private final JsonObject acl;
@@ -121,10 +119,12 @@ public final class RetrieveAclResponse extends AbstractCommandResponse<RetrieveA
      */
     public static RetrieveAclResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<RetrieveAclResponse>(TYPE, jsonObject)
-                .deserialize((statusCode, jsonObjectReader) -> {
-                    final String thingId = jsonObjectReader.get(ThingQueryCommandResponse.JsonFields.JSON_THING_ID);
-                    final JsonObject aclJsonObject = jsonObjectReader.get(JSON_ACL);
+                .deserialize((statusCode) -> {
+                    final String thingId =
+                            jsonObject.getValueOrThrow(ThingQueryCommandResponse.JsonFields.JSON_THING_ID);
+                    final JsonObject aclJsonObject = jsonObject.getValueOrThrow(JSON_ACL);
                     final AccessControlList extractedAcl = ThingsModelFactory.newAcl(aclJsonObject);
+
                     return of(thingId, extractedAcl, dittoHeaders);
                 });
     }
@@ -183,8 +183,8 @@ public final class RetrieveAclResponse extends AbstractCommandResponse<RetrieveA
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof RetrieveAclResponse);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof RetrieveAclResponse;
     }
 
     @Override
@@ -209,4 +209,5 @@ public final class RetrieveAclResponse extends AbstractCommandResponse<RetrieveA
     public String toString() {
         return getClass().getSimpleName() + " [" + super.toString() + ", thingId=" + thingId + ", acl=" + acl + "]";
     }
+
 }

@@ -11,13 +11,9 @@
  */
 package org.eclipse.ditto.model.things;
 
-import java.util.Optional;
-
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonParseException;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.ConditionChecker;
 
 /**
@@ -104,15 +100,9 @@ final class ImmutableFeatureFromScratchBuilder implements FeatureBuilder, Featur
         if (jsonObject.isNull()) {
             isFeatureValueJsonNull = true;
         } else {
-            final Optional<JsonValue> propertiesOptional = jsonObject.getValue(Feature.JsonFields.PROPERTIES);
-            if (propertiesOptional.isPresent()) {
-                final JsonValue propertiesJsonValue = propertiesOptional.get();
-                if (!propertiesJsonValue.isObject()) {
-                    throw new JsonParseException("The properties of a Feature must be a JSON object!");
-                } else {
-                    properties = ThingsModelFactory.newFeatureProperties(propertiesJsonValue.asObject());
-                }
-            }
+            jsonObject.getValue(Feature.JsonFields.PROPERTIES)
+                    .ifPresent(propertiesJsonObject -> properties =
+                            ThingsModelFactory.newFeatureProperties(propertiesJsonObject));
         }
 
         return this;

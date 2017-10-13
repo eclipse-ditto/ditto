@@ -47,31 +47,30 @@ public final class ModifyFeaturePropertyResponse extends AbstractCommandResponse
      */
     public static final String TYPE = TYPE_PREFIX + ModifyFeatureProperty.NAME;
 
-    static final JsonFieldDefinition JSON_FEATURE_ID =
-            JsonFactory.newFieldDefinition("featureId", String.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<String> JSON_FEATURE_ID =
+            JsonFactory.newStringFieldDefinition("featureId", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
 
-    static final JsonFieldDefinition JSON_PROPERTY =
-            JsonFactory.newFieldDefinition("property", String.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<String> JSON_PROPERTY =
+            JsonFactory.newStringFieldDefinition("property", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
 
-    static final JsonFieldDefinition JSON_VALUE =
-            JsonFactory.newFieldDefinition("value", JsonValue.class, FieldType.REGULAR,
-                    // available in schema versions:
-                    JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<JsonValue> JSON_VALUE =
+            JsonFactory.newJsonValueFieldDefinition("value", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
 
     private final String thingId;
     private final String featureId;
     private final JsonPointer featurePropertyPointer;
-    @Nullable
-    private final JsonValue featurePropertyValue;
+    @Nullable private final JsonValue featurePropertyValue;
 
-    private ModifyFeaturePropertyResponse(final String thingId, final String featureId,
+    private ModifyFeaturePropertyResponse(final String thingId,
+            final String featureId,
             final JsonPointer featurePropertyPointer,
-            @Nullable final JsonValue featurePropertyValue, final HttpStatusCode statusCode,
+            @Nullable final JsonValue featurePropertyValue,
+            final HttpStatusCode statusCode,
             final DittoHeaders dittoHeaders) {
+
         super(TYPE, statusCode, dittoHeaders);
         this.thingId = checkNotNull(thingId, "Thing ID");
         this.featureId = requireNonNull(featureId, "The Feature ID must not be null!");
@@ -81,7 +80,7 @@ public final class ModifyFeaturePropertyResponse extends AbstractCommandResponse
     }
 
     /**
-     * Returns a new {@link ModifyFeaturePropertyResponse} for a created FeatureProperty. This corresponds to the HTTP
+     * Returns a new {@code ModifyFeaturePropertyResponse} for a created FeatureProperty. This corresponds to the HTTP
      * status code {@link HttpStatusCode#CREATED}.
      *
      * @param thingId the Thing ID of the created feature property.
@@ -92,16 +91,19 @@ public final class ModifyFeaturePropertyResponse extends AbstractCommandResponse
      * @return a command response for a created FeatureProperty.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static ModifyFeaturePropertyResponse created(final String thingId, final String featureId,
+    public static ModifyFeaturePropertyResponse created(final String thingId,
+            final String featureId,
             final JsonPointer featurePropertyPointer,
-            final JsonValue featureValue, final DittoHeaders dittoHeaders) {
+            final JsonValue featureValue,
+            final DittoHeaders dittoHeaders) {
+
         return new ModifyFeaturePropertyResponse(thingId, featureId, featurePropertyPointer, featureValue,
                 HttpStatusCode.CREATED,
                 dittoHeaders);
     }
 
     /**
-     * Returns a new {@link ModifyFeaturePropertyResponse} for a modified FeatureProperty. This corresponds to the HTTP
+     * Returns a new {@code ModifyFeaturePropertyResponse} for a modified FeatureProperty. This corresponds to the HTTP
      * status code {@link HttpStatusCode#NO_CONTENT}.
      *
      * @param thingId the Thing ID of the modified feature property.
@@ -113,6 +115,7 @@ public final class ModifyFeaturePropertyResponse extends AbstractCommandResponse
      */
     public static ModifyFeaturePropertyResponse modified(final String thingId, final String featureId,
             final JsonPointer featurePropertyPointer, final DittoHeaders dittoHeaders) {
+
         return new ModifyFeaturePropertyResponse(thingId, featureId, featurePropertyPointer, null,
                 HttpStatusCode.NO_CONTENT,
                 dittoHeaders);
@@ -146,16 +149,16 @@ public final class ModifyFeaturePropertyResponse extends AbstractCommandResponse
     public static ModifyFeaturePropertyResponse fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<ModifyFeaturePropertyResponse>(TYPE, jsonObject)
-                .deserialize((statusCode, jsonObjectReader) -> {
-                    final String thingId = jsonObjectReader.get(ThingModifyCommandResponse.JsonFields.JSON_THING_ID);
-                    final String extractedFeatureId = jsonObjectReader.get(JSON_FEATURE_ID);
-                    final String pointerString = jsonObjectReader.get(JSON_PROPERTY);
+                .deserialize((statusCode) -> {
+                    final String thingId =
+                            jsonObject.getValueOrThrow(ThingModifyCommandResponse.JsonFields.JSON_THING_ID);
+                    final String extractedFeatureId = jsonObject.getValueOrThrow(JSON_FEATURE_ID);
+                    final String pointerString = jsonObject.getValueOrThrow(JSON_PROPERTY);
                     final JsonPointer extractedFeaturePropertyPointer = JsonFactory.newPointer(pointerString);
-                    final JsonValue extractedFeaturePropertyValue = jsonObject.getValue(JSON_VALUE)
-                            .orElse(null);
+                    final JsonValue extractedFeaturePropertyValue = jsonObject.getValue(JSON_VALUE).orElse(null);
+
                     return new ModifyFeaturePropertyResponse(thingId, extractedFeatureId,
-                            extractedFeaturePropertyPointer,
-                            extractedFeaturePropertyValue, statusCode, dittoHeaders);
+                            extractedFeaturePropertyPointer, extractedFeaturePropertyValue, statusCode, dittoHeaders);
                 });
     }
 
@@ -222,8 +225,8 @@ public final class ModifyFeaturePropertyResponse extends AbstractCommandResponse
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof ModifyFeaturePropertyResponse);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof ModifyFeaturePropertyResponse;
     }
 
     @SuppressWarnings("squid:S1067")
