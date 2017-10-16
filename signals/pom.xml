@@ -21,7 +21,6 @@
         <relativePath>../bom</relativePath>
     </parent>
 
-    <groupId>org.eclipse.ditto.signals</groupId>
     <artifactId>ditto-signals</artifactId>
     <packaging>pom</packaging>
     <version>0.1.0-SNAPSHOT</version>
@@ -37,17 +36,17 @@
     <dependencies>
         <!-- ### Compile ### -->
         <dependency>
-            <groupId>org.eclipse.ditto.json</groupId>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-json</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.eclipse.ditto.model</groupId>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-model-base</artifactId>
         </dependency>
 
         <!-- ### Provided ### -->
         <dependency>
-            <groupId>org.eclipse.ditto.utils</groupId>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-utils-jsr305</artifactId>
             <scope>provided</scope>
         </dependency>
@@ -59,13 +58,13 @@
 
         <!-- ### Testing ### -->
         <dependency>
-            <groupId>org.eclipse.ditto.json</groupId>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-json</artifactId>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.eclipse.ditto.model</groupId>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-model-base</artifactId>
             <type>test-jar</type>
             <scope>test</scope>

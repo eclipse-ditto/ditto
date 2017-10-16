@@ -21,7 +21,6 @@
         <relativePath>../bom</relativePath>
     </parent>
 
-    <groupId>org.eclipse.ditto.utils</groupId>
     <artifactId>ditto-utils</artifactId>
     <packaging>pom</packaging>
     <name>Eclipse Ditto :: Utils</name>

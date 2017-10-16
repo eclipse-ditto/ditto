@@ -21,7 +21,6 @@
         <relativePath>../bom</relativePath>
     </parent>
 
-    <groupId>org.eclipse.ditto.protocol</groupId>
     <artifactId>ditto-protocol-adapter</artifactId>
     <packaging>bundle</packaging>
     <name>Eclipse Ditto :: Protocol Adapter</name>
@@ -29,58 +28,58 @@
     <dependencies>
         <!-- ### Compile ### -->
         <dependency>
-            <groupId>org.eclipse.ditto.json</groupId>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-json</artifactId>
         </dependency>
 
         <dependency>
-            <groupId>org.eclipse.ditto.model</groupId>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-model-base</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.eclipse.ditto.model</groupId>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-model-policies</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.eclipse.ditto.model</groupId>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-model-things</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.eclipse.ditto.model</groupId>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-model-thingsearch</artifactId>
         </dependency>
 
         <dependency>
-            <groupId>org.eclipse.ditto.signals.commands</groupId>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-signals-commands-base</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.eclipse.ditto.signals.commands</groupId>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-signals-commands-policies</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.eclipse.ditto.signals.commands</groupId>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-signals-commands-things</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.eclipse.ditto.signals.commands</groupId>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-signals-commands-thingsearch</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.eclipse.ditto.signals.commands</groupId>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-signals-commands-messages</artifactId>
         </dependency>
 
         <dependency>
-            <groupId>org.eclipse.ditto.signals.events</groupId>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-signals-events-base</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.eclipse.ditto.signals.events</groupId>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-signals-events-policies</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.eclipse.ditto.signals.events</groupId>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-signals-events-things</artifactId>
         </dependency>
 
@@ -91,14 +90,14 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>org.eclipse.ditto.utils</groupId>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-utils-jsr305</artifactId>
             <scope>provided</scope>
         </dependency>
 
         <!-- ### Testing ### -->
         <dependency>
-            <groupId>org.eclipse.ditto.model</groupId>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-model-base</artifactId>
             <type>test-jar</type>
             <scope>test</scope>

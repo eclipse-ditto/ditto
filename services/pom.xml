@@ -21,7 +21,6 @@
         <relativePath>../bom</relativePath>
     </parent>
 
-    <groupId>org.eclipse.ditto.services</groupId>
     <artifactId>ditto-services</artifactId>
     <packaging>pom</packaging>
     <name>Eclipse Ditto :: Services</name>
@@ -63,14 +62,14 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>org.eclipse.ditto.utils</groupId>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-utils-jsr305</artifactId>
             <scope>provided</scope>
         </dependency>
 
         <!-- ### Testing ### -->
         <dependency>
-            <groupId>org.eclipse.ditto.json</groupId>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-json</artifactId>
             <type>test-jar</type>
         </dependency>

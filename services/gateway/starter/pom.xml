@@ -15,7 +15,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>org.eclipse.ditto.services.gateway</groupId>
+        <groupId>org.eclipse.ditto</groupId>
         <artifactId>ditto-services-gateway</artifactId>
         <version>0.1.0-SNAPSHOT</version>
     </parent>
@@ -61,28 +61,28 @@
         </dependency>
 
         <dependency>
-            <groupId>org.eclipse.ditto.services.utils</groupId>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-services-utils-akka</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.eclipse.ditto.services.utils</groupId>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-services-utils-cluster</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.eclipse.ditto.services.utils</groupId>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-services-utils-config</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.eclipse.ditto.services.utils</groupId>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-services-utils-health</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.eclipse.ditto.services.utils</groupId>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-services-utils-persistence</artifactId>
         </dependency>
 
         <dependency>
-            <groupId>org.eclipse.ditto.services.utils</groupId>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-services-utils-distributed-cache-actors</artifactId>
         </dependency>
 
