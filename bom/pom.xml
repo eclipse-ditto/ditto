@@ -333,168 +333,168 @@
 
             <!-- ### Compile - own artifacts ### -->
             <dependency>
-                <groupId>org.eclipse.ditto.json</groupId>
+                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-json</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>org.eclipse.ditto.model</groupId>
+                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-model-base</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.eclipse.ditto.model</groupId>
+                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-model-devops</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.eclipse.ditto.model</groupId>
+                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-model-policies</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.eclipse.ditto.model</groupId>
+                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-model-policies-enforcers</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.eclipse.ditto.model</groupId>
+                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-model-things</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.eclipse.ditto.model</groupId>
+                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-model-thingsearch</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.eclipse.ditto.model</groupId>
+                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-model-thingsearch-parser</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.eclipse.ditto.model</groupId>
+                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-model-messages</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>org.eclipse.ditto.signals</groupId>
+                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-signals-base</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.eclipse.ditto.signals.commands</groupId>
+                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-signals-commands-base</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.eclipse.ditto.signals.commands</groupId>
+                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-signals-commands-devops</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.eclipse.ditto.signals.commands</groupId>
+                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-signals-commands-policies</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.eclipse.ditto.signals.commands</groupId>
+                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-signals-commands-things</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.eclipse.ditto.signals.commands</groupId>
+                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-signals-commands-thingsearch</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.eclipse.ditto.signals.commands</groupId>
+                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-signals-commands-messages</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>org.eclipse.ditto.signals.events</groupId>
+                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-signals-events-base</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.eclipse.ditto.signals.events</groupId>
+                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-signals-events-policies</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.eclipse.ditto.signals.events</groupId>
+                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-signals-events-things</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>org.eclipse.ditto.protocol</groupId>
+                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-protocol-adapter</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>org.eclipse.ditto.services.utils</groupId>
+                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-services-utils-akka-persistence-mongo-addons</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.eclipse.ditto.services.utils</groupId>
+                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-services-utils-akka</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.eclipse.ditto.services.utils</groupId>
+                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-services-utils-cluster</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.eclipse.ditto.services.utils</groupId>
+                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-services-utils-config</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.eclipse.ditto.services.utils</groupId>
+                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-services-utils-health</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.eclipse.ditto.services.utils</groupId>
+                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-services-utils-logging</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.eclipse.ditto.services.utils</groupId>
+                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-services-utils-persistence</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.eclipse.ditto.services.utils</groupId>
+                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-services-utils-distributed-cache-model</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.eclipse.ditto.services.utils</groupId>
+                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-services-utils-distributed-cache-actors</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>org.eclipse.ditto.services.models</groupId>
+                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-services-models-policies</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.eclipse.ditto.services.models</groupId>
+                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-services-models-things</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.eclipse.ditto.services.models</groupId>
+                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-services-models-thingsearch</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -507,7 +507,7 @@
 
             <!-- ### Provided - own artifacts ### -->
             <dependency>
-                <groupId>org.eclipse.ditto.utils</groupId>
+                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-utils-jsr305</artifactId>
                 <version>${project.version}</version>
                 <scope>provided</scope>
@@ -605,7 +605,7 @@
 
             <!-- ### Testing - own artifacts ### -->
             <dependency>
-                <groupId>org.eclipse.ditto.json</groupId>
+                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-json</artifactId>
                 <type>test-jar</type>
                 <version>${project.version}</version>
@@ -613,21 +613,21 @@
             </dependency>
 
             <dependency>
-                <groupId>org.eclipse.ditto.model</groupId>
+                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-model-base</artifactId>
                 <type>test-jar</type>
                 <version>${project.version}</version>
                 <scope>test</scope>
             </dependency>
             <dependency>
-                <groupId>org.eclipse.ditto.model</groupId>
+                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-model-policies</artifactId>
                 <type>test-jar</type>
                 <version>${project.version}</version>
                 <scope>test</scope>
             </dependency>
             <dependency>
-                <groupId>org.eclipse.ditto.model</groupId>
+                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-model-things</artifactId>
                 <type>test-jar</type>
                 <version>${project.version}</version>
@@ -635,7 +635,7 @@
             </dependency>
 
             <dependency>
-                <groupId>org.eclipse.ditto.signals</groupId>
+                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-signals-base</artifactId>
                 <type>test-jar</type>
                 <version>${project.version}</version>
@@ -643,21 +643,21 @@
             </dependency>
 
             <dependency>
-                <groupId>org.eclipse.ditto.signals.commands</groupId>
+                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-signals-commands-base</artifactId>
                 <type>test-jar</type>
                 <version>${project.version}</version>
                 <scope>test</scope>
             </dependency>
             <dependency>
-                <groupId>org.eclipse.ditto.signals.commands</groupId>
+                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-signals-commands-policies</artifactId>
                 <type>test-jar</type>
                 <version>${project.version}</version>
                 <scope>test</scope>
             </dependency>
             <dependency>
-                <groupId>org.eclipse.ditto.signals.commands</groupId>
+                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-signals-commands-things</artifactId>
                 <type>test-jar</type>
                 <version>${project.version}</version>
@@ -665,14 +665,14 @@
             </dependency>
 
             <dependency>
-                <groupId>org.eclipse.ditto.signals.events</groupId>
+                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-signals-events-base</artifactId>
                 <type>test-jar</type>
                 <version>${project.version}</version>
                 <scope>test</scope>
             </dependency>
             <dependency>
-                <groupId>org.eclipse.ditto.signals.events</groupId>
+                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-signals-events-things</artifactId>
                 <type>test-jar</type>
                 <version>${project.version}</version>
@@ -680,14 +680,14 @@
             </dependency>
 
             <dependency>
-                <groupId>org.eclipse.ditto.services.utils</groupId>
+                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-services-utils-akka</artifactId>
                 <type>test-jar</type>
                 <version>${project.version}</version>
                 <scope>test</scope>
             </dependency>
             <dependency>
-                <groupId>org.eclipse.ditto.services.utils</groupId>
+                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-services-utils-test</artifactId>
                 <type>test-jar</type>
                 <version>${project.version}</version>

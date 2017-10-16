@@ -16,7 +16,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>org.eclipse.ditto.signals.commands</groupId>
+        <groupId>org.eclipse.ditto</groupId>
         <artifactId>ditto-signals-commands</artifactId>
         <version>0.1.0-SNAPSHOT</version>
     </parent>
@@ -28,49 +28,49 @@
     <dependencies>
         <!-- ### Compile ### -->
         <dependency>
-            <groupId>org.eclipse.ditto.signals.commands</groupId>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-signals-commands-base</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.eclipse.ditto.signals.commands</groupId>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-signals-commands-things</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.eclipse.ditto.signals.events</groupId>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-signals-events-base</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.eclipse.ditto.signals.events</groupId>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-signals-events-things</artifactId>
         </dependency>
 
         <!-- ### Testing ### -->
         <dependency>
-            <groupId>org.eclipse.ditto.model</groupId>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-model-base</artifactId>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.eclipse.ditto.signals.commands</groupId>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-signals-commands-base</artifactId>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.eclipse.ditto.signals.commands</groupId>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-signals-commands-things</artifactId>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.eclipse.ditto.signals.events</groupId>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-signals-events-base</artifactId>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.eclipse.ditto.signals.events</groupId>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-signals-events-things</artifactId>
             <type>test-jar</type>
             <scope>test</scope>

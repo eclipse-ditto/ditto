@@ -16,7 +16,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>org.eclipse.ditto.services.things</groupId>
+        <groupId>org.eclipse.ditto</groupId>
         <artifactId>ditto-services-things</artifactId>
         <version>0.1.0-SNAPSHOT</version>
     </parent>

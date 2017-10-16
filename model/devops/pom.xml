@@ -15,7 +15,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>org.eclipse.ditto.model</groupId>
+        <groupId>org.eclipse.ditto</groupId>
         <artifactId>ditto-model</artifactId>
         <version>0.1.0-SNAPSHOT</version>
     </parent>
@@ -27,7 +27,7 @@
     <dependencies>
         <!-- ### Compile ### -->
         <dependency>
-            <groupId>org.eclipse.ditto.model</groupId>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-model-base</artifactId>
         </dependency>
     </dependencies>

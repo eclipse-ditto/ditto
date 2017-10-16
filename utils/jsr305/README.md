@@ -6,7 +6,7 @@ This module provides extensions for the annotations for Software Defect Detectio
 ## Maven Coordinates
 
     <dependency>
-        <groupId>org.eclipse.ditto.utils</groupId>
+        <groupId>org.eclipse.ditto</groupId>
         <artifactId>ditto-utils-jsr305</artifactId>
         <version>VERSION</version>
         <scope>provided</scope>
