@@ -64,12 +64,23 @@ final class ThingSearchResponseAdapter extends AbstractAdapter<RetrieveThingsRes
             throw UnknownCommandResponseException.newBuilder(responseName).build();
         }
 
+        final TopicPathBuilder topicPathBuilder = DittoProtocolAdapter.newTopicPathBuilder(commandResponse.getId());
+
+        final TopicPathBuildable searchTopicPathBuilder;
+        if (channel == TopicPath.Channel.TWIN) {
+            searchTopicPathBuilder = topicPathBuilder.twin().search();
+        } else if (channel == TopicPath.Channel.LIVE) {
+            searchTopicPathBuilder = topicPathBuilder.live().search();
+        } else {
+            throw new IllegalArgumentException("Unknown Channel '" + channel + "'");
+        }
+
         final Payload payload = Payload.newBuilder(commandResponse.getResourcePath()) //
                 .withStatus(commandResponse.getStatusCode()) //
                 .withValue(commandResponse.getEntity(commandResponse.getImplementedSchemaVersion())) //
                 .build();
 
-        return Adaptable.newBuilder(DittoProtocolAdapter.emptyTopicPath()) //
+        return Adaptable.newBuilder(searchTopicPathBuilder.build()) //
                 .withPayload(payload) //
                 .withHeaders(DittoProtocolAdapter.newHeaders(commandResponse.getDittoHeaders())) //
                 .build();
