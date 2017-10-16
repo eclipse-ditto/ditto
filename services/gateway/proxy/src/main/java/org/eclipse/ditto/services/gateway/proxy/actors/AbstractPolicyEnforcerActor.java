@@ -295,13 +295,6 @@ public abstract class AbstractPolicyEnforcerActor extends AbstractActorWithStash
                 /* directly forward all PolicySudoCommands */
                 .match(SudoCommand.class, this::forwardPolicySudoCommand)
 
-                /* Live Signals */
-                .match(Signal.class, AbstractPolicyEnforcerActor::isLiveSignal, liveSignal -> {
-                    final WithDittoHeaders enrichedSignal =
-                            enrichDittoHeaders(liveSignal, liveSignal.getResourcePath(), liveSignal.getResourceType());
-                    getSender().tell(enrichedSignal, getSelf());
-                })
-
                 /* PolicyCommands */
                 .match(CreatePolicy.class, this::isEnforcerNull, this::forwardPolicyModifyCommand)
                 .match(PolicyCommand.class, this::isEnforcerNull, command -> {
@@ -646,7 +639,7 @@ public abstract class AbstractPolicyEnforcerActor extends AbstractActorWithStash
         getSelf().tell(PoisonPill.getInstance(), getSelf());
     }
 
-    private static boolean isLiveSignal(final Signal<?> signal) {
+    static boolean isLiveSignal(final Signal<?> signal) {
         return "LIVE".equals(signal.getDittoHeaders().get("channel"));
     }
 

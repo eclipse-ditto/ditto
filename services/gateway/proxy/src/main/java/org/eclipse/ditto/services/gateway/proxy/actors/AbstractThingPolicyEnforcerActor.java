@@ -22,6 +22,7 @@ import java.util.function.Supplier;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.messages.MessageSendNotAllowedException;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.PoliciesResourceType;
@@ -29,6 +30,7 @@ import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoCommand;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.messages.SendClaimMessage;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
@@ -71,6 +73,22 @@ public abstract class AbstractThingPolicyEnforcerActor extends AbstractPolicyEnf
                 /* directly forward all Thing SudoCommands */
                 .match(SudoCommand.class, this::forwardThingSudoCommand)
 
+                /* MessageCommands */
+                .match(SendClaimMessage.class, this::publishCommand)
+                .match(MessageCommand.class, this::isEnforcerNull, command -> {
+                    doStash();
+                    synchronizePolicy();
+                })
+                .match(MessageCommand.class, this::isAuthorized, this::publishCommand)
+                .match(MessageCommand.class, this::unauthorized)
+
+                /* Live Signals */
+                .match(Signal.class, AbstractPolicyEnforcerActor::isLiveSignal, liveSignal -> {
+                    final WithDittoHeaders enrichedSignal =
+                            enrichDittoHeaders(liveSignal, liveSignal.getResourcePath(), liveSignal.getResourceType());
+                    getSender().tell(enrichedSignal, getSelf());
+                })
+
                 /* ThingCommands */
                 .match(CreateThing.class, this::isCreateThingAuthorized, this::forwardThingModifyCommand)
                 .match(CreateThing.class, this::unauthorized)
@@ -80,16 +98,7 @@ public abstract class AbstractThingPolicyEnforcerActor extends AbstractPolicyEnf
                 .match(ThingQueryCommand.class, this::unauthorized)
 
                 /* ThingEvents */
-                .match(ThingEvent.class, this::publishEvent)
-
-                /* MessageCommands */
-                .match(SendClaimMessage.class, this::publishCommand)
-                .match(MessageCommand.class, this::isEnforcerNull, command -> {
-                    doStash();
-                    synchronizePolicy();
-                })
-                .match(MessageCommand.class, this::isAuthorized, this::publishCommand)
-                .match(MessageCommand.class, this::unauthorized);
+                .match(ThingEvent.class, this::publishEvent);
     }
 
     private void forwardThingSudoCommand(final SudoCommand command) {

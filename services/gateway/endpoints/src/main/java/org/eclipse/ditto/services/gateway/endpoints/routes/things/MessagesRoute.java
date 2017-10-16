@@ -243,7 +243,7 @@ final class MessagesRoute extends AbstractRoute {
                     .rawPayload(payload)
                     .build();
 
-            return SendThingMessage.of(thingId, message, dittoHeaders);
+            return SendThingMessage.of(thingId, message, enhanceHeaders(dittoHeaders));
         };
     }
 
@@ -285,7 +285,7 @@ final class MessagesRoute extends AbstractRoute {
                     .rawPayload(payload)
                     .build();
 
-            return SendFeatureMessage.of(thingId, featureId, message, dittoHeaders);
+            return SendFeatureMessage.of(thingId, featureId, message, enhanceHeaders(dittoHeaders));
         };
     }
 
@@ -317,8 +317,12 @@ final class MessagesRoute extends AbstractRoute {
                     .rawPayload(payload)
                     .build();
 
-            return SendClaimMessage.of(thingId, message, dittoHeaders);
+            return SendClaimMessage.of(thingId, message, enhanceHeaders(dittoHeaders));
         };
+    }
+
+    private DittoHeaders enhanceHeaders(final DittoHeaders dittoHeaders) {
+        return dittoHeaders.toBuilder().putHeader("channel", "LIVE").build();
     }
 
     private Route handleMessage(final RequestContext ctx, final Source<ByteString, Object> payloadSource,

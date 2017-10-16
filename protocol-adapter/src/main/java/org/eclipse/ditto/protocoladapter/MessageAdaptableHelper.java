@@ -92,10 +92,15 @@ final class MessageAdaptableHelper {
                 .map(p -> messageCommandHeadersJsonObject.getValue(MessageHeaderDefinition.CONTENT_TYPE.getKey())
                         .filter(JsonValue::isString)
                         .map(JsonValue::asString)
-                        .filter(MessageAdaptableHelper::shouldBeInterpretedAsText)
-                        .map(MessageAdaptableHelper::determineCharset)
-                        .map(charset -> !p.isString() ? p : JsonValue.of(
-                                new String(BASE_64_DECODER.decode(p.asString()), charset)))
+                        .map(contentType -> {
+                            if (MessageAdaptableHelper.shouldBeInterpretedAsText(contentType)) {
+                                return p;
+                            } else {
+                                return JsonValue.of(
+                                        new String(BASE_64_DECODER.decode(p.asString()),
+                                                MessageAdaptableHelper.determineCharset(contentType)));
+                            }
+                        })
                         .orElse(p))
                 .ifPresent(payloadBuilder::withValue);
 

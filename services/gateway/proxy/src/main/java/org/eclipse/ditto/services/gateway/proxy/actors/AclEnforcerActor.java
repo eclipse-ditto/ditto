@@ -193,7 +193,11 @@ public final class AclEnforcerActor extends AbstractActorWithStash {
                 .match(org.eclipse.ditto.services.models.policies.commands.sudo.SudoCommand.class,
                         this::forwardPoliciesSudoCommand)
 
-                /* Live Signals */
+                .match(SendClaimMessage.class, this::forwardMessageCommand)
+                .match(MessageCommand.class, this::isAuthorized, this::forwardMessageCommand)
+                .match(MessageCommand.class, this::unauthorized)
+
+                /* other Live Signals then messages: */
                 .match(Signal.class, AclEnforcerActor::isLiveSignal, liveSignal -> {
                     final WithDittoHeaders enrichedSignal = enrichDittoHeaders(liveSignal);
                     getSender().tell(enrichedSignal, getSelf());
@@ -206,10 +210,6 @@ public final class AclEnforcerActor extends AbstractActorWithStash {
                 .match(ThingModifyCommand.class, this::unauthorized)
                 .match(ThingQueryCommand.class, this::isAuthorized, this::forwardQueryCommand)
                 .match(ThingQueryCommand.class, this::unauthorized)
-
-                .match(SendClaimMessage.class, this::forwardMessageCommand)
-                .match(MessageCommand.class, this::isAuthorized, this::forwardMessageCommand)
-                .match(MessageCommand.class, this::unauthorized)
 
                 .match(RetrievePolicy.class, this::migrateAclIfAuthorized)
 
