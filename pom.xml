@@ -45,10 +45,15 @@
     </prerequisites>
 
     <scm>
-        <developerConnection>scm:git:https://github.com/eclipse/ditto.git</developerConnection>
-        <url>https://github.com/eclipse/ditto</url>
-        <tag>HEAD</tag>
+        <connection>${release.scm.connection}</connection>
+        <developerConnection>${release.scm.developerConnection}</developerConnection>
+        <url>${release.scm.url}</url>
     </scm>
+
+    <ciManagement>
+        <system>Jenkins</system>
+        <url>https://ci.eclipse.org/ditto/</url>
+    </ciManagement>
 
     <distributionManagement>
         <repository>
@@ -163,6 +168,10 @@
         <!-- configure timestamp format to be injected into legal docs -->
         <maven.build.timestamp.format>yyyy-MM-dd</maven.build.timestamp.format>
         <timestamp>${maven.build.timestamp}</timestamp>
+
+        <release.scm.connection>scm:git:git@github.com:eclipse/ditto.git</release.scm.connection>
+        <release.scm.developerConnection>scm:git:https://github.com/eclipse/ditto.git</release.scm.developerConnection>
+        <release.scm.url>https://github.com/eclipse/ditto.git</release.scm.url>
     </properties>
 
     <build>
@@ -311,6 +320,9 @@
                     <groupId>org.codehaus.mojo</groupId>
                     <artifactId>versions-maven-plugin</artifactId>
                     <version>2.1</version>
+                    <configuration>
+                        <generateBackupPoms>false</generateBackupPoms>
+                    </configuration>
                     <!-- version 2.2 has a bug - NPE when using versions:set - so consider twice updating this version -->
                 </plugin>
                 <plugin>
@@ -328,6 +340,21 @@
                     <artifactId>port-allocator-maven-plugin</artifactId>
                     <version>1.2</version>
                 </plugin>
+                <plugin>
+                    <groupId>org.sonatype.plugins</groupId>
+                    <artifactId>nexus-staging-maven-plugin</artifactId>
+                    <version>1.6.8</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-gpg-plugin</artifactId>
+                    <version>1.6</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.eclipse.cbi.maven.plugins</groupId>
+                    <artifactId>eclipse-jarsigner-plugin</artifactId>
+                    <version>1.1.4</version>
+                </plugin>
             </plugins>
         </pluginManagement>
 
@@ -344,7 +371,7 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-scm-plugin</artifactId>
                 <configuration>
-                    <tag>${project.artifactId}-${project.version}</tag>
+                    <tag>${project.version}</tag>
                 </configuration>
             </plugin>
             <plugin>
@@ -379,18 +406,6 @@
                         <id>attach-site</id>
                         <goals>
                             <goal>attach-descriptor</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-source-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>attach-sources</id>
-                        <goals>
-                            <goal>jar</goal>
                         </goals>
                     </execution>
                 </executions>
@@ -449,7 +464,22 @@
         </plugins>
     </build>
 
+    <pluginRepositories>
+        <pluginRepository>
+            <id>eclipse-repo</id>
+            <name>Eclipse CBI Repository</name>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+            <url>https://repo.eclipse.org/content/repositories/cbi-releases/</url>
+        </pluginRepository>
+    </pluginRepositories>
+
     <profiles>
+
         <profile>
             <id>performRelease</id>
             <activation>
@@ -485,6 +515,106 @@
                                 </configuration>
                             </execution>
                         </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-source-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>attach-sources</id>
+                                <goals>
+                                    <goal>jar-no-fork</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>attach-javadocs</id>
+                                <goals>
+                                    <goal>jar</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>sign-artifacts</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>sign</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.eclipse.cbi.maven.plugins</groupId>
+                        <artifactId>eclipse-jarsigner-plugin</artifactId>
+                        <configuration>
+                            <excludeInnerJars>true</excludeInnerJars>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>sign-jars</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>sign</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <profile>
+            <id>publishToEclipseMavenRepo</id>
+            <activation>
+                <property>
+                    <name>publishToEclipseMavenRepo</name>
+                    <value>true</value>
+                </property>
+            </activation>
+        </profile>
+
+        <profile>
+            <id>publishToSontatypeOssMavenRepo</id>
+            <activation>
+                <property>
+                    <name>publishToSontatypeOssMavenRepo</name>
+                    <value>true</value>
+                </property>
+            </activation>
+            <distributionManagement>
+                <repository>
+                    <id>ossrh</id>
+                    <name>Eclipse Ditto Repository - Release</name>
+                    <url>https://oss.sonatype.org/service/local/staging/deploy/maven2</url>
+                </repository>
+                <snapshotRepository>
+                    <id>ossrh</id>
+                    <name>Eclipse Ditto Repository - Snapshots</name>
+                    <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+                </snapshotRepository>
+            </distributionManagement>
+            <build>
+                <plugins>
+                    <!-- see doc: http://central.sonatype.org/pages/apache-maven.html -->
+                    <plugin>
+                        <groupId>org.sonatype.plugins</groupId>
+                        <artifactId>nexus-staging-maven-plugin</artifactId>
+                        <extensions>true</extensions>
+                        <configuration>
+                            <serverId>ossrh</serverId>
+                            <nexusUrl>https://oss.sonatype.org/</nexusUrl>
+                            <autoReleaseAfterClose>false</autoReleaseAfterClose>
+                        </configuration>
                     </plugin>
                 </plugins>
             </build>
