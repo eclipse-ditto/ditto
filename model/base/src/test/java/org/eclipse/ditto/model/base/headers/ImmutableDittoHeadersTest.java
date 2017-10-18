@@ -50,6 +50,7 @@ public final class ImmutableDittoHeadersTest {
     private static final String KNOWN_READ_SUBJECT_WITHOUT_ISSUER = "knownReadSubject";
     private static final String KNOWN_READ_SUBJECT = KNOWN_READ_SUBJECT_WITHOUT_ISSUER;
     private static final String KNOWN_SOURCE = "knownSource";
+    private static final String KNOWN_CHANNEL = "live";
     private static final boolean KNOWN_RESPONSE_REQUIRED = true;
     private static final Collection<String> KNOWN_READ_SUBJECTS = Collections.singleton(KNOWN_READ_SUBJECT);
 
@@ -70,6 +71,7 @@ public final class ImmutableDittoHeadersTest {
         final Map<String, String> expectedHeaderMap = createMapContainingAllKnownHeaders();
 
         final DittoHeaders underTest = DefaultDittoHeadersBuilder.newInstance()
+                .channel(KNOWN_CHANNEL)
                 .authorizationSubjects(AUTH_SUBJECTS)
                 .correlationId(KNOWN_CORRELATION_ID)
                 .readSubjects(KNOWN_READ_SUBJECTS)
@@ -193,6 +195,7 @@ public final class ImmutableDittoHeadersTest {
                 .set(DittoHeaderDefinition.CORRELATION_ID.getKey(), KNOWN_CORRELATION_ID)
                 .set(DittoHeaderDefinition.SCHEMA_VERSION.getKey(), KNOWN_SCHEMA_VERSION.toInt())
                 .set(DittoHeaderDefinition.SOURCE.getKey(), KNOWN_SOURCE)
+                .set(DittoHeaderDefinition.CHANNEL.getKey(), KNOWN_CHANNEL)
                 .set(DittoHeaderDefinition.RESPONSE_REQUIRED.getKey(), KNOWN_RESPONSE_REQUIRED)
                 .set(DittoHeaderDefinition.DRY_RUN.getKey(), false)
                 .set(DittoHeaderDefinition.READ_SUBJECTS.getKey(), toJsonArray(KNOWN_READ_SUBJECTS))
@@ -263,6 +266,7 @@ public final class ImmutableDittoHeadersTest {
         result.put(DittoHeaderDefinition.CORRELATION_ID.getKey(), KNOWN_CORRELATION_ID);
         result.put(DittoHeaderDefinition.SCHEMA_VERSION.getKey(), KNOWN_SCHEMA_VERSION.toString());
         result.put(DittoHeaderDefinition.SOURCE.getKey(), KNOWN_SOURCE);
+        result.put(DittoHeaderDefinition.CHANNEL.getKey(), KNOWN_CHANNEL);
         result.put(DittoHeaderDefinition.RESPONSE_REQUIRED.getKey(), String.valueOf(KNOWN_RESPONSE_REQUIRED));
         result.put(DittoHeaderDefinition.DRY_RUN.getKey(), String.valueOf(false));
         result.put(DittoHeaderDefinition.READ_SUBJECTS.getKey(), toJsonArray(KNOWN_READ_SUBJECTS).toString());

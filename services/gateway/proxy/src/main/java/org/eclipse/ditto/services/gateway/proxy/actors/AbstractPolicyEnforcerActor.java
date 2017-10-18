@@ -41,6 +41,7 @@ import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.model.policiesenforcers.EffectedSubjectIds;
 import org.eclipse.ditto.model.policiesenforcers.PolicyEnforcer;
 import org.eclipse.ditto.model.policiesenforcers.PolicyEnforcers;
+import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.models.policies.PolicyCacheEntry;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoCommand;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -639,8 +640,8 @@ public abstract class AbstractPolicyEnforcerActor extends AbstractActorWithStash
         getSelf().tell(PoisonPill.getInstance(), getSelf());
     }
 
-    static boolean isLiveSignal(final Signal<?> signal) {
-        return "LIVE".equals(signal.getDittoHeaders().get("channel"));
+    static boolean isLiveSignal(final WithDittoHeaders<?> signal) {
+        return signal.getDittoHeaders().getChannel().filter(TopicPath.Channel.LIVE.getName()::equals).isPresent();
     }
 
     private static String getSimpleClassName(final Object o) {

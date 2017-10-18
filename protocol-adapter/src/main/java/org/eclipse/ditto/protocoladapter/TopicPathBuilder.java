@@ -72,6 +72,14 @@ public interface TopicPathBuilder {
     TopicPathBuildable search();
 
     /**
+     * Sets the {@code Criterion} of this builder to {@link TopicPath.Criterion#ERRORS}. A previously set action is
+     * replaced.
+     *
+     * @return this builder to allow method chaining.
+     */
+    TopicPathBuildable errors();
+
+    /**
      * Sets the {@code Criterion} of this builder to {@link TopicPath.Criterion#MESSAGES}. A previously set criterion is
      * replaced.
      *

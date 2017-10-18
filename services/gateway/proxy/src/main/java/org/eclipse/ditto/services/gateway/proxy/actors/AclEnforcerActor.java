@@ -34,6 +34,7 @@ import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.Permission;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.models.policies.PoliciesAclMigrations;
 import org.eclipse.ditto.services.models.things.ThingCacheEntry;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoCommand;
@@ -279,8 +280,8 @@ public final class AclEnforcerActor extends AbstractActorWithStash {
                 .build();
     }
 
-    private static boolean isLiveSignal(final Signal<?> signal) {
-        return "LIVE".equals(signal.getDittoHeaders().get("channel"));
+    private static boolean isLiveSignal(final WithDittoHeaders<?> signal) {
+        return signal.getDittoHeaders().getChannel().filter(TopicPath.Channel.LIVE.getName()::equals).isPresent();
     }
 
     private Receive buildSynchronizingBehaviour() {
@@ -461,12 +462,17 @@ public final class AclEnforcerActor extends AbstractActorWithStash {
 
     private Collection<String> determineReadSubjects(final WithDittoHeaders<?> withDittoHeaders) {
         final DittoHeaders dittoHeaders = withDittoHeaders.getDittoHeaders();
-        if (withDittoHeaders instanceof CreateThing) {
-            return determineReadSubjects(dittoHeaders, ((CreateThing) withDittoHeaders).getThing());
-        } else if (withDittoHeaders instanceof ModifyThing &&
-                ((ModifyThing) withDittoHeaders).getThing().getAccessControlList().isPresent()) {
-            return determineReadSubjects(dittoHeaders, ((ModifyThing) withDittoHeaders).getThing());
-        } else if (acl != null) {
+        if (!isLiveSignal(withDittoHeaders)) {
+            // only for non live-signals:
+            if (withDittoHeaders instanceof CreateThing) {
+                return determineReadSubjects(dittoHeaders, ((CreateThing) withDittoHeaders).getThing());
+            } else if (withDittoHeaders instanceof ModifyThing &&
+                    ((ModifyThing) withDittoHeaders).getThing().getAccessControlList().isPresent()) {
+                return determineReadSubjects(dittoHeaders, ((ModifyThing) withDittoHeaders).getThing());
+            }
+        }
+
+        if (acl != null) {
             return acl.getAuthorizedSubjectsFor(Permission.READ).stream()
                     .map(AuthorizationSubject::getId)
                     .collect(Collectors.toSet());

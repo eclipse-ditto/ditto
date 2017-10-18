@@ -138,6 +138,12 @@ final class ImmutableTopicPathBuilder implements TopicPathBuilder, MessagesTopic
     }
 
     @Override
+    public TopicPathBuildable errors() {
+        this.criterion = TopicPath.Criterion.ERRORS;
+        return this;
+    }
+
+    @Override
     public MessagesTopicPathBuilder messages() {
         this.criterion = TopicPath.Criterion.MESSAGES;
         return this;
