@@ -52,7 +52,6 @@ import akka.http.javadsl.model.ContentTypes;
 import akka.http.javadsl.model.HttpEntities;
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.HttpResponse;
-import akka.http.javadsl.model.ResponseEntity;
 import akka.http.javadsl.model.StatusCodes;
 import akka.http.javadsl.model.Uri;
 import akka.http.javadsl.model.headers.Location;
@@ -429,40 +428,52 @@ public final class HttpRequestActor extends AbstractActor {
     }
 
     private HttpResponse handleMessageResponseMessage(final MessageCommandResponse<?, ?> messageCommandResponse) {
-        final HttpResponse httpResponse;
+        HttpResponse httpResponse;
 
         final Message<?> message = messageCommandResponse.getMessage();
-        final Optional<ByteBuffer> optionalPayload = message.getRawPayload();
+        final Optional<?> optionalPayload = message.getPayload();
+        final Optional<ByteBuffer> optionalRawPayload = message.getRawPayload();
         final Optional<HttpStatusCode> responseStatusCode =
                 Optional.of(messageCommandResponse.getStatusCode())
                         .filter(code -> StatusCodes.lookup(code.toInt()).isPresent());
         // only allow status code which are known to akka-http
 
-        // if payload is present and statusCode is != NO_CONTENT
-        if (optionalPayload.isPresent()
-                && (responseStatusCode.map(status -> status != HttpStatusCode.NO_CONTENT).orElse(true))) {
-            final Optional<String> optionalContentType = message.getContentType();
-            final ResponseEntity entity;
-
-            if (optionalContentType.isPresent()) {
-                final ContentType contentType = optionalContentType.map(ContentType$.MODULE$::parse)
+        // if statusCode is != NO_CONTENT
+        if (responseStatusCode.map(status -> status != HttpStatusCode.NO_CONTENT).orElse(true)) {
+            final Optional<ContentType> optionalContentType =  message.getContentType().map(ContentType$.MODULE$::parse)
                         .filter(Either::isRight)
                         .map(Either::right)
-                        .map(right -> (ContentType) right.get())
-                        .orElse(null);
-
-                entity = HttpEntities.create(contentType, optionalPayload.get().array());
-            } else {
-                entity = HttpEntities.create(optionalPayload.get().array());
-            }
+                        .map(right -> (ContentType) right.get());
 
             httpResponse =
                     HttpResponse.create()
-                            .withStatus(responseStatusCode.orElse(HttpStatusCode.OK).toInt())
-                            .withEntity(entity);
+                            .withStatus(responseStatusCode.orElse(HttpStatusCode.OK).toInt());
+
+            if (optionalPayload.isPresent()) {
+                final Object payload = optionalPayload.get();
+
+                if (optionalContentType.isPresent()) {
+                    httpResponse = httpResponse.withEntity(
+                            HttpEntities.create(optionalContentType.get(),
+                                    ByteString.ByteStrings.fromString(payload.toString())));
+                } else {
+                    httpResponse = httpResponse.withEntity(
+                            HttpEntities.create(payload.toString()));
+                }
+            } else if (optionalRawPayload.isPresent()) {
+
+                final ByteBuffer rawPayload = optionalRawPayload.get();
+                if (optionalContentType.isPresent()) {
+                    httpResponse = httpResponse.withEntity(
+                            HttpEntities.create(optionalContentType.get(), rawPayload.array()));
+                } else {
+                    httpResponse = httpResponse.withEntity(
+                            HttpEntities.create(rawPayload.array()));
+                }
+            }
         } else {
             // if payload was missing OR statusCode was NO_CONTENT:
-            optionalPayload.ifPresent(byteBuffer ->
+            optionalRawPayload.ifPresent(byteBuffer ->
                     logger.info("Response payload was set, but response statusCode was also set to: {}. Ignoring the " +
                             "response payload. Command=<{}>", responseStatusCode, messageCommandResponse)
             );

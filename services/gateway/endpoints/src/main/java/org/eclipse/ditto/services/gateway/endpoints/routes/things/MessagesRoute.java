@@ -22,6 +22,8 @@ import static akka.http.javadsl.server.Directives.route;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.CustomPathMatchers.mergeDoubleSlashes;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.HashMap;
@@ -32,8 +34,9 @@ import java.util.regex.Pattern;
 
 import javax.annotation.Nonnull;
 
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.messages.Message;
+import org.eclipse.ditto.model.messages.MessageBuilder;
 import org.eclipse.ditto.model.messages.MessageDirection;
 import org.eclipse.ditto.model.messages.MessageHeaders;
 import org.eclipse.ditto.model.messages.MessagesModelFactory;
@@ -49,6 +52,9 @@ import org.eclipse.ditto.signals.commands.messages.SendThingMessage;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
+import akka.http.javadsl.model.ContentType;
+import akka.http.javadsl.model.ContentTypes;
+import akka.http.javadsl.model.HttpCharset;
 import akka.http.javadsl.model.HttpHeader;
 import akka.http.javadsl.model.HttpMessage;
 import akka.http.javadsl.model.HttpRequest;
@@ -230,21 +236,18 @@ final class MessagesRoute extends AbstractRoute {
 
         return payload -> {
             final HttpRequest httpRequest = ctx.getRequest();
+            final ContentType contentType = httpRequest.entity().getContentType();
+
             final MessageHeaders headers = MessageHeaders.newBuilder(direction, thingId, normalizeSubject(msgSubject))
                     .correlationId(dittoHeaders.getCorrelationId().orElse(null))
-                    .contentType(httpRequest.entity()
-                            .getContentType()
-                            .toString())
+                    .contentType(contentType.toString())
                     .timeout(optionalTimeout.map(this::checkMessageTimeout).orElse(defaultMessageTimeout))
                     .timestamp(OffsetDateTime.now())
                     .putHeaders(getHeadersAsMap(httpRequest))
                     .build();
 
-            final Message<Object> message = MessagesModelFactory.newMessageBuilder(headers)
-                    .rawPayload(payload)
-                    .build();
-
-            return SendThingMessage.of(thingId, message, enhanceHeaders(dittoHeaders));
+            final MessageBuilder<Object> messageBuilder = initMessageBuilder(payload, contentType, headers);
+            return SendThingMessage.of(thingId, messageBuilder.build(), enhanceHeaders(dittoHeaders));
         };
     }
 
@@ -268,11 +271,13 @@ final class MessagesRoute extends AbstractRoute {
         final HttpRequest httpRequest = ctx.getRequest();
 
         return payload -> {
+            final ContentType contentType = httpRequest.entity()
+                    .getContentType();
+
             final MessageHeaders headers = MessageHeaders.newBuilder(direction, thingId, normalizeSubject(msgSubject))
                     .featureId(featureId)
                     .correlationId(dittoHeaders.getCorrelationId().orElse(null))
-                    .contentType(httpRequest.entity()
-                            .getContentType()
+                    .contentType(contentType
                             .toString())
                     .timeout(optionalTimeout.map(this::checkMessageTimeout).orElse(defaultMessageTimeout))
                     .timestamp(OffsetDateTime.now())
@@ -282,11 +287,8 @@ final class MessagesRoute extends AbstractRoute {
                     .putHeaders(getHeadersAsMap(httpRequest))
                     .build();
 
-            final Message<Object> message = Message.newBuilder(headers)
-                    .rawPayload(payload)
-                    .build();
-
-            return SendFeatureMessage.of(thingId, featureId, message, enhanceHeaders(dittoHeaders));
+            final MessageBuilder<Object> messageBuilder = initMessageBuilder(payload, contentType, headers);
+            return SendFeatureMessage.of(thingId, featureId, messageBuilder.build(), enhanceHeaders(dittoHeaders));
         };
     }
 
@@ -303,27 +305,44 @@ final class MessagesRoute extends AbstractRoute {
             final Optional<Long> optionalTimeout) {
 
         return payload -> {
-            final MessageHeaders messageHeaders = MessageHeaders.newBuilderForClaiming(thingId)
+            final ContentType contentType = ctx.getRequest()
+                    .entity()
+                    .getContentType();
+
+            final MessageHeaders headers = MessageHeaders.newBuilderForClaiming(thingId)
                     .correlationId(dittoHeaders.getCorrelationId().orElse(null))
-                    .contentType(ctx.getRequest()
-                            .entity()
-                            .getContentType()
+                    .contentType(contentType
                             .toString())
                     .timeout(optionalTimeout.map(this::checkClaimTimeout).orElse(defaultClaimTimeout))
                     .timestamp(OffsetDateTime.now())
                     .putHeaders(getHeadersAsMap(ctx.getRequest()))
                     .build();
 
-            final Message<Object> message = MessagesModelFactory.newMessageBuilder(messageHeaders)
-                    .rawPayload(payload)
-                    .build();
-
-            return SendClaimMessage.of(thingId, message, enhanceHeaders(dittoHeaders));
+            final MessageBuilder<Object> messageBuilder = initMessageBuilder(payload, contentType, headers);
+            return SendClaimMessage.of(thingId, messageBuilder.build(), enhanceHeaders(dittoHeaders));
         };
     }
 
     private DittoHeaders enhanceHeaders(final DittoHeaders dittoHeaders) {
         return dittoHeaders.toBuilder().channel(TopicPath.Channel.LIVE.getName()).build();
+    }
+
+    private static MessageBuilder<Object> initMessageBuilder(final ByteBuffer payload, final ContentType contentType,
+            final MessageHeaders headers) {
+        final MessageBuilder<Object> messageBuilder = MessagesModelFactory.newMessageBuilder(headers)
+                .rawPayload(payload);
+
+        final Charset charset = contentType.getCharsetOption()
+                .map(HttpCharset::nioCharset)
+                .orElse(StandardCharsets.UTF_8);
+
+        final String payloadString = charset.decode(payload).toString();
+        if (contentType.mediaType().isText()) {
+            messageBuilder.payload(payloadString);
+        } else if (ContentTypes.APPLICATION_JSON.equals(contentType)) {
+            messageBuilder.payload(JsonFactory.newValue(payloadString));
+        }
+        return messageBuilder;
     }
 
     private Route handleMessage(final RequestContext ctx, final Source<ByteString, Object> payloadSource,
