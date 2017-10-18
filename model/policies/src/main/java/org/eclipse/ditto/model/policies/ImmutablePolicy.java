@@ -287,7 +287,7 @@ final class ImmutablePolicy implements Policy {
         final Label lbl = Label.of(label);
         checkNotNull(subject, "subject to set to the Policy entry");
 
-        Policy result = this;
+        final Policy result;
         final PolicyEntry existingPolicyEntry = entries.get(lbl);
         if (null != existingPolicyEntry) {
             final Subjects existingSubjects = existingPolicyEntry.getSubjects();
@@ -296,7 +296,11 @@ final class ImmutablePolicy implements Policy {
                 final Map<Label, PolicyEntry> entriesCopy = copyEntries();
                 entriesCopy.put(lbl, newPolicyEntry(lbl, newSubjects, existingPolicyEntry.getResources()));
                 result = new ImmutablePolicy(policyId, entriesCopy, lifecycle, revision, modified);
+            } else {
+                result = this;
             }
+        } else {
+            result = setSubjectsFor(label, Subjects.newInstance(subject));
         }
 
         return result;
