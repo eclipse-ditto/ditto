@@ -13,10 +13,13 @@ package org.eclipse.ditto.protocoladapter;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Arrays;
+import java.util.Optional;
 import java.util.function.Predicate;
 
 import javax.annotation.Nonnull;
 
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
@@ -31,6 +34,7 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureProperties
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureProperty;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatures;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
+import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommand;
 import org.junit.Before;
 import org.junit.Test;
@@ -95,6 +99,10 @@ public class ThingQueryCommandAdapterTest {
 
         final RetrieveThing retrieveThing = RetrieveThing.of(TestConstants.THING_ID, TestConstants.DITTO_HEADERS_V_2);
         final Adaptable actual = underTest.toAdaptable(retrieveThing);
+
+        final JsonifiableAdaptable jsonifiableAdaptable = DittoProtocolAdapter.wrapAsJsonifiableAdaptable(actual);
+        final JsonObject jsonObject = jsonifiableAdaptable.toJson();
+        System.out.println(jsonObject.toString());
 
         assertThat(actual).isEqualTo(expected);
     }
@@ -743,6 +751,88 @@ public class ThingQueryCommandAdapterTest {
                 .of(TestConstants.THING_ID, TestConstants.FEATURE_ID, TestConstants.FEATURE_PROPERTY_POINTER,
                         TestConstants.DITTO_HEADERS_V_2);
         final Adaptable actual = underTest.toAdaptable(retrieveFeatureProperty);
+
+        assertThat(actual).isEqualTo(expected);
+    }
+
+    /** */
+    @Test
+    public void retrieveThingsFromAdaptableWithSpecificNamespace() {
+        retrieveThingsFromAdaptable("org.eclipse.ditto.example");
+    }
+
+    /** */
+    @Test
+    public void retrieveThingsFromAdaptableWithWildcardNamespace() {
+        retrieveThingsFromAdaptable(null);
+    }
+
+    private void retrieveThingsFromAdaptable(final String namespace) {
+        final RetrieveThings expected =
+                RetrieveThings.getBuilder(
+                        Arrays.asList("org.eclipse.ditto.example:id1", "org.eclipse.ditto.example:id2"))
+                        .dittoHeaders(TestConstants.DITTO_HEADERS_V_2)
+                        .namespace(namespace)
+                        .build();
+        final TopicPath topicPath = TopicPath.fromNamespace(Optional.ofNullable(namespace).orElse("_"))
+                .twin()
+                .commands()
+                .retrieve()
+                .build();
+
+        final JsonPointer path = JsonPointer.empty();
+
+        final Adaptable adaptable = Adaptable.newBuilder(topicPath)//
+                .withPayload(Payload.newBuilder(path)
+                        .withValue(JsonFactory.newObject()
+                                .setValue("thingIds", JsonFactory.newArray()
+                                        .add("org.eclipse.ditto.example:id1")
+                                        .add("org.eclipse.ditto.example:id2"))).build())
+                .withHeaders(TestConstants.HEADERS_V_2) //
+                .build();
+
+        final ThingQueryCommand actual = underTest.fromAdaptable(adaptable);
+
+        assertThat(actual).isEqualTo(expected);
+    }
+
+    /** */
+    @Test
+    public void retrieveThingsToAdaptable() {
+        retrieveThingsToAdaptableWith("org.eclipse.ditto.example");
+    }
+
+    /** */
+    @Test
+    public void retrieveThingsToAdaptableWithWildcardNamespace() {
+        retrieveThingsToAdaptableWith(null);
+    }
+
+    private void retrieveThingsToAdaptableWith(final String namespace) {
+        final TopicPath topicPath = TopicPath.fromNamespace(Optional.ofNullable(namespace).orElse("_"))
+                .twin()
+                .commands()
+                .retrieve()
+                .build();
+        final JsonPointer path = JsonPointer.empty();
+
+        final Adaptable expected = Adaptable.newBuilder(topicPath) //
+                .withPayload(Payload.newBuilder(path)
+                        .withValue(JsonFactory.newObject()
+                                .setValue("thingIds", JsonFactory.newArray()
+                                        .add("org.eclipse.ditto.example:id1")
+                                        .add("org.eclipse.ditto.example:id2"))).build())
+                .withHeaders(TestConstants.HEADERS_V_2) //
+                .build();
+
+        final RetrieveThings retrieveThings =
+                RetrieveThings.getBuilder(
+                        Arrays.asList("org.eclipse.ditto.example:id1", "org.eclipse.ditto.example:id2"))
+                        .dittoHeaders(TestConstants.DITTO_HEADERS_V_2)
+                        .namespace(namespace)
+                        .build();
+
+        final Adaptable actual = underTest.toAdaptable(retrieveThings);
 
         assertThat(actual).isEqualTo(expected);
     }

@@ -215,8 +215,9 @@ public final class ThingsAggregatorActor extends AbstractActor {
                     return SudoRetrieveThingsResponse.of(things.stream().collect(JsonCollectors.valuesToArray()),
                             retrieveThings.getDittoHeaders());
                 } else {
+                    final Optional<String> namespace = ((RetrieveThings) retrieveThings).getNamespace();
                     return RetrieveThingsResponse.of(things.stream().collect(JsonCollectors.valuesToArray()),
-                            retrieveThings.getDittoHeaders());
+                            namespace.get(), retrieveThings.getDittoHeaders());
                 }
             }
         }, aggregatorDispatcher);

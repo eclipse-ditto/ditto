@@ -40,14 +40,13 @@ public class RetrieveThingsResponseTest {
             .set(ThingCommandResponse.JsonFields.TYPE, RetrieveThingsResponse.TYPE)
             .set(ThingCommandResponse.JsonFields.STATUS, HttpStatusCode.OK.toInt())
             .set(RetrieveThingsResponse.JSON_THINGS, JsonFactory.newArray().add(TestConstants.Thing.THING.toJson()))
+            .set(RetrieveThingsResponse.JSON_NAMESPACE, "example.com")
             .build();
-
 
     @Test
     public void assertImmutability() {
         assertInstancesOf(RetrieveThingsResponse.class, areImmutable(), provided(JsonArray.class).isAlsoImmutable());
     }
-
 
     @Test
     public void testHashCodeAndEquals() {
@@ -56,29 +55,41 @@ public class RetrieveThingsResponseTest {
                 .verify();
     }
 
-
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullThings() {
-        RetrieveThingsResponse.of((List<Thing>) null, FieldType.notHidden(), TestConstants.EMPTY_DITTO_HEADERS);
+        RetrieveThingsResponse.of((List<Thing>) null, FieldType.notHidden(), "some.namespace",
+                TestConstants.EMPTY_DITTO_HEADERS);
     }
-
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullJsonArray() {
-        RetrieveThingsResponse.of((JsonArray) null, TestConstants.EMPTY_DITTO_HEADERS);
+        RetrieveThingsResponse.of((JsonArray) null, "some.namespace", TestConstants.EMPTY_DITTO_HEADERS);
     }
-
 
     @Test
     public void toJsonReturnsExpected() {
         final RetrieveThingsResponse underTest = RetrieveThingsResponse
-                .of(Collections.singletonList(TestConstants.Thing.THING), FieldType.notHidden(),
+                .of(Collections.singletonList(TestConstants.Thing.THING), FieldType.notHidden(), "example.com",
                         TestConstants.EMPTY_DITTO_HEADERS);
         final JsonObject actualJson = underTest.toJson();
 
         assertThat(actualJson).isEqualTo(KNOWN_JSON);
     }
 
+    @Test
+    public void createInstanceWithNullNamespaces() {
+        final RetrieveThingsResponse retrieveThingsResponse =
+                RetrieveThingsResponse.of(Collections.singletonList(TestConstants.Thing.THING), FieldType.notHidden(),
+                        null, TestConstants.EMPTY_DITTO_HEADERS);
+
+        assertThat(retrieveThingsResponse.getNamespace()).isEmpty();
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void createInstanceWithInvalidNamespacesThrowsException() {
+        RetrieveThingsResponse.of(Collections.singletonList(TestConstants.Thing.THING), FieldType.notHidden(),
+                "namespace.that.does.not.match.the.result", TestConstants.EMPTY_DITTO_HEADERS);
+    }
 
     @Test
     public void createInstanceFromValidJson() {
@@ -88,6 +99,7 @@ public class RetrieveThingsResponseTest {
         assertThat(underTest).isNotNull();
         assertThat(underTest.getThings()).hasSize(1);
         assertThat(underTest.getThings().get(0).toJson()).isEqualTo(TestConstants.Thing.THING.toJson());
+        assertThat(underTest.getNamespace()).contains("example.com");
     }
 
 }
