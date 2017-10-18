@@ -13,7 +13,9 @@ package org.eclipse.ditto.services.gateway.streaming.actors;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -53,6 +55,7 @@ final class StreamingSessionActor extends AbstractActor {
     private final String type;
     private final ActorRef pubSubMediator;
     private final ActorRef eventAndResponsePublisher;
+    private final Map<String, ActorRef> outstandingLiveCommands;
 
     private List<String> authorizationSubjects;
 
@@ -62,6 +65,7 @@ final class StreamingSessionActor extends AbstractActor {
         this.type = type;
         this.pubSubMediator = pubSubMediator;
         this.eventAndResponsePublisher = eventAndResponsePublisher;
+        outstandingLiveCommands = new HashMap<>();
 
         getContext().watch(eventAndResponsePublisher);
     }
@@ -95,28 +99,84 @@ final class StreamingSessionActor extends AbstractActor {
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
-                /* Live Signals */
-                .match(Signal.class, StreamingSessionActor::isLiveSignal, liveSignal -> {
-                    LogUtil.enhanceLogWithCorrelationId(logger, liveSignal);
 
-                    final DittoHeaders dittoHeaders = liveSignal.getDittoHeaders();
+                /* Live Signals */
+                .match(Signal.class, s -> StreamingSessionActor.isLiveSignal(s) && s instanceof Command,
+                        liveCommand -> {
+                    LogUtil.enhanceLogWithCorrelationId(logger, liveCommand);
+
+                    final DittoHeaders dittoHeaders = liveCommand.getDittoHeaders();
                     final Optional<String> correlationId = dittoHeaders.getCorrelationId();
                     if (correlationId.map(cId -> cId.startsWith(connectionCorrelationId)).orElse(false)) {
                         logger.debug(
-                                "Got 'LiveSignal' message in <{}> session, but this was issued by this connection itself, not telling "
+                                "Got 'Live' Command message in <{}> session, but this was issued by this connection itself, not telling "
                                         + "eventAndResponsePublisher about it", type);
                     } else {
-                        final Set<String> readSubjects = dittoHeaders.getReadSubjects();
                         // check if this session is "allowed" to receive the LiveSignal
-                        if (readSubjects != null && authorizationSubjects != null &&
-                                !Collections.disjoint(readSubjects, authorizationSubjects)) {
+                        if (authorizationSubjects != null &&
+                                !Collections.disjoint(dittoHeaders.getReadSubjects(), authorizationSubjects)) {
                             logger.debug(
-                                    "Got 'LiveSignal' message in <{}> session, telling eventAndResponsePublisher about it: {}",
-                                    type, liveSignal);
-                            eventAndResponsePublisher.tell(liveSignal, getSelf());
+                                    "Got 'Live' Command message in <{}> session, telling eventAndResponsePublisher about it: {}",
+                                    type, liveCommand);
+
+                            liveCommand.getDittoHeaders().getCorrelationId().ifPresent(cId ->
+                                    outstandingLiveCommands.put(cId, getSender()));
+
+                            eventAndResponsePublisher.tell(liveCommand, getSelf());
                         }
                     }
                 })
+                .match(Signal.class, s -> StreamingSessionActor.isLiveSignal(s) && s instanceof CommandResponse,
+                        liveCommandResponse -> {
+                    LogUtil.enhanceLogWithCorrelationId(logger, liveCommandResponse);
+
+                    final DittoHeaders dittoHeaders = liveCommandResponse.getDittoHeaders();
+                    final Optional<String> correlationId = dittoHeaders.getCorrelationId();
+                    if (correlationId.map(cId -> cId.startsWith(connectionCorrelationId)).orElse(false)) {
+                        logger.debug(
+                                "Got 'Live' CommandResponse message in <{}> session, but this was issued by this connection itself, not telling "
+                                        + "eventAndResponsePublisher about it", type);
+                    } else {
+                        // check if this session is "allowed" to receive the LiveSignal
+                        if (authorizationSubjects != null &&
+                                !Collections.disjoint(dittoHeaders.getReadSubjects(), authorizationSubjects)) {
+                            logger.debug(
+                                    "Got 'Live' CommandResponse message in <{}> session, telling eventAndResponsePublisher about it: {}",
+                                    type, liveCommandResponse);
+
+                            extractActualCorrelationId(liveCommandResponse)
+                                    .map(outstandingLiveCommands::remove)
+                                    .ifPresent(sender -> {
+                                        LogUtil.enhanceLogWithCorrelationId(logger, liveCommandResponse);
+                                        logger.debug(
+                                                "Got 'Live' CommandResponse message in <{}> session, telling eventAndResponsePublisher about it: {}",
+                                                type, liveCommandResponse);
+                                        sender.forward(liveCommandResponse, getContext());
+                                    });
+                        }
+                    }
+                })
+                .match(Signal.class, StreamingSessionActor::isLiveSignal, liveSignal -> {
+                            LogUtil.enhanceLogWithCorrelationId(logger, liveSignal);
+
+                            final DittoHeaders dittoHeaders = liveSignal.getDittoHeaders();
+                            final Optional<String> correlationId = dittoHeaders.getCorrelationId();
+                            if (correlationId.map(cId -> cId.startsWith(connectionCorrelationId)).orElse(false)) {
+                                logger.debug(
+                                        "Got 'Live' Signal message in <{}> session, but this was issued by this connection itself, not telling "
+                                                + "eventAndResponsePublisher about it", type);
+                            } else {
+                                // check if this session is "allowed" to receive the LiveSignal
+                                if (authorizationSubjects != null &&
+                                        !Collections.disjoint(dittoHeaders.getReadSubjects(), authorizationSubjects)) {
+                                    logger.debug(
+                                            "Got 'Live' Signal message in <{}> session, telling eventAndResponsePublisher about it: {}",
+                                            type, liveSignal);
+
+                                    eventAndResponsePublisher.tell(liveSignal, getSelf());
+                                }
+                            }
+                        })
 
                 .match(Command.class, command -> {
                     LogUtil.enhanceLogWithCorrelationId(logger, command);
@@ -218,6 +278,13 @@ final class StreamingSessionActor extends AbstractActor {
 
     private static boolean isLiveSignal(final WithDittoHeaders<?> signal) {
         return signal.getDittoHeaders().getChannel().filter(TopicPath.Channel.LIVE.getName()::equals).isPresent();
+    }
+
+    private static Optional<String> extractActualCorrelationId(final WithDittoHeaders withDittoHeaders) {
+        return withDittoHeaders.getDittoHeaders().getCorrelationId()
+                .map(cId -> cId.split(":", 2))
+                .filter(cIds -> cIds.length == 2)
+                .map(cIds -> cIds[1]);
     }
 
 
