@@ -187,6 +187,17 @@ public final class ImmutablePolicyTest {
     }
 
     @Test
+    public void setSubjectForShouldAddNewEntry() {
+        final Label label = Label.of("setSubjectForShouldAddNewEntry");
+        final Policy policy = createPolicy();
+        final Policy policyModified =
+                policy.setSubjectFor(label, Subject.newInstance(END_USER_SUBJECT_ID_2, END_USER_SUBJECT_TYPE_2));
+
+        assertThat(policy).doesNotHaveLabel(label);
+        assertThat(policyModified).hasLabel(label);
+    }
+
+    @Test
     public void removeSubjectForShouldCopyExisting() {
         final Policy policy = createPolicy();
         final Policy policyModified = policy.removeSubjectFor(END_USER_LABEL, END_USER_SUBJECT_ID_1);
