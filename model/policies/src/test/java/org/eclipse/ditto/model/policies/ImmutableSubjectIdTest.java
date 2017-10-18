@@ -58,4 +58,18 @@ public final class ImmutableSubjectIdTest {
         assertThat(underTest.getSubject()).isEqualTo(KNOWN_SUBJECT);
     }
 
+    @Test
+    public void ignoresUrlDelimiter() {
+        final SubjectId underTest = ImmutableSubjectId.of("://abc:def");
+
+        assertThat(underTest.getIssuer().toString()).isEqualTo("://abc");
+        assertThat(underTest.getSubject()).isEqualTo("def");
+    }
+
+    @Test
+    public void handlesNonUrlIssuer() {
+        final SubjectId underTest = ImmutableSubjectId.of("abc:def");
+        assertThat(underTest.getIssuer().toString()).isEqualTo("abc");
+        assertThat(underTest.getSubject()).isEqualTo("def");
+    }
 }
