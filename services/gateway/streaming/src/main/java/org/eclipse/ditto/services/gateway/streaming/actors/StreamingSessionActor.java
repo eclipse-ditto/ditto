@@ -20,6 +20,8 @@ import java.util.concurrent.TimeUnit;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StopStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StreamingType;
@@ -214,8 +216,8 @@ final class StreamingSessionActor extends AbstractActor {
                 .build();
     }
 
-    private static boolean isLiveSignal(final Signal<?> signal) {
-        return "LIVE".equals(signal.getDittoHeaders().get("channel"));
+    private static boolean isLiveSignal(final WithDittoHeaders<?> signal) {
+        return signal.getDittoHeaders().getChannel().filter(TopicPath.Channel.LIVE.getName()::equals).isPresent();
     }
 
 

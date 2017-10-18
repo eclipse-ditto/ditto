@@ -110,7 +110,7 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
                 .match(SudoCommand.class, forwardToLocalEnforcerLookup(thingEnforcerLookup))
 
                 /* Live Signals */
-                .match(Signal.class, ProxyActor::isLive, forwardToLocalEnforcerLookup(thingEnforcerLookup))
+                .match(Signal.class, ProxyActor::isLiveSignal, forwardToLocalEnforcerLookup(thingEnforcerLookup))
 
                 /* Policy Commands */
                 .match(ModifyPolicy.class, command ->

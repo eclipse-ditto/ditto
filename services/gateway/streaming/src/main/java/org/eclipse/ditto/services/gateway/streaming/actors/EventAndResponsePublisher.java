@@ -19,7 +19,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.gateway.streaming.Connect;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.base.Signal;
@@ -162,8 +164,8 @@ public final class EventAndResponsePublisher
                 .build();
     }
 
-    private static boolean isLiveSignal(final Signal<?> signal) {
-        return "LIVE".equals(signal.getDittoHeaders().get("channel"));
+    private static boolean isLiveSignal(final WithDittoHeaders<?> signal) {
+        return signal.getDittoHeaders().getChannel().filter(TopicPath.Channel.LIVE.getName()::equals).isPresent();
     }
 
     private void handleBackpressureFor(final Jsonifiable.WithPredicate<JsonObject, JsonField> jsonifiable) {

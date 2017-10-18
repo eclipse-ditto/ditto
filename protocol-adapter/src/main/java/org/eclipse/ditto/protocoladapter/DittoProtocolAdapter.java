@@ -20,7 +20,6 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.signals.base.Signal;
@@ -155,6 +154,9 @@ public final class DittoProtocolAdapter {
                     return ImmutableTopicPath.of(namespace, id, group, channel, criterion, action);
                 case SEARCH:
                     // search Path does neither contain an "action":
+                    return ImmutableTopicPath.of(namespace, id, group, channel, criterion);
+                case ERRORS:
+                    // errors Path does neither contain an "action":
                     return ImmutableTopicPath.of(namespace, id, group, channel, criterion);
                 case MESSAGES:
                     // messages Path always contain a subject:
@@ -310,13 +312,6 @@ public final class DittoProtocolAdapter {
     public Signal<?> fromAdaptable(final Adaptable adaptable) {
         final TopicPath topicPath = adaptable.getTopicPath();
 
-        final boolean isErrorResponse = adaptable.getPayload().getStatus() //
-                .map(statusCode -> statusCode.toInt() >= HttpStatusCode.BAD_REQUEST.toInt()) //
-                .orElse(false);
-        if (isErrorResponse) {
-            return thingErrorResponseFromAdaptable(adaptable);
-        }
-
         if (TopicPath.Group.THINGS.equals(topicPath.getGroup())) { // /things
             final TopicPath.Channel channel = topicPath.getChannel();
 
@@ -337,7 +332,7 @@ public final class DittoProtocolAdapter {
                 if (liveSignal != null) {
                     final DittoHeadersBuilder enhancedHeadersBuilder = liveSignal.getDittoHeaders()
                             .toBuilder()
-                            .putHeader("channel", "LIVE");
+                            .channel(TopicPath.Channel.LIVE.getName());
 
                     return liveSignal.setDittoHeaders(enhancedHeadersBuilder.build());
                 }
@@ -371,6 +366,8 @@ public final class DittoProtocolAdapter {
             final boolean isResponse = adaptable.getPayload().getStatus().isPresent();
             return isResponse ? thingSearchResponseAdapter.fromAdaptable(adaptable) :
                     thingSearchAdapter.fromAdaptable(adaptable);
+        } else if (TopicPath.Criterion.ERRORS.equals(topicPath.getCriterion())) {
+            return thingErrorResponseFromAdaptable(adaptable);
         }
         return null;
     }
@@ -598,7 +595,20 @@ public final class DittoProtocolAdapter {
                         .orElse(JsonFactory.nullObject())) // only use the error payload
                 .build();
 
-        return Adaptable.newBuilder(DittoProtocolAdapter.emptyTopicPath()) //
+        final TopicPathBuilder topicPathBuilder = DittoProtocolAdapter.newTopicPathBuilder(thingErrorResponse.getId());
+        final TopicPathBuildable topicPathBuildable;
+        if (thingErrorResponse.getDittoHeaders().getChannel().flatMap(TopicPath.Channel::forName)
+                .orElse(null) == TopicPath.Channel.TWIN) {
+            topicPathBuildable = topicPathBuilder.twin().errors();
+        } else if (thingErrorResponse.getDittoHeaders().getChannel().flatMap(TopicPath.Channel::forName)
+                .orElse(null) == TopicPath.Channel.LIVE) {
+            topicPathBuildable = topicPathBuilder.live().errors();
+        } else {
+            throw new IllegalArgumentException("Unknown Channel '" + thingErrorResponse.getDittoHeaders().getChannel()
+                    + "'");
+        }
+
+        return Adaptable.newBuilder(topicPathBuildable.build())
                 .withPayload(payload) //
                 .withHeaders(DittoProtocolAdapter.newHeaders(thingErrorResponse.getDittoHeaders())) //
                 .build();
@@ -667,8 +677,11 @@ public final class DittoProtocolAdapter {
                 + ":" + adaptable.getTopicPath().getId());
 
         final DittoHeaders dittoHeaders = adaptable.getHeaders().orElse(DittoHeaders.empty());
+        final DittoHeaders adjustedHeaders = dittoHeaders.toBuilder()
+                .channel(adaptable.getTopicPath().getChannel().getName())
+                .build();
 
-        return ThingErrorResponse.fromJson(jsonObjectBuilder.build(), dittoHeaders);
+        return ThingErrorResponse.fromJson(jsonObjectBuilder.build(), adjustedHeaders);
     }
 
 }

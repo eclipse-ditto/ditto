@@ -72,7 +72,14 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * <p>
      * Key: {@code "read-subjects"}, Java type: {@link JsonArray}.
      */
-    READ_SUBJECTS("read-subjects", JsonArray.class);
+    READ_SUBJECTS("read-subjects", JsonArray.class),
+
+    /**
+     * Header definition for channel value meaning distinguishing between live/twin.
+     * <p>
+     * Key: {@code "channel"}, Java type: {@link String}.
+     */
+    CHANNEL("channel", String.class);
 
     private final String key;
     private final Class<?> type;

@@ -52,6 +52,7 @@ public final class ImmutableMessageHeadersTest {
     private static final String KNOWN_READ_SUBJECT_WITHOUT_ISSUER = "knownReadSubject";
     private static final String KNOWN_READ_SUBJECT = KNOWN_READ_SUBJECT_WITHOUT_ISSUER;
     private static final String KNOWN_SOURCE = "knownSource";
+    private static final String KNOWN_CHANNEL = "twin";
     private static final boolean KNOWN_RESPONSE_REQUIRED = true;
     private static final Collection<String> KNOWN_READ_SUBJECTS = Collections.singletonList(KNOWN_READ_SUBJECT);
     private static final String FEATURE_ID = "flux-condensator-0815";
@@ -82,6 +83,7 @@ public final class ImmutableMessageHeadersTest {
                 .correlationId(KNOWN_CORRELATION_ID)
                 .schemaVersion(KNOWN_SCHEMA_VERSION)
                 .source(KNOWN_SOURCE)
+                .channel(KNOWN_CHANNEL)
                 .responseRequired(KNOWN_RESPONSE_REQUIRED)
                 .dryRun(false)
                 .readSubjects(KNOWN_READ_SUBJECTS)
@@ -256,6 +258,7 @@ public final class ImmutableMessageHeadersTest {
         result.put(DittoHeaderDefinition.CORRELATION_ID.getKey(), "knownCorrelationId");
         result.put(DittoHeaderDefinition.SCHEMA_VERSION.getKey(), KNOWN_SCHEMA_VERSION.toString());
         result.put(DittoHeaderDefinition.SOURCE.getKey(), KNOWN_SOURCE);
+        result.put(DittoHeaderDefinition.CHANNEL.getKey(), KNOWN_CHANNEL);
         result.put(DittoHeaderDefinition.RESPONSE_REQUIRED.getKey(), String.valueOf(KNOWN_RESPONSE_REQUIRED));
         result.put(DittoHeaderDefinition.DRY_RUN.getKey(), String.valueOf(false));
         result.put(DittoHeaderDefinition.READ_SUBJECTS.getKey(), toJsonArray(KNOWN_READ_SUBJECTS).toString());

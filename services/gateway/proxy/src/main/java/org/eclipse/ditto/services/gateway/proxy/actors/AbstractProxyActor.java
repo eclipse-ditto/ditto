@@ -18,8 +18,10 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.ShardedMessageEnvelope;
 import org.eclipse.ditto.services.utils.distributedcache.actors.DeleteCacheEntry;
@@ -162,7 +164,7 @@ public abstract class AbstractProxyActor extends AbstractActor {
         return lookupEnforcerResponse -> {
             final LookupContext<?> lookupContext = lookupEnforcerResponse.getContext();
             final Signal<?> signal = lookupContext.getInitialCommandOrEvent();
-            return !isLive(signal) && Objects.equals(expectedType.toString(), signal.getType());
+            return !isLiveSignal(signal) && Objects.equals(expectedType.toString(), signal.getType());
         };
     }
 
@@ -200,8 +202,8 @@ public abstract class AbstractProxyActor extends AbstractActor {
         return forwardToEnforcerLookup(enforcerLookup, ReadConsistency.MAJORITY);
     }
 
-    static boolean isLive(final Signal<?> signal) {
-        return "LIVE".equals(signal.getDittoHeaders().get("channel"));
+    static boolean isLiveSignal(final WithDittoHeaders<?> signal) {
+        return signal.getDittoHeaders().getChannel().filter(TopicPath.Channel.LIVE.getName()::equals).isPresent();
     }
 
     static Object getSignal(final LookupEnforcerResponse lookupEnforcerResponse) {

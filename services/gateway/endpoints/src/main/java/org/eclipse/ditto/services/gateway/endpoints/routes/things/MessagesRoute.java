@@ -39,6 +39,7 @@ import org.eclipse.ditto.model.messages.MessageHeaders;
 import org.eclipse.ditto.model.messages.MessagesModelFactory;
 import org.eclipse.ditto.model.messages.SubjectInvalidException;
 import org.eclipse.ditto.model.messages.TimeoutInvalidException;
+import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.gateway.endpoints.HttpRequestActor;
 import org.eclipse.ditto.services.gateway.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
@@ -322,7 +323,7 @@ final class MessagesRoute extends AbstractRoute {
     }
 
     private DittoHeaders enhanceHeaders(final DittoHeaders dittoHeaders) {
-        return dittoHeaders.toBuilder().putHeader("channel", "LIVE").build();
+        return dittoHeaders.toBuilder().channel(TopicPath.Channel.LIVE.getName()).build();
     }
 
     private Route handleMessage(final RequestContext ctx, final Source<ByteString, Object> payloadSource,
