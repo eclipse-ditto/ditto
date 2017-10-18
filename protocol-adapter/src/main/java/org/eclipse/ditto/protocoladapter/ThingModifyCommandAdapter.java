@@ -126,14 +126,8 @@ final class ThingModifyCommandAdapter extends AbstractAdapter<ThingModifyCommand
     public Adaptable toAdaptable(final ThingModifyCommand command, final TopicPath.Channel channel) {
         final TopicPathBuilder topicPathBuilder = DittoProtocolAdapter.newTopicPathBuilder(command.getThingId());
 
-        final CommandsTopicPathBuilder commandsTopicPathBuilder;
-        if (channel == TopicPath.Channel.TWIN) {
-            commandsTopicPathBuilder = topicPathBuilder.twin().commands();
-        } else if (channel == TopicPath.Channel.LIVE) {
-            commandsTopicPathBuilder = topicPathBuilder.live().commands();
-        } else {
-            throw new IllegalArgumentException("Unknown Channel '" + channel + "'");
-        }
+        final CommandsTopicPathBuilder commandsTopicPathBuilder =
+                fromTopicPathBuilderWithChannel(topicPathBuilder, channel);
 
         final String commandName = command.getClass().getSimpleName().toLowerCase();
         if (commandName.startsWith(TopicPath.Action.CREATE.toString())) {

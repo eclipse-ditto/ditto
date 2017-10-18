@@ -38,13 +38,15 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
+import org.eclipse.ditto.signals.commands.base.WithNamespace;
 
 /**
  * Command which retrieves several {@link org.eclipse.ditto.model.things.Thing}s based on the the passed in List of
  * Thing IDs.
  */
 @Immutable
-public final class RetrieveThings extends AbstractCommand<RetrieveThings> implements ThingQueryCommand<RetrieveThings> {
+public final class RetrieveThings extends AbstractCommand<RetrieveThings>
+        implements ThingQueryCommand<RetrieveThings>, WithNamespace {
 
     /**
      * Name of the "Retrieve Things" command.
@@ -56,7 +58,7 @@ public final class RetrieveThings extends AbstractCommand<RetrieveThings> implem
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition<JsonArray> JSON_THING_IDS =
+    public static final JsonFieldDefinition<JsonArray> JSON_THING_IDS =
             JsonFactory.newArrayFieldDefinition("thingIds", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
@@ -64,20 +66,50 @@ public final class RetrieveThings extends AbstractCommand<RetrieveThings> implem
             JsonFactory.newStringFieldDefinition("selectedFields", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
+    static final JsonFieldDefinition<String> JSON_NAMESPACE =
+            JsonFactory.newStringFieldDefinition("namespace", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
+
     private final List<String> thingIds;
     @Nullable private final JsonFieldSelector selectedFields;
+    @Nullable private final String namespace;
 
     private RetrieveThings(final Builder builder) {
-        this(builder.thingIds, builder.selectedFields, builder.dittoHeaders);
+        this(builder.thingIds, builder.selectedFields, builder.namespace, builder.dittoHeaders);
     }
 
     private RetrieveThings(final List<String> thingIds, @Nullable final JsonFieldSelector selectedFields,
-            final DittoHeaders dittoHeaders) {
+            @Nullable final String namespace, final DittoHeaders dittoHeaders) {
 
         super(TYPE, dittoHeaders);
 
         this.thingIds = Collections.unmodifiableList(new ArrayList<>(thingIds));
         this.selectedFields = selectedFields;
+        this.namespace = checkForDistinctNamespace(namespace, thingIds);
+    }
+
+    @Nullable
+    private String checkForDistinctNamespace(@Nullable final String providedNamespace, final List<String> thingIds) {
+        if (providedNamespace != null) {
+            final List<String> distinctNamespaces = thingIds.stream()//
+                    .map(id -> id.split(":")) //
+                    .filter(parts -> parts.length > 1) //
+                    .map(parts -> parts[0]) //
+                    .distinct() //
+                    .collect(Collectors.toList());
+
+            if (distinctNamespaces.size() != 1) {
+                throw new IllegalArgumentException(
+                        "Retrieving multiple things is only supported if all things are in the same, non empty namespace");
+            }
+
+            // if a specific namespace is provided it must match the namespace of the things to retrieve
+            if (!distinctNamespaces.get(0).equals(providedNamespace)) {
+                throw new IllegalArgumentException(
+                        "The provided namespace must match the namespace of all things to retrieve.");
+            }
+        }
+        return providedNamespace;
     }
 
     /**
@@ -154,6 +186,9 @@ public final class RetrieveThings extends AbstractCommand<RetrieveThings> implem
      * format.
      */
     public static RetrieveThings fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+
+        final String namespace = jsonObject.getValue(JSON_NAMESPACE).orElse(null);
+
         final List<String> extractedThingIds = jsonObject.getValueOrThrow(JSON_THING_IDS)
                 .stream()
                 .filter(JsonValue::isString)
@@ -166,16 +201,21 @@ public final class RetrieveThings extends AbstractCommand<RetrieveThings> implem
                         .build()))
                 .orElse(null);
 
-        return new RetrieveThings(extractedThingIds, extractedFieldSelector, dittoHeaders);
+        return new RetrieveThings(extractedThingIds, extractedFieldSelector, namespace, dittoHeaders);
     }
 
     /**
-     * Returns an unmodifiable unsorted List of the the identifiers of the {@code Thing}s to be retrieved.
+     * Returns an unmodifiable unsorted List of the identifiers of the {@code Thing}s to be retrieved.
      *
      * @return the identifiers of the Things.
      */
     public List<String> getThingIds() {
         return thingIds;
+    }
+
+    @Override
+    public Optional<String> getNamespace() {
+        return Optional.ofNullable(namespace);
     }
 
     @Override
@@ -185,7 +225,7 @@ public final class RetrieveThings extends AbstractCommand<RetrieveThings> implem
 
     @Override
     public String getThingId() {
-        return ":_"; // no ID for retrieve of multiple things
+        return ":_";
     }
 
     @Override
@@ -201,6 +241,9 @@ public final class RetrieveThings extends AbstractCommand<RetrieveThings> implem
                 .map(JsonFactory::newValue)
                 .collect(JsonCollectors.valuesToArray());
         jsonObjectBuilder.set(JSON_THING_IDS, thingIdsArray, predicate);
+        if (namespace != null) {
+            jsonObjectBuilder.set(JSON_NAMESPACE, namespace, predicate);
+        }
         if (null != selectedFields) {
             jsonObjectBuilder.set(JSON_SELECTED_FIELDS, selectedFields.toString(), predicate);
         }
@@ -213,7 +256,7 @@ public final class RetrieveThings extends AbstractCommand<RetrieveThings> implem
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), thingIds, selectedFields);
+        return Objects.hash(super.hashCode(), thingIds, selectedFields, namespace);
     }
 
     @SuppressWarnings({"squid:MethodCyclomaticComplexity", "squid:S1067", "pmd:SimplifyConditional"})
@@ -227,6 +270,7 @@ public final class RetrieveThings extends AbstractCommand<RetrieveThings> implem
         }
         final RetrieveThings that = (RetrieveThings) obj;
         return that.canEqual(this) && Objects.equals(thingIds, that.thingIds)
+                && Objects.equals(namespace, that.namespace)
                 && Objects.equals(selectedFields, that.selectedFields) && super.equals(that);
     }
 
@@ -238,13 +282,12 @@ public final class RetrieveThings extends AbstractCommand<RetrieveThings> implem
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" + super.toString() + ", thingIds=" + thingIds + ", selectedFields="
-                + selectedFields + "]";
+                + selectedFields + ", namespace=" + namespace + "]";
     }
 
     /**
      * Builder to facilitate creation of {@code RetrieveThings} instances. Multiple calls to one of this class' methods
      * will overwrite before set values.
-     *
      */
     @NotThreadSafe
     public static final class Builder {
@@ -253,17 +296,20 @@ public final class RetrieveThings extends AbstractCommand<RetrieveThings> implem
 
         private DittoHeaders dittoHeaders;
         @Nullable private JsonFieldSelector selectedFields;
+        @Nullable private String namespace;
 
         private Builder(final List<String> thingIds) {
             this.thingIds = new ArrayList<>(thingIds);
             dittoHeaders = DittoHeaders.empty();
             selectedFields = null;
+            namespace = null;
         }
 
         private Builder(final RetrieveThings retrieveThings, final List<String> thingIds) {
             this.thingIds = new ArrayList<>(thingIds);
             dittoHeaders = retrieveThings.getDittoHeaders();
             selectedFields = retrieveThings.getSelectedFields().orElse(null);
+            namespace = retrieveThings.getNamespace().get();
         }
 
         /**
@@ -305,6 +351,17 @@ public final class RetrieveThings extends AbstractCommand<RetrieveThings> implem
                 this.selectedFields = null;
                 return this;
             }
+        }
+
+        /**
+         * Sets namespace for this command.
+         *
+         * @param namespace the namespace used for this command
+         * @return this builder to allow method chaining.
+         */
+        public Builder namespace(@Nullable final String namespace) {
+            this.namespace = namespace;
+            return this;
         }
 
         /**

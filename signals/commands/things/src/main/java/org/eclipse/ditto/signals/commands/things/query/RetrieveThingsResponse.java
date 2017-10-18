@@ -15,8 +15,10 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -40,13 +42,14 @@ import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.signals.commands.base.WithNamespace;
 
 /**
  * Response to a {@link RetrieveThings} command.
  */
 @Immutable
 public final class RetrieveThingsResponse extends AbstractCommandResponse<RetrieveThingsResponse> implements
-        ThingQueryCommandResponse<RetrieveThingsResponse> {
+        ThingQueryCommandResponse<RetrieveThingsResponse>, WithNamespace {
 
     /**
      * Type of this response.
@@ -57,24 +60,32 @@ public final class RetrieveThingsResponse extends AbstractCommandResponse<Retrie
             JsonFactory.newArrayFieldDefinition("things", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
+    static final JsonFieldDefinition<String> JSON_NAMESPACE =
+            JsonFactory.newStringFieldDefinition("namespace", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
+
     private final JsonArray things;
+    @Nullable private final String namespace;
 
     private RetrieveThingsResponse(final HttpStatusCode statusCode, final JsonArray things,
-            final DittoHeaders dittoHeaders) {
+            @Nullable final String namespace, final DittoHeaders dittoHeaders) {
         super(TYPE, statusCode, dittoHeaders);
         this.things = checkNotNull(things, "Things");
+        this.namespace = checkThingsNamespaces(namespace, getThingStream(things)).orElse(null);
     }
 
     /**
      * Creates a response to a {@link RetrieveThings} command.
      *
      * @param things the retrieved Things.
+     * @param namespace the namespace of this search request
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static RetrieveThingsResponse of(final JsonArray things, final DittoHeaders dittoHeaders) {
-        return new RetrieveThingsResponse(HttpStatusCode.OK, things, dittoHeaders);
+    public static RetrieveThingsResponse of(final JsonArray things, @Nullable final String namespace,
+            final DittoHeaders dittoHeaders) {
+        return new RetrieveThingsResponse(HttpStatusCode.OK, things, namespace, dittoHeaders);
     }
 
     /**
@@ -82,16 +93,17 @@ public final class RetrieveThingsResponse extends AbstractCommandResponse<Retrie
      *
      * @param things the retrieved Things.
      * @param predicate the predicate to apply to the things when transforming to JSON.
+     * @param namespace the namespace of this search request
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static RetrieveThingsResponse of(final List<Thing> things, final Predicate<JsonField> predicate,
-            final DittoHeaders dittoHeaders) {
+            @Nullable final String namespace, final DittoHeaders dittoHeaders) {
         return new RetrieveThingsResponse(HttpStatusCode.OK, checkNotNull(things, "Things").stream()
                 .map(thing -> thing.toJson(dittoHeaders.getSchemaVersion().orElse(JsonSchemaVersion.LATEST),
                         predicate))
-                .collect(JsonCollectors.valuesToArray()), dittoHeaders);
+                .collect(JsonCollectors.valuesToArray()), namespace, dittoHeaders);
     }
 
     /**
@@ -100,16 +112,17 @@ public final class RetrieveThingsResponse extends AbstractCommandResponse<Retrie
      * @param things the retrieved Things.
      * @param fieldSelector the JsonFieldSelector to apply to the passed things when transforming to JSON.
      * @param predicate the predicate to apply to the things when transforming to JSON.
+     * @param namespace the namespace of this retrieve things request
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static RetrieveThingsResponse of(final List<Thing> things, final JsonFieldSelector fieldSelector,
-            final Predicate<JsonField> predicate, final DittoHeaders dittoHeaders) {
+            final Predicate<JsonField> predicate, @Nullable final String namespace, final DittoHeaders dittoHeaders) {
         return new RetrieveThingsResponse(HttpStatusCode.OK, checkNotNull(things, "Things").stream().map(thing -> thing
                 .toJson(dittoHeaders.getSchemaVersion().orElse(JsonSchemaVersion.LATEST), fieldSelector,
                         predicate))
-                .collect(JsonCollectors.valuesToArray()), dittoHeaders);
+                .collect(JsonCollectors.valuesToArray()), namespace, dittoHeaders);
     }
 
     /**
@@ -143,13 +156,19 @@ public final class RetrieveThingsResponse extends AbstractCommandResponse<Retrie
         return new CommandResponseJsonDeserializer<RetrieveThingsResponse>(TYPE, jsonObject)
                 .deserialize((statusCode) -> {
                     final JsonArray thingsJsonArray = jsonObject.getValueOrThrow(JSON_THINGS);
-                    return of(thingsJsonArray, dittoHeaders);
+                    final String namespace = jsonObject.getValue(JSON_NAMESPACE).orElse(null);
+                    return of(thingsJsonArray, namespace, dittoHeaders);
                 });
     }
 
     @Override
     public String getThingId() {
-        return ":_"; // no ID for retrieve of multiple things
+        return ":_";
+    }
+
+    @Override
+    public Optional<String> getNamespace() {
+        return Optional.ofNullable(namespace);
     }
 
     /**
@@ -158,8 +177,14 @@ public final class RetrieveThingsResponse extends AbstractCommandResponse<Retrie
      * @return the retrieved Things.
      */
     public List<Thing> getThings() {
-        return things.stream().filter(JsonValue::isObject).map(JsonValue::asObject).map(ThingsModelFactory::newThing)
-                .collect(Collectors.toList());
+        return getThingStream(things).collect(Collectors.toList());
+    }
+
+    private Stream<Thing> getThingStream(JsonArray thingsArray) {
+        return thingsArray.stream()
+                .filter(JsonValue::isObject)
+                .map(JsonValue::asObject)
+                .map(ThingsModelFactory::newThing);
     }
 
     @Override
@@ -170,12 +195,12 @@ public final class RetrieveThingsResponse extends AbstractCommandResponse<Retrie
     @Override
     public RetrieveThingsResponse setEntity(final JsonValue entity) {
         checkNotNull(entity, "entity");
-        return of(entity.asArray(), getDittoHeaders());
+        return of(entity.asArray(), namespace, getDittoHeaders());
     }
 
     @Override
     public RetrieveThingsResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(things, dittoHeaders);
+        return of(things, namespace, dittoHeaders);
     }
 
     @Override
@@ -188,6 +213,16 @@ public final class RetrieveThingsResponse extends AbstractCommandResponse<Retrie
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(JSON_THINGS, things, predicate);
+        jsonObjectBuilder.set(JSON_NAMESPACE, namespace, predicate);
+    }
+
+    private Optional<String> checkThingsNamespaces(@Nullable final String namespace, final Stream<Thing> things) {
+        if (namespace != null && things.map(Thing::getId).filter(Optional::isPresent).map(Optional::get)
+                .anyMatch(id -> !id.startsWith(namespace + ":"))) {
+            throw new IllegalArgumentException(
+                    "The provided namespace must match the namespace of the things in the result.");
+        }
+        return Optional.ofNullable(namespace);
     }
 
     @Override
@@ -204,17 +239,19 @@ public final class RetrieveThingsResponse extends AbstractCommandResponse<Retrie
             return false;
         }
         final RetrieveThingsResponse that = (RetrieveThingsResponse) o;
-        return that.canEqual(this) && Objects.equals(things, that.things) && super.equals(o);
+        return that.canEqual(this) && Objects.equals(things, that.things) &&
+                Objects.equals(namespace, that.namespace) && super.equals(o);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), things);
+        return Objects.hash(super.hashCode(), things, namespace);
     }
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + " [" + super.toString() + ", things=" + things + "]";
+        return getClass().getSimpleName() + " [" + super.toString() + ", things=" + things + ", namespace=" +
+                namespace + "]";
     }
 
 }

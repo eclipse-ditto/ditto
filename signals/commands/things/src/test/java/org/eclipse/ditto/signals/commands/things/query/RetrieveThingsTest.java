@@ -31,7 +31,7 @@ import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
@@ -46,11 +46,23 @@ public final class RetrieveThingsTest {
             .add(":AnotherThingId")
             .build();
 
+    private static final JsonArray THING_IDS_WITH_DISTINCT_NAMESPACE = JsonFactory.newArrayBuilder()
+            .add(TestConstants.Thing.THING_ID)
+            .add(TestConstants.Thing.THING_ID + "1")
+            .add(TestConstants.Thing.THING_ID + "2")
+            .build();
+
     private static final String SELECTED_FIELDS = "field1,field2,field3";
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(ThingCommand.JsonFields.TYPE, RetrieveThings.TYPE)
             .set(RetrieveThings.JSON_THING_IDS, THING_IDS)
+            .build();
+
+    private static final JsonObject KNOWN_JSON_WITH_DISTINCT_NAMESPACE = JsonFactory.newObjectBuilder()
+            .set(ThingCommand.JsonFields.TYPE, RetrieveThings.TYPE)
+            .set(RetrieveThings.JSON_THING_IDS, THING_IDS_WITH_DISTINCT_NAMESPACE)
+            .set(RetrieveThings.JSON_NAMESPACE, "example.com")
             .build();
 
     private static final JsonObject KNOWN_JSON_WITH_FIELD_SELECTION = JsonFactory.newObjectBuilder()
@@ -64,6 +76,10 @@ public final class RetrieveThingsTest {
 
     private static List<String> getThingIds() {
         return THING_IDS.stream().map(JsonValue::asString).collect(Collectors.toList());
+    }
+
+    private static List<String> getThingIdsWithDistinctNamespace() {
+        return THING_IDS_WITH_DISTINCT_NAMESPACE.stream().map(JsonValue::asString).collect(Collectors.toList());
     }
 
     private static JsonFieldSelector getJsonFieldSelector() {
@@ -95,6 +111,14 @@ public final class RetrieveThingsTest {
         assertThat(actualJson).isEqualTo(KNOWN_JSON);
     }
 
+    @Test
+    public void toJsonReturnsExpectedWithNamespace() {
+        final RetrieveThings underTest =
+                RetrieveThings.getBuilder(getThingIdsWithDistinctNamespace()).namespace("example.com").build();
+        final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
+
+        assertThat(actualJson).isEqualTo(KNOWN_JSON_WITH_DISTINCT_NAMESPACE);
+    }
 
     @Test
     public void createInstanceFromValidJson() {
@@ -104,8 +128,21 @@ public final class RetrieveThingsTest {
         assertThat(underTest).isNotNull();
         assertThat(underTest.getThingIds()).isEqualTo(getThingIds());
         assertThat(underTest.getSelectedFields()).isEmpty();
+        assertThat(underTest.getNamespace()).isEmpty();
     }
 
+    @Test
+    public void createInstanceWithNamespaceFromValidJson() {
+        final RetrieveThings underTest =
+                RetrieveThings.fromJson(KNOWN_JSON_WITH_DISTINCT_NAMESPACE.toString(),
+                        TestConstants.EMPTY_DITTO_HEADERS);
+
+        assertThat(underTest).isNotNull();
+        assertThat(underTest.getThingIds()).isEqualTo(
+                THING_IDS_WITH_DISTINCT_NAMESPACE.stream().map(JsonValue::asString).collect(Collectors.toList()));
+        assertThat(underTest.getSelectedFields()).isEmpty();
+        assertThat(underTest.getNamespace()).contains("example.com");
+    }
 
     @Test
     public void jsonSerializationWorksAsExpectedWithSelectedFields() {
@@ -115,7 +152,6 @@ public final class RetrieveThingsTest {
 
         assertThat(actualJson).isEqualTo(KNOWN_JSON_WITH_FIELD_SELECTION);
     }
-
 
     @Test
     public void createInstanceFromValidJsonWithSelectedFields() {
@@ -128,6 +164,10 @@ public final class RetrieveThingsTest {
         assertThat(underTest.getSelectedFields()).contains(getJsonFieldSelector());
     }
 
+    @Test(expected = IllegalArgumentException.class)
+    public void createInstanceWithInvalidNamespacesThrowsException() {
+        RetrieveThings.getBuilder(getThingIds()).namespace("").build();
+    }
 
     @Test
     public void checkRetrieveThingsWithEmptyJsonFieldSelectorBehavesEquallyAsOmittingFields() {

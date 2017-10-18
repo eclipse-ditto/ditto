@@ -31,8 +31,6 @@ import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommandResponse;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveThingsResponse;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommand;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommandResponse;
 import org.eclipse.ditto.signals.events.base.Event;
@@ -56,8 +54,6 @@ public final class DittoProtocolAdapter {
     private final ThingQueryCommandAdapter thingQueryCommandAdapter;
     private final ThingQueryCommandResponseAdapter thingQueryCommandResponseAdapter;
     private final ThingEventAdapter thingEventAdapter;
-    private final ThingSearchAdapter thingSearchAdapter;
-    private final ThingSearchResponseAdapter thingSearchResponseAdapter;
 
     private DittoProtocolAdapter() {
         this.messageCommandAdapter = MessageCommandAdapter.newInstance();
@@ -67,8 +63,6 @@ public final class DittoProtocolAdapter {
         this.thingQueryCommandAdapter = ThingQueryCommandAdapter.newInstance();
         this.thingQueryCommandResponseAdapter = ThingQueryCommandResponseAdapter.newInstance();
         this.thingEventAdapter = ThingEventAdapter.newInstance();
-        this.thingSearchAdapter = ThingSearchAdapter.newInstance();
-        this.thingSearchResponseAdapter = ThingSearchResponseAdapter.newInstance();
     }
 
     public static DittoProtocolAdapter newInstance() {
@@ -152,9 +146,6 @@ public final class DittoProtocolAdapter {
                             TopicPath.Action.forName(parts[5])
                                     .orElseThrow(() -> UnknownTopicPathException.newBuilder(path).build());
                     return ImmutableTopicPath.of(namespace, id, group, channel, criterion, action);
-                case SEARCH:
-                    // search Path does neither contain an "action":
-                    return ImmutableTopicPath.of(namespace, id, group, channel, criterion);
                 case ERRORS:
                     // errors Path does neither contain an "action":
                     return ImmutableTopicPath.of(namespace, id, group, channel, criterion);
@@ -326,7 +317,7 @@ public final class DittoProtocolAdapter {
                         liveSignal = messageCommandAdapter.fromAdaptable(adaptable);
                     }
                 } else {
-                    liveSignal = signalFromAdaptable(adaptable, topicPath); // /things/live/(commands|events|search)
+                    liveSignal = signalFromAdaptable(adaptable, topicPath); // /things/live/(commands|events)
                 }
 
                 if (liveSignal != null) {
@@ -339,7 +330,7 @@ public final class DittoProtocolAdapter {
             } else if (channel.equals(TopicPath.Channel.TWIN)) { // /things/twin
 
                 final Signal<?> signal =
-                        signalFromAdaptable(adaptable, topicPath); // /things/twin/(commands|events|search)
+                        signalFromAdaptable(adaptable, topicPath); // /things/twin/(commands|events)
                 if (signal != null) {
                     return signal;
                 }
@@ -362,10 +353,6 @@ public final class DittoProtocolAdapter {
             }
         } else if (TopicPath.Criterion.EVENTS.equals(topicPath.getCriterion())) {
             return thingEventAdapter.fromAdaptable(adaptable);
-        } else if (TopicPath.Criterion.SEARCH.equals(topicPath.getCriterion())) {
-            final boolean isResponse = adaptable.getPayload().getStatus().isPresent();
-            return isResponse ? thingSearchResponseAdapter.fromAdaptable(adaptable) :
-                    thingSearchAdapter.fromAdaptable(adaptable);
         } else if (TopicPath.Criterion.ERRORS.equals(topicPath.getCriterion())) {
             return thingErrorResponseFromAdaptable(adaptable);
         }
@@ -548,11 +535,7 @@ public final class DittoProtocolAdapter {
      * @return the adaptable.
      */
     public Adaptable toAdaptable(final ThingQueryCommand<?> thingQueryCommand, final TopicPath.Channel channel) {
-        if (thingQueryCommand instanceof RetrieveThings) {
-            return thingSearchAdapter.toAdaptable((RetrieveThings) thingQueryCommand, channel);
-        } else {
-            return thingQueryCommandAdapter.toAdaptable(thingQueryCommand, channel);
-        }
+        return thingQueryCommandAdapter.toAdaptable(thingQueryCommand, channel);
     }
 
     /**
@@ -574,11 +557,7 @@ public final class DittoProtocolAdapter {
      */
     public Adaptable toAdaptable(final ThingQueryCommandResponse<?> thingQueryCommandResponse,
             final TopicPath.Channel channel) {
-        if (thingQueryCommandResponse instanceof RetrieveThingsResponse) {
-            return thingSearchResponseAdapter.toAdaptable((RetrieveThingsResponse) thingQueryCommandResponse, channel);
-        } else {
-            return thingQueryCommandResponseAdapter.toAdaptable(thingQueryCommandResponse, channel);
-        }
+        return thingQueryCommandResponseAdapter.toAdaptable(thingQueryCommandResponse, channel);
     }
 
     /**

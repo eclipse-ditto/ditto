@@ -15,6 +15,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Pattern;
 
+import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonPointer;
@@ -75,6 +76,14 @@ abstract class AbstractAdapter<T extends Jsonifiable> implements Adapter<T> {
         return adaptable.getPayload().getValue()
                 .map(JsonValue::asObject)
                 .map(ThingsModelFactory::newThing)
+                .orElseThrow(() -> JsonParseException.newBuilder().build());
+    }
+
+    protected static JsonArray thingsArrayFrom(final Adaptable adaptable) {
+        return adaptable.getPayload()
+                .getValue()
+                .filter(JsonValue::isArray)
+                .map(JsonValue::asArray)
                 .orElseThrow(() -> JsonParseException.newBuilder().build());
     }
 
@@ -164,8 +173,26 @@ abstract class AbstractAdapter<T extends Jsonifiable> implements Adapter<T> {
         return adaptable.getPayload().getStatus().orElse(null);
     }
 
+    protected static String namespaceFrom(final Adaptable adaptable) {
+        final String namespace = adaptable.getTopicPath().getNamespace();
+        return "_".equals(namespace) ? null : namespace;
+    }
+
     private static String leafValue(final JsonPointer path) {
         return path.getLeaf().orElseThrow(() -> UnknownPathException.newBuilder(path).build()).toString();
+    }
+
+    protected static CommandsTopicPathBuilder fromTopicPathBuilderWithChannel(final TopicPathBuilder topicPathBuilder,
+            final TopicPath.Channel channel) {
+        final CommandsTopicPathBuilder commandsTopicPathBuilder;
+        if (channel == TopicPath.Channel.TWIN) {
+            commandsTopicPathBuilder = topicPathBuilder.twin().commands();
+        } else if (channel == TopicPath.Channel.LIVE) {
+            commandsTopicPathBuilder = topicPathBuilder.live().commands();
+        } else {
+            throw new IllegalArgumentException("Unknown Channel '" + channel + "'");
+        }
+        return commandsTopicPathBuilder;
     }
 
     protected abstract String getType(final Adaptable adaptable);

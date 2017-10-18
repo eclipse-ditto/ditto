@@ -24,6 +24,7 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveFeaturePropertyRe
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeaturesResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
+import org.eclipse.ditto.signals.commands.things.query.RetrieveThingsResponse;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommandResponse;
 
 /**
@@ -53,9 +54,9 @@ final class ThingQueryCommandResponseAdapter extends AbstractAdapter<ThingQueryC
                 adaptable -> RetrieveThingResponse.of(thingIdFrom(adaptable), thingFrom(adaptable),
                         dittoHeadersFrom(adaptable)));
 
-        mappingStrategies.put(RetrieveThingResponse.TYPE,
-                adaptable -> RetrieveThingResponse.of(thingIdFrom(adaptable), thingFrom(adaptable),
-                        dittoHeadersFrom(adaptable)));
+        mappingStrategies.put(RetrieveThingsResponse.TYPE,
+                adaptable -> RetrieveThingsResponse.of(thingsArrayFrom(adaptable),
+                        namespaceFrom(adaptable), dittoHeadersFrom(adaptable)));
 
         mappingStrategies.put(RetrieveAclResponse.TYPE,
                 adaptable -> RetrieveAclResponse.of(thingIdFrom(adaptable), aclFrom(adaptable),
@@ -95,12 +96,17 @@ final class ThingQueryCommandResponseAdapter extends AbstractAdapter<ThingQueryC
         return mappingStrategies;
     }
 
+
     @Override
     protected String getType(final Adaptable adaptable) {
         final TopicPath topicPath = adaptable.getTopicPath();
-        final JsonPointer path = adaptable.getPayload().getPath();
-        final String commandName = topicPath.getAction().get() + upperCaseFirst(PathMatcher.match(path));
-        return topicPath.getGroup() + ".responses:" + commandName;
+        if (topicPath.isWildcardTopic()) {
+            return RetrieveThingsResponse.TYPE;
+        } else {
+            final JsonPointer path = adaptable.getPayload().getPath();
+            final String commandName = topicPath.getAction().get() + upperCaseFirst(PathMatcher.match(path));
+            return topicPath.getGroup() + ".responses:" + commandName;
+        }
     }
 
     @Override
@@ -110,16 +116,16 @@ final class ThingQueryCommandResponseAdapter extends AbstractAdapter<ThingQueryC
             throw UnknownCommandResponseException.newBuilder(responseName).build();
         }
 
-        final TopicPathBuilder topicPathBuilder = DittoProtocolAdapter.newTopicPathBuilder(commandResponse.getId());
-
-        final CommandsTopicPathBuilder commandsTopicPathBuilder;
-        if (channel == TopicPath.Channel.TWIN) {
-            commandsTopicPathBuilder = topicPathBuilder.twin().commands();
-        } else if (channel == TopicPath.Channel.LIVE) {
-            commandsTopicPathBuilder = topicPathBuilder.live().commands();
+        final TopicPathBuilder topicPathBuilder;
+        if (commandResponse instanceof RetrieveThingsResponse) {
+            final String namespace = ((RetrieveThingsResponse) commandResponse).getNamespace().orElse("_");
+            topicPathBuilder = DittoProtocolAdapter.newTopicPathBuilderFromNamespace(namespace);
         } else {
-            throw new IllegalArgumentException("Unknown Channel '" + channel + "'");
+            topicPathBuilder = DittoProtocolAdapter.newTopicPathBuilder(commandResponse.getId());
         }
+
+        final CommandsTopicPathBuilder commandsTopicPathBuilder =
+                fromTopicPathBuilderWithChannel(topicPathBuilder, channel);
 
         final String commandName = commandResponse.getClass().getSimpleName().toLowerCase();
         if (commandName.startsWith(TopicPath.Action.RETRIEVE.toString())) {

@@ -12,11 +12,16 @@
 package org.eclipse.ditto.protocoladapter;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.stream.Collectors;
 
-import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonCollectors;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAcl;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAclEntry;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttribute;
@@ -26,6 +31,7 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureProperties
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureProperty;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatures;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
+import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommand;
 
 /**
@@ -47,8 +53,13 @@ final class ThingQueryCommandAdapter extends AbstractAdapter<ThingQueryCommand> 
         // the snapshot revision is not yet relevant for Protocol Adapter as it is only used by Topologies
         mappingStrategies.put(RetrieveThing.TYPE, adaptable -> RetrieveThing.getBuilder(thingIdFrom(adaptable),
                 dittoHeadersFrom(adaptable))
-                  .withSelectedFields(selectedFieldsFrom(adaptable))
-                  .build());
+                .withSelectedFields(selectedFieldsFrom(adaptable))
+                .build());
+
+        mappingStrategies.put(RetrieveThings.TYPE, adaptable -> RetrieveThings.getBuilder(thingsIdsFrom(adaptable))
+                .dittoHeaders(dittoHeadersFrom(adaptable))
+                .namespace(namespaceFrom(adaptable))
+                .selectedFields(selectedFieldsFrom(adaptable)).build());
 
         mappingStrategies.put(RetrieveAcl.TYPE, adaptable -> RetrieveAcl.of(thingIdFrom(adaptable),
                 dittoHeadersFrom(adaptable)));
@@ -82,27 +93,29 @@ final class ThingQueryCommandAdapter extends AbstractAdapter<ThingQueryCommand> 
     @Override
     protected String getType(final Adaptable adaptable) {
         final TopicPath topicPath = adaptable.getTopicPath();
-        final JsonPointer path = adaptable.getPayload().getPath();
-        final String commandName = topicPath.getAction().get() + upperCaseFirst(PathMatcher.match(path));
-        return topicPath.getGroup() + "." + topicPath.getCriterion() + ":" + commandName;
+        if (topicPath.isWildcardTopic()) {
+            return RetrieveThings.TYPE;
+        } else {
+            final JsonPointer path = adaptable.getPayload().getPath();
+            final String commandName = topicPath.getAction().get() + upperCaseFirst(PathMatcher.match(path));
+            return topicPath.getGroup() + "." + topicPath.getCriterion() + ":" + commandName;
+        }
     }
 
     @Override
     public Adaptable toAdaptable(final ThingQueryCommand command, final TopicPath.Channel channel) {
-        return handleSingleRetrieve(command, channel);
+        if (command instanceof RetrieveThings) {
+            return handleMultipleRetrieve((RetrieveThings) command, channel);
+        } else {
+            return handleSingleRetrieve(command, channel);
+        }
     }
 
     private static Adaptable handleSingleRetrieve(final ThingQueryCommand<?> command, final TopicPath.Channel channel) {
         final TopicPathBuilder topicPathBuilder = DittoProtocolAdapter.newTopicPathBuilder(command.getThingId());
 
         final CommandsTopicPathBuilder commandsTopicPathBuilder;
-        if (channel == TopicPath.Channel.TWIN) {
-            commandsTopicPathBuilder = topicPathBuilder.twin().commands();
-        } else if (channel == TopicPath.Channel.LIVE) {
-            commandsTopicPathBuilder = topicPathBuilder.live().commands();
-        } else {
-            throw new IllegalArgumentException("Unknown Channel '" + channel + "'");
-        }
+        commandsTopicPathBuilder = fromTopicPathBuilderWithChannel(topicPathBuilder, channel);
 
         final String commandName = command.getClass().getSimpleName().toLowerCase();
         if (!commandName.startsWith(TopicPath.Action.RETRIEVE.toString())) {
@@ -110,8 +123,7 @@ final class ThingQueryCommandAdapter extends AbstractAdapter<ThingQueryCommand> 
         }
 
         final PayloadBuilder payloadBuilder = Payload.newBuilder(command.getResourcePath());
-        final Optional<JsonFieldSelector> selectedFields = command.getSelectedFields();
-        selectedFields.ifPresent(payloadBuilder::withFields);
+        command.getSelectedFields().ifPresent(payloadBuilder::withFields);
 
         return Adaptable.newBuilder(commandsTopicPathBuilder.retrieve().build()) //
                 .withPayload(payloadBuilder.build()) //
@@ -119,4 +131,39 @@ final class ThingQueryCommandAdapter extends AbstractAdapter<ThingQueryCommand> 
                 .build();
     }
 
+    private static Adaptable handleMultipleRetrieve(final RetrieveThings command,
+            final TopicPath.Channel channel) {
+
+        final String commandName = command.getClass().getSimpleName().toLowerCase();
+        if (!commandName.startsWith(TopicPath.Action.RETRIEVE.toString())) {
+            throw UnknownCommandException.newBuilder(commandName).build();
+        }
+
+        final String namespace = command.getNamespace().orElse("_");
+        final TopicPathBuilder topicPathBuilder = DittoProtocolAdapter.newTopicPathBuilderFromNamespace(namespace);
+        final CommandsTopicPathBuilder commandsTopicPathBuilder =
+                fromTopicPathBuilderWithChannel(topicPathBuilder, channel);
+
+        final PayloadBuilder payloadBuilder = Payload.newBuilder(command.getResourcePath());
+        command.getSelectedFields().ifPresent(payloadBuilder::withFields);
+        payloadBuilder.withValue(createIdsPayload(command.getThingIds()));
+
+        return Adaptable.newBuilder(commandsTopicPathBuilder.retrieve().build()) //
+                .withPayload(payloadBuilder.build()) //
+                .withHeaders(DittoProtocolAdapter.newHeaders(command.getDittoHeaders())) //
+                .build();
+    }
+
+    private static List<String> thingsIdsFrom(final Adaptable adaptable) {
+        final JsonArray array = adaptable.getPayload().getValue().filter(JsonValue::isObject).map(JsonValue::asObject)
+                .orElseThrow(() -> new JsonParseException("Adaptable payload was non existing or no JsonObject")) //
+                .getValue(RetrieveThings.JSON_THING_IDS).filter(JsonValue::isArray).map(JsonValue::asArray).orElseThrow(
+                        () -> new JsonParseException("Could not map 'thingIds' value to expected JsonArray"));
+        return array.stream().map(JsonValue::asString).collect(Collectors.toList());
+    }
+
+    private static JsonValue createIdsPayload(final List<String> ids) {
+        final JsonArray thingIdsArray = ids.stream().map(JsonFactory::newValue).collect(JsonCollectors.valuesToArray());
+        return JsonFactory.newObject().setValue(RetrieveThings.JSON_THING_IDS.getPointer(), thingIdsArray);
+    }
 }
