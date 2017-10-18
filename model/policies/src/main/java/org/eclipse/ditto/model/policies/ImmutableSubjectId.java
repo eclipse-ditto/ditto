@@ -70,8 +70,10 @@ final class ImmutableSubjectId implements SubjectId {
             throw SubjectIdInvalidException.newBuilder(subjectIssuerWithId).build();
         }
 
-        final int lastDelimiter = subjectIdAsString.indexOf(ISSUER_DELIMITER,
-                subjectIdAsString.indexOf(IGNORED_DELIMITER) + IGNORED_DELIMITER.length());
+        final int ignoredDelimiterIndex = subjectIdAsString.indexOf(IGNORED_DELIMITER);
+        final int lastDelimiter = ignoredDelimiterIndex >= 0
+                ? subjectIdAsString.indexOf(ISSUER_DELIMITER, ignoredDelimiterIndex + IGNORED_DELIMITER.length())
+                : subjectIdAsString.indexOf(ISSUER_DELIMITER);
         final SubjectIssuer issuer =
                 PoliciesModelFactory.newSubjectIssuer(subjectIdAsString.substring(0, lastDelimiter));
         final String subject = subjectIdAsString.replaceFirst(issuer.toString() + ISSUER_DELIMITER, "");
