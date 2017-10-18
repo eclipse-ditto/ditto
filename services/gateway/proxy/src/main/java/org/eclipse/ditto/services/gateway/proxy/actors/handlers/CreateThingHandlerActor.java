@@ -311,9 +311,24 @@ public final class CreateThingHandlerActor extends AbstractActor {
     }
 
     private static Policy extractPolicy(final CreateThing command, final DittoHeaders dittoHeaders) {
-        final String thingId = extractThingId(command.getThing(), dittoHeaders);
+        final Thing thing = command.getThing();
+        final String thingId = extractThingId(thing, dittoHeaders);
         return command.getInitialPolicy()
-                .map(jsonObj -> jsonObj.set(Policy.JsonFields.ID, thingId))
+                .map(jsonObj -> {
+                    // Sets policy ID with fallback semantics:
+                    // - Take the 'policyId' field in the Thing first.
+                    // - If 'policyId' is not defined in the Thing, use the policy ID given by inlined policy.
+                    // - If neither is defined, use the thing ID as policy ID.
+                    // - Throw an exception if thingID is undefined.
+                    final Optional<String> policyIdOfThing = thing.getPolicyId();
+                    final boolean shouldOverride =
+                            policyIdOfThing.isPresent() || !jsonObj.contains(Policy.JsonFields.ID.getPointer());
+                    if (shouldOverride){
+                        return jsonObj.set(Policy.JsonFields.ID, policyIdOfThing.orElse(thingId));
+                    } else{
+                        return jsonObj;
+                    }
+                })
                 .map(PoliciesModelFactory::newPolicy)
                 .filter(it -> it.iterator().hasNext())
                 .orElse(getDefaultPolicy(dittoHeaders.getAuthorizationContext(), thingId));
