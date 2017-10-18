@@ -167,6 +167,13 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
     Set<String> getReadSubjects();
 
     /**
+     * Returns the channel (twin/live) on which a Signal/Exception was sent/occurred.
+     *
+     * @return the channel (twin/live).
+     */
+    Optional<String> getChannel();
+
+    /**
      * Returns whether a response to a command is required or if it may be omitted (fire and forget semantics)
      *
      * @return the "response required" value.

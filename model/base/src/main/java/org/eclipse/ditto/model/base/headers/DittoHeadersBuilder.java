@@ -94,6 +94,15 @@ public interface DittoHeadersBuilder<B extends DittoHeadersBuilder, R extends Di
     B readSubjects(Collection<String> readSubjects);
 
     /**
+     * Sets the specified String as channel of the Signal/Exception.
+     *
+     * @param channel the channel of the Signal/Exception to be set.
+     * @return this builder for Method Chaining.
+     * @throws IllegalArgumentException if {@code channel} is empty.
+     */
+    B channel(@Nullable CharSequence channel);
+
+    /**
      * Sets the responseRequired value.
      *
      * @param responseRequired the responseRequired value to be set.

@@ -156,7 +156,9 @@ public interface TopicPath {
 
         SEARCH("search"),
 
-        MESSAGES("messages");
+        MESSAGES("messages"),
+
+        ERRORS("errors");
 
         private final String name;
 

@@ -111,6 +111,11 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
     }
 
     @Override
+    public Optional<String> getChannel() {
+        return getStringForDefinition(DittoHeaderDefinition.CHANNEL);
+    }
+
+    @Override
     public boolean isResponseRequired() {
         return getBooleanForDefinition(DittoHeaderDefinition.RESPONSE_REQUIRED).orElse(true);
     }

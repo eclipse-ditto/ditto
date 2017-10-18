@@ -15,6 +15,7 @@ import java.util.Optional;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.gateway.streaming.Connect;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StopStreaming;
@@ -164,14 +165,13 @@ public final class StreamingActor extends AbstractActor {
     }
 
     private static boolean isEnrichedLiveSignal(final Signal<?> signal) {
-        return "LIVE".equals(signal.getDittoHeaders().get("channel")) &&
-                !signal.getDittoHeaders()
+        return isLiveSignal(signal) && !signal.getDittoHeaders()
                         .getReadSubjects()
                         .isEmpty(); // when readSubjects are not empty, the signal was already enriched by ProxyActor
     }
 
-    private static boolean isLiveSignal(final Signal<?> signal) {
-        return "LIVE".equals(signal.getDittoHeaders().get("channel"));
+    private static boolean isLiveSignal(final WithDittoHeaders<?> signal) {
+        return signal.getDittoHeaders().getChannel().filter(TopicPath.Channel.LIVE.getName()::equals).isPresent();
     }
 
     private Optional<String> extractConnectionCorrelationId(final WithDittoHeaders withDittoHeaders) {

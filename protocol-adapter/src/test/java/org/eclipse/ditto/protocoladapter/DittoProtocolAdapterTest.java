@@ -73,8 +73,7 @@ public final class DittoProtocolAdapterTest {
         final TopicPath topicPath = TopicPath.newBuilder(THING_ID)
                 .things()
                 .twin()
-                .commands()
-                .modify()
+                .errors()
                 .build();
         final JsonPointer path = JsonPointer.empty();
         final Adaptable adaptable = Adaptable.newBuilder(topicPath)

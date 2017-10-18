@@ -184,6 +184,12 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     }
 
     @Override
+    public S channel(@Nullable final CharSequence channel) {
+        putCharSequence(DittoHeaderDefinition.CHANNEL, channel);
+        return myself;
+    }
+
+    @Override
     public S responseRequired(final boolean responseRequired) {
         putBoolean(DittoHeaderDefinition.RESPONSE_REQUIRED, responseRequired);
         return myself;

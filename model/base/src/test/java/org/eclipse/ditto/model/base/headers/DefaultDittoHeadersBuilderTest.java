@@ -42,6 +42,7 @@ public final class DefaultDittoHeadersBuilderTest {
     private static final String CORRELATION_ID = "correlationId";
     private static final JsonSchemaVersion JSON_SCHEMA_VERSION = JsonSchemaVersion.V_1;
     private static final String SOURCE = "source";
+    private static final String CHANNEL = "twin";
     private static final Collection<String> READ_SUBJECTS = Arrays.asList("read", "subjects");
 
     private DittoHeadersBuilder underTest = null;
@@ -169,6 +170,16 @@ public final class DefaultDittoHeadersBuilderTest {
         assertThat(jsonObject)
                 .hasSize(1)
                 .contains(JsonFactory.newKey(DittoHeaderDefinition.SOURCE.getKey()), SOURCE);
+    }
+
+    @Test
+    public void jsonRepresentationOfDittoHeadersWithChannelOnlyIsExpected() {
+        final DittoHeaders dittoHeaders = underTest.channel(CHANNEL).build();
+        final JsonObject jsonObject = dittoHeaders.toJson();
+
+        assertThat(jsonObject)
+                .hasSize(1)
+                .contains(JsonFactory.newKey(DittoHeaderDefinition.CHANNEL.getKey()), CHANNEL);
     }
 
     @Test

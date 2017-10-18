@@ -280,7 +280,7 @@ public final class WebsocketRoute {
     }
 
     private static boolean isLiveSignal(final WithDittoHeaders<?> signal) {
-        return "LIVE".equals(signal.getDittoHeaders().get("channel"));
+        return signal.getDittoHeaders().getChannel().filter(TopicPath.Channel.LIVE.getName()::equals).isPresent();
     }
 
     private Adaptable jsonifiableToAdaptable(final Jsonifiable.WithPredicate<JsonObject, JsonField> jsonifiable,
@@ -293,8 +293,11 @@ public final class WebsocketRoute {
         } else if (jsonifiable instanceof CommandResponse) {
             adaptable = protocolAdapter.toAdaptable((CommandResponse) jsonifiable, channel);
         } else if (jsonifiable instanceof DittoRuntimeException) {
+            final DittoHeaders enhancedHeaders = ((DittoRuntimeException) jsonifiable).getDittoHeaders().toBuilder()
+                    .channel(channel.getName())
+                    .build();
             final ThingErrorResponse errorResponse =
-                    ThingErrorResponse.of((DittoRuntimeException) jsonifiable);
+                    ThingErrorResponse.of((DittoRuntimeException) jsonifiable, enhancedHeaders);
             adaptable = protocolAdapter.toAdaptable(errorResponse, channel);
         } else {
             throw new IllegalArgumentException("Jsonifiable was neither Command nor CommandResponse nor"
