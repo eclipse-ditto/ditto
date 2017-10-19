@@ -20,6 +20,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -76,7 +77,7 @@ public final class RetrieveThingsLiveCommandImplTest {
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(RetrieveThingsLiveCommandImpl.class)
                 .withRedefinedSuperclass()
-                .withIgnoredFields("thingQueryCommand", "thingIds")
+                .withIgnoredFields("thingQueryCommand", "thingIds", "namespace")
                 .verify();
     }
 
@@ -135,7 +136,8 @@ public final class RetrieveThingsLiveCommandImplTest {
         assertThat(underTest.toString())
                 .contains(underTest.getClass().getSimpleName())
                 .contains("command=")
-                .contains(retrieveThingTwinCommand.toString());
+                .contains(retrieveThingTwinCommand.toString())
+                .contains("namespace=null");
     }
 
 }

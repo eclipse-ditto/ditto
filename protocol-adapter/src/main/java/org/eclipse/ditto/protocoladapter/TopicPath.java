@@ -103,6 +103,10 @@ public interface TopicPath {
      */
     String getPath();
 
+    default boolean isWildcardTopic() {
+        return DittoProtocolAdapter.ID_PLACEHOLDER.equals(getId());
+    }
+
     /**
      * An enumeration of topic path groups.
      */

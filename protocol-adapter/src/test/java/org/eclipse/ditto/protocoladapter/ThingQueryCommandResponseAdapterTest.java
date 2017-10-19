@@ -16,6 +16,7 @@ import static org.eclipse.ditto.protocoladapter.TestConstants.DITTO_HEADERS_V_1;
 import static org.eclipse.ditto.protocoladapter.TestConstants.FEATURE_ID;
 import static org.eclipse.ditto.protocoladapter.TestConstants.THING_ID;
 
+import java.util.Optional;
 import java.util.function.Predicate;
 
 import javax.annotation.Nonnull;
@@ -161,14 +162,27 @@ public final class ThingQueryCommandResponseAdapterTest {
                 RetrieveThingResponse.of(THING_ID, TestConstants.THING, TestConstants.DITTO_HEADERS_V_2);
         final Adaptable actual = underTest.toAdaptable(retrieveThing);
 
+        final JsonifiableAdaptable jsonifiableAdaptable = DittoProtocolAdapter.wrapAsJsonifiableAdaptable(actual);
+        final JsonObject jsonObject = jsonifiableAdaptable.toJson();
+        System.out.println(jsonObject.toString());
+
         assertThat(actual).isEqualTo(expected);
     }
 
     @Test
     public void retrieveThingsResponseToAdaptable() {
+        retrieveThingsResponseToAdaptable("");
+    }
+
+    @Test
+    public void retrieveThingsResponseToAdaptableWithWildcardNamespace() {
+        retrieveThingsResponseToAdaptable(null);
+    }
+
+    private void retrieveThingsResponseToAdaptable(final String namespace) {
         final JsonPointer path = JsonPointer.empty();
 
-        final TopicPath topicPath = TopicPath.newBuilder(":_")
+        final TopicPath topicPath = TopicPath.fromNamespace(Optional.ofNullable(namespace).orElse("_"))
                 .things()
                 .twin()
                 .commands()
@@ -185,6 +199,7 @@ public final class ThingQueryCommandResponseAdapterTest {
         final RetrieveThingsResponse retrieveThingsResponse = RetrieveThingsResponse.of(JsonFactory.newArray()
                         .add(TestConstants.THING.toJsonString())
                         .add(TestConstants.THING2.toJsonString()),
+                namespace,
                 TestConstants.DITTO_HEADERS_V_2);
 
         final Adaptable actual = underTest.toAdaptable(retrieveThingsResponse);
@@ -608,4 +623,43 @@ public final class ThingQueryCommandResponseAdapterTest {
         assertThat(actual).isEqualTo(expected);
     }
 
+    /** */
+    @Test
+    public void retrieveThingsResponseFromAdaptable() {
+        retrieveThingsResponseFromAdaptable(TestConstants.NAMESPACE);
+    }
+
+    /** */
+    @Test
+    public void retrieveThingsResponseWithWildcardNamespaceFromAdaptable() {
+        retrieveThingsResponseFromAdaptable(null);
+    }
+
+    private void retrieveThingsResponseFromAdaptable(final String namespace) {
+        final RetrieveThingsResponse expected = RetrieveThingsResponse.of(JsonFactory.newArray()
+                        .add(TestConstants.THING.toJsonString())
+                        .add(TestConstants.THING2.toJsonString()),
+                namespace,
+                TestConstants.DITTO_HEADERS_V_2);
+
+        final TopicPath topicPath = TopicPath.fromNamespace(Optional.ofNullable(namespace).orElse("_"))
+                .things()
+                .twin()
+                .commands()
+                .retrieve()
+                .build();
+
+        final JsonPointer path = JsonPointer.empty();
+        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path).withValue(JsonFactory.newArray()
+                        .add(TestConstants.THING.toJsonString())
+                        .add(TestConstants.THING2.toJsonString())).build())
+                .withHeaders(TestConstants.HEADERS_V_2).build();
+
+        final ThingQueryCommandResponse actual = underTest.fromAdaptable(adaptable);
+
+        System.out.println(actual.toJsonString());
+
+        assertThat(actual).isEqualTo(expected);
+    }
 }

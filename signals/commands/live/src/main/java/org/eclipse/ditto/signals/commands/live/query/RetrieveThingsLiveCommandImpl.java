@@ -12,8 +12,10 @@
 package org.eclipse.ditto.signals.commands.live.query;
 
 import java.util.List;
+import java.util.Optional;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import javax.annotation.concurrent.Immutable;
 
@@ -30,10 +32,12 @@ final class RetrieveThingsLiveCommandImpl extends AbstractQueryLiveCommand<Retri
         RetrieveThingsLiveCommandAnswerBuilder> implements RetrieveThingsLiveCommand {
 
     private final List<String> thingIds;
+    @Nullable private final String namespace;
 
     private RetrieveThingsLiveCommandImpl(final RetrieveThings command) {
         super(command);
         thingIds = command.getThingIds();
+        namespace = command.getNamespace().orElse(null);
     }
 
     /**
@@ -55,6 +59,12 @@ final class RetrieveThingsLiveCommandImpl extends AbstractQueryLiveCommand<Retri
         return thingIds;
     }
 
+    @Nonnull
+    @Override
+    public Optional<String> getNamespace() {
+        return Optional.ofNullable(namespace);
+    }
+
     @Override
     public RetrieveThingsLiveCommand setDittoHeaders(final DittoHeaders dittoHeaders) {
         final RetrieveThings retrieveThingsCommand = RetrieveThings.getBuilder(getThingIds())
@@ -74,7 +84,7 @@ final class RetrieveThingsLiveCommandImpl extends AbstractQueryLiveCommand<Retri
     @Nonnull
     @Override
     public String toString() {
-        return getClass().getSimpleName() + "[" + super.toString() + "]";
+        return getClass().getSimpleName() + "[" + super.toString() + ", namespace=" + namespace + "]";
     }
 
 }

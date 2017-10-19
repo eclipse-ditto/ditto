@@ -294,7 +294,8 @@ public class JsonExamplesProducer {
         Files.createDirectories(commandsDir);
 
         final RetrieveThingsResponse retrieveThingsResponse =
-                RetrieveThingsResponse.of(Collections.singletonList(THING), FieldType.notHidden(), DITTO_HEADERS);
+                RetrieveThingsResponse.of(Collections.singletonList(THING), FieldType.notHidden(), "com.acme",
+                        DITTO_HEADERS);
         writeJson(commandsDir.resolve(Paths.get("retrieveThingsResponse.json")), retrieveThingsResponse);
 
         final RetrieveThingResponse retrieveThingResponse = RetrieveThingResponse.of(THING_ID, THING, DITTO_HEADERS);

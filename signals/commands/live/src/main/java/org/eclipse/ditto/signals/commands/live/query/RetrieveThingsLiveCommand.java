@@ -15,6 +15,7 @@ import java.util.List;
 
 import javax.annotation.Nonnull;
 
+import org.eclipse.ditto.signals.commands.base.WithNamespace;
 import org.eclipse.ditto.signals.commands.live.base.LiveCommand;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommand;
@@ -25,7 +26,7 @@ import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommand;
  */
 public interface RetrieveThingsLiveCommand
         extends LiveCommand<RetrieveThingsLiveCommand, RetrieveThingsLiveCommandAnswerBuilder>,
-        ThingQueryCommand<RetrieveThingsLiveCommand> {
+        ThingQueryCommand<RetrieveThingsLiveCommand>, WithNamespace {
 
     /**
      * Returns the identifiers of the {@code Thing}s to be retrieved.
