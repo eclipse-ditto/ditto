@@ -340,7 +340,7 @@ final class MessagesRoute extends AbstractRoute {
         if (contentType.mediaType().isText()) {
             messageBuilder.payload(payloadString);
         } else if (ContentTypes.APPLICATION_JSON.equals(contentType)) {
-            messageBuilder.payload(JsonFactory.newValue(payloadString));
+            messageBuilder.payload(JsonFactory.readFrom(payloadString));
         }
         return messageBuilder;
     }
