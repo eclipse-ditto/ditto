@@ -131,17 +131,9 @@ public final class HttpRequestActor extends AbstractActor {
                     final HttpResponse responseWithoutBody = HttpResponse.create()
                             .withStatus(commandResponse.getStatusCode().toInt());
 
-                    // supported HTTP response content-types are text/plain and application/json.
-                    final HttpResponse response;
-                    if (hasPlainTextContentType(commandResponse.getDittoHeaders())) {
-                        response = responseWithoutBody.withEntity(CONTENT_TYPE_TEXT, ByteString.fromString(
-                                withEntity.getEntity(commandResponse.getImplementedSchemaVersion()).asString()));
-                    } else {
-                        response = responseWithoutBody.withEntity(CONTENT_TYPE_JSON, ByteString.fromString(
-                                withEntity.getEntity(commandResponse.getImplementedSchemaVersion()).toString()));
-                    }
-
-                    completeWithResult(response);
+                    completeWithResult(addEntityAccordingToContentType(responseWithoutBody,
+                            withEntity.getEntity(commandResponse.getImplementedSchemaVersion()),
+                            commandResponse.getDittoHeaders()));
                 })
                 .match(CommandResponse.class, cR -> cR instanceof WithOptionalEntity,
                         commandResponse -> {
@@ -233,6 +225,16 @@ public final class HttpRequestActor extends AbstractActor {
                 "text/plain".equalsIgnoreCase(dittoHeaders.get(contentTypeHeader));
     }
 
+    private static HttpResponse addEntityAccordingToContentType(final HttpResponse response, final JsonValue entity,
+            final DittoHeaders dittoHeaders) {
+
+        if (hasPlainTextContentType(dittoHeaders)) {
+            return response.withEntity(CONTENT_TYPE_TEXT, ByteString.fromString(entity.asString()));
+        } else {
+            return response.withEntity(CONTENT_TYPE_JSON, ByteString.fromString(entity.toString()));
+        }
+    }
+
     private static HttpResponse createCommandResponse(final HttpRequest request, final CommandResponse commandResponse,
             final WithOptionalEntity withOptionalEntity) {
 
@@ -268,41 +270,14 @@ public final class HttpRequestActor extends AbstractActor {
                 return response;
             } else {
                 return withOptionalEntity.getEntity(commandResponse.getImplementedSchemaVersion())
-                        .map(JsonValue::toString)
-                        .map(ByteString::fromString)
-                        .map(content -> response.withEntity(CONTENT_TYPE_JSON, content))
+                        .map(entity ->
+                                addEntityAccordingToContentType(response, entity, commandResponse.getDittoHeaders()))
                         .orElse(response);
             }
         };
 
         return createHttpResponseWithHeadersAndBody(request, commandResponse,
                 addModifiedLocationHeaderForCreatedResponse, addBodyIfEntityExists);
-    }
-
-    private static HttpResponse createCommandResponse(final HttpRequest request, final CommandResponse commandResponse,
-            final Optional<String> responseString, final ContentType contentType) {
-
-        return createHttpResponseWithOptionalBody(request, commandResponse, response -> {
-            final Optional<ByteString> entity = responseString.map(ByteString::fromString);
-            return entity.map(content -> response.withEntity(contentType, content)).orElse(response);
-        });
-    }
-
-    private static HttpResponse createHttpResponseWithOptionalBody(final HttpRequest request,
-            final CommandResponse commandResponse, final Function<HttpResponse, HttpResponse> addBody) {
-
-        return createHttpResponseWithHeadersAndBody(
-                request,
-                commandResponse,
-                response -> {
-                    if (HttpStatusCode.CREATED == commandResponse.getStatusCode()) {
-                        final Uri newUri = request.getUri();
-                        return response.addHeader(Location.create(newUri));
-                    } else {
-                        return response;
-                    }
-                },
-                addBody);
     }
 
     private static HttpResponse createHttpResponseWithHeadersAndBody(final HttpRequest request,
