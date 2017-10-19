@@ -26,7 +26,9 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.OffsetDateTime;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -79,6 +81,13 @@ final class MessagesRoute extends AbstractRoute {
     static final String PATH_CLAIM = "claim";
 
     private static final Pattern INBOX_OUTBOX_PATTERN = Pattern.compile(PATH_INBOX + "|" + PATH_OUTBOX);
+
+    private static final List<String> BLACKLISTED_HTTP_HEADERS = Arrays.asList(
+            "authorization",
+            "raw-request-uri",
+            "cache-control",
+            "connection",
+            "timeout-access");
 
     static final String TIMEOUT_PARAMETER = "timeout";
     private static final String X_DITTO_VALIDATION_URL = "x-ditto-validation-url";
@@ -255,7 +264,9 @@ final class MessagesRoute extends AbstractRoute {
     private static Map<String, String> getHeadersAsMap(final HttpMessage httpRequest) {
         final Map<String, String> result = new HashMap<>();
         for (final HttpHeader httpHeader : httpRequest.getHeaders()) {
-            result.put(httpHeader.name(), httpHeader.value());
+            if (!BLACKLISTED_HTTP_HEADERS.contains(httpHeader.name().toLowerCase())) {
+                result.put(httpHeader.name(), httpHeader.value());
+            }
         }
         return result;
     }

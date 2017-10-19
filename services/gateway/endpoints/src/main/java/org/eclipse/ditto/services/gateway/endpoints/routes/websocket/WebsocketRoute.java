@@ -13,6 +13,7 @@ package org.eclipse.ditto.services.gateway.endpoints.routes.websocket;
 
 import static akka.http.javadsl.server.Directives.complete;
 import static akka.http.javadsl.server.Directives.extractUpgradeToWebSocket;
+import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJsonRuntimeException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -24,7 +25,6 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
-import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -208,8 +208,13 @@ public final class WebsocketRoute {
                 throw new IllegalArgumentException("Empty command");
             }
 
-            final JsonObject jsonObject = JsonFactory.readFrom(cmdString).asObject();
-            final JsonifiableAdaptable jsonifiableAdaptable = DittoJsonException.wrapJsonRuntimeException(jsonObject,
+            final JsonObject jsonObject = wrapJsonRuntimeException(cmdString, DittoHeaders.newBuilder()
+                            .schemaVersion(JsonSchemaVersion.forInt(version).orElse(JsonSchemaVersion.LATEST))
+                            .authorizationContext(authContext)
+                            .correlationId(connectionCorrelationId)
+                            .build(),
+                    (str, headers) -> JsonFactory.readFrom(str).asObject());
+            final JsonifiableAdaptable jsonifiableAdaptable = wrapJsonRuntimeException(jsonObject,
                     DittoHeaders.newBuilder()
                             .schemaVersion(JsonSchemaVersion.forInt(version).orElse(JsonSchemaVersion.LATEST))
                             .authorizationContext(authContext)
