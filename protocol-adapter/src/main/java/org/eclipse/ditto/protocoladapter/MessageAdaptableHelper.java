@@ -23,6 +23,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.messages.Message;
@@ -89,7 +90,7 @@ final class MessageAdaptableHelper {
         final PayloadBuilder payloadBuilder = Payload.newBuilder(resourcePath);
 
         messageCommandJson.getValue(messagePointer.append(MessageCommand.JsonFields.JSON_MESSAGE_PAYLOAD.getPointer()))
-                .map(p -> messageCommandHeadersJsonObject.getValue(MessageHeaderDefinition.CONTENT_TYPE.getKey())
+                .map(p -> messageCommandHeadersJsonObject.getValue(DittoHeaderDefinition.CONTENT_TYPE.getKey())
                         .filter(JsonValue::isString)
                         .map(JsonValue::asString)
                         .map(contentType -> {
@@ -135,7 +136,7 @@ final class MessageAdaptableHelper {
                 .map(MessageHeadersBuilder::build)
                 .orElseThrow(() -> new IllegalArgumentException("Adaptable did not have headers at all!"));
 
-        final String contentType = String.valueOf(messageHeaders.get(MessageHeaderDefinition.CONTENT_TYPE.getKey()));
+        final String contentType = String.valueOf(messageHeaders.get(DittoHeaderDefinition.CONTENT_TYPE.getKey()));
         final boolean isPlainText = shouldBeInterpretedAsText(contentType);
         final Charset charset = isPlainText ? determineCharset(contentType) : StandardCharsets.UTF_8;
 
