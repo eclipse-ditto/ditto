@@ -269,7 +269,7 @@ public final class ImmutableMessageHeadersTest {
         result.put(MessageHeaderDefinition.TIMEOUT.getKey(), String.valueOf(TIMEOUT.getSeconds()));
         result.put(MessageHeaderDefinition.TIMESTAMP.getKey(), TIMESTAMP);
         result.put(MessageHeaderDefinition.STATUS_CODE.getKey(), String.valueOf(STATUS_CODE.toInt()));
-        result.put(MessageHeaderDefinition.CONTENT_TYPE.getKey(), CONTENT_TYPE);
+        result.put(DittoHeaderDefinition.CONTENT_TYPE.getKey(), CONTENT_TYPE);
         result.put(MessageHeaderDefinition.VALIDATION_URL.getKey(), VALIDATION_URL);
 
         return result;

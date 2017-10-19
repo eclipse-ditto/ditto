@@ -30,6 +30,7 @@ import javax.annotation.concurrent.NotThreadSafe;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.AbstractDittoHeadersBuilder;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 
 /**
@@ -133,7 +134,7 @@ public final class MessageHeadersBuilder extends AbstractDittoHeadersBuilder<Mes
      * @throws IllegalArgumentException if {@code contentType} is empty.
      */
     public MessageHeadersBuilder contentType(@Nullable final CharSequence contentType) {
-        putCharSequence(MessageHeaderDefinition.CONTENT_TYPE, contentType);
+        putCharSequence(DittoHeaderDefinition.CONTENT_TYPE, contentType);
         return myself;
     }
 

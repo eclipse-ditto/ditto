@@ -23,6 +23,8 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.messages.Message;
 import org.eclipse.ditto.model.messages.MessageDirection;
 import org.eclipse.ditto.model.messages.MessageTimeoutException;
@@ -80,6 +82,7 @@ public final class HttpRequestActor extends AbstractActor {
 
     private static final String TRACE_ROUNDTRIP_HTTP = "roundtrip.http";
     private static final ContentType CONTENT_TYPE_JSON = ContentTypes.APPLICATION_JSON;
+    private static final ContentType CONTENT_TYPE_TEXT = ContentTypes.TEXT_PLAIN_UTF8;
 
     private static final String AKKA_HTTP_SERVER_REQUEST_TIMEOUT = "akka.http.server.request-timeout";
 
@@ -125,10 +128,19 @@ public final class HttpRequestActor extends AbstractActor {
                     logger.debug("Got 'CommandResponse' 'WithEntity' message");
                     final WithEntity withEntity = (WithEntity) commandResponse;
 
-                    final HttpResponse response = HttpResponse.create()
-                            .withEntity(CONTENT_TYPE_JSON, ByteString.fromString(
-                                    withEntity.getEntity(commandResponse.getImplementedSchemaVersion()).toString()))
+                    final HttpResponse responseWithoutBody = HttpResponse.create()
                             .withStatus(commandResponse.getStatusCode().toInt());
+
+                    // supported HTTP response content-types are text/plain and application/json.
+                    final HttpResponse response;
+                    if (hasPlainTextContentType(commandResponse.getDittoHeaders())) {
+                        response = responseWithoutBody.withEntity(CONTENT_TYPE_TEXT, ByteString.fromString(
+                                withEntity.getEntity(commandResponse.getImplementedSchemaVersion()).asString()));
+                    } else {
+                        response = responseWithoutBody.withEntity(CONTENT_TYPE_JSON, ByteString.fromString(
+                                withEntity.getEntity(commandResponse.getImplementedSchemaVersion()).toString()));
+                    }
+
                     completeWithResult(response);
                 })
                 .match(CommandResponse.class, cR -> cR instanceof WithOptionalEntity,
@@ -213,6 +225,12 @@ public final class HttpRequestActor extends AbstractActor {
                     );
                 })
                 .build();
+    }
+
+    private static boolean hasPlainTextContentType(final DittoHeaders dittoHeaders) {
+        final String contentTypeHeader = DittoHeaderDefinition.CONTENT_TYPE.name();
+        return dittoHeaders.containsKey(contentTypeHeader) &&
+                "text/plain".equalsIgnoreCase(dittoHeaders.get(contentTypeHeader));
     }
 
     private static HttpResponse createCommandResponse(final HttpRequest request, final CommandResponse commandResponse,
@@ -440,10 +458,10 @@ public final class HttpRequestActor extends AbstractActor {
 
         // if statusCode is != NO_CONTENT
         if (responseStatusCode.map(status -> status != HttpStatusCode.NO_CONTENT).orElse(true)) {
-            final Optional<ContentType> optionalContentType =  message.getContentType().map(ContentType$.MODULE$::parse)
-                        .filter(Either::isRight)
-                        .map(Either::right)
-                        .map(right -> (ContentType) right.get());
+            final Optional<ContentType> optionalContentType = message.getContentType().map(ContentType$.MODULE$::parse)
+                    .filter(Either::isRight)
+                    .map(Either::right)
+                    .map(right -> (ContentType) right.get());
 
             httpResponse =
                     HttpResponse.create()

@@ -111,7 +111,7 @@ public enum MessageHeaderDefinition implements HeaderDefinition {
     /**
      * Header definition for the status code of a message, e. g. if a message is a response to another message.
      * <p>
-     * Key: {@code "content-type"}, Java type: {@code int}.
+     * Key: {@code "status"}, Java type: {@code int}.
      */
     STATUS_CODE("status", int.class) {
         @Override
@@ -123,13 +123,6 @@ public enum MessageHeaderDefinition implements HeaderDefinition {
             });
         }
     },
-
-    /**
-     * Header definition for a message's content-type.
-     * <p>
-     * Key: {@code "content-type"}, Java type: String.
-     */
-    CONTENT_TYPE("content-type", String.class),
 
     /**
      * Header definition for the validation URL of the message.
