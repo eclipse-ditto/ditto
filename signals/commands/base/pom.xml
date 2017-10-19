@@ -79,9 +79,6 @@
                     </newVersion>
                     <parameter>
                         <onlyModified>true</onlyModified>
-                        <includes>
-                            <include>org.eclipse.ditto.commands.base</include>
-                        </includes>
                         <accessModifier>public</accessModifier>
                         <breakBuildOnModifications>false</breakBuildOnModifications>
                         <breakBuildOnBinaryIncompatibleModifications>true</breakBuildOnBinaryIncompatibleModifications>
