@@ -177,7 +177,6 @@ public final class StreamingActor extends AbstractActor {
     private Optional<String> extractConnectionCorrelationId(final WithDittoHeaders withDittoHeaders) {
         return withDittoHeaders.getDittoHeaders().getCorrelationId()
                 .map(cId -> cId.split(":", 2))
-                .filter(cIds -> cIds.length == 2)
                 .map(cIds -> cIds[0]);
     }
 
