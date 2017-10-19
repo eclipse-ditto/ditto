@@ -98,9 +98,6 @@
                     </newVersion>
                     <parameter>
                         <onlyModified>true</onlyModified>
-                        <includes>
-                            <include>org.eclipse.ditto.json</include>
-                        </includes>
                         <accessModifier>public</accessModifier>
                         <breakBuildOnModifications>false</breakBuildOnModifications>
                         <breakBuildOnBinaryIncompatibleModifications>true</breakBuildOnBinaryIncompatibleModifications>

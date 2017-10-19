@@ -114,9 +114,6 @@
                     </newVersion>
                     <parameter>
                         <onlyModified>true</onlyModified>
-                        <includes>
-                            <include>org.eclipse.ditto.services.models.policies.algorithms</include>
-                        </includes>
                         <accessModifier>public</accessModifier>
                         <breakBuildOnModifications>false</breakBuildOnModifications>
                         <breakBuildOnBinaryIncompatibleModifications>true</breakBuildOnBinaryIncompatibleModifications>
