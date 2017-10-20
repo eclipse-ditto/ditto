@@ -213,7 +213,9 @@ public final class RetrieveThingsResponse extends AbstractCommandResponse<Retrie
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(JSON_THINGS, things, predicate);
-        jsonObjectBuilder.set(JSON_NAMESPACE, namespace, predicate);
+        if (namespace != null) {
+            jsonObjectBuilder.set(JSON_NAMESPACE, namespace, predicate);
+        }
     }
 
     private Optional<String> checkThingsNamespaces(@Nullable final String namespace, final Stream<Thing> things) {
