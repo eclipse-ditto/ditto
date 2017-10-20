@@ -31,6 +31,7 @@ import akka.persistence.Persistence;
 import akka.persistence.SelectedSnapshot;
 import akka.persistence.SnapshotProtocol;
 import akka.persistence.SnapshotSelectionCriteria;
+import akka.util.Timeout;
 import scala.Option;
 
 /**
@@ -136,7 +137,7 @@ public final class PoliciesSnapshotTestHelper<S> {
 
         return convertScalaOpt(
                 waitForFuture(
-                        PatternsCS.ask(snapshotPlugin, loadSnapshot, WAIT_TIMEOUT)
+                        PatternsCS.ask(snapshotPlugin, loadSnapshot, Timeout.apply(WAIT_TIMEOUT, TimeUnit.SECONDS))
                                 .thenApply(obj -> (SnapshotProtocol.LoadSnapshotResult) obj)
                                 .thenApply(SnapshotProtocol.LoadSnapshotResult::snapshot)
                                 .toCompletableFuture()
