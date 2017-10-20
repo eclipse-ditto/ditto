@@ -91,7 +91,7 @@ public final class PolicyEntryDeleted extends AbstractPolicyEvent<PolicyEntryDel
      * @param timestamp the timestamp of this event.
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the created PolicyEntryDeleted.
-     * @throws NullPointerException if any argument {@code timestamp} is {@code null}.
+     * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
      */
     public static PolicyEntryDeleted of(final String policyId,
             final Label label,
