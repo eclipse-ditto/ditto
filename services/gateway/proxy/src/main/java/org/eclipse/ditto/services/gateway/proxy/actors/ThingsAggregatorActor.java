@@ -217,7 +217,7 @@ public final class ThingsAggregatorActor extends AbstractActor {
                 } else {
                     final Optional<String> namespace = ((RetrieveThings) retrieveThings).getNamespace();
                     return RetrieveThingsResponse.of(things.stream().collect(JsonCollectors.valuesToArray()),
-                            namespace.get(), retrieveThings.getDittoHeaders());
+                            namespace.orElse(null), retrieveThings.getDittoHeaders());
                 }
             }
         }, aggregatorDispatcher);

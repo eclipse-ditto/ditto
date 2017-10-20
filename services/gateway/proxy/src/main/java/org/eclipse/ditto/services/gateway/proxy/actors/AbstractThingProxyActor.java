@@ -131,8 +131,8 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
                 .match(RetrieveThings.class, command -> {
                     getLogger().debug("Got 'RetrieveThings' message, forwarding to the Things Aggregator");
                     if (command.getThingIds().isEmpty()) {
-                        notifySender(RetrieveThingsResponse.of(JsonFactory.newArray(), command.getNamespace().get(),
-                                command.getDittoHeaders()));
+                        notifySender(RetrieveThingsResponse.of(JsonFactory.newArray(),
+                                command.getNamespace().orElse(null), command.getDittoHeaders()));
                     } else {
                         thingsAggregator.forward(command, getContext());
                     }
