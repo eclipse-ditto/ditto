@@ -108,7 +108,7 @@ public final class ResourceModified extends AbstractPolicyEvent<ResourceModified
      * @param timestamp the timestamp of this event.
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the created ResourceModified.
-     * @throws NullPointerException if any argument {@code timestamp} is {@code null}.
+     * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
      */
     public static ResourceModified of(final String policyId,
             final Label label,

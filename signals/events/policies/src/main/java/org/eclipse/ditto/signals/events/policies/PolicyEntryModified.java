@@ -97,7 +97,7 @@ public final class PolicyEntryModified extends AbstractPolicyEvent<PolicyEntryMo
      * @param timestamp the timestamp of this event.
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the created PolicyEntryModified.
-     * @throws NullPointerException if any argument {@code timestamp} is {@code null}.
+     * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
      */
     public static PolicyEntryModified of(final String policyId,
             final PolicyEntry policyEntry,

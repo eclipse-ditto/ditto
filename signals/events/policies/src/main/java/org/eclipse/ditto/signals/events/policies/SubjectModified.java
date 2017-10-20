@@ -107,7 +107,7 @@ public final class SubjectModified extends AbstractPolicyEvent<SubjectModified>
      * @param timestamp the timestamp of this event.
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the created SubjectModified.
-     * @throws NullPointerException if any argument {@code timestamp} is {@code null}.
+     * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
      */
     public static SubjectModified of(final String policyId,
             final Label label,

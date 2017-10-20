@@ -108,7 +108,7 @@ public final class ResourceCreated extends AbstractPolicyEvent<ResourceCreated>
      * @param timestamp the timestamp of this event.
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the created ResourceCreated.
-     * @throws NullPointerException if any argument {@code timestamp} is {@code null}.
+     * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
      */
     public static ResourceCreated of(final String policyId,
             final Label label,
