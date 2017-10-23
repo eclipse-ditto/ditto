@@ -40,9 +40,4 @@ final class ImmutableJsonString extends AbstractMinimalJsonValueWrapper {
         return new ImmutableJsonString(minimalJsonValue);
     }
 
-    @Override
-    public boolean isRepresentationOfJavaType(final Class<?> expectedType) {
-        return JsonValue.class == expectedType || String.class.isAssignableFrom(expectedType);
-    }
-
 }

@@ -387,25 +387,4 @@ public final class ImmutableJsonArrayTest {
         assertThat(jsonValue).contains(KNOWN_INT_VALUE_LIST.get(index));
     }
 
-    @Test
-    public void jsonArrayIsRepresentationOfJsonValue() {
-        final ImmutableJsonArray underTest = ImmutableJsonArray.empty();
-
-        assertThat(underTest.isRepresentationOfJavaType(JsonValue.class)).isTrue();
-    }
-
-    @Test
-    public void jsonArrayIsRepresentationOfJsonArray() {
-        final ImmutableJsonArray underTest = ImmutableJsonArray.empty();
-
-        assertThat(underTest.isRepresentationOfJavaType(JsonArray.class)).isTrue();
-    }
-
-    @Test
-    public void jsonArrayIsNotRepresentationOfJsonObject() {
-        final ImmutableJsonArray underTest = ImmutableJsonArray.empty();
-
-        assertThat(underTest.isRepresentationOfJavaType(JsonObject.class)).isFalse();
-    }
-
 }

@@ -41,19 +41,19 @@ public final class ClusterStatus implements Jsonifiable<JsonObject> {
      * JSON array of reachable members.
      */
     public static final JsonFieldDefinition<JsonArray> JSON_KEY_REACHABLE =
-            JsonFactory.newArrayFieldDefinition("reachable");
+            JsonFactory.newJsonArrayFieldDefinition("reachable");
 
     /**
      * JSON array of unreachable members.
      */
     public static final JsonFieldDefinition<JsonArray> JSON_KEY_UNREACHABLE =
-            JsonFactory.newArrayFieldDefinition("unreachable");
+            JsonFactory.newJsonArrayFieldDefinition("unreachable");
 
     /**
      * JSON array of all addresses of members which have seen this cluster state.
      */
     public static final JsonFieldDefinition<JsonArray> JSON_KEY_SEEN_BY =
-            JsonFactory.newArrayFieldDefinition("seen-by");
+            JsonFactory.newJsonArrayFieldDefinition("seen-by");
 
     /**
      * JSON value of the leaders address.
@@ -64,7 +64,7 @@ public final class ClusterStatus implements Jsonifiable<JsonObject> {
      * JSON array with all roles this cluster node has.
      */
     public static final JsonFieldDefinition<JsonArray> JSON_KEY_OWN_ROLES =
-            JsonFactory.newArrayFieldDefinition("own-roles");
+            JsonFactory.newJsonArrayFieldDefinition("own-roles");
 
     /**
      * JSON object with the cluster roles and their status.

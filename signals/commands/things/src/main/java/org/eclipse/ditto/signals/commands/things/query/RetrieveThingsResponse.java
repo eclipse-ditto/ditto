@@ -57,7 +57,7 @@ public final class RetrieveThingsResponse extends AbstractCommandResponse<Retrie
     public static final String TYPE = TYPE_PREFIX + RetrieveThings.NAME;
 
     static final JsonFieldDefinition<JsonArray> JSON_THINGS =
-            JsonFactory.newArrayFieldDefinition("things", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newJsonArrayFieldDefinition("things", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
     static final JsonFieldDefinition<String> JSON_NAMESPACE =

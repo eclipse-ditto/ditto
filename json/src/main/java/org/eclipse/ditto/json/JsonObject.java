@@ -44,11 +44,6 @@ public interface JsonObject extends JsonValue, JsonValueContainer<JsonField> {
         return JsonFactory.newObjectBuilder(this);
     }
 
-    @Override
-    default boolean isRepresentationOfJavaType(final Class<?> expectedType) {
-        return JsonValue.class == expectedType || JsonObject.class.isAssignableFrom(expectedType);
-    }
-
     /**
      * Creates a new JSON object by setting a new JSON field with the specified key and the JSON representation of the
      * specified {@code int} value to the new object. If this object previously contained a field with the same key,

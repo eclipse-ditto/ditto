@@ -674,13 +674,14 @@ public final class JsonFactory {
      * keys aka JSON pointer.
      * @param markers an optional array of markers which add user defined semantics to the defined JSON field.
      * @return the new JSON field definition.
-     * @throws NullPointerException if any argument but {@code markers} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code pointer} is empty.
      */
     public static JsonFieldDefinition<String> newStringFieldDefinition(final CharSequence pointer,
             final JsonFieldMarker... markers) {
 
-        return ImmutableJsonFieldDefinition.newInstance(pointer, String.class, JsonValue::asString, markers);
+        return JavaValueFieldDefinition.newInstance(pointer, String.class, JsonValue::isString, JsonValue::asString,
+                markers);
     }
 
     /**
@@ -696,7 +697,8 @@ public final class JsonFactory {
     public static JsonFieldDefinition<Boolean> newBooleanFieldDefinition(final CharSequence pointer,
             final JsonFieldMarker... markers) {
 
-        return ImmutableJsonFieldDefinition.newInstance(pointer, Boolean.class, JsonValue::asBoolean, markers);
+        return JavaValueFieldDefinition.newInstance(pointer, Boolean.class, JsonValue::isBoolean,
+                JsonValue::asBoolean, markers);
     }
 
     /**
@@ -712,7 +714,8 @@ public final class JsonFactory {
     public static JsonFieldDefinition<Integer> newIntFieldDefinition(final CharSequence pointer,
             final JsonFieldMarker... markers) {
 
-        return ImmutableJsonFieldDefinition.newInstance(pointer, Integer.class, JsonValue::asInt, markers);
+        return JavaValueFieldDefinition.newInstance(pointer, Integer.class, JsonValue::isNumber, JsonValue::asInt,
+                markers);
     }
 
     /**
@@ -728,7 +731,8 @@ public final class JsonFactory {
     public static JsonFieldDefinition<Long> newLongFieldDefinition(final CharSequence pointer,
             final JsonFieldMarker... markers) {
 
-        return ImmutableJsonFieldDefinition.newInstance(pointer, Long.class, JsonValue::asLong, markers);
+        return JavaValueFieldDefinition.newInstance(pointer, Long.class, JsonValue::isNumber, JsonValue::asLong,
+                markers);
     }
 
     /**
@@ -744,7 +748,8 @@ public final class JsonFactory {
     public static JsonFieldDefinition<Double> newDoubleFieldDefinition(final CharSequence pointer,
             final JsonFieldMarker... markers) {
 
-        return ImmutableJsonFieldDefinition.newInstance(pointer, Double.class, JsonValue::asDouble, markers);
+        return JavaValueFieldDefinition.newInstance(pointer, Double.class, JsonValue::isNumber,
+                JsonValue::asDouble, markers);
     }
 
     /**
@@ -757,10 +762,11 @@ public final class JsonFactory {
      * @throws NullPointerException if any argument but {@code markers} is {@code null}.
      * @throws IllegalArgumentException if {@code pointer} is empty.
      */
-    public static JsonFieldDefinition<JsonArray> newArrayFieldDefinition(final CharSequence pointer,
+    public static JsonFieldDefinition<JsonArray> newJsonArrayFieldDefinition(final CharSequence pointer,
             final JsonFieldMarker... markers) {
 
-        return ImmutableJsonFieldDefinition.newInstance(pointer, JsonArray.class, JsonValue::asArray, markers);
+        return JsonValueFieldDefinition.newInstance(pointer, JsonArray.class, JsonValue::isArray, JsonValue::asArray,
+                markers);
     }
 
     /**
@@ -776,7 +782,8 @@ public final class JsonFactory {
     public static JsonFieldDefinition<JsonObject> newJsonObjectFieldDefinition(final CharSequence pointer,
             final JsonFieldMarker... markers) {
 
-        return ImmutableJsonFieldDefinition.newInstance(pointer, JsonObject.class, JsonValue::asObject, markers);
+        return JsonValueFieldDefinition.newInstance(pointer, JsonObject.class, JsonValue::isObject,
+                JsonValue::asObject, markers);
     }
 
     /**
@@ -792,7 +799,8 @@ public final class JsonFactory {
     public static JsonFieldDefinition<JsonValue> newJsonValueFieldDefinition(final CharSequence pointer,
             final JsonFieldMarker... markers) {
 
-        return ImmutableJsonFieldDefinition.newInstance(pointer, JsonValue.class, Function.identity(), markers);
+        return JsonValueFieldDefinition.newInstance(pointer, JsonValue.class, jsonValue -> true, Function.identity(),
+                markers);
     }
 
     /**

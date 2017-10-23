@@ -135,9 +135,4 @@ public interface JsonArray extends JsonValue, JsonValueContainer<JsonValue> {
      */
     int indexOf(JsonValue value);
 
-    @Override
-    default boolean isRepresentationOfJavaType(final Class<?> expectedType) {
-        return JsonValue.class == expectedType || JsonArray.class.isAssignableFrom(expectedType);
-    }
-
 }

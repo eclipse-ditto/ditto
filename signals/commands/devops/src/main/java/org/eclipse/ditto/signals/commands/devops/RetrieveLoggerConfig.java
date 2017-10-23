@@ -55,7 +55,7 @@ public final class RetrieveLoggerConfig extends AbstractDevOpsCommand<RetrieveLo
                     JsonSchemaVersion.V_2);
 
     static final JsonFieldDefinition<JsonArray> JSON_SPECIFIC_LOGGERS =
-            JsonFactory.newArrayFieldDefinition("specificLoggers", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newJsonArrayFieldDefinition("specificLoggers", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
     private final boolean allKnownLoggers;

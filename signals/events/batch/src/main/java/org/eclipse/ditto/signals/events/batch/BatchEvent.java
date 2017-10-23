@@ -105,7 +105,7 @@ public interface BatchEvent<T extends BatchEvent> extends Event<T> {
          * JSON field containing the commands.
          */
         public static final JsonFieldDefinition<JsonArray> COMMANDS =
-                JsonFactory.newArrayFieldDefinition("commands", FieldType.REGULAR, JsonSchemaVersion.V_2);
+                JsonFactory.newJsonArrayFieldDefinition("commands", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the command.
@@ -117,7 +117,7 @@ public interface BatchEvent<T extends BatchEvent> extends Event<T> {
          * JSON field containing the commands.
          */
         public static final JsonFieldDefinition<JsonArray> RESPONSES =
-                JsonFactory.newArrayFieldDefinition("responses", FieldType.REGULAR, JsonSchemaVersion.V_2);
+                JsonFactory.newJsonArrayFieldDefinition("responses", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the command.

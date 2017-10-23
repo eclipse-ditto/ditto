@@ -127,7 +127,7 @@ public interface AuthorizationContext
          * JSON field containing the authorized subjects as JSON array.
          */
         public static final JsonFieldDefinition<JsonArray> AUTH_SUBJECTS =
-                JsonFactory.newArrayFieldDefinition("authorizedSubjects", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newJsonArrayFieldDefinition("authorizedSubjects", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
         private JsonFields() {

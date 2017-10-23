@@ -133,7 +133,7 @@ public interface SearchResult extends Iterable<JsonValue>, Jsonifiable.WithField
          * JSON field containing the items.
          */
         public static final JsonFieldDefinition<JsonArray> ITEMS =
-                JsonFactory.newArrayFieldDefinition("items", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newJsonArrayFieldDefinition("items", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
         /**

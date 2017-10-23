@@ -43,9 +43,4 @@ final class ImmutableJsonLiteral extends AbstractMinimalJsonValueWrapper {
         return new ImmutableJsonLiteral(minimalJsonLiteral);
     }
 
-    @Override
-    public boolean isRepresentationOfJavaType(final Class<?> expectedType) {
-        return JsonValue.class == expectedType || boolean.class == expectedType || Boolean.class == expectedType;
-    }
-
 }

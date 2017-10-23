@@ -60,7 +60,7 @@ public final class ExecuteBatch extends AbstractCommand<ExecuteBatch> implements
      * JSON field containing the commands.
      */
     public static final JsonFieldDefinition<JsonArray> JSON_COMMANDS =
-            JsonFactory.newArrayFieldDefinition("commands", FieldType.REGULAR, JsonSchemaVersion.V_2);
+            JsonFactory.newJsonArrayFieldDefinition("commands", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     /**
      * JSON field containing a single command.

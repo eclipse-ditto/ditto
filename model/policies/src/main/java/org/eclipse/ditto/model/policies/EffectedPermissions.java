@@ -113,13 +113,13 @@ public interface EffectedPermissions extends Jsonifiable.WithFieldSelectorAndPre
          * JSON field containing the EffectedPermissions's {@code grant}ed Permissions.
          */
         public static final JsonFieldDefinition<JsonArray> GRANT =
-                JsonFactory.newArrayFieldDefinition("grant", FieldType.REGULAR, JsonSchemaVersion.V_2);
+                JsonFactory.newJsonArrayFieldDefinition("grant", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the EffectedPermissions's {@code revoke}d Permissions.
          */
         public static final JsonFieldDefinition<JsonArray> REVOKE =
-                JsonFactory.newArrayFieldDefinition("revoke", FieldType.REGULAR, JsonSchemaVersion.V_2);
+                JsonFactory.newJsonArrayFieldDefinition("revoke", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         private JsonFields() {
             throw new AssertionError();

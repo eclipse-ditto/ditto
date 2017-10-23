@@ -58,7 +58,7 @@ public final class SudoRetrieveThingsResponse extends AbstractCommandResponse<Su
     public static final String TYPE = TYPE_PREFIX + NAME;
 
     static final JsonFieldDefinition<JsonArray> JSON_THINGS =
-            JsonFactory.newArrayFieldDefinition("payload/things", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newJsonArrayFieldDefinition("payload/things", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
     private final JsonArray things;

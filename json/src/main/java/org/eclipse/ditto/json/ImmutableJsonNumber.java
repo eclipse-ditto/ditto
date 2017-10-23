@@ -39,14 +39,4 @@ final class ImmutableJsonNumber extends AbstractMinimalJsonValueWrapper {
         return new ImmutableJsonNumber(minimalJsonValue);
     }
 
-    @Override
-    public boolean isRepresentationOfJavaType(final Class<?> expectedType) {
-        return JsonValue.class == expectedType ||
-                int.class == expectedType ||
-                double.class == expectedType ||
-                long.class == expectedType ||
-                float.class == expectedType ||
-                Number.class.isAssignableFrom(expectedType);
-    }
-
 }

@@ -57,7 +57,7 @@ public final class SudoRetrieveModifiedThingTagsResponse
     public static final String TYPE = TYPE_PREFIX + NAME;
 
     static final JsonFieldDefinition<JsonArray> JSON_MODIFIED_THING_TAGS =
-            JsonFactory.newArrayFieldDefinition("payload/modifiedThingTags", FieldType.REGULAR,
+            JsonFactory.newJsonArrayFieldDefinition("payload/modifiedThingTags", FieldType.REGULAR,
                     JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
     private final JsonArray modifiedThingTags;
