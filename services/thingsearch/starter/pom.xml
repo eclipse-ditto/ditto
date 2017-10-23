@@ -195,7 +195,7 @@
                                 <transformer
                                         implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                                     <manifestEntries>
-                                        <Main-Class>org.eclipse.services.thingsearch.starter.SearchService
+                                        <Main-Class>org.eclipse.ditto.services.thingsearch.starter.SearchService
                                         </Main-Class>
                                     </manifestEntries>
                                 </transformer>
