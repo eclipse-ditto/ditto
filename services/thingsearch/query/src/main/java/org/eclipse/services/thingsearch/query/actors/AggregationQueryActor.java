@@ -18,6 +18,7 @@ import java.util.stream.Collectors;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.thingsearchparser.ParserException;
 import org.eclipse.ditto.model.thingsearchparser.options.rql.RqlOptionParser;
 import org.eclipse.ditto.model.thingsearchparser.predicates.ast.RootNode;
 import org.eclipse.ditto.model.thingsearchparser.predicates.rql.RqlPredicateParser;
@@ -28,20 +29,18 @@ import org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidFilterEx
 import org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidOptionException;
 import org.eclipse.ditto.signals.commands.thingsearch.query.CountThings;
 import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThings;
-
-import akka.actor.AbstractActor;
-import akka.actor.Props;
-import akka.event.DiagnosticLoggingAdapter;
-import akka.japi.Creator;
-import akka.japi.pf.ReceiveBuilder;
-import jdk.nashorn.internal.runtime.ParserException;
-
 import org.eclipse.services.thingsearch.querymodel.criteria.Criteria;
 import org.eclipse.services.thingsearch.querymodel.criteria.CriteriaFactory;
 import org.eclipse.services.thingsearch.querymodel.expression.ThingsFieldExpressionFactory;
 import org.eclipse.services.thingsearch.querymodel.query.AggregationBuilder;
 import org.eclipse.services.thingsearch.querymodel.query.AggregationBuilderFactory;
 import org.eclipse.services.thingsearch.querymodel.query.PolicyRestrictedSearchAggregation;
+
+import akka.actor.AbstractActor;
+import akka.actor.Props;
+import akka.event.DiagnosticLoggingAdapter;
+import akka.japi.Creator;
+import akka.japi.pf.ReceiveBuilder;
 
 /**
  * Actor handling the parsing of search queries. It accepts {@link CountThings} and {@link QueryThings} commands and
