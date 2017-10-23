@@ -28,7 +28,7 @@ import akka.event.DiagnosticLoggingAdapter;
 import scala.concurrent.duration.FiniteDuration;
 
 /**
- * Snapshotting behavior with the sudo-command {@code TakeSnapshot} as external trigger
+ * Snapshotting behavior with the sudo-command {@code TakeSnapshot} as external trigger.
  */
 public final class DittoThingSnapshotter extends ThingSnapshotter<TakeSnapshot, TakeSnapshotResponse> {
 
