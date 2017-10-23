@@ -22,7 +22,7 @@ import java.util.concurrent.CompletionStage;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
 import org.eclipse.ditto.services.things.persistence.actors.PersistenceQueriesActor;
-import org.eclipse.ditto.services.things.persistence.actors.ThingSupervisorActor;
+import org.eclipse.ditto.services.things.persistence.actors.ThingsActorsCreator;
 import org.eclipse.ditto.services.things.starter.util.ConfigKeys;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
@@ -132,17 +132,13 @@ final class ThingsRootActor extends AbstractActor {
 
 
     private ThingsRootActor(final Config config, final ActorRef pubSubMediator,
-            final ActorMaterializer materializer) {
+            final ActorMaterializer materializer, final ThingsActorsCreator actorsCreator) {
         final int numberOfShards = config.getInt(ConfigKeys.Cluster.NUMBER_OF_SHARDS);
 
         final ActorRef thingCacheFacade = startChildActor(CacheFacadeActor.actorNameFor(CacheRole.THING),
                 CacheFacadeActor.props(CacheRole.THING, config));
 
-        final Duration minBackoff = config.getDuration(ConfigKeys.Thing.SUPERVISOR_EXPONENTIAL_BACKOFF_MIN);
-        final Duration maxBackoff = config.getDuration(ConfigKeys.Thing.SUPERVISOR_EXPONENTIAL_BACKOFF_MAX);
-        final double randomFactor = config.getDouble(ConfigKeys.Thing.SUPERVISOR_EXPONENTIAL_BACKOFF_RANDOM_FACTOR);
-        final Props thingSupervisorProps =
-                ThingSupervisorActor.props(pubSubMediator, minBackoff, maxBackoff, randomFactor, thingCacheFacade);
+        final Props thingSupervisorProps = actorsCreator.createSupervisorActor(pubSubMediator, thingCacheFacade);
 
         final ClusterShardingSettings shardingSettings =
                 ClusterShardingSettings.create(this.getContext().system())
@@ -204,13 +200,13 @@ final class ThingsRootActor extends AbstractActor {
      * @return the Akka configuration Props object.
      */
     static Props props(final Config config, final ActorRef pubSubMediator,
-            final ActorMaterializer materializer) {
+            final ActorMaterializer materializer, final ThingsActorsCreator actorsCreator) {
         return Props.create(ThingsRootActor.class, new Creator<ThingsRootActor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
             public ThingsRootActor create() throws Exception {
-                return new ThingsRootActor(config, pubSubMediator, materializer);
+                return new ThingsRootActor(config, pubSubMediator, materializer, actorsCreator);
             }
         });
     }

@@ -53,6 +53,7 @@ import org.eclipse.ditto.services.models.things.ThingCacheEntry;
 import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
+import org.eclipse.ditto.services.things.persistence.snapshotting.DittoThingSnapshotter;
 import org.eclipse.ditto.services.things.persistence.snapshotting.ThingSnapshotter;
 import org.eclipse.ditto.services.things.starter.util.ConfigKeys;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -218,11 +219,11 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
     private Cancellable activityChecker;
     private Thing thing;
 
-    private final ThingSnapshotter thingSnapshotter;
+    private final ThingSnapshotter<?, ?> thingSnapshotter;
     private final long snapshotThreshold;
 
     private ThingPersistenceActor(final String thingId, final ActorRef pubSubMediator,
-            final ActorRef thingCacheFacade) {
+            final ActorRef thingCacheFacade, final ThingSnapshotter.Create thingSnapshotterCreate) {
 
         this.thingId = thingId;
         this.pubSubMediator = pubSubMediator;
@@ -245,7 +246,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         final boolean snapshotDeleteOld = config.getBoolean(ConfigKeys.Thing.SNAPSHOT_DELETE_OLD);
         final boolean eventsDeleteOld = config.getBoolean(ConfigKeys.Thing.EVENTS_DELETE_OLD);
         thingSnapshotter =
-                ThingSnapshotter.getInstance(this, log, snapshotInterval, snapshotDeleteOld, eventsDeleteOld);
+                thingSnapshotterCreate.apply(this, log, snapshotInterval, snapshotDeleteOld, eventsDeleteOld);
 
         handleThingEvents = ReceiveBuilder.create()
                 // # Thing Creation
@@ -479,16 +480,38 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
      * @param thingId the Thing ID this Actor manages.
      * @param pubSubMediator the PubSub mediator actor.
      * @param thingCacheFacade the cache facade for accessing the thing cache in cluster.
+     * @param thingSnapshotterCreate creator of {@code ThingSnapshotter} objects.
      * @return the Akka configuration Props object
      */
-    public static Props props(final String thingId, final ActorRef pubSubMediator,
-            final ActorRef thingCacheFacade) {
+    public static Props props(final String thingId, final ActorRef pubSubMediator, final ActorRef thingCacheFacade,
+            final ThingSnapshotter.Create thingSnapshotterCreate) {
         return Props.create(ThingPersistenceActor.class, new Creator<ThingPersistenceActor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
             public ThingPersistenceActor create() throws Exception {
-                return new ThingPersistenceActor(thingId, pubSubMediator, thingCacheFacade);
+                return new ThingPersistenceActor(thingId, pubSubMediator, thingCacheFacade, thingSnapshotterCreate);
+            }
+        });
+    }
+
+    /**
+     * Creates a default Akka configuration object {@link Props} for this ThingPersistenceActor using sudo commands
+     * for external snapshot requests.
+     *
+     * @param thingId the Thing ID this Actor manages.
+     * @param pubSubMediator the PubSub mediator actor.
+     * @param thingCacheFacade the cache facade for accessing the thing cache in cluster.
+     * @return the Akka configuration Props object
+     */
+    public static Props props(final String thingId, final ActorRef pubSubMediator, final ActorRef thingCacheFacade) {
+        return Props.create(ThingPersistenceActor.class, new Creator<ThingPersistenceActor>() {
+            private static final long serialVersionUID = 1L;
+
+            @Override
+            public ThingPersistenceActor create() throws Exception {
+                return new ThingPersistenceActor(thingId, pubSubMediator, thingCacheFacade,
+                        DittoThingSnapshotter::getInstance);
             }
         });
     }
@@ -829,12 +852,8 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
         final ThingNotAccessibleException exception = ThingNotAccessibleException.newBuilder(thingId).build();
 
-        DittoRuntimeException withDittoHeaders = exception;
-
-        // reset command heaaders so that correlationId etc. are preserved
-        if (dittoHeaders != null) {
-            withDittoHeaders = exception.setDittoHeaders(dittoHeaders);
-        }
+        // reset command headers so that correlationId etc. are preserved
+        final DittoRuntimeException withDittoHeaders = exception.setDittoHeaders(dittoHeaders);
 
         notifySender(sender, withDittoHeaders);
     }
@@ -1057,7 +1076,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     /**
      * This strategy handles the {@link CreateThing} command.
-     *
      */
     @NotThreadSafe
     private final class CreateThingStrategy extends AbstractReceiveStrategy<CreateThing> {
@@ -1124,7 +1142,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     /**
      * This strategy handles the {@link CreateThing} command for an already existing Thing.
-     *
      */
     @NotThreadSafe
     private final class ThingConflictStrategy extends AbstractReceiveStrategy<CreateThing> {
@@ -1160,7 +1177,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     /**
      * This strategy handles the {@link ModifyThing} command for an already existing Thing.
-     *
      */
     @NotThreadSafe
     private final class ModifyThingStrategy extends AbstractThingCommandStrategy<ModifyThing> {
@@ -1249,7 +1265,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     /**
      * This strategy handles the {@link RetrieveThing} command.
-     *
      */
     @NotThreadSafe
     private final class RetrieveThingStrategy extends AbstractThingCommandStrategy<RetrieveThing> {
@@ -1290,7 +1305,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     /**
      * This strategy handles the {@link SudoRetrieveThing} command.
-     *
      */
     @NotThreadSafe
     private final class SudoRetrieveThingStrategy extends AbstractThingCommandStrategy<SudoRetrieveThing> {
@@ -1335,7 +1349,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     /**
      * This strategy handles the {@link DeleteThing} command.
-     *
      */
     @NotThreadSafe
     private final class DeleteThingStrategy extends AbstractThingCommandStrategy<DeleteThing> {
@@ -1453,7 +1466,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     /**
      * This strategy handles the {@link ModifyAclEntry} command.
-     *
      */
     @NotThreadSafe
     private final class ModifyAclEntryStrategy extends AbstractThingCommandStrategy<ModifyAclEntry> {
@@ -1495,7 +1507,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     /**
      * This strategy handles the {@link DeleteAclEntry} command.
-     *
      */
     @NotThreadSafe
     private final class DeleteAclEntryStrategy extends AbstractThingCommandStrategy<DeleteAclEntry> {
@@ -1540,7 +1551,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     /**
      * This strategy handles the {@link RetrieveAcl} command.
-     *
      */
     @NotThreadSafe
     private final class RetrieveAclStrategy extends AbstractThingCommandStrategy<RetrieveAcl> {
@@ -1562,7 +1572,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     /**
      * This strategy handles the {@link RetrieveAclEntry} command.
-     *
      */
     @NotThreadSafe
     private final class RetrieveAclEntryStrategy extends AbstractThingCommandStrategy<RetrieveAclEntry> {
@@ -1592,7 +1601,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     /**
      * This strategy handles the {@link ModifyAttributes} command.
-     *
      */
     @NotThreadSafe
     private final class ModifyAttributesStrategy extends AbstractThingCommandStrategy<ModifyAttributes> {
@@ -1626,7 +1634,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     /**
      * This strategy handles the {@link ModifyAttribute} command.
-     *
      */
     @NotThreadSafe
     private final class ModifyAttributeStrategy extends AbstractThingCommandStrategy<ModifyAttribute> {
@@ -1664,7 +1671,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     /**
      * This strategy handles the {@link DeleteAttributes} command.
-     *
      */
     @NotThreadSafe
     private final class DeleteAttributesStrategy extends AbstractThingCommandStrategy<DeleteAttributes> {
@@ -1693,7 +1699,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     /**
      * This strategy handles the {@link DeleteAttribute} command.
-     *
      */
     @NotThreadSafe
     private final class DeleteAttributeStrategy extends AbstractThingCommandStrategy<DeleteAttribute> {
@@ -1724,7 +1729,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     /**
      * This strategy handles the {@link RetrieveAttributes} command.
-     *
      */
     @NotThreadSafe
     private final class RetrieveAttributesStrategy extends AbstractThingCommandStrategy<RetrieveAttributes> {
@@ -1756,7 +1760,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     /**
      * This strategy handles the {@link RetrieveAttribute} command.
-     *
      */
     @NotThreadSafe
     private final class RetrieveAttributeStrategy extends AbstractThingCommandStrategy<RetrieveAttribute> {
@@ -1790,7 +1793,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     /**
      * This strategy handles the {@link ModifyFeatures} command.
-     *
      */
     @NotThreadSafe
     private final class ModifyFeaturesStrategy extends AbstractThingCommandStrategy<ModifyFeatures> {
@@ -1824,7 +1826,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     /**
      * This strategy handles the {@link ModifyFeature} command.
-     *
      */
     @NotThreadSafe
     private final class ModifyFeatureStrategy extends AbstractThingCommandStrategy<ModifyFeature> {
@@ -1859,7 +1860,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     /**
      * This strategy handles the {@link DeleteFeatures} command.
-     *
      */
     @NotThreadSafe
     private final class DeleteFeaturesStrategy extends AbstractThingCommandStrategy<DeleteFeatures> {
@@ -1888,7 +1888,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     /**
      * This strategy handles the {@link DeleteFeature} command.
-     *
      */
     @NotThreadSafe
     private final class DeleteFeatureStrategy extends AbstractThingCommandStrategy<DeleteFeature> {
@@ -1920,7 +1919,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     /**
      * This strategy handles the {@link RetrieveFeatures} command.
-     *
      */
     @NotThreadSafe
     private final class RetrieveFeaturesStrategy extends AbstractThingCommandStrategy<RetrieveFeatures> {
@@ -1951,7 +1949,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     /**
      * This strategy handles the {@link RetrieveFeature} command.
-     *
      */
     @NotThreadSafe
     private final class RetrieveFeatureStrategy extends AbstractThingCommandStrategy<RetrieveFeature> {
@@ -1984,7 +1981,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     /**
      * This strategy handles the {@link ModifyFeatureProperties} command.
-     *
      */
     @NotThreadSafe
     private final class ModifyFeaturePropertiesStrategy extends AbstractThingCommandStrategy<ModifyFeatureProperties> {
@@ -2034,7 +2030,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     /**
      * This strategy handles the {@link ModifyFeatureProperty} command.
-     *
      */
     @NotThreadSafe
     private final class ModifyFeaturePropertyStrategy extends AbstractThingCommandStrategy<ModifyFeatureProperty> {
@@ -2088,7 +2083,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     /**
      * This strategy handles the {@link DeleteFeatureProperties} command.
-     *
      */
     @NotThreadSafe
     private final class DeleteFeaturePropertiesStrategy extends AbstractThingCommandStrategy<DeleteFeatureProperties> {
@@ -2129,7 +2123,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     /**
      * This strategy handles the {@link DeleteFeatureProperty} command.
-     *
      */
     @NotThreadSafe
     private final class DeleteFeaturePropertyStrategy extends AbstractThingCommandStrategy<DeleteFeatureProperty> {
@@ -2173,7 +2166,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     /**
      * This strategy handles the {@link RetrieveFeatureProperties} command.
-     *
      */
     @NotThreadSafe
     private final class RetrieveFeaturePropertiesStrategy
@@ -2211,7 +2203,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     /**
      * This strategy handles the {@link RetrieveFeatureProperty} command.
-     *
      */
     @NotThreadSafe
     private final class RetrieveFeaturePropertyStrategy extends AbstractThingCommandStrategy<RetrieveFeatureProperty> {
@@ -2251,7 +2242,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     /**
      * This strategy handles the success of deleting messages by logging an info.
-     *
      */
     @NotThreadSafe
     private final class DeleteMessagesSuccessStrategy extends AbstractReceiveStrategy<DeleteMessagesSuccess> {
@@ -2273,7 +2263,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     /**
      * This strategy handles the failure of deleting messages by logging an error.
-     *
      */
     @NotThreadSafe
     private final class DeleteMessagesFailureStrategy extends AbstractReceiveStrategy<DeleteMessagesFailure> {
@@ -2296,7 +2285,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
     /**
      * This strategy handles all commands which were not explicitly handled beforehand. Those commands are logged as
      * unknown messages and are marked as unhandled.
-     *
      */
     @NotThreadSafe
     private final class MatchAnyAfterInitializeStrategy extends AbstractReceiveStrategy<Object> {
@@ -2318,7 +2306,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
     /**
      * This strategy handles all messages which were received before the Thing was initialized. Those messages are
      * logged as unexpected messages and cause the actor to be stopped.
-     *
      */
     @NotThreadSafe
     private final class MatchAnyDuringInitializeStrategy extends AbstractReceiveStrategy<Object> {
@@ -2346,7 +2333,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     /**
      * This strategy handles any messages for a previous deleted Thing.
-     *
      */
     @NotThreadSafe
     private final class ThingNotFoundStrategy extends AbstractReceiveStrategy<Object> {

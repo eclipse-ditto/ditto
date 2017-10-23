@@ -28,10 +28,10 @@ import org.mockito.Mockito;
 import org.mockito.runners.MockitoJUnitRunner;
 
 /**
- * Unit test for {@link ThingSnapshotter}.
+ * Unit test for {@link DittoThingSnapshotter}.
  */
 @RunWith(MockitoJUnitRunner.class)
-public final class ThingSnapshotterTest {
+public final class DittoThingSnapshotterTest {
 
     private static final ThingWithSnapshotTag THING_WITH_SNAPSHOT_TAG =
             ThingWithSnapshotTag.newInstance(THING_V1, SnapshotTag.PROTECTED);
@@ -42,12 +42,12 @@ public final class ThingSnapshotterTest {
     @Mock
     private SnapshotAdapter<ThingWithSnapshotTag> taggedSnapshotAdapterMock;
 
-    private ThingSnapshotter underTest;
+    private DittoThingSnapshotter underTest;
 
     /** */
     @Before
     public void setUp() {
-        underTest = new ThingSnapshotter(akkaSnapshotterMock, null, taggedSnapshotAdapterMock, null,
+        underTest = new DittoThingSnapshotter(akkaSnapshotterMock, null, taggedSnapshotAdapterMock, null,
                 true, true, null, null, null);
         when(akkaSnapshotterMock.getThing()).thenReturn(THING_V1);
     }

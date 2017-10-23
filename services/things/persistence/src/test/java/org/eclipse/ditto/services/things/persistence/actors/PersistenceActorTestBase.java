@@ -15,6 +15,7 @@ import static java.util.Objects.requireNonNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -161,8 +162,9 @@ public abstract class PersistenceActorTestBase {
         final java.time.Duration minBackoff = java.time.Duration.ofSeconds(3);
         final java.time.Duration maxBackoff = java.time.Duration.ofSeconds(60);
         final double randomFactor = 0.2;
-        final Props props =
-                ThingSupervisorActor.props(pubSubMediator, minBackoff, maxBackoff, randomFactor, thingCacheFacade);
+
+        final ThingsActorsCreator actorsCreator = new TestThingsActorsCreator(minBackoff, maxBackoff, randomFactor);
+        final Props props = actorsCreator.createSupervisorActor(pubSubMediator, thingCacheFacade);
 
         return actorSystem.actorOf(props, thingId);
     }
@@ -176,6 +178,37 @@ public abstract class PersistenceActorTestBase {
             Thread.sleep(millis);
         } catch (final InterruptedException e) {
             throw new IllegalStateException(e);
+        }
+    }
+
+    protected static final class TestThingsActorsCreator implements ThingsActorsCreator {
+
+        private final java.time.Duration minBackoff;
+        private final java.time.Duration maxBackoff;
+        private final double randomFactor;
+
+        public TestThingsActorsCreator(final Duration minBackoff, final Duration maxBackoff,
+                final double randomFactor) {
+            this.minBackoff = minBackoff;
+            this.maxBackoff = maxBackoff;
+            this.randomFactor = randomFactor;
+        }
+
+        @Override
+        public Props createRootActor() {
+            return null;
+        }
+
+        @Override
+        public Props createSupervisorActor(final ActorRef pubSubMediator, final ActorRef thingCacheFacade) {
+            return ThingSupervisorActor.props(pubSubMediator, minBackoff, maxBackoff, randomFactor, thingCacheFacade,
+                    this);
+        }
+
+        @Override
+        public Props createPersistentActor(final String thingId, final ActorRef pubSubMediator,
+                final ActorRef thingCacheFacade) {
+            return ThingPersistenceActor.props(thingId, pubSubMediator, thingCacheFacade);
         }
     }
 }
