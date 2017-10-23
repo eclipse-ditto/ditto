@@ -52,7 +52,7 @@ public final class DittoThingSnapshotter extends ThingSnapshotter<TakeSnapshot, 
 
     @Override
     protected Class<TakeSnapshot> getExternalCommandClass() {
-        return null;
+        return TakeSnapshot.class;
     }
 
     @Override
@@ -72,6 +72,7 @@ public final class DittoThingSnapshotter extends ThingSnapshotter<TakeSnapshot, 
     public static DittoThingSnapshotter getInstance(final ThingPersistenceActor thingPersistenceActor,
             @Nullable final DiagnosticLoggingAdapter log, @Nullable final java.time.Duration snapshotInterval,
             final boolean snapshotDeleteOld, final boolean eventsDeleteOld) {
-        return new DittoThingSnapshotter(thingPersistenceActor, log, snapshotInterval, snapshotDeleteOld, eventsDeleteOld);
+        return new DittoThingSnapshotter(thingPersistenceActor, log, snapshotInterval, snapshotDeleteOld,
+                eventsDeleteOld);
     }
 }
