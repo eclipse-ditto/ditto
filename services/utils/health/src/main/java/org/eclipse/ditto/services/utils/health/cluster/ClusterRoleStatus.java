@@ -37,13 +37,13 @@ public final class ClusterRoleStatus implements Jsonifiable {
      * JSON array of reachable members.
      */
     public static final JsonFieldDefinition<JsonArray> JSON_KEY_REACHABLE =
-            JsonFactory.newArrayFieldDefinition("reachable");
+            JsonFactory.newJsonArrayFieldDefinition("reachable");
 
     /**
      * JSON array of unreachable members.
      */
     public static final JsonFieldDefinition<JsonArray> JSON_KEY_UNREACHABLE =
-            JsonFactory.newArrayFieldDefinition("unreachable");
+            JsonFactory.newJsonArrayFieldDefinition("unreachable");
 
     /**
      * JSON value of the leaders address.

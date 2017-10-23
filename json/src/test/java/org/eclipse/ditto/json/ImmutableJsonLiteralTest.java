@@ -71,25 +71,4 @@ public final class ImmutableJsonLiteralTest {
         assertThat(underTest.toString()).isEqualTo("false");
     }
 
-    @Test
-    public void jsonLiteralIsRepresentationOfJsonValue() {
-        final ImmutableJsonLiteral underTest = ImmutableJsonLiteral.FALSE;
-
-        assertThat(underTest.isRepresentationOfJavaType(JsonValue.class)).isTrue();
-    }
-
-    @Test
-    public void jsonLiteralIsRepresentationOfBoolean() {
-        final ImmutableJsonLiteral underTest = ImmutableJsonLiteral.FALSE;
-
-        assertThat(underTest.isRepresentationOfJavaType(boolean.class)).isTrue();
-    }
-
-    @Test
-    public void jsonLiteralIsNotRepresentationOfInt() {
-        final ImmutableJsonLiteral underTest = ImmutableJsonLiteral.FALSE;
-
-        assertThat(underTest.isRepresentationOfJavaType(int.class)).isFalse();
-    }
-
 }

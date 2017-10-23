@@ -42,7 +42,7 @@ public final class SearchNamespaceReportResult implements Jsonifiable.WithPredic
     private static final JsonFieldDefinition<Integer> SCHEMA_VERSION =
             JsonFactory.newIntFieldDefinition(JsonSchemaVersion.getJsonKey(), FieldType.SPECIAL, JsonSchemaVersion.V_1);
     private static final JsonFieldDefinition<JsonArray> NAMESPACES =
-            JsonFactory.newArrayFieldDefinition("namespaces", FieldType.REGULAR, JsonSchemaVersion.V_1);
+            JsonFactory.newJsonArrayFieldDefinition("namespaces", FieldType.REGULAR, JsonSchemaVersion.V_1);
 
     private final Map<String, SearchNamespaceResultEntry> searchNamespaceResultEntries;
 

@@ -59,7 +59,7 @@ public final class RetrieveThings extends AbstractCommand<RetrieveThings>
     public static final String TYPE = TYPE_PREFIX + NAME;
 
     public static final JsonFieldDefinition<JsonArray> JSON_THING_IDS =
-            JsonFactory.newArrayFieldDefinition("thingIds", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newJsonArrayFieldDefinition("thingIds", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
     static final JsonFieldDefinition<String> JSON_SELECTED_FIELDS =

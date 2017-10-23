@@ -58,7 +58,7 @@ public final class SudoRetrieveThings extends AbstractCommand<SudoRetrieveThings
     public static final String TYPE = TYPE_PREFIX + NAME;
 
     static final JsonFieldDefinition<JsonArray> JSON_THING_IDS =
-            JsonFactory.newArrayFieldDefinition("payload/thingIds", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newJsonArrayFieldDefinition("payload/thingIds", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
     private final List<String> thingIds;

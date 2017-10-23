@@ -58,7 +58,7 @@ public final class QueryThings extends AbstractCommand<QueryThings> implements T
                     JsonSchemaVersion.V_2);
 
     static final JsonFieldDefinition<JsonArray> JSON_OPTIONS =
-            JsonFactory.newArrayFieldDefinition("options", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newJsonArrayFieldDefinition("options", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
     static final JsonFieldDefinition<String> JSON_FIELDS =

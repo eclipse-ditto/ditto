@@ -93,25 +93,4 @@ public final class ImmutableJsonStringTest {
         assertThat(underTest.asString()).isEqualTo(KNOWN_STRING_VALUE);
     }
 
-    @Test
-    public void jsonStringIsRepresentationOfJsonValue() {
-        final ImmutableJsonString underTest = ImmutableJsonString.of(KNOWN_JSON_STRING);
-
-        assertThat(underTest.isRepresentationOfJavaType(JsonValue.class)).isTrue();
-    }
-
-    @Test
-    public void jsonStringIsRepresentationOfString() {
-        final ImmutableJsonString underTest = ImmutableJsonString.of(KNOWN_JSON_STRING);
-
-        assertThat(underTest.isRepresentationOfJavaType(String.class)).isTrue();
-    }
-
-    @Test
-    public void jsonStringIsRepresentationOfInt() {
-        final ImmutableJsonString underTest = ImmutableJsonString.of(KNOWN_JSON_STRING);
-
-        assertThat(underTest.isRepresentationOfJavaType(int.class)).isFalse();
-    }
-
 }

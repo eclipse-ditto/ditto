@@ -13,6 +13,8 @@ package org.eclipse.ditto.json;
 
 import java.util.Set;
 
+import javax.annotation.Nullable;
+
 /**
  * A {@code JsonFieldDefinition} is a formal description of a single {@link JsonField}. A JSON field consists of a key
  * (or name) and a value. A JsonFieldDefinition differs in the way that it consists not only of a simple JSON key but
@@ -164,12 +166,12 @@ public interface JsonFieldDefinition<T> {
      * @return the new JSON field definition.
      * @throws NullPointerException if {@code pointer} is {@code null}.
      * @throws IllegalArgumentException if {@code pointer} is empty.
-     * @see JsonFactory#newArrayFieldDefinition(CharSequence, JsonFieldMarker...)
+     * @see JsonFactory#newJsonArrayFieldDefinition(CharSequence, JsonFieldMarker...)
      */
     static JsonFieldDefinition<JsonArray> ofJsonArray(final CharSequence pointer,
             final JsonFieldMarker ... markers) {
 
-        return JsonFactory.newArrayFieldDefinition(pointer, markers);
+        return JsonFactory.newJsonArrayFieldDefinition(pointer, markers);
     }
 
     /**
@@ -231,6 +233,7 @@ public interface JsonFieldDefinition<T> {
      * @throws JsonParseException if {@code jsonValue} does not represent this definition's expected Java type.
      * @see #getValueType()
      */
+    @Nullable
     T mapValue(JsonValue jsonValue);
 
 }

@@ -12,6 +12,7 @@
 package org.eclipse.ditto.json;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
@@ -32,12 +33,17 @@ import com.eclipsesource.json.Json;
  */
 public final class JsonFactoryTest {
 
+    private static final String KNOWN_POINTER = "/functionblock/properties/someInt";
+
     private static final String KNOWN_JSON_OBJECT_STRING =
             "{\"featureId\": \"" + 1 + "\", " + "\"functionblock\": null, " + "\"properties\": {" + "\"someInt\": 42,"
                     + "\"someString\": \"foo\"," + "\"someBool\": false," + "\"someObj\": {\"aKey\": \"aValue\"}" +
                     "}" + "}";
 
     private static final String KNOWN_JSON_ARRAY_STRING = "[\"one\",\"two\",\"three\"]";
+    private static final int KNOWN_INT = 42;
+    private static final String KNOWN_STRING = "Hallo";
+    private static final long KNOWN_LONG = 422308154711L;
 
     @Test
     public void assertImmutability() {
@@ -649,6 +655,134 @@ public final class JsonFactoryTest {
         final JsonValue expected = JsonFactory.newValue(jsonObject.toString());
 
         assertThat(JsonFactory.getAppropriateValue(jsonObject.toString())).isEqualTo(expected);
+    }
+
+    @Test
+    public void newStringFieldDefinitionReturnsExpected() {
+        final JsonFieldDefinition<String> underTest = JsonFactory.newStringFieldDefinition(KNOWN_POINTER);
+
+        assertThat(underTest.mapValue(JsonFactory.newValue(KNOWN_STRING))).isEqualTo(KNOWN_STRING);
+        assertThat(underTest.mapValue(JsonFactory.nullLiteral())).isNull();
+        assertThatExceptionOfType(JsonParseException.class)
+                .isThrownBy(() -> underTest.mapValue(JsonFactory.newValue(KNOWN_INT)))
+                .withMessageContaining(String.valueOf(KNOWN_INT))
+                .withMessageContaining(KNOWN_POINTER)
+                .withMessageContaining("String")
+                .withNoCause();
+    }
+
+    @Test
+    public void newBooleanFieldDefinitionReturnsExpected() {
+        final JsonFieldDefinition<Boolean> underTest = JsonFactory.newBooleanFieldDefinition(KNOWN_POINTER);
+
+        assertThat(underTest.mapValue(JsonFactory.newValue(true))).isEqualTo(true);
+        assertThat(underTest.mapValue(JsonFactory.nullLiteral())).isNull();
+        assertThatExceptionOfType(JsonParseException.class)
+                .isThrownBy(() -> underTest.mapValue(JsonFactory.newValue(KNOWN_INT)))
+                .withMessageContaining(String.valueOf(KNOWN_INT))
+                .withMessageContaining(KNOWN_POINTER)
+                .withMessageContaining("Boolean")
+                .withNoCause();
+    }
+
+    @Test
+    public void newIntFieldDefinitionReturnsExpected() {
+        final JsonFieldDefinition<Integer> underTest = JsonFactory.newIntFieldDefinition(KNOWN_POINTER);
+
+        assertThat(underTest.mapValue(JsonFactory.newValue(KNOWN_INT))).isEqualTo(KNOWN_INT);
+        assertThat(underTest.mapValue(JsonFactory.nullLiteral())).isNull();
+        assertThatExceptionOfType(JsonParseException.class)
+                .isThrownBy(() -> underTest.mapValue(JsonFactory.newValue(KNOWN_STRING)))
+                .withMessageContaining(KNOWN_STRING)
+                .withMessageContaining(KNOWN_POINTER)
+                .withMessageContaining("Integer")
+                .withNoCause();
+    }
+
+    @Test
+    public void newLongFieldDefinitionReturnsExpected() {
+        final JsonFieldDefinition<Long> underTest = JsonFactory.newLongFieldDefinition(KNOWN_POINTER);
+
+        assertThat(underTest.mapValue(JsonFactory.newValue(KNOWN_LONG))).isEqualTo(KNOWN_LONG);
+        assertThat(underTest.mapValue(JsonFactory.nullLiteral())).isNull();
+        assertThatExceptionOfType(JsonParseException.class)
+                .isThrownBy(() -> underTest.mapValue(JsonFactory.newValue(false)))
+                .withMessageContaining(String.valueOf("false"))
+                .withMessageContaining(KNOWN_POINTER)
+                .withMessageContaining("Long")
+                .withNoCause();
+    }
+
+    @Test
+    public void newDoubleFieldDefinitionReturnsExpected() {
+        final double doubleValue = 23.424711D;
+        final JsonFieldDefinition<Double> underTest = JsonFactory.newDoubleFieldDefinition(KNOWN_POINTER);
+
+        assertThat(underTest.mapValue(JsonFactory.newValue(doubleValue))).isEqualTo(doubleValue);
+        assertThat(underTest.mapValue(JsonFactory.nullLiteral())).isNull();
+        assertThatExceptionOfType(JsonParseException.class)
+                .isThrownBy(() -> underTest.mapValue(JsonFactory.newValue(KNOWN_STRING)))
+                .withMessageContaining(KNOWN_STRING)
+                .withMessageContaining(KNOWN_POINTER)
+                .withMessageContaining("Double")
+                .withNoCause();
+    }
+
+    @Test
+    public void newJsonArrayFieldDefinitionReturnsExpected() {
+        final JsonArray jsonArray = JsonFactory.newArray(KNOWN_JSON_ARRAY_STRING);
+        final JsonObject jsonObject = JsonFactory.newObject(KNOWN_JSON_OBJECT_STRING);
+
+        final JsonFieldDefinition<JsonArray> underTest = JsonFactory.newJsonArrayFieldDefinition(KNOWN_POINTER);
+
+        assertThat(underTest.mapValue(jsonArray)).isEqualTo(jsonArray);
+        assertThat(underTest.mapValue(JsonFactory.nullLiteral())).isEqualTo(JsonFactory.nullLiteral());
+        assertThatExceptionOfType(JsonParseException.class)
+                .isThrownBy(() -> underTest.mapValue(JsonFactory.newValue(KNOWN_STRING)))
+                .withMessageContaining(KNOWN_STRING)
+                .withMessageContaining(KNOWN_POINTER)
+                .withMessageContaining("JsonArray")
+                .withNoCause();
+        assertThatExceptionOfType(JsonParseException.class)
+                .isThrownBy(() -> underTest.mapValue(jsonObject))
+                .withMessageContaining(jsonObject.toString())
+                .withMessageContaining(KNOWN_POINTER)
+                .withMessageContaining("JsonArray")
+                .withNoCause();
+    }
+
+    @Test
+    public void newJsonObjectFieldDefinitionReturnsExpected() {
+        final JsonObject jsonObject = JsonFactory.newObject(KNOWN_JSON_OBJECT_STRING);
+        final JsonArray jsonArray = JsonFactory.newArray(KNOWN_JSON_ARRAY_STRING);
+
+        final JsonFieldDefinition<JsonObject> underTest = JsonFactory.newJsonObjectFieldDefinition(KNOWN_POINTER);
+
+        assertThat(underTest.mapValue(jsonObject)).isEqualTo(jsonObject);
+        assertThat(underTest.mapValue(JsonFactory.nullLiteral())).isEqualTo(JsonFactory.nullLiteral());
+        assertThatExceptionOfType(JsonParseException.class)
+                .isThrownBy(() -> underTest.mapValue(JsonFactory.newValue(KNOWN_STRING)))
+                .withMessageContaining(KNOWN_STRING)
+                .withMessageContaining(KNOWN_POINTER)
+                .withMessageContaining("JsonObject")
+                .withNoCause();
+        assertThatExceptionOfType(JsonParseException.class)
+                .isThrownBy(() -> underTest.mapValue(jsonArray))
+                .withMessageContaining(jsonArray.toString())
+                .withMessageContaining(KNOWN_POINTER)
+                .withMessageContaining("JsonObject")
+                .withNoCause();
+    }
+
+    @Test
+    public void newJsonValueFieldDefinitionReturnsExpected() {
+        final JsonValue jsonValue = JsonFactory.newValue(KNOWN_LONG);
+        final JsonObject jsonObject = JsonFactory.newObject(KNOWN_JSON_OBJECT_STRING);
+
+        final JsonFieldDefinition<JsonValue> underTest = JsonFactory.newJsonValueFieldDefinition(KNOWN_POINTER);
+
+        assertThat(underTest.mapValue(jsonValue)).isEqualTo(jsonValue);
+        assertThat(underTest.mapValue(JsonFactory.nullLiteral())).isEqualTo(JsonFactory.nullLiteral());
     }
 
 }

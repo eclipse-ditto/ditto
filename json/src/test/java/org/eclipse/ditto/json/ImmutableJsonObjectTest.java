@@ -1240,34 +1240,6 @@ public final class ImmutableJsonObjectTest {
         assertThat(withValue).isEqualTo(expectedJsonObject);
     }
 
-    @Test
-    public void jsonObjectIsOfTypeJsonObject() {
-        final ImmutableJsonObject underTest = ImmutableJsonObject.empty();
-
-        assertThat(underTest.isRepresentationOfJavaType(JsonObject.class)).isTrue();
-    }
-
-    @Test
-    public void jsonObjectIsRepresentationOfJsonValue() {
-        final ImmutableJsonObject underTest = ImmutableJsonObject.empty();
-
-        assertThat(underTest.isRepresentationOfJavaType(JsonValue.class)).isTrue();
-    }
-
-    @Test
-    public void jsonObjectIsRepresentationOfJsonObject() {
-        final ImmutableJsonObject underTest = ImmutableJsonObject.empty();
-
-        assertThat(underTest.isRepresentationOfJavaType(JsonObject.class)).isTrue();
-    }
-
-    @Test
-    public void jsonObjectIsNotRepresentationOfBoolean() {
-        final ImmutableJsonObject underTest = ImmutableJsonObject.empty();
-
-        assertThat(underTest.isRepresentationOfJavaType(boolean.class)).isFalse();
-    }
-
     private static Map<String, JsonField> toMap(final CharSequence key, final JsonValue value) {
         final Map<String, JsonField> result = new HashMap<>();
         result.put(key.toString(), JsonFactory.newField(JsonFactory.newKey(key), value));

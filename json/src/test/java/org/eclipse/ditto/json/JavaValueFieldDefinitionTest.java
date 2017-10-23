@@ -32,10 +32,10 @@ import org.mockito.junit.MockitoJUnitRunner;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link ImmutableJsonFieldDefinition}.
+ * Unit test for {@link JavaValueFieldDefinition}.
  */
 @RunWith(MockitoJUnitRunner.class)
-public final class ImmutableJsonFieldDefinitionTest {
+public final class JavaValueFieldDefinitionTest {
 
     private static final JsonPointer KNOWN_JSON_POINTER = JsonFactory.newPointer("root/sub/subsub");
 
@@ -58,32 +58,36 @@ public final class ImmutableJsonFieldDefinitionTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(ImmutableJsonFieldDefinition.class,
+        assertInstancesOf(JavaValueFieldDefinition.class,
                 areImmutable(),
                 provided(JsonPointer.class, Function.class, JsonFieldMarker.class).areAlsoImmutable());
     }
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(ImmutableJsonFieldDefinition.class)
+        EqualsVerifier.forClass(JavaValueFieldDefinition.class)
+                .withRedefinedSuperclass()
+                .usingGetClass()
                 .verify();
     }
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateNewInstanceWithNullJsonPointer() {
-        ImmutableJsonFieldDefinition.newInstance(null, String.class, JsonValue::asString, knownFieldMarkers);
+        JavaValueFieldDefinition.newInstance(null, String.class, JsonValue::isString, JsonValue::asString,
+                knownFieldMarkers);
     }
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateNewInstanceWithNullValueType() {
-        ImmutableJsonFieldDefinition.newInstance(KNOWN_JSON_POINTER, null, JsonValue::asString, knownFieldMarkers);
+        JavaValueFieldDefinition.newInstance(KNOWN_JSON_POINTER, null, JsonValue::isString, JsonValue::asString,
+                knownFieldMarkers);
     }
 
     @Test
     public void getPointerReturnsExpected() {
-        final ImmutableJsonFieldDefinition underTest =
-                ImmutableJsonFieldDefinition.newInstance(KNOWN_JSON_POINTER, String.class, JsonValue::asString,
-                        knownFieldMarkers);
+        final JavaValueFieldDefinition underTest =
+                JavaValueFieldDefinition.newInstance(KNOWN_JSON_POINTER, String.class, JsonValue::isString,
+                        JsonValue::asString, knownFieldMarkers);
 
         assertThat(underTest.getPointer()).isEqualTo(KNOWN_JSON_POINTER);
     }
@@ -91,18 +95,18 @@ public final class ImmutableJsonFieldDefinitionTest {
     @Test
     public void getValueTypeReturnsExpected() {
         final Class<String> valueType = String.class;
-        final ImmutableJsonFieldDefinition underTest =
-                ImmutableJsonFieldDefinition.newInstance(KNOWN_JSON_POINTER, valueType, JsonValue::asString,
-                        knownFieldMarkers);
+        final JavaValueFieldDefinition underTest =
+                JavaValueFieldDefinition.newInstance(KNOWN_JSON_POINTER, valueType, JsonValue::isString,
+                        JsonValue::asString, knownFieldMarkers);
 
         assertThat(Objects.equals(underTest.getValueType(), valueType)).isTrue();
     }
 
     @Test(expected = UnsupportedOperationException.class)
     public void getMarkersReturnsUnmodifiableSet() {
-        final ImmutableJsonFieldDefinition<Integer> underTest =
-                ImmutableJsonFieldDefinition.newInstance(KNOWN_JSON_POINTER, int.class, JsonValue::asInt,
-                        knownFieldMarkers);
+        final JavaValueFieldDefinition<Integer> underTest =
+                JavaValueFieldDefinition.newInstance(KNOWN_JSON_POINTER, int.class, JsonValue::isNumber,
+                        JsonValue::asInt, knownFieldMarkers);
 
         final Set<JsonFieldMarker> markers = underTest.getMarkers();
         markers.add(mock(JsonFieldMarker.class));
@@ -110,9 +114,9 @@ public final class ImmutableJsonFieldDefinitionTest {
 
     @Test(expected = NullPointerException.class)
     public void tryToInvokeIsMarkedWithOnlyNullMarker() {
-        final ImmutableJsonFieldDefinition<Integer> underTest =
-                ImmutableJsonFieldDefinition.newInstance(KNOWN_JSON_POINTER, int.class, JsonValue::asInt,
-                        knownFieldMarkers);
+        final JavaValueFieldDefinition<Integer> underTest =
+                JavaValueFieldDefinition.newInstance(KNOWN_JSON_POINTER, int.class, JsonValue::isNumber,
+                        JsonValue::asInt, knownFieldMarkers);
 
         underTest.isMarkedAs(null);
     }
@@ -121,9 +125,9 @@ public final class ImmutableJsonFieldDefinitionTest {
     public void isMarkedAsReturnsTrueIfDefinitionContainsAskedMarkers() {
         knownFieldMarkers = new JsonFieldMarker[] {schemaVersionMarkerMock, regularTypeMarkerMock};
 
-        final ImmutableJsonFieldDefinition<Integer> underTest =
-                ImmutableJsonFieldDefinition.newInstance(KNOWN_JSON_POINTER, int.class, JsonValue::asInt,
-                        knownFieldMarkers);
+        final JavaValueFieldDefinition<Integer> underTest =
+                JavaValueFieldDefinition.newInstance(KNOWN_JSON_POINTER, int.class, JsonValue::isNumber,
+                        JsonValue::asInt, knownFieldMarkers);
 
         assertThat(underTest.isMarkedAs(schemaVersionMarkerMock, regularTypeMarkerMock)).isTrue();
     }
@@ -132,9 +136,9 @@ public final class ImmutableJsonFieldDefinitionTest {
     public void isMarkedAsReturnsFalseIfDefinitionContainsNotAllAskedMarkers() {
         knownFieldMarkers = new JsonFieldMarker[] {schemaVersionMarkerMock, specialTypeMarkerMock};
 
-        final ImmutableJsonFieldDefinition<Integer> underTest =
-                ImmutableJsonFieldDefinition.newInstance(KNOWN_JSON_POINTER, int.class, JsonValue::asInt,
-                        knownFieldMarkers);
+        final JavaValueFieldDefinition<Integer> underTest =
+                JavaValueFieldDefinition.newInstance(KNOWN_JSON_POINTER, int.class, JsonValue::isNumber,
+                        JsonValue::asInt, knownFieldMarkers);
 
         assertThat(underTest.isMarkedAs(schemaVersionMarkerMock, regularTypeMarkerMock)).isFalse();
     }
@@ -143,34 +147,37 @@ public final class ImmutableJsonFieldDefinitionTest {
     public void isMarkedAsReturnsTrueIfDefinitionContainsAskedMarker() {
         knownFieldMarkers = new JsonFieldMarker[] {schemaVersionMarkerMock, regularTypeMarkerMock};
 
-        final ImmutableJsonFieldDefinition<Integer> underTest =
-                ImmutableJsonFieldDefinition.newInstance(KNOWN_JSON_POINTER, int.class, JsonValue::asInt,
-                        knownFieldMarkers);
+        final JavaValueFieldDefinition<Integer> underTest =
+                JavaValueFieldDefinition.newInstance(KNOWN_JSON_POINTER, int.class, JsonValue::isNumber,
+                        JsonValue::asInt, knownFieldMarkers);
 
         assertThat(underTest.isMarkedAs(regularTypeMarkerMock)).isTrue();
     }
 
     @Test
     public void stringRepresentationContainsExpected() {
-        final ImmutableJsonFieldDefinition<Double> underTest =
-                ImmutableJsonFieldDefinition.newInstance(KNOWN_JSON_POINTER, double.class, JsonValue::asDouble,
-                        knownFieldMarkers);
+        final JavaValueFieldDefinition<Double> underTest =
+                JavaValueFieldDefinition.newInstance(KNOWN_JSON_POINTER, double.class, JsonValue::isNumber,
+                        JsonValue::asDouble, knownFieldMarkers);
 
         assertThat(underTest.toString())
                 .contains("pointer")
                 .contains("valueType")
                 .contains("double")
+                .contains("checkJavaTypeFunction")
+                .contains("mappingFunction")
                 .contains("markers");
     }
 
     @Test
     public void tryToMapJavaNullValue() {
-        final ImmutableJsonFieldDefinition<String> underTest =
-                ImmutableJsonFieldDefinition.newInstance(KNOWN_JSON_POINTER, String.class, JsonValue::asString);
+        final JavaValueFieldDefinition<String> underTest =
+                JavaValueFieldDefinition.newInstance(KNOWN_JSON_POINTER, String.class, JsonValue::isString,
+                        JsonValue::asString);
 
         assertThatExceptionOfType(NullPointerException.class)
                 .isThrownBy(() -> underTest.mapValue(null))
-                .withMessage("The %s must not be null!", "JsonValue to be mapped")
+                .withMessage("The %s must not be (Java) null!", "JsonValue to be mapped")
                 .withNoCause();
     }
 
@@ -179,8 +186,9 @@ public final class ImmutableJsonFieldDefinitionTest {
         final String stringValue = "Foo";
         final JsonValue jsonValue = JsonFactory.newValue(stringValue);
 
-        final ImmutableJsonFieldDefinition<String> underTest =
-                ImmutableJsonFieldDefinition.newInstance(KNOWN_JSON_POINTER, String.class, JsonValue::asString);
+        final JavaValueFieldDefinition<String> underTest =
+                JavaValueFieldDefinition.newInstance(KNOWN_JSON_POINTER, String.class, JsonValue::isString,
+                        JsonValue::asString);
 
         final String mapped = underTest.mapValue(jsonValue);
 
@@ -188,33 +196,27 @@ public final class ImmutableJsonFieldDefinitionTest {
     }
 
     @Test
-    public void tryToMapJsonNullLiteralWithStringFieldDefinition() {
+    public void mapJsonNullLiteralWithStringFieldDefinition() {
         final Class<String> valueType = String.class;
         final JsonValue nullLiteral = JsonFactory.nullLiteral();
 
-        final ImmutableJsonFieldDefinition<String> underTest =
-                ImmutableJsonFieldDefinition.newInstance(KNOWN_JSON_POINTER, valueType, JsonValue::asString);
+        final JavaValueFieldDefinition<String> underTest =
+                JavaValueFieldDefinition.newInstance(KNOWN_JSON_POINTER, valueType, JsonValue::isString,
+                        JsonValue::asString);
 
-        assertThatExceptionOfType(JsonParseException.class)
-                .isThrownBy(() -> underTest.mapValue(nullLiteral))
-                .withMessage("Value <%s> for <%s> is not of type <%s>!", nullLiteral, KNOWN_JSON_POINTER,
-                        valueType.getSimpleName())
-                .withNoCause();
+        assertThat(underTest.mapValue(nullLiteral)).isNull();
     }
 
     @Test
-    public void tryToMapJsonNullLiteralWithIntFieldDefinition() {
+    public void mapJsonNullLiteralWithIntFieldDefinition() {
         final Class<Integer> valueType = Integer.class;
         final JsonValue nullLiteral = JsonFactory.nullLiteral();
 
-        final ImmutableJsonFieldDefinition<Integer> underTest =
-                ImmutableJsonFieldDefinition.newInstance(KNOWN_JSON_POINTER, valueType, JsonValue::asInt);
+        final JavaValueFieldDefinition<Integer> underTest =
+                JavaValueFieldDefinition.newInstance(KNOWN_JSON_POINTER, valueType, JsonValue::isNumber,
+                        JsonValue::asInt);
 
-        assertThatExceptionOfType(JsonParseException.class)
-                .isThrownBy(() -> underTest.mapValue(nullLiteral))
-                .withMessage("Value <%s> for <%s> is not of type <%s>!", nullLiteral, KNOWN_JSON_POINTER,
-                        valueType.getSimpleName())
-                .withNoCause();
+        assertThat(underTest.mapValue(nullLiteral)).isNull();
     }
 
     @Test
@@ -222,8 +224,9 @@ public final class ImmutableJsonFieldDefinitionTest {
         final Class<Integer> valueType = Integer.class;
         final JsonValue boolJsonValue = JsonFactory.newValue(true);
 
-        final ImmutableJsonFieldDefinition<Integer> underTest =
-                ImmutableJsonFieldDefinition.newInstance(KNOWN_JSON_POINTER, valueType, JsonValue::asInt);
+        final JavaValueFieldDefinition<Integer> underTest =
+                JavaValueFieldDefinition.newInstance(KNOWN_JSON_POINTER, valueType, JsonValue::isNumber,
+                        JsonValue::asInt);
 
         assertThatExceptionOfType(JsonParseException.class)
                 .isThrownBy(() -> underTest.mapValue(boolJsonValue))
@@ -233,36 +236,13 @@ public final class ImmutableJsonFieldDefinitionTest {
     }
 
     @Test
-    public void mapJsonNullLiteralWithJsonObjectFieldDefinitionReturnsExpected() {
-        final JsonValue nullLiteral = JsonFactory.nullLiteral();
-
-        final ImmutableJsonFieldDefinition<JsonObject> underTest =
-                ImmutableJsonFieldDefinition.newInstance(KNOWN_JSON_POINTER, JsonObject.class, JsonValue::asObject);
-
-        final JsonObject mapped = underTest.mapValue(nullLiteral);
-
-        assertThat(mapped).isNullLiteral().isEmpty();
-    }
-
-    @Test
-    public void mapJsonArrayWithJsonArrayObjectFieldDefinitionReturnsExpected() {
-        final JsonValue sourceArray = JsonFactory.newArrayBuilder().add("foo", "bar").add(true).build();
-
-        final ImmutableJsonFieldDefinition<JsonArray> underTest =
-                ImmutableJsonFieldDefinition.newInstance(KNOWN_JSON_POINTER, JsonArray.class, JsonValue::asArray);
-
-        final JsonArray mapped = underTest.mapValue(sourceArray);
-
-        assertThat(mapped).isEqualTo(sourceArray);
-    }
-
-    @Test
     public void mapIntWithIntFieldDefinitionReturnsExpected() {
         final int intValue = 42;
         final JsonValue intJsonValue = JsonFactory.newValue(intValue);
 
-        final ImmutableJsonFieldDefinition<Integer> underTest =
-                ImmutableJsonFieldDefinition.newInstance(KNOWN_JSON_POINTER, Integer.class, JsonValue::asInt);
+        final JavaValueFieldDefinition<Integer> underTest =
+                JavaValueFieldDefinition.newInstance(KNOWN_JSON_POINTER, Integer.class, JsonValue::isNumber,
+                        JsonValue::asInt);
 
         final int mapped = underTest.mapValue(intJsonValue);
 
