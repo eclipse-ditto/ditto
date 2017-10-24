@@ -54,17 +54,17 @@ public final class PoliciesAclMigrations {
      *
      * @param accessControlList the ACL to migrate.
      * @param policyId the ID for the migrated Policy.
+     * @param subjectIssuers subjectIssuers to generate subjects for
      * @return the Policy.
      */
     public static Policy accessControlListToPolicyEntries(final AccessControlList accessControlList,
-            final String policyId) {
+            final String policyId, final List<SubjectIssuer> subjectIssuers) {
         final PolicyBuilder policyBuilder = PoliciesModelFactory.newPolicyBuilder(policyId);
         accessControlList.getEntriesSet().forEach(aclEntry -> {
             final String sid = aclEntry.getAuthorizationSubject().getId();
             final PolicyBuilder.LabelScoped labelScoped = policyBuilder.forLabel(ACL_LABEL_PREFIX + sid);
 
-            labelScoped.setSubject(SubjectIssuer.GOOGLE_URL, sid, SubjectType.JWT);
-            labelScoped.setSubject(SubjectIssuer.GOOGLE_URL, sid, SubjectType.JWT);
+            subjectIssuers.forEach(subjectIssuer -> labelScoped.setSubject(subjectIssuer, sid, SubjectType.JWT));
 
             if (aclEntry.getPermissions().contains(org.eclipse.ditto.model.things.Permission.READ) &&
                     aclEntry.getPermissions()
