@@ -33,14 +33,24 @@ public abstract class AbstractCommandToExceptionRegistry<C extends Command, T ex
         this.mappingStrategies = mappingStrategies;
     }
 
+    /**
+     * Fallback exception mapping for commands not found in {@code mappingStrategies}.
+     *
+     * @param command The command to map.
+     * @return The exception corresponding to the command.
+     */
+    protected T fallback(final C command) {
+        throw new IllegalArgumentException(
+                "No exception mapping found for the passed-in Command: " + command.getType());
+    }
+
     @Override
     public T exceptionFrom(final C command) {
         final Function<C, T> mapper = mappingStrategies.get(command.getType());
         if (mapper != null) {
             return mapper.apply(command);
         } else {
-            throw new IllegalArgumentException(
-                    "No exception mapping found for the passed-in Command: " + command.getType());
+            return fallback(command);
         }
     }
 
