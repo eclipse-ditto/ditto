@@ -19,7 +19,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
-import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.json.FieldType;
@@ -49,7 +49,7 @@ import scala.concurrent.duration.Duration;
  * This Actor handles {@link RetrieveThing} commands, which means that it will try to retrieve the Thing and the Policy
  * from their corresponding persistence actors and merge the results to one single Thing with Policy entries result.
  */
-public class RetrieveThingHandlerActor extends AbstractActor {
+public final class RetrieveThingHandlerActor extends AbstractActor {
 
     private static final int ASK_DURATION_VALUE = 20000;
     private static final Timeout ASK_TIMEOUT =
@@ -64,6 +64,7 @@ public class RetrieveThingHandlerActor extends AbstractActor {
     private final String enforcerId;
 
     private Thing thing;
+
     private Policy policy;
 
     private RetrieveThingHandlerActor(@Nullable final ActorRef enforcerShard,
@@ -100,13 +101,13 @@ public class RetrieveThingHandlerActor extends AbstractActor {
      * @return true if an aggregation of a Thing with the corresponding Policy is needed, false otherwise.
      */
     public static boolean checkIfAggregationIsNeeded(final RetrieveThing command) {
-        if (command.getImplementedSchemaVersion().equals(JsonSchemaVersion.V_1)) {
+        if (JsonSchemaVersion.V_1.equals(command.getImplementedSchemaVersion())) {
             return false;
         }
 
         return command.getSelectedFields().isPresent() &&
                 command.getSelectedFields()
-                        .get()
+                        .orElse(JsonFactory.emptyFieldSelector())
                         .getPointers()
                         .contains(JsonPointer.of("/" + Policy.INLINED_FIELD_NAME));
     }
@@ -155,37 +156,105 @@ public class RetrieveThingHandlerActor extends AbstractActor {
                 new AskTimeoutException("The policy could not be loaded within a the specified time frame"),
                 getContext().dispatcher(), null);
 
-        getContext().become(ReceiveBuilder.create()
+        getContext().become(initialBehaviour(command, requester, timeout));
+    }
+
+    /**
+     * Initial behaviour expects either policies or things service to answer first. It will accordingly set the current
+     * actor state accordingly and switch the receive behaviour depending on the first answer.
+     *
+     * @param command The incoming retrieve thing command.
+     * @param requester The requester of {@code command}.
+     * @param timeout Timeout for the requests to policies and things service.
+     * @return The receive behaviour that expects either policies or things service to answer first.
+     */
+    private Receive initialBehaviour(final RetrieveThing command, final ActorRef requester,
+            final Cancellable timeout) {
+        final ReceiveBuilder receiveBuilder = ReceiveBuilder.create()
                 .match(RetrieveThingResponse.class, response -> {
-                    if (policy != null) {
-                        timeout.cancel();
-                        thing = response.getThing();
-                        sendResponse(command, requester);
-                    } else {
-                        thing = response.getThing();
-                    }
-                })
-                .match(RetrievePolicyResponse.class, response -> {
-                    if (thing != null) {
-                        timeout.cancel();
-                        sendResponse(command, requester);
-                    } else {
-                        policy = response.getPolicy();
-                    }
-                })
-                .match(PolicyNotAccessibleException.class, e -> {
-                    // no such policy OR no READ permission on policy:/ when queried with _policy field.
-                    policy = null;
-                    if (thing != null) {
-                        timeout.cancel();
-                        sendResponse(command, requester);
-                    }
+                    thing = response.getThing();
+                    getContext().become(thingRespondedBehaviour(command, requester, timeout));
                 })
                 .match(ThingNotAccessibleException.class, e -> {
                     log.info("Thing was not accessible: {}", e.getMessage());
                     requester.tell(e, getSelf());
                     getContext().stop(getSelf());
                 })
+                .match(RetrievePolicyResponse.class, response -> {
+                    policy = response.getPolicy();
+                    getContext().become(policyRespondedBehaviour(command, requester, timeout));
+                })
+                .match(PolicyNotAccessibleException.class, e -> {
+                    // no such policy OR no READ permission on policy:/ when queried with _policy field.
+                    // ignore this and possibly return the thing that will be returned by things service
+                    log.debug("Policy was requested but not accessible: {}", e);
+                    getContext().become(policyRespondedBehaviour(command, requester, timeout));
+                });
+        // combine with default message behaviour
+        return defaultMessageBehaviour(receiveBuilder, requester).build();
+    }
+
+    /**
+     * Behaviour after things services responded. Will only be waiting for answers from policies service.
+     *
+     * @param command The incoming retrieve thing command.
+     * @param requester The requester of {@code command}.
+     * @param timeout Timeout for the requests to policies and things service.
+     * @return The receive behaviour that expects policies service to answer.
+     */
+    private Receive thingRespondedBehaviour(final RetrieveThing command, final ActorRef requester,
+            final Cancellable timeout) {
+        final ReceiveBuilder receiveBuilder = ReceiveBuilder.create()
+                .match(RetrievePolicyResponse.class, response -> {
+                    policy = response.getPolicy();
+                    timeout.cancel();
+                    sendResponse(command, requester);
+                })
+                .match(PolicyNotAccessibleException.class, e -> {
+                    // no such policy OR no READ permission on policy:/ when queried with _policy field.
+                    // ignore this and return the thing that was returned by things service
+                    log.debug("Policy was requested but not accessible: {}", e);
+                    timeout.cancel();
+                    sendResponse(command, requester);
+                });
+        // combine with default message behaviour
+        return defaultMessageBehaviour(receiveBuilder, requester).build();
+    }
+
+    /**
+     * Behaviour after policies services responded. Will only be waiting for answers from things service.
+     *
+     * @param command The incoming retrieve thing command.
+     * @param requester The requester of {@code command}.
+     * @param timeout Timeout for the requests to policies and things service.
+     * @return The receive behaviour that expects things service to answer.
+     */
+    private Receive policyRespondedBehaviour(final RetrieveThing command, final ActorRef requester, final Cancellable
+            timeout) {
+        final ReceiveBuilder receiveBuilder = ReceiveBuilder.create()
+                .match(RetrieveThingResponse.class, response -> {
+                    thing = response.getThing();
+                    timeout.cancel();
+                    sendResponse(command, requester);
+                })
+                .match(ThingNotAccessibleException.class, e -> {
+                    log.info("Thing was not accessible: {}", e.getMessage());
+                    requester.tell(e, getSelf());
+                    getContext().stop(getSelf());
+                });
+        // combine with default message behaviour
+        return defaultMessageBehaviour(receiveBuilder, requester).build();
+    }
+
+    /**
+     * Default receive behaviour matching on Exceptions and unknown messages.
+     *
+     * @param receiveBuilder The receiveBuilder to which the default behaviour is added.
+     * @param requester The requester of {@code command}.
+     * @return The receive behaviour that expects policies service to answer.
+     */
+    private ReceiveBuilder defaultMessageBehaviour(final ReceiveBuilder receiveBuilder, final ActorRef requester) {
+        return receiveBuilder
                 .match(AskTimeoutException.class, e -> {
                     log.error("Timeout exception while trying to aggregate Thing and Policy");
                     getContext().stop(getSelf());
@@ -197,20 +266,24 @@ public class RetrieveThingHandlerActor extends AbstractActor {
                     requester.tell(cre, getSelf());
                     getContext().stop(getSelf());
                 })
-                .matchAny(m -> log.warning("Got unknown message while waiting for responses: {}", m))
-                .build());
+                .matchAny(m -> log.warning("Got unknown message while waiting for responses: {}", m));
     }
 
     private void sendResponse(final RetrieveThing command, final ActorRef requester) {
         final Optional<JsonFieldSelector> selectedFields = command.getSelectedFields();
-        final JsonObject thingWithPolicy = JsonFactory.newObjectBuilder()
-                .setAll(thing.toJson(command.getImplementedSchemaVersion(), selectedFields.get()))
-                .setAll(policy.toInlinedJson(command.getImplementedSchemaVersion(), FieldType.notHidden()))
-                .build();
+        JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder()
+                .setAll(thing.toJson(command.getImplementedSchemaVersion(),
+                        selectedFields.orElse(JsonFactory.emptyFieldSelector())));
 
-        requester.tell(RetrieveThingResponse.of(command.getThingId(), thingWithPolicy, command.getDittoHeaders()),
+        if (null != policy) {
+            // set policy if it was accessible by the requester
+            jsonObjectBuilder = jsonObjectBuilder.setAll(policy.toInlinedJson(command
+                    .getImplementedSchemaVersion(), FieldType.notHidden()));
+        }
+
+        requester.tell(
+                RetrieveThingResponse.of(command.getThingId(), jsonObjectBuilder.build(), command.getDittoHeaders()),
                 getSelf());
         getContext().stop(getSelf());
     }
-
 }
