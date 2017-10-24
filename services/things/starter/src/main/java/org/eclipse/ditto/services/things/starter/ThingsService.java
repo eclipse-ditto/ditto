@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.services.things.starter;
 
+import org.eclipse.ditto.services.utils.config.ConfigUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,6 +47,7 @@ public final class ThingsService {
      * @param args CommandLine arguments
      */
     public static void main(final String... args) {
-        new ThingsApplication(LOGGER, CLUSTER_NAME, SERVICE_NAME, DittoThingsActorsCreator::new).start();
+        new ThingsApplication(LOGGER, CLUSTER_NAME, SERVICE_NAME, DittoThingsActorsCreator::new)
+                .start(ConfigUtil.determineConfig(SERVICE_NAME));
     }
 }

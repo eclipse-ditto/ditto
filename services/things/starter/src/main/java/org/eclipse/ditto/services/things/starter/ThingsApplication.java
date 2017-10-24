@@ -71,22 +71,33 @@ public final class ThingsApplication {
 
     /**
      * Starts the Things application.
+     *
+     * @param thingsConfig configuration for Things application.
      */
-    public void start() {
+    public void start(final Config thingsConfig) {
+        start(thingsConfig, ConfigFactory.load("kamon"));
+    }
+
+    /**
+     * Starts the Things application.
+     *
+     * @param thingsConfig configuration for Things application.
+     * @param kamonConfig configuration for Kamon.
+     */
+    public void start(final Config thingsConfig, final Config kamonConfig) {
         runtimeParameters();
         Kamon.start(ConfigFactory.load("kamon"));
 
-        final Config config = ConfigUtil.determineConfig(serviceName);
-        final ActorSystem system = ActorSystem.create(clusterName, config);
+        final ActorSystem system = ActorSystem.create(clusterName, thingsConfig);
         system.actorOf(StatusSupplierActor.props(ThingsRootActor.ACTOR_NAME), StatusSupplierActor.ACTOR_NAME);
 
-        ClusterUtil.joinCluster(system, config);
+        ClusterUtil.joinCluster(system, thingsConfig);
         // important: register Kamon::shutdown after joining the cluster as there is also a "registerOnTermination"
         // and they are executed in reverse order
         system.registerOnTermination(Kamon::shutdown);
 
-        final boolean majorityCheckEnabled = config.getBoolean(ConfigKeys.Cluster.MAJORITY_CHECK_ENABLED);
-        final Duration majorityCheckDelay = config.getDuration(ConfigKeys.Cluster.MAJORITY_CHECK_DELAY);
+        final boolean majorityCheckEnabled = thingsConfig.getBoolean(ConfigKeys.Cluster.MAJORITY_CHECK_ENABLED);
+        final Duration majorityCheckDelay = thingsConfig.getDuration(ConfigKeys.Cluster.MAJORITY_CHECK_DELAY);
         logger.info("Starting actor '{}'", ClusterMemberAwareActor.ACTOR_NAME);
         system.actorOf(ClusterMemberAwareActor.props(serviceName, majorityCheckEnabled, majorityCheckDelay),
                 ClusterMemberAwareActor.ACTOR_NAME);
@@ -105,26 +116,26 @@ public final class ThingsApplication {
 
             shutdownIfJoinFails.cancel();
 
-            if (config.hasPath(ConfigKeys.StatsD.HOSTNAME)) {
+            if (thingsConfig.hasPath(ConfigKeys.StatsD.HOSTNAME)) {
                 // enable logging of mongo-persistence-plugin statistics to statsD
                 // CAUTION: the cast is not redundant for maven.
                 final MetricRegistry registry =
                         ((MongoPersistenceExtension) MongoPersistenceExtension$.MODULE$.apply(system))
-                                .configured(config)
+                                .configured(thingsConfig)
                                 .registry();
 
                 final StatsDReporter metricsReporter = StatsDReporter.forRegistry(registry)
                         .convertRatesTo(TimeUnit.SECONDS)
                         .convertDurationsTo(TimeUnit.MILLISECONDS)
                         .prefixedWith(serviceName + "." + ConfigUtil.calculateInstanceUniqueSuffix())
-                        .build(config.getString(ConfigKeys.StatsD.HOSTNAME), config.getInt(ConfigKeys.StatsD.PORT));
+                        .build(thingsConfig.getString(ConfigKeys.StatsD.HOSTNAME), thingsConfig.getInt(ConfigKeys.StatsD.PORT));
                 metricsReporter.start(5, TimeUnit.SECONDS);
             } else {
                 logger.warn("MongoDB monitoring will be deactivated as '{}' is not configured",
                         ConfigKeys.StatsD.HOSTNAME);
             }
 
-            final ThingsActorsCreator actorsCreator = actorsCreatorCreator.apply(config, system);
+            final ThingsActorsCreator actorsCreator = actorsCreatorCreator.apply(thingsConfig, system);
             system.actorOf(actorsCreator.createRootActor(), ThingsRootActor.ACTOR_NAME);
         });
     }
