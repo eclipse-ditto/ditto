@@ -254,7 +254,7 @@ public interface JsonObject extends JsonValue, JsonValueContainer<JsonField> {
      *       },
      *       "yo": 10
      *    },
-     *    "thingId": "0x1337",
+     *    "thingId": "0x1337"
      *    }
      * </pre>
      * <p>
