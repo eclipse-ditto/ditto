@@ -133,7 +133,7 @@ public final class ConfigUtil {
             config = buildConfigForFilebased(null)
                     .withValue(HOSTING_ENVIRONMENT, ConfigValueFactory.fromAnyRef(environment));
         } else if (environment != null && !environment.isEmpty()) {
-            config = buildConfigForFilebased(environment)
+            config = buildConfigForFilebased(resourceBasename + "-" + environment)
                     .withValue(HOSTING_ENVIRONMENT, ConfigValueFactory.fromAnyRef(environment));
         } else {
             LOGGER.info("Docker environment was not detected - assuming running in 'development' environment");
