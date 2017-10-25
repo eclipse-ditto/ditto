@@ -16,7 +16,9 @@ import static java.util.Objects.requireNonNull;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
@@ -220,8 +222,40 @@ final class ImmutableJsonObjectBuilder implements JsonObjectBuilder {
     }
 
     @Override
+    public boolean isEmpty() {
+        return fields.isEmpty();
+    }
+
+    @Override
+    public int getSize() {
+        return fields.size();
+    }
+
+    @Override
+    public Stream<JsonField> stream() {
+        return fields.values().stream();
+    }
+
+    @Override
     public JsonObject build() {
         return ImmutableJsonObject.of(fields);
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        final ImmutableJsonObjectBuilder that = (ImmutableJsonObjectBuilder) o;
+        return Objects.equals(fields, that.fields);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(fields);
     }
 
     @Override

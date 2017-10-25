@@ -12,7 +12,9 @@
 package org.eclipse.ditto.model.things;
 
 import java.util.Iterator;
+import java.util.Objects;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -138,9 +140,48 @@ final class ImmutableAttributesBuilder implements AttributesBuilder {
     }
 
     @Override
+    public boolean isEmpty() {
+        return jsonObjectBuilder.isEmpty();
+    }
+
+    @Override
+    public int getSize() {
+        return jsonObjectBuilder.getSize();
+    }
+
+    @Override
+    public Stream<JsonField> stream() {
+        return jsonObjectBuilder.stream();
+    }
+
+    @Override
     public Attributes build() {
         final JsonObject attributesJsonObject = jsonObjectBuilder.build();
         return ImmutableAttributes.of(attributesJsonObject);
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        final ImmutableAttributesBuilder that = (ImmutableAttributesBuilder) o;
+        return Objects.equals(jsonObjectBuilder, that.jsonObjectBuilder);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(jsonObjectBuilder);
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + " [" +
+                "jsonObjectBuilder=" + jsonObjectBuilder +
+                "]";
     }
 
 }
