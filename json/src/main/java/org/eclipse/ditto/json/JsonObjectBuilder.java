@@ -19,7 +19,7 @@ import javax.annotation.Nullable;
  * A mutable builder for a {@link JsonObject}. Implementations of this interface are normally not thread safe and not
  * reusable.
  */
-public interface JsonObjectBuilder extends Iterable<JsonField> {
+public interface JsonObjectBuilder extends JsonValueContainer<JsonField> {
 
     /**
      * Sets a new int value field to the JSON object to be built if the specified predicate evaluates to {@code true}.

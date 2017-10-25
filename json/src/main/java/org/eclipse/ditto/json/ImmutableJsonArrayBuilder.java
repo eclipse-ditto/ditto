@@ -19,6 +19,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -76,6 +78,11 @@ final class ImmutableJsonArrayBuilder implements JsonArrayBuilder {
     }
 
     @Override
+    public JsonArrayBuilder set(final int index, final int value) {
+        return set(index, JsonFactory.newValue(value));
+    }
+
+    @Override
     public ImmutableJsonArrayBuilder add(final long value, final long... furtherValues) {
         checkFurtherValues(furtherValues);
 
@@ -84,13 +91,16 @@ final class ImmutableJsonArrayBuilder implements JsonArrayBuilder {
         return this;
     }
 
-
-
     @Override
     public ImmutableJsonArrayBuilder addLongs(final Iterable<Long> longValues) {
         return addAll(getStream(requireNonNull(longValues, "The long values to be added must not be null!"))
                 .map(JsonFactory::newValue)
                 .collect(Collectors.toList()));
+    }
+
+    @Override
+    public JsonArrayBuilder set(final int index, final long value) {
+        return set(index, JsonFactory.newValue(value));
     }
 
     @Override
@@ -107,6 +117,11 @@ final class ImmutableJsonArrayBuilder implements JsonArrayBuilder {
         return addAll(getStream(requireNonNull(doubleValues, "The double values to be added must not be null!"))
                 .map(JsonFactory::newValue)
                 .collect(Collectors.toList()));
+    }
+
+    @Override
+    public JsonArrayBuilder set(final int index, final double value) {
+        return set(index, JsonFactory.newValue(value));
     }
 
     @Override
@@ -128,6 +143,11 @@ final class ImmutableJsonArrayBuilder implements JsonArrayBuilder {
     }
 
     @Override
+    public JsonArrayBuilder set(final int index, final boolean value) {
+        return set(index, JsonFactory.newValue(value));
+    }
+
+    @Override
     public ImmutableJsonArrayBuilder add(final String value, final String... furtherValues) {
         checkValue(value);
         checkFurtherValues(furtherValues);
@@ -144,6 +164,12 @@ final class ImmutableJsonArrayBuilder implements JsonArrayBuilder {
         return addAll(getStream(requireNonNull(stringValues, "The String values to be added must not be null!"))
                 .map(JsonFactory::newValue)
                 .collect(Collectors.toList()));
+    }
+
+    @Override
+    public JsonArrayBuilder set(final int index, final String value) {
+        requireNonNull(value, "The value to be set must not be null!");
+        return set(index, JsonFactory.newValue(value));
     }
 
     private static <T> Stream<T> getStream(final Iterable<T> iterable) {
@@ -169,6 +195,28 @@ final class ImmutableJsonArrayBuilder implements JsonArrayBuilder {
     }
 
     @Override
+    public JsonArrayBuilder set(final int index, final JsonValue value) {
+        requireNonNull(value, "The value to be set must not be null!");
+        values.set(index, value);
+        return this;
+    }
+
+    @Override
+    public Optional<JsonValue> get(final int index) {
+        try {
+            return Optional.of(values.get(index));
+        } catch (final IndexOutOfBoundsException e) {
+            return Optional.empty();
+        }
+    }
+
+    @Override
+    public JsonArrayBuilder remove(final int index) {
+        values.remove(index);
+        return this;
+    }
+
+    @Override
     public ImmutableJsonArrayBuilder remove(final JsonValue value) {
         requireNonNull(value, "The value to be removed must not be null!");
 
@@ -183,8 +231,47 @@ final class ImmutableJsonArrayBuilder implements JsonArrayBuilder {
     }
 
     @Override
+    public boolean isEmpty() {
+        return values.isEmpty();
+    }
+
+    @Override
+    public int getSize() {
+        return values.size();
+    }
+
+    @Override
+    public Stream<JsonValue> stream() {
+        return values.stream();
+    }
+
+    @Override
     public JsonArray build() {
         return ImmutableJsonArray.of(values);
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        final ImmutableJsonArrayBuilder that = (ImmutableJsonArrayBuilder) o;
+        return Objects.equals(values, that.values);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(values);
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + " [" +
+                "values=" + values +
+                "]";
     }
 
 }

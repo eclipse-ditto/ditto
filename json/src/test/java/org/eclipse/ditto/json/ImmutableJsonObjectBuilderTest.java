@@ -29,6 +29,8 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import nl.jqno.equalsverifier.EqualsVerifier;
+
 /**
  * Unit test for {@link ImmutableJsonObjectBuilder}.
  */
@@ -71,6 +73,13 @@ public final class ImmutableJsonObjectBuilderTest {
     @Before
     public void setUp() {
         underTest = ImmutableJsonObjectBuilder.newInstance();
+    }
+
+    @Test
+    public void testHashCodeAndEquals() {
+        EqualsVerifier.forClass(ImmutableJsonObjectBuilder.class)
+                .usingGetClass()
+                .verify();
     }
 
     @Test
