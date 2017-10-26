@@ -12,6 +12,7 @@
 package org.eclipse.ditto.services.gateway.proxy.actors.handlers;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.UUID;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -44,6 +45,9 @@ public class AbstractThingHandlerActorTest {
 
     protected static final DittoHeaders defaultHeaders = DittoHeaders.newBuilder()
             .authorizationSubjects(defaultSubject.getId().toString())
+            .readSubjects(
+                    Collections.singleton(defaultSubject.getId().toString())
+            )
             .build();
     protected static final String defaultEnforcerId = "default:enforcerShardId";
 

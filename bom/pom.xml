@@ -293,6 +293,10 @@
                 <version>${kamon.version}</version>
                 <exclusions>
                     <exclusion>
+                        <groupId>io.kamon</groupId>
+                        <artifactId>kamon-akka-2.4_${scala.version}</artifactId>
+                    </exclusion>
+                    <exclusion>
                         <groupId>com.typesafe.akka</groupId>
                         <artifactId>akka-remote_${scala.version}</artifactId>
                     </exclusion>

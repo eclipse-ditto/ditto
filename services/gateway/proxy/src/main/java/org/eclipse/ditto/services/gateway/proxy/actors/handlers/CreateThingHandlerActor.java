@@ -11,6 +11,8 @@
  */
 package org.eclipse.ditto.services.gateway.proxy.actors.handlers;
 
+import static org.eclipse.ditto.services.models.policies.Permission.READ;
+
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
@@ -29,10 +31,13 @@ import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.PoliciesResourceType;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyException;
+import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.model.policies.Subject;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
 import org.eclipse.ditto.model.policies.SubjectType;
+import org.eclipse.ditto.model.policiesenforcers.EffectedSubjectIds;
+import org.eclipse.ditto.model.policiesenforcers.PolicyEnforcers;
 import org.eclipse.ditto.model.things.AclNotAllowedException;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
@@ -412,9 +417,18 @@ public final class CreateThingHandlerActor extends AbstractActor {
                     final Thing thingWithPolicyId = command.getThing().toBuilder()
                             .setPolicyId(policyId)
                             .build();
+
+                    final DittoHeaders adjustedHeaders = command.getInitialPolicy().map(PoliciesModelFactory::newPolicy)
+                            .map(PolicyEnforcers::defaultEvaluator)
+                            .map(eval -> eval.getSubjectIdsWithPermission(
+                                    ResourceKey.newInstance(command.getResourceType(), command.getResourcePath()), READ))
+                            .map(EffectedSubjectIds::getGranted)
+                            .map(granted -> command.getDittoHeaders().toBuilder().readSubjects(granted).build())
+                            .orElse(command.getDittoHeaders());
+
                     final CreateThing commandWithPolicyId =
                             CreateThing.of(thingWithPolicyId, command.getInitialPolicy().orElse(null),
-                                    command.getDittoHeaders());
+                                    adjustedHeaders);
                     policyEnforcerShard.tell(createShardedMessageEnvelope(policyId, commandWithPolicyId), getSelf());
                 })
                 .match(PolicyNotAccessibleException.class, pnae -> {
