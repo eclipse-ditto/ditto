@@ -38,6 +38,7 @@ import org.eclipse.ditto.services.gateway.security.jwt.ImmutableJsonWebKey;
 import org.eclipse.ditto.services.gateway.security.jwt.JsonWebKey;
 import org.eclipse.ditto.services.gateway.starter.service.util.HttpClientFacade;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationProviderUnavailableException;
+import org.eclipse.ditto.signals.commands.base.exceptions.GatewayJwtIssuerNotSupportedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,32 +56,35 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DittoPublicKeyProvider.class);
 
-    private static final String JWK_RESOURCE_GOOGLE = "https://www.googleapis.com/oauth2/v2/certs";
-
     private static final long JWK_REQUEST_TIMEOUT_MILLISECONDS = 5000;
 
+    private final JwtSubjectIssuersConfig jwtSubjectIssuersConfig;
     private final HttpClientFacade httpClient;
     private final Cache<String, PublicKey> publicKeyCache;
 
-    private DittoPublicKeyProvider(final HttpClientFacade httpClient, final Cache<String, PublicKey> publicKeyCache) {
-        this.httpClient = httpClient;
-        this.publicKeyCache = publicKeyCache;
+    private DittoPublicKeyProvider(final JwtSubjectIssuersConfig jwtSubjectIssuersConfig,
+            final HttpClientFacade httpClient, final Cache<String, PublicKey> publicKeyCache) {
+        this.jwtSubjectIssuersConfig = argumentNotNull(jwtSubjectIssuersConfig);
+        this.httpClient = argumentNotNull(httpClient);
+        this.publicKeyCache = argumentNotNull(publicKeyCache);
     }
 
+
     /**
-     * Returns a new {@code PublicKeyProvider} for the given {@code httpClient} and {@code imClient}.
+     * Returns a new {@code PublicKeyProvider} for the given parameters.
      *
+     * @param jwtSubjectIssuersConfig the configuration of supported JWT subject issuers
      * @param httpClient the http client.
      * @param maxCacheEntries the max amount of public keys to cache.
      * @param expiry the expiry of cache entries in minutes.
      * @return the PublicKeyProvider.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static PublicKeyProvider of(final HttpClientFacade httpClient,
+    public static PublicKeyProvider of(final JwtSubjectIssuersConfig jwtSubjectIssuersConfig,
+            final HttpClientFacade httpClient,
             final int maxCacheEntries, final Duration expiry) {
-        argumentNotNull(httpClient);
-
-        return new DittoPublicKeyProvider(httpClient, PublicKeyCache.newInstance(maxCacheEntries, expiry));
+        return new DittoPublicKeyProvider(jwtSubjectIssuersConfig, httpClient,
+                PublicKeyCache.newInstance(maxCacheEntries, expiry));
     }
 
     @Override
@@ -88,12 +92,13 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
         argumentNotNull(issuer);
         argumentNotNull(keyId);
 
+        final JwtSubjectIssuerConfig subjectIssuerConfig =
+                jwtSubjectIssuersConfig.getConfigItem(issuer)
+                        .orElseThrow(() -> GatewayJwtIssuerNotSupportedException.newBuilder(issuer).build());
+
         return Optional.ofNullable(publicKeyCache.get(keyId).orElseGet(() -> {
             try {
-                JsonArray publicKeys = JsonFactory.newArray();
-                if (issuer.equals(SubjectIssuer.GOOGLE) || issuer.equals(SubjectIssuer.GOOGLE_URL)) {
-                    publicKeys = getPublicKeysFromJwkResource(JWK_RESOURCE_GOOGLE);
-                }
+                JsonArray publicKeys = getPublicKeysFromJwkResource(subjectIssuerConfig.getJwkResource());
                 return refreshCache(publicKeys, keyId).orElse(null);
             } catch (final RuntimeException e) {
                 LOGGER.warn("An error occurred while retrieving a JWK: ", e);
@@ -108,7 +113,7 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
             response = httpClient.createSingleHttpRequest(HttpRequest.GET(resource)).toCompletableFuture()
                     .get(JWK_REQUEST_TIMEOUT_MILLISECONDS, TimeUnit.MILLISECONDS);
         } catch (final ExecutionException | InterruptedException | TimeoutException e) {
-            LOGGER.warn("Got Exception from JwkResouce provider at resource '{}': {} - {}", resource,
+            LOGGER.warn("Got Exception from JwkResource provider at resource '{}': {} - {}", resource,
                     e.getClass().getSimpleName(), e.getMessage());
             throw GatewayAuthenticationProviderUnavailableException.newBuilder().cause(e).build();
         }

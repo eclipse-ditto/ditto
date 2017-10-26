@@ -15,13 +15,31 @@ import java.util.function.Function;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 
+import akka.http.javadsl.server.RequestContext;
 import akka.http.javadsl.server.Route;
 
 /**
- * Interface for authentication directives.
+ * Interface for authentication providers such as JWT authentication.
  */
-public interface AuthenticationDirective {
+public interface AuthenticationProvider {
 
+    /**
+     * Checks whether this provider is applicable for the request specified by {@code context}.
+     * <p>Example: For Basic-Authentication, it should be checked whether a syntactically valid 'Authorization' header
+     * is present. Authentication must <strong>not</strong> be checked by this method, this is the purpose of method
+     * {@link #authenticate(String, Function)}.</p>
+     *
+     * @param context the request context
+     * @return {@code true}, if this provider is applicable for the request
+     */
+    boolean isApplicable(final RequestContext context);
+
+    /**
+     * Returns a route which is returned when this provider is not applicable to a request.
+     *
+     * @return the route
+     */
+    Route unauthorized(String correlationId);
 
     /**
      * Performs the authentication and provides an {@link AuthorizationContext} to the route provided by parameter

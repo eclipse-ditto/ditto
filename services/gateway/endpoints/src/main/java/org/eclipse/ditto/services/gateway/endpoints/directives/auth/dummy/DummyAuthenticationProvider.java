@@ -24,29 +24,42 @@ import java.util.stream.Collectors;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
-import org.eclipse.ditto.services.gateway.endpoints.directives.auth.AuthenticationDirective;
+import org.eclipse.ditto.services.gateway.endpoints.directives.auth.AuthenticationProvider;
 import org.eclipse.ditto.services.gateway.security.HttpHeader;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationFailedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import akka.http.javadsl.model.StatusCodes;
+import akka.http.javadsl.server.Directives;
+import akka.http.javadsl.server.RequestContext;
 import akka.http.javadsl.server.Route;
 
 /**
- * Custom Akka Http directive which performs Dummy authentication for development purposes.
+ * Implementation of {@link AuthenticationProvider} which performs Dummy authentication for development purposes.
  * <p><strong>Note: </strong>Don't use in production!</p>
  */
-public final class DummyAuthenticationDirective implements AuthenticationDirective {
+public final class DummyAuthenticationProvider implements AuthenticationProvider {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(DummyAuthenticationDirective.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(DummyAuthenticationProvider.class);
 
     /**
      * Returns the instance of this directive.
      */
-    public static final DummyAuthenticationDirective INSTANCE = new DummyAuthenticationDirective();
+    public static final DummyAuthenticationProvider INSTANCE = new DummyAuthenticationProvider();
 
-    private DummyAuthenticationDirective() {
+    private DummyAuthenticationProvider() {
         //no op
+    }
+
+    @Override
+    public boolean isApplicable(final RequestContext context) {
+        return getRequestHeader(context, HttpHeader.X_DITTO_DUMMY_AUTH.getName()).isPresent();
+    }
+
+    @Override
+    public Route unauthorized(final String correlationId) {
+        return Directives.complete(StatusCodes.UNAUTHORIZED);
     }
 
     /**
@@ -65,7 +78,7 @@ public final class DummyAuthenticationDirective implements AuthenticationDirecti
             final String dummyAuth =
                     getRequestHeader(requestContext, HttpHeader.X_DITTO_DUMMY_AUTH.getName()) //
                             .orElseThrow(
-                                    () -> new IllegalStateException("This directive must not be called if header'" +
+                                    () -> new IllegalStateException("This method must not be called if header'" +
                                             HttpHeader.X_DITTO_DUMMY_AUTH.getName() + "' is not set"));
 
             final List<AuthorizationSubject> authorizationSubjects = extractAuthorizationSubjects(dummyAuth);

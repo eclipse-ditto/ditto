@@ -25,7 +25,10 @@ import static org.eclipse.ditto.services.gateway.endpoints.directives.ResponseRe
 import static org.eclipse.ditto.services.gateway.endpoints.directives.auth.AuthorizationContextVersioningDirective.mapAuthorizationContext;
 import static org.eclipse.ditto.services.gateway.endpoints.utils.DirectivesLoggingUtils.enhanceLogWithCorrelationId;
 
+import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Supplier;
 
 import org.eclipse.ditto.json.JsonRuntimeException;
@@ -36,11 +39,19 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.policies.SubjectIssuer;
 import org.eclipse.ditto.services.gateway.endpoints.directives.EncodingEnsuringDirective;
 import org.eclipse.ditto.services.gateway.endpoints.directives.HttpsEnsuringDirective;
 import org.eclipse.ditto.services.gateway.endpoints.directives.RequestTimeoutHandlingDirective;
 import org.eclipse.ditto.services.gateway.endpoints.directives.SecurityResponseHeadersDirective;
+import org.eclipse.ditto.services.gateway.endpoints.directives.auth.AuthenticationProvider;
 import org.eclipse.ditto.services.gateway.endpoints.directives.auth.GatewayAuthenticationDirective;
+import org.eclipse.ditto.services.gateway.endpoints.directives.auth.dummy.DummyAuthenticationProvider;
+import org.eclipse.ditto.services.gateway.endpoints.directives.auth.jwt.DittoPublicKeyProvider;
+import org.eclipse.ditto.services.gateway.endpoints.directives.auth.jwt.JwtAuthenticationDirective;
+import org.eclipse.ditto.services.gateway.endpoints.directives.auth.jwt.JwtSubjectIssuerConfig;
+import org.eclipse.ditto.services.gateway.endpoints.directives.auth.jwt.JwtSubjectIssuersConfig;
+import org.eclipse.ditto.services.gateway.endpoints.directives.auth.jwt.PublicKeyProvider;
 import org.eclipse.ditto.services.gateway.endpoints.routes.health.CachingHealthRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.policies.PoliciesRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.sse.SseThingsRoute;
@@ -87,6 +98,7 @@ public final class RootRoute {
     static final String WS_PATH_PREFIX = "ws";
 
     private static final String BLOCKING_DISPATCHER_NAME = "blocking-dispatcher";
+    private static final String JWK_RESOURCE_GOOGLE = "https://www.googleapis.com/oauth2/v2/certs";
 
     private final OverallStatusRoute overallStatusRoute;
     private final CachingHealthRoute cachingHealthRoute;
@@ -146,10 +158,39 @@ public final class RootRoute {
         supportedSchemaVersions = config.getIntList(ConfigKeys.SCHEMA_VERSIONS);
 
         apiAuthenticationDirective =
-                new GatewayAuthenticationDirective(config, blockingDispatcher, httpClient);
-        wsAuthenticationDirective =
-                new GatewayAuthenticationDirective(config, blockingDispatcher, httpClient);
+                generateGatewayAuthenticationDirective(config, httpClient, blockingDispatcher);
+        wsAuthenticationDirective = apiAuthenticationDirective;
         exceptionHandler = createExceptionHandler();
+    }
+
+    private GatewayAuthenticationDirective generateGatewayAuthenticationDirective(final Config config,
+            final HttpClientFacade httpClient, final MessageDispatcher blockingDispatcher) {
+        final boolean dummyAuthEnabled = config.getBoolean(ConfigKeys.AUTHENTICATION_DUMMY_ENABLED);
+
+        final List<AuthenticationProvider> authenticationChain = new LinkedList<>();
+        if (dummyAuthEnabled) {
+            LOGGER.warn("Dummy authentication is enabled - Do not use this feature in production.");
+            authenticationChain.add(DummyAuthenticationProvider.INSTANCE);
+        }
+
+        final JwtSubjectIssuersConfig jwtSubjectIssuersConfig = buildJwtSubjectIssuersConfig();
+        final PublicKeyProvider publicKeyProvider = DittoPublicKeyProvider.of(jwtSubjectIssuersConfig, httpClient,
+                config.getInt(ConfigKeys.CACHE_PUBLIC_KEYS_MAX),
+                config.getDuration(ConfigKeys.CACHE_PUBLIC_KEYS_EXPIRY));
+        authenticationChain.add(new JwtAuthenticationDirective(blockingDispatcher, publicKeyProvider));
+
+        return new GatewayAuthenticationDirective(authenticationChain);
+    }
+
+    private JwtSubjectIssuersConfig buildJwtSubjectIssuersConfig() {
+        final Set<JwtSubjectIssuerConfig> configItems = new HashSet<>();
+
+        configItems.add(new JwtSubjectIssuerConfig(SubjectIssuer.GOOGLE,
+                JWK_RESOURCE_GOOGLE));
+        configItems.add(new JwtSubjectIssuerConfig(SubjectIssuer.GOOGLE_URL,
+                JWK_RESOURCE_GOOGLE));
+
+        return new JwtSubjectIssuersConfig(configItems);
     }
 
     /**
