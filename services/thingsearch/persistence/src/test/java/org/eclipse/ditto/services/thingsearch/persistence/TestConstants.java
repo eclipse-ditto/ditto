@@ -115,7 +115,10 @@ public final class TestConstants {
         public static final SubjectId SUBJECT_ID =
                 SubjectId.newInstance(SubjectIssuer.GOOGLE_URL, SUBJECT_ID_SUBJECT);
 
-        public static final SubjectType SUBJECT_TYPE = SubjectType.JWT;
+        /**
+         * A known SubjectType.
+         */
+        public static final SubjectType SUBJECT_TYPE = SubjectType.newInstance("mySubjectType");
 
         /**
          * A known Subject.

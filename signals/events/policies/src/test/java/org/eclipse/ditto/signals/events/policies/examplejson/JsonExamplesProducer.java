@@ -58,7 +58,6 @@ import org.eclipse.ditto.signals.events.policies.SubjectsModified;
 
 public class JsonExamplesProducer {
 
-    private static final String FEATURE_ID = "accelerometer";
     private static final String NAMESPACE = "com.acme";
 
     /*
@@ -69,7 +68,7 @@ public class JsonExamplesProducer {
     private static final SubjectId SUBJECT_ID =
             PoliciesModelFactory.newSubjectId(SubjectIssuer.GOOGLE_URL, "the_subjectid");
     private static final Subject SUBJECT =
-            PoliciesModelFactory.newSubject(SUBJECT_ID, SubjectType.JWT);
+            PoliciesModelFactory.newSubject(SUBJECT_ID, SubjectType.newInstance("yourSubjectTypeDescription"));
     private static final Subjects SUBJECTS = PoliciesModelFactory.newSubjects(SUBJECT);
     private static final EffectedPermissions EFFECTED_PERMISSIONS = PoliciesModelFactory
             .newEffectedPermissions(Arrays.asList("READ", "WRITE"), PoliciesModelFactory.noPermissions());

@@ -23,13 +23,14 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.PoliciesResourceType;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
-import org.eclipse.ditto.model.policies.SubjectType;
 import org.eclipse.ditto.model.policiesenforcers.PolicyEnforcer;
 import org.eclipse.ditto.model.policiesenforcers.PolicyEnforcers;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.models.policies.Permission;
+import org.eclipse.ditto.services.thingsearch.persistence.TestConstants;
+import org.eclipse.ditto.services.thingsearch.persistence.util.MongoSetKeyValidity;
 import org.eclipse.ditto.signals.events.things.AclEntryCreated;
 import org.eclipse.ditto.signals.events.things.AclEntryModified;
 import org.eclipse.ditto.signals.events.things.AttributeModified;
@@ -38,8 +39,6 @@ import org.eclipse.ditto.signals.events.things.FeatureModified;
 import org.eclipse.ditto.signals.events.things.FeaturesModified;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.eclipse.ditto.signals.events.things.ThingModified;
-import org.eclipse.ditto.services.thingsearch.persistence.TestConstants;
-import org.eclipse.ditto.services.thingsearch.persistence.util.MongoSetKeyValidity;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -69,7 +68,7 @@ public final class CombinedThingWritesTest {
     public static void setupPolicyEnforcer() {
         final Policy policy = Policy.newBuilder("CombinedThingWritesTest:policyId")
                 .forLabel("root")
-                .setSubject(SubjectIssuer.GOOGLE_URL, SUBJECT, SubjectType.JWT)
+                .setSubject(SubjectIssuer.GOOGLE_URL, SUBJECT)
                 .setGrantedPermissions(PoliciesResourceType.thingResource("/"), Permission.READ)
                 .build();
         policyEnforcer = PolicyEnforcers.defaultEvaluator(policy);

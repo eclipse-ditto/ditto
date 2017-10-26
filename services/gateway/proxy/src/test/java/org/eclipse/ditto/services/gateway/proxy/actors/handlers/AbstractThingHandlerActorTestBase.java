@@ -38,10 +38,10 @@ import akka.testkit.javadsl.TestKit;
 /**
  * Base class of tests of handler actors of thing commands.
  */
-public class AbstractThingHandlerActorTest {
+public class AbstractThingHandlerActorTestBase {
 
     protected static final Subject defaultSubject =
-            Subject.newInstance(SubjectIssuer.GOOGLE_URL, "testSubject", SubjectType.JWT);
+            Subject.newInstance(SubjectIssuer.GOOGLE_URL, "testSubject");
 
     protected static final DittoHeaders defaultHeaders = DittoHeaders.newBuilder()
             .authorizationSubjects(defaultSubject.getId().toString())

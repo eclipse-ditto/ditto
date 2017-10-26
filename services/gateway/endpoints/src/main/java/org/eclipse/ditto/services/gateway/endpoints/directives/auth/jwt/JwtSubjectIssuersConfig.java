@@ -23,7 +23,7 @@ import java.util.Optional;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
 
 /**
- * Configuration for JWT issuers.
+ * Configuration for UNKNOWN issuers.
  */
 public final class JwtSubjectIssuersConfig {
     private final Map<SubjectIssuer, JwtSubjectIssuerConfig> subjectIssuerConfigMap;
@@ -31,7 +31,7 @@ public final class JwtSubjectIssuersConfig {
     /**
      * Constructor.
      *
-     * @param configItems the items (configurations for each JWT issuer)
+     * @param configItems the items (configurations for each UNKNOWN issuer)
      */
     public JwtSubjectIssuersConfig(final Iterable<JwtSubjectIssuerConfig> configItems) {
         requireNonNull(configItems);

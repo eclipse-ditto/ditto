@@ -13,10 +13,7 @@ package org.eclipse.ditto.services.policies.persistence;
 
 import java.util.Arrays;
 
-import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.policies.ResourceKey;
-import org.eclipse.ditto.model.policies.SubjectId;
-import org.eclipse.ditto.model.policies.SubjectIssuer;
+import org.eclipse.ditto.model.policies.SubjectType;
 
 /**
  * Defines constants for testing.
@@ -33,9 +30,9 @@ public final class TestConstants {
     public static final class Policy {
 
         /**
-         * The known type.
+         * A known SubjectType.
          */
-        public static final String TYPE = "things";
+        public static final SubjectType SUBJECT_TYPE = SubjectType.newInstance("mySubjectType");
 
         /**
          * The known "read" permission.
@@ -47,30 +44,6 @@ public final class TestConstants {
          */
         public static final String PERMISSION_WRITE = "WRITE";
 
-        /**
-         * A known Subject Id subject.
-         */
-        public static final String SUBJECT_ID_SUBJECT = "LukeSkywalker";
-
-        /**
-         * A known Subject Id.
-         */
-        public static final SubjectId SUBJECT_ID = SubjectId.newInstance(SubjectIssuer.GOOGLE_URL, SUBJECT_ID_SUBJECT);
-
-        /**
-         * A known resource type.
-         */
-        public static final String RESOURCE_TYPE = "thing";
-
-        /**
-         * A known resource path.
-         */
-        public static final JsonPointer RESOURCE_PATH = JsonPointer.of("/foo/bar");
-
-        /**
-         * A known resource path char sequence.
-         */
-        public static final ResourceKey RESOURCE_KEY = ResourceKey.newInstance(RESOURCE_TYPE, RESOURCE_PATH);
 
         /**
          * All known permissions.

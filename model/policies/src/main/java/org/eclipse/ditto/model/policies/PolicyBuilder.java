@@ -72,6 +72,23 @@ public interface PolicyBuilder {
 
         /**
          * Sets the given {@link Subject} to the specified {@code label} to this builder. A previous entry with the same
+         * {@code subjectId} in the {@link Label} is replaced by the specified one. Sets the subject type
+         * to {@link SubjectType#UNKNOWN}.
+         *
+         * @param issuer the SubjectId's {@code issuer}.
+         * @param subject the character sequence for the SubjectId's {@code subject}.
+         * @return this builder to allow method chaining.
+         * @throws NullPointerException if any argument is {@code null}.
+         */
+        default LabelScoped setSubject(final SubjectIssuer issuer, final CharSequence subject) {
+
+            setSubjectFor(getLabel(), Subject.newInstance(issuer, subject));
+            return this;
+        }
+
+
+        /**
+         * Sets the given {@link Subject} to the specified {@code label} to this builder. A previous entry with the same
          * {@code subjectIssuerWithId} in the {@link Label} is replaced by the specified one.
          *
          * @param subjectIssuerWithId the Subject issuer + Subject ID (separated with a "{@value

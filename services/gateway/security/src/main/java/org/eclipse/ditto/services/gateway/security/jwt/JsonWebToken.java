@@ -24,7 +24,7 @@ import org.eclipse.ditto.model.base.json.FieldType;
 /**
  * Representation for a JSON Web Token.
  *
- * @see <a href="https://tools.ietf.org/html/rfc7519">JSON Web Token (JWT)</a>
+ * @see <a href="https://tools.ietf.org/html/rfc7519">JSON Web Token (UNKNOWN)</a>
  */
 public interface JsonWebToken {
 
@@ -36,14 +36,14 @@ public interface JsonWebToken {
     String getToken();
 
     /**
-     * Returns the header JSON object from the JWT.
+     * Returns the header JSON object from the UNKNOWN.
      *
      * @return the header JSON.
      */
     JsonObject getHeader();
 
     /**
-     * Returns the body JSON object from the JWT.
+     * Returns the body JSON object from the UNKNOWN.
      *
      * @return the body JSON.
      */

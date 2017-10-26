@@ -26,7 +26,6 @@ import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyBuilder;
 import org.eclipse.ditto.model.policies.Resource;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
-import org.eclipse.ditto.model.policies.SubjectType;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.AccessControlListBuilder;
 import org.eclipse.ditto.model.things.Thing;
@@ -64,7 +63,8 @@ public final class PoliciesAclMigrations {
             final String sid = aclEntry.getAuthorizationSubject().getId();
             final PolicyBuilder.LabelScoped labelScoped = policyBuilder.forLabel(ACL_LABEL_PREFIX + sid);
 
-            subjectIssuers.forEach(subjectIssuer -> labelScoped.setSubject(subjectIssuer, sid, SubjectType.JWT));
+            subjectIssuers.forEach(
+                    subjectIssuer -> labelScoped.setSubject(subjectIssuer, sid));
 
             if (aclEntry.getPermissions().contains(org.eclipse.ditto.model.things.Permission.READ) &&
                     aclEntry.getPermissions()
@@ -110,10 +110,11 @@ public final class PoliciesAclMigrations {
         policy.forEach(policyEntry -> {
             final List<AuthorizationSubject> aclSubjects = new ArrayList<>();
             policyEntry.getSubjects().stream()
-                    .filter(policySubject -> policySubject.getType() == SubjectType.JWT
-                            || policySubject.getType() == SubjectType.JWT
-                            || policySubject.getType() == SubjectType.JWT
-                            || policySubject.getType() == SubjectType.JWT)
+                    //TODO: check if this method is still required and fix if needed
+                    /*.filter(policySubject -> policySubject.getType() == SubjectType.UNKNOWN
+                            || policySubject.getType() == SubjectType.UNKNOWN
+                            || policySubject.getType() == SubjectType.UNKNOWN
+                            || policySubject.getType() == SubjectType.UNKNOWN)*/
                     .forEach(policySubject ->
                             aclSubjects.add(AuthorizationSubject.newInstance(policySubject.getId())));
 

@@ -31,7 +31,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.Subject;
-import org.eclipse.ditto.model.policies.SubjectType;
+import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.model.policies.Subjects;
 import org.eclipse.ditto.model.policiesenforcers.PolicyEnforcer;
 import org.eclipse.ditto.model.policiesenforcers.PolicyEnforcers;
@@ -46,6 +46,9 @@ import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.models.policies.Permission;
 import org.eclipse.ditto.services.thingsearch.persistence.AbstractThingSearchPersistenceTestBase;
+import org.eclipse.ditto.services.thingsearch.querymodel.expression.ThingsFieldExpressionFactory;
+import org.eclipse.ditto.services.thingsearch.querymodel.expression.ThingsFieldExpressionFactoryImpl;
+import org.eclipse.ditto.services.thingsearch.querymodel.query.PolicyRestrictedSearchAggregation;
 import org.eclipse.ditto.signals.events.things.AclEntryDeleted;
 import org.eclipse.ditto.signals.events.things.AclEntryModified;
 import org.eclipse.ditto.signals.events.things.AclModified;
@@ -65,9 +68,6 @@ import org.eclipse.ditto.signals.events.things.FeaturesModified;
 import org.eclipse.ditto.signals.events.things.ThingCreated;
 import org.eclipse.ditto.signals.events.things.ThingDeleted;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
-import org.eclipse.ditto.services.thingsearch.querymodel.expression.ThingsFieldExpressionFactory;
-import org.eclipse.ditto.services.thingsearch.querymodel.expression.ThingsFieldExpressionFactoryImpl;
-import org.eclipse.ditto.services.thingsearch.querymodel.query.PolicyRestrictedSearchAggregation;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -174,7 +174,8 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
     /** */
     @Test
     public void insertWithSameRevision() throws ExecutionException, InterruptedException {
-        Assertions.assertThat(runBlockingWithReturn(writePersistence.insertOrUpdate(createThing(KNOWN_THING_ID, VALUE1), 2, 0)))
+        Assertions.assertThat(
+                runBlockingWithReturn(writePersistence.insertOrUpdate(createThing(KNOWN_THING_ID, VALUE1), 2, 0)))
                 .isTrue();
         Assertions.assertThat(runBlockingWithReturn(
                 writePersistence.insertOrUpdate(createThing(KNOWN_THING_ID, "anotherValue"), 2, 0))).isFalse();
@@ -365,7 +366,8 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
                 abf.newBuilder(cf.fieldCriteria(fef.filterByAttribute(KEY1), cf.eq(VALUE1)))
                         .authorizationSubjects(Collections.singletonList("anotherSid")).build();
 
-        Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes))).isTrue();
+        Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes)))
+                .isTrue();
         assertThat(findAll(aggregation)).contains(KNOWN_THING_ID);
     }
 
@@ -416,7 +418,8 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
                         .authorizationSubjects(Collections.singletonList("iot-things:mySid3"))
                         .build();
 
-        Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes))).isTrue();
+        Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes)))
+                .isTrue();
         assertThat(findAll(aggregation)).isEmpty();
     }
 
@@ -435,7 +438,8 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
                         .authorizationSubjects(Collections.singletonList("iot-things:mySid3"))
                         .build();
 
-        Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes))).isTrue();
+        Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes)))
+                .isTrue();
         assertThat(findAll(aggregation)).isEmpty();
     }
 
@@ -482,7 +486,8 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
                 .addEvent(attributesCreated, schemaVersion)
                 .build();
 
-        Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes))).isTrue();
+        Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes)))
+                .isTrue();
 
         final PolicyRestrictedSearchAggregation aggregation1 =
                 abf.newBuilder(cf.fieldCriteria(fef.filterByAttribute(attributeName), cf.eq(KNOWN_NEW_VALUE)))
@@ -570,7 +575,8 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
                 .addEvent(attributeModified, JsonSchemaVersion.LATEST)
                 .build();
 
-        Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes))).isTrue();
+        Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes)))
+                .isTrue();
 
         final PolicyRestrictedSearchAggregation aggregation1 =
                 abf.newBuilder(cf.fieldCriteria(fef.filterByAttribute(key), cf.eq(value)))
@@ -1885,7 +1891,7 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
         return PoliciesModelFactory.newPolicyBuilder(KNOWN_THING_ID)
                 .forLabel("someLabel")
                 .setSubject(
-                        Subject.newInstance(DEFAULT_POLICY_SUBJECTS.iterator().next(), SubjectType.JWT))
+                        Subject.newInstance(SubjectId.newInstance(DEFAULT_POLICY_SUBJECTS.iterator().next())))
                 .setGrantedPermissions("thing", "/", Permission.READ)
                 .setRevision(1L)
                 .build();
@@ -1894,7 +1900,7 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
     private static Policy createPolicyFor(final CharSequence user) {
         return PoliciesModelFactory.newPolicyBuilder(KNOWN_THING_ID)
                 .forLabel("someLabel")
-                .setSubject(Subject.newInstance(user, SubjectType.JWT))
+                .setSubject(Subject.newInstance(SubjectId.newInstance(user)))
                 .setGrantedPermissions("thing", "/", Permission.READ)
                 .setRevision(1L)
                 .build();
@@ -1904,8 +1910,8 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
         return PoliciesModelFactory.newPolicyBuilder(KNOWN_THING_ID)
                 .forLabel("someLabel")
                 .setSubjects(
-                        Subjects.newInstance(Subject.newInstance("iot-things:user88", SubjectType.JWT),
-                                Subject.newInstance("iot-things:user2", SubjectType.JWT)))
+                        Subjects.newInstance(Subject.newInstance(SubjectId.newInstance("iot-things:user88")),
+                                Subject.newInstance(SubjectId.newInstance("iot-things:user2"))))
                 .setGrantedPermissions("thing", "/", Permission.READ)
                 .setRevision(2L)
                 .build();

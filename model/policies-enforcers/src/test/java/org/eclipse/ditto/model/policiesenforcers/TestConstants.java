@@ -64,16 +64,28 @@ public final class TestConstants {
         public static final Label LABEL = PoliciesModelFactory.newLabel("myLabel");
 
         /**
+         * A known {@code SubjectIssuer} for a {@code PolicyEntry}.
+         */
+        public static final SubjectIssuer
+                SUBJECT_ISSUER = PoliciesModelFactory.newSubjectIssuer("mySubjectIssuer");
+
+        /**
+         * A known {@code SubjectType} for a {@code PolicyEntry}.
+         */
+        public static final SubjectType
+                SUBJECT_TYPE = PoliciesModelFactory.newSubjectType("mySubjectType");
+
+        /**
          * A known {@code SubjectId} for a {@code PolicyEntry}.
          */
         public static final SubjectId
-                SUBJECT_ID = PoliciesModelFactory.newSubjectId(SubjectIssuer.GOOGLE_URL, "mySubject");
+                SUBJECT_ID = PoliciesModelFactory.newSubjectId(SUBJECT_ISSUER, "mySubject");
 
         /**
          * A known {@code Subject} for a {@code PolicyEntry}.
          */
         public static final Subject SUBJECT =
-                PoliciesModelFactory.newSubject(SUBJECT_ID, SubjectType.JWT);
+                PoliciesModelFactory.newSubject(SUBJECT_ID, SUBJECT_TYPE);
 
         /**
          * Known {@code Subjects} for a {@code PolicyEntry}.

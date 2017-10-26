@@ -18,7 +18,7 @@ import java.util.Objects;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
 
 /**
- * Configuration for a JWT issuer.
+ * Configuration for a UNKNOWN issuer.
  */
 public final class JwtSubjectIssuerConfig {
     private final SubjectIssuer subjectIssuer;
@@ -27,7 +27,7 @@ public final class JwtSubjectIssuerConfig {
     /**
      * Constructor.
      *
-     * @param subjectIssuer the JWT issuer
+     * @param subjectIssuer the UNKNOWN issuer
      * @param jwkResource the JWK resource URL
      */
     public JwtSubjectIssuerConfig(final SubjectIssuer subjectIssuer, final String jwkResource) {
@@ -36,9 +36,9 @@ public final class JwtSubjectIssuerConfig {
     }
 
     /**
-     * Returns the JWT issuer.
+     * Returns the UNKNOWN issuer.
      *
-     * @return the JWT issuer
+     * @return the UNKNOWN issuer
      */
     public SubjectIssuer getSubjectIssuer() {
         return subjectIssuer;

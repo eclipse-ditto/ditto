@@ -40,7 +40,7 @@ import akka.actor.ActorRef;
 import akka.pattern.AskTimeoutException;
 import akka.testkit.javadsl.TestKit;
 
-public class RetrieveThingHandlerActorTest extends AbstractThingHandlerActorTest {
+public class RetrieveThingHandlerActorTest extends AbstractThingHandlerActorTestBase {
 
     private ActorRef underTest;
 

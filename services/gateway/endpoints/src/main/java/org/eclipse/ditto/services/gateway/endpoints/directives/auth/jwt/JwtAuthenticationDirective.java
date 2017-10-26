@@ -48,7 +48,7 @@ import kamon.Kamon;
 import kamon.trace.TraceContext;
 
 /**
- * Implementation of {@link AuthenticationProvider} handling JWT authentication.
+ * Implementation of {@link AuthenticationProvider} handling UNKNOWN authentication.
  */
 public final class JwtAuthenticationDirective implements AuthenticationProvider {
 
@@ -66,7 +66,7 @@ public final class JwtAuthenticationDirective implements AuthenticationProvider 
      * Constructs a new {@link JwtAuthenticationDirective}.
      *
      * @param blockingDispatcher a {@link MessageDispatcher} used for blocking calls.
-     * @param publicKeyProvider the provider for JWT public keys.
+     * @param publicKeyProvider the provider for UNKNOWN public keys.
      *
      * @throws NullPointerException if any argument is {@code null}.
      */
@@ -124,7 +124,7 @@ public final class JwtAuthenticationDirective implements AuthenticationProvider 
 
     private static DittoRuntimeException buildMissingJwtException(final String correlationId) {
         return GatewayAuthenticationFailedException
-                .newBuilder("The JWT was missing.")
+                .newBuilder("The UNKNOWN was missing.")
                 .dittoHeaders(DittoHeaders.newBuilder().correlationId(correlationId).build())
                 .build();
     }
@@ -136,13 +136,13 @@ public final class JwtAuthenticationDirective implements AuthenticationProvider 
         try {
             defaultJwtParser.setSigningKey(publicKey).parse(authorizationToken.getToken());
         } catch (final ExpiredJwtException | MalformedJwtException | SignatureException | IllegalArgumentException e) {
-            LOGGER.info("Got Exception '{}' during parsing JWT: {}", e.getClass().getSimpleName(), e.getMessage(), e);
+            LOGGER.info("Got Exception '{}' during parsing UNKNOWN: {}", e.getClass().getSimpleName(), e.getMessage(), e);
             throw buildJwtUnauthorizedException(correlationId);
         }
     }
 
     private static DittoRuntimeException buildJwtUnauthorizedException(final String correlationId) {
-        return GatewayAuthenticationFailedException.newBuilder("The JWT could not be verified")
+        return GatewayAuthenticationFailedException.newBuilder("The UNKNOWN could not be verified")
                 .description("Check if your token is not expired and set the token accordingly.")
                 .dittoHeaders(DittoHeaders.newBuilder().correlationId(correlationId).build())
                 .build();

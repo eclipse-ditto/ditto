@@ -19,7 +19,7 @@ import akka.http.javadsl.server.RequestContext;
 import akka.http.javadsl.server.Route;
 
 /**
- * Interface for authentication providers such as JWT authentication.
+ * Interface for authentication providers such as UNKNOWN authentication.
  */
 public interface AuthenticationProvider {
 

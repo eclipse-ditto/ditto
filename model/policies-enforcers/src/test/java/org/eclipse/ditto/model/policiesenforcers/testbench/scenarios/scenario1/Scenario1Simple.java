@@ -17,7 +17,6 @@ import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.PoliciesResourceType;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
-import org.eclipse.ditto.model.policies.SubjectType;
 import org.eclipse.ditto.model.policiesenforcers.testbench.algorithms.PolicyAlgorithm;
 import org.eclipse.ditto.model.policiesenforcers.testbench.scenarios.Scenario;
 
@@ -33,11 +32,11 @@ public interface Scenario1Simple extends Scenario {
     Policy POLICY = PoliciesModelFactory //
             .newPolicyBuilder("benchmark:" + Scenario1Simple1.class.getSimpleName()) //
             .forLabel("all") //
-            .setSubject(SubjectIssuer.GOOGLE_URL, SUBJECT_ALL_GRANTED, SubjectType.JWT) //
-            .setSubject(SubjectIssuer.GOOGLE_URL, SUBJECT_WRITE_REVOKED, SubjectType.JWT) //
+            .setSubject(SubjectIssuer.GOOGLE_URL, SUBJECT_ALL_GRANTED) //
+            .setSubject(SubjectIssuer.GOOGLE_URL, SUBJECT_WRITE_REVOKED) //
             .setGrantedPermissions(PoliciesResourceType.thingResource("/"), "READ", "WRITE") //
             .forLabel("revokeWrite") //
-            .setSubject(SubjectIssuer.GOOGLE_URL, SUBJECT_WRITE_REVOKED, SubjectType.JWT) //
+            .setSubject(SubjectIssuer.GOOGLE_URL, SUBJECT_WRITE_REVOKED) //
             .setRevokedPermissions(PoliciesResourceType.thingResource("/"), "WRITE") //
             .build();
 

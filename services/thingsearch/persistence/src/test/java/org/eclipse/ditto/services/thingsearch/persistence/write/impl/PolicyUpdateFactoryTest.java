@@ -40,17 +40,16 @@ import org.eclipse.ditto.model.policies.Resources;
 import org.eclipse.ditto.model.policies.Subject;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
-import org.eclipse.ditto.model.policies.SubjectType;
 import org.eclipse.ditto.model.policies.Subjects;
 import org.eclipse.ditto.model.policiesenforcers.PolicyEnforcer;
 import org.eclipse.ditto.model.policiesenforcers.PolicyEnforcers;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.models.policies.Permission;
 import org.eclipse.ditto.services.thingsearch.persistence.BsonAssertions;
-import org.eclipse.ditto.services.thingsearch.persistence.ThingResourceKey;
 import org.eclipse.ditto.services.thingsearch.persistence.BsonUtil;
 import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
 import org.eclipse.ditto.services.thingsearch.persistence.TestConstants;
+import org.eclipse.ditto.services.thingsearch.persistence.ThingResourceKey;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -239,8 +238,7 @@ public final class PolicyUpdateFactoryTest {
     }
 
     private static Subject createSubject(final CharSequence subjectIdWithoutIssuer) {
-        return Subject.newInstance(SubjectId.newInstance(SubjectIssuer.GOOGLE_URL, subjectIdWithoutIssuer),
-                SubjectType.JWT);
+        return Subject.newInstance(SubjectId.newInstance(SubjectIssuer.GOOGLE_URL, subjectIdWithoutIssuer));
     }
 
     private static void assertPolicyUpdate(final PolicyUpdate policyUpdate,

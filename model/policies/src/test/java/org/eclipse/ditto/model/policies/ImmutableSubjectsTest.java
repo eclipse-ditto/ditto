@@ -33,8 +33,8 @@ public final class ImmutableSubjectsTest {
 
     private static final SubjectId KNOWN_SUBJECT_ID_1 = SubjectId.newInstance(SubjectIssuer.GOOGLE_URL, "myself1");
     private static final SubjectId KNOWN_SUBJECT_ID_2 = SubjectId.newInstance(SubjectIssuer.GOOGLE_URL, "myself2");
-    private static final Subject SUBJECT_1 = ImmutableSubject.of(KNOWN_SUBJECT_ID_1, SubjectType.JWT);
-    private static final Subject SUBJECT_2 = ImmutableSubject.of(KNOWN_SUBJECT_ID_2, SubjectType.JWT);
+    private static final Subject SUBJECT_1 = ImmutableSubject.of(KNOWN_SUBJECT_ID_1);
+    private static final Subject SUBJECT_2 = ImmutableSubject.of(KNOWN_SUBJECT_ID_2);
 
     @Test
     public void assertImmutability() {

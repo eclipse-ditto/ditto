@@ -17,7 +17,6 @@ import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.PoliciesResourceType;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
-import org.eclipse.ditto.model.policies.SubjectType;
 import org.eclipse.ditto.model.policiesenforcers.testbench.algorithms.PolicyAlgorithm;
 import org.eclipse.ditto.model.policiesenforcers.testbench.scenarios.Scenario;
 
@@ -32,13 +31,11 @@ public interface Scenario2Nested extends Scenario {
     Policy POLICY = PoliciesModelFactory //
             .newPolicyBuilder("benchmark:" + Scenario2Nested1.class.getSimpleName()) //
             .forLabel("attributes") //
-            .setSubject(SubjectIssuer.GOOGLE_URL, SUBJECT_ATTRIBUTES_ALL_GRANTED,
-                    SubjectType.JWT) //
+            .setSubject(SubjectIssuer.GOOGLE_URL, SUBJECT_ATTRIBUTES_ALL_GRANTED) //
             .setGrantedPermissions(PoliciesResourceType.thingResource("/attributes"), "READ",
                     "WRITE") //
             .forLabel("features") //
-            .setSubject(SubjectIssuer.GOOGLE_URL, SUBJECT_FEATURES_READ_GRANTED,
-                    SubjectType.JWT) //
+            .setSubject(SubjectIssuer.GOOGLE_URL, SUBJECT_FEATURES_READ_GRANTED) //
             .setGrantedPermissions(PoliciesResourceType.thingResource("/features"), "READ") //
             .build();
 

@@ -15,6 +15,8 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.model.policies.TestConstants.Policy.PERMISSION_READ;
 import static org.eclipse.ditto.model.policies.TestConstants.Policy.PERMISSION_WRITE;
 import static org.eclipse.ditto.model.policies.TestConstants.Policy.RESOURCE_TYPE;
+import static org.eclipse.ditto.model.policies.TestConstants.Policy.SUBJECT_ID;
+import static org.eclipse.ditto.model.policies.TestConstants.Policy.SUBJECT_TYPE;
 import static org.eclipse.ditto.model.policies.assertions.DittoPolicyAssertions.assertThat;
 
 import java.util.Arrays;
@@ -74,10 +76,8 @@ public final class ImmutablePolicyBuilderTest {
         final String endUser = "EndUser";
         final String support = "Support";
 
-        final String im3UserSid = "uuid-of-im-user";
-
         final Policy policy = ImmutablePolicyBuilder.of(POLICY_ID)
-                .setSubjectFor(endUser, SubjectIssuer.GOOGLE_URL, im3UserSid, SubjectType.JWT)
+                .setSubjectFor(endUser, SUBJECT_ID, SUBJECT_TYPE)
                 .setGrantedPermissionsFor(endUser, "thing", "/", PERMISSION_READ, PERMISSION_WRITE)
                 .setRevokedPermissionsFor(endUser, "thing", ATTRIBUTES_POINTER, PERMISSION_WRITE)
                 .setRevokedPermissionsFor(support, "thing", FEATURES_POINTER, PERMISSION_READ, PERMISSION_WRITE)
@@ -85,13 +85,12 @@ public final class ImmutablePolicyBuilderTest {
 
         final Label endUserLabel = Label.of(endUser);
         final Label supportLabel = Label.of(support);
-        final SubjectId im3UserSubjectId = SubjectId.newInstance(SubjectIssuer.GOOGLE_URL, im3UserSid);
 
         assertThat(policy).hasLabel(endUserLabel);
         assertThat(policy).hasLabel(supportLabel);
 
-        assertThat(policy).hasSubjectFor(endUserLabel, im3UserSubjectId);
-        assertThat(policy).hasSubjectTypeFor(endUserLabel, im3UserSubjectId, SubjectType.JWT);
+        assertThat(policy).hasSubjectFor(endUserLabel, SUBJECT_ID);
+        assertThat(policy).hasSubjectTypeFor(endUserLabel, SUBJECT_ID, SUBJECT_TYPE);
 
         assertThat(policy).hasResourceFor(endUserLabel, RESOURCE_TYPE, JsonPointer.empty());
         assertThat(policy).hasResourceFor(endUserLabel, RESOURCE_TYPE, ATTRIBUTES_POINTER);
@@ -103,8 +102,6 @@ public final class ImmutablePolicyBuilderTest {
                 EffectedPermissions.newInstance(null, Collections.singletonList(PERMISSION_WRITE)));
         assertThat(policy).hasResourceEffectedPermissionsFor(supportLabel, RESOURCE_TYPE, FEATURES_POINTER,
                 EffectedPermissions.newInstance(null, TestConstants.Policy.PERMISSIONS_ALL));
-
-        System.out.println(policy.toJsonString());
     }
 
     @Test
@@ -112,11 +109,9 @@ public final class ImmutablePolicyBuilderTest {
         final String endUser = "EndUser";
         final String support = "Support";
 
-        final String im3UserSid = "uuid-of-im-user";
-
         final Policy policy = ImmutablePolicyBuilder.of(POLICY_ID)
                 .forLabel(endUser)
-                .setSubject(SubjectIssuer.GOOGLE_URL, im3UserSid, SubjectType.JWT)
+                .setSubject(SUBJECT_ID, SUBJECT_TYPE)
                 .setGrantedPermissions("thing", "/", PERMISSION_READ, PERMISSION_WRITE)
                 .setRevokedPermissions("thing", ATTRIBUTES_POINTER, PERMISSION_WRITE)
                 .forLabel(support)
@@ -125,13 +120,12 @@ public final class ImmutablePolicyBuilderTest {
 
         final Label endUserLabel = Label.of(endUser);
         final Label supportLabel = Label.of(support);
-        final SubjectId im3UserSubjectId = SubjectId.newInstance(SubjectIssuer.GOOGLE_URL, im3UserSid);
 
         assertThat(policy).hasLabel(endUserLabel);
         assertThat(policy).hasLabel(supportLabel);
 
-        assertThat(policy).hasSubjectFor(endUserLabel, im3UserSubjectId);
-        assertThat(policy).hasSubjectTypeFor(endUserLabel, im3UserSubjectId, SubjectType.JWT);
+        assertThat(policy).hasSubjectFor(endUserLabel, SUBJECT_ID);
+        assertThat(policy).hasSubjectTypeFor(endUserLabel, SUBJECT_ID, SUBJECT_TYPE);
 
         assertThat(policy).hasResourceFor(endUserLabel, RESOURCE_TYPE, JsonPointer.empty());
         assertThat(policy).hasResourceFor(endUserLabel, RESOURCE_TYPE, ATTRIBUTES_POINTER);
@@ -143,8 +137,6 @@ public final class ImmutablePolicyBuilderTest {
                 EffectedPermissions.newInstance(null, Collections.singletonList(PERMISSION_WRITE)));
         assertThat(policy).hasResourceEffectedPermissionsFor(supportLabel, RESOURCE_TYPE, FEATURES_POINTER,
                 EffectedPermissions.newInstance(null, TestConstants.Policy.PERMISSIONS_ALL));
-
-        System.out.println(policy.toJsonString());
     }
 
     @Test
@@ -152,10 +144,8 @@ public final class ImmutablePolicyBuilderTest {
         final String endUser = "EndUser";
         final String support = "Support";
 
-        final String im3UserSid = "uuid-of-im-user";
-
         final Policy policy = ImmutablePolicyBuilder.of(POLICY_ID)
-                .setSubjectFor(endUser, SubjectIssuer.GOOGLE_URL, im3UserSid, SubjectType.JWT)
+                .setSubjectFor(endUser, SubjectIssuer.GOOGLE_URL, SUBJECT_ID, SUBJECT_TYPE)
                 .setGrantedPermissionsFor(endUser, "thing", "/", PERMISSION_READ, PERMISSION_WRITE)
                 .setRevokedPermissionsFor(endUser, "thing", ATTRIBUTES_POINTER, PERMISSION_WRITE)
                 .setRevokedPermissionsFor(support, "thing", FEATURES_POINTER, PERMISSION_READ, PERMISSION_WRITE)
@@ -163,31 +153,28 @@ public final class ImmutablePolicyBuilderTest {
 
         final String newPolicyId = "com.policy:foobar2000";
         final String newEndUser = "NewEndUser";
-        final String newIm3UserSid = "new-uuid-of-im-user";
+        final SubjectId newUserSubjectId = SubjectId.newInstance(SubjectIssuer.GOOGLE_URL, "newUserSubjectId");
 
         final Policy newPolicy = ImmutablePolicyBuilder.of(policy).setId(newPolicyId)
                 .remove(endUser)
                 .forLabel(newEndUser)
-                .setSubject(SubjectIssuer.GOOGLE_URL, newIm3UserSid, SubjectType.JWT)
+                .setSubject(newUserSubjectId, SUBJECT_TYPE)
                 .setGrantedPermissions("thing", "/", PERMISSION_READ)
                 .setRevokedPermissions("thing", "/", PERMISSION_WRITE)
                 .build();
 
         final Label newEndUserLabel = Label.of(newEndUser);
         final Label supportLabel = Label.of(support);
-        final SubjectId newIm3UserSubjectId = SubjectId.newInstance(SubjectIssuer.GOOGLE_URL, newIm3UserSid);
 
         assertThat(newPolicy).hasLabel(newEndUserLabel);
         assertThat(newPolicy).hasLabel(supportLabel);
-        assertThat(newPolicy).hasSubjectFor(newEndUserLabel, newIm3UserSubjectId);
-        assertThat(newPolicy).hasSubjectTypeFor(newEndUserLabel, newIm3UserSubjectId, SubjectType.JWT);
+        assertThat(newPolicy).hasSubjectFor(newEndUserLabel, newUserSubjectId);
+        assertThat(newPolicy).hasSubjectTypeFor(newEndUserLabel, newUserSubjectId, SUBJECT_TYPE);
         assertThat(newPolicy).hasResourceFor(newEndUserLabel, RESOURCE_TYPE, JsonPointer.empty());
         assertThat(newPolicy).hasResourceFor(supportLabel, RESOURCE_TYPE, FEATURES_POINTER);
         assertThat(newPolicy).hasResourceEffectedPermissionsFor(newEndUserLabel, RESOURCE_TYPE, JsonPointer.empty(),
                 EffectedPermissions.newInstance(Collections.singletonList(PERMISSION_READ),
                         Collections.singletonList(PERMISSION_WRITE)));
-
-        System.out.println(newPolicy.toJsonString());
     }
 
     @Test
@@ -195,9 +182,7 @@ public final class ImmutablePolicyBuilderTest {
         final String endUser = "EndUser";
         final Label endUserLabel = Label.of(endUser);
 
-        final String im3UserSid = "uuid-of-im-user";
-        final SubjectId im3UserSubjectId = SubjectId.newInstance(SubjectIssuer.GOOGLE_URL, im3UserSid);
-        final Subject endUserSubject = Subject.newInstance(im3UserSubjectId, SubjectType.JWT);
+        final Subject endUserSubject = Subject.newInstance(SUBJECT_ID, SUBJECT_TYPE);
         final Subjects endUserSubjects = Subjects.newInstance(endUserSubject);
 
         final Resource endUserResource = Resource.newInstance(RESOURCE_TYPE, "/",
@@ -210,7 +195,7 @@ public final class ImmutablePolicyBuilderTest {
                 PoliciesModelFactory.newPolicyEntry(endUserLabel, endUserSubjects, endUserResources);
 
         final Policy existingPolicy = ImmutablePolicyBuilder.of(POLICY_ID)
-                .setSubjectFor(endUser, SubjectIssuer.GOOGLE_URL, im3UserSid, SubjectType.JWT)
+                .setSubjectFor(endUser, SubjectIssuer.GOOGLE_URL, SUBJECT_ID, SUBJECT_TYPE)
                 .setGrantedPermissionsFor(endUser, "thing", "/", PERMISSION_READ, PERMISSION_WRITE)
                 .setRevokedPermissionsFor(endUser, "thing", ATTRIBUTES_POINTER, PERMISSION_WRITE)
                 .build();
@@ -218,16 +203,14 @@ public final class ImmutablePolicyBuilderTest {
         final Policy policy = ImmutablePolicyBuilder.of(existingPolicy).set(policyEntry).build();
 
         assertThat(policy).hasLabel(endUserLabel);
-        assertThat(policy).hasSubjectFor(endUserLabel, im3UserSubjectId);
-        assertThat(policy).hasSubjectTypeFor(endUserLabel, im3UserSubjectId, SubjectType.JWT);
+        assertThat(policy).hasSubjectFor(endUserLabel, SUBJECT_ID);
+        assertThat(policy).hasSubjectTypeFor(endUserLabel, SUBJECT_ID, SUBJECT_TYPE);
         assertThat(policy).hasResourceFor(endUserLabel, RESOURCE_TYPE, JsonPointer.empty());
         assertThat(policy).doesNotHaveResourceFor(endUserLabel, RESOURCE_TYPE, ATTRIBUTES_POINTER);
 
         assertThat(policy).hasResourceEffectedPermissionsFor(endUserLabel, RESOURCE_TYPE, JsonPointer.empty(),
                 EffectedPermissions.newInstance(Collections.singleton(PERMISSION_READ),
                         Collections.singleton(PERMISSION_WRITE)));
-
-        System.out.println(policy.toJsonString());
     }
 
 }
