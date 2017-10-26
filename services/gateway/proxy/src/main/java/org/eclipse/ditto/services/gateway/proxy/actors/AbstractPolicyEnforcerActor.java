@@ -32,6 +32,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.policies.Permissions;
 import org.eclipse.ditto.model.policies.PoliciesResourceType;
@@ -47,7 +48,6 @@ import org.eclipse.ditto.services.models.policies.commands.sudo.SudoCommand;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.distributedcache.actors.RegisterForCacheUpdates;
 import org.eclipse.ditto.services.utils.distributedcache.model.CacheEntry;
-import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.base.WithName;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
@@ -57,11 +57,11 @@ import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyCommandToAcc
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyCommandToModifyExceptionRegistry;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyNotAccessibleException;
 import org.eclipse.ditto.signals.commands.policies.modify.CreatePolicy;
+import org.eclipse.ditto.signals.commands.policies.modify.ModifyPolicy;
 import org.eclipse.ditto.signals.commands.policies.modify.PolicyModifyCommand;
 import org.eclipse.ditto.signals.commands.policies.query.PolicyQueryCommand;
 import org.eclipse.ditto.signals.commands.policies.query.RetrievePolicy;
 import org.eclipse.ditto.signals.commands.policies.query.RetrievePolicyResponse;
-import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.policies.PolicyCreated;
 import org.eclipse.ditto.signals.events.policies.PolicyEvent;
 import org.eclipse.ditto.signals.events.policies.PolicyModified;
@@ -157,8 +157,6 @@ public abstract class AbstractPolicyEnforcerActor extends AbstractActorWithStash
 
     /**
      * Returns a {@code ReceiveBuilder} for additional behaviour.
-     *
-     * @return the receive builder.
      */
     protected abstract void addEnforcingBehaviour(final ReceiveBuilder receiveBuilder);
 
@@ -190,10 +188,26 @@ public abstract class AbstractPolicyEnforcerActor extends AbstractActorWithStash
 
     protected <T extends WithDittoHeaders> T enrichDittoHeaders(final WithDittoHeaders<T> withDittoHeaders,
             final JsonPointer resourcePath, final String resourceType) {
-        return withDittoHeaders.setDittoHeaders(DittoHeaders.newBuilder(withDittoHeaders.getDittoHeaders())
-                .readSubjects(retrieveReadSubjects(resourcePath, resourceType))
-                .build()
-        );
+
+        final DittoHeadersBuilder headersBuilder = DittoHeaders.newBuilder(withDittoHeaders.getDittoHeaders());
+        final DittoHeaders headers;
+
+        if (withDittoHeaders instanceof CreatePolicy || withDittoHeaders instanceof ModifyPolicy) {
+            final Policy policy = withDittoHeaders instanceof CreatePolicy ?
+                    ((CreatePolicy) withDittoHeaders).getPolicy() : ((ModifyPolicy) withDittoHeaders).getPolicy();
+            final String type = ((PolicyModifyCommand) withDittoHeaders).getResourceType();
+
+            headers = headersBuilder.readSubjects(PolicyEnforcers.defaultEvaluator(policy)
+                    .getSubjectIdsWithPermission(ResourceKey.newInstance(type, resourcePath), READ)
+                    .getGranted()
+            ).build();
+        } else {
+            headers = headersBuilder
+                    .readSubjects(retrieveReadSubjects(resourcePath, resourceType))
+                    .build();
+        }
+
+        return withDittoHeaders.setDittoHeaders(headers);
     }
 
     protected void incrementAccessCounter() {
@@ -212,15 +226,6 @@ public abstract class AbstractPolicyEnforcerActor extends AbstractActorWithStash
                 new DistributedPubSubMediator.Publish(commandWithReadSubjects.getTypePrefix(), commandWithReadSubjects,
                         true),
                 getSender());
-    }
-
-    protected void publishEvent(final Event<?> event) {
-        final Event enrichedEvent = enrichDittoHeaders(event, event.getResourcePath(), event.getResourceType());
-        LogUtil.enhanceLogWithCorrelationId(log, event);
-        log.debug("Publishing external enhanced Event <{}>.", enrichedEvent.getType());
-        pubSubMediator.tell(
-                new DistributedPubSubMediator.Publish(enrichedEvent.getExternalTypePrefix(), enrichedEvent, true),
-                getSelf());
     }
 
     protected void synchronizePolicy() {
@@ -323,23 +328,17 @@ public abstract class AbstractPolicyEnforcerActor extends AbstractActorWithStash
                 /* PolicyEvents */
                 .match(PolicyCreated.class, this::isApplicable, policyCreated -> {
                     rebuildPolicyEnforcer(policyCreated.getPolicy(), policyCreated.getRevision());
-                    publishEvent(policyCreated);
                 })
                 .match(PolicyModified.class, this::isApplicable, policyModified -> {
                     rebuildPolicyEnforcer(policyModified.getPolicy(), policyModified.getRevision());
-                    publishEvent(policyModified);
                 })
                 .match(PolicyEvent.class, this::isApplicable, event -> {
                     log.debug("Got '{}', reloading Policy now...", event.getName());
                     policyEnforcer = null;
                     policyLoadWasAttempted = false;
                     synchronizePolicy();
-                    getSelf().tell(new PublishEvent(event), getSelf());
                 })
                 .match(PolicyEvent.class, this::unhandled)
-
-                /* stashed PolicyEvents */
-                .match(PublishEvent.class, publishEvent -> publishEvent((PolicyEvent) publishEvent.getEvent()))
 
                 /* policy cache updates */
                 .match(Replicator.Changed.class, this::processChangedCacheEntry)
@@ -424,7 +423,6 @@ public abstract class AbstractPolicyEnforcerActor extends AbstractActorWithStash
                     synchronizationTimeout.cancel();
                     log.debug("Received <{}> event.", policyCreated.getType());
                     rebuildPolicyEnforcer(policyCreated.getPolicy(), policyCreated.getRevision());
-                    publishEvent(policyCreated);
                     getContext().become(enforcingBehaviour);
                     doUnstashAll();
                 })
@@ -662,20 +660,6 @@ public abstract class AbstractPolicyEnforcerActor extends AbstractActorWithStash
 
         long getAccessCounter() {
             return accessCounter;
-        }
-
-    }
-
-    static final class PublishEvent {
-
-        private final Event event;
-
-        PublishEvent(final Event event) {
-            this.event = event;
-        }
-
-        Event getEvent() {
-            return event;
         }
 
     }

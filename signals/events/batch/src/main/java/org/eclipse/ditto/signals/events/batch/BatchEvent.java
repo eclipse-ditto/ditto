@@ -36,12 +36,6 @@ public interface BatchEvent<T extends BatchEvent> extends Event<T> {
     String TYPE_PREFIX = "batch." + TYPE_QUALIFIER + ":";
 
     /**
-     * Type Prefix of external Batch events.
-     *
-     */
-    String TYPE_PREFIX_EXTERNAL = "batch." + TYPE_QUALIFIER + "." + EXTERNAL + ":";
-
-    /**
      * Batch resource type.
      */
     String RESOURCE_TYPE = "batch";
@@ -75,11 +69,6 @@ public interface BatchEvent<T extends BatchEvent> extends Event<T> {
     @Override
     default String getResourceType() {
         return RESOURCE_TYPE;
-    }
-
-    @Override
-    default String getExternalTypePrefix() {
-        return TYPE_PREFIX_EXTERNAL;
     }
 
     /**

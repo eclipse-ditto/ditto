@@ -35,11 +35,6 @@ public interface Event<T extends Event> extends Signal<T>, WithOptionalEntity {
     String TYPE_QUALIFIER = "events";
 
     /**
-     * External suffix for events.
-     */
-    String EXTERNAL = "external";
-
-    /**
      * Revision of not yet persisted events.
      */
     long DEFAULT_REVISION = 0;
@@ -51,13 +46,6 @@ public interface Event<T extends Event> extends Signal<T>, WithOptionalEntity {
      */
     @Override
     String getType();
-
-    /**
-     * Returns the external type prefix of this event.
-     *
-     * @return the prefix.
-     */
-    String getExternalTypePrefix();
 
     @Override
     default JsonSchemaVersion getImplementedSchemaVersion() {

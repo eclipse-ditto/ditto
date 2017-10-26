@@ -479,8 +479,9 @@ public class ModifyThingHandlerActorTest extends AbstractThingHandlerActorTest {
             final String subjectId = "subject:" + UUID.randomUUID();
             final Policy policy = Policy.newBuilder(thingId)
                     .forLabel("dummylabel")
-                    .setSubject(Subject.newInstance(SubjectIssuer.GOOGLE_URL, subjectId, SubjectType.JWT))
+                    .setSubject(defaultSubject)
                     .setGrantedPermissions("policy", "/", "WRITE", "EAT")
+                    .setGrantedPermissions("thing", "/", "READ")
                     .build();
             final Thing thing = ThingsModelFactory.newThingBuilder().setId(thingId).build();
             final ModifyThing modifyThing = ModifyThing.of(thingId, thing, policy.toJson(), defaultHeaders);
@@ -514,13 +515,15 @@ public class ModifyThingHandlerActorTest extends AbstractThingHandlerActorTest {
             final String subjectId = "subject:" + UUID.randomUUID();
             final Policy policy = Policy.newBuilder(thingId)
                     .forLabel("dummylabel")
-                    .setSubject(Subject.newInstance(SubjectIssuer.GOOGLE_URL, subjectId, SubjectType.JWT))
+                    .setSubject(defaultSubject)
                     .setGrantedPermissions("policy", "/", "WRITE", "EAT")
+                    .setGrantedPermissions("thing", "/", "READ")
                     .build();
             final Thing thing =
                     ThingsModelFactory.newThingBuilder().setId(thingId).setPolicyId(thingId).build();
             final ModifyThing modifyThing =
-                    ModifyThing.of(thingId, thing, policy.toJson().remove("policyId"), defaultHeaders);
+                    ModifyThing.of(thingId, thing, policy.toJson().remove("policyId"),
+                            defaultHeaders);
             underTest.tell(modifyThing, getRef());
 
             // verifies nonexistence of policy

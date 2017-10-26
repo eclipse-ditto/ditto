@@ -33,12 +33,6 @@ public interface PolicyEvent<T extends PolicyEvent> extends Event<T> {
     String TYPE_PREFIX = "policies." + TYPE_QUALIFIER + ":";
 
     /**
-     * Type Prefix of external Policy events.
-     *
-     */
-    String TYPE_PREFIX_EXTERNAL = "policies." + TYPE_QUALIFIER + "." + EXTERNAL + ":";
-
-    /**
      * Policy resource type.
      */
     String RESOURCE_TYPE = "policy";
@@ -68,11 +62,6 @@ public interface PolicyEvent<T extends PolicyEvent> extends Event<T> {
     @Override
     default String getResourceType() {
         return RESOURCE_TYPE;
-    }
-
-    @Override
-    default String getExternalTypePrefix() {
-        return TYPE_PREFIX_EXTERNAL;
     }
 
     @Override

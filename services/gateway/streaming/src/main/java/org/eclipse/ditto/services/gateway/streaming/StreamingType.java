@@ -22,7 +22,7 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
  */
 public enum StreamingType {
 
-    EVENTS(ThingEvent.TYPE_PREFIX_EXTERNAL),
+    EVENTS(ThingEvent.TYPE_PREFIX),
     MESSAGES(MessageCommand.TYPE_PREFIX),
     LIVE_COMMANDS("things-live-commands"),
     LIVE_EVENTS("things-live-events");

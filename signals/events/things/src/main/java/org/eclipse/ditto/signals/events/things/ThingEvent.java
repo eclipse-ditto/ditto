@@ -33,11 +33,6 @@ public interface ThingEvent<T extends ThingEvent> extends Event<T>, WithThingId 
      * Type Prefix of Thing events.
      */
     String TYPE_PREFIX = "things." + TYPE_QUALIFIER + ":";
-    /**
-     * Type Prefix of external Thing events.
-     *
-     */
-    String TYPE_PREFIX_EXTERNAL = "things." + TYPE_QUALIFIER + "." + EXTERNAL + ":";
 
     /**
      * Thing resource type.
@@ -59,11 +54,6 @@ public interface ThingEvent<T extends ThingEvent> extends Event<T>, WithThingId 
     @Override
     default String getResourceType() {
         return RESOURCE_TYPE;
-    }
-
-    @Override
-    default String getExternalTypePrefix() {
-        return TYPE_PREFIX_EXTERNAL;
     }
 
     @Override

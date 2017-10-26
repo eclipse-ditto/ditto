@@ -218,22 +218,18 @@ public final class AclEnforcerActor extends AbstractActorWithStash {
                 .match(AclModified.class, this::isApplicable, event -> {
                     acl = event.getAccessControlList();
                     thingRevision = event.getRevision();
-                    publishEvent(event);
                 })
                 .match(AclEntryCreated.class, this::isApplicable, event -> {
                     acl = acl.merge(event.getAclEntry());
                     thingRevision = event.getRevision();
-                    publishEvent(event);
                 })
                 .match(AclEntryModified.class, this::isApplicable, event -> {
                     acl = acl.merge(event.getAclEntry());
                     thingRevision = event.getRevision();
-                    publishEvent(event);
                 })
                 .match(AclEntryDeleted.class, this::isApplicable, event -> {
                     acl = acl.removeAllPermissionsOf(event.getAuthorizationSubject());
                     thingRevision = event.getRevision();
-                    publishEvent(event);
                 })
                 .match(ThingCreated.class, this::isApplicable, event -> {
                     event.getThing().getAccessControlList().ifPresent(modifiedAcl -> {
@@ -241,20 +237,16 @@ public final class AclEnforcerActor extends AbstractActorWithStash {
                         thingRevision = event.getRevision();
                     });
                     thingRevision = event.getRevision();
-                    publishEvent(event);
                 })
                 .match(ThingModified.class, this::isApplicable, event -> {
                     event.getThing().getAccessControlList().ifPresent(modifiedAcl -> {
                         acl = modifiedAcl;
                         thingRevision = event.getRevision();
                     });
-                    publishEvent(event);
                 })
                 .match(ThingDeleted.class, this::isApplicable, event -> {
-                    publishEvent(event);
                     getContext().stop(getSelf());
                 })
-                .match(ThingEvent.class, this::isApplicable, this::publishEvent)
                 .match(ThingEvent.class, this::unhandled)
 
                 /* thing cache updates */
@@ -295,7 +287,6 @@ public final class AclEnforcerActor extends AbstractActorWithStash {
                         acl = modifiedAcl;
                         thingRevision = thingCreated.getRevision();
                     });
-                    publishEvent(thingCreated);
                     getContext().become(enforcingBehaviour);
                     doUnstashAll();
                 })
@@ -307,7 +298,6 @@ public final class AclEnforcerActor extends AbstractActorWithStash {
                         acl = modifiedAcl;
                         thingRevision = thingModified.getRevision();
                     });
-                    publishEvent(thingModified);
                     getContext().become(enforcingBehaviour);
                     doUnstashAll();
                 })
@@ -493,24 +483,6 @@ public final class AclEnforcerActor extends AbstractActorWithStash {
         return acl.getAuthorizedSubjectsFor(Permission.READ).stream()
                 .map(AuthorizationSubject::getId)
                 .collect(Collectors.toSet());
-    }
-
-    private void publishEvent(final ThingEvent<?> event) {
-        LogUtil.enhanceLogWithCorrelationId(log, event);
-        log.debug("Publishing Event '{}' with READ subjects from ACL '{}'", event.getType(), acl);
-
-        if (acl == null) {
-            log.warning("ACL is null - therefore event '{}' will not be published", event.getType());
-        } else {
-            final ThingEvent thingEventWithReadSubjects =
-                    event.setDittoHeaders(DittoHeaders.newBuilder(event.getDittoHeaders())
-                            .readSubjects(calculateReadSubjects(acl))
-                            .build());
-
-            pubSubMediator.tell(
-                    new DistributedPubSubMediator.Publish(ThingEvent.TYPE_PREFIX_EXTERNAL, thingEventWithReadSubjects,
-                            true), getSelf());
-        }
     }
 
     private boolean isApplicable(final WithThingId event) {

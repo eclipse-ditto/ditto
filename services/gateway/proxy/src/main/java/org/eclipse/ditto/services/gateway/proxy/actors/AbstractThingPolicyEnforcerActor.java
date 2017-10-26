@@ -41,7 +41,6 @@ import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotModifiableEx
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommand;
-import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 import akka.actor.ActorRef;
 import akka.japi.pf.ReceiveBuilder;
@@ -97,8 +96,7 @@ public abstract class AbstractThingPolicyEnforcerActor extends AbstractPolicyEnf
                 .match(ThingQueryCommand.class, this::isAuthorized, this::forwardThingQueryCommand)
                 .match(ThingQueryCommand.class, this::unauthorized)
 
-                /* ThingEvents */
-                .match(ThingEvent.class, this::publishEvent);
+                ;
     }
 
     private void forwardThingSudoCommand(final SudoCommand command) {
