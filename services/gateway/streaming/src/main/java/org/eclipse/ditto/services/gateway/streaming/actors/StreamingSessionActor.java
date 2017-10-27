@@ -211,8 +211,7 @@ final class StreamingSessionActor extends AbstractActor {
                     } else {
                         final Set<String> readSubjects = dittoHeaders.getReadSubjects();
                         // check if this session is "allowed" to receive the event
-                        if (readSubjects != null && authorizationSubjects != null &&
-                                !Collections.disjoint(readSubjects, authorizationSubjects)) {
+                        if (authorizationSubjects != null && !Collections.disjoint(readSubjects, authorizationSubjects)) {
                             logger.debug(
                                     "Got 'Event' message in <{}> session, telling eventAndResponsePublisher about it: {}",
                                     type, event);
