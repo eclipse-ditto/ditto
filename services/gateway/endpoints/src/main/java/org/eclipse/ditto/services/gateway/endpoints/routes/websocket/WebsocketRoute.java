@@ -284,7 +284,7 @@ public final class WebsocketRoute {
         return jsonObject.toString();
     }
 
-    private static boolean isLiveSignal(final WithDittoHeaders<?> signal) {
+    private static boolean isLiveSignal(final Signal<?> signal) {
         return signal.getDittoHeaders().getChannel().filter(TopicPath.Channel.LIVE.getName()::equals).isPresent();
     }
 
