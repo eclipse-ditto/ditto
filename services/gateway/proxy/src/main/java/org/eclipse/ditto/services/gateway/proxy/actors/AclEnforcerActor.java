@@ -200,7 +200,7 @@ public final class AclEnforcerActor extends AbstractActorWithStash {
 
                 /* other Live Signals then messages: */
                 .match(Signal.class, AclEnforcerActor::isLiveSignal, liveSignal -> {
-                    final WithDittoHeaders enrichedSignal = enrichDittoHeaders(liveSignal);
+                    final Signal enrichedSignal = enrichDittoHeaders(liveSignal);
                     getSender().tell(enrichedSignal, getSelf());
                 })
 
@@ -272,7 +272,7 @@ public final class AclEnforcerActor extends AbstractActorWithStash {
                 .build();
     }
 
-    private static boolean isLiveSignal(final WithDittoHeaders<?> signal) {
+    private static boolean isLiveSignal(final Signal<?> signal) {
         return signal.getDittoHeaders().getChannel().filter(TopicPath.Channel.LIVE.getName()::equals).isPresent();
     }
 
@@ -443,22 +443,22 @@ public final class AclEnforcerActor extends AbstractActorWithStash {
                 getSender());
     }
 
-    private <T extends WithDittoHeaders> T enrichDittoHeaders(final WithDittoHeaders<T> withDittoHeaders) {
-        final DittoHeaders enrichedHeaders = DittoHeaders.newBuilder(withDittoHeaders.getDittoHeaders())
-                .readSubjects(determineReadSubjects(withDittoHeaders))
+    private <T extends Signal> T enrichDittoHeaders(final Signal<T> signal) {
+        final DittoHeaders enrichedHeaders = DittoHeaders.newBuilder(signal.getDittoHeaders())
+                .readSubjects(determineReadSubjects(signal))
                 .build();
-        return withDittoHeaders.setDittoHeaders(enrichedHeaders);
+        return signal.setDittoHeaders(enrichedHeaders);
     }
 
-    private Collection<String> determineReadSubjects(final WithDittoHeaders<?> withDittoHeaders) {
-        final DittoHeaders dittoHeaders = withDittoHeaders.getDittoHeaders();
-        if (!isLiveSignal(withDittoHeaders)) {
+    private Collection<String> determineReadSubjects(final Signal<?> signal) {
+        final DittoHeaders dittoHeaders = signal.getDittoHeaders();
+        if (!isLiveSignal(signal)) {
             // only for non live-signals:
-            if (withDittoHeaders instanceof CreateThing) {
-                return determineReadSubjects(dittoHeaders, ((CreateThing) withDittoHeaders).getThing());
-            } else if (withDittoHeaders instanceof ModifyThing &&
-                    ((ModifyThing) withDittoHeaders).getThing().getAccessControlList().isPresent()) {
-                return determineReadSubjects(dittoHeaders, ((ModifyThing) withDittoHeaders).getThing());
+            if (signal instanceof CreateThing) {
+                return determineReadSubjects(dittoHeaders, ((CreateThing) signal).getThing());
+            } else if (signal instanceof ModifyThing &&
+                    ((ModifyThing) signal).getThing().getAccessControlList().isPresent()) {
+                return determineReadSubjects(dittoHeaders, ((ModifyThing) signal).getThing());
             }
         }
 

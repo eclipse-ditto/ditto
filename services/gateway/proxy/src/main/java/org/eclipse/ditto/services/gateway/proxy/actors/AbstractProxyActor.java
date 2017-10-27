@@ -18,7 +18,6 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.protocoladapter.TopicPath;
@@ -202,7 +201,7 @@ public abstract class AbstractProxyActor extends AbstractActor {
         return forwardToEnforcerLookup(enforcerLookup, ReadConsistency.MAJORITY);
     }
 
-    static boolean isLiveSignal(final WithDittoHeaders<?> signal) {
+    static boolean isLiveSignal(final Signal<?> signal) {
         return signal.getDittoHeaders().getChannel().filter(TopicPath.Channel.LIVE.getName()::equals).isPresent();
     }
 

@@ -48,6 +48,7 @@ import org.eclipse.ditto.services.models.policies.commands.sudo.SudoCommand;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.distributedcache.actors.RegisterForCacheUpdates;
 import org.eclipse.ditto.services.utils.distributedcache.model.CacheEntry;
+import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.base.WithName;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
@@ -186,16 +187,16 @@ public abstract class AbstractPolicyEnforcerActor extends AbstractActorWithStash
         return true;
     }
 
-    protected <T extends WithDittoHeaders> T enrichDittoHeaders(final WithDittoHeaders<T> withDittoHeaders,
+    protected <T extends Signal> T enrichDittoHeaders(final Signal<T> signal,
             final JsonPointer resourcePath, final String resourceType) {
 
-        final DittoHeadersBuilder headersBuilder = DittoHeaders.newBuilder(withDittoHeaders.getDittoHeaders());
+        final DittoHeadersBuilder headersBuilder = DittoHeaders.newBuilder(signal.getDittoHeaders());
         final DittoHeaders headers;
 
-        if (withDittoHeaders instanceof CreatePolicy || withDittoHeaders instanceof ModifyPolicy) {
-            final Policy policy = withDittoHeaders instanceof CreatePolicy ?
-                    ((CreatePolicy) withDittoHeaders).getPolicy() : ((ModifyPolicy) withDittoHeaders).getPolicy();
-            final String type = ((PolicyModifyCommand) withDittoHeaders).getResourceType();
+        if (signal instanceof CreatePolicy || signal instanceof ModifyPolicy) {
+            final Policy policy = signal instanceof CreatePolicy ?
+                    ((CreatePolicy) signal).getPolicy() : ((ModifyPolicy) signal).getPolicy();
+            final String type = signal.getResourceType();
 
             headers = headersBuilder.readSubjects(PolicyEnforcers.defaultEvaluator(policy)
                     .getSubjectIdsWithPermission(ResourceKey.newInstance(type, resourcePath), READ)
@@ -207,7 +208,7 @@ public abstract class AbstractPolicyEnforcerActor extends AbstractActorWithStash
                     .build();
         }
 
-        return withDittoHeaders.setDittoHeaders(headers);
+        return signal.setDittoHeaders(headers);
     }
 
     protected void incrementAccessCounter() {
@@ -638,7 +639,7 @@ public abstract class AbstractPolicyEnforcerActor extends AbstractActorWithStash
         getSelf().tell(PoisonPill.getInstance(), getSelf());
     }
 
-    static boolean isLiveSignal(final WithDittoHeaders<?> signal) {
+    static boolean isLiveSignal(final Signal<?> signal) {
         return signal.getDittoHeaders().getChannel().filter(TopicPath.Channel.LIVE.getName()::equals).isPresent();
     }
 

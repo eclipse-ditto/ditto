@@ -22,7 +22,6 @@ import java.util.function.Supplier;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.messages.MessageSendNotAllowedException;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.PoliciesResourceType;
@@ -83,7 +82,7 @@ public abstract class AbstractThingPolicyEnforcerActor extends AbstractPolicyEnf
 
                 /* Live Signals */
                 .match(Signal.class, AbstractPolicyEnforcerActor::isLiveSignal, liveSignal -> {
-                    final WithDittoHeaders enrichedSignal =
+                    final Signal enrichedSignal =
                             enrichDittoHeaders(liveSignal, liveSignal.getResourcePath(), liveSignal.getResourceType());
                     getSender().tell(enrichedSignal, getSelf());
                 })
