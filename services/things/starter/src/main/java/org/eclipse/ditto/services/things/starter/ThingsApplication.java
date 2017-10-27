@@ -86,7 +86,7 @@ public final class ThingsApplication {
      */
     public void start(final Config thingsConfig, final Config kamonConfig) {
         runtimeParameters();
-        Kamon.start(ConfigFactory.load("kamon"));
+        Kamon.start(kamonConfig);
 
         final ActorSystem system = ActorSystem.create(clusterName, thingsConfig);
         system.actorOf(StatusSupplierActor.props(ThingsRootActor.ACTOR_NAME), StatusSupplierActor.ACTOR_NAME);
