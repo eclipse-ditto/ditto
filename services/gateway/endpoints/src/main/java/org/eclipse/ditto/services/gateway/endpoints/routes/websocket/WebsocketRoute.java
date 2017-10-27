@@ -255,7 +255,7 @@ public final class WebsocketRoute {
     private String jsonifiableToString(final String connectionCorrelationId,
             final Jsonifiable.WithPredicate<JsonObject, JsonField> jsonifiable) {
         final Adaptable adaptable;
-        if (jsonifiable instanceof Signal && isLiveSignal((WithDittoHeaders<?>) jsonifiable)) {
+        if (jsonifiable instanceof Signal && isLiveSignal((Signal<?>) jsonifiable)) {
             adaptable = jsonifiableToAdaptable(jsonifiable, TopicPath.Channel.LIVE);
         } else {
             adaptable = jsonifiableToAdaptable(jsonifiable, TopicPath.Channel.TWIN);
