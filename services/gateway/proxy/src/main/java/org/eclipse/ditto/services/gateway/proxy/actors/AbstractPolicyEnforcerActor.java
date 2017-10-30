@@ -165,6 +165,10 @@ public abstract class AbstractPolicyEnforcerActor extends AbstractActorWithStash
         return log;
     }
 
+    protected ActorRef getPubsubMediator() {
+        return pubSubMediator;
+    }
+
     protected String getPolicyId() {
         return policyId;
     }
