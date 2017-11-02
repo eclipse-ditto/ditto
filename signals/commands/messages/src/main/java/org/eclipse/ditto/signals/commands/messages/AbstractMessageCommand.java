@@ -117,10 +117,17 @@ abstract class AbstractMessageCommand<T, C extends AbstractMessageCommand> exten
                         predicate);
             }
         } else {
-            final String encodedString = message.getRawPayload()
-                    .map(BASE64_ENCODER::encode)
-                    .map(base64Encoded -> new String(base64Encoded.array(), StandardCharsets.UTF_8))
-                    .orElse("");
+            final String encodedString;
+            if (shouldBeInterpretedAsText(message.getContentType().orElse(""))) {
+                encodedString = message.getRawPayload()
+                        .map(payload -> new String(payload.array()))
+                        .orElse("");
+            } else {
+                encodedString = message.getRawPayload()
+                        .map(BASE64_ENCODER::encode)
+                        .map(base64Encoded -> new String(base64Encoded.array(), StandardCharsets.UTF_8))
+                        .orElse("");
+            }
             messageBuilder.set(MessageCommand.JsonFields.JSON_MESSAGE_PAYLOAD, JsonValue.of(encodedString), predicate);
         }
 

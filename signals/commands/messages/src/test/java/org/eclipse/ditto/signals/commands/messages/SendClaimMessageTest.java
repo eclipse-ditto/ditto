@@ -116,6 +116,15 @@ public final class SendClaimMessageTest {
     }
 
     @Test
+    public void toJsonDoesNotBase64EncodeTextBody() {
+        final SendClaimMessage<?> underTest =
+                SendClaimMessage.of(THING_ID, DESERIALIZED_MESSAGE, TestConstants.EMPTY_DITTO_HEADERS);
+        final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
+
+        assertThat(actualJson).isEqualTo(KNOWN_JSON);
+    }
+
+    @Test
     public void createInstanceFromValidJson() {
         final SendClaimMessage<?> underTest =
                 SendClaimMessage.fromJson(KNOWN_JSON.toString(), TestConstants.EMPTY_DITTO_HEADERS);
@@ -142,7 +151,7 @@ public final class SendClaimMessageTest {
     public void createResponseFromJsonWithoutPayload() {
         final Message<?> emptyMessage = Message.newBuilder(MESSAGE_HEADERS).build();
         final SendClaimMessageResponse<?> underTest = SendClaimMessageResponse.of(THING_ID, emptyMessage,
-                HttpStatusCode.OK,  TestConstants.EMPTY_DITTO_HEADERS);
+                HttpStatusCode.OK, TestConstants.EMPTY_DITTO_HEADERS);
         final JsonObject jsonWithoutPayload = underTest.toJson();
         final SendClaimMessageResponse<?> result =
                 SendClaimMessageResponse.fromJson(jsonWithoutPayload, TestConstants.EMPTY_DITTO_HEADERS);
