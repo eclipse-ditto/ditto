@@ -82,7 +82,7 @@ public interface DittoHeadersBuilder<B extends DittoHeadersBuilder, R extends Di
      * @return this builder for Method Chaining.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    B authorizationSubjects(String authorizationSubject, String... furtherAuthorizationSubjects);
+    B authorizationSubjects(CharSequence authorizationSubject, CharSequence... furtherAuthorizationSubjects);
 
     /**
      * Sets the readSubjects value.
