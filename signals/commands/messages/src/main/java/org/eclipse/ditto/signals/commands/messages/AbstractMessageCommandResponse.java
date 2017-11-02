@@ -128,16 +128,14 @@ abstract class AbstractMessageCommandResponse<T, C extends AbstractMessageComman
         final MessageHeaders messageHeaders = MessageHeaders.of(messageHeadersObject);
 
         final MessageBuilder<T> messageBuilder = Message.<T>newBuilder(messageHeaders);
-        if (messagePayloadValue.isString()) {
-            final String payloadStr = messagePayloadValue.asString();
-            if (shouldBeInterpretedAsText(messageHeaders.getContentType().orElse(""))) {
-                messageBuilder.payload((T) payloadStr);
-            } else {
-                messageBuilder.rawPayload(ByteBuffer.wrap(
-                        BASE64_DECODER.decode(payloadStr.getBytes(StandardCharsets.UTF_8))));
-            }
+        final String payloadStr = messagePayloadValue.isString()
+                ? messagePayloadValue.asString()
+                : messagePayloadValue.toString();
+        final byte[] payloadBytes = payloadStr.getBytes(StandardCharsets.UTF_8);
+        if (shouldBeInterpretedAsText(messageHeaders.getContentType().orElse(""))) {
+            messageBuilder.rawPayload(ByteBuffer.wrap(payloadBytes));
         } else {
-            messageBuilder.payload((T) messagePayloadValue);
+            messageBuilder.rawPayload(ByteBuffer.wrap(BASE64_DECODER.decode(payloadBytes)));
         }
         return messageBuilder.build();
     }

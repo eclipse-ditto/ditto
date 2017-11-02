@@ -14,6 +14,7 @@ package org.eclipse.ditto.signals.commands.messages;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 
+import java.nio.ByteBuffer;
 import java.util.UUID;
 
 import org.eclipse.ditto.json.JsonFactory;
@@ -47,7 +48,7 @@ public final class SendFeatureMessageTest {
     private static final String CORRELATION_ID = UUID.randomUUID().toString();
     private static final DittoHeaders DITTO_HEADERS = DittoHeaders.newBuilder().correlationId(CORRELATION_ID).build();
 
-    private static final String KNOWN_RAW_PAYLOAD_STR = "{\"some\": 42}";
+    private static final String KNOWN_RAW_PAYLOAD_STR = "{\"some\":42}";
 
     private static final Message<?> MESSAGE = MessagesModelFactory.newMessageBuilder(
             MessageHeaders.newBuilder(MessageDirection.TO, THING_ID, SUBJECT)
@@ -55,6 +56,14 @@ public final class SendFeatureMessageTest {
                     .featureId(FEATURE_ID)
                     .build())
             .payload(JsonFactory.newObject(KNOWN_RAW_PAYLOAD_STR))
+            .build();
+
+    private static final Message<?> DESERIALIZED_MESSAGE = MessagesModelFactory.newMessageBuilder(
+            MessageHeaders.newBuilder(MessageDirection.TO, THING_ID, SUBJECT)
+                    .contentType(CONTENT_TYPE)
+                    .featureId(FEATURE_ID)
+                    .build())
+            .rawPayload(ByteBuffer.wrap(KNOWN_RAW_PAYLOAD_STR.getBytes()))
             .build();
 
     private static final JsonObject KNOWN_MESSAGE_AS_JSON = JsonFactory.newObjectBuilder()
@@ -130,7 +139,7 @@ public final class SendFeatureMessageTest {
         assertThat(underTest.getThingId()).isEqualTo(THING_ID);
         assertThat(underTest.getFeatureId()).isEqualTo(FEATURE_ID);
         assertThat(underTest.getMessageType()).isEqualTo(SendFeatureMessage.NAME);
-        assertThat(underTest.getMessage()).isEqualTo(MESSAGE);
+        assertThat(underTest.getMessage()).isEqualTo(DESERIALIZED_MESSAGE);
     }
 
 }

@@ -14,6 +14,7 @@ package org.eclipse.ditto.signals.commands.messages;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 
+import java.nio.ByteBuffer;
 import java.util.UUID;
 
 import org.eclipse.ditto.json.JsonFactory;
@@ -51,6 +52,10 @@ public final class SendClaimMessageTest {
 
     private static final Message<?> MESSAGE = Message.newBuilder(MESSAGE_HEADERS)
             .payload(KNOWN_RAW_PAYLOAD_STR)
+            .build();
+
+    private static final Message<?> DESERIALIZED_MESSAGE = Message.newBuilder(MESSAGE_HEADERS)
+            .rawPayload(ByteBuffer.wrap(KNOWN_RAW_PAYLOAD_STR.getBytes()))
             .build();
 
     private static final JsonObject KNOWN_MESSAGE_AS_JSON = JsonFactory.newObjectBuilder()
@@ -118,7 +123,7 @@ public final class SendClaimMessageTest {
         assertThat(underTest).isNotNull();
         assertThat(underTest.getThingId()).isEqualTo(THING_ID);
         assertThat(underTest.getMessageType()).isEqualTo(SendClaimMessage.NAME);
-        assertThat(underTest.getMessage()).isEqualTo(MESSAGE);
+        assertThat(underTest.getMessage()).isEqualTo(DESERIALIZED_MESSAGE);
     }
 
     @Test
