@@ -11,8 +11,7 @@
  */
 package org.eclipse.ditto.services.gateway.proxy.actors.handlers;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.UUID;
 
@@ -40,27 +39,12 @@ import akka.actor.ActorRef;
 import akka.pattern.AskTimeoutException;
 import akka.testkit.javadsl.TestKit;
 
-public class RetrieveThingHandlerActorTest extends AbstractThingHandlerActorTestBase {
+/**
+ * Unit test for {@link RetrieveThingHandlerActor}.
+ */
+public final class RetrieveThingHandlerActorTest extends AbstractThingHandlerActorTestBase {
 
     private ActorRef underTest;
-
-    private void startHandlerWithEnforcer(final TestKit testkit) {
-        underTest = actorSystem.actorOf(
-                RetrieveThingHandlerActor.props(enforcerShard.ref(), defaultEnforcerId, aclEnforcerShard.ref(),
-                        policyEnforcerShard.ref()));
-        testkit.watch(underTest);
-    }
-
-    private void startHandlerWithoutEnforcer(final TestKit testkit) {
-        underTest = actorSystem.actorOf(
-                RetrieveThingHandlerActor.props(null, null, aclEnforcerShard.ref(), policyEnforcerShard.ref()));
-        testkit.watch(underTest);
-    }
-
-    private void expectUnderTestTerminated(final TestKit testkit) {
-        testkit.expectTerminated(underTest);
-        underTest = null;
-    }
 
     @After
     public void cleanupUnderTest() {
@@ -70,32 +54,35 @@ public class RetrieveThingHandlerActorTest extends AbstractThingHandlerActorTest
     }
 
     @Test
-    public void aggegrationNotNeededForV1() {
+    public void aggregationNotNeededForV1() {
         final DittoHeaders v1Headers = DittoHeaders.newBuilder().schemaVersion(JsonSchemaVersion.V_1).build();
         final RetrieveThing retrieveThing = RetrieveThing.of("any:id", v1Headers);
-        assertFalse("should not need aggregation for v1 JsonSchemaVersion", RetrieveThingHandlerActor
-                .checkIfAggregationIsNeeded
-                        (retrieveThing));
+
+        assertThat(RetrieveThingHandlerActor.checkIfAggregationIsNeeded(retrieveThing))
+                .as("Should not need aggregation for v1 JsonSchemaVersion.")
+                .isFalse();
     }
 
     @Test
-    public void aggegrationNotNeededWithoutPolicy() {
+    public void aggregationNotNeededWithoutPolicy() {
         final DittoHeaders v2Headers = DittoHeaders.newBuilder().schemaVersion(JsonSchemaVersion.V_2).build();
         final RetrieveThing retrieveThing = RetrieveThing.of("any:id", v2Headers);
-        assertFalse("should not need aggregation if _policy is missing in field request", RetrieveThingHandlerActor
-                .checkIfAggregationIsNeeded
-                        (retrieveThing));
+
+        assertThat(RetrieveThingHandlerActor.checkIfAggregationIsNeeded(retrieveThing))
+                .as("Should not need aggregation if _policy is missing in field request.")
+                .isFalse();
     }
 
     @Test
-    public void aggegrationNeeded() {
+    public void aggregationNeeded() {
         final DittoHeaders v2Headers = DittoHeaders.newBuilder().schemaVersion(JsonSchemaVersion.V_2).build();
         final RetrieveThing retrieveThing = RetrieveThing.getBuilder("any:id", v2Headers)
                 .withSelectedFields(JsonFieldSelector.newInstance("_policy"))
                 .build();
-        assertTrue("should need aggregation if _policy is part of request", RetrieveThingHandlerActor
-                .checkIfAggregationIsNeeded
-                        (retrieveThing));
+
+        assertThat(RetrieveThingHandlerActor.checkIfAggregationIsNeeded(retrieveThing))
+                .as("Should need aggregation if _policy is part of request.")
+                .isTrue();
     }
 
     @Test
@@ -106,16 +93,16 @@ public class RetrieveThingHandlerActorTest extends AbstractThingHandlerActorTest
             // receives RetrieveThing
             final String thingId = "thing:" + UUID.randomUUID();
             final JsonFieldSelector selectedFields = JsonFieldSelector.newInstance("_policy", "thingId");
-            final RetrieveThing retrieveThing = RetrieveThing.getBuilder(thingId, defaultHeaders)
+            final RetrieveThing retrieveThing = RetrieveThing.getBuilder(thingId, DEFAULT_HEADERS)
                     .withSelectedFields(selectedFields)
                     .build();
 
             underTest.tell(retrieveThing, getRef());
 
             // forwards RetrieveThing to the given enforcer shard region
-            final ThingNotAccessibleException thingNotAccessibleException = ThingNotAccessibleException
-                    .newBuilder(thingId)
-                    .dittoHeaders(defaultHeaders)
+            final ThingNotAccessibleException thingNotAccessibleException = ThingNotAccessibleException.newBuilder
+                    (thingId)
+                    .dittoHeaders(DEFAULT_HEADERS)
                     .build();
 
             // initial requester receives the exception
@@ -136,34 +123,30 @@ public class RetrieveThingHandlerActorTest extends AbstractThingHandlerActorTest
             final Thing thing = ThingsModelFactory.newThingBuilder().setId(thingId).setPolicyId(policyId).build();
             final Policy policy = Policy.newBuilder(policyId).build();
             final JsonFieldSelector selectedFields = JsonFieldSelector.newInstance("_policy", "thingId");
-            final RetrieveThing retrieveThing = RetrieveThing.getBuilder(thingId, defaultHeaders)
+            final RetrieveThing retrieveThing = RetrieveThing.getBuilder(thingId, DEFAULT_HEADERS)
                     .withSelectedFields(selectedFields)
                     .build();
 
             underTest.tell(retrieveThing, getRef());
 
             // forwards RetrieveThing to the given enforcer shard region
-            final RetrieveThingResponse retrieveThingResponse = RetrieveThingResponse.of(thingId, thing,
-                    defaultHeaders);
-            final RetrievePolicyResponse retrievePolicyResponse = RetrievePolicyResponse.of(policyId, policy,
-                    defaultHeaders);
-            final RetrievePolicy forwardedRetrievePolicy = RetrievePolicy.of(defaultEnforcerId, defaultHeaders);
-            final ShardedMessageEnvelope forwardedRetrieveThing = ShardedMessageEnvelope.of(defaultEnforcerId,
+            final RetrievePolicy forwardedRetrievePolicy = RetrievePolicy.of(DEFAULT_ENFORCER_ID, DEFAULT_HEADERS);
+            final ShardedMessageEnvelope forwardedRetrieveThing = ShardedMessageEnvelope.of(DEFAULT_ENFORCER_ID,
                     retrieveThing.getType(),
                     retrieveThing.toJson(retrieveThing.getImplementedSchemaVersion(), FieldType.regularOrSpecial()),
                     retrieveThing.getDittoHeaders());
             enforcerShard.expectMsg(forwardedRetrievePolicy);
             enforcerShard.expectMsg(forwardedRetrieveThing);
-            enforcerShard.reply(retrieveThingResponse);
-            enforcerShard.reply(retrievePolicyResponse);
+            enforcerShard.reply(RetrieveThingResponse.of(thingId, thing, DEFAULT_HEADERS));
+            enforcerShard.reply(RetrievePolicyResponse.of(policyId, policy, DEFAULT_HEADERS));
 
             // initial requester receives the retrieve thing response with the policy
             final RetrieveThingResponse expectedResult = RetrieveThingResponse.of(thingId, JsonObject.newBuilder()
-                            .setAll(thing.toJson(defaultHeaders.getImplementedSchemaVersion(), selectedFields))
-                            .setAll(policy.toInlinedJson(defaultHeaders.getImplementedSchemaVersion(),
+                            .setAll(thing.toJson(DEFAULT_HEADERS.getImplementedSchemaVersion(), selectedFields))
+                            .setAll(policy.toInlinedJson(DEFAULT_HEADERS.getImplementedSchemaVersion(),
                                     FieldType.notHidden()))
                             .build(),
-                    defaultHeaders);
+                    DEFAULT_HEADERS);
 
             expectMsgEquals(expectedResult);
             expectUnderTestTerminated(this);
@@ -181,24 +164,24 @@ public class RetrieveThingHandlerActorTest extends AbstractThingHandlerActorTest
             final String policyId = "policyId:" + UUID.randomUUID();
             final Thing thing = ThingsModelFactory.newThingBuilder().setId(thingId).setPolicyId(policyId).build();
             final JsonFieldSelector selectedFields = JsonFieldSelector.newInstance("_policy", "thingId");
-            final RetrieveThing retrieveThing = RetrieveThing.getBuilder(thingId, defaultHeaders)
+            final RetrieveThing retrieveThing = RetrieveThing.getBuilder(thingId, DEFAULT_HEADERS)
                     .withSelectedFields(selectedFields)
                     .build();
 
             underTest.tell(retrieveThing, getRef());
 
             // forwards RetrieveThing to the given enforcer shard region
-            final RetrieveThingResponse retrieveThingResponse = RetrieveThingResponse.of(thingId, thing,
-                    defaultHeaders);
-            final PolicyNotAccessibleException policyNotAccessibleException = PolicyNotAccessibleException
-                    .newBuilder(policyId)
-                    .dittoHeaders(defaultHeaders)
-                    .build();
-            final RetrievePolicy forwardedRetrievePolicy = RetrievePolicy.of(defaultEnforcerId, defaultHeaders);
-            final ShardedMessageEnvelope forwardedRetrieveThing = ShardedMessageEnvelope.of(defaultEnforcerId,
+            final RetrievePolicy forwardedRetrievePolicy = RetrievePolicy.of(DEFAULT_ENFORCER_ID, DEFAULT_HEADERS);
+            final ShardedMessageEnvelope forwardedRetrieveThing = ShardedMessageEnvelope.of(DEFAULT_ENFORCER_ID,
                     retrieveThing.getType(),
                     retrieveThing.toJson(retrieveThing.getImplementedSchemaVersion(), FieldType.regularOrSpecial()),
                     retrieveThing.getDittoHeaders());
+            final PolicyNotAccessibleException policyNotAccessibleException = PolicyNotAccessibleException
+                    .newBuilder(policyId)
+                    .dittoHeaders(DEFAULT_HEADERS)
+                    .build();
+            final RetrieveThingResponse retrieveThingResponse = RetrieveThingResponse.of(thingId, thing,
+                    DEFAULT_HEADERS);
             enforcerShard.expectMsg(forwardedRetrievePolicy);
             enforcerShard.expectMsg(forwardedRetrieveThing);
             enforcerShard.reply(policyNotAccessibleException);
@@ -206,9 +189,10 @@ public class RetrieveThingHandlerActorTest extends AbstractThingHandlerActorTest
 
             // initial requester receives the retrieve thing response without the policy
             final RetrieveThingResponse expectedResult = RetrieveThingResponse.of(thingId, JsonObject.newBuilder()
-                            .setAll(thing.toJson(defaultHeaders.getImplementedSchemaVersion(), selectedFields))
+                            .setAll(thing.toJson(DEFAULT_HEADERS.getImplementedSchemaVersion(), selectedFields))
                             .build(),
-                    defaultHeaders);
+                    DEFAULT_HEADERS);
+
             expectMsgEquals(expectedResult);
         }};
     }
@@ -221,21 +205,21 @@ public class RetrieveThingHandlerActorTest extends AbstractThingHandlerActorTest
             // receives RetrieveThing
             final String thingId = "thing:" + UUID.randomUUID();
             final JsonFieldSelector selectedFields = JsonFieldSelector.newInstance("_policy", "thingId");
-            final RetrieveThing retrieveThing = RetrieveThing.getBuilder(thingId, defaultHeaders)
+            final RetrieveThing retrieveThing = RetrieveThing.getBuilder(thingId, DEFAULT_HEADERS)
                     .withSelectedFields(selectedFields)
                     .build();
 
             underTest.tell(retrieveThing, getRef());
 
             // forwards RetrieveThing to the given enforcer shard region
-            final ThingNotAccessibleException thingNotAccessibleException = ThingNotAccessibleException
-                    .newBuilder(thingId)
-                    .build();
-            final RetrievePolicy forwardedRetrievePolicy = RetrievePolicy.of(defaultEnforcerId, defaultHeaders);
-            final ShardedMessageEnvelope forwardedRetrieveThing = ShardedMessageEnvelope.of(defaultEnforcerId,
+            final RetrievePolicy forwardedRetrievePolicy = RetrievePolicy.of(DEFAULT_ENFORCER_ID, DEFAULT_HEADERS);
+            final ShardedMessageEnvelope forwardedRetrieveThing = ShardedMessageEnvelope.of(DEFAULT_ENFORCER_ID,
                     retrieveThing.getType(),
                     retrieveThing.toJson(retrieveThing.getImplementedSchemaVersion(), FieldType.regularOrSpecial()),
                     retrieveThing.getDittoHeaders());
+            final ThingNotAccessibleException thingNotAccessibleException = ThingNotAccessibleException
+                    .newBuilder(thingId)
+                    .build();
             enforcerShard.expectMsg(forwardedRetrievePolicy);
             enforcerShard.expectMsg(forwardedRetrieveThing);
             enforcerShard.reply(thingNotAccessibleException);
@@ -254,19 +238,19 @@ public class RetrieveThingHandlerActorTest extends AbstractThingHandlerActorTest
             // receives RetrieveThing
             final String thingId = "thing:" + UUID.randomUUID();
             final JsonFieldSelector selectedFields = JsonFieldSelector.newInstance("_policy", "thingId");
-            final RetrieveThing retrieveThing = RetrieveThing.getBuilder(thingId, defaultHeaders)
+            final RetrieveThing retrieveThing = RetrieveThing.getBuilder(thingId, DEFAULT_HEADERS)
                     .withSelectedFields(selectedFields)
                     .build();
 
             underTest.tell(retrieveThing, getRef());
 
             // forwards RetrieveThing to the given enforcer shard region
-            final AskTimeoutException timeoutException = new AskTimeoutException("a timeout");
-            final RetrievePolicy forwardedRetrievePolicy = RetrievePolicy.of(defaultEnforcerId, defaultHeaders);
-            final ShardedMessageEnvelope forwardedRetrieveThing = ShardedMessageEnvelope.of(defaultEnforcerId,
+            final RetrievePolicy forwardedRetrievePolicy = RetrievePolicy.of(DEFAULT_ENFORCER_ID, DEFAULT_HEADERS);
+            final ShardedMessageEnvelope forwardedRetrieveThing = ShardedMessageEnvelope.of(DEFAULT_ENFORCER_ID,
                     retrieveThing.getType(),
                     retrieveThing.toJson(retrieveThing.getImplementedSchemaVersion(), FieldType.regularOrSpecial()),
                     retrieveThing.getDittoHeaders());
+            final AskTimeoutException timeoutException = new AskTimeoutException("a timeout");
             enforcerShard.expectMsg(forwardedRetrievePolicy);
             enforcerShard.expectMsg(forwardedRetrieveThing);
             enforcerShard.reply(timeoutException);
@@ -285,7 +269,7 @@ public class RetrieveThingHandlerActorTest extends AbstractThingHandlerActorTest
             // receives RetrieveThing
             final String thingId = "thing:" + UUID.randomUUID();
             final JsonFieldSelector selectedFields = JsonFieldSelector.newInstance("_policy", "thingId");
-            final RetrieveThing retrieveThing = RetrieveThing.getBuilder(thingId, defaultHeaders)
+            final RetrieveThing retrieveThing = RetrieveThing.getBuilder(thingId, DEFAULT_HEADERS)
                     .withSelectedFields(selectedFields)
                     .build();
 
@@ -295,8 +279,8 @@ public class RetrieveThingHandlerActorTest extends AbstractThingHandlerActorTest
             final DittoRuntimeException dittoException = DittoRuntimeException
                     .newBuilder("matrix.glitch", HttpStatusCode.SERVICE_UNAVAILABLE)
                     .build();
-            final RetrievePolicy forwardedRetrievePolicy = RetrievePolicy.of(defaultEnforcerId, defaultHeaders);
-            final ShardedMessageEnvelope forwardedRetrieveThing = ShardedMessageEnvelope.of(defaultEnforcerId,
+            final RetrievePolicy forwardedRetrievePolicy = RetrievePolicy.of(DEFAULT_ENFORCER_ID, DEFAULT_HEADERS);
+            final ShardedMessageEnvelope forwardedRetrieveThing = ShardedMessageEnvelope.of(DEFAULT_ENFORCER_ID,
                     retrieveThing.getType(),
                     retrieveThing.toJson(retrieveThing.getImplementedSchemaVersion(), FieldType.regularOrSpecial()),
                     retrieveThing.getDittoHeaders());
@@ -309,4 +293,23 @@ public class RetrieveThingHandlerActorTest extends AbstractThingHandlerActorTest
             expectUnderTestTerminated(this);
         }};
     }
+
+    private void startHandlerWithEnforcer(final TestKit testkit) {
+        underTest = actorSystem.actorOf(
+                RetrieveThingHandlerActor.props(enforcerShard.ref(), DEFAULT_ENFORCER_ID, aclEnforcerShard.ref(),
+                        policyEnforcerShard.ref()));
+        testkit.watch(underTest);
+    }
+
+    private void startHandlerWithoutEnforcer(final TestKit testkit) {
+        underTest = actorSystem.actorOf(
+                RetrieveThingHandlerActor.props(null, null, aclEnforcerShard.ref(), policyEnforcerShard.ref()));
+        testkit.watch(underTest);
+    }
+
+    private void expectUnderTestTerminated(final TestKit testkit) {
+        testkit.expectTerminated(underTest);
+        underTest = null;
+    }
+
 }
