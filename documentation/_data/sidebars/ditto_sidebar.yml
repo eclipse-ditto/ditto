@@ -1,0 +1,112 @@
+# This is your sidebar TOC. The sidebar code loops through sections here and provides the appropriate formatting.
+
+entries:
+- title: sidebar
+  product: Eclipse Ditto
+  version: 0.1.0
+  folders:
+
+  - title: Introduction
+    output: web
+
+    folderitems:
+    - title: Overview
+      url: /index.html
+      output: web
+      type: homepage
+
+    - title: Getting started
+      url: /getting-started.html
+      output: web
+
+    - title: Hello world
+      url: /hello-world.html
+      output: web
+
+    - title: Introduction
+      url: /introduction.html
+      output: web
+
+  - title: Release Notes
+    output: web
+    folderitems:
+
+    - title: 0.1.0 Release notes
+      url: /release_notes_010.html
+      output: web
+
+  - title: Installation
+    output: web
+    folderitems:
+
+    - title: Building Eclipse Ditto
+      url: /installation-building.html
+      output: web
+
+    - title: Running Eclipse Ditto
+      url: /installation-running.html
+      output: web
+
+  - title: Basic concepts
+    output: web
+
+    folderitems:
+    - title: Building Blocks
+      url: /basic-buildingblocks.html
+      output: web
+      
+      subfolders:
+      - title: Level 1
+        output: web
+        subfolderitems:
+        - title: Level 2
+          url: /basic-buildingblocks.html
+          output: web
+
+    - title: Things and Features
+      url: /basic-thingsfeatures.html
+      output: web
+
+    - title: Definitions
+      url: /basic-definitions.html
+      output: web
+
+    - title: Authentication and Authorization
+      url: /basic-auth.html
+      output: web
+
+    - title: Access Control List (ACL)
+      url: /basic-acl.html
+      output: web
+
+    - title: Policies
+      url: /basic-policies.html
+      output: web
+
+    - title: Messages
+      url: /basic-messages.html
+      output: web
+
+  - title: HTTP API
+    output: web
+
+    folderitems:
+      - title: Authenticate
+        url: /httpapi-authenticate.html
+        output: web
+
+  - title: Java API
+    url: /lists.html
+    output: web
+
+  - title: Protocol
+    url: /protocol.html
+    output: web
+
+  - title: Glossary
+    url: /glossary.html
+    output: web
+
+  - title: Support
+    url: /support.html
+    output: web
