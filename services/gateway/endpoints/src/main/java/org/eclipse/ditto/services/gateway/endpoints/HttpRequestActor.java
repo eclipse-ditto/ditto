@@ -501,10 +501,12 @@ public final class HttpRequestActor extends AbstractActor {
             final double durationMs = (System.nanoTime() - traceContext.startTimestamp()) / NANO_TO_MS_DIVIDER;
             final Option<String> typePrefixOption = traceContext.tags().get(TRACE_TAG_TYPE_PREFIX);
 
-            if (durationMs > SEARCH_WARN_TIMEOUT_MS && typePrefixOption.contains(ThingSearchCommand.TYPE_PREFIX)) {
-                logger.warning("Encountered slow search which took over {}ms: {}ms",
-                        (int) SEARCH_WARN_TIMEOUT_MS,
-                        (int) durationMs);
+            if (typePrefixOption.contains(ThingSearchCommand.TYPE_PREFIX)) {
+                if (durationMs > SEARCH_WARN_TIMEOUT_MS) {
+                    logger.warning("Encountered slow search which took over {}ms: {}ms",
+                            (int) SEARCH_WARN_TIMEOUT_MS,
+                            (int) durationMs);
+                }
             } else if (durationMs > HTTP_WARN_TIMEOUT_MS) {
                 logger.warning("Encountered slow HTTP request which took over {}ms: {}ms",
                         (int) HTTP_WARN_TIMEOUT_MS,
