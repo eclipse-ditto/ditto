@@ -23,6 +23,7 @@ import java.util.Set;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFactory;
@@ -152,20 +153,23 @@ final class ImmutableAclEntry implements AclEntry {
 
     private static void validate(final CharSequence authSubjectId, final Permission permission,
             final Optional<JsonValue> permissionValue) {
-        if (!permissionValue.isPresent()) {
+
+        if (permissionValue.isPresent()) {
+            final JsonValue permissionJsonValue = permissionValue.get();
+            if (!permissionJsonValue.isBoolean()) {
+                final String descTemplate = "Expected for permission ''{0}'' of Authorization Subject ''{1}''"
+                        + " the value <true> or <false> but got <{2}>!";
+
+                throw AclEntryInvalidException.newBuilder()
+                        .message(MessageFormat.format(descTemplate, permission, authSubjectId, permissionValue.get()))
+                        .build();
+            }
+        } else {
             final String descTemplate = "Expected for Authorization Subject ''{0}'' the permission ''{1}''"
                     + " with value <true> or <false> but the permission is absent at all!";
 
-            throw AclEntryInvalidException.newBuilder() //
-                    .message(MessageFormat.format(descTemplate, authSubjectId, permission)) //
-                    .build();
-        }
-        if (!permissionValue.filter(JsonValue::isBoolean).isPresent()) {
-            final String descTemplate = "Expected for permission ''{0}'' of Authorization Subject ''{1}''"
-                    + " the value <true> or <false> but got <{2}>!";
-
-            throw AclEntryInvalidException.newBuilder() //
-                    .message(MessageFormat.format(descTemplate, permission, authSubjectId, permissionValue.get())) //
+            throw AclEntryInvalidException.newBuilder()
+                    .message(MessageFormat.format(descTemplate, authSubjectId, permission))
                     .build();
         }
     }
@@ -178,8 +182,8 @@ final class ImmutableAclEntry implements AclEntry {
             final AuthorizationSubject authorizationSubject = aclEntry.getAuthorizationSubject();
             final String allPermissions = Permission.allToString();
 
-            throw AclEntryInvalidException.newBuilder() //
-                    .message(MessageFormat.format(descTemplate, authorizationSubject.getId(), allPermissions)) //
+            throw AclEntryInvalidException.newBuilder()
+                    .message(MessageFormat.format(descTemplate, authorizationSubject.getId(), allPermissions))
                     .build();
         }
     }
@@ -218,7 +222,7 @@ final class ImmutableAclEntry implements AclEntry {
     }
 
     @Override
-    public boolean containsAll(final Collection<Permission> permissions) {
+    public boolean containsAll(@Nullable final Collection<Permission> permissions) {
         return (null != permissions) && this.permissions.containsAll(permissions);
     }
 
@@ -230,10 +234,10 @@ final class ImmutableAclEntry implements AclEntry {
     @Override
     public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        return JsonFactory.newObjectBuilder() //
-                .set(JSON_SCHEMA_VERSION, schemaVersion.toInt(), predicate) //
+        return JsonFactory.newObjectBuilder()
+                .set(JSON_SCHEMA_VERSION, schemaVersion.toInt(), predicate)
                 // Explicitly DON'T pass the predicate to permissions!
-                .set(authSubject.getId(), permissions.toJson(schemaVersion)) //
+                .set(authSubject.getId(), permissions.toJson(schemaVersion))
                 .build();
     }
 

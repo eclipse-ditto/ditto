@@ -86,7 +86,6 @@ public final class RetrieveThingsTest {
         return JsonFactory.newFieldSelector(SELECTED_FIELDS, JSON_PARSE_OPTIONS);
     }
 
-
     @Test
     public void assertImmutability() {
         assertInstancesOf(RetrieveThings.class,
@@ -94,14 +93,12 @@ public final class RetrieveThingsTest {
                 provided(AuthorizationContext.class, JsonFieldSelector.class).isAlsoImmutable());
     }
 
-
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(RetrieveThings.class)
                 .withRedefinedSuperclass()
                 .verify();
     }
-
 
     @Test
     public void toJsonReturnsExpected() {

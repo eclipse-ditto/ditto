@@ -59,6 +59,7 @@ public final class ThingQueryCommandResponseAdapterTest {
     @Test(expected = UnknownCommandResponseException.class)
     public void unknownCommandResponseToAdaptable() {
         underTest.toAdaptable(new ThingQueryCommandResponse() {
+
             @Override
             public JsonValue getEntity(final JsonSchemaVersion schemaVersion) {
                 return toJson(schemaVersion, FieldType.notHidden());
@@ -108,10 +109,12 @@ public final class ThingQueryCommandResponseAdapterTest {
             }
 
             @Nonnull
+            @Override
             public String getManifest() {
                 return getType();
             }
         });
+
     }
 
     @Test
@@ -662,4 +665,5 @@ public final class ThingQueryCommandResponseAdapterTest {
 
         assertThat(actual).isEqualTo(expected);
     }
+
 }

@@ -16,6 +16,7 @@ import java.util.List;
 
 import org.bson.Document;
 import org.bson.conversions.Bson;
+import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
@@ -104,10 +105,11 @@ final class AttributesUpdateFactory {
     }
 
 
-    private static List<Document> createInternalAttributes(final JsonObject attributes) {
+    private static List<Document> createInternalAttributes(final Iterable<JsonField> attributes) {
         final List<Document> internalFlatList = new ArrayList<>();
-        for (final JsonKey key : attributes.getKeys()) {
-            final JsonValue value = attributes.getValue(key).get();
+        for (final JsonField attribute : attributes) {
+            final JsonValue value = attribute.getValue();
+            final JsonKey key = attribute.getKey();
             internalFlatList.addAll(toFlatAttributesList(PersistenceConstants.SLASH + key, value, new ArrayList<>()));
         }
         return internalFlatList;

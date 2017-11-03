@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.protocoladapter;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -97,7 +98,7 @@ final class ThingQueryCommandAdapter extends AbstractAdapter<ThingQueryCommand> 
             return RetrieveThings.TYPE;
         } else {
             final JsonPointer path = adaptable.getPayload().getPath();
-            final String commandName = topicPath.getAction().get() + upperCaseFirst(PathMatcher.match(path));
+            final String commandName = getAction(topicPath) + upperCaseFirst(PathMatcher.match(path));
             return topicPath.getGroup() + "." + topicPath.getCriterion() + ":" + commandName;
         }
     }
@@ -125,9 +126,9 @@ final class ThingQueryCommandAdapter extends AbstractAdapter<ThingQueryCommand> 
         final PayloadBuilder payloadBuilder = Payload.newBuilder(command.getResourcePath());
         command.getSelectedFields().ifPresent(payloadBuilder::withFields);
 
-        return Adaptable.newBuilder(commandsTopicPathBuilder.retrieve().build()) //
-                .withPayload(payloadBuilder.build()) //
-                .withHeaders(DittoProtocolAdapter.newHeaders(command.getDittoHeaders())) //
+        return Adaptable.newBuilder(commandsTopicPathBuilder.retrieve().build())
+                .withPayload(payloadBuilder.build())
+                .withHeaders(DittoProtocolAdapter.newHeaders(command.getDittoHeaders()))
                 .build();
     }
 
@@ -148,22 +149,31 @@ final class ThingQueryCommandAdapter extends AbstractAdapter<ThingQueryCommand> 
         command.getSelectedFields().ifPresent(payloadBuilder::withFields);
         payloadBuilder.withValue(createIdsPayload(command.getThingIds()));
 
-        return Adaptable.newBuilder(commandsTopicPathBuilder.retrieve().build()) //
-                .withPayload(payloadBuilder.build()) //
-                .withHeaders(DittoProtocolAdapter.newHeaders(command.getDittoHeaders())) //
+        return Adaptable.newBuilder(commandsTopicPathBuilder.retrieve().build())
+                .withPayload(payloadBuilder.build())
+                .withHeaders(DittoProtocolAdapter.newHeaders(command.getDittoHeaders()))
                 .build();
     }
 
     private static List<String> thingsIdsFrom(final Adaptable adaptable) {
-        final JsonArray array = adaptable.getPayload().getValue().filter(JsonValue::isObject).map(JsonValue::asObject)
-                .orElseThrow(() -> new JsonParseException("Adaptable payload was non existing or no JsonObject")) //
-                .getValue(RetrieveThings.JSON_THING_IDS).filter(JsonValue::isArray).map(JsonValue::asArray).orElseThrow(
-                        () -> new JsonParseException("Could not map 'thingIds' value to expected JsonArray"));
-        return array.stream().map(JsonValue::asString).collect(Collectors.toList());
+        final JsonArray array = adaptable.getPayload()
+                .getValue()
+                .filter(JsonValue::isObject)
+                .map(JsonValue::asObject)
+                .orElseThrow(() -> new JsonParseException("Adaptable payload was non existing or no JsonObject"))
+                .getValue(RetrieveThings.JSON_THING_IDS)
+                .filter(JsonValue::isArray)
+                .map(JsonValue::asArray)
+                .orElseThrow(() -> new JsonParseException("Could not map 'thingIds' value to expected JsonArray"));
+
+        return array.stream()
+                .map(JsonValue::asString)
+                .collect(Collectors.toList());
     }
 
-    private static JsonValue createIdsPayload(final List<String> ids) {
+    private static JsonValue createIdsPayload(final Collection<String> ids) {
         final JsonArray thingIdsArray = ids.stream().map(JsonFactory::newValue).collect(JsonCollectors.valuesToArray());
         return JsonFactory.newObject().setValue(RetrieveThings.JSON_THING_IDS.getPointer(), thingIdsArray);
     }
+
 }

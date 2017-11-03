@@ -118,7 +118,7 @@ final class ThingModifyCommandAdapter extends AbstractAdapter<ThingModifyCommand
     protected String getType(final Adaptable adaptable) {
         final TopicPath topicPath = adaptable.getTopicPath();
         final JsonPointer path = adaptable.getPayload().getPath();
-        final String commandName = topicPath.getAction().get() + upperCaseFirst(PathMatcher.match(path));
+        final String commandName = getAction(topicPath) + upperCaseFirst(PathMatcher.match(path));
         return topicPath.getGroup() + "." + topicPath.getCriterion() + ":" + commandName;
     }
 
@@ -145,9 +145,9 @@ final class ThingModifyCommandAdapter extends AbstractAdapter<ThingModifyCommand
         final Optional<JsonValue> value = command.getEntity(command.getImplementedSchemaVersion());
         value.ifPresent(payloadBuilder::withValue);
 
-        return Adaptable.newBuilder(commandsTopicPathBuilder.build()) //
-                .withPayload(payloadBuilder.build()) //
-                .withHeaders(DittoProtocolAdapter.newHeaders(command.getDittoHeaders())) //
+        return Adaptable.newBuilder(commandsTopicPathBuilder.build())
+                .withPayload(payloadBuilder.build())
+                .withHeaders(DittoProtocolAdapter.newHeaders(command.getDittoHeaders()))
                 .build();
     }
 

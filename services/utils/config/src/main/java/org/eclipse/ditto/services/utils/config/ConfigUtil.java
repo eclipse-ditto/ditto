@@ -234,12 +234,12 @@ public final class ConfigUtil {
                 .orElse(hostName);
         final InetAddress[] allKnownServiceAddresses = InetAddress.getAllByName(hostNameToUse);
         LOGGER.info("All known service addresses for service '{}': {}", hostNameToUse,
-                Arrays.stream(allKnownServiceAddresses).map(InetAddress::getCanonicalHostName) //
+                Arrays.stream(allKnownServiceAddresses).map(InetAddress::getCanonicalHostName)
                         .collect(Collectors.joining(",")));
 
         final String myHostname = System.getenv(ENV_HOSTNAME);
 
-        return Arrays.stream(allKnownServiceAddresses) //
+        return Arrays.stream(allKnownServiceAddresses)
                 .filter(addr -> !addr.getCanonicalHostName().equals(myHostname)) // exclude "my" address
                 .map(InetAddress::getCanonicalHostName);
     }
@@ -430,9 +430,8 @@ public final class ConfigUtil {
     }
 
     private static Config transformSecretsToConfig() {
-        try {
-            final Map<String, String> secrets = Files.list(Paths.get(SECRETS_PATH))
-                    .map(ConfigUtil::readSecretFromPath)
+        try (final Stream<Path> filesStream = Files.list(Paths.get(SECRETS_PATH))) {
+            final Map<String, String> secrets = filesStream.map(ConfigUtil::readSecretFromPath)
                     .filter(Optional::isPresent)
                     .map(Optional::get)
                     .collect(Collectors.toMap(Secret::getKey, Secret::getValue));
@@ -468,7 +467,7 @@ public final class ConfigUtil {
         try {
             final String secretName = path.getName(path.getNameCount() - 1).toString();
             final List<String> lines = Files.readAllLines(path);
-            if (lines.size() < 1) {
+            if (lines.isEmpty()) {
                 final String message = "Expected a secret but found no lines in file '{0}'.";
                 throw new IOException(MessageFormat.format(message, path));
             }

@@ -59,9 +59,9 @@ public final class ThingModifyCommandResponseAdapterTest {
         underTest = ThingModifyCommandResponseAdapter.newInstance();
     }
 
-    /** */
     @Test(expected = UnknownCommandResponseException.class)
     public void unknownCommandResponseResponseToAdaptable() {
+
         underTest.toAdaptable(new ThingModifyCommandResponse() {
             @Override
             public String getType() {
@@ -80,9 +80,9 @@ public final class ThingModifyCommandResponseAdapterTest {
 
             @Override
             public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate predicate) {
-                return JsonObject.newBuilder() //
-                        .set(CommandResponse.JsonFields.TYPE, getType()) //
-                        .set("policyId", "foo") //
+                return JsonObject.newBuilder()
+                        .set(CommandResponse.JsonFields.TYPE, getType())
+                        .set("policyId", "foo")
                         .build();
             }
 
@@ -102,39 +102,39 @@ public final class ThingModifyCommandResponseAdapterTest {
             }
 
             @Nonnull
+            @Override
             public String getManifest() {
                 return getType();
             }
+
         });
     }
 
-    /** */
     @Test
     public void createThingResponseResponseFromAdaptable() {
         final CreateThingResponse expected =
                 CreateThingResponse.of(TestConstants.THING, TestConstants.DITTO_HEADERS_V_2);
 
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID) //
-                .things() //
-                .twin() //
-                .commands() //
-                .create() //
+        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
+                .things()
+                .twin()
+                .commands()
+                .create()
                 .build();
         final JsonPointer path = JsonPointer.empty();
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withStatus(HttpStatusCode.CREATED) //
-                        .withValue(TestConstants.THING.toJson(FieldType.notHidden())) //
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_2) //
+        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.CREATED)
+                        .withValue(TestConstants.THING.toJson(FieldType.notHidden()))
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
         final ThingModifyCommandResponse actual = underTest.fromAdaptable(adaptable);
 
         assertThat(actual).isEqualTo(expected);
     }
 
-    /** */
     @Test
     public void createThingResponseResponseToAdaptable() {
         final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
@@ -145,12 +145,12 @@ public final class ThingModifyCommandResponseAdapterTest {
                 .build();
         final JsonPointer path = JsonPointer.empty();
 
-        final Adaptable expected = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withStatus(HttpStatusCode.CREATED) //
-                        .withValue(TestConstants.THING.toJson(FieldType.notHidden())) //
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_2) //
+        final Adaptable expected = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.CREATED)
+                        .withValue(TestConstants.THING.toJson(FieldType.notHidden()))
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
 
         final CreateThingResponse createThingResponse =
@@ -160,26 +160,25 @@ public final class ThingModifyCommandResponseAdapterTest {
         assertThat(actual).isEqualTo(expected);
     }
 
-    /** */
     @Test
     public void modifyThingResponseFromAdaptable() {
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID) //
-                .things() //
-                .twin() //
-                .commands() //
-                .modify() //
+        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
+                .things()
+                .twin()
+                .commands()
+                .modify()
                 .build();
         final JsonPointer path = JsonPointer.empty();
 
         final ModifyThingResponse expectedCreated =
                 ModifyThingResponse.created(TestConstants.THING, TestConstants.DITTO_HEADERS_V_2);
 
-        final Adaptable adaptableCreated = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withStatus(HttpStatusCode.CREATED) //
-                        .withValue(TestConstants.THING.toJson(FieldType.notHidden())) //
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_2) //
+        final Adaptable adaptableCreated = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.CREATED)
+                        .withValue(TestConstants.THING.toJson(FieldType.notHidden()))
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
         final ThingModifyCommandResponse actualCreated = underTest.fromAdaptable(adaptableCreated);
 
@@ -188,18 +187,17 @@ public final class ThingModifyCommandResponseAdapterTest {
         final ModifyThingResponse expectedModified =
                 ModifyThingResponse.modified(TestConstants.THING_ID, TestConstants.DITTO_HEADERS_V_2);
 
-        final Adaptable adaptableModified = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withStatus(HttpStatusCode.NO_CONTENT) //
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_2) //
+        final Adaptable adaptableModified = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
         final ThingModifyCommandResponse actualModified = underTest.fromAdaptable(adaptableModified);
 
         assertThat(actualModified).isEqualTo(expectedModified);
     }
 
-    /** */
     @Test
     public void modifyThingResponseToAdaptable() {
         final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
@@ -210,12 +208,12 @@ public final class ThingModifyCommandResponseAdapterTest {
                 .build();
         final JsonPointer path = JsonPointer.empty();
 
-        final Adaptable expectedCreated = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withStatus(HttpStatusCode.CREATED) //
-                        .withValue(TestConstants.THING.toJson(FieldType.notHidden())) //
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_2) //
+        final Adaptable expectedCreated = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.CREATED)
+                        .withValue(TestConstants.THING.toJson(FieldType.notHidden()))
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
 
         final ModifyThingResponse modifyThingResponseCreated =
@@ -224,11 +222,11 @@ public final class ThingModifyCommandResponseAdapterTest {
 
         assertThat(actualCreated).isEqualTo(expectedCreated);
 
-        final Adaptable expectedModified = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withStatus(HttpStatusCode.NO_CONTENT) //
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_2) //
+        final Adaptable expectedModified = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
 
         final ModifyThingResponse modifyThingResponseModified =
@@ -238,32 +236,30 @@ public final class ThingModifyCommandResponseAdapterTest {
         assertThat(actualModified).isEqualTo(expectedModified);
     }
 
-    /** */
     @Test
     public void deleteThingResponseFromAdaptable() {
         final DeleteThingResponse expected =
                 DeleteThingResponse.of(TestConstants.THING_ID, TestConstants.DITTO_HEADERS_V_2);
 
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID) //
-                .things() //
-                .twin() //
-                .commands() //
-                .delete() //
+        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
+                .things()
+                .twin()
+                .commands()
+                .delete()
                 .build();
         final JsonPointer path = JsonPointer.empty();
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withStatus(HttpStatusCode.NO_CONTENT) //
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_2) //
+        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
         final ThingModifyCommandResponse actual = underTest.fromAdaptable(adaptable);
 
         assertThat(actual).isEqualTo(expected);
     }
 
-    /** */
     @Test
     public void deleteThingResponseToAdaptable() {
         final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
@@ -274,11 +270,11 @@ public final class ThingModifyCommandResponseAdapterTest {
                 .build();
         final JsonPointer path = JsonPointer.empty();
 
-        final Adaptable expected = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withStatus(HttpStatusCode.NO_CONTENT) //
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_2) //
+        final Adaptable expected = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
 
         final DeleteThingResponse deleteThingResponse =
@@ -288,33 +284,31 @@ public final class ThingModifyCommandResponseAdapterTest {
         assertThat(actual).isEqualTo(expected);
     }
 
-    /** */
     @Test
     public void modifyAclResponseFromAdaptable() {
         final ModifyAclResponse expected = ModifyAclResponse.modified(TestConstants.THING_ID, TestConstants.ACL,
                 TestConstants.DITTO_HEADERS_V_1);
 
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID) //
-                .things() //
-                .twin() //
-                .commands() //
-                .modify() //
+        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
+                .things()
+                .twin()
+                .commands()
+                .modify()
                 .build();
         final JsonPointer path = JsonPointer.of("/acl");
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withStatus(HttpStatusCode.NO_CONTENT) //
+        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.NO_CONTENT)
                         .withValue(TestConstants.ACL.toJson())
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_1) //
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_1)
                 .build();
         final ThingModifyCommandResponse actual = underTest.fromAdaptable(adaptable);
 
         assertThat(actual).isEqualTo(expected);
     }
 
-    /** */
     @Test
     public void modifyAclResponseToAdaptable() {
         final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
@@ -325,11 +319,11 @@ public final class ThingModifyCommandResponseAdapterTest {
                 .build();
         final JsonPointer path = JsonPointer.of("/acl");
 
-        final Adaptable expected = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withStatus(HttpStatusCode.NO_CONTENT) //
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_1) //
+        final Adaptable expected = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_1)
                 .build();
 
         final ModifyAclResponse modifyAclResponse =
@@ -340,14 +334,13 @@ public final class ThingModifyCommandResponseAdapterTest {
         assertThat(actual).isEqualTo(expected);
     }
 
-    /** */
     @Test
     public void modifyAclEntryResponseFromAdaptable() {
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID) //
-                .things() //
-                .twin() //
-                .commands() //
-                .modify() //
+        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
+                .things()
+                .twin()
+                .commands()
+                .modify()
                 .build();
         final JsonPointer path = JsonPointer.of("/acl/" + TestConstants.AUTHORIZATION_SUBJECT.getId());
 
@@ -355,12 +348,12 @@ public final class ThingModifyCommandResponseAdapterTest {
                 ModifyAclEntryResponse.created(TestConstants.THING_ID, TestConstants.ACL_ENTRY,
                         TestConstants.DITTO_HEADERS_V_1);
 
-        final Adaptable adaptableCreated = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withStatus(HttpStatusCode.CREATED) //
-                        .withValue(TestConstants.ACL_ENTRY.getPermissions().toJson()) //
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_1) //
+        final Adaptable adaptableCreated = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.CREATED)
+                        .withValue(TestConstants.ACL_ENTRY.getPermissions().toJson())
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_1)
                 .build();
         final ThingModifyCommandResponse actualCreated = underTest.fromAdaptable(adaptableCreated);
 
@@ -370,19 +363,18 @@ public final class ThingModifyCommandResponseAdapterTest {
                 ModifyAclEntryResponse.modified(TestConstants.THING_ID, TestConstants.ACL_ENTRY,
                         TestConstants.DITTO_HEADERS_V_1);
 
-        final Adaptable adaptableModified = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withStatus(HttpStatusCode.NO_CONTENT) //
+        final Adaptable adaptableModified = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.NO_CONTENT)
                         .withValue(TestConstants.ACL_ENTRY.getPermissions().toJson())
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_1) //
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_1)
                 .build();
         final ThingModifyCommandResponse actualModified = underTest.fromAdaptable(adaptableModified);
 
         assertThat(actualModified).isEqualTo(expectedModified);
     }
 
-    /** */
     @Test
     public void modifyAclEntryResponseToAdaptable() {
         final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
@@ -393,12 +385,12 @@ public final class ThingModifyCommandResponseAdapterTest {
                 .build();
         final JsonPointer path = JsonPointer.of("/acl/" + TestConstants.AUTHORIZATION_SUBJECT.getId());
 
-        final Adaptable expectedCreated = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withStatus(HttpStatusCode.CREATED) //
-                        .withValue(TestConstants.ACL_ENTRY.getPermissions().toJson()) //
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_1) //
+        final Adaptable expectedCreated = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.CREATED)
+                        .withValue(TestConstants.ACL_ENTRY.getPermissions().toJson())
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_1)
                 .build();
 
         final ModifyAclEntryResponse modifyAclEntryResponseCreated =
@@ -408,11 +400,11 @@ public final class ThingModifyCommandResponseAdapterTest {
 
         assertThat(actualCreated).isEqualTo(expectedCreated);
 
-        final Adaptable expectedModified = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withStatus(HttpStatusCode.NO_CONTENT) //
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_1) //
+        final Adaptable expectedModified = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_1)
                 .build();
 
         final ModifyAclEntryResponse modifyAclEntryResponseModified =
@@ -423,33 +415,31 @@ public final class ThingModifyCommandResponseAdapterTest {
         assertThat(actualModified).isEqualTo(expectedModified);
     }
 
-    /** */
     @Test
     public void deleteAclEntryResponseFromAdaptable() {
         final DeleteAclEntryResponse expected =
                 DeleteAclEntryResponse.of(TestConstants.THING_ID, TestConstants.AUTHORIZATION_SUBJECT,
                         TestConstants.DITTO_HEADERS_V_1);
 
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID) //
-                .things() //
-                .twin() //
-                .commands() //
-                .delete() //
+        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
+                .things()
+                .twin()
+                .commands()
+                .delete()
                 .build();
         final JsonPointer path = JsonPointer.of("/acl/" + TestConstants.AUTHORIZATION_SUBJECT.getId());
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withStatus(HttpStatusCode.NO_CONTENT) //
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_1) //
+        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_1)
                 .build();
         final ThingModifyCommandResponse actual = underTest.fromAdaptable(adaptable);
 
         assertThat(actual).isEqualTo(expected);
     }
 
-    /** */
     @Test
     public void deleteAclEntryResponseToAdaptable() {
         final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
@@ -460,11 +450,11 @@ public final class ThingModifyCommandResponseAdapterTest {
                 .build();
         final JsonPointer path = JsonPointer.of("/acl/" + TestConstants.AUTHORIZATION_SUBJECT.getId());
 
-        final Adaptable expected = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withStatus(HttpStatusCode.NO_CONTENT) //
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_1) //
+        final Adaptable expected = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_1)
                 .build();
 
         final DeleteAclEntryResponse deleteAclEntryResponse =
@@ -475,14 +465,13 @@ public final class ThingModifyCommandResponseAdapterTest {
         assertThat(actual).isEqualTo(expected);
     }
 
-    /** */
     @Test
     public void modifyAttributesResponseFromAdaptable() {
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID) //
-                .things() //
-                .twin() //
-                .commands() //
-                .modify() //
+        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
+                .things()
+                .twin()
+                .commands()
+                .modify()
                 .build();
         final JsonPointer path = JsonPointer.of("/attributes");
 
@@ -490,12 +479,12 @@ public final class ThingModifyCommandResponseAdapterTest {
                 ModifyAttributesResponse.created(TestConstants.THING_ID, TestConstants.ATTRIBUTES,
                         TestConstants.DITTO_HEADERS_V_2);
 
-        final Adaptable adaptableCreated = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withStatus(HttpStatusCode.CREATED) //
-                        .withValue(TestConstants.ATTRIBUTES_JSON) //
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_2) //
+        final Adaptable adaptableCreated = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.CREATED)
+                        .withValue(TestConstants.ATTRIBUTES_JSON)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
         final ThingModifyCommandResponse actualCreated = underTest.fromAdaptable(adaptableCreated);
 
@@ -504,18 +493,17 @@ public final class ThingModifyCommandResponseAdapterTest {
         final ModifyAttributesResponse expectedModified =
                 ModifyAttributesResponse.modified(TestConstants.THING_ID, TestConstants.DITTO_HEADERS_V_2);
 
-        final Adaptable adaptableModified = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withStatus(HttpStatusCode.NO_CONTENT) //
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_2) //
+        final Adaptable adaptableModified = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
         final ThingModifyCommandResponse actualModified = underTest.fromAdaptable(adaptableModified);
 
         assertThat(actualModified).isEqualTo(expectedModified);
     }
 
-    /** */
     @Test
     public void modifyAttributesResponseToAdaptable() {
         final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
@@ -526,12 +514,12 @@ public final class ThingModifyCommandResponseAdapterTest {
                 .build();
         final JsonPointer path = JsonPointer.of("/attributes");
 
-        final Adaptable expectedCreated = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withStatus(HttpStatusCode.CREATED) //
-                        .withValue(TestConstants.ATTRIBUTES) //
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_2) //
+        final Adaptable expectedCreated = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.CREATED)
+                        .withValue(TestConstants.ATTRIBUTES)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
 
         final ModifyAttributesResponse modifyAttributesResponseCreated =
@@ -541,12 +529,12 @@ public final class ThingModifyCommandResponseAdapterTest {
 
         assertThat(actualCreated).isEqualTo(expectedCreated);
 
-        final Adaptable expectedModified = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withStatus(HttpStatusCode.NO_CONTENT) //
+        final Adaptable expectedModified = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.NO_CONTENT)
                         .withValue(ThingsModelFactory.nullAttributes())
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_2) //
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
 
         final ModifyAttributesResponse modifyAttributesResponseModified =
@@ -556,32 +544,30 @@ public final class ThingModifyCommandResponseAdapterTest {
         assertThat(actualModified).isEqualTo(expectedModified);
     }
 
-    /** */
     @Test
     public void deleteAttributesResponseFromAdaptable() {
         final DeleteAttributesResponse expected =
                 DeleteAttributesResponse.of(TestConstants.THING_ID, TestConstants.DITTO_HEADERS_V_2);
 
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID) //
-                .things() //
-                .twin() //
-                .commands() //
-                .delete() //
+        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
+                .things()
+                .twin()
+                .commands()
+                .delete()
                 .build();
         final JsonPointer path = JsonPointer.of("/attributes");
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withStatus(HttpStatusCode.NO_CONTENT) //
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_2) //
+        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
         final ThingModifyCommandResponse actual = underTest.fromAdaptable(adaptable);
 
         assertThat(actual).isEqualTo(expected);
     }
 
-    /** */
     @Test
     public void deleteAttributesResponseToAdaptable() {
         final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
@@ -592,11 +578,11 @@ public final class ThingModifyCommandResponseAdapterTest {
                 .build();
         final JsonPointer path = JsonPointer.of("/attributes");
 
-        final Adaptable expected = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withStatus(HttpStatusCode.NO_CONTENT) //
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_2) //
+        final Adaptable expected = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
 
         final DeleteAttributesResponse deleteAttributesResponse =
@@ -606,14 +592,13 @@ public final class ThingModifyCommandResponseAdapterTest {
         assertThat(actual).isEqualTo(expected);
     }
 
-    /** */
     @Test
     public void modifyAttributeResponseFromAdaptable() {
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID) //
-                .things() //
-                .twin() //
-                .commands() //
-                .modify() //
+        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
+                .things()
+                .twin()
+                .commands()
+                .modify()
                 .build();
         final JsonPointer path = JsonPointer.of("/attributes" + TestConstants.ATTRIBUTE_POINTER);
 
@@ -621,12 +606,12 @@ public final class ThingModifyCommandResponseAdapterTest {
                 ModifyAttributeResponse.created(TestConstants.THING_ID, TestConstants.ATTRIBUTE_POINTER,
                 TestConstants.ATTRIBUTE_VALUE, TestConstants.DITTO_HEADERS_V_2);
 
-        final Adaptable adaptableCreated = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withStatus(HttpStatusCode.CREATED) //
-                        .withValue(TestConstants.ATTRIBUTE_VALUE) //
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_2) //
+        final Adaptable adaptableCreated = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.CREATED)
+                        .withValue(TestConstants.ATTRIBUTE_VALUE)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
         final ThingModifyCommandResponse actualCreated = underTest.fromAdaptable(adaptableCreated);
 
@@ -636,18 +621,17 @@ public final class ThingModifyCommandResponseAdapterTest {
                 ModifyAttributeResponse.modified(TestConstants.THING_ID, TestConstants.ATTRIBUTE_POINTER,
                         TestConstants.DITTO_HEADERS_V_2);
 
-        final Adaptable adaptableModified = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withStatus(HttpStatusCode.NO_CONTENT) //
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_2) //
+        final Adaptable adaptableModified = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
         final ThingModifyCommandResponse actualModified = underTest.fromAdaptable(adaptableModified);
 
         assertThat(actualModified).isEqualTo(expectedModified);
     }
 
-    /** */
     @Test
     public void modifyAttributeResponseToAdaptable() {
         final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
@@ -658,12 +642,12 @@ public final class ThingModifyCommandResponseAdapterTest {
                 .build();
         final JsonPointer path = JsonPointer.of("/attributes" + TestConstants.ATTRIBUTE_POINTER);
 
-        final Adaptable expectedCreated = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withStatus(HttpStatusCode.CREATED) //
-                        .withValue(TestConstants.ATTRIBUTE_VALUE) //
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_2) //
+        final Adaptable expectedCreated = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.CREATED)
+                        .withValue(TestConstants.ATTRIBUTE_VALUE)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
 
         final ModifyAttributeResponse modifyAttributeResponseCreated = ModifyAttributeResponse
@@ -673,11 +657,11 @@ public final class ThingModifyCommandResponseAdapterTest {
 
         assertThat(actualCreated).isEqualTo(expectedCreated);
 
-        final Adaptable expectedModified = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withStatus(HttpStatusCode.NO_CONTENT) //
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_2) //
+        final Adaptable expectedModified = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
 
         final ModifyAttributeResponse modifyAttributeResponseModified =
@@ -688,33 +672,31 @@ public final class ThingModifyCommandResponseAdapterTest {
         assertThat(actualModified).isEqualTo(expectedModified);
     }
 
-    /** */
     @Test
     public void deleteAttributeResponseFromAdaptable() {
         final DeleteAttributeResponse expected =
                 DeleteAttributeResponse.of(TestConstants.THING_ID, TestConstants.ATTRIBUTE_POINTER,
                         TestConstants.DITTO_HEADERS_V_2);
 
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID) //
-                .things() //
-                .twin() //
-                .commands() //
-                .delete() //
+        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
+                .things()
+                .twin()
+                .commands()
+                .delete()
                 .build();
         final JsonPointer path = JsonPointer.of("/attributes" + TestConstants.ATTRIBUTE_POINTER);
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withStatus(HttpStatusCode.NO_CONTENT) //
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_2) //
+        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
         final ThingModifyCommandResponse actual = underTest.fromAdaptable(adaptable);
 
         assertThat(actual).isEqualTo(expected);
     }
 
-    /** */
     @Test
     public void deleteAttributeResponseToAdaptable() {
         final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
@@ -725,11 +707,11 @@ public final class ThingModifyCommandResponseAdapterTest {
                 .build();
         final JsonPointer path = JsonPointer.of("/attributes" + TestConstants.ATTRIBUTE_POINTER);
 
-        final Adaptable expected = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withStatus(HttpStatusCode.NO_CONTENT) //
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_2) //
+        final Adaptable expected = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
 
         final DeleteAttributeResponse deleteAttributeResponse =
@@ -740,14 +722,13 @@ public final class ThingModifyCommandResponseAdapterTest {
         assertThat(actual).isEqualTo(expected);
     }
 
-    /** */
     @Test
     public void modifyFeaturesResponseFromAdaptable() {
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID) //
-                .things() //
-                .twin() //
-                .commands() //
-                .modify() //
+        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
+                .things()
+                .twin()
+                .commands()
+                .modify()
                 .build();
         final JsonPointer path = JsonPointer.of("/features");
 
@@ -755,12 +736,12 @@ public final class ThingModifyCommandResponseAdapterTest {
                 ModifyFeaturesResponse.created(TestConstants.THING_ID, TestConstants.FEATURES,
                         TestConstants.DITTO_HEADERS_V_2);
 
-        final Adaptable adaptableCreated = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withStatus(HttpStatusCode.CREATED) //
-                        .withValue(TestConstants.FEATURES.toJson(FieldType.notHidden())) //
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_2) //
+        final Adaptable adaptableCreated = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.CREATED)
+                        .withValue(TestConstants.FEATURES.toJson(FieldType.notHidden()))
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
         final ThingModifyCommandResponse actualCreated = underTest.fromAdaptable(adaptableCreated);
 
@@ -769,18 +750,17 @@ public final class ThingModifyCommandResponseAdapterTest {
         final ModifyFeaturesResponse expectedModified =
                 ModifyFeaturesResponse.modified(TestConstants.THING_ID, TestConstants.DITTO_HEADERS_V_2);
 
-        final Adaptable adaptableModified = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withStatus(HttpStatusCode.NO_CONTENT) //
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_2) //
+        final Adaptable adaptableModified = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
         final ThingModifyCommandResponse actualModified = underTest.fromAdaptable(adaptableModified);
 
         assertThat(actualModified).isEqualTo(expectedModified);
     }
 
-    /** */
     @Test
     public void modifyFeaturesResponseToAdaptable() {
         final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
@@ -791,12 +771,12 @@ public final class ThingModifyCommandResponseAdapterTest {
                 .build();
         final JsonPointer path = JsonPointer.of("/features");
 
-        final Adaptable expectedCreated = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withStatus(HttpStatusCode.CREATED) //
-                        .withValue(TestConstants.FEATURES.toJson(FieldType.notHidden())) //
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_2) //
+        final Adaptable expectedCreated = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.CREATED)
+                        .withValue(TestConstants.FEATURES.toJson(FieldType.notHidden()))
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
 
         final ModifyFeaturesResponse modifyFeaturesResponseCreated =
@@ -806,12 +786,12 @@ public final class ThingModifyCommandResponseAdapterTest {
 
         assertThat(actualCreated).isEqualTo(expectedCreated);
 
-        final Adaptable expectedModified = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withStatus(HttpStatusCode.NO_CONTENT) //
+        final Adaptable expectedModified = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.NO_CONTENT)
                         .withValue(ThingsModelFactory.nullFeatures().toJson())
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_2) //
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
 
         final ModifyFeaturesResponse modifyFeaturesResponseModified =
@@ -821,32 +801,30 @@ public final class ThingModifyCommandResponseAdapterTest {
         assertThat(actualModified).isEqualTo(expectedModified);
     }
 
-    /** */
     @Test
     public void deleteFeaturesResponseFromAdaptable() {
         final DeleteFeaturesResponse expected =
                 DeleteFeaturesResponse.of(TestConstants.THING_ID, TestConstants.DITTO_HEADERS_V_2);
 
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID) //
-                .things() //
-                .twin() //
-                .commands() //
-                .delete() //
+        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
+                .things()
+                .twin()
+                .commands()
+                .delete()
                 .build();
         final JsonPointer path = JsonPointer.of("/features");
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withStatus(HttpStatusCode.NO_CONTENT) //
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_2) //
+        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
         final ThingModifyCommandResponse actual = underTest.fromAdaptable(adaptable);
 
         assertThat(actual).isEqualTo(expected);
     }
 
-    /** */
     @Test
     public void deleteFeaturesResponseToAdaptable() {
         final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
@@ -857,11 +835,11 @@ public final class ThingModifyCommandResponseAdapterTest {
                 .build();
         final JsonPointer path = JsonPointer.of("/features");
 
-        final Adaptable expected = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withStatus(HttpStatusCode.NO_CONTENT) //
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_2) //
+        final Adaptable expected = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
 
         final DeleteFeaturesResponse deleteFeaturesResponse =
@@ -871,14 +849,13 @@ public final class ThingModifyCommandResponseAdapterTest {
         assertThat(actual).isEqualTo(expected);
     }
 
-    /** */
     @Test
     public void modifyFeatureResponseFromAdaptable() {
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID) //
-                .things() //
-                .twin() //
-                .commands() //
-                .modify() //
+        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
+                .things()
+                .twin()
+                .commands()
+                .modify()
                 .build();
         final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID);
 
@@ -886,12 +863,12 @@ public final class ThingModifyCommandResponseAdapterTest {
                 ModifyFeatureResponse.created(TestConstants.THING_ID, TestConstants.FEATURE,
                         TestConstants.DITTO_HEADERS_V_2);
 
-        final Adaptable adaptableCreated = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withStatus(HttpStatusCode.CREATED) //
-                        .withValue(TestConstants.FEATURE.toJson(FieldType.notHidden())) //
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_2) //
+        final Adaptable adaptableCreated = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.CREATED)
+                        .withValue(TestConstants.FEATURE.toJson(FieldType.notHidden()))
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
         final ThingModifyCommandResponse actualCreated = underTest.fromAdaptable(adaptableCreated);
 
@@ -901,18 +878,17 @@ public final class ThingModifyCommandResponseAdapterTest {
                 ModifyFeatureResponse.modified(TestConstants.THING_ID, TestConstants.FEATURE_ID,
                         TestConstants.DITTO_HEADERS_V_2);
 
-        final Adaptable adaptableModified = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withStatus(HttpStatusCode.NO_CONTENT) //
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_2) //
+        final Adaptable adaptableModified = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
         final ThingModifyCommandResponse actualModified = underTest.fromAdaptable(adaptableModified);
 
         assertThat(actualModified).isEqualTo(expectedModified);
     }
 
-    /** */
     @Test
     public void modifyFeatureResponseToAdaptable() {
         final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
@@ -923,12 +899,12 @@ public final class ThingModifyCommandResponseAdapterTest {
                 .build();
         final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID);
 
-        final Adaptable expectedCreated = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withStatus(HttpStatusCode.CREATED) //
-                        .withValue(TestConstants.FEATURE.toJson(FieldType.notHidden())) //
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_2) //
+        final Adaptable expectedCreated = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.CREATED)
+                        .withValue(TestConstants.FEATURE.toJson(FieldType.notHidden()))
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
 
         final ModifyFeatureResponse modifyFeatureResponseCreated =
@@ -938,12 +914,12 @@ public final class ThingModifyCommandResponseAdapterTest {
 
         assertThat(actualCreated).isEqualTo(expectedCreated);
 
-        final Adaptable expectedModified = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withStatus(HttpStatusCode.NO_CONTENT) //
+        final Adaptable expectedModified = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.NO_CONTENT)
                         .withValue(ThingsModelFactory.nullFeature(TestConstants.FEATURE_ID).toJson())
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_2) //
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
 
         final ModifyFeatureResponse modifyFeatureResponseModified =
@@ -954,33 +930,31 @@ public final class ThingModifyCommandResponseAdapterTest {
         assertThat(actualModified).isEqualTo(expectedModified);
     }
 
-    /** */
     @Test
     public void deleteFeatureResponseFromAdaptable() {
         final DeleteFeatureResponse expected =
                 DeleteFeatureResponse.of(TestConstants.THING_ID, TestConstants.FEATURE_ID,
                         TestConstants.DITTO_HEADERS_V_2);
 
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID) //
-                .things() //
-                .twin() //
-                .commands() //
-                .delete() //
+        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
+                .things()
+                .twin()
+                .commands()
+                .delete()
                 .build();
         final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID);
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withStatus(HttpStatusCode.NO_CONTENT) //
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_2) //
+        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
         final ThingModifyCommandResponse actual = underTest.fromAdaptable(adaptable);
 
         assertThat(actual).isEqualTo(expected);
     }
 
-    /** */
     @Test
     public void deleteFeatureResponseToAdaptable() {
         final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
@@ -991,11 +965,11 @@ public final class ThingModifyCommandResponseAdapterTest {
                 .build();
         final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID);
 
-        final Adaptable expected = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withStatus(HttpStatusCode.NO_CONTENT) //
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_2) //
+        final Adaptable expected = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
 
         final DeleteFeatureResponse deleteFeatureResponse =
@@ -1006,14 +980,13 @@ public final class ThingModifyCommandResponseAdapterTest {
         assertThat(actual).isEqualTo(expected);
     }
 
-    /** */
     @Test
     public void modifyFeaturePropertiesResponseFromAdaptable() {
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID) //
-                .things() //
-                .twin() //
-                .commands() //
-                .modify() //
+        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
+                .things()
+                .twin()
+                .commands()
+                .modify()
                 .build();
         final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID + "/properties");
 
@@ -1021,12 +994,12 @@ public final class ThingModifyCommandResponseAdapterTest {
                 .created(TestConstants.THING_ID, TestConstants.FEATURE_ID, TestConstants.FEATURE_PROPERTIES,
                         TestConstants.DITTO_HEADERS_V_2);
 
-        final Adaptable adaptableCreated = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withStatus(HttpStatusCode.CREATED) //
-                        .withValue(TestConstants.FEATURE_PROPERTIES_JSON) //
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_2) //
+        final Adaptable adaptableCreated = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.CREATED)
+                        .withValue(TestConstants.FEATURE_PROPERTIES_JSON)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
         final ThingModifyCommandResponse actualCreated = underTest.fromAdaptable(adaptableCreated);
 
@@ -1036,18 +1009,17 @@ public final class ThingModifyCommandResponseAdapterTest {
                 ModifyFeaturePropertiesResponse.modified(TestConstants.THING_ID, TestConstants.FEATURE_ID,
                         TestConstants.DITTO_HEADERS_V_2);
 
-        final Adaptable adaptableModified = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withStatus(HttpStatusCode.NO_CONTENT) //
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_2) //
+        final Adaptable adaptableModified = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
         final ThingModifyCommandResponse actualModified = underTest.fromAdaptable(adaptableModified);
 
         assertThat(actualModified).isEqualTo(expectedModified);
     }
 
-    /** */
     @Test
     public void modifyFeaturePropertiesResponseToAdaptable() {
         final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
@@ -1058,12 +1030,12 @@ public final class ThingModifyCommandResponseAdapterTest {
                 .build();
         final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID + "/properties");
 
-        final Adaptable expectedCreated = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withStatus(HttpStatusCode.CREATED) //
-                        .withValue(TestConstants.FEATURE_PROPERTIES) //
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_2) //
+        final Adaptable expectedCreated = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.CREATED)
+                        .withValue(TestConstants.FEATURE_PROPERTIES)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
 
         final ModifyFeaturePropertiesResponse modifyFeaturePropertiesResponseCreated = ModifyFeaturePropertiesResponse
@@ -1073,11 +1045,11 @@ public final class ThingModifyCommandResponseAdapterTest {
 
         assertThat(actualCreated).isEqualTo(expectedCreated);
 
-        final Adaptable expectedModified = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withStatus(HttpStatusCode.NO_CONTENT) //
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_2) //
+        final Adaptable expectedModified = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
 
         final ModifyFeaturePropertiesResponse modifyFeaturePropertiesResponseModified =
@@ -1088,33 +1060,31 @@ public final class ThingModifyCommandResponseAdapterTest {
         assertThat(actualModified).isEqualTo(expectedModified);
     }
 
-    /** */
     @Test
     public void deleteFeaturePropertiesResponseFromAdaptable() {
         final DeleteFeaturePropertiesResponse expected =
                 DeleteFeaturePropertiesResponse.of(TestConstants.THING_ID, TestConstants.FEATURE_ID,
                         TestConstants.DITTO_HEADERS_V_2);
 
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID) //
-                .things() //
-                .twin() //
-                .commands() //
-                .delete() //
+        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
+                .things()
+                .twin()
+                .commands()
+                .delete()
                 .build();
         final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID + "/properties");
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withStatus(HttpStatusCode.NO_CONTENT) //
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_2) //
+        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
         final ThingModifyCommandResponse actual = underTest.fromAdaptable(adaptable);
 
         assertThat(actual).isEqualTo(expected);
     }
 
-    /** */
     @Test
     public void deleteFeaturePropertiesResponseToAdaptable() {
         final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
@@ -1125,11 +1095,11 @@ public final class ThingModifyCommandResponseAdapterTest {
                 .build();
         final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID + "/properties");
 
-        final Adaptable expected = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withStatus(HttpStatusCode.NO_CONTENT) //
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_2) //
+        final Adaptable expected = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
 
         final DeleteFeaturePropertiesResponse deleteFeaturePropertiesResponse =
@@ -1140,30 +1110,28 @@ public final class ThingModifyCommandResponseAdapterTest {
         assertThat(actual).isEqualTo(expected);
     }
 
-    /** */
     @Test
     public void modifyFeaturePropertyResponseFromAdaptable() {
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID) //
-                .things() //
-                .twin() //
-                .commands() //
-                .modify() //
+        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
+                .things()
+                .twin()
+                .commands()
+                .modify()
                 .build();
-        final JsonPointer path = JsonPointer
-                .of("/features/" + TestConstants.FEATURE_ID + "/properties" +
-                        TestConstants.FEATURE_PROPERTY_POINTER);
+        final JsonPointer path = JsonPointer.of(
+                "/features/" + TestConstants.FEATURE_ID + "/properties" + TestConstants.FEATURE_PROPERTY_POINTER);
 
         final ModifyFeaturePropertyResponse expectedCreated =
                 ModifyFeaturePropertyResponse.created(TestConstants.THING_ID, TestConstants.FEATURE_ID,
                         TestConstants.FEATURE_PROPERTY_POINTER,
                         TestConstants.FEATURE_PROPERTY_VALUE, TestConstants.DITTO_HEADERS_V_2);
 
-        final Adaptable adaptableCreated = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withStatus(HttpStatusCode.CREATED) //
-                        .withValue(TestConstants.FEATURE_PROPERTY_VALUE) //
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_2) //
+        final Adaptable adaptableCreated = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.CREATED)
+                        .withValue(TestConstants.FEATURE_PROPERTY_VALUE)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
         final ThingModifyCommandResponse actualCreated = underTest.fromAdaptable(adaptableCreated);
 
@@ -1173,18 +1141,17 @@ public final class ThingModifyCommandResponseAdapterTest {
                 .modified(TestConstants.THING_ID, TestConstants.FEATURE_ID, TestConstants.FEATURE_PROPERTY_POINTER,
                         TestConstants.DITTO_HEADERS_V_2);
 
-        final Adaptable adaptableModified = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withStatus(HttpStatusCode.NO_CONTENT) //
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_2) //
+        final Adaptable adaptableModified = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
         final ThingModifyCommandResponse actualModified = underTest.fromAdaptable(adaptableModified);
 
         assertThat(actualModified).isEqualTo(expectedModified);
     }
 
-    /** */
     @Test
     public void modifyFeaturePropertyResponseToAdaptable() {
         final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
@@ -1193,16 +1160,15 @@ public final class ThingModifyCommandResponseAdapterTest {
                 .commands()
                 .modify()
                 .build();
-        final JsonPointer path = JsonPointer
-                .of("/features/" + TestConstants.FEATURE_ID + "/properties" +
-                        TestConstants.FEATURE_PROPERTY_POINTER);
+        final JsonPointer path = JsonPointer.of(
+                "/features/" + TestConstants.FEATURE_ID + "/properties" + TestConstants.FEATURE_PROPERTY_POINTER);
 
-        final Adaptable expectedCreated = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withStatus(HttpStatusCode.CREATED) //
-                        .withValue(TestConstants.FEATURE_PROPERTY_VALUE) //
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_2) //
+        final Adaptable expectedCreated = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.CREATED)
+                        .withValue(TestConstants.FEATURE_PROPERTY_VALUE)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
 
         final ModifyFeaturePropertyResponse modifyFeaturePropertyResponseCreated =
@@ -1213,11 +1179,11 @@ public final class ThingModifyCommandResponseAdapterTest {
 
         assertThat(actualCreated).isEqualTo(expectedCreated);
 
-        final Adaptable expectedModified = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withStatus(HttpStatusCode.NO_CONTENT) //
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_2) //
+        final Adaptable expectedModified = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
 
         final ModifyFeaturePropertyResponse modifyFeaturePropertyResponseModified =
@@ -1229,35 +1195,32 @@ public final class ThingModifyCommandResponseAdapterTest {
         assertThat(actualModified).isEqualTo(expectedModified);
     }
 
-    /** */
     @Test
     public void deleteFeaturePropertyResponseFromAdaptable() {
         final DeleteFeaturePropertyResponse expected =
                 DeleteFeaturePropertyResponse.of(TestConstants.THING_ID, TestConstants.FEATURE_ID,
                 TestConstants.FEATURE_PROPERTY_POINTER, TestConstants.DITTO_HEADERS_V_2);
 
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID) //
-                .things() //
-                .twin() //
-                .commands() //
-                .delete() //
+        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
+                .things()
+                .twin()
+                .commands()
+                .delete()
                 .build();
-        final JsonPointer path = JsonPointer
-                .of("/features/" + TestConstants.FEATURE_ID + "/properties" +
-                        TestConstants.FEATURE_PROPERTY_POINTER);
+        final JsonPointer path = JsonPointer.of(
+                "/features/" + TestConstants.FEATURE_ID + "/properties" + TestConstants.FEATURE_PROPERTY_POINTER);
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withStatus(HttpStatusCode.NO_CONTENT) //
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_2) //
+        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
         final ThingModifyCommandResponse actual = underTest.fromAdaptable(adaptable);
 
         assertThat(actual).isEqualTo(expected);
     }
 
-    /** */
     @Test
     public void deleteFeaturePropertyResponseToAdaptable() {
         final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
@@ -1266,15 +1229,14 @@ public final class ThingModifyCommandResponseAdapterTest {
                 .commands()
                 .delete()
                 .build();
-        final JsonPointer path = JsonPointer
-                .of("/features/" + TestConstants.FEATURE_ID + "/properties" +
-                        TestConstants.FEATURE_PROPERTY_POINTER);
+        final JsonPointer path = JsonPointer.of(
+                "/features/" + TestConstants.FEATURE_ID + "/properties" + TestConstants.FEATURE_PROPERTY_POINTER);
 
-        final Adaptable expected = Adaptable.newBuilder(topicPath) //
-                .withPayload(Payload.newBuilder(path) //
-                        .withStatus(HttpStatusCode.NO_CONTENT) //
-                        .build()) //
-                .withHeaders(TestConstants.HEADERS_V_2) //
+        final Adaptable expected = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
 
         final DeleteFeaturePropertyResponse deleteFeaturePropertyResponse = DeleteFeaturePropertyResponse
@@ -1284,4 +1246,5 @@ public final class ThingModifyCommandResponseAdapterTest {
 
         assertThat(actual).isEqualTo(expected);
     }
+
 }

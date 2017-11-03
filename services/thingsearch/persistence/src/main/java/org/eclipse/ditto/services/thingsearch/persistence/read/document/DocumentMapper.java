@@ -15,10 +15,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.bson.Document;
-import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.things.Thing;
-
 import org.eclipse.ditto.services.thingsearch.common.util.KeyEscapeUtil;
 
 /**
@@ -57,7 +56,8 @@ public final class DocumentMapper {
      * @return the mapped document
      */
     public static Document toDocument(final Thing thing) {
-        final ThingDocumentBuilder builder = ThingDocumentBuilder.create(thing.getId().get(), thing.getPolicyId()
+        final String thingId = thing.getId().orElseThrow(() -> new NullPointerException("Thing has no ID!"));
+        final ThingDocumentBuilder builder = ThingDocumentBuilder.create(thingId, thing.getPolicyId()
                 .orElse(null));
 
         thing.getAccessControlList().ifPresent(builder::acl);
@@ -94,10 +94,9 @@ public final class DocumentMapper {
         return value;
     }
 
-    private static Document objectToDocument(final JsonObject jsonObject) {
+    private static Document objectToDocument(final Iterable<JsonField> jsonObject) {
         final Document subDocument = new Document();
-        jsonObject.forEach((field) -> //
-        {
+        jsonObject.forEach(field -> {
             final String key = KeyEscapeUtil.escape(field.getKeyName());
             final Object value = toValue(field.getValue());
             subDocument.append(key, value);

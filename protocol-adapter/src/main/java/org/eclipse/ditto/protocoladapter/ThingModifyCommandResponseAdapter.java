@@ -44,6 +44,7 @@ final class ThingModifyCommandResponseAdapter extends AbstractAdapter<ThingModif
 
     private ThingModifyCommandResponseAdapter(
             final Map<String, JsonifiableMapper<ThingModifyCommandResponse>> mappingStrategies) {
+
         super(mappingStrategies);
     }
 
@@ -151,7 +152,7 @@ final class ThingModifyCommandResponseAdapter extends AbstractAdapter<ThingModif
     protected String getType(final Adaptable adaptable) {
         final TopicPath topicPath = adaptable.getTopicPath();
         final JsonPointer path = adaptable.getPayload().getPath();
-        final String commandName = topicPath.getAction().get() + upperCaseFirst(PathMatcher.match(path));
+        final String commandName = getAction(topicPath) + upperCaseFirst(PathMatcher.match(path));
         return topicPath.getGroup() + ".responses:" + commandName;
     }
 

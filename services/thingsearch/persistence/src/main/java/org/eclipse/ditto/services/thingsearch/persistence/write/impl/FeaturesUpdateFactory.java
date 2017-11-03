@@ -17,6 +17,7 @@ import java.util.List;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
@@ -212,12 +213,13 @@ final class FeaturesUpdateFactory {
                         PersistenceConstants.FIELD_INTERNAL, new Document(PersistenceConstants.EACH, flatRepresentations)));
     }
 
-    private static Bson createSortStructureUpdate(final String featureId, final JsonPointer featurePointer,
+    private static Bson createSortStructureUpdate(final String featureId, final CharSequence featurePointer,
             final JsonValue propertyValue) {
+
         final Document update = new Document();
         update.append(
                 MongoSortKeyMappingFunction.mapSortKey(PersistenceConstants.FIELD_FEATURES, featureId,
-                        PersistenceConstants.FIELD_PROPERTIES + featurePointer.toString()),
+                        PersistenceConstants.FIELD_PROPERTIES + featurePointer),
                 DocumentMapper.toValue(propertyValue));
         return new Document(PersistenceConstants.SET, update);
     }
@@ -237,38 +239,30 @@ final class FeaturesUpdateFactory {
 
     private static Object createComplexFeatureDocument(final Feature feature) {
         final Document featureDocument = new Document();
-        final Object propertiesDocument;
-
-        if (feature.getProperties().isPresent()) {
-            propertiesDocument = createComplexPropertiesRepresentations(feature.getProperties().get());
-        } else {
-            propertiesDocument = new Document();
-        }
+        final Object propertiesDocument = feature.getProperties()
+                .map(FeaturesUpdateFactory::createComplexPropertiesRepresentations)
+                .orElseGet(Document::new);
 
         featureDocument.append(PersistenceConstants.FIELD_PROPERTIES, propertiesDocument);
         return featureDocument;
     }
 
-    private static String createPrefixRegex(final JsonPointer jsonPointer) {
-        return PersistenceConstants.REGEX_FIELD_START + PersistenceConstants.FIELD_FEATURE_PROPERTIES_PREFIX + jsonPointer.toString() + PersistenceConstants.REGEX_FIELD_END;
-    }
-
-    private static Object createComplexPropertiesRepresentations(final FeatureProperties properties) {
+    private static Object createComplexPropertiesRepresentations(final JsonValue properties) {
         return DocumentMapper.toValue(properties);
     }
 
+    private static String createPrefixRegex(final JsonPointer jsonPointer) {
+        return PersistenceConstants.REGEX_FIELD_START + PersistenceConstants.FIELD_FEATURE_PROPERTIES_PREFIX +
+                jsonPointer + PersistenceConstants.REGEX_FIELD_END;
+    }
+
     private static List<Document> createPushes(final Feature feature) {
-        final Document defaultFeatureDoc = createDefaultFeatureDoc(feature.getId());
-        if (feature.getProperties().isPresent()) {
-            final List<Document> pushDocuments =
-                    createFlatFeaturesRepresentation(feature.getProperties().get(), feature.getId());
-            pushDocuments.add(defaultFeatureDoc);
-            return pushDocuments;
-        } else {
-            final List<Document> pushDocuments = new ArrayList<>();
-            pushDocuments.add(defaultFeatureDoc);
-            return pushDocuments;
-        }
+        final List<Document> result = feature.getProperties()
+                .map(featureProperties -> createFlatFeaturesRepresentation(featureProperties, feature.getId()))
+                .orElseGet(ArrayList::new);
+        result.add(createDefaultFeatureDoc(feature.getId()));
+
+        return result;
     }
 
     private static Document createDefaultFeatureDoc(final String id) {
@@ -277,17 +271,20 @@ final class FeaturesUpdateFactory {
         return defaultFeatureDoc;
     }
 
-    private static List<Document> createFlatFeaturesRepresentation(final FeatureProperties properties,
+    private static List<Document> createFlatFeaturesRepresentation(final Iterable<JsonField> properties,
             final String featureId) {
+
         final List<Document> flatFeatures = new ArrayList<>();
-        properties
-                .forEach(field -> //
-                        toFlatFeaturesList(PersistenceConstants.SLASH + field.getKeyName(), featureId, field.getValue(), flatFeatures));
+        properties.forEach(field -> toFlatFeaturesList(PersistenceConstants.SLASH + field.getKeyName(), featureId,
+                field.getValue(), flatFeatures));
         return flatFeatures;
     }
 
-    private static List<Document> toFlatFeaturesList(final String path, final String featureId, final JsonValue value,
+    private static List<Document> toFlatFeaturesList(final String path,
+            final String featureId,
+            final JsonValue value,
             final List<Document> flatFeatures) {
+
         if (value.isString()) {
             flatFeatures.add(createFlatSubDocument(path, featureId, value.asString()));
         } else if (value.isBoolean()) {
@@ -301,17 +298,19 @@ final class FeaturesUpdateFactory {
         } else if (value.isNull()) {
             flatFeatures.add(createFlatSubDocument(path, featureId, null));
         } else if (value.isObject()) {
-            handleObject(path, value, featureId, flatFeatures);
+            handleObject(path, value.asObject(), featureId, flatFeatures);
         }
         return flatFeatures;
     }
 
-    private static void handleObject(final String path, final JsonValue value, final String featureId,
+    private static void handleObject(final String path,
+            final Iterable<JsonField> jsonObject,
+            final String featureId,
             final List<Document> flatAttributes) {
-        final JsonObject jsonObject = value.asObject();
-        jsonObject.getKeys().forEach(key -> {
-            final String newPath = path + PersistenceConstants.SLASH + key;
-            final JsonValue innerValue = jsonObject.getValue(key).orElse(null);
+
+        jsonObject.forEach(jsonField -> {
+            final String newPath = path + PersistenceConstants.SLASH + jsonField.getKey();
+            final JsonValue innerValue = jsonField.getValue();
             toFlatFeaturesList(newPath, featureId, innerValue, flatAttributes);
         });
     }

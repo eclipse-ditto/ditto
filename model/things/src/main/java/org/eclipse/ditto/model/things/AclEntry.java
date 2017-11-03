@@ -13,6 +13,8 @@ package org.eclipse.ditto.model.things;
 
 import java.util.Collection;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
@@ -29,7 +31,7 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
 public interface AclEntry extends Jsonifiable.WithFieldSelectorAndPredicate<JsonField> {
 
     /**
-     * Returns a new immutable {@link AclEntry} with the given authorization subject and permissions.
+     * Returns a new immutable {@code AclEntry} with the given authorization subject and permissions.
      *
      * @param authorizationSubject the authorization subject of the new ACL entry.
      * @param permission the permission of the new ACL entry.
@@ -43,7 +45,7 @@ public interface AclEntry extends Jsonifiable.WithFieldSelectorAndPredicate<Json
     }
 
     /**
-     * Returns a new immutable {@link AclEntry} with the given authorization subject and permissions.
+     * Returns a new immutable {@code AclEntry} with the given authorization subject and permissions.
      *
      * @param authorizationSubject the authorization subject of the new ACL entry.
      * @param permissions the permissions of the new ACL entry.
@@ -89,7 +91,7 @@ public interface AclEntry extends Jsonifiable.WithFieldSelectorAndPredicate<Json
      * @param permissions the permissions to be checked for.
      * @return {@code true} if this entry contains all specified permission, {@code false} else.
      */
-    boolean containsAll(Collection<Permission> permissions);
+    boolean containsAll(@Nullable Collection<Permission> permissions);
 
     /**
      * Returns the permissions of this entry.

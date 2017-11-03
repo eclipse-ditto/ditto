@@ -55,7 +55,7 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
      *
      * @param id the ID of the new Policy.
      * @return the new builder.
-     * @throws PolicyIdInvalidException if {@code id} is invalid.
+     * @throws PolicyIdInvalidException if {@code policyId} did not comply to {@link Policy#ID_REGEX}.
      */
     public static ImmutablePolicyBuilder of(final CharSequence id) {
         return new ImmutablePolicyBuilder().setId(id);
@@ -69,8 +69,9 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
      * @param policyEntries the initials entries of the new builder.
      * @return the new builder.
      * @throws NullPointerException if {@code policyEntries} is null;
+     * @throws PolicyIdInvalidException if {@code policyId} did not comply to {@link Policy#ID_REGEX}.
      */
-    public static PolicyBuilder of(@Nullable final CharSequence id, final Iterable<PolicyEntry> policyEntries) {
+    public static PolicyBuilder of(final CharSequence id, final Iterable<PolicyEntry> policyEntries) {
         checkNotNull(policyEntries, "initial Policy entries");
 
         final ImmutablePolicyBuilder result = new ImmutablePolicyBuilder();
@@ -86,10 +87,12 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
      * @param existingPolicy the existing Policy to instantiate the builder with.
      * @return the new builder.
      * @throws NullPointerException if {@code existingPolicy} is {@code null}.
+     * @throws PolicyIdInvalidException if {@code policyId} did not comply to {@link Policy#ID_REGEX}.
      */
     public static PolicyBuilder of(final Policy existingPolicy) {
         checkNotNull(existingPolicy, "existing Policy");
 
+        @SuppressWarnings("ConstantConditions")
         final ImmutablePolicyBuilder result = new ImmutablePolicyBuilder()
                 .setId(existingPolicy.getId().orElse(null))
                 .setLifecycle(existingPolicy.getLifecycle().orElse(null))
@@ -109,7 +112,7 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
     @Override
     public ImmutablePolicyBuilder setId(final CharSequence id) {
         PolicyIdValidator.getInstance().accept(id, DittoHeaders.empty());
-        this.id = id.toString();
+        this.id = String.valueOf(id);
         return this;
     }
 

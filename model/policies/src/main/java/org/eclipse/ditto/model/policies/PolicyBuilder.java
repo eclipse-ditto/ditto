@@ -468,7 +468,7 @@ public interface PolicyBuilder {
      *
      * @param id the Policy ID to set.
      * @return this builder to allow method chaining.
-     * @throws PolicyIdInvalidException if {@code id} is invalid.
+     * @throws PolicyIdInvalidException if {@code policyId} did not comply to {@link Policy#ID_REGEX}.
      */
     PolicyBuilder setId(CharSequence id);
 

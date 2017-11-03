@@ -17,6 +17,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
@@ -84,8 +85,9 @@ abstract class AbstractMessageCommandResponse<T, C extends AbstractMessageComman
         final JsonObject messageHeadersObject = message.getHeaders().toJson();
         messageBuilder.set(MessageCommandResponse.JsonFields.JSON_MESSAGE_HEADERS, messageHeadersObject, predicate);
 
-        if (message.getPayload().isPresent()) {
-            final T payload = message.getPayload().get();
+        final Optional<T> payloadOptional = message.getPayload();
+        if (payloadOptional.isPresent()) {
+            final T payload = payloadOptional.get();
             if (payload instanceof JsonValue) {
                 messageBuilder.set(MessageCommand.JsonFields.JSON_MESSAGE_PAYLOAD, (JsonValue) payload, predicate);
             } else {

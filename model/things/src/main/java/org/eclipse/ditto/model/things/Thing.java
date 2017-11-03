@@ -68,6 +68,7 @@ public interface Thing extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFie
     /**
      * The set of permissions which at least must be present in the ACL of a Thing for one Authorization Subject.
      */
+    @SuppressWarnings("squid:S2386")
     Permissions MIN_REQUIRED_PERMISSIONS =
             ThingsModelFactory.newUnmodifiablePermissions(Permission.READ, Permission.WRITE, Permission.ADMINISTRATE);
 

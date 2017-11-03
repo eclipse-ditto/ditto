@@ -48,6 +48,8 @@ import org.eclipse.ditto.services.models.things.ThingTag;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SyncThing;
+import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
+import org.eclipse.ditto.services.thingsearch.persistence.write.impl.CombinedThingWrites;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.ShardedMessageEnvelope;
 import org.eclipse.ditto.services.utils.distributedcache.actors.CacheType;
@@ -68,8 +70,6 @@ import org.eclipse.ditto.signals.events.things.PolicyIdModified;
 import org.eclipse.ditto.signals.events.things.ThingCreated;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.eclipse.ditto.signals.events.things.ThingModified;
-import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
-import org.eclipse.ditto.services.thingsearch.persistence.write.impl.CombinedThingWrites;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;
@@ -106,8 +106,8 @@ import scala.concurrent.duration.FiniteDuration;
  * methods: {@code executeWrites} for event processing, {@code updateThing} and {@code updatePolicy} for
  * synchronization.
  */
-final class ThingUpdater extends AbstractActorWithDiscardOldStash implements
-        RequiresMessageQueue<DequeBasedMessageQueueSemantics> {
+final class ThingUpdater extends AbstractActorWithDiscardOldStash
+        implements RequiresMessageQueue<DequeBasedMessageQueueSemantics> {
 
     /**
      * Placeholder for the revision number of an unknown entity; smaller than all revision numbers used by Akka.
@@ -817,12 +817,12 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash implements
         updateThingSearchIndex(timeout, syncedThing);
     }
 
-    private void updateThingSearchIndex(final Cancellable timeout, final Thing withThing) {
+    private void updateThingSearchIndex(final Cancellable timeout, final Thing thing) {
         // reset schema version and revision number
-        sequenceNumber = withThing.getRevision().map(ThingRevision::toLong).orElse(UNKNOWN_REVISION);
-        schemaVersion = withThing.getImplementedSchemaVersion();
+        sequenceNumber = thing.getRevision().map(ThingRevision::toLong).orElse(UNKNOWN_REVISION);
+        schemaVersion = thing.getImplementedSchemaVersion();
 
-        final String policyIdOfThing = withThing.getPolicyId().orElse(null);
+        final String policyIdOfThing = thing.getPolicyId().orElse(null);
         if (policyIdOfThing != null) {
             if (!policyIdOfThing.equals(policyId)) {
                 // policyId changed!
@@ -831,12 +831,13 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash implements
                 policyId = policyIdOfThing;
                 policyCacheFacade.tell(new RegisterForCacheUpdates(policyIdOfThing, getSelf()), getSelf());
             }
-        } else if (withThing.getAccessControlList().isPresent() && !withThing.getAccessControlList().get().isEmpty()) {
+        } else if (hasNonEmptyAcl(thing)) {
+//        } else if (thing.getAccessControlList().isPresent() && !thing.getAccessControlList().get().isEmpty()) {
             policyRevision = -1L; // reset policyRevision
             policyEnforcer = null; // reset policyEnforcer
             policyId = null;
         } else {
-            log.error("Thing to update in search index had neither a policyId nor an ACL: {}", withThing);
+            log.error("Thing to update in search index had neither a policyId nor an ACL: {}", thing);
             triggerSynchronization();
             return;
         }
@@ -844,14 +845,20 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash implements
         // always synchronize policy if the schema version calls for it
         if (schemaVersionHasPolicy(schemaVersion)) {
             if (policyEnforcer != null) {
-                updateSearchIndexWithPolicy(timeout, withThing, null);
+                updateSearchIndexWithPolicy(timeout, thing, null);
             } else {
-                syncPolicy(withThing);
+                syncPolicy(thing);
             }
         } else {
             // No policy to worry about; we're done.
-            updateSearchIndexWithoutPolicy(timeout, withThing);
+            updateSearchIndexWithoutPolicy(timeout, thing);
         }
+    }
+
+    private static boolean hasNonEmptyAcl(final Thing thing) {
+        return thing.getAccessControlList()
+                .filter(acl -> !acl.isEmpty())
+                .isPresent();
     }
 
     private void handleSyncPolicyResponse(final Cancellable timeout, final Thing syncedThing,

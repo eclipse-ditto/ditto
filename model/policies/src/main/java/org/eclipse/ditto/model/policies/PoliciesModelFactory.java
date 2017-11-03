@@ -524,6 +524,7 @@ public final class PoliciesModelFactory {
      * @param policyEntries the initial entries of the new builder.
      * @return the new builder.
      * @throws NullPointerException if {@code policyEntries} is {@code null}.
+     * @throws org.eclipse.ditto.model.policies.PolicyIdInvalidException if {@code id} is invalid.
      */
     public static PolicyBuilder newPolicyBuilder(final CharSequence id, final Iterable<PolicyEntry> policyEntries) {
         return ImmutablePolicyBuilder.of(id, policyEntries);

@@ -1283,11 +1283,11 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
         @Override
         protected void doApply(final RetrieveThing command) {
-            if (command.getSnapshotRevision().isPresent()) {
-                loadSnapshot(command, command.getSnapshotRevision().get(), getSender());
+            final Optional<Long> snapshotRevisionOptional = command.getSnapshotRevision();
+            if (snapshotRevisionOptional.isPresent()) {
+                loadSnapshot(command, snapshotRevisionOptional.get(), getSender());
             } else {
-                final Optional<JsonFieldSelector> selectedFields = command.getSelectedFields();
-                final JsonObject thingJson = selectedFields
+                final JsonObject thingJson = command.getSelectedFields()
                         .map(sf -> thing.toJson(command.getImplementedSchemaVersion(), sf))
                         .orElseGet(() -> thing.toJson(command.getImplementedSchemaVersion()));
 
@@ -1714,13 +1714,19 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         protected void doApply(final DeleteAttribute command) {
             final DittoHeaders dittoHeaders = command.getDittoHeaders();
             final JsonPointer attributeJsonPointer = command.getAttributePointer();
-            if (thing.getAttributes().isPresent() && thing.getAttributes().get().contains(attributeJsonPointer)) {
-                final AttributeDeleted attributeDeleted = AttributeDeleted.of(command.getThingId(),
-                        attributeJsonPointer, nextRevision(), eventTimestamp(),
-                        buildEventDittoHeaders(dittoHeaders));
+            final Optional<Attributes> attributesOptional = thing.getAttributes();
+            if (attributesOptional.isPresent()) {
+                final Attributes attributes = attributesOptional.get();
+                if (attributes.contains(attributeJsonPointer)) {
+                    final AttributeDeleted attributeDeleted = AttributeDeleted.of(command.getThingId(),
+                            attributeJsonPointer, nextRevision(), eventTimestamp(),
+                            buildEventDittoHeaders(dittoHeaders));
 
-                persistAndApplyEvent(command, attributeDeleted,
-                        event -> notifySender(DeleteAttributeResponse.of(thingId, attributeJsonPointer, dittoHeaders)));
+                    persistAndApplyEvent(command, attributeDeleted, event -> notifySender(
+                            DeleteAttributeResponse.of(thingId, attributeJsonPointer, dittoHeaders)));
+                } else {
+                    attributeNotFound(attributeJsonPointer, command.getDittoHeaders());
+                }
             } else {
                 attributeNotFound(attributeJsonPointer, command.getDittoHeaders());
             }
@@ -1875,7 +1881,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         protected void doApply(final DeleteFeatures command) {
             if (thing.getFeatures().isPresent()) {
                 final DittoHeaders dittoHeaders = command.getDittoHeaders();
-                final FeaturesDeleted featuresDeleted = FeaturesDeleted.of(thing.getId().get(), nextRevision(),
+                final FeaturesDeleted featuresDeleted = FeaturesDeleted.of(thingId, nextRevision(),
                         eventTimestamp(), buildEventDittoHeaders(dittoHeaders));
 
                 persistAndApplyEvent(command, featuresDeleted,
@@ -1902,12 +1908,12 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         @Override
         protected void doApply(final DeleteFeature command) {
             final DittoHeaders dittoHeaders = command.getDittoHeaders();
-            final Optional<Features> features = thing.getFeatures();
-            final Optional<Feature> feature =
-                    features.isPresent() ? features.get().getFeature(command.getFeatureId()) : Optional.empty();
+            final Optional<String> featureIdOptional = thing.getFeatures()
+                    .flatMap(features -> features.getFeature(command.getFeatureId()))
+                    .map(Feature::getId);
 
-            if (feature.isPresent()) {
-                final FeatureDeleted featureDeleted = FeatureDeleted.of(thing.getId().get(), feature.get().getId(),
+            if (featureIdOptional.isPresent()) {
+                final FeatureDeleted featureDeleted = FeatureDeleted.of(thingId, featureIdOptional.get(),
                         nextRevision(), eventTimestamp(), buildEventDittoHeaders(dittoHeaders));
                 persistAndApplyEvent(command, featureDeleted,
                         event -> notifySender(DeleteFeatureResponse.of(thingId, command.getFeatureId(), dittoHeaders)));
@@ -2137,18 +2143,24 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         @Override
         protected void doApply(final DeleteFeatureProperty command) {
             final DittoHeaders dittoHeaders = command.getDittoHeaders();
-            final Optional<Features> features = thing.getFeatures();
+            final Optional<Features> featuresOptional = thing.getFeatures();
 
-            if (features.isPresent()) {
-                final Optional<Feature> feature = features.get().getFeature(command.getFeatureId());
+            if (featuresOptional.isPresent()) {
+                final Optional<Feature> featureOptional =
+                        featuresOptional.flatMap(features -> features.getFeature(command.getFeatureId()));
 
-                if (feature.isPresent()) {
+                if (featureOptional.isPresent()) {
                     final JsonPointer propertyJsonPointer = command.getPropertyPointer();
-                    if (feature.get().getProperties().isPresent() && feature.get().getProperties().get()
-                            .contains(propertyJsonPointer)) {
+                    final Feature feature = featureOptional.get();
+                    final boolean containsProperty = feature.getProperties()
+                             .filter(featureProperties -> featureProperties.contains(propertyJsonPointer))
+                             .isPresent();
+
+                    if (containsProperty) {
                         final FeaturePropertyDeleted propertyDeleted = FeaturePropertyDeleted.of(command.getThingId(),
                                 command.getFeatureId(), propertyJsonPointer, nextRevision(), eventTimestamp(),
                                 buildEventDittoHeaders(dittoHeaders));
+
                         persistAndApplyEvent(command, propertyDeleted, event -> notifySender(
                                 DeleteFeaturePropertyResponse.of(thingId, command.getFeatureId(), propertyJsonPointer,
                                         dittoHeaders)));
@@ -2181,9 +2193,11 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         @Override
         protected void doApply(final RetrieveFeatureProperties command) {
             final Optional<Features> optionalFeatures = thing.getFeatures();
-            if (optionalFeatures.isPresent() && optionalFeatures.get().getFeature(command.getFeatureId()).isPresent()) {
-                final Optional<FeatureProperties> optionalProperties =
-                        optionalFeatures.get().getFeature(command.getFeatureId()).get().getProperties();
+
+            if (optionalFeatures.isPresent()) {
+                final Optional<FeatureProperties> optionalProperties = optionalFeatures.flatMap(features -> features
+                        .getFeature(command.getFeatureId()))
+                        .flatMap(Feature::getProperties);
                 if (optionalProperties.isPresent()) {
                     final FeatureProperties properties = optionalProperties.get();
                     final Optional<JsonFieldSelector> selectedFields = command.getSelectedFields();
@@ -2216,18 +2230,18 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
         @Override
         protected void doApply(final RetrieveFeatureProperty command) {
-            final Optional<Features> optionalFeatures = thing.getFeatures();
-            final DittoHeaders dittoHeaders = command.getDittoHeaders();
-            if (optionalFeatures.isPresent() && optionalFeatures.get().getFeature(command.getFeatureId()).isPresent()) {
-                final Optional<FeatureProperties> optionalProperties =
-                        optionalFeatures.get().getFeature(command.getFeatureId()).get().getProperties();
+            final Optional<Feature> featureOptional = thing.getFeatures()
+                    .flatMap(features -> features.getFeature(command.getFeatureId()));
+            if (featureOptional.isPresent()) {
+                final DittoHeaders dittoHeaders = command.getDittoHeaders();
+                final Optional<FeatureProperties> optionalProperties = featureOptional.flatMap(Feature::getProperties);
                 if (optionalProperties.isPresent()) {
                     final FeatureProperties properties = optionalProperties.get();
                     final JsonPointer jsonPointer = command.getPropertyPointer();
                     final Optional<JsonValue> propertyJson = properties.getValue(jsonPointer);
                     if (propertyJson.isPresent()) {
-                        notifySender(RetrieveFeaturePropertyResponse
-                                .of(thingId, command.getFeatureId(), jsonPointer, propertyJson.get(), dittoHeaders));
+                        notifySender(RetrieveFeaturePropertyResponse.of(thingId, command.getFeatureId(), jsonPointer,
+                                propertyJson.get(), dittoHeaders));
                     } else {
                         featurePropertyNotFound(command.getFeatureId(), jsonPointer, dittoHeaders);
                     }
