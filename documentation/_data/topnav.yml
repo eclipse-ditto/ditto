@@ -5,10 +5,10 @@ topnav:
   items:
     - title: GitHub
       external_url: https://github.com/eclipse/ditto
-    - title: News
-      url: /news
+    - title: Blog
+      url: /blog.html
     - title: Documentation
-      url: /index.html
+      url: /documentation.html
 
 #Topnav dropdowns
 topnav_dropdowns:
