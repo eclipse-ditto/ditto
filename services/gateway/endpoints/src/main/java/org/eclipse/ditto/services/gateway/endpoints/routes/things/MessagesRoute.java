@@ -353,6 +353,8 @@ final class MessagesRoute extends AbstractRoute {
             messageBuilder.payload(payloadString);
         } else if (ContentTypes.APPLICATION_JSON.equals(contentType)) {
             messageBuilder.payload(JsonFactory.readFrom(payloadString));
+        } else {
+            messageBuilder.rawPayload(payload);
         }
         return messageBuilder;
     }
