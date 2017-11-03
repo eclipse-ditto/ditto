@@ -21,6 +21,7 @@ import java.util.UUID;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.messages.Message;
@@ -63,7 +64,7 @@ public final class SendThingMessageTest {
     private static final JsonObject KNOWN_MESSAGE_AS_JSON = JsonFactory.newObjectBuilder()
             .set(MessageCommand.JsonFields.JSON_MESSAGE_HEADERS, MESSAGE.getHeaders().toJson())
             .set(MessageCommand.JsonFields.JSON_MESSAGE_PAYLOAD, JsonFactory.newValue(new String(Base64.getEncoder()
-                            .encode(KNOWN_RAW_PAYLOAD_BYTES), StandardCharsets.UTF_8))
+                    .encode(KNOWN_RAW_PAYLOAD_BYTES), StandardCharsets.UTF_8))
             )
             .build();
 
@@ -132,4 +133,22 @@ public final class SendThingMessageTest {
         assertThat(underTest.getMessage()).isEqualTo(MESSAGE);
     }
 
+
+    @Test
+    public void toJsonWithCustomContentType() {
+        final MessageHeaders headers = MessageHeaders.newBuilder(MessageDirection.TO, "the:thingId", "theSubject")
+                .contentType("unknownBinaryContentType")
+                .build();
+        final String body = "binary message body";
+        final Message<?> message = Message.newBuilder(headers).rawPayload(ByteBuffer.wrap(body.getBytes())).build();
+
+        final SendThingMessage<?> underTest =
+                SendThingMessage.of("the:thingId", message, TestConstants.EMPTY_DITTO_HEADERS);
+
+        final JsonValue serialized = underTest.toJson(FieldType.regularOrSpecial());
+        final SendThingMessage<?> deserialized =
+                SendThingMessage.fromJson(serialized.toString(), TestConstants.EMPTY_DITTO_HEADERS);
+
+        assertThat(deserialized).isEqualTo(underTest);
+    }
 }
