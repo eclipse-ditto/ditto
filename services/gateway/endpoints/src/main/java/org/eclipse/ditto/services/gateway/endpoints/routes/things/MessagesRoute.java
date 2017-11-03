@@ -264,8 +264,9 @@ final class MessagesRoute extends AbstractRoute {
     private static Map<String, String> getHeadersAsMap(final HttpMessage httpRequest) {
         final Map<String, String> result = new HashMap<>();
         for (final HttpHeader httpHeader : httpRequest.getHeaders()) {
-            if (!BLACKLISTED_HTTP_HEADERS.contains(httpHeader.name().toLowerCase())) {
-                result.put(httpHeader.name(), httpHeader.value());
+            final String lowerCaseHeaderName = httpHeader.name().toLowerCase();
+            if (!BLACKLISTED_HTTP_HEADERS.contains(lowerCaseHeaderName)) {
+                result.put(lowerCaseHeaderName, httpHeader.value());
             }
         }
         return result;
