@@ -3,7 +3,7 @@
 entries:
 - title: sidebar
   product: Eclipse Ditto
-  version: 0.1.0
+  version: 0.1.0M1
   folders:
 
   - title: Introduction
@@ -31,8 +31,8 @@ entries:
     output: web
     folderitems:
 
-    - title: 0.1.0 Release notes
-      url: /release_notes_010.html
+    - title: 0.1.0M1 Release notes
+      url: /release_notes_010M1.html
       output: web
 
   - title: Installation
@@ -51,17 +51,16 @@ entries:
     output: web
 
     folderitems:
-    - title: Building Blocks
-      url: /basic-buildingblocks.html
-      output: web
-      
-      subfolders:
-      - title: Level 1
-        output: web
-        subfolderitems:
-        - title: Level 2
-          url: /basic-buildingblocks.html
-          output: web
+#    - title: Building Blocks
+#      output: web
+#
+#      subfolders:
+#      - title: Level 1
+#        output: web
+#        subfolderitems:
+#        - title: Level 2
+#          url: /basic-buildingblocks.html
+#          output: web
 
     - title: Things and Features
       url: /basic-thingsfeatures.html
@@ -87,21 +86,34 @@ entries:
       url: /basic-messages.html
       output: web
 
-  - title: HTTP API
+    - title: Change Events
+      url: /basic-changeevents.html
+      output: web
+
+    - title: Which API to use?
+      url: /basic-whichapi.html
+      output: web
+
+  - title: Ditto Protocol
     output: web
 
     folderitems:
-      - title: Authenticate
-        url: /httpapi-authenticate.html
-        output: web
 
-  - title: Java API
-    url: /lists.html
-    output: web
+    - title: Overview
+      url: /protocol-overview.html
+      output: web
 
-  - title: Protocol
-    url: /protocol.html
-    output: web
+    - title: Specification
+      url: /protocol-specification.html
+      output: web
+
+    - title: Bindings
+      url: /protocol-bindings.html
+      output: web
+
+    - title: Examples
+      url: /protocol-examples.html
+      output: web
 
   - title: Glossary
     url: /glossary.html

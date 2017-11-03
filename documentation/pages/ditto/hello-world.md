@@ -1,9 +1,7 @@
 ---
 title: Hello world
-sidebar: ditto_sidebar
 tags: [getting_started]
 permalink: hello-world.html
-folder: ditto
 ---
 
 After starting Ditto, we have an HTTP and WebSocket API for you Digital Twins at our hands.
@@ -127,5 +125,3 @@ e.g. searching all Things with the same `manufacturer` named `"ACME"`:
 ```bash
 curl -u ditto:ditto -X GET 'http://localhost:8080/api/1/search/things?filter=eq(attributes/manufacturer,"ACME")'
 ```
-
-{% include links.html %}

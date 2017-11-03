@@ -1,8 +1,8 @@
 ---
-title: "News"
-tagName: news
+title: "Model"
+tagName: model
 search: exclude
-permalink: tag_news.html
+permalink: tag_model.html
 sidebar: ditto_sidebar
 folder: tags
 ---

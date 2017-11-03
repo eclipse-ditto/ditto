@@ -37,7 +37,7 @@ feedback_subject_line: Eclipse Ditto documentation
 feedback_email: ditto-dev@eclipse.org
 # used as a contact email for the Feedback link in the top navigation bar
 
-# feedback_disable: true
+feedback_disable: true
 # if you uncomment the previous line, the Feedback link gets removed
 
 # feedback_text: "Need help?"
@@ -99,6 +99,7 @@ defaults:
 
 sidebars:
 - ditto_sidebar
+- other
 
 description: "Here be dragons"
 # the description is used in the feed.xml file

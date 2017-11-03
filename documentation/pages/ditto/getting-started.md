@@ -1,10 +1,8 @@
 ---
 title: Getting started
-sidebar: ditto_sidebar
 keywords: docker, docker-compose, maven, build, start
 tags: [getting_started]
 permalink: getting-started.html
-folder: ditto
 ---
 
 ## (Optional) Build Eclipse Ditto
@@ -70,5 +68,3 @@ For removing the stack and clearing the MongoDB completely, execute:
 ```bash
 docker-compose down
 ```
-
-{% include links.html %}
