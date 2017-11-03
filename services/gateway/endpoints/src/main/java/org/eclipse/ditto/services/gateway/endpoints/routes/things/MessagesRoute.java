@@ -341,8 +341,12 @@ final class MessagesRoute extends AbstractRoute {
 
     private static MessageBuilder<Object> initMessageBuilder(final ByteBuffer payload, final ContentType contentType,
             final MessageHeaders headers) {
+
+        // reset bytebuffer offset, otherwise payload will not be appended
+        final ByteBuffer payloadWithoutOffset = ByteBuffer.wrap(payload.array());
+
         final MessageBuilder<Object> messageBuilder = MessagesModelFactory.newMessageBuilder(headers)
-                .rawPayload(payload);
+                .rawPayload(payloadWithoutOffset);
 
         final Charset charset = contentType.getCharsetOption()
                 .map(HttpCharset::nioCharset)
@@ -353,8 +357,6 @@ final class MessagesRoute extends AbstractRoute {
             messageBuilder.payload(payloadString);
         } else if (ContentTypes.APPLICATION_JSON.equals(contentType)) {
             messageBuilder.payload(JsonFactory.readFrom(payloadString));
-        } else {
-            messageBuilder.rawPayload(payload);
         }
         return messageBuilder;
     }
