@@ -1,8 +1,6 @@
 ---
 title: Introduction
-sidebar: ditto_sidebar
 permalink: introduction.html
-folder: ditto
 ---
 
 ## Overview
@@ -26,5 +24,3 @@ Some of the more prominent features of this theme include the following:
 ## Getting started
 
 To get started, see [Getting Started][index].
-
-{% include links.html %}

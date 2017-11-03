@@ -4,5 +4,7 @@
 allowed-tags:
   - getting_started
   - news
+  - release_notes
   - installation
   - troubleshooting
+  - model
