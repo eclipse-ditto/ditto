@@ -323,8 +323,7 @@ final class MessagesRoute extends AbstractRoute {
 
             final MessageHeaders headers = MessageHeaders.newBuilderForClaiming(thingId)
                     .correlationId(dittoHeaders.getCorrelationId().orElse(null))
-                    .contentType(contentType
-                            .toString())
+                    .contentType(contentType.toString())
                     .timeout(optionalTimeout.map(this::checkClaimTimeout).orElse(defaultClaimTimeout))
                     .timestamp(OffsetDateTime.now())
                     .putHeaders(getHeadersAsMap(ctx.getRequest()))

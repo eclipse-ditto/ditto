@@ -11,6 +11,8 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints;
 
+import static org.eclipse.ditto.services.gateway.starter.service.util.FireAndForgetMessageUtil.isFireAndForgetMessage;
+
 import java.nio.ByteBuffer;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -119,6 +121,11 @@ public final class HttpRequestActor extends AbstractActor {
         // wrap JsonRuntimeExceptions
         commandResponseAwaiting = ReceiveBuilder.create()
                 .matchEquals(COMPLETE_MESSAGE, s -> logger.debug("Got stream's '{}' message", COMPLETE_MESSAGE))
+                // If an actor downstream replies with an HTTP response, simply forward it.
+                .match(HttpResponse.class, response -> {
+                    completeWithResult(response);
+                    finishTraceAndStop();
+                })
                 .match(SendEmptyMessageResponse.class, cmd -> {
                     final HttpResponse httpResponse =
                             HttpResponse.create().withStatus(HttpStatusCode.NO_CONTENT.toInt());
@@ -349,11 +356,7 @@ public final class HttpRequestActor extends AbstractActor {
                     getContext().become(commandResponseAwaiting);
 
                     messageTimeout = message.getTimeout().orElse(null);
-                    if (!command.getDittoHeaders().isResponseRequired() ||
-                            (messageTimeout != null && messageTimeout.isZero())) {
-                        completeWithResult(HttpResponse.create().withStatus(StatusCodes.ACCEPTED));
-                        finishTraceAndStop();
-                    } else {
+                    if (messageTimeout != null && !isFireAndForgetMessage(command)) {
                         getContext().setReceiveTimeout(Duration.apply(messageTimeout.getSeconds(), TimeUnit.SECONDS));
                     }
                 })
