@@ -11,7 +11,7 @@ entries:
 
     folderitems:
     - title: Overview
-      url: /index.html
+      url: /documentation.html
       output: web
       type: homepage
 

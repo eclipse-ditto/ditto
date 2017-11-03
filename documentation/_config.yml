@@ -3,10 +3,10 @@ repository: eclipse/ditto
 output: web
 # this property is useful for conditional filtering of content that is separate from the PDF.
 
-topnav_title: Eclipse Ditto documentation
+topnav_title: Eclipse Ditto
 # this appears on the top navigation bar next to the home button
 
-site_title: Eclipse Ditto documentation
+site_title: Eclipse Ditto
 # this appears in the html browser tab for the site title (seen mostly by search engines, not users)
 
 company_name: Eclipse Ditto
@@ -32,7 +32,7 @@ exclude:
   - .gitignore
 # these are the files and directories that jekyll will exclude from the build
 
-feedback_subject_line: Eclipse Ditto documentation
+feedback_subject_line: Eclipse Ditto
 
 feedback_email: ditto-dev@eclipse.org
 # used as a contact email for the Feedback link in the top navigation bar
@@ -99,7 +99,6 @@ defaults:
 
 sidebars:
 - ditto_sidebar
-- other
 
 description: "Here be dragons"
 # the description is used in the feed.xml file
