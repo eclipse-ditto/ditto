@@ -26,6 +26,12 @@ import org.eclipse.ditto.model.thingsearch.SearchModelFactory;
 import org.eclipse.ditto.model.thingsearch.SearchResult;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SudoCountThings;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SudoRetrieveNamespaceReport;
+import org.eclipse.ditto.services.thingsearch.common.model.ResultList;
+import org.eclipse.ditto.services.thingsearch.persistence.read.ThingsSearchPersistence;
+import org.eclipse.ditto.services.thingsearch.query.actors.AggregationQueryActor;
+import org.eclipse.ditto.services.thingsearch.query.actors.QueryActor;
+import org.eclipse.ditto.services.thingsearch.querymodel.query.PolicyRestrictedSearchAggregation;
+import org.eclipse.ditto.services.thingsearch.querymodel.query.Query;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
@@ -37,12 +43,6 @@ import org.eclipse.ditto.signals.commands.thingsearch.query.CountThings;
 import org.eclipse.ditto.signals.commands.thingsearch.query.CountThingsResponse;
 import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThings;
 import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThingsResponse;
-import org.eclipse.ditto.services.thingsearch.common.model.ResultList;
-import org.eclipse.ditto.services.thingsearch.persistence.read.ThingsSearchPersistence;
-import org.eclipse.ditto.services.thingsearch.query.actors.AggregationQueryActor;
-import org.eclipse.ditto.services.thingsearch.query.actors.QueryActor;
-import org.eclipse.ditto.services.thingsearch.querymodel.query.PolicyRestrictedSearchAggregation;
-import org.eclipse.ditto.services.thingsearch.querymodel.query.Query;
 
 import akka.NotUsed;
 import akka.actor.AbstractActor;
@@ -73,11 +73,10 @@ import scala.concurrent.ExecutionContextExecutor;
  * Passes the commands to the appropriate query actor which is determined by the API version of each received command
  * (see {@link DittoHeaders#getSchemaVersion()}).
  * <p>
- * Commands with version 1 are delegated to the {@link QueryActor}
- * which creates a {@link Query} out of the commands.
+ * Commands with version 1 are delegated to the {@link QueryActor} which creates a {@link Query} out of the commands.
  * <p>
- * Commands with version 2 are delegated to the {@link AggregationQueryActor}
- * which creates a {@link PolicyRestrictedSearchAggregation} out of the commands.
+ * Commands with version 2 are delegated to the {@link AggregationQueryActor} which creates a {@link
+ * PolicyRestrictedSearchAggregation} out of the commands.
  * <p>
  * Both, Query and PolicyRestrictedSearchAggregation are executed against the passed {@link ThingsSearchPersistence}.
  * <p>
@@ -103,9 +102,6 @@ public final class SearchActor extends AbstractActor {
     private static final String QUERY_PARSING = "Things_Search_Query_Parsing";
     private static final String DATABASE_ACCESS = "Things_Search_DB_access";
     private static final String THINGS_SERVICE_ACCESS = "Things_Service_access";
-
-    private static final double NANO_TO_MS_DIVIDER = 1_000_000.0;
-    private static final double SEARCH_WARN_TIMEOUT_MS = 5_000.0;
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
@@ -135,10 +131,9 @@ public final class SearchActor extends AbstractActor {
      *
      * @param pubSubMediator ActorRef for the {@link DistributedPubSubMediator} to use for asking Things-Service for
      * Things.
-     * @param aggregationQueryActor ActorRef for the {@link AggregationQueryActor}
-     * to use in order to create {@link PolicyRestrictedSearchAggregation}s from {@link ThingSearchCommand}s.
-     * @param apiV1QueryActor ActorRef for the {@link QueryActor} to
-     * serve API version 1.
+     * @param aggregationQueryActor ActorRef for the {@link AggregationQueryActor} to use in order to create {@link
+     * PolicyRestrictedSearchAggregation}s from {@link ThingSearchCommand}s.
+     * @param apiV1QueryActor ActorRef for the {@link QueryActor} to serve API version 1.
      * @param searchPersistence the {@link ThingsSearchPersistence} to use in order to execute {@link
      * PolicyRestrictedSearchAggregation}s.
      * @return the Akka configuration Props object.
@@ -283,14 +278,6 @@ public final class SearchActor extends AbstractActor {
                         })
                         .via(Flow.fromFunction(foo -> {
                             traceContext.finish(); // finish kamon trace
-                            final double durationMs =
-                                    (System.nanoTime() - traceContext.startTimestamp()) / NANO_TO_MS_DIVIDER;
-                            if (durationMs > SEARCH_WARN_TIMEOUT_MS) {
-                                LogUtil.enhanceLogWithCorrelationId(log, dittoHeaders);
-                                log.warning("Encountered slow search which took over {}ms: {}ms",
-                                        (int) SEARCH_WARN_TIMEOUT_MS,
-                                        (int) durationMs);
-                            }
                             return foo;
                         }))
                         .runWith(Sink.head(), materializer), dispatcher)

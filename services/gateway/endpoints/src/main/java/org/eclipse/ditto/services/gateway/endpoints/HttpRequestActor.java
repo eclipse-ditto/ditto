@@ -39,6 +39,7 @@ import org.eclipse.ditto.signals.commands.devops.RetrieveStatisticsResponse;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
 import org.eclipse.ditto.signals.commands.messages.SendEmptyMessageResponse;
+import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
 
 import com.typesafe.config.Config;
 
@@ -80,6 +81,8 @@ public final class HttpRequestActor extends AbstractActor {
      */
     public static final String COMPLETE_MESSAGE = "complete";
 
+    private static final String TRACE_TAG_TYPE = "type";
+    private static final String TRACE_TAG_TYPE_PREFIX = "type-prefix";
     private static final String TRACE_ROUNDTRIP_HTTP = "roundtrip.http";
     private static final ContentType CONTENT_TYPE_JSON = ContentTypes.APPLICATION_JSON;
     private static final ContentType CONTENT_TYPE_TEXT = ContentTypes.TEXT_PLAIN_UTF8;
@@ -88,6 +91,7 @@ public final class HttpRequestActor extends AbstractActor {
 
     private static final double NANO_TO_MS_DIVIDER = 1_000_000.0;
     private static final double HTTP_WARN_TIMEOUT_MS = 1_000.0;
+    private static final double SEARCH_WARN_TIMEOUT_MS = 5_000.0;
 
     private final DiagnosticLoggingAdapter logger = LogUtil.obtain(this);
 
@@ -336,9 +340,9 @@ public final class HttpRequestActor extends AbstractActor {
                     final Message<?> message = command.getMessage();
                     final MessageDirection direction = message.getDirection();
                     newTraceFor(command, TRACE_ROUNDTRIP_HTTP + "." + messageType + "." + direction);
-                    traceContext.addMetadata("type", messageType);
-                    traceContext.addMetadata("direction", direction.name());
-                    traceContext.addMetadata("subject", message.getSubject());
+                    traceContext.addTag("type", messageType);
+                    traceContext.addTag("direction", direction.name());
+                    traceContext.addTag("subject", message.getSubject());
 
                     // authorized!
                     proxyActor.tell(command, getSelf());
@@ -384,7 +388,6 @@ public final class HttpRequestActor extends AbstractActor {
                     logger.debug("Got 'DevOpsCommand' message, telling the targetActor about it");
 
                     newTraceFor(command, TRACE_ROUNDTRIP_HTTP + "_" + command.getType());
-                    traceContext.addMetadata("devOpsCommand", command.getType());
 
                     proxyActor.tell(command, getSelf());
 
@@ -400,7 +403,6 @@ public final class HttpRequestActor extends AbstractActor {
                     logger.debug("Got 'Command' message, telling the targetActor about it");
 
                     newTraceFor(command, TRACE_ROUNDTRIP_HTTP + "_" + command.getType());
-                    traceContext.addMetadata("command", command.getType());
 
                     proxyActor.tell(command, getSelf());
 
@@ -493,21 +495,19 @@ public final class HttpRequestActor extends AbstractActor {
         finishTraceAndStop();
     }
 
-    private void newTraceFor(final Command command, final String name) {
-        final Optional<String> tokenOptional = command.getDittoHeaders().getCorrelationId();
-        final Option<String> tokenScalaOption = tokenOptional
-                .map(Option::<String>apply)
-                .orElse(Option.<String>empty());
-        LogUtil.enhanceLogWithCorrelationId(logger, tokenOptional);
-        traceContext = Kamon.tracer().newContext(name, tokenScalaOption);
-    }
-
     private void finishTraceAndStop() {
         if (traceContext != null) {
             traceContext.finish();
             final double durationMs = (System.nanoTime() - traceContext.startTimestamp()) / NANO_TO_MS_DIVIDER;
-            if (durationMs > HTTP_WARN_TIMEOUT_MS) {
-                logger.warning("Encountered slow HTTP request which took over {}ms: {}ms", (int) HTTP_WARN_TIMEOUT_MS,
+            final Option<String> typePrefixOption = traceContext.tags().get(TRACE_TAG_TYPE_PREFIX);
+
+            if (durationMs > SEARCH_WARN_TIMEOUT_MS && typePrefixOption.contains(ThingSearchCommand.TYPE_PREFIX)) {
+                logger.warning("Encountered slow search which took over {}ms: {}ms",
+                        (int) SEARCH_WARN_TIMEOUT_MS,
+                        (int) durationMs);
+            } else if (durationMs > HTTP_WARN_TIMEOUT_MS) {
+                logger.warning("Encountered slow HTTP request which took over {}ms: {}ms",
+                        (int) HTTP_WARN_TIMEOUT_MS,
                         (int) durationMs);
             }
         }
@@ -516,12 +516,25 @@ public final class HttpRequestActor extends AbstractActor {
         getContext().stop(getSelf());
     }
 
+    private void newTraceFor(final Command command, final String name) {
+        final Optional<String> tokenOptional = command.getDittoHeaders().getCorrelationId();
+        final Option<String> tokenScalaOption = tokenOptional
+                .map(Option::<String>apply)
+                .orElse(Option.<String>empty());
+        LogUtil.enhanceLogWithCorrelationId(logger, tokenOptional);
+        traceContext = Kamon.tracer().newContext(name, tokenScalaOption);
+        traceContext.addTag(TRACE_TAG_TYPE, command.getType());
+        traceContext.addTag(TRACE_TAG_TYPE_PREFIX, command.getTypePrefix());
+    }
+
     private void newTraceFor(final DevOpsCommand command, final String name) {
         final Option<String> token = command.getDittoHeaders().getCorrelationId()
                 .map(Option::<String>apply)
                 .orElse(Option.<String>empty());
         LogUtil.enhanceLogWithCorrelationId(logger, token.get());
         traceContext = Kamon.tracer().newContext(name, token);
+        traceContext.addTag(TRACE_TAG_TYPE, command.getType());
+        traceContext.addTag(TRACE_TAG_TYPE_PREFIX, DevOpsCommand.TYPE_PREFIX);
     }
 
     private static final class ServerRequestTimeoutMessage {
