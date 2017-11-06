@@ -11,19 +11,20 @@
  */
 package org.eclipse.ditto.model.things;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+
 import java.time.Instant;
 import java.util.function.Consumer;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
-import org.eclipse.ditto.model.base.common.ConditionChecker;
 import org.eclipse.ditto.model.base.common.IdValidator;
 import org.eclipse.ditto.model.base.common.Validator;
-
 
 /**
  * A mutable builder for an immutable {@link Thing} from scratch.
@@ -36,16 +37,16 @@ final class ImmutableThingFromScratchBuilder implements ThingBuilder, ThingBuild
     * Thus some fields and methods have to be package private - unfortunately.
     */
 
-    String id;
-    ThingLifecycle lifecycle;
-    ThingRevision revision;
-    Instant modified;
-    private String policyId;
-    private AccessControlListBuilder aclBuilder;
-    private AttributesBuilder attributesBuilder;
-    private Attributes attributes;
-    private FeaturesBuilder featuresBuilder;
-    private Features features;
+    @Nullable String id;
+    @Nullable ThingLifecycle lifecycle;
+    @Nullable ThingRevision revision;
+    @Nullable Instant modified;
+    @Nullable private String policyId;
+    @Nullable private AccessControlListBuilder aclBuilder;
+    @Nullable private AttributesBuilder attributesBuilder;
+    @Nullable private Attributes attributes;
+    @Nullable private FeaturesBuilder featuresBuilder;
+    @Nullable private Features features;
 
     private ImmutableThingFromScratchBuilder() {
         id = null;
@@ -71,7 +72,7 @@ final class ImmutableThingFromScratchBuilder implements ThingBuilder, ThingBuild
 
     @Override
     public FromScratch setAttributes(final Attributes attributes) {
-        ConditionChecker.checkNotNull(attributes, "Attributes to be set");
+        checkNotNull(attributes, "Attributes to be set");
 
         if (attributes.isNull()) {
             return setNullAttributes();
@@ -83,7 +84,7 @@ final class ImmutableThingFromScratchBuilder implements ThingBuilder, ThingBuild
 
     @Override
     public FromScratch setAttributes(final JsonObject attributesJsonObject) {
-        ConditionChecker.checkNotNull(attributesJsonObject, "JSON object representation of Attributes to be set");
+        checkNotNull(attributesJsonObject, "JSON object representation of Attributes to be set");
 
         if (attributesJsonObject.isNull()) {
             return setNullAttributes();
@@ -120,7 +121,7 @@ final class ImmutableThingFromScratchBuilder implements ThingBuilder, ThingBuild
 
     @Override
     public FromScratch setAttribute(final JsonPointer attributePath, final JsonValue attributeValue) {
-        ConditionChecker.checkNotNull(attributeValue, "attribute value to be set");
+        checkNotNull(attributeValue, "attribute value to be set");
         invokeOnAttributesBuilder(ab -> ab.set(attributePath, attributeValue));
         return this;
     }
@@ -152,7 +153,8 @@ final class ImmutableThingFromScratchBuilder implements ThingBuilder, ThingBuild
     @Override
     public FromScratch removeFeature(final String featureId) {
         invokeOnFeaturesBuilder(fb -> fb.remove(featureId));
-        if (getFeatures().isEmpty()) {
+        final Features fs = getFeatures();
+        if (null == fs || fs.isEmpty()) {
             featuresBuilder = null;
         }
         return this;
@@ -161,7 +163,8 @@ final class ImmutableThingFromScratchBuilder implements ThingBuilder, ThingBuild
     @Override
     public FromScratch setFeatureProperty(final String featureId, final JsonPointer propertyPath,
             final JsonValue propertyValue) {
-        ConditionChecker.checkNotNull(propertyValue, "property value to be set");
+
+        checkNotNull(propertyValue, "property value to be set");
 
         final Features existingFeatures = getFeatures();
         if (null != existingFeatures) {
@@ -176,19 +179,21 @@ final class ImmutableThingFromScratchBuilder implements ThingBuilder, ThingBuild
 
     @Override
     public FromScratch removeFeatureProperty(final String featureId, final JsonPointer propertyPath) {
-        ConditionChecker.checkNotNull(featureId, "identifier of the Feature from which the property to be removed");
-        ConditionChecker.checkNotNull(propertyPath, "path to the property to be removed");
+        checkNotNull(featureId, "identifier of the Feature from which the property to be removed");
+        checkNotNull(propertyPath, "path to the property to be removed");
 
         if (null != featuresBuilder) {
             final Features existingFeatures = getFeatures();
-            return setFeatures(existingFeatures.removeProperty(featureId, propertyPath));
+            if (null != existingFeatures) {
+                return setFeatures(existingFeatures.removeProperty(featureId, propertyPath));
+            }
         }
         return this;
     }
 
     @Override
     public FromScratch setFeatures(final Iterable<Feature> features) {
-        ConditionChecker.checkNotNull(features, "Features to be set");
+        checkNotNull(features, "Features to be set");
 
         if (features instanceof Features) {
             final Features featuresToSet = (Features) features;
@@ -223,7 +228,7 @@ final class ImmutableThingFromScratchBuilder implements ThingBuilder, ThingBuild
 
     @Override
     public FromScratch setFeatures(final JsonObject featuresJsonObject) {
-        ConditionChecker.checkNotNull(featuresJsonObject, "JSON object representation of Features to be set");
+        checkNotNull(featuresJsonObject, "JSON object representation of Features to be set");
 
         if (featuresJsonObject.isNull()) {
             return setNullFeatures();
@@ -237,13 +242,13 @@ final class ImmutableThingFromScratchBuilder implements ThingBuilder, ThingBuild
     }
 
     @Override
-    public FromScratch setLifecycle(final ThingLifecycle lifecycle) {
+    public FromScratch setLifecycle(@Nullable final ThingLifecycle lifecycle) {
         this.lifecycle = lifecycle;
         return this;
     }
 
     @Override
-    public FromScratch setRevision(final ThingRevision revision) {
+    public FromScratch setRevision(@Nullable final ThingRevision revision) {
         this.revision = revision;
         return this;
     }
@@ -254,7 +259,7 @@ final class ImmutableThingFromScratchBuilder implements ThingBuilder, ThingBuild
     }
 
     @Override
-    public FromScratch setModified(final Instant modified) {
+    public FromScratch setModified(@Nullable final Instant modified) {
         this.modified = modified;
         return this;
     }
@@ -280,6 +285,7 @@ final class ImmutableThingFromScratchBuilder implements ThingBuilder, ThingBuild
     @Override
     public FromScratch setPermissions(final AuthorizationSubject authorizationSubject, final Permission permission,
             final Permission... furtherPermissions) {
+
         final AclEntry aclEntry = ThingsModelFactory.newAclEntry(authorizationSubject, permission, furtherPermissions);
         return setPermissions(aclEntry);
     }
@@ -302,7 +308,7 @@ final class ImmutableThingFromScratchBuilder implements ThingBuilder, ThingBuild
 
     @Override
     public FromScratch removePermissionsOf(final AuthorizationSubject authorizationSubject) {
-        ConditionChecker.checkNotNull(authorizationSubject,
+        checkNotNull(authorizationSubject,
                 "authorization subject of which all permissions are to be removed");
 
         if (null != aclBuilder) {
@@ -318,19 +324,19 @@ final class ImmutableThingFromScratchBuilder implements ThingBuilder, ThingBuild
     }
 
     @Override
-    public FromScratch setPolicyId(final String policyId) {
-        this.policyId = ConditionChecker.checkNotNull(policyId, "Policy ID");
+    public FromScratch setPolicyId(@Nullable final String policyId) {
+        this.policyId = policyId;
         return this;
     }
 
     @Override
     public FromScratch removePolicyId() {
-        this.policyId = null;
+        policyId = null;
         return this;
     }
 
     @Override
-    public FromScratch setId(final String thingId) {
+    public FromScratch setId(@Nullable final String thingId) {
         if (null != thingId) {
             final Validator thingIdValidator = IdValidator.newInstance(thingId, Thing.ID_REGEX);
             if (!thingIdValidator.isValid()) {
@@ -387,6 +393,7 @@ final class ImmutableThingFromScratchBuilder implements ThingBuilder, ThingBuild
         features = null;
     }
 
+    @Nullable
     AccessControlList getAcl() {
         AccessControlList result = null;
         if (null != aclBuilder) {
@@ -395,6 +402,7 @@ final class ImmutableThingFromScratchBuilder implements ThingBuilder, ThingBuild
         return result;
     }
 
+    @Nullable
     Attributes getAttributes() {
         Attributes result = attributes;
         if (null != attributesBuilder) {
@@ -403,6 +411,7 @@ final class ImmutableThingFromScratchBuilder implements ThingBuilder, ThingBuild
         return result;
     }
 
+    @Nullable
     Features getFeatures() {
         Features result = features;
         if (null != featuresBuilder) {

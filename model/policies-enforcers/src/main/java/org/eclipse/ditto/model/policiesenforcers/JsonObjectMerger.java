@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.model.policiesenforcers;
 
+import java.text.MessageFormat;
 import java.util.Optional;
 import java.util.function.BiFunction;
 
@@ -94,12 +95,19 @@ final class JsonObjectMerger implements BiFunction<JsonObject, JsonObject, JsonO
         final int shorterSize = Math.min(array1.getSize(), array2.getSize());
         final JsonArrayBuilder builder = JsonFactory.newArrayBuilder();
         for (int i = 0; i < shorterSize; ++i) {
-            builder.add(mergeJsonValues(array1.get(i).get(), array2.get(i).get()));
+            builder.add(mergeJsonValues(getOrThrow(array1, i), getOrThrow(array2, i)));
         }
         for (int i = shorterSize; i < longerSize; ++ i) {
-            builder.add(longerArray.get(i).get());
+            builder.add(getOrThrow(longerArray, i));
         }
         return builder.build();
+    }
+
+    private static JsonValue getOrThrow(final JsonArray jsonArray, final int index) {
+        return jsonArray.get(index).orElseThrow(() -> {
+            final String msgPattern = "JsonArray did not contain a value for index <{0}>!";
+            return new NullPointerException(MessageFormat.format(msgPattern, index));
+        });
     }
 
 }

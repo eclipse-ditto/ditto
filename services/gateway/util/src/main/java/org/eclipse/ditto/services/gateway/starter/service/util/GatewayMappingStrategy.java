@@ -74,7 +74,8 @@ public final class GatewayMappingStrategy implements MappingStrategy {
     }
 
     private static void addDevOpsStrategies(final MappingStrategiesBuilder builder) {
-        builder.add(DevOpsCommandRegistry.newInstance())
-                .add(DevOpsCommandResponseRegistry.newInstance());
+        builder.add(DevOpsCommandRegistry.newInstance());
+        builder.add(DevOpsCommandResponseRegistry.newInstance());
     }
+
 }

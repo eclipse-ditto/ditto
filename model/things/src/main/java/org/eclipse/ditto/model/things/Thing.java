@@ -15,6 +15,7 @@ import java.time.Instant;
 import java.util.Objects;
 import java.util.Optional;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFactory;
@@ -124,7 +125,7 @@ public interface Thing extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFie
      * @param attributes the attributes.
      * @return a copy of this Thing with the given attributes.
      */
-    Thing setAttributes(Attributes attributes);
+    Thing setAttributes(@Nullable Attributes attributes);
 
     /**
      * Removes all attributes from a copy of this Thing.
@@ -475,7 +476,7 @@ public interface Thing extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFie
      * @param policyId the Policy identifier to set.
      * @return a copy of this Thing with {@code policyId} as its Policy identifier.
      */
-    Thing setPolicyId(String policyId);
+    Thing setPolicyId(@Nullable String policyId);
 
     /**
      * Returns the features of this Thing.
@@ -490,7 +491,7 @@ public interface Thing extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFie
      * @param features the features to be set.
      * @return a copy of this Thing with the features set.
      */
-    Thing setFeatures(Features features);
+    Thing setFeatures(@Nullable Features features);
 
     /**
      * Removes all features from a copy of this Thing.

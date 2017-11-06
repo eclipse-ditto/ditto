@@ -903,8 +903,9 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
      * @param authorizationContext the AuthorizationContext to take the first AuthorizationSubject as fallback from.
      * @return the really new Thing with guaranteed ACL.
      */
-    private Thing enhanceNewThingWithFallbackAcl(final Thing newThing,
+    private static Thing enhanceNewThingWithFallbackAcl(final Thing newThing,
             final AuthorizationContext authorizationContext) {
+
         final ThingBuilder.FromCopy newThingBuilder = ThingsModelFactory.newThingBuilder(newThing);
 
         final Boolean isAclEmpty = newThing.getAccessControlList()
@@ -912,16 +913,16 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                 .orElse(true);
         if (isAclEmpty) {
             // do the fallback and use the first authorized subject and give all permissions to it:
-            final AuthorizationSubject authorizationSubject = authorizationContext.getFirstAuthorizationSubject().get();
-            return newThingBuilder
-                    .setPermissions(authorizationSubject, Thing.MIN_REQUIRED_PERMISSIONS)
-                    .build();
+            final AuthorizationSubject authorizationSubject = authorizationContext.getFirstAuthorizationSubject()
+                    .orElseThrow(() -> new NullPointerException("AuthorizationContext does not contain an " +
+                            "AuthorizationSubject!"));
+            newThingBuilder.setPermissions(authorizationSubject, Thing.MIN_REQUIRED_PERMISSIONS);
         }
 
         return newThingBuilder.build();
     }
 
-    private Thing enhanceThingWithLifecycle(final Thing thing) {
+    private static Thing enhanceThingWithLifecycle(final Thing thing) {
         final ThingBuilder.FromCopy thingBuilder = ThingsModelFactory.newThingBuilder(thing);
         if (!thing.getLifecycle().isPresent()) {
             thingBuilder.setLifecycle(ThingLifecycle.ACTIVE);
@@ -1243,10 +1244,10 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         }
 
         private void handleModifyExistingV2(final ModifyThing command) {
-            final Thing thing = command.getThing();
+            final Thing commandThing = command.getThing();
             final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-            if (thing.getAccessControlList().isPresent()) {
+            if (commandThing.getAccessControlList().isPresent()) {
                 notifySender(getSender(),
                         AclNotAllowedException.newBuilder(thingId).dittoHeaders(dittoHeaders).build());
             } else {
@@ -1968,9 +1969,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
         @Override
         protected void doApply(final RetrieveFeature command) {
-            final Optional<Features> features = thing.getFeatures();
-            final Optional<Feature> feature =
-                    features.isPresent() ? features.get().getFeature(command.getFeatureId()) : Optional.empty();
+            final Optional<Feature> feature = thing.getFeatures().flatMap(fs -> fs.getFeature(command.getFeatureId()));
             if (feature.isPresent()) {
                 final Feature f = feature.get();
                 final Optional<JsonFieldSelector> selectedFields = command.getSelectedFields();

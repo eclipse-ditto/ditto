@@ -18,6 +18,7 @@ import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFactory;
@@ -39,19 +40,25 @@ final class ImmutableThing implements Thing {
 
     private static final Pattern ID_PATTERN = Pattern.compile(ID_REGEX);
 
-    private final String namespace;
-    private final String thingId;
-    private final AccessControlList acl;
-    private final String policyId;
-    private final Attributes attributes;
-    private final Features features;
-    private final ThingLifecycle lifecycle;
-    private final ThingRevision revision;
-    private final Instant modified;
+    @Nullable private final String namespace;
+    @Nullable private final String thingId;
+    @Nullable private final AccessControlList acl;
+    @Nullable private final String policyId;
+    @Nullable private final Attributes attributes;
+    @Nullable private final Features features;
+    @Nullable private final ThingLifecycle lifecycle;
+    @Nullable private final ThingRevision revision;
+    @Nullable private final Instant modified;
 
-    private ImmutableThing(final String thingId, final AccessControlList acl, final String policyId,
-            final Attributes attributes, final Features features,
-            final ThingLifecycle lifecycle, final ThingRevision revision, final Instant modified) {
+    private ImmutableThing(@Nullable final String thingId,
+            @Nullable final AccessControlList acl,
+            @Nullable final String policyId,
+            @Nullable final Attributes attributes,
+            @Nullable final Features features,
+            @Nullable final ThingLifecycle lifecycle,
+            @Nullable final ThingRevision revision,
+            @Nullable final Instant modified) {
+
         if (null != thingId) {
             final Matcher nsMatcher = ID_PATTERN.matcher(thingId);
             nsMatcher.matches();
@@ -81,9 +88,14 @@ final class ImmutableThing implements Thing {
      * @param modified the modified timestamp of the thing to be created.
      * @return the {@code Thing} which was created from the given JSON object.
      */
-    static Thing of(final String thingId, final AccessControlList accessControlList, final Attributes attributes,
-            final Features features, final ThingLifecycle lifecycle, final ThingRevision revision,
-            final Instant modified) {
+    static Thing of(@Nullable final String thingId,
+            @Nullable final AccessControlList accessControlList,
+            @Nullable final Attributes attributes,
+            @Nullable final Features features,
+            @Nullable final ThingLifecycle lifecycle,
+            @Nullable final ThingRevision revision,
+            @Nullable final Instant modified) {
+
         return new ImmutableThing(thingId, accessControlList, null, attributes, features, lifecycle, revision,
                 modified);
     }
@@ -100,8 +112,14 @@ final class ImmutableThing implements Thing {
      * @param modified the modified timestamp of the thing to be created.
      * @return the {@code Thing} which was created from the given JSON object.
      */
-    static Thing of(final String thingId, final String policyId, final Attributes attributes, final Features features,
-            final ThingLifecycle lifecycle, final ThingRevision revision, final Instant modified) {
+    static Thing of(@Nullable final String thingId,
+            @Nullable final String policyId,
+            @Nullable final Attributes attributes,
+            @Nullable final Features features,
+            @Nullable final ThingLifecycle lifecycle,
+            @Nullable final ThingRevision revision,
+            @Nullable final Instant modified) {
+
         return new ImmutableThing(thingId, null, policyId, attributes, features, lifecycle, revision, modified);
     }
 
@@ -131,7 +149,7 @@ final class ImmutableThing implements Thing {
     }
 
     @Override
-    public Thing setAttributes(final Attributes attributes) {
+    public Thing setAttributes(@Nullable final Attributes attributes) {
         if (Objects.equals(this.attributes, attributes)) {
             return this;
         }
@@ -186,7 +204,7 @@ final class ImmutableThing implements Thing {
     }
 
     @Override
-    public Thing setFeatures(final Features features) {
+    public Thing setFeatures(@Nullable final Features features) {
         if (Objects.equals(this.features, features)) {
             return this;
         }
@@ -242,6 +260,7 @@ final class ImmutableThing implements Thing {
     @Override
     public Thing setFeatureProperty(final String featureId, final JsonPointer propertyJsonPointer,
             final JsonValue propertyValue) {
+
         final Features newFeatures;
         if (null == features || features.isNull()) {
             final FeatureProperties featureProperties = ThingsModelFactory.newFeaturePropertiesBuilder()
@@ -273,13 +292,14 @@ final class ImmutableThing implements Thing {
     public Thing setAccessControlList(final AccessControlList accessControlList) {
         if (policyId != null) {
             throw AclInvalidException.newBuilder(thingId)
-                    .description("Could not set v1 ACL to Thing already containing v2 Policy").build();
+                    .description("Could not set v1 ACL to Thing already containing v2 Policy")
+                    .build();
         } else if (Objects.equals(acl, accessControlList)) {
             return this;
         }
 
-        return new ImmutableThing(thingId, accessControlList, null, attributes, features, lifecycle,
-                revision, modified);
+        return new ImmutableThing(thingId, accessControlList, null, attributes, features, lifecycle, revision,
+                modified);
     }
 
     @Override
@@ -309,8 +329,7 @@ final class ImmutableThing implements Thing {
     }
 
     @Override
-    public Thing setPolicyId(final String policyId) {
-        ConditionChecker.checkNotNull(policyId, "policy identifier to be set");
+    public Thing setPolicyId(@Nullable final String policyId) {
         return new ImmutableThing(thingId, acl, policyId, attributes, features, lifecycle, revision, modified);
     }
 
@@ -323,8 +342,7 @@ final class ImmutableThing implements Thing {
     public Thing setLifecycle(final ThingLifecycle newLifecycle) {
         ConditionChecker.checkNotNull(newLifecycle, "lifecycle to be set");
 
-        return new ImmutableThing(thingId, acl, policyId, attributes, features, newLifecycle, revision,
-                modified);
+        return new ImmutableThing(thingId, acl, policyId, attributes, features, newLifecycle, revision, modified);
     }
 
     @Override
@@ -334,17 +352,17 @@ final class ImmutableThing implements Thing {
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
         jsonObjectBuilder.set(JsonFields.SCHEMA_VERSION, schemaVersion.toInt(), predicate);
 
-        getLifecycle()
-                .map(ThingLifecycle::name)
-                .ifPresent(lifecycleName -> jsonObjectBuilder.set(JsonFields.LIFECYCLE, lifecycleName, predicate));
+        if (null != lifecycle) {
+            jsonObjectBuilder.set(JsonFields.LIFECYCLE, lifecycle.name(), predicate);
+        }
 
-        getRevision()
-                .map(ThingRevision::toLong)
-                .ifPresent(revisionNumber -> jsonObjectBuilder.set(JsonFields.REVISION, revisionNumber, predicate));
+        if (null != revision) {
+            jsonObjectBuilder.set(JsonFields.REVISION, revision.toLong(), predicate);
+        }
 
-        getModified()
-                .map(Instant::toString)
-                .ifPresent(modified -> jsonObjectBuilder.set(JsonFields.MODIFIED, modified, predicate));
+        if (null != modified) {
+            jsonObjectBuilder.set(JsonFields.MODIFIED, modified.toString(), predicate);
+        }
 
         if (null != thingId) {
             jsonObjectBuilder.set(JsonFields.NAMESPACE, namespace, predicate);
@@ -354,19 +372,19 @@ final class ImmutableThing implements Thing {
         if (JsonSchemaVersion.V_1.equals(schemaVersion)) {
             final AccessControlList theAcl = getAccessControlList().orElseGet(ThingsModelFactory::emptyAcl);
             jsonObjectBuilder.set(JsonFields.ACL, theAcl.toJson(), predicate);
-        } else {
-            getPolicyId().ifPresent(id -> jsonObjectBuilder.set(JsonFields.POLICY_ID, id, predicate));
+        } else if (null != policyId) {
+            jsonObjectBuilder.set(JsonFields.POLICY_ID, policyId, predicate);
         }
 
         if (null != attributes) {
             jsonObjectBuilder.set(JsonFields.ATTRIBUTES, attributes, predicate);
         }
 
-        getFeatures()
-                .ifPresent(f -> jsonObjectBuilder.set(JsonFields.FEATURES,
-                        f.toJson(schemaVersion, thePredicate.and(FieldType.notHidden())),
-                        // notice: only "not HIDDEN" sub-fields of features are included
-                        predicate));
+        if (null != features) {
+            // notice: only "not HIDDEN" sub-fields of features are included
+            jsonObjectBuilder.set(JsonFields.FEATURES,
+                    features.toJson(schemaVersion, thePredicate.and(FieldType.notHidden())), predicate);
+        }
 
         return jsonObjectBuilder.build();
     }
@@ -390,20 +408,22 @@ final class ImmutableThing implements Thing {
             return false;
         }
         final ImmutableThing other = (ImmutableThing) obj;
-        return Objects.equals(thingId, other.thingId) && Objects.equals(namespace, other.namespace) &&
+        return Objects.equals(thingId, other.thingId) &&
+                Objects.equals(namespace, other.namespace) &&
                 Objects.equals(policyId, other.policyId) &&
-                Objects
-                        .equals(acl, other.acl) && Objects.equals(attributes, other.attributes) && Objects
-                .equals(features, other.features) && Objects.equals(lifecycle, other.lifecycle) && Objects
-                .equals(revision, other.revision) && Objects.equals(modified, other.modified);
+                Objects.equals(acl, other.acl) &&
+                Objects.equals(attributes, other.attributes) &&
+                Objects.equals(features, other.features) &&
+                Objects.equals(lifecycle, other.lifecycle) &&
+                Objects.equals(revision, other.revision) &&
+                Objects.equals(modified, other.modified);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [thingId=" + thingId + ", namespace=" + namespace + ", acl=" + acl +
-                ", policyId=" + policyId + ", attributes=" + attributes +
-                ", features="
-                + features + ", lifecycle=" + lifecycle + ", revision=" + revision + ", modified=" + modified + "]";
+                ", policyId=" + policyId + ", attributes=" + attributes + ", features=" + features + ", lifecycle=" +
+                lifecycle + ", revision=" + revision + ", modified=" + modified + "]";
     }
 
 }
