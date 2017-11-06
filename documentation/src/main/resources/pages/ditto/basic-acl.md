@@ -7,8 +7,8 @@ permalink: basic-acl.html
 
 Entries in the <a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossary.acl}}">ACL</a> configure the permissions for subjects. A subject is identified by an arbitrary ID.
 
-{% include note.html content="The ACL concept is only supported for Eclipse Ditto **HTTP API version 1**. <br /> 
-For Eclipse Ditto **HTTP API version 2** we have introduced the Policies concept." %}
+{% include note.html content="The ACL concept is only supported for Ditto **HTTP API version 1**. <br /> 
+For Ditto **HTTP API version 2** we have introduced the Policies concept." %}
 
 
 ## Authorization Subject

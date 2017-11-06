@@ -2,7 +2,7 @@
 title: Release notes 0.1.0M1
 tags: [release_notes]
 keywords: release notes, announcements, changelog
-summary: "Version 0.1.0M1 of Eclpipse Ditto, released on TODO"
+summary: "Version 0.1.0M1 of Eclipse Ditto, released on TODO"
 permalink: release_notes_010M1.html
 ---
 

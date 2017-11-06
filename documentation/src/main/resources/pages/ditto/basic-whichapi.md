@@ -5,7 +5,7 @@ tags: [model]
 permalink: basic-whichapi.html
 ---
 
-Eclipse Ditto provides 2 ways to interact with:
+Ditto provides 2 ways to interact with:
 
 * A REST-like HTTP API with a sophisticated resource layout, that allows to create, read, update and delete Things and the Thing's data.
 * A JSON based WebSocket protocol.

@@ -5,15 +5,15 @@ tags: [model]
 permalink: basic-auth.html
 ---
 
-You can integrate your solutions with Eclipse Ditto in two ways:
+You can integrate your solutions with Ditto in two ways:
 
 * Via the REST API, or
 * Via WebSocket.
 
-On all APIs Eclipse Ditto protects functionality and data by using
+On all APIs Ditto protects functionality and data by using
 
-* **Authentication** to make sure the requestor is the one he states
-* **Authorization** to make sure the requestor is allowed to see, use or change the information he wants to access
+* **Authentication** to make sure the requester is the one he states
+* **Authorization** to make sure the requester is allowed to see, use or change the information he wants to access
 
 ## Authentication
 
@@ -26,7 +26,7 @@ A user who calls the REST API can be authenticated by using:
 
 ## Authorization
 
-Authorization is implemented with a Policy.
+Authorization is implemented with an <a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossary.acl}}">ACL</a> (in API v1) or a <a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossary.policy}}">Policy</a> ((in API v2)).
 The Policy description is located at Thing level, however it can optionally grant or revoke permissions very fine-grained at any Thing sub-resource like `thing:/features/featureX/properties/propertyN`.
 
-Find details at [Policies](basic-policies.html).
+Find details at [ACL](basic-acl.html) and [Policies](basic-policies.html).

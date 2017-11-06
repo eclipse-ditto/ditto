@@ -11,16 +11,12 @@ entries:
 
     folderitems:
     - title: Overview
-      url: /documentation.html
+      url: /intro-overview.html
       output: web
       type: homepage
 
-    - title: Getting started
-      url: /getting-started.html
-      output: web
-
     - title: Hello world
-      url: /hello-world.html
+      url: /intro-hello-world.html
       output: web
 
   - title: Release Notes
@@ -35,11 +31,11 @@ entries:
     output: web
     folderitems:
 
-    - title: Building Eclipse Ditto
+    - title: Building Ditto
       url: /installation-building.html
       output: web
 
-    - title: Running Eclipse Ditto
+    - title: Running Ditto
       url: /installation-running.html
       output: web
 
@@ -47,17 +43,6 @@ entries:
     output: web
 
     folderitems:
-#    - title: Building Blocks
-#      output: web
-#
-#      subfolders:
-#      - title: Level 1
-#        output: web
-#        subfolderitems:
-#        - title: Level 2
-#          url: /basic-buildingblocks.html
-#          output: web
-
     - title: Things and Features
       url: /basic-thingsfeatures.html
       output: web
@@ -82,8 +67,8 @@ entries:
       url: /basic-messages.html
       output: web
 
-    - title: Change Events
-      url: /basic-changeevents.html
+    - title: Events
+      url: /basic-events.html
       output: web
 
     - title: Which API to use?
@@ -103,9 +88,40 @@ entries:
       url: /protocol-specification.html
       output: web
 
+      subfolders:
+      - title: In detail
+        output: web
+        subfolderitems:
+        - title: General
+          url: /protocol-specification-general.html
+          output: web
+        - title: Create
+          url: /protocol-specification-create.html
+          output: web
+        - title: Retrieve
+          url: /protocol-specification-retrieve.html
+          output: web
+        - title: Search
+          url: /protocol-specification-search.html
+          output: web
+        - title: Modify
+          url: /protocol-specification-modify.html
+          output: web
+        - title: Delete
+          url: /protocol-specification-delete.html
+          output: web
+
     - title: Bindings
       url: /protocol-bindings.html
       output: web
+
+      subfolders:
+      - title: The bindings
+        output: web
+        subfolderitems:
+        - title: Websocket
+          url: /protocol-bindings-websocket.html
+          output: web
 
     - title: Examples
       url: /protocol-examples.html
