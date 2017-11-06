@@ -12,15 +12,9 @@
 package org.eclipse.ditto.services.things.persistence.actors;
 
 import static java.util.Objects.requireNonNull;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
 import java.util.Random;
 import java.util.UUID;
 import java.util.function.Predicate;
@@ -29,12 +23,8 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.policies.Label;
-import org.eclipse.ditto.model.policies.Policy;
-import org.eclipse.ditto.model.policies.PolicyEntry;
-import org.eclipse.ditto.model.policies.Resources;
-import org.eclipse.ditto.model.policies.Subjects;
 import org.eclipse.ditto.model.things.AccessControlListModelFactory;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Features;
@@ -70,34 +60,21 @@ public abstract class PersistenceActorTestBase {
     private static final ThingLifecycle THING_LIFECYCLE = ThingLifecycle.ACTIVE;
     private static final long THING_REVISION = 1;
 
-    private static final Label POLICY_LABEL = Label.of("all");
-    private static final Policy POLICY = Policy.newBuilder(THING_ID)
-            .set(PolicyEntry.newInstance(POLICY_LABEL, Subjects.newInstance(Collections.emptyList()),
-                    Resources.newInstance(Collections.emptyList())))
-            .build();
-
     protected static final Predicate<JsonField> IS_MODIFIED =
             field -> field.getDefinition().map(definition -> definition == Thing.JsonFields.MODIFIED).orElse(false);
 
     protected ActorSystem actorSystem = null;
     protected ActorRef pubSubMediator = null;
-    protected DittoHeaders dittoHeadersMockV1;
-    protected DittoHeaders dittoHeadersMockV2;
+    protected DittoHeaders dittoHeadersV1;
+    protected DittoHeaders dittoHeadersV2;
     protected ActorRef thingCacheFacade;
 
     protected static DittoHeaders createDittoHeadersMock(final JsonSchemaVersion schemaVersion,
             final String... authSubjects) {
-        final DittoHeaders result = mock(DittoHeaders.class);
-        when(result.getCorrelationId()).thenReturn(Optional.empty());
-        when(result.getSource()).thenReturn(Optional.empty());
-        when(result.isResponseRequired()).thenReturn(false);
-        when(result.getSchemaVersion()).thenReturn(Optional.ofNullable(schemaVersion));
-        final List<String> authSubjectsStr = Arrays.asList(authSubjects);
-        when(result.getAuthorizationSubjects()).thenReturn(authSubjectsStr);
-        final List<AuthorizationSubject> authSubjectsList = new ArrayList<>();
-        authSubjectsStr.stream().map(AuthorizationModelFactory::newAuthSubject).forEach(authSubjectsList::add);
-        when(result.getAuthorizationContext()).thenReturn(AuthorizationModelFactory.newAuthContext(authSubjectsList));
-        return result;
+        final DittoHeadersBuilder builder = DittoHeaders.newBuilder();
+        builder.authorizationSubjects(Arrays.asList(authSubjects));
+        builder.schemaVersion(schemaVersion);
+        return builder.build();
     }
 
     protected static Thing createThingV2WithRandomId() {
@@ -142,8 +119,8 @@ public abstract class PersistenceActorTestBase {
         thingCacheFacade = actorSystem.actorOf(CacheFacadeActor.props(CacheRole.THING,
                 actorSystem.settings().config()), CacheFacadeActor.actorNameFor(CacheRole.THING));
 
-        dittoHeadersMockV1 = createDittoHeadersMock(JsonSchemaVersion.V_1, AUTH_SUBJECT);
-        dittoHeadersMockV2 = createDittoHeadersMock(JsonSchemaVersion.V_2, AUTH_SUBJECT);
+        dittoHeadersV1 = createDittoHeadersMock(JsonSchemaVersion.V_1, AUTH_SUBJECT);
+        dittoHeadersV2 = createDittoHeadersMock(JsonSchemaVersion.V_2, AUTH_SUBJECT);
     }
 
     /** */
