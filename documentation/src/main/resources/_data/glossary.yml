@@ -1,1 +1,21 @@
-acl: "Access Control List (ACL): Defines which subjects (e.g. users) are allowed to READ, WRITE, ADMINISTRATE a Thing"
+acl: "An access control list (ACL) holds the current status on who (subject) is permitted to which extent
+      (read, write, administrate) to manage a Thing."
+
+asset: "An asset can be anything from a tangible and physical device to the more intangible such as the reputation of a company.
+        In our context we define an asset as any item, entity, application or even system of applications that can be registered
+        at Eclipse Ditto using the `Thing` concept."
+
+thing: "A Thing is a generic entity and is mostly used to cluster multiple Features and manage the access to the data
+        and functionality the Thing represents.
+        A Thing may have additional meta data (Attributes) that describes the Thing in more detail."
+
+attributes: "Attributes describe the Thing in more detail and can be of any type.
+             Attributes can be used to find Things.
+             Attributes are typically used to model rather static properties at the Thing level.
+             Static means that the values do not change as frequently as property values of Features."
+
+feature: "A Feature clusters a set of coherent Properties and has an optional Feature definition."
+
+policy: "A Policy enables developers to configure fine-grained access control in an easy way.
+         A specific policy defines who (subject) is granted or revoked permissions (rights) on a specific resource.
+         The resource can be defined as rough or as fine-grained as necessary for the respective use case. "

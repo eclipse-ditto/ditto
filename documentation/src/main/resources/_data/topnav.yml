@@ -7,7 +7,7 @@ topnav:
     - title: Blog
       url: /blog.html
     - title: Documentation
-      url: /documentation.html
+      url: /intro-overview.html
 
 #Topnav dropdowns
 topnav_dropdowns:
@@ -17,8 +17,10 @@ topnav_dropdowns:
       folderitems:
         - title: Eclipse Ditto Project
           external_url: https://projects.eclipse.org/projects/iot.ditto
-        - title: Eclipse Ditto Forum
+        - title: Forum
           external_url: https://www.eclipse.org/forums/index.php/f/364/
+        - title: Jenkins
+          external_url: https://ci.eclipse.org/ditto/
         - title: Mailing list archives
           external_url: https://dev.eclipse.org/mhonarc/lists/ditto-dev/
         - title: Gitter.im chat

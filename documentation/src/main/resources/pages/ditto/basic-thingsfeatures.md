@@ -13,11 +13,11 @@ Things are very generic entities and are mostly used as a “handle” for multi
 
 Examples:
 
-Physical Device: a lawn mower, a sensor, a vehicle, a lamp
-Virtual Device: a room in a house, a virtual power plant spanning multiple power plants, the weather information for a specific location collected by various sensors
-Transactional entity: a tour of a vehicle (from start until stop), a series of measurements of a machine
-Master data entity: a supplier of devices or a service provider for devices, an entity representing a city/region
-Anything else - if it can be modeled and managed appropriately by the supported concepts/capabilities
+* Physical Device: a lawn mower, a sensor, a vehicle, a lamp
+* Virtual Device: a room in a house, a virtual power plant spanning multiple power plants, the weather information for a specific location collected by various sensors
+* Transactional entity: a tour of a vehicle (from start until stop), a series of measurements of a machine
+* Master data entity: a supplier of devices or a service provider for devices, an entity representing a city/region
+* Anything else - if it can be modeled and managed appropriately by the supported concepts/capabilities
 
 ### Attributes
 
@@ -37,16 +37,16 @@ This Namespace needs to be provided additionally to every REST request as a **pr
 
 * The Namespace must conform to Java package naming:
     * must start with a lower- or uppercase character from a-z
-    * can use dots (.) to separate characters
-    * a dot (.) must be followed by a lower- or uppercase character from a-z
+    * can use dots (`.`) to separate characters
+    * a dot (`.`) must be followed by a lower- or uppercase character from a-z
     * numbers can be used
     * underscore can be used
-* The Namespace is separated by a mandatory colon (:) from the thingId
+* The Namespace is separated by a mandatory colon (`:`) from the thingId
 
 Examples for a valid Thing ID:
-* org.eclipse.ditto:fancycar-1
-* foo:fancycar-1
-* org.eclipse.ditto_42:fancycar-1
+* `org.eclipse.ditto:fancycar-1`
+* `foo:fancycar-1`
+* `org.eclipse.ditto_42:fancycar-1`
 
 ## Feature
 
@@ -54,7 +54,7 @@ A Feature is used to manage all data and functionality of a Thing that can be cl
 
 For different contexts or aspects of a Thing different Features can be used which are all belonging to the same Thing and do not exist without this Thing.
 
-The data related to Features is managed in form of a list of properties. These properties can be categorized, e.g. to manage the status, the configuration or any fault information.
+The **data** related to Features is managed in form of a **list of properties**. These properties can be categorized, e.g. to manage the status, the configuration or any fault information.
 
 Each property itself can be either a simple/scalar value or a complex object. Allowed is any JSON object.
 
@@ -70,7 +70,10 @@ Due to the fact that a Feature ID often needs to be set in the path of a HTTP re
 ```json
 {
   "thingId": "the.namespace:theId",
-  "attributes": {},
+  "attributes": {
+      "someAttr": 32,
+      "manufacturer": "ACME corp"
+  },
   "features": {
       "featureId-0-to-n": {
           "properties": {

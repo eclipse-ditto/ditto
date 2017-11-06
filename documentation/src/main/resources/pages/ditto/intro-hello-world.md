@@ -1,16 +1,16 @@
 ---
 title: Hello world
 tags: [getting_started]
-permalink: hello-world.html
+permalink: intro-hello-world.html
 ---
 
-After starting Ditto, we have an HTTP and WebSocket API for you Digital Twins at our hands.
+After [starting Ditto](installation-running.html), we have a HTTP and WebSocket API for you Digital Twins at our hands.
 
 ## Example
 
 Assume we want to create a Digital Twin for a car. The twin should hold static metadata and dynamic state data. The state data should change as often as its real world counterpart does.
 
-Those static and dynamic types of data are mapped in the Eclipse Ditto model to "attributes" (for static metadata) and "features" (for dynamic state data).
+Those static and dynamic types of data are mapped in the Ditto model to "attributes" (for static metadata) and "features" (for dynamic state data).
 A JSON representation of some metadata and state data could for example look like this:
 
 ```json
@@ -44,7 +44,7 @@ A JSON representation of some metadata and state data could for example look lik
 }
 ```
 
-Background: Eclipse Ditto only knows about "attributes" and "features".
+Background: Ditto only knows about "attributes" and "features".
 
 Inside "attributes" (the metadata) we can add as much JSON keys as we like with any JSON value we need.
 
@@ -91,7 +91,7 @@ namespace before the `:`. That way Things are easier to organize.
 
 ## Querying an existing Thing
 
-By creating the Digital Twin as a Thing with the specified JSON format, Eclipse Ditto implicitly provides an API for
+By creating the Digital Twin as a Thing with the specified JSON format, Ditto implicitly provides an API for
 our Thing.
 
 For Things we know the ID of, we can simply query them by their ID:

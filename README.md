@@ -72,7 +72,3 @@ mvn clean install -Pdocker-build-image \
     -Ddocker.daemon.url=unix:///var/run/docker.sock
 # Docker images are now available on your Docker host
 ```
-
-### Try it out
-
-Have a look at the [Getting Started](documentation/getting-started/README.md)
