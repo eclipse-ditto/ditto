@@ -1,7 +1,6 @@
 ---
 title: Create Features
-keywords: protocol, examples, create features
-tags: [protocol]
+keywords: examples, create features
 search: exclude
 permalink: protocol-examples-createfeatures.html
 ---

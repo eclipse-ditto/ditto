@@ -1,7 +1,6 @@
 ---
 title: Create Attributes
-keywords: protocol, examples, create attributes
-tags: [protocol]
+keywords: examples, create attributes
 search: exclude
 permalink: protocol-examples-createattributes.html
 ---

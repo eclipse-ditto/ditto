@@ -1,7 +1,6 @@
 ---
 title: Create a Thing
-keywords: protocol, examples, create thing
-tags: [protocol]
+keywords: examples, create thing
 search: exclude
 permalink: protocol-examples-creatething.html
 ---

@@ -1,7 +1,6 @@
 ---
 title: Retrieve Attributes
-keywords: protocol, examples, retrieve attributes
-tags: [protocol]
+keywords: examples, retrieve attributes
 search: exclude
 permalink: protocol-examples-retrieveattributes.html
 ---

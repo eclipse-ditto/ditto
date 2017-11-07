@@ -10,7 +10,7 @@ A protocol binding defines how the Ditto protocol messages are transported using
 
 Currently the following protocol bindings are supported:
 
-* WebSocket Binding
+* [WebSocket Binding](protocol-bindings-websocket.html)
 
 
 ## Content Type

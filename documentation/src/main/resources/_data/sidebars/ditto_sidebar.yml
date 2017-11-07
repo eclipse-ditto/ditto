@@ -89,7 +89,7 @@ entries:
       output: web
 
       subfolders:
-      - title: →
+      - title: Things Spec
         output: web
         subfolderitems:
         - title: General
@@ -128,7 +128,7 @@ entries:
       output: web
 
       subfolders:
-      - title: →
+      - title: Things Examples
         output: web
         subfolderitems:
         - title: Create a Thing

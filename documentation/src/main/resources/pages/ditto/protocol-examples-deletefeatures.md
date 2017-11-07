@@ -1,7 +1,6 @@
 ---
 title: Delete Features
-keywords: protocol, examples, delete features
-tags: [protocol]
+keywords: examples, delete features
 search: exclude
 permalink: protocol-examples-deletefeatures.html
 ---

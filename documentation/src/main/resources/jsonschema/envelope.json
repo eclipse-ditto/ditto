@@ -35,7 +35,7 @@
     },
     "path": {
       "type": "string",
-      "description": "A Path that references a part of a Thing which is affected by this message.\nExamples:\n * `/feature/location/properties/longitude` (a single sensor value)\n * `/` (the whole Thing)"
+      "description": "A Path that references a part of a Thing which is affected by this message.\nExamples:\n * `/features/location/properties/longitude` (a single sensor value)\n * `/` (the whole Thing)"
     },
     "fields": {
       "type": "string",

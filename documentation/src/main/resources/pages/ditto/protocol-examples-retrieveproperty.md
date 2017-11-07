@@ -1,7 +1,6 @@
 ---
 title: Retrieve Property
-keywords: protocol, examples, retrieve property
-tags: [protocol]
+keywords: examples, retrieve property
 search: exclude
 permalink: protocol-examples-retrieveproperty.html
 ---

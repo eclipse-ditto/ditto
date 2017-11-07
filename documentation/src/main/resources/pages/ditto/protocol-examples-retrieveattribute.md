@@ -1,7 +1,6 @@
 ---
 title: Retrieve a single Attribute
-keywords: protocol, examples, retrieve attribute
-tags: [protocol]
+keywords: examples, retrieve attribute
 search: exclude
 permalink: protocol-examples-retrieveattribute.html
 ---

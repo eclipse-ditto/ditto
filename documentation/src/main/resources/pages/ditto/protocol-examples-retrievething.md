@@ -1,7 +1,6 @@
 ---
 title: Retrieve a Thing
-keywords: protocol, examples, retrieve thing
-tags: [protocol]
+keywords: examples, retrieve thing
 search: exclude
 permalink: protocol-examples-retrievething.html
 ---

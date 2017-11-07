@@ -1,7 +1,6 @@
 ---
 title: Modify Features
-keywords: protocol, examples, modify features
-tags: [protocol]
+keywords: examples, modify features
 search: exclude
 permalink: protocol-examples-modifyfeatures.html
 ---

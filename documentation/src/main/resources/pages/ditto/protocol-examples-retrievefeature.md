@@ -1,7 +1,6 @@
 ---
 title: Retrieve a single Feature
-keywords: protocol, examples, retrieve feature
-tags: [protocol]
+keywords: examples, retrieve feature
 search: exclude
 permalink: protocol-examples-retrievefeature.html
 ---
