@@ -35,6 +35,7 @@ public final class Permission {
      * The set of Permissions which must be set as default on the 'thing:/' Resource for the current Subject,
      * if no policy is present.
      */
+    @SuppressWarnings({"squid:S2386"})
     public static final Permissions DEFAULT_THING_PERMISSIONS = Permissions.newInstance(READ, WRITE);
 
     private Permission() {

@@ -34,12 +34,14 @@ public final class Permission {
     /**
      * The set of Permissions which must be present on the 'policy:/' Resource for at least one Subject.
      */
+    @SuppressWarnings({"squid:S2386"})
     public static final Permissions MIN_REQUIRED_POLICY_PERMISSIONS = Permissions.newInstance(WRITE);
 
     /**
      * The set of Permissions which must be set as default on the 'policy:/' Resource for the current Subject,
      * if no policy is present.
      */
+    @SuppressWarnings({"squid:S2386"})
     public static final Permissions DEFAULT_POLICY_PERMISSIONS = Permissions.newInstance(READ, WRITE);
 
     private Permission() {

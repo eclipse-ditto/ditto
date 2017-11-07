@@ -30,7 +30,7 @@ import akka.actor.ActorSystem;
 import akka.actor.ExtendedActorSystem;
 import akka.cluster.sharding.ShardRegion;
 import scala.Tuple2;
-import scala.collection.JavaConversions;
+import scala.collection.JavaConverters;
 import scala.reflect.ClassTag;
 import scala.util.Try;
 
@@ -46,7 +46,7 @@ public final class ShardRegionExtractor implements ShardRegion.MessageExtractor 
 
     private ShardRegionExtractor(final int numberOfShards,
             final Map<String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>> mappingStrategies) {
-        this.numberOfShards = requireNonNull(numberOfShards, "number of shards");
+        this.numberOfShards = numberOfShards;
         this.mappingStrategies = new HashMap<>();
         this.mappingStrategies.putAll(requireNonNull(mappingStrategies, "mapping strategies"));
     }
@@ -66,7 +66,7 @@ public final class ShardRegionExtractor implements ShardRegion.MessageExtractor 
         final List<Tuple2<Class<?>, Object>> constructorArgs = new ArrayList<>();
         final Try<MappingStrategy> mappingStrategy =
                 ((ExtendedActorSystem) actorSystem).dynamicAccess().createInstanceFor(mappingStrategyClass,
-                        JavaConversions.asScalaBuffer(constructorArgs).toList(), tag);
+                        JavaConverters.asScalaBuffer(constructorArgs).toList(), tag);
 
         return new ShardRegionExtractor(numberOfShards, mappingStrategy.get().determineStrategy());
     }
@@ -111,10 +111,11 @@ public final class ShardRegionExtractor implements ShardRegion.MessageExtractor 
         return entity;
     }
 
+    @SuppressWarnings({"squid:S2676"})
     @Override
     public String shardId(final Object message) {
         final String entityId = entityId(message);
-        if (entityId != null) {
+        if (entityId != null && entityId.hashCode() != Integer.MIN_VALUE) {
             return Integer.toString(Math.abs(entityId.hashCode()) % numberOfShards);
         }
         return null;
