@@ -15,6 +15,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
 import org.eclipse.ditto.json.JsonFactory;
@@ -55,7 +56,7 @@ public final class SendClaimMessageTest {
             .build();
 
     private static final Message<?> DESERIALIZED_MESSAGE = Message.newBuilder(MESSAGE_HEADERS)
-            .rawPayload(ByteBuffer.wrap(KNOWN_RAW_PAYLOAD_STR.getBytes()))
+            .rawPayload(ByteBuffer.wrap(KNOWN_RAW_PAYLOAD_STR.getBytes(StandardCharsets.UTF_8)))
             .build();
 
     private static final JsonObject KNOWN_MESSAGE_AS_JSON = JsonFactory.newObjectBuilder()
