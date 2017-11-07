@@ -1,57 +1,59 @@
 ---
-title: Create
-keywords: protocol, specification, create
+title: Modify
+keywords: protocol, specification, modify
 tags: [protocol]
-permalink: protocol-specification-create.html
+permalink: protocol-specification-modify.html
 ---
 
 All `topics` contain the `<channel>` which may be either `twin` or `live`.<br/>
 For the meaning of those two channels see [Protocol Overview](protocol-overview.html).
 
-## Create a Thing
+## Modify a Thing
 
-This command creates the thing specified by the `<namespace>` and `<thingId>` in the `topic` defined by the JSON in the `value`.<br/> 
-The <a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossary.acl}}">ACL</a> of the created thing must include at least one subject authorized to READ, WRITE and ADMINISTRATE permissions.
-If no ACL is provided within the command, a default ACL with an entry for the authorized subject with all permissions set to true will be created.
+This command modifies the thing specified by the `<namespace>` and `<thingId>` in the `topic` with the JSON in the `value`.
 
 ### Command
 
 | Field     | Value                   |
 |-----------|-------------------------|
-| **topic** | `<namespace>/<thingId>/things/<channel>/commands/create`     |
+| **topic** | `<namespace>/<thingId>/things/<channel>/commands/modify`     |
 | **path**  | `/`     |
-| **value** | The complete thing as JSON<br/>see [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload) |
+| **value** | The complete thing as JSON.<br/>see [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload) |
+
+For modifying an existing thing, the authorized subject needs WRITE permission.<br/>
+If the update is targeting the <a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossary.acl}}">ACL</a>, 
+the authorized subject additionally needs ADMINISTRATE permission. 
 
 ### Response
 
 | Field      |        | Value                    |
 |------------|--------|--------------------------|
-| **topic**  |        | `<namespace>/<thingId>/things/<channel>/commands/create` |
+| **topic**  |        | `<namespace>/<thingId>/things/<channel>/commands/modify` |
 | **path**   |        | `/`                      |
-| **value**  |        | The created Thing as JSON object <br/>see [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload) |
 | **status** | _code_ |                          | 
-|            | `201`  | Success - the thing was created successfully.       |
-|            | `409`  | Conflict - a thing with the given ID already exists. |
+|            | `204`  | Success - the Thing was modified successfully.       |
+|            | `403`  | Not Modifiable - The Thing could not be modified as the requester had insufficient permissions ('WRITE' is required).  |
+|            | `404`  | Not Found - The Thing was not found or requester had insufficient permissions.  |
 |            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
 
 ### Event
 
-The event emitted by Ditto after a thing was created.
+The event emitted by Ditto after a thing was modified.
 
 | Field     | Value                   |
 |-----------|-------------------------|
-| **topic** | `<namespace>/<thingId>/things/<channel>/events/created`     |
+| **topic** | `<namespace>/<thingId>/things/<channel>/events/modified`     |
 | **path**  | `/`     |
-| **value** | The created thing as JSON<br/>see [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload) |
+| **value** | The modified Thing as JSON<br/>see [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload) |
 
 **Example:** 
-[Create a Thing](protocol-examples-creatething.html)
+[Modify a Thing](protocol-examples-modifything.html)
 
 
-## Create all Attributes of a Thing
+## Modify all Attributes of a Thing
 
-This command creates the attributes of the thing identified by the `<namespace>` and `<thingId>` in the topic.<br/>
-The attributes will be set to the JSON in the `value`.
+Create or modify the Attributes of a Thing identified by the `<namespace>` and `<thingId>` in the `topic`.
+The Attributes will be replaced by the JSON in the `value`.
 
 ### Command
 
@@ -67,30 +69,30 @@ The attributes will be set to the JSON in the `value`.
 |------------|--------|--------------------------|
 | **topic**  |        | `<namespace>/<thingId>/things/<channel>/commands/modify` |
 | **path**   |        | `/attributes`                      |
-| **value**  |        | The created attributes as JSON, see property `attributes` of Things JSON schema. <br/>see [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload) |
+| **value**  |        | The modified attributes as JSON, see property `attributes` of Things JSON schema. <br/>see [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload) |
 | **status** | _code_ |                          | 
-|            | `201`  | Success - Attributes were created successfully.       |
-|            | `403`  | Not Modifiable - Attributes could not be modified.        |
-|            | `404`  | Not Found - Attributes not found or requester had insufficient permissions.  |
+|            | `204`  | Success - Attributes were modified successfully.       |
+|            | `403`  | Not Modifiable - The Attributes could not be modified as the requester had insufficient permissions ('WRITE' is required).  |
+|            | `404`  | Not Found - The Thing or Attributes were not found or requester had insufficient permissions.  |
 |            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
 
 ### Event
 
-The event emitted by Ditto after the attributes of a thing were created.
+The event emitted by Ditto after the attributes of a thing were modified.
 
 | Field     | Value                   |
 |-----------|-------------------------|
-| **topic** | `<namespace>/<thingId>/things/<channel>/events/created`     |
+| **topic** | `<namespace>/<thingId>/things/<channel>/events/modified`     |
 | **path**  | `/attributes`     |
-| **value** | The created attributes of the thing as JSON, see property `attributes` of the Things JSON schema.<br/>see [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload) |
+| **value** | The modified attributes of the thing as JSON, see property `attributes` of the Things JSON schema.<br/>see [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload) |
 
 **Example:** 
-[Create Attributes](protocol-examples-createattributes.html)
+[Modify Attributes](protocol-examples-modifyattributes.html)
 
 
-## Create a single Attribute of a Thing
+## Modify a single Attribute of a Thing
 
-Create a specific attribute identified by the `<attributePath>` of the thing.
+Create or modify a specific attribute identified by the `<attributePath>` of the Thing.
 The attribute will be created in case it doesn't exist yet, otherwise the thing attribute is updated.
 The attribute (JSON) can be referenced hierarchically by applying [JSON Pointer notation (RFC-6901)](https://tools.ietf.org/html/rfc6901).
 
@@ -108,30 +110,29 @@ The attribute (JSON) can be referenced hierarchically by applying [JSON Pointer 
 |------------|--------|--------------------------|
 | **topic**  |        | `<namespace>/<thingId>/things/<channel>/commands/modify` |
 | **path**   |        | `/attributes/<attributePath>`                      |
-| **value**  |        | The created attribute as JSON. |
 | **status** | _code_ |                          | 
-|            | `201`  | Success - Attribute was created successfully.       |
-|            | `403`  | Not Modifiable - Attribute could not be modified.        |
-|            | `404`  | Not Found - Attribute not found or requester had insufficient permissions.  |
+|            | `204`  | Success - The Attribute was modified successfully.       |
+|            | `403`  | Not Modifiable - The Attribute could not be modified as the requester had insufficient permissions ('WRITE' is required).         |
+|            | `404`  | Not Found - The Thing or Attribute was not found or requester had insufficient permissions.   |
 |            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
 
 ### Event
 
-The event emitted by Ditto after the Attribute of a thing was created.
+The event emitted by Ditto after the Attribute of a thing was modified.
 
 | Field     | Value                   |
 |-----------|-------------------------|
-| **topic** | `<namespace>/<thingId>/things/<channel>/events/created`     |
+| **topic** | `<namespace>/<thingId>/things/<channel>/events/modified`     |
 | **path**  | `/attributes/<attributePath>`     |
-| **value** | The created Attribute of the Thing as JSON value. |
+| **value** | The modified Attribute of the Thing as JSON value. |
 
 **Example:** 
-[Create a single Attribute](protocol-examples-createattribute.html)
+[Modify a single Attribute](protocol-examples-modifyattribute.html)
 
 
-## Create all Features of a Thing
+## Modify all Features of a Thing
 
-Create the Features of a Thing identified by identified by the `<namespace>` and the `<thingId>` in the topic.<br/>
+Create or modify the Features of a Thing identified by identified by the `<namespace>` and the `<thingId>` in the topic.<br/>
 The list of Features will be replaced by the JSON in the `value`.
 
 ### Command
@@ -148,30 +149,29 @@ The list of Features will be replaced by the JSON in the `value`.
 |------------|--------|--------------------------|
 | **topic**  |        | `<namespace>/<thingId>/things/<channel>/commands/modify` |
 | **path**   |        | `/features`                      |
-| **value**  |        | The created Features as JSON, see property `features` of Things JSON schema.<br/>see [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload) |
 | **status** | _code_ |                          | 
-|            | `201`  | Success - the Features were created successfully.       |
-|            | `403`  | Not Modifiable - the Features could not be modified.         |
-|            | `404`  | Not Found - the Features were not found or requester had insufficient permissions.   |
+|            | `204`  | Success - The Features were modified successfully.       |
+|            | `403`  | Not Modifiable - The Features could not be modified as the requester had insufficient permissions ('WRITE' is required).          |
+|            | `404`  | Not Found - The Thing or Features were not found or requester had insufficient permissions.  |
 |            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
 
 ### Event
 
-The event emitted by Ditto after the Features of a Thing were created.
+The event emitted by Ditto after the Features of a Thing were modified.
 
 | Field     | Value                   |
 |-----------|-------------------------|
-| **topic** | `<namespace>/<thingId>/things/<channel>/events/created`     |
+| **topic** | `<namespace>/<thingId>/things/<channel>/events/modified`     |
 | **path**  | `/features`     |
 | **value** | All Features of the Thing as JSON, see property `features` of the Things JSON schema.<br/>see [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload) |
 
 **Example:** 
-[Create Features](protocol-examples-createfeatures.html)
+[Modify Features](protocol-examples-modifyfeatures.html)
 
 
-## Create single Feature of a Thing
+## Modify single Feature of a Thing
 
-Create a specific Feature (identified by the Feature ID in the `path`) of the Thing (identified by the `<namespace>` and the `<thingId>` in the topic).
+Create or modify a specific Feature (identified by the Feature ID in the `path`) of the Thing (identified by the `<namespace>` and the `<thingId>` in the topic).
 
 ### Command
 
@@ -187,30 +187,29 @@ Create a specific Feature (identified by the Feature ID in the `path`) of the Th
 |------------|--------|--------------------------|
 | **topic**  |        | `<namespace>/<thingId>/things/<channel>/commands/modify` |
 | **path**   |        | `/features/<featureId>`                      |
-| **value**  |        | The created Feature as JSON.<br/>see [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload) |
 | **status** | _code_ |                          | 
-|            | `201`  | Success - the Feature was created successfully.       |
-|            | `403`  | Not Modifiable - the Feature could not be modified.         |
-|            | `404`  | Not Found - the Feature was not found or requester had insufficient permissions.   |
+|            | `204`  | Success - the Feature was modified successfully.       |
+|            | `403`  | Not Modifiable - The Feature could not be modified as the requester had insufficient permissions ('WRITE' is required).  |
+|            | `404`  | Not Found - The Thing or Feature was not found or requester had insufficient permissions.   |
 |            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
 
 ### Event
 
-The event emitted by Ditto after a Feature of a Thing was created.
+The event emitted by Ditto after a Feature of a Thing was modified.
 
 | Field     | Value                   |
 |-----------|-------------------------|
-| **topic** | `<namespace>/<thingId>/things/<channel>/events/created`     |
+| **topic** | `<namespace>/<thingId>/things/<channel>/events/modified`     |
 | **path**  | `/features/<featureId>`     |
-| **value** | The created Feature of the Thing as JSON.<br/>see [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload) |
+| **value** | The modified Feature of the Thing as JSON.<br/>see [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload) |
 
 **Example:** 
-[Create a single Feature](protocol-examples-createfeature.html)
+[Modify a single Feature](protocol-examples-modifyfeature.html)
 
 
-## Create all Properties of a Feature
+## Modify all Properties of a Feature
 
-Create the Properties of a Feature (identified by the Feature ID in the `path`) of the Thing (identified by the `<namespace>` and the `<thingId>` in the `topic`).
+Create or modify the Properties of a Feature (identified by the Feature ID in the `path`) of the Thing (identified by the `<namespace>` and the `<thingId>` in the `topic`).
 
 ### Command
 
@@ -226,30 +225,29 @@ Create the Properties of a Feature (identified by the Feature ID in the `path`) 
 |------------|--------|--------------------------|
 | **topic**  |        | `<namespace>/<thingId>/things/<channel>/commands/modify` |
 | **path**   |        | `/features/<featureId>/properties`                      |
-| **value**  |        | The created Properties of the Feature as JSON, see property `properties` of Things JSON schema.<br/>see [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload) |
 | **status** | _code_ |                          | 
-|            | `201`  | Success - the Properties were created successfully.       |
-|            | `403`  | Not Modifiable - the Properties could not be modified.         |
-|            | `404`  | Not Found - the Properties were not found or requester had insufficient permissions.   |
+|            | `204`  | Success - the Properties were modified successfully.       |
+|            | `403`  | Not Modifiable - The Properties could not be modified as the requester had insufficient permissions ('WRITE' is required).  |
+|            | `404`  | Not Found - The Properties were not found or requester had insufficient permissions.  |
 |            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
 
 ### Event
 
-The event emitted by Ditto after the Feature Properties of a Thing were created.
+The event emitted by Ditto after the Feature Properties of a Thing were modified.
 
 | Field     | Value                   |
 |-----------|-------------------------|
-| **topic** | `<namespace>/<thingId>/things/<channel>/events/created`     |
+| **topic** | `<namespace>/<thingId>/things/<channel>/events/modified`     |
 | **path**  | `/features/<featureId>/properties`     |
-| **value** | The created Properties of the Feature as JSON, see property `properties` of the Things JSON schema.<br/>see [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload) |
+| **value** | The modified Properties of the Feature as JSON, see property `properties` of the Things JSON schema.<br/>see [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload) |
 
 **Example:** 
-[Create Feature Properties](protocol-examples-createproperties.html)
+[Modify Feature Properties](protocol-examples-modifyproperties.html)
 
 
-## Create a single Property of a Feature
+## Modify a single Property of a Feature
 
-Create a specific Property (identified by `<propertyPath>`) of a Feature (identified by the `<featureId>` in the `path`). 
+Create or modify a specific Property (identified by `<propertyPath>`) of a Feature (identified by the `<featureId>` in the `path`). 
 The Property will be created if it doesn't exist or else updated.
 The Property (JSON) can be referenced hierarchically by applying [JSON Pointer notation (RFC-6901)](https://tools.ietf.org/html/rfc6901).
 
@@ -267,22 +265,21 @@ The Property (JSON) can be referenced hierarchically by applying [JSON Pointer n
 |------------|--------|--------------------------|
 | **topic**  |        | `<namespace>/<thingId>/things/<channel>/commands/modify` |
 | **path**   |        | `/features/<featureId>/properties/<propertyPath>`                      |
-| **value**  |        | The created Property of the Feature as JSON. |
 | **status** | _code_ |                          | 
-|            | `201`  | Success - the Property was created successfully.       |
-|            | `403`  | Not Modifiable - the Property could not be modified.         |
-|            | `404`  | Not Found - the Property was not found or requester had insufficient permissions.   |
+|            | `204`  | Success - the Property was modified successfully.       |
+|            | `403`  | Not Modifiable - The Property could not be modified as the requester had insufficient permissions ('WRITE' is required).   |
+|            | `404`  | Not Found - The Thing or Property was not found or requester had insufficient permissions.  |
 |            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
 
 ### Event
 
-The event emitted by Ditto after a Feature Property of a Thing was created.
+The event emitted by Ditto after a Feature Property of a Thing was modified.
 
 | Field     | Value                   |
 |-----------|-------------------------|
-| **topic** | `<namespace>/<thingId>/things/<channel>/events/created`     |
+| **topic** | `<namespace>/<thingId>/things/<channel>/events/modified`     |
 | **path**  | `/features/<featureId>/properties/<propertyPath>`     |
-| **value** | The created Property of the Thing as JSON. |
+| **value** | The modified Property of the Thing as JSON. |
 
 **Example:** 
-[Create a single Feature Property](protocol-examples-createproperty.html)
+[Modify a single Feature Property](protocol-examples-modifyproperty.html)

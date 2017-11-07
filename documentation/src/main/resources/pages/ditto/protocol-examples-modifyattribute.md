@@ -1,7 +1,6 @@
 ---
 title: Modify a single Attribute
-keywords: protocol, examples, modify attribute
-tags: [protocol]
+keywords: examples, modify attribute
 search: exclude
 permalink: protocol-examples-modifyattribute.html
 ---

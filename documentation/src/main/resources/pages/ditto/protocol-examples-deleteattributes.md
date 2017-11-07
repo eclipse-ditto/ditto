@@ -1,7 +1,6 @@
 ---
 title: Delete Attributes
-keywords: protocol, examples, delete attributes
-tags: [protocol]
+keywords: examples, delete attributes
 search: exclude
 permalink: protocol-examples-deleteattributes.html
 ---

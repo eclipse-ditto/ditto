@@ -1,7 +1,6 @@
 ---
 title: Delete a Thing
-keywords: protocol, examples, delete thing
-tags: [protocol]
+keywords: examples, delete thing
 search: exclude
 permalink: protocol-examples-deletething.html
 ---

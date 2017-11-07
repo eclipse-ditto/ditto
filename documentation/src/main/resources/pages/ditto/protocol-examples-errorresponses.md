@@ -1,7 +1,6 @@
 ---
 title: Error Responses
-keywords: protocol, examples, create attribute
-tags: [protocol]
+keywords: examples, create attribute
 search: exclude
 permalink: protocol-examples-errorresponses.html
 ---

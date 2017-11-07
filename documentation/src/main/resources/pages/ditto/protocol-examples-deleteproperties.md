@@ -1,7 +1,6 @@
 ---
 title: Delete Properties
-keywords: protocol, examples, delete properties
-tags: [protocol]
+keywords: examples, delete properties
 search: exclude
 permalink: protocol-examples-deleteproperties.html
 ---

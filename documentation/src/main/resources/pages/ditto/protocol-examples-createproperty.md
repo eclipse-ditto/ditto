@@ -1,7 +1,6 @@
 ---
 title: Create a single Property
-keywords: protocol, examples, create property
-tags: [protocol]
+keywords: examples, create property
 search: exclude
 permalink: protocol-examples-createproperty.html
 ---

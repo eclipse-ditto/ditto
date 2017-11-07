@@ -1,7 +1,6 @@
 ---
 title: Modify a single Property
-keywords: protocol, examples, modify property
-tags: [protocol]
+keywords: examples, modify property
 search: exclude
 permalink: protocol-examples-modifyproperty.html
 ---

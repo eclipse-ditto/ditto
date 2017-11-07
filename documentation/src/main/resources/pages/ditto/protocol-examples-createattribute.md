@@ -1,7 +1,6 @@
 ---
 title: Create a single Attribute
-keywords: protocol, examples, create attribute
-tags: [protocol]
+keywords: examples, create attribute
 search: exclude
 permalink: protocol-examples-createattribute.html
 ---

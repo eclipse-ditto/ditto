@@ -1,7 +1,6 @@
 ---
 title: Modify a Thing
-keywords: protocol, examples, modify thing
-tags: [protocol]
+keywords: examples, modify thing
 search: exclude
 permalink: protocol-examples-modifything.html
 ---

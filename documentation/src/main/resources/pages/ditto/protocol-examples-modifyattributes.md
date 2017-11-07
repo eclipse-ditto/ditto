@@ -1,7 +1,6 @@
 ---
 title: Modify Attributes
-keywords: protocol, examples, modify attributes
-tags: [protocol]
+keywords: examples, modify attributes
 search: exclude
 permalink: protocol-examples-modifyattributes.html
 ---
