@@ -415,7 +415,7 @@ public final class DittoProtocolAdapter {
         } else if (thingCommandResponse instanceof ThingModifyCommandResponse) {
             return toAdaptable((ThingModifyCommandResponse) thingCommandResponse, channel);
         } else if (thingCommandResponse instanceof ThingErrorResponse) {
-            return toAdaptable((ThingErrorResponse) thingCommandResponse);
+            return toAdaptable((ThingErrorResponse) thingCommandResponse, channel);
         } else {
             throw UnknownCommandResponseException.newBuilder(thingCommandResponse.getName()).build();
         }
@@ -564,9 +564,10 @@ public final class DittoProtocolAdapter {
      * Maps the given {@code thingErrorResponse} to an {@code Adaptable}.
      *
      * @param thingErrorResponse the error response.
+     * @param channel the Channel (Twin/Live) to use.
      * @return the adaptable.
      */
-    public Adaptable toAdaptable(final ThingErrorResponse thingErrorResponse) {
+    public Adaptable toAdaptable(final ThingErrorResponse thingErrorResponse, final TopicPath.Channel channel) {
         final Payload payload = Payload.newBuilder(thingErrorResponse.getResourcePath()) //
                 .withStatus(thingErrorResponse.getStatusCode()) //
                 .withValue(thingErrorResponse.toJson(thingErrorResponse.getImplementedSchemaVersion()) //
@@ -576,15 +577,12 @@ public final class DittoProtocolAdapter {
 
         final TopicPathBuilder topicPathBuilder = DittoProtocolAdapter.newTopicPathBuilder(thingErrorResponse.getId());
         final TopicPathBuildable topicPathBuildable;
-        if (thingErrorResponse.getDittoHeaders().getChannel().flatMap(TopicPath.Channel::forName)
-                .orElse(null) == TopicPath.Channel.TWIN) {
+        if (channel == TopicPath.Channel.TWIN) {
             topicPathBuildable = topicPathBuilder.twin().errors();
-        } else if (thingErrorResponse.getDittoHeaders().getChannel().flatMap(TopicPath.Channel::forName)
-                .orElse(null) == TopicPath.Channel.LIVE) {
+        } else if (channel == TopicPath.Channel.LIVE) {
             topicPathBuildable = topicPathBuilder.live().errors();
         } else {
-            throw new IllegalArgumentException("Unknown Channel '" + thingErrorResponse.getDittoHeaders().getChannel()
-                    + "'");
+            throw new IllegalArgumentException("Unknown Channel '" + channel + "'");
         }
 
         return Adaptable.newBuilder(topicPathBuildable.build())

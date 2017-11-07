@@ -60,7 +60,7 @@ public final class PublicCommandAndEventJsonExamplesProducer extends CommandAndE
     private PublicCommandAndEventJsonExamplesProducer(final String markdownType) {
         if (markdownType.equals("markdown")) {
             h2Begin = "## ";
-            h2End = "";
+            h2End = "\n";
             codeJsonBegin = "```json";
             codeEnd = "```";
             newLine = "\n";
@@ -114,6 +114,8 @@ public final class PublicCommandAndEventJsonExamplesProducer extends CommandAndE
         try {
             return Optional.ofNullable((Adaptable) toAdaptable.invoke(PROTOCOL_ADAPTER, jsonifiable));
         } catch (IllegalAccessException | InvocationTargetException e) {
+            System.err.println("error in invokeToAdaptable: " + e.getCause().getClass().getSimpleName() + ": " +
+                    e.getCause().getMessage());
             return Optional.empty();
         }
     }

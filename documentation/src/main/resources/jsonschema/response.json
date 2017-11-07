@@ -1,0 +1,38 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
+  "description": "The Thing Protocol Response is sent in response to a command.",
+  "title": "Thing Protocol Response",
+  "properties": {
+    "headers": {
+      "type": "object",
+      "description": "Additional headers.",
+      "properties": {
+        "correlation-id": {
+          "type": "string",
+          "description": "The correlation-id header is used for linking one message with another. It typically links a reply message with its requesting message."
+        },
+        "version": {
+          "type": "integer",
+          "description": "Determines the version of the *Things* payload.",
+          "minimum": 1,
+          "maximum": 2
+        }
+      },
+      "required": [ "correlation-id" ]
+    },
+    "path": {
+      "type": "string",
+      "description": "A Path that references a part of a Thing which is affected by this message.\nExamples:\n * `/feature/location/properties/longitude` (a single sensor value)\n * `/` (the whole Thing)"
+    },
+    "value": {
+      "type": "object",
+      "description": "The _value_ field contains the actual payload e.g. a sensor value. The content must follow the *Things Model Schema*."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The status code that indicate the result of the command. The semantics of the used status codes are based on the [HTTP status codes](https://tools.ietf.org/html/rfc7231#section-6)."
+    }
+  },
+  "required": [ "headers", "path", "status" ]
+}
