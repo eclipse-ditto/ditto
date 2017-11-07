@@ -39,12 +39,12 @@ public final class RqlOptionsParserTest {
                 .map(SortOptionEntry::getPropertyPath)
                 .map(JsonPointer::toString)
                 .anyMatch("/username"::equals)
-        );
+        ).isTrue();
         assertThat(sortOption.getEntries().stream()
                 .filter(soe -> JsonPointer.of("/username").equals(soe.getPropertyPath()))
                 .map(SortOptionEntry::getOrder)
                 .anyMatch(SortOptionEntry.SortOrder.ASC::equals)
-        );
+        ).isTrue();
     }
 
     @Test
@@ -56,12 +56,12 @@ public final class RqlOptionsParserTest {
                 .map(SortOptionEntry::getPropertyPath)
                 .map(JsonPointer::toString)
                 .anyMatch("/attributes/username"::equals)
-        );
+        ).isTrue();
         assertThat(sortOption.getEntries().stream()
                 .filter(soe -> JsonPointer.of("/attributes/username").equals(soe.getPropertyPath()))
                 .map(SortOptionEntry::getOrder)
                 .anyMatch(SortOptionEntry.SortOrder.DESC::equals)
-        );
+        ).isTrue();
     }
 
     @Test
@@ -90,7 +90,7 @@ public final class RqlOptionsParserTest {
                     .map(SortOptionEntry::getOrder)
                     .anyMatch(so -> idx % 2 == 0 ? SortOptionEntry.SortOrder.ASC.equals(so) :
                             SortOptionEntry.SortOrder.DESC.equals(so))
-            );
+            ).isTrue();
         }
     }
 
@@ -137,12 +137,12 @@ public final class RqlOptionsParserTest {
                 .map(SortOptionEntry::getPropertyPath)
                 .map(JsonPointer::toString)
                 .anyMatch("/attributes/username"::equals)
-        );
+        ).isTrue();
         assertThat(sortOption.getEntries().stream()
                 .filter(soe -> JsonPointer.of("/attributes/username").equals(soe.getPropertyPath()))
                 .map(SortOptionEntry::getOrder)
                 .anyMatch(SortOptionEntry.SortOrder.DESC::equals)
-        );
+        ).isTrue();
     }
 
     @Test(expected = ParserException.class)
