@@ -57,6 +57,8 @@ public abstract class AbstractThingPolicyEnforcerActor extends AbstractPolicyEnf
     private static final String THING_POLICY_DELETED_DESCRIPTION =
             "Recreate/create the Policy with ID ''{0}'' in order to get access to the Thing again.";
 
+    private static final String SERVICE_NAME_THINGS = "Things";
+
     private final ActorRef thingsShardRegion;
 
     protected AbstractThingPolicyEnforcerActor(final ActorRef pubSubMediator, final ActorRef policiesShardRegion,
@@ -93,14 +95,12 @@ public abstract class AbstractThingPolicyEnforcerActor extends AbstractPolicyEnf
                 .match(ThingModifyCommand.class, this::isThingModifyCommandAuthorized, this::forwardThingModifyCommand)
                 .match(ThingModifyCommand.class, this::unauthorized)
                 .match(ThingQueryCommand.class, this::isAuthorized, this::forwardThingQueryCommand)
-                .match(ThingQueryCommand.class, this::unauthorized)
-
-                ;
+                .match(ThingQueryCommand.class, this::unauthorized);
     }
 
     private void forwardThingSudoCommand(final SudoCommand command) {
         LogUtil.enhanceLogWithCorrelationId(getLogger(), command);
-        logForwardingOfReceivedSignal(command, "Things");
+        logForwardingOfReceivedSignal(command, SERVICE_NAME_THINGS);
         incrementAccessCounter();
         thingsShardRegion.forward(command, getContext());
     }
@@ -109,7 +109,7 @@ public abstract class AbstractThingPolicyEnforcerActor extends AbstractPolicyEnf
         LogUtil.enhanceLogWithCorrelationId(getLogger(), command);
         final ThingCommand commandWithReadSubjects =
                 enrichDittoHeaders(command, command.getResourcePath(), command.getResourceType());
-        logForwardingOfReceivedSignal(commandWithReadSubjects, "Things");
+        logForwardingOfReceivedSignal(commandWithReadSubjects, SERVICE_NAME_THINGS);
         incrementAccessCounter();
         thingsShardRegion.forward(commandWithReadSubjects, getContext());
 
@@ -122,7 +122,7 @@ public abstract class AbstractThingPolicyEnforcerActor extends AbstractPolicyEnf
         LogUtil.enhanceLogWithCorrelationId(getLogger(), command);
         final ThingQueryCommand commandWithReadSubjects =
                 enrichDittoHeaders(command, command.getResourcePath(), command.getResourceType());
-        logForwardingOfReceivedSignal(commandWithReadSubjects, "Things");
+        logForwardingOfReceivedSignal(commandWithReadSubjects, SERVICE_NAME_THINGS);
         incrementAccessCounter();
         thingsShardRegion.tell(commandWithReadSubjects, getSelf());
 
