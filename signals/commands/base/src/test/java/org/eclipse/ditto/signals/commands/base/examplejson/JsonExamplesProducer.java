@@ -31,7 +31,6 @@ import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationF
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationProviderUnavailableException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayBadGatewayException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
-import org.eclipse.ditto.signals.commands.base.exceptions.GatewayKeyProviderUnavailableException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayMethodNotAllowedException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayServiceTimeoutException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayServiceTooManyRequestsException;
@@ -82,11 +81,6 @@ public class JsonExamplesProducer {
                 GatewayInternalErrorException.newBuilder().build();
         writeJson(exceptionsDir.resolve(Paths.get("gatewayInternalErrorException.json")),
                 gatewayInternalErrorException);
-
-        final GatewayKeyProviderUnavailableException gatewayKeyProviderUnavailableException =
-                GatewayKeyProviderUnavailableException.newBuilder().build();
-        writeJson(exceptionsDir.resolve(Paths.get("gatewayKeyProviderUnavailableException.json")),
-                gatewayKeyProviderUnavailableException);
 
         final GatewayMethodNotAllowedException gatewayMethodNotAllowedException =
                 GatewayMethodNotAllowedException.newBuilder("POST").build();

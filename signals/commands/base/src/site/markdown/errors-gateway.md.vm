@@ -32,13 +32,6 @@ $h3 Internal Error
 #parse( "snippet" )
 ```
 
-$h3 Key Prodider Unavailable
-
-#set( $snippetFile = "/target/generated-resources/gateway/errors/gatewayKeyProviderUnavailableException.json" )
-```
-#parse( "snippet" )
-```
-
 $h3 Method Not Allowed
 
 #set( $snippetFile = "/target/generated-resources/gateway/errors/gatewayMethodNotAllowedException.json" )

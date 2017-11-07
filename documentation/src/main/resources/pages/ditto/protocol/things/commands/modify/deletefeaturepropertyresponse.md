@@ -1,0 +1,12 @@
+## DeleteFeaturePropertyResponse
+
+```json
+{
+  "topic": "com.acme/xdk_53/things/twin/commands/delete",
+  "headers": {
+    
+  },
+  "path": "/features/accelerometer/properties/x",
+  "status": 204
+}
+```

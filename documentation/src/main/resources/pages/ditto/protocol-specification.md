@@ -24,30 +24,31 @@ Please refer to the respective communication protocol binding for information ho
 See section [Protocol bindings](protocol-bindings.html).
 
 
-## Ditto protocol envelope
+## Ditto protocol envelope {#dittoProtocolEnvelope}
 
 The Ditto protocol envelope describes the content of the message (the affected thing entity, a message type, protocol version etc.) and allows the message to be routed by intermediary nodes to its final destination without parsing the actual payload.
 
 The protocol envelope is formatted as JSON (`content-type=application/json`) and must correspond to the following JSON schema:
 
-TODO include JSON structure
+{% include docson.html schema="jsonschema/envelope.json" %}
 
 
-## Ditto protocol payload (JSON)
+## Ditto protocol payload (JSON) {#dittoProtocolPayload}
 
 The Ditto model payload contains the application data e.g. an updated sensor value.
 
-TODO include JSON structure
+{% include docson.html schema="jsonschema/things.json" %}
 
 
-## Ditto protocol response
+## Ditto protocol response {#dittoProtocolResponse}
 
 When sending a **command**, a **response** can be requested.
 A response, can either indicate the success or the failure of the command. 
 The Ditto response for a successful command has the following format:
 
-TODO include JSON structure
+{% include docson.html schema="jsonschema/response.json" %}
+
 
 In case the execution failed an error response with information about the error is sent:
 
-TODO include JSON structure
+{% include docson.html schema="jsonschema/error_response.json" %}

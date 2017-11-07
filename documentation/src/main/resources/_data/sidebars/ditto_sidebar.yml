@@ -89,7 +89,7 @@ entries:
       output: web
 
       subfolders:
-      - title: In detail
+      - title: →
         output: web
         subfolderitems:
         - title: General
@@ -116,7 +116,7 @@ entries:
       output: web
 
       subfolders:
-      - title: The bindings
+      - title: →
         output: web
         subfolderitems:
         - title: Websocket
@@ -126,6 +126,101 @@ entries:
     - title: Examples
       url: /protocol-examples.html
       output: web
+
+      subfolders:
+      - title: →
+        output: web
+        subfolderitems:
+        - title: Create a Thing
+          url: /protocol-examples-creatething.html
+          output: web
+        - title: Delete a Thing
+          url: /protocol-examples-deletething.html
+          output: web
+        - title: Modify a Thing
+          url: /protocol-examples-modifything.html
+          output: web
+        - title: Retrieve a Thing
+          url: /protocol-examples-retrievething.html
+          output: web
+        - title: Retrieve multiple Things
+          url: /protocol-examples-retrievethings.html
+          output: web
+        - title: Create Attributes
+          url: /protocol-examples-createattributes.html
+          output: web
+        - title: Delete Attributes
+          url: /protocol-examples-deleteattributes.html
+          output: web
+        - title: Modify Attributes
+          url: /protocol-examples-modifyattributes.html
+          output: web
+        - title: Retrieve Attributes
+          url: /protocol-examples-retrieveattributes.html
+          output: web
+        - title: Create a single Attribute
+          url: /protocol-examples-createattribute.html
+          output: web
+        - title: Delete a single Attribute
+          url: /protocol-examples-deleteattribute.html
+          output: web
+        - title: Modify a single Attribute
+          url: /protocol-examples-modifyattribute.html
+          output: web
+        - title: Retrieve a single Attribute
+          url: /protocol-examples-retrieveattribute.html
+          output: web
+        - title: Create Features
+          url: /protocol-examples-createfeatures.html
+          output: web
+        - title: Delete Features
+          url: /protocol-examples-deletefeatures.html
+          output: web
+        - title: Modify Features
+          url: /protocol-examples-modifyfeatures.html
+          output: web
+        - title: Retrieve Features
+          url: /protocol-examples-retrievefeatures.html
+          output: web
+        - title: Create a single Feature
+          url: /protocol-examples-createfeature.html
+          output: web
+        - title: Delete a single Feature
+          url: /protocol-examples-deletefeature.html
+          output: web
+        - title: Modify a single Feature
+          url: /protocol-examples-modifyfeature.html
+          output: web
+        - title: Retrieve a single Feature
+          url: /protocol-examples-retrievefeature.html
+          output: web
+        - title: Create Properties
+          url: /protocol-examples-createproperties.html
+          output: web
+        - title: Delete Properties
+          url: /protocol-examples-deleteproperties.html
+          output: web
+        - title: Modify Properties
+          url: /protocol-examples-modifyproperties.html
+          output: web
+        - title: Retrieve Properties
+          url: /protocol-examples-retrieveproperties.html
+          output: web
+        - title: Create a single Property
+          url: /protocol-examples-createproperty.html
+          output: web
+        - title: Delete a single Property
+          url: /protocol-examples-deleteproperty.html
+          output: web
+        - title: Modify a single Property
+          url: /protocol-examples-modifyproperty.html
+          output: web
+        - title: Retrieve a single Property
+          url: /protocol-examples-retrieveproperty.html
+          output: web
+        - title: Error Responses
+          url: /protocol-examples-errorresponses.html
+          output: web
 
   - title: Glossary
     url: /glossary.html
