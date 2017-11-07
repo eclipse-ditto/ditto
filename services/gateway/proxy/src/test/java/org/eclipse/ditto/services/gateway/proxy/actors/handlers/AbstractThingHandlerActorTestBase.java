@@ -20,7 +20,6 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.Subject;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
-import org.eclipse.ditto.model.policies.SubjectType;
 import org.eclipse.ditto.services.utils.cluster.ShardedMessageEnvelope;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.junit.After;
@@ -38,18 +37,19 @@ import akka.testkit.javadsl.TestKit;
 /**
  * Base class of tests of handler actors of thing commands.
  */
-public class AbstractThingHandlerActorTestBase {
+public abstract class AbstractThingHandlerActorTestBase {
 
-    protected static final Subject defaultSubject =
+    protected static final Subject DEFAULT_SUBJECT =
             Subject.newInstance(SubjectIssuer.GOOGLE_URL, "testSubject");
 
-    protected static final DittoHeaders defaultHeaders = DittoHeaders.newBuilder()
-            .authorizationSubjects(defaultSubject.getId().toString())
+    protected static final DittoHeaders DEFAULT_HEADERS = DittoHeaders.newBuilder()
+            .authorizationSubjects(DEFAULT_SUBJECT.getId())
             .readSubjects(
-                    Collections.singleton(defaultSubject.getId().toString())
+                    Collections.singleton(DEFAULT_SUBJECT.getId().toString())
             )
             .build();
-    protected static final String defaultEnforcerId = "default:enforcerShardId";
+
+    protected static final String DEFAULT_ENFORCER_ID = "default:enforcerShardId";
 
     protected static final Config CONFIG = ConfigFactory.load("test");
 

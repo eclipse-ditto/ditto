@@ -345,7 +345,7 @@ public final class CreateThingHandlerActor extends AbstractActor {
         final Subject subject = authorizationContext.getFirstAuthorizationSubject()
                 .map(AuthorizationSubject::getId)
                 .map(SubjectId::newInstance)
-                .map(subjectId -> Subject.newInstance(subjectId, extractSubjectType(subjectId)))
+                .map(Subject::newInstance)
                 .orElse(null);
 
         if (subject == null) {
@@ -369,17 +369,6 @@ public final class CreateThingHandlerActor extends AbstractActor {
                 ThingIdInvalidException.newBuilder("").message("Thing ID must be present in 'Thing' payload")
                         .dittoHeaders(headers)
                         .build());
-    }
-
-    private static SubjectType extractSubjectType(final SubjectId subjectId) {
-        if (SubjectIssuer.GOOGLE_URL.toString().equals(subjectId.getIssuer().toString())) {
-            return SubjectType.JWT;
-        } else if (SubjectIssuer.GOOGLE_URL.toString().equals(subjectId.getIssuer().toString())) {
-            return SubjectType.JWT;
-        } else {
-            //default case when no prefix is available
-            return SubjectType.JWT;
-        }
     }
 
     private static boolean isAclPresent(final CreateThing command) {

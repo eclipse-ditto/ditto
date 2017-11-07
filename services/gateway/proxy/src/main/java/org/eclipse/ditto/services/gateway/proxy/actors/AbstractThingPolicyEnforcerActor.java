@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.services.gateway.proxy.actors;
 
+import static org.eclipse.ditto.services.gateway.starter.service.util.FireAndForgetMessageUtil.getResponseForFireAndForgetMessage;
 import static org.eclipse.ditto.services.models.policies.Permission.READ;
 import static org.eclipse.ditto.services.models.policies.Permission.WRITE;
 
@@ -74,12 +75,12 @@ public abstract class AbstractThingPolicyEnforcerActor extends AbstractPolicyEnf
                 .match(SudoCommand.class, this::forwardThingSudoCommand)
 
                 /* MessageCommands */
-                .match(SendClaimMessage.class, this::publishCommand)
+                .match(SendClaimMessage.class, this::publishMessageCommand)
                 .match(MessageCommand.class, this::isEnforcerNull, command -> {
                     doStash();
                     synchronizePolicy();
                 })
-                .match(MessageCommand.class, this::isAuthorized, this::publishCommand)
+                .match(MessageCommand.class, this::isAuthorized, this::publishMessageCommand)
                 .match(MessageCommand.class, this::unauthorized)
 
                 /* Live Signals */
@@ -96,6 +97,14 @@ public abstract class AbstractThingPolicyEnforcerActor extends AbstractPolicyEnf
                 .match(ThingModifyCommand.class, this::unauthorized)
                 .match(ThingQueryCommand.class, this::isAuthorized, this::forwardThingQueryCommand)
                 .match(ThingQueryCommand.class, this::unauthorized);
+    }
+
+    private void publishMessageCommand(final MessageCommand<?, ?> messageCommand) {
+        publishCommand(messageCommand);
+
+        // answer the sender immediately for fire-and-forget message commands.
+        getResponseForFireAndForgetMessage(messageCommand)
+                .ifPresent(response -> getSender().tell(response, getSelf()));
     }
 
     private void forwardThingSudoCommand(final SudoCommand command) {
