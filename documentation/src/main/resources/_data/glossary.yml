@@ -19,3 +19,9 @@ feature: "A Feature clusters a set of coherent Properties and has an optional Fe
 policy: "A Policy enables developers to configure fine-grained access control in an easy way.
          A specific policy defines who (subject) is granted or revoked permissions (rights) on a specific resource.
          The resource can be defined as rough or as fine-grained as necessary for the respective use case. "
+
+iot: "Internet of Things"
+
+iiot: "Industrial Internet of Things - also known as 'Industry 4.0'"
+
+jwt: "JSON Web Token (JWT)"

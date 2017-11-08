@@ -6,6 +6,12 @@ permalink: glossary.html
 toc: false
 ---
 
+IoT
+: {{site.data.glossary.iot}}
+
+IIoT
+: {{site.data.glossary.iiot}}
+
 Asset
 : {{site.data.glossary.asset}}
 

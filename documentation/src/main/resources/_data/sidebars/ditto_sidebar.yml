@@ -15,6 +15,10 @@ entries:
       output: web
       type: homepage
 
+    - title: Digital Twins
+      url: /intro-digitaltwins.html
+      output: web
+
     - title: Hello world
       url: /intro-hello-world.html
       output: web
@@ -43,6 +47,10 @@ entries:
     output: web
 
     folderitems:
+    - title: Overview
+      url: /basic-overview.html
+      output: web
+
     - title: Things and Features
       url: /basic-thingsfeatures.html
       output: web
@@ -75,11 +83,18 @@ entries:
       url: /basic-whichapi.html
       output: web
 
+  - title: HTTP API
+    output: web
+
+    folderitems:
+    - title: Overview
+      url: /httpapi-overview.html
+      output: web
+
   - title: Ditto Protocol
     output: web
 
     folderitems:
-
     - title: Overview
       url: /protocol-overview.html
       output: web
@@ -115,13 +130,9 @@ entries:
       url: /protocol-bindings.html
       output: web
 
-      subfolders:
-      - title: →
-        output: web
-        subfolderitems:
-        - title: Websocket
-          url: /protocol-bindings-websocket.html
-          output: web
+    - title: Websocket Binding
+      url: /protocol-bindings-websocket.html
+      output: web
 
     - title: Examples
       url: /protocol-examples.html
@@ -226,6 +237,6 @@ entries:
     url: /glossary.html
     output: web
 
-  - title: Support
-    url: /support.html
+  - title: Feedback
+    url: /feedback.html
     output: web
