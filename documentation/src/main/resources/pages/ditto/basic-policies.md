@@ -8,7 +8,7 @@ permalink: basic-policies.html
 A Policy enables developers to configure fine-grained access control for Things and other entities in an easy way.
 
 {% include note.html content="The policy concept is only supported for Ditto **HTTP API version 2**. <br/>
-Find the API reference at [Policies resources TODO link](foobar)." %}
+Find the API reference at [Policies resources](http-api-doc.html?urls.primaryName=api2#/Policies)." %}
 
 
 ## Authorization concept

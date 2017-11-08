@@ -6,7 +6,7 @@
   "properties": {
     "thingId": {
       "type": "string",
-      "description": "Unique identifier representing the Thing - has to:\n * contain the mandatory namespace prefix (java package notation + `:` colon) - periods (`.`) may be used in namespace but not as first or last character\n * conform to [RFC-2396 (URI)](https://www.ietf.org/rfc/rfc2396.txt).\n\nExamples for a valid Thing ID:\n * `com.bosch.si:xdk_53`\n * `foo:xdk_53`\n * `org.eclipse.vorto_42:xdk_thing`"
+      "description": "Unique identifier representing the Thing - has to:\n * contain the mandatory namespace prefix (java package notation + `:` colon) - periods (`.`) may be used in namespace but not as first or last character\n * conform to [RFC-2396 (URI)](https://www.ietf.org/rfc/rfc2396.txt).\n\nExamples for a valid Thing ID:\n * `org.eclipse.ditto:xdk_53`\n * `foo:xdk_53`\n * `org.eclipse.vorto_42:xdk_thing`"
     },
     "acl": {
       "title": "ACL",

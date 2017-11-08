@@ -17,6 +17,10 @@
 #swagger-ui .swagger-ui.swagger-container .topbar .topbar-wrapper a {
     display: none;
 }
+#swagger-ui .swagger-ui.swagger-container .topbar .topbar-wrapper select {
+    background-color: #ffffff;
+    border-color: black;
+}
 
 #swagger-ui .swagger-ui.swagger-container .scheme-container {
     display: none;
@@ -29,7 +33,11 @@
     padding: 0;
     margin: 0;
 }
+#swagger-ui .information-container .info a {
+    display: none;
+}
 
 #swagger-ui .swagger-ui .info .base-url {
+    display: none;
     padding: 10px;
 }
