@@ -1,5 +1,10 @@
 body {
     font-size:15px;
+    font-family: Open Sans, sans-serif;
+}
+
+h1,h2 {
+    font-weight: bold;
 }
 
 .bs-callout {
@@ -422,7 +427,7 @@ ul#mysidebar {
 }
 
 span.projectTitle {
-    font-family: Helvetica, sans-serif;
+    font-family: Open Sans, sans-serif;
     font-weight: bold;
 }
 
@@ -1074,7 +1079,7 @@ table thead th code.highlighter-rouge {
     width: 100px;
     height: 80px;
     background-color: #f5f5f5;
-    font-family: Arial;
+    font-family: Open Sans, sans-serif;
     font-size: 12px;
     hyphens: auto;
     float: left;
@@ -1099,7 +1104,7 @@ table thead th code.highlighter-rouge {
 }
 
 h2.userMapTitle {
-    font-family: Arial;
+    font-family: Open Sans, sans-serif;
 }
 
 #userMap a:hover {

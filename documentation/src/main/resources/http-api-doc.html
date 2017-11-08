@@ -14,10 +14,10 @@ sidebar: false
         // Build a system
         const ui = SwaggerUIBundle({
            urls: [
-               {url: "/openapi/ditto-api-1.yml", name:"API 1"},
-               {url: "/openapi/ditto-api-2.yml", name:"API 2"}
+               {url: "/openapi/ditto-api-1.yml", name:"api1"},
+               {url: "/openapi/ditto-api-2.yml", name:"api2"}
            ],
-           "urls.primaryName": "API 2",
+           "urls.primaryName": "api1",
            validatorUrl: null,
            docExpansion: "none",
            dom_id: '#swagger-ui',
@@ -27,7 +27,6 @@ sidebar: false
                SwaggerUIStandalonePreset
            ],
            plugins: [
-               SwaggerUIBundle.plugins.DownloadUrl
            ],
            layout: "StandaloneLayout"
        })
