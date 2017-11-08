@@ -114,7 +114,7 @@ margin-top: -40px
     color: gray;
 }
 
-table {
+table:not(.parameters):not(.responses-table):not(.headers):not(.model) {
     background-color: transparent;
 }
 caption {
@@ -126,24 +126,24 @@ caption {
 th {
     text-align: left;
 }
-table {
+table:not(.parameters):not(.responses-table):not(.headers):not(.model) {
     max-width: 90%;
     margin-bottom: 20px;
     border: 1px solid #dedede;
 }
 
-table > thead > tr > th,
-table > tbody > tr > th,
-table > tfoot > tr > th,
-table > thead > tr > td,
-table > tbody > tr > td,
-table > tfoot > tr > td {
+table:not(.parameters):not(.responses-table):not(.headers):not(.model) > thead > tr > th,
+table:not(.parameters):not(.responses-table):not(.headers):not(.model) > tbody > tr > th,
+table:not(.parameters):not(.responses-table):not(.headers):not(.model) > tfoot > tr > th,
+table:not(.parameters):not(.responses-table):not(.headers):not(.model) > thead > tr > td,
+table:not(.parameters):not(.responses-table):not(.headers):not(.model) > tbody > tr > td,
+table:not(.parameters):not(.responses-table):not(.headers):not(.model) > tfoot > tr > td {
     padding: 8px;
     line-height: 1.42857143;
     vertical-align: top;
     border-top: 1px solid #ddd;
 }
-table > thead > tr > th {
+table:not(.parameters):not(.responses-table):not(.headers):not(.model) > thead > tr > th {
     vertical-align: bottom;
     border-bottom: 2px solid #ddd;
     text-transform: none;
@@ -151,16 +151,16 @@ table > thead > tr > th {
     color: white;
     text-align: left;
 }
-table > caption + thead > tr:first-child > th,
-table > colgroup + thead > tr:first-child > th,
-table > thead:first-child > tr:first-child > th,
-table > caption + thead > tr:first-child > td,
-table > colgroup + thead > tr:first-child > td,
-table > thead:first-child > tr:first-child > td {
+table:not(.parameters):not(.responses-table):not(.headers):not(.model) > caption + thead > tr:first-child > th,
+table:not(.parameters):not(.responses-table):not(.headers):not(.model) > colgroup + thead > tr:first-child > th,
+table:not(.parameters):not(.responses-table):not(.headers):not(.model) > thead:first-child > tr:first-child > th,
+table:not(.parameters):not(.responses-table):not(.headers):not(.model) > caption + thead > tr:first-child > td,
+table:not(.parameters):not(.responses-table):not(.headers):not(.model) > colgroup + thead > tr:first-child > td,
+table:not(.parameters):not(.responses-table):not(.headers):not(.model) > thead:first-child > tr:first-child > td {
     border-top: 0;
 }
 
-table > tbody > tr:nth-of-type(odd) {
+table:not(.parameters):not(.responses-table):not(.headers):not(.model) > tbody > tr:nth-of-type(odd) {
     background-color: #f9f9f9;
 }
 
@@ -176,7 +176,7 @@ table th[class*="col-"] {
     float: none;
 }
 
-table tr td {
+table:not(.parameters):not(.responses-table):not(.headers):not(.model) tr td {
     hyphens: auto;
 }
 

@@ -8,6 +8,8 @@ topnav:
       url: /blog.html
     - title: Documentation
       url: /intro-overview.html
+    - title: HTTP API Doc
+      url: /http-api-doc.html
 
 #Topnav dropdowns
 topnav_dropdowns:
