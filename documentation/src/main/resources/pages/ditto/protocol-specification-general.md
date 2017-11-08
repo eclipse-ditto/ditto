@@ -16,10 +16,7 @@ Therefore, each message has a `correlation-id` header which can be used to assoc
 * [3] In addition an **event** message is triggered.<br/>
   The event describes that the change was applied to the **thing**.<br/>
   Interested parties can subscribe for such **events** and follow the evolving **thing**.
-  
-A schematic view for the communication flow:
 
-TODO image
 
 ## Ditto protocol topic structure
 

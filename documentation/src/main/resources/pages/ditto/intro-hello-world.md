@@ -4,7 +4,7 @@ tags: [getting_started]
 permalink: intro-hello-world.html
 ---
 
-After [starting Ditto](installation-running.html), we have a HTTP and WebSocket API for you Digital Twins at our hands.
+After [starting Ditto](installation-running.html), we have a HTTP and WebSocket API for your [Digital Twins](intro-digitaltwin.html) at our hands.
 
 ## Example
 

@@ -1,10 +1,33 @@
 body {
     font-size:15px;
     font-family: Open Sans, sans-serif;
+    padding-top: 50px; /* Required padding for .navbar-fixed-top. Remove if using .navbar-static-top. Change if height of navigation changes. */
 }
 
 h1,h2 {
     font-weight: bold;
+}
+
+.ditto-header {
+    height: 350px;
+    background: url('http://placehold.it/1920x350') center center no-repeat scroll;
+    -webkit-background-size: cover;
+    -moz-background-size: cover;
+    background-size: cover;
+    -o-background-size: cover;
+}
+
+.tagline {
+    text-shadow: 0 0 10px #000;
+    color: #fff;
+}
+
+.img-center {
+    margin: 0 auto;
+}
+
+.text-primary {
+    color: #347DBE;
 }
 
 .bs-callout {

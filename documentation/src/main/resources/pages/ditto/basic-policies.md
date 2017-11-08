@@ -8,7 +8,7 @@ permalink: basic-policies.html
 A Policy enables developers to configure fine-grained access control for Things and other entities in an easy way.
 
 {% include note.html content="The policy concept is only supported for Ditto **HTTP API version 2**. <br/>
-Find the API reference at [Policies resources](http-api-doc.html?urls.primaryName=api2#/Policies)." %}
+Find the HTTP API reference at [Policies resources](http-api-doc.html?urls.primaryName=api2#/Policies)." %}
 
 
 ## Authorization concept
@@ -30,8 +30,8 @@ A Subject ID must conform to one of the following rules:
 
 | Prefix    | Type  | Description   |
 |-----------|-------|---------------|
-| accounts.google.com | jwt | A JSON Web Token issued by Google |
-| https://accounts.google.com | jwt | A JSON Web Token issued by Google |
+| accounts.google.com | jwt | A <a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossary.jwt}}">JWT</a> issued by Google |
+| https://accounts.google.com | jwt | A <a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossary.jwt}}">JWT</a> issued by Google |
 
 
 ## Which Resources can be controlled
