@@ -172,6 +172,8 @@
         <release.scm.connection>scm:git:git@github.com:eclipse/ditto.git</release.scm.connection>
         <release.scm.developerConnection>scm:git:https://github.com/eclipse/ditto.git</release.scm.developerConnection>
         <release.scm.url>https://github.com/eclipse/ditto.git</release.scm.url>
+
+        <argLine>-Dfile.encoding=${project.build.sourceEncoding}</argLine>
     </properties>
 
     <build>
@@ -253,7 +255,6 @@
                     <artifactId>maven-surefire-plugin</artifactId>
                     <version>2.19</version>
                     <configuration>
-                        <argLine>@{argLine} -Dfile.encoding=${project.build.sourceEncoding}</argLine>
                         <systemProperties>
                             <kamon.auto-start>true</kamon.auto-start>
                         </systemProperties>
