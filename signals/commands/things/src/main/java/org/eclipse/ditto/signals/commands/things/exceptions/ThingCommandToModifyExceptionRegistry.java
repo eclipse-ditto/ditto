@@ -59,6 +59,13 @@ public final class ThingCommandToModifyExceptionRegistry
         return INSTANCE;
     }
 
+    @Override
+    protected DittoRuntimeException fallback(final ThingCommand command) {
+        return ThingNotModifiableException.newBuilder(command.getThingId())
+                .dittoHeaders(command.getDittoHeaders())
+                .build();
+    }
+
     private static ThingCommandToModifyExceptionRegistry createInstance() {
         final Map<String, Function<ThingCommand, DittoRuntimeException>> mappingStrategies = new HashMap<>();
 

@@ -20,6 +20,7 @@ import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.services.gateway.security.HttpHeader;
 import org.eclipse.ditto.services.gateway.security.parser.RequestHeaders;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,6 +53,25 @@ public final class HttpUtils {
         return requestContext.getRequest()
                 .getHeader(name)
                 .map(akka.http.javadsl.model.HttpHeader::value);
+    }
+
+    /**
+     * Checks whether the given request contains an authorization header starting with the given {@code
+     * authorizationHeaderPrefix}.
+     *
+     * @param requestContext the context of the request
+     * @param authorizationHeaderPrefix the prefix of the authorization header
+     * @return {@code true}, if the request contains a matching authorization header
+     */
+    public static boolean containsAuthorizationForPrefix(final RequestContext requestContext,
+            final String authorizationHeaderPrefix) {
+        
+        final Optional<String> authorizationHeader =
+                requestContext.getRequest().getHeader(HttpHeader.AUTHORIZATION.toString().toLowerCase())
+                        .map(akka.http.javadsl.model.HttpHeader::value)
+                        .filter(headerValue -> headerValue.startsWith(authorizationHeaderPrefix));
+
+        return authorizationHeader.isPresent();
     }
 
     /**

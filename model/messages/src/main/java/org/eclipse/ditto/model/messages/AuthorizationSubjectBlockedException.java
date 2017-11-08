@@ -11,7 +11,6 @@
  */
 package org.eclipse.ditto.model.messages;
 
-
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
@@ -60,6 +59,7 @@ public final class AuthorizationSubjectBlockedException extends DittoRuntimeExce
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new exception object.
      */
+    @SuppressWarnings("squid:S1172")
     public static AuthorizationSubjectBlockedException fromJson(final JsonObject json,
             final DittoHeaders dittoHeaders) {
         // ignore the JSON object.

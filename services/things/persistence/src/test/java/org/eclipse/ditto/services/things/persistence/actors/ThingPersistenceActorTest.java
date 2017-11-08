@@ -124,16 +124,16 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
                 final ActorRef underTest = createSupervisorActorFor(thingId);
 
-                final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersMockV2);
+                final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV2);
                 underTest.tell(createThing, getRef());
 
                 final CreateThingResponse createThingResponse = expectMsgClass(CreateThingResponse.class);
                 assertThingInResponse(createThingResponse.getThingCreated().orElse(null), thing);
 
                 // retrieve created thing
-                final RetrieveThing retrieveThing = RetrieveThing.of(thingId, dittoHeadersMockV2);
+                final RetrieveThing retrieveThing = RetrieveThing.of(thingId, dittoHeadersV2);
                 underTest.tell(retrieveThing, getRef());
-                expectMsgEquals(RetrieveThingResponse.of(thingId, thing.toJson(), dittoHeadersMockV2));
+                expectMsgEquals(RetrieveThingResponse.of(thingId, thing.toJson(), dittoHeadersV2));
 
                 // terminate thing persistence actor
                 final String thingActorPath = String.format("akka://AkkaTestSystem/user/%s/pa", thingId);
@@ -162,17 +162,17 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 .setId(thingId) //
                 .setFeatures(JsonFactory.newObject()) //
                 .build();
-        final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersMockV1);
+        final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV1);
 
         final String featureId = "myFeature";
         final JsonPointer jsonPointer = JsonPointer.of("/state");
         final JsonValue jsonValue = JsonFactory.newValue("on");
         final ModifyFeatureProperty modifyFeatureProperty =
-                ModifyFeatureProperty.of(thingId, featureId, jsonPointer, jsonValue, dittoHeadersMockV1);
+                ModifyFeatureProperty.of(thingId, featureId, jsonPointer, jsonValue, dittoHeadersV1);
 
         final FeatureNotAccessibleException featureNotAccessibleException =
                 FeatureNotAccessibleException.newBuilder(thingId, featureId)
-                        .dittoHeaders(dittoHeadersMockV1)
+                        .dittoHeaders(dittoHeadersV1)
                         .build();
 
         new JavaTestKit(actorSystem) {
@@ -195,7 +195,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
     @Test
     public void tryToRetrieveThingWhichWasNotYetCreated() {
         final String thingId = "test.ns:23420815";
-        final ThingCommand retrieveThingCommand = RetrieveThing.of(thingId, dittoHeadersMockV2);
+        final ThingCommand retrieveThingCommand = RetrieveThing.of(thingId, dittoHeadersV2);
 
         new JavaTestKit(actorSystem) {
             {
@@ -214,7 +214,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
     public void tryToCreateThingWithDifferentThingId() {
         final String thingIdOfActor = "test.ns:23420815";
         final Thing thing = createThingV2WithRandomId();
-        final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersMockV2);
+        final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV2);
 
         final Props props = ThingPersistenceActor.props(thingIdOfActor, pubSubMediator, thingCacheFacade);
         final TestActorRef<ThingPersistenceActor> underTest = TestActorRef.create(actorSystem, props);
@@ -237,7 +237,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 final Thing thing = createThingV2WithRandomId();
                 final ActorRef underTest = createPersistenceActorFor(thing);
 
-                final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersMockV2);
+                final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV2);
                 underTest.tell(createThing, getRef());
 
                 final CreateThingResponse createThingResponse = expectMsgClass(CreateThingResponse.class);
@@ -253,13 +253,13 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
         final Thing modifiedThing = thing.setAttribute(JsonFactory.newPointer("foo/bar"), JsonFactory.newValue("baz"));
         final ModifyThing modifyThingCommand =
-                ModifyThing.of(thing.getId().orElse(null), modifiedThing, null, dittoHeadersMockV2);
+                ModifyThing.of(thing.getId().orElse(null), modifiedThing, null, dittoHeadersV2);
 
         new JavaTestKit(actorSystem) {
             {
                 final ActorRef underTest = createPersistenceActorFor(thing);
 
-                final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersMockV2);
+                final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV2);
                 underTest.tell(createThing, getRef());
 
                 final CreateThingResponse createThingResponse = expectMsgClass(CreateThingResponse.class);
@@ -267,7 +267,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
                 underTest.tell(modifyThingCommand, getRef());
 
-                expectMsgEquals(ModifyThingResponse.modified(thing.getId().orElse(null), dittoHeadersMockV2));
+                expectMsgEquals(ModifyThingResponse.modified(thing.getId().orElse(null), dittoHeadersV2));
             }
         };
     }
@@ -276,7 +276,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
     @Test
     public void retrieveThingV2() {
         final Thing thing = createThingV2WithRandomId();
-        final ThingCommand retrieveThingCommand = RetrieveThing.of(thing.getId().orElse(null), dittoHeadersMockV2);
+        final ThingCommand retrieveThingCommand = RetrieveThing.of(thing.getId().orElse(null), dittoHeadersV2);
         final RetrieveThingResponse expectedResponse =
                 RetrieveThingResponse.of(thing.getId().orElse(null), thing.toJson(),
                         retrieveThingCommand.getDittoHeaders());
@@ -285,7 +285,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
             {
                 final ActorRef underTest = createPersistenceActorFor(thing);
 
-                final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersMockV2);
+                final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV2);
                 underTest.tell(createThing, getRef());
 
                 final CreateThingResponse createThingResponse = expectMsgClass(CreateThingResponse.class);
@@ -308,7 +308,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
             {
                 final ActorRef underTest = createPersistenceActorFor(thing);
 
-                final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersMockV2);
+                final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV2);
                 underTest.tell(createThing, getRef());
 
                 final CreateThingResponse createThingResponse = expectMsgClass(CreateThingResponse.class);
@@ -328,14 +328,14 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 final Thing thing = createThingV1WithRandomId();
                 final ActorRef thingPersistenceActor = createPersistenceActorFor(thing);
 
-                final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersMockV1);
+                final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV1);
                 thingPersistenceActor.tell(createThing, getRef());
                 final CreateThingResponse createThingResponse = expectMsgClass(CreateThingResponse.class);
                 assertThingInResponse(createThingResponse.getThingCreated().orElse(null), thing);
 
-                final DeleteThing deleteThing = DeleteThing.of(thing.getId().orElse(null), dittoHeadersMockV1);
+                final DeleteThing deleteThing = DeleteThing.of(thing.getId().orElse(null), dittoHeadersV1);
                 thingPersistenceActor.tell(deleteThing, getRef());
-                expectMsgEquals(DeleteThingResponse.of(thing.getId().orElse(null), dittoHeadersMockV1));
+                expectMsgEquals(DeleteThingResponse.of(thing.getId().orElse(null), dittoHeadersV1));
             }
         };
     }
@@ -348,15 +348,15 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 final Thing thing = createThingV2WithRandomId();
                 final ActorRef underTest = createPersistenceActorFor(thing);
 
-                final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersMockV2);
+                final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV2);
                 underTest.tell(createThing, getRef());
 
                 final CreateThingResponse createThingResponse = expectMsgClass(CreateThingResponse.class);
                 assertThingInResponse(createThingResponse.getThingCreated().orElse(null), thing);
 
-                final DeleteThing deleteThing = DeleteThing.of(thing.getId().orElse(null), dittoHeadersMockV2);
+                final DeleteThing deleteThing = DeleteThing.of(thing.getId().orElse(null), dittoHeadersV2);
                 underTest.tell(deleteThing, getRef());
-                expectMsgEquals(DeleteThingResponse.of(thing.getId().orElse(null), dittoHeadersMockV2));
+                expectMsgEquals(DeleteThingResponse.of(thing.getId().orElse(null), dittoHeadersV2));
             }
         };
     }
@@ -380,7 +380,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
                 final ActorRef underTest = createPersistenceActorFor(thing);
 
-                final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersMockV2);
+                final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV2);
                 underTest.tell(createThing, getRef());
 
                 final CreateThingResponse createThingResponse = expectMsgClass(CreateThingResponse.class);
@@ -425,7 +425,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
                 final ActorRef underTest = createPersistenceActorFor(thing);
 
-                final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersMockV2);
+                final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV2);
                 underTest.tell(createThing, getRef());
 
                 final CreateThingResponse createThingResponse = expectMsgClass(CreateThingResponse.class);
@@ -468,7 +468,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
             {
                 final ActorRef underTest = createPersistenceActorFor(thing);
 
-                final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersMockV2);
+                final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV2);
                 underTest.tell(createThing, getRef());
 
                 final CreateThingResponse createThingResponse = expectMsgClass(CreateThingResponse.class);
@@ -476,9 +476,9 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
                 // Modify attribute as authorized subject.
                 final ThingCommand authorizedCommand =
-                        ModifyAttribute.of(thingId, attributeKey, newAttributeValue, dittoHeadersMockV2);
+                        ModifyAttribute.of(thingId, attributeKey, newAttributeValue, dittoHeadersV2);
                 underTest.tell(authorizedCommand, getRef());
-                expectMsgEquals(ModifyAttributeResponse.modified(thingId, attributeKey, dittoHeadersMockV2));
+                expectMsgEquals(ModifyAttributeResponse.modified(thingId, attributeKey, dittoHeadersV2));
             }
         };
     }
@@ -504,7 +504,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
             {
                 final ActorRef underTest = createPersistenceActorFor(thing);
 
-                final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersMockV2);
+                final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV2);
                 underTest.tell(createThing, getRef());
 
                 final CreateThingResponse createThingResponse = expectMsgClass(CreateThingResponse.class);
@@ -512,7 +512,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
                 // Retrieve attribute as authorized subject.
                 final ThingCommand authorizedCommand =
-                        RetrieveAttribute.of(thingId, attributeKey, dittoHeadersMockV2);
+                        RetrieveAttribute.of(thingId, attributeKey, dittoHeadersV2);
                 underTest.tell(authorizedCommand, getRef());
                 expectMsgClass(RetrieveAttributeResponse.class);
             }
@@ -539,16 +539,16 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
             {
                 final ActorRef underTest = createPersistenceActorFor(thing);
 
-                final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersMockV2);
+                final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV2);
                 underTest.tell(createThing, getRef());
 
                 final CreateThingResponse createThingResponse = expectMsgClass(CreateThingResponse.class);
                 assertThingInResponseV2(createThingResponse.getThingCreated().orElse(null), thing);
 
                 // Delete attribute as authorized subject.
-                final ThingCommand authorizedCommand = DeleteAttribute.of(thingId, attributeKey, dittoHeadersMockV2);
+                final ThingCommand authorizedCommand = DeleteAttribute.of(thingId, attributeKey, dittoHeadersV2);
                 underTest.tell(authorizedCommand, getRef());
-                expectMsgEquals(DeleteAttributeResponse.of(thingId, attributeKey, dittoHeadersMockV2));
+                expectMsgEquals(DeleteAttributeResponse.of(thingId, attributeKey, dittoHeadersV2));
             }
         };
     }
@@ -557,21 +557,21 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
     @Test
     public void tryToRetrieveThingAfterDeletion() {
         final Thing thing = createThingV2WithRandomId();
-        final DeleteThing deleteThingCommand = DeleteThing.of(thing.getId().orElse(null), dittoHeadersMockV2);
-        final RetrieveThing retrieveThingCommand = RetrieveThing.of(thing.getId().orElse(null), dittoHeadersMockV2);
+        final DeleteThing deleteThingCommand = DeleteThing.of(thing.getId().orElse(null), dittoHeadersV2);
+        final RetrieveThing retrieveThingCommand = RetrieveThing.of(thing.getId().orElse(null), dittoHeadersV2);
 
         new JavaTestKit(actorSystem) {
             {
                 final ActorRef underTest = createPersistenceActorFor(thing);
 
-                final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersMockV2);
+                final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV2);
                 underTest.tell(createThing, getRef());
 
                 final CreateThingResponse createThingResponse = expectMsgClass(CreateThingResponse.class);
                 assertThingInResponse(createThingResponse.getThingCreated().orElse(null), thing);
 
                 underTest.tell(deleteThingCommand, getRef());
-                expectMsgEquals(DeleteThingResponse.of(thing.getId().orElse(null), dittoHeadersMockV2));
+                expectMsgEquals(DeleteThingResponse.of(thing.getId().orElse(null), dittoHeadersV2));
 
                 underTest.tell(retrieveThingCommand, getRef());
                 expectMsgClass(ThingNotAccessibleException.class);
@@ -589,7 +589,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
                 ActorRef underTest = createPersistenceActorFor(thing);
 
-                final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersMockV2);
+                final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV2);
                 underTest.tell(createThing, getRef());
 
                 final CreateThingResponse createThingResponse = expectMsgClass(CreateThingResponse.class);
@@ -601,7 +601,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 expectTerminated(underTest);
                 underTest = createPersistenceActorFor(thing);
 
-                final RetrieveThing retrieveThing = RetrieveThing.of(thingId, dittoHeadersMockV2);
+                final RetrieveThing retrieveThing = RetrieveThing.of(thingId, dittoHeadersV2);
                 underTest.tell(retrieveThing, getRef());
 
                 final RetrieveThingResponse retrieveThingResponse = expectMsgClass(RetrieveThingResponse.class);
@@ -623,15 +623,15 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
                 ActorRef underTest = createPersistenceActorFor(thing);
 
-                final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersMockV2);
+                final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV2);
                 underTest.tell(createThing, getRef());
 
                 final CreateThingResponse createThingResponse = expectMsgClass(CreateThingResponse.class);
                 assertThingInResponse(createThingResponse.getThingCreated().orElse(null), thing);
 
-                final DeleteThing deleteThing = DeleteThing.of(thingId, dittoHeadersMockV2);
+                final DeleteThing deleteThing = DeleteThing.of(thingId, dittoHeadersV2);
                 underTest.tell(deleteThing, getRef());
-                expectMsgEquals(DeleteThingResponse.of(thingId, dittoHeadersMockV2));
+                expectMsgEquals(DeleteThingResponse.of(thingId, dittoHeadersV2));
 
                 // restart actor to recover thing state
                 watch(underTest);
@@ -639,7 +639,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 expectTerminated(underTest);
                 underTest = createPersistenceActorFor(thing);
 
-                final RetrieveThing retrieveThing = RetrieveThing.of(thingId, dittoHeadersMockV2);
+                final RetrieveThing retrieveThing = RetrieveThing.of(thingId, dittoHeadersV2);
                 underTest.tell(retrieveThing, getRef());
 
                 // A deleted Thing cannot be retrieved anymore.
@@ -656,16 +656,16 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 final Thing thingV1 = createThingV1WithRandomId();
                 final ActorRef thingPersistenceActor = createPersistenceActorFor(thingV1);
 
-                final CreateThing createThing = CreateThing.of(thingV1, null, dittoHeadersMockV1);
+                final CreateThing createThing = CreateThing.of(thingV1, null, dittoHeadersV1);
                 thingPersistenceActor.tell(createThing, getRef());
                 final CreateThingResponse createThingResponse = expectMsgClass(CreateThingResponse.class);
                 assertThingInResponse(createThingResponse.getThingCreated().orElse(null), thingV1);
 
                 final AccessControlList acl = ThingsModelFactory.newAcl(newAclEntry(AUTHORIZED_SUBJECT, PERMISSIONS),
                                 newAclEntry(AUTHORIZATION_SUBJECT, PERMISSIONS));
-                final ModifyAcl modifyAcl = ModifyAcl.of(thingV1.getId().orElse(null), acl, dittoHeadersMockV1);
+                final ModifyAcl modifyAcl = ModifyAcl.of(thingV1.getId().orElse(null), acl, dittoHeadersV1);
                 thingPersistenceActor.tell(modifyAcl, getRef());
-                expectMsgEquals(ModifyAclResponse.modified(thingV1.getId().orElse(null), acl, dittoHeadersMockV1));
+                expectMsgEquals(ModifyAclResponse.modified(thingV1.getId().orElse(null), acl, dittoHeadersV1));
 
                 // restart
                 final ActorRef thingPersistenceActorRecovered = createPersistenceActorFor(thingV1);
@@ -674,9 +674,9 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 final ThingQueryCommandResponse response =
                         RetrieveThingResponse.of(thingWithUpdatedAcl.getId().orElse(null),
                                 thingWithUpdatedAcl.toJson(JsonSchemaVersion.V_1),
-                                dittoHeadersMockV1);
+                                dittoHeadersV1);
                 final RetrieveThing retrieveThing =
-                        RetrieveThing.of(thingWithUpdatedAcl.getId().orElse(null), dittoHeadersMockV1);
+                        RetrieveThing.of(thingWithUpdatedAcl.getId().orElse(null), dittoHeadersV1);
                 thingPersistenceActorRecovered.tell(retrieveThing, getRef());
                 expectMsgEquals(response);
 
@@ -693,17 +693,17 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 final Thing thingV1 = createThingV1WithRandomId();
                 final ActorRef thingPersistenceActor = createPersistenceActorFor(thingV1);
 
-                final CreateThing createThing = CreateThing.of(thingV1, null, dittoHeadersMockV1);
+                final CreateThing createThing = CreateThing.of(thingV1, null, dittoHeadersV1);
                 thingPersistenceActor.tell(createThing, getRef());
                 final CreateThingResponse createThingResponse = expectMsgClass(CreateThingResponse.class);
                 assertThingInResponse(createThingResponse.getThingCreated().orElse(null), thingV1);
 
                 final AclEntry aclEntry = newAclEntry(AUTHORIZATION_SUBJECT, PERMISSIONS);
                 final ModifyAclEntry modifyAclEntry =
-                        ModifyAclEntry.of(thingV1.getId().orElse(null), aclEntry, dittoHeadersMockV1);
+                        ModifyAclEntry.of(thingV1.getId().orElse(null), aclEntry, dittoHeadersV1);
                 thingPersistenceActor.tell(modifyAclEntry, getRef());
                 expectMsgEquals(
-                        ModifyAclEntryResponse.created(thingV1.getId().orElse(null), aclEntry, dittoHeadersMockV1));
+                        ModifyAclEntryResponse.created(thingV1.getId().orElse(null), aclEntry, dittoHeadersV1));
 
                 // restart
                 final ActorRef thingPersistenceActorRecovered = createPersistenceActorFor(thingV1);
@@ -712,9 +712,9 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 final ThingQueryCommandResponse response =
                         RetrieveThingResponse.of(thingWithUpdatedAclEntry.getId().orElse(null),
                                 thingWithUpdatedAclEntry.toJson(JsonSchemaVersion.V_1),
-                                dittoHeadersMockV1);
+                                dittoHeadersV1);
                 final RetrieveThing retrieveThing =
-                        RetrieveThing.of(thingWithUpdatedAclEntry.getId().orElse(null), dittoHeadersMockV1);
+                        RetrieveThing.of(thingWithUpdatedAclEntry.getId().orElse(null), dittoHeadersV1);
                 thingPersistenceActorRecovered.tell(retrieveThing, getRef());
                 expectMsgEquals(response);
 
@@ -733,7 +733,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 final Thing thingWithUpdatedAclEntry = thingV1.setAclEntry(aclEntry);
 
                 final ActorRef underTest = createPersistenceActorFor(thingWithUpdatedAclEntry);
-                final CreateThing createThing = CreateThing.of(thingWithUpdatedAclEntry, null, dittoHeadersMockV1);
+                final CreateThing createThing = CreateThing.of(thingWithUpdatedAclEntry, null, dittoHeadersV1);
                 underTest.tell(createThing, getRef());
 
                 final CreateThingResponse createThingResponse = expectMsgClass(CreateThingResponse.class);
@@ -741,20 +741,20 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
                 final DeleteAclEntry deleteAclEntry = DeleteAclEntry
                         .of(thingWithUpdatedAclEntry.getId().orElse(null), aclEntry.getAuthorizationSubject(),
-                                dittoHeadersMockV1);
+                                dittoHeadersV1);
                 underTest.tell(deleteAclEntry, getRef());
                 expectMsgEquals(
                         DeleteAclEntryResponse.of(thingWithUpdatedAclEntry.getId().orElse(null), AUTHORIZATION_SUBJECT,
-                                dittoHeadersMockV1));
+                                dittoHeadersV1));
 
                 // restart
                 final ActorRef thingPersistenceActorRecovered = createPersistenceActorFor(thingV1);
 
                 final ThingQueryCommandResponse response = RetrieveThingResponse.of(thingV1.getId().orElse(null),
                         thingWithUpdatedAclEntry.removeAllPermissionsOf(aclEntry.getAuthorizationSubject())
-                                .toJson(JsonSchemaVersion.V_1), dittoHeadersMockV1);
+                                .toJson(JsonSchemaVersion.V_1), dittoHeadersV1);
                 final RetrieveThing retrieveThing =
-                        RetrieveThing.of(thingV1.getId().orElse(null), dittoHeadersMockV1);
+                        RetrieveThing.of(thingV1.getId().orElse(null), dittoHeadersV1);
                 thingPersistenceActorRecovered.tell(retrieveThing, getRef());
                 expectMsgEquals(response);
 
@@ -773,7 +773,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
                 final ActorRef underTest = createPersistenceActorFor(thing);
 
-                final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersMockV2);
+                final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV2);
                 underTest.tell(createThing, getRef());
 
                 final CreateThingResponse createThingResponse = expectMsgClass(CreateThingResponse.class);
@@ -781,7 +781,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
                 // modify the thing's attributes - results in sequence number 2
                 final Thing thingToModify = thing.setAttributes(THING_ATTRIBUTES.setValue("foo", "bar"));
-                final ModifyThing modifyThing = ModifyThing.of(thingId, thingToModify, null, dittoHeadersMockV2);
+                final ModifyThing modifyThing = ModifyThing.of(thingId, thingToModify, null, dittoHeadersV2);
 
                 underTest.tell(modifyThing, getRef());
 
@@ -794,7 +794,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 final Thing thingExpected = ThingsModelFactory.newThingBuilder(thingToModify) //
                         .setRevision(versionExpected) //
                         .build();
-                final RetrieveThing retrieveThing = RetrieveThing.getBuilder(thingId, dittoHeadersMockV2)
+                final RetrieveThing retrieveThing = RetrieveThing.getBuilder(thingId, dittoHeadersV2)
                         .withSelectedFields(versionFieldSelector)
                         .build();
                 underTest.tell(retrieveThing, getRef());
@@ -814,7 +814,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
                 ActorRef underTest = createPersistenceActorFor(thing);
 
-                final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersMockV2);
+                final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV2);
                 underTest.tell(createThing, getRef());
 
                 final CreateThingResponse createThingResponse = expectMsgClass(CreateThingResponse.class);
@@ -822,7 +822,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
                 // modify the thing's attributes - results in sequence number 2
                 final Thing thingToModify = thing.setAttributes(THING_ATTRIBUTES.setValue("foo", "bar"));
-                final ModifyThing modifyThing = ModifyThing.of(thingId, thingToModify, null, dittoHeadersMockV2);
+                final ModifyThing modifyThing = ModifyThing.of(thingId, thingToModify, null, dittoHeadersV2);
                 underTest.tell(modifyThing, getRef());
                 expectMsgEquals(ModifyThingResponse.modified(thingId, modifyThing.getDittoHeaders()));
 
@@ -840,7 +840,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 expectTerminated(underTest);
                 underTest = createPersistenceActorFor(thing);
 
-                final RetrieveThing retrieveThing = RetrieveThing.getBuilder(thingId, dittoHeadersMockV2)
+                final RetrieveThing retrieveThing = RetrieveThing.getBuilder(thingId, dittoHeadersV2)
                         .withSelectedFields(versionFieldSelector)
                         .build();
                 underTest.tell(retrieveThing, getRef());
@@ -1017,7 +1017,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 final JsonFieldSelector fieldSelector = Thing.JsonFields.MODIFIED.getPointer().toFieldSelector();
 
                 // create thing
-                final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersMockV1);
+                final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV1);
                 thingPersistenceActor.tell(createThing, getRef());
 
                 final CreateThingResponse createThingResponse = expectMsgClass(CreateThingResponse.class);
@@ -1028,7 +1028,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
                 // retrieve thing
                 final RetrieveThing retrieveThing =
-                        RetrieveThing.getBuilder(thing.getId().orElse(null), dittoHeadersMockV1)
+                        RetrieveThing.getBuilder(thing.getId().orElse(null), dittoHeadersV1)
                                 .withSelectedFields(fieldSelector)
                                 .build();
                 thingPersistenceActor.tell(retrieveThing, getRef());
@@ -1049,14 +1049,14 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 final JsonFieldSelector fieldSelector = Thing.JsonFields.MODIFIED.getPointer().toFieldSelector();
 
                 // create thing
-                final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersMockV1);
+                final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV1);
                 thingPersistenceActor.tell(createThing, getRef());
                 expectMsgClass(CreateThingResponse.class);
                 final Instant createThingResponseTimestamp = Instant.now();
 
                 // retrieve thing
                 final RetrieveThing retrieveThing =
-                        RetrieveThing.getBuilder(thing.getId().orElse(null), dittoHeadersMockV1)
+                        RetrieveThing.getBuilder(thing.getId().orElse(null), dittoHeadersV1)
                                 .withSelectedFields(fieldSelector)
                                 .build();
                 thingPersistenceActor.tell(retrieveThing, getRef());
@@ -1068,14 +1068,14 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 while (!Instant.now().isAfter(createThingResponseTimestamp)) {
                     waitMillis(10);
                 }
-                final ModifyThing modifyThing = ModifyThing.of(thing.getId().orElse(null), thing, null, dittoHeadersMockV1);
+                final ModifyThing modifyThing = ModifyThing.of(thing.getId().orElse(null), thing, null, dittoHeadersV1);
                 thingPersistenceActor.tell(modifyThing, getRef());
                 expectMsgClass(ModifyThingResponse.class);
                 final Instant modifyThingResponseTimestamp = Instant.now();
 
                 // retrieve thing
                 final RetrieveThing retrieveModifiedThing =
-                        RetrieveThing.getBuilder(thing.getId().orElse(null), dittoHeadersMockV1)
+                        RetrieveThing.getBuilder(thing.getId().orElse(null), dittoHeadersV1)
                                 .withSelectedFields(fieldSelector)
                                 .build();
                 thingPersistenceActor.tell(retrieveModifiedThing, getRef());
@@ -1098,7 +1098,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 final JsonFieldSelector fieldSelector = Thing.JsonFields.MODIFIED.getPointer().toFieldSelector();
 
                 // create thing
-                final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersMockV1);
+                final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV1);
                 thingPersistenceActor.tell(createThing, getRef());
                 expectMsgClass(CreateThingResponse.class);
                 final Instant createThingResponseTimestamp = Instant.now();
@@ -1106,7 +1106,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 // retrieve thing from recovered actor
                 final ActorRef thingPersistenceActorRecovered = createPersistenceActorFor(thing);
                 final RetrieveThing retrieveThing =
-                        RetrieveThing.getBuilder(thing.getId().orElse(null), dittoHeadersMockV1)
+                        RetrieveThing.getBuilder(thing.getId().orElse(null), dittoHeadersV1)
                                 .withSelectedFields(fieldSelector)
                                 .build();
                 thingPersistenceActorRecovered.tell(retrieveThing, getRef());

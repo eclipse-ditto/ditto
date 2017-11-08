@@ -28,6 +28,19 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
 public interface Subject extends Jsonifiable.WithFieldSelectorAndPredicate<JsonField> {
 
     /**
+     * Returns a new {@code Subject} with the specified {@code issuer}, {@code subject} and
+     * subject type {@link SubjectType#UNKNOWN}.
+     *
+     * @param issuer the character sequence for the SubjectId's {@code issuer}.
+     * @param subject the character sequence for the SubjectId's {@code subject}.
+     * @return the new {@code Subject}.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    static Subject newInstance(final SubjectIssuer issuer, final CharSequence subject) {
+        return PoliciesModelFactory.newSubject(SubjectId.newInstance(issuer, subject));
+    }
+
+    /**
      * Returns a new {@code Subject} with the specified {@code issuer}, {@code subject} and {@code subjectType}.
      *
      * @param issuer the character sequence for the SubjectId's {@code issuer}.
@@ -51,6 +64,18 @@ public interface Subject extends Jsonifiable.WithFieldSelectorAndPredicate<JsonF
      */
     static Subject newInstance(final CharSequence subjectIssuerWithId, final SubjectType subjectType) {
         return PoliciesModelFactory.newSubject(SubjectId.newInstance(subjectIssuerWithId), subjectType);
+    }
+
+    /**
+     * Returns a new {@code Subject} object with the given {@code subjectId} and
+     * subject type {@link SubjectType#UNKNOWN}.
+     *
+     * @param subjectId the ID of the new Subject.
+     * @return a new {@code Subject} object.
+     * @throws NullPointerException if {@code subjectId} is {@code null}.
+     */
+    static Subject newInstance(final SubjectId subjectId) {
+        return PoliciesModelFactory.newSubject(subjectId);
     }
 
     /**

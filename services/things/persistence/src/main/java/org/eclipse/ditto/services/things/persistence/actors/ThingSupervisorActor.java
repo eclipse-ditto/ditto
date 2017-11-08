@@ -62,14 +62,14 @@ public final class ThingSupervisorActor extends AbstractActor {
     private long restartCount;
 
     private ThingSupervisorActor(final ActorRef pubSubMediator, final Duration minBackoff, final Duration maxBackoff,
-            final double randomFactor, final ActorRef thingCacheFacade,
+            final double randomFactor, final ActorRef thingCacheFacade, final ThingsActorsCreator actorsCreator,
             final SupervisorStrategy supervisorStrategy) {
         try {
             this.thingId = URLDecoder.decode(getSelf().path().name(), StandardCharsets.UTF_8.name());
         } catch (final UnsupportedEncodingException e) {
             throw new IllegalStateException("Unsupported encoding", e);
         }
-        this.persistenceActorProps = ThingPersistenceActor.props(thingId, pubSubMediator, thingCacheFacade);
+        this.persistenceActorProps = actorsCreator.createPersistentActor(thingId, pubSubMediator, thingCacheFacade);
         this.minBackoff = minBackoff;
         this.maxBackoff = maxBackoff;
         this.randomFactor = randomFactor;
@@ -95,14 +95,15 @@ public final class ThingSupervisorActor extends AbstractActor {
      * @return the {@link Props} to create this actor.
      */
     public static Props props(final ActorRef pubSubMediator, final Duration minBackoff,
-            final Duration maxBackoff, final double randomFactor, final ActorRef thingCacheFacade) {
+            final Duration maxBackoff, final double randomFactor, final ActorRef thingCacheFacade,
+            final ThingsActorsCreator actorsCreator) {
         return Props.create(ThingSupervisorActor.class, new Creator<ThingSupervisorActor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
             public ThingSupervisorActor create() throws Exception {
                 return new ThingSupervisorActor(pubSubMediator, minBackoff, maxBackoff, randomFactor,
-                        thingCacheFacade,
+                        thingCacheFacade, actorsCreator,
                         new OneForOneStrategy(true, DeciderBuilder //
                                 .match(NullPointerException.class, e -> SupervisorStrategy.restart()) //
                                 .match(ActorKilledException.class, e -> SupervisorStrategy.stop()) //

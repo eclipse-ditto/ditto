@@ -82,12 +82,13 @@ public final class DittoBsonJSON {
         }
 
         /**
-         * Copied and adjusted from {@link JSONParser#parseObject(String)} in order to parse JSON keys in a way that "."
+         * Copied and adjusted from {@code JSONParser#parseObject(String)} in order to parse JSON keys in a way that "."
          * and "$" are escaped with their unicode representations.
          *
          * @return DBObject the next object
          * @throws JSONParseException if invalid JSON is found
          */
+        @Override
         protected Object parseObject(final String name) {
             if (name != null) {
                 _callback.objectStart(name);
@@ -96,14 +97,13 @@ public final class DittoBsonJSON {
             }
 
             read('{');
-            char current = get();
             while (get() != '}') {
                 final String key = parseCrKeyString();
                 read(':');
                 final Object value = parse(key);
                 doCallback(key, value);
 
-                if ((current = get()) == ',') {
+                if ((get()) == ',') {
                     read(',');
                 } else {
                     break;

@@ -17,9 +17,20 @@ package org.eclipse.ditto.model.policies;
 public interface SubjectType extends CharSequence {
 
     /**
-     * Json Web Token.
+     * Unknown {@link Subject} type.
      */
-    SubjectType JWT = PoliciesModelFactory.newSubjectType("jwt");
+    SubjectType UNKNOWN = PoliciesModelFactory.newSubjectType("unknown");
+
+    /**
+     * Returns a new {@link SubjectType} with the specified {@code subjectType}.
+     *
+     * @param subjectType the SubjectType char sequence.
+     * @return the new {@link SubjectType}.
+     * @throws NullPointerException if {@code subjectType} is {@code null}.
+     */
+    static SubjectType newInstance(final CharSequence subjectType) {
+        return PoliciesModelFactory.newSubjectType(subjectType);
+    }
 
     @Override
     String toString();

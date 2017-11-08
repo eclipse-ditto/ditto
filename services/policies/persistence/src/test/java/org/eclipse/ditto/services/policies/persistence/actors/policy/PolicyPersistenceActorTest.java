@@ -13,6 +13,7 @@ package org.eclipse.ditto.services.policies.persistence.actors.policy;
 
 import static org.assertj.core.api.Assertions.fail;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.eclipse.ditto.services.policies.persistence.TestConstants.Policy.SUBJECT_TYPE;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -26,7 +27,6 @@ import org.eclipse.ditto.model.policies.Resource;
 import org.eclipse.ditto.model.policies.Resources;
 import org.eclipse.ditto.model.policies.Subject;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
-import org.eclipse.ditto.model.policies.SubjectType;
 import org.eclipse.ditto.model.policies.Subjects;
 import org.eclipse.ditto.model.policies.assertions.DittoPolicyAssertions;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicy;
@@ -280,7 +280,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
             {
                 final Policy policy = createPolicyWithRandomId();
                 final Subject newSubject =
-                        Subject.newInstance(SubjectIssuer.GOOGLE_URL, "anotherOne", SubjectType.JWT);
+                        Subject.newInstance(SubjectIssuer.GOOGLE_URL, "anotherOne");
                 final PolicyEntry policyEntryToModify = PoliciesModelFactory.newPolicyEntry(POLICY_LABEL,
                         Subjects.newInstance(POLICY_SUBJECT, newSubject), POLICY_RESOURCES_ALL);
 
@@ -318,7 +318,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
             {
                 final Policy policy = createPolicyWithRandomId();
                 final Subject newSubject =
-                        Subject.newInstance(SubjectIssuer.GOOGLE_URL, "anotherOne", SubjectType.JWT);
+                        Subject.newInstance(SubjectIssuer.GOOGLE_URL, "anotherOne");
 
                 final DittoHeaders headersMockWithOtherAuth =
                         createDittoHeadersMock(JsonSchemaVersion.LATEST, AUTH_SUBJECT, UNAUTH_SUBJECT);
@@ -562,7 +562,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
             {
                 final Policy policy = createPolicyWithRandomId();
                 final Subject subjectToAdd =
-                        Subject.newInstance(SubjectIssuer.GOOGLE_URL, "anotherSubjectId", SubjectType.JWT);
+                        Subject.newInstance(SubjectIssuer.GOOGLE_URL, "anotherSubjectId");
 
                 final DittoHeaders headersMockWithOtherAuth =
                         createDittoHeadersMock(JsonSchemaVersion.LATEST, AUTH_SUBJECT, UNAUTH_SUBJECT);
@@ -599,7 +599,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
             {
                 final Policy policy = createPolicyWithRandomId();
                 final Subject subjectToModify =
-                        Subject.newInstance(POLICY_SUBJECT_ID, SubjectType.JWT);
+                        Subject.newInstance(POLICY_SUBJECT_ID, SUBJECT_TYPE);
 
                 final DittoHeaders headersMockWithOtherAuth =
                         createDittoHeadersMock(JsonSchemaVersion.LATEST, AUTH_SUBJECT, UNAUTH_SUBJECT);
@@ -741,7 +741,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                         .isEqualEqualToButModified(policy);
 
                 final Subject newSubject =
-                        Subject.newInstance(SubjectIssuer.GOOGLE_URL, "anotherOne", SubjectType.JWT);
+                        Subject.newInstance(SubjectIssuer.GOOGLE_URL, "anotherOne");
                 final Resource newResource =
                         Resource.newInstance(PoliciesResourceType.policyResource("/attributes"), EffectedPermissions
                                 .newInstance(PoliciesModelFactory.noPermissions(),

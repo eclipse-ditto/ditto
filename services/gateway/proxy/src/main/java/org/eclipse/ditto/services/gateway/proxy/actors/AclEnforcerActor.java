@@ -11,11 +11,15 @@
  */
 package org.eclipse.ditto.services.gateway.proxy.actors;
 
+import static org.eclipse.ditto.services.gateway.starter.service.util.FireAndForgetMessageUtil.getResponseForFireAndForgetMessage;
+
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -31,6 +35,7 @@ import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.messages.MessageSendNotAllowedException;
 import org.eclipse.ditto.model.policies.Policy;
+import org.eclipse.ditto.model.policies.SubjectIssuer;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.Permission;
 import org.eclipse.ditto.model.things.Thing;
@@ -86,14 +91,12 @@ import scala.concurrent.duration.FiniteDuration;
 /**
  * Actor responsible for enforcing that the {@link AuthorizationContext} of a {@link Command} has the required {@link
  * org.eclipse.ditto.model.things.Permissions} to be processed. <ul> <li>A {@link org.eclipse.ditto.signals.commands.things.ThingCommand}
- * will be proxied to the things shard region.</li> <li>A {@link MessageCommand} will be proxied to {@link
- * #MESSAGES_PROXY_ACTOR_PATH} via distributed pub-sub.</li> </ul> <p> For each {@link Thing} in {@link
+ * will be proxied to the things shard region.</li> <li>A {@link MessageCommand} will be broadcasted
+ * via distributed pub-sub.</li> </ul> <p> For each {@link Thing} in {@link
  * JsonSchemaVersion#V_1} an instance of this Actor is created which caches the {@link AccessControlList} used to
  * perform permission checks. </p>
  */
 public final class AclEnforcerActor extends AbstractActorWithStash {
-
-    private static final String MESSAGES_PROXY_ACTOR_PATH = "/user/messagesRoot/messagesProxy";
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
@@ -113,13 +116,15 @@ public final class AclEnforcerActor extends AbstractActorWithStash {
     private AccessControlList acl;
     private long thingRevision = -1L;
     private int stashCount = 0;
+    private List<SubjectIssuer> subjectIssuersForPolicyMigration;
 
     private AclEnforcerActor(final ActorRef pubSubMediator,
             final ActorRef thingsShardRegion,
             final ActorRef policiesShardRegion,
             final ActorRef thingCacheFacade,
             final FiniteDuration cacheInterval,
-            final FiniteDuration askTimeout) {
+            final FiniteDuration askTimeout,
+            final List<SubjectIssuer> subjectIssuersForPolicyMigration) {
 
         try {
             thingId = URLDecoder.decode(getSelf().path().name(), StandardCharsets.UTF_8.name());
@@ -131,6 +136,8 @@ public final class AclEnforcerActor extends AbstractActorWithStash {
         this.pubSubMediator = pubSubMediator;
         this.cacheInterval = cacheInterval;
         this.askTimeout = askTimeout;
+        this.subjectIssuersForPolicyMigration =
+                Collections.unmodifiableList(new ArrayList<>(subjectIssuersForPolicyMigration));
 
         enforcingBehaviour = buildEnforcingBehaviour();
         synchronizingBehaviour = buildSynchronizingBehaviour();
@@ -153,6 +160,7 @@ public final class AclEnforcerActor extends AbstractActorWithStash {
      * @param cacheInterval the interval of how long the created AclEnforcerActor should be hold in cache w/o any
      * activity happening.
      * @param askTimeout the timeout for internal ask.
+     * @param subjectIssuersForPolicyMigration subjectIssuers to be used for (policy-)subject generation from ACLs
      * @return the Akka configuration Props object.
      */
     public static Props props(final ActorRef pubSubMediator,
@@ -160,7 +168,8 @@ public final class AclEnforcerActor extends AbstractActorWithStash {
             final ActorRef policiesShardRegion,
             final ActorRef thingCacheFacade,
             final FiniteDuration cacheInterval,
-            final FiniteDuration askTimeout) {
+            final FiniteDuration askTimeout,
+            final List<SubjectIssuer> subjectIssuersForPolicyMigration) {
 
         return Props.create(AclEnforcerActor.class, new Creator<AclEnforcerActor>() {
             private static final long serialVersionUID = 1L;
@@ -168,7 +177,7 @@ public final class AclEnforcerActor extends AbstractActorWithStash {
             @Override
             public AclEnforcerActor create() throws Exception {
                 return new AclEnforcerActor(pubSubMediator, thingsShardRegion, policiesShardRegion, thingCacheFacade,
-                        cacheInterval, askTimeout);
+                        cacheInterval, askTimeout, subjectIssuersForPolicyMigration);
             }
         });
     }
@@ -441,6 +450,11 @@ public final class AclEnforcerActor extends AbstractActorWithStash {
         pubSubMediator.tell(
                 new DistributedPubSubMediator.Publish(MessageCommand.TYPE_PREFIX, commandWithReadSubjects, true),
                 getSender());
+
+
+        // answer the sender immediately for fire-and-forget message commands.
+        getResponseForFireAndForgetMessage(command)
+                .ifPresent(response -> getSender().tell(response, getSelf()));
     }
 
     private <T extends Signal> T enrichDittoHeaders(final Signal<T> signal) {
@@ -611,7 +625,9 @@ public final class AclEnforcerActor extends AbstractActorWithStash {
         }
 
         if (authorized) {
-            final Policy policy = PoliciesAclMigrations.accessControlListToPolicyEntries(acl, command.getId());
+            final Policy policy =
+                    PoliciesAclMigrations.accessControlListToPolicyEntries(acl, command.getId(),
+                            subjectIssuersForPolicyMigration);
             getSender().tell(RetrievePolicyResponse.of(thingId, policy, command.getDittoHeaders()), getSelf());
         } else {
             final PolicyCommandToAccessExceptionRegistry reg = PolicyCommandToAccessExceptionRegistry.getInstance();

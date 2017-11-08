@@ -57,6 +57,7 @@ public final class StatusSupplierActor extends AbstractActor {
 
     /**
      * Constructs a {@link StatusSupplierActor}.
+     *
      * @param rootActorName the name of the root actor to use for ActorSelection of the {@link HealthCheckingActor}
      */
     private StatusSupplierActor(final String rootActorName) {
@@ -98,7 +99,6 @@ public final class StatusSupplierActor extends AbstractActor {
                             PatternsCS.ask(getContext().system().actorSelection("/user/" + rootActorName + "/" +
                                             HealthCheckingActor.ACTOR_NAME),
                                     RetrieveHealth.newInstance(), Timeout.apply(2, TimeUnit.SECONDS))
-                                    .thenApply(obj -> (Health) obj)
                                     .thenAccept(health -> {
                                         log.info("Sending the health of this system as requested: {}", health);
                                         sender.tell(health, self);

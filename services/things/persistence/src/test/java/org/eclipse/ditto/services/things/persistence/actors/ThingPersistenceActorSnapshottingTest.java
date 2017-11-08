@@ -149,7 +149,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
 
                 ActorRef underTest = createPersistenceActorFor(thingId);
 
-                final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersMockV2);
+                final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV2);
                 underTest.tell(createThing, getRef());
 
                 final CreateThingResponse createThingResponse = expectMsgClass(CreateThingResponse.class);
@@ -160,9 +160,9 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                 assertJournal(thingId, Collections.singletonList(expectedCreatedEvent));
                 assertSnapshotsEmpty(thingId);
 
-                final DeleteThing deleteThing = DeleteThing.of(thingId, dittoHeadersMockV2);
+                final DeleteThing deleteThing = DeleteThing.of(thingId, dittoHeadersV2);
                 underTest.tell(deleteThing, getRef());
-                expectMsgEquals(DeleteThingResponse.of(thingId, dittoHeadersMockV2));
+                expectMsgEquals(DeleteThingResponse.of(thingId, dittoHeadersV2));
 
                 final Thing expectedDeletedSnapshot = toDeletedThing(thingCreated, 2);
                 assertSnapshots(thingId, Collections.singletonList(expectedDeletedSnapshot));
@@ -177,7 +177,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                 expectTerminated(underTest);
                 underTest = createPersistenceActorFor(thingId);
 
-                final RetrieveThing retrieveThing = RetrieveThing.getBuilder(thingId, dittoHeadersMockV2)
+                final RetrieveThing retrieveThing = RetrieveThing.getBuilder(thingId, dittoHeadersV2)
                         .withSelectedFields(FIELD_SELECTOR)
                         .build();
                 underTest.tell(retrieveThing, getRef());
@@ -227,7 +227,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                 ActorRef underTest = createSupervisorActorFor(thingId);
                 watch(underTest);
 
-                final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersMockV2);
+                final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV2);
                 underTest.tell(createThing, getRef());
 
                 final CreateThingResponse createThingResponse = expectMsgClass(CreateThingResponse.class);
@@ -238,9 +238,9 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                 assertJournal(thingId, Collections.singletonList(expectedCreatedEvent));
                 assertSnapshotsEmpty(thingId);
 
-                final DeleteThing deleteThing = DeleteThing.of(thingId, dittoHeadersMockV2);
+                final DeleteThing deleteThing = DeleteThing.of(thingId, dittoHeadersV2);
                 underTest.tell(deleteThing, getRef());
-                expectMsgEquals(DeleteThingResponse.of(thingId, dittoHeadersMockV2));
+                expectMsgEquals(DeleteThingResponse.of(thingId, dittoHeadersV2));
 
                 final Thing expectedDeletedSnapshot = toDeletedThing(thingCreated, 2);
                 assertSnapshots(thingId, Collections.singletonList(expectedDeletedSnapshot));
@@ -254,7 +254,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
 
                 underTest = createSupervisorActorFor(thingId);
 
-                final RetrieveThing retrieveThing = RetrieveThing.getBuilder(thingId, dittoHeadersMockV2)
+                final RetrieveThing retrieveThing = RetrieveThing.getBuilder(thingId, dittoHeadersV2)
                         .withSelectedFields(FIELD_SELECTOR)
                         .build();
                 underTest.tell(retrieveThing, getRef());
@@ -296,7 +296,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
 
                 ActorRef underTest = createPersistenceActorFor(thingId);
 
-                final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersMockV2);
+                final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV2);
                 underTest.tell(createThing, getRef());
 
                 final CreateThingResponse createThingResponse = expectMsgClass(CreateThingResponse.class);
@@ -310,7 +310,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                         .setAttribute(JsonFactory.newPointer("/foo"), JsonValue.of("bar"))
                         .setRevision(2)
                         .build();
-                final ModifyThing modifyThing = ModifyThing.of(thingId, thingForModify, null, dittoHeadersMockV2);
+                final ModifyThing modifyThing = ModifyThing.of(thingId, thingForModify, null, dittoHeadersV2);
                 underTest.tell(modifyThing, getRef());
 
                 final ModifyThingResponse modifyThingResponse = expectMsgClass(ModifyThingResponse.class);
@@ -322,7 +322,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                 assertSnapshots(thingId, Collections.singletonList(thingForModify));
 
                 // Make sure that the actor has the correct revision no of 2
-                final RetrieveThing retrieveThing = RetrieveThing.getBuilder(thingId, dittoHeadersMockV2)
+                final RetrieveThing retrieveThing = RetrieveThing.getBuilder(thingId, dittoHeadersV2)
                         .withSelectedFields(FIELD_SELECTOR)
                         .build();
                 underTest.tell(retrieveThing, getRef());
@@ -364,7 +364,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
 
                 final ActorRef underTest = createPersistenceActorFor(thingId);
 
-                final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersMockV2);
+                final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV2);
                 underTest.tell(createThing, getRef());
 
                 final CreateThingResponse createThingResponse = expectMsgClass(CreateThingResponse.class);
@@ -379,7 +379,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                         .setAttribute(JsonFactory.newPointer("/foo"), JsonValue.of("bar1"))
                         .setRevision(2)
                         .build();
-                final ModifyThing modifyThing1 = ModifyThing.of(thingId, thingForModify1, null, dittoHeadersMockV2);
+                final ModifyThing modifyThing1 = ModifyThing.of(thingId, thingForModify1, null, dittoHeadersV2);
                 underTest.tell(modifyThing1, getRef());
 
                 final ModifyThingResponse modifyThingResponse1 = expectMsgClass(ModifyThingResponse.class);
@@ -392,7 +392,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
 
                 final Thing thingForModify2 = ThingsModelFactory.newThingBuilder(thing).setAttribute(JsonFactory
                         .newPointer("/foo"), JsonValue.of("bar2")).setRevision(3).build();
-                final ModifyThing modifyThing2 = ModifyThing.of(thingId, thingForModify2, null, dittoHeadersMockV2);
+                final ModifyThing modifyThing2 = ModifyThing.of(thingId, thingForModify2, null, dittoHeadersV2);
                 underTest.tell(modifyThing2, getRef());
 
                 final ModifyThingResponse modifyThingResponse2 = expectMsgClass(ModifyThingResponse.class);
@@ -427,7 +427,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
 
                 final ActorRef underTest = createPersistenceActorFor(thingId);
 
-                final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersMockV2);
+                final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV2);
                 underTest.tell(createThing, getRef());
 
                 final CreateThingResponse createThingResponse = expectMsgClass(CreateThingResponse.class);
@@ -442,7 +442,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                         .setAttribute(JsonFactory.newPointer("/foo"), JsonValue.of("bar1"))
                         .setRevision(2)
                         .build();
-                final ModifyThing modifyThing1 = ModifyThing.of(thingId, thingForModify1, null, dittoHeadersMockV2);
+                final ModifyThing modifyThing1 = ModifyThing.of(thingId, thingForModify1, null, dittoHeadersV2);
                 underTest.tell(modifyThing1, getRef());
 
                 final ModifyThingResponse modifyThingResponse1 = expectMsgClass(ModifyThingResponse.class);
@@ -455,7 +455,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
 
                 final Thing thingForModify2 = ThingsModelFactory.newThingBuilder(thing).setAttribute(JsonFactory
                         .newPointer("/foo"), JsonValue.of("bar2")).setRevision(3).build();
-                final ModifyThing modifyThing2 = ModifyThing.of(thingId, thingForModify2, null, dittoHeadersMockV2);
+                final ModifyThing modifyThing2 = ModifyThing.of(thingId, thingForModify2, null, dittoHeadersV2);
                 underTest.tell(modifyThing2, getRef());
 
                 final ModifyThingResponse modifyThingResponse2 = expectMsgClass(ModifyThingResponse.class);
@@ -493,7 +493,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
 
                 final ActorRef underTest = createPersistenceActorFor(thingId);
 
-                final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersMockV2);
+                final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV2);
                 underTest.tell(createThing, getRef());
 
                 final CreateThingResponse createThingResponse = expectMsgClass(CreateThingResponse.class);
@@ -515,7 +515,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                         .setAttribute(JsonFactory.newPointer("/foo"), JsonValue.of("bar"))
                         .setRevision(2)
                         .build();
-                final ModifyThing modifyThing = ModifyThing.of(thingId, thingForModify, null, dittoHeadersMockV2);
+                final ModifyThing modifyThing = ModifyThing.of(thingId, thingForModify, null, dittoHeadersV2);
                 underTest.tell(modifyThing, getRef());
 
                 final ModifyThingResponse modifyThingResponse1 = expectMsgClass(ModifyThingResponse.class);
@@ -552,7 +552,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
 
                 final ActorRef underTest = createPersistenceActorFor(thingId);
 
-                final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersMockV2);
+                final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV2);
                 underTest.tell(createThing, getRef());
 
                 final CreateThingResponse createThingResponse = expectMsgClass(CreateThingResponse.class);
@@ -567,7 +567,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                         .setAttribute(JsonFactory.newPointer("/foo"), JsonValue.of("bar"))
                         .setRevision(2)
                         .build();
-                final ModifyThing modifyThing = ModifyThing.of(thingId, thingForModify, null, dittoHeadersMockV2);
+                final ModifyThing modifyThing = ModifyThing.of(thingId, thingForModify, null, dittoHeadersV2);
                 underTest.tell(modifyThing, getRef());
 
                 final ModifyThingResponse modifyThingResponse1 = expectMsgClass(ModifyThingResponse.class);
@@ -599,7 +599,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
 
                 final ActorRef underTest = createPersistenceActorFor(thingId);
 
-                final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersMockV2);
+                final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV2);
                 underTest.tell(createThing, getRef());
 
                 final CreateThingResponse createThingResponse = expectMsgClass(CreateThingResponse.class);
@@ -614,16 +614,16 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                         .setAttribute(JsonFactory.newPointer("/foo"), JsonValue.of("bar"))
                         .setRevision(2)
                         .build();
-                final ModifyThing modifyThing = ModifyThing.of(thingId, thingForModify, null, dittoHeadersMockV2);
+                final ModifyThing modifyThing = ModifyThing.of(thingId, thingForModify, null, dittoHeadersV2);
                 underTest.tell(modifyThing, getRef());
 
                 final ModifyThingResponse modifyThingResponse1 = expectMsgClass(ModifyThingResponse.class);
                 ThingCommandAssertions.assertThat(modifyThingResponse1).hasStatus(HttpStatusCode.NO_CONTENT);
 
                 final String persistenceId = convertDomainIdToPersistenceId(thingId);
-                underTest.tell(TakeSnapshot.of(persistenceId, dittoHeadersMockV2), getRef());
+                underTest.tell(TakeSnapshot.of(persistenceId, dittoHeadersV2), getRef());
                 final TakeSnapshotResponse takeSnapshotResponse = expectMsgClass(TakeSnapshotResponse.class);
-                assertThat(takeSnapshotResponse).isEqualTo(TakeSnapshotResponse.of(2, dittoHeadersMockV2));
+                assertThat(takeSnapshotResponse).isEqualTo(TakeSnapshotResponse.of(2, dittoHeadersV2));
                 assertSnapshots(thingId, Collections.singletonList(thingForModify));
 
                 final Thing thingForModify2 = ThingsModelFactory.newThingBuilder(thing)
@@ -631,16 +631,16 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                         .setRevision(3)
                         .build();
 
-                final ModifyThing modifyThing2 = ModifyThing.of(thingId, thingForModify2, null, dittoHeadersMockV2);
+                final ModifyThing modifyThing2 = ModifyThing.of(thingId, thingForModify2, null, dittoHeadersV2);
                 underTest.tell(modifyThing2, getRef());
 
                 final ModifyThingResponse modifyThingResponse2 = expectMsgClass(ModifyThingResponse.class);
                 ThingCommandAssertions.assertThat(modifyThingResponse2).hasStatus(HttpStatusCode.NO_CONTENT);
 
 
-                underTest.tell(TakeSnapshot.of(persistenceId, dittoHeadersMockV2), getRef());
+                underTest.tell(TakeSnapshot.of(persistenceId, dittoHeadersV2), getRef());
                 final TakeSnapshotResponse takeSnapshotResponse2 = expectMsgClass(TakeSnapshotResponse.class);
-                assertThat(takeSnapshotResponse2).isEqualTo(TakeSnapshotResponse.of(3, dittoHeadersMockV2));
+                assertThat(takeSnapshotResponse2).isEqualTo(TakeSnapshotResponse.of(3, dittoHeadersV2));
 
                 assertSnapshots(thingId, Arrays.asList(thingForModify, thingForModify2));
             }
@@ -660,7 +660,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
 
                 final ActorRef underTest = createPersistenceActorFor(thingId);
 
-                final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersMockV2);
+                final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV2);
                 underTest.tell(createThing, getRef());
 
                 final CreateThingResponse createThingResponse = expectMsgClass(CreateThingResponse.class);
@@ -675,16 +675,16 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                         .setAttribute(JsonFactory.newPointer("/foo"), JsonValue.of("bar"))
                         .setRevision(2)
                         .build();
-                final ModifyThing modifyThing = ModifyThing.of(thingId, thingForModify, null, dittoHeadersMockV2);
+                final ModifyThing modifyThing = ModifyThing.of(thingId, thingForModify, null, dittoHeadersV2);
                 underTest.tell(modifyThing, getRef());
 
                 final ModifyThingResponse modifyThingResponse1 = expectMsgClass(ModifyThingResponse.class);
                 ThingCommandAssertions.assertThat(modifyThingResponse1).hasStatus(HttpStatusCode.NO_CONTENT);
 
                 final String persistenceId = convertDomainIdToPersistenceId(thingId);
-                underTest.tell(TakeSnapshot.of(persistenceId, dittoHeadersMockV2), getRef());
+                underTest.tell(TakeSnapshot.of(persistenceId, dittoHeadersV2), getRef());
                 final TakeSnapshotResponse takeSnapshotResponse = expectMsgClass(TakeSnapshotResponse.class);
-                assertThat(takeSnapshotResponse).isEqualTo(TakeSnapshotResponse.of(2, dittoHeadersMockV2));
+                assertThat(takeSnapshotResponse).isEqualTo(TakeSnapshotResponse.of(2, dittoHeadersV2));
                 assertSnapshots(thingId, Collections.singletonList(thingForModify));
                 final long revision = takeSnapshotResponse.getSnapshotRevision();
 
@@ -693,25 +693,25 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                         .setRevision(3)
                         .build();
 
-                final ModifyThing modifyThing2 = ModifyThing.of(thingId, thingForModify2, null, dittoHeadersMockV2);
+                final ModifyThing modifyThing2 = ModifyThing.of(thingId, thingForModify2, null, dittoHeadersV2);
                 underTest.tell(modifyThing2, getRef());
 
                 final ModifyThingResponse modifyThingResponse2 = expectMsgClass(ModifyThingResponse.class);
                 ThingCommandAssertions.assertThat(modifyThingResponse2).hasStatus(HttpStatusCode.NO_CONTENT);
 
 
-                underTest.tell(TakeSnapshot.of(persistenceId, dittoHeadersMockV2), getRef());
+                underTest.tell(TakeSnapshot.of(persistenceId, dittoHeadersV2), getRef());
                 final TakeSnapshotResponse takeSnapshotResponse2 = expectMsgClass(TakeSnapshotResponse.class);
-                assertThat(takeSnapshotResponse2).isEqualTo(TakeSnapshotResponse.of(3, dittoHeadersMockV2));
+                assertThat(takeSnapshotResponse2).isEqualTo(TakeSnapshotResponse.of(3, dittoHeadersV2));
                 assertSnapshots(thingId, Arrays.asList(thingForModify, thingForModify2));
 
-                final RetrieveThing retrieveThing = RetrieveThing.getBuilder(thingId, dittoHeadersMockV2).build();
+                final RetrieveThing retrieveThing = RetrieveThing.getBuilder(thingId, dittoHeadersV2).build();
 
                 underTest.tell(retrieveThing, getRef());
                 final RetrieveThingResponse retrieveThingResponse = expectMsgClass(RetrieveThingResponse.class);
                 assertThat(getAttributeValue(retrieveThingResponse, "/foo")).isEqualTo("bar2");
 
-                final RetrieveThing retrieveThingWithSnapshot = RetrieveThing.getBuilder(thingId, dittoHeadersMockV2)
+                final RetrieveThing retrieveThingWithSnapshot = RetrieveThing.getBuilder(thingId, dittoHeadersV2)
                         .withSnapshotRevision(revision)
                         .build();
 

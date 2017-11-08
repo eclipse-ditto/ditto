@@ -42,13 +42,12 @@ public final class ImmutableAclEntryTest {
 
     private static final AuthorizationSubject KNOWN_AUTH_SUBJECT = AuthorizationSubject.newInstance("antman");
 
-
     @Test
     public void assertImmutability() {
-        assertInstancesOf(ImmutableAclEntry.class, //
-                areImmutable(), //
-                provided(JsonObject.class, JsonFieldDefinition.class, AuthorizationSubject.class).areAlsoImmutable(), //
-                assumingFields("permissions").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements(), //
+        assertInstancesOf(ImmutableAclEntry.class,
+                areImmutable(),
+                provided(JsonObject.class, JsonFieldDefinition.class, AuthorizationSubject.class).areAlsoImmutable(),
+                assumingFields("permissions").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements(),
                 assumingFields("cachedJsonObject").areModifiedAsPartOfAnUnobservableCachingStrategy());
 
         final EnumSet<Permission> initialSet = EnumSet.of(Permission.READ, Permission.ADMINISTRATE);
@@ -63,7 +62,6 @@ public final class ImmutableAclEntryTest {
         assertThat(actualPermissions).containsOnly(Permission.READ, Permission.ADMINISTRATE);
     }
 
-
     @Test
     public void testHashCodeAndEquals() {
         final SoftReference<JsonObject> red = new SoftReference<>(JsonFactory.newObject("{\"foo\": 1}"));
@@ -75,18 +73,15 @@ public final class ImmutableAclEntryTest {
                 .verify();
     }
 
-
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullAclPermission() {
         ImmutableAclEntry.of(KNOWN_AUTH_SUBJECT, null);
     }
 
-
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullAuthorizationSubject() {
         ImmutableAclEntry.of(null, Permission.READ);
     }
-
 
     @Test
     public void entryDoesNotContainNullPermission() {
@@ -94,7 +89,6 @@ public final class ImmutableAclEntryTest {
 
         assertThat(underTest.contains(null)).isFalse();
     }
-
 
     @Test
     public void entryDoesNotContainAllPermissionsForNull() {
@@ -104,14 +98,12 @@ public final class ImmutableAclEntryTest {
         assertThat(underTest.containsAll(null)).isFalse();
     }
 
-
     @Test
     public void entryDoesNotContainAllPermissions() {
         final AclEntry underTest = ImmutableAclEntry.of(KNOWN_AUTH_SUBJECT, Permission.READ, Permission.WRITE);
 
         assertThat(underTest.containsAll(EnumSet.of(Permission.WRITE, Permission.ADMINISTRATE))).isFalse();
     }
-
 
     @Test
     public void entryContainsAllPermissions() {
@@ -120,25 +112,21 @@ public final class ImmutableAclEntryTest {
         assertThat(underTest.containsAll(EnumSet.of(Permission.WRITE, Permission.READ))).isTrue();
     }
 
-
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceFromNullJsonObject() {
         ImmutableAclEntry.fromJson(null);
     }
-
 
     @Test(expected = DittoJsonException.class)
     public void tryToCreateInstanceFromEmptyJsonObject() {
         ImmutableAclEntry.fromJson(JsonFactory.newObject());
     }
 
-
     @Test(expected = DittoJsonException.class)
     public void tryToCreateInstanceFromJsonObjectContainingSchemaVersionOnly() {
         final JsonObject jsonObject = JsonFactory.newObject("{\"__schemaVersion\":1}");
         ImmutableAclEntry.fromJson(jsonObject);
     }
-
 
     @Test
     public void createInstanceFromJsonObjectContainingMoreThanOneAclEntry() {
@@ -147,32 +135,28 @@ public final class ImmutableAclEntryTest {
         final String authSubjectId3 = "famine";
         final String authSubjectId4 = "death";
 
-        final JsonObject jsonObject = JsonFactory.newObjectBuilder() //
-                .set(JsonSchemaVersion.getJsonKey(), 1) //
-                .set(authSubjectId1,
-                        JsonFactory.newObjectBuilder() //
-                                .set(Permission.READ.toJsonKey(), true) //
-                                .set(Permission.WRITE.toJsonKey(), false) //
-                                .set(Permission.ADMINISTRATE.toJsonKey(), false) //
-                                .build()) //
-                .set(authSubjectId2,
-                        JsonFactory.newObjectBuilder() //
-                                .set(Permission.READ.toJsonKey(), true) //
-                                .set(Permission.WRITE.toJsonKey(), true) //
-                                .set(Permission.ADMINISTRATE.toJsonKey(), false) //
-                                .build()) //
-                .set(authSubjectId3,
-                        JsonFactory.newObjectBuilder() //
-                                .set(Permission.READ.toJsonKey(), false) //
-                                .set(Permission.WRITE.toJsonKey(), true) //
-                                .set(Permission.ADMINISTRATE.toJsonKey(), false) //
-                                .build()) //
-                .set(authSubjectId4,
-                        JsonFactory.newObjectBuilder() //
-                                .set(Permission.READ.toJsonKey(), true) //
-                                .set(Permission.WRITE.toJsonKey(), true) //
-                                .set(Permission.ADMINISTRATE.toJsonKey(), true) //
-                                .build()) //
+        final JsonObject jsonObject = JsonFactory.newObjectBuilder()
+                .set(JsonSchemaVersion.getJsonKey(), 1)
+                .set(authSubjectId1, JsonFactory.newObjectBuilder()
+                        .set(Permission.READ.toJsonKey(), true)
+                        .set(Permission.WRITE.toJsonKey(), false)
+                        .set(Permission.ADMINISTRATE.toJsonKey(), false)
+                        .build())
+                .set(authSubjectId2, JsonFactory.newObjectBuilder()
+                        .set(Permission.READ.toJsonKey(), true)
+                        .set(Permission.WRITE.toJsonKey(), true)
+                        .set(Permission.ADMINISTRATE.toJsonKey(), false)
+                        .build())
+                .set(authSubjectId3, JsonFactory.newObjectBuilder()
+                        .set(Permission.READ.toJsonKey(), false)
+                        .set(Permission.WRITE.toJsonKey(), true)
+                        .set(Permission.ADMINISTRATE.toJsonKey(), false)
+                        .build())
+                .set(authSubjectId4, JsonFactory.newObjectBuilder()
+                        .set(Permission.READ.toJsonKey(), true)
+                        .set(Permission.WRITE.toJsonKey(), true)
+                        .set(Permission.ADMINISTRATE.toJsonKey(), true)
+                        .build())
                 .build();
 
         final AclEntry actualAclEntry = ImmutableAclEntry.fromJson(jsonObject);
@@ -182,13 +166,11 @@ public final class ImmutableAclEntryTest {
         assertThat(actualAclEntry).isEqualTo(expectedAclEntry);
     }
 
-
     @Test(expected = AclEntryInvalidException.class)
     public void createInstanceFromJsonObjectContainingOnlyInvalidPermissions() {
         final JsonObject jsonObject = JsonFactory.newObject("{\"authentication_subject\":{\"BUMLUX\":true}}");
         ImmutableAclEntry.fromJson(jsonObject);
     }
-
 
     @Test
     public void toJsonWithSchemaVersion1ReturnsJsonObjectWithRegularFieldsOnly() throws JSONException {
@@ -197,13 +179,12 @@ public final class ImmutableAclEntryTest {
         final AclEntry underTest = ImmutableAclEntry.of(authorizationSubject, Permission.READ, Permission.WRITE);
         final JsonObject actualJsonObject = underTest.toJson(schemaVersion, FieldType.notHidden());
 
-        final JsonObject expectedJsonObject = JsonFactory.newObjectBuilder() //
-                .set(JsonFactory.newKey(authorizationSubject.getId()),
-                        JsonFactory.newObjectBuilder() //
-                                .set(Permission.READ.toJsonKey(), true) //
-                                .set(Permission.WRITE.toJsonKey(), true) //
-                                .set(Permission.ADMINISTRATE.toJsonKey(), false) //
-                                .build()) //
+        final JsonObject expectedJsonObject = JsonFactory.newObjectBuilder()
+                .set(JsonFactory.newKey(authorizationSubject.getId()), JsonFactory.newObjectBuilder()
+                        .set(Permission.READ.toJsonKey(), true)
+                        .set(Permission.WRITE.toJsonKey(), true)
+                        .set(Permission.ADMINISTRATE.toJsonKey(), false)
+                        .build())
                 .build();
 
         JSONAssert.assertEquals(actualJsonObject.toString(), expectedJsonObject.toString(),
@@ -215,4 +196,5 @@ public final class ImmutableAclEntryTest {
     public void createAuthorizationSubjectContainsSlash() {
         AuthorizationSubject.newInstance("slash/separated");
     }
+
 }

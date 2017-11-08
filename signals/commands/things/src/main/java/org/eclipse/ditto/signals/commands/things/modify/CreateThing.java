@@ -153,8 +153,7 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
 
     @Override
     public String getThingId() {
-        //noinspection ConstantConditions
-        return thing.getId().get();
+        return thing.getId().orElseThrow(() -> new NullPointerException("Thing has no ID!"));
     }
 
     @Override

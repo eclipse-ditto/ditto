@@ -167,12 +167,18 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     }
 
     @Override
-    public S authorizationSubjects(final String authorizationSubject, final String... furtherAuthorizationSubjects) {
+    public S authorizationSubjects(final CharSequence authorizationSubject,
+            final CharSequence... furtherAuthorizationSubjects) {
+
         checkNotNull(authorizationSubject, "Authorization Subject ID");
         checkNotNull(furtherAuthorizationSubjects, "further Authorization Subject IDs");
+
         final Collection<String> allAuthorizationSubjects = new ArrayList<>(1 + furtherAuthorizationSubjects.length);
-        allAuthorizationSubjects.add(authorizationSubject);
-        Collections.addAll(allAuthorizationSubjects, furtherAuthorizationSubjects);
+        allAuthorizationSubjects.add(authorizationSubject.toString());
+        for (final CharSequence furtherAuthorizationSubject : furtherAuthorizationSubjects) {
+            checkNotNull(furtherAuthorizationSubject, "further Authorization Subject ID");
+            allAuthorizationSubjects.add(furtherAuthorizationSubject.toString());
+        }
 
         return authorizationSubjects(allAuthorizationSubjects);
     }

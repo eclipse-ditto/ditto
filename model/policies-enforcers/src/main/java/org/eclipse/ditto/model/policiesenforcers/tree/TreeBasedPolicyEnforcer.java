@@ -13,6 +13,7 @@ package org.eclipse.ditto.model.policiesenforcers.tree;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -20,6 +21,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -76,11 +78,9 @@ public final class TreeBasedPolicyEnforcer implements PolicyEnforcer {
         final Map<String, PolicyTreeNode> tree = new HashMap<>();
 
         policy.getEntriesSet().forEach(policyEntry ->
-                policyEntry.getSubjects().forEach(subject ->
-                {
+                policyEntry.getSubjects().forEach(subject -> {
                     final PolicyTreeNode parentNode = Optional.ofNullable(tree.get(subject.getId().toString())).
-                            orElseGet(() ->
-                            {
+                            orElseGet(() -> {
                                 final PolicyTreeNode subjectNode = SubjectNode.of(subject.getId().toString());
                                 tree.put(subject.getId().toString(), subjectNode);
                                 return subjectNode;
@@ -88,15 +88,14 @@ public final class TreeBasedPolicyEnforcer implements PolicyEnforcer {
 
                     policyEntry.getResources().forEach(resource -> {
                                 final ResourceNode rootChild = (ResourceNode) parentNode.getChild(resource.getType())
-                                        .orElseGet(() ->
-                                        {
+                                        .orElseGet(() -> {
                                             final ResourceNode child = ResourceNode.of(parentNode, resource.getType(),
                                                     EffectedPermissions.newInstance(new ArrayList<>(), new ArrayList<>()));
                                             parentNode.addChild(child);
                                             return child;
                                         });
                                 addResourceSubTree(rootChild, resource, resource.getPath());
-                          }
+                            }
                     );
                 })
         );
@@ -108,19 +107,23 @@ public final class TreeBasedPolicyEnforcer implements PolicyEnforcer {
             final JsonPointer path) {
 
         if (path.getLevelCount() == 1 || ROOT_RESOURCE.equals(path.toString())) {
-            final String usedPath = ROOT_RESOURCE.equals(path.toString()) ? ROOT_RESOURCE : path.getRoot().get()
-                    .toString();
+            final String usedPath = ROOT_RESOURCE.equals(path.toString()) ? ROOT_RESOURCE : path.getRoot()
+                    .map(JsonKey::toString)
+                    .orElseThrow(() -> new NullPointerException("Path did not contain a root!"));
 
             if (usedPath.equals(ROOT_RESOURCE)) {
-                parentNode.getParent().ifPresent(p -> mergePermissions(resource, p, parentNode));
+                parentNode.getParent().ifPresent(p -> mergePermissions(resource, parentNode));
             } else if (!parentNode.getChild(usedPath).isPresent()) {
-                final PolicyTreeNode newChild =
-                        ResourceNode.of(parentNode, usedPath, resource.getEffectedPermissions());
-                parentNode.addChild(newChild);
+                parentNode.addChild(ResourceNode.of(parentNode, usedPath, resource.getEffectedPermissions()));
             } else {
-                final ResourceNode existingChild = (ResourceNode) parentNode.getChild(usedPath).get();
+                final ResourceNode existingChild = parentNode.getChild(usedPath)
+                        .map(ResourceNode.class::cast)
+                        .orElseThrow(() -> {
+                            final String msgPattern = "Parent node did not contain a child for path <{}>!";
+                            return new NullPointerException(MessageFormat.format(msgPattern, usedPath));
+                        });
 
-                mergePermissions(resource, parentNode, existingChild);
+                mergePermissions(resource, existingChild);
             }
         } else {
             final String pathRootAsString = path.getRoot()
@@ -135,8 +138,7 @@ public final class TreeBasedPolicyEnforcer implements PolicyEnforcer {
         }
     }
 
-    private static void mergePermissions(final Resource resource, final PolicyTreeNode parentNode,
-            final ResourceNode existingChild) {
+    private static void mergePermissions(final Resource resource, final ResourceNode existingChild) {
         final EffectedPermissions existingChildPermissions = existingChild.getPermissions();
         final Collection<String> mergedGrantedPermissions =
                 new HashSet<>(existingChildPermissions.getGrantedPermissions());
@@ -149,13 +151,6 @@ public final class TreeBasedPolicyEnforcer implements PolicyEnforcer {
         if (!resource.getEffectedPermissions().getGrantedPermissions().isEmpty()) {
             mergedGrantedPermissions.addAll(resource.getEffectedPermissions().getGrantedPermissions());
         }
-//        if (parentNode instanceof ResourceNode) {
-//            final ResourceNode parentResourceNode = (ResourceNode) parentNode;
-//            if (parentResourceNode.isGranted(Permission.READ)) {
-//                mergedGrantedPermissions.add(Permission.READ);
-//            }
-//        }
-        // can we get rid of the above? should not know anything about the "READ" semantics!
 
         existingChild.setPermissions(
                 EffectedPermissions.newInstance(mergedGrantedPermissions, mergedRevokedPermissions));
@@ -299,19 +294,23 @@ public final class TreeBasedPolicyEnforcer implements PolicyEnforcer {
                     final JsonPointer pointer = pointerAndValue.pointer;
 
                     for (int i = 1; i <= pointer.getLevelCount(); i++) {
-                        if (containsPrefixPointer(pointer.getPrefixPointer(i).get(), grantedResources)) {
+                        if (containsPrefixPointer(getPrefixPointerOrThrow(pointer, i), grantedResources)) {
                             accessible = true;
                         }
                         // no else if -> revoked counts more on the same level.
-                        if (containsPrefixPointer(pointer.getPrefixPointer(i).get(), revokedResources)) {
+                        if (containsPrefixPointer(getPrefixPointerOrThrow(pointer, i), revokedResources)) {
                             accessible = false;
                         }
                     }
                     return accessible;
                 })
-                .forEach(pointerAndValue ->
-                        builder.set(resourcePath.append(pointerAndValue.pointer.getSubPointer(levelCount).get()),
-                                pointerAndValue.value));
+                .forEach(pointerAndValue -> {
+                    final JsonPointer subPointer = pointerAndValue.pointer.getSubPointer(levelCount).orElseThrow(() -> {
+                        final String msgPattern = "JsonPointer did not contain a sub-pointer for level <{0}>!";
+                        return new NullPointerException(MessageFormat.format(msgPattern, levelCount));
+                    });
+                    builder.set(resourcePath.append(subPointer), pointerAndValue.value);
+                });
 
         return builder.build();
     }
@@ -322,6 +321,13 @@ public final class TreeBasedPolicyEnforcer implements PolicyEnforcer {
                 .isPresent();
     }
 
+    private static JsonPointer getPrefixPointerOrThrow(final JsonPointer pointer, final int level) {
+        return pointer.getPrefixPointer(level).orElseThrow(() -> {
+            final String msgPatten = "JsonPointer did not contain a prefix pointer for level <{0}>!";
+            return new NullPointerException(MessageFormat.format(msgPatten, level));
+        });
+    }
+
     private static boolean containsPrefixPointer(final JsonPointer prefix, final Collection<JsonPointer> resources) {
         return resources.stream().anyMatch(p -> p.equals(prefix));
     }
@@ -329,7 +335,7 @@ public final class TreeBasedPolicyEnforcer implements PolicyEnforcer {
     private EffectedResources getGrantedAndRevokedSubResource(
             final JsonPointer resource,
             final String type,
-            final Collection<String> subjectIds,
+            final Iterable<String> subjectIds,
             final Permissions permissions) {
 
         final Set<PointerAndPermission> revokedResources = new HashSet<>();
@@ -360,7 +366,8 @@ public final class TreeBasedPolicyEnforcer implements PolicyEnforcer {
                     if (revokedResources.stream().noneMatch(rp -> resource.getLevelCount() > pointer.getLevelCount()
                             && rp.permission.equals(pp.permission)
                             && rp.pointer.getLevelCount() >= pointer.getLevelCount()
-                            && rp.pointer.getPrefixPointer(pointer.getLevelCount()).get().equals(pointer))) {
+                            && Objects.equals(getPrefixPointerOrThrow(rp.pointer, pointer.getLevelCount()), pointer)
+                    )) {
                         cleared.add(pp);
                     }
                 }
@@ -371,6 +378,7 @@ public final class TreeBasedPolicyEnforcer implements PolicyEnforcer {
 
     private static Set<PointerAndPermission> retainElements(final Collection<PointerAndPermission> grans1,
             final Collection<PointerAndPermission> grans2) {
+
         final Set<JsonPointer> grans2Pointers = grans2.stream().map(pp -> pp.pointer).collect(Collectors.toSet());
         return grans1.stream().filter(pp -> grans2Pointers.contains(pp.pointer)).collect(Collectors.toSet());
     }
@@ -386,13 +394,14 @@ public final class TreeBasedPolicyEnforcer implements PolicyEnforcer {
      * @return the EffectedResources.
      */
     private EffectedResources checkPermissionOnAnySubResource(final JsonPointer resourcePath,
-            final String resourceType, final Collection<String> subjectIds, final String permission) {
+            final String resourceType,
+            final Iterable<String> subjectIds,
+            final String permission) {
+
         final Set<PointerAndPermission> grantedResources = new HashSet<>();
         final Set<PointerAndPermission> revokedResources = new HashSet<>();
-        subjectIds.forEach(s ->
-                traverseSubtreeForPermissionAccess(
-                        permission, resourcePath, resourceType, tree.get(s), grantedResources, revokedResources, 0,
-                        true));
+        subjectIds.forEach(s -> traverseSubtreeForPermissionAccess(permission, resourcePath, resourceType, tree.get(s),
+                grantedResources, revokedResources, 0, true));
         return EffectedResources.of(grantedResources, revokedResources);
     }
 
@@ -409,13 +418,13 @@ public final class TreeBasedPolicyEnforcer implements PolicyEnforcer {
             return;
         }
         if (policyTreeNode instanceof SubjectNode) {
+            final Optional<PolicyTreeNode> nodeChildOptional = policyTreeNode.getChild(type);
             if (ROOT_RESOURCE.equals(resource.toString())) {
-                if (policyTreeNode.getChild(type).isPresent()) {
-                    traverseSubtreeForPermissionAccess(permission, resource, type, policyTreeNode.getChild(type).get(),
-                            grantedResources, revokedResources, level, false);
-                }
-            } else if (policyTreeNode.getChild(type).isPresent()) {
-                traverseSubtreeForPermissionAccess(permission, resource, type, policyTreeNode.getChild(type).get(),
+                nodeChildOptional.ifPresent(
+                        policyTreeNode1 -> traverseSubtreeForPermissionAccess(permission, resource, type,
+                                policyTreeNode1, grantedResources, revokedResources, level, false));
+            } else if (nodeChildOptional.isPresent()) {
+                traverseSubtreeForPermissionAccess(permission, resource, type, nodeChildOptional.get(),
                         grantedResources, revokedResources, level, true);
             } else {
                 resource.get(level).ifPresent(jsonKey -> policyTreeNode.getChild(jsonKey.toString())
@@ -427,8 +436,9 @@ public final class TreeBasedPolicyEnforcer implements PolicyEnforcer {
 
             addPermission(permission, resource, grantedResources, revokedResources, level, resourceNode);
 
-            if (followingResource && resource.get(level).isPresent()) {
-                policyTreeNode.getChild(resource.get(level).get().toString())
+            final Optional<JsonKey> jsonKeyOptional = resource.get(level);
+            if (followingResource && jsonKeyOptional.isPresent()) {
+                policyTreeNode.getChild(jsonKeyOptional.get().toString())
                         .ifPresent(child -> traverseSubtreeForPermissionAccess(permission, resource, type, child,
                                 grantedResources, revokedResources, level + 1, true));
             } else {
@@ -449,7 +459,7 @@ public final class TreeBasedPolicyEnforcer implements PolicyEnforcer {
 
         final JsonPointer resourceToAdd = ROOT_RESOURCE.equals(resource.toString())
                 ? JsonFactory.newPointer(ROOT_RESOURCE)
-                : resource.getPrefixPointer(level).get();
+                : getPrefixPointerOrThrow(resource, level);
         final EffectedPermissions effectedPermissions = resourceNode.getPermissions();
         if (effectedPermissions.getGrantedPermissions().contains(permission)) {
             grantedResources.add(new PointerAndPermission(resourceToAdd, permission));

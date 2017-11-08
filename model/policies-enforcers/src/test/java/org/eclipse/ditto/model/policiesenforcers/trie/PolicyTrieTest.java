@@ -32,7 +32,6 @@ import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.model.policies.Resources;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
-import org.eclipse.ditto.model.policies.SubjectType;
 import org.eclipse.ditto.model.policiesenforcers.TestConstants;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -68,8 +67,7 @@ public final class PolicyTrieTest {
         policy = Policy.newBuilder(TestConstants.Policy.POLICY_ID)
                 .set(PoliciesModelFactory.newPolicyEntry(PoliciesModelFactory.newLabel(fooResourcePath.toString()),
                         PoliciesModelFactory.newSubjects(
-                                PoliciesModelFactory.newSubject(TestConstants.Policy.SUBJECT_ID,
-                                        SubjectType.JWT)),
+                                PoliciesModelFactory.newSubject(TestConstants.Policy.SUBJECT_ID)),
                         Resources.newInstance(
                                 Resource.newInstance(fooResourceKey,
                                         EffectedPermissions.newInstance(Collections.singleton("WRITE"),
@@ -79,7 +77,7 @@ public final class PolicyTrieTest {
                                                 Collections.emptySet())))))
                 .set(PoliciesModelFactory.newPolicyEntry(PoliciesModelFactory.newLabel(barResourcePath.toString()),
                         PoliciesModelFactory.newSubjects(
-                                PoliciesModelFactory.newSubject(johnTitor, SubjectType.JWT)),
+                                PoliciesModelFactory.newSubject(johnTitor)),
                         Resources.newInstance(
                                 Resource.newInstance(ResourceKey.newInstance(TestConstants.Policy.RESOURCE_TYPE, fooResourcePath),
                                         EffectedPermissions.newInstance(Collections.singleton("READ"),

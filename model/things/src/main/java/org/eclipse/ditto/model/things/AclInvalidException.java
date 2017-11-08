@@ -14,6 +14,7 @@ package org.eclipse.ditto.model.things;
 import java.net.URI;
 import java.text.MessageFormat;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -44,8 +45,12 @@ public final class AclInvalidException extends DittoRuntimeException implements 
 
     private static final long serialVersionUID = -6048986750382302079L;
 
-    private AclInvalidException(final DittoHeaders dittoHeaders, final String message, final String description,
-            final Throwable cause, final URI href) {
+    private AclInvalidException(final DittoHeaders dittoHeaders,
+            @Nullable final String message,
+            @Nullable final String description,
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
+
         super(ERROR_CODE, HttpStatusCode.BAD_REQUEST, dittoHeaders, message, description, cause, href);
     }
 
@@ -55,7 +60,7 @@ public final class AclInvalidException extends DittoRuntimeException implements 
      * @param thingId the identifier of the Thing.
      * @return the builder.
      */
-    public static Builder newBuilder(final String thingId) {
+    public static Builder newBuilder(@Nullable final String thingId) {
         return new Builder(thingId);
     }
 
@@ -102,16 +107,21 @@ public final class AclInvalidException extends DittoRuntimeException implements 
             description(DEFAULT_DESCRIPTION);
         }
 
-        private Builder(final String thingId) {
+        private Builder(@Nullable final String thingId) {
             this();
             message(MessageFormat.format(MESSAGE_TEMPLATE, thingId));
         }
 
         @Override
-        protected AclInvalidException doBuild(final DittoHeaders dittoHeaders, final String message,
-                final String description, final Throwable cause, final URI href) {
+        protected AclInvalidException doBuild(final DittoHeaders dittoHeaders,
+                @Nullable final String message,
+                @Nullable final String description,
+                @Nullable final Throwable cause,
+                @Nullable final URI href) {
+
             return new AclInvalidException(dittoHeaders, message, description, cause, href);
         }
+
     }
 
 }

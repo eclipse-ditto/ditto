@@ -13,6 +13,7 @@ package org.eclipse.ditto.signals.commands.things.query;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -78,8 +79,10 @@ public final class RetrieveThings extends AbstractCommand<RetrieveThings>
         this(builder.thingIds, builder.selectedFields, builder.namespace, builder.dittoHeaders);
     }
 
-    private RetrieveThings(final List<String> thingIds, @Nullable final JsonFieldSelector selectedFields,
-            @Nullable final String namespace, final DittoHeaders dittoHeaders) {
+    private RetrieveThings(final List<String> thingIds,
+            @Nullable final JsonFieldSelector selectedFields,
+            @Nullable final String namespace,
+            final DittoHeaders dittoHeaders) {
 
         super(TYPE, dittoHeaders);
 
@@ -89,13 +92,15 @@ public final class RetrieveThings extends AbstractCommand<RetrieveThings>
     }
 
     @Nullable
-    private String checkForDistinctNamespace(@Nullable final String providedNamespace, final List<String> thingIds) {
+    private static String checkForDistinctNamespace(@Nullable final String providedNamespace,
+            final Collection<String> thingIds) {
+
         if (providedNamespace != null) {
-            final List<String> distinctNamespaces = thingIds.stream()//
-                    .map(id -> id.split(":")) //
-                    .filter(parts -> parts.length > 1) //
-                    .map(parts -> parts[0]) //
-                    .distinct() //
+            final List<String> distinctNamespaces = thingIds.stream()
+                    .map(id -> id.split(":"))
+                    .filter(parts -> parts.length > 1)
+                    .map(parts -> parts[0])
+                    .distinct()
                     .collect(Collectors.toList());
 
             if (distinctNamespaces.size() != 1) {
@@ -309,7 +314,7 @@ public final class RetrieveThings extends AbstractCommand<RetrieveThings>
             this.thingIds = new ArrayList<>(thingIds);
             dittoHeaders = retrieveThings.getDittoHeaders();
             selectedFields = retrieveThings.getSelectedFields().orElse(null);
-            namespace = retrieveThings.getNamespace().get();
+            namespace = retrieveThings.getNamespace().orElse(null);
         }
 
         /**
@@ -372,6 +377,7 @@ public final class RetrieveThings extends AbstractCommand<RetrieveThings>
         public RetrieveThings build() {
             return new RetrieveThings(this);
         }
+
     }
 
 }

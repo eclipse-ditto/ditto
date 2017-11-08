@@ -13,6 +13,7 @@ package org.eclipse.ditto.services.gateway.security.cache;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.argumentNotNull;
 
 import java.security.PublicKey;
 import java.text.MessageFormat;
@@ -52,7 +53,7 @@ public class PublicKeyCache implements Cache<String, PublicKey> {
      * @return a new PublicKeyCache.
      */
     public static Cache<String, PublicKey> newInstance(final int maxCacheEntries, final Duration expiry) {
-        return new PublicKeyCache(initCache(maxCacheEntries, expiry));
+        return new PublicKeyCache(initCache(maxCacheEntries, argumentNotNull(expiry)));
     }
 
     private static com.google.common.cache.Cache<String, PublicKey> initCache(final int maxCacheEntries,

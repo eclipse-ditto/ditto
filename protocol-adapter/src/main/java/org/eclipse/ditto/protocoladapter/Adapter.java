@@ -26,7 +26,7 @@ public interface Adapter<T extends Jsonifiable> {
      * @param adaptable the adaptable to map.
      * @return the mapped object.
      */
-    T fromAdaptable(final Adaptable adaptable);
+    T fromAdaptable(Adaptable adaptable);
 
     /**
      * Maps the given {@code t} to it's corresponding {@code Adaptable} using the

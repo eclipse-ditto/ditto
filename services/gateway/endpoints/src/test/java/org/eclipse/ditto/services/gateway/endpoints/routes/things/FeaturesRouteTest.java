@@ -208,7 +208,7 @@ public final class FeaturesRouteTest extends EndpointTestBase {
         final TestRouteResult result = underTest.run(HttpRequest.POST(FEATURE_ENTRY_INBOX_MESSAGES_PATH + "/" +
                 KNOWN_SUBJECT)
                 .withEntity(messageContent));
-        result.assertStatusCode(StatusCodes.ACCEPTED);
+        result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
     }
 
     @Test

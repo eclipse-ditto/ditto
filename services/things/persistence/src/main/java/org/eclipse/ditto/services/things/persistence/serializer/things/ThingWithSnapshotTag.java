@@ -19,6 +19,7 @@ import java.util.Optional;
 import java.util.function.Predicate;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonField;
@@ -49,7 +50,6 @@ public final class ThingWithSnapshotTag implements Thing {
     private final SnapshotTag snapshotTag;
 
     private ThingWithSnapshotTag(final Thing theDelegee, final SnapshotTag theSnapshotTag) {
-
         delegee = theDelegee;
         snapshotTag = theSnapshotTag;
     }
@@ -64,7 +64,6 @@ public final class ThingWithSnapshotTag implements Thing {
      */
     @Nonnull
     public static ThingWithSnapshotTag newInstance(final Thing delegee, final SnapshotTag snapshotTag) {
-
         checkNotNull(delegee, "delegee");
         checkNotNull(snapshotTag, "snapshot tag");
 
@@ -111,7 +110,7 @@ public final class ThingWithSnapshotTag implements Thing {
     }
 
     @Override
-    public Thing setAttributes(final Attributes attributes) {
+    public Thing setAttributes(@Nullable final Attributes attributes) {
         return replaceDelegee(delegee.setAttributes(attributes));
     }
 
@@ -145,7 +144,7 @@ public final class ThingWithSnapshotTag implements Thing {
     }
 
     @Override
-    public Thing setFeatures(final Features features) {
+    public Thing setFeatures(@Nullable final Features features) {
         return replaceDelegee(delegee.setFeatures(features));
     }
 
@@ -206,7 +205,7 @@ public final class ThingWithSnapshotTag implements Thing {
     }
 
     @Override
-    public Thing setPolicyId(final String policyId) {
+    public Thing setPolicyId(@Nullable final String policyId) {
         return replaceDelegee(delegee.setPolicyId(policyId));
     }
 

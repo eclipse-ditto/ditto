@@ -40,8 +40,8 @@ import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
  * Response to a {@link ModifyThing} command.
  */
 @Immutable
-public final class ModifyThingResponse extends AbstractCommandResponse<ModifyThingResponse> implements
-        ThingModifyCommandResponse<ModifyThingResponse> {
+public final class ModifyThingResponse extends AbstractCommandResponse<ModifyThingResponse>
+        implements ThingModifyCommandResponse<ModifyThingResponse> {
 
     /**
      * Type of this response.
@@ -75,7 +75,8 @@ public final class ModifyThingResponse extends AbstractCommandResponse<ModifyThi
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static ModifyThingResponse created(final Thing thing, final DittoHeaders dittoHeaders) {
-        return new ModifyThingResponse(thing.getId().get(), HttpStatusCode.CREATED, thing, dittoHeaders);
+        final String thingId = thing.getId().orElseThrow(() -> new NullPointerException("Thing has no ID!"));
+        return new ModifyThingResponse(thingId, HttpStatusCode.CREATED, thing, dittoHeaders);
     }
 
     /**
@@ -118,7 +119,7 @@ public final class ModifyThingResponse extends AbstractCommandResponse<ModifyThi
      */
     public static ModifyThingResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<ModifyThingResponse>(TYPE, jsonObject)
-                .deserialize((statusCode) -> {
+                .deserialize(statusCode -> {
                     final String thingId =
                             jsonObject.getValueOrThrow(ThingModifyCommandResponse.JsonFields.JSON_THING_ID);
                     final Thing extractedThingCreated = jsonObject.getValue(JSON_THING)

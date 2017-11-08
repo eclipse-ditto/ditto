@@ -12,6 +12,9 @@
 package org.eclipse.ditto.services.models.policies;
 
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
+import static org.eclipse.ditto.services.models.policies.TestConstants.Policy.PERMISSION_READ;
+import static org.eclipse.ditto.services.models.policies.TestConstants.Policy.PERMISSION_WRITE;
+import static org.eclipse.ditto.services.models.policies.TestConstants.Policy.SUBJECT_ISSUER;
 import static org.junit.Assert.assertEquals;
 
 import java.text.MessageFormat;
@@ -27,8 +30,6 @@ import org.eclipse.ditto.model.policies.PolicyEntry;
 import org.eclipse.ditto.model.policies.Resource;
 import org.eclipse.ditto.model.policies.Subject;
 import org.eclipse.ditto.model.policies.SubjectId;
-import org.eclipse.ditto.model.policies.SubjectIssuer;
-import org.eclipse.ditto.model.policies.SubjectType;
 import org.junit.Test;
 
 /**
@@ -38,8 +39,8 @@ public class PoliciesValidatorTest {
 
     @Test
     public void validatePoliciesSuccess() {
-        final PolicyEntry entry = createPolicyEntry(TestConstants.Policy.PERMISSION_READ,
-                TestConstants.Policy.PERMISSION_WRITE);
+        final PolicyEntry entry = createPolicyEntry(PERMISSION_READ,
+                PERMISSION_WRITE);
         final PoliciesValidator validator =
                 PoliciesValidator.newInstance(Collections.singletonList(entry));
 
@@ -49,7 +50,7 @@ public class PoliciesValidatorTest {
 
     @Test
     public void validatePoliciesFailure() {
-        final PolicyEntry entry = createPolicyEntry(TestConstants.Policy.PERMISSION_READ);
+        final PolicyEntry entry = createPolicyEntry(PERMISSION_READ);
         final PoliciesValidator validator =
                 PoliciesValidator.newInstance(Collections.singletonList(entry));
 
@@ -57,14 +58,14 @@ public class PoliciesValidatorTest {
         assertThat(validator.getReason()).isPresent();
         assertThat(validator.getReason().get()).isEqualTo(
                 MessageFormat.format("It must contain at least one Subject with permission(s) <{0}> on resource <{1}>!",
-                        Permissions.newInstance(TestConstants.Policy.PERMISSION_WRITE), PoliciesResourceType.policyResource("/")));
+                        Permissions.newInstance(PERMISSION_WRITE), PoliciesResourceType.policyResource("/")));
     }
 
     private PolicyEntry createPolicyEntry(final String... permissions) {
         final AuthorizationSubject authorizationSubject = AuthorizationSubject.newInstance("134233");
         final SubjectId subjectId =
-                PoliciesModelFactory.newSubjectId(SubjectIssuer.GOOGLE_URL, authorizationSubject.getId());
-        final Subject subject = PoliciesModelFactory.newSubject(subjectId, SubjectType.JWT);
+                PoliciesModelFactory.newSubjectId(SUBJECT_ISSUER, authorizationSubject.getId());
+        final Subject subject = PoliciesModelFactory.newSubject(subjectId);
         final Iterable<String> grantedPermissions = Arrays.asList(permissions);
 
         final Resource resource1 = PoliciesModelFactory.newResource(PoliciesResourceType.policyResource("/"),

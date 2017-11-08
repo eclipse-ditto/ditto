@@ -13,12 +13,14 @@ package org.eclipse.ditto.services.gateway.starter;
 
 import java.net.ConnectException;
 import java.time.Duration;
+import java.util.Collections;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.policies.SubjectIssuer;
 import org.eclipse.ditto.services.gateway.endpoints.routes.RootRoute;
 import org.eclipse.ditto.services.gateway.proxy.actors.AclEnforcerActor;
 import org.eclipse.ditto.services.gateway.proxy.actors.EnforcerLookupActor;
@@ -159,7 +161,8 @@ final class GatewayRootActor extends AbstractActor {
 
         final Props aclEnforcerProps =
                 AclEnforcerActor.props(pubSubMediator, thingsShardRegionProxy, policiesShardRegionProxy,
-                        thingCacheFacade, enforcerCacheInterval, enforcerInternalAskTimeout);
+                        thingCacheFacade, enforcerCacheInterval, enforcerInternalAskTimeout, Collections
+                                .singletonList(SubjectIssuer.GOOGLE_URL));
         aclEnforcerShardRegion = ClusterSharding.get(this.getContext().system())
                 .start(ACL_ENFORCER_SHARD_REGION, aclEnforcerProps, shardingSettings,
                         ShardRegionExtractor.of(numberOfShards, getContext().getSystem()));

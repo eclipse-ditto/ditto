@@ -78,6 +78,7 @@ public enum MessageHeaderDefinition implements HeaderDefinition {
      * Key: {@code "timeout"}, Java type: {@code long}.
      */
     TIMEOUT("timeout", long.class) {
+        @SuppressWarnings({"squid:S2201", "ResultOfMethodCallIgnored"})
         @Override
         public void validateValue(@Nullable final CharSequence value) {
             super.validateValue(value);
@@ -96,11 +97,12 @@ public enum MessageHeaderDefinition implements HeaderDefinition {
      * Key: {@code "timestamp"}, Java type: String.
      */
     TIMESTAMP("timestamp", String.class) {
+        @SuppressWarnings({"squid:S2201", "ResultOfMethodCallIgnored"})
         @Override
         public void validateValue(@Nullable final CharSequence value) {
             super.validateValue(value);
             try {
-                OffsetDateTime.parse(value);
+                OffsetDateTime.parse(String.valueOf(value));
             } catch (final DateTimeParseException e) {
                 final String msgTemplate = "<{0}> is not a valid timestamp!";
                 throw new IllegalArgumentException(MessageFormat.format(msgTemplate, value), e);
@@ -114,6 +116,7 @@ public enum MessageHeaderDefinition implements HeaderDefinition {
      * Key: {@code "status"}, Java type: {@code int}.
      */
     STATUS_CODE("status", int.class) {
+        @SuppressWarnings({"squid:S2201", "ResultOfMethodCallIgnored"})
         @Override
         public void validateValue(@Nullable final CharSequence value) {
             super.validateValue(value);

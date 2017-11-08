@@ -15,6 +15,7 @@ import static org.eclipse.ditto.model.policies.TestConstants.Policy.PERMISSION_R
 import static org.eclipse.ditto.model.policies.TestConstants.Policy.PERMISSION_WRITE;
 import static org.eclipse.ditto.model.policies.TestConstants.Policy.RESOURCE_PATH;
 import static org.eclipse.ditto.model.policies.TestConstants.Policy.RESOURCE_TYPE;
+import static org.eclipse.ditto.model.policies.TestConstants.Policy.SUBJECT;
 import static org.eclipse.ditto.model.policies.assertions.DittoPolicyAssertions.assertThat;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
@@ -23,7 +24,6 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.junit.Test;
@@ -54,8 +54,7 @@ public final class ImmutablePolicyEntryTest {
     @Test
     public void testToAndFromJson() {
         final PolicyEntry policyEntry = ImmutablePolicyEntry.of(LABEL_END_USER,
-                Subjects.newInstance(Subject.newInstance(SubjectId.newInstance(SubjectIssuer.GOOGLE_URL, "myself"),
-                        SubjectType.JWT)),
+                Subjects.newInstance(SUBJECT),
                 Resources.newInstance(
                         Resource.newInstance(RESOURCE_TYPE, RESOURCE_PATH, EffectedPermissions.newInstance(
                                 Permissions.newInstance(PERMISSION_READ),
@@ -94,10 +93,7 @@ public final class ImmutablePolicyEntryTest {
                 .set(LABEL_END_USER, JsonFactory.newObjectBuilder()
                         .set(PolicyEntry.JsonFields.SCHEMA_VERSION, JsonSchemaVersion.V_2.toInt())
                         .set(PolicyEntry.JsonFields.SUBJECTS,
-                                Subjects.newInstance(Subject.newInstance(
-                                        SubjectId.newInstance(SubjectIssuer.GOOGLE_URL, "myself"),
-                                        SubjectType.JWT))
-                                        .toJson())
+                                Subjects.newInstance(SUBJECT).toJson())
                         .set(PolicyEntry.JsonFields.RESOURCES,
                                 Resources.newInstance(Resource.newInstance(RESOURCE_TYPE, RESOURCE_PATH,
                                         EffectedPermissions.newInstance(
@@ -108,10 +104,7 @@ public final class ImmutablePolicyEntryTest {
                 .set("Support", JsonFactory.newObjectBuilder()
                         .set(PolicyEntry.JsonFields.SCHEMA_VERSION, JsonSchemaVersion.V_2.toInt())
                         .set(PolicyEntry.JsonFields.SUBJECTS,
-                                Subjects.newInstance(Subject.newInstance(
-                                        SubjectId.newInstance(SubjectIssuer.GOOGLE_URL, "myself"),
-                                        SubjectType.JWT))
-                                        .toJson())
+                                Subjects.newInstance(SUBJECT).toJson())
                         .set(PolicyEntry.JsonFields.RESOURCES,
                                 Resources.newInstance(Resource.newInstance(RESOURCE_TYPE, RESOURCE_PATH,
                                         EffectedPermissions.newInstance(
@@ -121,10 +114,8 @@ public final class ImmutablePolicyEntryTest {
                         .build())
                 .build();
 
-        final PolicyEntry policyEntry = ImmutablePolicyEntry.fromJson(LABEL_END_USER, jsonObject.getValue(LABEL_END_USER)
-                .filter(JsonValue::isObject)
-                .map(JsonValue::asObject)
-                .orElse(null));
+        final PolicyEntry policyEntry = ImmutablePolicyEntry.fromJson(LABEL_END_USER,
+                jsonObject.getValueOrThrow(LABEL_END_USER.getJsonFieldDefinition()));
 
         assertThat(policyEntry.getLabel()).isEqualTo(LABEL_END_USER);
     }

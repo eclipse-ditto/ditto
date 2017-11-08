@@ -197,6 +197,11 @@ abstract class AbstractAdapter<T extends Jsonifiable> implements Adapter<T> {
 
     protected abstract String getType(final Adaptable adaptable);
 
+    protected static TopicPath.Action getAction(final TopicPath topicPath) {
+        return topicPath.getAction()
+                .orElseThrow(() -> new NullPointerException("TopicPath did not contain an Action!"));
+    }
+
     @Override
     public T fromAdaptable(final Adaptable adaptable) {
         final String type = getType(adaptable);
@@ -215,8 +220,8 @@ abstract class AbstractAdapter<T extends Jsonifiable> implements Adapter<T> {
      * @param s the String.
      * @return the upper case String.
      */
-    protected String upperCaseFirst(final String s) {
-        if (s.length() == 0) {
+    protected static String upperCaseFirst(final String s) {
+        if (s.isEmpty()) {
             return s;
         }
 
@@ -230,26 +235,30 @@ abstract class AbstractAdapter<T extends Jsonifiable> implements Adapter<T> {
      */
     static final class PathMatcher {
 
-        static final Map<String, Pattern> pattern = new HashMap<>();
+        static final Map<String, Pattern> PATTERN = new HashMap<>();
 
         static {
-            pattern.put("thing", java.util.regex.Pattern.compile("^/$"));
-            pattern.put("acl", java.util.regex.Pattern.compile("^/acl$"));
-            pattern.put("aclEntry", java.util.regex.Pattern.compile("^/acl/[^/]*$"));
-            pattern.put("policyId", java.util.regex.Pattern.compile("^/policyId$"));
-            pattern.put("policy", java.util.regex.Pattern.compile("^/_policy"));
-            pattern.put("policyEntries", java.util.regex.Pattern.compile("^/_policy/entries$"));
-            pattern.put("policyEntry", java.util.regex.Pattern.compile("^/_policy/entries/.*$"));
-            pattern.put("policyEntrySubjects", java.util.regex.Pattern.compile("^/_policy/entries/[^/]*/subjects$"));
-            pattern.put("policyEntrySubject", java.util.regex.Pattern.compile("^/_policy/entries/[^/]*/subjects/.*$"));
-            pattern.put("policyEntryResources", java.util.regex.Pattern.compile("^/_policy/entries/[^/]*/resources$"));
-            pattern.put("policyEntryResource", java.util.regex.Pattern.compile("^/_policy/entries/[^/]*/resources/.*$"));
-            pattern.put("attributes", java.util.regex.Pattern.compile("^/attributes$"));
-            pattern.put("attribute", java.util.regex.Pattern.compile("^/attributes/.*$"));
-            pattern.put("features", java.util.regex.Pattern.compile("^/features$"));
-            pattern.put("feature", java.util.regex.Pattern.compile("^/features/[^/]*$"));
-            pattern.put("featureProperties", java.util.regex.Pattern.compile("^/features/[^/]*/properties$"));
-            pattern.put("featureProperty", java.util.regex.Pattern.compile("^/features/[^/]*/properties/.*$"));
+            PATTERN.put("thing", java.util.regex.Pattern.compile("^/$"));
+            PATTERN.put("acl", java.util.regex.Pattern.compile("^/acl$"));
+            PATTERN.put("aclEntry", java.util.regex.Pattern.compile("^/acl/[^/]*$"));
+            PATTERN.put("policyId", java.util.regex.Pattern.compile("^/policyId$"));
+            PATTERN.put("policy", java.util.regex.Pattern.compile("^/_policy"));
+            PATTERN.put("policyEntries", java.util.regex.Pattern.compile("^/_policy/entries$"));
+            PATTERN.put("policyEntry", java.util.regex.Pattern.compile("^/_policy/entries/.*$"));
+            PATTERN.put("policyEntrySubjects", java.util.regex.Pattern.compile("^/_policy/entries/[^/]*/subjects$"));
+            PATTERN.put("policyEntrySubject", java.util.regex.Pattern.compile("^/_policy/entries/[^/]*/subjects/.*$"));
+            PATTERN.put("policyEntryResources", java.util.regex.Pattern.compile("^/_policy/entries/[^/]*/resources$"));
+            PATTERN.put("policyEntryResource", java.util.regex.Pattern.compile("^/_policy/entries/[^/]*/resources/.*$"));
+            PATTERN.put("attributes", java.util.regex.Pattern.compile("^/attributes$"));
+            PATTERN.put("attribute", java.util.regex.Pattern.compile("^/attributes/.*$"));
+            PATTERN.put("features", java.util.regex.Pattern.compile("^/features$"));
+            PATTERN.put("feature", java.util.regex.Pattern.compile("^/features/[^/]*$"));
+            PATTERN.put("featureProperties", java.util.regex.Pattern.compile("^/features/[^/]*/properties$"));
+            PATTERN.put("featureProperty", java.util.regex.Pattern.compile("^/features/[^/]*/properties/.*$"));
+        }
+
+        private PathMatcher() {
+            throw new AssertionError();
         }
 
         /**
@@ -260,7 +269,7 @@ abstract class AbstractAdapter<T extends Jsonifiable> implements Adapter<T> {
          * @throws UnknownPathException if {@code path} matched no known scheme.
          */
         static String match(final JsonPointer path) {
-            return pattern.entrySet().stream()
+            return PATTERN.entrySet().stream()
                     .filter(entry -> entry.getValue().matcher(path.toString()).matches())
                     .findFirst()
                     .map(Map.Entry::getKey)

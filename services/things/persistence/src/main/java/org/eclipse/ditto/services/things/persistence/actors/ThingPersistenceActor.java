@@ -19,6 +19,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -44,6 +45,7 @@ import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.Features;
+import org.eclipse.ditto.model.things.Permission;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
 import org.eclipse.ditto.model.things.ThingLifecycle;
@@ -53,6 +55,7 @@ import org.eclipse.ditto.services.models.things.ThingCacheEntry;
 import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
+import org.eclipse.ditto.services.things.persistence.snapshotting.DittoThingSnapshotter;
 import org.eclipse.ditto.services.things.persistence.snapshotting.ThingSnapshotter;
 import org.eclipse.ditto.services.things.starter.util.ConfigKeys;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -218,11 +221,11 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
     private Cancellable activityChecker;
     private Thing thing;
 
-    private final ThingSnapshotter thingSnapshotter;
+    private final ThingSnapshotter<?, ?> thingSnapshotter;
     private final long snapshotThreshold;
 
     private ThingPersistenceActor(final String thingId, final ActorRef pubSubMediator,
-            final ActorRef thingCacheFacade) {
+            final ActorRef thingCacheFacade, final ThingSnapshotter.Create thingSnapshotterCreate) {
 
         this.thingId = thingId;
         this.pubSubMediator = pubSubMediator;
@@ -245,7 +248,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         final boolean snapshotDeleteOld = config.getBoolean(ConfigKeys.Thing.SNAPSHOT_DELETE_OLD);
         final boolean eventsDeleteOld = config.getBoolean(ConfigKeys.Thing.EVENTS_DELETE_OLD);
         thingSnapshotter =
-                ThingSnapshotter.getInstance(this, log, snapshotInterval, snapshotDeleteOld, eventsDeleteOld);
+                thingSnapshotterCreate.apply(this, log, snapshotInterval, snapshotDeleteOld, eventsDeleteOld);
 
         handleThingEvents = ReceiveBuilder.create()
                 // # Thing Creation
@@ -479,16 +482,38 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
      * @param thingId the Thing ID this Actor manages.
      * @param pubSubMediator the PubSub mediator actor.
      * @param thingCacheFacade the cache facade for accessing the thing cache in cluster.
+     * @param thingSnapshotterCreate creator of {@code ThingSnapshotter} objects.
      * @return the Akka configuration Props object
      */
-    public static Props props(final String thingId, final ActorRef pubSubMediator,
-            final ActorRef thingCacheFacade) {
+    public static Props props(final String thingId, final ActorRef pubSubMediator, final ActorRef thingCacheFacade,
+            final ThingSnapshotter.Create thingSnapshotterCreate) {
         return Props.create(ThingPersistenceActor.class, new Creator<ThingPersistenceActor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
             public ThingPersistenceActor create() throws Exception {
-                return new ThingPersistenceActor(thingId, pubSubMediator, thingCacheFacade);
+                return new ThingPersistenceActor(thingId, pubSubMediator, thingCacheFacade, thingSnapshotterCreate);
+            }
+        });
+    }
+
+    /**
+     * Creates a default Akka configuration object {@link Props} for this ThingPersistenceActor using sudo commands
+     * for external snapshot requests.
+     *
+     * @param thingId the Thing ID this Actor manages.
+     * @param pubSubMediator the PubSub mediator actor.
+     * @param thingCacheFacade the cache facade for accessing the thing cache in cluster.
+     * @return the Akka configuration Props object
+     */
+    public static Props props(final String thingId, final ActorRef pubSubMediator, final ActorRef thingCacheFacade) {
+        return Props.create(ThingPersistenceActor.class, new Creator<ThingPersistenceActor>() {
+            private static final long serialVersionUID = 1L;
+
+            @Override
+            public ThingPersistenceActor create() throws Exception {
+                return new ThingPersistenceActor(thingId, pubSubMediator, thingCacheFacade,
+                        DittoThingSnapshotter::getInstance);
             }
         });
     }
@@ -800,10 +825,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         return Instant.now();
     }
 
-    private static DittoHeaders buildEventDittoHeaders(final DittoHeaders dittoHeaders) {
-        return dittoHeaders;
-    }
-
     private void loadSnapshot(final RetrieveThing command, final long snapshotRevision, final ActorRef sender) {
         thingSnapshotter.loadSnapshot(snapshotRevision).thenAccept(thing -> {
             if (thing.isPresent()) {
@@ -829,12 +850,8 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
         final ThingNotAccessibleException exception = ThingNotAccessibleException.newBuilder(thingId).build();
 
-        DittoRuntimeException withDittoHeaders = exception;
-
-        // reset command heaaders so that correlationId etc. are preserved
-        if (dittoHeaders != null) {
-            withDittoHeaders = exception.setDittoHeaders(dittoHeaders);
-        }
+        // reset command headers so that correlationId etc. are preserved
+        final DittoRuntimeException withDittoHeaders = exception.setDittoHeaders(dittoHeaders);
 
         notifySender(sender, withDittoHeaders);
     }
@@ -884,8 +901,9 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
      * @param authorizationContext the AuthorizationContext to take the first AuthorizationSubject as fallback from.
      * @return the really new Thing with guaranteed ACL.
      */
-    private Thing enhanceNewThingWithFallbackAcl(final Thing newThing,
+    private static Thing enhanceNewThingWithFallbackAcl(final Thing newThing,
             final AuthorizationContext authorizationContext) {
+
         final ThingBuilder.FromCopy newThingBuilder = ThingsModelFactory.newThingBuilder(newThing);
 
         final Boolean isAclEmpty = newThing.getAccessControlList()
@@ -893,16 +911,16 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                 .orElse(true);
         if (isAclEmpty) {
             // do the fallback and use the first authorized subject and give all permissions to it:
-            final AuthorizationSubject authorizationSubject = authorizationContext.getFirstAuthorizationSubject().get();
-            return newThingBuilder
-                    .setPermissions(authorizationSubject, Thing.MIN_REQUIRED_PERMISSIONS)
-                    .build();
+            final AuthorizationSubject authorizationSubject = authorizationContext.getFirstAuthorizationSubject()
+                    .orElseThrow(() -> new NullPointerException("AuthorizationContext does not contain an " +
+                            "AuthorizationSubject!"));
+            newThingBuilder.setPermissions(authorizationSubject, Thing.MIN_REQUIRED_PERMISSIONS);
         }
 
         return newThingBuilder.build();
     }
 
-    private Thing enhanceThingWithLifecycle(final Thing thing) {
+    private static Thing enhanceThingWithLifecycle(final Thing thing) {
         final ThingBuilder.FromCopy thingBuilder = ThingsModelFactory.newThingBuilder(thing);
         if (!thing.getLifecycle().isPresent()) {
             thingBuilder.setLifecycle(ThingLifecycle.ACTIVE);
@@ -1057,7 +1075,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     /**
      * This strategy handles the {@link CreateThing} command.
-     *
      */
     @NotThreadSafe
     private final class CreateThingStrategy extends AbstractReceiveStrategy<CreateThing> {
@@ -1076,41 +1093,65 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
         @Override
         protected void doApply(final CreateThing command) {
-            final DittoHeaders dittoHeaders = command.getDittoHeaders();
+            final DittoHeaders commandHeaders = command.getDittoHeaders();
 
             // Thing not yet created - do so ..
             final Thing newThing;
             try {
                 newThing =
-                        handleCommandVersion(command.getImplementedSchemaVersion(), command.getThing(), dittoHeaders);
+                        handleCommandVersion(command.getImplementedSchemaVersion(), command.getThing(), commandHeaders);
             } catch (final DittoRuntimeException e) {
                 notifySender(e);
                 return;
             }
 
             // before persisting, check if the Thing is valid and reject if not:
-            if (!validThing(command.getImplementedSchemaVersion(), newThing, dittoHeaders)) {
+            if (!validThing(command.getImplementedSchemaVersion(), newThing, commandHeaders)) {
                 return;
             }
 
             final ThingCreated thingCreated;
             if (JsonSchemaVersion.V_1.equals(command.getImplementedSchemaVersion())) {
+                final DittoHeaders responseHeaders;
+                final Optional<AccessControlList> acl = newThing.getAccessControlList();
+                if (acl.isPresent()) {
+                    // for newly created V1 things with default ACLs the readSubjects have to be set (cause they are not
+                    // yet known in AclEnforcerActor) - in case of already existing readSubjects, they are
+                    // overwritten which is okay because this actor should know better than any other
+                    final Collection<String> readSubjects = determineReadSubjects(acl.get());
+                    log.debug("Enriching responseHeaders with readSubjects: {}", readSubjects);
+                    responseHeaders = DittoHeaders.newBuilder(commandHeaders)
+                            .readSubjects(readSubjects)
+                            .build();
+                } else {
+                    log.warning("V1 command {} with {} does not contain ACL, cannot determine readSubjects.",
+                            command.getType(), newThing.getId());
+                    responseHeaders = commandHeaders;
+                }
+
+
                 thingCreated = ThingCreated
-                        .of(newThing, nextRevision(), eventTimestamp(), buildEventDittoHeaders(dittoHeaders));
+                        .of(newThing, nextRevision(), eventTimestamp(), responseHeaders);
             }
             // default case handle as v2 and upwards:
             else {
                 thingCreated = ThingCreated
                         .of(newThing.setPolicyId(newThing.getPolicyId().orElse(thingId)), nextRevision(),
                                 eventTimestamp(),
-                                buildEventDittoHeaders(dittoHeaders));
+                                commandHeaders);
             }
 
             persistAndApplyEvent(command, thingCreated, event -> {
-                notifySender(CreateThingResponse.of(thing, dittoHeaders));
+                notifySender(CreateThingResponse.of(thing, thingCreated.getDittoHeaders()));
                 log.debug("Created new Thing with ID '{}'.", thingId);
                 becomeThingCreatedHandler();
             });
+        }
+
+        private Collection<String> determineReadSubjects(final AccessControlList acl) {
+            return acl.getAuthorizedSubjectsFor(Permission.READ).stream()
+                    .map(AuthorizationSubject::getId)
+                    .collect(Collectors.toSet());
         }
 
         @Override
@@ -1124,7 +1165,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     /**
      * This strategy handles the {@link CreateThing} command for an already existing Thing.
-     *
      */
     @NotThreadSafe
     private final class ThingConflictStrategy extends AbstractReceiveStrategy<CreateThing> {
@@ -1160,7 +1200,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     /**
      * This strategy handles the {@link ModifyThing} command for an already existing Thing.
-     *
      */
     @NotThreadSafe
     private final class ModifyThingStrategy extends AbstractThingCommandStrategy<ModifyThing> {
@@ -1188,7 +1227,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         protected void doApply(final ModifyThing command) {
             final DittoHeaders dittoHeaders = command.getDittoHeaders();
             final ThingModified thingModified = ThingModified.of(command.getThing(), nextRevision(), eventTimestamp(),
-                    buildEventDittoHeaders(dittoHeaders));
+                    dittoHeaders);
             persistAndApplyEvent(command, thingModified,
                     event -> notifySender(ModifyThingResponse.modified(thingId, dittoHeaders)));
         }
@@ -1212,14 +1251,14 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                                     .build();
                     final ThingModified thingModified =
                             ThingModified.of(modifiedThingWithOldAcl, nextRevision(), eventTimestamp(),
-                                    buildEventDittoHeaders(dittoHeaders));
+                                    dittoHeaders);
                     persistAndApplyEvent(command, thingModified,
                             event -> notifySender(ModifyThingResponse.modified(thingId, dittoHeaders)));
                 } else {
                     // Thing was created in >= V2 and thus has no ACL
                     final ThingModified thingModified =
                             ThingModified.of(command.getThing(), nextRevision(), eventTimestamp(),
-                                    buildEventDittoHeaders(dittoHeaders));
+                                    dittoHeaders);
                     persistAndApplyEvent(command, thingModified,
                             event -> notifySender(ModifyThingResponse.modified(thingId, dittoHeaders)));
                 }
@@ -1227,10 +1266,10 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         }
 
         private void handleModifyExistingV2(final ModifyThing command) {
-            final Thing thing = command.getThing();
+            final Thing commandThing = command.getThing();
             final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-            if (thing.getAccessControlList().isPresent()) {
+            if (commandThing.getAccessControlList().isPresent()) {
                 notifySender(getSender(),
                         AclNotAllowedException.newBuilder(thingId).dittoHeaders(dittoHeaders).build());
             } else {
@@ -1249,7 +1288,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     /**
      * This strategy handles the {@link RetrieveThing} command.
-     *
      */
     @NotThreadSafe
     private final class RetrieveThingStrategy extends AbstractThingCommandStrategy<RetrieveThing> {
@@ -1268,11 +1306,11 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
         @Override
         protected void doApply(final RetrieveThing command) {
-            if (command.getSnapshotRevision().isPresent()) {
-                loadSnapshot(command, command.getSnapshotRevision().get(), getSender());
+            final Optional<Long> snapshotRevisionOptional = command.getSnapshotRevision();
+            if (snapshotRevisionOptional.isPresent()) {
+                loadSnapshot(command, snapshotRevisionOptional.get(), getSender());
             } else {
-                final Optional<JsonFieldSelector> selectedFields = command.getSelectedFields();
-                final JsonObject thingJson = selectedFields
+                final JsonObject thingJson = command.getSelectedFields()
                         .map(sf -> thing.toJson(command.getImplementedSchemaVersion(), sf))
                         .orElseGet(() -> thing.toJson(command.getImplementedSchemaVersion()));
 
@@ -1290,7 +1328,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     /**
      * This strategy handles the {@link SudoRetrieveThing} command.
-     *
      */
     @NotThreadSafe
     private final class SudoRetrieveThingStrategy extends AbstractThingCommandStrategy<SudoRetrieveThing> {
@@ -1335,7 +1372,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     /**
      * This strategy handles the {@link DeleteThing} command.
-     *
      */
     @NotThreadSafe
     private final class DeleteThingStrategy extends AbstractThingCommandStrategy<DeleteThing> {
@@ -1352,7 +1388,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
             final DittoHeaders dittoHeaders = command.getDittoHeaders();
             final ThingDeleted thingDeleted =
                     ThingDeleted.of(thingId, nextRevision(), eventTimestamp(),
-                            buildEventDittoHeaders(dittoHeaders));
+                            dittoHeaders);
 
             persistAndApplyEvent(command, thingDeleted, event -> {
                 notifySender(DeleteThingResponse.of(thingId, dittoHeaders));
@@ -1441,7 +1477,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
             final DittoHeaders dittoHeaders = command.getDittoHeaders();
             if (aclValidator.isValid()) {
                 final AclModified aclModified = AclModified.of(thingId, newAccessControlList, nextRevision(),
-                        eventTimestamp(), buildEventDittoHeaders(dittoHeaders));
+                        eventTimestamp(), dittoHeaders);
 
                 persistAndApplyEvent(command, aclModified, event -> notifySender(
                         ModifyAclResponse.modified(thingId, newAccessControlList, command.getDittoHeaders())));
@@ -1453,7 +1489,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     /**
      * This strategy handles the {@link ModifyAclEntry} command.
-     *
      */
     @NotThreadSafe
     private final class ModifyAclEntryStrategy extends AbstractThingCommandStrategy<ModifyAclEntry> {
@@ -1478,11 +1513,11 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
                 if (acl.contains(modifiedAclEntry.getAuthorizationSubject())) {
                     eventToPersist = AclEntryModified.of(command.getId(), modifiedAclEntry, nextRevision(),
-                            eventTimestamp(), buildEventDittoHeaders(dittoHeaders));
+                            eventTimestamp(), dittoHeaders);
                     response = ModifyAclEntryResponse.modified(thingId, modifiedAclEntry, dittoHeaders);
                 } else {
                     eventToPersist = AclEntryCreated.of(command.getId(), modifiedAclEntry, nextRevision(),
-                            eventTimestamp(), buildEventDittoHeaders(dittoHeaders));
+                            eventTimestamp(), dittoHeaders);
                     response = ModifyAclEntryResponse.created(thingId, modifiedAclEntry, dittoHeaders);
                 }
 
@@ -1495,7 +1530,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     /**
      * This strategy handles the {@link DeleteAclEntry} command.
-     *
      */
     @NotThreadSafe
     private final class DeleteAclEntryStrategy extends AbstractThingCommandStrategy<DeleteAclEntry> {
@@ -1531,7 +1565,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                 final DittoHeaders dittoHeaders) {
             final AclEntryDeleted aclEntryDeleted = AclEntryDeleted
                     .of(thingId, authorizationSubject, nextRevision(), eventTimestamp(),
-                            buildEventDittoHeaders(dittoHeaders));
+                            dittoHeaders);
 
             persistAndApplyEvent(command, aclEntryDeleted,
                     event -> notifySender(DeleteAclEntryResponse.of(thingId, authorizationSubject, dittoHeaders)));
@@ -1540,7 +1574,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     /**
      * This strategy handles the {@link RetrieveAcl} command.
-     *
      */
     @NotThreadSafe
     private final class RetrieveAclStrategy extends AbstractThingCommandStrategy<RetrieveAcl> {
@@ -1562,7 +1595,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     /**
      * This strategy handles the {@link RetrieveAclEntry} command.
-     *
      */
     @NotThreadSafe
     private final class RetrieveAclEntryStrategy extends AbstractThingCommandStrategy<RetrieveAclEntry> {
@@ -1592,7 +1624,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     /**
      * This strategy handles the {@link ModifyAttributes} command.
-     *
      */
     @NotThreadSafe
     private final class ModifyAttributesStrategy extends AbstractThingCommandStrategy<ModifyAttributes> {
@@ -1612,11 +1643,11 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
             if (thing.getAttributes().isPresent()) {
                 eventToPersist = AttributesModified.of(thingId, command.getAttributes(), nextRevision(),
-                        eventTimestamp(), buildEventDittoHeaders(dittoHeaders));
+                        eventTimestamp(), dittoHeaders);
                 response = ModifyAttributesResponse.modified(thingId, dittoHeaders);
             } else {
                 eventToPersist = AttributesCreated.of(thingId, command.getAttributes(), nextRevision(),
-                        eventTimestamp(), buildEventDittoHeaders(dittoHeaders));
+                        eventTimestamp(), dittoHeaders);
                 response = ModifyAttributesResponse.created(thingId, command.getAttributes(), dittoHeaders);
             }
 
@@ -1626,7 +1657,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     /**
      * This strategy handles the {@link ModifyAttribute} command.
-     *
      */
     @NotThreadSafe
     private final class ModifyAttributeStrategy extends AbstractThingCommandStrategy<ModifyAttribute> {
@@ -1650,11 +1680,11 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
             final JsonValue attributeValue = command.getAttributeValue();
             if (optionalAttributes.isPresent() && optionalAttributes.get().contains(attributeJsonPointer)) {
                 eventToPersist = AttributeModified.of(thingId, attributeJsonPointer, attributeValue, nextRevision(),
-                        eventTimestamp(), buildEventDittoHeaders(dittoHeaders));
+                        eventTimestamp(), dittoHeaders);
                 response = ModifyAttributeResponse.modified(thingId, attributeJsonPointer, dittoHeaders);
             } else {
                 eventToPersist = AttributeCreated.of(thingId, attributeJsonPointer, attributeValue, nextRevision(),
-                        eventTimestamp(), buildEventDittoHeaders(dittoHeaders));
+                        eventTimestamp(), dittoHeaders);
                 response = ModifyAttributeResponse.created(thingId, attributeJsonPointer, attributeValue, dittoHeaders);
             }
 
@@ -1664,7 +1694,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     /**
      * This strategy handles the {@link DeleteAttributes} command.
-     *
      */
     @NotThreadSafe
     private final class DeleteAttributesStrategy extends AbstractThingCommandStrategy<DeleteAttributes> {
@@ -1682,7 +1711,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
             if (thing.getAttributes().isPresent()) {
                 final AttributesDeleted attributesDeleted = AttributesDeleted.of(command.getThingId(), nextRevision(),
-                        eventTimestamp(), buildEventDittoHeaders(dittoHeaders));
+                        eventTimestamp(), dittoHeaders);
                 persistAndApplyEvent(command, attributesDeleted,
                         event -> notifySender(DeleteAttributesResponse.of(thingId, dittoHeaders)));
             } else {
@@ -1693,7 +1722,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     /**
      * This strategy handles the {@link DeleteAttribute} command.
-     *
      */
     @NotThreadSafe
     private final class DeleteAttributeStrategy extends AbstractThingCommandStrategy<DeleteAttribute> {
@@ -1709,13 +1737,19 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         protected void doApply(final DeleteAttribute command) {
             final DittoHeaders dittoHeaders = command.getDittoHeaders();
             final JsonPointer attributeJsonPointer = command.getAttributePointer();
-            if (thing.getAttributes().isPresent() && thing.getAttributes().get().contains(attributeJsonPointer)) {
-                final AttributeDeleted attributeDeleted = AttributeDeleted.of(command.getThingId(),
-                        attributeJsonPointer, nextRevision(), eventTimestamp(),
-                        buildEventDittoHeaders(dittoHeaders));
+            final Optional<Attributes> attributesOptional = thing.getAttributes();
+            if (attributesOptional.isPresent()) {
+                final Attributes attributes = attributesOptional.get();
+                if (attributes.contains(attributeJsonPointer)) {
+                    final AttributeDeleted attributeDeleted = AttributeDeleted.of(command.getThingId(),
+                            attributeJsonPointer, nextRevision(), eventTimestamp(),
+                            dittoHeaders);
 
-                persistAndApplyEvent(command, attributeDeleted,
-                        event -> notifySender(DeleteAttributeResponse.of(thingId, attributeJsonPointer, dittoHeaders)));
+                    persistAndApplyEvent(command, attributeDeleted, event -> notifySender(
+                            DeleteAttributeResponse.of(thingId, attributeJsonPointer, dittoHeaders)));
+                } else {
+                    attributeNotFound(attributeJsonPointer, command.getDittoHeaders());
+                }
             } else {
                 attributeNotFound(attributeJsonPointer, command.getDittoHeaders());
             }
@@ -1724,7 +1758,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     /**
      * This strategy handles the {@link RetrieveAttributes} command.
-     *
      */
     @NotThreadSafe
     private final class RetrieveAttributesStrategy extends AbstractThingCommandStrategy<RetrieveAttributes> {
@@ -1756,7 +1789,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     /**
      * This strategy handles the {@link RetrieveAttribute} command.
-     *
      */
     @NotThreadSafe
     private final class RetrieveAttributeStrategy extends AbstractThingCommandStrategy<RetrieveAttribute> {
@@ -1790,7 +1822,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     /**
      * This strategy handles the {@link ModifyFeatures} command.
-     *
      */
     @NotThreadSafe
     private final class ModifyFeaturesStrategy extends AbstractThingCommandStrategy<ModifyFeatures> {
@@ -1810,11 +1841,11 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
             if (thing.getFeatures().isPresent()) {
                 eventToPersist = FeaturesModified.of(command.getId(), command.getFeatures(), nextRevision(),
-                        eventTimestamp(), buildEventDittoHeaders(dittoHeaders));
+                        eventTimestamp(), dittoHeaders);
                 response = ModifyFeaturesResponse.modified(thingId, dittoHeaders);
             } else {
                 eventToPersist = FeaturesCreated.of(command.getId(), command.getFeatures(), nextRevision(),
-                        eventTimestamp(), buildEventDittoHeaders(dittoHeaders));
+                        eventTimestamp(), dittoHeaders);
                 response = ModifyFeaturesResponse.created(thingId, command.getFeatures(), dittoHeaders);
             }
 
@@ -1824,7 +1855,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     /**
      * This strategy handles the {@link ModifyFeature} command.
-     *
      */
     @NotThreadSafe
     private final class ModifyFeatureStrategy extends AbstractThingCommandStrategy<ModifyFeature> {
@@ -1845,11 +1875,11 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
             if (features.isPresent() && features.get().getFeature(command.getFeatureId()).isPresent()) {
                 eventToPersist = FeatureModified.of(command.getId(), command.getFeature(), nextRevision(),
-                        eventTimestamp(), buildEventDittoHeaders(dittoHeaders));
+                        eventTimestamp(), dittoHeaders);
                 response = ModifyFeatureResponse.modified(thingId, command.getFeatureId(), dittoHeaders);
             } else {
                 eventToPersist = FeatureCreated.of(command.getId(), command.getFeature(), nextRevision(),
-                        eventTimestamp(), buildEventDittoHeaders(dittoHeaders));
+                        eventTimestamp(), dittoHeaders);
                 response = ModifyFeatureResponse.created(thingId, command.getFeature(), dittoHeaders);
             }
 
@@ -1859,7 +1889,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     /**
      * This strategy handles the {@link DeleteFeatures} command.
-     *
      */
     @NotThreadSafe
     private final class DeleteFeaturesStrategy extends AbstractThingCommandStrategy<DeleteFeatures> {
@@ -1875,8 +1904,8 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         protected void doApply(final DeleteFeatures command) {
             if (thing.getFeatures().isPresent()) {
                 final DittoHeaders dittoHeaders = command.getDittoHeaders();
-                final FeaturesDeleted featuresDeleted = FeaturesDeleted.of(thing.getId().get(), nextRevision(),
-                        eventTimestamp(), buildEventDittoHeaders(dittoHeaders));
+                final FeaturesDeleted featuresDeleted = FeaturesDeleted.of(thingId, nextRevision(),
+                        eventTimestamp(), dittoHeaders);
 
                 persistAndApplyEvent(command, featuresDeleted,
                         event -> notifySender(DeleteFeaturesResponse.of(thingId, dittoHeaders)));
@@ -1888,7 +1917,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     /**
      * This strategy handles the {@link DeleteFeature} command.
-     *
      */
     @NotThreadSafe
     private final class DeleteFeatureStrategy extends AbstractThingCommandStrategy<DeleteFeature> {
@@ -1903,13 +1931,13 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         @Override
         protected void doApply(final DeleteFeature command) {
             final DittoHeaders dittoHeaders = command.getDittoHeaders();
-            final Optional<Features> features = thing.getFeatures();
-            final Optional<Feature> feature =
-                    features.isPresent() ? features.get().getFeature(command.getFeatureId()) : Optional.empty();
+            final Optional<String> featureIdOptional = thing.getFeatures()
+                    .flatMap(features -> features.getFeature(command.getFeatureId()))
+                    .map(Feature::getId);
 
-            if (feature.isPresent()) {
-                final FeatureDeleted featureDeleted = FeatureDeleted.of(thing.getId().get(), feature.get().getId(),
-                        nextRevision(), eventTimestamp(), buildEventDittoHeaders(dittoHeaders));
+            if (featureIdOptional.isPresent()) {
+                final FeatureDeleted featureDeleted = FeatureDeleted.of(thingId, featureIdOptional.get(),
+                        nextRevision(), eventTimestamp(), dittoHeaders);
                 persistAndApplyEvent(command, featureDeleted,
                         event -> notifySender(DeleteFeatureResponse.of(thingId, command.getFeatureId(), dittoHeaders)));
             } else {
@@ -1920,7 +1948,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     /**
      * This strategy handles the {@link RetrieveFeatures} command.
-     *
      */
     @NotThreadSafe
     private final class RetrieveFeaturesStrategy extends AbstractThingCommandStrategy<RetrieveFeatures> {
@@ -1951,7 +1978,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     /**
      * This strategy handles the {@link RetrieveFeature} command.
-     *
      */
     @NotThreadSafe
     private final class RetrieveFeatureStrategy extends AbstractThingCommandStrategy<RetrieveFeature> {
@@ -1965,9 +1991,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
         @Override
         protected void doApply(final RetrieveFeature command) {
-            final Optional<Features> features = thing.getFeatures();
-            final Optional<Feature> feature =
-                    features.isPresent() ? features.get().getFeature(command.getFeatureId()) : Optional.empty();
+            final Optional<Feature> feature = thing.getFeatures().flatMap(fs -> fs.getFeature(command.getFeatureId()));
             if (feature.isPresent()) {
                 final Feature f = feature.get();
                 final Optional<JsonFieldSelector> selectedFields = command.getSelectedFields();
@@ -1984,7 +2008,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     /**
      * This strategy handles the {@link ModifyFeatureProperties} command.
-     *
      */
     @NotThreadSafe
     private final class ModifyFeaturePropertiesStrategy extends AbstractThingCommandStrategy<ModifyFeatureProperties> {
@@ -2011,13 +2034,13 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                     if (feature.get().getProperties().isPresent()) {
                         eventToPersist = FeaturePropertiesModified.of(command.getId(), command.getFeatureId(),
                                 command.getProperties(), nextRevision(), eventTimestamp(),
-                                buildEventDittoHeaders(dittoHeaders));
+                                dittoHeaders);
                         response =
                                 ModifyFeaturePropertiesResponse.modified(thingId, command.getFeatureId(), dittoHeaders);
                     } else {
                         eventToPersist = FeaturePropertiesCreated.of(command.getId(), command.getFeatureId(),
                                 command.getProperties(), nextRevision(), eventTimestamp(),
-                                buildEventDittoHeaders(dittoHeaders));
+                                dittoHeaders);
                         response = ModifyFeaturePropertiesResponse.created(thingId, command.getFeatureId(),
                                 command.getProperties(), dittoHeaders);
                     }
@@ -2034,7 +2057,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     /**
      * This strategy handles the {@link ModifyFeatureProperty} command.
-     *
      */
     @NotThreadSafe
     private final class ModifyFeaturePropertyStrategy extends AbstractThingCommandStrategy<ModifyFeatureProperty> {
@@ -2064,13 +2086,13 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                     if (optionalProperties.isPresent() && optionalProperties.get().contains(propertyJsonPointer)) {
                         eventToPersist = FeaturePropertyModified.of(command.getId(), command.getFeatureId(),
                                 propertyJsonPointer, propertyValue, nextRevision(), eventTimestamp(),
-                                buildEventDittoHeaders(dittoHeaders));
+                                dittoHeaders);
                         response = ModifyFeaturePropertyResponse.modified(thingId, command.getFeatureId(),
                                 propertyJsonPointer, dittoHeaders);
                     } else {
                         eventToPersist = FeaturePropertyCreated.of(command.getId(), command.getFeatureId(),
                                 propertyJsonPointer, propertyValue, nextRevision(), eventTimestamp(),
-                                buildEventDittoHeaders(dittoHeaders));
+                                dittoHeaders);
                         response = ModifyFeaturePropertyResponse.created(thingId, command.getFeatureId(),
                                 propertyJsonPointer,
                                 propertyValue, dittoHeaders);
@@ -2088,7 +2110,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     /**
      * This strategy handles the {@link DeleteFeatureProperties} command.
-     *
      */
     @NotThreadSafe
     private final class DeleteFeaturePropertiesStrategy extends AbstractThingCommandStrategy<DeleteFeatureProperties> {
@@ -2112,7 +2133,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                     if (feature.get().getProperties().isPresent()) {
                         final FeaturePropertiesDeleted propertiesDeleted =
                                 FeaturePropertiesDeleted.of(command.getThingId(), command.getFeatureId(),
-                                        nextRevision(), eventTimestamp(), buildEventDittoHeaders(dittoHeaders));
+                                        nextRevision(), eventTimestamp(), dittoHeaders);
                         persistAndApplyEvent(command, propertiesDeleted, event -> notifySender(
                                 DeleteFeaturePropertiesResponse.of(thingId, command.getFeatureId(), dittoHeaders)));
                     } else {
@@ -2129,7 +2150,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     /**
      * This strategy handles the {@link DeleteFeatureProperty} command.
-     *
      */
     @NotThreadSafe
     private final class DeleteFeaturePropertyStrategy extends AbstractThingCommandStrategy<DeleteFeatureProperty> {
@@ -2144,18 +2164,24 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         @Override
         protected void doApply(final DeleteFeatureProperty command) {
             final DittoHeaders dittoHeaders = command.getDittoHeaders();
-            final Optional<Features> features = thing.getFeatures();
+            final Optional<Features> featuresOptional = thing.getFeatures();
 
-            if (features.isPresent()) {
-                final Optional<Feature> feature = features.get().getFeature(command.getFeatureId());
+            if (featuresOptional.isPresent()) {
+                final Optional<Feature> featureOptional =
+                        featuresOptional.flatMap(features -> features.getFeature(command.getFeatureId()));
 
-                if (feature.isPresent()) {
+                if (featureOptional.isPresent()) {
                     final JsonPointer propertyJsonPointer = command.getPropertyPointer();
-                    if (feature.get().getProperties().isPresent() && feature.get().getProperties().get()
-                            .contains(propertyJsonPointer)) {
+                    final Feature feature = featureOptional.get();
+                    final boolean containsProperty = feature.getProperties()
+                             .filter(featureProperties -> featureProperties.contains(propertyJsonPointer))
+                             .isPresent();
+
+                    if (containsProperty) {
                         final FeaturePropertyDeleted propertyDeleted = FeaturePropertyDeleted.of(command.getThingId(),
                                 command.getFeatureId(), propertyJsonPointer, nextRevision(), eventTimestamp(),
-                                buildEventDittoHeaders(dittoHeaders));
+                                dittoHeaders);
+
                         persistAndApplyEvent(command, propertyDeleted, event -> notifySender(
                                 DeleteFeaturePropertyResponse.of(thingId, command.getFeatureId(), propertyJsonPointer,
                                         dittoHeaders)));
@@ -2173,7 +2199,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     /**
      * This strategy handles the {@link RetrieveFeatureProperties} command.
-     *
      */
     @NotThreadSafe
     private final class RetrieveFeaturePropertiesStrategy
@@ -2189,9 +2214,11 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         @Override
         protected void doApply(final RetrieveFeatureProperties command) {
             final Optional<Features> optionalFeatures = thing.getFeatures();
-            if (optionalFeatures.isPresent() && optionalFeatures.get().getFeature(command.getFeatureId()).isPresent()) {
-                final Optional<FeatureProperties> optionalProperties =
-                        optionalFeatures.get().getFeature(command.getFeatureId()).get().getProperties();
+
+            if (optionalFeatures.isPresent()) {
+                final Optional<FeatureProperties> optionalProperties = optionalFeatures.flatMap(features -> features
+                        .getFeature(command.getFeatureId()))
+                        .flatMap(Feature::getProperties);
                 if (optionalProperties.isPresent()) {
                     final FeatureProperties properties = optionalProperties.get();
                     final Optional<JsonFieldSelector> selectedFields = command.getSelectedFields();
@@ -2211,7 +2238,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     /**
      * This strategy handles the {@link RetrieveFeatureProperty} command.
-     *
      */
     @NotThreadSafe
     private final class RetrieveFeaturePropertyStrategy extends AbstractThingCommandStrategy<RetrieveFeatureProperty> {
@@ -2225,18 +2251,18 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
         @Override
         protected void doApply(final RetrieveFeatureProperty command) {
-            final Optional<Features> optionalFeatures = thing.getFeatures();
-            final DittoHeaders dittoHeaders = command.getDittoHeaders();
-            if (optionalFeatures.isPresent() && optionalFeatures.get().getFeature(command.getFeatureId()).isPresent()) {
-                final Optional<FeatureProperties> optionalProperties =
-                        optionalFeatures.get().getFeature(command.getFeatureId()).get().getProperties();
+            final Optional<Feature> featureOptional = thing.getFeatures()
+                    .flatMap(features -> features.getFeature(command.getFeatureId()));
+            if (featureOptional.isPresent()) {
+                final DittoHeaders dittoHeaders = command.getDittoHeaders();
+                final Optional<FeatureProperties> optionalProperties = featureOptional.flatMap(Feature::getProperties);
                 if (optionalProperties.isPresent()) {
                     final FeatureProperties properties = optionalProperties.get();
                     final JsonPointer jsonPointer = command.getPropertyPointer();
                     final Optional<JsonValue> propertyJson = properties.getValue(jsonPointer);
                     if (propertyJson.isPresent()) {
-                        notifySender(RetrieveFeaturePropertyResponse
-                                .of(thingId, command.getFeatureId(), jsonPointer, propertyJson.get(), dittoHeaders));
+                        notifySender(RetrieveFeaturePropertyResponse.of(thingId, command.getFeatureId(), jsonPointer,
+                                propertyJson.get(), dittoHeaders));
                     } else {
                         featurePropertyNotFound(command.getFeatureId(), jsonPointer, dittoHeaders);
                     }
@@ -2251,7 +2277,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     /**
      * This strategy handles the success of deleting messages by logging an info.
-     *
      */
     @NotThreadSafe
     private final class DeleteMessagesSuccessStrategy extends AbstractReceiveStrategy<DeleteMessagesSuccess> {
@@ -2273,7 +2298,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     /**
      * This strategy handles the failure of deleting messages by logging an error.
-     *
      */
     @NotThreadSafe
     private final class DeleteMessagesFailureStrategy extends AbstractReceiveStrategy<DeleteMessagesFailure> {
@@ -2296,7 +2320,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
     /**
      * This strategy handles all commands which were not explicitly handled beforehand. Those commands are logged as
      * unknown messages and are marked as unhandled.
-     *
      */
     @NotThreadSafe
     private final class MatchAnyAfterInitializeStrategy extends AbstractReceiveStrategy<Object> {
@@ -2318,7 +2341,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
     /**
      * This strategy handles all messages which were received before the Thing was initialized. Those messages are
      * logged as unexpected messages and cause the actor to be stopped.
-     *
      */
     @NotThreadSafe
     private final class MatchAnyDuringInitializeStrategy extends AbstractReceiveStrategy<Object> {
@@ -2346,7 +2368,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     /**
      * This strategy handles any messages for a previous deleted Thing.
-     *
      */
     @NotThreadSafe
     private final class ThingNotFoundStrategy extends AbstractReceiveStrategy<Object> {

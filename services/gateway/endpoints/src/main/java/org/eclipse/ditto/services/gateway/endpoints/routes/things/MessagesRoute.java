@@ -264,8 +264,9 @@ final class MessagesRoute extends AbstractRoute {
     private static Map<String, String> getHeadersAsMap(final HttpMessage httpRequest) {
         final Map<String, String> result = new HashMap<>();
         for (final HttpHeader httpHeader : httpRequest.getHeaders()) {
-            if (!BLACKLISTED_HTTP_HEADERS.contains(httpHeader.name().toLowerCase())) {
-                result.put(httpHeader.name(), httpHeader.value());
+            final String lowerCaseHeaderName = httpHeader.name().toLowerCase();
+            if (!BLACKLISTED_HTTP_HEADERS.contains(lowerCaseHeaderName)) {
+                result.put(lowerCaseHeaderName, httpHeader.value());
             }
         }
         return result;
@@ -322,8 +323,7 @@ final class MessagesRoute extends AbstractRoute {
 
             final MessageHeaders headers = MessageHeaders.newBuilderForClaiming(thingId)
                     .correlationId(dittoHeaders.getCorrelationId().orElse(null))
-                    .contentType(contentType
-                            .toString())
+                    .contentType(contentType.toString())
                     .timeout(optionalTimeout.map(this::checkClaimTimeout).orElse(defaultClaimTimeout))
                     .timestamp(OffsetDateTime.now())
                     .putHeaders(getHeadersAsMap(ctx.getRequest()))
@@ -340,8 +340,12 @@ final class MessagesRoute extends AbstractRoute {
 
     private static MessageBuilder<Object> initMessageBuilder(final ByteBuffer payload, final ContentType contentType,
             final MessageHeaders headers) {
+
+        // reset bytebuffer offset, otherwise payload will not be appended
+        final ByteBuffer payloadWithoutOffset = ByteBuffer.wrap(payload.array());
+
         final MessageBuilder<Object> messageBuilder = MessagesModelFactory.newMessageBuilder(headers)
-                .rawPayload(payload);
+                .rawPayload(payloadWithoutOffset);
 
         final Charset charset = contentType.getCharsetOption()
                 .map(HttpCharset::nioCharset)

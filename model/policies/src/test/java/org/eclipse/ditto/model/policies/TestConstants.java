@@ -50,9 +50,24 @@ public final class TestConstants {
         public static final String SUBJECT_ID_SUBJECT = "LukeSkywalker";
 
         /**
+         * A known Subject Issuer.
+         */
+        public static final SubjectIssuer SUBJECT_ISSUER = SubjectIssuer.GOOGLE_URL;
+
+        /**
          * A known Subject Id.
          */
-        public static final SubjectId SUBJECT_ID = SubjectId.newInstance(SubjectIssuer.GOOGLE_URL, SUBJECT_ID_SUBJECT);
+        public static final SubjectId SUBJECT_ID = SubjectId.newInstance(SUBJECT_ISSUER, SUBJECT_ID_SUBJECT);
+
+        /**
+         * A known Subject Type.
+         */
+        public static final SubjectType SUBJECT_TYPE = SubjectType.newInstance("testSubjectType");
+
+        /**
+         * A known Subject.
+         */
+        public static final Subject SUBJECT = Subject.newInstance(SUBJECT_ID, SUBJECT_TYPE);
 
         /**
          * A known resource type.

@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.things.persistence.actors;
 import javax.annotation.Nonnull;
 
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.services.things.persistence.snapshotting.ThingSnapshotter;
+import org.eclipse.ditto.services.things.persistence.snapshotting.DittoThingSnapshotter;
 
 import akka.persistence.PersistentActor;
 import scala.Function1;
@@ -22,7 +22,7 @@ import scala.collection.immutable.Seq;
 import scala.runtime.BoxedUnit;
 
 /**
- * Interface for {@link ThingPersistenceActor}. Mainly used in strategy groups such as {@link ThingSnapshotter} so
+ * Interface for {@link ThingPersistenceActor}. Mainly used in strategy groups such as {@link DittoThingSnapshotter} so
  * that they can be tested with Mockito.
  */
 public interface ThingPersistenceActorInterface extends PersistentActor {

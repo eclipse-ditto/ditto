@@ -14,6 +14,8 @@ package org.eclipse.ditto.signals.commands.messages;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
 import org.eclipse.ditto.json.JsonFactory;
@@ -51,6 +53,10 @@ public final class SendClaimMessageTest {
 
     private static final Message<?> MESSAGE = Message.newBuilder(MESSAGE_HEADERS)
             .payload(KNOWN_RAW_PAYLOAD_STR)
+            .build();
+
+    private static final Message<?> DESERIALIZED_MESSAGE = Message.newBuilder(MESSAGE_HEADERS)
+            .rawPayload(ByteBuffer.wrap(KNOWN_RAW_PAYLOAD_STR.getBytes(StandardCharsets.UTF_8)))
             .build();
 
     private static final JsonObject KNOWN_MESSAGE_AS_JSON = JsonFactory.newObjectBuilder()
@@ -111,6 +117,15 @@ public final class SendClaimMessageTest {
     }
 
     @Test
+    public void toJsonDoesNotBase64EncodeTextBody() {
+        final SendClaimMessage<?> underTest =
+                SendClaimMessage.of(THING_ID, DESERIALIZED_MESSAGE, TestConstants.EMPTY_DITTO_HEADERS);
+        final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
+
+        assertThat(actualJson).isEqualTo(KNOWN_JSON);
+    }
+
+    @Test
     public void createInstanceFromValidJson() {
         final SendClaimMessage<?> underTest =
                 SendClaimMessage.fromJson(KNOWN_JSON.toString(), TestConstants.EMPTY_DITTO_HEADERS);
@@ -118,7 +133,7 @@ public final class SendClaimMessageTest {
         assertThat(underTest).isNotNull();
         assertThat(underTest.getThingId()).isEqualTo(THING_ID);
         assertThat(underTest.getMessageType()).isEqualTo(SendClaimMessage.NAME);
-        assertThat(underTest.getMessage()).isEqualTo(MESSAGE);
+        assertThat(underTest.getMessage()).isEqualTo(DESERIALIZED_MESSAGE);
     }
 
     @Test
@@ -137,7 +152,7 @@ public final class SendClaimMessageTest {
     public void createResponseFromJsonWithoutPayload() {
         final Message<?> emptyMessage = Message.newBuilder(MESSAGE_HEADERS).build();
         final SendClaimMessageResponse<?> underTest = SendClaimMessageResponse.of(THING_ID, emptyMessage,
-                HttpStatusCode.OK,  TestConstants.EMPTY_DITTO_HEADERS);
+                HttpStatusCode.OK, TestConstants.EMPTY_DITTO_HEADERS);
         final JsonObject jsonWithoutPayload = underTest.toJson();
         final SendClaimMessageResponse<?> result =
                 SendClaimMessageResponse.fromJson(jsonWithoutPayload, TestConstants.EMPTY_DITTO_HEADERS);

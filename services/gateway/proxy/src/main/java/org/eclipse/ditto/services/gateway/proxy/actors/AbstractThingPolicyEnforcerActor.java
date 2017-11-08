@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.services.gateway.proxy.actors;
 
+import static org.eclipse.ditto.services.gateway.starter.service.util.FireAndForgetMessageUtil.getResponseForFireAndForgetMessage;
 import static org.eclipse.ditto.services.models.policies.Permission.READ;
 import static org.eclipse.ditto.services.models.policies.Permission.WRITE;
 
@@ -57,6 +58,8 @@ public abstract class AbstractThingPolicyEnforcerActor extends AbstractPolicyEnf
     private static final String THING_POLICY_DELETED_DESCRIPTION =
             "Recreate/create the Policy with ID ''{0}'' in order to get access to the Thing again.";
 
+    private static final String SERVICE_NAME_THINGS = "Things";
+
     private final ActorRef thingsShardRegion;
 
     protected AbstractThingPolicyEnforcerActor(final ActorRef pubSubMediator, final ActorRef policiesShardRegion,
@@ -72,12 +75,12 @@ public abstract class AbstractThingPolicyEnforcerActor extends AbstractPolicyEnf
                 .match(SudoCommand.class, this::forwardThingSudoCommand)
 
                 /* MessageCommands */
-                .match(SendClaimMessage.class, this::publishCommand)
+                .match(SendClaimMessage.class, this::publishMessageCommand)
                 .match(MessageCommand.class, this::isEnforcerNull, command -> {
                     doStash();
                     synchronizePolicy();
                 })
-                .match(MessageCommand.class, this::isAuthorized, this::publishCommand)
+                .match(MessageCommand.class, this::isAuthorized, this::publishMessageCommand)
                 .match(MessageCommand.class, this::unauthorized)
 
                 /* Live Signals */
@@ -93,14 +96,20 @@ public abstract class AbstractThingPolicyEnforcerActor extends AbstractPolicyEnf
                 .match(ThingModifyCommand.class, this::isThingModifyCommandAuthorized, this::forwardThingModifyCommand)
                 .match(ThingModifyCommand.class, this::unauthorized)
                 .match(ThingQueryCommand.class, this::isAuthorized, this::forwardThingQueryCommand)
-                .match(ThingQueryCommand.class, this::unauthorized)
+                .match(ThingQueryCommand.class, this::unauthorized);
+    }
 
-                ;
+    private void publishMessageCommand(final MessageCommand<?, ?> messageCommand) {
+        publishCommand(messageCommand);
+
+        // answer the sender immediately for fire-and-forget message commands.
+        getResponseForFireAndForgetMessage(messageCommand)
+                .ifPresent(response -> getSender().tell(response, getSelf()));
     }
 
     private void forwardThingSudoCommand(final SudoCommand command) {
         LogUtil.enhanceLogWithCorrelationId(getLogger(), command);
-        logForwardingOfReceivedSignal(command, "Things");
+        logForwardingOfReceivedSignal(command, SERVICE_NAME_THINGS);
         incrementAccessCounter();
         thingsShardRegion.forward(command, getContext());
     }
@@ -109,7 +118,7 @@ public abstract class AbstractThingPolicyEnforcerActor extends AbstractPolicyEnf
         LogUtil.enhanceLogWithCorrelationId(getLogger(), command);
         final ThingCommand commandWithReadSubjects =
                 enrichDittoHeaders(command, command.getResourcePath(), command.getResourceType());
-        logForwardingOfReceivedSignal(commandWithReadSubjects, "Things");
+        logForwardingOfReceivedSignal(commandWithReadSubjects, SERVICE_NAME_THINGS);
         incrementAccessCounter();
         thingsShardRegion.forward(commandWithReadSubjects, getContext());
 
@@ -122,7 +131,7 @@ public abstract class AbstractThingPolicyEnforcerActor extends AbstractPolicyEnf
         LogUtil.enhanceLogWithCorrelationId(getLogger(), command);
         final ThingQueryCommand commandWithReadSubjects =
                 enrichDittoHeaders(command, command.getResourcePath(), command.getResourceType());
-        logForwardingOfReceivedSignal(commandWithReadSubjects, "Things");
+        logForwardingOfReceivedSignal(commandWithReadSubjects, SERVICE_NAME_THINGS);
         incrementAccessCounter();
         thingsShardRegion.tell(commandWithReadSubjects, getSelf());
 

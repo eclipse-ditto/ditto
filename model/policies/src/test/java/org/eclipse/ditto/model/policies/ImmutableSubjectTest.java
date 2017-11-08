@@ -12,6 +12,10 @@
 package org.eclipse.ditto.model.policies;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.eclipse.ditto.model.policies.TestConstants.Policy.SUBJECT_ID;
+import static org.eclipse.ditto.model.policies.TestConstants.Policy.SUBJECT_ID_SUBJECT;
+import static org.eclipse.ditto.model.policies.TestConstants.Policy.SUBJECT_ISSUER;
+import static org.eclipse.ditto.model.policies.TestConstants.Policy.SUBJECT_TYPE;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
@@ -44,7 +48,7 @@ public final class ImmutableSubjectTest {
     @Test
     public void testToAndFromJson() {
         final Subject subject =
-                ImmutableSubject.of(SubjectId.newInstance(SubjectIssuer.GOOGLE_URL, "myself"), SubjectType.JWT);
+                ImmutableSubject.of(SubjectId.newInstance(SubjectIssuer.GOOGLE_URL, "myself"));
 
         final JsonObject subjectJson = subject.toJson();
         final Subject subject1 = ImmutableSubject.fromJson(SubjectIssuer.GOOGLE_URL + ":myself", subjectJson);
@@ -55,48 +59,58 @@ public final class ImmutableSubjectTest {
 
     @Test(expected = NullPointerException.class)
     public void createSubjectWithNullSubjectIssuer() {
-        Subject.newInstance(null, TestConstants.Policy.SUBJECT_ID_SUBJECT, SubjectType.JWT);
+        Subject.newInstance(null, SUBJECT_ID_SUBJECT, SUBJECT_TYPE);
     }
 
     @Test(expected = NullPointerException.class)
     public void createSubjectWithNullSubject() {
-        Subject.newInstance(SubjectIssuer.GOOGLE_URL, null, SubjectType.JWT);
+        Subject.newInstance(SubjectIssuer.GOOGLE_URL, null, SUBJECT_TYPE);
     }
 
     @Test(expected = NullPointerException.class)
     public void createSubjectWithNullSubjectId() {
-        Subject.newInstance(null, SubjectType.JWT);
+        Subject.newInstance((SubjectId) null, SUBJECT_TYPE);
     }
 
     @Test(expected = NullPointerException.class)
     public void createSubjectWithNullSubjectType() {
-        Subject.newInstance(TestConstants.Policy.SUBJECT_ID, null);
+        Subject.newInstance(SUBJECT_ID, null);
     }
 
     @Test
     public void createSubjectSuccess() {
-        final Subject underTest = Subject.newInstance(TestConstants.Policy.SUBJECT_ID, SubjectType.JWT);
+        final SubjectType customType = PoliciesModelFactory.newSubjectType("custom");
+        final Subject underTest = Subject.newInstance(SUBJECT_ID, customType);
 
         assertThat(underTest).isNotNull();
-        assertThat(underTest.getId()).isEqualTo(TestConstants.Policy.SUBJECT_ID);
-        assertThat(underTest.getType()).isEqualTo(SubjectType.JWT);
+        assertThat(underTest.getId()).isEqualTo(SUBJECT_ID);
+        assertThat(underTest.getType()).isEqualTo(customType);
+    }
+
+    @Test
+    public void createSubjectWithUnknownTypeSuccess() {
+        final Subject underTest = Subject.newInstance(SUBJECT_ID);
+
+        assertThat(underTest).isNotNull();
+        assertThat(underTest.getId()).isEqualTo(SUBJECT_ID);
+        assertThat(underTest.getType()).isEqualTo(SubjectType.UNKNOWN);
     }
 
     @Test
     public void createSubjectWithIssuerSuccess() {
         final Subject underTest =
-                Subject.newInstance(SubjectIssuer.GOOGLE_URL, TestConstants.Policy.SUBJECT_ID_SUBJECT, SubjectType.JWT);
+                Subject.newInstance(SUBJECT_ISSUER, SUBJECT_ID_SUBJECT, SUBJECT_TYPE);
 
         assertThat(underTest).isNotNull();
-        assertThat(underTest.getId()).isEqualTo(TestConstants.Policy.SUBJECT_ID);
-        assertThat(underTest.getType()).isEqualTo(SubjectType.JWT);
+        assertThat(underTest.getId()).isEqualTo(SUBJECT_ID);
+        assertThat(underTest.getType()).isEqualTo(SUBJECT_TYPE);
     }
 
     @Test
     public void subjectWithIssuerEqualsSubjectAndIssuer() {
         final Subject subjectAndIssuer =
-                Subject.newInstance(SubjectIssuer.GOOGLE_URL, TestConstants.Policy.SUBJECT_ID_SUBJECT, SubjectType.JWT);
-        final Subject subjectWithIssuer = Subject.newInstance(TestConstants.Policy.SUBJECT_ID, SubjectType.JWT);
+                Subject.newInstance(SUBJECT_ISSUER, SUBJECT_ID_SUBJECT, SUBJECT_TYPE);
+        final Subject subjectWithIssuer = Subject.newInstance(SUBJECT_ID, SUBJECT_TYPE);
 
         assertThat(subjectWithIssuer).isEqualTo(subjectAndIssuer);
     }

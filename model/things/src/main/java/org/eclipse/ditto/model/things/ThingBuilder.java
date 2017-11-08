@@ -15,6 +15,7 @@ import java.time.Instant;
 import java.util.UUID;
 import java.util.function.Predicate;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
@@ -136,9 +137,8 @@ public interface ThingBuilder {
          *
          * @param policyId the Policy identifier to set.
          * @return this builder to allow method chaining.
-         * @throws NullPointerException if any argument is {@code null}.
          */
-        FromScratch setPolicyId(String policyId);
+        FromScratch setPolicyId(@Nullable String policyId);
 
         /**
          * Removes the Policy identifier from this builder.
@@ -371,10 +371,9 @@ public interface ThingBuilder {
          *
          * @param thingId the Thing identifier to be set.
          * @return this builder to allow method chaining.
-         * @throws ThingIdInvalidException if {@code thingId} does not comply to
-         * the required pattern.
+         * @throws ThingIdInvalidException if {@code thingId} does not comply to the required pattern.
          */
-        FromScratch setId(String thingId);
+        FromScratch setId(@Nullable String thingId);
 
         /**
          * Sets a generated Thing identifier to this builder.
@@ -609,9 +608,8 @@ public interface ThingBuilder {
          *
          * @param policyId the Policy identifier to set.
          * @return this builder to allow method chaining.
-         * @throws NullPointerException if any argument is {@code null}.
          */
-        FromCopy setPolicyId(String policyId);
+        FromCopy setPolicyId(@Nullable String policyId);
 
         /**
          * Removes the Policy identifier from this builder.
@@ -952,6 +950,7 @@ public interface ThingBuilder {
          *
          * @param featuresJsonString JSON string providing the Features of the Thing.
          * @return this builder to allow method chaining.
+         * @throws NullPointerException if {@code featuresJsonString} is {@code null}.
          * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code featuresJsonString} cannot be parsed to
          * {@link Features}.
          */
@@ -1027,7 +1026,7 @@ public interface ThingBuilder {
          * @param lifecycle the lifecycle to be set.
          * @return this builder to allow method chaining.
          */
-        default FromCopy setLifecycle(final ThingLifecycle lifecycle) {
+        default FromCopy setLifecycle(@Nullable final ThingLifecycle lifecycle) {
             return setLifecycle(existingLifecycle -> true, lifecycle);
         }
 
@@ -1040,7 +1039,7 @@ public interface ThingBuilder {
          * @return this builder to allow method chaining.
          * @throws NullPointerException if {@code existingLifecyclePredicate} is {@code null}.
          */
-        FromCopy setLifecycle(Predicate<ThingLifecycle> existingLifecyclePredicate, ThingLifecycle lifecycle);
+        FromCopy setLifecycle(Predicate<ThingLifecycle> existingLifecyclePredicate, @Nullable ThingLifecycle lifecycle);
 
         /**
          * Sets the given revision to this builder.
@@ -1090,8 +1089,8 @@ public interface ThingBuilder {
          * @param modified the modified to be set.
          * @return this builder to allow method chaining.
          */
-        default FromCopy setModified(final Instant modified) {
-            return setModified(existingmodified -> true, modified);
+        default FromCopy setModified(@Nullable final Instant modified) {
+            return setModified(existingModified -> true, modified);
         }
 
         /**
@@ -1103,7 +1102,7 @@ public interface ThingBuilder {
          * @return this builder to allow method chaining.
          * @throws NullPointerException if {@code existingModifiedPredicate} is {@code null}.
          */
-        FromCopy setModified(Predicate<Instant> existingModifiedPredicate, Instant modified);
+        FromCopy setModified(Predicate<Instant> existingModifiedPredicate, @Nullable Instant modified);
 
         /**
          * Sets the given Thing identifier to this builder. The identifier is required to include the Thing's namespace.
@@ -1113,7 +1112,7 @@ public interface ThingBuilder {
          * @throws ThingIdInvalidException if {@code thingId} does not comply to
          * the required pattern.
          */
-        default FromCopy setId(final String thingId) {
+        default FromCopy setId(@Nullable final String thingId) {
             return setId(existingId -> true, thingId);
         }
 
@@ -1128,7 +1127,7 @@ public interface ThingBuilder {
          * @throws ThingIdInvalidException if {@code thingId} does not comply to
          * the required pattern.
          */
-        FromCopy setId(Predicate<String> existingIdPredicate, String thingId);
+        FromCopy setId(Predicate<String> existingIdPredicate, @Nullable String thingId);
 
         /**
          * Sets a generated Thing identifier to this builder.

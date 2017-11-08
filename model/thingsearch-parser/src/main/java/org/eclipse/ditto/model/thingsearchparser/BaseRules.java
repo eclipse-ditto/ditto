@@ -111,25 +111,28 @@ public abstract class BaseRules extends BaseParser<Object> {
         return Sequence('\\', AnyOf("\""));
     }
 
+    @SuppressWarnings({"squid:S2201", "ResultOfMethodCallIgnored"})
     protected Action validateIntegerLiteral() {
-        return (context) -> {
+        return context -> {
             try {
                 Long.parseLong(context.getMatch());
-            } catch (NumberFormatException ignored) {
+            } catch (final NumberFormatException ignored) {
                 throw new ActionException("Invalid number literal (the value is too big).");
             }
             return true;
         };
     }
 
+    @SuppressWarnings({"squid:S2201", "ResultOfMethodCallIgnored"})
     protected Action validateFloatingPointLiteral() {
-        return (context) -> {
+        return context -> {
             try {
                 Double.parseDouble(context.getMatch());
-            } catch (NumberFormatException ignored) {
+            } catch (final NumberFormatException ignored) {
                 throw new ActionException("Invalid IEEE 754-2008 binary64 (double precision) number.");
             }
             return true;
         };
     }
+
 }

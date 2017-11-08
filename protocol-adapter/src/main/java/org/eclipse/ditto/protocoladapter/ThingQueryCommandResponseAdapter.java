@@ -15,6 +15,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.signals.commands.base.WithNamespace;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAclEntryResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAclResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributeResponse;
@@ -34,6 +35,7 @@ final class ThingQueryCommandResponseAdapter extends AbstractAdapter<ThingQueryC
 
     private ThingQueryCommandResponseAdapter(
             final Map<String, JsonifiableMapper<ThingQueryCommandResponse>> mappingStrategies) {
+
         super(mappingStrategies);
     }
 
@@ -104,7 +106,7 @@ final class ThingQueryCommandResponseAdapter extends AbstractAdapter<ThingQueryC
             return RetrieveThingsResponse.TYPE;
         } else {
             final JsonPointer path = adaptable.getPayload().getPath();
-            final String commandName = topicPath.getAction().get() + upperCaseFirst(PathMatcher.match(path));
+            final String commandName = getAction(topicPath) + upperCaseFirst(PathMatcher.match(path));
             return topicPath.getGroup() + ".responses:" + commandName;
         }
     }
@@ -118,7 +120,7 @@ final class ThingQueryCommandResponseAdapter extends AbstractAdapter<ThingQueryC
 
         final TopicPathBuilder topicPathBuilder;
         if (commandResponse instanceof RetrieveThingsResponse) {
-            final String namespace = ((RetrieveThingsResponse) commandResponse).getNamespace().orElse("_");
+            final String namespace = ((WithNamespace) commandResponse).getNamespace().orElse("_");
             topicPathBuilder = DittoProtocolAdapter.newTopicPathBuilderFromNamespace(namespace);
         } else {
             topicPathBuilder = DittoProtocolAdapter.newTopicPathBuilder(commandResponse.getId());
@@ -134,14 +136,14 @@ final class ThingQueryCommandResponseAdapter extends AbstractAdapter<ThingQueryC
             throw UnknownCommandException.newBuilder(commandName).build();
         }
 
-        final Payload payload = Payload.newBuilder(commandResponse.getResourcePath()) //
-                .withStatus(commandResponse.getStatusCode()) //
-                .withValue(commandResponse.getEntity(commandResponse.getImplementedSchemaVersion())) //
+        final Payload payload = Payload.newBuilder(commandResponse.getResourcePath())
+                .withStatus(commandResponse.getStatusCode())
+                .withValue(commandResponse.getEntity(commandResponse.getImplementedSchemaVersion()))
                 .build();
 
-        return Adaptable.newBuilder(commandsTopicPathBuilder.build()) //
-                .withPayload(payload) //
-                .withHeaders(DittoProtocolAdapter.newHeaders(commandResponse.getDittoHeaders())) //
+        return Adaptable.newBuilder(commandsTopicPathBuilder.build())
+                .withPayload(payload)
+                .withHeaders(DittoProtocolAdapter.newHeaders(commandResponse.getDittoHeaders()))
                 .build();
     }
 

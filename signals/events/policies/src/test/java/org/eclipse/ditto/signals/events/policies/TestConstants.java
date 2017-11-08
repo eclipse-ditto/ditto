@@ -106,7 +106,7 @@ final class TestConstants {
          * A known {@code Subject} for a {@code PolicyEntry}.
          */
         public static final Subject SUBJECT =
-                PoliciesModelFactory.newSubject(SUBJECT_ID, SubjectType.JWT);
+                PoliciesModelFactory.newSubject(SUBJECT_ID, SubjectType.newInstance("mySubjectType"));
 
         /**
          * Known {@code Subjects} for a {@code PolicyEntry}.

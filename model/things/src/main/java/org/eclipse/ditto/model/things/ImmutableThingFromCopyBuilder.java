@@ -17,6 +17,7 @@ import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.function.Predicate;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
@@ -241,7 +242,7 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
     }
 
     @Override
-    public FromCopy setPolicyId(final String policyId) {
+    public FromCopy setPolicyId(@Nullable final String policyId) {
         fromScratchBuilder.setPolicyId(policyId);
         return this;
     }
@@ -261,6 +262,7 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
     @Override
     public FromCopy setAttributes(final Predicate<Attributes> existingAttributesPredicate,
             final Attributes attributes) {
+
         if (testAttributesPredicate(existingAttributesPredicate)) {
             return setAttributes(attributes);
         }
@@ -501,14 +503,15 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
     }
 
     @Override
-    public FromCopy setLifecycle(final ThingLifecycle lifecycle) {
+    public FromCopy setLifecycle(@Nullable final ThingLifecycle lifecycle) {
         fromScratchBuilder.setLifecycle(lifecycle);
         return this;
     }
 
     @Override
     public FromCopy setLifecycle(final Predicate<ThingLifecycle> existingLifecyclePredicate,
-            final ThingLifecycle lifecycle) {
+            @Nullable final ThingLifecycle lifecycle) {
+
         if (existingLifecyclePredicate.test(fromScratchBuilder.lifecycle)) {
             setLifecycle(lifecycle);
         }
@@ -516,14 +519,15 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
     }
 
     @Override
-    public FromCopy setRevision(final ThingRevision revision) {
+    public FromCopy setRevision(@Nullable final ThingRevision revision) {
         fromScratchBuilder.setRevision(revision);
         return this;
     }
 
     @Override
     public FromCopy setRevision(final Predicate<ThingRevision> existingRevisionPredicate,
-            final ThingRevision revision) {
+            @Nullable final ThingRevision revision) {
+
         if (existingRevisionPredicate.test(fromScratchBuilder.revision)) {
             setRevision(revision);
         }
@@ -545,14 +549,13 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
     }
 
     @Override
-    public FromCopy setModified(final Instant modified) {
+    public FromCopy setModified(@Nullable final Instant modified) {
         fromScratchBuilder.setModified(modified);
         return this;
     }
 
     @Override
-    public FromCopy setModified(final Predicate<Instant> existingModifiedPredicate,
-            final Instant modified) {
+    public FromCopy setModified(final Predicate<Instant> existingModifiedPredicate, @Nullable final Instant modified) {
         if (existingModifiedPredicate.test(fromScratchBuilder.modified)) {
             setModified(modified);
         }
@@ -560,13 +563,13 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
     }
 
     @Override
-    public FromCopy setId(final String thingId) {
+    public FromCopy setId(@Nullable final String thingId) {
         fromScratchBuilder.setId(thingId);
         return this;
     }
 
     @Override
-    public FromCopy setId(final Predicate<String> existingIdPredicate, final String thingId) {
+    public FromCopy setId(final Predicate<String> existingIdPredicate, @Nullable final String thingId) {
         if (existingIdPredicate.test(fromScratchBuilder.id)) {
             setId(thingId);
         }

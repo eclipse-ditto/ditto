@@ -20,9 +20,6 @@ import java.util.UUID;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.policies.Policy;
-import org.eclipse.ditto.model.policies.Subject;
-import org.eclipse.ditto.model.policies.SubjectIssuer;
-import org.eclipse.ditto.model.policies.SubjectType;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicy;
@@ -52,30 +49,12 @@ import akka.testkit.javadsl.TestKit;
  * Tests workflow of {@link ModifyThingHandlerActor}. Update or delete these tests as the behavior of
  * {@link ModifyThingHandlerActor} changes.
  */
-public class ModifyThingHandlerActorTest extends AbstractThingHandlerActorTest {
+public final class ModifyThingHandlerActorTest extends AbstractThingHandlerActorTestBase {
 
-    private static final ThingCommandToModifyExceptionRegistry thingCommandToModifyExceptionRegistry =
+    private static final ThingCommandToModifyExceptionRegistry THING_COMMAND_TO_MODIFY_EXCEPTION_REGISTRY =
             ThingCommandToModifyExceptionRegistry.getInstance();
 
     private ActorRef underTest;
-
-    private void startHandlerWithEnforcer(final TestKit testkit) {
-        underTest = actorSystem.actorOf(
-                ModifyThingHandlerActor.props(enforcerShard.ref(), defaultEnforcerId, aclEnforcerShard.ref(),
-                        policyEnforcerShard.ref()));
-        testkit.watch(underTest);
-    }
-
-    private void startHandlerWithoutEnforcer(final TestKit testkit) {
-        underTest = actorSystem.actorOf(
-                ModifyThingHandlerActor.props(null, null, aclEnforcerShard.ref(), policyEnforcerShard.ref()));
-        testkit.watch(underTest);
-    }
-
-    private void expectUnderTestTerminated(final TestKit testkit) {
-        testkit.expectTerminated(underTest);
-        underTest = null;
-    }
 
     @After
     public void cleanupUnderTest() {
@@ -92,12 +71,12 @@ public class ModifyThingHandlerActorTest extends AbstractThingHandlerActorTest {
             // receives ModifyThing
             final String thingId = "thing:" + UUID.randomUUID();
             final Thing thing = ThingsModelFactory.newThingBuilder().setId(thingId).build();
-            final ModifyThing modifyThing = ModifyThing.of(thingId, thing, null, defaultHeaders);
+            final ModifyThing modifyThing = ModifyThing.of(thingId, thing, null, DEFAULT_HEADERS);
             underTest.tell(modifyThing, getRef());
 
             // forwards ModifyThing to the given enforcer shard region
-            final ModifyThingResponse modifyThingResponse = ModifyThingResponse.modified(thingId, defaultHeaders);
-            enforcerShard.expectMsg(createShardedMessage(defaultEnforcerId, modifyThing));
+            final ModifyThingResponse modifyThingResponse = ModifyThingResponse.modified(thingId, DEFAULT_HEADERS);
+            enforcerShard.expectMsg(createShardedMessage(DEFAULT_ENFORCER_ID, modifyThing));
             enforcerShard.reply(modifyThingResponse);
 
             // initial requester receives the modify thing response
@@ -114,13 +93,13 @@ public class ModifyThingHandlerActorTest extends AbstractThingHandlerActorTest {
             // receives ModifyThing
             final String thingId = "thing:" + UUID.randomUUID();
             final Thing thing = ThingsModelFactory.newThingBuilder().setId(thingId).build();
-            final ModifyThing modifyThing = ModifyThing.of(thingId, thing, null, defaultHeaders);
+            final ModifyThing modifyThing = ModifyThing.of(thingId, thing, null, DEFAULT_HEADERS);
             underTest.tell(modifyThing, getRef());
 
             // forwards ModifyThing to the given enforcer shard region, but the command failed
             final Object failureResponse =
-                    GatewayServiceUnavailableException.fromMessage(UUID.randomUUID().toString(), defaultHeaders);
-            enforcerShard.expectMsg(createShardedMessage(defaultEnforcerId, modifyThing));
+                    GatewayServiceUnavailableException.fromMessage(UUID.randomUUID().toString(), DEFAULT_HEADERS);
+            enforcerShard.expectMsg(createShardedMessage(DEFAULT_ENFORCER_ID, modifyThing));
             enforcerShard.reply(failureResponse);
 
             // initial requester receives the failure response verbatim
@@ -142,8 +121,8 @@ public class ModifyThingHandlerActorTest extends AbstractThingHandlerActorTest {
             underTest.tell(modifyThing, getRef());
 
             // forwards ModifyThing to the given enforcer shard region, which fails because of no headers
-            final DittoRuntimeException error = thingCommandToModifyExceptionRegistry.exceptionFrom(modifyThing);
-            enforcerShard.expectMsg(createShardedMessage(defaultEnforcerId, modifyThing));
+            final DittoRuntimeException error = THING_COMMAND_TO_MODIFY_EXCEPTION_REGISTRY.exceptionFrom(modifyThing);
+            enforcerShard.expectMsg(createShardedMessage(DEFAULT_ENFORCER_ID, modifyThing));
             enforcerShard.reply(error);
 
             // initial requester receives the failure response verbatim
@@ -160,21 +139,21 @@ public class ModifyThingHandlerActorTest extends AbstractThingHandlerActorTest {
             // receives ModifyThing
             final String thingId = "thing:" + UUID.randomUUID();
             final Thing thing = ThingsModelFactory.newThingBuilder().setId(thingId).build();
-            final ModifyThing modifyThing = ModifyThing.of(thingId, thing, null, defaultHeaders);
+            final ModifyThing modifyThing = ModifyThing.of(thingId, thing, null, DEFAULT_HEADERS);
             underTest.tell(modifyThing, getRef());
 
             // assumes thing doesn't exist because enforcer doesn't exist
             // transforms ModifyThing to CreateThing right away
             // due to absence of enforcer, assumes nonexistence of policy and creates implicit policy, which fails
             final PolicyConflictException policyConflictException =
-                    PolicyConflictException.fromMessage(UUID.randomUUID().toString(), defaultHeaders);
+                    PolicyConflictException.fromMessage(UUID.randomUUID().toString(), DEFAULT_HEADERS);
             assertThat(policyEnforcerShard.expectMsgClass(ShardedMessageEnvelope.class).getType())
                     .isEqualTo(CreatePolicy.TYPE);
             policyEnforcerShard.reply(policyConflictException);
 
             // replies an error due to policy creation failure
             final DittoRuntimeException error = ThingNotCreatableException.newBuilderForPolicyExisting(thingId, thingId)
-                    .dittoHeaders(defaultHeaders)
+                    .dittoHeaders(DEFAULT_HEADERS)
                     .build();
 
             // initial requester receives the failure response verbatim
@@ -193,29 +172,29 @@ public class ModifyThingHandlerActorTest extends AbstractThingHandlerActorTest {
             final String thingId = "thing:" + UUID.randomUUID();
             final Thing thing = ThingsModelFactory.newThingBuilder().setId(thingId).build();
             final Policy policy = Policy.newBuilder(thingId).build();
-            final ModifyThing modifyThing = ModifyThing.of(thingId, thing, null, defaultHeaders);
+            final ModifyThing modifyThing = ModifyThing.of(thingId, thing, null, DEFAULT_HEADERS);
             underTest.tell(modifyThing, getRef());
 
             // assumes thing doesn't exist because enforcer doesn't exist
             // transforms ModifyThing to CreateThing right away
             // due to absence of enforcer, assumes nonexistence of policy and creates implicit policy, which succeeds
-            final CreatePolicyResponse createPolicyResponse = CreatePolicyResponse.of(thingId, policy, defaultHeaders);
+            final CreatePolicyResponse createPolicyResponse = CreatePolicyResponse.of(thingId, policy, DEFAULT_HEADERS);
             assertThat(policyEnforcerShard.expectMsgClass(ShardedMessageEnvelope.class).getType())
                     .isEqualTo(CreatePolicy.TYPE);
             policyEnforcerShard.reply(createPolicyResponse);
 
             // sends CreateThing to policy enforcer shard with newly created policy ID, which succeeds
             final Thing thingWithPolicyId = thing.setPolicyId(thingId);
-            final CreateThing createThingWithPolicyId = CreateThing.of(thingWithPolicyId, null, defaultHeaders);
+            final CreateThing createThingWithPolicyId = CreateThing.of(thingWithPolicyId, null, DEFAULT_HEADERS);
             final ShardedMessageEnvelope createThingEnvelope = ShardedMessageEnvelope.of(thingId, CreateThing.TYPE,
-                    createThingWithPolicyId.toJson(V_2, regularOrSpecial()), defaultHeaders);
-            final CreateThingResponse createThingResponse = CreateThingResponse.of(thingWithPolicyId, defaultHeaders);
+                    createThingWithPolicyId.toJson(V_2, regularOrSpecial()), DEFAULT_HEADERS);
+            final CreateThingResponse createThingResponse = CreateThingResponse.of(thingWithPolicyId, DEFAULT_HEADERS);
             assertThat(policyEnforcerShard.expectMsgClass(Object.class)).isEqualTo(createThingEnvelope);
             policyEnforcerShard.reply(createThingResponse);
 
             // initial requester receives the success response with inlined policy
             final CreateThingResponse finalResponse =
-                    CreateThingResponse.of(thingWithPolicyId, defaultHeaders);
+                    CreateThingResponse.of(thingWithPolicyId, DEFAULT_HEADERS);
             assertThat(expectMsgClass(Object.class)).isEqualTo(finalResponse);
             expectUnderTestTerminated(this);
         }};
@@ -231,11 +210,11 @@ public class ModifyThingHandlerActorTest extends AbstractThingHandlerActorTest {
             final String thingId = "thing:" + UUID.randomUUID();
             final Thing thing = ThingsModelFactory.newThingBuilder().setId(thingId).build();
             final Policy policy = Policy.newBuilder(thingId).build();
-            final ModifyThing modifyThing = ModifyThing.of(thingId, thing, null, defaultHeaders);
+            final ModifyThing modifyThing = ModifyThing.of(thingId, thing, null, DEFAULT_HEADERS);
             underTest.tell(modifyThing, getRef());
 
             // attempts to modify thing but thing did not exist
-            enforcerShard.expectMsg(createShardedMessage(defaultEnforcerId, modifyThing));
+            enforcerShard.expectMsg(createShardedMessage(DEFAULT_ENFORCER_ID, modifyThing));
             enforcerShard.reply(ThingNotAccessibleException.newBuilder(thingId).build());
 
             // the enforcer is void once it is discovered that the thing associated with the ModifyThing command
@@ -244,23 +223,23 @@ public class ModifyThingHandlerActorTest extends AbstractThingHandlerActorTest {
 
             // transforms ModifyThing to CreateThing right away
             // due to absence of enforcer, assumes nonexistence of policy and creates implicit policy, which succeeds
-            final CreatePolicyResponse createPolicyResponse = CreatePolicyResponse.of(thingId, policy, defaultHeaders);
+            final CreatePolicyResponse createPolicyResponse = CreatePolicyResponse.of(thingId, policy, DEFAULT_HEADERS);
             assertThat(policyEnforcerShard.expectMsgClass(ShardedMessageEnvelope.class).getType())
                     .isEqualTo(CreatePolicy.TYPE);
             policyEnforcerShard.reply(createPolicyResponse);
 
             // sends CreateThing to policy enforcer shard with newly created policy ID, which succeeds
             final Thing thingWithPolicyId = thing.setPolicyId(thingId);
-            final CreateThing createThingWithPolicyId = CreateThing.of(thingWithPolicyId, null, defaultHeaders);
+            final CreateThing createThingWithPolicyId = CreateThing.of(thingWithPolicyId, null, DEFAULT_HEADERS);
             final ShardedMessageEnvelope createThingEnvelope = ShardedMessageEnvelope.of(thingId, CreateThing.TYPE,
-                    createThingWithPolicyId.toJson(V_2, regularOrSpecial()), defaultHeaders);
-            final CreateThingResponse createThingResponse = CreateThingResponse.of(thingWithPolicyId, defaultHeaders);
+                    createThingWithPolicyId.toJson(V_2, regularOrSpecial()), DEFAULT_HEADERS);
+            final CreateThingResponse createThingResponse = CreateThingResponse.of(thingWithPolicyId, DEFAULT_HEADERS);
             assertThat(policyEnforcerShard.expectMsgClass(Object.class)).isEqualTo(createThingEnvelope);
             policyEnforcerShard.reply(createThingResponse);
 
             // initial requester receives the success response with inlined policy
             final CreateThingResponse finalResponse =
-                    CreateThingResponse.of(thingWithPolicyId, defaultHeaders);
+                    CreateThingResponse.of(thingWithPolicyId, DEFAULT_HEADERS);
             assertThat(expectMsgClass(Object.class)).isEqualTo(finalResponse);
             expectUnderTestTerminated(this);
         }};
@@ -276,26 +255,26 @@ public class ModifyThingHandlerActorTest extends AbstractThingHandlerActorTest {
             final String policyId = "policy:" + UUID.randomUUID();
             final Thing thing = ThingsModelFactory.newThingBuilder().setId(thingId).setPolicyId(policyId).build();
             final Policy policy = Policy.newBuilder(policyId).build();
-            final ModifyThing modifyThing = ModifyThing.of(thingId, thing, null, defaultHeaders);
+            final ModifyThing modifyThing = ModifyThing.of(thingId, thing, null, DEFAULT_HEADERS);
             underTest.tell(modifyThing, getRef());
 
             // attempts to modify thing but thing did not exist
-            enforcerShard.expectMsg(createShardedMessage(defaultEnforcerId, modifyThing));
+            enforcerShard.expectMsg(createShardedMessage(DEFAULT_ENFORCER_ID, modifyThing));
             enforcerShard.reply(ThingNotAccessibleException.newBuilder(thingId).build());
 
             // ensures existence of the policy identified by policyId field of the thing
-            policyEnforcerShard.expectMsg(SudoRetrievePolicy.of(policyId, defaultHeaders));
-            policyEnforcerShard.reply(SudoRetrievePolicyResponse.of(policyId, policy, defaultHeaders));
+            policyEnforcerShard.expectMsg(SudoRetrievePolicy.of(policyId, DEFAULT_HEADERS));
+            policyEnforcerShard.reply(SudoRetrievePolicyResponse.of(policyId, policy, DEFAULT_HEADERS));
 
             // transforms ModifyThing to CreateThing, which succeeds
             final ShardedMessageEnvelope createThingEnvelope = ShardedMessageEnvelope.of(policyId, CreateThing.TYPE,
-                    CreateThing.of(thing, null, defaultHeaders).toJson(V_2, regularOrSpecial()), defaultHeaders);
+                    CreateThing.of(thing, null, DEFAULT_HEADERS).toJson(V_2, regularOrSpecial()), DEFAULT_HEADERS);
             policyEnforcerShard.expectMsg(createThingEnvelope);
-            policyEnforcerShard.reply(CreateThingResponse.of(thing, defaultHeaders));
+            policyEnforcerShard.reply(CreateThingResponse.of(thing, DEFAULT_HEADERS));
 
             // responds to original requester with policy embedded in thing
             final CreateThingResponse expectedFinalResponse =
-                    CreateThingResponse.of(thing.toBuilder().build(), defaultHeaders);
+                    CreateThingResponse.of(thing.toBuilder().build(), DEFAULT_HEADERS);
             expectMsg(expectedFinalResponse);
             expectUnderTestTerminated(this);
         }};
@@ -310,23 +289,23 @@ public class ModifyThingHandlerActorTest extends AbstractThingHandlerActorTest {
             final String thingId = "thing:" + UUID.randomUUID();
             final String policyId = "policy:" + UUID.randomUUID();
             final Thing thing = ThingsModelFactory.newThingBuilder().setId(thingId).setPolicyId(policyId).build();
-            final ModifyThing modifyThing = ModifyThing.of(thingId, thing, null, defaultHeaders);
+            final ModifyThing modifyThing = ModifyThing.of(thingId, thing, null, DEFAULT_HEADERS);
             underTest.tell(modifyThing, getRef());
 
             // attempts to modify thing but thing did not exist
-            enforcerShard.expectMsg(createShardedMessage(defaultEnforcerId, modifyThing));
+            enforcerShard.expectMsg(createShardedMessage(DEFAULT_ENFORCER_ID, modifyThing));
             enforcerShard.reply(ThingNotAccessibleException.newBuilder(thingId).build());
 
             // ensures existence of the policy identified by policyId field of the thing
             final Policy policy = Policy.newBuilder(policyId).build();
-            policyEnforcerShard.expectMsg(SudoRetrievePolicy.of(policyId, defaultHeaders));
-            policyEnforcerShard.reply(SudoRetrievePolicyResponse.of(policyId, policy, defaultHeaders));
+            policyEnforcerShard.expectMsg(SudoRetrievePolicy.of(policyId, DEFAULT_HEADERS));
+            policyEnforcerShard.reply(SudoRetrievePolicyResponse.of(policyId, policy, DEFAULT_HEADERS));
 
             // transforms ModifyThing to CreateThing, which fails because someone else created the thing in between
             final ShardedMessageEnvelope createThingEnvelope = ShardedMessageEnvelope.of(policyId, CreateThing.TYPE,
-                    CreateThing.of(thing, null, defaultHeaders).toJson(V_2, regularOrSpecial()), defaultHeaders);
+                    CreateThing.of(thing, null, DEFAULT_HEADERS).toJson(V_2, regularOrSpecial()), DEFAULT_HEADERS);
             final ThingConflictException thingConflictException =
-                    ThingConflictException.newBuilder(thingId).dittoHeaders(defaultHeaders).build();
+                    ThingConflictException.newBuilder(thingId).dittoHeaders(DEFAULT_HEADERS).build();
             policyEnforcerShard.expectMsg(createThingEnvelope);
             policyEnforcerShard.reply(thingConflictException);
 
@@ -345,24 +324,24 @@ public class ModifyThingHandlerActorTest extends AbstractThingHandlerActorTest {
             final String thingId = "thing:" + UUID.randomUUID();
             final String policyId = "policy:" + UUID.randomUUID();
             final Thing thing = ThingsModelFactory.newThingBuilder().setId(thingId).setPolicyId(policyId).build();
-            final ModifyThing modifyThing = ModifyThing.of(thingId, thing, null, defaultHeaders);
+            final ModifyThing modifyThing = ModifyThing.of(thingId, thing, null, DEFAULT_HEADERS);
             underTest.tell(modifyThing, getRef());
 
             // attempts to modify thing but thing did not exist
-            enforcerShard.expectMsg(createShardedMessage(defaultEnforcerId, modifyThing));
+            enforcerShard.expectMsg(createShardedMessage(DEFAULT_ENFORCER_ID, modifyThing));
             enforcerShard.reply(ThingNotAccessibleException.newBuilder(thingId).build());
 
             // ensures existence of the policy identified by policyId field of the thing
             final Policy policy = Policy.newBuilder(policyId).build();
-            policyEnforcerShard.expectMsg(SudoRetrievePolicy.of(policyId, defaultHeaders));
-            policyEnforcerShard.reply(SudoRetrievePolicyResponse.of(policyId, policy, defaultHeaders));
+            policyEnforcerShard.expectMsg(SudoRetrievePolicy.of(policyId, DEFAULT_HEADERS));
+            policyEnforcerShard.reply(SudoRetrievePolicyResponse.of(policyId, policy, DEFAULT_HEADERS));
 
             // transforms ModifyThing to CreateThing, which fails because it is not authorized
-            final CreateThing createThing = CreateThing.of(thing, null, defaultHeaders);
+            final CreateThing createThing = CreateThing.of(thing, null, DEFAULT_HEADERS);
             final ShardedMessageEnvelope createThingEnvelope = ShardedMessageEnvelope.of(policyId, CreateThing.TYPE,
-                    createThing.toJson(V_2, regularOrSpecial()), defaultHeaders);
+                    createThing.toJson(V_2, regularOrSpecial()), DEFAULT_HEADERS);
             final DittoRuntimeException notAuthorized =
-                    thingCommandToModifyExceptionRegistry.exceptionFrom(createThing);
+                    THING_COMMAND_TO_MODIFY_EXCEPTION_REGISTRY.exceptionFrom(createThing);
             policyEnforcerShard.expectMsg(createThingEnvelope);
             policyEnforcerShard.reply(notAuthorized);
 
@@ -381,23 +360,23 @@ public class ModifyThingHandlerActorTest extends AbstractThingHandlerActorTest {
             final String thingId = "thing:" + UUID.randomUUID();
             final String policyId = "policy:" + UUID.randomUUID();
             final Thing thing = ThingsModelFactory.newThingBuilder().setId(thingId).setPolicyId(policyId).build();
-            final ModifyThing modifyThing = ModifyThing.of(thingId, thing, null, defaultHeaders);
+            final ModifyThing modifyThing = ModifyThing.of(thingId, thing, null, DEFAULT_HEADERS);
             underTest.tell(modifyThing, getRef());
 
             // attempts to modify thing but thing did not exist
-            enforcerShard.expectMsg(createShardedMessage(defaultEnforcerId, modifyThing));
+            enforcerShard.expectMsg(createShardedMessage(DEFAULT_ENFORCER_ID, modifyThing));
             enforcerShard.reply(ThingNotAccessibleException.newBuilder(thingId).build());
 
             // ensures existence of the policy identified by policyId field of the thing
             final PolicyNotAccessibleException policyNotAccessibleException =
-                    PolicyNotAccessibleException.fromMessage(UUID.randomUUID().toString(), defaultHeaders);
-            policyEnforcerShard.expectMsg(SudoRetrievePolicy.of(policyId, defaultHeaders));
+                    PolicyNotAccessibleException.fromMessage(UUID.randomUUID().toString(), DEFAULT_HEADERS);
+            policyEnforcerShard.expectMsg(SudoRetrievePolicy.of(policyId, DEFAULT_HEADERS));
             policyEnforcerShard.reply(policyNotAccessibleException);
 
             // responds to original requester with ThingNotCreatableException
             final ThingNotCreatableException expectedFinalResponse =
                     ThingNotCreatableException.newBuilderForPolicyMissing(thingId, policyId)
-                            .dittoHeaders(defaultHeaders)
+                            .dittoHeaders(DEFAULT_HEADERS)
                             .build();
             expectMsg(expectedFinalResponse);
             expectUnderTestTerminated(this);
@@ -413,17 +392,17 @@ public class ModifyThingHandlerActorTest extends AbstractThingHandlerActorTest {
             final String thingId = "thing:" + UUID.randomUUID();
             final String policyId = "policy:" + UUID.randomUUID();
             final Thing thing = ThingsModelFactory.newThingBuilder().setId(thingId).setPolicyId(policyId).build();
-            final ModifyThing modifyThing = ModifyThing.of(thingId, thing, null, defaultHeaders);
+            final ModifyThing modifyThing = ModifyThing.of(thingId, thing, null, DEFAULT_HEADERS);
             underTest.tell(modifyThing, getRef());
 
             // attempts to modify thing but thing did not exist
-            enforcerShard.expectMsg(createShardedMessage(defaultEnforcerId, modifyThing));
+            enforcerShard.expectMsg(createShardedMessage(DEFAULT_ENFORCER_ID, modifyThing));
             enforcerShard.reply(ThingNotAccessibleException.newBuilder(thingId).build());
 
             // ensures existence of the policy identified by policyId field of the thing
             final GatewayServiceUnavailableException unavailable =
-                    GatewayServiceUnavailableException.fromMessage(UUID.randomUUID().toString(), defaultHeaders);
-            policyEnforcerShard.expectMsg(SudoRetrievePolicy.of(policyId, defaultHeaders));
+                    GatewayServiceUnavailableException.fromMessage(UUID.randomUUID().toString(), DEFAULT_HEADERS);
+            policyEnforcerShard.expectMsg(SudoRetrievePolicy.of(policyId, DEFAULT_HEADERS));
             policyEnforcerShard.reply(unavailable);
 
             // responds to original requester with unavailability
@@ -446,7 +425,7 @@ public class ModifyThingHandlerActorTest extends AbstractThingHandlerActorTest {
             underTest.tell(modifyThing, getRef());
 
             // attempts to modify thing but thing did not exist
-            enforcerShard.expectMsg(createShardedMessage(defaultEnforcerId, modifyThing));
+            enforcerShard.expectMsg(createShardedMessage(DEFAULT_ENFORCER_ID, modifyThing));
             enforcerShard.reply(ThingNotAccessibleException.newBuilder(thingId).build());
 
             // ensures existence of the policy identified by policyId field of the thing
@@ -459,7 +438,7 @@ public class ModifyThingHandlerActorTest extends AbstractThingHandlerActorTest {
             final ShardedMessageEnvelope createThingEnvelope = ShardedMessageEnvelope.of(policyId, CreateThing.TYPE,
                     createThing.toJson(V_2, regularOrSpecial()), emptyHeaders);
             final DittoRuntimeException notAuthorized =
-                    thingCommandToModifyExceptionRegistry.exceptionFrom(createThing);
+                    THING_COMMAND_TO_MODIFY_EXCEPTION_REGISTRY.exceptionFrom(createThing);
             policyEnforcerShard.expectMsg(createThingEnvelope);
             policyEnforcerShard.reply(notAuthorized);
 
@@ -476,32 +455,31 @@ public class ModifyThingHandlerActorTest extends AbstractThingHandlerActorTest {
 
             // receives ModifyThing with inlined policy, which is invalid because it has policy ID
             final String thingId = "thing:" + UUID.randomUUID();
-            final String subjectId = "subject:" + UUID.randomUUID();
             final Policy policy = Policy.newBuilder(thingId)
                     .forLabel("dummylabel")
-                    .setSubject(defaultSubject)
+                    .setSubject(DEFAULT_SUBJECT)
                     .setGrantedPermissions("policy", "/", "WRITE", "EAT")
                     .setGrantedPermissions("thing", "/", "READ")
                     .build();
             final Thing thing = ThingsModelFactory.newThingBuilder().setId(thingId).build();
-            final ModifyThing modifyThing = ModifyThing.of(thingId, thing, policy.toJson(), defaultHeaders);
+            final ModifyThing modifyThing = ModifyThing.of(thingId, thing, policy.toJson(), DEFAULT_HEADERS);
             underTest.tell(modifyThing, getRef());
 
             // creates inlined policy
             assertThat(policyEnforcerShard.expectMsgClass(Object.class))
-                    .isEqualTo(createShardedMessage(thingId, CreatePolicy.of(policy, defaultHeaders)));
-            policyEnforcerShard.reply(CreatePolicyResponse.of(thingId, policy, defaultHeaders));
+                    .isEqualTo(createShardedMessage(thingId, CreatePolicy.of(policy, DEFAULT_HEADERS)));
+            policyEnforcerShard.reply(CreatePolicyResponse.of(thingId, policy, DEFAULT_HEADERS));
 
             // creates thing
             final Thing thingWithPolicyIdWithoutPolicy = thing.setPolicyId(thingId);
             assertThat(policyEnforcerShard.expectMsgClass(Object.class)).isEqualTo(
                     createShardedMessage(thingId,
-                            CreateThing.of(thingWithPolicyIdWithoutPolicy, policy.toJson(), defaultHeaders)));
-            policyEnforcerShard.reply(CreateThingResponse.of(thingWithPolicyIdWithoutPolicy, defaultHeaders));
+                            CreateThing.of(thingWithPolicyIdWithoutPolicy, policy.toJson(), DEFAULT_HEADERS)));
+            policyEnforcerShard.reply(CreateThingResponse.of(thingWithPolicyIdWithoutPolicy, DEFAULT_HEADERS));
 
             // replies CreateThingResponse with inlined policy
             assertThat(expectMsgClass(Object.class)).isEqualTo(
-                    CreateThingResponse.of(thingWithPolicyIdWithoutPolicy, defaultHeaders));
+                    CreateThingResponse.of(thingWithPolicyIdWithoutPolicy, DEFAULT_HEADERS));
         }};
     }
 
@@ -512,41 +490,40 @@ public class ModifyThingHandlerActorTest extends AbstractThingHandlerActorTest {
 
             // receives ModifyThing with inlined policy, which is invalid because it has policy ID
             final String thingId = "thing:" + UUID.randomUUID();
-            final String subjectId = "subject:" + UUID.randomUUID();
             final Policy policy = Policy.newBuilder(thingId)
                     .forLabel("dummylabel")
-                    .setSubject(defaultSubject)
+                    .setSubject(DEFAULT_SUBJECT)
                     .setGrantedPermissions("policy", "/", "WRITE", "EAT")
                     .setGrantedPermissions("thing", "/", "READ")
                     .build();
             final Thing thing =
                     ThingsModelFactory.newThingBuilder().setId(thingId).setPolicyId(thingId).build();
             final ModifyThing modifyThing =
-                    ModifyThing.of(thingId, thing, policy.toJson().remove("policyId"),
-                            defaultHeaders);
+                    ModifyThing.of(thingId, thing, policy.toJson().remove("policyId"), DEFAULT_HEADERS);
             underTest.tell(modifyThing, getRef());
 
             // verifies nonexistence of policy
             assertThat(policyEnforcerShard.expectMsgClass(Object.class)).isEqualTo(
-                    SudoRetrievePolicy.of(thingId, defaultHeaders));
+                    SudoRetrievePolicy.of(thingId, DEFAULT_HEADERS));
             policyEnforcerShard.reply(
-                    PolicyNotAccessibleException.newBuilder(thingId).dittoHeaders(defaultHeaders).build());
+                    PolicyNotAccessibleException.newBuilder(thingId).dittoHeaders(DEFAULT_HEADERS).build());
 
             // creates inlined policy
             assertThat(policyEnforcerShard.expectMsgClass(Object.class))
-                    .isEqualTo(createShardedMessage(thingId, CreatePolicy.of(policy, defaultHeaders)));
-            policyEnforcerShard.reply(CreatePolicyResponse.of(thingId, policy, defaultHeaders));
+                    .isEqualTo(createShardedMessage(thingId, CreatePolicy.of(policy, DEFAULT_HEADERS)));
+            policyEnforcerShard.reply(CreatePolicyResponse.of(thingId, policy, DEFAULT_HEADERS));
 
             // creates thing
             final Thing thingWithPolicyIdWithoutPolicy = thing.setPolicyId(thingId);
             assertThat(policyEnforcerShard.expectMsgClass(Object.class)).isEqualTo(
                     createShardedMessage(thingId,
-                            CreateThing.of(thingWithPolicyIdWithoutPolicy, policy.toJson().remove("policyId"), defaultHeaders)));
-            policyEnforcerShard.reply(CreateThingResponse.of(thingWithPolicyIdWithoutPolicy, defaultHeaders));
+                            CreateThing.of(thingWithPolicyIdWithoutPolicy, policy.toJson().remove("policyId"),
+                                    DEFAULT_HEADERS)));
+            policyEnforcerShard.reply(CreateThingResponse.of(thingWithPolicyIdWithoutPolicy, DEFAULT_HEADERS));
 
             // replies CreateThingResponse with inlined policy
             assertThat(expectMsgClass(Object.class)).isEqualTo(
-                    CreateThingResponse.of(thingWithPolicyIdWithoutPolicy, defaultHeaders));
+                    CreateThingResponse.of(thingWithPolicyIdWithoutPolicy, DEFAULT_HEADERS));
         }};
     }
 
@@ -557,33 +534,32 @@ public class ModifyThingHandlerActorTest extends AbstractThingHandlerActorTest {
 
             // receives ModifyThing with inlined policy, which is invalid because it has policy ID
             final String thingId = "thing:" + UUID.randomUUID();
-            final String subjectId = "subject:" + UUID.randomUUID();
             final Policy policy = Policy.newBuilder(thingId)
                     .forLabel("dummylabel")
-                    .setSubject(Subject.newInstance(SubjectIssuer.GOOGLE_URL, subjectId, SubjectType.JWT))
+                    .setSubject(DEFAULT_SUBJECT)
                     .setGrantedPermissions("policy", "/", "WRITE", "EAT")
                     .build();
             final Thing thing =
                     ThingsModelFactory.newThingBuilder().setId(thingId).setPolicyId(thingId).build();
             final ModifyThing modifyThing =
-                    ModifyThing.of(thingId, thing, policy.toJson().remove("policyId"), defaultHeaders);
+                    ModifyThing.of(thingId, thing, policy.toJson().remove("policyId"), DEFAULT_HEADERS);
             underTest.tell(modifyThing, getRef());
 
             // verifies nonexistence of policy
             assertThat(policyEnforcerShard.expectMsgClass(Object.class)).isEqualTo(
-                    SudoRetrievePolicy.of(thingId, defaultHeaders));
+                    SudoRetrievePolicy.of(thingId, DEFAULT_HEADERS));
             policyEnforcerShard.reply(
-                    PolicyNotAccessibleException.newBuilder(thingId).dittoHeaders(defaultHeaders).build());
+                    PolicyNotAccessibleException.newBuilder(thingId).dittoHeaders(DEFAULT_HEADERS).build());
 
             // tries to create inlined policy, but someone else beats us to it
             assertThat(policyEnforcerShard.expectMsgClass(Object.class))
-                    .isEqualTo(createShardedMessage(thingId, CreatePolicy.of(policy, defaultHeaders)));
+                    .isEqualTo(createShardedMessage(thingId, CreatePolicy.of(policy, DEFAULT_HEADERS)));
             policyEnforcerShard.reply(
-                    PolicyConflictException.newBuilder(thingId).dittoHeaders(defaultHeaders).build());
+                    PolicyConflictException.newBuilder(thingId).dittoHeaders(DEFAULT_HEADERS).build());
 
             assertThat(expectMsgClass(Object.class)).isEqualTo(
                     ThingNotCreatableException.newBuilderForPolicyExisting(thingId, thingId)
-                            .dittoHeaders(defaultHeaders)
+                            .dittoHeaders(DEFAULT_HEADERS)
                             .build());
         }};
     }
@@ -598,7 +574,7 @@ public class ModifyThingHandlerActorTest extends AbstractThingHandlerActorTest {
             final String policyId = "policy:" + UUID.randomUUID();
             final Policy policy = Policy.newBuilder(policyId).build();
             final Thing thing = ThingsModelFactory.newThingBuilder().setId(thingId).build();
-            final ModifyThing modifyThing = ModifyThing.of(thingId, thing, policy.toJson(), defaultHeaders);
+            final ModifyThing modifyThing = ModifyThing.of(thingId, thing, policy.toJson(), DEFAULT_HEADERS);
             underTest.tell(modifyThing, getRef());
 
             // rejects the request because the existence of enforcer means the thing exists already
@@ -615,30 +591,30 @@ public class ModifyThingHandlerActorTest extends AbstractThingHandlerActorTest {
             final String thingId = "thing:" + UUID.randomUUID();
             final Policy policy = Policy.newBuilder(thingId)
                     .forLabel("DEFAULT")
-                    .setSubject(defaultSubject)
+                    .setSubject(DEFAULT_SUBJECT)
                     .setGrantedPermissions("policy", "/", "READ", "WRITE")
                     .setGrantedPermissions("thing", "/", "READ", "WRITE")
                     .setGrantedPermissions("message", "/", "READ", "WRITE")
                     .build();
             final Thing thing = ThingsModelFactory.newThingBuilder().setId(thingId).build();
-            final ModifyThing modifyThing = ModifyThing.of(thingId, thing, null, defaultHeaders);
+            final ModifyThing modifyThing = ModifyThing.of(thingId, thing, null, DEFAULT_HEADERS);
             underTest.tell(modifyThing, getRef());
 
             // creates inlined policy
             assertThat(policyEnforcerShard.expectMsgClass(Object.class))
-                    .isEqualTo(createShardedMessage(thingId, CreatePolicy.of(policy, defaultHeaders)));
-            policyEnforcerShard.reply(CreatePolicyResponse.of(thingId, policy, defaultHeaders));
+                    .isEqualTo(createShardedMessage(thingId, CreatePolicy.of(policy, DEFAULT_HEADERS)));
+            policyEnforcerShard.reply(CreatePolicyResponse.of(thingId, policy, DEFAULT_HEADERS));
 
             // creates thing
             final Thing thingWithPolicyIdWithoutPolicy = thing.setPolicyId(thingId);
             assertThat(policyEnforcerShard.expectMsgClass(Object.class)).isEqualTo(
                     createShardedMessage(thingId,
-                            CreateThing.of(thingWithPolicyIdWithoutPolicy, null, defaultHeaders)));
-            policyEnforcerShard.reply(CreateThingResponse.of(thingWithPolicyIdWithoutPolicy, defaultHeaders));
+                            CreateThing.of(thingWithPolicyIdWithoutPolicy, null, DEFAULT_HEADERS)));
+            policyEnforcerShard.reply(CreateThingResponse.of(thingWithPolicyIdWithoutPolicy, DEFAULT_HEADERS));
 
             // replies CreateThingResponse with inlined policy
             assertThat(expectMsgClass(Object.class)).isEqualTo(
-                    CreateThingResponse.of(thingWithPolicyIdWithoutPolicy, defaultHeaders));
+                    CreateThingResponse.of(thingWithPolicyIdWithoutPolicy, DEFAULT_HEADERS));
         }};
     }
 
@@ -651,26 +627,45 @@ public class ModifyThingHandlerActorTest extends AbstractThingHandlerActorTest {
             final String thingId = "thing:" + UUID.randomUUID();
             final Policy policy = Policy.newBuilder(thingId)
                     .forLabel("DEFAULT")
-                    .setSubject(defaultSubject)
+                    .setSubject(DEFAULT_SUBJECT)
                     .setGrantedPermissions("policy", "/", "READ", "WRITE")
                     .setGrantedPermissions("thing", "/", "READ", "WRITE")
                     .setGrantedPermissions("message", "/", "READ", "WRITE")
                     .build();
             final Thing thing = ThingsModelFactory.newThingBuilder().setId(thingId).build();
-            final ModifyThing modifyThing = ModifyThing.of(thingId, thing, null, defaultHeaders);
+            final ModifyThing modifyThing = ModifyThing.of(thingId, thing, null, DEFAULT_HEADERS);
             underTest.tell(modifyThing, getRef());
 
             // creates inlined policy failed because a policy existed with the same ID
             assertThat(policyEnforcerShard.expectMsgClass(Object.class))
-                    .isEqualTo(createShardedMessage(thingId, CreatePolicy.of(policy, defaultHeaders)));
+                    .isEqualTo(createShardedMessage(thingId, CreatePolicy.of(policy, DEFAULT_HEADERS)));
             policyEnforcerShard.reply(
-                    PolicyConflictException.newBuilder(thingId).dittoHeaders(defaultHeaders).build());
+                    PolicyConflictException.newBuilder(thingId).dittoHeaders(DEFAULT_HEADERS).build());
 
             // replies with ThingNotCreatableException
             assertThat(expectMsgClass(Object.class)).isEqualTo(
                     ThingNotCreatableException.newBuilderForPolicyExisting(thingId, thingId)
-                            .dittoHeaders(defaultHeaders)
+                            .dittoHeaders(DEFAULT_HEADERS)
                             .build());
         }};
     }
+
+    private void startHandlerWithEnforcer(final TestKit testkit) {
+        underTest = actorSystem.actorOf(
+                ModifyThingHandlerActor.props(enforcerShard.ref(), DEFAULT_ENFORCER_ID, aclEnforcerShard.ref(),
+                        policyEnforcerShard.ref()));
+        testkit.watch(underTest);
+    }
+
+    private void startHandlerWithoutEnforcer(final TestKit testkit) {
+        underTest = actorSystem.actorOf(
+                ModifyThingHandlerActor.props(null, null, aclEnforcerShard.ref(), policyEnforcerShard.ref()));
+        testkit.watch(underTest);
+    }
+
+    private void expectUnderTestTerminated(final TestKit testkit) {
+        testkit.expectTerminated(underTest);
+        underTest = null;
+    }
+
 }

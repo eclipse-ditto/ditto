@@ -126,7 +126,7 @@ public final class CreatePolicy extends AbstractCommand<CreatePolicy> implements
 
     @Override
     public String getId() {
-        return policy.getId().get();
+        return policy.getId().orElseThrow(() -> new NullPointerException("The Policy has no ID!"));
     }
 
     @Override

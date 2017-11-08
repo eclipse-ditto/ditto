@@ -169,8 +169,15 @@ final class ThingEventAdapter extends AbstractAdapter<ThingEvent> {
     protected String getType(final Adaptable adaptable) {
         final TopicPath topicPath = adaptable.getTopicPath();
         final JsonPointer path = adaptable.getPayload().getPath();
-        final String eventName = PathMatcher.match(path) + upperCaseFirst(topicPath.getAction().get().toString());
+        final String eventName = PathMatcher.match(path) + getActionNameWithFirstLetterUpperCase(topicPath);
         return topicPath.getGroup() + "." + topicPath.getCriterion() + ":" + eventName;
+    }
+
+    private static String getActionNameWithFirstLetterUpperCase(final TopicPath topicPath) {
+        return topicPath.getAction()
+                .map(TopicPath.Action::toString)
+                .map(AbstractAdapter::upperCaseFirst)
+                .orElseThrow(() -> new NullPointerException("TopicPath did not contain an Action!"));
     }
 
     @Override

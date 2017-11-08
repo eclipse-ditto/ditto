@@ -109,10 +109,23 @@ public final class PoliciesModelFactory {
      *
      * @param subjectType the SubjectType char sequence.
      * @return the new {@link SubjectType}.
-     * @throws NullPointerException if any argument is {@code null}.
+     * @throws NullPointerException if {@code subjectType} is {@code null}.
      */
     public static SubjectType newSubjectType(final CharSequence subjectType) {
         return ImmutableSubjectType.of(subjectType);
+    }
+
+
+    /**
+     * Returns a new {@code Subject} object with the given {@code subjectId} and
+     * subject type {@link SubjectType#UNKNOWN}.
+     *
+     * @param subjectId the ID of the new Subject.
+     * @return a new {@code Subject} object.
+     * @throws NullPointerException if {@code subjectId} is {@code null}.
+     */
+    public static Subject newSubject(final SubjectId subjectId) {
+        return ImmutableSubject.of(subjectId);
     }
 
     /**
@@ -511,6 +524,7 @@ public final class PoliciesModelFactory {
      * @param policyEntries the initial entries of the new builder.
      * @return the new builder.
      * @throws NullPointerException if {@code policyEntries} is {@code null}.
+     * @throws org.eclipse.ditto.model.policies.PolicyIdInvalidException if {@code id} is invalid.
      */
     public static PolicyBuilder newPolicyBuilder(final CharSequence id, final Iterable<PolicyEntry> policyEntries) {
         return ImmutablePolicyBuilder.of(id, policyEntries);

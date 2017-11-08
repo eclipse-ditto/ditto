@@ -47,7 +47,7 @@ import org.junit.Test;
 /**
  * Unit test for {@link ThingModifyCommandAdapter}.
  */
-public class ThingModifyCommandAdapterTest {
+public final class ThingModifyCommandAdapterTest {
 
     private ThingModifyCommandAdapter underTest;
 
@@ -926,6 +926,7 @@ public class ThingModifyCommandAdapterTest {
         }
 
         @Nonnull
+        @Override
         public String getManifest() {
             return getType();
         }
