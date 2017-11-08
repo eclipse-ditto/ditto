@@ -13,6 +13,7 @@ In order to comply with the Ditto protocol, a message must consist of the follow
 * A Ditto protocol envelope (JSON)
 * A Ditto protocol payload (JSON)
 
+{% include image.html file="pages/basic/ditto-protocol-spec-envelope.png" alt="Protocol Envelope" caption="Communication protocol envelope" max-width=300 %}
 
 ## Communication protocol envelope
 
