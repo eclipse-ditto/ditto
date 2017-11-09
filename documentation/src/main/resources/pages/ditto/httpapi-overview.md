@@ -1,6 +1,7 @@
 ---
 title: HTTP API Overview
 keywords: http, api, overview
+tags: [http]
 permalink: httpapi-overview.html
 ---
 

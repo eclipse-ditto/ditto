@@ -14,11 +14,9 @@ entries:
       url: /intro-overview.html
       output: web
       type: homepage
-
     - title: Digital Twins
       url: /intro-digitaltwins.html
       output: web
-
     - title: Hello world
       url: /intro-hello-world.html
       output: web
@@ -38,7 +36,6 @@ entries:
     - title: Building Ditto
       url: /installation-building.html
       output: web
-
     - title: Running Ditto
       url: /installation-running.html
       output: web
@@ -50,37 +47,37 @@ entries:
     - title: Overview
       url: /basic-overview.html
       output: web
-
     - title: Things and Features
       url: /basic-thingsfeatures.html
       output: web
-
     - title: Definitions
       url: /basic-definitions.html
       output: web
-
     - title: Authentication and Authorization
       url: /basic-auth.html
       output: web
-
     - title: Access Control List (ACL)
       url: /basic-acl.html
       output: web
-
     - title: Policies
       url: /basic-policies.html
       output: web
-
     - title: Messages
       url: /basic-messages.html
       output: web
-
     - title: Events
       url: /basic-events.html
       output: web
-
     - title: Which API to use?
       url: /basic-whichapi.html
+      output: web
+
+  - title: Architecture
+    output: web
+
+    folderitems:
+    - title: Overview
+      url: /architecture-overview.html
       output: web
 
   - title: HTTP API
@@ -90,6 +87,12 @@ entries:
     - title: Overview
       url: /httpapi-overview.html
       output: web
+    - title: Concepts
+      url: /httpapi-concepts.html
+      output: web
+    - title: Search
+      url: /httpapi-search.html
+      output: web
 
   - title: Ditto Protocol
     output: web
@@ -98,7 +101,6 @@ entries:
     - title: Overview
       url: /protocol-overview.html
       output: web
-
     - title: Specification
       url: /protocol-specification.html
       output: web
@@ -129,11 +131,9 @@ entries:
     - title: Bindings
       url: /protocol-bindings.html
       output: web
-
     - title: Websocket Binding
       url: /protocol-bindings-websocket.html
       output: web
-
     - title: Examples
       url: /protocol-examples.html
       output: web

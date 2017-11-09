@@ -5,6 +5,8 @@ tags: [getting_started]
 permalink: intro-digitaltwins.html
 ---
 
+{% include warning.html content="This page is still a work in progress." %}
+
 {% include callout.html content="**TL;DR**<br/>Digital Twins are a mechanism for simplifying IoT solution development." type="primary" %}
 
 For Eclipse Ditto the **Digital Twin** is a concept for abstracting a real world asset/device with 
