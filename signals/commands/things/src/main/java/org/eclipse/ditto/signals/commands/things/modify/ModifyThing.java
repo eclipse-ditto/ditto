@@ -74,6 +74,7 @@ public final class ModifyThing extends AbstractCommand<ModifyThing> implements T
     /**
      * Returns a command for modifying a thing which is passed as argument.
      *
+     * @param thingId the Thing's ID.
      * @param thing the {@link Thing} to modify.
      * @param initialPolicy the initial {@code Policy} to set for the Thing when creating it - may be null.
      * @param dittoHeaders the headers of the command.
