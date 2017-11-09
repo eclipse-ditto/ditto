@@ -41,8 +41,4 @@ $(function () {
             return $this.find("a[data-toggle=tab]:first, a[data-toggle=pill]:first").tab("show");
         }
     });
-
-    $('nav li').on('click', {
-        $(this).removeClass('hidden')
-    })
 });
