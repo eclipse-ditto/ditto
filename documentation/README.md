@@ -21,7 +21,7 @@ In order to edit the documentation
 Use that if you are on a UNIX system (or have the Ubuntu bash subsystem for Windows 10). 
 
 ```bash
-sudo apt-get install ruby-dev
+sudo apt-get install build-essential ruby-dev
 sudo gem install --http-proxy http://localhost:3128 jekyll
 ```
 

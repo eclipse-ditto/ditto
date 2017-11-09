@@ -2,14 +2,14 @@
 topnav:
 - title: Topnav
   items:
-    - title: GitHub
-      external_url: https://github.com/eclipse/ditto
     - title: Blog
       url: /blog.html
     - title: Documentation
       url: /intro-overview.html
-    - title: HTTP API Doc
+    - title: HTTP API
       url: /http-api-doc.html
+    - title: GitHub
+      external_url: https://github.com/eclipse/ditto
 
 #Topnav dropdowns
 topnav_dropdowns:

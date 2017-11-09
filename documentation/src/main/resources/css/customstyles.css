@@ -1262,3 +1262,9 @@ h4.panel-title {
         display:block !important;
     }
 }
+
+@media print {
+    footer, #tg-sb-sidebar, .incubation-logo {
+        display: none !important;
+    }
+}
