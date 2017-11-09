@@ -97,7 +97,7 @@ defaults:
 sidebars:
 - ditto_sidebar
 
-description: "Here be dragons"
+description: "Eclipse Ditto Blog"
 # the description is used in the feed.xml file
 
 # needed for sitemap.xml file only
