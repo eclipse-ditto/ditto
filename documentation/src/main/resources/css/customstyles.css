@@ -10,11 +10,18 @@ h1,h2 {
 
 .ditto-header {
     height: 350px;
-    background: url('http://placehold.it/1920x350') center center no-repeat scroll;
+    /*background: url('http://placehold.it/1920x350') center center no-repeat scroll;*/
+    background: url('../images/startpage_background_sized.png') center center no-repeat scroll;
+    /* source: https://unsplash.com/photos/wBfcPTEBiPI */
     -webkit-background-size: cover;
     -moz-background-size: cover;
     background-size: cover;
     -o-background-size: cover;
+}
+
+.startpage h1 a, .startpage h2 a, .startpage h3 a, .startpage h4 a {
+    /* don't display anchor links at heading on startpage */
+    display: none;
 }
 
 .tagline {
