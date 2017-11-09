@@ -5,4 +5,6 @@ tags: [model]
 permalink: basic-messages.html
 ---
 
-{% include callout.html content="TODO write something about messages" type="primary" %}
+{% include warning.html content="This page is still a work in progress." %}
+
+TODO write something about messages
