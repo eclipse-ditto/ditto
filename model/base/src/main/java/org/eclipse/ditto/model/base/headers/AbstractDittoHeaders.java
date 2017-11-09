@@ -17,10 +17,8 @@ import java.util.AbstractMap;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -148,21 +146,9 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
     }
 
     private Class<?> getTypeForKey(final CharSequence key) {
-        final Collection<HeaderDefinition> definitions = getDefinitions();
-
-        return definitions.parallelStream()
-                .filter(definition -> Objects.equals(definition.getKey(), key))
-                .map(HeaderDefinition::getJavaType)
-                .findAny()
+        return DittoHeaderDefinition.forKey(key)
+                .map(DittoHeaderDefinition::getJavaType)
                 .orElse(String.class);
-    }
-
-    private Collection<HeaderDefinition> getDefinitions() {
-        final Collection<HeaderDefinition> result = new LinkedHashSet<>();
-        Collections.addAll(result, DittoHeaderDefinition.values());
-        result.addAll(getSpecificDefinitions());
-
-        return result;
     }
 
     @Override
