@@ -154,10 +154,10 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
 
     private Class<?> getTypeForKey(final CharSequence key) {
         return getSpecificDefinitionByKey(key)
-                .map(Optional::of)
-                .orElseGet(() -> DittoHeaderDefinition.forKey(key))
                 .map(HeaderDefinition::getJavaType)
-                .orElse(String.class);
+                .orElseGet(() -> DittoHeaderDefinition.forKey(key)
+                        .map(HeaderDefinition::getJavaType)
+                        .orElse(String.class));
     }
 
     @Override
