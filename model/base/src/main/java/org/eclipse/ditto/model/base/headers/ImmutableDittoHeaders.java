@@ -11,9 +11,8 @@
  */
 package org.eclipse.ditto.model.base.headers;
 
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.Map;
+import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -39,8 +38,10 @@ final class ImmutableDittoHeaders extends AbstractDittoHeaders implements DittoH
     }
 
     @Override
-    protected Collection<HeaderDefinition> getSpecificDefinitions() {
-        return Arrays.asList(DittoHeaderDefinition.values());
+    protected Optional<HeaderDefinition> getSpecificDefinitionByKey(final CharSequence key) {
+        // there is no specific header defined for this class; all headers are already defined
+        // in the enum DittoHeaderDefinition for AbstractDittoHeaders.
+        return Optional.empty();
     }
 
     @Override
