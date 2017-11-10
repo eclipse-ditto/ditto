@@ -1,5 +1,5 @@
 ---
-title: General
+title: General protocol specification
 keywords: protocol, specification, general
 tags: [protocol]
 permalink: protocol-specification-general.html

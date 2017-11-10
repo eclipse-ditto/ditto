@@ -1,5 +1,5 @@
 ---
-title: Protocol Examples
+title: Protocol examples
 keywords: protocol, examples
 tags: [protocol]
 permalink: protocol-examples.html

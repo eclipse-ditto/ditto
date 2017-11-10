@@ -3,7 +3,6 @@
 entries:
 - title: sidebar
   product: Eclipse Ditto
-  version: 0.1.0M1
   folders:
 
   - title: Introduction
@@ -92,6 +91,9 @@ entries:
       output: web
     - title: Search
       url: /httpapi-search.html
+      output: web
+    - title: Server sent events
+      url: /httpapi-sse.html
       output: web
 
   - title: Ditto Protocol

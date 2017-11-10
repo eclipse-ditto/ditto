@@ -1,5 +1,5 @@
 ---
-title: Retrieve Features
+title: Retrieve features
 keywords: examples, retrieve features
 search: exclude
 permalink: protocol-examples-retrievefeatures.html

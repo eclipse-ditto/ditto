@@ -1,5 +1,5 @@
 ---
-title: Modify Features
+title: Modify features
 keywords: examples, modify features
 search: exclude
 permalink: protocol-examples-modifyfeatures.html

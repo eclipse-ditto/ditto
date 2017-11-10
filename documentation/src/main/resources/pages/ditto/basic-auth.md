@@ -1,5 +1,5 @@
 ---
-title: Authentication and Authorization
+title: Authentication and cuthorization
 keywords: authentication, authorization, auth, policy, policies
 tags: [model]
 permalink: basic-auth.html

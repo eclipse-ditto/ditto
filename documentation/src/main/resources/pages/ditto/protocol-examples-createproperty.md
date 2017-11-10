@@ -1,5 +1,5 @@
 ---
-title: Create a single Property
+title: Create a single property
 keywords: examples, create property
 search: exclude
 permalink: protocol-examples-createproperty.html

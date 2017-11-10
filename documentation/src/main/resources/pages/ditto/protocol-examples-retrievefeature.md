@@ -1,5 +1,5 @@
 ---
-title: Retrieve a single Feature
+title: Retrieve a single feature
 keywords: examples, retrieve feature
 search: exclude
 permalink: protocol-examples-retrievefeature.html

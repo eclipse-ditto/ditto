@@ -1,5 +1,5 @@
 ---
-title: WebSocket Binding
+title: WebSocket protocol binding
 keywords: protocol, binding, websocket
 tags: [protocol]
 permalink: protocol-bindings-websocket.html

@@ -1,5 +1,5 @@
 ---
-title: Modify Attributes
+title: Modify attributes
 keywords: examples, modify attributes
 search: exclude
 permalink: protocol-examples-modifyattributes.html

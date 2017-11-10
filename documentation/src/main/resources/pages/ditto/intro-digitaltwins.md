@@ -1,5 +1,5 @@
 ---
-title: Digital Twins
+title: Digital twins
 keywords: digital twin, digitaltwin, twin
 tags: [getting_started]
 permalink: intro-digitaltwins.html

@@ -1,5 +1,5 @@
 ---
-title: Search
+title: Search protocol specification
 keywords: protocol, specification, search
 tags: [protocol]
 permalink: protocol-specification-search.html

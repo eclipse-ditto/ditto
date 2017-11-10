@@ -1,5 +1,5 @@
 ---
-title: Access Control List (ACL)
+title: Access control list (ACL)
 keywords: authentication, authorization, auth, acl, access control
 tags: [model]
 permalink: basic-acl.html

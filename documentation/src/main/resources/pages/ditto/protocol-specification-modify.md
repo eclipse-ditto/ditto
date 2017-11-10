@@ -1,5 +1,5 @@
 ---
-title: Modify
+title: Modify protocol specification
 keywords: protocol, specification, modify
 tags: [protocol]
 permalink: protocol-specification-modify.html

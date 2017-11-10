@@ -1,5 +1,5 @@
 ---
-title: Delete
+title: Delete protocol specification
 keywords: protocol, specification, delete
 tags: [protocol]
 permalink: protocol-specification-delete.html

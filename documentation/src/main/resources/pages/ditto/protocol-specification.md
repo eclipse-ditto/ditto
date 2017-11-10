@@ -1,5 +1,5 @@
 ---
-title: Protocol Specification
+title: Protocol specification
 keywords: protocol, specification
 tags: [protocol]
 permalink: protocol-specification.html

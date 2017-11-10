@@ -1,6 +1,6 @@
 ---
-title: Basic concepts Overview
-keywords: basic, concepts, overview, thing, feature, domain model, model
+title: Basic concepts overview
+keywords: basic concepts, overview, thing, feature, domain model, model
 tags: [model]
 permalink: basic-overview.html
 ---

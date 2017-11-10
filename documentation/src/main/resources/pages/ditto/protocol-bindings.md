@@ -1,5 +1,5 @@
 ---
-title: Protocol Bindings
+title: Protocol bindings
 keywords: protocol, bindings
 tags: [protocol]
 permalink: protocol-bindings.html

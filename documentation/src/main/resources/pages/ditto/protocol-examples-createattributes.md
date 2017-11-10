@@ -1,5 +1,5 @@
 ---
-title: Create Attributes
+title: Create attributes
 keywords: examples, create attributes
 search: exclude
 permalink: protocol-examples-createattributes.html
