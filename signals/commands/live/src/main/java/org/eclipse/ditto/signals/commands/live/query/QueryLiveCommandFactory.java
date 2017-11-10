@@ -35,7 +35,7 @@ public final class QueryLiveCommandFactory {
      * @param command the command to base the result on.
      * @return the instance.
      * @throws NullPointerException if {@code command} is {@code null}.
-     * @throws ClassCastException if {@code command} is not an instance of {@link org.eclipse.ditto.signals.commands.commands.things.query.RetrieveAttribute
+     * @throws ClassCastException if {@code command} is not an instance of {@link org.eclipse.ditto.signals.commands.things.query.RetrieveAttribute
      * RetrieveAttribute}.
      */
     @Nonnull
@@ -49,7 +49,7 @@ public final class QueryLiveCommandFactory {
      * @param command the command to base the result on.
      * @return the instance.
      * @throws NullPointerException if {@code command} is {@code null}.
-     * @throws ClassCastException if {@code command} is not an instance of {@link org.eclipse.ditto.signals.commands.commands.things.query.RetrieveAttributes
+     * @throws ClassCastException if {@code command} is not an instance of {@link org.eclipse.ditto.signals.commands.things.query.RetrieveAttributes
      * RetrieveAttributes}.
      */
     @Nonnull
@@ -63,7 +63,7 @@ public final class QueryLiveCommandFactory {
      * @param command the command to base the result on.
      * @return the instance.
      * @throws NullPointerException if {@code command} is {@code null}.
-     * @throws ClassCastException if {@code command} is not an instance of {@link org.eclipse.ditto.signals.commands.commands.things.query.RetrieveFeature
+     * @throws ClassCastException if {@code command} is not an instance of {@link org.eclipse.ditto.signals.commands.things.query.RetrieveFeature
      * RetrieveFeature}.
      */
     @Nonnull
@@ -77,7 +77,7 @@ public final class QueryLiveCommandFactory {
      * @param command the command to base the result on.
      * @return the instance.
      * @throws NullPointerException if {@code command} is {@code null}.
-     * @throws ClassCastException if {@code command} is not an instance of {@link org.eclipse.ditto.signals.commands.commands.things.query.RetrieveFeatureProperties
+     * @throws ClassCastException if {@code command} is not an instance of {@link org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureProperties
      * RetrieveFeatureProperties}.
      */
     @Nonnull
@@ -91,7 +91,7 @@ public final class QueryLiveCommandFactory {
      * @param command the command to base the result on.
      * @return the instance.
      * @throws NullPointerException if {@code command} is {@code null}.
-     * @throws ClassCastException if {@code command} is not an instance of {@link org.eclipse.ditto.signals.commands.commands.things.query.RetrieveFeatureProperty
+     * @throws ClassCastException if {@code command} is not an instance of {@link org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureProperty
      * RetrieveFeatureProperty}.
      */
     @Nonnull
@@ -105,7 +105,7 @@ public final class QueryLiveCommandFactory {
      * @param command the command to base the result on.
      * @return the instance.
      * @throws NullPointerException if {@code command} is {@code null}.
-     * @throws ClassCastException if {@code command} is not an instance of {@link org.eclipse.ditto.signals.commands.commands.things.query.RetrieveFeatures
+     * @throws ClassCastException if {@code command} is not an instance of {@link org.eclipse.ditto.signals.commands.things.query.RetrieveFeatures
      * RetrieveFeatures}.
      */
     @Nonnull
@@ -119,7 +119,7 @@ public final class QueryLiveCommandFactory {
      * @param command the command to base the result on.
      * @return the instance.
      * @throws NullPointerException if {@code command} is {@code null}.
-     * @throws ClassCastException if {@code command} is not an instance of {@link org.eclipse.ditto.signals.commands.commands.things.query.RetrieveThing
+     * @throws ClassCastException if {@code command} is not an instance of {@link org.eclipse.ditto.signals.commands.things.query.RetrieveThing
      * RetrieveThing}.
      */
     @Nonnull
@@ -133,7 +133,7 @@ public final class QueryLiveCommandFactory {
      * @param command the command to base the result on.
      * @return the instance.
      * @throws NullPointerException if {@code command} is {@code null}.
-     * @throws ClassCastException if {@code command} is not an instance of {@link org.eclipse.ditto.signals.commands.commands.things.query.RetrieveThings
+     * @throws ClassCastException if {@code command} is not an instance of {@link org.eclipse.ditto.signals.commands.things.query.RetrieveThings
      * RetrieveThings}.
      */
     @Nonnull
