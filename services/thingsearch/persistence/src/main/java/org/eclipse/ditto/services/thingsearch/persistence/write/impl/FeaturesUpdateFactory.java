@@ -29,6 +29,7 @@ import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.thingsearch.persistence.MongoSortKeyMappingFunction;
 import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
 import org.eclipse.ditto.services.thingsearch.persistence.read.document.DocumentMapper;
+import org.eclipse.ditto.services.thingsearch.persistence.write.IndexLengthRestrictionEnforcer;
 
 /**
  * Factory which creates updates for features.
@@ -38,6 +39,7 @@ final class FeaturesUpdateFactory {
     private FeaturesUpdateFactory() {
         throw new AssertionError();
     }
+
 
     /**
      * Deletes a given feature.
@@ -50,7 +52,8 @@ final class FeaturesUpdateFactory {
         update.append(PersistenceConstants.UNSET, new Document(
                 MongoSortKeyMappingFunction.mapSortKey(PersistenceConstants.FIELD_FEATURES, featureId), ""));
         update.append(PersistenceConstants.PULL, new Document(
-                PersistenceConstants.FIELD_INTERNAL, new Document(PersistenceConstants.FIELD_INTERNAL_FEATURE_ID, featureId)));
+                PersistenceConstants.FIELD_INTERNAL,
+                new Document(PersistenceConstants.FIELD_INTERNAL_FEATURE_ID, featureId)));
         return update;
     }
 
@@ -63,7 +66,8 @@ final class FeaturesUpdateFactory {
     static Bson createDeleteFeaturePropertiesUpdate(final String featureId) {
         final Document update = new Document();
         update.append(PersistenceConstants.UNSET, new Document(
-                MongoSortKeyMappingFunction.mapSortKey(PersistenceConstants.FIELD_FEATURES, featureId, PersistenceConstants.FIELD_PROPERTIES), ""));
+                MongoSortKeyMappingFunction.mapSortKey(PersistenceConstants.FIELD_FEATURES, featureId,
+                        PersistenceConstants.FIELD_PROPERTIES), ""));
         update.append(PersistenceConstants.PULL, new Document(PersistenceConstants.FIELD_INTERNAL,
                 new Document(PersistenceConstants.FIELD_INTERNAL_FEATURE_ID, featureId).append(
                         PersistenceConstants.FIELD_INTERNAL_KEY,
@@ -84,27 +88,35 @@ final class FeaturesUpdateFactory {
                 new Document(MongoSortKeyMappingFunction.mapSortKey(PersistenceConstants.FIELD_FEATURES, featureId,
                         PersistenceConstants.FIELD_PROPERTIES + propertyPath.toString()), ""));
         update.append(PersistenceConstants.PULL, new Document(
-                PersistenceConstants.FIELD_INTERNAL, new Document(PersistenceConstants.FIELD_INTERNAL_FEATURE_ID, featureId)
-                .append(PersistenceConstants.FIELD_INTERNAL_KEY, new Document(PersistenceConstants.REGEX, createPrefixRegex(propertyPath)))));
+                PersistenceConstants.FIELD_INTERNAL,
+                new Document(PersistenceConstants.FIELD_INTERNAL_FEATURE_ID, featureId)
+                        .append(PersistenceConstants.FIELD_INTERNAL_KEY,
+                                new Document(PersistenceConstants.REGEX, createPrefixRegex(propertyPath)))));
         return update;
     }
 
     /**
      * Updates a given feature.
      *
+     * @param indexLengthRestrictionEnforcer the restriction helper to enforce size restrictions.
      * @param feature the id of the feature
      * @param created indicates whether this is a new feature
      * @return the update
      */
-    static CombinedUpdates createUpdateForFeature(final Feature feature, final boolean created) {
-        final List<Document> featurePropertyPushes = createPushes(feature);
-
+    static CombinedUpdates createUpdateForFeature(final IndexLengthRestrictionEnforcer indexLengthRestrictionEnforcer,
+            final Feature feature,
+            final boolean created) {
+        final Feature withRestrictions = indexLengthRestrictionEnforcer.enforceRestrictions(feature);
+        final List<Document> featurePropertyPushes = createPushes(withRestrictions);
         final Bson pushPart = new Document()
                 .append(PersistenceConstants.SET,
-                        new Document().append(MongoSortKeyMappingFunction.mapSortKey(PersistenceConstants.FIELD_FEATURES, feature.getId()),
-                        createComplexFeatureDocument(feature)))
+                        new Document().append(
+                                MongoSortKeyMappingFunction.mapSortKey(PersistenceConstants.FIELD_FEATURES,
+                                        withRestrictions.getId()),
+                                createComplexFeatureDocument(withRestrictions)))
                 .append(PersistenceConstants.PUSH, new Document().append(
-                        PersistenceConstants.FIELD_INTERNAL, new Document(PersistenceConstants.EACH, featurePropertyPushes)));
+                        PersistenceConstants.FIELD_INTERNAL,
+                        new Document(PersistenceConstants.EACH, featurePropertyPushes)));
 
         if (created) {
             return CombinedUpdates.of(pushPart);
@@ -112,7 +124,7 @@ final class FeaturesUpdateFactory {
             final Document pullPart = new Document()
                     .append(PersistenceConstants.PULL,
                             new Document(PersistenceConstants.FIELD_INTERNAL, new Document(
-                                    PersistenceConstants.FIELD_INTERNAL_FEATURE_ID, feature.getId())));
+                                    PersistenceConstants.FIELD_INTERNAL_FEATURE_ID, withRestrictions.getId())));
             return CombinedUpdates.of(pullPart, pushPart);
         }
     }
@@ -120,21 +132,28 @@ final class FeaturesUpdateFactory {
     /**
      * Updates the properties of a given feature.
      *
+     * @param indexLengthRestrictionEnforcer the restriction helper to enforce size restrictions.
      * @param featureId the feature id
      * @param properties the properties to update
      * @return the update
      */
-    static CombinedUpdates createUpdateForFeatureProperties(final String featureId,
+    static CombinedUpdates createUpdateForFeatureProperties(
+            final IndexLengthRestrictionEnforcer indexLengthRestrictionEnforcer, final String
+            featureId,
             final FeatureProperties properties) {
-        final List<Document> featurePropertyPushes = createFlatFeaturesRepresentation(properties, featureId);
+        final FeatureProperties withRestrictions =
+                indexLengthRestrictionEnforcer.enforceRestrictions(featureId, properties);
+        final List<Document> featurePropertyPushes = createFlatFeaturesRepresentation(withRestrictions, featureId);
         featurePropertyPushes.add(createDefaultFeatureDoc(featureId));
 
         final Bson pushPart = new Document()
                 .append(PersistenceConstants.SET, new Document().append(
-                        MongoSortKeyMappingFunction.mapSortKey(PersistenceConstants.FIELD_FEATURES, featureId, PersistenceConstants.FIELD_PROPERTIES),
-                        createComplexPropertiesRepresentations(properties)))
+                        MongoSortKeyMappingFunction.mapSortKey(PersistenceConstants.FIELD_FEATURES, featureId,
+                                PersistenceConstants.FIELD_PROPERTIES),
+                        createComplexPropertiesRepresentations(withRestrictions)))
                 .append(PersistenceConstants.PUSH, new Document().append(
-                        PersistenceConstants.FIELD_INTERNAL, new Document(PersistenceConstants.EACH, featurePropertyPushes)));
+                        PersistenceConstants.FIELD_INTERNAL,
+                        new Document(PersistenceConstants.EACH, featurePropertyPushes)));
 
         final Document pullPart = createPullFeaturesById(featureId);
         return CombinedUpdates.of(pullPart, pushPart);
@@ -144,18 +163,24 @@ final class FeaturesUpdateFactory {
     /**
      * Updates a single property of a feature.
      *
+     * @param indexLengthRestrictionEnforcer the restriction helper to enforce size restrictions.
      * @param featureId the id of the feature
      * @param featurePointer the path of the feature
      * @param propertyValue the new property value
      * @return the update
      */
-    static CombinedUpdates createUpdateForFeatureProperty(final String featureId,
+    static CombinedUpdates createUpdateForFeatureProperty(
+            final IndexLengthRestrictionEnforcer indexLengthRestrictionEnforcer,
+            final String featureId,
             final JsonPointer featurePointer,
             final JsonValue propertyValue) {
-        final Bson update1 = createSortStructureUpdate(featureId, featurePointer, propertyValue);
+        final JsonValue withRestrictions =
+                indexLengthRestrictionEnforcer.enforceRestrictionsOnFeatureProperty(featureId,
+                        featurePointer, propertyValue);
+        final Bson update1 = createSortStructureUpdate(featureId, featurePointer, withRestrictions);
         final Bson update2 = createPullFeatures(featureId, featurePointer);
         final List<Document> flatRepresentations =
-                toFlatFeaturesList(featurePointer.toString(), featureId, propertyValue, new ArrayList<>());
+                toFlatFeaturesList(featurePointer.toString(), featureId, withRestrictions, new ArrayList<>());
 
         final Bson update3 = createPushUpdate(flatRepresentations);
 
@@ -168,49 +193,56 @@ final class FeaturesUpdateFactory {
      * @return the update
      */
     static Bson deleteFeatures() {
-        return new Document()
-                .append(PersistenceConstants.PULL, new Document(PersistenceConstants.FIELD_INTERNAL,
-                        new Document(
-                                PersistenceConstants.FIELD_INTERNAL_FEATURE_ID, new Document(PersistenceConstants.EXISTS, Boolean.TRUE))))
-                .append(PersistenceConstants.UNSET, new Document(PersistenceConstants.FIELD_FEATURES, ""));
+        return createDeleteFeaturesDocument();
     }
 
     /**
      * Updates all features.
      *
+     * @param indexLengthRestrictionEnforcer the restriction helper to enforce size restrictions.
      * @param features the features to update
      * @return the update
      */
-    static CombinedUpdates updateFeatures(final Features features) {
-        final Bson update1 = new Document()
-                .append(PersistenceConstants.PULL, new Document(
-                        PersistenceConstants.FIELD_INTERNAL, new Document(PersistenceConstants.FIELD_INTERNAL_FEATURE_ID,
-                        new Document(PersistenceConstants.EXISTS, Boolean.TRUE))))
-                .append(PersistenceConstants.UNSET, new Document(PersistenceConstants.FIELD_FEATURES, ""));
+    static CombinedUpdates updateFeatures(final IndexLengthRestrictionEnforcer indexLengthRestrictionEnforcer,
+            final Features features) {
+        final Features withRestrictions = indexLengthRestrictionEnforcer.enforceRestrictions(features);
+        final Bson update1 = createDeleteFeaturesDocument();
 
         final List<Document> pushes = new ArrayList<>();
         final JsonObjectBuilder featuresObjectBuilder = JsonFactory.newObjectBuilder();
-        features.forEach(f -> {
+        withRestrictions.forEach(f -> {
             final FeatureProperties properties =
                     f.getProperties().orElse(ThingsModelFactory.emptyFeatureProperties());
-            final JsonObject propertiesJson = JsonFactory.newObjectBuilder().set(PersistenceConstants.FIELD_PROPERTIES, properties).build();
+            final JsonObject propertiesJson =
+                    JsonFactory.newObjectBuilder().set(PersistenceConstants.FIELD_PROPERTIES, properties).build();
             pushes.addAll(createPushes(f));
             featuresObjectBuilder.set(f.getId(), propertiesJson);
         });
         final Object featuresDocument = DocumentMapper.toValue(featuresObjectBuilder.build());
 
         final Bson update2 = new Document()
-                .append(PersistenceConstants.SET, new Document().append(PersistenceConstants.FIELD_FEATURES, featuresDocument))
+                .append(PersistenceConstants.SET,
+                        new Document().append(PersistenceConstants.FIELD_FEATURES, featuresDocument))
                 .append(PersistenceConstants.PUSH, new Document().append(
                         PersistenceConstants.FIELD_INTERNAL, new Document(PersistenceConstants.EACH, pushes)));
 
         return CombinedUpdates.of(update1, update2);
     }
 
+    private static Document createDeleteFeaturesDocument() {
+        return new Document()
+                .append(PersistenceConstants.PULL, new Document(
+                        PersistenceConstants.FIELD_INTERNAL,
+                        new Document(PersistenceConstants.FIELD_INTERNAL_FEATURE_ID,
+                                new Document(PersistenceConstants.EXISTS, Boolean.TRUE))))
+                .append(PersistenceConstants.UNSET, new Document(PersistenceConstants.FIELD_FEATURES, ""));
+    }
+
     private static Document createPushUpdate(final List<Document> flatRepresentations) {
         return new Document().append(PersistenceConstants.PUSH,
                 new Document().append(
-                        PersistenceConstants.FIELD_INTERNAL, new Document(PersistenceConstants.EACH, flatRepresentations)));
+                        PersistenceConstants.FIELD_INTERNAL,
+                        new Document(PersistenceConstants.EACH, flatRepresentations)));
     }
 
     private static Bson createSortStructureUpdate(final String featureId, final CharSequence featurePointer,
@@ -227,14 +259,17 @@ final class FeaturesUpdateFactory {
     private static Document createPullFeaturesById(final String featureId) {
         return new Document()
                 .append(PersistenceConstants.PULL, new Document(
-                        PersistenceConstants.FIELD_INTERNAL, new Document(PersistenceConstants.FIELD_INTERNAL_FEATURE_ID, featureId)));
+                        PersistenceConstants.FIELD_INTERNAL,
+                        new Document(PersistenceConstants.FIELD_INTERNAL_FEATURE_ID, featureId)));
     }
 
     private static Document createPullFeatures(final String featureId, final JsonPointer pointer) {
         return new Document()
                 .append(PersistenceConstants.PULL, new Document(
-                        PersistenceConstants.FIELD_INTERNAL, new Document(PersistenceConstants.FIELD_INTERNAL_FEATURE_ID, featureId)
-                        .append(PersistenceConstants.FIELD_INTERNAL_KEY, new Document(PersistenceConstants.REGEX, createPrefixRegex(pointer)))));
+                        PersistenceConstants.FIELD_INTERNAL,
+                        new Document(PersistenceConstants.FIELD_INTERNAL_FEATURE_ID, featureId)
+                                .append(PersistenceConstants.FIELD_INTERNAL_KEY,
+                                        new Document(PersistenceConstants.REGEX, createPrefixRegex(pointer)))));
     }
 
     private static Object createComplexFeatureDocument(final Feature feature) {

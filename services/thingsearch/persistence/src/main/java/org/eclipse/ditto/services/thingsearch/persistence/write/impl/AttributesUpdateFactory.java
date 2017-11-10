@@ -21,9 +21,11 @@ import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.services.thingsearch.persistence.MongoSortKeyMappingFunction;
 import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
 import org.eclipse.ditto.services.thingsearch.persistence.read.document.DocumentMapper;
+import org.eclipse.ditto.services.thingsearch.persistence.write.IndexLengthRestrictionEnforcer;
 
 /**
  * Factory to create Attribute related updates.
@@ -34,6 +36,7 @@ final class AttributesUpdateFactory {
             PersistenceConstants.PULL, new Document(PersistenceConstants.FIELD_INTERNAL,
             new Document(PersistenceConstants.FIELD_INTERNAL_KEY, new Document(
                     PersistenceConstants.REGEX, "^" + PersistenceConstants.FIELD_ATTRIBUTE_PREFIX))));
+
 
     private AttributesUpdateFactory() {
         throw new AssertionError();
@@ -46,10 +49,14 @@ final class AttributesUpdateFactory {
      * @param jsonValue the attribute value
      * @return the update bson
      */
-    static CombinedUpdates createAttributesUpdates(final JsonPointer jsonPointer, final JsonValue jsonValue) {
-        @SuppressWarnings("unchecked") final List<Document> internalAttributesList =
-                toFlatAttributesList(jsonPointer.toString(), jsonValue, new ArrayList<>());
-        final Document setUpdatePart = createSetUpdatePart(jsonPointer, jsonValue);
+    static CombinedUpdates createAttributesUpdates(final IndexLengthRestrictionEnforcer indexLengthRestrictionEnforcer,
+            final JsonPointer jsonPointer,
+            final JsonValue jsonValue) {
+        final JsonValue withRestrictions = indexLengthRestrictionEnforcer.enforceRestrictionsOnAttributeValue(jsonPointer,
+                jsonValue);
+        final List<Document> internalAttributesList =
+                toFlatAttributesList(jsonPointer.toString(), withRestrictions, new ArrayList<>());
+        final Document setUpdatePart = createSetUpdatePart(jsonPointer, withRestrictions);
 
         final Bson update1 = createSortStructureUpdate(setUpdatePart);
         final Bson update2 = createSearchStructurePull(jsonPointer);
@@ -64,9 +71,11 @@ final class AttributesUpdateFactory {
      * @param attributes the new attributes
      * @return the created update
      */
-    static CombinedUpdates createAttributesUpdate(final JsonObject attributes) {
-        final Bson update1 = createSortStructureUpdate(createSetUpdatePart(attributes));
-        final Bson update3 = createSearchStructurePush(createInternalAttributes(attributes));
+    static CombinedUpdates createAttributesUpdate(final IndexLengthRestrictionEnforcer indexLengthRestrictionEnforcer,
+            final Attributes attributes) {
+        final Attributes withRestrictions = indexLengthRestrictionEnforcer.enforceRestrictions(attributes);
+        final Bson update1 = createSortStructureUpdate(createSetUpdatePart(withRestrictions));
+        final Bson update3 = createSearchStructurePush(createInternalAttributes(withRestrictions));
 
         return CombinedUpdates.of(update1, PULL_ATTRIBUTES, update3);
     }

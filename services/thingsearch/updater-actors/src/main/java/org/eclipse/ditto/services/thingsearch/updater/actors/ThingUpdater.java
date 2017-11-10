@@ -100,11 +100,10 @@ import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
 
 /**
- * This Actor initiates persistence updates related to 1 thing. It has 2 main state transition cycles:
- * event processing and synchronization. Methods are grouped into the sections {@code EVENT PROCESSING},
- * {@code SYNCHRONIZATION} and {@code HELPERS}. Either cycle interacts with the persistence through its own
- * methods: {@code executeWrites} for event processing, {@code updateThing} and {@code updatePolicy} for
- * synchronization.
+ * This Actor initiates persistence updates related to 1 thing. It has 2 main state transition cycles: event processing
+ * and synchronization. Methods are grouped into the sections {@code EVENT PROCESSING}, {@code SYNCHRONIZATION} and
+ * {@code HELPERS}. Either cycle interacts with the persistence through its own methods: {@code executeWrites} for event
+ * processing, {@code updateThing} and {@code updatePolicy} for synchronization.
  */
 final class ThingUpdater extends AbstractActorWithDiscardOldStash
         implements RequiresMessageQueue<DequeBasedMessageQueueSemantics> {
@@ -231,10 +230,10 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
      * @param activityCheckInterval the interval at which is checked, if the corresponding Thing is still actively
      * updated.
      * @param thingsTimeout how long to wait for Things and Policies service.
-     * @param thingCacheFacade the {@link org.eclipse.ditto.services.utils.distributedcache.actors.CacheFacadeActor} for accessing
-     * the Thing cache in cluster.
-     * @param policyCacheFacade the {@link org.eclipse.ditto.services.utils.distributedcache.actors.CacheFacadeActor} for accessing
-     * the Policy cache in cluster.
+     * @param thingCacheFacade the {@link org.eclipse.ditto.services.utils.distributedcache.actors.CacheFacadeActor} for
+     * accessing the Thing cache in cluster.
+     * @param policyCacheFacade the {@link org.eclipse.ditto.services.utils.distributedcache.actors.CacheFacadeActor}
+     * for accessing the Policy cache in cluster.
      * @return the Akka configuration Props object
      */
     static Props props(final ThingsSearchUpdaterPersistence searchUpdaterPersistence,
@@ -564,10 +563,9 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
 
         if (processInitialThingEvent(thingEvent)) {
             log.debug("Processed initial event: {}", thingEvent.getType());
-        }
-        //check if it is necessary to load the policy first before processing the event
-        else if (needToReloadPolicy(thingEvent)) {
-            //if the policy needs to be loaded first, drop everything and synchronize.
+        } else if (needToReloadPolicy(thingEvent)) {
+            // check if it is necessary to load the policy first before processing the event
+            // if the policy needs to be loaded first, drop everything and synchronize.
             triggerSynchronization();
         } else {
             // attempt to add event, trigger synchronization in case of failures
@@ -582,7 +580,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
                             intermediateCombinedWritesBuilder.getSize());
                 } else {
                     final CombinedThingWrites.Builder localCombinedWritesBuilder =
-                            CombinedThingWrites.newBuilder(sequenceNumber, policyEnforcer);
+                            CombinedThingWrites.newBuilder(log, sequenceNumber, policyEnforcer);
 
                     addEventToBuilder(localCombinedWritesBuilder, thingEvent);
                     executeWrites(localCombinedWritesBuilder);
@@ -682,7 +680,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
 
     private void addEventToIntermediateBuilder(final ThingEvent thingEvent) {
         if (intermediateCombinedWritesBuilder == null) {
-            intermediateCombinedWritesBuilder = CombinedThingWrites.newBuilder(sequenceNumber, policyEnforcer);
+            intermediateCombinedWritesBuilder = CombinedThingWrites.newBuilder(log, sequenceNumber, policyEnforcer);
         }
         addEventToBuilder(intermediateCombinedWritesBuilder, thingEvent);
     }
@@ -793,8 +791,8 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
     }
 
     /**
-     * Final state of the synchronization cycle.
-     * Transitions to event processing on success and re-attempt synchronization on failure.
+     * Final state of the synchronization cycle. Transitions to event processing on success and re-attempt
+     * synchronization on failure.
      */
     // stash all messages until actor state change triggered by ongoing future
     private void becomeSyncResultAwaiting() {
@@ -832,7 +830,6 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
                 policyCacheFacade.tell(new RegisterForCacheUpdates(policyIdOfThing, getSelf()), getSelf());
             }
         } else if (hasNonEmptyAcl(thing)) {
-//        } else if (thing.getAccessControlList().isPresent() && !thing.getAccessControlList().get().isEmpty()) {
             policyRevision = -1L; // reset policyRevision
             policyEnforcer = null; // reset policyEnforcer
             policyId = null;
