@@ -1,5 +1,5 @@
 ---
-title: Create a single Features
+title: Create a single feature
 keywords: examples, create feature
 search: exclude
 permalink: protocol-examples-createfeature.html

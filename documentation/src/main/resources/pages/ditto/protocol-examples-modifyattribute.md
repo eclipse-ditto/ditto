@@ -1,5 +1,5 @@
 ---
-title: Modify a single Attribute
+title: Modify a single attribute
 keywords: examples, modify attribute
 search: exclude
 permalink: protocol-examples-modifyattribute.html

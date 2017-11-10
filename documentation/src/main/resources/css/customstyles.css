@@ -37,6 +37,15 @@ h1,h2 {
     color: #347DBE;
 }
 
+.equal {
+    display: -webkit-flex;
+    display: flex;
+}
+.equal .panel {
+    width: 100%;
+    height: 100%;
+}
+
 .bs-callout {
     padding: 20px;
     margin: 20px 0;

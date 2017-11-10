@@ -1,5 +1,5 @@
 ---
-title: HTTP API Concepts
+title: HTTP API concepts
 keywords: http, api, concepts, partial
 tags: [http]
 permalink: httpapi-concepts.html

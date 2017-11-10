@@ -1,5 +1,5 @@
 ---
-title: Architecture Overview
+title: Architecture overview
 keywords: architecture, overview
 tags: [architecture]
 permalink: architecture-overview.html

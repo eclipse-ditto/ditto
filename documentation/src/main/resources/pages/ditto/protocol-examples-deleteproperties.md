@@ -1,5 +1,5 @@
 ---
-title: Delete Properties
+title: Delete properties
 keywords: examples, delete properties
 search: exclude
 permalink: protocol-examples-deleteproperties.html

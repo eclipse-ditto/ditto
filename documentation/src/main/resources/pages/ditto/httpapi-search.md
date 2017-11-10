@@ -1,5 +1,5 @@
 ---
-title: HTTP API Search
+title: HTTP API search
 keywords: http, api, search, query, rql
 tags: [http]
 permalink: httpapi-search.html

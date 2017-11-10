@@ -1,5 +1,5 @@
 ---
-title: Create Properties
+title: Create properties
 keywords: examples, create properties
 search: exclude
 permalink: protocol-examples-createproperties.html

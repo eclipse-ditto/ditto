@@ -1,5 +1,5 @@
 ---
-title: Overview
+title: Ditto documentation overview
 keywords: purpose, about, motivation, digital twin
 tags: [getting_started]
 permalink: intro-overview.html

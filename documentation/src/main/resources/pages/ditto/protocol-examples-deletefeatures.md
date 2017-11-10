@@ -1,5 +1,5 @@
 ---
-title: Delete Features
+title: Delete features
 keywords: examples, delete features
 search: exclude
 permalink: protocol-examples-deletefeatures.html

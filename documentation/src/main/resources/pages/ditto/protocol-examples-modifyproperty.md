@@ -1,5 +1,5 @@
 ---
-title: Modify a single Property
+title: Modify a single property
 keywords: examples, modify property
 search: exclude
 permalink: protocol-examples-modifyproperty.html

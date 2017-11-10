@@ -1,5 +1,5 @@
 ---
-title: Retrieve
+title: Retrieve protocol specification
 keywords: protocol, specification, retrieve
 tags: [protocol]
 permalink: protocol-specification-retrieve.html

@@ -1,5 +1,5 @@
 ---
-title: Create
+title: Create protocol specification
 keywords: protocol, specification, create
 tags: [protocol]
 permalink: protocol-specification-create.html
