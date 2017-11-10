@@ -15,8 +15,12 @@ import java.text.MessageFormat;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeParseException;
+import java.util.Arrays;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
@@ -141,24 +145,28 @@ public enum MessageHeaderDefinition implements HeaderDefinition {
     static final String SUBJECT_REGEX =
             "(([a-zA-Z][0-9a-zA-Z+\\-\\.]*:)?/{0,2}[0-9a-zA-Z;/?:@&=+$\\.\\-_!~*'()%]+)?(#[0-9a-zA-Z;/?:@&=+$\\.\\-_!~*'()%]+)?";
 
+    /**
+     * Map to speed up lookup of header definition by key.
+     */
+    private static final Map<CharSequence, MessageHeaderDefinition> VALUES_BY_KEY = Arrays.stream(values())
+            .collect(Collectors.toMap(MessageHeaderDefinition::getKey, Function.identity()));
+
     private final String key;
     private final Class<?> type;
 
-    private MessageHeaderDefinition(final String theKey, final Class<?> theType) {
+    MessageHeaderDefinition(final String theKey, final Class<?> theType) {
         key = theKey;
         type = theType;
     }
 
     /**
-     * Finds an appropriate {@code MessageHeaderKey} for the specified key.
+     * Finds an appropriate {@code MessageHeaderDefinition} for the specified key.
      *
      * @param key the key to look up.
-     * @return the MessageHeaderKey or an empty Optional.
+     * @return the MessageHeaderDefinition or an empty Optional.
      */
-    public static Optional<MessageHeaderDefinition> forKey(@Nullable final CharSequence key) {
-        return Stream.of(values())
-                .filter(dittoHeaderKey -> Objects.equals(dittoHeaderKey.key, String.valueOf(key)))
-                .findAny();
+    public static Optional<HeaderDefinition> forKey(@Nullable final CharSequence key) {
+        return Optional.ofNullable(VALUES_BY_KEY.get(key));
     }
 
     @Override

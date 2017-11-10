@@ -118,6 +118,15 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
         return getBooleanForDefinition(DittoHeaderDefinition.RESPONSE_REQUIRED).orElse(true);
     }
 
+    /**
+     * Resolve type of a header not defined in {@link DittoHeaderDefinition}. Implementations should be fast because
+     * this method is called multiple times during serialization of each object.
+     *
+     * @param key Name of the specific header.
+     * @return Header definition of the specific header.
+     */
+    protected abstract Optional<HeaderDefinition> getSpecificDefinitionByKey(final CharSequence key);
+
     protected Optional<Boolean> getBooleanForDefinition(final HeaderDefinition definition) {
         return getStringForDefinition(definition)
                 .map(JsonFactory::readFrom)
@@ -129,8 +138,6 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
     public boolean isDryRun() {
         return getBooleanForDefinition(DittoHeaderDefinition.DRY_RUN).orElse(false);
     }
-
-    protected abstract Collection<HeaderDefinition> getSpecificDefinitions();
 
     @Override
     public JsonObject toJson() {
@@ -146,8 +153,10 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
     }
 
     private Class<?> getTypeForKey(final CharSequence key) {
-        return DittoHeaderDefinition.forKey(key)
-                .map(DittoHeaderDefinition::getJavaType)
+        return getSpecificDefinitionByKey(key)
+                .map(Optional::of)
+                .orElseGet(() -> DittoHeaderDefinition.forKey(key))
+                .map(HeaderDefinition::getJavaType)
                 .orElse(String.class);
     }
 

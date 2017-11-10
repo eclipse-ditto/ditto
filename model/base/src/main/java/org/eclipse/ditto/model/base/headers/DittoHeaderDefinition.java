@@ -110,7 +110,7 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * @param key the key to look up.
      * @return the DittoHeaderKey or an empty Optional.
      */
-    public static Optional<DittoHeaderDefinition> forKey(@Nullable final CharSequence key) {
+    public static Optional<HeaderDefinition> forKey(@Nullable final CharSequence key) {
         return Optional.ofNullable(VALUES_BY_KEY.get(key));
     }
 
