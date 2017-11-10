@@ -110,8 +110,8 @@ final class ImmutableMessageHeaders extends AbstractDittoHeaders implements Mess
     }
 
     @Override
-    protected Collection<HeaderDefinition> getSpecificDefinitions() {
-        return Arrays.asList(MessageHeaderDefinition.values());
+    protected Optional<HeaderDefinition> getSpecificDefinitionByKey(final CharSequence key) {
+        return MessageHeaderDefinition.forKey(key);
     }
 
     @Override

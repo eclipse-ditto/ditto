@@ -11,9 +11,11 @@
  */
 package org.eclipse.ditto.model.base.headers;
 
-import java.util.Objects;
+import java.util.Arrays;
+import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Stream;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -88,10 +90,16 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      */
     CHANNEL("channel", String.class);
 
+    /**
+     * Map to speed up lookup of header definition by key.
+     */
+    private static final Map<CharSequence, DittoHeaderDefinition> VALUES_BY_KEY = Arrays.stream(values())
+            .collect(Collectors.toMap(DittoHeaderDefinition::getKey, Function.identity()));
+
     private final String key;
     private final Class<?> type;
 
-    private DittoHeaderDefinition(final String theKey, final Class<?> theType) {
+    DittoHeaderDefinition(final String theKey, final Class<?> theType) {
         key = theKey;
         type = theType;
     }
@@ -102,10 +110,8 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * @param key the key to look up.
      * @return the DittoHeaderKey or an empty Optional.
      */
-    public static Optional<DittoHeaderDefinition> forKey(@Nullable final CharSequence key) {
-        return Stream.of(values())
-                .filter(dittoHeaderKey -> Objects.equals(dittoHeaderKey.key, String.valueOf(key)))
-                .findAny();
+    public static Optional<HeaderDefinition> forKey(@Nullable final CharSequence key) {
+        return Optional.ofNullable(VALUES_BY_KEY.get(key));
     }
 
     @Override
