@@ -21,7 +21,6 @@ import org.eclipse.ditto.signals.events.base.Event;
 /**
  * A mutable builder with a fluent API for an immutable {@link LiveCommandAnswer}. This is the counterpart of {@link
  * LiveCommand} interface.
- * <p>
  */
 @ParametersAreNonnullByDefault
 public interface LiveCommandAnswerBuilder {
@@ -44,8 +43,8 @@ public interface LiveCommandAnswerBuilder {
         BuildStep withResponse(Function<R, CommandResponse<?>> createResponseFunction);
 
         /**
-         * Configures that no {@link CommandResponse} is sent for the incoming {@code Command}. <p> Be careful using
-         * this as the sender of the {@code Command} might wait for a {@code CommandResponse}. </p>
+         * Configures that no {@link CommandResponse} is sent for the incoming {@code Command}.
+         * <p>Be careful using this as the sender of the {@code Command} might wait for a {@code CommandResponse}.</p>
          *
          * @return the next step for building the answer.
          */

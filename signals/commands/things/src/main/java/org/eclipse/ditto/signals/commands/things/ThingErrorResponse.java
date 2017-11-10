@@ -97,6 +97,7 @@ public final class ThingErrorResponse extends AbstractCommandResponse<ThingError
     /**
      * Creates a new {@code ThingErrorResponse} for the specified {@code dittoRuntimeException}.
      *
+     * @param thingId the Thing's ID.
      * @param dittoRuntimeException the exception.
      * @param dittoHeaders the headers of the command which caused the exception.
      * @return the response.
