@@ -8,6 +8,9 @@
         })
     </script>
 </head>
+{% if site.google_analytics %}
+{% include google_analytics.html %}
+{% endif %}
 <body>
 {% include topnav.html %}
 {% include incubation_image.html %}
@@ -17,7 +20,4 @@
 </div>
 
 </body>
-{% if site.google_analytics %}
-{% include google_analytics.html %}
-{% endif %}
 </html>
