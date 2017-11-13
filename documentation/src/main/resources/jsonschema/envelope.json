@@ -1,0 +1,50 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
+  "description": "The Thing Protocol Envelope of a Thing Protocol Message. This wraps the actual payload in the `value` field.",
+  "title": "Thing Protocol Envelope",
+  "properties": {
+    "topic": {
+      "type": "string",
+      "description": "Contains information about the contents of the payload:\n * the affected Thing (namespace and Thing ID)\n * the type of operation (command/event, create/retrieve/modify/delete) \n\nExample: `com.acme/xdk_53/things/twin/commands/modify`"
+    },
+    "headers": {
+      "type": "object",
+      "description": "Additional headers.",
+      "properties": {
+        "correlation-id": {
+          "type": "string",
+          "description": "The correlation-id header is used for linking one message with another. It typically links a reply message with its requesting message."
+        },
+        "response-required": {
+          "type": "boolean",
+          "description": "Whether a response to a command is required or if it may be omitted (fire and forget semantics)."
+        },
+        "version": {
+          "type": "integer",
+          "description": "Determines the version of the *Things* payload.",
+          "minimum": 1,
+          "maximum": 2
+        },
+        "source": {
+          "type": "string",
+          "description": "The source which initiated the command, e.g. a _clientId_."
+        }
+      },
+      "required": [ "correlation-id" ]
+    },
+    "path": {
+      "type": "string",
+      "description": "A Path that references a part of a Thing which is affected by this message.\nExamples:\n * `/features/location/properties/longitude` (a single sensor value)\n * `/` (the whole Thing)"
+    },
+    "fields": {
+      "type": "string",
+      "description": "The fields of a Thing that are included in the response.\nExample: `thingId,attributes(location)`"
+    },
+    "value": {
+      "type": "object",
+      "description": "The `value` field contains the actual payload e.g. a sensor value. The content must follow the *Things Model Schema*."
+    }
+  },
+  "required": [ "topic", "headers", "path", "value" ]
+}

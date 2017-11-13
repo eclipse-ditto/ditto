@@ -1,0 +1,43 @@
+#swagger-ui .swagger-ui .wrapper {
+    /*max-width: 100%;*/
+}
+
+#swagger-ui .swagger-ui .wrapper p {
+    margin: 0;
+}
+#swagger-ui .swagger-ui .wrapper h2, #swagger-ui .swagger-ui .wrapper h3, #swagger-ui .swagger-ui .wrapper h4 {
+    font-weight: bold;
+    font-style: inherit;
+}
+
+#swagger-ui .swagger-ui.swagger-container .topbar {
+    background: none;
+}
+
+#swagger-ui .swagger-ui.swagger-container .topbar .topbar-wrapper a {
+    display: none;
+}
+#swagger-ui .swagger-ui.swagger-container .topbar .topbar-wrapper select {
+    background-color: #ffffff;
+    border-color: black;
+}
+
+#swagger-ui .swagger-ui.swagger-container .scheme-container {
+    display: none;
+}
+
+#swagger-ui .information-container pre {
+    overflow: unset;
+    background: none;
+    border: 0;
+    padding: 0;
+    margin: 0;
+}
+#swagger-ui .information-container .info a {
+    display: none;
+}
+
+#swagger-ui .swagger-ui .info .base-url {
+    display: none;
+    padding: 10px;
+}

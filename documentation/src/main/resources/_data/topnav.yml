@@ -1,0 +1,31 @@
+## Topnav single links
+topnav:
+- title: Topnav
+  items:
+    - title: Blog
+      url: /blog.html
+    - title: Documentation
+      url: /intro-overview.html
+    - title: HTTP API
+      url: /http-api-doc.html
+    - title: GitHub
+      external_url: https://github.com/eclipse/ditto
+    - title: GitHub examples
+      external_url: https://github.com/eclipse/ditto-examples
+
+#Topnav dropdowns
+topnav_dropdowns:
+- title: Topnav dropdowns
+  folders:
+    - title: Links
+      folderitems:
+        - title: Eclipse Ditto Project
+          external_url: https://projects.eclipse.org/projects/iot.ditto
+        - title: Forum
+          external_url: https://www.eclipse.org/forums/index.php/f/364/
+        - title: Jenkins
+          external_url: https://ci.eclipse.org/ditto/
+        - title: Mailing list archives
+          external_url: https://dev.eclipse.org/mhonarc/lists/ditto-dev/
+        - title: Gitter.im chat
+          external_url: https://gitter.im/eclipse/ditto

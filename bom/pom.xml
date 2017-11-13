@@ -26,7 +26,7 @@
 
     <properties>
         <!-- globally set version for checking binary compatibility against -->
-        <binary-compatibility-check.version>0.1.0-SNAPSHOT</binary-compatibility-check.version>
+        <binary-compatibility-check.version>${project.version}</binary-compatibility-check.version>
 
         <scala.version>2.12</scala.version> <!-- for scala libraries the scala version is used in their artifactId -->
         <scala.full.version>2.12.3</scala.full.version>

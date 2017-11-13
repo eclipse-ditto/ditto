@@ -31,7 +31,6 @@ import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationF
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationProviderUnavailableException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayBadGatewayException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
-import org.eclipse.ditto.signals.commands.base.exceptions.GatewayKeyProviderUnavailableException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayMethodNotAllowedException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayQueryTimeExceededException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayServiceTimeoutException;
@@ -99,10 +98,6 @@ public final class CommonErrorRegistry extends AbstractErrorRegistry<DittoRuntim
                         .message(getMessage(jsonObject))
                         .dittoHeaders(dittoHeaders)
                         .build());
-
-        parseStrategies.put(GatewayKeyProviderUnavailableException.ERROR_CODE,
-                (jsonObject, dittoHeaders) -> GatewayKeyProviderUnavailableException.newBuilder()
-                        .message(getMessage(jsonObject)).dittoHeaders(dittoHeaders).build());
 
         parseStrategies.put(GatewayMethodNotAllowedException.ERROR_CODE,
                 (jsonObject, dittoHeaders) -> GatewayMethodNotAllowedException.newBuilder("")

@@ -99,6 +99,20 @@ public final class ImmutableMessageHeadersTest {
     }
 
     @Test
+    public void timeoutIsSerializedAsInteger() {
+        final long timeout = Long.MAX_VALUE;
+
+        final MessageHeaders underTest = MessageHeadersBuilder.newInstance(DIRECTION, THING_ID, SUBJECT)
+                .timeout(timeout)
+                .build();
+
+        final JsonObject jsonObject = underTest.toJson();
+
+        assertThat(jsonObject.getValue(MessageHeaderDefinition.TIMEOUT.getKey()))
+                .contains(JsonFactory.newValue(timeout));
+    }
+
+    @Test
     public void createInstanceOfValidHeaderMapWorksAsExpected() {
         final Map<String, String> initialHeaders = createMapContainingAllKnownHeaders();
 

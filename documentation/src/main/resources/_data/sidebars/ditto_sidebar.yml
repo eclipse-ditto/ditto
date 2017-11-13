@@ -1,0 +1,244 @@
+# This is your sidebar TOC. The sidebar code loops through sections here and provides the appropriate formatting.
+
+entries:
+- title: sidebar
+  product: Eclipse Ditto
+  folders:
+
+  - title: Introduction
+    output: web
+
+    folderitems:
+    - title: Overview
+      url: /intro-overview.html
+      output: web
+      type: homepage
+    - title: Digital Twins
+      url: /intro-digitaltwins.html
+      output: web
+    - title: Hello world
+      url: /intro-hello-world.html
+      output: web
+
+  - title: Release Notes
+    output: web
+    folderitems:
+
+    - title: 0.1.0M1 Release notes
+      url: /release_notes_010M1.html
+      output: web
+
+  - title: Installation
+    output: web
+    folderitems:
+
+    - title: Building Ditto
+      url: /installation-building.html
+      output: web
+    - title: Running Ditto
+      url: /installation-running.html
+      output: web
+
+  - title: Basic concepts
+    output: web
+
+    folderitems:
+    - title: Overview
+      url: /basic-overview.html
+      output: web
+    - title: Things and Features
+      url: /basic-thingsfeatures.html
+      output: web
+    - title: Definitions
+      url: /basic-definitions.html
+      output: web
+    - title: Authentication and Authorization
+      url: /basic-auth.html
+      output: web
+    - title: Access Control List (ACL)
+      url: /basic-acl.html
+      output: web
+    - title: Policies
+      url: /basic-policies.html
+      output: web
+    - title: Messages
+      url: /basic-messages.html
+      output: web
+    - title: Events
+      url: /basic-events.html
+      output: web
+    - title: Which API to use?
+      url: /basic-whichapi.html
+      output: web
+
+  - title: Architecture
+    output: web
+
+    folderitems:
+    - title: Overview
+      url: /architecture-overview.html
+      output: web
+
+  - title: HTTP API
+    output: web
+
+    folderitems:
+    - title: Overview
+      url: /httpapi-overview.html
+      output: web
+    - title: Concepts
+      url: /httpapi-concepts.html
+      output: web
+    - title: Search
+      url: /httpapi-search.html
+      output: web
+    - title: Server sent events
+      url: /httpapi-sse.html
+      output: web
+
+  - title: Ditto Protocol
+    output: web
+
+    folderitems:
+    - title: Overview
+      url: /protocol-overview.html
+      output: web
+    - title: Specification
+      url: /protocol-specification.html
+      output: web
+
+      subfolders:
+      - title: Things Spec
+        output: web
+        subfolderitems:
+        - title: General
+          url: /protocol-specification-general.html
+          output: web
+        - title: Create
+          url: /protocol-specification-create.html
+          output: web
+        - title: Retrieve
+          url: /protocol-specification-retrieve.html
+          output: web
+        - title: Search
+          url: /protocol-specification-search.html
+          output: web
+        - title: Modify
+          url: /protocol-specification-modify.html
+          output: web
+        - title: Delete
+          url: /protocol-specification-delete.html
+          output: web
+
+    - title: Bindings
+      url: /protocol-bindings.html
+      output: web
+    - title: Websocket Binding
+      url: /protocol-bindings-websocket.html
+      output: web
+    - title: Examples
+      url: /protocol-examples.html
+      output: web
+
+      subfolders:
+      - title: Things Examples
+        output: web
+        subfolderitems:
+        - title: Create a Thing
+          url: /protocol-examples-creatething.html
+          output: web
+        - title: Delete a Thing
+          url: /protocol-examples-deletething.html
+          output: web
+        - title: Modify a Thing
+          url: /protocol-examples-modifything.html
+          output: web
+        - title: Retrieve a Thing
+          url: /protocol-examples-retrievething.html
+          output: web
+        - title: Retrieve multiple Things
+          url: /protocol-examples-retrievethings.html
+          output: web
+        - title: Create Attributes
+          url: /protocol-examples-createattributes.html
+          output: web
+        - title: Delete Attributes
+          url: /protocol-examples-deleteattributes.html
+          output: web
+        - title: Modify Attributes
+          url: /protocol-examples-modifyattributes.html
+          output: web
+        - title: Retrieve Attributes
+          url: /protocol-examples-retrieveattributes.html
+          output: web
+        - title: Create a single Attribute
+          url: /protocol-examples-createattribute.html
+          output: web
+        - title: Delete a single Attribute
+          url: /protocol-examples-deleteattribute.html
+          output: web
+        - title: Modify a single Attribute
+          url: /protocol-examples-modifyattribute.html
+          output: web
+        - title: Retrieve a single Attribute
+          url: /protocol-examples-retrieveattribute.html
+          output: web
+        - title: Create Features
+          url: /protocol-examples-createfeatures.html
+          output: web
+        - title: Delete Features
+          url: /protocol-examples-deletefeatures.html
+          output: web
+        - title: Modify Features
+          url: /protocol-examples-modifyfeatures.html
+          output: web
+        - title: Retrieve Features
+          url: /protocol-examples-retrievefeatures.html
+          output: web
+        - title: Create a single Feature
+          url: /protocol-examples-createfeature.html
+          output: web
+        - title: Delete a single Feature
+          url: /protocol-examples-deletefeature.html
+          output: web
+        - title: Modify a single Feature
+          url: /protocol-examples-modifyfeature.html
+          output: web
+        - title: Retrieve a single Feature
+          url: /protocol-examples-retrievefeature.html
+          output: web
+        - title: Create Properties
+          url: /protocol-examples-createproperties.html
+          output: web
+        - title: Delete Properties
+          url: /protocol-examples-deleteproperties.html
+          output: web
+        - title: Modify Properties
+          url: /protocol-examples-modifyproperties.html
+          output: web
+        - title: Retrieve Properties
+          url: /protocol-examples-retrieveproperties.html
+          output: web
+        - title: Create a single Property
+          url: /protocol-examples-createproperty.html
+          output: web
+        - title: Delete a single Property
+          url: /protocol-examples-deleteproperty.html
+          output: web
+        - title: Modify a single Property
+          url: /protocol-examples-modifyproperty.html
+          output: web
+        - title: Retrieve a single Property
+          url: /protocol-examples-retrieveproperty.html
+          output: web
+        - title: Error Responses
+          url: /protocol-examples-errorresponses.html
+          output: web
+
+  - title: Glossary
+    url: /glossary.html
+    output: web
+
+  - title: Feedback
+    url: /feedback.html
+    output: web

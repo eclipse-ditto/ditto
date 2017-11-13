@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    {% include head.html %}
+    <script>
+        $(function () {
+            $('[data-toggle="tooltip"]').tooltip()
+        })
+    </script>
+</head>
+{% if site.google_analytics %}
+{% include google_analytics.html %}
+{% endif %}
+<body>
+{% include topnav.html %}
+{% include incubation_image.html %}
+
+<div class="startpage">
+    {{ content }}
+</div>
+
+</body>
+</html>

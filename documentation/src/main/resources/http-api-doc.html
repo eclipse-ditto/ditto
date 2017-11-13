@@ -1,0 +1,35 @@
+---
+layout: swagger_layout
+title: HTTP API
+summary: Contains the HTTP API documentation of Eclipse Ditto.
+keywords: HTTP, REST, documentation, swagger, openapi
+permalink: http-api-doc.html
+toc: false
+hide_sidebar: true
+sidebar: false
+---
+<script>
+    window.onload = function() {
+
+        // Build a system
+        const ui = SwaggerUIBundle({
+           urls: [
+               {url: "openapi/ditto-api-1.yml", name:"api1"},
+               {url: "openapi/ditto-api-2.yml", name:"api2"}
+           ],
+           "urls.primaryName": "api1",
+           validatorUrl: null,
+           docExpansion: "none",
+           dom_id: '#swagger-ui',
+           deepLinking: true,
+           presets: [
+               SwaggerUIBundle.presets.apis,
+               SwaggerUIStandalonePreset
+           ],
+           plugins: [
+           ],
+           layout: "StandaloneLayout"
+       })
+        window.ui = ui
+    }
+</script>

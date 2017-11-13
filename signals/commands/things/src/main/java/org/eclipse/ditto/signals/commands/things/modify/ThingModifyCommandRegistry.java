@@ -21,7 +21,7 @@ import org.eclipse.ditto.signals.commands.base.AbstractCommandRegistry;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 
 /**
- * a {@link org.eclipse.ditto.signals.commands.base.commandregistry} aware of all {@link thingmodifycommand}s.
+ * A {@link org.eclipse.ditto.signals.commands.base.CommandRegistry} aware of all {@link ThingModifyCommand}s.
  */
 @Immutable
 public final class ThingModifyCommandRegistry extends AbstractCommandRegistry<ThingModifyCommand> {
