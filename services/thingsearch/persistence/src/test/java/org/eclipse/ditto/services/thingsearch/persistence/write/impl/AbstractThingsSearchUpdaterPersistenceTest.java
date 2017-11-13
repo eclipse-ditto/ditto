@@ -21,7 +21,6 @@ import java.util.Set;
 import org.eclipse.ditto.model.policiesenforcers.PolicyEnforcer;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.thingsearch.persistence.AbstractThingSearchPersistenceTestBase;
-import org.eclipse.ditto.services.thingsearch.persistence.write.IndexLengthRestrictionEnforcer;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingMetadata;
 import org.junit.Test;
 import org.junit.runner.RunWith;

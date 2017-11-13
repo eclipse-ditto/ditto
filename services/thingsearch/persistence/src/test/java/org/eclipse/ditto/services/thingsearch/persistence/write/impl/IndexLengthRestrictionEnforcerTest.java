@@ -9,7 +9,7 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package org.eclipse.ditto.services.thingsearch.persistence.write;
+package org.eclipse.ditto.services.thingsearch.persistence.write.impl;
 
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -43,7 +43,7 @@ public class IndexLengthRestrictionEnforcerTest {
 
     @Before
     public void setUp() {
-        this.indexLengthRestrictionEnforcer = IndexLengthRestrictionEnforcer.newBuilder(log).build();
+        this.indexLengthRestrictionEnforcer = IndexLengthRestrictionEnforcer.getInstance(log);
     }
 
     /**
@@ -58,7 +58,7 @@ public class IndexLengthRestrictionEnforcerTest {
     @Test
     public void newBuilder() throws Exception {
         final IndexLengthRestrictionEnforcer
-                indexLengthRestrictionEnforcer = IndexLengthRestrictionEnforcer.newBuilder(log).build();
+                indexLengthRestrictionEnforcer = IndexLengthRestrictionEnforcer.getInstance(log);
         assertThat(indexLengthRestrictionEnforcer).isNotNull();
         assertThat(getFieldViaReflection(indexLengthRestrictionEnforcer, "log")).isEqualTo(log);
     }

@@ -19,7 +19,6 @@ import static org.mockito.Mockito.when;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.things.Attributes;
-import org.eclipse.ditto.services.thingsearch.persistence.write.IndexLengthRestrictionEnforcer;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;

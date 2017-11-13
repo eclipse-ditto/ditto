@@ -29,7 +29,6 @@ import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.thingsearch.persistence.MongoSortKeyMappingFunction;
 import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
 import org.eclipse.ditto.services.thingsearch.persistence.read.document.DocumentMapper;
-import org.eclipse.ditto.services.thingsearch.persistence.write.IndexLengthRestrictionEnforcer;
 
 /**
  * Factory which creates updates for features.

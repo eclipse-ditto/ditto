@@ -25,7 +25,6 @@ import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.services.thingsearch.persistence.MongoSortKeyMappingFunction;
 import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
 import org.eclipse.ditto.services.thingsearch.persistence.read.document.DocumentMapper;
-import org.eclipse.ditto.services.thingsearch.persistence.write.IndexLengthRestrictionEnforcer;
 
 /**
  * Factory to create Attribute related updates.

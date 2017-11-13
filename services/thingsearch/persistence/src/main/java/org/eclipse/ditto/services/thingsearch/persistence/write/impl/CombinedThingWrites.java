@@ -35,7 +35,6 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policiesenforcers.PolicyEnforcer;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
-import org.eclipse.ditto.services.thingsearch.persistence.write.IndexLengthRestrictionEnforcer;
 import org.eclipse.ditto.signals.events.things.AclEntryCreated;
 import org.eclipse.ditto.signals.events.things.AclEntryDeleted;
 import org.eclipse.ditto.signals.events.things.AclEntryModified;
@@ -224,7 +223,7 @@ public final class CombinedThingWrites {
 
         private Builder(final LoggingAdapter log, final long sourceSequenceNumber,
                 final PolicyEnforcer policyEnforcer) {
-            this.indexLengthRestrictionEnforcer = IndexLengthRestrictionEnforcer.newBuilder(log).build();
+            this.indexLengthRestrictionEnforcer = IndexLengthRestrictionEnforcer.getInstance(log);
             this.sourceSequenceNumber = sourceSequenceNumber;
             targetSequenceNumber = sourceSequenceNumber;
             this.policyEnforcer = policyEnforcer;

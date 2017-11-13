@@ -9,7 +9,7 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package org.eclipse.ditto.services.thingsearch.persistence.write;
+package org.eclipse.ditto.services.thingsearch.persistence.write.impl;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -52,8 +52,8 @@ public final class IndexLengthRestrictionEnforcer {
     public static final int MAX_ATTRIBUTE_VALUE_LENGTH = 950;
 
     /**
-     * The overhead caused by the json key of attribute entries. Use {@link IndexLengthRestrictionEnforcer#attributeOverhead()} ()}
-     * for calculating the concrete overhead.
+     * The overhead caused by the json key of attribute entries. Use {@link IndexLengthRestrictionEnforcer#attributeOverhead()}
+     * ()} for calculating the concrete overhead.
      */
     private static final int ATTRIBUTE_KEY_OVERHEAD = ("attributes").length();
 
@@ -82,13 +82,13 @@ public final class IndexLengthRestrictionEnforcer {
     }
 
     /**
-     * Create a new Builder for building an instance of {@link IndexLengthRestrictionEnforcer}.
+     * Create a new instance of {@link IndexLengthRestrictionEnforcer}.
      *
      * @param loggingAdapter the logging adapter used to log size restriction enforcements.
-     * @return a builder.
+     * @return the instance.
      */
-    public static Builder newBuilder(final LoggingAdapter loggingAdapter) {
-        return new Builder(loggingAdapter);
+    static IndexLengthRestrictionEnforcer getInstance(final LoggingAdapter loggingAdapter) {
+        return new IndexLengthRestrictionEnforcer(loggingAdapter);
     }
 
     /**
@@ -400,25 +400,5 @@ public final class IndexLengthRestrictionEnforcer {
         return thing.getId().orElseThrow(() -> new IllegalArgumentException("The thing has no ID!"));
     }
 
-    /**
-     * Builder for {@link IndexLengthRestrictionEnforcer}.
-     */
-    public static final class Builder {
-
-        private final LoggingAdapter log;
-
-        private Builder(final LoggingAdapter loggingAdapter) {
-            this.log = loggingAdapter;
-        }
-
-        /**
-         * Build a new {@link IndexLengthRestrictionEnforcer}  instance.
-         *
-         * @return the {@link IndexLengthRestrictionEnforcer} instance.
-         */
-        public IndexLengthRestrictionEnforcer build() {
-            return new IndexLengthRestrictionEnforcer(log);
-        }
-    }
 }
 

@@ -12,7 +12,6 @@
 package org.eclipse.ditto.services.thingsearch.persistence.write.impl;
 
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.services.thingsearch.persistence.write.IndexLengthRestrictionEnforcer;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
 
 import akka.NotUsed;
@@ -23,7 +22,7 @@ import scala.PartialFunction;
 /**
  * Abstract concepts used for Updater Persistence.
  */
-public abstract class AbstractThingsSearchUpdaterPersistence implements ThingsSearchUpdaterPersistence {
+abstract class AbstractThingsSearchUpdaterPersistence implements ThingsSearchUpdaterPersistence {
 
     /**
      * The logger.
@@ -40,7 +39,7 @@ public abstract class AbstractThingsSearchUpdaterPersistence implements ThingsSe
      * @param loggingAdapter the logger to use for logging.
      */
     AbstractThingsSearchUpdaterPersistence(final LoggingAdapter loggingAdapter) {
-        this(loggingAdapter, IndexLengthRestrictionEnforcer.newBuilder(loggingAdapter).build());
+        this(loggingAdapter, IndexLengthRestrictionEnforcer.getInstance(loggingAdapter));
     }
 
     /**

@@ -47,7 +47,7 @@ import org.eclipse.ditto.services.models.things.ThingTag;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SyncThing;
-import org.eclipse.ditto.services.thingsearch.persistence.write.IndexLengthRestrictionEnforcer;
+import org.eclipse.ditto.services.thingsearch.persistence.write.impl.IndexLengthRestrictionEnforcer;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingMetadata;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.thingsearch.persistence.write.impl.CombinedThingWrites;

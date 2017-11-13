@@ -22,7 +22,6 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.Features;
-import org.eclipse.ditto.services.thingsearch.persistence.write.IndexLengthRestrictionEnforcer;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
