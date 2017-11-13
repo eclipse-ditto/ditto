@@ -20,6 +20,7 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
@@ -117,12 +118,15 @@ public final class ModifyThing extends AbstractCommand<ModifyThing> implements T
      */
     public static ModifyThing fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<ModifyThing>(TYPE, jsonObject).deserialize(() -> {
-            final String thingId = jsonObject.getValueOrThrow(ThingModifyCommand.JsonFields.JSON_THING_ID);
-
+            final String thingId;
             final JsonObject thingJsonObject = jsonObject.getValueOrThrow(JSON_THING);
             final Thing extractedThing = ThingsModelFactory.newThing(thingJsonObject);
-
             final JsonObject initialPolicyObject = jsonObject.getValue(JSON_INITIAL_POLICY).orElse(null);
+
+            final Optional<String> optionalThingID = jsonObject.getValue(ThingModifyCommand.JsonFields.JSON_THING_ID);
+            thingId = optionalThingID.orElseGet(() -> extractedThing.getId().orElseThrow(() ->
+                    new JsonMissingFieldException(ThingModifyCommand.JsonFields.JSON_THING_ID)
+            ));
 
             return of(thingId, extractedThing, initialPolicyObject, dittoHeaders);
         });
