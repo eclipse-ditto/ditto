@@ -47,6 +47,12 @@
             </dependency>
             <dependency>
                 <groupId>rubygems</groupId>
+                <artifactId>jekyll-sitemap</artifactId>
+                <version>1.1.1</version>
+                <type>gem</type>
+            </dependency>
+            <dependency>
+                <groupId>rubygems</groupId>
                 <artifactId>addressable</artifactId>
                 <version>2.5.2</version>
                 <type>gem</type>
@@ -246,6 +252,12 @@
                     <type>gem</type>
                     <optional>true</optional>
                 </dependency>
+                <dependency>
+                    <groupId>rubygems</groupId>
+                    <artifactId>jekyll-sitemap</artifactId>
+                    <type>gem</type>
+                    <optional>true</optional>
+                </dependency>
             </dependencies>
         </profile>
 
@@ -259,7 +271,7 @@
                         <artifactId>exec-maven-plugin</artifactId>
                         <configuration>
                             <supportNative>true</supportNative>
-                            <jrubyVersion>9.0.5.0</jrubyVersion>
+                            <jrubyVersion>9.1.12.0</jrubyVersion>
                             <addProjectClasspath>true</addProjectClasspath>
                             <jrubyVerbose>false</jrubyVerbose>
                         </configuration>
