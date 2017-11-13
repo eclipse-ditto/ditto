@@ -101,4 +101,7 @@ description: "Eclipse Ditto Blog"
 # the description is used in the feed.xml file
 
 # needed for sitemap.xml file only
-url:
+url: https://www.eclipse.org/ditto
+
+plugins:
+  - jekyll-sitemap

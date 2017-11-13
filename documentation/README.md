@@ -23,6 +23,7 @@ Use that if you are on a UNIX system (or have the Ubuntu bash subsystem for Wind
 ```bash
 sudo apt-get install build-essential ruby-dev
 sudo gem install --http-proxy http://localhost:3128 jekyll
+sudo gem install --http-proxy http://localhost:3128 jekyll-sitemap
 ```
 
 Watch all resources and start local server serving the Jekyll content at [http://localhost:4000](http://localhost:4000):
