@@ -10,6 +10,8 @@ topnav:
       url: /http-api-doc.html
     - title: GitHub
       external_url: https://github.com/eclipse/ditto
+    - title: GitHub examples
+      external_url: https://github.com/eclipse/ditto-examples
 
 #Topnav dropdowns
 topnav_dropdowns:
