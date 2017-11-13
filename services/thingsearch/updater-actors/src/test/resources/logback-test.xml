@@ -30,7 +30,7 @@
     </appender>
 
     <!-- do not print INFO cluster messages of mongo driver: -->
-    <logger name="org.mongodb.driver" level="ERROR"/>
+    <logger name="org.mongodb.driver" level="SEVERE"/>
 
     <!-- Log level for the application -->
     <logger name="org.eclipse.ditto" level="${LOG_LEVEL_APPLICATION:-WARN}"/>
