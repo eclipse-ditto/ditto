@@ -40,16 +40,16 @@ import akka.event.LoggingAdapter;
 /**
  * Class that helps to enforce size restrictions on the things model.
  */
-public final class IndexLengthRestrictionEnforcer {
+final class IndexLengthRestrictionEnforcer {
 
     /**
      * Max allowed length of feature properties.
      */
-    public static final int MAX_FEATURE_PROPERTY_VALUE_LENGTH = 950;
+    static final int MAX_FEATURE_PROPERTY_VALUE_LENGTH = 950;
     /**
      * Max allowed length of attributes.
      */
-    public static final int MAX_ATTRIBUTE_VALUE_LENGTH = 950;
+    static final int MAX_ATTRIBUTE_VALUE_LENGTH = 950;
 
     /**
      * The overhead caused by the json key of attribute entries. Use {@link IndexLengthRestrictionEnforcer#attributeOverhead()}

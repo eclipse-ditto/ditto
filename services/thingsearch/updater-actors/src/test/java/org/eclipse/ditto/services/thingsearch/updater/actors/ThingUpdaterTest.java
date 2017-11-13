@@ -47,7 +47,6 @@ import org.eclipse.ditto.services.models.things.ThingTag;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SyncThing;
-import org.eclipse.ditto.services.thingsearch.persistence.write.impl.IndexLengthRestrictionEnforcer;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingMetadata;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.thingsearch.persistence.write.impl.CombinedThingWrites;
@@ -90,17 +89,18 @@ import scala.concurrent.duration.FiniteDuration;
 @RunWith(MockitoJUnitRunner.class)
 public final class ThingUpdaterTest {
 
-    private static final String POLICY_ID = "abc:policy";
     private static final String THING_ID = "abc:myId";
 
     private static final long REVISION = 1L;
 
-    static final AuthorizationSubject AUTHORIZATION_SUBJECT = AuthorizationSubject.newInstance("sid");
+    private static final int MAX_ATTRIBUTE_VALUE_LENGTH = 950;
 
-    static final AclEntry ACL_ENTRY =
+    private static final AuthorizationSubject AUTHORIZATION_SUBJECT = AuthorizationSubject.newInstance("sid");
+
+    private static final AclEntry ACL_ENTRY =
             AclEntry.newInstance(AUTHORIZATION_SUBJECT, AccessControlListModelFactory.allPermissions());
 
-    static final AccessControlList ACL = AccessControlListModelFactory.newAcl(ACL_ENTRY);
+    private static final AccessControlList ACL = AccessControlListModelFactory.newAcl(ACL_ENTRY);
 
     private final Thing thing = ThingsModelFactory.newThingBuilder().setId(THING_ID).setRevision(REVISION).build();
 
@@ -142,7 +142,7 @@ public final class ThingUpdaterTest {
     }
 
     @Test
-    public void createThing() throws InterruptedException {
+    public void createThing() {
         // disable policy load
         final DittoHeaders dittoHeaders = DittoHeaders.empty();
         new TestKit(actorSystem) {
@@ -163,7 +163,7 @@ public final class ThingUpdaterTest {
 
     @Test
     @Ignore("currently does not run every time on Travis - ignoring for now")
-    public void concurrentUpdates() throws InterruptedException {
+    public void concurrentUpdates() {
         final Thing thingWithAcl = thing.setAclEntry(AclEntry.newInstance(AuthorizationSubject.newInstance("user1"),
                 Permission.READ));
         assertEquals(V_1, thingWithAcl.getImplementedSchemaVersion());
@@ -215,7 +215,7 @@ public final class ThingUpdaterTest {
     }
 
     @Test
-    public void concurrentUpdatesWithSizeRestrictions() throws InterruptedException {
+    public void concurrentUpdatesWithSizeRestrictions() {
         final Thing thingWithAcl = thing.setAclEntry(AclEntry.newInstance(AuthorizationSubject.newInstance("user1"),
                 Permission.READ));
         assertEquals(V_1, thingWithAcl.getImplementedSchemaVersion());
@@ -226,7 +226,7 @@ public final class ThingUpdaterTest {
                 .build();
         final JsonValue tooLongAttribute = tooLongAttribute();
         final AttributeModified attributeModified = createAttributeModified("p1", tooLongAttribute, 3L);
-        final int expectedLength = IndexLengthRestrictionEnforcer.MAX_ATTRIBUTE_VALUE_LENGTH - attributeModified
+        final int expectedLength = MAX_ATTRIBUTE_VALUE_LENGTH - attributeModified
                 .getAttributePointer().toString().length();
         final JsonValue expectedResultingValue = JsonValue.of(tooLongAttribute.asString().substring(0, expectedLength));
 
@@ -286,7 +286,7 @@ public final class ThingUpdaterTest {
     }
 
     @Test
-    public void unexpectedHighSequenceNumberTriggersSync() throws InterruptedException {
+    public void unexpectedHighSequenceNumberTriggersSync() {
         final long eventRevision = 7L;
         final long thingRevision = 20L;
 
@@ -320,7 +320,7 @@ public final class ThingUpdaterTest {
 
     @Test
     @Ignore("currently does not run every time on Travis - ignoring for now")
-    public void unsuccessfulUpdateTriggersSync() throws InterruptedException {
+    public void unsuccessfulUpdateTriggersSync() {
         final long revision = 4L;
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                 .schemaVersion(V_1)
@@ -353,7 +353,7 @@ public final class ThingUpdaterTest {
     }
 
     @Test
-    public void databaseExceptionTriggersSync() throws InterruptedException {
+    public void databaseExceptionTriggersSync() {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                 .schemaVersion(V_1)
                 .build();
@@ -380,7 +380,7 @@ public final class ThingUpdaterTest {
     }
 
     @Test
-    public void thingTagWithHigherSequenceNumberTriggersSync() throws InterruptedException {
+    public void thingTagWithHigherSequenceNumberTriggersSync() {
         final long revision = 7L;
         final ThingTag thingTag = ThingTag.of(THING_ID, revision);
         final Thing currentThing = ThingsModelFactory.newThingBuilder()
@@ -416,7 +416,7 @@ public final class ThingUpdaterTest {
     }
 
     @Test
-    public void thingTagWithLowerSequenceNumberDoesNotTriggerSync() throws InterruptedException {
+    public void thingTagWithLowerSequenceNumberDoesNotTriggerSync() {
         new TestKit(actorSystem) {
             {
                 final long revision = 1L;
@@ -446,7 +446,7 @@ public final class ThingUpdaterTest {
     }
 
     @Test
-    public void thingEventWithEqualSequenceNumberDoesNotTriggerSync() throws InterruptedException {
+    public void thingEventWithEqualSequenceNumberDoesNotTriggerSync() {
         new TestKit(actorSystem) {
             {
                 final long revision = 1L;
@@ -479,7 +479,7 @@ public final class ThingUpdaterTest {
     }
 
     @Test
-    public void persistenceErrorForCombinedWritesTriggersSync() throws InterruptedException {
+    public void persistenceErrorForCombinedWritesTriggersSync() {
         new TestKit(actorSystem) {
             {
                 final long revision = 1L;
@@ -516,7 +516,7 @@ public final class ThingUpdaterTest {
     }
 
     @Test
-    public void invalidThingEventTriggersSync() throws InterruptedException {
+    public void invalidThingEventTriggersSync() {
         new TestKit(actorSystem) {
             {
                 final ThingEvent<?> invalidThingEvent = createInvalidThingEvent();
@@ -534,14 +534,12 @@ public final class ThingUpdaterTest {
     }
 
     @Test
-    public void syncTimeoutRetriggersSync() throws InterruptedException {
+    public void syncTimeoutRetriggersSync() {
         // Command headers to make SudoRetrieveThingResponse return the access control list.
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                 .schemaVersion(V_1)
                 .build();
         final SudoRetrieveThing retrieveThing = SudoRetrieveThing.withOriginalSchemaVersion(THING_ID, dittoHeaders);
-        final ShardedMessageEnvelope expectedShardMessage = ShardedMessageEnvelope.of(THING_ID, SudoRetrieveThing.TYPE,
-                retrieveThing.toJson(), DittoHeaders.empty());
 
         new TestKit(actorSystem) {
             {
@@ -580,7 +578,7 @@ public final class ThingUpdaterTest {
     }
 
     @Test
-    public void tooManyStashedMessagesDiscardOldMessages() throws InterruptedException {
+    public void tooManyStashedMessagesDiscardOldMessages() {
         final Thing thingWithAcl = thing.setAclEntry(AclEntry.newInstance(AuthorizationSubject.newInstance("user1"),
                 Permission.READ));
         // setup
@@ -651,7 +649,7 @@ public final class ThingUpdaterTest {
 
     /** */
     @Test
-    public void policyEventTriggersPolicyUpdate() throws InterruptedException {
+    public void policyEventTriggersPolicyUpdate() {
         final long policyRevision = REVISION;
         final long newPolicyRevision = 2L;
         final Policy initialPolicy = Policy.newBuilder(THING_ID)
@@ -709,7 +707,7 @@ public final class ThingUpdaterTest {
     }
 
     @Test
-    public void policyIdChangeTriggersSync() throws InterruptedException {
+    public void policyIdChangeTriggersSync() {
         final String policy1Id = "policy:1";
         final String policy2Id = "policy:2";
         final Policy policy1 = Policy.newBuilder(policy1Id).setRevision(REVISION).build();
@@ -764,7 +762,7 @@ public final class ThingUpdaterTest {
     }
 
     @Test
-    public void thingV1BecomesThingV2() throws InterruptedException {
+    public void thingV1BecomesThingV2() {
         final String policyId = "policy:2";
         final Policy policy = Policy.newBuilder(policyId).setRevision(REVISION).build();
 
@@ -778,12 +776,6 @@ public final class ThingUpdaterTest {
                 .build();
         final SudoRetrievePolicyResponse policyResponse =
                 SudoRetrievePolicyResponse.of(policyId, policy, DittoHeaders.empty());
-        final SudoRetrieveThingResponse thingResponse1 =
-                SudoRetrieveThingResponse.of(thingWithoutPolicy, FieldType.regularOrSpecial(),
-                        DittoHeaders.empty());
-        final SudoRetrieveThingResponse thingResponse2 =
-                SudoRetrieveThingResponse.of(thingWithPolicy, FieldType.regularOrSpecial(),
-                        DittoHeaders.empty());
         final ThingCreated thingCreated = ThingCreated.of(thingWithoutPolicy, 1L, DittoHeaders.empty());
         final ThingModified thingModified = ThingModified.of(thingWithPolicy, 2L, DittoHeaders.empty());
 
