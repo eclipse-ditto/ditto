@@ -14,7 +14,7 @@ node {
       maven: 'maven-3.5.0',
       mavenLocalRepo: theMvnRepo) {
 
-      sh "mvn install --batch-mode --errors -Pbuild-documentation -DcreateJavadoc=true"
+      sh "mvn install javadoc:jar source:jar-no-fork --batch-mode --errors -Pbuild-documentation -DcreateJavadoc=true"
     }
   }
 }
