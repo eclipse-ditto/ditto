@@ -13,6 +13,7 @@ package org.eclipse.ditto.protocoladapter;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
@@ -87,10 +88,29 @@ public class MessageCommandAdapterTest {
     }
 
     @Test
-    public void sendThingMessageJsonFromAdaptable() {
+    public void sendThingMessageWithJsonObjectPayloadFromAdaptable() {
+        final JsonObject payload = JsonObject.newBuilder().set("hello", 42).set("foo", false).build();
+        sendThingMessageJsonFromAdaptable(payload);
+    }
+
+    @Test
+    public void sendThingMessageWithJsonStringPayloadFromAdaptable() {
+        sendThingMessageJsonFromAdaptable(JsonValue.of("payload"));
+    }
+
+    @Test
+    public void sendThingMessageWithJsonNumberPayloadFromAdaptable() {
+        sendThingMessageJsonFromAdaptable(JsonValue.of(3.14159265359));
+    }
+
+    @Test
+    public void sendThingMessageWithJsonBooleanPayloadFromAdaptable() {
+        sendThingMessageJsonFromAdaptable(JsonValue.of(true));
+    }
+
+    private void sendThingMessageJsonFromAdaptable(final JsonValue payload) {
         final MessageDirection messageDirection = MessageDirection.FROM;
         final String subject = "json-yeah";
-        final JsonObject payload = JsonObject.newBuilder().set("hello", 42).set("foo", false).build();
         final String contentType = "application/json";
 
         final Message expectedMessage = Message.newBuilder(
@@ -132,10 +152,29 @@ public class MessageCommandAdapterTest {
     }
 
     @Test
-    public void sendThingMessageToAdaptable() {
+    public void sendThingMessageWithNumberToAdaptable() {
+        sendThingMessageWithPayloadToAdaptable(JsonFactory.newValue(3.14159265359));
+    }
+
+    @Test
+    public void sendThingMessageWithBooelanToAdaptable() {
+        sendThingMessageWithPayloadToAdaptable(JsonFactory.newValue(true));
+    }
+
+    @Test
+    public void sendThingMessageWithJsonObjectToAdaptable() {
+        final JsonObject payload = JsonObject.newBuilder().set("hello", 42).set("foo", false).build();
+        sendThingMessageWithPayloadToAdaptable(payload);
+    }
+
+    @Test
+    public void sendThingMessageWithJsonStringPayloadToAdaptable() {
+        sendThingMessageWithPayloadToAdaptable(JsonFactory.newValue("payload"));
+    }
+
+    private void sendThingMessageWithPayloadToAdaptable(JsonValue payload) {
         final MessageDirection messageDirection = MessageDirection.FROM;
         final String subject = "newMsg:stuff";
-        final JsonObject payload = JsonObject.newBuilder().set("hello", 42).set("foo", false).build();
         final String contentType = "application/json";
 
         final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)

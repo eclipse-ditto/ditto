@@ -21,6 +21,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.things.Attributes;
+import org.eclipse.ditto.model.things.AttributesModelFactory;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.junit.Test;
@@ -39,6 +40,12 @@ public final class ModifyAttributesTest {
             .set(ThingCommand.JsonFields.TYPE, ModifyAttributes.TYPE)
             .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID)
             .set(ModifyAttributes.JSON_ATTRIBUTES, TestConstants.Thing.ATTRIBUTES)
+            .build();
+
+    private static final JsonObject JSON_WITH_NULL_ATTRIBUTE = JsonFactory.newObjectBuilder()
+            .set(ThingCommand.JsonFields.TYPE, ModifyAttributes.TYPE)
+            .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID)
+            .set(ModifyAttributes.JSON_ATTRIBUTES, JsonFactory.nullObject())
             .build();
 
 
@@ -80,6 +87,16 @@ public final class ModifyAttributesTest {
         assertThat(underTest).isNotNull();
         assertThat(underTest.getId()).isEqualTo(TestConstants.Thing.THING_ID);
         Assertions.assertThat(underTest.getAttributes()).isEqualTo(TestConstants.Thing.ATTRIBUTES);
+    }
+
+    @Test
+    public void createInstanceFromValidJsonWithNullAttribute() {
+        final ModifyAttributes underTest =
+                ModifyAttributes.fromJson(JSON_WITH_NULL_ATTRIBUTE.toString(), TestConstants.EMPTY_DITTO_HEADERS);
+
+        assertThat(underTest).isNotNull();
+        assertThat(underTest.getId()).isEqualTo(TestConstants.Thing.THING_ID);
+        Assertions.assertThat(underTest.getAttributes()).isEqualTo(AttributesModelFactory.nullAttributes());
     }
 
 }

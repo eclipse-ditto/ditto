@@ -143,7 +143,7 @@ final class MessageAdaptableHelper {
         final MessageBuilder<T> messageBuilder = MessagesModelFactory.<T>newMessageBuilder(messageHeaders);
         final Optional<JsonValue> value = adaptable.getPayload().getValue();
         if (isPlainText) {
-            if (value.filter(JsonValue::isString).isPresent()) {
+            if (contentType.startsWith(TEXT_PLAIN) && value.filter(JsonValue::isString).isPresent()) {
                 messageBuilder.payload((T) value.get().asString());
             } else {
                 value.ifPresent(jsonValue -> messageBuilder.payload((T) jsonValue));
