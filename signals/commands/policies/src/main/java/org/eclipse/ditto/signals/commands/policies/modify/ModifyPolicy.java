@@ -106,13 +106,12 @@ public final class ModifyPolicy extends AbstractCommand<ModifyPolicy> implements
      */
     public static ModifyPolicy fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<ModifyPolicy>(TYPE, jsonObject).deserialize(() -> {
-            final String policyId;
             final JsonObject policyJsonObject = jsonObject.getValueOrThrow(JSON_POLICY);
             final Policy policy = PoliciesModelFactory.newPolicy(policyJsonObject);
 
             final Optional<String> optionalPolicyId = jsonObject.getValue(PolicyModifyCommand.JsonFields
                     .JSON_POLICY_ID);
-            policyId = optionalPolicyId.orElseGet(() -> policy.getId().orElseThrow(() ->
+            final String policyId = optionalPolicyId.orElseGet(() -> policy.getId().orElseThrow(() ->
                     new JsonMissingFieldException(PolicyModifyCommand.JsonFields.JSON_POLICY_ID)
             ));
 

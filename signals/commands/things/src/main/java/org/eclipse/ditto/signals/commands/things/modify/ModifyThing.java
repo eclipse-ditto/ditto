@@ -118,13 +118,12 @@ public final class ModifyThing extends AbstractCommand<ModifyThing> implements T
      */
     public static ModifyThing fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<ModifyThing>(TYPE, jsonObject).deserialize(() -> {
-            final String thingId;
             final JsonObject thingJsonObject = jsonObject.getValueOrThrow(JSON_THING);
             final Thing extractedThing = ThingsModelFactory.newThing(thingJsonObject);
             final JsonObject initialPolicyObject = jsonObject.getValue(JSON_INITIAL_POLICY).orElse(null);
 
-            final Optional<String> optionalThingID = jsonObject.getValue(ThingModifyCommand.JsonFields.JSON_THING_ID);
-            thingId = optionalThingID.orElseGet(() -> extractedThing.getId().orElseThrow(() ->
+            final Optional<String> optionalThingId = jsonObject.getValue(ThingModifyCommand.JsonFields.JSON_THING_ID);
+            final String thingId = optionalThingId.orElseGet(() -> extractedThing.getId().orElseThrow(() ->
                     new JsonMissingFieldException(ThingModifyCommand.JsonFields.JSON_THING_ID)
             ));
 
