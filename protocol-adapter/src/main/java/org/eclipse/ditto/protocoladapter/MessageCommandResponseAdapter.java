@@ -14,12 +14,14 @@ package org.eclipse.ditto.protocoladapter;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.messages.KnownMessageSubjects;
 import org.eclipse.ditto.model.messages.MessageHeaderDefinition;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
 import org.eclipse.ditto.signals.commands.messages.SendClaimMessageResponse;
 import org.eclipse.ditto.signals.commands.messages.SendEmptyMessageResponse;
 import org.eclipse.ditto.signals.commands.messages.SendFeatureMessageResponse;
+import org.eclipse.ditto.signals.commands.messages.SendMessageAcceptedResponse;
 import org.eclipse.ditto.signals.commands.messages.SendThingMessageResponse;
 
 /**
@@ -57,7 +59,10 @@ final class MessageCommandResponseAdapter extends AbstractAdapter<MessageCommand
                         MessageAdaptableHelper.messageFrom(adaptable), statusCodeFrom(adaptable),
                         dittoHeadersFrom(adaptable)));
         mappingStrategies.put(SendEmptyMessageResponse.TYPE,
-                adaptable -> SendEmptyMessageResponse.of(thingIdFrom(adaptable), statusCodeFrom(adaptable),
+                adaptable -> SendEmptyMessageResponse.newInstance(thingIdFrom(adaptable), statusCodeFrom(adaptable),
+                        dittoHeadersFrom(adaptable)));
+        mappingStrategies.put(SendMessageAcceptedResponse.TYPE,
+                adaptable -> SendMessageAcceptedResponse.newInstance(thingIdFrom(adaptable), statusCodeFrom(adaptable),
                         dittoHeadersFrom(adaptable)));
 
         return mappingStrategies;
@@ -76,8 +81,10 @@ final class MessageCommandResponseAdapter extends AbstractAdapter<MessageCommand
             return SendFeatureMessageResponse.TYPE;
         } else if (adaptable.containsHeaderForKey(MessageHeaderDefinition.THING_ID.getKey())) {
             return SendThingMessageResponse.TYPE;
-        } else {
+        } else if (adaptable.getHeaders().map(DittoHeaders::isResponseRequired).orElse(true)) {
             return SendEmptyMessageResponse.TYPE;
+        } else {
+            return SendMessageAcceptedResponse.TYPE;
         }
     }
 

@@ -28,19 +28,20 @@ import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
  * Command to send a response to a {@link Message}.
  */
 @Immutable
-public final class SendEmptyMessageResponse extends AbstractMessageCommandResponse<Void, SendEmptyMessageResponse> {
+public final class SendMessageAcceptedResponse
+        extends AbstractMessageCommandResponse<Void, SendMessageAcceptedResponse> {
 
     /**
      * The name of the {@code Message} wrapped by this {@code MessageCommand}.
      */
-    public static final String NAME = "emptyResponseMessage";
+    public static final String NAME = "acceptedResponseMessage";
 
     /**
      * Type of this command.
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    private SendEmptyMessageResponse(final String thingId, final HttpStatusCode statusCode,
+    private SendMessageAcceptedResponse(final String thingId, final HttpStatusCode statusCode,
             final DittoHeaders dittoHeaders) {
 
         super(TYPE, thingId, Message.<Void>newBuilder(MessageHeaders.of(dittoHeaders)).build(), statusCode,
@@ -48,34 +49,34 @@ public final class SendEmptyMessageResponse extends AbstractMessageCommandRespon
     }
 
     /**
-     * Returns a new {@code SendEmptyMessageResponse} instance.
+     * Returns a new {@code SendMessageAcceptedResponse} instance.
      *
      * @param thingId the ID of the Thing to send the message from.
      * @param dittoHeaders the command headers.
      * @return the new instance.
      */
-    public static SendEmptyMessageResponse newInstance(final String thingId, final DittoHeaders dittoHeaders) {
-        return newInstance(thingId, HttpStatusCode.NO_CONTENT, dittoHeaders);
+    public static SendMessageAcceptedResponse newInstance(final String thingId, final DittoHeaders dittoHeaders) {
+        return newInstance(thingId, HttpStatusCode.ACCEPTED, dittoHeaders);
     }
 
     /**
-     * Returns a new {@code SendEmptyMessageResponse} instance.
+     * Returns a new {@code SendMessageAcceptedResponse} instance.
      *
      * @param thingId the ID of the Thing to send the message from.
      * @param statusCode the HttpStatusCode to use.
      * @param dittoHeaders the DittoHeaders.
      * @return the new instance.
      */
-    public static SendEmptyMessageResponse newInstance(final String thingId, final HttpStatusCode statusCode,
+    public static SendMessageAcceptedResponse newInstance(final String thingId, final HttpStatusCode statusCode,
             final DittoHeaders dittoHeaders) {
 
-        return new SendEmptyMessageResponse(thingId, statusCode, dittoHeaders);
+        return new SendMessageAcceptedResponse(thingId, statusCode, dittoHeaders);
     }
 
     /**
-     * Creates a new {@code SendEmptyMessageResponse} from a JSON string.
+     * Creates a new {@code SendMessageAcceptedResponse} from a JSON string.
      *
-     * @param jsonString the JSON string of which the SendEmptyMessageResponse is to be created.
+     * @param jsonString the JSON string of which the SendMessageAcceptedResponse is to be created.
      * @param dittoHeaders the headers.
      * @return the command.
      * @throws NullPointerException if {@code jsonString} is {@code null}.
@@ -83,22 +84,22 @@ public final class SendEmptyMessageResponse extends AbstractMessageCommandRespon
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
      */
-    public static SendEmptyMessageResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
+    public static SendMessageAcceptedResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
         return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
     }
 
     /**
-     * Creates a new {@code SendEmptyMessageResponse} from a JSON object.
+     * Creates a new {@code SendMessageAcceptedResponse} from a JSON object.
      *
-     * @param jsonObject the JSON object of which the SendEmptyMessageResponse is to be created.
+     * @param jsonObject the JSON object of which the SendMessageAcceptedResponse is to be created.
      * @param dittoHeaders the headers.
      * @return the command.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */
-    public static SendEmptyMessageResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<SendEmptyMessageResponse>(TYPE, jsonObject).deserialize(
+    public static SendMessageAcceptedResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+        return new CommandResponseJsonDeserializer<SendMessageAcceptedResponse>(TYPE, jsonObject).deserialize(
                 statusCode -> {
                     final String thingId = jsonObject.getValueOrThrow(MessageCommandResponse.JsonFields.JSON_THING_ID);
                     return newInstance(thingId, statusCode, dittoHeaders);
@@ -106,7 +107,7 @@ public final class SendEmptyMessageResponse extends AbstractMessageCommandRespon
     }
 
     @Override
-    public SendEmptyMessageResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
+    public SendMessageAcceptedResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
         return newInstance(getThingId(), getStatusCode(), dittoHeaders);
     }
 
@@ -116,7 +117,7 @@ public final class SendEmptyMessageResponse extends AbstractMessageCommandRespon
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return other instanceof SendEmptyMessageResponse;
+        return other instanceof SendMessageAcceptedResponse;
     }
 
     @Override

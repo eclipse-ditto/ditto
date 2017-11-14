@@ -41,6 +41,7 @@ import org.eclipse.ditto.signals.commands.messages.SendClaimMessageResponse;
 import org.eclipse.ditto.signals.commands.messages.SendEmptyMessageResponse;
 import org.eclipse.ditto.signals.commands.messages.SendFeatureMessage;
 import org.eclipse.ditto.signals.commands.messages.SendFeatureMessageResponse;
+import org.eclipse.ditto.signals.commands.messages.SendMessageAcceptedResponse;
 import org.eclipse.ditto.signals.commands.messages.SendThingMessage;
 import org.eclipse.ditto.signals.commands.messages.SendThingMessageResponse;
 import org.junit.Before;
@@ -87,6 +88,7 @@ public final class GatewayMappingStrategyTest {
                 .knows(SendFeatureMessage.TYPE)
                 .knows(SendClaimMessageResponse.TYPE)
                 .knows(SendEmptyMessageResponse.TYPE)
+                .knows(SendMessageAcceptedResponse.TYPE)
                 .knows(SendThingMessageResponse.TYPE)
                 .knows(SendFeatureMessageResponse.TYPE)
                 .knows(AuthorizationSubjectBlockedException.ERROR_CODE)

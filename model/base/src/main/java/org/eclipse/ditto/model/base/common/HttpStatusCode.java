@@ -52,6 +52,11 @@ public enum HttpStatusCode {
     CREATED(201),
 
     /**
+     * The request has been accepted for processing, but the processing has not been completed.
+     */
+    ACCEPTED(202),
+
+    /**
      * The request was successful but the enclosed payload has been modified from that of the origin server's 200 OK
      * response by a transforming proxy.
      */
