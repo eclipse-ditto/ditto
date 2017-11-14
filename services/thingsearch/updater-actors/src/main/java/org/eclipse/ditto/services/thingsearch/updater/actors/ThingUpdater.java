@@ -48,6 +48,7 @@ import org.eclipse.ditto.services.models.things.ThingTag;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SyncThing;
+import org.eclipse.ditto.services.thingsearch.persistence.write.ThingMetadata;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.thingsearch.persistence.write.impl.CombinedThingWrites;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -58,7 +59,6 @@ import org.eclipse.ditto.services.utils.distributedcache.actors.ReadConsistency;
 import org.eclipse.ditto.services.utils.distributedcache.actors.RegisterForCacheUpdates;
 import org.eclipse.ditto.services.utils.distributedcache.actors.RetrieveCacheEntry;
 import org.eclipse.ditto.services.utils.distributedcache.actors.RetrieveCacheEntryResponse;
-import org.eclipse.ditto.services.utils.distributedcache.model.CacheEntry;
 import org.eclipse.ditto.signals.commands.base.ErrorResponse;
 import org.eclipse.ditto.signals.commands.policies.PolicyErrorResponse;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyNotAccessibleException;
@@ -186,20 +186,19 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         searchUpdaterPersistence.getThingMetadata(thingId)
                 .runWith(Sink.last(), materializer)
                 .whenComplete((retrievedThingMetadata, throwable) -> {
-                    if (throwable instanceof NoSuchElementException) {
-                        // Thing not present in search index
-                        log.debug("Thing was not yet present in search index: {}", thingId);
-                    } else if (throwable != null) {
-                        log.error(throwable, "Unexpected exception when retrieving latest revision from search index");
+                    if (throwable == null) {
+                        getSelf().tell(retrievedThingMetadata, null);
                     } else {
-                        sequenceNumber = retrievedThingMetadata.getThingRevision();
-                        policyId = retrievedThingMetadata.getPolicyId();
-                        policyRevision = retrievedThingMetadata.getPolicyRevision();
+                        if (throwable instanceof NoSuchElementException) {
+                            // Thing not present in search index
+                            log.debug("Thing was not yet present in search index: {}", thingId);
+                        } else {
+                            log.error(throwable,
+                                    "Unexpected exception when retrieving latest revision from search index");
+                        }
+                        // metadata retrieval failed, try to initialize by event update or synchronization
+                        getSelf().tell(new ActorInitializationComplete(), null);
                     }
-                    retrieveCacheEntry();
-
-                    // initialization is complete, switch to normal ThingUpdater behavior.
-                    getSelf().tell(new ActorInitializationComplete(), null);
                 });
     }
 
@@ -231,10 +230,10 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
      * @param activityCheckInterval the interval at which is checked, if the corresponding Thing is still actively
      * updated.
      * @param thingsTimeout how long to wait for Things and Policies service.
-     * @param thingCacheFacade the {@link org.eclipse.ditto.services.utils.distributedcache.actors.CacheFacadeActor} for accessing
-     * the Thing cache in cluster.
-     * @param policyCacheFacade the {@link org.eclipse.ditto.services.utils.distributedcache.actors.CacheFacadeActor} for accessing
-     * the Policy cache in cluster.
+     * @param thingCacheFacade the {@link org.eclipse.ditto.services.utils.distributedcache.actors.CacheFacadeActor} for
+     * accessing the Thing cache in cluster.
+     * @param policyCacheFacade the {@link org.eclipse.ditto.services.utils.distributedcache.actors.CacheFacadeActor}
+     * for accessing the Policy cache in cluster.
      * @return the Akka configuration Props object
      */
     static Props props(final ThingsSearchUpdaterPersistence searchUpdaterPersistence,
@@ -267,6 +266,12 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
+                .match(ThingMetadata.class, retrievedThingMetadata -> {
+                    sequenceNumber = retrievedThingMetadata.getThingRevision();
+                    policyId = retrievedThingMetadata.getPolicyId();
+                    policyRevision = retrievedThingMetadata.getPolicyRevision();
+                    becomeActorInitialized();
+                })
                 .match(ActorInitializationComplete.class, msg -> becomeActorInitialized())
                 .matchAny(msg -> stashWithErrorsIgnored())
                 .build();
@@ -335,87 +340,9 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
                     stash();
                 })
                 .match(ThingCreated.class, this::processInitialThingEvent)
-                .match(RetrieveCacheEntryResponse.class, this::processCacheEntryResponse)
                 .matchAny(msg -> stashWithErrorsIgnored()) // stash all other messages
                 .build();
     }
-
-    private void processCacheEntryResponse(final RetrieveCacheEntryResponse cacheEntryResponse) {
-        if (cacheEntryResponse.hasContextOfType(CacheType.THING)) {
-            processThingCacheEntryResponse(cacheEntryResponse);
-        } else if (cacheEntryResponse.hasContextOfType(CacheType.POLICY)) {
-            processPolicyCacheEntryResponse(cacheEntryResponse);
-        } else {
-            log.warning("Received unknown CacheEntry Response: {}", cacheEntryResponse);
-        }
-    }
-
-    private void processThingCacheEntryResponse(final RetrieveCacheEntryResponse thingCacheEntryResponse) {
-        final Optional<CacheEntry> cacheEntryOpt = thingCacheEntryResponse.getCacheEntry();
-
-        if (cacheEntryOpt.isPresent() && cacheEntryOpt.get().getRevision() <= sequenceNumber) {
-            log.debug("CacheEntry has seqNo {}, metadata has seqNo {}. Start event processing.",
-                    cacheEntryOpt.get().getRevision(), sequenceNumber);
-            becomeEventProcessing();
-        } else if (cacheEntryOpt.isPresent() && cacheEntryOpt.get().isDeleted()) {
-            log.debug("CacheEntry is marked as deleted -> deleting Thing from search index");
-            // thing is/was deleted
-            final Cancellable timeout =
-                    scheduleTimeoutForResponse(Timeout.durationToTimeout(thingsTimeout),
-                            "Deleting Thing from search index failed.");
-            deleteThingFromSearchIndex(timeout);
-        } else if (cacheEntryOpt.isPresent()) {
-            final CacheEntry cacheEntry = cacheEntryOpt.get();
-            policyId = cacheEntry.getPolicyId().orElse(null);
-
-            if (cacheEntry.getRevision() > sequenceNumber) {
-                log.debug("CacheEntry has higher revision ({}) than locally known one {} - " +
-                        "syncing the Thing as a result!", cacheEntry.getRevision(), sequenceNumber);
-                syncThing();
-            } else {
-                log.debug("CacheEntry has equal or lower revision ({}) than locally known one {}",
-                        cacheEntry.getRevision(), sequenceNumber);
-
-                if (policyId != null) {
-                    // Thing in V2 with a policyId --> also retrieve policy from cache
-                    final Object cacheContext = CacheType.POLICY.getContext();
-                    policyCacheFacade.tell(
-                            new RetrieveCacheEntry(policyId, cacheContext, ReadConsistency.LOCAL),
-                            getSelf());
-                    // and subscribe for changes
-                    policyCacheFacade.tell(new RegisterForCacheUpdates(policyId, getSelf()),
-                            getSelf());
-                    // don't become another behavior!
-                } else {
-                    // Thing in V1 - directly become eventProcessing
-                    becomeEventProcessing();
-                }
-            }
-        } else {
-            log.debug("CacheEntry was absent or marked as deleted - syncing the Thing as a result!");
-            syncThing();
-        }
-    }
-
-    private void processPolicyCacheEntryResponse(final RetrieveCacheEntryResponse policyCacheResponse) {
-        final Optional<CacheEntry> cacheEntryOpt = policyCacheResponse.getCacheEntry();
-        if (cacheEntryOpt.isPresent() && !cacheEntryOpt.get().isDeleted()) {
-            final CacheEntry cacheEntry = cacheEntryOpt.get();
-            if (cacheEntry.getRevision() > policyRevision) {
-                log.debug("PolicyCache has higher revision ({}) than locally known one {} - " +
-                        "syncing the Policy as a result!", cacheEntry.getRevision(), policyRevision);
-                syncPolicy(null);
-            } else {
-                log.debug("PolicyCache has equal or lower revision ({}) than locally known one {}",
-                        cacheEntry.getRevision(), policyRevision);
-                becomeEventProcessing();
-            }
-        } else {
-            log.debug("Policy entry was absent or marked as deleted - syncing the Policy as a result!");
-            syncPolicy(null);
-        }
-    }
-
 
     ///////////////////////////
     ///// EVENT PROCESSING ////

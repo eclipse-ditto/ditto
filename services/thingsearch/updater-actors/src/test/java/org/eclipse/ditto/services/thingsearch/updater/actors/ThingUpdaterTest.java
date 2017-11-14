@@ -851,9 +851,8 @@ public final class ThingUpdaterTest {
         final ActorRef thingUpdater = createUninitializedThingUpdaterActor(thingsShardProbe.ref(),
                 policiesShardProbe.ref(), thingsTimeout, thingCacheFacade, policyCacheFacade);
 
-        expectShardedSudoRetrieveThing(thingsShardProbe, THING_ID);
-        thingUpdater.tell(SudoRetrieveThingResponse.of(initialThing, FieldType.regularOrSpecial(),
-                DittoHeaders.empty()), thingsShardProbe.ref());
+        final ThingCreated thingCreated = ThingCreated.of(initialThing, 0L, DittoHeaders.empty());
+        thingUpdater.tell(thingCreated, thingsShardProbe.ref());
 
         // wait until actor becomes `awaitingSyncResult` and is ready to stash & process other messages
         waitUntil().insertOrUpdate(any(), anyLong(), anyLong());
