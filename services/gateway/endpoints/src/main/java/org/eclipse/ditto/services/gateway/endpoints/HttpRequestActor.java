@@ -41,6 +41,7 @@ import org.eclipse.ditto.signals.commands.devops.RetrieveStatisticsResponse;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
 import org.eclipse.ditto.signals.commands.messages.SendEmptyMessageResponse;
+import org.eclipse.ditto.signals.commands.messages.SendMessageAcceptedResponse;
 import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
 
 import com.typesafe.config.Config;
@@ -129,6 +130,11 @@ public final class HttpRequestActor extends AbstractActor {
                 .match(SendEmptyMessageResponse.class, cmd -> {
                     final HttpResponse httpResponse =
                             HttpResponse.create().withStatus(HttpStatusCode.NO_CONTENT.toInt());
+                    completeWithResult(httpResponse);
+                })
+                .match(SendMessageAcceptedResponse.class, cmd -> {
+                    final HttpResponse httpResponse =
+                            HttpResponse.create().withStatus(HttpStatusCode.ACCEPTED.toInt());
                     completeWithResult(httpResponse);
                 })
                 .match(MessageCommandResponse.class, cmd -> {

@@ -40,6 +40,7 @@ public final class MessageCommandResponseRegistry extends AbstractCommandRespons
 
         parseStrategies.put(SendClaimMessageResponse.TYPE, SendClaimMessageResponse::fromJson);
         parseStrategies.put(SendEmptyMessageResponse.TYPE, SendEmptyMessageResponse::fromJson);
+        parseStrategies.put(SendMessageAcceptedResponse.TYPE, SendMessageAcceptedResponse::fromJson);
         parseStrategies.put(SendThingMessageResponse.TYPE, SendThingMessageResponse::fromJson);
         parseStrategies.put(SendFeatureMessageResponse.TYPE, SendFeatureMessageResponse::fromJson);
 

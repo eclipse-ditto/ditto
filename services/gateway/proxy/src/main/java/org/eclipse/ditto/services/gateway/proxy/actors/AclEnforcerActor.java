@@ -91,10 +91,9 @@ import scala.concurrent.duration.FiniteDuration;
 /**
  * Actor responsible for enforcing that the {@link AuthorizationContext} of a {@link Command} has the required {@link
  * org.eclipse.ditto.model.things.Permissions} to be processed. <ul> <li>A {@link org.eclipse.ditto.signals.commands.things.ThingCommand}
- * will be proxied to the things shard region.</li> <li>A {@link MessageCommand} will be broadcasted
- * via distributed pub-sub.</li> </ul> <p> For each {@link Thing} in {@link
- * JsonSchemaVersion#V_1} an instance of this Actor is created which caches the {@link AccessControlList} used to
- * perform permission checks. </p>
+ * will be proxied to the things shard region.</li> <li>A {@link MessageCommand} will be broadcasted via distributed
+ * pub-sub.</li> </ul> <p> For each {@link Thing} in {@link JsonSchemaVersion#V_1} an instance of this Actor is created
+ * which caches the {@link AccessControlList} used to perform permission checks. </p>
  */
 public final class AclEnforcerActor extends AbstractActorWithStash {
 
@@ -450,7 +449,6 @@ public final class AclEnforcerActor extends AbstractActorWithStash {
         pubSubMediator.tell(
                 new DistributedPubSubMediator.Publish(MessageCommand.TYPE_PREFIX, commandWithReadSubjects, true),
                 getSender());
-
 
         // answer the sender immediately for fire-and-forget message commands.
         getResponseForFireAndForgetMessage(command)
