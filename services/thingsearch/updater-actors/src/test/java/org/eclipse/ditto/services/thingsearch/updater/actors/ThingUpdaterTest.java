@@ -816,6 +816,26 @@ public final class ThingUpdaterTest {
         }};
     }
 
+    @Test
+    public void updaterTerminatesIfAwakenByStaleThingTag() {
+        new TestKit(actorSystem) {{
+            // GIVEN: updater initialized with high thing revision number
+            Mockito.reset(persistenceMock);
+            when(persistenceMock.getThingMetadata(any())).thenReturn(
+                    Source.single(new ThingMetadata(90L, POLICY_ID, 1L)));
+            final ActorRef dummy = TestProbe.apply(actorSystem).ref();
+            final ActorRef underTest = createUninitializedThingUpdaterActor(dummy, dummy, dummy, dummy);
+
+            // WHEN: updater receives outdated ThingTag
+            final Object message = ThingTag.of(THING_ID, 1L);
+            underTest.tell(message, null);
+
+            // THEN: updater terminates immediately
+            watch(underTest);
+            expectTerminated(underTest, Duration.create(3, SECONDS));
+        }};
+    }
+
     private ActorRef createInitializedThingUpdaterActor() {
         return createInitializedThingUpdaterActor(TestProbe.apply(actorSystem), TestProbe.apply(actorSystem));
     }
