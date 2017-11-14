@@ -21,6 +21,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
@@ -105,9 +106,14 @@ public final class ModifyPolicy extends AbstractCommand<ModifyPolicy> implements
      */
     public static ModifyPolicy fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<ModifyPolicy>(TYPE, jsonObject).deserialize(() -> {
-            final String policyId = jsonObject.getValueOrThrow(PolicyModifyCommand.JsonFields.JSON_POLICY_ID);
             final JsonObject policyJsonObject = jsonObject.getValueOrThrow(JSON_POLICY);
             final Policy policy = PoliciesModelFactory.newPolicy(policyJsonObject);
+
+            final Optional<String> optionalPolicyId = jsonObject.getValue(PolicyModifyCommand.JsonFields
+                    .JSON_POLICY_ID);
+            final String policyId = optionalPolicyId.orElseGet(() -> policy.getId().orElseThrow(() ->
+                    new JsonMissingFieldException(PolicyModifyCommand.JsonFields.JSON_POLICY_ID)
+            ));
 
             return of(policyId, policy, dittoHeaders);
         });
