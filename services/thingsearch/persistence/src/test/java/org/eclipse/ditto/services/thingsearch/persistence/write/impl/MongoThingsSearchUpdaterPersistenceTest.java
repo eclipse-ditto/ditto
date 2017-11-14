@@ -14,13 +14,16 @@ package org.eclipse.ditto.services.thingsearch.persistence.write.impl;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.json.JsonFactory.newValue;
 import static org.eclipse.ditto.model.base.auth.AuthorizationModelFactory.newAuthSubject;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
 import org.assertj.core.api.Assertions;
+import org.bson.BsonDocument;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
@@ -46,6 +49,7 @@ import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.models.policies.Permission;
 import org.eclipse.ditto.services.thingsearch.persistence.AbstractThingSearchPersistenceTestBase;
+import org.eclipse.ditto.services.thingsearch.persistence.write.ThingMetadata;
 import org.eclipse.ditto.services.thingsearch.querymodel.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.services.thingsearch.querymodel.expression.ThingsFieldExpressionFactoryImpl;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.PolicyRestrictedSearchAggregation;
@@ -68,13 +72,22 @@ import org.eclipse.ditto.signals.events.things.FeaturesModified;
 import org.eclipse.ditto.signals.events.things.ThingCreated;
 import org.eclipse.ditto.signals.events.things.ThingDeleted;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+
+import com.mongodb.MongoWriteException;
+import com.mongodb.ServerAddress;
+import com.mongodb.WriteError;
+
+import akka.NotUsed;
+import akka.stream.javadsl.Source;
+import scala.PartialFunction;
 
 /**
  * Tests for search updater persistence.
  */
-public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSearchPersistenceTestBase {
+public final class MongoThingsSearchUpdaterPersistenceTest extends AbstractThingSearchPersistenceTestBase {
 
     private static final String KNOWN_THING_ID = ":myThing1";
     private static final String KEY1 = "key1";
@@ -144,7 +157,7 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
     @Test
     public void insertAndExistsV2() throws ExecutionException, InterruptedException {
         final Thing thing = createThingV2(KNOWN_THING_ID, VALUE1);
-        runBlocking(writePersistence.insertOrUpdate(thing, 0, 0, policyEnforcer));
+        insertBlocking(thing, 0, 0, policyEnforcer);
 
         exists(KNOWN_THING_ID);
     }
@@ -153,7 +166,7 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
     @Test
     public void insertAndExistsWithDotsV2() throws ExecutionException, InterruptedException {
         final Thing thing = addDottedAttributesFeaturesAndProperties(createThingV2(KNOWN_THING_ID, VALUE1));
-        runBlocking(writePersistence.insertOrUpdate(thing, 0, 0, policyEnforcer));
+        insertBlocking(thing, 0, 0, policyEnforcer);
 
         exists(KNOWN_THING_ID);
     }
@@ -193,9 +206,8 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
     /** */
     @Test
     public void insertWithHigherRevisionV2() throws ExecutionException, InterruptedException {
-        runBlocking(writePersistence.insertOrUpdate(createThingV2(KNOWN_THING_ID, VALUE1), 2, 0, policyEnforcer));
-        runBlocking(
-                writePersistence.insertOrUpdate(createThingV2(KNOWN_THING_ID, "anotherValue"), 3, 0, policyEnforcer));
+        insertBlocking(createThingV2(KNOWN_THING_ID, VALUE1), 2, 0, policyEnforcer);
+        insertBlocking(createThingV2(KNOWN_THING_ID, "anotherValue"), 3, 0, policyEnforcer);
 
         insertWithHigherRevision();
     }
@@ -233,7 +245,7 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
     @Test
     public void deleteWithSameRevisionV2() throws ExecutionException, InterruptedException {
         // prepare
-        runBlocking(writePersistence.insertOrUpdate(createThingV2(KNOWN_THING_ID, VALUE1), 2, 0, policyEnforcer));
+        insertBlocking(createThingV2(KNOWN_THING_ID, VALUE1), 2, 0, policyEnforcer);
         deleteWithSameRevision();
     }
 
@@ -272,7 +284,7 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
     @Test
     public void deleteWithHigherRevisionV2() throws ExecutionException, InterruptedException {
         // prepare
-        runBlocking(writePersistence.insertOrUpdate(createThingV2(KNOWN_THING_ID, VALUE1), 2, 0, policyEnforcer));
+        insertBlocking(createThingV2(KNOWN_THING_ID, VALUE1), 2, 0, policyEnforcer);
 
         // test
         delete(KNOWN_THING_ID, 3);
@@ -300,11 +312,10 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
     @Test
     public void insertDeleteAndInsertAgainV2() throws ExecutionException, InterruptedException {
         // prepare
-        runBlocking(writePersistence.insertOrUpdate(createThingV2(KNOWN_THING_ID, VALUE1), 2, 0, policyEnforcer));
+        insertBlocking(createThingV2(KNOWN_THING_ID, VALUE1), 2, 0, policyEnforcer);
 
         delete(KNOWN_THING_ID, 3);
-        runBlocking(
-                writePersistence.insertOrUpdate(createThingV2(KNOWN_THING_ID, "anotherValue"), 4, 0, policyEnforcer));
+        insertBlocking(createThingV2(KNOWN_THING_ID, "anotherValue"), 4, 0, policyEnforcer);
 
         insertWithHigherRevision();
     }
@@ -315,7 +326,7 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
         final Thing thing = createThing(KNOWN_THING_ID, VALUE1);
         insertOrUpdateThing(thing, 0, 0);
 
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(0, policyEnforcer)
+        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 0, policyEnforcer)
                 .addEvent(createAclModified("newSid", 1L, org.eclipse.ditto.model.things.Permission.READ,
                         org.eclipse.ditto.model.things.Permission.WRITE,
                         org.eclipse.ditto.model.things.Permission.ADMINISTRATE), JsonSchemaVersion.V_1)
@@ -343,7 +354,7 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
         final Thing thing = createThing(KNOWN_THING_ID, VALUE1);
         insertOrUpdateThing(thing, 0, 0);
 
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(0, policyEnforcer)
+        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 0, policyEnforcer)
                 .addEvent(createAclModified("newSid", 2L, org.eclipse.ditto.model.things.Permission.READ,
                         org.eclipse.ditto.model.things.Permission.WRITE,
                         org.eclipse.ditto.model.things.Permission.ADMINISTRATE), JsonSchemaVersion.V_1)
@@ -357,7 +368,7 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
         final Thing thing = createThing(KNOWN_THING_ID, VALUE1);
         insertOrUpdateThing(thing, 0, 0);
 
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(0, policyEnforcer)
+        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 0, policyEnforcer)
                 .addEvent(createAclModified("anotherSid", 1L, org.eclipse.ditto.model.things.Permission.READ),
                         JsonSchemaVersion.V_1)
                 .build();
@@ -387,7 +398,7 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
         final Thing thing = createThing(KNOWN_THING_ID, VALUE1);
         insertOrUpdateThing(thing, 0, 0);
 
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(0, policyEnforcer)
+        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 0, policyEnforcer)
                 .addEvent(createAclModified("iot-things:mySid2", 1L, org.eclipse.ditto.model.things.Permission.READ,
                         org.eclipse.ditto.model.things.Permission.WRITE), JsonSchemaVersion.V_1)
                 .build();
@@ -408,7 +419,7 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
         final Thing thing = createThing(KNOWN_THING_ID, VALUE1);
         insertOrUpdateThing(thing, 0, 0);
 
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(0, policyEnforcer)
+        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 0, policyEnforcer)
                 .addEvent(createAclModified("iot-things:mySid3", 1L, org.eclipse.ditto.model.things.Permission.WRITE),
                         JsonSchemaVersion.V_1)
                 .build();
@@ -428,7 +439,7 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
         final Thing thing = createThing(KNOWN_THING_ID, VALUE1);
         insertOrUpdateThing(thing, 0, 0);
 
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(0, policyEnforcer)
+        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 0, policyEnforcer)
                 .addEvent(AclEntryDeleted.of(KNOWN_THING_ID, AuthorizationSubject.newInstance("iot-things:mySid3"), 1L,
                         DittoHeaders.empty()), JsonSchemaVersion.V_1)
                 .build();
@@ -463,7 +474,7 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
     @Test
     public void updateAllAttributesV2() throws ExecutionException, InterruptedException {
         final Thing thing = createThingV2(KNOWN_THING_ID, VALUE1);
-        runBlocking(writePersistence.insertOrUpdate(thing, 1L, -1L, policyEnforcer));
+        insertBlocking(thing, 1L, -1L, policyEnforcer);
         updateAllAttributes(JsonSchemaVersion.LATEST, KNOWN_ATTRIBUTE_1);
     }
 
@@ -471,7 +482,7 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
     @Test
     public void updateAllAttributesWithDotsV2() throws ExecutionException, InterruptedException {
         final Thing thing = createThingV2(KNOWN_THING_ID, VALUE1);
-        runBlocking(writePersistence.insertOrUpdate(thing, 1L, -1L, policyEnforcer));
+        insertBlocking(thing, 1L, -1L, policyEnforcer);
         updateAllAttributes(JsonSchemaVersion.LATEST, "some.attribute.with.dot");
     }
 
@@ -482,7 +493,7 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
         final AttributesCreated attributesCreated =
                 AttributesCreated.of(KNOWN_THING_ID, newAttributes, 2L, DittoHeaders.empty());
 
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(1L, policyEnforcer)
+        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
                 .addEvent(attributesCreated, schemaVersion)
                 .build();
 
@@ -509,7 +520,7 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
     @Test
     public void addNewSingleSimpleAttributeV2() throws ExecutionException, InterruptedException {
         final Thing thing = createThingV2(KNOWN_THING_ID, VALUE1);
-        runBlocking(writePersistence.insertOrUpdate(thing, 1L, -1L, policyEnforcer));
+        insertBlocking(thing, 1L, -1L, policyEnforcer);
 
         final JsonPointer pointer = JsonFactory.newPointer(KNOWN_ATTRIBUTE_1);
         final JsonValue value = newValue(KNOWN_NEW_VALUE);
@@ -517,7 +528,7 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
         final AttributeModified attributeModified =
                 AttributeModified.of(KNOWN_THING_ID, pointer, value, 2L, DittoHeaders.empty());
 
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(1L, policyEnforcer)
+        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
                 .addEvent(attributeModified, JsonSchemaVersion.LATEST)
                 .build();
 
@@ -552,7 +563,7 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
     @Test
     public void updateSingleExistingSimpleAttributeV2() throws ExecutionException, InterruptedException {
         final Thing thing = createThingV2(KNOWN_THING_ID, VALUE1);
-        runBlocking(writePersistence.insertOrUpdate(thing, 1L, -1L, policyEnforcer));
+        insertBlocking(thing, 1L, -1L, policyEnforcer);
 
         updateSingleExistingSimpleAttribute(KEY2, KNOWN_NEW_VALUE);
     }
@@ -560,7 +571,7 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
     @Test
     public void addNewSingleSimpleAttributeWithDotsV2() throws ExecutionException, InterruptedException {
         final Thing thing = createThingV2(KNOWN_THING_ID, VALUE1);
-        runBlocking(writePersistence.insertOrUpdate(thing, 1L, -1L, policyEnforcer));
+        insertBlocking(thing, 1L, -1L, policyEnforcer);
 
         updateSingleExistingSimpleAttribute("new.attribute", KNOWN_NEW_VALUE);
     }
@@ -571,7 +582,7 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
         final AttributeModified attributeModified =
                 AttributeModified.of(KNOWN_THING_ID, pointer, JsonValue.of(value), 2L, DittoHeaders.empty());
 
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(1L, policyEnforcer)
+        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
                 .addEvent(attributeModified, JsonSchemaVersion.LATEST)
                 .build();
 
@@ -595,7 +606,7 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
         final AttributeCreated attributeCreated =
                 AttributeCreated.of(KNOWN_THING_ID, pointer, value, 2L, DittoHeaders.empty());
 
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(1L, policyEnforcer)
+        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
                 .addEvent(attributeCreated, JsonSchemaVersion.V_1)
                 .build();
 
@@ -619,7 +630,7 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
         final AttributeCreated attributeCreated =
                 AttributeCreated.of(KNOWN_THING_ID, pointer, value, 2L, DittoHeaders.empty());
 
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(1L, policyEnforcer)
+        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
                 .addEvent(attributeCreated, JsonSchemaVersion.V_1)
                 .build();
 
@@ -638,14 +649,14 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
     @Test
     public void updateSimpleAttributeByNonExistingPrefixNameV2() throws ExecutionException, InterruptedException {
         final Thing thing = createThingV2(KNOWN_THING_ID, VALUE1);
-        runBlocking(writePersistence.insertOrUpdate(thing, 1L, -1L, policyEnforcer));
+        insertBlocking(thing, 1L, -1L, policyEnforcer);
 
         final JsonPointer pointer = JsonFactory.newPointer("key");
         final JsonValue value = newValue(NEW_VALUE_2);
         final AttributeModified attributeModified =
                 AttributeModified.of(KNOWN_THING_ID, pointer, value, 2L, DittoHeaders.empty());
 
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(1L, policyEnforcer)
+        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
                 .addEvent(attributeModified, JsonSchemaVersion.LATEST)
                 .build();
 
@@ -671,7 +682,7 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
         final AttributeModified attributeModified =
                 AttributeModified.of(KNOWN_THING_ID, pointer, value, 2L, DittoHeaders.empty());
 
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(1L, policyEnforcer)
+        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
                 .addEvent(attributeModified, JsonSchemaVersion.V_1)
                 .build();
 
@@ -710,7 +721,7 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
     @Test
     public void addNewSingleComplexAttributeV2() throws ExecutionException, InterruptedException {
         final Thing thing = createThingV2(KNOWN_THING_ID, VALUE1);
-        runBlocking(writePersistence.insertOrUpdate(thing, 1L, -1L, policyEnforcer));
+        insertBlocking(thing, 1L, -1L, policyEnforcer);
 
         final JsonObject value = JsonFactory.newObjectBuilder()
                 .set("bool1", true)
@@ -718,7 +729,7 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
                 .build();
         final AttributeModified attributeModified = createAttributeModified("new1/new2/new3", value, 2L);
 
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(1L, policyEnforcer)
+        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
                 .addEvent(attributeModified, JsonSchemaVersion.LATEST)
                 .build();
 
@@ -744,7 +755,7 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
                 .build();
         final AttributeModified attributeModified = createAttributeModified(KEY1, value, 2L);
 
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(1L, policyEnforcer)
+        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
                 .addEvent(attributeModified, JsonSchemaVersion.V_1)
                 .build();
 
@@ -766,7 +777,7 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
         final Collection<String> result2 = findAll(aggregation2);
         assertThat(result2).isEmpty();
 
-        final CombinedThingWrites writes2 = CombinedThingWrites.newBuilder(2L, policyEnforcer)
+        final CombinedThingWrites writes2 = CombinedThingWrites.newBuilder(log, 2L, policyEnforcer)
                 .addEvent(createAttributeModified(KEY1, newValue(NEW_VALUE_2), 3L), JsonSchemaVersion.V_1)
                 .build();
 
@@ -785,7 +796,7 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
     @Test
     public void replaceSimpleWithComplexAttributeV2() throws ExecutionException, InterruptedException {
         final Thing thing = createThingV2(KNOWN_THING_ID, VALUE1);
-        runBlocking(writePersistence.insertOrUpdate(thing, 1L, -1L, policyEnforcer));
+        insertBlocking(thing, 1L, -1L, policyEnforcer);
 
         final JsonObject value = JsonFactory.newObjectBuilder()
                 .set("bool1", true)
@@ -793,7 +804,7 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
                 .build();
         final AttributeModified attributeModified = createAttributeModified(KEY1, value, 2L);
 
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(1L, policyEnforcer)
+        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
                 .addEvent(attributeModified, JsonSchemaVersion.LATEST)
                 .build();
 
@@ -818,7 +829,7 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
         final JsonValue simpleValue = newValue(NEW_VALUE_2);
         final AttributeModified attributeModified2 = createAttributeModified(KEY1, simpleValue, 3L);
 
-        final CombinedThingWrites writes2 = CombinedThingWrites.newBuilder(2L, policyEnforcer)
+        final CombinedThingWrites writes2 = CombinedThingWrites.newBuilder(log, 2L, policyEnforcer)
                 .addEvent(attributeModified2, JsonSchemaVersion.LATEST)
                 .build();
 
@@ -842,7 +853,7 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
         final AttributeDeleted attributeDeleted =
                 AttributeDeleted.of(KNOWN_THING_ID, attributePointer, 2L, DittoHeaders.empty());
 
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(1L, policyEnforcer)
+        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
                 .addEvent(attributeDeleted, JsonSchemaVersion.V_1)
                 .build();
 
@@ -862,13 +873,13 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
     @Test
     public void deleteSingleAttributeV2() throws ExecutionException, InterruptedException {
         final Thing thing = createThingV2(KNOWN_THING_ID, VALUE1);
-        runBlocking(writePersistence.insertOrUpdate(thing, 1L, -1L, policyEnforcer));
+        insertBlocking(thing, 1L, -1L, policyEnforcer);
 
         final JsonPointer attributePointer = JsonFactory.newPointer(KEY1);
         final AttributeDeleted attributeDeleted =
                 AttributeDeleted.of(KNOWN_THING_ID, attributePointer, 2L, DittoHeaders.empty());
 
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(1L, policyEnforcer)
+        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
                 .addEvent(attributeDeleted, JsonSchemaVersion.LATEST)
                 .build();
 
@@ -890,7 +901,7 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
         final Thing thing = createThing(KNOWN_THING_ID, VALUE1);
         insertOrUpdateThing(thing, 1L, -1L);
 
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(1L, policyEnforcer)
+        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
                 .addEvent(AttributesDeleted.of(KNOWN_THING_ID, 2L, DittoHeaders.empty()),
                         JsonSchemaVersion.V_1)
                 .build();
@@ -918,10 +929,10 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
     @Test
     public void deleteAllAttributesV2() throws ExecutionException, InterruptedException {
         final Thing thing = createThingV2(KNOWN_THING_ID, VALUE1);
-        runBlocking(writePersistence.insertOrUpdate(thing, 1L, -1L, policyEnforcer));
+        insertBlocking(thing, 1L, -1L, policyEnforcer);
 
 
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(1L, policyEnforcer)
+        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
                 .addEvent(AttributesDeleted.of(KNOWN_THING_ID, 2L, DittoHeaders.empty()),
                         JsonSchemaVersion.LATEST)
                 .build();
@@ -963,7 +974,7 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
         final FeatureDeleted featureDeleted =
                 FeatureDeleted.of(KNOWN_THING_ID, FEATURE_ID1, 2L, DittoHeaders.empty());
 
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(1L, policyEnforcer)
+        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
                 .addEvent(featureDeleted, JsonSchemaVersion.LATEST)
                 .build();
 
@@ -992,7 +1003,7 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
         final Collection<String> result = findAll(aggregation1);
         assertThat(result).isEmpty();
 
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(1L, policyEnforcer)
+        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
                 .addEvent(createFeatureCreated(FEATURE_ID2), JsonSchemaVersion.V_1)
                 .build();
 
@@ -1016,7 +1027,7 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
     @Test
     public void addNewFeatureV2() throws ExecutionException, InterruptedException {
         final Thing thing = createThingV2(KNOWN_THING_ID, VALUE1);
-        runBlocking(writePersistence.insertOrUpdate(thing, 1L, -1L, policyEnforcer));
+        insertBlocking(thing, 1L, -1L, policyEnforcer);
 
         final PolicyRestrictedSearchAggregation aggregation1 =
                 abf.newBuilder(cf.fieldCriteria(fef.filterByFeatureProperty(PROP5), cf.eq(PROP_VALUE5)))
@@ -1025,7 +1036,7 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
         final Collection<String> result = findAll(aggregation1);
         assertThat(result).isEmpty();
 
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(1L, policyEnforcer)
+        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
                 .addEvent(createFeatureCreated(FEATURE_ID2), JsonSchemaVersion.LATEST)
                 .build();
 
@@ -1048,7 +1059,7 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
         final Thing thing = createThing(KNOWN_THING_ID, VALUE1);
         insertOrUpdateThing(thing, 1L, -1L);
 
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(1L, policyEnforcer)
+        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
                 .addEvent(createFeatureCreated(FEATURE_ID1), JsonSchemaVersion.V_1)
                 .build();
 
@@ -1076,7 +1087,7 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
         final Thing thing = createThing(KNOWN_THING_ID, VALUE1);
         insertOrUpdateThing(thing, 1L, -1L);
 
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(1L, policyEnforcer)
+        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
                 .addEvent(createFeatureCreated("feauture.with.dots"), JsonSchemaVersion.V_1)
                 .build();
 
@@ -1102,9 +1113,9 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
     @Test
     public void updateExistingFeatureV2() throws ExecutionException, InterruptedException {
         final Thing thing = createThingV2(KNOWN_THING_ID, VALUE1);
-        runBlocking(writePersistence.insertOrUpdate(thing, 1L, -1L, policyEnforcer));
+        insertBlocking(thing, 1L, -1L, policyEnforcer);
 
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(1L, policyEnforcer)
+        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
                 .addEvent(createFeatureCreated(FEATURE_ID1), JsonSchemaVersion.LATEST)
                 .build();
 
@@ -1131,7 +1142,7 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
     public void deletePropertiesOfExistingFeatureV1() throws ExecutionException, InterruptedException {
         insertOrUpdateThing(createThing(KNOWN_THING_ID, VALUE1), 1L, -1L);
 
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(1L, policyEnforcer)
+        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
                 .addEvent(createFeaturePropertiesDeleted(FEATURE_ID1), JsonSchemaVersion.V_1)
                 .build();
 
@@ -1163,9 +1174,9 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
     @Test
     public void deletePropertiesOfExistingFeatureV2() throws ExecutionException, InterruptedException {
         final Thing thing = createThingV2(KNOWN_THING_ID, VALUE1);
-        runBlocking(writePersistence.insertOrUpdate(thing, 1L, -1L, policyEnforcer));
+        insertBlocking(thing, 1L, -1L, policyEnforcer);
 
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(1L, policyEnforcer)
+        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
                 .addEvent(createFeaturePropertiesDeleted(FEATURE_ID1), JsonSchemaVersion.LATEST)
                 .build();
 
@@ -1193,7 +1204,7 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
     public void updatePropertiesOfExistingFeatureV1() throws ExecutionException, InterruptedException {
         insertOrUpdateThing(createThing(KNOWN_THING_ID, VALUE1), 1L, -1L);
 
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(1L, policyEnforcer)
+        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
                 .addEvent(createFeaturePropertiesModified(FEATURE_ID1), JsonSchemaVersion.V_1)
                 .build();
 
@@ -1218,9 +1229,9 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
     @Test
     public void updatePropertiesOfExistingFeatureV2() throws ExecutionException, InterruptedException {
         final Thing thing = createThingV2(KNOWN_THING_ID, VALUE1);
-        runBlocking(writePersistence.insertOrUpdate(thing, 1L, -1L, policyEnforcer));
+        insertBlocking(thing, 1L, -1L, policyEnforcer);
 
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(1L, policyEnforcer)
+        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
                 .addEvent(createFeaturePropertiesModified(FEATURE_ID1), JsonSchemaVersion.LATEST)
                 .build();
 
@@ -1240,7 +1251,7 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
     public void updatePropertiesOfNotExistingFeatureV1() throws ExecutionException, InterruptedException {
         insertOrUpdateThing(createThing(KNOWN_THING_ID, VALUE1), 1L, -1L);
 
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(1L, policyEnforcer)
+        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
                 .addEvent(createFeaturePropertiesModified(FEATURE_ID2), JsonSchemaVersion.V_1)
                 .build();
 
@@ -1267,9 +1278,9 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
     @Test
     public void updatePropertiesOfNotExistingFeatureV2() throws ExecutionException, InterruptedException {
         final Thing thing = createThingV2(KNOWN_THING_ID, VALUE1);
-        runBlocking(writePersistence.insertOrUpdate(thing, 1L, -1L, policyEnforcer));
+        insertBlocking(thing, 1L, -1L, policyEnforcer);
 
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(1L, policyEnforcer)
+        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
                 .addEvent(createFeaturePropertiesModified(FEATURE_ID2), JsonSchemaVersion.LATEST)
                 .build();
 
@@ -1298,7 +1309,7 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
         final Thing thing = createThing(KNOWN_THING_ID, VALUE1);
         insertOrUpdateThing(thing, 1L, -1L);
 
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(1L, policyEnforcer)
+        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
                 .addEvent(createFeaturePropertyDeleted(FEATURE_ID1, PROP1, 2L), JsonSchemaVersion.V_1)
                 .build();
 
@@ -1331,9 +1342,9 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
     @Test
     public void deleteFeaturePropertyV2() throws ExecutionException, InterruptedException {
         final Thing thing = createThingV2(KNOWN_THING_ID, VALUE1);
-        runBlocking(writePersistence.insertOrUpdate(thing, 1L, -1L, policyEnforcer));
+        insertBlocking(thing, 1L, -1L, policyEnforcer);
 
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(1L, policyEnforcer)
+        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
                 .addEvent(createFeaturePropertyDeleted(FEATURE_ID1, PROP1, 2L), JsonSchemaVersion.LATEST)
                 .build();
 
@@ -1362,7 +1373,7 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
         final Thing thing = createThing(KNOWN_THING_ID, VALUE1);
         insertOrUpdateThing(thing, 1L, -1L);
 
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(0L, policyEnforcer)
+        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 0L, policyEnforcer)
                 .addEvent(createFeaturePropertyDeleted(FEATURE_ID1, PROP1, 1L), JsonSchemaVersion.V_1)
                 .build();
 
@@ -1373,9 +1384,9 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
     @Test
     public void deleteFeaturePropertyWithWrongSourceSequenceNumberV2() throws ExecutionException, InterruptedException {
         final Thing thing = createThingV2(KNOWN_THING_ID, VALUE1);
-        runBlocking(writePersistence.insertOrUpdate(thing, 1L, -1L, policyEnforcer));
+        insertBlocking(thing, 1L, -1L, policyEnforcer);
 
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(0L, policyEnforcer)
+        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 0L, policyEnforcer)
                 .addEvent(createFeaturePropertyDeleted(FEATURE_ID1, PROP1, 1L), JsonSchemaVersion.LATEST)
                 .build();
 
@@ -1387,7 +1398,7 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
     public void updateFeaturePropertyV1() throws ExecutionException, InterruptedException {
         insertOrUpdateThing(createThing(KNOWN_THING_ID, VALUE1), 1L, -1L);
 
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(1L, policyEnforcer)
+        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
                 .addEvent(createFeaturePropertyModified(FEATURE_ID1, PROP1, newValue(true), 2L), JsonSchemaVersion.V_1)
                 .build();
 
@@ -1420,9 +1431,9 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
     @Test
     public void updateFeaturePropertyV2() throws ExecutionException, InterruptedException {
         final Thing thing = createThingV2(KNOWN_THING_ID, VALUE1);
-        runBlocking(writePersistence.insertOrUpdate(thing, 1L, -1L, policyEnforcer));
+        insertBlocking(thing, 1L, -1L, policyEnforcer);
 
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(1L, policyEnforcer)
+        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
                 .addEvent(createFeaturePropertyModified(FEATURE_ID1, PROP1, newValue(true), 2L),
                         JsonSchemaVersion.LATEST)
                 .build();
@@ -1450,7 +1461,7 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
     @Test
     public void updateFeaturePropertyByOverridingComplexPropertyV1() throws ExecutionException, InterruptedException {
         insertOrUpdateThing(createThing(KNOWN_THING_ID, VALUE1), 1L, -1L);
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(1L, policyEnforcer)
+        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
                 .addEvent(createFeaturePropertyModified(FEATURE_ID1, PROP7, newValue("simple"), 2L),
                         JsonSchemaVersion.V_1)
                 .build();
@@ -1478,9 +1489,9 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
     @Test
     public void updateFeaturePropertyByOverridingComplexPropertyV2() throws ExecutionException, InterruptedException {
         final Thing thing = createThingV2(KNOWN_THING_ID, VALUE1);
-        runBlocking(writePersistence.insertOrUpdate(thing, 1L, -1L, policyEnforcer));
+        insertBlocking(thing, 1L, -1L, policyEnforcer);
 
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(1L, policyEnforcer)
+        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
                 .addEvent(createFeaturePropertyModified(FEATURE_ID1, PROP7, newValue("simple"), 2L),
                         JsonSchemaVersion.LATEST)
                 .build();
@@ -1508,7 +1519,7 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
     @Test
     public void deleteFeaturesV1() throws ExecutionException, InterruptedException {
         insertOrUpdateThing(createThing(KNOWN_THING_ID, VALUE1), 1L, -1L);
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(1L, policyEnforcer)
+        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
                 .addEvent(FeaturesDeleted.of(KNOWN_THING_ID, 2L, DittoHeaders.empty()), JsonSchemaVersion.V_1)
                 .build();
 
@@ -1535,9 +1546,9 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
     @Test
     public void deleteFeaturesV2() throws ExecutionException, InterruptedException {
         final Thing thing = createThingV2(KNOWN_THING_ID, VALUE1);
-        runBlocking(writePersistence.insertOrUpdate(thing, 1L, -1L, policyEnforcer));
+        insertBlocking(thing, 1L, -1L, policyEnforcer);
 
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(1L, policyEnforcer)
+        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
                 .addEvent(FeaturesDeleted.of(KNOWN_THING_ID, 2L, DittoHeaders.empty()),
                         JsonSchemaVersion.LATEST)
                 .build();
@@ -1587,21 +1598,21 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
     @Test
     public void updateFeaturesV2() throws ExecutionException, InterruptedException {
         final Thing thing = createThingV2(KNOWN_THING_ID, VALUE1);
-        runBlocking(writePersistence.insertOrUpdate(thing, 1L, -1L, policyEnforcer));
+        insertBlocking(thing, 1L, -1L, policyEnforcer);
         updateFeatures("f3", createFeatures(), JsonSchemaVersion.V_2);
     }
 
     @Test
     public void updateFeaturesV2WithDottedFeatureId() throws ExecutionException, InterruptedException {
         final Thing thing = createThingV2(KNOWN_THING_ID, VALUE1);
-        runBlocking(writePersistence.insertOrUpdate(thing, 1L, -1L, policyEnforcer));
+        insertBlocking(thing, 1L, -1L, policyEnforcer);
         updateFeatures(FEATURE_WITH_DOTS, createFeaturesWithDottedFeatureId(FEATURE_WITH_DOTS), JsonSchemaVersion.V_2);
     }
 
     @Test
     public void updateFeaturesV2WithDottedPropertyNames() throws ExecutionException, InterruptedException {
         final Thing thing = createThing(KNOWN_THING_ID, VALUE1);
-        runBlocking(writePersistence.insertOrUpdate(thing, 1L, -1L, policyEnforcer));
+        insertBlocking(thing, 1L, -1L, policyEnforcer);
         updateFeatures(FEATURE_WITH_DOTS, createFeaturesWithDottedPropertyNames(FEATURE_WITH_DOTS),
                 JsonSchemaVersion.V_2);
     }
@@ -1609,7 +1620,7 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
     private void updateFeatures(final String expectedFeatureId, final Features features,
             final JsonSchemaVersion schemaVersion) throws ExecutionException, InterruptedException {
 
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(1L, policyEnforcer)
+        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
                 .addEvent(createFeaturesModified(features), schemaVersion)
                 .build();
 
@@ -1652,7 +1663,7 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
         final AclEntry entry = ThingsModelFactory.newAclEntry(newAuthSubject("anotherSid"),
                 org.eclipse.ditto.model.things.Permission.READ);
 
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(1L, policyEnforcer)
+        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
                 .addEvent(AclEntryModified.of(KNOWN_THING_ID, entry, 2L, DittoHeaders.empty()),
                         JsonSchemaVersion.V_1)
                 .addEvent(createFeaturePropertyModified(FEATURE_ID1, PROP1, newValue("somethingNew"), 3L),
@@ -1682,7 +1693,7 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
     public void updateFeaturePropertiesAndOneAttributeV1() throws ExecutionException, InterruptedException {
         insertOrUpdateThing(createThing(KNOWN_THING_ID, VALUE1), 1L, -1L);
 
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(1L, policyEnforcer)
+        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
                 .addEvent(createFeaturePropertiesModified(FEATURE_ID2), JsonSchemaVersion.V_1)
                 .addEvent(createAttributeModified(PROP1, newValue("s0meattr12"), 3L), JsonSchemaVersion.V_1)
                 .build();
@@ -1710,9 +1721,9 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
     @Test
     public void updateFeaturePropertiesAndOneAttributeV2() throws ExecutionException, InterruptedException {
         final Thing thing = createThingV2(KNOWN_THING_ID, VALUE1);
-        runBlocking(writePersistence.insertOrUpdate(thing, 1L, -1L, policyEnforcer));
+        insertBlocking(thing, 1L, -1L, policyEnforcer);
 
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(1L, policyEnforcer)
+        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
                 .addEvent(createFeaturePropertiesModified(FEATURE_ID1), JsonSchemaVersion.LATEST)
                 .addEvent(createAttributeModified(PROP1, newValue("s0meattr12"), 3L), JsonSchemaVersion.LATEST)
                 .build();
@@ -1742,7 +1753,7 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
     public void updateSeveralFeaturePropertiesAndDeleteThingV1() throws ExecutionException, InterruptedException {
         insertOrUpdateThing(createThing(KNOWN_THING_ID, VALUE1), 1L, -1L);
 
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(1L, policyEnforcer)
+        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
                 .addEvent(createAclModified("anotherSid", 2L, org.eclipse.ditto.model.things.Permission.READ),
                         JsonSchemaVersion.V_1)
                 .addEvent(createFeaturePropertyModified(FEATURE_ID1, PROP1, newValue("somethingNew"), 3L),
@@ -1768,11 +1779,84 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
     }
 
     @Test
+    public void delete() throws ExecutionException, InterruptedException {
+        final Thing thing = createThingV2(KNOWN_THING_ID, VALUE1);
+        final long thingRevision = 13;
+        final long policyRevision = 77;
+        runBlocking(writePersistence.insertOrUpdate(thing, thingRevision, policyRevision));
+
+        final boolean result = runBlockingWithReturn(writePersistence.delete(KNOWN_THING_ID));
+
+        assertThat(result)
+                .isTrue();
+    }
+
+    @Test
+    public void deleteForNotExistingThing() throws ExecutionException, InterruptedException {
+        final boolean result = runBlockingWithReturn(writePersistence.delete(KNOWN_THING_ID));
+
+        assertThat(result)
+                .isFalse();
+    }
+
+    @Test
+    public void getThingIdsForPolicy() throws ExecutionException, InterruptedException {
+        final String policyId = "any-ns:testPolicyId";
+        final Thing thing1 = createThingV2("test:id1", "val1").setPolicyId(policyId);
+        final Thing thing2 = createThingV2("test:id2", "val2").setPolicyId(policyId);
+
+        runBlocking(writePersistence.insertOrUpdate(thing1, -1L, -1L),
+                writePersistence.insertOrUpdate(thing2, -1L, -1L));
+
+        final Set<String> result = runBlockingWithReturn(writePersistence.getThingIdsForPolicy(policyId));
+
+        assertThat(result.size())
+                .isEqualTo(2);
+        assertThat(result)
+                .containsOnly(thing1.getId().get(), thing2.getId().get());
+    }
+
+    @Test
+    public void getThingIdsForPolicyThatDoesNotExist() throws ExecutionException, InterruptedException {
+        final Set<String> result = runBlockingWithReturn(writePersistence.getThingIdsForPolicy("any-ns:testPolicyId"));
+
+        assertThat(result.isEmpty())
+                .isTrue();
+    }
+
+    @Test
+    public void getThingMetadata() throws ExecutionException, InterruptedException {
+        final Thing thing = createThingV2(KNOWN_THING_ID, VALUE1);
+        final long thingRevision = 13;
+        final long policyRevision = 77;
+        runBlocking(writePersistence.insertOrUpdate(thing, thingRevision, policyRevision));
+
+        final ThingMetadata result = runBlockingWithReturn(writePersistence.getThingMetadata(KNOWN_THING_ID));
+        assertThat(result.getPolicyId())
+                .isEqualTo(thing.getPolicyId().orElseThrow(() -> new IllegalStateException("not possible")));
+        assertThat(result.getPolicyRevision())
+                .isEqualTo(policyRevision);
+        assertThat(result.getThingRevision())
+                .isEqualTo(thingRevision);
+    }
+
+    @Test
+    public void getThingMetadataForNotExistingThing() throws ExecutionException, InterruptedException {
+        final ThingMetadata result = runBlockingWithReturn(writePersistence.getThingMetadata(KNOWN_THING_ID));
+        assertThat(result.getPolicyId())
+                .isNull();
+        assertThat(result.getPolicyRevision())
+                .isEqualTo(-1L);
+        assertThat(result.getThingRevision())
+                .isEqualTo(-1L);
+    }
+
+    @Test
     public void updateSeveralFeaturePropertiesAndDeleteThingV2() throws ExecutionException, InterruptedException {
         final Thing thing = createThingV2(KNOWN_THING_ID, VALUE1);
-        runBlocking(writePersistence.insertOrUpdate(thing, 1L, -1L, policyEnforcer));
+        insertBlocking(thing, 1L, -1L, policyEnforcer);
 
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(1L, policyEnforcer)
+        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
                 .addEvent(createAclModified("anotherSid", 2L, org.eclipse.ditto.model.things.Permission.READ),
                         JsonSchemaVersion.V_1)
                 .addEvent(createFeaturePropertyModified(FEATURE_ID1, PROP1, newValue("somethingNew"), 3L),
@@ -1809,7 +1893,7 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
         final AccessControlList acl = ThingsModelFactory.newAcl(aclEntry);
         final AclModified aclModified = AclModified.of(KNOWN_THING_ID, acl, 2L, DittoHeaders.empty());
 
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(0L, policyEnforcer)
+        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 0L, policyEnforcer)
                 .addEvent(thingCreated, JsonSchemaVersion.V_1)
                 .addEvent(aclModified, JsonSchemaVersion.V_1)
                 .build();
@@ -1841,11 +1925,24 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
     }
 
     @Test
+    public void updatePolicyForThingIllegalArguments() throws ExecutionException, InterruptedException {
+        final Thing thing = createThing(KNOWN_THING_ID, VALUE1);
+
+        insertOrUpdateThing(thing, 1L, -1L);
+        final Policy policy = createPolicy1();
+
+        Assertions.assertThat(runBlockingWithReturn(
+                writePersistence.updatePolicy(null, PolicyEnforcers.defaultEvaluator(policy)))).isFalse();
+        Assertions.assertThat(runBlockingWithReturn(
+                writePersistence.updatePolicy(thing, null)))
+                .isFalse();
+    }
+
+    @Test
     public void createThingWithNullAttributeV2() throws ExecutionException, InterruptedException {
         final Thing thing = createThingV2(KNOWN_THING_ID, VALUE1);
         final Thing thingWithNulLAttribute = thing.setAttribute(NULL_ATTRIBUTE, JsonFactory.nullLiteral());
-        runBlocking(writePersistence.insertOrUpdate(thingWithNulLAttribute, 0, 0,
-                policyEnforcer));
+        insertBlocking(thingWithNulLAttribute, 0, 0, policyEnforcer);
         final PolicyRestrictedSearchAggregation aggregation =
                 abf.newBuilder(cf.fieldCriteria(fef.filterByAttribute(NULL_ATTRIBUTE), cf.eq(null)))
                         .authorizationSubjects(KNOWN_SUBJECTS_2)
@@ -1871,7 +1968,7 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
         final String newUser = "iot-things:someNewUser";
         final Policy newPolicy = createPolicyFor(newUser);
 
-        runBlocking(writePersistence.insertOrUpdate(thing, 2L, 0, PolicyEnforcers.defaultEvaluator(newPolicy)));
+        insertBlocking(thing, 2L, 0, PolicyEnforcers.defaultEvaluator(newPolicy));
 
         final List<String> foundAll2 = findAll(aggregation1);
 
@@ -1886,6 +1983,46 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
         // newUser is allowed to read the thing
         assertThat(foundAll3).containsOnly(KNOWN_THING_ID);
     }
+
+    @Test
+    public void errorRecoveryForDuplicateKey() throws ExecutionException, InterruptedException {
+        final String thingId = KNOWN_THING_ID;
+        final PartialFunction<Throwable, Source<Boolean, NotUsed>> recovery = writePersistence.errorRecovery(thingId);
+
+        assertThat(runBlockingWithReturn(recovery.apply(createMongoWriteException(11000))))
+                .isEqualTo(Boolean.FALSE);
+    }
+
+    @Test
+    public void errorRecoveryForIndexTooLong() throws ExecutionException, InterruptedException {
+        final String thingId = KNOWN_THING_ID;
+        final PartialFunction<Throwable, Source<Boolean, NotUsed>> recovery = writePersistence.errorRecovery(thingId);
+
+        assertThat(runBlockingWithReturn(recovery.apply(createMongoWriteException(17280))))
+                .isEqualTo(Boolean.TRUE);
+    }
+
+    @Test
+    public void errorRecoveryForUnhandledException() throws ExecutionException, InterruptedException {
+        final String thingId = KNOWN_THING_ID;
+        final PartialFunction<Throwable, Source<Boolean, NotUsed>> recovery = writePersistence.errorRecovery(thingId);
+
+        final IllegalArgumentException toThrow = new IllegalArgumentException("any");
+        try {
+            runBlockingWithReturn(recovery.apply(toThrow));
+            Assert.fail("should never get here");
+        } catch (ExecutionException e) {
+            assertThat(e.getCause())
+                    .isEqualTo(toThrow);
+        }
+    }
+
+    private MongoWriteException createMongoWriteException(final int errorCode) {
+        final WriteError writeError = new WriteError(errorCode, "error", BsonDocument.parse("{}"));
+        final ServerAddress serverAddress = new ServerAddress();
+        return new MongoWriteException(writeError, serverAddress);
+    }
+
 
     private static Policy createPolicy1() {
         return PoliciesModelFactory.newPolicyBuilder(KNOWN_THING_ID)
@@ -1988,6 +2125,20 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
                 .build();
     }
 
+
+    /**
+     * <p>
+     * Simulates {@code ThingUpdater.endSyncWithPolicy} from the module {@code search-updater-starter}. For unit tests
+     * only.
+     */
+    private void insertBlocking(final Thing thing, final long thingRevision, final long
+            policyRevision,
+            final PolicyEnforcer policyEnforcer) {
+        checkNotNull(policyEnforcer, "policyEnforcer");
+        runBlocking(writePersistence.insertOrUpdate(thing, thingRevision, policyRevision)
+                .flatMapConcat(u -> writePersistence.updatePolicy(thing, policyEnforcer)));
+    }
+
     private static Thing createThing(final String thingId, final String attributeValue) {
         final AccessControlList acl = ThingsModelFactory.newAclBuilder()
                 .set(ThingsModelFactory.newAclEntry(newAuthSubject("iot-things:mySid"),
@@ -2028,47 +2179,5 @@ public final class MongoDBSearchUpdaterPersistenceTest extends AbstractThingSear
                 .setRevision(0L)
                 .build();
     }
-
-    private static Thing createThingWithDots(final String thingId, final String attributeValue) {
-        final AccessControlList acl = ThingsModelFactory.newAclBuilder()
-                .set(ThingsModelFactory.newAclEntry(newAuthSubject("iot-things:mySid"),
-                        ThingsModelFactory.allPermissions()))
-                .set(ThingsModelFactory.newAclEntry(newAuthSubject("iot-things:mySid2"),
-                        org.eclipse.ditto.model.things.Permission.WRITE))
-                .set(ThingsModelFactory.newAclEntry(newAuthSubject("iot-things:mySid3"),
-                        org.eclipse.ditto.model.things.Permission.READ))
-                .build();
-
-        final Attributes attributes = ThingsModelFactory.newAttributesBuilder()
-                .set(KEY1, attributeValue)
-                .set(KEY2, VALUE2)
-                .set(KEY3, VALUE3)
-                .set(KEY4, VALUE4)
-                .set(KEY5, VALUE5)
-                .build();
-
-        final FeatureProperties featureProperties = ThingsModelFactory.newFeaturePropertiesBuilder()
-                .set(PROP1, PROP_VALUE1)
-                .set(PROP1_EXTENDED, PROP_VALUE1)
-                .set(PROP2, PROP_VALUE2)
-                .set(PROP3, PROP_VALUE3)
-                .set(PROP4, PROP_VALUE4)
-                .set(PROP7, JsonFactory.newObjectBuilder()
-                        .set(JsonFactory.newKey(PROP8), PROP_VALUE8)
-                        .build()
-                )
-                .build();
-        final Feature feature = ThingsModelFactory.newFeature(FEATURE_ID1, featureProperties);
-
-        return ThingsModelFactory.newThingBuilder()
-                .setId(thingId)
-                .setPermissions(acl)
-                .setAttributes(attributes)
-                .setFeature(feature)
-                .setLifecycle(ThingLifecycle.ACTIVE)
-                .setRevision(0L)
-                .build();
-    }
-
 }
 

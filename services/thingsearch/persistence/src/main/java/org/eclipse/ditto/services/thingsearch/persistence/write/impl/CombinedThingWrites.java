@@ -62,6 +62,8 @@ import org.eclipse.ditto.signals.events.things.ThingDeleted;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.eclipse.ditto.signals.events.things.ThingModified;
 
+import akka.event.LoggingAdapter;
+
 /**
  * Wraps an ordered list of update operations for one distinct {@link org.eclipse.ditto.model.things.Thing} to prepare
  * an ordered bulk write.
@@ -90,8 +92,9 @@ public final class CombinedThingWrites {
      * @return the new builder.
      * @throws NullPointerException if {@code policyEnforcer} is {@code null}.
      */
-    public static Builder newBuilder(final long sourceSequenceNumber, final PolicyEnforcer policyEnforcer) {
-        return new Builder(sourceSequenceNumber, policyEnforcer);
+    public static Builder newBuilder(final LoggingAdapter log, final long sourceSequenceNumber, final PolicyEnforcer
+            policyEnforcer) {
+        return new Builder(log, sourceSequenceNumber, policyEnforcer);
     }
 
     /**
@@ -210,6 +213,7 @@ public final class CombinedThingWrites {
             CREATION_STRATEGIES = Collections.unmodifiableMap(creationStrategies);
         }
 
+        private final IndexLengthRestrictionEnforcer indexLengthRestrictionEnforcer;
         private final List<Bson> combinedWriteDocuments;
         private final List<PolicyUpdate> combinedPolicyUpdates;
         private final long sourceSequenceNumber;
@@ -217,7 +221,9 @@ public final class CombinedThingWrites {
         private long targetSequenceNumber;
         private final PolicyEnforcer policyEnforcer;
 
-        private Builder(final long sourceSequenceNumber, final PolicyEnforcer policyEnforcer) {
+        private Builder(final LoggingAdapter log, final long sourceSequenceNumber,
+                final PolicyEnforcer policyEnforcer) {
+            this.indexLengthRestrictionEnforcer = IndexLengthRestrictionEnforcer.getInstance(log);
             this.sourceSequenceNumber = sourceSequenceNumber;
             targetSequenceNumber = sourceSequenceNumber;
             this.policyEnforcer = policyEnforcer;
@@ -350,6 +356,7 @@ public final class CombinedThingWrites {
                 return jsonSchemaVersion.toInt() > JsonSchemaVersion.V_1.toInt();
             }
 
+            @SuppressWarnings("squid:S1172")
             protected PolicyUpdate createPolicyUpdate(final T event) {
                 return null;
             }
@@ -399,7 +406,8 @@ public final class CombinedThingWrites {
             protected List<Bson> createUpdates(final AttributeCreated event) {
                 final JsonPointer pointer = event.getAttributePointer();
                 final JsonValue value = event.getAttributeValue();
-                final CombinedUpdates combinedUpdates = AttributesUpdateFactory.createAttributesUpdates(pointer, value);
+                final CombinedUpdates combinedUpdates =
+                        AttributesUpdateFactory.createAttributesUpdates(indexLengthRestrictionEnforcer, pointer, value);
                 return combinedUpdates.getUpdates();
             }
 
@@ -417,7 +425,8 @@ public final class CombinedThingWrites {
             protected List<Bson> createUpdates(final AttributeModified event) {
                 final JsonPointer pointer = event.getAttributePointer();
                 final JsonValue value = event.getAttributeValue();
-                final CombinedUpdates combinedUpdates = AttributesUpdateFactory.createAttributesUpdates(pointer, value);
+                final CombinedUpdates combinedUpdates =
+                        AttributesUpdateFactory.createAttributesUpdates(indexLengthRestrictionEnforcer, pointer, value);
                 return combinedUpdates.getUpdates();
             }
 
@@ -448,7 +457,8 @@ public final class CombinedThingWrites {
             @Override
             protected List<Bson> createUpdates(final AttributesCreated event) {
                 final CombinedUpdates combinedUpdates =
-                        AttributesUpdateFactory.createAttributesUpdate(event.getCreatedAttributes());
+                        AttributesUpdateFactory.createAttributesUpdate(indexLengthRestrictionEnforcer,
+                                event.getCreatedAttributes());
                 return combinedUpdates.getUpdates();
             }
 
@@ -464,7 +474,8 @@ public final class CombinedThingWrites {
             @Override
             protected List<Bson> createUpdates(final AttributesModified event) {
                 final CombinedUpdates combinedUpdates =
-                        AttributesUpdateFactory.createAttributesUpdate(event.getModifiedAttributes());
+                        AttributesUpdateFactory.createAttributesUpdate(indexLengthRestrictionEnforcer,
+                                event.getModifiedAttributes());
                 return combinedUpdates.getUpdates();
             }
 
@@ -493,7 +504,8 @@ public final class CombinedThingWrites {
             @Override
             protected List<Bson> createUpdates(final FeatureCreated event) {
                 final CombinedUpdates combinedUpdates =
-                        FeaturesUpdateFactory.createUpdateForFeature(event.getFeature(), true);
+                        FeaturesUpdateFactory.createUpdateForFeature(indexLengthRestrictionEnforcer, event.getFeature(),
+                                true);
                 return combinedUpdates.getUpdates();
             }
 
@@ -508,7 +520,8 @@ public final class CombinedThingWrites {
             @Override
             protected List<Bson> createUpdates(final FeatureModified event) {
                 final CombinedUpdates combinedUpdates =
-                        FeaturesUpdateFactory.createUpdateForFeature(event.getFeature(), false);
+                        FeaturesUpdateFactory.createUpdateForFeature(indexLengthRestrictionEnforcer, event.getFeature(),
+                                false);
                 return combinedUpdates.getUpdates();
             }
 
@@ -535,7 +548,9 @@ public final class CombinedThingWrites {
 
             @Override
             protected List<Bson> createUpdates(final FeaturesCreated event) {
-                final CombinedUpdates combinedUpdates = FeaturesUpdateFactory.updateFeatures(event.getFeatures());
+                final CombinedUpdates combinedUpdates = FeaturesUpdateFactory.updateFeatures(
+                        indexLengthRestrictionEnforcer, event
+                                .getFeatures());
                 return combinedUpdates.getUpdates();
             }
 
@@ -550,7 +565,8 @@ public final class CombinedThingWrites {
 
             @Override
             protected List<Bson> createUpdates(final FeaturesModified event) {
-                final CombinedUpdates combinedUpdates = FeaturesUpdateFactory.updateFeatures(event.getFeatures());
+                final CombinedUpdates combinedUpdates =
+                        FeaturesUpdateFactory.updateFeatures(indexLengthRestrictionEnforcer, event.getFeatures());
                 return combinedUpdates.getUpdates();
             }
 
@@ -579,7 +595,8 @@ public final class CombinedThingWrites {
             @Override
             protected List<Bson> createUpdates(final FeaturePropertyCreated event) {
                 final CombinedUpdates combinedUpdates =
-                        FeaturesUpdateFactory.createUpdateForFeatureProperty(event.getFeatureId(),
+                        FeaturesUpdateFactory.createUpdateForFeatureProperty(indexLengthRestrictionEnforcer,
+                                event.getFeatureId(),
                                 event.getPropertyPointer(), event.getPropertyValue());
                 return combinedUpdates.getUpdates();
             }
@@ -596,7 +613,8 @@ public final class CombinedThingWrites {
             @Override
             protected List<Bson> createUpdates(final FeaturePropertyModified event) {
                 final CombinedUpdates combinedUpdates =
-                        FeaturesUpdateFactory.createUpdateForFeatureProperty(event.getFeatureId(),
+                        FeaturesUpdateFactory.createUpdateForFeatureProperty(indexLengthRestrictionEnforcer,
+                                event.getFeatureId(),
                                 event.getPropertyPointer(), event.getPropertyValue());
                 return combinedUpdates.getUpdates();
             }
@@ -629,7 +647,8 @@ public final class CombinedThingWrites {
             @Override
             protected List<Bson> createUpdates(final FeaturePropertiesCreated event) {
                 final CombinedUpdates combinedUpdates =
-                        FeaturesUpdateFactory.createUpdateForFeatureProperties(event.getFeatureId(),
+                        FeaturesUpdateFactory.createUpdateForFeatureProperties(indexLengthRestrictionEnforcer,
+                                event.getFeatureId(),
                                 event.getProperties());
                 return combinedUpdates.getUpdates();
             }
@@ -646,7 +665,8 @@ public final class CombinedThingWrites {
             @Override
             protected List<Bson> createUpdates(final FeaturePropertiesModified event) {
                 final CombinedUpdates combinedUpdates =
-                        FeaturesUpdateFactory.createUpdateForFeatureProperties(event.getFeatureId(),
+                        FeaturesUpdateFactory.createUpdateForFeatureProperties(indexLengthRestrictionEnforcer,
+                                event.getFeatureId(),
                                 event.getProperties());
                 return combinedUpdates.getUpdates();
             }
@@ -676,7 +696,9 @@ public final class CombinedThingWrites {
 
             @Override
             protected List<Bson> createUpdates(final ThingCreated event) {
-                return Collections.singletonList(ThingUpdateFactory.createUpdateThingUpdate(event.getThing()));
+                return Collections.singletonList(ThingUpdateFactory.createUpdateThingUpdate(
+                        indexLengthRestrictionEnforcer, event
+                                .getThing()));
             }
 
             @Override
@@ -689,7 +711,9 @@ public final class CombinedThingWrites {
 
             @Override
             protected List<Bson> createUpdates(final ThingModified event) {
-                return Collections.singletonList(ThingUpdateFactory.createUpdateThingUpdate(event.getThing()));
+                return Collections.singletonList(ThingUpdateFactory.createUpdateThingUpdate(
+                        indexLengthRestrictionEnforcer, event
+                                .getThing()));
             }
 
             @Override

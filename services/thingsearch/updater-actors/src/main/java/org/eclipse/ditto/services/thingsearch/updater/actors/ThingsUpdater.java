@@ -13,6 +13,7 @@ package org.eclipse.ditto.services.thingsearch.updater.actors;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
@@ -180,7 +181,7 @@ final class ThingsUpdater extends AbstractActor {
                 );
     }
 
-    private CompletionStage<List<String>> thingIdsForPolicy(final String policyId) {
+    private CompletionStage<Set<String>> thingIdsForPolicy(final String policyId) {
         return searchUpdaterPersistence.getThingIdsForPolicy(policyId).runWith(Sink.last(), materializer);
     }
 

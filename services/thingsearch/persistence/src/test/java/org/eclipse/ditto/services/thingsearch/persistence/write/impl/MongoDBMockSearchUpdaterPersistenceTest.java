@@ -82,7 +82,9 @@ public class MongoDBMockSearchUpdaterPersistenceTest {
 
         final PolicyEnforcer policyEnforcer = PolicyEnforcers.defaultEvaluator(
                 PoliciesModelFactory.newPolicyBuilder(":theThing").build());
-        final CombinedThingWrites combinedThingWrites = CombinedThingWrites.newBuilder(1L, policyEnforcer).build();
+        final CombinedThingWrites combinedThingWrites = CombinedThingWrites.newBuilder(Mockito.mock(LoggingAdapter.class),
+                1L,
+                policyEnforcer).build();
 
         when(thingsCollection.bulkWrite(anyList(), any(BulkWriteOptions.class)))
                 .thenReturn((Publisher<BulkWriteResult>) subscriber

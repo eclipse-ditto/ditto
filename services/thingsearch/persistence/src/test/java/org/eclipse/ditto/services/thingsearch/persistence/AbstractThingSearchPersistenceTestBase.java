@@ -17,18 +17,19 @@ import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceCons
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
 
 import org.bson.Document;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.services.thingsearch.persistence.write.impl.MongoThingsSearchUpdaterPersistence;
-import org.eclipse.ditto.services.utils.test.mongo.MongoDbResource;
 import org.eclipse.ditto.services.thingsearch.common.model.ResultList;
 import org.eclipse.ditto.services.thingsearch.persistence.read.MongoThingsSearchPersistence;
 import org.eclipse.ditto.services.thingsearch.persistence.read.query.MongoAggregationBuilderFactory;
 import org.eclipse.ditto.services.thingsearch.persistence.read.query.MongoQueryBuilderFactory;
+import org.eclipse.ditto.services.thingsearch.persistence.write.impl.MongoThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Criteria;
 import org.eclipse.ditto.services.thingsearch.querymodel.criteria.CriteriaFactory;
 import org.eclipse.ditto.services.thingsearch.querymodel.criteria.CriteriaFactoryImpl;
@@ -38,6 +39,7 @@ import org.eclipse.ditto.services.thingsearch.querymodel.query.AggregationBuilde
 import org.eclipse.ditto.services.thingsearch.querymodel.query.PolicyRestrictedSearchAggregation;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.Query;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.QueryBuilderFactory;
+import org.eclipse.ditto.services.utils.test.mongo.MongoDbResource;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -49,7 +51,6 @@ import com.mongodb.reactivestreams.client.Success;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
-import akka.Done;
 import akka.NotUsed;
 import akka.actor.ActorSystem;
 import akka.event.LoggingAdapter;
@@ -132,7 +133,7 @@ public abstract class AbstractThingSearchPersistenceTestBase {
     public void after() throws InterruptedException {
         if (mongoClient != null) {
             if (thingsCollection != null)
-            retryWithBackoff(() -> thingsCollection.drop());
+                retryWithBackoff(() -> thingsCollection.drop());
             retryWithBackoff(() -> policiesCollection.drop());
         }
         if (actorSystem != null) {
@@ -226,11 +227,19 @@ public abstract class AbstractThingSearchPersistenceTestBase {
         }
     }
 
-    protected void runBlocking(final Source<?, NotUsed> publisher) {
+
+    protected void runBlocking(final Source<?, NotUsed>... publishers) {
+        Stream.of(publishers)
+                .map(p -> p.runWith(Sink.ignore(), actorMaterializer))
+                .map(CompletionStage::toCompletableFuture)
+                .forEach(this::finishCompletableFuture);
+    }
+
+    private void finishCompletableFuture(final CompletableFuture future) {
         try {
-            final CompletionStage<Done> done = publisher.runWith(Sink.ignore(), actorMaterializer);
-            done.toCompletableFuture().get();
-        } catch (final ExecutionException | InterruptedException e) {
+            future.get();
+        } catch (InterruptedException | ExecutionException e) {
+            e.printStackTrace();
             throw new RuntimeException(e);
         }
     }

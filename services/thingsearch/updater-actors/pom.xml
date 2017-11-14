@@ -111,12 +111,6 @@
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
-
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-simple</artifactId>
-            <scope>test</scope>
-        </dependency>
         <dependency>
             <groupId>com.typesafe.akka</groupId>
             <artifactId>akka-testkit_${scala.version}</artifactId>

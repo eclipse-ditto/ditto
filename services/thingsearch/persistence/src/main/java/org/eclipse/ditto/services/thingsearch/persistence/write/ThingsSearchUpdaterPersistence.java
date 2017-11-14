@@ -11,7 +11,7 @@
  */
 package org.eclipse.ditto.services.thingsearch.persistence.write;
 
-import java.util.List;
+import java.util.Set;
 
 import org.eclipse.ditto.model.policiesenforcers.PolicyEnforcer;
 import org.eclipse.ditto.model.things.Thing;
@@ -26,7 +26,7 @@ import akka.stream.javadsl.Source;
 public interface ThingsSearchUpdaterPersistence {
 
     /**
-     * Inserts or updates a passed in {@link Thing}.
+     * Inserts or updates a passed in {@link Thing}, enforcing restrictions on its properties.
      *
      * @param thing the thing to insert or update.
      * @param revision the revision to perform the upsert operation with.
@@ -53,8 +53,8 @@ public interface ThingsSearchUpdaterPersistence {
     Source<Boolean, NotUsed> delete(String thingId);
 
     /**
-     * Executes the passed in {@link CombinedThingWrites} using a bulk write operation on MongoDB. The bulk write is
-     * performed with the ordered options which means that if one write fails, the other writes will not be executed.
+     * Executes the passed in {@link CombinedThingWrites} in ordered manner.
+     * If one write fails, the other writes will not be executed.
      *
      * @param thingId the id of the thing to update.
      * @param combinedThingWrites the combined thing writes to execute in this update.
@@ -63,8 +63,8 @@ public interface ThingsSearchUpdaterPersistence {
     Source<Boolean, NotUsed> executeCombinedWrites(String thingId, CombinedThingWrites combinedThingWrites);
 
     /**
-     * Updates the thing representation as well as the policy index due to the passed in thing; must be called after
-     * the parameter {@code thing} was written into the index via {@link #insertOrUpdate(Thing, long, long)}.
+     * Updates the thing representation as well as the policy index due to the passed in thing; must be called after the
+     * parameter {@code thing} was written into the index via {@link #insertOrUpdate(Thing, long, long)}.
      *
      * @param thing the thing for which there is updated the policy.
      * @param policyEnforcer the enforcer holding the current policy.
@@ -78,7 +78,7 @@ public interface ThingsSearchUpdaterPersistence {
      * @param policyId the id of the policy for which the thing ids should be loaded.
      * @return a {@link Source} holding the publisher to execute the operation.
      */
-    Source<List<String>, NotUsed> getThingIdsForPolicy(String policyId);
+    Source<Set<String>, NotUsed> getThingIdsForPolicy(String policyId);
 
     /**
      * Retrieves the metadata (revision, policyId and policyRevision) how it is persisted in the search index of the
