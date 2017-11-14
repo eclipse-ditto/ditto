@@ -131,6 +131,7 @@ public final class ThingUpdaterTest {
         actorSystem = ActorSystem.create("AkkaTestSystem", config);
         Mockito.reset(persistenceMock, policyEnforcerMock);
         when(persistenceMock.getThingMetadata(any())).thenReturn(Source.single(new ThingMetadata(-1L, null, -1L)));
+        when(persistenceMock.insertOrUpdate(any(), anyLong(), anyLong())).thenReturn(Source.single(true));
     }
 
     /** */
@@ -531,13 +532,15 @@ public final class ThingUpdaterTest {
                 .setRevision(3L)
                 .build();
 
-        when(persistenceMock.getThingMetadata(any())).thenReturn(Source.single(new ThingMetadata(1L, null, -1L)));
+        when(persistenceMock.getThingMetadata(any())).thenReturn(Source.single(new ThingMetadata(0L, null, -1L)));
 
         new TestKit(actorSystem) {
             {
                 final TestProbe thingsShardProbe = TestProbe.apply(actorSystem);
                 final TestProbe policiesShardProbe = TestProbe.apply(actorSystem);
-                final ActorRef underTest = createInitializedThingUpdaterActor(thingsShardProbe, policiesShardProbe);
+                final ActorRef dummy = TestProbe.apply(actorSystem).ref();
+                final ActorRef underTest = createUninitializedThingUpdaterActor(thingsShardProbe.ref(),
+                        policiesShardProbe.ref(), dummy, dummy);
 
                 // send a ThingCreated event and expect it to get persisted
                 underTest.tell(ThingCreated.of(thingWithAcl, 1L, dittoHeaders), testActor());
@@ -546,12 +549,8 @@ public final class ThingUpdaterTest {
 
                 // send a ThingTag with sequence number = 3, which is unexpected and the updater should trigger a sync
                 underTest.tell(ThingTag.of(THING_ID, 3L), testActor());
-                ShardedMessageEnvelope shardedMessageEnvelope =
-                        thingsShardProbe.expectMsgClass(FiniteDuration.apply(15, SECONDS),
-                                ShardedMessageEnvelope.class);
-                assertEquals(SudoRetrieveThing.TYPE, shardedMessageEnvelope.getType());
-                assertEquals(THING_ID, shardedMessageEnvelope.getId());
-                assertEquals(retrieveThing.toJson(), shardedMessageEnvelope.getMessage());
+                assertThat(expectShardedSudoRetrieveThing(thingsShardProbe, THING_ID).getMessage())
+                        .isEqualToIgnoringFieldDefinitions(retrieveThing.toJson());
 
                 // while the actor waits for the response of the Things service, we send 4 AttributeCreated events
                 underTest.tell(AttributeCreated.of(THING_ID, newPointer("attr1"), newValue("value1"), 4L,
@@ -575,12 +574,8 @@ public final class ThingUpdaterTest {
                 // because we send 4 AttributeCreated events, but the stash capacity is only 3, the event with the expected
                 // sequence number 4 was dropped and we should receive the AttributeCreated event with sequence number 5
                 // instead. this triggers another sync as expected
-                shardedMessageEnvelope =
-                        thingsShardProbe.expectMsgClass(FiniteDuration.apply(15, SECONDS),
-                                ShardedMessageEnvelope.class);
-                assertEquals(SudoRetrieveThing.TYPE, shardedMessageEnvelope.getType());
-                assertEquals(THING_ID, shardedMessageEnvelope.getId());
-                assertEquals(retrieveThing.toJson(), shardedMessageEnvelope.getMessage());
+                assertThat(expectShardedSudoRetrieveThing(thingsShardProbe, THING_ID).getMessage())
+                        .isEqualToIgnoringFieldDefinitions(retrieveThing.toJson());
             }
         };
     }
@@ -789,13 +784,14 @@ public final class ThingUpdaterTest {
             final ActorRef underTest = createUninitializedThingUpdaterActor(thingsProbe.ref(), dummy, dummy, dummy);
 
             // WHEN: updater receives ThingEvent containing a Thing
-            final Thing thingWithFeature =
-                    thing.toBuilder().setFeature("thingEventWithThingCauseUpdateDuringInit").setRevision(1L).build();
-            final Object message = ThingModified.of(thingWithFeature, 1L, DittoHeaders.empty());
+            final Thing thingWithAcl = thing.setAclEntry(
+                    AclEntry.newInstance(AuthorizationSubject.newInstance("thingEventWithThingCauseUpdateDuringInit"),
+                            Permission.READ)).toBuilder().setRevision(1L).build();
+            final Object message = ThingModified.of(thingWithAcl, 1L, DittoHeaders.empty());
             underTest.tell(message, null);
 
             // THEN: wirte-operation is requested from the persistence
-            waitUntil().insertOrUpdate(eq(thingWithFeature), eq(1L), anyLong());
+            waitUntil().insertOrUpdate(eq(thingWithAcl), eq(1L), anyLong());
         }};
 
     }
@@ -803,12 +799,16 @@ public final class ThingUpdaterTest {
     @Test
     public void policyEventTriggersSyncDuringInit() {
         new TestKit(actorSystem) {{
+            // GIVEN: updater initialized with policy ID
+            Mockito.reset(persistenceMock);
+            when(persistenceMock.getThingMetadata(any())).thenReturn(
+                    Source.single(new ThingMetadata(1L, POLICY_ID, 1L)));
             final TestProbe thingsProbe = TestProbe.apply(actorSystem);
             final ActorRef dummy = TestProbe.apply(actorSystem).ref();
             final ActorRef underTest = createUninitializedThingUpdaterActor(thingsProbe.ref(), dummy, dummy, dummy);
 
             // WHEN: updater receives ThingEvent not containing a Thing
-            final Object message = PolicyDeleted.of(THING_ID, 1L, DittoHeaders.empty());
+            final Object message = PolicyDeleted.of(POLICY_ID, 2L, DittoHeaders.empty());
             underTest.tell(message, null);
 
             // THEN: sync is triggered
@@ -910,9 +910,11 @@ public final class ThingUpdaterTest {
                 Source.single(new ThingMetadata(thingRevision, policyId, policyRevision)));
     }
 
-    private void expectShardedSudoRetrieveThing(final TestProbe thingsShardProbe, final String thingId) {
+    private ShardedMessageEnvelope expectShardedSudoRetrieveThing(final TestProbe thingsShardProbe,
+            final String thingId) {
         final ShardedMessageEnvelope envelope = thingsShardProbe.expectMsgClass(ShardedMessageEnvelope.class);
         assertThat(envelope.getType()).isEqualTo(SudoRetrieveThing.TYPE);
         assertThat(envelope.getId()).isEqualTo(thingId);
+        return envelope;
     }
 }
