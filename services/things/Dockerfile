@@ -1,3 +1,4 @@
+# This Dockerfile is used on Docker Hub for "autobuild" of the Eclipse Ditto things service
 FROM openjdk:8-jdk-alpine
 
 ENV HTTP_PORT=8080 \
