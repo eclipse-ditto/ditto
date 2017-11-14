@@ -53,11 +53,8 @@ import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpda
 import org.eclipse.ditto.services.thingsearch.persistence.write.impl.CombinedThingWrites;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.ShardedMessageEnvelope;
-import org.eclipse.ditto.services.utils.distributedcache.actors.CacheType;
 import org.eclipse.ditto.services.utils.distributedcache.actors.ModifyCacheEntryResponse;
-import org.eclipse.ditto.services.utils.distributedcache.actors.ReadConsistency;
 import org.eclipse.ditto.services.utils.distributedcache.actors.RegisterForCacheUpdates;
-import org.eclipse.ditto.services.utils.distributedcache.actors.RetrieveCacheEntry;
 import org.eclipse.ditto.services.utils.distributedcache.actors.RetrieveCacheEntryResponse;
 import org.eclipse.ditto.signals.commands.base.ErrorResponse;
 import org.eclipse.ditto.signals.commands.policies.PolicyErrorResponse;
@@ -140,7 +137,6 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
 
     // transducer state-transition table
     private final Receive eventProcessingBehavior = createEventProcessingBehavior();
-    private final Receive initialBehaviour = createInitialBehavior();
     private final Receive awaitSyncResultBehavior = createAwaitSyncResultBehavior();
 
     // maintenance and book-keeping
@@ -148,7 +144,6 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
     private int syncAttempts;
     private Cancellable activityChecker;
     private CombinedThingWrites.Builder intermediateCombinedWritesBuilder;
-    private boolean checkThingTagOnly;
 
     // state of Thing and Policy
     private long sequenceNumber = -1L;
@@ -200,11 +195,6 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
                         getSelf().tell(new ActorInitializationComplete(), null);
                     }
                 });
-    }
-
-    private void retrieveCacheEntry() {
-        final Object cacheContext = CacheType.THING.getContext();
-        thingCacheFacade.tell(new RetrieveCacheEntry(thingId, cacheContext, ReadConsistency.LOCAL), getSelf());
     }
 
     private String tryToGetThingId(final Charset charset) {
@@ -270,16 +260,11 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
                     sequenceNumber = retrievedThingMetadata.getThingRevision();
                     policyId = retrievedThingMetadata.getPolicyId();
                     policyRevision = retrievedThingMetadata.getPolicyRevision();
-                    becomeActorInitialized();
+                    becomeInitialThingTagAwaiting();
                 })
-                .match(ActorInitializationComplete.class, msg -> becomeActorInitialized())
+                .match(ActorInitializationComplete.class, msg -> becomeInitialThingTagAwaiting())
                 .matchAny(msg -> stashWithErrorsIgnored())
                 .build();
-    }
-
-    private void becomeActorInitialized() {
-        getContext().become(initialBehaviour);
-        unstashAll();
     }
 
     private void scheduleCheckForThingActivity() {
@@ -312,36 +297,25 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         }
     }
 
-    ///////////////////////////
-    ///// INITIALIZED /////
-    ///////////////////////////
-
-    // The initial state of this Actor and also switched to when triggerSynchronization() is invoked
-
     /**
-     * Initial state of the synchronization cycle.
+     * Shortcut to handle creation due to stale ThingTag messages. If this actor is created by a ThingTag whose
+     * corresponding Thing is up-to-date in the search index, then this actor terminates itself immediately.
      */
-    private void becomeSyncInitialized() {
-        log.debug("Becoming 'initialized' ...");
-        retrieveCacheEntry();
-        getContext().become(initialBehaviour);
-    }
-
-    private Receive createInitialBehavior() {
-        return ReceiveBuilder.create()
-                .match(SyncThing.class, s -> {
-                    LogUtil.enhanceLogWithCorrelationId(log, s);
-                    log.info("Got external SyncThing request in 'initialized': {}", s);
-                    triggerSynchronization();
+    private void becomeInitialThingTagAwaiting() {
+        final Receive behavior = ReceiveBuilder.create()
+                .match(ThingTag.class, thingTag -> {
+                    // process initial ThingTag with EventProcessing as the default next behavior
+                    becomeEventProcessing();
+                    processThingTag(thingTag, true);
                 })
-                .match(ThingTag.class, tt -> {
-                    log.debug("Got ThingTag during 'initialBehaviour': {}", tt);
-                    checkThingTagOnly = true;
-                    stash();
+                .matchAny(message -> {
+                    // this actor is not created due to a ThingTag message; handle current message by event processing
+                    becomeEventProcessing();
+                    getSelf().forward(message, getContext());
                 })
-                .match(ThingCreated.class, this::processInitialThingEvent)
-                .matchAny(msg -> stashWithErrorsIgnored()) // stash all other messages
                 .build();
+        getContext().become(behavior);
+        unstashAll();
     }
 
     ///////////////////////////
@@ -370,7 +344,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
                 })
                 .match(ThingEvent.class, this::processThingEvent)
                 .match(PolicyEvent.class, this::processPolicyEvent)
-                .match(ThingTag.class, this::processThingTag)
+                .match(ThingTag.class, thingTag -> processThingTag(thingTag, false))
                 .match(Replicator.Changed.class, this::processChangedCacheEntry)
                 .match(CheckForActivity.class, this::checkActivity)
                 .match(PersistenceWriteResult.class, this::handlePersistenceUpdateResult)
@@ -395,18 +369,21 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         }
     }
 
-    private void processThingTag(final ThingTag thingTag) {
+    private void processThingTag(final ThingTag thingTag, final boolean checkThingTagOnly) {
         log.debug("Received new Thing Tag for thing <{}> with revision <{}> - last known revision is <{}>",
                 thingId, thingTag.getRevision(), sequenceNumber);
 
+        final boolean shouldStopThisActor;
         if (thingTag.getRevision() > sequenceNumber) {
             log.info("The Thing Tag for the thing <{}> has the revision {} which is greater than the current actor's"
                     + " sequence number <{}>.", thingId, thingTag.getRevision(), sequenceNumber);
-            checkThingTagOnly = false;
+            shouldStopThisActor = false;
             triggerSynchronization();
+        } else {
+            shouldStopThisActor = checkThingTagOnly;
         }
 
-        if (checkThingTagOnly) {
+        if (shouldStopThisActor) {
             // the actor was only started to check the received tag, if nothing has to be done, we can shutdown immediately
             stopThisActor();
         }
@@ -479,21 +456,15 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
             log.info("Dropped thing event for thing id <{}> with revision <{}> because it was older than or "
                             + "equal to the current sequence number <{}> of the update actor.", thingId,
                     thingEvent.getRevision(), sequenceNumber);
-            return;
         }
-
-        if (thingEvent.getRevision() > sequenceNumber + 1) {
+        else if (shortcutTakenForThingEvent(thingEvent)) {
+            log.debug("Shortcut taken for thing event <{}>.", thingEvent);
+        }
+        else if (thingEvent.getRevision() > sequenceNumber + 1) {
             log.info("Triggering synchronization for thing <{}> because the received revision <{}> is higher than"
                     + " the expected sequence number <{}>.", thingId, thingEvent.getRevision(), sequenceNumber + 1);
             triggerSynchronization();
-            return;
-        }
-
-        if (processInitialThingEvent(thingEvent)) {
-            log.debug("Processed initial event: {}", thingEvent.getType());
-        }
-        //check if it is necessary to load the policy first before processing the event
-        else if (needToReloadPolicy(thingEvent)) {
+        } else if (needToReloadPolicy(thingEvent)) {
             //if the policy needs to be loaded first, drop everything and synchronize.
             triggerSynchronization();
         } else {
@@ -528,7 +499,13 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         return thingEvent instanceof PolicyIdCreated || thingEvent instanceof PolicyIdModified;
     }
 
-    private boolean processInitialThingEvent(final ThingEvent thingEvent) {
+    /**
+     * Takes shortcut for ThingCreated and ThingModified events.
+     *
+     * @return true if shortcut for ThingCreated and ThingModified events are taken and no further action is needed for
+     * the thing event; false if the thing event remains to be processed.
+     */
+    private boolean shortcutTakenForThingEvent(final ThingEvent thingEvent) {
         if (thingEvent instanceof ThingCreated) {
             // if the very first event in initial phase is the "ThingCreated", we can shortcut a lot ..
             final ThingCreated tc = (ThingCreated) thingEvent;
@@ -543,8 +520,9 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
             final Thing modifiedThing = tm.getThing().toBuilder().setRevision(tm.getRevision()).build();
             updateThingSearchIndex(null, modifiedThing);
             return true;
+        } else {
+            return false;
         }
-        return false;
     }
 
     private JsonSchemaVersion schemaVersionToCheck(final ThingEvent thingEvent) {
@@ -633,7 +611,6 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         policyEnforcer = null; // reset policyEnforcer
 
         syncAttempts++;
-        becomeSyncInitialized();
         transactionActive = false;
         resetIntermediateCombinedWritesBuilder();
         if (syncAttempts <= 3) {
@@ -1008,7 +985,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         try {
             stash();
         } catch (final IllegalStateException e) {
-            // ignore errors due to stashing a message.
+            // ignore errors due to stashing a message more than once.
         }
     }
 
