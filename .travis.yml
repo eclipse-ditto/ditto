@@ -9,4 +9,5 @@ install: true
 script:
   - export PROJECT_VERSION=$(mvn org.apache.maven.plugins:maven-help-plugin:evaluate -Dexpression=project.version -B | grep -v '\[')
   - export MAVEN_ARGUMENTS=`if [ "$TRAVIS_TAG" != "" ]; then echo "-Ddocker.daemon.url=unix:///var/run/docker.sock -Ddocker.image.additional.tag=latest -Pdocker-build-image,docker-push-image"; else echo "" ; fi`
-  - mvn install javadoc:jar source:jar-no-fork --batch-mode --errors -Pbuild-documentation -DcreateJavadoc=true $MAVEN_ARGUMENTS
+  - mvn install javadoc:jar source:jar-no-fork --batch-mode --errors --quiet -Pbuild-documentation -DcreateJavadoc=true
+  $MAVEN_ARGUMENTS
