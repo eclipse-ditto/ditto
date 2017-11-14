@@ -38,6 +38,7 @@ import org.eclipse.ditto.model.policiesenforcers.PolicyEnforcer;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.AccessControlListModelFactory;
 import org.eclipse.ditto.model.things.AclEntry;
+import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.Permission;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
@@ -47,19 +48,21 @@ import org.eclipse.ditto.services.models.things.ThingTag;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SyncThing;
+import org.eclipse.ditto.services.thingsearch.persistence.write.ThingMetadata;
+import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
+import org.eclipse.ditto.services.thingsearch.persistence.write.impl.CombinedThingWrites;
 import org.eclipse.ditto.services.utils.akka.JavaTestProbe;
 import org.eclipse.ditto.services.utils.cluster.ShardedMessageEnvelope;
 import org.eclipse.ditto.services.utils.distributedcache.actors.CacheFacadeActor;
 import org.eclipse.ditto.services.utils.distributedcache.actors.CacheRole;
+import org.eclipse.ditto.signals.events.policies.PolicyDeleted;
 import org.eclipse.ditto.signals.events.policies.PolicyModified;
 import org.eclipse.ditto.signals.events.things.AttributeCreated;
 import org.eclipse.ditto.signals.events.things.AttributeModified;
+import org.eclipse.ditto.signals.events.things.FeatureModified;
 import org.eclipse.ditto.signals.events.things.ThingCreated;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.eclipse.ditto.signals.events.things.ThingModified;
-import org.eclipse.ditto.services.thingsearch.persistence.write.ThingMetadata;
-import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
-import org.eclipse.ditto.services.thingsearch.persistence.write.impl.CombinedThingWrites;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -79,6 +82,7 @@ import akka.actor.Props;
 import akka.pattern.CircuitBreaker;
 import akka.stream.javadsl.Source;
 import akka.testkit.JavaTestKit;
+import akka.testkit.TestKit;
 import akka.testkit.TestProbe;
 import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
@@ -148,7 +152,7 @@ public final class ThingUpdaterTest {
                         thing.setAclEntry(AclEntry.newInstance(AuthorizationSubject.newInstance("user1"),
                                 Permission.READ)).toBuilder().setRevision(1L).build();
 
-                final ActorRef underTest = createThingUpdaterActor();
+                final ActorRef underTest = createInitializedThingUpdaterActor();
 
                 final ThingEvent thingCreated = ThingCreated.of(thingWithAcl, 1L, dittoHeaders);
                 underTest.tell(thingCreated, getRef());
@@ -178,7 +182,7 @@ public final class ThingUpdaterTest {
 
         new JavaTestKit(actorSystem) {
             {
-                final ActorRef underTest = createThingUpdaterActor();
+                final ActorRef underTest = createInitializedThingUpdaterActor();
 
                 final ThingEvent thingCreated = ThingCreated.of(thingWithAcl, 1L, dittoHeaders);
 
@@ -237,7 +241,7 @@ public final class ThingUpdaterTest {
             {
                 final TestProbe thingsShardProbe = TestProbe.apply(actorSystem);
                 final TestProbe policiesShardProbe = TestProbe.apply(actorSystem);
-                final ActorRef underTest = createThingUpdaterActor(thingsShardProbe, policiesShardProbe);
+                final ActorRef underTest = createInitializedThingUpdaterActor(thingsShardProbe, policiesShardProbe);
                 // will cause that a sync is triggered
                 underTest.tell(attributeCreated, ref());
 
@@ -274,7 +278,7 @@ public final class ThingUpdaterTest {
 
         new JavaTestKit(actorSystem) {
             {
-                final ActorRef underTest = createThingUpdaterActor();
+                final ActorRef underTest = createInitializedThingUpdaterActor();
                 // will cause that a sync is triggered
                 underTest.tell(attributeCreated, getRef());
                 waitUntil().executeCombinedWrites(eq(THING_ID), any());
@@ -299,7 +303,7 @@ public final class ThingUpdaterTest {
             {
                 final TestProbe thingsShardProbe = TestProbe.apply(actorSystem);
                 final TestProbe policiesShardProbe = TestProbe.apply(actorSystem);
-                final ActorRef underTest = createThingUpdaterActor(thingsShardProbe, policiesShardProbe);
+                final ActorRef underTest = createInitializedThingUpdaterActor(thingsShardProbe, policiesShardProbe);
                 // will cause that a sync is triggered
                 underTest.tell(attributeCreated, ref());
 
@@ -333,7 +337,7 @@ public final class ThingUpdaterTest {
                 final TestProbe thingsShardProbe = TestProbe.apply(actorSystem);
                 final TestProbe policiesShardProbe = TestProbe.apply(actorSystem);
 
-                final ActorRef underTest = createThingUpdaterActor(thingsShardProbe, policiesShardProbe);
+                final ActorRef underTest = createInitializedThingUpdaterActor(thingsShardProbe, policiesShardProbe);
                 // will cause that a sync is triggered
                 underTest.tell(thingTag, getRef());
                 final ShardedMessageEnvelope shardedMessageEnvelope =
@@ -364,7 +368,7 @@ public final class ThingUpdaterTest {
                 final TestProbe thingsShardProbe = TestProbe.apply(actorSystem);
                 final TestProbe policiesShardProbe = TestProbe.apply(actorSystem);
 
-                final ActorRef underTest = createThingUpdaterActor(thingsShardProbe, policiesShardProbe);
+                final ActorRef underTest = createInitializedThingUpdaterActor(thingsShardProbe, policiesShardProbe);
                 final ThingEvent thingCreated = ThingCreated.of(thingWithRevision, revision, dittoHeaders);
 
                 underTest.tell(thingCreated, getRef());
@@ -393,7 +397,7 @@ public final class ThingUpdaterTest {
                 final TestProbe thingsShardProbe = TestProbe.apply(actorSystem);
                 final TestProbe policiesShardProbe = TestProbe.apply(actorSystem);
 
-                final ActorRef underTest = createThingUpdaterActor(thingsShardProbe, policiesShardProbe);
+                final ActorRef underTest = createInitializedThingUpdaterActor(thingsShardProbe, policiesShardProbe);
                 final ThingEvent thingCreated =
                         ThingCreated.of(thingWithRevision, revision, dittoHeaders);
 
@@ -426,7 +430,7 @@ public final class ThingUpdaterTest {
                 final TestProbe thingsShardProbe = TestProbe.apply(actorSystem);
                 final TestProbe policiesShardProbe = TestProbe.apply(actorSystem);
 
-                final ActorRef underTest = createThingUpdaterActor(thingsShardProbe, policiesShardProbe);
+                final ActorRef underTest = createInitializedThingUpdaterActor(thingsShardProbe, policiesShardProbe);
                 final ThingEvent thingCreated =
                         ThingCreated.of(thingWithRevision, revision, dittoHeaders);
 
@@ -456,7 +460,7 @@ public final class ThingUpdaterTest {
                 final TestProbe thingsShardProbe = TestProbe.apply(actorSystem);
                 final TestProbe policiesShardProbe = TestProbe.apply(actorSystem);
 
-                final ActorRef underTest = createThingUpdaterActor(thingsShardProbe, policiesShardProbe);
+                final ActorRef underTest = createInitializedThingUpdaterActor(thingsShardProbe, policiesShardProbe);
                 underTest.tell(invalidThingEvent, getRef());
 
                 // should trigger sync
@@ -485,7 +489,7 @@ public final class ThingUpdaterTest {
                 final java.time.Duration underTestTimeout = java.time.Duration.of(1, ChronoUnit.NANOS);
 
                 final ActorRef underTest =
-                        createThingUpdaterActor(thingsShardProbe, policiesShardProbe, underTestTimeout);
+                        createInitializedThingUpdaterActor(thingsShardProbe, policiesShardProbe, underTestTimeout);
 
                 final Thing thingWithAcl =
                         thing.setAclEntry(AclEntry.newInstance(AuthorizationSubject.newInstance("user1"),
@@ -533,7 +537,7 @@ public final class ThingUpdaterTest {
             {
                 final TestProbe thingsShardProbe = TestProbe.apply(actorSystem);
                 final TestProbe policiesShardProbe = TestProbe.apply(actorSystem);
-                final ActorRef underTest = createThingUpdaterActor(thingsShardProbe, policiesShardProbe);
+                final ActorRef underTest = createInitializedThingUpdaterActor(thingsShardProbe, policiesShardProbe);
 
                 // send a ThingCreated event and expect it to get persisted
                 underTest.tell(ThingCreated.of(thingWithAcl, 1L, dittoHeaders), getRef());
@@ -611,7 +615,7 @@ public final class ThingUpdaterTest {
             {
                 final TestProbe thingsShardProbe = TestProbe.apply(actorSystem);
                 final TestProbe policiesShardProbe = TestProbe.apply(actorSystem);
-                final ActorRef underTest = createThingUpdaterActor(thingsShardProbe, policiesShardProbe);
+                final ActorRef underTest = createInitializedThingUpdaterActor(thingsShardProbe, policiesShardProbe);
 
                 refreshPolicyUpdateAnswers(REVISION, THING_ID, policyRevision);
 
@@ -666,7 +670,7 @@ public final class ThingUpdaterTest {
             {
                 final TestProbe thingsShardProbe = TestProbe.apply(actorSystem);
                 final TestProbe policiesShardProbe = TestProbe.apply(actorSystem);
-                final ActorRef underTest = createThingUpdaterActor(thingsShardProbe, policiesShardProbe);
+                final ActorRef underTest = createInitializedThingUpdaterActor(thingsShardProbe, policiesShardProbe);
 
                 // establish policy ID
                 refreshPolicyUpdateAnswers(0L, policy1Id, REVISION);
@@ -723,7 +727,7 @@ public final class ThingUpdaterTest {
             {
                 final TestProbe thingsShardProbe = TestProbe.apply(actorSystem);
                 final TestProbe policiesShardProbe = TestProbe.apply(actorSystem);
-                final ActorRef underTest = createThingUpdaterActor(thingsShardProbe, policiesShardProbe);
+                final ActorRef underTest = createInitializedThingUpdaterActor(thingsShardProbe, policiesShardProbe);
 
                 // establish policy ID
                 underTest.tell(thingCreated, getRef());
@@ -744,18 +748,89 @@ public final class ThingUpdaterTest {
         };
     }
 
-    private ActorRef createThingUpdaterActor() {
-        return createThingUpdaterActor(TestProbe.apply(actorSystem), TestProbe.apply(actorSystem));
+    @Test
+    public void thingTagTriggersSyncDuringInit() {
+        new TestKit(actorSystem) {{
+            final TestProbe thingsProbe = TestProbe.apply(actorSystem);
+            final ActorRef dummy = TestProbe.apply(actorSystem).ref();
+            final ActorRef underTest = createUninitializedThingUpdaterActor(thingsProbe.ref(), dummy, dummy, dummy);
+
+            // WHEN: updater receives ThingTag with a bigger sequence number during initialization
+            final Object message = ThingTag.of(THING_ID, 1L);
+            underTest.tell(message, null);
+
+            // THEN: sync is triggered
+            expectShardedSudoRetrieveThing(thingsProbe, THING_ID);
+        }};
     }
 
-    private ActorRef createThingUpdaterActor(final TestProbe thingsShardProbe, final TestProbe policiesShardProbe) {
-        return createThingUpdaterActor(thingsShardProbe, policiesShardProbe, ThingUpdater.DEFAULT_THINGS_TIMEOUT);
+    @Test
+    public void thingEventWithoutThingTriggersSyncDuringInit() {
+        new TestKit(actorSystem) {{
+            final TestProbe thingsProbe = TestProbe.apply(actorSystem);
+            final ActorRef dummy = TestProbe.apply(actorSystem).ref();
+            final ActorRef underTest = createUninitializedThingUpdaterActor(thingsProbe.ref(), dummy, dummy, dummy);
+
+            // WHEN: updater receives ThingEvent not containing a Thing
+            final Feature feature = Feature.newBuilder().withId("thingEventWithoutThingTriggersSyncDuringInit").build();
+            final Object message = FeatureModified.of(THING_ID, feature, 1L, DittoHeaders.empty());
+            underTest.tell(message, null);
+
+            // THEN: sync is triggered
+            expectShardedSudoRetrieveThing(thingsProbe, THING_ID);
+        }};
+    }
+
+    @Test
+    public void thingEventWithThingCauseUpdateDuringInit() {
+        new TestKit(actorSystem) {{
+            final TestProbe thingsProbe = TestProbe.apply(actorSystem);
+            final ActorRef dummy = TestProbe.apply(actorSystem).ref();
+            final ActorRef underTest = createUninitializedThingUpdaterActor(thingsProbe.ref(), dummy, dummy, dummy);
+
+            // WHEN: updater receives ThingEvent containing a Thing
+            final Thing thingWithFeature =
+                    thing.toBuilder().setFeature("thingEventWithThingCauseUpdateDuringInit").setRevision(1L).build();
+            final Object message = ThingModified.of(thingWithFeature, 1L, DittoHeaders.empty());
+            underTest.tell(message, null);
+
+            // THEN: wirte-operation is requested from the persistence
+            waitUntil().insertOrUpdate(eq(thingWithFeature), eq(1L), anyLong());
+        }};
+
+    }
+
+    @Test
+    public void policyEventTriggersSyncDuringInit() {
+        new TestKit(actorSystem) {{
+            final TestProbe thingsProbe = TestProbe.apply(actorSystem);
+            final ActorRef dummy = TestProbe.apply(actorSystem).ref();
+            final ActorRef underTest = createUninitializedThingUpdaterActor(thingsProbe.ref(), dummy, dummy, dummy);
+
+            // WHEN: updater receives ThingEvent not containing a Thing
+            final Object message = PolicyDeleted.of(THING_ID, 1L, DittoHeaders.empty());
+            underTest.tell(message, null);
+
+            // THEN: sync is triggered
+            expectShardedSudoRetrieveThing(thingsProbe, THING_ID);
+        }};
+    }
+
+    private ActorRef createInitializedThingUpdaterActor() {
+        return createInitializedThingUpdaterActor(TestProbe.apply(actorSystem), TestProbe.apply(actorSystem));
+    }
+
+    private ActorRef createInitializedThingUpdaterActor(final TestProbe thingsShardProbe,
+            final TestProbe policiesShardProbe) {
+        return createInitializedThingUpdaterActor(thingsShardProbe, policiesShardProbe,
+                ThingUpdater.DEFAULT_THINGS_TIMEOUT);
     }
 
     /**
      * Creates a ThingUpdater initialized with schemaVersion = V_1 and sequenceNumber = 0L.
      */
-    private ActorRef createThingUpdaterActor(final TestProbe thingsShardProbe, final TestProbe policiesShardProbe,
+    private ActorRef createInitializedThingUpdaterActor(final TestProbe thingsShardProbe,
+            final TestProbe policiesShardProbe,
             final java.time.Duration thingsTimeout) {
 
         // prepare persistence mock for initial synchronization
@@ -767,23 +842,14 @@ public final class ThingUpdaterTest {
                 .setPermissions(ACL)
                 .build();
 
-        final CircuitBreaker circuitBreaker =
-                new CircuitBreaker(actorSystem.dispatcher(), actorSystem.scheduler(), 5, Duration.create(30, "s"),
-                        Duration.create(1, "min"));
-
         final ActorRef thingCacheFacade = actorSystem.actorOf(CacheFacadeActor.props(CacheRole.THING,
                 actorSystem.settings().config()), CacheFacadeActor.actorNameFor(CacheRole.THING));
 
         final ActorRef policyCacheFacade = actorSystem.actorOf(CacheFacadeActor.props(CacheRole.POLICY,
                 actorSystem.settings().config()), CacheFacadeActor.actorNameFor(CacheRole.POLICY));
 
-        final Props props =
-                ThingUpdater.props(persistenceMock, circuitBreaker, thingsShardProbe.ref(),
-                        policiesShardProbe.ref(), java.time.Duration.ofSeconds(60), thingsTimeout, thingCacheFacade,
-                        policyCacheFacade)
-                        .withMailbox("akka.actor.custom-updater-mailbox");
-
-        final ActorRef thingUpdater = actorSystem.actorOf(props, THING_ID);
+        final ActorRef thingUpdater = createUninitializedThingUpdaterActor(thingsShardProbe.ref(),
+                policiesShardProbe.ref(), thingsTimeout, thingCacheFacade, policyCacheFacade);
 
         expectShardedSudoRetrieveThing(thingsShardProbe, THING_ID);
         thingUpdater.tell(SudoRetrieveThingResponse.of(initialThing, FieldType.regularOrSpecial(),
@@ -793,6 +859,29 @@ public final class ThingUpdaterTest {
         waitUntil().insertOrUpdate(any(), anyLong(), anyLong());
 
         return thingUpdater;
+    }
+
+    /**
+     * Creates an uninitialized ThingUpdater.
+     */
+    private ActorRef createUninitializedThingUpdaterActor(final ActorRef thingsShard, final ActorRef policiesShard,
+            final java.time.Duration thingsTimeout, final ActorRef thingCacheFacade, final ActorRef policyCacheFacade) {
+
+        final CircuitBreaker circuitBreaker =
+                new CircuitBreaker(actorSystem.dispatcher(), actorSystem.scheduler(), 5, Duration.create(30, "s"),
+                        Duration.create(1, "min"));
+
+        final Props props = ThingUpdater.props(persistenceMock, circuitBreaker, thingsShard, policiesShard,
+                java.time.Duration.ofSeconds(60), thingsTimeout, thingCacheFacade, policyCacheFacade)
+                .withMailbox("akka.actor.custom-updater-mailbox");
+
+        return actorSystem.actorOf(props, THING_ID);
+    }
+
+    private ActorRef createUninitializedThingUpdaterActor(final ActorRef thingsShard, final ActorRef policiesShard,
+            final ActorRef thingCacheFacade, final ActorRef policyCacheFacade) {
+        return createUninitializedThingUpdaterActor(thingsShard, policiesShard, ThingUpdater.DEFAULT_THINGS_TIMEOUT,
+                thingCacheFacade, policyCacheFacade);
     }
 
     /**
