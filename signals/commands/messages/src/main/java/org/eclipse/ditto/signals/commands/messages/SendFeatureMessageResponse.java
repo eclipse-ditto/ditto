@@ -66,20 +66,6 @@ public final class SendFeatureMessageResponse<T> extends AbstractMessageCommandR
     }
 
     @Override
-    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
-            final Predicate<JsonField> predicate) {
-
-        super.appendPayload(jsonObjectBuilder, schemaVersion, predicate);
-
-        jsonObjectBuilder.remove(MessageCommand.JsonFields.JSON_THING_ID);
-        final JsonObject superBuild = jsonObjectBuilder.build();
-        jsonObjectBuilder.removeAll();
-        jsonObjectBuilder.set(MessageCommand.JsonFields.JSON_THING_ID, getThingId());
-        jsonObjectBuilder.set(JSON_FEATURE_ID, getFeatureId());
-        jsonObjectBuilder.setAll(superBuild);
-    }
-
-    @Override
     public SendFeatureMessageResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
         return of(getThingId(), getFeatureId(), getMessage(), getStatusCode(), dittoHeaders);
     }
@@ -135,7 +121,7 @@ public final class SendFeatureMessageResponse<T> extends AbstractMessageCommandR
     public static <T> SendFeatureMessageResponse<T> fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<SendFeatureMessageResponse<T>>(TYPE, jsonObject).deserialize(
-                (statusCode) -> {
+                statusCode -> {
                     final String thingId = jsonObject.getValueOrThrow(MessageCommandResponse.JsonFields.JSON_THING_ID);
                     final String featureId = jsonObject.getValueOrThrow(JSON_FEATURE_ID);
                     final Message<T> message = deserializeMessageFromJson(jsonObject);
@@ -147,6 +133,20 @@ public final class SendFeatureMessageResponse<T> extends AbstractMessageCommandR
     @Override
     public String getFeatureId() {
         return featureId;
+    }
+
+    @Override
+    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
+            final Predicate<JsonField> predicate) {
+
+        super.appendPayload(jsonObjectBuilder, schemaVersion, predicate);
+
+        jsonObjectBuilder.remove(MessageCommand.JsonFields.JSON_THING_ID);
+        final JsonObject superBuild = jsonObjectBuilder.build();
+        jsonObjectBuilder.removeAll();
+        jsonObjectBuilder.set(MessageCommand.JsonFields.JSON_THING_ID, getThingId());
+        jsonObjectBuilder.set(JSON_FEATURE_ID, getFeatureId());
+        jsonObjectBuilder.setAll(superBuild);
     }
 
     @SuppressWarnings("squid:S109")

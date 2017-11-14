@@ -59,10 +59,10 @@ final class MessageCommandResponseAdapter extends AbstractAdapter<MessageCommand
                         MessageAdaptableHelper.messageFrom(adaptable), statusCodeFrom(adaptable),
                         dittoHeadersFrom(adaptable)));
         mappingStrategies.put(SendEmptyMessageResponse.TYPE,
-                adaptable -> SendEmptyMessageResponse.of(thingIdFrom(adaptable), statusCodeFrom(adaptable),
+                adaptable -> SendEmptyMessageResponse.newInstance(thingIdFrom(adaptable), statusCodeFrom(adaptable),
                         dittoHeadersFrom(adaptable)));
         mappingStrategies.put(SendMessageAcceptedResponse.TYPE,
-                adaptable -> SendMessageAcceptedResponse.of(thingIdFrom(adaptable), statusCodeFrom(adaptable),
+                adaptable -> SendMessageAcceptedResponse.newInstance(thingIdFrom(adaptable), statusCodeFrom(adaptable),
                         dittoHeadersFrom(adaptable)));
 
         return mappingStrategies;

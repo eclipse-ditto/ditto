@@ -28,7 +28,8 @@ import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
  * Command to send a response to a {@link Message}.
  */
 @Immutable
-public final class SendMessageAcceptedResponse extends AbstractMessageCommandResponse<Void, SendMessageAcceptedResponse> {
+public final class SendMessageAcceptedResponse
+        extends AbstractMessageCommandResponse<Void, SendMessageAcceptedResponse> {
 
     /**
      * The name of the {@code Message} wrapped by this {@code MessageCommand}.
@@ -55,18 +56,18 @@ public final class SendMessageAcceptedResponse extends AbstractMessageCommandRes
      * @return the new instance.
      */
     public static SendMessageAcceptedResponse newInstance(final String thingId, final DittoHeaders dittoHeaders) {
-        return of(thingId, HttpStatusCode.ACCEPTED, dittoHeaders);
+        return newInstance(thingId, HttpStatusCode.ACCEPTED, dittoHeaders);
     }
 
     /**
-     * Returns a new {@code SendMessageAcceptedResponse} instance for the specified {@code dittoHeaders}.
+     * Returns a new {@code SendMessageAcceptedResponse} instance.
      *
      * @param thingId the ID of the Thing to send the message from.
      * @param statusCode the HttpStatusCode to use.
      * @param dittoHeaders the DittoHeaders.
      * @return the new instance.
      */
-    public static SendMessageAcceptedResponse of(final String thingId, final HttpStatusCode statusCode,
+    public static SendMessageAcceptedResponse newInstance(final String thingId, final HttpStatusCode statusCode,
             final DittoHeaders dittoHeaders) {
 
         return new SendMessageAcceptedResponse(thingId, statusCode, dittoHeaders);
@@ -99,15 +100,15 @@ public final class SendMessageAcceptedResponse extends AbstractMessageCommandRes
      */
     public static SendMessageAcceptedResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<SendMessageAcceptedResponse>(TYPE, jsonObject).deserialize(
-                (statusCode) -> {
+                statusCode -> {
                     final String thingId = jsonObject.getValueOrThrow(MessageCommandResponse.JsonFields.JSON_THING_ID);
-                    return of(thingId, statusCode, dittoHeaders);
+                    return newInstance(thingId, statusCode, dittoHeaders);
                 });
     }
 
     @Override
     public SendMessageAcceptedResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getThingId(), getStatusCode(), dittoHeaders);
+        return newInstance(getThingId(), getStatusCode(), dittoHeaders);
     }
 
     public Optional<String> getCorrelationId() {
