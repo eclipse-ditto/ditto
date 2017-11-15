@@ -31,12 +31,12 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
-import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveModifiedThingTags;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveModifiedThingTagsResponse;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThings;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingsResponse;
+import org.eclipse.ditto.services.models.things.commands.sudo.SudoStreamModifiedEntities;
 
 /* */
 public final class CommandAndEventJsonExamplesProducer {
@@ -111,10 +111,15 @@ public final class CommandAndEventJsonExamplesProducer {
 
         final Duration timespan = Duration.ofMinutes(5);
         final Duration offset = Duration.ofMinutes(1);
+        final int elementsPerSecond = 100;
+        final Duration maxQueryTime = Duration.ofMinutes(4);
+        final String elementRecipient = "akka.tcp://actorSystem@hostname/user/elementRecipientActor";
+        final String statusRecipient = "akka.tcp://actorSystem@hostname/user/statusRecipientActor";
 
-        final SudoRetrieveModifiedThingTags sudoRetrieveModifiedThingTags =
-                SudoRetrieveModifiedThingTags.of(timespan, offset, TestConstants.EMPTY_HEADERS);
-        writeJson(sudoCommandsDir.resolve(Paths.get("sudoRetrieveModifiedThingTags.json")),
+        final SudoStreamModifiedEntities sudoRetrieveModifiedThingTags =
+                SudoStreamModifiedEntities.of(timespan, offset, elementsPerSecond, maxQueryTime, elementRecipient,
+                        statusRecipient, TestConstants.EMPTY_HEADERS);
+        writeJson(sudoCommandsDir.resolve(Paths.get("sudoStreamModifiedEntities.json")),
                 sudoRetrieveModifiedThingTags);
 
         final SudoRetrieveModifiedThingTagsResponse sudoRetrieveModifiedThingTagsResponse =

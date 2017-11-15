@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.things.persistence.actors;
 import java.util.ArrayList;
 
 import org.eclipse.ditto.services.models.things.ThingTag;
-import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveModifiedThingTags;
+import org.eclipse.ditto.services.models.things.commands.sudo.SudoStreamModifiedEntities;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveModifiedThingTagsResponse;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
@@ -70,7 +70,7 @@ public final class PersistenceQueriesActor extends AbstractActor {
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
-                .match(SudoRetrieveModifiedThingTags.class, command -> {
+                .match(SudoStreamModifiedEntities.class, command -> {
                     log.debug("Got 'SudoRetrieveModifiedThingTags' message");
                     final ActorRef sender = getSender();
                     readJournal.sequenceNumbersOfPidsByDuration(command.getTimespan(), command.getOffset())

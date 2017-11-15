@@ -20,7 +20,7 @@ import org.eclipse.ditto.services.gateway.proxy.actors.handlers.ModifyThingHandl
 import org.eclipse.ditto.services.gateway.proxy.actors.handlers.RetrieveThingHandlerActor;
 import org.eclipse.ditto.services.gateway.proxy.actors.handlers.ThingHandlerCreator;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoCommand;
-import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveModifiedThingTags;
+import org.eclipse.ditto.services.models.things.commands.sudo.SudoStreamModifiedEntities;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThings;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingsResponse;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -100,7 +100,7 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
                         thingsAggregator.forward(command, getContext());
                     }
                 })
-                .match(SudoRetrieveModifiedThingTags.class, command -> {
+                .match(SudoStreamModifiedEntities.class, command -> {
                     getLogger().debug(
                             "Got 'SudoRetrieveModifiedThingTags' message, forwarding to the Things Persistence");
                     pubSubMediator.tell(

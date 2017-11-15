@@ -39,7 +39,7 @@ import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 
 /**
- * Response to a {@link SudoRetrieveModifiedThingTags} command.
+ * Response to a {@link SudoStreamModifiedEntities} command.
  */
 @Immutable
 public final class SudoRetrieveModifiedThingTagsResponse

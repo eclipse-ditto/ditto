@@ -15,8 +15,7 @@ import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveModifiedThingTags;
-import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveModifiedThingTagsResponse;
+import org.eclipse.ditto.services.models.things.commands.sudo.SudoStreamModifiedEntities;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -27,6 +26,7 @@ import akka.event.DiagnosticLoggingAdapter;
 import akka.event.Logging;
 import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
+import akka.serialization.Serialization;
 import scala.concurrent.duration.FiniteDuration;
 
 /**
@@ -82,23 +82,26 @@ public final class ThingsSynchronizerActor extends AbstractActor {
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
-                .match(SudoRetrieveModifiedThingTagsResponse.class, this::processResponse)
                 .matchAny(m -> {
                     log.warning("Unknown message: {}", m);
                     unhandled(m);
                 }).build();
     }
 
-    private void processResponse(final SudoRetrieveModifiedThingTagsResponse response) {
-        log.info("Retrieved SudoRetrieveModifiedThingTagsResponse is: {}", response);
-        response.getModifiedThingTags().forEach(thingTag -> thingsUpdater.tell(thingTag, getSelf()));
-    }
-
     private void retrieveLastModifiedThingTags() {
-        final SudoRetrieveModifiedThingTags retrieveModifiedThingTags =
-                SudoRetrieveModifiedThingTags.of(modifiedSince, modifiedOffset, DittoHeaders.empty());
+        // TODO: make max query time and streaming rate configurable.
+        final Duration maxQueryTime = modifiedOffset.multipliedBy(2);
+        final int temporaryStreamingRate = 100;
+
+        final String updaterPath = Serialization.serializedActorPath(thingsUpdater);
+        final String selfPath = Serialization.serializedActorPath(getSelf());
+
+        final SudoStreamModifiedEntities retrieveModifiedThingTags =
+                SudoStreamModifiedEntities.of(modifiedSince, modifiedOffset, temporaryStreamingRate, maxQueryTime,
+                        updaterPath, selfPath, DittoHeaders.empty());
 
         pubSubMediator
-                .tell(new DistributedPubSubMediator.Send(THINGS_ACTOR_PATH, retrieveModifiedThingTags, true), getSelf());
+                .tell(new DistributedPubSubMediator.Send(THINGS_ACTOR_PATH, retrieveModifiedThingTags, true),
+                        getSelf());
     }
 }

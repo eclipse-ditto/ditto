@@ -12,6 +12,9 @@
 package org.eclipse.ditto.services.models.things.commands.sudo;
 
 import static java.util.Objects.requireNonNull;
+import static org.eclipse.ditto.model.base.json.FieldType.REGULAR;
+import static org.eclipse.ditto.model.base.json.JsonSchemaVersion.V_1;
+import static org.eclipse.ditto.model.base.json.JsonSchemaVersion.V_2;
 
 import java.time.Duration;
 import java.time.format.DateTimeParseException;
@@ -29,7 +32,6 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.services.models.things.ThingTag;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
@@ -40,13 +42,13 @@ import org.eclipse.ditto.signals.commands.base.AbstractCommand;
  * cache.
  */
 @Immutable
-public final class SudoRetrieveModifiedThingTags extends AbstractCommand<SudoRetrieveModifiedThingTags> implements
-        SudoCommand<SudoRetrieveModifiedThingTags> {
+public final class SudoStreamModifiedEntities extends AbstractCommand<SudoStreamModifiedEntities> implements
+        SudoCommand<SudoStreamModifiedEntities> {
 
     /**
      * Name of this command.
      */
-    public static final String NAME = "sudoRetrieveModifiedThingTags";
+    public static final String NAME = "sudoStreamModifiedEntities";
 
     /**
      * Type of this command.
@@ -54,12 +56,23 @@ public final class SudoRetrieveModifiedThingTags extends AbstractCommand<SudoRet
     public static final String TYPE = TYPE_PREFIX + NAME;
 
     static final JsonFieldDefinition<String> JSON_TIMESPAN =
-            JsonFactory.newStringFieldDefinition("payload/timespan", FieldType.REGULAR, JsonSchemaVersion.V_1,
-                    JsonSchemaVersion.V_2);
+            JsonFactory.newStringFieldDefinition("payload/timespan", REGULAR, V_1, V_2);
 
     static final JsonFieldDefinition<String> JSON_OFFSET =
-            JsonFactory.newStringFieldDefinition("payload/offset", FieldType.REGULAR, JsonSchemaVersion.V_1,
-                    JsonSchemaVersion.V_2);
+            JsonFactory.newStringFieldDefinition("payload/offset", REGULAR, V_1, V_2);
+
+    static final JsonFieldDefinition<Integer> JSON_ELEMENTS_PER_SECOND =
+            JsonFactory.newIntFieldDefinition("payload/elementsPerSecond", REGULAR, V_1, V_2);
+
+    static final JsonFieldDefinition<String> JSON_MAX_QUERY_TIME =
+            JsonFactory.newStringFieldDefinition("payload/maxQueryTime", REGULAR, V_1, V_2);
+
+    static final JsonFieldDefinition<String> JSON_ELEMENT_RECIPIENT =
+            JsonFactory.newStringFieldDefinition("payload/elementRecipient", REGULAR, V_1, V_2);
+
+    static final JsonFieldDefinition<String> JSON_STATUS_RECIPIENT =
+            JsonFactory.newStringFieldDefinition("payload/statusRecipient", REGULAR, V_1, V_2);
+
 
     private static final String NULL_OFFSET = "PT0M";
 
@@ -67,40 +80,45 @@ public final class SudoRetrieveModifiedThingTags extends AbstractCommand<SudoRet
 
     private final Duration offset;
 
-    private SudoRetrieveModifiedThingTags(final Duration timespan, final Duration offset,
-            final DittoHeaders dittoHeaders) {
+    private final int elementsPerSecond;
+
+    private final Duration maxQueryTime;
+
+    private final String elementRecipient;
+
+    private final String statusRecipient;
+
+    private SudoStreamModifiedEntities(final Duration timespan, final Duration offset,
+            final int elementsPerSecond, final Duration maxQueryTime,
+            final String elementRecipient, final String statusRecipient, final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
 
         this.timespan = requireNonNull(timespan, "The timespan must not be null!");
         this.offset = offset;
+        this.elementRecipient = elementRecipient;
+        this.statusRecipient = statusRecipient;
+        this.elementsPerSecond = elementsPerSecond;
+        this.maxQueryTime = maxQueryTime;
     }
-
-    /**
-     * Creates a new {@code SudoRetrieveModifiedThingTags} command.
-     *
-     * @param timespan the duration for which all modified things should be retrieved.
-     * @param dittoHeaders the command headers of the request.
-     * @return a command for retrieving modified Things without authorization.
-     * @throws NullPointerException if any argument is {@code null}.
-     */
-    public static SudoRetrieveModifiedThingTags of(final Duration timespan, final DittoHeaders dittoHeaders) {
-        return new SudoRetrieveModifiedThingTags(timespan, Duration.parse(NULL_OFFSET), dittoHeaders);
-    }
-
 
     /**
      * Creates a new {@code SudoRetrieveModifiedThingTags} command.
      *
      * @param timespan the duration for which all modified things should be retrieved.
      * @param offset the duration for which the modified things should be skipped.
+     * @param elementRecipient TODO
+     * @param statusRecipient TODO
      * @param dittoHeaders the command headers of the request.
      * @return a command for retrieving modified Things without authorization.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static SudoRetrieveModifiedThingTags of(final Duration timespan, final Duration offset,
-            final DittoHeaders dittoHeaders) {
-        return new SudoRetrieveModifiedThingTags(timespan, offset, dittoHeaders);
+    public static SudoStreamModifiedEntities of(final Duration timespan, final Duration offset,
+            final int elementsPerSecond, final Duration maxQueryTime,
+            final String elementRecipient, final String statusRecipient, final DittoHeaders dittoHeaders) {
+        return new SudoStreamModifiedEntities(timespan, offset, elementsPerSecond, maxQueryTime, elementRecipient,
+                statusRecipient, dittoHeaders);
     }
+
 
     /**
      * Creates a new {@code SudoRetrieveModifiedThingTags} from a JSON string.
@@ -114,7 +132,7 @@ public final class SudoRetrieveModifiedThingTags extends AbstractCommand<SudoRet
      * valid JSON.
      * @throws JsonMissingFieldException if the passed in {@code jsonString} was not in the expected format.
      */
-    public static SudoRetrieveModifiedThingTags fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
+    public static SudoStreamModifiedEntities fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
         return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
     }
 
@@ -127,13 +145,18 @@ public final class SudoRetrieveModifiedThingTags extends AbstractCommand<SudoRet
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      * @throws JsonMissingFieldException if the passed in {@code jsonObject} was not in the expected format.
      */
-    public static SudoRetrieveModifiedThingTags fromJson(final JsonObject jsonObject,
+    public static SudoStreamModifiedEntities fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
 
         try {
             final Duration extractedTimespan = Duration.parse(jsonObject.getValueOrThrow(JSON_TIMESPAN));
             final Duration extractedOffset = Duration.parse(jsonObject.getValue(JSON_OFFSET).orElse(NULL_OFFSET));
-            return SudoRetrieveModifiedThingTags.of(extractedTimespan, extractedOffset, dittoHeaders);
+            final int elementsPerSecond = jsonObject.getValueOrThrow(JSON_ELEMENTS_PER_SECOND);
+            final Duration maxQueryTime = Duration.parse(jsonObject.getValueOrThrow(JSON_MAX_QUERY_TIME));
+            final String elementRecipient = jsonObject.getValueOrThrow(JSON_ELEMENT_RECIPIENT);
+            final String statusRecipient = jsonObject.getValueOrThrow(JSON_STATUS_RECIPIENT);
+            return SudoStreamModifiedEntities.of(extractedTimespan, extractedOffset, elementsPerSecond, maxQueryTime,
+                    elementRecipient, statusRecipient, dittoHeaders);
         } catch (final DateTimeParseException e) {
             throw JsonParseException.newBuilder()
                     .message("The given timespan is no valid Duration.")
@@ -167,20 +190,21 @@ public final class SudoRetrieveModifiedThingTags extends AbstractCommand<SudoRet
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(JSON_TIMESPAN, timespan.toString(), predicate);
         jsonObjectBuilder.set(JSON_OFFSET, offset.toString(), predicate);
+        jsonObjectBuilder.set(JSON_ELEMENTS_PER_SECOND, elementsPerSecond, predicate);
+        jsonObjectBuilder.set(JSON_MAX_QUERY_TIME, maxQueryTime.toString(), predicate);
+        jsonObjectBuilder.set(JSON_ELEMENT_RECIPIENT, elementRecipient, predicate);
+        jsonObjectBuilder.set(JSON_STATUS_RECIPIENT, statusRecipient, predicate);
     }
 
     @Override
-    public SudoRetrieveModifiedThingTags setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(timespan, offset, dittoHeaders);
+    public SudoStreamModifiedEntities setDittoHeaders(final DittoHeaders dittoHeaders) {
+        return of(timespan, offset, elementsPerSecond, maxQueryTime, elementRecipient, statusRecipient, dittoHeaders);
     }
 
     @Override
     public int hashCode() {
-        final int prime = 31;
-        int result = super.hashCode();
-        result = prime * result + Objects.hashCode(timespan);
-        result = prime * result + Objects.hashCode(offset);
-        return result;
+        return Objects.hash(super.hashCode(), timespan, offset, elementsPerSecond, maxQueryTime, elementRecipient,
+                statusRecipient);
     }
 
     @SuppressWarnings({"squid:MethodCyclomaticComplexity", "squid:S1067", "pmd:SimplifyConditional"})
@@ -192,19 +216,29 @@ public final class SudoRetrieveModifiedThingTags extends AbstractCommand<SudoRet
         if (obj == null || getClass() != obj.getClass()) {
             return false;
         }
-        final SudoRetrieveModifiedThingTags that = (SudoRetrieveModifiedThingTags) obj;
+        final SudoStreamModifiedEntities that = (SudoStreamModifiedEntities) obj;
         return that.canEqual(this) && Objects.equals(timespan, that.timespan) && Objects.equals(offset, that.offset)
+                && Objects.equals(elementsPerSecond, that.elementsPerSecond)
+                && Objects.equals(maxQueryTime, that.maxQueryTime)
+                && Objects.equals(elementRecipient, that.elementRecipient)
+                && Objects.equals(statusRecipient, that.statusRecipient)
                 && super.equals(that);
     }
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return other instanceof SudoRetrieveModifiedThingTags;
+        return other instanceof SudoStreamModifiedEntities;
     }
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + " [" + super.toString() + ", timespan=" + timespan + ", offset= " + offset
+        return getClass().getSimpleName() + " [" + super.toString()
+                + ", timespan=" + timespan
+                + ", offset= " + offset
+                + ", elementsPerSecond= " + elementsPerSecond
+                + ", maxQueryTime= " + maxQueryTime
+                + ", elementRecipient=" + elementRecipient
+                + ", statusRecipient=" + statusRecipient
                 + "]";
     }
 

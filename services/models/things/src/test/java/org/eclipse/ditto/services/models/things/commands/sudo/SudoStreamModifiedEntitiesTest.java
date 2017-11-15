@@ -30,62 +30,66 @@ import org.junit.Test;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link SudoRetrieveModifiedThingTags}.
+ * Unit test for {@link SudoStreamModifiedEntities}.
  */
-public final class SudoRetrieveModifiedThingTagsTest {
+public final class SudoStreamModifiedEntitiesTest {
 
     private static final Duration KNOWN_TIMESPAN = Duration.ofMinutes(5);
     private static final Duration KNOWN_OFFSET = Duration.ofMinutes(1);
+    private static final int KNOWN_ELEMENTS_PER_SECOND = 1234;
+    private static final Duration KNOWN_MAX_QUERY_TIME = Duration.ofDays(365);
+    private static final String KNOWN_ELEMENT_RECIPIENT = "akka.tcp://known@element/user/recipient";
+    private static final String KNOWN_STATUS_RECIPIENT = "akka.tcp://known@status/user/recipient";
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
-            .set(Command.JsonFields.TYPE, SudoRetrieveModifiedThingTags.TYPE)
-            .set(SudoRetrieveModifiedThingTags.JSON_TIMESPAN, KNOWN_TIMESPAN.toString())
-            .set(SudoRetrieveModifiedThingTags.JSON_OFFSET, KNOWN_OFFSET.toString())
+            .set(Command.JsonFields.TYPE, SudoStreamModifiedEntities.TYPE)
+            .set(SudoStreamModifiedEntities.JSON_TIMESPAN, KNOWN_TIMESPAN.toString())
+            .set(SudoStreamModifiedEntities.JSON_OFFSET, KNOWN_OFFSET.toString())
+            .set(SudoStreamModifiedEntities.JSON_ELEMENTS_PER_SECOND, KNOWN_ELEMENTS_PER_SECOND)
+            .set(SudoStreamModifiedEntities.JSON_MAX_QUERY_TIME, KNOWN_MAX_QUERY_TIME.toString())
+            .set(SudoStreamModifiedEntities.JSON_ELEMENT_RECIPIENT, KNOWN_ELEMENT_RECIPIENT)
+            .set(SudoStreamModifiedEntities.JSON_STATUS_RECIPIENT, KNOWN_STATUS_RECIPIENT)
             .build();
 
     private static final DittoHeaders EMPTY_DITTO_HEADERS = DittoHeaders.empty();
 
-    /** */
     @Test
     public void assertImmutability() {
-        assertInstancesOf(SudoRetrieveModifiedThingTags.class,
+        assertInstancesOf(SudoStreamModifiedEntities.class,
                 areImmutable(),
                 provided(AuthorizationContext.class, JsonFieldSelector.class).isAlsoImmutable());
     }
 
-    /** */
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(SudoRetrieveModifiedThingTags.class)
+        EqualsVerifier.forClass(SudoStreamModifiedEntities.class)
                 .withRedefinedSuperclass()
                 .verify();
     }
 
-    /** */
     @Test
     public void toJsonReturnsExpected() {
-        final SudoRetrieveModifiedThingTags underTest =
-                SudoRetrieveModifiedThingTags.of(KNOWN_TIMESPAN, KNOWN_OFFSET, EMPTY_DITTO_HEADERS);
+        final SudoStreamModifiedEntities underTest =
+                SudoStreamModifiedEntities.of(KNOWN_TIMESPAN, KNOWN_OFFSET, KNOWN_ELEMENTS_PER_SECOND,
+                        KNOWN_MAX_QUERY_TIME, KNOWN_ELEMENT_RECIPIENT, KNOWN_STATUS_RECIPIENT, EMPTY_DITTO_HEADERS);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
         assertThat(actualJson).isEqualTo(KNOWN_JSON);
     }
 
-    /** */
     @Test
     public void createInstanceFromValidJson() {
-        final SudoRetrieveModifiedThingTags underTest =
-                SudoRetrieveModifiedThingTags.fromJson(KNOWN_JSON.toString(), EMPTY_DITTO_HEADERS);
+        final SudoStreamModifiedEntities underTest =
+                SudoStreamModifiedEntities.fromJson(KNOWN_JSON.toString(), EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
         assertThat(underTest.getTimespan()).isEqualTo(KNOWN_TIMESPAN);
     }
 
-    /** */
     @Test
     public void checkSudoCommandTypeWorks() {
-        final SudoRetrieveModifiedThingTags sudoRetrieveModifiedThingTags =
-                SudoRetrieveModifiedThingTags.fromJson(KNOWN_JSON.toString(), EMPTY_DITTO_HEADERS);
+        final SudoStreamModifiedEntities sudoRetrieveModifiedThingTags =
+                SudoStreamModifiedEntities.fromJson(KNOWN_JSON.toString(), EMPTY_DITTO_HEADERS);
 
         final SudoCommand sudoCommand =
                 SudoCommandRegistry.newInstance().parse(KNOWN_JSON.toString(), EMPTY_DITTO_HEADERS);
