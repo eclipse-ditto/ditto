@@ -41,10 +41,10 @@ public final class SendMessageAcceptedResponse
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    private SendMessageAcceptedResponse(final String thingId, final HttpStatusCode statusCode,
-            final DittoHeaders dittoHeaders) {
+    private SendMessageAcceptedResponse(final String thingId, final MessageHeaders messageHeaders,
+            final HttpStatusCode statusCode, final DittoHeaders dittoHeaders) {
 
-        super(TYPE, thingId, Message.<Void>newBuilder(MessageHeaders.of(dittoHeaders)).build(), statusCode,
+        super(TYPE, thingId, Message.<Void>newBuilder(messageHeaders).build(), statusCode,
                 dittoHeaders);
     }
 
@@ -55,8 +55,9 @@ public final class SendMessageAcceptedResponse
      * @param dittoHeaders the command headers.
      * @return the new instance.
      */
-    public static SendMessageAcceptedResponse newInstance(final String thingId, final DittoHeaders dittoHeaders) {
-        return newInstance(thingId, HttpStatusCode.ACCEPTED, dittoHeaders);
+    public static SendMessageAcceptedResponse newInstance(final String thingId, final MessageHeaders messageHeaders,
+            final DittoHeaders dittoHeaders) {
+        return newInstance(thingId, messageHeaders, HttpStatusCode.ACCEPTED, dittoHeaders);
     }
 
     /**
@@ -67,10 +68,10 @@ public final class SendMessageAcceptedResponse
      * @param dittoHeaders the DittoHeaders.
      * @return the new instance.
      */
-    public static SendMessageAcceptedResponse newInstance(final String thingId, final HttpStatusCode statusCode,
-            final DittoHeaders dittoHeaders) {
+    public static SendMessageAcceptedResponse newInstance(final String thingId, final MessageHeaders messageHeaders,
+            final HttpStatusCode statusCode, final DittoHeaders dittoHeaders) {
 
-        return new SendMessageAcceptedResponse(thingId, statusCode, dittoHeaders);
+        return new SendMessageAcceptedResponse(thingId, messageHeaders, statusCode, dittoHeaders);
     }
 
     /**
@@ -102,13 +103,18 @@ public final class SendMessageAcceptedResponse
         return new CommandResponseJsonDeserializer<SendMessageAcceptedResponse>(TYPE, jsonObject).deserialize(
                 statusCode -> {
                     final String thingId = jsonObject.getValueOrThrow(MessageCommandResponse.JsonFields.JSON_THING_ID);
-                    return newInstance(thingId, statusCode, dittoHeaders);
+                    final JsonObject jsonHeaders =
+                            jsonObject.getValueOrThrow(MessageCommandResponse.JsonFields.JSON_MESSAGE)
+                                    .getValueOrThrow(MessageCommandResponse.JsonFields.JSON_MESSAGE_HEADERS);
+                    final MessageHeaders messageHeaders = MessageHeaders.of(jsonHeaders);
+
+                    return newInstance(thingId, messageHeaders, statusCode, dittoHeaders);
                 });
     }
 
     @Override
     public SendMessageAcceptedResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return newInstance(getThingId(), getStatusCode(), dittoHeaders);
+        return newInstance(getThingId(), getMessage().getHeaders(), getStatusCode(), dittoHeaders);
     }
 
     public Optional<String> getCorrelationId() {

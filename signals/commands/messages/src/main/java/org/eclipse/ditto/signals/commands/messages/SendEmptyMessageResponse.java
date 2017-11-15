@@ -40,10 +40,10 @@ public final class SendEmptyMessageResponse extends AbstractMessageCommandRespon
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    private SendEmptyMessageResponse(final String thingId, final HttpStatusCode statusCode,
-            final DittoHeaders dittoHeaders) {
+    private SendEmptyMessageResponse(final String thingId, final MessageHeaders messageHeaders, final HttpStatusCode
+            statusCode, final DittoHeaders dittoHeaders) {
 
-        super(TYPE, thingId, Message.<Void>newBuilder(MessageHeaders.of(dittoHeaders)).build(), statusCode,
+        super(TYPE, thingId, Message.<Void>newBuilder(MessageHeaders.of(messageHeaders)).build(), statusCode,
                 dittoHeaders);
     }
 
@@ -54,8 +54,9 @@ public final class SendEmptyMessageResponse extends AbstractMessageCommandRespon
      * @param dittoHeaders the command headers.
      * @return the new instance.
      */
-    public static SendEmptyMessageResponse newInstance(final String thingId, final DittoHeaders dittoHeaders) {
-        return newInstance(thingId, HttpStatusCode.NO_CONTENT, dittoHeaders);
+    public static SendEmptyMessageResponse newInstance(final String thingId, final MessageHeaders messageHeaders,
+            final DittoHeaders dittoHeaders) {
+        return newInstance(thingId, messageHeaders, HttpStatusCode.NO_CONTENT, dittoHeaders);
     }
 
     /**
@@ -66,10 +67,10 @@ public final class SendEmptyMessageResponse extends AbstractMessageCommandRespon
      * @param dittoHeaders the DittoHeaders.
      * @return the new instance.
      */
-    public static SendEmptyMessageResponse newInstance(final String thingId, final HttpStatusCode statusCode,
-            final DittoHeaders dittoHeaders) {
+    public static SendEmptyMessageResponse newInstance(final String thingId, final MessageHeaders messageHeaders,
+            final HttpStatusCode statusCode, final DittoHeaders dittoHeaders) {
 
-        return new SendEmptyMessageResponse(thingId, statusCode, dittoHeaders);
+        return new SendEmptyMessageResponse(thingId, messageHeaders, statusCode, dittoHeaders);
     }
 
     /**
@@ -101,13 +102,17 @@ public final class SendEmptyMessageResponse extends AbstractMessageCommandRespon
         return new CommandResponseJsonDeserializer<SendEmptyMessageResponse>(TYPE, jsonObject).deserialize(
                 statusCode -> {
                     final String thingId = jsonObject.getValueOrThrow(MessageCommandResponse.JsonFields.JSON_THING_ID);
-                    return newInstance(thingId, statusCode, dittoHeaders);
+                    final JsonObject jsonHeaders =
+                            jsonObject.getValueOrThrow(MessageCommandResponse.JsonFields.JSON_MESSAGE)
+                                    .getValueOrThrow(MessageCommandResponse.JsonFields.JSON_MESSAGE_HEADERS);
+                    final MessageHeaders messageHeaders = MessageHeaders.of(jsonHeaders);
+                    return newInstance(thingId, messageHeaders, statusCode, dittoHeaders);
                 });
     }
 
     @Override
     public SendEmptyMessageResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return newInstance(getThingId(), getStatusCode(), dittoHeaders);
+        return newInstance(getThingId(), getMessage().getHeaders(), getStatusCode(), dittoHeaders);
     }
 
     public Optional<String> getCorrelationId() {
