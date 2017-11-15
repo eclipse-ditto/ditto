@@ -131,10 +131,7 @@ final class MessageAdaptableHelper {
      * value for {@link MessageHeaderDefinition#SUBJECT}.
      */
     static <T> Message<T> messageFrom(final Adaptable adaptable) {
-        final MessageHeaders messageHeaders = adaptable.getHeaders()
-                .map(MessagesModelFactory::newHeadersBuilder)
-                .map(MessageHeadersBuilder::build)
-                .orElseThrow(() -> new IllegalArgumentException("Adaptable did not have headers at all!"));
+        final MessageHeaders messageHeaders = messageHeadersFrom(adaptable);
 
         final String contentType = String.valueOf(messageHeaders.get(DittoHeaderDefinition.CONTENT_TYPE.getKey()));
         final boolean shouldBeInterpretedAsText = shouldBeInterpretedAsText(contentType);
@@ -156,6 +153,28 @@ final class MessageAdaptableHelper {
             messageBuilder.rawPayload(ByteBuffer.wrap(tryToDecode(messagePayloadBytes)));
         }
         return messageBuilder.build();
+    }
+
+    /**
+     * Creates {@link MessageHeaders} from the passed {@link Adaptable}.
+     *
+     * @param adaptable the Adaptable to created the MessageHeaders from.
+     * @return the MessageHeaders.
+     * @throws NullPointerException if {@code adaptable} is {@code null}.
+     * @throws IllegalArgumentException if {@code adaptable}
+     * <ul>
+     *     <li>has no headers,</li>
+     *     <li>contains headers with a value that did not represent its appropriate Java type or</li>
+     *     <li>if the headers of {@code adaptable} did lack a mandatory header.</li>
+     * </ul>
+     * @throws org.eclipse.ditto.model.messages.SubjectInvalidException if {@code initialHeaders} contains an invalid
+     * value for {@link MessageHeaderDefinition#SUBJECT}.
+     */
+    static MessageHeaders messageHeadersFrom(final Adaptable adaptable) {
+        return adaptable.getHeaders()
+                .map(MessagesModelFactory::newHeadersBuilder)
+                .map(MessageHeadersBuilder::build)
+                .orElseThrow(() -> new IllegalArgumentException("Adaptable did not have headers at all!"));
     }
 
     private static byte[] tryToDecode(final byte[] bytes) {
