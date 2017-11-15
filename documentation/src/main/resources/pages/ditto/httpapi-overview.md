@@ -13,7 +13,7 @@ Ditto does not provide a fully compliant RESTful API in the [academic sense](htt
 as it does not include hyperlinks in the HTTP responses.<br/>
 It however tries to follow the other best practices.
 
-If you have any feedback on how to improve at that point, Ditto's developer team is [eager to learn](support.html).
+If you have any feedback on how to improve at that point, Ditto's developer team is [eager to learn](feedback.html).
 
 ## Content Type
 

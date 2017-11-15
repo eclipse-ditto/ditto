@@ -1,11 +1,12 @@
 ---
-title: Things and Features
-keywords: thing, feature
+title: Thing
+keywords: entity, model, thing, feature
 tags: [model]
-permalink: basic-thingsfeatures.html
+permalink: basic-thing.html
 ---
 
 The versatile assets in IoT applications can be managed as Things.
+
 
 ## Thing
 
@@ -19,9 +20,6 @@ Examples:
 * Master data entity: a supplier of devices or a service provider for devices, an entity representing a city/region
 * Anything else - if it can be modeled and managed appropriately by the supported concepts/capabilities
 
-### Attributes
-
-Attributes describe the Thing in more detail and can be of any type. Attributes can also be used to find Things. Attributes are typically used to model rather static properties at the Thing level. Static means that the values do not change as frequently as property values of Features.
 
 ### Thing ID
 
@@ -48,40 +46,71 @@ Examples for a valid Thing ID:
 * `foo:fancycar-1`
 * `org.eclipse.ditto_42:fancycar-1`
 
-## Feature
 
-A Feature is used to manage all data and functionality of a Thing that can be clustered in an outlined technical context.
+### Access control
 
-For different contexts or aspects of a Thing different Features can be used which are all belonging to the same Thing and do not exist without this Thing.
+A Thing in API version 1 contains an inline [ACL](basic-acl.html) defining which authenticated parties may READ, WRITE and 
+ADMINISTRATE the `Thing`.
 
-The **data** related to Features is managed in form of a **list of properties**. These properties can be categorized, e.g. to manage the status, the configuration or any fault information.
+A Thing in API version 2 does no longer contain the <a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossary.acl}}">ACL</a>.
+Instead it contains a link to a [Policy](basic-policy.html) in form of a `policyId`. This 
+<a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossary.policy}}">Policy</a> defines which 
+authenticated subjects may READ and WRITE the Thing or even parts of it (hierarchically specified).
 
-Each property itself can be either a simple/scalar value or a complex object. Allowed is any JSON object.
 
-### Feature ID
-Due to the fact that a Feature ID often needs to be set in the path of a HTTP request, we strongly recommend to use a restricted the set of characters (e.g. those for Uniform Resource Identifiers (URI) see [https://www.ietf.org/rfc/rfc2396.txt](https://www.ietf.org/rfc/rfc2396.txt)).
+### Attributes
 
-## Schematic view
+Attributes describe the Thing in more detail and can be of any type. Attributes can also be used to find Things. Attributes are typically used to model rather static properties at the Thing level. Static means that the values do not change as frequently as property values of Features.
+
+
+### Features
+
+A Thing may contain an arbitrary amount of [Features](basic-feature.html). 
 
 {% include image.html file="pages/basic/ditto-thing-feature.png" alt="Thing and Feature" caption="One Thing can have many Features" max-width=100 %}
 
-## Example
+
+### Model specification
+
+#### API version 1
+
+{% include docson.html schema="jsonschema/thing_v1.json" %}
+
+#### API version 2
+
+{% include docson.html schema="jsonschema/thing_v2.json" %}
+
+
+### Example
 
 ```json
 {
   "thingId": "the.namespace:theId",
+  "acl": {
+    "subject-id": {
+      "READ": true,
+      "WRITE": true,
+      "ADMINISTRATE": true
+    }
+  },
   "attributes": {
       "someAttr": 32,
       "manufacturer": "ACME corp"
   },
   "features": {
-      "featureId-0-to-n": {
+      "heating-no1": {
           "properties": {
               "connected": true,
               "complexProperty": {
                   "street": "my street",
                   "house no": 42
               }
+          }
+      },
+      "switchable": {
+          "properties": {
+              "on": true,
+              "lastToggled": "2017-11-15T18:21Z"
           }
       }
   }

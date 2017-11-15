@@ -1,8 +1,8 @@
 ---
-title: Policies
+title: Policy
 keywords: authentication, authorization, auth, policies, policy
 tags: [model]
-permalink: basic-policies.html
+permalink: basic-policy.html
 ---
 
 A Policy enables developers to configure fine-grained access control for Things and other entities in an easy way.

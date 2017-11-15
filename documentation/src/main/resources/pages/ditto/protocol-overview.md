@@ -1,44 +1,33 @@
 ---
 title: Protocol overview
-keywords: protocol
+keywords: protocol, command, response, event, channel, twin, live
 tags: [protocol]
 permalink: protocol-overview.html
 ---
 
-## Motivation
+The Ditto Protocol defines a JSON based text protocol for communicating with **Digital Twins** and the actual physical
+devices they mirror.
 
-The Ditto protocol covers two different communication channels to address different aspects 
-of devices and their digital representation.
+It defines several **commands** both the actual device and the **Digital Twin** are able to understand 
 
-The first aspect handles the digital representation of an IoT asset, like a device.
-This asset, or Thing, is managed with Ditto and its state and properties can be read and updated.
-The channel to work with the digital representation is called **twin**.
+The Ditto Protocol furthermore covers two different communication [channels](protocol-specification-topic.html#channel) 
+to address different aspects of devices and their digital representation.
 
-This channel is available both at the Ditto HTTP API and the WebSocket interface which talks the Ditto Protocol.
-The REST-like API is not scope of this specification but mentioned here to outline the context.
+The first _channel_, **twin**, handles the digital representation of an IoT asset.<br/>
+This asset, or `Thing`, is managed with Ditto and its state and properties can be read and updated.
 
-This protocol is specified and documented in the following chapter. 
+The second _channel_, **live**, routes a command/message towards an actual device.<br/>
+The execution of what to do when a device (or a gateway which connects the device) does with a received command/message
+is out of scope of Ditto and solution specific implementation.<br/>
 
-The first part of the specification describes the **twin** aspect of the protocol.
+The communication pattern is however defined by the Ditto protocol and shown in the next section.
 
 
-## Semantics of commands, events, messages, and responses
+## Communication pattern
 
-### Twin
+The typical communication pattern when interacting with a **Digital Twin** or the actual device using the Ditto Protocol 
+is composed of multiple correlated Protocol messages.<br/>
+Therefore, each Protocol message contains a `correlation-id` which can be used to associate related Protocol messages.
 
-A **command** can be sent to Ditto to request a modification of a thing.
-When Ditto handled the **command** successfully, i.e. the updated thing is persisted, it publishes an **event**.
-An **event** is the unit that describes a modification of a thing, e.g. a property change, or an attribute change.
-
-When sending a **command**, a **response** can be requested.
-Ditto (asynchronously) replies to such **commands** as soon as the change has been applied.
-
-### Live
-
-**Commands**, **events** and **messages** are directly exchanged when using the _live_ channel.
-
-**Commands** are defined to be used to change properties of e.g. connected device.
-In case a **response** to a **command** is requested, the receiver must fulfill this request.
-It is also always required that a _live_ thing **event** is published after a **command** has been applied (to the device) successfully.
-
-A **message** carries a custom payload and can be answered by another, correlated **message**.
+The [Signals](basic-signals.html#communication-pattern) chapter already describes the basic communication pattern of
+**commands**, **responses** and **events**.

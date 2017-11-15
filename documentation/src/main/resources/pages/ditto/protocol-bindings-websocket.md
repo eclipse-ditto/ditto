@@ -35,7 +35,7 @@ request by the correlation id header). The response indicates the success or the
 Find examples of commands and their response pattern at Protocol examples.
 
 
-## Request events
+## Request events / change notifications
 
 Additionally to the response, which Ditto addresses directly to the instance who was sending the command, an event is generated. 
 This will be delivered to all other clients with read permissions for the respective thing, feature change, etc. 

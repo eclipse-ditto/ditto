@@ -21,9 +21,10 @@ In order to edit the documentation
 Use that if you are on a UNIX system (or have the Ubuntu bash subsystem for Windows 10). 
 
 ```bash
-sudo apt-get install build-essential ruby-dev
+sudo apt-get install build-essential ruby-dev libcurl3
 sudo gem install --http-proxy http://localhost:3128 jekyll
 sudo gem install --http-proxy http://localhost:3128 jekyll-sitemap
+sudo gem install --http-proxy http://localhost:3128 html-proofer
 ```
 
 Watch all resources and start local server serving the Jekyll content at [http://localhost:4000](http://localhost:4000):
@@ -31,6 +32,12 @@ Watch all resources and start local server serving the Jekyll content at [http:/
 ```bash
 cd src/main/resources
 jekyll serve
+```
+
+Validate that the HTML does not contain dead links, etc.:
+
+```bash
+htmlproofer --assume-extension --allow-hash-href --disable-external --url-ignore "/http-api-doc.html.*/" src/main/resources/_site/
 ```
 
 #### Alternative 2: use Maven (UNIX)

@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-04/schema#",
   "type": "object",
   "description": "A *Thing* is a generic entity which can be used as a handle for multiple *Features* belonging to this *Thing*.",
-  "title": "Thing",
+  "title": "Thing in API v1",
   "properties": {
     "thingId": {
       "type": "string",

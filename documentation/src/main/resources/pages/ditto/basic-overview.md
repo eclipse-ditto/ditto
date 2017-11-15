@@ -11,9 +11,9 @@ Eclipse Ditto does not claim to know exactly which structure “Things” in the
 <a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossary.iot}}">IoT</a> have or should have.<br/>
 Its idea is to be as agnostic as possible when it comes to `Thing` data.
 
-It however defines two coarse elements in order to structure `Thing`s (see also [Things and Features](basic-thingsfeatures.html)):
+It however defines two coarse elements in order to structure `Thing`s (see also [Thing](basic-thing.html)):
 * Attributes: intended for managing static meta data of a `Thing` which does not change frequently as JSON object
-* Features: intended for managing state data (e.g. sensor data or configuration data) of a `Thing`
+* [Features](basic-feature.html): intended for managing state data (e.g. sensor data or configuration data) of a `Thing`
 
 ## API version 1
 
@@ -72,7 +72,7 @@ A minimalistic Thing with one attribute and one Feature could look like this:
 
 ## API version 2
 
-In API version 2 the information which _subjects_ are allowed to READ, WRITE Things are managed separately via [Policies](basic-policies.html).<br />
+In API version 2 the information which _subjects_ are allowed to READ, WRITE Things are managed separately via [Policies](basic-policy.html).<br />
 The `Thing` only contains a `policyId` which links to a Policy containing the authorization information.
 This class diagram shows the structure Ditto requires for **API version 2**:
 

@@ -25,3 +25,6 @@ iot: "Internet of Things"
 iiot: "Industrial Internet of Things - also known as 'Industry 4.0'"
 
 jwt: "JSON Web Token (JWT)"
+
+cqrs: "Command-query responsibility segregation. A pattern Ditto applies in order to handle commands (ModifyCommands in Ditto)
+       and queries (QueryCommands in Ditto) differently, e.g. by reading queries from memory and persisting commands to a datastore."

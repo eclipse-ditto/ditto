@@ -29,4 +29,4 @@ A user who calls the REST API can be authenticated by using:
 Authorization is implemented with an <a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossary.acl}}">ACL</a> (in API version 1) or a <a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossary.policy}}">Policy</a> (in API version 2).
 The Policy description is located at Thing level, however it can optionally grant or revoke permissions very fine-grained at any Thing sub-resource like `thing:/features/featureX/properties/propertyN`.
 
-Find details at [ACL](basic-acl.html) and [Policies](basic-policies.html).
+Find details at [ACL](basic-acl.html) and [Policies](basic-policy.html).
