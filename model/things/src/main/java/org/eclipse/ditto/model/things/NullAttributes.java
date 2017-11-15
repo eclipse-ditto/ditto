@@ -74,7 +74,7 @@ final class NullAttributes implements Attributes {
 
     @Override
     public boolean isObject() {
-        return false;
+        return true;
     }
 
     @Override
@@ -114,7 +114,7 @@ final class NullAttributes implements Attributes {
 
     @Override
     public JsonObject asObject() {
-        throw new UnsupportedOperationException("This JSON value is not an object: " + toString());
+        return this;
     }
 
     @Override

@@ -137,13 +137,13 @@ final class MessageAdaptableHelper {
                 .orElseThrow(() -> new IllegalArgumentException("Adaptable did not have headers at all!"));
 
         final String contentType = String.valueOf(messageHeaders.get(DittoHeaderDefinition.CONTENT_TYPE.getKey()));
-        final boolean isPlainText = shouldBeInterpretedAsText(contentType);
-        final Charset charset = isPlainText ? determineCharset(contentType) : StandardCharsets.UTF_8;
+        final boolean shouldBeInterpretedAsText = shouldBeInterpretedAsText(contentType);
+        final Charset charset = shouldBeInterpretedAsText ? determineCharset(contentType) : StandardCharsets.UTF_8;
 
         final MessageBuilder<T> messageBuilder = MessagesModelFactory.<T>newMessageBuilder(messageHeaders);
         final Optional<JsonValue> value = adaptable.getPayload().getValue();
-        if (isPlainText) {
-            if (value.filter(JsonValue::isString).isPresent()) {
+        if (shouldBeInterpretedAsText) {
+            if (isPlainText(contentType) && value.filter(JsonValue::isString).isPresent()) {
                 messageBuilder.payload((T) value.get().asString());
             } else {
                 value.ifPresent(jsonValue -> messageBuilder.payload((T) jsonValue));
@@ -167,7 +167,11 @@ final class MessageAdaptableHelper {
     }
 
     private static boolean shouldBeInterpretedAsText(final String contentType) {
-        return contentType.startsWith(TEXT_PLAIN) || contentType.startsWith(APPLICATION_JSON);
+        return isPlainText(contentType) || contentType.startsWith(APPLICATION_JSON);
+    }
+
+    private static boolean isPlainText(final String contentType) {
+        return contentType.startsWith(TEXT_PLAIN);
     }
 
     private static Charset determineCharset(final CharSequence contentType) {

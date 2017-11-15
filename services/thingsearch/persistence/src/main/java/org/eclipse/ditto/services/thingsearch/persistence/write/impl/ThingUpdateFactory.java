@@ -43,14 +43,16 @@ final class ThingUpdateFactory {
     /**
      * Creates an update to update a whole thing.
      *
+     * @param indexLengthRestrictionEnforcer the restriction helper to enforce size restrictions.
      * @param thing the thing to be set
      * @return the update Bson
      */
-    static Bson createUpdateThingUpdate(final Thing thing) {
-        return toUpdate(DocumentMapper.toDocument(thing));
+    static Bson createUpdateThingUpdate(final IndexLengthRestrictionEnforcer indexLengthRestrictionEnforcer, final Thing thing) {
+        return toUpdate(DocumentMapper.toDocument(indexLengthRestrictionEnforcer.enforceRestrictions(thing)));
     }
 
     private static Document toUpdate(final Document document) {
         return new Document(SET, document).append(UNSET, new Document(FIELD_DELETED, 1));
     }
+
 }

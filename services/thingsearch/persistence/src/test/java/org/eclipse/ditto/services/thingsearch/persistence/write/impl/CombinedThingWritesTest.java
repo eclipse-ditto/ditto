@@ -43,7 +43,9 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.mockito.Mockito;
 
+import akka.event.LoggingAdapter;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
@@ -63,6 +65,8 @@ public final class CombinedThingWritesTest {
     private static final String SUBJECT = "CombinedThingWritesSubject";
     private static final DittoHeaders HEADERS = DittoHeaders.empty();
     private static PolicyEnforcer policyEnforcer;
+
+    private LoggingAdapter loggingAdapter = Mockito.mock(LoggingAdapter.class);
 
     @BeforeClass
     public static void setupPolicyEnforcer() {
@@ -92,7 +96,7 @@ public final class CombinedThingWritesTest {
                         DittoHeaders.empty());
 
         final CombinedThingWrites combinedThingWrites =
-                CombinedThingWrites.newBuilder(sourceSequenceNumber, policyEnforcer)
+                CombinedThingWrites.newBuilder(loggingAdapter, sourceSequenceNumber, policyEnforcer)
                         .addEvent(aclEntryCreated, apiVersion)
                         .build();
 
@@ -112,7 +116,7 @@ public final class CombinedThingWritesTest {
                         revision, DittoHeaders.empty());
 
         final CombinedThingWrites combinedThingWrites =
-                CombinedThingWrites.newBuilder(sourceSequenceNumber, policyEnforcer)
+                CombinedThingWrites.newBuilder(loggingAdapter, sourceSequenceNumber, policyEnforcer)
                         .addEvent(aclEntryModified, apiVersion)
                         .build();
 
@@ -186,13 +190,13 @@ public final class CombinedThingWritesTest {
         writes.getCombinedWriteDocuments().forEach(MongoSetKeyValidity::ensure);
     }
 
-    private static CombinedThingWrites fromEvent(final ThingEvent event) {
-        return CombinedThingWrites.newBuilder(event.getRevision() - 1, policyEnforcer)
+    private CombinedThingWrites fromEvent(final ThingEvent event) {
+        return CombinedThingWrites.newBuilder(loggingAdapter, event.getRevision() - 1, policyEnforcer)
                 .addEvent(event, apiVersion)
                 .build();
     }
 
-    private static Feature featureWithDotInID() {
+    private Feature featureWithDotInID() {
         return Feature.newBuilder()
                 .properties(JsonFactory.newObjectBuilder().set("x.y", 5).build())
                 .withId("Ac.0")

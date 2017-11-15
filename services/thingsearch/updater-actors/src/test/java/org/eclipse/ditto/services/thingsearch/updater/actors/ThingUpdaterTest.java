@@ -80,10 +80,11 @@ import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
+import akka.event.LoggingAdapter;
 import akka.pattern.CircuitBreaker;
 import akka.stream.javadsl.Source;
-import akka.testkit.TestKit;
 import akka.testkit.TestProbe;
+import akka.testkit.javadsl.TestKit;
 import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
 
@@ -98,17 +99,19 @@ public final class ThingUpdaterTest {
 
     private static final long REVISION = 1L;
 
-    static final AuthorizationSubject AUTHORIZATION_SUBJECT = AuthorizationSubject.newInstance("sid");
+    private static final int MAX_ATTRIBUTE_VALUE_LENGTH = 950;
 
-    static final AclEntry ACL_ENTRY =
+    private static final AuthorizationSubject AUTHORIZATION_SUBJECT = AuthorizationSubject.newInstance("sid");
+
+    private static final AclEntry ACL_ENTRY =
             AclEntry.newInstance(AUTHORIZATION_SUBJECT, AccessControlListModelFactory.allPermissions());
 
-    static final AccessControlList ACL = AccessControlListModelFactory.newAcl(ACL_ENTRY);
+    private static final AccessControlList ACL = AccessControlListModelFactory.newAcl(ACL_ENTRY);
 
     private final Thing thing = ThingsModelFactory.newThingBuilder().setId(THING_ID).setRevision(REVISION).build();
 
     // how many ms to wait for a mockito call
-    private static final int MOCKITO_TIMEOUT = 1000;
+    private static final int MOCKITO_TIMEOUT = 2500;
 
     private ActorSystem actorSystem;
 
@@ -118,9 +121,12 @@ public final class ThingUpdaterTest {
     @Mock
     private PolicyEnforcer policyEnforcerMock;
 
+    @Mock
+    private LoggingAdapter log;
+
 
     private Source<Boolean, NotUsed> successWithDelay() {
-        final int sourceDelayMillis = 500;
+        final int sourceDelayMillis = 1500;
         return Source.single(Boolean.TRUE).initialDelay(Duration.create(sourceDelayMillis, MILLISECONDS));
     }
 
@@ -129,22 +135,22 @@ public final class ThingUpdaterTest {
     public void setUpBase() {
         final Config config = ConfigFactory.load("test");
         actorSystem = ActorSystem.create("AkkaTestSystem", config);
-        Mockito.reset(persistenceMock, policyEnforcerMock);
         when(persistenceMock.getThingMetadata(any())).thenReturn(Source.single(new ThingMetadata(-1L, null, -1L)));
         when(persistenceMock.insertOrUpdate(any(), anyLong(), anyLong())).thenReturn(Source.single(true));
+        when(persistenceMock.executeCombinedWrites(any(), any())).thenReturn(Source.single(true));
     }
 
     /** */
     @After
     public void tearDownBase() {
         if (actorSystem != null) {
-            TestKit.shutdownActorSystem(actorSystem, Duration.create(60, SECONDS), true);
+            TestKit.shutdownActorSystem(actorSystem);
             actorSystem = null;
         }
     }
 
     @Test
-    public void createThing() throws InterruptedException {
+    public void createThing() {
         // disable policy load
         final DittoHeaders dittoHeaders = DittoHeaders.empty();
         new TestKit(actorSystem) {
@@ -156,7 +162,7 @@ public final class ThingUpdaterTest {
                 final ActorRef underTest = createInitializedThingUpdaterActor();
 
                 final ThingEvent thingCreated = ThingCreated.of(thingWithAcl, 1L, dittoHeaders);
-                underTest.tell(thingCreated, testActor());
+                underTest.tell(thingCreated, getRef());
 
                 waitUntil().insertOrUpdate(eq(thingWithAcl), eq(1L), anyLong());
             }
@@ -165,16 +171,16 @@ public final class ThingUpdaterTest {
 
     @Test
     @Ignore("currently does not run every time on Travis - ignoring for now")
-    public void concurrentUpdates() throws InterruptedException {
+    public void concurrentUpdates() {
         final Thing thingWithAcl = thing.setAclEntry(AclEntry.newInstance(AuthorizationSubject.newInstance("user1"),
                 Permission.READ));
         assertEquals(V_1, thingWithAcl.getImplementedSchemaVersion());
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().schemaVersion(V_1).build();
 
-        final CombinedThingWrites expectedWrites1 = CombinedThingWrites.newBuilder(1L, policyEnforcerMock)
+        final CombinedThingWrites expectedWrites1 = CombinedThingWrites.newBuilder(log, 1L, policyEnforcerMock)
                 .addEvent(createAttributeModified("p0", newValue(true), 2L), V_1)
                 .build();
-        final CombinedThingWrites expectedWrites2 = CombinedThingWrites.newBuilder(2L, policyEnforcerMock)
+        final CombinedThingWrites expectedWrites2 = CombinedThingWrites.newBuilder(log, 2L, policyEnforcerMock)
                 .addEvent(createAttributeModified("p1", newValue(true), 3L), V_1)
                 .addEvent(createAttributeModified("p2", newValue(true), 4L), V_1)
                 .addEvent(createAttributeModified("p3", newValue(true), 5L), V_1)
@@ -188,7 +194,7 @@ public final class ThingUpdaterTest {
                 final ThingEvent thingCreated = ThingCreated.of(thingWithAcl, 1L, dittoHeaders);
 
                 //This processing will cause that the mocked mongoDB operation to last for 500 ms
-                underTest.tell(thingCreated, testActor());
+                underTest.tell(thingCreated, getRef());
                 waitUntil().insertOrUpdate(eq(thingWithAcl), eq(1L), eq(-1L));
 
                 final ThingEvent attributeCreated0 =
@@ -203,17 +209,82 @@ public final class ThingUpdaterTest {
                 final ThingEvent attributeCreated3 =
                         AttributeCreated.of(THING_ID, newPointer("p3"), newValue(true), 5L, dittoHeaders);
 
-                underTest.tell(attributeCreated0, testActor());
+                underTest.tell(attributeCreated0, getRef());
 
                 // the following events will be executed all together as they are processed while another operation is
                 // in progress
-                underTest.tell(attributeCreated1, testActor());
-                underTest.tell(attributeCreated2, testActor());
-                underTest.tell(attributeCreated3, testActor());
+                underTest.tell(attributeCreated1, getRef());
+                underTest.tell(attributeCreated2, getRef());
+                underTest.tell(attributeCreated3, getRef());
 
                 waitUntil().executeCombinedWrites(eq(THING_ID), eq(expectedWrites2));
             }
         };
+    }
+
+    @Test
+    public void concurrentUpdatesWithSizeRestrictions() {
+        final Thing thingWithAcl = thing.setAclEntry(AclEntry.newInstance(AuthorizationSubject.newInstance("user1"),
+                Permission.READ));
+        assertEquals(V_1, thingWithAcl.getImplementedSchemaVersion());
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().schemaVersion(V_1).build();
+
+        final CombinedThingWrites expectedWrites1 = CombinedThingWrites.newBuilder(log, 1L, policyEnforcerMock)
+                .addEvent(createAttributeModified("p0", newValue(true), 2L), V_1)
+                .build();
+        final JsonValue tooLongAttribute = tooLongAttribute();
+        final AttributeModified attributeModified = createAttributeModified("p1", tooLongAttribute, 3L);
+        final int expectedLength = MAX_ATTRIBUTE_VALUE_LENGTH - attributeModified
+                .getAttributePointer().toString().length();
+        final JsonValue expectedResultingValue = JsonValue.of(tooLongAttribute.asString().substring(0, expectedLength));
+
+        final CombinedThingWrites expectedWrites2 = CombinedThingWrites.newBuilder(log, 2L, policyEnforcerMock)
+                .addEvent(createAttributeModified("p1", expectedResultingValue, 3L), V_1)
+                .addEvent(createAttributeModified("p2", newValue(true), 4L), V_1)
+                .addEvent(createAttributeModified("p3", newValue(true), 5L), V_1)
+                .build();
+        when(persistenceMock.executeCombinedWrites(eq(THING_ID), eq(expectedWrites1))).thenReturn(successWithDelay());
+
+        new TestKit(actorSystem) {
+            {
+                final ActorRef underTest = createInitializedThingUpdaterActor();
+
+                final ThingEvent thingCreated = ThingCreated.of(thingWithAcl, 1L, dittoHeaders);
+
+                //This processing will cause that the mocked mongoDB operation to last for 500 ms
+                underTest.tell(thingCreated, getRef());
+                waitUntil().insertOrUpdate(eq(thingWithAcl), eq(1L), eq(-1L));
+
+                final ThingEvent attributeCreated0 =
+                        AttributeCreated.of(THING_ID, newPointer("p0"), newValue(true), 2L, dittoHeaders);
+
+                final ThingEvent attributeCreated1 =
+                        AttributeCreated.of(THING_ID, newPointer("p1"), tooLongAttribute, 3L,
+                                dittoHeaders);
+
+                final ThingEvent attributeCreated2 =
+                        AttributeCreated.of(THING_ID, newPointer("p2"), newValue(true), 4L, dittoHeaders);
+
+                final ThingEvent attributeCreated3 =
+                        AttributeCreated.of(THING_ID, newPointer("p3"), newValue(true), 5L, dittoHeaders);
+
+                underTest.tell(attributeCreated0, getRef());
+
+                // the following events will be executed all together as they are processed while another operation is
+                // in progress
+                underTest.tell(attributeCreated1, getRef());
+                underTest.tell(attributeCreated2, getRef());
+                underTest.tell(attributeCreated3, getRef());
+
+                waitUntil().executeCombinedWrites(eq(THING_ID), eq(expectedWrites2));
+            }
+        };
+    }
+
+    private JsonValue tooLongAttribute() {
+        String string = "TestSTring";
+        while (string.length() < 1024) string += string;
+        return JsonValue.of(string);
     }
 
     private static AttributeModified createAttributeModified(final CharSequence attributePointer,
@@ -223,7 +294,7 @@ public final class ThingUpdaterTest {
     }
 
     @Test
-    public void unexpectedHighSequenceNumberTriggersSync() throws InterruptedException {
+    public void unexpectedHighSequenceNumberTriggersSync() {
         final long eventRevision = 7L;
         final long thingRevision = 20L;
 
@@ -257,7 +328,7 @@ public final class ThingUpdaterTest {
 
     @Test
     @Ignore("currently does not run every time on Travis - ignoring for now")
-    public void unsuccessfulUpdateTriggersSync() throws InterruptedException {
+    public void unsuccessfulUpdateTriggersSync() {
         final long revision = 4L;
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                 .schemaVersion(V_1)
@@ -269,7 +340,7 @@ public final class ThingUpdaterTest {
                 .setRevision(revision)
                 .setPermissions(ACL)
                 .build();
-        final CombinedThingWrites expectedWrite = CombinedThingWrites.newBuilder(0L, policyEnforcerMock)
+        final CombinedThingWrites expectedWrite = CombinedThingWrites.newBuilder(log, 0L, policyEnforcerMock)
                 .addEvent(createAttributeModified("p1", newValue(true), 1L), V_1)
                 .build();
         final Source<Boolean, NotUsed> sourceUnsuccess = Source.single(Boolean.FALSE);
@@ -281,16 +352,16 @@ public final class ThingUpdaterTest {
             {
                 final ActorRef underTest = createInitializedThingUpdaterActor();
                 // will cause that a sync is triggered
-                underTest.tell(attributeCreated, testActor());
+                underTest.tell(attributeCreated, getRef());
                 waitUntil().executeCombinedWrites(eq(THING_ID), any());
-                underTest.tell(SudoRetrieveThingResponse.of(currentThing, f -> true, dittoHeaders), testActor());
+                underTest.tell(SudoRetrieveThingResponse.of(currentThing, f -> true, dittoHeaders), getRef());
                 waitUntil().insertOrUpdate(eq(currentThing), eq(revision), eq(-1L));
             }
         };
     }
 
     @Test
-    public void databaseExceptionTriggersSync() throws InterruptedException {
+    public void databaseExceptionTriggersSync() {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                 .schemaVersion(V_1)
                 .build();
@@ -317,7 +388,7 @@ public final class ThingUpdaterTest {
     }
 
     @Test
-    public void thingTagWithHigherSequenceNumberTriggersSync() throws InterruptedException {
+    public void thingTagWithHigherSequenceNumberTriggersSync() {
         final long revision = 7L;
         final ThingTag thingTag = ThingTag.of(THING_ID, revision);
         final Thing currentThing = ThingsModelFactory.newThingBuilder()
@@ -340,20 +411,20 @@ public final class ThingUpdaterTest {
 
                 final ActorRef underTest = createInitializedThingUpdaterActor(thingsShardProbe, policiesShardProbe);
                 // will cause that a sync is triggered
-                underTest.tell(thingTag, testActor());
+                underTest.tell(thingTag, getRef());
                 final ShardedMessageEnvelope shardedMessageEnvelope =
                         thingsShardProbe.expectMsgClass(FiniteDuration.apply(5, SECONDS),
                                 ShardedMessageEnvelope.class);
                 assertEquals(expectedSudoRetrieveThing, shardedMessageEnvelope.getMessage());
                 underTest.tell(SudoRetrieveThingResponse.of(currentThing, f -> true, dittoHeadersV1),
-                        testActor());
+                        getRef());
                 waitUntil().insertOrUpdate(eq(currentThing), eq(revision), eq(-1L));
             }
         };
     }
 
     @Test
-    public void thingTagWithLowerSequenceNumberDoesNotTriggerSync() throws InterruptedException {
+    public void thingTagWithLowerSequenceNumberDoesNotTriggerSync() {
         new TestKit(actorSystem) {
             {
                 final long revision = 1L;
@@ -372,18 +443,18 @@ public final class ThingUpdaterTest {
                 final ActorRef underTest = createInitializedThingUpdaterActor(thingsShardProbe, policiesShardProbe);
                 final ThingEvent thingCreated = ThingCreated.of(thingWithRevision, revision, dittoHeaders);
 
-                underTest.tell(thingCreated, testActor());
+                underTest.tell(thingCreated, getRef());
                 waitUntil().insertOrUpdate(eq(thingWithRevision), eq(revision), eq(-1L));
 
                 // should trigger no sync
-                underTest.tell(thingTag, testActor());
+                underTest.tell(thingTag, getRef());
                 thingsShardProbe.expectNoMsg();
             }
         };
     }
 
     @Test
-    public void thingEventWithEqualSequenceNumberDoesNotTriggerSync() throws InterruptedException {
+    public void thingEventWithEqualSequenceNumberDoesNotTriggerSync() {
         new TestKit(actorSystem) {
             {
                 final long revision = 1L;
@@ -402,21 +473,21 @@ public final class ThingUpdaterTest {
                 final ThingEvent thingCreated =
                         ThingCreated.of(thingWithRevision, revision, dittoHeaders);
 
-                underTest.tell(thingCreated, testActor());
+                underTest.tell(thingCreated, getRef());
                 waitUntil().insertOrUpdate(eq(thingWithRevision), eq(revision), eq(-1L));
 
                 // should trigger no sync
                 final ThingEvent thingModified =
                         ThingModified.of(thingWithRevision.toBuilder().setRevision(revision).build(),
                                 revision, dittoHeaders);
-                underTest.tell(thingModified, testActor());
+                underTest.tell(thingModified, getRef());
                 thingsShardProbe.expectNoMsg();
             }
         };
     }
 
     @Test
-    public void persistenceErrorForCombinedWritesTriggersSync() throws InterruptedException {
+    public void persistenceErrorForCombinedWritesTriggersSync() {
         new TestKit(actorSystem) {
             {
                 final long revision = 1L;
@@ -435,7 +506,7 @@ public final class ThingUpdaterTest {
                 final ThingEvent thingCreated =
                         ThingCreated.of(thingWithRevision, revision, dittoHeaders);
 
-                underTest.tell(thingCreated, testActor());
+                underTest.tell(thingCreated, getRef());
                 waitUntil().insertOrUpdate(eq(thingWithRevision), eq(revision), eq(-1L));
 
                 when(persistenceMock.executeCombinedWrites(any(), any()))
@@ -444,7 +515,7 @@ public final class ThingUpdaterTest {
                 final ThingEvent changeEvent =
                         AttributeCreated.of(THING_ID, JsonPointer.of("/foo"), JsonValue.of("bar"),
                                 revision + 1, dittoHeaders);
-                underTest.tell(changeEvent, testActor());
+                underTest.tell(changeEvent, getRef());
 
                 // should trigger sync
                 expectShardedSudoRetrieveThing(thingsShardProbe, THING_ID);
@@ -453,7 +524,7 @@ public final class ThingUpdaterTest {
     }
 
     @Test
-    public void invalidThingEventTriggersSync() throws InterruptedException {
+    public void invalidThingEventTriggersSync() {
         new TestKit(actorSystem) {
             {
                 final ThingEvent<?> invalidThingEvent = createInvalidThingEvent();
@@ -462,7 +533,7 @@ public final class ThingUpdaterTest {
                 final TestProbe policiesShardProbe = TestProbe.apply(actorSystem);
 
                 final ActorRef underTest = createInitializedThingUpdaterActor(thingsShardProbe, policiesShardProbe);
-                underTest.tell(invalidThingEvent, testActor());
+                underTest.tell(invalidThingEvent, getRef());
 
                 // should trigger sync
                 expectShardedSudoRetrieveThing(thingsShardProbe, THING_ID);
@@ -471,14 +542,12 @@ public final class ThingUpdaterTest {
     }
 
     @Test
-    public void syncTimeoutRetriggersSync() throws InterruptedException {
+    public void syncTimeoutRetriggersSync() {
         // Command headers to make SudoRetrieveThingResponse return the access control list.
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                 .schemaVersion(V_1)
                 .build();
         final SudoRetrieveThing retrieveThing = SudoRetrieveThing.withOriginalSchemaVersion(THING_ID, dittoHeaders);
-        final ShardedMessageEnvelope expectedShardMessage = ShardedMessageEnvelope.of(THING_ID, SudoRetrieveThing.TYPE,
-                retrieveThing.toJson(), DittoHeaders.empty());
 
         new TestKit(actorSystem) {
             {
@@ -498,10 +567,10 @@ public final class ThingUpdaterTest {
 
                 final ThingEvent thingCreated = ThingCreated.of(thingWithAcl, 1L, dittoHeaders);
 
-                underTest.tell(thingCreated, testActor());
+                underTest.tell(thingCreated, getRef());
                 waitUntil().insertOrUpdate(eq(thingWithAcl), eq(1L), eq(-1L));
 
-                underTest.tell(SyncThing.of(THING_ID, DittoHeaders.empty()), testActor());
+                underTest.tell(SyncThing.of(THING_ID, DittoHeaders.empty()), getRef());
 
                 // at the moment we have 3 retries
                 ShardedMessageEnvelope envelope = thingsShardProbe.expectMsgClass(ShardedMessageEnvelope.class);
@@ -511,13 +580,13 @@ public final class ThingUpdaterTest {
                 envelope = thingsShardProbe.expectMsgClass(ShardedMessageEnvelope.class);
                 assertEquals(retrieveThing.toJson(), envelope.getMessage());
                 watch(underTest);
-                expectTerminated(underTest, Duration.create(10, SECONDS));
+                expectTerminated(underTest);
             }
         };
     }
 
     @Test
-    public void tooManyStashedMessagesDiscardOldMessages() throws InterruptedException {
+    public void tooManyStashedMessagesDiscardOldMessages() {
         final Thing thingWithAcl = thing.setAclEntry(AclEntry.newInstance(AuthorizationSubject.newInstance("user1"),
                 Permission.READ));
         // setup
@@ -543,30 +612,30 @@ public final class ThingUpdaterTest {
                         policiesShardProbe.ref(), dummy, dummy);
 
                 // send a ThingCreated event and expect it to get persisted
-                underTest.tell(ThingCreated.of(thingWithAcl, 1L, dittoHeaders), testActor());
+                underTest.tell(ThingCreated.of(thingWithAcl, 1L, dittoHeaders), getRef());
 
                 waitUntil().insertOrUpdate(eq(thingWithAcl), eq(1L), eq(-1L));
 
                 // send a ThingTag with sequence number = 3, which is unexpected and the updater should trigger a sync
-                underTest.tell(ThingTag.of(THING_ID, 3L), testActor());
+                underTest.tell(ThingTag.of(THING_ID, 3L), getRef());
                 assertThat(expectShardedSudoRetrieveThing(thingsShardProbe, THING_ID).getMessage())
                         .isEqualToIgnoringFieldDefinitions(retrieveThing.toJson());
 
                 // while the actor waits for the response of the Things service, we send 4 AttributeCreated events
                 underTest.tell(AttributeCreated.of(THING_ID, newPointer("attr1"), newValue("value1"), 4L,
-                        dittoHeaders), testActor());
+                        dittoHeaders), getRef());
                 underTest.tell(AttributeCreated.of(THING_ID, newPointer("attr2"), newValue("value2"), 5L,
-                        dittoHeaders), testActor());
+                        dittoHeaders), getRef());
                 underTest.tell(AttributeCreated.of(THING_ID, newPointer("attr3"), newValue("value3"), 6L,
-                        dittoHeaders), testActor());
+                        dittoHeaders), getRef());
                 underTest.tell(AttributeCreated.of(THING_ID, newPointer("attr4"), newValue("value4"), 7L,
-                        dittoHeaders), testActor());
+                        dittoHeaders), getRef());
 
                 // we send the fake Thing service response, the updater actor is waiting for
                 underTest.tell(SudoRetrieveThingResponse.of(currentThing, f -> true, DittoHeaders.newBuilder()
                                 .schemaVersion(V_1)
                                 .build()),
-                        testActor());
+                        getRef());
 
                 // the updater persists the thing with sequence number 3 and goes back to thing event processing
                 waitUntil().insertOrUpdate(eq(currentThing), eq(3L), eq(-1L));
@@ -582,7 +651,7 @@ public final class ThingUpdaterTest {
 
     /** */
     @Test
-    public void policyEventTriggersPolicyUpdate() throws InterruptedException {
+    public void policyEventTriggersPolicyUpdate() {
         final long policyRevision = REVISION;
         final long newPolicyRevision = 2L;
         final Policy initialPolicy = Policy.newBuilder(THING_ID)
@@ -615,14 +684,14 @@ public final class ThingUpdaterTest {
                 refreshPolicyUpdateAnswers(REVISION, THING_ID, policyRevision);
 
                 // establish policy ID
-                underTest.tell(ThingCreated.of(thingWithPolicyId, 1L, emptyDittoHeaders), testActor());
+                underTest.tell(ThingCreated.of(thingWithPolicyId, 1L, emptyDittoHeaders), getRef());
                 policiesShardProbe.expectMsgClass(SudoRetrievePolicy.class);
                 underTest.tell(initialPolicyResponse, null);
 
                 // wait until the Thing is indexed
                 waitUntil().insertOrUpdate(any(), anyLong(), eq(policyRevision));
 
-                underTest.tell(policyEvent, testActor());
+                underTest.tell(policyEvent, getRef());
 
                 // request current thing
                 expectShardedSudoRetrieveThing(thingsShardProbe, THING_ID);
@@ -640,7 +709,7 @@ public final class ThingUpdaterTest {
     }
 
     @Test
-    public void policyIdChangeTriggersSync() throws InterruptedException {
+    public void policyIdChangeTriggersSync() {
         final String policy1Id = "policy:1";
         final String policy2Id = "policy:2";
         final Policy policy1 = Policy.newBuilder(policy1Id).setRevision(REVISION).build();
@@ -669,7 +738,7 @@ public final class ThingUpdaterTest {
 
                 // establish policy ID
                 refreshPolicyUpdateAnswers(0L, policy1Id, REVISION);
-                underTest.tell(thingCreated, testActor());
+                underTest.tell(thingCreated, getRef());
 
                 final SudoRetrievePolicy sudoRetrievePolicy =
                         policiesShardProbe.expectMsgClass(SudoRetrievePolicy.class);
@@ -681,7 +750,7 @@ public final class ThingUpdaterTest {
                 waitUntil().updatePolicy(any(), any());
 
                 refreshPolicyUpdateAnswers(1L, policy2Id, REVISION);
-                underTest.tell(thingModified, testActor());
+                underTest.tell(thingModified, getRef());
 
                 // request current policy
                 final SudoRetrievePolicy sudoRetrievePolicy2 =
@@ -695,7 +764,7 @@ public final class ThingUpdaterTest {
     }
 
     @Test
-    public void thingV1BecomesThingV2() throws InterruptedException {
+    public void thingV1BecomesThingV2() {
         final String policyId = "policy:2";
         final Policy policy = Policy.newBuilder(policyId).setRevision(REVISION).build();
 
@@ -709,12 +778,6 @@ public final class ThingUpdaterTest {
                 .build();
         final SudoRetrievePolicyResponse policyResponse =
                 SudoRetrievePolicyResponse.of(policyId, policy, DittoHeaders.empty());
-        final SudoRetrieveThingResponse thingResponse1 =
-                SudoRetrieveThingResponse.of(thingWithoutPolicy, FieldType.regularOrSpecial(),
-                        DittoHeaders.empty());
-        final SudoRetrieveThingResponse thingResponse2 =
-                SudoRetrieveThingResponse.of(thingWithPolicy, FieldType.regularOrSpecial(),
-                        DittoHeaders.empty());
         final ThingCreated thingCreated = ThingCreated.of(thingWithoutPolicy, 1L, DittoHeaders.empty());
         final ThingModified thingModified = ThingModified.of(thingWithPolicy, 2L, DittoHeaders.empty());
 
@@ -725,12 +788,12 @@ public final class ThingUpdaterTest {
                 final ActorRef underTest = createInitializedThingUpdaterActor(thingsShardProbe, policiesShardProbe);
 
                 // establish policy ID
-                underTest.tell(thingCreated, testActor());
+                underTest.tell(thingCreated, getRef());
 
                 // wait until the Thing is indexed
                 waitUntil().insertOrUpdate(eq(thingWithoutPolicy), eq(1L), eq(-1L));
 
-                underTest.tell(thingModified, testActor());
+                underTest.tell(thingModified, getRef());
 
                 // request current policy
                 final SudoRetrievePolicy sudoRetrievePolicy =
@@ -832,7 +895,7 @@ public final class ThingUpdaterTest {
 
             // THEN: updater terminates immediately
             watch(underTest);
-            expectTerminated(underTest, Duration.create(3, SECONDS));
+            expectTerminated(underTest);
         }};
     }
 

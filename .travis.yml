@@ -8,4 +8,4 @@ before_install:
 install: true
 script:
   - export PROJECT_VERSION=$(mvn org.apache.maven.plugins:maven-help-plugin:evaluate -Dexpression=project.version -B | grep -v '\[')
-  - mvn install javadoc:jar source:jar-no-fork --batch-mode --errors -Pbuild-documentation -DcreateJavadoc=true
+  - mvn install javadoc:jar source:jar-no-fork --batch-mode --errors --quiet -Pbuild-documentation -DcreateJavadoc=true
