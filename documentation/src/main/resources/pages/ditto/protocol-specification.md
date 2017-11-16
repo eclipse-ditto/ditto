@@ -14,7 +14,7 @@ In order to comply with the Ditto Protocol, a Protocol message must consist of t
 ## Ditto Protocol
 
 The communication protocol envelope is implicitly defined by the underlying messaging system 
-(e.g. [Websocket](protocol-bindings-websocket.html)) used to transport/serialize the messages over the wire.<br/>
+(e.g. [WebSocket](protocol-bindings-websocket.html)) used to transport/serialize the messages over the wire.<br/>
 Please refer to the respective [communication protocol binding](protocol-bindings.html) for information how to encode the data in a protocol specific way.
 
 

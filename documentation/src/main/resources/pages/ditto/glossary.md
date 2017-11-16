@@ -6,11 +6,19 @@ permalink: glossary.html
 toc: false
 ---
 
+## Common terms
+
 IoT
 : {{site.data.glossary.iot}}
 
 IIoT
 : {{site.data.glossary.iiot}}
+
+CQRS
+: {{site.data.glossary.cqrs}}
+
+
+## Ditto specific terms
 
 Asset
 : {{site.data.glossary.asset}}

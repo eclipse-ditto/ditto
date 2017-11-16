@@ -34,7 +34,7 @@ The 2 ways are **nearly equally powerful** and allow the same operations to work
 | Search Things                 | no    | ✓ |
 | Count Things                  | no    | ✓ |
 | Messages                      | ✓     | ✓ |
-| Change Events	                | ✓     | ✓ |
+| Change notifications          | ✓     | ✓ (SSEs) |
 | Access control via Policy	    | ✓     | ✓ (v2 only) |
 | Access control via ACL        | ✓     | ✓ (v1 only) |
 

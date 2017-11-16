@@ -34,7 +34,7 @@ It also does not specify which data or which structure a “Thing” in the IoT 
 ## When to use it?
 
 {% include callout.html content="**TL;DR**<br/>Use it in order to get a full fledged, authorization aware, web API 
-                                (HTTP and Websocket) in order to access your “Things” and their last reported state." type="primary" %}
+                                (HTTP and WebSocket) in order to access your “Things” and their last reported state." type="primary" %}
 
 Imagine you are building an IoT solution. And let's assume that you use both hardware (e.g. sensors or actuators) and
 software (e.g. a mobile or web app) in order to solve your customer's problem.
