@@ -89,16 +89,15 @@ public final class ThingsSynchronizerActor extends AbstractActor {
     }
 
     private void retrieveLastModifiedThingTags() {
-        // TODO: make max query time and streaming rate configurable.
-        final Duration maxQueryTime = modifiedOffset.multipliedBy(2);
+        // TODO: make streaming rate configurable.
         final int temporaryStreamingRate = 100;
 
         final String updaterPath = Serialization.serializedActorPath(thingsUpdater);
         final String selfPath = Serialization.serializedActorPath(getSelf());
 
         final SudoStreamModifiedEntities retrieveModifiedThingTags =
-                SudoStreamModifiedEntities.of(modifiedSince, modifiedOffset, temporaryStreamingRate, maxQueryTime,
-                        updaterPath, selfPath, DittoHeaders.empty());
+                SudoStreamModifiedEntities.of(modifiedSince, modifiedOffset, temporaryStreamingRate, updaterPath,
+                        selfPath, DittoHeaders.empty());
 
         pubSubMediator
                 .tell(new DistributedPubSubMediator.Send(THINGS_ACTOR_PATH, retrieveModifiedThingTags, true),

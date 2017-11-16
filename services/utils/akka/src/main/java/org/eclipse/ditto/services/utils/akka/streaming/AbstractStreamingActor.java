@@ -37,8 +37,15 @@ import scala.concurrent.duration.FiniteDuration;
  */
 public abstract class AbstractStreamingActor<C, E> extends AbstractActor {
 
-    private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
-    private final ActorMaterializer materializer = ActorMaterializer.create(getContext());
+    /**
+     * Logger for this actor.
+     */
+    protected final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+
+    /**
+     * Actor materializer of this actor's system.
+     */
+    protected final ActorMaterializer materializer = ActorMaterializer.create(getContext());
 
     /**
      * @return Class of the commands.
@@ -78,7 +85,7 @@ public abstract class AbstractStreamingActor<C, E> extends AbstractActor {
     protected abstract Source<E, NotUsed> createSource(final C command);
 
     @Override
-    public Receive createReceive() {
+    public final Receive createReceive() {
         return ReceiveBuilder.create()
                 .match(getCommandClass(), this::startStreaming)
                 .matchAny(message -> log.warning("Unexpected message: <{}>", message))

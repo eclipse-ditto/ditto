@@ -11,45 +11,28 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors;
 
-import java.util.ArrayList;
-
 import org.eclipse.ditto.services.models.things.ThingTag;
-import org.eclipse.ditto.services.models.things.commands.sudo.SudoStreamModifiedEntities;
-import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveModifiedThingTagsResponse;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.persistence.mongo.AbstractPersistenceStreamingActor;
 
-import akka.actor.AbstractActor;
-import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.contrib.persistence.mongodb.DittoJavaDslMongoReadJournal;
 import akka.contrib.persistence.mongodb.DittoMongoReadJournal;
-import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
-import akka.japi.pf.ReceiveBuilder;
 import akka.persistence.query.PersistenceQuery;
-import akka.stream.ActorMaterializer;
 
 
 /**
  * Actor which executes special persistence queries on the things event store.
  */
-public final class PersistenceQueriesActor extends AbstractActor {
+public final class PersistenceQueriesActor extends AbstractPersistenceStreamingActor<ThingTag> {
 
     /**
      * The name of this Actor in the ActorSystem.
      */
     public static final String ACTOR_NAME = "persistenceQueries";
 
-    private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
-    
-    private final ActorMaterializer materializer;
-    private final DittoJavaDslMongoReadJournal readJournal;
-
-    private PersistenceQueriesActor() {
-        materializer = ActorMaterializer.create(getContext());
-        readJournal = PersistenceQuery.get(getContext().getSystem())
-                .getReadJournalFor(DittoJavaDslMongoReadJournal.class, DittoMongoReadJournal.Identifier());
-    }
+    private final DittoJavaDslMongoReadJournal readJournal = PersistenceQuery.get(getContext().getSystem())
+            .getReadJournalFor(DittoJavaDslMongoReadJournal.class, DittoMongoReadJournal.Identifier());
 
     /**
      * Creates Akka configuration object Props for this PersistenceQueriesActor.
@@ -68,23 +51,12 @@ public final class PersistenceQueriesActor extends AbstractActor {
     }
 
     @Override
-    public Receive createReceive() {
-        return ReceiveBuilder.create()
-                .match(SudoStreamModifiedEntities.class, command -> {
-                    log.debug("Got 'SudoRetrieveModifiedThingTags' message");
-                    final ActorRef sender = getSender();
-                    readJournal.sequenceNumbersOfPidsByDuration(command.getTimespan(), command.getOffset())
-                            .runFold(new ArrayList<ThingTag>(), (list, pidWithSeqNr) -> {
-                                list.add(ThingTag
-                                        .of(pidWithSeqNr.persistenceId()
-                                                        .replaceFirst(ThingPersistenceActor.PERSISTENCE_ID_PREFIX, ""),
-                                                pidWithSeqNr.sequenceNr()));
-                                return list;
-                            }, materializer).thenAccept(
-                            list -> sender.tell(
-                                    SudoRetrieveModifiedThingTagsResponse.of(list, command.getDittoHeaders()), null));
-                })
-                .matchAny(m -> log.warning("Got unknown message, expected a 'Command': {}", m))
-                .build();
+    protected DittoJavaDslMongoReadJournal getJournal() {
+        return readJournal;
+    }
+
+    @Override
+    protected ThingTag createElement(final String pid, final long sequenceNumber) {
+        return ThingTag.of(pid.replaceFirst(ThingPersistenceActor.PERSISTENCE_ID_PREFIX, ""), sequenceNumber);
     }
 }
