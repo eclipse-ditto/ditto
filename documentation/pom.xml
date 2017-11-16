@@ -213,17 +213,6 @@
                                 </configuration>
                             </execution>
                             <execution>
-                                <id>validate-html</id>
-                                <goals>
-                                    <goal>exec</goal>
-                                </goals>
-                                <phase>generate-resources</phase>
-                                <configuration>
-                                    <file>${project.build.directory}/rubygems/bin/htmlproofer</file>
-                                    <execArgs>--assume-extension ${project.build.outputDirectory}</execArgs>
-                                </configuration>
-                            </execution>
-                            <execution>
                                 <!-- run me with: mvn gem:exec@jekyll-serve -->
                                 <id>jekyll-serve</id>
                                 <goals>

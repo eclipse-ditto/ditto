@@ -130,6 +130,9 @@ entries:
     - title: Overview
       url: /protocol-overview.html
       output: web
+    - title: Twin/live channel
+      url: /protocol-twinlive.html
+      output: web
     - title: Specification
       url: /protocol-specification.html
       output: web
