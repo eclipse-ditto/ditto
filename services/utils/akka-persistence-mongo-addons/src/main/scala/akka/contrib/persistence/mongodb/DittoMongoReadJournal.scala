@@ -11,7 +11,7 @@
  */
 package akka.contrib.persistence.mongodb
 
-import java.time.Duration
+import java.time.{Duration, Instant}
 
 import akka.NotUsed
 import akka.actor.{ExtendedActorSystem, Props}
@@ -72,8 +72,8 @@ class DittoScalaDslMongoReadJournal(impl: DittoMongoPersistenceReadJournallingAp
     Source.actorPublisher[PidWithSeqNr](impl.sequenceNumbersOfPids(pids, offset))
       .mapMaterializedValue(_ => NotUsed)
 
-  def sequenceNumbersOfPidsByDuration(duration: Duration, offset: Duration): Source[PidWithSeqNr, NotUsed] =
-    Source.actorPublisher[PidWithSeqNr](impl.sequenceNumbersOfPidsByDuration(duration, offset))
+  def sequenceNumbersOfPidsByInterval(start: Instant, end: Instant): Source[PidWithSeqNr, NotUsed] =
+    Source.actorPublisher[PidWithSeqNr](impl.sequenceNumbersOfPidsByInterval(start, end))
       .mapMaterializedValue(_ => NotUsed)
 }
 
@@ -104,8 +104,8 @@ class DittoJavaDslMongoReadJournal(rj: DittoScalaDslMongoReadJournal) extends Ja
   def sequenceNumbersOfPids(pids: Array[String], offset: Duration): JSource[PidWithSeqNr, NotUsed] =
     rj.sequenceNumbersOfPids(pids, offset).asJava
 
-  def sequenceNumbersOfPidsByDuration(duration: Duration, offset: Duration): JSource[PidWithSeqNr, NotUsed] =
-    rj.sequenceNumbersOfPidsByDuration(duration, offset).asJava
+  def sequenceNumbersOfPidsByInterval(start: Instant, end: Instant): JSource[PidWithSeqNr, NotUsed] =
+    rj.sequenceNumbersOfPidsByInterval(start, end).asJava
 }
 
 /**
@@ -116,5 +116,5 @@ trait DittoMongoPersistenceReadJournallingApi extends MongoPersistenceReadJourna
 
   def sequenceNumbersOfPids(pids: Array[String], offset: Duration): Props
 
-  def sequenceNumbersOfPidsByDuration(duration: Duration, offset: Duration): Props
+  def sequenceNumbersOfPidsByInterval(start: Instant, end: Instant): Props
 }

@@ -11,9 +11,6 @@
  */
 package org.eclipse.ditto.services.utils.persistence.mongo;
 
-import java.time.Duration;
-import java.time.Instant;
-
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoStreamModifiedEntities;
 import org.eclipse.ditto.services.utils.akka.streaming.AbstractStreamingActor;
 
@@ -55,11 +52,7 @@ public abstract class AbstractPersistenceStreamingActor<T>
 
     @Override
     protected final Source<T, NotUsed> createSource(final SudoStreamModifiedEntities command) {
-        // TODO: use journal method that retrieves events between two instants.
-        final Instant now = Instant.now();
-        final Duration timespan = Duration.between(command.getStart(), now);
-        final Duration offset = Duration.between(command.getEnd(), now);
-        return getJournal().sequenceNumbersOfPidsByDuration(timespan, offset)
+        return getJournal().sequenceNumbersOfPidsByInterval(command.getStart(), command.getEnd())
                 .map(pidWithSeqNr -> createElement(pidWithSeqNr.persistenceId(), pidWithSeqNr.sequenceNr()));
     }
 }

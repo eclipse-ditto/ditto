@@ -11,7 +11,7 @@
  */
 package akka.contrib.persistence.mongodb
 
-import java.time.Duration
+import java.time.{Duration, Instant}
 import java.util.{Date, UUID}
 
 import akka.actor.Props
@@ -151,48 +151,68 @@ class SequenceNumbersOfPids(val driver: CasbahMongoDriver, pids: Array[String], 
 /**
   * Factory for class [[SequenceNumbersOfPids]].
   */
-object SequenceNumbersOfPidsByDuration {
-  def props(driver: CasbahMongoDriver, duration: Duration, offset: Duration): Props =
-    Props(new SequenceNumbersOfPidsByDuration(driver, duration, offset))
+object SequenceNumbersOfPidsByInterval {
+  def props(driver: CasbahMongoDriver, start: Instant, end: Instant): Props =
+    Props(new SequenceNumbersOfPidsByInterval(driver, start, end))
 }
 
 
 /**
-  * Class providing the implementation for retrieving the highest sequence numbers for the modified persistenceIds as a
-  * Stream of [[PidWithSeqNr]]s.
+  * Class providing the implementation for retrieving sequence numbers for persistenceIds modified within the time
+  * interval as a Stream of [[PidWithSeqNr]]s. A persistenceId may appear multiple times in the stream with various
+  * sequence numbers.
   *
   * @param driver the CasbahMongoDriver to use.
-  * @param duration   the persistenceIds to retrieve the highest sequenceNumber for.
+  * @param start  start of the time window.
+  * @param end    end of the time window.
   */
-class SequenceNumbersOfPidsByDuration(val driver: CasbahMongoDriver, duration: Duration, offset: Duration)
+class SequenceNumbersOfPidsByInterval(val driver: CasbahMongoDriver, start: Instant, end: Instant)
   extends SyncActorPublisher[PidWithSeqNr, Stream[PidWithSeqNr]] {
 
   import JournallingFieldNames._
 
-  val offsetDate = MongoDateUtil.retrieveCurrentMongoDateMinusDuration(driver, offset)
-  val searchDate = MongoDateUtil.retrieveCurrentMongoDateMinusDuration(driver, duration)
+  // MongoDB 3.4 object ID consists of:
+  // - 4 byte: number of epoch seconds
+  // - 3 byte: machine ID
+  // - 2 byte: process ID
+  // - 3 byte: counter
+  //
+  // The epoch seconds field is allowed to overflow after year 2038.
+  // The epoch seconds field will no longer reflect the insert time after year 2075.
+  //
+  // The object ID bounds need to be aware of overflow.
+  //
+  def getMongoEpochSecond(instant: Instant): Int = {
+    val epochSeconds: Long = instant.getEpochSecond
+    if (epochSeconds > 0xffffffffL) {
+      val message = s"Year 2106 problem: MongoDB object ID timestamp field overflows unsigned Int! <$instant>"
+      throw new IllegalArgumentException(message)
+    } else {
+      epochSeconds.toInt
+    }
+  }
 
-  override protected def initialCursor: Stream[PidWithSeqNr] =
+  override protected def initialCursor: Stream[PidWithSeqNr] = {
+    val lowerBound: Int = getMongoEpochSecond(start)
+    val upperBound: Int = getMongoEpochSecond(end.plus(Duration.ofSeconds(1)))
     driver.journal
-      .aggregate(List(
-        MongoDBObject("$match" -> MongoDBObject(
-          "_id" -> MongoDBObject("$gte" -> new ObjectId(searchDate)))
+      .aggregate(
+        List(
+          MongoDBObject("$match" -> MongoDBObject(
+            "_id" -> MongoDBObject(
+              "$gte" -> new ObjectId(lowerBound, 0, 0.toShort, 0),
+              "$lt" -> new ObjectId(upperBound, 0, 0.toShort, 0))
+          )),
+          MongoDBObject("$project" -> MongoDBObject(
+            PROCESSOR_ID -> true,
+            SEQUENCE_NUMBER -> s"$$$EVENTS.$SEQUENCE_NUMBER"
+          ))
         ),
-        MongoDBObject("$sort" -> MongoDBObject(TO -> -1)),
-        MongoDBObject("$group" -> MongoDBObject(
-          "_id" -> "$".concat(PROCESSOR_ID),
-          "maxSeqNr" -> MongoDBObject("$first" -> "$".concat(TO)),
-          "oId" -> MongoDBObject("$first" -> "$_id")))
-        ,
-        MongoDBObject("$match" -> MongoDBObject(
-          "oId" -> MongoDBObject("$lte" -> new ObjectId(offsetDate)))
-        )
-      )
-        ,
         AggregationOptions(AggregationOptions.CURSOR)
       )
       .toStream
-      .map(foo => PidWithSeqNr(foo.getAs[String]("_id").get, foo.getAs[Long]("maxSeqNr").get))
+      .map(foo => PidWithSeqNr(foo.getAs[String](PROCESSOR_ID).get, foo.getAs[Long](SEQUENCE_NUMBER).get))
+  }
 
   override protected def next(c: Stream[PidWithSeqNr], atMost: Long): (Vector[PidWithSeqNr], Stream[PidWithSeqNr]) = {
     val (buf, remainder) = c.splitAt(atMost.toIntWithoutWrapping)
@@ -219,8 +239,8 @@ class DittoCasbahPersistenceReadJournaller(driver: CasbahMongoDriver) extends Ca
   override def sequenceNumbersOfPids(pids: Array[String], offset: Duration): Props =
     SequenceNumbersOfPids.props(driver, pids, offset)
 
-  override def sequenceNumbersOfPidsByDuration(duration: Duration, offset: Duration): Props =
-    SequenceNumbersOfPidsByDuration.props(driver, duration, offset)
+  override def sequenceNumbersOfPidsByInterval(start: Instant, end: Instant): Props =
+    SequenceNumbersOfPidsByInterval.props(driver, start, end)
 }
 
 
