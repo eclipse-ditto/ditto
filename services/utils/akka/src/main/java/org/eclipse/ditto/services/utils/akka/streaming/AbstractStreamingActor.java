@@ -13,8 +13,6 @@ package org.eclipse.ditto.services.utils.akka.streaming;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 
-import java.util.Collections;
-
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
 import akka.Done;
@@ -53,28 +51,12 @@ public abstract class AbstractStreamingActor<C, E> extends AbstractActor {
     protected abstract Class<C> getCommandClass();
 
     /**
-     * Extract recipient of elements from a command.
-     *
-     * @param command The command to start a stream.
-     * @return Reference of the actor to stream elements to.
-     */
-    protected abstract ActorRef getElementRecipient(final C command);
-
-    /**
-     * Extract recipient of stream status messages.
-     *
-     * @param command The command to start a stream.
-     * @return Reference of the actor to report stream status to.
-     */
-    protected abstract ActorRef getStatusRecipient(final C command);
-
-    /**
      * Extract streaming rate from a command.
      *
      * @param command The command to start a stream.
      * @return The number of elements to send per second.
      */
-    protected abstract int getElementsPerSecond(final C command);
+    protected abstract int getRate(final C command);
 
     /**
      * Starts a source of elements according to the command.
@@ -93,18 +75,13 @@ public abstract class AbstractStreamingActor<C, E> extends AbstractActor {
     }
 
     private void startStreaming(final C command) {
-        final ActorRef elementRecipient = getElementRecipient(command);
-        final ActorRef statusRecipient = getStatusRecipient(command);
-        final int elementsPerSecond = getElementsPerSecond(command);
+        final ActorRef recipient = getSender();
+        final int elementsPerSecond = getRate(command);
         final FiniteDuration second = FiniteDuration.create(1, SECONDS);
 
         createSource(command)
                 .throttle(elementsPerSecond, second, elementsPerSecond, ThrottleMode.shaping())
-                .mapConcat(element -> {
-                    elementRecipient.tell(element, ActorRef.noSender());
-                    return Collections.emptyList();
-                })
-                .runWith(Sink.actorRef(statusRecipient, Done.getInstance()), materializer);
+                .runWith(Sink.actorRef(recipient, Done.getInstance()), materializer);
 
     }
 }

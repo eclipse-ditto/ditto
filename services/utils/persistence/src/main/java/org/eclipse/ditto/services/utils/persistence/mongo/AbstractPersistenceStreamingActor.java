@@ -11,12 +11,13 @@
  */
 package org.eclipse.ditto.services.utils.persistence.mongo;
 
+import java.time.Duration;
+import java.time.Instant;
+
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoStreamModifiedEntities;
 import org.eclipse.ditto.services.utils.akka.streaming.AbstractStreamingActor;
 
 import akka.NotUsed;
-import akka.actor.ActorRef;
-import akka.actor.ActorRefProvider;
 import akka.contrib.persistence.mongodb.DittoJavaDslMongoReadJournal;
 import akka.stream.javadsl.Source;
 
@@ -25,8 +26,6 @@ import akka.stream.javadsl.Source;
  */
 public abstract class AbstractPersistenceStreamingActor<T>
         extends AbstractStreamingActor<SudoStreamModifiedEntities, T> {
-
-    private final ActorRefProvider actorRefProvider = getContext().system().provider();
 
     /**
      * Returns the journal to query for entities modified in a time window in the past.
@@ -50,23 +49,17 @@ public abstract class AbstractPersistenceStreamingActor<T>
     }
 
     @Override
-    protected final ActorRef getElementRecipient(final SudoStreamModifiedEntities command) {
-        return actorRefProvider.resolveActorRef(command.getElementRecipient());
-    }
-
-    @Override
-    protected final ActorRef getStatusRecipient(final SudoStreamModifiedEntities command) {
-        return actorRefProvider.resolveActorRef(command.getStatusRecipient());
-    }
-
-    @Override
-    protected final int getElementsPerSecond(final SudoStreamModifiedEntities command) {
-        return command.getElementsPerSecond();
+    protected int getRate(final SudoStreamModifiedEntities command) {
+        return command.getRate();
     }
 
     @Override
     protected final Source<T, NotUsed> createSource(final SudoStreamModifiedEntities command) {
-        return getJournal().sequenceNumbersOfPidsByDuration(command.getTimespan(), command.getOffset())
+        // TODO: use journal method that retrieves events between two instants.
+        final Instant now = Instant.now();
+        final Duration timespan = Duration.between(command.getStart(), now);
+        final Duration offset = Duration.between(command.getEnd(), now);
+        return getJournal().sequenceNumbersOfPidsByDuration(timespan, offset)
                 .map(pidWithSeqNr -> createElement(pidWithSeqNr.persistenceId(), pidWithSeqNr.sequenceNr()));
     }
 }

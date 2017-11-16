@@ -17,7 +17,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.Duration;
+import java.time.Instant;
 import java.util.Arrays;
 
 import org.eclipse.ditto.json.JsonFactory;
@@ -109,15 +109,12 @@ public final class CommandAndEventJsonExamplesProducer {
         writeJson(sudoCommandsDir.resolve(Paths.get("sudoRetrieveThingsResponse-withFieldSelector.json")),
                 sudoRetrieveThingsResponseWithFieldSelector);
 
-        final Duration timespan = Duration.ofMinutes(5);
-        final Duration offset = Duration.ofMinutes(1);
-        final int elementsPerSecond = 100;
-        final String elementRecipient = "akka.tcp://actorSystem@hostname/user/elementRecipientActor";
-        final String statusRecipient = "akka.tcp://actorSystem@hostname/user/statusRecipientActor";
+        final Instant start = Instant.EPOCH;
+        final Instant end = Instant.now();
+        final int rate = 100;
 
         final SudoStreamModifiedEntities sudoRetrieveModifiedThingTags =
-                SudoStreamModifiedEntities.of(timespan, offset, elementsPerSecond, elementRecipient, statusRecipient,
-                        TestConstants.EMPTY_HEADERS);
+                SudoStreamModifiedEntities.of(start, end, rate, TestConstants.EMPTY_HEADERS);
         writeJson(sudoCommandsDir.resolve(Paths.get("sudoStreamModifiedEntities.json")),
                 sudoRetrieveModifiedThingTags);
 
