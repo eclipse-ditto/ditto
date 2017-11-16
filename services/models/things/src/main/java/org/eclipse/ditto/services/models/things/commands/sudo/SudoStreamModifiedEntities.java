@@ -64,9 +64,6 @@ public final class SudoStreamModifiedEntities extends AbstractCommand<SudoStream
     static final JsonFieldDefinition<Integer> JSON_ELEMENTS_PER_SECOND =
             JsonFactory.newIntFieldDefinition("payload/elementsPerSecond", REGULAR, V_1, V_2);
 
-    static final JsonFieldDefinition<String> JSON_MAX_QUERY_TIME =
-            JsonFactory.newStringFieldDefinition("payload/maxQueryTime", REGULAR, V_1, V_2);
-
     static final JsonFieldDefinition<String> JSON_ELEMENT_RECIPIENT =
             JsonFactory.newStringFieldDefinition("payload/elementRecipient", REGULAR, V_1, V_2);
 
@@ -82,14 +79,11 @@ public final class SudoStreamModifiedEntities extends AbstractCommand<SudoStream
 
     private final int elementsPerSecond;
 
-    private final Duration maxQueryTime;
-
     private final String elementRecipient;
 
     private final String statusRecipient;
 
-    private SudoStreamModifiedEntities(final Duration timespan, final Duration offset,
-            final int elementsPerSecond, final Duration maxQueryTime,
+    private SudoStreamModifiedEntities(final Duration timespan, final Duration offset, final int elementsPerSecond,
             final String elementRecipient, final String statusRecipient, final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
 
@@ -98,7 +92,6 @@ public final class SudoStreamModifiedEntities extends AbstractCommand<SudoStream
         this.elementRecipient = elementRecipient;
         this.statusRecipient = statusRecipient;
         this.elementsPerSecond = elementsPerSecond;
-        this.maxQueryTime = maxQueryTime;
     }
 
     /**
@@ -113,9 +106,9 @@ public final class SudoStreamModifiedEntities extends AbstractCommand<SudoStream
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static SudoStreamModifiedEntities of(final Duration timespan, final Duration offset,
-            final int elementsPerSecond, final Duration maxQueryTime,
-            final String elementRecipient, final String statusRecipient, final DittoHeaders dittoHeaders) {
-        return new SudoStreamModifiedEntities(timespan, offset, elementsPerSecond, maxQueryTime, elementRecipient,
+            final int elementsPerSecond, final String elementRecipient, final String statusRecipient,
+            final DittoHeaders dittoHeaders) {
+        return new SudoStreamModifiedEntities(timespan, offset, elementsPerSecond, elementRecipient,
                 statusRecipient, dittoHeaders);
     }
 
@@ -152,10 +145,9 @@ public final class SudoStreamModifiedEntities extends AbstractCommand<SudoStream
             final Duration extractedTimespan = Duration.parse(jsonObject.getValueOrThrow(JSON_TIMESPAN));
             final Duration extractedOffset = Duration.parse(jsonObject.getValue(JSON_OFFSET).orElse(NULL_OFFSET));
             final int elementsPerSecond = jsonObject.getValueOrThrow(JSON_ELEMENTS_PER_SECOND);
-            final Duration maxQueryTime = Duration.parse(jsonObject.getValueOrThrow(JSON_MAX_QUERY_TIME));
             final String elementRecipient = jsonObject.getValueOrThrow(JSON_ELEMENT_RECIPIENT);
             final String statusRecipient = jsonObject.getValueOrThrow(JSON_STATUS_RECIPIENT);
-            return SudoStreamModifiedEntities.of(extractedTimespan, extractedOffset, elementsPerSecond, maxQueryTime,
+            return SudoStreamModifiedEntities.of(extractedTimespan, extractedOffset, elementsPerSecond,
                     elementRecipient, statusRecipient, dittoHeaders);
         } catch (final DateTimeParseException e) {
             throw JsonParseException.newBuilder()
@@ -184,6 +176,31 @@ public final class SudoStreamModifiedEntities extends AbstractCommand<SudoStream
         return offset;
     }
 
+    /**
+     * Returns the streaming rate.
+     *
+     * @return Number of elements to stream per second.
+     */
+    public int getElementsPerSecond() {
+        return elementsPerSecond;
+    }
+
+    /**
+     * Returns the serialized actor reference to stream elements to.
+     *
+     * @return The actor reference.
+     */
+    public String getElementRecipient() {
+        return elementRecipient;
+    }
+
+    /**
+     * Returns the serialized actor reference to stream status messages to.
+     */
+    public String getStatusRecipient() {
+        return statusRecipient;
+    }
+
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
@@ -191,19 +208,18 @@ public final class SudoStreamModifiedEntities extends AbstractCommand<SudoStream
         jsonObjectBuilder.set(JSON_TIMESPAN, timespan.toString(), predicate);
         jsonObjectBuilder.set(JSON_OFFSET, offset.toString(), predicate);
         jsonObjectBuilder.set(JSON_ELEMENTS_PER_SECOND, elementsPerSecond, predicate);
-        jsonObjectBuilder.set(JSON_MAX_QUERY_TIME, maxQueryTime.toString(), predicate);
         jsonObjectBuilder.set(JSON_ELEMENT_RECIPIENT, elementRecipient, predicate);
         jsonObjectBuilder.set(JSON_STATUS_RECIPIENT, statusRecipient, predicate);
     }
 
     @Override
     public SudoStreamModifiedEntities setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(timespan, offset, elementsPerSecond, maxQueryTime, elementRecipient, statusRecipient, dittoHeaders);
+        return of(timespan, offset, elementsPerSecond, elementRecipient, statusRecipient, dittoHeaders);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), timespan, offset, elementsPerSecond, maxQueryTime, elementRecipient,
+        return Objects.hash(super.hashCode(), timespan, offset, elementsPerSecond, elementRecipient,
                 statusRecipient);
     }
 
@@ -219,7 +235,6 @@ public final class SudoStreamModifiedEntities extends AbstractCommand<SudoStream
         final SudoStreamModifiedEntities that = (SudoStreamModifiedEntities) obj;
         return that.canEqual(this) && Objects.equals(timespan, that.timespan) && Objects.equals(offset, that.offset)
                 && Objects.equals(elementsPerSecond, that.elementsPerSecond)
-                && Objects.equals(maxQueryTime, that.maxQueryTime)
                 && Objects.equals(elementRecipient, that.elementRecipient)
                 && Objects.equals(statusRecipient, that.statusRecipient)
                 && super.equals(that);
@@ -236,7 +251,6 @@ public final class SudoStreamModifiedEntities extends AbstractCommand<SudoStream
                 + ", timespan=" + timespan
                 + ", offset= " + offset
                 + ", elementsPerSecond= " + elementsPerSecond
-                + ", maxQueryTime= " + maxQueryTime
                 + ", elementRecipient=" + elementRecipient
                 + ", statusRecipient=" + statusRecipient
                 + "]";

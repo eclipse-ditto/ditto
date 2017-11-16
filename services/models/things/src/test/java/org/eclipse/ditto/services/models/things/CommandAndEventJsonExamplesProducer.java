@@ -112,13 +112,12 @@ public final class CommandAndEventJsonExamplesProducer {
         final Duration timespan = Duration.ofMinutes(5);
         final Duration offset = Duration.ofMinutes(1);
         final int elementsPerSecond = 100;
-        final Duration maxQueryTime = Duration.ofMinutes(4);
         final String elementRecipient = "akka.tcp://actorSystem@hostname/user/elementRecipientActor";
         final String statusRecipient = "akka.tcp://actorSystem@hostname/user/statusRecipientActor";
 
         final SudoStreamModifiedEntities sudoRetrieveModifiedThingTags =
-                SudoStreamModifiedEntities.of(timespan, offset, elementsPerSecond, maxQueryTime, elementRecipient,
-                        statusRecipient, TestConstants.EMPTY_HEADERS);
+                SudoStreamModifiedEntities.of(timespan, offset, elementsPerSecond, elementRecipient, statusRecipient,
+                        TestConstants.EMPTY_HEADERS);
         writeJson(sudoCommandsDir.resolve(Paths.get("sudoStreamModifiedEntities.json")),
                 sudoRetrieveModifiedThingTags);
 

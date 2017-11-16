@@ -37,7 +37,6 @@ public final class SudoStreamModifiedEntitiesTest {
     private static final Duration KNOWN_TIMESPAN = Duration.ofMinutes(5);
     private static final Duration KNOWN_OFFSET = Duration.ofMinutes(1);
     private static final int KNOWN_ELEMENTS_PER_SECOND = 1234;
-    private static final Duration KNOWN_MAX_QUERY_TIME = Duration.ofDays(365);
     private static final String KNOWN_ELEMENT_RECIPIENT = "akka.tcp://known@element/user/recipient";
     private static final String KNOWN_STATUS_RECIPIENT = "akka.tcp://known@status/user/recipient";
 
@@ -46,7 +45,6 @@ public final class SudoStreamModifiedEntitiesTest {
             .set(SudoStreamModifiedEntities.JSON_TIMESPAN, KNOWN_TIMESPAN.toString())
             .set(SudoStreamModifiedEntities.JSON_OFFSET, KNOWN_OFFSET.toString())
             .set(SudoStreamModifiedEntities.JSON_ELEMENTS_PER_SECOND, KNOWN_ELEMENTS_PER_SECOND)
-            .set(SudoStreamModifiedEntities.JSON_MAX_QUERY_TIME, KNOWN_MAX_QUERY_TIME.toString())
             .set(SudoStreamModifiedEntities.JSON_ELEMENT_RECIPIENT, KNOWN_ELEMENT_RECIPIENT)
             .set(SudoStreamModifiedEntities.JSON_STATUS_RECIPIENT, KNOWN_STATUS_RECIPIENT)
             .build();
@@ -71,7 +69,7 @@ public final class SudoStreamModifiedEntitiesTest {
     public void toJsonReturnsExpected() {
         final SudoStreamModifiedEntities underTest =
                 SudoStreamModifiedEntities.of(KNOWN_TIMESPAN, KNOWN_OFFSET, KNOWN_ELEMENTS_PER_SECOND,
-                        KNOWN_MAX_QUERY_TIME, KNOWN_ELEMENT_RECIPIENT, KNOWN_STATUS_RECIPIENT, EMPTY_DITTO_HEADERS);
+                        KNOWN_ELEMENT_RECIPIENT, KNOWN_STATUS_RECIPIENT, EMPTY_DITTO_HEADERS);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
         assertThat(actualJson).isEqualTo(KNOWN_JSON);
