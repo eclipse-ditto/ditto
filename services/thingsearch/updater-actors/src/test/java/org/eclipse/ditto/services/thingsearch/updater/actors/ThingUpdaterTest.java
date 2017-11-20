@@ -76,11 +76,11 @@ import org.mockito.junit.MockitoJUnitRunner;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
-import akka.Done;
 import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
+import akka.actor.Status;
 import akka.event.LoggingAdapter;
 import akka.pattern.CircuitBreaker;
 import akka.stream.javadsl.Source;
@@ -930,7 +930,7 @@ public final class ThingUpdaterTest {
                 waitUntil().insertOrUpdate(eq(currentThing), eq(thingRevision), eq(-1L));
 
                 // THEN: success is acknowledged
-                expectMsgClass(Done.class);
+                expectMsgClass(Status.Success.class);
             }
         };
     }
@@ -950,7 +950,7 @@ public final class ThingUpdaterTest {
                 underTest.tell(thingTag, ref());
 
                 // THEN: success is acknowledged
-                expectMsgClass(Done.class);
+                expectMsgClass(Status.Success.class);
             }
         };
     }

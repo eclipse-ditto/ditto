@@ -30,7 +30,8 @@ import scala.concurrent.duration.FiniteDuration;
  * Actor that receives a stream of elements, transforms them, forwards them to another actor, and expects as many
  * acknowledgements as there are streamed elements. Terminates self if no message was received for a period of time.
  * <p>
- * Stream elements are to be acknowledged by {@code }
+ * Each stream element is to be acknowledged by a {@code akka.actor.Status.Success}. An {@code akka.Done} object
+ * should be sent at the end of the stream.
  * </p>
  *
  * @param <E> Type of received stream elements.
@@ -43,31 +44,26 @@ public abstract class AbstractStreamForwarder<E, M> extends AbstractActor {
      */
     protected final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
-    private final ActorRef recipient;
-    private final Duration maxIdleTime;
-
-    private Cancellable activityCheck;
-
     private Instant lastMessageReceived = Instant.now();
     private long elementCount = 0;
     private long ackCount = 0;
     private boolean streamComplete = false;
 
-    /**
-     * Creates an instance of this actor.
-     *
-     * @param recipient Recipient of forwarded stream elements.
-     * @param maxIdleTime How long to wait before terminating self since the last received message.
-     */
-    protected AbstractStreamForwarder(final ActorRef recipient, final Duration maxIdleTime) {
-        this.recipient = recipient;
-        this.maxIdleTime = maxIdleTime;
+    private Cancellable activityCheck;
 
-        final FiniteDuration delayAndInterval = FiniteDuration.create(maxIdleTime.getSeconds(), TimeUnit.SECONDS);
-        activityCheck = getContext().system().scheduler()
-                .schedule(delayAndInterval, delayAndInterval, getSelf(), new CheckForActivity(),
-                        getContext().dispatcher(), ActorRef.noSender());
-    }
+    /**
+     * Returns the actor to send transformed stream elements to.
+     *
+     * @return Reference of the recipient actor.
+     */
+    protected abstract ActorRef getRecipient();
+
+    /**
+     * Returns the maximum time this actor waits for a message before it terminates itself.
+     *
+     * @return The maximum idle time.
+     */
+    protected abstract Duration getMaxIdleTime();
 
     /**
      * Returns the class of stream elements.
@@ -93,6 +89,16 @@ public abstract class AbstractStreamForwarder<E, M> extends AbstractActor {
     }
 
     @Override
+    public void preStart() throws Exception {
+        super.preStart();
+
+        final FiniteDuration delayAndInterval = FiniteDuration.create(getMaxIdleTime().getSeconds(), TimeUnit.SECONDS);
+        activityCheck = getContext().system().scheduler()
+                .schedule(delayAndInterval, delayAndInterval, getSelf(), new CheckForActivity(),
+                        getContext().dispatcher(), ActorRef.noSender());
+    }
+
+    @Override
     public void postStop() throws Exception {
         if (null != activityCheck) {
             activityCheck.cancel();
@@ -113,11 +119,11 @@ public abstract class AbstractStreamForwarder<E, M> extends AbstractActor {
 
     private void transformAndForwardElement(final E element) {
         if (streamComplete) {
-            log.error("Received stream element <{}> after stream termination.", element);
+            log.error("Received stream element <{}> after stream termination; will forward it anyway.", element);
         }
         elementCount++;
         final M message = transformElement(element);
-        recipient.tell(message, getSelf());
+        getRecipient().tell(message, getSelf());
         updateLastMessageReceived();
     }
 
@@ -145,7 +151,7 @@ public abstract class AbstractStreamForwarder<E, M> extends AbstractActor {
 
     private void checkForActivity(final CheckForActivity message) {
         final Duration sinceLastMessage = Duration.between(lastMessageReceived, Instant.now());
-        if (sinceLastMessage.compareTo(maxIdleTime) > 0) {
+        if (sinceLastMessage.compareTo(getMaxIdleTime()) > 0) {
             log.error("Stream timed out. {} elements, {} acks. Last message: <{}>", elementCount, ackCount,
                     lastMessageReceived);
             getContext().stop(getSelf());
