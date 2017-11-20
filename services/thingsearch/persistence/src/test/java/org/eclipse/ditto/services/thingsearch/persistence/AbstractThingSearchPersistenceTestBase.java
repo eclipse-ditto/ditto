@@ -29,6 +29,7 @@ import org.eclipse.ditto.services.thingsearch.common.model.ResultList;
 import org.eclipse.ditto.services.thingsearch.persistence.read.MongoThingsSearchPersistence;
 import org.eclipse.ditto.services.thingsearch.persistence.read.query.MongoAggregationBuilderFactory;
 import org.eclipse.ditto.services.thingsearch.persistence.read.query.MongoQueryBuilderFactory;
+import org.eclipse.ditto.services.thingsearch.persistence.write.impl.MongoEventToPersistenceStrategyFactory;
 import org.eclipse.ditto.services.thingsearch.persistence.write.impl.MongoThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Criteria;
 import org.eclipse.ditto.services.thingsearch.querymodel.criteria.CriteriaFactory;
@@ -75,7 +76,7 @@ public abstract class AbstractThingSearchPersistenceTestBase {
     private static final Config CONFIG = ConfigFactory.load("test");
 
     protected static final CriteriaFactory cf = new CriteriaFactoryImpl();
-    protected static final ThingsFieldExpressionFactory ef = new ThingsFieldExpressionFactoryImpl();
+    protected static final ThingsFieldExpressionFactory fef = new ThingsFieldExpressionFactoryImpl();
     protected static final QueryBuilderFactory qbf = new MongoQueryBuilderFactory();
     protected static final AggregationBuilderFactory abf = new MongoAggregationBuilderFactory();
 
@@ -84,8 +85,8 @@ public abstract class AbstractThingSearchPersistenceTestBase {
     protected static MongoClientWrapper mongoClient;
     protected MongoThingsSearchPersistence readPersistence;
     protected MongoThingsSearchUpdaterPersistence writePersistence;
-    protected MongoCollection<Document> thingsCollection;
-    protected MongoCollection<Document> policiesCollection;
+    private MongoCollection<Document> thingsCollection;
+    private MongoCollection<Document> policiesCollection;
 
     protected ActorSystem actorSystem;
     protected LoggingAdapter log;
@@ -108,7 +109,8 @@ public abstract class AbstractThingSearchPersistenceTestBase {
         readPersistence = provideReadPersistence();
         writePersistence = provideWritePersistence();
         thingsCollection = mongoClient.getDatabase().getCollection(THINGS_COLLECTION_NAME);
-        policiesCollection = mongoClient.getDatabase().getCollection(POLICIES_BASED_SEARCH_INDEX_COLLECTION_NAME);
+        policiesCollection = mongoClient.getDatabase().getCollection
+                (POLICIES_BASED_SEARCH_INDEX_COLLECTION_NAME);
 
         log.info("before() method of test is done..");
     }
@@ -121,7 +123,7 @@ public abstract class AbstractThingSearchPersistenceTestBase {
     }
 
     protected MongoThingsSearchUpdaterPersistence provideWritePersistence() {
-        return new MongoThingsSearchUpdaterPersistence(mongoClient, log);
+        return new MongoThingsSearchUpdaterPersistence(mongoClient, log, new MongoEventToPersistenceStrategyFactory());
     }
 
     protected static MongoClientWrapper provideClientWrapper() {

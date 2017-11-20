@@ -24,6 +24,7 @@ import org.bson.Document;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
 import org.eclipse.ditto.services.thingsearch.persistence.read.document.DocumentMapper;
+import org.eclipse.ditto.services.thingsearch.persistence.write.IndexLengthRestrictionEnforcer;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;

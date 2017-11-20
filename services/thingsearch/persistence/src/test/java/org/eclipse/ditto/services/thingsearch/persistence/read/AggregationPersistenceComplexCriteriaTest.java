@@ -132,11 +132,11 @@ public final class AggregationPersistenceComplexCriteriaTest extends AbstractVer
     }
 
     private Criteria searchForKey(final String key, final String value) {
-        return AbstractThingSearchPersistenceTestBase.cf.fieldCriteria(AbstractThingSearchPersistenceTestBase.ef.filterByAttribute(key), AbstractThingSearchPersistenceTestBase.cf.eq(value));
+        return AbstractThingSearchPersistenceTestBase.cf.fieldCriteria(AbstractThingSearchPersistenceTestBase.fef.filterByAttribute(key), AbstractThingSearchPersistenceTestBase.cf.eq(value));
     }
 
     private Criteria searchForKey(final String key) {
-        return AbstractThingSearchPersistenceTestBase.cf.fieldCriteria(AbstractThingSearchPersistenceTestBase.ef.filterByAttribute(key), AbstractThingSearchPersistenceTestBase.cf.eq(KNOWN_STRING_VALUE));
+        return AbstractThingSearchPersistenceTestBase.cf.fieldCriteria(AbstractThingSearchPersistenceTestBase.fef.filterByAttribute(key), AbstractThingSearchPersistenceTestBase.cf.eq(KNOWN_STRING_VALUE));
     }
 
     private void insertDocsForComplexCriteriaV1() {

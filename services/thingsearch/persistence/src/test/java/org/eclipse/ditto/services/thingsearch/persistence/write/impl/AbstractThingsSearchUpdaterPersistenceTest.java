@@ -16,11 +16,15 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
 import java.util.Set;
 
 import org.eclipse.ditto.model.policiesenforcers.PolicyEnforcer;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.thingsearch.persistence.AbstractThingSearchPersistenceTestBase;
+import org.eclipse.ditto.services.thingsearch.persistence.ProcessableThingEvent;
+import org.eclipse.ditto.services.thingsearch.persistence.write.AbstractThingsSearchUpdaterPersistence;
+import org.eclipse.ditto.services.thingsearch.persistence.write.IndexLengthRestrictionEnforcer;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingMetadata;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -105,7 +109,7 @@ public final class AbstractThingsSearchUpdaterPersistenceTest extends AbstractTh
 
 
         @Override
-        PartialFunction<Throwable, Source<Boolean, NotUsed>> errorRecovery(final String thingId) {
+        protected PartialFunction<Throwable, Source<Boolean, NotUsed>> errorRecovery(final String thingId) {
             return null;
         }
 
@@ -121,7 +125,8 @@ public final class AbstractThingsSearchUpdaterPersistenceTest extends AbstractTh
 
         @Override
         public Source<Boolean, NotUsed> executeCombinedWrites(final String thingId,
-                final CombinedThingWrites combinedThingWrites) {
+                final List<ProcessableThingEvent> gatheredEvents,
+                final PolicyEnforcer policyEnforcer, final long targetRevision) {
             return null;
         }
 

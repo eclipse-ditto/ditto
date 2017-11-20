@@ -11,11 +11,12 @@
  */
 package org.eclipse.ditto.services.thingsearch.persistence.write;
 
+import java.util.List;
 import java.util.Set;
 
 import org.eclipse.ditto.model.policiesenforcers.PolicyEnforcer;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.services.thingsearch.persistence.write.impl.CombinedThingWrites;
+import org.eclipse.ditto.services.thingsearch.persistence.ProcessableThingEvent;
 
 import akka.NotUsed;
 import akka.stream.javadsl.Source;
@@ -53,14 +54,18 @@ public interface ThingsSearchUpdaterPersistence {
     Source<Boolean, NotUsed> delete(String thingId);
 
     /**
-     * Executes the passed in {@link CombinedThingWrites} in ordered manner.
-     * If one write fails, the other writes will not be executed.
+     * Perform all updates represented by {@code gatheredEvents} in an ordered manner. If any ot the updates fails,
+     * no update will be executed.
      *
      * @param thingId the id of the thing to update.
-     * @param combinedThingWrites the combined thing writes to execute in this update.
+     * @param gatheredEvents the combined thing writes to execute in this update.
+     * @param policyEnforcer The policy enforcer to enforce a policy.
+     * @param targetRevision The target revision number after the writes have been executed. Should be equal to the
+     * revision of the last element in {@code gatheredEvents}.
      * @return a {@link Source} holding the publisher to execute the operation.
      */
-    Source<Boolean, NotUsed> executeCombinedWrites(String thingId, CombinedThingWrites combinedThingWrites);
+    Source<Boolean, NotUsed> executeCombinedWrites(String thingId, List<ProcessableThingEvent> gatheredEvents,
+            PolicyEnforcer policyEnforcer, long targetRevision);
 
     /**
      * Updates the thing representation as well as the policy index due to the passed in thing; must be called after the

@@ -75,7 +75,7 @@ public final class AggregationSimpleCriteriaTest extends AbstractVersionedThingS
     public void findAllByStringAttribute() {
         final PolicyRestrictedSearchAggregation aggregation = AbstractThingSearchPersistenceTestBase.abf
                 .newBuilder(AbstractThingSearchPersistenceTestBase.cf.fieldCriteria(
-                        AbstractThingSearchPersistenceTestBase.ef.filterByAttribute(KNOWN_ATTRIBUTE_KEY),
+                        AbstractThingSearchPersistenceTestBase.fef.filterByAttribute(KNOWN_ATTRIBUTE_KEY),
                         AbstractThingSearchPersistenceTestBase.cf.eq(KNOWN_STRING_VALUE)))
                 .authorizationSubjects(AbstractThingSearchPersistenceTestBase.KNOWN_SUBJECTS)
                 .build();
@@ -89,7 +89,7 @@ public final class AggregationSimpleCriteriaTest extends AbstractVersionedThingS
     public void findAllByNumberAttribute() {
         final PolicyRestrictedSearchAggregation aggregation = AbstractThingSearchPersistenceTestBase.abf
                 .newBuilder(AbstractThingSearchPersistenceTestBase.cf.fieldCriteria(
-                        AbstractThingSearchPersistenceTestBase.ef.filterByAttribute(KNOWN_ATTRIBUTE_KEY),
+                        AbstractThingSearchPersistenceTestBase.fef.filterByAttribute(KNOWN_ATTRIBUTE_KEY),
                         AbstractThingSearchPersistenceTestBase.cf.eq(KNOWN_NUMBER_VALUE)))
                 .authorizationSubjects(AbstractThingSearchPersistenceTestBase.KNOWN_SUBJECTS)
                 .build();
@@ -103,7 +103,7 @@ public final class AggregationSimpleCriteriaTest extends AbstractVersionedThingS
     public void findAllByBooleanAttribute() {
         final PolicyRestrictedSearchAggregation aggregation = AbstractThingSearchPersistenceTestBase.abf
                 .newBuilder(AbstractThingSearchPersistenceTestBase.cf.fieldCriteria(
-                        AbstractThingSearchPersistenceTestBase.ef.filterByAttribute(KNOWN_ATTRIBUTE_KEY),
+                        AbstractThingSearchPersistenceTestBase.fef.filterByAttribute(KNOWN_ATTRIBUTE_KEY),
                         AbstractThingSearchPersistenceTestBase.cf.eq(KNOWN_BOOLEAN_VALUE)))
                 .authorizationSubjects(AbstractThingSearchPersistenceTestBase.KNOWN_SUBJECTS)
                 .build();
@@ -117,7 +117,7 @@ public final class AggregationSimpleCriteriaTest extends AbstractVersionedThingS
     public void findNeByStringAttribute() {
         final PolicyRestrictedSearchAggregation aggregation = AbstractThingSearchPersistenceTestBase.abf
                 .newBuilder(AbstractThingSearchPersistenceTestBase.cf.fieldCriteria(
-                        AbstractThingSearchPersistenceTestBase.ef.filterByAttribute(KNOWN_ATTRIBUTE_KEY),
+                        AbstractThingSearchPersistenceTestBase.fef.filterByAttribute(KNOWN_ATTRIBUTE_KEY),
                         AbstractThingSearchPersistenceTestBase.cf.ne(KNOWN_STRING_VALUE)))
                 .authorizationSubjects(AbstractThingSearchPersistenceTestBase.KNOWN_SUBJECTS)
                 .build();
@@ -132,7 +132,7 @@ public final class AggregationSimpleCriteriaTest extends AbstractVersionedThingS
     public void findNeByNumberAttribute() {
         final PolicyRestrictedSearchAggregation aggregation = AbstractThingSearchPersistenceTestBase.abf
                 .newBuilder(AbstractThingSearchPersistenceTestBase.cf.fieldCriteria(
-                        AbstractThingSearchPersistenceTestBase.ef.filterByAttribute(KNOWN_ATTRIBUTE_KEY),
+                        AbstractThingSearchPersistenceTestBase.fef.filterByAttribute(KNOWN_ATTRIBUTE_KEY),
                         AbstractThingSearchPersistenceTestBase.cf.ne(KNOWN_NUMBER_VALUE)))
                 .authorizationSubjects(AbstractThingSearchPersistenceTestBase.KNOWN_SUBJECTS)
                 .build();
@@ -147,7 +147,7 @@ public final class AggregationSimpleCriteriaTest extends AbstractVersionedThingS
     public void findNeByBooleanAttribute() {
         final PolicyRestrictedSearchAggregation aggregation = AbstractThingSearchPersistenceTestBase.abf
                 .newBuilder(AbstractThingSearchPersistenceTestBase.cf.fieldCriteria(
-                        AbstractThingSearchPersistenceTestBase.ef.filterByAttribute(KNOWN_ATTRIBUTE_KEY),
+                        AbstractThingSearchPersistenceTestBase.fef.filterByAttribute(KNOWN_ATTRIBUTE_KEY),
                         AbstractThingSearchPersistenceTestBase.cf.ne(KNOWN_BOOLEAN_VALUE)))
                 .authorizationSubjects(AbstractThingSearchPersistenceTestBase.KNOWN_SUBJECTS)
                 .build();

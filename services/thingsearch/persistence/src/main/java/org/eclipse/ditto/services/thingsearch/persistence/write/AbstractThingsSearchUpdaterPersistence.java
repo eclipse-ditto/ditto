@@ -9,9 +9,10 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package org.eclipse.ditto.services.thingsearch.persistence.write.impl;
+package org.eclipse.ditto.services.thingsearch.persistence.write;
 
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.services.thingsearch.persistence.write.IndexLengthRestrictionEnforcer;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
 
 import akka.NotUsed;
@@ -22,23 +23,23 @@ import scala.PartialFunction;
 /**
  * Abstract concepts used for Updater Persistence.
  */
-abstract class AbstractThingsSearchUpdaterPersistence implements ThingsSearchUpdaterPersistence {
+public abstract class AbstractThingsSearchUpdaterPersistence implements ThingsSearchUpdaterPersistence {
 
     /**
      * The logger.
      */
-    final LoggingAdapter log;
+    protected final LoggingAdapter log;
     /**
      * The restriction helper.
      */
-    final IndexLengthRestrictionEnforcer indexLengthRestrictionEnforcer;
+    protected final IndexLengthRestrictionEnforcer indexLengthRestrictionEnforcer;
 
     /**
      * Default contructor.
      *
      * @param loggingAdapter the logger to use for logging.
      */
-    AbstractThingsSearchUpdaterPersistence(final LoggingAdapter loggingAdapter) {
+    public AbstractThingsSearchUpdaterPersistence(final LoggingAdapter loggingAdapter) {
         this(loggingAdapter, IndexLengthRestrictionEnforcer.getInstance(loggingAdapter));
     }
 
@@ -48,7 +49,7 @@ abstract class AbstractThingsSearchUpdaterPersistence implements ThingsSearchUpd
      * @param loggingAdapter the logger to use for logging.
      * @param indexLengthRestrictionEnforcer the restriction helper.
      */
-    AbstractThingsSearchUpdaterPersistence(final LoggingAdapter loggingAdapter,
+    public AbstractThingsSearchUpdaterPersistence(final LoggingAdapter loggingAdapter,
             final IndexLengthRestrictionEnforcer indexLengthRestrictionEnforcer) {
         this.log = loggingAdapter;
         this.indexLengthRestrictionEnforcer = indexLengthRestrictionEnforcer;
@@ -82,7 +83,7 @@ abstract class AbstractThingsSearchUpdaterPersistence implements ThingsSearchUpd
      * @param thingId the thing for which an update was issued.
      * @return a partial function that will recover from the error
      */
-    abstract PartialFunction<Throwable, Source<Boolean, NotUsed>> errorRecovery(final String
+    protected abstract PartialFunction<Throwable, Source<Boolean, NotUsed>> errorRecovery(final String
             thingId);
 
     /**
@@ -91,7 +92,7 @@ abstract class AbstractThingsSearchUpdaterPersistence implements ThingsSearchUpd
      * @param thing The thing.
      * @return The id or an {@link IllegalArgumentException} if no id is present.
      */
-    final String getThingId(final Thing thing) {
+    protected final String getThingId(final Thing thing) {
         return thing.getId().orElseThrow(() -> new IllegalArgumentException("The thing has no ID!"));
     }
 

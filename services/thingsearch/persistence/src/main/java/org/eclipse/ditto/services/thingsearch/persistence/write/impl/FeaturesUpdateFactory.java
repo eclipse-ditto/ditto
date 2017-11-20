@@ -12,6 +12,8 @@
 package org.eclipse.ditto.services.thingsearch.persistence.write.impl;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import org.bson.Document;
@@ -29,6 +31,7 @@ import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.thingsearch.persistence.MongoSortKeyMappingFunction;
 import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
 import org.eclipse.ditto.services.thingsearch.persistence.read.document.DocumentMapper;
+import org.eclipse.ditto.services.thingsearch.persistence.write.IndexLengthRestrictionEnforcer;
 
 /**
  * Factory which creates updates for features.
@@ -102,7 +105,8 @@ final class FeaturesUpdateFactory {
      * @param created indicates whether this is a new feature
      * @return the update
      */
-    static CombinedUpdates createUpdateForFeature(final IndexLengthRestrictionEnforcer indexLengthRestrictionEnforcer,
+    static List<Bson> createUpdateForFeature(final IndexLengthRestrictionEnforcer
+            indexLengthRestrictionEnforcer,
             final Feature feature,
             final boolean created) {
         final Feature withRestrictions = indexLengthRestrictionEnforcer.enforceRestrictions(feature);
@@ -118,13 +122,13 @@ final class FeaturesUpdateFactory {
                         new Document(PersistenceConstants.EACH, featurePropertyPushes)));
 
         if (created) {
-            return CombinedUpdates.of(pushPart);
+            return Collections.singletonList(pushPart);
         } else {
             final Document pullPart = new Document()
                     .append(PersistenceConstants.PULL,
                             new Document(PersistenceConstants.FIELD_INTERNAL, new Document(
                                     PersistenceConstants.FIELD_INTERNAL_FEATURE_ID, withRestrictions.getId())));
-            return CombinedUpdates.of(pullPart, pushPart);
+            return Arrays.asList(pullPart, pushPart);
         }
     }
 
@@ -136,7 +140,7 @@ final class FeaturesUpdateFactory {
      * @param properties the properties to update
      * @return the update
      */
-    static CombinedUpdates createUpdateForFeatureProperties(
+    static List<Bson> createUpdateForFeatureProperties(
             final IndexLengthRestrictionEnforcer indexLengthRestrictionEnforcer, final String
             featureId,
             final FeatureProperties properties) {
@@ -155,9 +159,8 @@ final class FeaturesUpdateFactory {
                         new Document(PersistenceConstants.EACH, featurePropertyPushes)));
 
         final Document pullPart = createPullFeaturesById(featureId);
-        return CombinedUpdates.of(pullPart, pushPart);
+        return Arrays.asList(pullPart, pushPart);
     }
-
 
     /**
      * Updates a single property of a feature.
@@ -168,7 +171,7 @@ final class FeaturesUpdateFactory {
      * @param propertyValue the new property value
      * @return the update
      */
-    static CombinedUpdates createUpdateForFeatureProperty(
+    static List<Bson> createUpdateForFeatureProperty(
             final IndexLengthRestrictionEnforcer indexLengthRestrictionEnforcer,
             final String featureId,
             final JsonPointer featurePointer,
@@ -183,7 +186,7 @@ final class FeaturesUpdateFactory {
 
         final Bson update3 = createPushUpdate(flatRepresentations);
 
-        return CombinedUpdates.of(update1, update2, update3);
+        return Arrays.asList(update1, update2, update3);
     }
 
     /**
@@ -195,6 +198,7 @@ final class FeaturesUpdateFactory {
         return createDeleteFeaturesDocument();
     }
 
+
     /**
      * Updates all features.
      *
@@ -202,7 +206,7 @@ final class FeaturesUpdateFactory {
      * @param features the features to update
      * @return the update
      */
-    static CombinedUpdates updateFeatures(final IndexLengthRestrictionEnforcer indexLengthRestrictionEnforcer,
+    static List<Bson> updateFeatures(final IndexLengthRestrictionEnforcer indexLengthRestrictionEnforcer,
             final Features features) {
         final Features withRestrictions = indexLengthRestrictionEnforcer.enforceRestrictions(features);
         final Bson update1 = createDeleteFeaturesDocument();
@@ -225,7 +229,7 @@ final class FeaturesUpdateFactory {
                 .append(PersistenceConstants.PUSH, new Document().append(
                         PersistenceConstants.FIELD_INTERNAL, new Document(PersistenceConstants.EACH, pushes)));
 
-        return CombinedUpdates.of(update1, update2);
+        return Arrays.asList(update1, update2);
     }
 
     private static Document createDeleteFeaturesDocument() {

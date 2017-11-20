@@ -78,8 +78,8 @@ public final class AggregationPolicyAuthTest extends AbstractReadPersistenceTest
     public void grantedAccessWithAnd() {
         final PolicyRestrictedSearchAggregation aggregation = abf
                 .newBuilder(cf.and(Arrays.asList(
-                        cf.fieldCriteria(ef.filterByAttribute(KNOWN_STRING_ATTR), cf.eq(THING1_KNOWN_STR_ATTR_VALUE)),
-                        cf.fieldCriteria(ef.filterByAttribute(KNOWN_NUMBER_ATTR), cf.lt(200)))))
+                        cf.fieldCriteria(fef.filterByAttribute(KNOWN_STRING_ATTR), cf.eq(THING1_KNOWN_STR_ATTR_VALUE)),
+                        cf.fieldCriteria(fef.filterByAttribute(KNOWN_NUMBER_ATTR), cf.lt(200)))))
                 .authorizationSubjects(SUBJECTS_USER_1)
                 .build();
 
@@ -90,8 +90,8 @@ public final class AggregationPolicyAuthTest extends AbstractReadPersistenceTest
     @Test
     public void notGrantedAccessWithAnd() {
         final PolicyRestrictedSearchAggregation aggregation = abf
-                .newBuilder(cf.and(Arrays.asList(cf.fieldCriteria(ef.filterByAttribute(KNOWN_STRING_ATTR), cf.eq
-                        (THING1_KNOWN_STR_ATTR_VALUE)), cf.fieldCriteria(ef.filterByAttribute(KNOWN_BOOL_ATTR), cf.eq
+                .newBuilder(cf.and(Arrays.asList(cf.fieldCriteria(fef.filterByAttribute(KNOWN_STRING_ATTR), cf.eq
+                        (THING1_KNOWN_STR_ATTR_VALUE)), cf.fieldCriteria(fef.filterByAttribute(KNOWN_BOOL_ATTR), cf.eq
                         (THING1_KNOWN_BOOL_ATTR_VALUE)))))
                 .authorizationSubjects(SUBJECTS_USER_1)
                 .build();
@@ -103,8 +103,8 @@ public final class AggregationPolicyAuthTest extends AbstractReadPersistenceTest
     @Test
     public void grantedAccessWithOr() {
         final PolicyRestrictedSearchAggregation aggregation = abf
-                .newBuilder(cf.or(Arrays.asList(cf.fieldCriteria(ef.filterByAttribute(KNOWN_STRING_ATTR), cf.eq
-                        (THING1_KNOWN_STR_ATTR_VALUE)), cf.fieldCriteria(ef.filterByAttribute(KNOWN_BOOL_ATTR), cf.eq
+                .newBuilder(cf.or(Arrays.asList(cf.fieldCriteria(fef.filterByAttribute(KNOWN_STRING_ATTR), cf.eq
+                        (THING1_KNOWN_STR_ATTR_VALUE)), cf.fieldCriteria(fef.filterByAttribute(KNOWN_BOOL_ATTR), cf.eq
                         (THING1_KNOWN_BOOL_ATTR_VALUE)))))
                 .authorizationSubjects(SUBJECTS_USER_1)
                 .build();
@@ -120,8 +120,8 @@ public final class AggregationPolicyAuthTest extends AbstractReadPersistenceTest
         // user1 should get an empty result because the matching attribute isn't visible.
         final PolicyRestrictedSearchAggregation aggregation = abf
                 .newBuilder(cf.or(Arrays.asList(
-                        cf.fieldCriteria(ef.filterByAttribute(KNOWN_STRING_ATTR), cf.eq("does_not_match")),
-                        cf.fieldCriteria(ef.filterByAttribute(KNOWN_BOOL_ATTR), cf.eq(THING1_KNOWN_BOOL_ATTR_VALUE)))))
+                        cf.fieldCriteria(fef.filterByAttribute(KNOWN_STRING_ATTR), cf.eq("does_not_match")),
+                        cf.fieldCriteria(fef.filterByAttribute(KNOWN_BOOL_ATTR), cf.eq(THING1_KNOWN_BOOL_ATTR_VALUE)))))
                 .authorizationSubjects(SUBJECTS_USER_1)
                 .build();
 
@@ -133,8 +133,8 @@ public final class AggregationPolicyAuthTest extends AbstractReadPersistenceTest
     public void grantedAccessWithNotOr() {
         final PolicyRestrictedSearchAggregation aggregation = abf
                 .newBuilder(cf.nor(cf.or(Arrays.asList(
-                        cf.fieldCriteria(ef.filterByAttribute(KNOWN_STRING_ATTR), cf.eq("does_not_match")),
-                        cf.fieldCriteria(ef.filterByAttribute(KNOWN_BOOL_ATTR), cf.ne(THING1_KNOWN_BOOL_ATTR_VALUE))))))
+                        cf.fieldCriteria(fef.filterByAttribute(KNOWN_STRING_ATTR), cf.eq("does_not_match")),
+                        cf.fieldCriteria(fef.filterByAttribute(KNOWN_BOOL_ATTR), cf.ne(THING1_KNOWN_BOOL_ATTR_VALUE))))))
                 .authorizationSubjects(SUBJECTS_USER_1)
                 .build();
 
@@ -146,7 +146,7 @@ public final class AggregationPolicyAuthTest extends AbstractReadPersistenceTest
     public void grantedAccessWithExists() {
         final PolicyRestrictedSearchAggregation aggregation = abf
                 .newBuilder(
-                        cf.existsCriteria(ef.existsByAttribute(KNOWN_STRING_ATTR)))
+                        cf.existsCriteria(fef.existsByAttribute(KNOWN_STRING_ATTR)))
                 .authorizationSubjects(SUBJECTS_USER_1)
                 .build();
 
@@ -158,7 +158,7 @@ public final class AggregationPolicyAuthTest extends AbstractReadPersistenceTest
     public void notGrantedAccessWithExists() {
         final PolicyRestrictedSearchAggregation aggregation = abf
                 .newBuilder(
-                        cf.existsCriteria(ef.existsByAttribute(KNOWN_BOOL_ATTR)))
+                        cf.existsCriteria(fef.existsByAttribute(KNOWN_BOOL_ATTR)))
                 .authorizationSubjects(SUBJECTS_USER_1)
                 .build();
 
@@ -170,7 +170,7 @@ public final class AggregationPolicyAuthTest extends AbstractReadPersistenceTest
     public void grantedAccessWithNotExists() {
         final PolicyRestrictedSearchAggregation aggregation = abf
                 .newBuilder(
-                        cf.nor(cf.existsCriteria(ef.existsByAttribute(KNOWN_STRING_ATTR))))
+                        cf.nor(cf.existsCriteria(fef.existsByAttribute(KNOWN_STRING_ATTR))))
                 .authorizationSubjects(SUBJECTS_USER_1)
                 .build();
 
@@ -182,7 +182,7 @@ public final class AggregationPolicyAuthTest extends AbstractReadPersistenceTest
     @Test
     public void notGrantedAccessWithNotExists() {
         final PolicyRestrictedSearchAggregation aggregation = abf
-                .newBuilder(cf.nor(Collections.singletonList(cf.existsCriteria(ef.existsByAttribute(KNOWN_BOOL_ATTR)))))
+                .newBuilder(cf.nor(Collections.singletonList(cf.existsCriteria(fef.existsByAttribute(KNOWN_BOOL_ATTR)))))
                 .authorizationSubjects(SUBJECTS_USER_1)
                 .build();
 

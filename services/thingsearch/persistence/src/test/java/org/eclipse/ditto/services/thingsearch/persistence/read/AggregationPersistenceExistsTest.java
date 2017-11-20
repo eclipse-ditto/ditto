@@ -65,7 +65,7 @@ public class AggregationPersistenceExistsTest extends AbstractVersionedThingSear
     public void existsByKnownFeatureId() {
         final PolicyRestrictedSearchAggregation aggregation = abf
                 .newBuilder(
-                        cf.existsCriteria(ef.existsByFeatureId(THING2_KNOWN_FEATURE_ID)))
+                        cf.existsCriteria(fef.existsByFeatureId(THING2_KNOWN_FEATURE_ID)))
                 .authorizationSubjects(KNOWN_SUBJECTS)
                 .build();
 
@@ -79,7 +79,7 @@ public class AggregationPersistenceExistsTest extends AbstractVersionedThingSear
         final PolicyRestrictedSearchAggregation aggregation = abf
                 .newBuilder(
                         cf.existsCriteria(
-                                ef.existsByFeatureProperty(THING1_KNOWN_FEATURE_ID, THINGS_KNOWN_PROPERTY)))
+                                fef.existsByFeatureProperty(THING1_KNOWN_FEATURE_ID, THINGS_KNOWN_PROPERTY)))
                 .authorizationSubjects(KNOWN_SUBJECTS)
                 .build();
 
@@ -92,7 +92,7 @@ public class AggregationPersistenceExistsTest extends AbstractVersionedThingSear
     public void existsByExactProperty() {
         final PolicyRestrictedSearchAggregation aggregation = abf
                 .newBuilder(
-                        cf.existsCriteria(ef.existsByFeatureProperty(THING1_KNOWN_PROPERTY)))
+                        cf.existsCriteria(fef.existsByFeatureProperty(THING1_KNOWN_PROPERTY)))
                 .authorizationSubjects(KNOWN_SUBJECTS)
                 .build();
 
@@ -105,7 +105,7 @@ public class AggregationPersistenceExistsTest extends AbstractVersionedThingSear
     public void existsByKnownProperty() {
         final PolicyRestrictedSearchAggregation aggregation = abf
                 .newBuilder(
-                        cf.existsCriteria(ef.existsByFeatureProperty(THINGS_KNOWN_PROPERTY)))
+                        cf.existsCriteria(fef.existsByFeatureProperty(THINGS_KNOWN_PROPERTY)))
                 .authorizationSubjects(KNOWN_SUBJECTS)
                 .build();
 
@@ -119,7 +119,7 @@ public class AggregationPersistenceExistsTest extends AbstractVersionedThingSear
         final PolicyRestrictedSearchAggregation aggregation = abf
                 .newBuilder(
                         cf.nor(Collections.singletonList(
-                                cf.existsCriteria(ef.existsByFeatureProperty(THINGS_KNOWN_PROPERTY)))))
+                                cf.existsCriteria(fef.existsByFeatureProperty(THINGS_KNOWN_PROPERTY)))))
                 .authorizationSubjects(KNOWN_SUBJECTS)
                 .build();
 
@@ -132,7 +132,7 @@ public class AggregationPersistenceExistsTest extends AbstractVersionedThingSear
     public void notExistsByThing1KnownProperty() {
         final PolicyRestrictedSearchAggregation aggregation = abf
                 .newBuilder(
-                        cf.nor(Collections.singletonList(cf.existsCriteria(ef.existsByFeatureProperty
+                        cf.nor(Collections.singletonList(cf.existsCriteria(fef.existsByFeatureProperty
                                 (THING1_KNOWN_PROPERTY)))))
                 .authorizationSubjects(KNOWN_SUBJECTS)
                 .build();
@@ -147,7 +147,7 @@ public class AggregationPersistenceExistsTest extends AbstractVersionedThingSear
     public void existsByUnknownProperty() {
         final PolicyRestrictedSearchAggregation aggregation = abf
                 .newBuilder(
-                        cf.existsCriteria(ef.existsByFeatureProperty(THINGS_UNKNOWN_PROPERTY)))
+                        cf.existsCriteria(fef.existsByFeatureProperty(THINGS_UNKNOWN_PROPERTY)))
                 .authorizationSubjects(KNOWN_SUBJECTS)
                 .build();
 
@@ -159,7 +159,7 @@ public class AggregationPersistenceExistsTest extends AbstractVersionedThingSear
     @Test
     public void existsByPartOfKnownProperty() {
         final PolicyRestrictedSearchAggregation aggregation = abf
-                .newBuilder(cf.existsCriteria(ef.existsByFeatureProperty(THINGS_KNOWN_PROPERTY_PART)))
+                .newBuilder(cf.existsCriteria(fef.existsByFeatureProperty(THINGS_KNOWN_PROPERTY_PART)))
                 .authorizationSubjects(KNOWN_SUBJECTS)
                 .build();
 
@@ -171,7 +171,7 @@ public class AggregationPersistenceExistsTest extends AbstractVersionedThingSear
     @Test
     public void existsByExactAttribute() {
         final PolicyRestrictedSearchAggregation aggregation = abf
-                .newBuilder(cf.existsCriteria(ef.existsByAttribute(THING2_KNOWN_ATTR)))
+                .newBuilder(cf.existsCriteria(fef.existsByAttribute(THING2_KNOWN_ATTR)))
                 .authorizationSubjects(KNOWN_SUBJECTS)
                 .build();
 
@@ -183,7 +183,7 @@ public class AggregationPersistenceExistsTest extends AbstractVersionedThingSear
     @Test
     public void existsByKnownAttribute() {
         final PolicyRestrictedSearchAggregation aggregation = abf
-                .newBuilder(cf.existsCriteria(ef.existsByAttribute(THINGS_KNOWN_ATTR)))
+                .newBuilder(cf.existsCriteria(fef.existsByAttribute(THINGS_KNOWN_ATTR)))
                 .authorizationSubjects(KNOWN_SUBJECTS)
                 .build();
 
@@ -195,7 +195,7 @@ public class AggregationPersistenceExistsTest extends AbstractVersionedThingSear
     @Test
     public void existsByUnknownAttribute() {
         final PolicyRestrictedSearchAggregation aggregation = abf
-                .newBuilder(cf.existsCriteria(ef.existsByAttribute(THINGS_UNKNOWN_ATTR)))
+                .newBuilder(cf.existsCriteria(fef.existsByAttribute(THINGS_UNKNOWN_ATTR)))
                 .authorizationSubjects(KNOWN_SUBJECTS)
                 .build();
 
@@ -208,7 +208,7 @@ public class AggregationPersistenceExistsTest extends AbstractVersionedThingSear
     public void existsByPartOfKnownAttribute() {
         final PolicyRestrictedSearchAggregation aggregation = abf
                 .newBuilder(
-                        cf.existsCriteria(ef.existsByFeatureProperty(THINGS_KNOWN_ATTR_PART)))
+                        cf.existsCriteria(fef.existsByFeatureProperty(THINGS_KNOWN_ATTR_PART)))
                 .authorizationSubjects(KNOWN_SUBJECTS)
                 .build();
 

@@ -15,7 +15,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.json.JsonFactory.newValue;
 import static org.eclipse.ditto.model.base.auth.AuthorizationModelFactory.newAuthSubject;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 
+import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -24,6 +30,7 @@ import java.util.concurrent.ExecutionException;
 
 import org.assertj.core.api.Assertions;
 import org.bson.BsonDocument;
+import org.bson.Document;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
@@ -49,9 +56,8 @@ import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.models.policies.Permission;
 import org.eclipse.ditto.services.thingsearch.persistence.AbstractThingSearchPersistenceTestBase;
+import org.eclipse.ditto.services.thingsearch.persistence.ProcessableThingEvent;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingMetadata;
-import org.eclipse.ditto.services.thingsearch.querymodel.expression.ThingsFieldExpressionFactory;
-import org.eclipse.ditto.services.thingsearch.querymodel.expression.ThingsFieldExpressionFactoryImpl;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.PolicyRestrictedSearchAggregation;
 import org.eclipse.ditto.signals.events.things.AclEntryDeleted;
 import org.eclipse.ditto.signals.events.things.AclEntryModified;
@@ -75,10 +81,15 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.experimental.runners.Enclosed;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.mockito.Mockito;
 
 import com.mongodb.MongoWriteException;
 import com.mongodb.ServerAddress;
 import com.mongodb.WriteError;
+import com.mongodb.reactivestreams.client.MongoCollection;
 
 import akka.NotUsed;
 import akka.stream.javadsl.Source;
@@ -87,6 +98,7 @@ import scala.PartialFunction;
 /**
  * Tests for search updater persistence.
  */
+@RunWith(Enclosed.class)
 public final class MongoThingsSearchUpdaterPersistenceTest extends AbstractThingSearchPersistenceTestBase {
 
     private static final String KNOWN_THING_ID = ":myThing1";
@@ -124,1905 +136,1575 @@ public final class MongoThingsSearchUpdaterPersistenceTest extends AbstractThing
     private static final String FEATURE_WITH_DOTS = "feature.with.dots";
     private static final List<String> DEFAULT_POLICY_SUBJECTS = Collections.singletonList("iot-things:mySid");
 
-    private final ThingsFieldExpressionFactory fef = new ThingsFieldExpressionFactoryImpl();
 
-    private PolicyEnforcer policyEnforcer;
+    private static abstract class BaseClass extends AbstractThingSearchPersistenceTestBase {
 
-    /** */
-    @Before
-    public void setUp() {
-        policyEnforcer = PolicyEnforcers.defaultEvaluator(createPolicy1());
-    }
-
-    /** */
-    @Test
-    public void insertAndExistsV1() throws ExecutionException, InterruptedException {
-        final Thing thing = createThing(KNOWN_THING_ID, VALUE1);
-        runBlocking(writePersistence.insertOrUpdate(thing, 0, 0));
-
-        exists(KNOWN_THING_ID);
-    }
-
-    /** */
-    @Test
-    public void insertAndExistsWithDotsV1() throws ExecutionException, InterruptedException {
-
-        final Thing dottedThing = addDottedAttributesFeaturesAndProperties(createThing(KNOWN_THING_ID, VALUE1));
-        runBlocking(writePersistence.insertOrUpdate(dottedThing, 0, 0));
-
-        exists(KNOWN_THING_ID);
-    }
-
-    /** */
-    @Test
-    public void insertAndExistsV2() throws ExecutionException, InterruptedException {
-        final Thing thing = createThingV2(KNOWN_THING_ID, VALUE1);
-        insertBlocking(thing, 0, 0, policyEnforcer);
-
-        exists(KNOWN_THING_ID);
-    }
-
-    /** */
-    @Test
-    public void insertAndExistsWithDotsV2() throws ExecutionException, InterruptedException {
-        final Thing thing = addDottedAttributesFeaturesAndProperties(createThingV2(KNOWN_THING_ID, VALUE1));
-        insertBlocking(thing, 0, 0, policyEnforcer);
-
-        exists(KNOWN_THING_ID);
-    }
-
-    private static Thing addDottedAttributesFeaturesAndProperties(final Thing thing) {
-        return thing
-                .setAttribute("attribute.with.dots", "some.value")
-                .setFeatureProperty("feature.with.dots", "prop.with.dots", "some.more.dots");
-    }
-
-    private void exists(final String knownThingId) {
-        final PolicyRestrictedSearchAggregation aggregation =
-                abf.newBuilder(cf.any()).authorizationSubjects(KNOWN_SUBJECTS_2).build();
-        final List<String> foundAll = findAll(aggregation);
-        assertThat(foundAll).contains(knownThingId);
-    }
-
-    /** */
-    @Test
-    public void insertWithSameRevision() throws ExecutionException, InterruptedException {
-        Assertions.assertThat(
-                runBlockingWithReturn(writePersistence.insertOrUpdate(createThing(KNOWN_THING_ID, VALUE1), 2, 0)))
-                .isTrue();
-        Assertions.assertThat(runBlockingWithReturn(
-                writePersistence.insertOrUpdate(createThing(KNOWN_THING_ID, "anotherValue"), 2, 0))).isFalse();
-    }
-
-    /** */
-    @Test
-    public void insertWithHigherRevisionV1() throws ExecutionException, InterruptedException {
-        insertOrUpdateThing(createThing(KNOWN_THING_ID, VALUE1), 2, 0);
-        insertOrUpdateThing(createThing(KNOWN_THING_ID, "anotherValue"), 3, 0);
-
-        insertWithHigherRevision();
-    }
-
-    /** */
-    @Test
-    public void insertWithHigherRevisionV2() throws ExecutionException, InterruptedException {
-        insertBlocking(createThingV2(KNOWN_THING_ID, VALUE1), 2, 0, policyEnforcer);
-        insertBlocking(createThingV2(KNOWN_THING_ID, "anotherValue"), 3, 0, policyEnforcer);
-
-        insertWithHigherRevision();
-    }
-
-    private void insertWithHigherRevision() throws ExecutionException, InterruptedException {
-        final PolicyRestrictedSearchAggregation aggregation1 =
-                abf.newBuilder(cf.fieldCriteria(fef.filterByAttribute(KEY1), cf.eq("anotherValue")))
-                        .authorizationSubjects(KNOWN_SUBJECTS_2)
-                        .build();
-
-        final PolicyRestrictedSearchAggregation aggregation2 =
-                abf.newBuilder(cf.fieldCriteria(fef.filterByAttribute(KEY1), cf.eq(VALUE1)))
-                        .authorizationSubjects(KNOWN_SUBJECTS_2)
-                        .build();
-
-        assertThat(findAll(aggregation1)).contains(KNOWN_THING_ID);
-        assertThat(findAll(aggregation2)).isEmpty();
-    }
-
-    /** */
-    @Test
-    public void deleteNotExisting() throws ExecutionException, InterruptedException {
-        delete(KNOWN_THING_ID, 0);
-    }
-
-    /** */
-    @Test
-    public void deleteWithSameRevisionV1() throws ExecutionException, InterruptedException {
-        // prepare
-        insertOrUpdateThing(createThing(KNOWN_THING_ID, VALUE1), 2, 0);
-        deleteWithSameRevision();
-    }
-
-    /** */
-    @Test
-    public void deleteWithSameRevisionV2() throws ExecutionException, InterruptedException {
-        // prepare
-        insertBlocking(createThingV2(KNOWN_THING_ID, VALUE1), 2, 0, policyEnforcer);
-        deleteWithSameRevision();
-    }
-
-    private void deleteWithSameRevision() throws ExecutionException, InterruptedException {
-        // test
-        delete(KNOWN_THING_ID, 2);
-
-        final PolicyRestrictedSearchAggregation aggregation =
-                abf.newBuilder(cf.fieldCriteria(fef.filterByAttribute(KEY1), cf.eq(VALUE1)))
-                        .authorizationSubjects(KNOWN_SUBJECTS_2)
-                        .build();
-
-        // verify
-        assertThat(findAll(aggregation)).contains(KNOWN_THING_ID);
-    }
-
-    /** */
-    @Test
-    public void deleteWithHigherRevision() throws ExecutionException, InterruptedException {
-        // prepare
-        insertOrUpdateThing(createThing(KNOWN_THING_ID, VALUE1), 2, 0);
-
-        // test
-        delete(KNOWN_THING_ID, 3);
-
-        final PolicyRestrictedSearchAggregation aggregation =
-                abf.newBuilder(cf.fieldCriteria(fef.filterByAttribute(KEY1), cf.eq(VALUE1)))
-                        .authorizationSubjects(KNOWN_SUBJECTS_2)
-                        .build();
-
-        // verify
-        assertThat(findAll(aggregation)).isEmpty();
-    }
-
-    /** */
-    @Test
-    public void deleteWithHigherRevisionV2() throws ExecutionException, InterruptedException {
-        // prepare
-        insertBlocking(createThingV2(KNOWN_THING_ID, VALUE1), 2, 0, policyEnforcer);
-
-        // test
-        delete(KNOWN_THING_ID, 3);
-
-        final PolicyRestrictedSearchAggregation aggregation =
-                abf.newBuilder(cf.fieldCriteria(fef.filterByAttribute(KEY1), cf.eq(VALUE1)))
-                        .authorizationSubjects(KNOWN_SUBJECTS_2)
-                        .build();
-
-        // verify
-        assertThat(findAll(aggregation)).isEmpty();
-    }
-
-    /** */
-    @Test
-    public void insertDeleteAndInsertAgain() throws ExecutionException, InterruptedException {
-        insertOrUpdateThing(createThing(KNOWN_THING_ID, VALUE1), 2, 0);
-        delete(KNOWN_THING_ID, 3);
-        insertOrUpdateThing(createThing(KNOWN_THING_ID, "anotherValue"), 4, 0);
-
-        insertWithHigherRevision();
-    }
-
-    /** */
-    @Test
-    public void insertDeleteAndInsertAgainV2() throws ExecutionException, InterruptedException {
-        // prepare
-        insertBlocking(createThingV2(KNOWN_THING_ID, VALUE1), 2, 0, policyEnforcer);
-
-        delete(KNOWN_THING_ID, 3);
-        insertBlocking(createThingV2(KNOWN_THING_ID, "anotherValue"), 4, 0, policyEnforcer);
-
-        insertWithHigherRevision();
-    }
-
-    /** */
-    @Test
-    public void updateWholeACL() throws ExecutionException, InterruptedException {
-        final Thing thing = createThing(KNOWN_THING_ID, VALUE1);
-        insertOrUpdateThing(thing, 0, 0);
-
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 0, policyEnforcer)
-                .addEvent(createAclModified("newSid", 1L, org.eclipse.ditto.model.things.Permission.READ,
-                        org.eclipse.ditto.model.things.Permission.WRITE,
-                        org.eclipse.ditto.model.things.Permission.ADMINISTRATE), JsonSchemaVersion.V_1)
-                .build();
-
-        Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes)))
-                .isTrue();
-
-        final PolicyRestrictedSearchAggregation aggregation1 =
-                abf.newBuilder(cf.fieldCriteria(fef.filterByAttribute(KEY1), cf.eq(VALUE1)))
-                        .authorizationSubjects(KNOWN_SUBJECTS_2)
-                        .build();
-
-        final PolicyRestrictedSearchAggregation aggregation2 =
-                abf.newBuilder(cf.fieldCriteria(fef.filterByAttribute(KEY1), cf.eq(VALUE1)))
-                        .authorizationSubjects(Collections.singletonList("newSid")).build();
-
-        assertThat(findAll(aggregation1)).isEmpty();
-        assertThat(findAll(aggregation2)).contains(KNOWN_THING_ID);
-    }
-
-    /** */
-    @Test(expected = IllegalArgumentException.class)
-    public void updateWholeACLWithUnexpectedSequenceNumber() throws ExecutionException, InterruptedException {
-        final Thing thing = createThing(KNOWN_THING_ID, VALUE1);
-        insertOrUpdateThing(thing, 0, 0);
-
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 0, policyEnforcer)
-                .addEvent(createAclModified("newSid", 2L, org.eclipse.ditto.model.things.Permission.READ,
-                        org.eclipse.ditto.model.things.Permission.WRITE,
-                        org.eclipse.ditto.model.things.Permission.ADMINISTRATE), JsonSchemaVersion.V_1)
-                .build();
-
-        runBlocking(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes));
-    }
-
-    @Test
-    public void createNewAclEntry() throws ExecutionException, InterruptedException {
-        final Thing thing = createThing(KNOWN_THING_ID, VALUE1);
-        insertOrUpdateThing(thing, 0, 0);
-
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 0, policyEnforcer)
-                .addEvent(createAclModified("anotherSid", 1L, org.eclipse.ditto.model.things.Permission.READ),
-                        JsonSchemaVersion.V_1)
-                .build();
-
-        final PolicyRestrictedSearchAggregation aggregation =
-                abf.newBuilder(cf.fieldCriteria(fef.filterByAttribute(KEY1), cf.eq(VALUE1)))
-                        .authorizationSubjects(Collections.singletonList("anotherSid")).build();
-
-        Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes)))
-                .isTrue();
-        assertThat(findAll(aggregation)).contains(KNOWN_THING_ID);
-    }
-
-    private static ThingEvent createAclModified(final CharSequence authSubjectId,
-            final long revision,
-            final org.eclipse.ditto.model.things.Permission permission,
-            final org.eclipse.ditto.model.things.Permission... furtherPermissions) {
-
-        final AclEntry aclEntry = ThingsModelFactory.newAclEntry(AuthorizationSubject.newInstance(authSubjectId),
-                permission, furtherPermissions);
-        final AccessControlList accessControlList = ThingsModelFactory.newAcl(aclEntry);
-        return AclModified.of(KNOWN_THING_ID, accessControlList, revision, DittoHeaders.empty());
-    }
-
-    @Test
-    public void updateExistingAclEntryAddRead() throws ExecutionException, InterruptedException {
-        final Thing thing = createThing(KNOWN_THING_ID, VALUE1);
-        insertOrUpdateThing(thing, 0, 0);
-
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 0, policyEnforcer)
-                .addEvent(createAclModified("iot-things:mySid2", 1L, org.eclipse.ditto.model.things.Permission.READ,
-                        org.eclipse.ditto.model.things.Permission.WRITE), JsonSchemaVersion.V_1)
-                .build();
-
-        final PolicyRestrictedSearchAggregation aggregation =
-                abf.newBuilder(cf.fieldCriteria(fef.filterByAttribute(KEY1), cf.eq(VALUE1)))
-                        .authorizationSubjects(Collections.singletonList("iot-things:mySid2"))
-                        .build();
-
-        Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes)))
-                .isTrue();
-        assertThat(findAll(aggregation)).isNotNull()
-                .contains(KNOWN_THING_ID);
-    }
-
-    @Test
-    public void updateExistingAclEntryRemoveRead() throws ExecutionException, InterruptedException {
-        final Thing thing = createThing(KNOWN_THING_ID, VALUE1);
-        insertOrUpdateThing(thing, 0, 0);
-
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 0, policyEnforcer)
-                .addEvent(createAclModified("iot-things:mySid3", 1L, org.eclipse.ditto.model.things.Permission.WRITE),
-                        JsonSchemaVersion.V_1)
-                .build();
-
-        final PolicyRestrictedSearchAggregation aggregation =
-                abf.newBuilder(cf.fieldCriteria(fef.filterByAttribute(KEY1), cf.eq(VALUE1)))
-                        .authorizationSubjects(Collections.singletonList("iot-things:mySid3"))
-                        .build();
-
-        Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes)))
-                .isTrue();
-        assertThat(findAll(aggregation)).isEmpty();
-    }
-
-    @Test
-    public void deleteAclEntry() throws ExecutionException, InterruptedException {
-        final Thing thing = createThing(KNOWN_THING_ID, VALUE1);
-        insertOrUpdateThing(thing, 0, 0);
-
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 0, policyEnforcer)
-                .addEvent(AclEntryDeleted.of(KNOWN_THING_ID, AuthorizationSubject.newInstance("iot-things:mySid3"), 1L,
-                        DittoHeaders.empty()), JsonSchemaVersion.V_1)
-                .build();
-
-        final PolicyRestrictedSearchAggregation aggregation =
-                abf.newBuilder(cf.fieldCriteria(fef.filterByAttribute(KEY1), cf.eq(VALUE1)))
-                        .authorizationSubjects(Collections.singletonList("iot-things:mySid3"))
-                        .build();
-
-        Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes)))
-                .isTrue();
-        assertThat(findAll(aggregation)).isEmpty();
-    }
-
-    /** */
-    @Test
-    public void updateAllAttributesV1() throws ExecutionException, InterruptedException {
-        final Thing thing = createThing(KNOWN_THING_ID, VALUE1);
-        insertOrUpdateThing(thing, 1L, -1L);
-        updateAllAttributes(JsonSchemaVersion.V_1, KNOWN_ATTRIBUTE_1);
-    }
-
-    /** */
-    @Test
-    public void updateAllAttributesWithDotsV1() throws ExecutionException, InterruptedException {
-        final Thing thing = createThing(KNOWN_THING_ID, VALUE1);
-        insertOrUpdateThing(thing, 1L, -1L);
-        updateAllAttributes(JsonSchemaVersion.V_1, "some.attribute.with.dot");
-    }
-
-    /** */
-    @Test
-    public void updateAllAttributesV2() throws ExecutionException, InterruptedException {
-        final Thing thing = createThingV2(KNOWN_THING_ID, VALUE1);
-        insertBlocking(thing, 1L, -1L, policyEnforcer);
-        updateAllAttributes(JsonSchemaVersion.LATEST, KNOWN_ATTRIBUTE_1);
-    }
-
-    /** */
-    @Test
-    public void updateAllAttributesWithDotsV2() throws ExecutionException, InterruptedException {
-        final Thing thing = createThingV2(KNOWN_THING_ID, VALUE1);
-        insertBlocking(thing, 1L, -1L, policyEnforcer);
-        updateAllAttributes(JsonSchemaVersion.LATEST, "some.attribute.with.dot");
-    }
-
-    private void updateAllAttributes(final JsonSchemaVersion schemaVersion, final String attributeName)
-            throws ExecutionException, InterruptedException {
-
-        final Attributes newAttributes = Attributes.newBuilder().set(attributeName, KNOWN_NEW_VALUE).build();
-        final AttributesCreated attributesCreated =
-                AttributesCreated.of(KNOWN_THING_ID, newAttributes, 2L, DittoHeaders.empty());
-
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
-                .addEvent(attributesCreated, schemaVersion)
-                .build();
-
-        Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes)))
-                .isTrue();
-
-        final PolicyRestrictedSearchAggregation aggregation1 =
-                abf.newBuilder(cf.fieldCriteria(fef.filterByAttribute(attributeName), cf.eq(KNOWN_NEW_VALUE)))
-                        .authorizationSubjects(KNOWN_SUBJECTS_2)
-                        .build();
-
-        final PolicyRestrictedSearchAggregation aggregation2 =
-                abf.newBuilder(cf.fieldCriteria(fef.filterByAttribute(KEY1), cf.eq(VALUE1)))
-                        .authorizationSubjects(KNOWN_SUBJECTS_2)
-                        .build();
-
-        final Collection<String> result = findAll(aggregation1);
-        assertThat(result).contains(KNOWN_THING_ID);
-
-        final Collection<String> result2 = findAll(aggregation2);
-        assertThat(result2).isEmpty();
-    }
-
-    @Test
-    public void addNewSingleSimpleAttributeV2() throws ExecutionException, InterruptedException {
-        final Thing thing = createThingV2(KNOWN_THING_ID, VALUE1);
-        insertBlocking(thing, 1L, -1L, policyEnforcer);
-
-        final JsonPointer pointer = JsonFactory.newPointer(KNOWN_ATTRIBUTE_1);
-        final JsonValue value = newValue(KNOWN_NEW_VALUE);
-
-        final AttributeModified attributeModified =
-                AttributeModified.of(KNOWN_THING_ID, pointer, value, 2L, DittoHeaders.empty());
-
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
-                .addEvent(attributeModified, JsonSchemaVersion.LATEST)
-                .build();
-
-        Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes)))
-                .isTrue();
-
-        final PolicyRestrictedSearchAggregation aggregation1 =
-                abf.newBuilder(cf.fieldCriteria(fef.filterByAttribute(KNOWN_ATTRIBUTE_1), cf.eq(KNOWN_NEW_VALUE)))
-                        .authorizationSubjects(KNOWN_SUBJECTS_2)
-                        .build();
-
-        final Collection<String> result = findAll(aggregation1);
-        assertThat(result).contains(KNOWN_THING_ID);
-    }
-
-    @Test
-    public void addNewSingleSimpleAttributeV1() throws ExecutionException, InterruptedException {
-        final Thing thing = createThing(KNOWN_THING_ID, VALUE1);
-        insertOrUpdateThing(thing, 1L, -1L);
-
-        updateSingleExistingSimpleAttribute(KNOWN_ATTRIBUTE_1, KNOWN_NEW_VALUE);
-    }
-
-    @Test
-    public void addNewSingleSimpleAttributeWithDotsV1() throws ExecutionException, InterruptedException {
-        final Thing thing = createThing(KNOWN_THING_ID, VALUE1);
-        insertOrUpdateThing(thing, 1L, -1L);
-
-        updateSingleExistingSimpleAttribute("new.attribute", KNOWN_NEW_VALUE);
-    }
-
-    @Test
-    public void updateSingleExistingSimpleAttributeV2() throws ExecutionException, InterruptedException {
-        final Thing thing = createThingV2(KNOWN_THING_ID, VALUE1);
-        insertBlocking(thing, 1L, -1L, policyEnforcer);
-
-        updateSingleExistingSimpleAttribute(KEY2, KNOWN_NEW_VALUE);
-    }
-
-    @Test
-    public void addNewSingleSimpleAttributeWithDotsV2() throws ExecutionException, InterruptedException {
-        final Thing thing = createThingV2(KNOWN_THING_ID, VALUE1);
-        insertBlocking(thing, 1L, -1L, policyEnforcer);
-
-        updateSingleExistingSimpleAttribute("new.attribute", KNOWN_NEW_VALUE);
-    }
-
-    private void updateSingleExistingSimpleAttribute(final String key, final String value)
-            throws ExecutionException, InterruptedException {
-        final JsonPointer pointer = JsonFactory.newPointer(key);
-        final AttributeModified attributeModified =
-                AttributeModified.of(KNOWN_THING_ID, pointer, JsonValue.of(value), 2L, DittoHeaders.empty());
-
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
-                .addEvent(attributeModified, JsonSchemaVersion.LATEST)
-                .build();
-
-        Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes)))
-                .isTrue();
-
-        final PolicyRestrictedSearchAggregation aggregation1 =
-                abf.newBuilder(cf.fieldCriteria(fef.filterByAttribute(key), cf.eq(value)))
-                        .authorizationSubjects(KNOWN_SUBJECTS_2)
-                        .build();
-        final Collection<String> result = findAll(aggregation1);
-        assertThat(result).contains(KNOWN_THING_ID);
-    }
-
-    @Test
-    public void updateSingleExistingSimpleAttributeV1() throws ExecutionException, InterruptedException {
-        insertOrUpdateThing(createThing(KNOWN_THING_ID, VALUE1), 1L, -1L);
-
-        final JsonPointer pointer = JsonFactory.newPointer(KEY2);
-        final JsonValue value = newValue(NEW_VALUE_2);
-        final AttributeCreated attributeCreated =
-                AttributeCreated.of(KNOWN_THING_ID, pointer, value, 2L, DittoHeaders.empty());
-
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
-                .addEvent(attributeCreated, JsonSchemaVersion.V_1)
-                .build();
-
-        Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes)))
-                .isTrue();
-
-        final PolicyRestrictedSearchAggregation aggregation1 =
-                abf.newBuilder(cf.fieldCriteria(fef.filterByAttribute(KEY2), cf.eq(NEW_VALUE_2)))
-                        .authorizationSubjects(KNOWN_SUBJECTS_2)
-                        .build();
-        final Collection<String> result = findAll(aggregation1);
-        assertThat(result).contains(KNOWN_THING_ID);
-    }
-
-    @Test
-    public void updateSimpleAttributeByNonExistingPrefixNameV1() throws ExecutionException, InterruptedException {
-        insertOrUpdateThing(createThing(KNOWN_THING_ID, VALUE1), 1L, -1L);
-
-        final JsonPointer pointer = JsonFactory.newPointer("key");
-        final JsonValue value = newValue(NEW_VALUE_2);
-        final AttributeCreated attributeCreated =
-                AttributeCreated.of(KNOWN_THING_ID, pointer, value, 2L, DittoHeaders.empty());
-
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
-                .addEvent(attributeCreated, JsonSchemaVersion.V_1)
-                .build();
-
-        Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes)))
-                .isTrue();
-
-        final PolicyRestrictedSearchAggregation aggregation1 =
-                abf.newBuilder(cf.fieldCriteria(fef.filterByAttribute(KEY2), cf.eq(NEW_VALUE_2)))
-                        .authorizationSubjects(KNOWN_SUBJECTS_2)
-                        .build();
-
-        final Collection<String> result = findAll(aggregation1);
-        assertThat(result).isEmpty();
-    }
-
-    @Test
-    public void updateSimpleAttributeByNonExistingPrefixNameV2() throws ExecutionException, InterruptedException {
-        final Thing thing = createThingV2(KNOWN_THING_ID, VALUE1);
-        insertBlocking(thing, 1L, -1L, policyEnforcer);
-
-        final JsonPointer pointer = JsonFactory.newPointer("key");
-        final JsonValue value = newValue(NEW_VALUE_2);
-        final AttributeModified attributeModified =
-                AttributeModified.of(KNOWN_THING_ID, pointer, value, 2L, DittoHeaders.empty());
-
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
-                .addEvent(attributeModified, JsonSchemaVersion.LATEST)
-                .build();
-
-        Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes)))
-                .isTrue();
-
-        final PolicyRestrictedSearchAggregation aggregation1 =
-                abf.newBuilder(cf.fieldCriteria(fef.filterByAttribute(KEY2), cf.eq(NEW_VALUE_2)))
-                        .authorizationSubjects(KNOWN_SUBJECTS_2)
-                        .build();
-
-        final Collection<String> result = findAll(aggregation1);
-        assertThat(result).isEmpty();
-    }
-
-    @Test
-    public void addNewSingleComplexAttributeV1() throws ExecutionException, InterruptedException {
-        insertOrUpdateThing(createThing(KNOWN_THING_ID, VALUE1), 1L, -1L);
-
-        final JsonPointer pointer = JsonFactory.newPointer("new1/new2/new3");
-        final JsonObject value =
-                JsonFactory.newObject().setValue("bool1", true).setValue(KNOWN_ATTRIBUTE_1, KNOWN_NEW_VALUE);
-        final AttributeModified attributeModified =
-                AttributeModified.of(KNOWN_THING_ID, pointer, value, 2L, DittoHeaders.empty());
-
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
-                .addEvent(attributeModified, JsonSchemaVersion.V_1)
-                .build();
-
-        Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes)))
-                .isTrue();
-
-        addNewSingleComplexAttribute();
-    }
-
-    private void addNewSingleComplexAttribute() throws ExecutionException, InterruptedException {
-        final PolicyRestrictedSearchAggregation aggregation1 =
-                abf.newBuilder(cf.fieldCriteria(fef.filterByAttribute("new1/new2/new3/bool1"), cf.eq(Boolean.TRUE)))
-                        .authorizationSubjects(KNOWN_SUBJECTS_2)
-                        .build();
-
-        final Collection<String> result = findAll(aggregation1);
-        assertThat(result).contains(KNOWN_THING_ID);
-
-        final PolicyRestrictedSearchAggregation aggregation2 = abf.newBuilder(
-                cf.fieldCriteria(fef.filterByAttribute("new1/new2/new3/" + KNOWN_ATTRIBUTE_1), cf.eq(KNOWN_NEW_VALUE)))
-                .authorizationSubjects(KNOWN_SUBJECTS_2)
-                .build();
-
-        final Collection<String> result2 = findAll(aggregation2);
-        assertThat(result2).contains(KNOWN_THING_ID);
-
-        final PolicyRestrictedSearchAggregation aggregation3 =
-                abf.newBuilder(cf.existsCriteria(fef.existsByAttribute("new1/new2")))
-                        .authorizationSubjects(KNOWN_SUBJECTS_2)
-                        .build();
-
-        final Collection<String> result3 = findAll(aggregation3);
-        assertThat(result3).contains(KNOWN_THING_ID);
-    }
-
-    @Test
-    public void addNewSingleComplexAttributeV2() throws ExecutionException, InterruptedException {
-        final Thing thing = createThingV2(KNOWN_THING_ID, VALUE1);
-        insertBlocking(thing, 1L, -1L, policyEnforcer);
-
-        final JsonObject value = JsonFactory.newObjectBuilder()
-                .set("bool1", true)
-                .set(KNOWN_ATTRIBUTE_1, KNOWN_NEW_VALUE)
-                .build();
-        final AttributeModified attributeModified = createAttributeModified("new1/new2/new3", value, 2L);
-
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
-                .addEvent(attributeModified, JsonSchemaVersion.LATEST)
-                .build();
-
-        Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes)))
-                .isTrue();
-
-        addNewSingleComplexAttribute();
-    }
-
-    private static AttributeModified createAttributeModified(final CharSequence attributePointer,
-            final JsonValue attributeValue, final long revision) {
-        return AttributeModified.of(KNOWN_THING_ID, JsonFactory.newPointer(attributePointer), attributeValue, revision,
-                DittoHeaders.empty());
-    }
-
-    @Test
-    public void replaceSimpleWithComplexAttributeV1() throws ExecutionException, InterruptedException {
-        insertOrUpdateThing(createThing(KNOWN_THING_ID, VALUE1), 1L, -1L);
-
-        final JsonObject value = JsonFactory.newObjectBuilder()
-                .set("bool1", true)
-                .set(KNOWN_ATTRIBUTE_1, KNOWN_NEW_VALUE)
-                .build();
-        final AttributeModified attributeModified = createAttributeModified(KEY1, value, 2L);
-
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
-                .addEvent(attributeModified, JsonSchemaVersion.V_1)
-                .build();
-
-        Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes)))
-                .isTrue();
-
-        final PolicyRestrictedSearchAggregation aggregation1 =
-                abf.newBuilder(cf.fieldCriteria(fef.filterByAttribute("key1/bool1"), cf.eq(Boolean.TRUE)))
-                        .authorizationSubjects(KNOWN_SUBJECTS_2)
-                        .build();
-
-        final Collection<String> result = findAll(aggregation1);
-        assertThat(result).contains(KNOWN_THING_ID);
-
-        final PolicyRestrictedSearchAggregation aggregation2 =
-                abf.newBuilder(cf.fieldCriteria(ef.filterByAttribute(KEY1), cf.eq(VALUE1)))
-                        .authorizationSubjects(KNOWN_SUBJECTS_2)
-                        .build();
-        final Collection<String> result2 = findAll(aggregation2);
-        assertThat(result2).isEmpty();
-
-        final CombinedThingWrites writes2 = CombinedThingWrites.newBuilder(log, 2L, policyEnforcer)
-                .addEvent(createAttributeModified(KEY1, newValue(NEW_VALUE_2), 3L), JsonSchemaVersion.V_1)
-                .build();
-
-        Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes2)))
-                .isTrue();
-
-        final PolicyRestrictedSearchAggregation aggregation3 =
-                abf.newBuilder(cf.fieldCriteria(fef.filterByAttribute(KEY1), cf.eq(NEW_VALUE_2)))
-                        .authorizationSubjects(KNOWN_SUBJECTS_2)
-                        .build();
-
-        final Collection<String> result3 = findAll(aggregation3);
-        assertThat(result3).contains(KNOWN_THING_ID);
-    }
-
-    @Test
-    public void replaceSimpleWithComplexAttributeV2() throws ExecutionException, InterruptedException {
-        final Thing thing = createThingV2(KNOWN_THING_ID, VALUE1);
-        insertBlocking(thing, 1L, -1L, policyEnforcer);
-
-        final JsonObject value = JsonFactory.newObjectBuilder()
-                .set("bool1", true)
-                .set(KNOWN_ATTRIBUTE_1, KNOWN_NEW_VALUE)
-                .build();
-        final AttributeModified attributeModified = createAttributeModified(KEY1, value, 2L);
-
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
-                .addEvent(attributeModified, JsonSchemaVersion.LATEST)
-                .build();
-
-        Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes)))
-                .isTrue();
-
-        final PolicyRestrictedSearchAggregation aggregation1 =
-                abf.newBuilder(cf.fieldCriteria(fef.filterByAttribute("key1/bool1"), cf.eq(Boolean.TRUE)))
-                        .authorizationSubjects(KNOWN_SUBJECTS_2)
-                        .build();
-
-        final Collection<String> result = findAll(aggregation1);
-        assertThat(result).contains(KNOWN_THING_ID);
-
-        final PolicyRestrictedSearchAggregation aggregation2 =
-                abf.newBuilder(cf.fieldCriteria(ef.filterByAttribute(KEY1), cf.eq(VALUE1)))
-                        .authorizationSubjects(KNOWN_SUBJECTS_2)
-                        .build();
-        final Collection<String> result2 = findAll(aggregation2);
-        assertThat(result2).isEmpty();
-
-        final JsonValue simpleValue = newValue(NEW_VALUE_2);
-        final AttributeModified attributeModified2 = createAttributeModified(KEY1, simpleValue, 3L);
-
-        final CombinedThingWrites writes2 = CombinedThingWrites.newBuilder(log, 2L, policyEnforcer)
-                .addEvent(attributeModified2, JsonSchemaVersion.LATEST)
-                .build();
-
-        Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes2)))
-                .isTrue();
-
-        final PolicyRestrictedSearchAggregation aggregation3 =
-                abf.newBuilder(cf.fieldCriteria(fef.filterByAttribute(KEY1), cf.eq(NEW_VALUE_2)))
-                        .authorizationSubjects(KNOWN_SUBJECTS_2)
-                        .build();
-
-        final Collection<String> result3 = findAll(aggregation3);
-        assertThat(result3).contains(KNOWN_THING_ID);
-    }
-
-    @Test
-    public void deleteSingleAttributeV1() throws ExecutionException, InterruptedException {
-        createThing(KNOWN_THING_ID, VALUE1);
-
-        final JsonPointer attributePointer = JsonFactory.newPointer(KEY1);
-        final AttributeDeleted attributeDeleted =
-                AttributeDeleted.of(KNOWN_THING_ID, attributePointer, 2L, DittoHeaders.empty());
-
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
-                .addEvent(attributeDeleted, JsonSchemaVersion.V_1)
-                .build();
-
-        Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes)))
-                .isTrue();
-
-        final PolicyRestrictedSearchAggregation aggregation1 =
-                abf.newBuilder(cf.fieldCriteria(fef.filterByAttribute(KEY1), cf.eq(VALUE1)))
-                        .authorizationSubjects(KNOWN_SUBJECTS_2)
-                        .build();
-
-        final Collection<String> result = findAll(aggregation1);
-
-        assertThat(result).isEmpty();
-    }
-
-    @Test
-    public void deleteSingleAttributeV2() throws ExecutionException, InterruptedException {
-        final Thing thing = createThingV2(KNOWN_THING_ID, VALUE1);
-        insertBlocking(thing, 1L, -1L, policyEnforcer);
-
-        final JsonPointer attributePointer = JsonFactory.newPointer(KEY1);
-        final AttributeDeleted attributeDeleted =
-                AttributeDeleted.of(KNOWN_THING_ID, attributePointer, 2L, DittoHeaders.empty());
-
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
-                .addEvent(attributeDeleted, JsonSchemaVersion.LATEST)
-                .build();
-
-        Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes)))
-                .isTrue();
-
-
-        final PolicyRestrictedSearchAggregation aggregation1 =
-                abf.newBuilder(cf.fieldCriteria(fef.filterByAttribute(KEY1), cf.eq(VALUE1)))
-                        .authorizationSubjects(KNOWN_SUBJECTS_2)
-                        .build();
-
-        final Collection<String> result = findAll(aggregation1);
-        assertThat(result).isEmpty();
-    }
-
-    @Test
-    public void deleteAllAttributesV1() throws ExecutionException, InterruptedException {
-        final Thing thing = createThing(KNOWN_THING_ID, VALUE1);
-        insertOrUpdateThing(thing, 1L, -1L);
-
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
-                .addEvent(AttributesDeleted.of(KNOWN_THING_ID, 2L, DittoHeaders.empty()),
-                        JsonSchemaVersion.V_1)
-                .build();
-
-        Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes)))
-                .isTrue();
-
-        final PolicyRestrictedSearchAggregation aggregation1 =
-                abf.newBuilder(cf.fieldCriteria(fef.filterByAttribute(KEY1), cf.eq(VALUE1)))
-                        .authorizationSubjects(KNOWN_SUBJECTS_2)
-                        .build();
-
-        final Collection<String> result = findAll(aggregation1);
-        assertThat(result).isEmpty();
-
-        final PolicyRestrictedSearchAggregation aggregation2 =
-                abf.newBuilder(cf.fieldCriteria(fef.filterByFeatureProperty(PROP1), cf.eq(PROP_VALUE1)))
-                        .authorizationSubjects(KNOWN_SUBJECTS_2)
-                        .build();
-
-        final Collection<String> result2 = findAll(aggregation2);
-        assertThat(result2).contains(KNOWN_THING_ID);
-    }
-
-    @Test
-    public void deleteAllAttributesV2() throws ExecutionException, InterruptedException {
-        final Thing thing = createThingV2(KNOWN_THING_ID, VALUE1);
-        insertBlocking(thing, 1L, -1L, policyEnforcer);
-
-
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
-                .addEvent(AttributesDeleted.of(KNOWN_THING_ID, 2L, DittoHeaders.empty()),
-                        JsonSchemaVersion.LATEST)
-                .build();
-
-        Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes)))
-                .isTrue();
-
-        final PolicyRestrictedSearchAggregation aggregation1 =
-                abf.newBuilder(cf.fieldCriteria(fef.filterByAttribute(KEY1), cf.eq(VALUE1)))
-                        .authorizationSubjects(KNOWN_SUBJECTS_2)
-                        .build();
-
-        final Collection<String> result = findAll(aggregation1);
-        assertThat(result).isEmpty();
-
-        final PolicyRestrictedSearchAggregation aggregation2 =
-                abf.newBuilder(cf.fieldCriteria(fef.filterByFeatureProperty(PROP1), cf.eq(PROP_VALUE1)))
-                        .authorizationSubjects(KNOWN_SUBJECTS_2)
-                        .build();
-
-        final Collection<String> result2 = findAll(aggregation2);
-        assertThat(result2).contains(KNOWN_THING_ID);
-    }
-
-    @Test
-    public void deleteExistingFeatureV1() throws ExecutionException, InterruptedException {
-        final Thing thing = createThing(KNOWN_THING_ID, VALUE1);
-        insertOrUpdateThing(thing, 1L, -1L);
-
-        final PolicyRestrictedSearchAggregation aggregation1 =
-                abf.newBuilder(cf.fieldCriteria(fef.filterByFeatureProperty(PROP1), cf.eq(PROP_VALUE1)))
-                        .authorizationSubjects(KNOWN_SUBJECTS_2)
-                        .build();
-
-        final Collection<String> result = findAll(aggregation1);
-
-        assertThat(result).contains(KNOWN_THING_ID);
-
-        final FeatureDeleted featureDeleted =
-                FeatureDeleted.of(KNOWN_THING_ID, FEATURE_ID1, 2L, DittoHeaders.empty());
-
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
-                .addEvent(featureDeleted, JsonSchemaVersion.LATEST)
-                .build();
-
-        Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes)))
-                .isTrue();
-        assertThat(findAll(aggregation1)).isEmpty();
-
-        final PolicyRestrictedSearchAggregation aggregation2 =
-                abf.newBuilder(cf.existsCriteria(ef.existsByFeatureId(FEATURE_ID1)))
-                        .authorizationSubjects(KNOWN_SUBJECTS_2)
-                        .build();
-
-        final Collection<String> result2 = findAll(aggregation2);
-        assertThat(result2).isEmpty();
-    }
-
-    @Test
-    public void addNewFeatureV1() throws ExecutionException, InterruptedException {
-        final Thing thing = createThing(KNOWN_THING_ID, VALUE1);
-        insertOrUpdateThing(thing, 1L, -1L);
-
-        final PolicyRestrictedSearchAggregation aggregation1 =
-                abf.newBuilder(cf.fieldCriteria(fef.filterByFeatureProperty(PROP5), cf.eq(PROP_VALUE5)))
-                        .authorizationSubjects(KNOWN_SUBJECTS_2)
-                        .build();
-        final Collection<String> result = findAll(aggregation1);
-        assertThat(result).isEmpty();
-
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
-                .addEvent(createFeatureCreated(FEATURE_ID2), JsonSchemaVersion.V_1)
-                .build();
-
-        Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes)))
-                .isTrue();
-        assertThat(findAll(aggregation1)).contains(KNOWN_THING_ID);
-
-        final PolicyRestrictedSearchAggregation aggregation2 =
-                abf.newBuilder(cf.existsCriteria(fef.existsByFeatureId(FEATURE_ID2)))
-                        .authorizationSubjects(KNOWN_SUBJECTS_2)
-                        .build();
-
-        assertThat(findAll(aggregation2)).contains(KNOWN_THING_ID);
-    }
-
-    private static ThingEvent createFeatureCreated(final CharSequence featureId) {
-        final Feature feature = createFeature(featureId.toString());
-        return FeatureCreated.of(KNOWN_THING_ID, feature, 2L, DittoHeaders.empty());
-    }
-
-    @Test
-    public void addNewFeatureV2() throws ExecutionException, InterruptedException {
-        final Thing thing = createThingV2(KNOWN_THING_ID, VALUE1);
-        insertBlocking(thing, 1L, -1L, policyEnforcer);
-
-        final PolicyRestrictedSearchAggregation aggregation1 =
-                abf.newBuilder(cf.fieldCriteria(fef.filterByFeatureProperty(PROP5), cf.eq(PROP_VALUE5)))
-                        .authorizationSubjects(KNOWN_SUBJECTS_2)
-                        .build();
-        final Collection<String> result = findAll(aggregation1);
-        assertThat(result).isEmpty();
-
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
-                .addEvent(createFeatureCreated(FEATURE_ID2), JsonSchemaVersion.LATEST)
-                .build();
-
-        Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes)))
-                .isTrue();
-
-
-        assertThat(findAll(aggregation1)).contains(KNOWN_THING_ID);
-
-        final PolicyRestrictedSearchAggregation aggregation2 = abf
-                .newBuilder(cf.existsCriteria(fef.existsByFeatureId(FEATURE_ID2)))
-                .authorizationSubjects(KNOWN_SUBJECTS_2)
-                .build();
-
-        assertThat(findAll(aggregation2)).contains(KNOWN_THING_ID);
-    }
-
-    @Test
-    public void updateExistingFeatureV1() throws ExecutionException, InterruptedException {
-        final Thing thing = createThing(KNOWN_THING_ID, VALUE1);
-        insertOrUpdateThing(thing, 1L, -1L);
-
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
-                .addEvent(createFeatureCreated(FEATURE_ID1), JsonSchemaVersion.V_1)
-                .build();
-
-        Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes)))
-                .isTrue();
-
-        final PolicyRestrictedSearchAggregation aggregation1 = abf
-                .newBuilder(cf.fieldCriteria(fef.filterByFeatureProperty(PROP5), cf.eq(PROP_VALUE5)))
-                .authorizationSubjects(KNOWN_SUBJECTS_2)
-                .build();
-
-        final Collection<String> result = findAll(aggregation1);
-        assertThat(result).contains(KNOWN_THING_ID);
-
-        final PolicyRestrictedSearchAggregation aggregation2 = abf
-                .newBuilder(cf.existsCriteria(fef.existsByFeatureProperty(PROP5)))
-                .authorizationSubjects(KNOWN_SUBJECTS_2)
-                .build();
-
-        assertThat(findAll(aggregation2)).contains(KNOWN_THING_ID);
-    }
-
-    @Test
-    public void updateExistingDottedFeatureV1() throws ExecutionException, InterruptedException {
-        final Thing thing = createThing(KNOWN_THING_ID, VALUE1);
-        insertOrUpdateThing(thing, 1L, -1L);
-
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
-                .addEvent(createFeatureCreated("feauture.with.dots"), JsonSchemaVersion.V_1)
-                .build();
-
-        Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes)))
-                .isTrue();
-
-        final PolicyRestrictedSearchAggregation aggregation1 = abf
-                .newBuilder(cf.fieldCriteria(fef.filterByFeatureProperty(PROP5), cf.eq(PROP_VALUE5)))
-                .authorizationSubjects(KNOWN_SUBJECTS_2)
-                .build();
-
-        final Collection<String> result = findAll(aggregation1);
-        assertThat(result).contains(KNOWN_THING_ID);
+        PolicyEnforcer policyEnforcer;
 
-        final PolicyRestrictedSearchAggregation aggregation2 = abf
-                .newBuilder(cf.existsCriteria(fef.existsByFeatureProperty(PROP5)))
-                .authorizationSubjects(KNOWN_SUBJECTS_2)
-                .build();
+        MongoCollection<Document> writeThingsCollectionSpy;
+        MongoCollection<Document> writePoliciesCollectionSpy;
 
-        assertThat(findAll(aggregation2)).contains(KNOWN_THING_ID);
-    }
-
-    @Test
-    public void updateExistingFeatureV2() throws ExecutionException, InterruptedException {
-        final Thing thing = createThingV2(KNOWN_THING_ID, VALUE1);
-        insertBlocking(thing, 1L, -1L, policyEnforcer);
-
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
-                .addEvent(createFeatureCreated(FEATURE_ID1), JsonSchemaVersion.LATEST)
-                .build();
-
-        Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes)))
-                .isTrue();
-
-        final PolicyRestrictedSearchAggregation aggregation1 = abf
-                .newBuilder(cf.fieldCriteria(fef.filterByFeatureProperty(PROP5), cf.eq(PROP_VALUE5)))
-                .authorizationSubjects(KNOWN_SUBJECTS_2)
-                .build();
-
-        final Collection<String> result = findAll(aggregation1);
-        assertThat(result).contains(KNOWN_THING_ID);
-
-        final PolicyRestrictedSearchAggregation aggregation2 = abf
-                .newBuilder(cf.existsCriteria(fef.existsByFeatureProperty(PROP5)))
-                .authorizationSubjects(KNOWN_SUBJECTS_2)
-                .build();
-
-        assertThat(findAll(aggregation2)).contains(KNOWN_THING_ID);
-    }
-
-    @Test
-    public void deletePropertiesOfExistingFeatureV1() throws ExecutionException, InterruptedException {
-        insertOrUpdateThing(createThing(KNOWN_THING_ID, VALUE1), 1L, -1L);
-
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
-                .addEvent(createFeaturePropertiesDeleted(FEATURE_ID1), JsonSchemaVersion.V_1)
-                .build();
-
-        Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes)))
-                .isTrue();
-
-        final PolicyRestrictedSearchAggregation aggregation1 = abf
-                .newBuilder(cf.fieldCriteria(fef.filterByFeatureProperty(PROP1), cf.eq(PROP_VALUE1)))
-                .authorizationSubjects(KNOWN_SUBJECTS_2)
-                .build();
-
-        final Collection<String> result = findAll(aggregation1);
-        assertThat(result).isEmpty();
-
-        final PolicyRestrictedSearchAggregation aggregation2 = abf
-                .newBuilder(cf.existsCriteria(ef.existsByFeatureId(FEATURE_ID1)))
-                .authorizationSubjects(KNOWN_SUBJECTS_2)
-                .build();
-
-        final Collection<String> result2 = findAll(aggregation2);
-        assertThat(result2).contains(KNOWN_THING_ID);
-    }
-
-    private static ThingEvent createFeaturePropertiesDeleted(final CharSequence featureId) {
-        return FeaturePropertiesDeleted.of(KNOWN_THING_ID, featureId.toString(), 2L,
-                DittoHeaders.empty());
-    }
-
-    @Test
-    public void deletePropertiesOfExistingFeatureV2() throws ExecutionException, InterruptedException {
-        final Thing thing = createThingV2(KNOWN_THING_ID, VALUE1);
-        insertBlocking(thing, 1L, -1L, policyEnforcer);
-
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
-                .addEvent(createFeaturePropertiesDeleted(FEATURE_ID1), JsonSchemaVersion.LATEST)
-                .build();
-
-        Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes)))
-                .isTrue();
-
-        final PolicyRestrictedSearchAggregation aggregation1 = abf
-                .newBuilder(cf.fieldCriteria(fef.filterByFeatureProperty(PROP1), cf.eq(PROP_VALUE1)))
-                .authorizationSubjects(KNOWN_SUBJECTS_2)
-                .build();
-
-        final Collection<String> result = findAll(aggregation1);
-        assertThat(result).isEmpty();
-
-        final PolicyRestrictedSearchAggregation aggregation2 = abf
-                .newBuilder(cf.existsCriteria(ef.existsByFeatureId(FEATURE_ID1)))
-                .authorizationSubjects(KNOWN_SUBJECTS_2)
-                .build();
-
-        final Collection<String> result2 = findAll(aggregation2);
-        assertThat(result2).contains(KNOWN_THING_ID);
-    }
-
-    @Test
-    public void updatePropertiesOfExistingFeatureV1() throws ExecutionException, InterruptedException {
-        insertOrUpdateThing(createThing(KNOWN_THING_ID, VALUE1), 1L, -1L);
-
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
-                .addEvent(createFeaturePropertiesModified(FEATURE_ID1), JsonSchemaVersion.V_1)
-                .build();
-
-        Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes)))
-                .isTrue();
-
-        final PolicyRestrictedSearchAggregation aggregation1 = abf
-                .newBuilder(cf.fieldCriteria(fef.filterByFeatureProperty(PROP6), cf.eq(PROP_VALUE6)))
-                .authorizationSubjects(KNOWN_SUBJECTS_2)
-                .build();
-
-        final Collection<String> result = findAll(aggregation1);
-        assertThat(result).contains(KNOWN_THING_ID);
-    }
-
-    private static ThingEvent createFeaturePropertiesModified(final CharSequence featureId) {
-        final Feature feature = createFeature(featureId.toString());
-        return FeaturePropertiesModified.of(KNOWN_THING_ID, featureId.toString(), feature.getProperties().orElse
-                (null), 2L, DittoHeaders.empty());
-    }
-
-    @Test
-    public void updatePropertiesOfExistingFeatureV2() throws ExecutionException, InterruptedException {
-        final Thing thing = createThingV2(KNOWN_THING_ID, VALUE1);
-        insertBlocking(thing, 1L, -1L, policyEnforcer);
-
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
-                .addEvent(createFeaturePropertiesModified(FEATURE_ID1), JsonSchemaVersion.LATEST)
-                .build();
-
-        Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes)))
-                .isTrue();
-
-        final PolicyRestrictedSearchAggregation aggregation1 = abf
-                .newBuilder(cf.fieldCriteria(fef.filterByFeatureProperty(PROP6), cf.eq(PROP_VALUE6)))
-                .authorizationSubjects(KNOWN_SUBJECTS_2)
-                .build();
-
-        final Collection<String> result = findAll(aggregation1);
-        assertThat(result).contains(KNOWN_THING_ID);
-    }
-
-    @Test
-    public void updatePropertiesOfNotExistingFeatureV1() throws ExecutionException, InterruptedException {
-        insertOrUpdateThing(createThing(KNOWN_THING_ID, VALUE1), 1L, -1L);
-
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
-                .addEvent(createFeaturePropertiesModified(FEATURE_ID2), JsonSchemaVersion.V_1)
-                .build();
-
-        Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes)))
-                .isTrue();
-
-        final PolicyRestrictedSearchAggregation aggregation1 = abf
-                .newBuilder(cf.fieldCriteria(fef.filterByFeatureProperty(PROP6), cf.eq(PROP_VALUE6)))
-                .authorizationSubjects(KNOWN_SUBJECTS_2)
-                .build();
-
-        final Collection<String> result = findAll(aggregation1);
-        assertThat(result).contains(KNOWN_THING_ID);
-
-        final PolicyRestrictedSearchAggregation aggregation2 = abf
-                .newBuilder(cf.fieldCriteria(fef.filterByFeatureProperty(PROP1), cf.eq(PROP_VALUE1)))
-                .authorizationSubjects(KNOWN_SUBJECTS_2)
-                .build();
-
-        final Collection<String> result2 = findAll(aggregation2);
-        assertThat(result2).contains(KNOWN_THING_ID);
-    }
-
-    @Test
-    public void updatePropertiesOfNotExistingFeatureV2() throws ExecutionException, InterruptedException {
-        final Thing thing = createThingV2(KNOWN_THING_ID, VALUE1);
-        insertBlocking(thing, 1L, -1L, policyEnforcer);
-
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
-                .addEvent(createFeaturePropertiesModified(FEATURE_ID2), JsonSchemaVersion.LATEST)
-                .build();
-
-        Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes)))
-                .isTrue();
-
-        final PolicyRestrictedSearchAggregation aggregation1 = abf
-                .newBuilder(cf.fieldCriteria(fef.filterByFeatureProperty(PROP6), cf.eq(PROP_VALUE6)))
-                .authorizationSubjects(KNOWN_SUBJECTS_2)
-                .build();
-
-        final Collection<String> result = findAll(aggregation1);
-        assertThat(result).contains(KNOWN_THING_ID);
-
-        final PolicyRestrictedSearchAggregation aggregation2 = abf
-                .newBuilder(cf.fieldCriteria(fef.filterByFeatureProperty(PROP1), cf.eq(PROP_VALUE1)))
-                .authorizationSubjects(KNOWN_SUBJECTS_2)
-                .build();
-
-        final Collection<String> result2 = findAll(aggregation2);
-        assertThat(result2).contains(KNOWN_THING_ID);
-    }
-
-    @Test
-    public void deleteFeaturePropertyV1() throws ExecutionException, InterruptedException {
-        final Thing thing = createThing(KNOWN_THING_ID, VALUE1);
-        insertOrUpdateThing(thing, 1L, -1L);
-
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
-                .addEvent(createFeaturePropertyDeleted(FEATURE_ID1, PROP1, 2L), JsonSchemaVersion.V_1)
-                .build();
-
-        Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes)))
-                .isTrue();
-
-        final PolicyRestrictedSearchAggregation aggregation1 = abf
-                .newBuilder(cf.fieldCriteria(fef.filterByFeatureProperty(PROP1), cf.eq(PROP_VALUE1)))
-                .authorizationSubjects(KNOWN_SUBJECTS_2)
-                .build();
-
-        final Collection<String> result = findAll(aggregation1);
-        assertThat(result).isEmpty();
-
-        final PolicyRestrictedSearchAggregation aggregation2 = abf
-                .newBuilder(cf.fieldCriteria(fef.filterByFeatureProperty(PROP1_EXTENDED), cf.eq(PROP_VALUE1)))
-                .authorizationSubjects(KNOWN_SUBJECTS_2)
-                .build();
-
-        final Collection<String> result2 = findAll(aggregation2);
-        assertThat(result2).contains(KNOWN_THING_ID);
-    }
-
-    private static ThingEvent createFeaturePropertyDeleted(final CharSequence featureId,
-            final CharSequence featurePropertyPointer, final long revision) {
-        return FeaturePropertyDeleted.of(KNOWN_THING_ID, featureId.toString(), JsonFactory
-                .newPointer(featurePropertyPointer), revision, DittoHeaders.empty());
-    }
-
-    @Test
-    public void deleteFeaturePropertyV2() throws ExecutionException, InterruptedException {
-        final Thing thing = createThingV2(KNOWN_THING_ID, VALUE1);
-        insertBlocking(thing, 1L, -1L, policyEnforcer);
-
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
-                .addEvent(createFeaturePropertyDeleted(FEATURE_ID1, PROP1, 2L), JsonSchemaVersion.LATEST)
-                .build();
-
-        Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes)))
-                .isTrue();
-
-        final PolicyRestrictedSearchAggregation aggregation1 = abf
-                .newBuilder(cf.fieldCriteria(fef.filterByFeatureProperty(PROP1), cf.eq(PROP_VALUE1)))
-                .authorizationSubjects(KNOWN_SUBJECTS_2)
-                .build();
-
-        final Collection<String> result = findAll(aggregation1);
-        assertThat(result).isEmpty();
-
-        final PolicyRestrictedSearchAggregation aggregation2 = abf
-                .newBuilder(cf.fieldCriteria(fef.filterByFeatureProperty(PROP1_EXTENDED), cf.eq(PROP_VALUE1)))
-                .authorizationSubjects(KNOWN_SUBJECTS_2)
-                .build();
-
-        final Collection<String> result2 = findAll(aggregation2);
-        assertThat(result2).contains(KNOWN_THING_ID);
-    }
-
-    @Test
-    public void deleteFeaturePropertyWithWrongSourceSequenceNumberV1() throws ExecutionException, InterruptedException {
-        final Thing thing = createThing(KNOWN_THING_ID, VALUE1);
-        insertOrUpdateThing(thing, 1L, -1L);
-
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 0L, policyEnforcer)
-                .addEvent(createFeaturePropertyDeleted(FEATURE_ID1, PROP1, 1L), JsonSchemaVersion.V_1)
-                .build();
-
-        Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes)))
-                .isFalse();
-    }
-
-    @Test
-    public void deleteFeaturePropertyWithWrongSourceSequenceNumberV2() throws ExecutionException, InterruptedException {
-        final Thing thing = createThingV2(KNOWN_THING_ID, VALUE1);
-        insertBlocking(thing, 1L, -1L, policyEnforcer);
-
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 0L, policyEnforcer)
-                .addEvent(createFeaturePropertyDeleted(FEATURE_ID1, PROP1, 1L), JsonSchemaVersion.LATEST)
-                .build();
-
-        Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes)))
-                .isFalse();
-    }
-
-    @Test
-    public void updateFeaturePropertyV1() throws ExecutionException, InterruptedException {
-        insertOrUpdateThing(createThing(KNOWN_THING_ID, VALUE1), 1L, -1L);
-
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
-                .addEvent(createFeaturePropertyModified(FEATURE_ID1, PROP1, newValue(true), 2L), JsonSchemaVersion.V_1)
-                .build();
-
-        Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes)))
-                .isTrue();
-
-        final PolicyRestrictedSearchAggregation aggregation1 = abf
-                .newBuilder(cf.fieldCriteria(fef.filterByFeatureProperty(PROP1), cf.eq(Boolean.TRUE)))
-                .authorizationSubjects(KNOWN_SUBJECTS_2)
-                .build();
-
-        final Collection<String> result = findAll(aggregation1);
-        assertThat(result).contains(KNOWN_THING_ID);
-
-        final PolicyRestrictedSearchAggregation aggregation2 = abf
-                .newBuilder(cf.fieldCriteria(fef.filterByFeatureProperty(PROP1), cf.eq(PROP_VALUE1)))
-                .authorizationSubjects(KNOWN_SUBJECTS_2)
-                .build();
-
-        final Collection<String> result2 = findAll(aggregation2);
-        assertThat(result2).isEmpty();
-    }
-
-    private static ThingEvent createFeaturePropertyModified(final CharSequence featureId,
-            final CharSequence propertyPointer, final JsonValue propertyValue, final long revision) {
-        return FeaturePropertyModified.of(KNOWN_THING_ID, featureId.toString(), JsonFactory.newPointer
-                (propertyPointer), propertyValue, revision, DittoHeaders.empty());
-    }
-
-    @Test
-    public void updateFeaturePropertyV2() throws ExecutionException, InterruptedException {
-        final Thing thing = createThingV2(KNOWN_THING_ID, VALUE1);
-        insertBlocking(thing, 1L, -1L, policyEnforcer);
-
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
-                .addEvent(createFeaturePropertyModified(FEATURE_ID1, PROP1, newValue(true), 2L),
-                        JsonSchemaVersion.LATEST)
-                .build();
-
-        Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes)))
-                .isTrue();
-
-        final PolicyRestrictedSearchAggregation aggregation1 = abf
-                .newBuilder(cf.fieldCriteria(fef.filterByFeatureProperty(PROP1), cf.eq(Boolean.TRUE)))
-                .authorizationSubjects(KNOWN_SUBJECTS_2)
-                .build();
-
-        final Collection<String> result = findAll(aggregation1);
-        assertThat(result).contains(KNOWN_THING_ID);
-
-        final PolicyRestrictedSearchAggregation aggregation2 = abf
-                .newBuilder(cf.fieldCriteria(fef.filterByFeatureProperty(PROP1), cf.eq(PROP_VALUE1)))
-                .authorizationSubjects(KNOWN_SUBJECTS_2)
-                .build();
-
-        final Collection<String> result2 = findAll(aggregation2);
-        assertThat(result2).isEmpty();
-    }
-
-    @Test
-    public void updateFeaturePropertyByOverridingComplexPropertyV1() throws ExecutionException, InterruptedException {
-        insertOrUpdateThing(createThing(KNOWN_THING_ID, VALUE1), 1L, -1L);
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
-                .addEvent(createFeaturePropertyModified(FEATURE_ID1, PROP7, newValue("simple"), 2L),
-                        JsonSchemaVersion.V_1)
-                .build();
-
-        Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes)))
-                .isTrue();
-
-        final PolicyRestrictedSearchAggregation aggregation1 = abf
-                .newBuilder(cf.fieldCriteria(fef.filterByFeatureProperty(PROP7), cf.eq("simple")))
-                .authorizationSubjects(KNOWN_SUBJECTS_2)
-                .build();
-
-        final Collection<String> result = findAll(aggregation1);
-        assertThat(result).contains(KNOWN_THING_ID);
-
-        final PolicyRestrictedSearchAggregation aggregation2 = abf
-                .newBuilder(cf.fieldCriteria(fef.filterByFeatureProperty(PROP7 + "/" + PROP8), cf.eq(PROP_VALUE8)))
-                .authorizationSubjects(KNOWN_SUBJECTS_2)
-                .build();
-
-        final Collection<String> result2 = findAll(aggregation2);
-        assertThat(result2).isEmpty();
-    }
+        @Before
+        public void setUpBaseStructures() {
+            policyEnforcer = PolicyEnforcers.defaultEvaluator(createPolicy1());
+            // spy the collections inside the persistence
+            spyWriteCollections();
+        }
 
-    @Test
-    public void updateFeaturePropertyByOverridingComplexPropertyV2() throws ExecutionException, InterruptedException {
-        final Thing thing = createThingV2(KNOWN_THING_ID, VALUE1);
-        insertBlocking(thing, 1L, -1L, policyEnforcer);
-
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
-                .addEvent(createFeaturePropertyModified(FEATURE_ID1, PROP7, newValue("simple"), 2L),
-                        JsonSchemaVersion.LATEST)
-                .build();
-
-        Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes)))
-                .isTrue();
-
-        final PolicyRestrictedSearchAggregation aggregation1 = abf
-                .newBuilder(cf.fieldCriteria(fef.filterByFeatureProperty(PROP7), cf.eq("simple")))
-                .authorizationSubjects(KNOWN_SUBJECTS_2)
-                .build();
-
-        final Collection<String> result = findAll(aggregation1);
-        assertThat(result).contains(KNOWN_THING_ID);
-
-        final PolicyRestrictedSearchAggregation aggregation2 = abf
-                .newBuilder(cf.fieldCriteria(fef.filterByFeatureProperty(PROP7 + "/" + PROP8), cf.eq(PROP_VALUE8)))
-                .authorizationSubjects(KNOWN_SUBJECTS_2)
-                .build();
-
-        final Collection<String> result2 = findAll(aggregation2);
-        assertThat(result2).isEmpty();
-    }
-
-    @Test
-    public void deleteFeaturesV1() throws ExecutionException, InterruptedException {
-        insertOrUpdateThing(createThing(KNOWN_THING_ID, VALUE1), 1L, -1L);
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
-                .addEvent(FeaturesDeleted.of(KNOWN_THING_ID, 2L, DittoHeaders.empty()), JsonSchemaVersion.V_1)
-                .build();
-
-        Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes)))
-                .isTrue();
-
-        final PolicyRestrictedSearchAggregation aggregation1 = abf
-                .newBuilder(cf.fieldCriteria(fef.filterByFeatureProperty(PROP1), cf.eq(PROP_VALUE1)))
-                .authorizationSubjects(KNOWN_SUBJECTS_2)
-                .build();
-
-        final Collection<String> result = findAll(aggregation1);
-        assertThat(result).isEmpty();
-
-        final PolicyRestrictedSearchAggregation aggregation2 = abf
-                .newBuilder(cf.existsCriteria(ef.existsByFeatureId(FEATURE_ID1)))
-                .authorizationSubjects(KNOWN_SUBJECTS_2)
-                .build();
-
-        final Collection<String> result2 = findAll(aggregation2);
-        assertThat(result2).isEmpty();
-    }
-
-    @Test
-    public void deleteFeaturesV2() throws ExecutionException, InterruptedException {
-        final Thing thing = createThingV2(KNOWN_THING_ID, VALUE1);
-        insertBlocking(thing, 1L, -1L, policyEnforcer);
-
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
-                .addEvent(FeaturesDeleted.of(KNOWN_THING_ID, 2L, DittoHeaders.empty()),
-                        JsonSchemaVersion.LATEST)
-                .build();
-
-        Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes)))
-                .isTrue();
-
-        final PolicyRestrictedSearchAggregation aggregation1 = abf
-                .newBuilder(cf.fieldCriteria(fef.filterByFeatureProperty(PROP1), cf.eq(PROP_VALUE1)))
-                .authorizationSubjects(KNOWN_SUBJECTS_2)
-                .build();
-
-        final Collection<String> result = findAll(aggregation1);
-        assertThat(result).isEmpty();
-
-        final PolicyRestrictedSearchAggregation aggregation2 = abf
-                .newBuilder(cf.existsCriteria(ef.existsByFeatureId(FEATURE_ID1)))
-                .authorizationSubjects(KNOWN_SUBJECTS_2)
-                .build();
-
-        final Collection<String> result2 = findAll(aggregation2);
-        assertThat(result2).isEmpty();
-    }
-
-    @Test
-    public void updateFeaturesV1() throws ExecutionException, InterruptedException {
-        final Thing thing = createThing(KNOWN_THING_ID, VALUE1);
-        insertOrUpdateThing(thing, 1L, -1L);
-        updateFeatures("f3", createFeatures(), JsonSchemaVersion.V_1);
-    }
-
-    @Test
-    public void updateFeaturesV1WithDottedFeatureId() throws ExecutionException, InterruptedException {
-        final Thing thing = createThing(KNOWN_THING_ID, VALUE1);
-        insertOrUpdateThing(thing, 1L, -1L);
-        updateFeatures(FEATURE_WITH_DOTS, createFeaturesWithDottedFeatureId(FEATURE_WITH_DOTS), JsonSchemaVersion.V_1);
-    }
-
-    @Test
-    public void updateFeaturesV1WithDottedPropertyNames() throws ExecutionException, InterruptedException {
-        final Thing thing = createThing(KNOWN_THING_ID, VALUE1);
-        insertOrUpdateThing(thing, 1L, -1L);
-        updateFeatures(FEATURE_WITH_DOTS, createFeaturesWithDottedPropertyNames(FEATURE_WITH_DOTS),
-                JsonSchemaVersion.V_1);
-    }
-
-    @Test
-    public void updateFeaturesV2() throws ExecutionException, InterruptedException {
-        final Thing thing = createThingV2(KNOWN_THING_ID, VALUE1);
-        insertBlocking(thing, 1L, -1L, policyEnforcer);
-        updateFeatures("f3", createFeatures(), JsonSchemaVersion.V_2);
-    }
-
-    @Test
-    public void updateFeaturesV2WithDottedFeatureId() throws ExecutionException, InterruptedException {
-        final Thing thing = createThingV2(KNOWN_THING_ID, VALUE1);
-        insertBlocking(thing, 1L, -1L, policyEnforcer);
-        updateFeatures(FEATURE_WITH_DOTS, createFeaturesWithDottedFeatureId(FEATURE_WITH_DOTS), JsonSchemaVersion.V_2);
-    }
-
-    @Test
-    public void updateFeaturesV2WithDottedPropertyNames() throws ExecutionException, InterruptedException {
-        final Thing thing = createThing(KNOWN_THING_ID, VALUE1);
-        insertBlocking(thing, 1L, -1L, policyEnforcer);
-        updateFeatures(FEATURE_WITH_DOTS, createFeaturesWithDottedPropertyNames(FEATURE_WITH_DOTS),
-                JsonSchemaVersion.V_2);
-    }
-
-    private void updateFeatures(final String expectedFeatureId, final Features features,
-            final JsonSchemaVersion schemaVersion) throws ExecutionException, InterruptedException {
-
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
-                .addEvent(createFeaturesModified(features), schemaVersion)
-                .build();
-
-        Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes)))
-                .isTrue();
-
-        final PolicyRestrictedSearchAggregation aggregation1 = abf
-                .newBuilder(cf.fieldCriteria(fef.filterByFeatureProperty(PROP1), cf.eq(PROP_VALUE1)))
-                .authorizationSubjects(KNOWN_SUBJECTS_2)
-                .build();
-
-        final Collection<String> result = findAll(aggregation1);
-        assertThat(result).isEmpty();
-
-        final PolicyRestrictedSearchAggregation aggregation2 = abf
-                .newBuilder(cf.fieldCriteria(fef.filterByFeatureProperty(PROP5), cf.eq(PROP_VALUE5)))
-                .authorizationSubjects(KNOWN_SUBJECTS_2)
-                .build();
-
-        final Collection<String> result2 = findAll(aggregation2);
-        assertThat(result2).contains(KNOWN_THING_ID);
-
-        final PolicyRestrictedSearchAggregation aggregation3 = abf
-                .newBuilder(cf.existsCriteria(ef.existsByFeatureId(expectedFeatureId)))
-                .authorizationSubjects(KNOWN_SUBJECTS_2)
-                .build();
-
-        final Collection<String> result3 = findAll(aggregation3);
-        assertThat(result3).contains(KNOWN_THING_ID);
-    }
-
-    private static ThingEvent createFeaturesModified(final Features features) {
-        return FeaturesModified.of(KNOWN_THING_ID, features, 2L, DittoHeaders.empty());
-    }
-
-    @Test
-    public void updateFeaturePropertyAndAclV1() throws ExecutionException, InterruptedException {
-        insertOrUpdateThing(createThing(KNOWN_THING_ID, VALUE1), 1L, -1L);
-
-        final AclEntry entry = ThingsModelFactory.newAclEntry(newAuthSubject("anotherSid"),
-                org.eclipse.ditto.model.things.Permission.READ);
-
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
-                .addEvent(AclEntryModified.of(KNOWN_THING_ID, entry, 2L, DittoHeaders.empty()),
-                        JsonSchemaVersion.V_1)
-                .addEvent(createFeaturePropertyModified(FEATURE_ID1, PROP1, newValue("somethingNew"), 3L),
-                        JsonSchemaVersion.V_1)
-                .build();
-
-        Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes)))
-                .isTrue();
-
-        final PolicyRestrictedSearchAggregation aggregation1 = abf
-                .newBuilder(cf.fieldCriteria(fef.filterByAttribute(KEY1), cf.eq(VALUE1)))
-                .authorizationSubjects(KNOWN_SUBJECTS_2)
-                .build();
-
-        assertThat(findAll(aggregation1)).contains(KNOWN_THING_ID);
-
-        final PolicyRestrictedSearchAggregation aggregation2 = abf
-                .newBuilder(cf.fieldCriteria(fef.filterByFeatureProperty(PROP1), cf.eq("somethingNew")))
-                .authorizationSubjects(KNOWN_SUBJECTS_2)
-                .build();
-
-        final Collection<String> result2 = findAll(aggregation2);
-        assertThat(result2).contains(KNOWN_THING_ID);
-    }
-
-    @Test
-    public void updateFeaturePropertiesAndOneAttributeV1() throws ExecutionException, InterruptedException {
-        insertOrUpdateThing(createThing(KNOWN_THING_ID, VALUE1), 1L, -1L);
-
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
-                .addEvent(createFeaturePropertiesModified(FEATURE_ID2), JsonSchemaVersion.V_1)
-                .addEvent(createAttributeModified(PROP1, newValue("s0meattr12"), 3L), JsonSchemaVersion.V_1)
-                .build();
-
-        Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes)))
-                .isTrue();
-
-        final PolicyRestrictedSearchAggregation aggregation1 = abf
-                .newBuilder(cf.fieldCriteria(fef.filterByAttribute(PROP1), cf.eq("s0meattr12")))
-                .authorizationSubjects(KNOWN_SUBJECTS_2)
-                .build();
-
-        final Collection<String> result1 = findAll(aggregation1);
-        assertThat(result1).contains(KNOWN_THING_ID);
-
-        final PolicyRestrictedSearchAggregation aggregation2 = abf
-                .newBuilder(cf.fieldCriteria(fef.filterByFeatureProperty(PROP6), cf.eq(PROP_VALUE6)))
-                .authorizationSubjects(KNOWN_SUBJECTS_2)
-                .build();
-
-        final Collection<String> result2 = findAll(aggregation2);
-        assertThat(result2).contains(KNOWN_THING_ID);
-    }
-
-    @Test
-    public void updateFeaturePropertiesAndOneAttributeV2() throws ExecutionException, InterruptedException {
-        final Thing thing = createThingV2(KNOWN_THING_ID, VALUE1);
-        insertBlocking(thing, 1L, -1L, policyEnforcer);
-
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
-                .addEvent(createFeaturePropertiesModified(FEATURE_ID1), JsonSchemaVersion.LATEST)
-                .addEvent(createAttributeModified(PROP1, newValue("s0meattr12"), 3L), JsonSchemaVersion.LATEST)
-                .build();
-
-        Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes)))
-                .isTrue();
+        private void spyWriteCollections() {
 
-        final PolicyRestrictedSearchAggregation aggregation1 = abf
-                .newBuilder(cf.fieldCriteria(fef.filterByAttribute(PROP1), cf.eq("s0meattr12")))
-                .authorizationSubjects(KNOWN_SUBJECTS_2)
-                .build();
+            try {
+                final Field thingCollectionField = writePersistence.getClass()
+                        .getDeclaredField("collection");
+                thingCollectionField.setAccessible(true);
+                this.writeThingsCollectionSpy = (MongoCollection<Document>) Mockito.spy(thingCollectionField.get
+                        (writePersistence));
+                thingCollectionField.set(writePersistence, this.writeThingsCollectionSpy);
 
-        final Collection<String> result1 = findAll(aggregation1);
-        assertThat(result1).contains(KNOWN_THING_ID);
+                final Field policyCollectionField = writePersistence.getClass()
+                        .getDeclaredField("policiesCollection");
+                policyCollectionField.setAccessible(true);
+                this.writePoliciesCollectionSpy = (MongoCollection<Document>) Mockito.spy(policyCollectionField.get
+                        (writePersistence));
+                policyCollectionField.set(writePersistence, this.writePoliciesCollectionSpy);
 
-        final PolicyRestrictedSearchAggregation aggregation2 = abf
-                .newBuilder(cf.fieldCriteria(fef.filterByFeatureProperty(PROP6), cf.eq(PROP_VALUE6)))
-                .authorizationSubjects(KNOWN_SUBJECTS_2)
-                .build();
 
-        final Collection<String> result2 = findAll(aggregation2);
+            } catch (NoSuchFieldException | IllegalAccessException e) {
+                throw new RuntimeException(e);
+            }
 
-        assertThat(result2).contains(KNOWN_THING_ID);
-    }
-
-    @Test
-    public void updateSeveralFeaturePropertiesAndDeleteThingV1() throws ExecutionException, InterruptedException {
-        insertOrUpdateThing(createThing(KNOWN_THING_ID, VALUE1), 1L, -1L);
-
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
-                .addEvent(createAclModified("anotherSid", 2L, org.eclipse.ditto.model.things.Permission.READ),
-                        JsonSchemaVersion.V_1)
-                .addEvent(createFeaturePropertyModified(FEATURE_ID1, PROP1, newValue("somethingNew"), 3L),
-                        JsonSchemaVersion.V_1)
-                .addEvent(createFeaturePropertyModified(FEATURE_ID1, PROP1, newValue("somethingNew2"), 4L),
-                        JsonSchemaVersion.V_1)
-                .addEvent(createFeaturePropertyModified(FEATURE_ID1, PROP1, newValue("somethingNew3"), 5L),
-                        JsonSchemaVersion.V_1)
-                .addEvent(createFeaturePropertyModified(FEATURE_ID1, PROP1, newValue("somethingNew4"), 6L),
-                        JsonSchemaVersion.V_1)
-                .addEvent(ThingDeleted.of(KNOWN_THING_ID, 7L, DittoHeaders.empty()), JsonSchemaVersion.V_1)
-                .build();
-
-        Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes)))
-                .isTrue();
-
-        final PolicyRestrictedSearchAggregation aggregation1 = abf
-                .newBuilder(cf.any())
-                .authorizationSubjects(KNOWN_SUBJECTS_2)
-                .build();
-
-        assertThat(findAll(aggregation1)).isEmpty();
-    }
-
-    @Test
-    public void delete() throws ExecutionException, InterruptedException {
-        final Thing thing = createThingV2(KNOWN_THING_ID, VALUE1);
-        final long thingRevision = 13;
-        final long policyRevision = 77;
-        runBlocking(writePersistence.insertOrUpdate(thing, thingRevision, policyRevision));
-
-        final boolean result = runBlockingWithReturn(writePersistence.delete(KNOWN_THING_ID));
-
-        assertThat(result)
-                .isTrue();
-    }
-
-    @Test
-    public void deleteForNotExistingThing() throws ExecutionException, InterruptedException {
-        final boolean result = runBlockingWithReturn(writePersistence.delete(KNOWN_THING_ID));
-
-        assertThat(result)
-                .isFalse();
-    }
-
-    @Test
-    public void getThingIdsForPolicy() throws ExecutionException, InterruptedException {
-        final String policyId = "any-ns:testPolicyId";
-        final Thing thing1 = createThingV2("test:id1", "val1").setPolicyId(policyId);
-        final Thing thing2 = createThingV2("test:id2", "val2").setPolicyId(policyId);
-
-        runBlocking(writePersistence.insertOrUpdate(thing1, -1L, -1L),
-                writePersistence.insertOrUpdate(thing2, -1L, -1L));
-
-        final Set<String> result = runBlockingWithReturn(writePersistence.getThingIdsForPolicy(policyId));
-
-        assertThat(result.size())
-                .isEqualTo(2);
-        assertThat(result)
-                .containsOnly(thing1.getId().get(), thing2.getId().get());
-    }
-
-    @Test
-    public void getThingIdsForPolicyThatDoesNotExist() throws ExecutionException, InterruptedException {
-        final Set<String> result = runBlockingWithReturn(writePersistence.getThingIdsForPolicy("any-ns:testPolicyId"));
-
-        assertThat(result.isEmpty())
-                .isTrue();
-    }
-
-    @Test
-    public void getThingMetadata() throws ExecutionException, InterruptedException {
-        final Thing thing = createThingV2(KNOWN_THING_ID, VALUE1);
-        final long thingRevision = 13;
-        final long policyRevision = 77;
-        runBlocking(writePersistence.insertOrUpdate(thing, thingRevision, policyRevision));
-
-        final ThingMetadata result = runBlockingWithReturn(writePersistence.getThingMetadata(KNOWN_THING_ID));
-        assertThat(result.getPolicyId())
-                .isEqualTo(thing.getPolicyId().orElseThrow(() -> new IllegalStateException("not possible")));
-        assertThat(result.getPolicyRevision())
-                .isEqualTo(policyRevision);
-        assertThat(result.getThingRevision())
-                .isEqualTo(thingRevision);
-    }
-
-    @Test
-    public void getThingMetadataForNotExistingThing() throws ExecutionException, InterruptedException {
-        final ThingMetadata result = runBlockingWithReturn(writePersistence.getThingMetadata(KNOWN_THING_ID));
-        assertThat(result.getPolicyId())
-                .isNull();
-        assertThat(result.getPolicyRevision())
-                .isEqualTo(-1L);
-        assertThat(result.getThingRevision())
-                .isEqualTo(-1L);
-    }
-
-    @Test
-    public void updateSeveralFeaturePropertiesAndDeleteThingV2() throws ExecutionException, InterruptedException {
-        final Thing thing = createThingV2(KNOWN_THING_ID, VALUE1);
-        insertBlocking(thing, 1L, -1L, policyEnforcer);
-
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 1L, policyEnforcer)
-                .addEvent(createAclModified("anotherSid", 2L, org.eclipse.ditto.model.things.Permission.READ),
-                        JsonSchemaVersion.V_1)
-                .addEvent(createFeaturePropertyModified(FEATURE_ID1, PROP1, newValue("somethingNew"), 3L),
-                        JsonSchemaVersion.LATEST)
-                .addEvent(createFeaturePropertyModified(FEATURE_ID1, PROP1, newValue("somethingNew2"), 4L),
-                        JsonSchemaVersion.LATEST)
-                .addEvent(createFeaturePropertyModified(FEATURE_ID1, PROP1, newValue("somethingNew3"), 5L),
-                        JsonSchemaVersion.LATEST)
-                .addEvent(createFeaturePropertyModified(FEATURE_ID1, PROP1, newValue("somethingNew4"), 6L),
-                        JsonSchemaVersion.LATEST)
-                .addEvent(ThingDeleted.of(KNOWN_THING_ID, 7L, DittoHeaders.empty()), JsonSchemaVersion.LATEST)
-                .build();
-
-        Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes)))
-                .isTrue();
-
-        final PolicyRestrictedSearchAggregation aggregation1 = abf
-                .newBuilder(cf.any())
-                .authorizationSubjects(KNOWN_SUBJECTS_2)
-                .build();
-
-        assertThat(findAll(aggregation1)).isEmpty();
-    }
-
-    @Test
-    public void createThingAndUpdateAcl() throws ExecutionException, InterruptedException {
-        final Thing thing = createThing(KNOWN_THING_ID, VALUE1);
-        final ThingCreated thingCreated = ThingCreated.of(thing, 1L, DittoHeaders.empty());
-
-        final AclEntry aclEntry =
-                ThingsModelFactory.newAclEntry(newAuthSubject("newSid"), org.eclipse.ditto.model.things.Permission.READ,
-                        org.eclipse.ditto.model.things.Permission.WRITE,
-                        org.eclipse.ditto.model.things.Permission.ADMINISTRATE);
-        final AccessControlList acl = ThingsModelFactory.newAcl(aclEntry);
-        final AclModified aclModified = AclModified.of(KNOWN_THING_ID, acl, 2L, DittoHeaders.empty());
-
-        final CombinedThingWrites writes = CombinedThingWrites.newBuilder(log, 0L, policyEnforcer)
-                .addEvent(thingCreated, JsonSchemaVersion.V_1)
-                .addEvent(aclModified, JsonSchemaVersion.V_1)
-                .build();
-
-        Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes)))
-                .isTrue();
-
-        final PolicyRestrictedSearchAggregation aggregation1 = abf
-                .newBuilder(cf.fieldCriteria(fef.filterByAttribute(KEY1), cf.eq(VALUE1)))
-                .authorizationSubjects(Collections.singletonList("newSid"))
-                .build();
-
-        assertThat(findAll(aggregation1)).isNotNull()
-                .contains(KNOWN_THING_ID);
-    }
-
-    @Test
-    public void updatePolicyForThing() throws ExecutionException, InterruptedException {
-        final Thing thing = createThing(KNOWN_THING_ID, VALUE1);
-
-        insertOrUpdateThing(thing, 1L, -1L);
-        final Policy policy = createPolicy1();
-
-        Assertions.assertThat(runBlockingWithReturn(
-                writePersistence.updatePolicy(thing, PolicyEnforcers.defaultEvaluator(policy)))).isTrue();
-        Assertions.assertThat(runBlockingWithReturn(
-                writePersistence.updatePolicy(thing, PolicyEnforcers.defaultEvaluator(createPolicy2()))))
-                .isTrue();
-    }
-
-    @Test
-    public void updatePolicyForThingIllegalArguments() throws ExecutionException, InterruptedException {
-        final Thing thing = createThing(KNOWN_THING_ID, VALUE1);
-
-        insertOrUpdateThing(thing, 1L, -1L);
-        final Policy policy = createPolicy1();
-
-        Assertions.assertThat(runBlockingWithReturn(
-                writePersistence.updatePolicy(null, PolicyEnforcers.defaultEvaluator(policy)))).isFalse();
-        Assertions.assertThat(runBlockingWithReturn(
-                writePersistence.updatePolicy(thing, null)))
-                .isFalse();
-    }
-
-    @Test
-    public void createThingWithNullAttributeV2() throws ExecutionException, InterruptedException {
-        final Thing thing = createThingV2(KNOWN_THING_ID, VALUE1);
-        final Thing thingWithNulLAttribute = thing.setAttribute(NULL_ATTRIBUTE, JsonFactory.nullLiteral());
-        insertBlocking(thingWithNulLAttribute, 0, 0, policyEnforcer);
-        final PolicyRestrictedSearchAggregation aggregation =
-                abf.newBuilder(cf.fieldCriteria(fef.filterByAttribute(NULL_ATTRIBUTE), cf.eq(null)))
-                        .authorizationSubjects(KNOWN_SUBJECTS_2)
-                        .build();
-
-        assertThat(findAll(aggregation)).contains(KNOWN_THING_ID);
-    }
-
-    @Test
-    public void migrateExistingThingToV2() throws ExecutionException, InterruptedException {
-
-        // create a thing with an ACL
-        final Thing thing = createThing(KNOWN_THING_ID, VALUE1);
-
-        insertOrUpdateThing(thing, 1L, -1L);
-
-        final PolicyRestrictedSearchAggregation aggregation1 = abf.newBuilder(cf.any())
-                .authorizationSubjects(KNOWN_SUBJECTS_2)
-                .build();
-        final List<String> foundAll = findAll(aggregation1);
-        assertThat(foundAll).containsOnly(KNOWN_THING_ID);
-
-        final String newUser = "iot-things:someNewUser";
-        final Policy newPolicy = createPolicyFor(newUser);
-
-        insertBlocking(thing, 2L, 0, PolicyEnforcers.defaultEvaluator(newPolicy));
-
-        final List<String> foundAll2 = findAll(aggregation1);
-
-        // none of KNOWN_SUBJECTS_2 has permissions in "newPolicy"
-        assertThat(foundAll2).isEmpty();
-
-        final PolicyRestrictedSearchAggregation aggregation2 = abf.newBuilder(cf.any())
-                .authorizationSubjects(Collections.singletonList(newUser))
-                .build();
-        final List<String> foundAll3 = findAll(aggregation2);
-
-        // newUser is allowed to read the thing
-        assertThat(foundAll3).containsOnly(KNOWN_THING_ID);
-    }
-
-    @Test
-    public void errorRecoveryForDuplicateKey() throws ExecutionException, InterruptedException {
-        final String thingId = KNOWN_THING_ID;
-        final PartialFunction<Throwable, Source<Boolean, NotUsed>> recovery = writePersistence.errorRecovery(thingId);
-
-        assertThat(runBlockingWithReturn(recovery.apply(createMongoWriteException(11000))))
-                .isEqualTo(Boolean.FALSE);
-    }
-
-    @Test
-    public void errorRecoveryForIndexTooLong() throws ExecutionException, InterruptedException {
-        final String thingId = KNOWN_THING_ID;
-        final PartialFunction<Throwable, Source<Boolean, NotUsed>> recovery = writePersistence.errorRecovery(thingId);
-
-        assertThat(runBlockingWithReturn(recovery.apply(createMongoWriteException(17280))))
-                .isEqualTo(Boolean.TRUE);
-    }
+        }
 
-    @Test
-    public void errorRecoveryForUnhandledException() throws ExecutionException, InterruptedException {
-        final String thingId = KNOWN_THING_ID;
-        final PartialFunction<Throwable, Source<Boolean, NotUsed>> recovery = writePersistence.errorRecovery(thingId);
-
-        final IllegalArgumentException toThrow = new IllegalArgumentException("any");
-        try {
-            runBlockingWithReturn(recovery.apply(toThrow));
-            Assert.fail("should never get here");
-        } catch (ExecutionException e) {
-            assertThat(e.getCause())
-                    .isEqualTo(toThrow);
+        /**
+         * <p>
+         * Simulates {@code ThingUpdater.endSyncWithPolicy} from the module {@code search-updater-starter}. For unit
+         * tests only.
+         */
+        void insertBlockingAndResetMocks(final boolean isV2, final Thing thing, final long thingRevision, final long
+                policyRevision,
+                final PolicyEnforcer policyEnforcer, final Object... mocks)
+                throws ExecutionException, InterruptedException {
+            if (isV2) {
+                checkNotNull(this.policyEnforcer, "policyEnforcer");
+                runBlocking(writePersistence.insertOrUpdate(thing, thingRevision, policyRevision)
+                        .flatMapConcat(u -> writePersistence.updatePolicy(thing, policyEnforcer)));
+            } else {
+                insertOrUpdateThing(thing, thingRevision, policyRevision);
+            }
+
+            Mockito.reset(mocks);
+        }
+
+    }
+
+
+    @RunWith(Parameterized.class)
+    public static class MongoThingsSearchUpdaterPersistenceParameterizedTests extends BaseClass {
+
+        @Parameterized.Parameter
+        public static JsonSchemaVersion apiVersion;
+
+        @Parameterized.Parameters(name = "v{0}")
+        public static List<JsonSchemaVersion> apiVersions() {
+            return Arrays.asList(JsonSchemaVersion.values());
+        }
+
+        private boolean isV2;
+
+
+        /** */
+        @Before
+        public void setUp() {
+            isV2 = apiVersion.toInt() == JsonSchemaVersion.V_2.toInt();
+        }
+
+        /** */
+        @Test
+        public void insertAndExists() throws ExecutionException, InterruptedException {
+            final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
+            insertBlockingAndResetMocks(isV2, thing, 0, 0, policyEnforcer);
+
+            exists(KNOWN_THING_ID);
+        }
+
+
+        /** */
+        @Test
+        public void insertAndExistsWithDots() throws ExecutionException, InterruptedException {
+
+            final Thing dottedThing = addDottedAttributesFeaturesAndProperties(createThing(KNOWN_THING_ID, VALUE1,
+                    isV2));
+            insertBlockingAndResetMocks(isV2, dottedThing, 0, 0, policyEnforcer);
+
+            exists(KNOWN_THING_ID);
+        }
+
+        private void exists(final String thingId) {
+            // verify
+            final PolicyRestrictedSearchAggregation aggregation =
+                    abf.newBuilder(cf.any()).authorizationSubjects(KNOWN_SUBJECTS_2).build();
+            final List<String> foundAll = findAll(aggregation);
+            assertThat(foundAll).contains(thingId);
+        }
+
+
+        private static Thing addDottedAttributesFeaturesAndProperties(final Thing thing) {
+            return thing
+                    .setAttribute("attribute.with.dots", "some.value")
+                    .setFeatureProperty("feature.with.dots", "prop.with.dots", "some.more.dots");
+        }
+
+
+        /** */
+        @Test
+        public void insertWithHigherRevision() throws ExecutionException, InterruptedException {
+            insertBlockingAndResetMocks(isV2, createThing(KNOWN_THING_ID, VALUE1, isV2), 2, 0,
+                    policyEnforcer);
+            insertBlockingAndResetMocks(isV2, createThing(KNOWN_THING_ID, "anotherValue", isV2), 3, 0,
+                    policyEnforcer);
+
+            verifyInsertWithHigherRevision();
+        }
+
+        private void verifyInsertWithHigherRevision() throws ExecutionException, InterruptedException {
+            final PolicyRestrictedSearchAggregation aggregation1 =
+                    abf.newBuilder(cf.fieldCriteria(fef.filterByAttribute(KEY1), cf.eq("anotherValue")))
+                            .authorizationSubjects(KNOWN_SUBJECTS_2)
+                            .build();
+
+            final PolicyRestrictedSearchAggregation aggregation2 =
+                    abf.newBuilder(cf.fieldCriteria(fef.filterByAttribute(KEY1), cf.eq(VALUE1)))
+                            .authorizationSubjects(KNOWN_SUBJECTS_2)
+                            .build();
+
+            assertThat(findAll(aggregation1)).contains(KNOWN_THING_ID);
+            assertThat(findAll(aggregation2)).isEmpty();
+        }
+
+        /** */
+        @Test
+        public void insertWithSameRevision() throws ExecutionException, InterruptedException {
+            Assertions.assertThat(
+                    runBlockingWithReturn(
+                            writePersistence.insertOrUpdate(createThing(KNOWN_THING_ID, VALUE1, isV2), 2, 0)))
+                    .isTrue();
+            Assertions.assertThat(runBlockingWithReturn(
+                    writePersistence.insertOrUpdate(createThing(KNOWN_THING_ID, "anotherValue", isV2), 2, 0)))
+                    .isFalse();
+        }
+
+        /** */
+        @Test
+        public void deleteWithSameRevision() throws ExecutionException, InterruptedException {
+            // prepare
+            insertBlockingAndResetMocks(isV2, createThing(KNOWN_THING_ID, VALUE1, isV2), 2, 0, policyEnforcer);
+
+            // test
+            delete(KNOWN_THING_ID, 2);
+
+            final PolicyRestrictedSearchAggregation aggregation =
+                    abf.newBuilder(cf.fieldCriteria(fef.filterByAttribute(KEY1), cf.eq(VALUE1)))
+                            .authorizationSubjects(KNOWN_SUBJECTS_2)
+                            .build();
+
+            // verify
+            assertThat(findAll(aggregation)).contains(KNOWN_THING_ID);
+        }
+
+
+        /** */
+        @Test
+        public void deleteWithHigherRevision() throws ExecutionException, InterruptedException {
+            // prepare
+            insertBlockingAndResetMocks(isV2, createThing(KNOWN_THING_ID, VALUE1, isV2), 2, 0, policyEnforcer);
+
+            // test
+            delete(KNOWN_THING_ID, 3);
+
+            final PolicyRestrictedSearchAggregation aggregation =
+                    abf.newBuilder(cf.fieldCriteria(fef.filterByAttribute(KEY1), cf.eq(VALUE1)))
+                            .authorizationSubjects(KNOWN_SUBJECTS_2)
+                            .build();
+
+            // verify
+            assertThat(findAll(aggregation)).isEmpty();
+        }
+
+
+        /** */
+        @Test
+        public void insertDeleteAndInsertAgain() throws ExecutionException, InterruptedException {
+            insertBlockingAndResetMocks(isV2, createThing(KNOWN_THING_ID, VALUE1, isV2), 2, 0, policyEnforcer);
+            delete(KNOWN_THING_ID, 3);
+            insertBlockingAndResetMocks(isV2, createThing(KNOWN_THING_ID, "anotherValue", isV2), 4, 0, policyEnforcer);
+
+            verifyInsertWithHigherRevision();
+        }
+
+        /** */
+        @Test
+        public void updateAllAttributes() throws ExecutionException, InterruptedException {
+            final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
+            insertBlockingAndResetMocks(isV2, thing, 1L, -1L, policyEnforcer, writeThingsCollectionSpy,
+                    writePoliciesCollectionSpy);
+            verifyUpdateAllAttributes(KNOWN_ATTRIBUTE_1);
+        }
+
+        /** */
+        @Test
+        public void updateAllAttributesWithDots() throws ExecutionException, InterruptedException {
+            final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
+            insertBlockingAndResetMocks(isV2, thing, 1L, -1L, policyEnforcer, writeThingsCollectionSpy,
+                    writePoliciesCollectionSpy);
+            verifyUpdateAllAttributes("some.attribute.with.dot");
+        }
+
+        private void verifyUpdateAllAttributes(final String attributeName)
+                throws ExecutionException, InterruptedException {
+
+            final Attributes newAttributes = Attributes.newBuilder().set(attributeName, KNOWN_NEW_VALUE).build();
+            final AttributesCreated attributesCreated =
+                    AttributesCreated.of(KNOWN_THING_ID, newAttributes, 2L, DittoHeaders.empty());
+
+            final List<ProcessableThingEvent> writes = Collections.singletonList(
+                    ProcessableThingEvent.newInstance(attributesCreated, apiVersion)
+            );
+
+            Assertions.assertThat(
+                    runBlockingWithReturn(
+                            writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes, policyEnforcer,
+                                    2L)))
+                    .isTrue();
+
+            verify(writeThingsCollectionSpy).bulkWrite(any(), any());
+            verifyNoMoreInteractions(writeThingsCollectionSpy);
+            if (isV2) {
+                // only policies updates for policies stuff
+                verify(writePoliciesCollectionSpy).bulkWrite(any(), any());
+                verifyNoMoreInteractions(writePoliciesCollectionSpy);
+            } else {
+                verifyNoMoreInteractions(writePoliciesCollectionSpy);
+            }
+
+
+            final PolicyRestrictedSearchAggregation aggregation1 =
+                    abf.newBuilder(cf.fieldCriteria(fef.filterByAttribute(attributeName), cf.eq(KNOWN_NEW_VALUE)))
+                            .authorizationSubjects(KNOWN_SUBJECTS_2)
+                            .build();
+
+            final PolicyRestrictedSearchAggregation aggregation2 =
+                    abf.newBuilder(cf.fieldCriteria(fef.filterByAttribute(KEY1), cf.eq(VALUE1)))
+                            .authorizationSubjects(KNOWN_SUBJECTS_2)
+                            .build();
+
+            final Collection<String> result = findAll(aggregation1);
+            assertThat(result).contains(KNOWN_THING_ID);
+
+            final Collection<String> result2 = findAll(aggregation2);
+            assertThat(result2).isEmpty();
+        }
+
+
+        @Test
+        public void addNewSingleSimpleAttribute() throws ExecutionException, InterruptedException {
+            final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
+            insertBlockingAndResetMocks(isV2, thing, 1L, -1L, policyEnforcer, writeThingsCollectionSpy,
+                    writePoliciesCollectionSpy);
+
+            verifyUpdateSingleExistingSimpleAttribute(KNOWN_ATTRIBUTE_1, KNOWN_NEW_VALUE);
+        }
+
+        @Test
+        public void addNewSingleSimpleAttributeWithDots() throws ExecutionException, InterruptedException {
+            final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
+            insertBlockingAndResetMocks(isV2, thing, 1L, -1L, policyEnforcer, writeThingsCollectionSpy,
+                    writePoliciesCollectionSpy);
+
+            verifyUpdateSingleExistingSimpleAttribute("new.attribute", KNOWN_NEW_VALUE);
+        }
+
+        @Test
+        public void updateSingleExistingSimpleAttribute() throws ExecutionException, InterruptedException {
+            final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
+            insertBlockingAndResetMocks(isV2, thing, 1L, -1L, policyEnforcer, writeThingsCollectionSpy,
+                    writePoliciesCollectionSpy);
+
+            verifyUpdateSingleExistingSimpleAttribute(KEY2, KNOWN_NEW_VALUE);
+        }
+
+        private void verifyUpdateSingleExistingSimpleAttribute(final String key, final String value)
+                throws ExecutionException, InterruptedException {
+
+            final JsonPointer pointer = JsonFactory.newPointer(key);
+            final AttributeModified attributeModified =
+                    AttributeModified.of(KNOWN_THING_ID, pointer, JsonValue.of(value), 2L, DittoHeaders.empty());
+
+            final List<ProcessableThingEvent> writes = Collections.singletonList(
+                    ProcessableThingEvent.newInstance(attributeModified, apiVersion)
+            );
+
+            Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes,
+                    policyEnforcer, 2L)))
+                    .isTrue();
+
+            verifyCollectionWrites();
+
+            final PolicyRestrictedSearchAggregation aggregation1 =
+                    abf.newBuilder(cf.fieldCriteria(fef.filterByAttribute(key), cf.eq(value)))
+                            .authorizationSubjects(KNOWN_SUBJECTS_2)
+                            .build();
+            final Collection<String> result = findAll(aggregation1);
+            assertThat(result).contains(KNOWN_THING_ID);
+        }
+
+        @Test
+        public void updateSimpleAttributeByNonExistingPrefixName() throws ExecutionException, InterruptedException {
+            final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
+            insertBlockingAndResetMocks(isV2, thing, 1L, -1L,
+                    policyEnforcer, writeThingsCollectionSpy,
+                    writePoliciesCollectionSpy);
+
+            final JsonPointer pointer = JsonFactory.newPointer("key");
+            final JsonValue value = newValue(NEW_VALUE_2);
+            final AttributeCreated attributeCreated =
+                    AttributeCreated.of(KNOWN_THING_ID, pointer, value, 2L, DittoHeaders.empty());
+
+            final List<ProcessableThingEvent> writes =
+                    Collections.singletonList(ProcessableThingEvent.newInstance(attributeCreated,
+                            apiVersion));
+
+            Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes,
+                    policyEnforcer, 2L)))
+                    .isTrue();
+            verifyCollectionWrites();
+
+            final PolicyRestrictedSearchAggregation aggregation1 =
+                    abf.newBuilder(cf.fieldCriteria(fef.filterByAttribute(KEY2), cf.eq(NEW_VALUE_2)))
+                            .authorizationSubjects(KNOWN_SUBJECTS_2)
+                            .build();
+
+            final Collection<String> result = findAll(aggregation1);
+            assertThat(result).isEmpty();
+        }
+
+        @Test
+        public void addNewSingleComplexAttribute() throws ExecutionException, InterruptedException {
+            insertBlockingAndResetMocks(isV2, createThing(KNOWN_THING_ID, VALUE1, isV2), 1L, -1L,
+                    policyEnforcer, writeThingsCollectionSpy,
+                    writePoliciesCollectionSpy);
+
+            final JsonPointer pointer = JsonFactory.newPointer("new1/new2/new3");
+            final JsonObject value =
+                    JsonFactory.newObject().setValue("bool1", true).setValue(KNOWN_ATTRIBUTE_1, KNOWN_NEW_VALUE);
+            final AttributeModified attributeModified =
+                    AttributeModified.of(KNOWN_THING_ID, pointer, value, 2L, DittoHeaders.empty());
+
+            final List<ProcessableThingEvent> writes =
+                    Collections.singletonList(ProcessableThingEvent.newInstance(attributeModified,
+                            apiVersion));
+
+            Assertions.assertThat(
+                    runBlockingWithReturn(
+                            writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes, policyEnforcer,
+                                    2L)))
+                    .isTrue();
+            verifyCollectionWrites();
+
+            verifyAddNewSingleComplexAttribute();
+        }
+
+        private void verifyAddNewSingleComplexAttribute() throws ExecutionException, InterruptedException {
+            final PolicyRestrictedSearchAggregation aggregation1 =
+                    abf.newBuilder(cf.fieldCriteria(fef.filterByAttribute("new1/new2/new3/bool1"), cf.eq(Boolean.TRUE)))
+                            .authorizationSubjects(KNOWN_SUBJECTS_2)
+                            .build();
+
+            final Collection<String> result = findAll(aggregation1);
+            assertThat(result).contains(KNOWN_THING_ID);
+
+            final PolicyRestrictedSearchAggregation aggregation2 = abf.newBuilder(
+                    cf.fieldCriteria(fef.filterByAttribute("new1/new2/new3/" + KNOWN_ATTRIBUTE_1),
+                            cf.eq(KNOWN_NEW_VALUE)))
+                    .authorizationSubjects(KNOWN_SUBJECTS_2)
+                    .build();
+
+            final Collection<String> result2 = findAll(aggregation2);
+            assertThat(result2).contains(KNOWN_THING_ID);
+
+            final PolicyRestrictedSearchAggregation aggregation3 =
+                    abf.newBuilder(cf.existsCriteria(fef.existsByAttribute("new1/new2")))
+                            .authorizationSubjects(KNOWN_SUBJECTS_2)
+                            .build();
+
+            final Collection<String> result3 = findAll(aggregation3);
+            assertThat(result3).contains(KNOWN_THING_ID);
+        }
+
+        @Test
+        public void replaceSimpleWithComplexAttribute() throws ExecutionException, InterruptedException {
+            insertBlockingAndResetMocks(isV2, createThing(KNOWN_THING_ID, VALUE1, isV2), 1L, -1L,
+                    policyEnforcer, writeThingsCollectionSpy,
+                    writePoliciesCollectionSpy);
+
+            final JsonObject value = JsonFactory.newObjectBuilder()
+                    .set("bool1", true)
+                    .set(KNOWN_ATTRIBUTE_1, KNOWN_NEW_VALUE)
+                    .build();
+            final AttributeModified attributeModified = createAttributeModified(KEY1, value, 2L);
+
+            final List<ProcessableThingEvent> writes =
+                    Collections.singletonList(ProcessableThingEvent.newInstance(attributeModified, apiVersion));
+
+            Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes,
+                    policyEnforcer, 2L)))
+                    .isTrue();
+
+            verifyCollectionWrites();
+
+            final PolicyRestrictedSearchAggregation aggregation1 =
+                    abf.newBuilder(cf.fieldCriteria(fef.filterByAttribute("key1/bool1"), cf.eq(Boolean.TRUE)))
+                            .authorizationSubjects(KNOWN_SUBJECTS_2)
+                            .build();
+
+            final Collection<String> result = findAll(aggregation1);
+            assertThat(result).contains(KNOWN_THING_ID);
+
+            final PolicyRestrictedSearchAggregation aggregation2 =
+                    abf.newBuilder(cf.fieldCriteria(fef.filterByAttribute(KEY1), cf.eq(VALUE1)))
+                            .authorizationSubjects(KNOWN_SUBJECTS_2)
+                            .build();
+            final Collection<String> result2 = findAll(aggregation2);
+            assertThat(result2).isEmpty();
+
+            Mockito.reset(writeThingsCollectionSpy, writePoliciesCollectionSpy);
+
+            final List<ProcessableThingEvent> writes2 =
+                    Collections.singletonList(
+                            ProcessableThingEvent.newInstance(createAttributeModified(KEY1, newValue(NEW_VALUE_2), 3L),
+                                    apiVersion));
+
+            Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes2,
+                    policyEnforcer, 3L)))
+                    .isTrue();
+
+            verifyCollectionWrites();
+
+            final PolicyRestrictedSearchAggregation aggregation3 =
+                    abf.newBuilder(cf.fieldCriteria(fef.filterByAttribute(KEY1), cf.eq(NEW_VALUE_2)))
+                            .authorizationSubjects(KNOWN_SUBJECTS_2)
+                            .build();
+
+            final Collection<String> result3 = findAll(aggregation3);
+            assertThat(result3).contains(KNOWN_THING_ID);
+        }
+
+
+        @Test
+        public void deleteSingleAttribute() throws ExecutionException, InterruptedException {
+            final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
+            insertBlockingAndResetMocks(isV2, thing, 1L, -1L, policyEnforcer, writeThingsCollectionSpy,
+                    writePoliciesCollectionSpy);
+
+            final JsonPointer attributePointer = JsonFactory.newPointer(KEY1);
+            final AttributeDeleted attributeDeleted =
+                    AttributeDeleted.of(KNOWN_THING_ID, attributePointer, 2L, DittoHeaders.empty());
+
+            final List<ProcessableThingEvent> writes =
+                    Collections.singletonList(ProcessableThingEvent.newInstance(attributeDeleted,
+                            apiVersion));
+
+            Assertions.assertThat(
+                    runBlockingWithReturn(writePersistence.executeCombinedWrites(thing.getId().orElse(null), writes,
+                            policyEnforcer, 2L)))
+                    .isTrue();
+            verifyCollectionWrites();
+
+            final PolicyRestrictedSearchAggregation aggregation1 =
+                    abf.newBuilder(cf.fieldCriteria(fef.filterByAttribute(KEY1), cf.eq(VALUE1)))
+                            .authorizationSubjects(KNOWN_SUBJECTS_2)
+                            .build();
+
+            final Collection<String> result = findAll(aggregation1);
+
+            assertThat(result).isEmpty();
+        }
+
+
+        @Test
+        public void deleteAllAttributes() throws ExecutionException, InterruptedException {
+            final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
+            insertBlockingAndResetMocks(isV2, thing, 1L, -1L, policyEnforcer, writePoliciesCollectionSpy,
+                    writeThingsCollectionSpy);
+
+            final List<ProcessableThingEvent> writes =
+                    Collections.singletonList(ProcessableThingEvent.newInstance(AttributesDeleted.of(KNOWN_THING_ID, 2L,
+                            DittoHeaders.empty()),
+                            apiVersion));
+
+            Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes,
+                    policyEnforcer, 2L)))
+                    .isTrue();
+
+            verifyCollectionWrites();
+
+            final PolicyRestrictedSearchAggregation aggregation1 =
+                    abf.newBuilder(cf.fieldCriteria(fef.filterByAttribute(KEY1), cf.eq(VALUE1)))
+                            .authorizationSubjects(KNOWN_SUBJECTS_2)
+                            .build();
+
+            final Collection<String> result = findAll(aggregation1);
+            assertThat(result).isEmpty();
+
+            final PolicyRestrictedSearchAggregation aggregation2 =
+                    abf.newBuilder(cf.fieldCriteria(fef.filterByFeatureProperty(PROP1), cf.eq(PROP_VALUE1)))
+                            .authorizationSubjects(KNOWN_SUBJECTS_2)
+                            .build();
+
+            final Collection<String> result2 = findAll(aggregation2);
+            assertThat(result2).contains(KNOWN_THING_ID);
+        }
+
+        @Test
+        public void deleteExistingFeature() throws ExecutionException, InterruptedException {
+            final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
+            insertBlockingAndResetMocks(isV2, thing, 1L, -1L, policyEnforcer, writeThingsCollectionSpy,
+                    writePoliciesCollectionSpy);
+
+            final PolicyRestrictedSearchAggregation aggregation1 =
+                    abf.newBuilder(cf.fieldCriteria(fef.filterByFeatureProperty(PROP1), cf.eq(PROP_VALUE1)))
+                            .authorizationSubjects(KNOWN_SUBJECTS_2)
+                            .build();
+
+            final Collection<String> result = findAll(aggregation1);
+
+            assertThat(result).contains(KNOWN_THING_ID);
+
+            final FeatureDeleted featureDeleted =
+                    FeatureDeleted.of(KNOWN_THING_ID, FEATURE_ID1, 2L, DittoHeaders.empty());
+
+            final List<ProcessableThingEvent> writes = Collections.singletonList(ProcessableThingEvent.newInstance
+                    (featureDeleted, apiVersion));
+
+            Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes,
+                    policyEnforcer, 2L)))
+                    .isTrue();
+            verifyCollectionWrites();
+
+            assertThat(findAll(aggregation1)).isEmpty();
+
+            final PolicyRestrictedSearchAggregation aggregation2 =
+                    abf.newBuilder(cf.existsCriteria(fef.existsByFeatureId(FEATURE_ID1)))
+                            .authorizationSubjects(KNOWN_SUBJECTS_2)
+                            .build();
+
+            final Collection<String> result2 = findAll(aggregation2);
+            assertThat(result2).isEmpty();
+        }
+
+        private void verifyCollectionWrites() {
+            verify(writeThingsCollectionSpy).bulkWrite(any(), any());
+            verifyNoMoreInteractions(writeThingsCollectionSpy);
+            if (isV2) {
+                verify(writePoliciesCollectionSpy).bulkWrite(any(), any());
+            }
+            verifyNoMoreInteractions(writePoliciesCollectionSpy);
+        }
+
+
+        @Test
+        public void addNewFeature() throws ExecutionException, InterruptedException {
+            final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
+            insertBlockingAndResetMocks(isV2, thing, 1L, -1L, policyEnforcer, writeThingsCollectionSpy,
+                    writePoliciesCollectionSpy);
+
+            final PolicyRestrictedSearchAggregation aggregation1 =
+                    abf.newBuilder(cf.fieldCriteria(fef.filterByFeatureProperty(PROP5), cf.eq(PROP_VALUE5)))
+                            .authorizationSubjects(KNOWN_SUBJECTS_2)
+                            .build();
+            final Collection<String> result = findAll(aggregation1);
+            assertThat(result).isEmpty();
+
+            final List<ProcessableThingEvent> writes = Collections.singletonList(ProcessableThingEvent.newInstance
+                    (createFeatureCreated(FEATURE_ID2), apiVersion));
+
+            Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes,
+                    policyEnforcer, 1L)))
+                    .isTrue();
+            verifyCollectionWrites();
+            assertThat(findAll(aggregation1)).contains(KNOWN_THING_ID);
+
+            final PolicyRestrictedSearchAggregation aggregation2 =
+                    abf.newBuilder(cf.existsCriteria(fef.existsByFeatureId(FEATURE_ID2)))
+                            .authorizationSubjects(KNOWN_SUBJECTS_2)
+                            .build();
+
+            assertThat(findAll(aggregation2)).contains(KNOWN_THING_ID);
+        }
+
+
+        @Test
+        public void createThingWithNullAttribute() throws ExecutionException, InterruptedException {
+            final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
+            final Thing thingWithNulLAttribute = thing.setAttribute(NULL_ATTRIBUTE, JsonFactory.nullLiteral());
+            insertBlockingAndResetMocks(isV2, thingWithNulLAttribute, 0, 0, policyEnforcer);
+            final PolicyRestrictedSearchAggregation aggregation =
+                    abf.newBuilder(cf.fieldCriteria(fef.filterByAttribute(NULL_ATTRIBUTE), cf.eq(null)))
+                            .authorizationSubjects(KNOWN_SUBJECTS_2)
+                            .build();
+
+            assertThat(findAll(aggregation)).contains(KNOWN_THING_ID);
+        }
+
+
+        @Test
+        public void updateExistingFeature() throws ExecutionException, InterruptedException {
+            final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
+            insertBlockingAndResetMocks(isV2, thing, 1L, -1L, policyEnforcer, writeThingsCollectionSpy,
+                    writePoliciesCollectionSpy);
+
+            verifyCreateFeature(FEATURE_ID1, 1L);
+        }
+
+        @Test
+        public void updateExistingDottedFeatureV1() throws ExecutionException, InterruptedException {
+            final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
+            insertBlockingAndResetMocks(isV2, thing, 1L, -1L, policyEnforcer, writeThingsCollectionSpy,
+                    writePoliciesCollectionSpy);
+
+            verifyCreateFeature("feauture.with.dots", 1L);
+        }
+
+        private void verifyCreateFeature(final String featureId, final long targetRevision) throws ExecutionException,
+                InterruptedException {
+            final List<ProcessableThingEvent> writes = Collections.singletonList(
+                    ProcessableThingEvent.newInstance(createFeatureCreated(featureId), apiVersion)
+            );
+
+            Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID,
+                    writes, policyEnforcer, targetRevision)))
+                    .isTrue();
+
+            verifyCollectionWrites();
+
+            final PolicyRestrictedSearchAggregation aggregation1 = abf
+                    .newBuilder(cf.fieldCriteria(fef.filterByFeatureProperty(PROP5), cf.eq(PROP_VALUE5)))
+                    .authorizationSubjects(KNOWN_SUBJECTS_2)
+                    .build();
+
+            final Collection<String> result = findAll(aggregation1);
+            assertThat(result).contains(KNOWN_THING_ID);
+
+            final PolicyRestrictedSearchAggregation aggregation2 = abf
+                    .newBuilder(cf.existsCriteria(fef.existsByFeatureProperty(PROP5)))
+                    .authorizationSubjects(KNOWN_SUBJECTS_2)
+                    .build();
+
+            assertThat(findAll(aggregation2)).contains(KNOWN_THING_ID);
+        }
+
+        @Test
+        public void deletePropertiesOfExistingFeature() throws ExecutionException, InterruptedException {
+            insertBlockingAndResetMocks(isV2, createThing(KNOWN_THING_ID, VALUE1, isV2), 1L, -1L, policyEnforcer,
+                    writeThingsCollectionSpy, writePoliciesCollectionSpy);
+
+            final List<ProcessableThingEvent> writes = Collections.singletonList(
+                    ProcessableThingEvent.newInstance(createFeaturePropertiesDeleted(FEATURE_ID1), apiVersion)
+            );
+
+            Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID,
+                    writes, policyEnforcer, 1L)))
+                    .isTrue();
+
+            verifyCollectionWrites();
+
+            final PolicyRestrictedSearchAggregation aggregation1 = abf
+                    .newBuilder(cf.fieldCriteria(fef.filterByFeatureProperty(PROP1), cf.eq(PROP_VALUE1)))
+                    .authorizationSubjects(KNOWN_SUBJECTS_2)
+                    .build();
+
+            final Collection<String> result = findAll(aggregation1);
+            assertThat(result).isEmpty();
+
+            final PolicyRestrictedSearchAggregation aggregation2 = abf
+                    .newBuilder(cf.existsCriteria(fef.existsByFeatureId(FEATURE_ID1)))
+                    .authorizationSubjects(KNOWN_SUBJECTS_2)
+                    .build();
+
+            final Collection<String> result2 = findAll(aggregation2);
+            assertThat(result2).contains(KNOWN_THING_ID);
+        }
+
+        @Test
+        public void updatePropertiesOfExistingFeature() throws ExecutionException, InterruptedException {
+            final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
+            insertBlockingAndResetMocks(isV2, thing, 1L, -1L, policyEnforcer, writeThingsCollectionSpy,
+                    writePoliciesCollectionSpy);
+
+            final List<ProcessableThingEvent> writes = Collections.singletonList(
+                    ProcessableThingEvent.newInstance(createFeaturePropertiesModified(FEATURE_ID1), apiVersion)
+            );
+
+            Assertions.assertThat(runBlockingWithReturn(
+                    writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes, policyEnforcer, 1L)))
+                    .isTrue();
+
+            verifyCollectionWrites();
+
+            final PolicyRestrictedSearchAggregation aggregation1 = abf
+                    .newBuilder(cf.fieldCriteria(fef.filterByFeatureProperty(PROP6), cf.eq(PROP_VALUE6)))
+                    .authorizationSubjects(KNOWN_SUBJECTS_2)
+                    .build();
+
+            final Collection<String> result = findAll(aggregation1);
+            assertThat(result).contains(KNOWN_THING_ID);
+        }
+
+        @Test
+        public void updatePropertiesOfNotExistingFeature() throws ExecutionException, InterruptedException {
+            final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
+            insertBlockingAndResetMocks(isV2, thing, 1L, -1L, policyEnforcer, writeThingsCollectionSpy,
+                    writePoliciesCollectionSpy);
+
+            final List<ProcessableThingEvent> writes = Collections.singletonList(
+                    ProcessableThingEvent.newInstance(createFeaturePropertiesModified(FEATURE_ID2), apiVersion)
+            );
+
+            Assertions.assertThat(runBlockingWithReturn(
+                    writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes, policyEnforcer, 1L)))
+                    .isTrue();
+
+            verifyCollectionWrites();
+
+            final PolicyRestrictedSearchAggregation aggregation1 = abf
+                    .newBuilder(cf.fieldCriteria(fef.filterByFeatureProperty(PROP6), cf.eq(PROP_VALUE6)))
+                    .authorizationSubjects(KNOWN_SUBJECTS_2)
+                    .build();
+
+            final Collection<String> result = findAll(aggregation1);
+            assertThat(result).contains(KNOWN_THING_ID);
+
+            final PolicyRestrictedSearchAggregation aggregation2 = abf
+                    .newBuilder(cf.fieldCriteria(fef.filterByFeatureProperty(PROP1), cf.eq(PROP_VALUE1)))
+                    .authorizationSubjects(KNOWN_SUBJECTS_2)
+                    .build();
+
+            final Collection<String> result2 = findAll(aggregation2);
+            assertThat(result2).contains(KNOWN_THING_ID);
+        }
+
+
+        @Test
+        public void deleteFeatureProperty() throws ExecutionException, InterruptedException {
+            final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
+            insertBlockingAndResetMocks(isV2, thing, 1L, -1L, policyEnforcer, writeThingsCollectionSpy,
+                    writePoliciesCollectionSpy);
+
+            final List<ProcessableThingEvent> writes = Collections.singletonList(
+                    ProcessableThingEvent.newInstance(createFeaturePropertyDeleted(FEATURE_ID1, PROP1, 2L), apiVersion)
+            );
+
+            Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID,
+                    writes, policyEnforcer, 2L)))
+                    .isTrue();
+
+            verifyCollectionWrites();
+
+            final PolicyRestrictedSearchAggregation aggregation1 = abf
+                    .newBuilder(cf.fieldCriteria(fef.filterByFeatureProperty(PROP1), cf.eq(PROP_VALUE1)))
+                    .authorizationSubjects(KNOWN_SUBJECTS_2)
+                    .build();
+
+            final Collection<String> result = findAll(aggregation1);
+            assertThat(result).isEmpty();
+
+            final PolicyRestrictedSearchAggregation aggregation2 = abf
+                    .newBuilder(cf.fieldCriteria(fef.filterByFeatureProperty(PROP1_EXTENDED), cf.eq(PROP_VALUE1)))
+                    .authorizationSubjects(KNOWN_SUBJECTS_2)
+                    .build();
+
+            final Collection<String> result2 = findAll(aggregation2);
+            assertThat(result2).contains(KNOWN_THING_ID);
+        }
+
+        @Test
+        public void deleteFeaturePropertyWithWrongSourceSequenceNumber()
+                throws ExecutionException, InterruptedException {
+            final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
+            insertBlockingAndResetMocks(isV2, thing, 1L, -1L, policyEnforcer, writeThingsCollectionSpy,
+                    writePoliciesCollectionSpy);
+            final List<ProcessableThingEvent> writes = Collections.singletonList(
+                    ProcessableThingEvent.newInstance(createFeaturePropertyDeleted(FEATURE_ID1, PROP1, 1L),
+                            apiVersion)
+            );
+
+            Assertions.assertThat(runBlockingWithReturn(
+                    writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes, policyEnforcer, 1L)))
+                    .isFalse();
+        }
+
+
+        @Test
+        public void updateFeatureProperty() throws ExecutionException, InterruptedException {
+            final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
+            insertBlockingAndResetMocks(isV2, thing, 1L, -1L, policyEnforcer, writeThingsCollectionSpy,
+                    writePoliciesCollectionSpy);
+
+            final List<ProcessableThingEvent> writes = Collections.singletonList(
+                    ProcessableThingEvent.newInstance(createFeaturePropertyModified(FEATURE_ID1, PROP1, newValue(true),
+                            2L),
+                            apiVersion)
+            );
+
+            Assertions.assertThat(runBlockingWithReturn(
+                    writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes, policyEnforcer, 2L)))
+                    .isTrue();
+
+            verifyCollectionWrites();
+
+            final PolicyRestrictedSearchAggregation aggregation1 = abf
+                    .newBuilder(cf.fieldCriteria(fef.filterByFeatureProperty(PROP1), cf.eq(Boolean.TRUE)))
+                    .authorizationSubjects(KNOWN_SUBJECTS_2)
+                    .build();
+
+            final Collection<String> result = findAll(aggregation1);
+            assertThat(result).contains(KNOWN_THING_ID);
+
+            final PolicyRestrictedSearchAggregation aggregation2 = abf
+                    .newBuilder(cf.fieldCriteria(fef.filterByFeatureProperty(PROP1), cf.eq(PROP_VALUE1)))
+                    .authorizationSubjects(KNOWN_SUBJECTS_2)
+                    .build();
+
+            final Collection<String> result2 = findAll(aggregation2);
+            assertThat(result2).isEmpty();
+        }
+
+
+        @Test
+        public void updateFeaturePropertyByOverridingComplexProperty() throws ExecutionException, InterruptedException {
+            final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
+            insertBlockingAndResetMocks(isV2, thing, 1L, -1L, policyEnforcer, writeThingsCollectionSpy,
+                    writePoliciesCollectionSpy);
+
+            final List<ProcessableThingEvent> writes = Collections.singletonList(
+                    ProcessableThingEvent.newInstance(
+                            createFeaturePropertyModified(FEATURE_ID1, PROP7, newValue("simple"), 2L),
+                            apiVersion));
+
+            Assertions.assertThat(runBlockingWithReturn(
+                    writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes, policyEnforcer, 2L)))
+                    .isTrue();
+
+            verifyCollectionWrites();
+
+            final PolicyRestrictedSearchAggregation aggregation1 = abf
+                    .newBuilder(cf.fieldCriteria(fef.filterByFeatureProperty(PROP7), cf.eq("simple")))
+                    .authorizationSubjects(KNOWN_SUBJECTS_2)
+                    .build();
+
+            final Collection<String> result = findAll(aggregation1);
+            assertThat(result).contains(KNOWN_THING_ID);
+
+            final PolicyRestrictedSearchAggregation aggregation2 = abf
+                    .newBuilder(cf.fieldCriteria(fef.filterByFeatureProperty(PROP7 + "/" + PROP8), cf.eq(PROP_VALUE8)))
+                    .authorizationSubjects(KNOWN_SUBJECTS_2)
+                    .build();
+
+            final Collection<String> result2 = findAll(aggregation2);
+            assertThat(result2).isEmpty();
+        }
+
+        @Test
+        public void deleteFeatures() throws ExecutionException, InterruptedException {
+            final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
+            insertBlockingAndResetMocks(isV2, thing, 1L, -1L, policyEnforcer, writeThingsCollectionSpy,
+                    writePoliciesCollectionSpy);
+
+            final List<ProcessableThingEvent> writes = Collections.singletonList(
+                    ProcessableThingEvent.newInstance(
+                            FeaturesDeleted.of(KNOWN_THING_ID, 2L, DittoHeaders.empty()),
+                            apiVersion));
+
+            Assertions.assertThat(runBlockingWithReturn(
+                    writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes, policyEnforcer, 2L)))
+                    .isTrue();
+
+            verifyCollectionWrites();
+
+            final PolicyRestrictedSearchAggregation aggregation1 = abf
+                    .newBuilder(cf.fieldCriteria(fef.filterByFeatureProperty(PROP1), cf.eq(PROP_VALUE1)))
+                    .authorizationSubjects(KNOWN_SUBJECTS_2)
+                    .build();
+
+            final Collection<String> result = findAll(aggregation1);
+            assertThat(result).isEmpty();
+
+            final PolicyRestrictedSearchAggregation aggregation2 = abf
+                    .newBuilder(cf.existsCriteria(fef.existsByFeatureId(FEATURE_ID1)))
+                    .authorizationSubjects(KNOWN_SUBJECTS_2)
+                    .build();
+
+            final Collection<String> result2 = findAll(aggregation2);
+            assertThat(result2).isEmpty();
+        }
+
+        @Test
+        public void updateFeatures() throws ExecutionException, InterruptedException {
+            final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
+            insertBlockingAndResetMocks(isV2, thing, 1L, -1L, policyEnforcer, writeThingsCollectionSpy,
+                    writePoliciesCollectionSpy);
+            verifyUpdateFeatures("f3", createFeatures(), 1L);
+        }
+
+        @Test
+        public void updateFeaturesWithDottedFeatureId() throws ExecutionException, InterruptedException {
+            final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
+            insertBlockingAndResetMocks(isV2, thing, 1L, -1L, policyEnforcer, writeThingsCollectionSpy,
+                    writePoliciesCollectionSpy);
+            verifyUpdateFeatures(FEATURE_WITH_DOTS, createFeaturesWithDottedFeatureId(FEATURE_WITH_DOTS), 1L);
+        }
+
+        @Test
+        public void updateFeaturesWithDottedPropertyNames() throws ExecutionException, InterruptedException {
+            final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
+            insertBlockingAndResetMocks(isV2, thing, 1L, -1L, policyEnforcer, writeThingsCollectionSpy,
+                    writePoliciesCollectionSpy);
+            verifyUpdateFeatures(FEATURE_WITH_DOTS, createFeaturesWithDottedPropertyNames(FEATURE_WITH_DOTS), 1L);
+        }
+
+        @Test
+        public void updateFeaturesV2WithDottedPropertyNames() throws ExecutionException, InterruptedException {
+            final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
+            insertBlockingAndResetMocks(isV2, thing, 1L, -1L, policyEnforcer, writeThingsCollectionSpy,
+                    writePoliciesCollectionSpy);
+            verifyUpdateFeatures(FEATURE_WITH_DOTS, createFeaturesWithDottedPropertyNames(FEATURE_WITH_DOTS), 1L);
+        }
+
+        private void verifyUpdateFeatures(final String expectedFeatureId, final Features features, final long
+                targetRevision)
+                throws ExecutionException, InterruptedException {
+
+            final List<ProcessableThingEvent> writes = Collections.singletonList(
+                    ProcessableThingEvent.newInstance(
+                            createFeaturesModified(features),
+                            apiVersion));
+
+            Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID,
+                    writes, policyEnforcer, targetRevision)))
+                    .isTrue();
+
+            verifyCollectionWrites();
+
+            final PolicyRestrictedSearchAggregation aggregation1 = abf
+                    .newBuilder(cf.fieldCriteria(fef.filterByFeatureProperty(PROP1), cf.eq(PROP_VALUE1)))
+                    .authorizationSubjects(KNOWN_SUBJECTS_2)
+                    .build();
+
+            final Collection<String> result = findAll(aggregation1);
+            assertThat(result).isEmpty();
+
+            final PolicyRestrictedSearchAggregation aggregation2 = abf
+                    .newBuilder(cf.fieldCriteria(fef.filterByFeatureProperty(PROP5), cf.eq(PROP_VALUE5)))
+                    .authorizationSubjects(KNOWN_SUBJECTS_2)
+                    .build();
+
+            final Collection<String> result2 = findAll(aggregation2);
+            assertThat(result2).contains(KNOWN_THING_ID);
+
+            final PolicyRestrictedSearchAggregation aggregation3 = abf
+                    .newBuilder(cf.existsCriteria(fef.existsByFeatureId(expectedFeatureId)))
+                    .authorizationSubjects(KNOWN_SUBJECTS_2)
+                    .build();
+
+            final Collection<String> result3 = findAll(aggregation3);
+            assertThat(result3).contains(KNOWN_THING_ID);
+        }
+
+
+        @Test
+        public void updateFeaturePropertiesAndOneAttribute() throws ExecutionException, InterruptedException {
+            final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
+            insertBlockingAndResetMocks(isV2, thing, 1L, -1L, policyEnforcer, writePoliciesCollectionSpy,
+                    writeThingsCollectionSpy);
+
+            final List<ProcessableThingEvent> writes = new ArrayList<>();
+            writes.add(ProcessableThingEvent.newInstance(createFeaturePropertiesModified(FEATURE_ID1),
+                    apiVersion));
+            writes.add(ProcessableThingEvent.newInstance(createAttributeModified(PROP1, newValue("s0meattr12"), 3L),
+                    apiVersion));
+
+            Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID,
+                    writes, policyEnforcer, 3L)))
+                    .isTrue();
+
+            verifyCollectionWrites();
+
+            final PolicyRestrictedSearchAggregation aggregation1 = abf
+                    .newBuilder(cf.fieldCriteria(fef.filterByAttribute(PROP1), cf.eq("s0meattr12")))
+                    .authorizationSubjects(KNOWN_SUBJECTS_2)
+                    .build();
+
+            final Collection<String> result1 = findAll(aggregation1);
+            assertThat(result1).contains(KNOWN_THING_ID);
+
+            final PolicyRestrictedSearchAggregation aggregation2 = abf
+                    .newBuilder(cf.fieldCriteria(fef.filterByFeatureProperty(PROP6), cf.eq(PROP_VALUE6)))
+                    .authorizationSubjects(KNOWN_SUBJECTS_2)
+                    .build();
+
+            final Collection<String> result2 = findAll(aggregation2);
+
+            assertThat(result2).contains(KNOWN_THING_ID);
+        }
+
+
+        @Test
+        public void updateSeveralFeaturePropertiesAndDeleteThing() throws ExecutionException, InterruptedException {
+            insertBlockingAndResetMocks(isV2, createThing(KNOWN_THING_ID, VALUE1, isV2), 1L, -1L, policyEnforcer,
+                    writeThingsCollectionSpy, writePoliciesCollectionSpy);
+
+            final List<ProcessableThingEvent> writes = new ArrayList<>();
+            writes.add(ProcessableThingEvent.newInstance(
+                    createAclModified("anotherSid", 2L, org.eclipse.ditto.model.things.Permission.READ),
+                    apiVersion));
+            writes.add(ProcessableThingEvent.newInstance(
+                    createFeaturePropertyModified(FEATURE_ID1, PROP1, newValue("somethingNew"), 3L),
+                    apiVersion));
+            writes.add(ProcessableThingEvent.newInstance(
+                    createFeaturePropertyModified(FEATURE_ID1, PROP1, newValue("somethingNew2"), 4L),
+                    apiVersion));
+            writes.add(ProcessableThingEvent.newInstance(
+                    createFeaturePropertyModified(FEATURE_ID1, PROP1, newValue("somethingNew3"), 5L),
+                    apiVersion));
+            writes.add(ProcessableThingEvent.newInstance(
+                    createFeaturePropertyModified(FEATURE_ID1, PROP1, newValue("somethingNew4"), 6L),
+                    apiVersion));
+            writes.add(ProcessableThingEvent.newInstance(ThingDeleted.of(KNOWN_THING_ID, 7L, DittoHeaders.empty()),
+                    apiVersion));
+
+            Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID,
+                    writes, policyEnforcer, 7L)))
+                    .isTrue();
+
+            verifyCollectionWrites();
+
+            final PolicyRestrictedSearchAggregation aggregation1 = abf
+                    .newBuilder(cf.any())
+                    .authorizationSubjects(KNOWN_SUBJECTS_2)
+                    .build();
+
+            assertThat(findAll(aggregation1)).isEmpty();
+        }
+
+
+        @Test
+        public void delete() throws ExecutionException, InterruptedException {
+            final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
+            final long thingRevision = 13;
+            final long policyRevision = 77;
+            runBlocking(writePersistence.insertOrUpdate(thing, thingRevision, policyRevision));
+
+            final boolean result = runBlockingWithReturn(writePersistence.delete(KNOWN_THING_ID));
+
+            assertThat(result)
+                    .isTrue();
+        }
+
+    }
+
+    public static class MongoThingsSearchUpdaterPersistenceV1Tests extends BaseClass {
+
+        private final boolean isV2 = false;
+        private final JsonSchemaVersion apiVersion = JsonSchemaVersion.V_1;
+
+        @Test
+        public void createNewAclEntry() throws ExecutionException, InterruptedException {
+            final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
+            insertBlockingAndResetMocks(isV2, thing, 0, 0, policyEnforcer, writePoliciesCollectionSpy,
+                    writeThingsCollectionSpy);
+
+            final List<ProcessableThingEvent> writes = Collections.singletonList(
+                    ProcessableThingEvent.newInstance(
+                            createAclModified("anotherSid", 1L, org.eclipse.ditto.model.things.Permission.READ),
+                            JsonSchemaVersion.V_1)
+            );
+
+            final PolicyRestrictedSearchAggregation aggregation =
+                    abf.newBuilder(cf.fieldCriteria(fef.filterByAttribute(KEY1), cf.eq(VALUE1)))
+                            .authorizationSubjects(Collections.singletonList("anotherSid")).build();
+
+            Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes,
+                    policyEnforcer, 1L)))
+                    .isTrue();
+            verify(writeThingsCollectionSpy).bulkWrite(any(), any());
+            verifyNoMoreInteractions(writeThingsCollectionSpy);
+            verifyNoMoreInteractions(writePoliciesCollectionSpy);
+
+            assertThat(findAll(aggregation)).contains(KNOWN_THING_ID);
+        }
+
+
+        @Test
+        public void updateExistingAclEntryAddRead() throws ExecutionException, InterruptedException {
+            final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
+            insertBlockingAndResetMocks(isV2, thing, 0, 0, policyEnforcer, writeThingsCollectionSpy,
+                    writePoliciesCollectionSpy);
+
+            final List<ProcessableThingEvent> writes = Collections.singletonList(
+                    ProcessableThingEvent.newInstance(
+                            createAclModified("iot-things:mySid2", 1L, org.eclipse.ditto.model.things.Permission.READ,
+                                    org.eclipse.ditto.model.things.Permission.WRITE), JsonSchemaVersion.V_1)
+            );
+
+            final PolicyRestrictedSearchAggregation aggregation =
+                    abf.newBuilder(cf.fieldCriteria(fef.filterByAttribute(KEY1), cf.eq(VALUE1)))
+                            .authorizationSubjects(Collections.singletonList("iot-things:mySid2"))
+                            .build();
+
+            Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes,
+                    policyEnforcer, 1L)))
+                    .isTrue();
+
+            verify(writeThingsCollectionSpy).bulkWrite(any(), any());
+            verifyNoMoreInteractions(writeThingsCollectionSpy);
+            verifyNoMoreInteractions(writePoliciesCollectionSpy);
+
+            assertThat(findAll(aggregation)).isNotNull()
+                    .contains(KNOWN_THING_ID);
+        }
+
+        @Test
+        public void updateExistingAclEntryRemoveRead() throws ExecutionException, InterruptedException {
+            final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
+            insertBlockingAndResetMocks(isV2, thing, 0, 0, policyEnforcer, writeThingsCollectionSpy,
+                    writePoliciesCollectionSpy);
+
+            final List<ProcessableThingEvent> writes = Collections.singletonList(
+                    ProcessableThingEvent.newInstance(createAclModified("iot-things:mySid3", 1L,
+                            org.eclipse.ditto.model.things.Permission.WRITE), JsonSchemaVersion.V_1)
+            );
+
+            final PolicyRestrictedSearchAggregation aggregation =
+                    abf.newBuilder(cf.fieldCriteria(fef.filterByAttribute(KEY1), cf.eq(VALUE1)))
+                            .authorizationSubjects(Collections.singletonList("iot-things:mySid3"))
+                            .build();
+
+            Assertions.assertThat(
+                    runBlockingWithReturn(
+                            writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes, policyEnforcer,
+                                    1L)))
+                    .isTrue();
+
+            verify(writeThingsCollectionSpy).bulkWrite(any(), any());
+            verifyNoMoreInteractions(writeThingsCollectionSpy);
+            verifyNoMoreInteractions(writePoliciesCollectionSpy);
+
+            assertThat(findAll(aggregation)).isEmpty();
+        }
+
+        @Test
+        public void deleteAclEntry() throws ExecutionException, InterruptedException {
+            final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
+            insertBlockingAndResetMocks(isV2, thing, 0, 0, policyEnforcer, writeThingsCollectionSpy,
+                    writePoliciesCollectionSpy);
+
+            final List<ProcessableThingEvent> writes = Collections.singletonList(
+                    ProcessableThingEvent.newInstance(
+                            AclEntryDeleted.of(KNOWN_THING_ID, AuthorizationSubject.newInstance("iot-things:mySid3"),
+                                    1L,
+                                    DittoHeaders.empty()), JsonSchemaVersion.V_1)
+            );
+
+
+            final PolicyRestrictedSearchAggregation aggregation =
+                    abf.newBuilder(cf.fieldCriteria(fef.filterByAttribute(KEY1), cf.eq(VALUE1)))
+                            .authorizationSubjects(Collections.singletonList("iot-things:mySid3"))
+                            .build();
+
+            Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes,
+                    policyEnforcer, 1L)))
+                    .isTrue();
+
+            verify(writeThingsCollectionSpy).bulkWrite(any(), any());
+            verifyNoMoreInteractions(writeThingsCollectionSpy);
+            verifyNoMoreInteractions(writePoliciesCollectionSpy);
+
+            assertThat(findAll(aggregation)).isEmpty();
+        }
+
+        /** */
+        @Test
+        public void updateWholeACL() throws ExecutionException, InterruptedException {
+            final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
+            insertBlockingAndResetMocks(isV2, thing, 0, 0, policyEnforcer, writePoliciesCollectionSpy,
+                    writeThingsCollectionSpy);
+
+            final List<ProcessableThingEvent> writes = Collections.singletonList(
+                    ProcessableThingEvent.newInstance(
+                            createAclModified("newSid", 1L, org.eclipse.ditto.model.things.Permission.READ,
+                                    org.eclipse.ditto.model.things.Permission.WRITE,
+                                    org.eclipse.ditto.model.things.Permission.ADMINISTRATE), JsonSchemaVersion.V_1)
+            );
+
+            Assertions.assertThat(
+                    runBlockingWithReturn(
+                            writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes, policyEnforcer,
+                                    1L)))
+                    .isTrue();
+
+            verify(writeThingsCollectionSpy).bulkWrite(any(), any());
+            verifyNoMoreInteractions(writeThingsCollectionSpy);
+            verifyNoMoreInteractions(writePoliciesCollectionSpy);
+
+            final PolicyRestrictedSearchAggregation aggregation1 =
+                    abf.newBuilder(cf.fieldCriteria(fef.filterByAttribute(KEY1), cf.eq(VALUE1)))
+                            .authorizationSubjects(KNOWN_SUBJECTS_2)
+                            .build();
+
+            final PolicyRestrictedSearchAggregation aggregation2 =
+                    abf.newBuilder(cf.fieldCriteria(fef.filterByAttribute(KEY1), cf.eq(VALUE1)))
+                            .authorizationSubjects(Collections.singletonList("newSid")).build();
+
+            assertThat(findAll(aggregation1)).isEmpty();
+            assertThat(findAll(aggregation2)).contains(KNOWN_THING_ID);
+        }
+
+
+        @Test
+        public void updateFeaturePropertyAndAcl() throws ExecutionException, InterruptedException {
+            insertBlockingAndResetMocks(isV2, createThing(KNOWN_THING_ID, VALUE1, isV2), 1L, -1L, policyEnforcer);
+
+            final AclEntry entry = ThingsModelFactory.newAclEntry(newAuthSubject("anotherSid"),
+                    org.eclipse.ditto.model.things.Permission.READ);
+
+            final List<ProcessableThingEvent> writes = new ArrayList<>();
+            writes.add(ProcessableThingEvent.newInstance(
+                    AclEntryModified.of(KNOWN_THING_ID, entry, 2L, DittoHeaders.empty()),
+                    apiVersion));
+            writes.add(ProcessableThingEvent.newInstance(
+                    createFeaturePropertyModified(FEATURE_ID1, PROP1, newValue("somethingNew"), 3L),
+                    apiVersion));
+
+            Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID,
+                    writes, policyEnforcer, 3L)))
+                    .isTrue();
+
+            final PolicyRestrictedSearchAggregation aggregation1 = abf
+                    .newBuilder(cf.fieldCriteria(fef.filterByAttribute(KEY1), cf.eq(VALUE1)))
+                    .authorizationSubjects(KNOWN_SUBJECTS_2)
+                    .build();
+
+            assertThat(findAll(aggregation1)).contains(KNOWN_THING_ID);
+
+            final PolicyRestrictedSearchAggregation aggregation2 = abf
+                    .newBuilder(cf.fieldCriteria(fef.filterByFeatureProperty(PROP1), cf.eq("somethingNew")))
+                    .authorizationSubjects(KNOWN_SUBJECTS_2)
+                    .build();
+
+            final Collection<String> result2 = findAll(aggregation2);
+            assertThat(result2).contains(KNOWN_THING_ID);
+        }
+
+        @Test
+        public void createThingAndUpdateAcl() throws ExecutionException, InterruptedException {
+            final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
+            final ThingCreated thingCreated = ThingCreated.of(thing, 1L, DittoHeaders.empty());
+
+            final AclEntry aclEntry =
+                    ThingsModelFactory.newAclEntry(newAuthSubject("newSid"),
+                            org.eclipse.ditto.model.things.Permission.READ,
+                            org.eclipse.ditto.model.things.Permission.WRITE,
+                            org.eclipse.ditto.model.things.Permission.ADMINISTRATE);
+            final AccessControlList acl = ThingsModelFactory.newAcl(aclEntry);
+            final AclModified aclModified = AclModified.of(KNOWN_THING_ID, acl, 2L, DittoHeaders.empty());
+
+            final List<ProcessableThingEvent> writes = new ArrayList<>();
+            writes.add(ProcessableThingEvent.newInstance(thingCreated, apiVersion));
+            writes.add(ProcessableThingEvent.newInstance(aclModified, apiVersion));
+
+            Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID,
+                    writes, policyEnforcer, 2L)))
+                    .isTrue();
+
+            final PolicyRestrictedSearchAggregation aggregation1 = abf
+                    .newBuilder(cf.fieldCriteria(fef.filterByAttribute(KEY1), cf.eq(VALUE1)))
+                    .authorizationSubjects(Collections.singletonList("newSid"))
+                    .build();
+
+            assertThat(findAll(aggregation1)).isNotNull()
+                    .contains(KNOWN_THING_ID);
+        }
+
+    }
+
+    public static class MongoThingsSearchUpdaterPersistenceV2Tests extends BaseClass {
+
+        private final boolean isV2 = true;
+        private final JsonSchemaVersion apiVersion = JsonSchemaVersion.LATEST;
+
+        @Test
+        public void updatePolicyForThing() throws ExecutionException, InterruptedException {
+            final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
+
+            insertBlockingAndResetMocks(isV2, thing, 1L, -1L, policyEnforcer);
+            final Policy policy = createPolicy1();
+
+            Assertions.assertThat(runBlockingWithReturn(
+                    writePersistence.updatePolicy(thing, PolicyEnforcers.defaultEvaluator(policy)))).isTrue();
+            Assertions.assertThat(runBlockingWithReturn(
+                    writePersistence.updatePolicy(thing, PolicyEnforcers.defaultEvaluator(createPolicy2()))))
+                    .isTrue();
+        }
+
+        @Test
+        public void getThingMetadata() throws ExecutionException, InterruptedException {
+            final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
+            final long thingRevision = 13;
+            final long policyRevision = 77;
+            runBlocking(writePersistence.insertOrUpdate(thing, thingRevision, policyRevision));
+
+            final ThingMetadata result = runBlockingWithReturn(writePersistence.getThingMetadata(KNOWN_THING_ID));
+            assertThat(result.getPolicyId())
+                    .isEqualTo(thing.getPolicyId().orElseThrow(() -> new IllegalStateException("not possible")));
+            assertThat(result.getPolicyRevision())
+                    .isEqualTo(policyRevision);
+            assertThat(result.getThingRevision())
+                    .isEqualTo(thingRevision);
+        }
+
+        @Test
+        public void getThingMetadataForNotExistingThing() throws ExecutionException, InterruptedException {
+            final ThingMetadata result = runBlockingWithReturn(writePersistence.getThingMetadata(KNOWN_THING_ID));
+            assertThat(result.getPolicyId())
+                    .isNull();
+            assertThat(result.getPolicyRevision())
+                    .isEqualTo(-1L);
+            assertThat(result.getThingRevision())
+                    .isEqualTo(-1L);
+        }
+
+        @Test
+        public void updatePolicyForThingIllegalArguments() throws ExecutionException, InterruptedException {
+            final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
+
+            insertBlockingAndResetMocks(isV2, thing, 1L, -1L, policyEnforcer);
+            final Policy policy = createPolicy1();
+
+            Assertions.assertThat(runBlockingWithReturn(
+                    writePersistence.updatePolicy(null, PolicyEnforcers.defaultEvaluator(policy)))).isFalse();
+            Assertions.assertThat(runBlockingWithReturn(
+                    writePersistence.updatePolicy(thing, null)))
+                    .isFalse();
+        }
+
+
+        @Test
+        public void getThingIdsForPolicy() throws ExecutionException, InterruptedException {
+            final String policyId = "any-ns:testPolicyId";
+            final Thing thing1 = createThing("test:id1", "val1", isV2).setPolicyId(policyId);
+            final Thing thing2 = createThing("test:id2", "val2", isV2).setPolicyId(policyId);
+
+            runBlocking(writePersistence.insertOrUpdate(thing1, -1L, -1L),
+                    writePersistence.insertOrUpdate(thing2, -1L, -1L));
+
+            final Set<String> result = runBlockingWithReturn(writePersistence.getThingIdsForPolicy(policyId));
+
+            assertThat(result.size())
+                    .isEqualTo(2);
+            assertThat(result)
+                    .containsOnly(thing1.getId().get(), thing2.getId().get());
+        }
+
+        @Test
+        public void getThingIdsForPolicyThatDoesNotExist() throws ExecutionException, InterruptedException {
+            final Set<String> result =
+                    runBlockingWithReturn(writePersistence.getThingIdsForPolicy("any-ns:testPolicyId"));
+
+            assertThat(result.isEmpty())
+                    .isTrue();
+        }
+
+    }
+
+    public static class MongoThingsSearchUpdaterPersistenceDefaultTests extends BaseClass {
+
+        @Test
+        public void deleteForNotExistingThing() throws ExecutionException, InterruptedException {
+            final boolean result = runBlockingWithReturn(writePersistence.delete(KNOWN_THING_ID));
+
+            assertThat(result)
+                    .isFalse();
+        }
+
+        @Test
+        public void executeCombinedWritesWithoutThingEvents() throws ExecutionException, InterruptedException {
+            Assertions.assertThat(
+                    runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID,
+                            Collections.emptyList(),
+                            policyEnforcer, 1L)))
+                    .isTrue();
+
+            verifyNoMoreInteractions(writeThingsCollectionSpy);
+            verifyNoMoreInteractions(writePoliciesCollectionSpy);
+        }
+
+        @Test
+        public void migrateExistingThingToV2() throws ExecutionException, InterruptedException {
+
+            // create a thing with an ACL
+            final Thing thing = createThing(KNOWN_THING_ID, VALUE1, false);
+
+            insertBlockingAndResetMocks(false, thing, 1L, -1L, policyEnforcer);
+
+            final PolicyRestrictedSearchAggregation aggregation1 = abf.newBuilder(cf.any())
+                    .authorizationSubjects(KNOWN_SUBJECTS_2)
+                    .build();
+            final List<String> foundAll = findAll(aggregation1);
+            assertThat(foundAll).containsOnly(KNOWN_THING_ID);
+
+            final String newUser = "iot-things:someNewUser";
+            final Policy newPolicy = createPolicyFor(newUser);
+
+            insertBlockingAndResetMocks(true, thing, 2L, 0, PolicyEnforcers.defaultEvaluator(newPolicy));
+
+            final List<String> foundAll2 = findAll(aggregation1);
+
+            // none of KNOWN_SUBJECTS_2 has permissions in "newPolicy"
+            assertThat(foundAll2).isEmpty();
+
+            final PolicyRestrictedSearchAggregation aggregation2 = abf.newBuilder(cf.any())
+                    .authorizationSubjects(Collections.singletonList(newUser))
+                    .build();
+            final List<String> foundAll3 = findAll(aggregation2);
+
+            // newUser is allowed to read the thing
+            assertThat(foundAll3).containsOnly(KNOWN_THING_ID);
+        }
+
+        @Test
+        public void errorRecoveryForDuplicateKey() throws ExecutionException, InterruptedException {
+            final String thingId = KNOWN_THING_ID;
+            final PartialFunction<Throwable, Source<Boolean, NotUsed>> recovery =
+                    writePersistence.errorRecovery(thingId);
+
+            assertThat(runBlockingWithReturn(recovery.apply(createMongoWriteException(11000))))
+                    .isEqualTo(Boolean.FALSE);
+        }
+
+        @Test
+        public void errorRecoveryForIndexTooLong() throws ExecutionException, InterruptedException {
+            final String thingId = KNOWN_THING_ID;
+            final PartialFunction<Throwable, Source<Boolean, NotUsed>> recovery =
+                    writePersistence.errorRecovery(thingId);
+
+            assertThat(runBlockingWithReturn(recovery.apply(createMongoWriteException(17280))))
+                    .isEqualTo(Boolean.TRUE);
+        }
+
+        @Test
+        public void errorRecoveryForUnhandledException() throws ExecutionException, InterruptedException {
+            final String thingId = KNOWN_THING_ID;
+            final PartialFunction<Throwable, Source<Boolean, NotUsed>> recovery =
+                    writePersistence.errorRecovery(thingId);
+
+            final IllegalArgumentException toThrow = new IllegalArgumentException("any");
+            try {
+                runBlockingWithReturn(recovery.apply(toThrow));
+                Assert.fail("should never get here");
+            } catch (ExecutionException e) {
+                assertThat(e.getCause())
+                        .isEqualTo(toThrow);
+            }
+        }
+
+        private MongoWriteException createMongoWriteException(final int errorCode) {
+            final WriteError writeError = new WriteError(errorCode, "error", BsonDocument.parse("{}"));
+            final ServerAddress serverAddress = new ServerAddress();
+            return new MongoWriteException(writeError, serverAddress);
+        }
+
+
+    }
+
+    private static Thing createThing(final String thingId, final String attributeValue, final boolean isV2) {
+        if (isV2) {
+            return thingV2(thingId, attributeValue);
+        } else {
+            return thingV1(thingId, attributeValue);
         }
     }
 
-    private MongoWriteException createMongoWriteException(final int errorCode) {
-        final WriteError writeError = new WriteError(errorCode, "error", BsonDocument.parse("{}"));
-        final ServerAddress serverAddress = new ServerAddress();
-        return new MongoWriteException(writeError, serverAddress);
+    private static Thing thingV2(final String thingId, final String attributeValue) {
+        final Attributes attributes = ThingsModelFactory.newAttributesBuilder()
+                .set(KEY1, attributeValue)
+                .set(KEY2, VALUE2)
+                .set(KEY3, VALUE3)
+                .set(KEY4, VALUE4)
+                .set(KEY5, VALUE5)
+                .build();
+
+        final FeatureProperties featureProperties = ThingsModelFactory.newFeaturePropertiesBuilder()
+                .set(PROP1, PROP_VALUE1)
+                .set(PROP1_EXTENDED, PROP_VALUE1)
+                .set(PROP2, PROP_VALUE2)
+                .set(PROP3, PROP_VALUE3)
+                .set(PROP4, PROP_VALUE4)
+                .set(PROP7, JsonFactory.newObjectBuilder()
+                        .set(JsonFactory.newKey(PROP8), PROP_VALUE8)
+                        .build()
+                )
+                .build();
+        final Feature feature = ThingsModelFactory.newFeature(FEATURE_ID1, featureProperties);
+
+        return ThingsModelFactory.newThingBuilder()
+                .setId(thingId)
+                .setPolicyId(createPolicy1().getId().get())
+                .setAttributes(attributes)
+                .setFeature(feature)
+                .setLifecycle(ThingLifecycle.ACTIVE)
+                .setRevision(0L)
+                .build();
     }
 
+    private static Thing thingV1(final String thingId, final String attributeValue) {
+        final AccessControlList acl = ThingsModelFactory.newAclBuilder()
+                .set(ThingsModelFactory.newAclEntry(newAuthSubject("iot-things:mySid"),
+                        ThingsModelFactory.allPermissions()))
+                .set(ThingsModelFactory.newAclEntry(newAuthSubject("iot-things:mySid2"),
+                        org.eclipse.ditto.model.things.Permission.WRITE))
+                .set(ThingsModelFactory.newAclEntry(newAuthSubject("iot-things:mySid3"),
+                        org.eclipse.ditto.model.things.Permission.READ))
+                .build();
+
+        final Attributes attributes = ThingsModelFactory.newAttributesBuilder()
+                .set(KEY1, attributeValue)
+                .set(KEY2, VALUE2)
+                .set(KEY3, VALUE3)
+                .set(KEY4, VALUE4)
+                .set(KEY5, VALUE5)
+                .build();
+
+        final FeatureProperties featureProperties = ThingsModelFactory.newFeaturePropertiesBuilder()
+                .set(PROP1, PROP_VALUE1)
+                .set(PROP1_EXTENDED, PROP_VALUE1)
+                .set(PROP2, PROP_VALUE2)
+                .set(PROP3, PROP_VALUE3)
+                .set(PROP4, PROP_VALUE4)
+                .set(PROP7, JsonFactory.newObjectBuilder()
+                        .set(JsonFactory.newKey(PROP8), PROP_VALUE8)
+                        .build()
+                )
+                .build();
+        final Feature feature = ThingsModelFactory.newFeature(FEATURE_ID1, featureProperties);
+
+        return ThingsModelFactory.newThingBuilder()
+                .setId(thingId)
+                .setPermissions(acl)
+                .setAttributes(attributes)
+                .setFeature(feature)
+                .setLifecycle(ThingLifecycle.ACTIVE)
+                .setRevision(0L)
+                .build();
+    }
 
     private static Policy createPolicy1() {
         return PoliciesModelFactory.newPolicyBuilder(KNOWN_THING_ID)
@@ -2033,6 +1715,30 @@ public final class MongoThingsSearchUpdaterPersistenceTest extends AbstractThing
                 .setRevision(1L)
                 .build();
     }
+
+    private static AclModified createAclModified(final CharSequence authSubjectId,
+            final long revision,
+            final org.eclipse.ditto.model.things.Permission permission,
+            final org.eclipse.ditto.model.things.Permission... furtherPermissions) {
+
+        final AclEntry aclEntry = ThingsModelFactory.newAclEntry(AuthorizationSubject.newInstance(authSubjectId),
+                permission, furtherPermissions);
+        final AccessControlList accessControlList = ThingsModelFactory.newAcl(aclEntry);
+        return AclModified.of(KNOWN_THING_ID, accessControlList, revision, DittoHeaders.empty());
+    }
+
+    private static AttributeModified createAttributeModified(final CharSequence attributePointer,
+            final JsonValue attributeValue, final long revision) {
+        return AttributeModified.of(KNOWN_THING_ID, JsonFactory.newPointer(attributePointer), attributeValue,
+                revision,
+                DittoHeaders.empty());
+    }
+
+    private static ThingEvent createFeatureCreated(final CharSequence featureId) {
+        final Feature feature = createFeature(featureId.toString());
+        return FeatureCreated.of(KNOWN_THING_ID, feature, 2L, DittoHeaders.empty());
+    }
+
 
     private static Policy createPolicyFor(final CharSequence user) {
         return PoliciesModelFactory.newPolicyBuilder(KNOWN_THING_ID)
@@ -2093,91 +1799,33 @@ public final class MongoThingsSearchUpdaterPersistenceTest extends AbstractThing
         return ThingsModelFactory.newFeature(featureId, featureProperties);
     }
 
-    private static Thing createThingV2(final String thingId, final String attributeValue) {
-        final Attributes attributes = ThingsModelFactory.newAttributesBuilder()
-                .set(KEY1, attributeValue)
-                .set(KEY2, VALUE2)
-                .set(KEY3, VALUE3)
-                .set(KEY4, VALUE4)
-                .set(KEY5, VALUE5)
-                .build();
+    private static ThingEvent createFeaturePropertiesDeleted(final CharSequence featureId) {
+        return FeaturePropertiesDeleted.of(KNOWN_THING_ID, featureId.toString(), 2L,
+                DittoHeaders.empty());
+    }
 
-        final FeatureProperties featureProperties = ThingsModelFactory.newFeaturePropertiesBuilder()
-                .set(PROP1, PROP_VALUE1)
-                .set(PROP1_EXTENDED, PROP_VALUE1)
-                .set(PROP2, PROP_VALUE2)
-                .set(PROP3, PROP_VALUE3)
-                .set(PROP4, PROP_VALUE4)
-                .set(PROP7, JsonFactory.newObjectBuilder()
-                        .set(JsonFactory.newKey(PROP8), PROP_VALUE8)
-                        .build()
-                )
-                .build();
-        final Feature feature = ThingsModelFactory.newFeature(FEATURE_ID1, featureProperties);
+    private static ThingEvent createFeaturePropertiesModified(final CharSequence featureId) {
+        final Feature feature = createFeature(featureId.toString());
+        return FeaturePropertiesModified.of(KNOWN_THING_ID, featureId.toString(), feature.getProperties().orElse
+                (null), 2L, DittoHeaders.empty());
+    }
 
-        return ThingsModelFactory.newThingBuilder()
-                .setId(thingId)
-                .setPolicyId(createPolicy1().getId().get())
-                .setAttributes(attributes)
-                .setFeature(feature)
-                .setLifecycle(ThingLifecycle.ACTIVE)
-                .setRevision(0L)
-                .build();
+    private static ThingEvent createFeaturePropertyDeleted(final CharSequence featureId,
+            final CharSequence featurePropertyPointer, final long revision) {
+        return FeaturePropertyDeleted.of(KNOWN_THING_ID, featureId.toString(), JsonFactory
+                .newPointer(featurePropertyPointer), revision, DittoHeaders.empty());
     }
 
 
-    /**
-     * <p>
-     * Simulates {@code ThingUpdater.endSyncWithPolicy} from the module {@code search-updater-starter}. For unit tests
-     * only.
-     */
-    private void insertBlocking(final Thing thing, final long thingRevision, final long
-            policyRevision,
-            final PolicyEnforcer policyEnforcer) {
-        checkNotNull(policyEnforcer, "policyEnforcer");
-        runBlocking(writePersistence.insertOrUpdate(thing, thingRevision, policyRevision)
-                .flatMapConcat(u -> writePersistence.updatePolicy(thing, policyEnforcer)));
+    private static ThingEvent createFeaturePropertyModified(final CharSequence featureId,
+            final CharSequence propertyPointer, final JsonValue propertyValue, final long revision) {
+        return FeaturePropertyModified.of(KNOWN_THING_ID, featureId.toString(), JsonFactory.newPointer
+                (propertyPointer), propertyValue, revision, DittoHeaders.empty());
     }
 
-    private static Thing createThing(final String thingId, final String attributeValue) {
-        final AccessControlList acl = ThingsModelFactory.newAclBuilder()
-                .set(ThingsModelFactory.newAclEntry(newAuthSubject("iot-things:mySid"),
-                        ThingsModelFactory.allPermissions()))
-                .set(ThingsModelFactory.newAclEntry(newAuthSubject("iot-things:mySid2"),
-                        org.eclipse.ditto.model.things.Permission.WRITE))
-                .set(ThingsModelFactory.newAclEntry(newAuthSubject("iot-things:mySid3"),
-                        org.eclipse.ditto.model.things.Permission.READ))
-                .build();
-
-        final Attributes attributes = ThingsModelFactory.newAttributesBuilder()
-                .set(KEY1, attributeValue)
-                .set(KEY2, VALUE2)
-                .set(KEY3, VALUE3)
-                .set(KEY4, VALUE4)
-                .set(KEY5, VALUE5)
-                .build();
-
-        final FeatureProperties featureProperties = ThingsModelFactory.newFeaturePropertiesBuilder()
-                .set(PROP1, PROP_VALUE1)
-                .set(PROP1_EXTENDED, PROP_VALUE1)
-                .set(PROP2, PROP_VALUE2)
-                .set(PROP3, PROP_VALUE3)
-                .set(PROP4, PROP_VALUE4)
-                .set(PROP7, JsonFactory.newObjectBuilder()
-                        .set(JsonFactory.newKey(PROP8), PROP_VALUE8)
-                        .build()
-                )
-                .build();
-        final Feature feature = ThingsModelFactory.newFeature(FEATURE_ID1, featureProperties);
-
-        return ThingsModelFactory.newThingBuilder()
-                .setId(thingId)
-                .setPermissions(acl)
-                .setAttributes(attributes)
-                .setFeature(feature)
-                .setLifecycle(ThingLifecycle.ACTIVE)
-                .setRevision(0L)
-                .build();
+    private static ThingEvent createFeaturesModified(final Features features) {
+        return FeaturesModified.of(KNOWN_THING_ID, features, 2L, DittoHeaders.empty());
     }
+
 }
 

@@ -93,7 +93,7 @@ public final class AggregationPersistenceCountTest extends AbstractVersionedThin
 
         final long actualCount =
                 aggregateCount(AbstractThingSearchPersistenceTestBase.cf.fieldCriteria(
-                        AbstractThingSearchPersistenceTestBase.ef.filterByAttribute(KNOWN_ATTRIBUTE_KEY_1),
+                        AbstractThingSearchPersistenceTestBase.fef.filterByAttribute(KNOWN_ATTRIBUTE_KEY_1),
                         AbstractThingSearchPersistenceTestBase.cf.eq(attributeValue)));
 
         assertThat(actualCount).isNotNull().isEqualTo(expectedCount);
@@ -106,7 +106,7 @@ public final class AggregationPersistenceCountTest extends AbstractVersionedThin
 
         final long actualCount = aggregateCount(
                 AbstractThingSearchPersistenceTestBase.cf.fieldCriteria(
-                        AbstractThingSearchPersistenceTestBase.ef.filterByThingId(),
+                        AbstractThingSearchPersistenceTestBase.fef.filterByThingId(),
                         AbstractThingSearchPersistenceTestBase.cf.eq(nonExistingThingId)));
 
         assertThat(actualCount).isNotNull().isEqualTo(0);

@@ -9,7 +9,7 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package org.eclipse.ditto.services.thingsearch.persistence.write.impl;
+package org.eclipse.ditto.services.thingsearch.persistence.write;
 
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -25,6 +25,7 @@ import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
+import org.eclipse.ditto.services.thingsearch.persistence.write.IndexLengthRestrictionEnforcer;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -33,8 +34,11 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import akka.event.LoggingAdapter;
 
+/**
+ * Test for IndexLengthRestrictionEnforcer
+ */
 @RunWith(MockitoJUnitRunner.class)
-public class IndexLengthRestrictionEnforcerTest {
+public final class IndexLengthRestrictionEnforcerTest {
 
     @Mock
     private LoggingAdapter log;

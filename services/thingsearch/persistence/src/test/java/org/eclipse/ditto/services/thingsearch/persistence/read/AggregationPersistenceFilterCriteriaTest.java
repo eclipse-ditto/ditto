@@ -74,7 +74,7 @@ public final class AggregationPersistenceFilterCriteriaTest extends AbstractVers
     public void findAllByEqString() {
         final PolicyRestrictedSearchAggregation aggregation = abf
                 .newBuilder(
-                        cf.fieldCriteria(ef.filterByAttribute(KNOWN_STRING_ATTR), cf.eq(THING1_KNOWN_STR_ATTR_VALUE)))
+                        cf.fieldCriteria(fef.filterByAttribute(KNOWN_STRING_ATTR), cf.eq(THING1_KNOWN_STR_ATTR_VALUE)))
                 .authorizationSubjects(KNOWN_SUBJECTS)
                 .build();
 
@@ -87,7 +87,7 @@ public final class AggregationPersistenceFilterCriteriaTest extends AbstractVers
     public void findAllByEqNumber() {
         final PolicyRestrictedSearchAggregation aggregation = abf
                 .newBuilder(
-                        cf.fieldCriteria(ef.filterByAttribute(KNOWN_NUMBER_ATTR), cf.eq(THING2_KNOWN_NUM_ATTR_VALUE)))
+                        cf.fieldCriteria(fef.filterByAttribute(KNOWN_NUMBER_ATTR), cf.eq(THING2_KNOWN_NUM_ATTR_VALUE)))
                 .authorizationSubjects(KNOWN_SUBJECTS)
                 .build();
 
@@ -100,7 +100,7 @@ public final class AggregationPersistenceFilterCriteriaTest extends AbstractVers
     public void findAllByEqBoolean() {
         final PolicyRestrictedSearchAggregation aggregation = abf
                 .newBuilder(
-                        cf.fieldCriteria(ef.filterByAttribute(KNOWN_BOOL_ATTR), cf.eq(THING3_KNOWN_BOOL_ATTR_VALUE)))
+                        cf.fieldCriteria(fef.filterByAttribute(KNOWN_BOOL_ATTR), cf.eq(THING3_KNOWN_BOOL_ATTR_VALUE)))
                 .authorizationSubjects(KNOWN_SUBJECTS)
                 .build();
 
@@ -113,7 +113,7 @@ public final class AggregationPersistenceFilterCriteriaTest extends AbstractVers
     public void findAllByNeString() {
         final PolicyRestrictedSearchAggregation aggregation = abf
                 .newBuilder(
-                        cf.fieldCriteria(ef.filterByAttribute(KNOWN_STRING_ATTR), cf.ne(THING1_KNOWN_STR_ATTR_VALUE)))
+                        cf.fieldCriteria(fef.filterByAttribute(KNOWN_STRING_ATTR), cf.ne(THING1_KNOWN_STR_ATTR_VALUE)))
                 .authorizationSubjects(KNOWN_SUBJECTS)
                 .build();
 
@@ -126,7 +126,7 @@ public final class AggregationPersistenceFilterCriteriaTest extends AbstractVers
     public void findAllByNeNumber() {
         final PolicyRestrictedSearchAggregation aggregation = abf
                 .newBuilder(
-                        cf.fieldCriteria(ef.filterByAttribute(KNOWN_NUMBER_ATTR), cf.ne(THING2_KNOWN_NUM_ATTR_VALUE)))
+                        cf.fieldCriteria(fef.filterByAttribute(KNOWN_NUMBER_ATTR), cf.ne(THING2_KNOWN_NUM_ATTR_VALUE)))
                 .authorizationSubjects(KNOWN_SUBJECTS)
                 .build();
 
@@ -139,7 +139,7 @@ public final class AggregationPersistenceFilterCriteriaTest extends AbstractVers
     public void findAllByNeBoolean() {
         final PolicyRestrictedSearchAggregation aggregation = abf
                 .newBuilder(
-                        cf.fieldCriteria(ef.filterByAttribute(KNOWN_BOOL_ATTR), cf.ne(THING3_KNOWN_BOOL_ATTR_VALUE)))
+                        cf.fieldCriteria(fef.filterByAttribute(KNOWN_BOOL_ATTR), cf.ne(THING3_KNOWN_BOOL_ATTR_VALUE)))
                 .authorizationSubjects(KNOWN_SUBJECTS)
                 .build();
 
@@ -152,7 +152,7 @@ public final class AggregationPersistenceFilterCriteriaTest extends AbstractVers
     public void neIsEqualToNotEq() {
         final PolicyRestrictedSearchAggregation aggregation = abf.
                 newBuilder(
-                        cf.fieldCriteria(ef.filterByAttribute(KNOWN_STRING_ATTR), cf.ne(THING1_KNOWN_STR_ATTR_VALUE)))
+                        cf.fieldCriteria(fef.filterByAttribute(KNOWN_STRING_ATTR), cf.ne(THING1_KNOWN_STR_ATTR_VALUE)))
                 .authorizationSubjects(KNOWN_SUBJECTS)
                 .build();
 
@@ -160,7 +160,7 @@ public final class AggregationPersistenceFilterCriteriaTest extends AbstractVers
 
         final PolicyRestrictedSearchAggregation aggregation2 = abf.newBuilder(cf.nor(
                 Collections.singletonList(
-                        cf.fieldCriteria(ef.filterByAttribute(KNOWN_STRING_ATTR),
+                        cf.fieldCriteria(fef.filterByAttribute(KNOWN_STRING_ATTR),
                                 cf.eq(THING1_KNOWN_STR_ATTR_VALUE)
                         ))))
                 .authorizationSubjects(KNOWN_SUBJECTS)
@@ -177,7 +177,7 @@ public final class AggregationPersistenceFilterCriteriaTest extends AbstractVers
     public void findAllByGtString() {
         final PolicyRestrictedSearchAggregation aggregation = abf
                 .newBuilder(
-                        cf.fieldCriteria(ef.filterByAttribute(KNOWN_STRING_ATTR), cf.gt(THING2_KNOWN_STR_ATTR_VALUE)))
+                        cf.fieldCriteria(fef.filterByAttribute(KNOWN_STRING_ATTR), cf.gt(THING2_KNOWN_STR_ATTR_VALUE)))
                 .authorizationSubjects(KNOWN_SUBJECTS)
                 .build();
 
@@ -190,7 +190,7 @@ public final class AggregationPersistenceFilterCriteriaTest extends AbstractVers
     public void findAllByGtNumber() {
         final PolicyRestrictedSearchAggregation aggregation = abf
                 .newBuilder(
-                        cf.fieldCriteria(ef.filterByAttribute(KNOWN_NUMBER_ATTR), cf.gt(THING3_KNOWN_NUM_ATTR_VALUE)))
+                        cf.fieldCriteria(fef.filterByAttribute(KNOWN_NUMBER_ATTR), cf.gt(THING3_KNOWN_NUM_ATTR_VALUE)))
                 .authorizationSubjects(KNOWN_SUBJECTS)
                 .build();
 
@@ -203,7 +203,7 @@ public final class AggregationPersistenceFilterCriteriaTest extends AbstractVers
     public void findAllByGtBoolean() {
         final PolicyRestrictedSearchAggregation aggregation = abf
                 .newBuilder(
-                        cf.fieldCriteria(ef.filterByAttribute(KNOWN_BOOL_ATTR), cf.gt(THING3_KNOWN_BOOL_ATTR_VALUE)))
+                        cf.fieldCriteria(fef.filterByAttribute(KNOWN_BOOL_ATTR), cf.gt(THING3_KNOWN_BOOL_ATTR_VALUE)))
                 .authorizationSubjects(KNOWN_SUBJECTS)
                 .build();
 
@@ -216,7 +216,7 @@ public final class AggregationPersistenceFilterCriteriaTest extends AbstractVers
     public void findAllByGeString() {
         final PolicyRestrictedSearchAggregation aggregation = abf
                 .newBuilder(
-                        cf.fieldCriteria(ef.filterByAttribute(KNOWN_STRING_ATTR), cf.ge(THING2_KNOWN_STR_ATTR_VALUE)))
+                        cf.fieldCriteria(fef.filterByAttribute(KNOWN_STRING_ATTR), cf.ge(THING2_KNOWN_STR_ATTR_VALUE)))
                 .authorizationSubjects(KNOWN_SUBJECTS)
                 .build();
 
@@ -229,7 +229,7 @@ public final class AggregationPersistenceFilterCriteriaTest extends AbstractVers
     public void findAllByGeNumber() {
         final PolicyRestrictedSearchAggregation aggregation = abf
                 .newBuilder(
-                        cf.fieldCriteria(ef.filterByAttribute(KNOWN_NUMBER_ATTR), cf.ge(THING3_KNOWN_NUM_ATTR_VALUE)))
+                        cf.fieldCriteria(fef.filterByAttribute(KNOWN_NUMBER_ATTR), cf.ge(THING3_KNOWN_NUM_ATTR_VALUE)))
                 .authorizationSubjects(KNOWN_SUBJECTS)
                 .build();
 
@@ -242,7 +242,7 @@ public final class AggregationPersistenceFilterCriteriaTest extends AbstractVers
     public void findAllByGeBoolean() {
         final PolicyRestrictedSearchAggregation aggregation = abf
                 .newBuilder(
-                        cf.fieldCriteria(ef.filterByAttribute(KNOWN_BOOL_ATTR), cf.ge(THING3_KNOWN_BOOL_ATTR_VALUE)))
+                        cf.fieldCriteria(fef.filterByAttribute(KNOWN_BOOL_ATTR), cf.ge(THING3_KNOWN_BOOL_ATTR_VALUE)))
                 .authorizationSubjects(KNOWN_SUBJECTS)
                 .build();
 
@@ -255,7 +255,7 @@ public final class AggregationPersistenceFilterCriteriaTest extends AbstractVers
     public void findAllByLtString() {
         final PolicyRestrictedSearchAggregation aggregation = abf
                 .newBuilder(
-                        cf.fieldCriteria(ef.filterByAttribute(KNOWN_STRING_ATTR), cf.lt(THING2_KNOWN_STR_ATTR_VALUE)))
+                        cf.fieldCriteria(fef.filterByAttribute(KNOWN_STRING_ATTR), cf.lt(THING2_KNOWN_STR_ATTR_VALUE)))
                 .authorizationSubjects(KNOWN_SUBJECTS)
                 .build();
 
@@ -268,7 +268,7 @@ public final class AggregationPersistenceFilterCriteriaTest extends AbstractVers
     public void findAllByLtNumber() {
         final PolicyRestrictedSearchAggregation aggregation = abf
                 .newBuilder(
-                        cf.fieldCriteria(ef.filterByAttribute(KNOWN_NUMBER_ATTR), cf.lt(THING3_KNOWN_NUM_ATTR_VALUE)))
+                        cf.fieldCriteria(fef.filterByAttribute(KNOWN_NUMBER_ATTR), cf.lt(THING3_KNOWN_NUM_ATTR_VALUE)))
                 .authorizationSubjects(KNOWN_SUBJECTS)
                 .build();
 
@@ -281,7 +281,7 @@ public final class AggregationPersistenceFilterCriteriaTest extends AbstractVers
     public void findAllByLtBoolean() {
         final PolicyRestrictedSearchAggregation aggregation = abf
                 .newBuilder(
-                        cf.fieldCriteria(ef.filterByAttribute(KNOWN_BOOL_ATTR), cf.lt(THING2_KNOWN_BOOL_ATTR_VALUE)))
+                        cf.fieldCriteria(fef.filterByAttribute(KNOWN_BOOL_ATTR), cf.lt(THING2_KNOWN_BOOL_ATTR_VALUE)))
                 .authorizationSubjects(KNOWN_SUBJECTS)
                 .build();
 
@@ -294,7 +294,7 @@ public final class AggregationPersistenceFilterCriteriaTest extends AbstractVers
     public void findAllByLeString() {
         final PolicyRestrictedSearchAggregation aggregation = abf
                 .newBuilder(
-                        cf.fieldCriteria(ef.filterByAttribute(KNOWN_STRING_ATTR), cf.le(THING2_KNOWN_STR_ATTR_VALUE)))
+                        cf.fieldCriteria(fef.filterByAttribute(KNOWN_STRING_ATTR), cf.le(THING2_KNOWN_STR_ATTR_VALUE)))
                 .authorizationSubjects(KNOWN_SUBJECTS)
                 .build();
 
@@ -307,7 +307,7 @@ public final class AggregationPersistenceFilterCriteriaTest extends AbstractVers
     public void findAllByLeNumber() {
         final PolicyRestrictedSearchAggregation aggregation = abf
                 .newBuilder(
-                        cf.fieldCriteria(ef.filterByAttribute(KNOWN_NUMBER_ATTR), cf.le(THING3_KNOWN_NUM_ATTR_VALUE)))
+                        cf.fieldCriteria(fef.filterByAttribute(KNOWN_NUMBER_ATTR), cf.le(THING3_KNOWN_NUM_ATTR_VALUE)))
                 .authorizationSubjects(KNOWN_SUBJECTS)
                 .build();
 
@@ -320,7 +320,7 @@ public final class AggregationPersistenceFilterCriteriaTest extends AbstractVers
     public void findAllByLeBoolean() {
         final PolicyRestrictedSearchAggregation aggregation = abf
                 .newBuilder(
-                        cf.fieldCriteria(ef.filterByAttribute(KNOWN_BOOL_ATTR), cf.le(THING2_KNOWN_BOOL_ATTR_VALUE)))
+                        cf.fieldCriteria(fef.filterByAttribute(KNOWN_BOOL_ATTR), cf.le(THING2_KNOWN_BOOL_ATTR_VALUE)))
                 .authorizationSubjects(KNOWN_SUBJECTS)
                 .build();
 
@@ -334,7 +334,7 @@ public final class AggregationPersistenceFilterCriteriaTest extends AbstractVers
     @Test
     public void queryByLikeString1() {
         final PolicyRestrictedSearchAggregation aggregation = abf
-                .newBuilder(cf.fieldCriteria(ef.filterByAttribute(KNOWN_REGEX_ATTR),
+                .newBuilder(cf.fieldCriteria(fef.filterByAttribute(KNOWN_REGEX_ATTR),
                         cf.like(THING1_KNOWN_STR_REGEX_VALUE_TEST)))
                 .authorizationSubjects(KNOWN_SUBJECTS)
                 .build();
@@ -349,7 +349,7 @@ public final class AggregationPersistenceFilterCriteriaTest extends AbstractVers
     @Test
     public void queryByLikeString2() {
         final PolicyRestrictedSearchAggregation aggregation = abf
-                .newBuilder(cf.fieldCriteria(ef.filterByAttribute(KNOWN_REGEX_ATTR),
+                .newBuilder(cf.fieldCriteria(fef.filterByAttribute(KNOWN_REGEX_ATTR),
                         cf.like(THING2_KNOWN_STR_REGEX_VALUE_TEST)))
                 .authorizationSubjects(KNOWN_SUBJECTS)
                 .build();
@@ -364,7 +364,7 @@ public final class AggregationPersistenceFilterCriteriaTest extends AbstractVers
     @Test
     public void queryByLikeString3() {
         final PolicyRestrictedSearchAggregation aggregation = abf
-                .newBuilder(cf.fieldCriteria(ef.filterByAttribute(KNOWN_REGEX_ATTR),
+                .newBuilder(cf.fieldCriteria(fef.filterByAttribute(KNOWN_REGEX_ATTR),
                         cf.like(THING3_KNOWN_STR_REGEX_VALUE_TEST)))
                 .authorizationSubjects(KNOWN_SUBJECTS)
                 .build();
@@ -379,7 +379,7 @@ public final class AggregationPersistenceFilterCriteriaTest extends AbstractVers
     @Test
     public void queryByLikeString4() {
         final PolicyRestrictedSearchAggregation aggregation = abf
-                .newBuilder(cf.fieldCriteria(ef.filterByAttribute(KNOWN_REGEX_ATTR),
+                .newBuilder(cf.fieldCriteria(fef.filterByAttribute(KNOWN_REGEX_ATTR),
                         cf.like(THING4_KNOWN_STR_REGEX_VALUE_TEST)))
                 .authorizationSubjects(KNOWN_SUBJECTS)
                 .build();

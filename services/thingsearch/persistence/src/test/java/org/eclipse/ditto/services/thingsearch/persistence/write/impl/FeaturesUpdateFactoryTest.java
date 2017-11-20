@@ -17,11 +17,15 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
+
+import org.bson.conversions.Bson;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.Features;
+import org.eclipse.ditto.services.thingsearch.persistence.write.IndexLengthRestrictionEnforcer;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -29,7 +33,7 @@ import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class FeaturesUpdateFactoryTest {
+public final class FeaturesUpdateFactoryTest {
 
     @Mock
     private IndexLengthRestrictionEnforcer indexLengthRestrictionEnforcer;
@@ -68,7 +72,7 @@ public class FeaturesUpdateFactoryTest {
         when(indexLengthRestrictionEnforcer.enforceRestrictions(any(Feature.class)))
                 .thenReturn(restrictedFeature);
 
-        final CombinedUpdates updates = FeaturesUpdateFactory.createUpdateForFeature(
+        final List<Bson> updates = FeaturesUpdateFactory.createUpdateForFeature(
                 indexLengthRestrictionEnforcer,
                 feature, true);
 
@@ -76,9 +80,9 @@ public class FeaturesUpdateFactoryTest {
 
         assertThat(updates)
                 .isNotNull();
-        assertThat(updates.getUpdates().size())
+        assertThat(updates.size())
                 .isEqualTo(1);
-        assertThat(updates.getUpdates().get(0).toString().contains("restrictedVersion"))
+        assertThat(updates.get(0).toString().contains("restrictedVersion"))
                 .isTrue();
     }
 
@@ -95,7 +99,7 @@ public class FeaturesUpdateFactoryTest {
         when(indexLengthRestrictionEnforcer.enforceRestrictions(any(Feature.class)))
                 .thenReturn(restrictedFeature);
 
-        final CombinedUpdates updates = FeaturesUpdateFactory.createUpdateForFeature(
+        final List<Bson> updates = FeaturesUpdateFactory.createUpdateForFeature(
                 indexLengthRestrictionEnforcer,
                 feature, false);
 
@@ -103,9 +107,9 @@ public class FeaturesUpdateFactoryTest {
 
         assertThat(updates)
                 .isNotNull();
-        assertThat(updates.getUpdates().size())
+        assertThat(updates.size())
                 .isEqualTo(2);
-        assertThat(updates.getUpdates().get(1).toString().contains("restrictedVersion"))
+        assertThat(updates.get(1).toString().contains("restrictedVersion"))
                 .isTrue();
     }
 
@@ -121,7 +125,7 @@ public class FeaturesUpdateFactoryTest {
         when(indexLengthRestrictionEnforcer.enforceRestrictions(anyString(), any(FeatureProperties.class)))
                 .thenReturn(restrictedProperties);
 
-        final CombinedUpdates updates = FeaturesUpdateFactory.createUpdateForFeatureProperties(
+        final List<Bson> updates = FeaturesUpdateFactory.createUpdateForFeatureProperties(
                 indexLengthRestrictionEnforcer,
                 featureId, properties);
 
@@ -129,9 +133,9 @@ public class FeaturesUpdateFactoryTest {
 
         assertThat(updates)
                 .isNotNull();
-        assertThat(updates.getUpdates().size())
+        assertThat(updates.size())
                 .isEqualTo(2);
-        assertThat(updates.getUpdates().get(1).toString().contains("restrictedVersion"))
+        assertThat(updates.get(1).toString().contains("restrictedVersion"))
                 .isTrue();
     }
 
@@ -146,18 +150,18 @@ public class FeaturesUpdateFactoryTest {
                 any
                         (JsonValue.class)))
                 .thenReturn(restrictedValue);
-        final CombinedUpdates updates = FeaturesUpdateFactory.createUpdateForFeatureProperty(
+        final List<Bson> updates = FeaturesUpdateFactory.createUpdateForFeatureProperty(
                 indexLengthRestrictionEnforcer,
                 featureId, pointer, value);
 
         verify(indexLengthRestrictionEnforcer).enforceRestrictionsOnFeatureProperty(featureId, pointer, value);
         assertThat(updates)
                 .isNotNull();
-        assertThat(updates.getUpdates().size())
+        assertThat(updates.size())
                 .isEqualTo(3);
-        assertThat(updates.getUpdates().get(0).toString().contains("restrictedVersion"))
+        assertThat(updates.get(0).toString().contains("restrictedVersion"))
                 .isTrue();
-        assertThat(updates.getUpdates().get(2).toString().contains("restrictedVersion"))
+        assertThat(updates.get(2).toString().contains("restrictedVersion"))
                 .isTrue();
     }
 
@@ -176,12 +180,12 @@ public class FeaturesUpdateFactoryTest {
         when(indexLengthRestrictionEnforcer.enforceRestrictions(any(Features.class)))
                 .thenReturn(restricted);
 
-        final CombinedUpdates updates = FeaturesUpdateFactory.updateFeatures(indexLengthRestrictionEnforcer, features);
+        final List<Bson> updates = FeaturesUpdateFactory.updateFeatures(indexLengthRestrictionEnforcer, features);
         assertThat(updates)
                 .isNotNull();
-        assertThat(updates.getUpdates().size())
+        assertThat(updates.size())
                 .isEqualTo(2);
-        assertThat(updates.getUpdates().get(1).toString().contains("feature1"))
+        assertThat(updates.get(1).toString().contains("feature1"))
                 .isTrue();
 
         verify(indexLengthRestrictionEnforcer).enforceRestrictions(features);

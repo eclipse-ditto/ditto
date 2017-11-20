@@ -103,7 +103,7 @@ public class AggregationV1AndV2MergedTest extends AbstractReadPersistenceTestBas
     public void findAllByLtNumber() {
         final PolicyRestrictedSearchAggregation aggregation1 = AbstractThingSearchPersistenceTestBase.abf
                 .newBuilder(AbstractThingSearchPersistenceTestBase.cf.fieldCriteria(
-                        AbstractThingSearchPersistenceTestBase.ef.filterByAttribute(KNOWN_NUMBER_ATTR),
+                        AbstractThingSearchPersistenceTestBase.fef.filterByAttribute(KNOWN_NUMBER_ATTR),
                         AbstractThingSearchPersistenceTestBase.cf.lt(200)))
                 .authorizationSubjects(AbstractThingSearchPersistenceTestBase.KNOWN_SUBJECTS)
                 .build();
@@ -118,10 +118,10 @@ public class AggregationV1AndV2MergedTest extends AbstractReadPersistenceTestBas
         final PolicyRestrictedSearchAggregation aggregation1 = AbstractThingSearchPersistenceTestBase.abf
                 .newBuilder(AbstractThingSearchPersistenceTestBase.cf.or(Arrays.asList(
                         AbstractThingSearchPersistenceTestBase.cf.fieldCriteria(
-                                AbstractThingSearchPersistenceTestBase.ef.filterByAttribute(KNOWN_STRING_ATTR),
+                                AbstractThingSearchPersistenceTestBase.fef.filterByAttribute(KNOWN_STRING_ATTR),
                                 AbstractThingSearchPersistenceTestBase.cf.eq(KNOWN_STRING_ATTR_VALUE_THING_1_V1)),
                         AbstractThingSearchPersistenceTestBase.cf.fieldCriteria(
-                                AbstractThingSearchPersistenceTestBase.ef.filterByAttribute
+                                AbstractThingSearchPersistenceTestBase.fef.filterByAttribute
                                 (KNOWN_STRING_ATTR),
                                 AbstractThingSearchPersistenceTestBase.cf.eq(KNOWN_STRING_ATTR_VALUE_THING_2_V2)))))
                 .authorizationSubjects(AbstractThingSearchPersistenceTestBase.KNOWN_SUBJECTS)

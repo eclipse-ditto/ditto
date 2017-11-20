@@ -9,7 +9,7 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package org.eclipse.ditto.services.thingsearch.persistence.write.impl;
+package org.eclipse.ditto.services.thingsearch.persistence.write;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -40,7 +40,7 @@ import akka.event.LoggingAdapter;
 /**
  * Class that helps to enforce size restrictions on the things model.
  */
-final class IndexLengthRestrictionEnforcer {
+public final class IndexLengthRestrictionEnforcer {
 
     /**
      * Max allowed length of feature properties.
@@ -87,7 +87,7 @@ final class IndexLengthRestrictionEnforcer {
      * @param loggingAdapter the logging adapter used to log size restriction enforcements.
      * @return the instance.
      */
-    static IndexLengthRestrictionEnforcer getInstance(final LoggingAdapter loggingAdapter) {
+    public static IndexLengthRestrictionEnforcer getInstance(final LoggingAdapter loggingAdapter) {
         return new IndexLengthRestrictionEnforcer(loggingAdapter);
     }
 
