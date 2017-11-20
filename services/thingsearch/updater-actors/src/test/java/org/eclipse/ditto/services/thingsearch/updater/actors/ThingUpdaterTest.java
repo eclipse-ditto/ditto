@@ -76,6 +76,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
+import akka.Done;
 import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -411,7 +412,7 @@ public final class ThingUpdaterTest {
 
                 final ActorRef underTest = createInitializedThingUpdaterActor(thingsShardProbe, policiesShardProbe);
                 // will cause that a sync is triggered
-                underTest.tell(thingTag, getRef());
+                underTest.tell(thingTag, ActorRef.noSender());
                 final ShardedMessageEnvelope shardedMessageEnvelope =
                         thingsShardProbe.expectMsgClass(FiniteDuration.apply(5, SECONDS),
                                 ShardedMessageEnvelope.class);
@@ -447,7 +448,7 @@ public final class ThingUpdaterTest {
                 waitUntil().insertOrUpdate(eq(thingWithRevision), eq(revision), eq(-1L));
 
                 // should trigger no sync
-                underTest.tell(thingTag, getRef());
+                underTest.tell(thingTag, ActorRef.noSender());
                 thingsShardProbe.expectNoMsg();
             }
         };
@@ -617,7 +618,7 @@ public final class ThingUpdaterTest {
                 waitUntil().insertOrUpdate(eq(thingWithAcl), eq(1L), eq(-1L));
 
                 // send a ThingTag with sequence number = 3, which is unexpected and the updater should trigger a sync
-                underTest.tell(ThingTag.of(THING_ID, 3L), getRef());
+                underTest.tell(ThingTag.of(THING_ID, 3L), ActorRef.noSender());
                 assertThat(expectShardedSudoRetrieveThing(thingsShardProbe, THING_ID).getMessage())
                         .isEqualToIgnoringFieldDefinitions(retrieveThing.toJson());
 
@@ -815,7 +816,7 @@ public final class ThingUpdaterTest {
 
             // WHEN: updater receives ThingTag with a bigger sequence number during initialization
             final Object message = ThingTag.of(THING_ID, 1L);
-            underTest.tell(message, null);
+            underTest.tell(message, ActorRef.noSender());
 
             // THEN: sync is triggered
             expectShardedSudoRetrieveThing(thingsProbe, THING_ID);
@@ -897,6 +898,61 @@ public final class ThingUpdaterTest {
             watch(underTest);
             expectTerminated(underTest);
         }};
+    }
+
+    @Test
+    public void acknowledgesSuccessfulSync() {
+        final long thingTagRevision = 7L;
+        final long thingRevision = 20L;
+
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                .schemaVersion(V_1) // for SudoRetrieveThingResponse to retain ACL
+                .build();
+        final Thing currentThing = ThingsModelFactory.newThingBuilder()
+                .setId(THING_ID)
+                .setRevision(thingRevision)
+                .setPermissions(ACL)
+                .build();
+
+        new JavaTestProbe(actorSystem) {
+            {
+                final TestProbe thingsShardProbe = TestProbe.apply(actorSystem);
+                final TestProbe policiesShardProbe = TestProbe.apply(actorSystem);
+                final ActorRef underTest = createInitializedThingUpdaterActor(thingsShardProbe, policiesShardProbe);
+
+                // GIVEN: a ThingTag with nonempty sender triggers synchronization
+                final ThingTag thingTag = ThingTag.of(THING_ID, thingTagRevision);
+                underTest.tell(thingTag, ref());
+
+                // WHEN: synchronization is successful
+                expectShardedSudoRetrieveThing(thingsShardProbe, THING_ID);
+                underTest.tell(SudoRetrieveThingResponse.of(currentThing, f -> true, dittoHeaders), ref());
+                waitUntil().insertOrUpdate(eq(currentThing), eq(thingRevision), eq(-1L));
+
+                // THEN: success is acknowledged
+                expectMsgClass(Done.class);
+            }
+        };
+    }
+
+    @Test
+    public void acknowledgesSkippedSync() {
+        final long thingTagRevision = -1L;
+
+        new JavaTestProbe(actorSystem) {
+            {
+                final TestProbe thingsShardProbe = TestProbe.apply(actorSystem);
+                final TestProbe policiesShardProbe = TestProbe.apply(actorSystem);
+                final ActorRef underTest = createInitializedThingUpdaterActor(thingsShardProbe, policiesShardProbe);
+
+                // GIVEN: a ThingTag with nonempty sender does not trigger synchronization
+                final ThingTag thingTag = ThingTag.of(THING_ID, thingTagRevision);
+                underTest.tell(thingTag, ref());
+
+                // THEN: success is acknowledged
+                expectMsgClass(Done.class);
+            }
+        };
     }
 
     private ActorRef createInitializedThingUpdaterActor() {

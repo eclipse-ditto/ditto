@@ -68,6 +68,7 @@ import org.eclipse.ditto.signals.events.things.ThingCreated;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.eclipse.ditto.signals.events.things.ThingModified;
 
+import akka.Done;
 import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -130,7 +131,6 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
     private final java.time.Duration activityCheckInterval;
     private final ThingsSearchUpdaterPersistence searchUpdaterPersistence;
     private final CircuitBreaker circuitBreaker;
-    private final ActorRef thingCacheFacade;
     private final ActorRef policyCacheFacade;
     private final Materializer materializer;
 
@@ -151,6 +151,9 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
     private long policyRevision = -1L;
     private PolicyEnforcer policyEnforcer;
 
+    // recipient of notification of successful synchronization
+    private ActorRef syncStatusRecipient = null;
+
     private ThingUpdater(final java.time.Duration thingsTimeout,
             final ActorRef thingsShardRegion,
             final ActorRef policiesShardRegion,
@@ -166,7 +169,6 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         this.activityCheckInterval = activityCheckInterval;
         this.searchUpdaterPersistence = searchUpdaterPersistence;
         this.circuitBreaker = circuitBreaker;
-        this.thingCacheFacade = thingCacheFacade;
         this.policyCacheFacade = policyCacheFacade;
 
         thingId = tryToGetThingId(StandardCharsets.UTF_8);
@@ -335,8 +337,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
                             + "equal to the current sequence number <{}> of the update actor. Terminating.", thingId,
                     thingEvent.getRevision(), sequenceNumber);
             stopThisActor();
-        }
-        else if (shortcutTakenForThingEvent(thingEvent)) {
+        } else if (shortcutTakenForThingEvent(thingEvent)) {
             log.debug("Shortcut taken for initial thing event <{}>.", thingEvent);
             becomeEventProcessing();
         } else {
@@ -400,6 +401,8 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         log.debug("Received new Thing Tag for thing <{}> with revision <{}> - last known revision is <{}>",
                 thingId, thingTag.getRevision(), sequenceNumber);
 
+        syncStatusRecipient = getSender();
+
         final boolean shouldStopThisActor;
         if (thingTag.getRevision() > sequenceNumber) {
             log.info("The Thing Tag for the thing <{}> has the revision {} which is greater than the current actor's"
@@ -408,6 +411,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
             triggerSynchronization();
         } else {
             shouldStopThisActor = checkThingTagOnly;
+            reportSyncSuccess();
         }
 
         if (shouldStopThisActor) {
@@ -483,11 +487,9 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
             log.info("Dropped thing event for thing id <{}> with revision <{}> because it was older than or "
                             + "equal to the current sequence number <{}> of the update actor.", thingId,
                     thingEvent.getRevision(), sequenceNumber);
-        }
-        else if (shortcutTakenForThingEvent(thingEvent)) {
+        } else if (shortcutTakenForThingEvent(thingEvent)) {
             log.debug("Shortcut taken for thing event <{}>.", thingEvent);
-        }
-        else if (thingEvent.getRevision() > sequenceNumber + 1) {
+        } else if (thingEvent.getRevision() > sequenceNumber + 1) {
             log.info("Triggering synchronization for thing <{}> because the received revision <{}> is higher than"
                     + " the expected sequence number <{}>.", thingId, thingEvent.getRevision(), sequenceNumber + 1);
             triggerSynchronization();
@@ -735,10 +737,25 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
 
     private Receive createAwaitSyncResultBehavior() {
         return ReceiveBuilder.create()
-                .match(SyncSuccess.class, s -> becomeEventProcessing())
+                .match(SyncSuccess.class, s -> {
+                    reportSyncSuccess();
+                    becomeEventProcessing();
+                })
                 .match(SyncFailure.class, f -> triggerSynchronization())
                 .matchAny(msg -> stashWithErrorsIgnored())
                 .build();
+    }
+
+    /**
+     * Sends acknowledgement after a successful synchronization if acknowledgement was requested, by a ThingTag message
+     * with nonempty sender for example.
+     */
+    private void reportSyncSuccess() {
+        final ActorRef deadLetters = getContext().getSystem().deadLetters();
+        if (null != syncStatusRecipient && !Objects.equals(syncStatusRecipient, deadLetters)) {
+            syncStatusRecipient.tell(Done.getInstance(), getSelf());
+        }
+        syncStatusRecipient = null;
     }
 
     private void handleSyncThingResponse(final Cancellable timeout, final SudoRetrieveThingResponse response) {
