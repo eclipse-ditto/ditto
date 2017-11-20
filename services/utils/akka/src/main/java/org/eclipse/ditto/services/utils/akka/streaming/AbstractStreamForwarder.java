@@ -27,7 +27,7 @@ import akka.japi.pf.ReceiveBuilder;
 import scala.concurrent.duration.FiniteDuration;
 
 /**
- * Actor that receives a stream of elements, transforms them, forwards them to another actor, and expects as many
+ * Actor that receives a stream of elements, forwards them to another actor, and expects as many
  * acknowledgements as there are streamed elements. Terminates self if no message was received for a period of time.
  * <p>
  * Each stream element is to be acknowledged by a {@code akka.actor.Status.Success}. An {@code akka.Done} object
@@ -35,9 +35,8 @@ import scala.concurrent.duration.FiniteDuration;
  * </p>
  *
  * @param <E> Type of received stream elements.
- * @param <M> Type of messages forwarded to the recipient for each stream element.
  */
-public abstract class AbstractStreamForwarder<E, M> extends AbstractActor {
+public abstract class AbstractStreamForwarder<E> extends AbstractActor {
 
     /**
      * Logger associated with this actor.
@@ -71,14 +70,6 @@ public abstract class AbstractStreamForwarder<E, M> extends AbstractActor {
      * @return The class.
      */
     protected abstract Class<E> getElementClass();
-
-    /**
-     * Transforms a stream element into a message to forward.
-     *
-     * @param element The stream element.
-     * @return The message to forward.
-     */
-    protected abstract M transformElement(final E element);
 
     /**
      * Invoked when all stream elements are forwarded and acknowledged.
@@ -122,8 +113,7 @@ public abstract class AbstractStreamForwarder<E, M> extends AbstractActor {
             log.error("Received stream element <{}> after stream termination; will forward it anyway.", element);
         }
         elementCount++;
-        final M message = transformElement(element);
-        getRecipient().tell(message, getSelf());
+        getRecipient().tell(element, getSelf());
         updateLastMessageReceived();
     }
 

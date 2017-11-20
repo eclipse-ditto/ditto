@@ -141,8 +141,8 @@ public final class SearchUpdaterRootActor extends AbstractActor {
                         thingTagsProcessingActive, syncerPeriod, thingCacheFacade, policyCacheFacade));
         final boolean synchronizationActive = config.getBoolean(ConfigKeys.THINGS_SYNCER_ACTIVE);
         if (synchronizationActive) {
-            startClusterSingletonActor(ThingsSynchronizerActor.ACTOR_NAME,
-                    ThingsSynchronizerActor.props(thingsUpdaterActor, syncerPeriod, syncerOffset));
+            startClusterSingletonActor(ThingsStreamSupervisor.ACTOR_NAME,
+                    ThingsStreamSupervisor.props(thingsUpdaterActor, syncerPeriod, syncerOffset));
         } else {
             log.warning("Things synchronization is not active");
         }

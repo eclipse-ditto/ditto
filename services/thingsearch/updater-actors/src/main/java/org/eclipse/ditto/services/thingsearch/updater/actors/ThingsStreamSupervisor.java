@@ -13,27 +13,24 @@ package org.eclipse.ditto.services.thingsearch.updater.actors;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoStreamModifiedEntities;
+import org.eclipse.ditto.services.utils.akka.streaming.AbstractStreamSupervisor;
 
-import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.cluster.pubsub.DistributedPubSub;
 import akka.cluster.pubsub.DistributedPubSubMediator;
-import akka.event.DiagnosticLoggingAdapter;
-import akka.event.Logging;
 import akka.japi.Creator;
-import akka.japi.pf.ReceiveBuilder;
-import scala.concurrent.duration.FiniteDuration;
 
 /**
  * This actor is responsible for triggering a cyclic synchronization of all things which changed within a specified
  * time period.
  */
-public final class ThingsSynchronizerActor extends AbstractActor {
+public final class ThingsStreamSupervisor extends AbstractStreamSupervisor<DistributedPubSubMediator.Send> {
 
     /**
      * The name of this Actor in the ActorSystem.
@@ -44,19 +41,14 @@ public final class ThingsSynchronizerActor extends AbstractActor {
     private final ActorRef thingsUpdater;
     private final Duration modifiedSince;
     private final Duration modifiedOffset;
-    private final DiagnosticLoggingAdapter log = Logging.apply(this);
 
-    private ThingsSynchronizerActor(final ActorRef thingsUpdater, final Duration modifiedSince,
+    private ThingsStreamSupervisor(final ActorRef thingsUpdater, final Duration modifiedSince,
             final Duration modifiedOffset) {
         this.modifiedSince = modifiedSince;
         this.modifiedOffset = modifiedOffset;
         this.thingsUpdater = thingsUpdater;
 
         pubSubMediator = DistributedPubSub.get(getContext().system()).mediator();
-
-        getContext().system().scheduler().schedule(new FiniteDuration(10, TimeUnit.SECONDS),
-                new FiniteDuration(modifiedOffset.getSeconds(), TimeUnit.SECONDS), this::retrieveLastModifiedThingTags,
-                getContext().dispatcher());
     }
 
     /**
@@ -69,26 +61,29 @@ public final class ThingsSynchronizerActor extends AbstractActor {
      */
     public static Props props(final ActorRef thingsUpdater, final Duration modifiedSince,
             final Duration modifiedOffset) {
-        return Props.create(ThingsSynchronizerActor.class, new Creator<ThingsSynchronizerActor>() {
+        return Props.create(ThingsStreamSupervisor.class, new Creator<ThingsStreamSupervisor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
-            public ThingsSynchronizerActor create() throws Exception {
-                return new ThingsSynchronizerActor(thingsUpdater, modifiedSince, modifiedOffset);
+            public ThingsStreamSupervisor create() throws Exception {
+                return new ThingsStreamSupervisor(thingsUpdater, modifiedSince, modifiedOffset);
             }
         });
     }
 
     @Override
-    public Receive createReceive() {
-        return ReceiveBuilder.create()
-                .matchAny(m -> {
-                    log.warning("Unknown message: {}", m);
-                    unhandled(m);
-                }).build();
+    protected Duration getPollInterval() {
+        return modifiedOffset;
     }
 
-    private void retrieveLastModifiedThingTags() {
+    @Override
+    protected Props getStreamForwarderProps() {
+        // TODO: make max idle time configurable.
+        return ThingsStreamForwarder.props(thingsUpdater, Duration.ofMinutes(1));
+    }
+
+    @Override
+    protected CompletionStage<DistributedPubSubMediator.Send> newStartStreamingCommand() {
         // TODO: make streaming rate configurable.
         // TODO: compute time window from timestamp of last successful full sync.
         final int temporaryStreamingRate = 100;
@@ -99,8 +94,19 @@ public final class ThingsSynchronizerActor extends AbstractActor {
         final SudoStreamModifiedEntities retrieveModifiedThingTags =
                 SudoStreamModifiedEntities.of(start, end, temporaryStreamingRate, DittoHeaders.empty());
 
-        pubSubMediator
-                .tell(new DistributedPubSubMediator.Send(THINGS_ACTOR_PATH, retrieveModifiedThingTags, true),
-                        getSelf());
+        final DistributedPubSubMediator.Send sendCommand =
+                new DistributedPubSubMediator.Send(THINGS_ACTOR_PATH, retrieveModifiedThingTags, true);
+
+        return CompletableFuture.completedFuture(sendCommand);
+    }
+
+    @Override
+    protected Class<DistributedPubSubMediator.Send> getCommandClass() {
+        return DistributedPubSubMediator.Send.class;
+    }
+
+    @Override
+    protected ActorRef getStreamingActor() {
+        return pubSubMediator;
     }
 }
