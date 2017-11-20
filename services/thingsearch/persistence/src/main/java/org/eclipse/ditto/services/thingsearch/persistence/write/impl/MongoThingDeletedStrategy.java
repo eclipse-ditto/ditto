@@ -21,7 +21,7 @@ import org.eclipse.ditto.services.thingsearch.persistence.write.IndexLengthRestr
 import org.eclipse.ditto.signals.events.things.ThingDeleted;
 
 /**
- * Strategy that allows create {@link Bson} for {@link ThingDeleted} events.
+ * Strategy that creates {@link Bson} for {@link ThingDeleted} events.
  */
 public final class MongoThingDeletedStrategy extends MongoEventToPersistenceStrategy<ThingDeleted> {
 

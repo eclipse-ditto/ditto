@@ -12,6 +12,10 @@
 package org.eclipse.ditto.services.thingsearch.persistence;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
+import static org.mutabilitydetector.unittesting.AllowedReason.provided;
+import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
+import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
@@ -25,17 +29,12 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class ProcessableThingEventTest {
 
     @Test(expected = NullPointerException.class)
-    public void newInstanceNullies_1() throws Exception {
-        ProcessableThingEvent.newInstance(null, null);
-    }
-
-    @Test(expected = NullPointerException.class)
-    public void newInstanceNullies_2() throws Exception {
+    public void newInstanceWithNullVersion() throws Exception {
         ProcessableThingEvent.newInstance(TestConstants.ThingEvent.THING_MODIFIED, null);
     }
 
     @Test(expected = NullPointerException.class)
-    public void newInstanceNullies_3() throws Exception {
+    public void newInstanceWithNullEvent() throws Exception {
         ProcessableThingEvent.newInstance(null, JsonSchemaVersion.LATEST);
     }
 
@@ -57,5 +56,15 @@ public final class ProcessableThingEventTest {
     @Test
     public void testEqualsAndHashCode() throws Exception {
         EqualsVerifier.forClass(ProcessableThingEvent.class).verify();
+    }
+
+    @Test
+    public void assertImmutability() {
+        assertInstancesOf(ProcessableThingEvent.class,
+                areImmutable(),
+                provided(JsonSchemaVersion.class).areAlsoImmutable(),
+                /* just declaring ThingEvent as immutable does not work,
+                   see https://github.com/MutabilityDetector/MutabilityDetector/issues/104 */
+                assumingFields("thingEvent").areNotModifiedAndDoNotEscape());
     }
 }

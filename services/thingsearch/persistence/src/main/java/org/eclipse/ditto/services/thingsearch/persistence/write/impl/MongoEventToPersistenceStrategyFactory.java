@@ -48,53 +48,74 @@ import org.eclipse.ditto.signals.events.things.ThingModified;
 /**
  * Persistence Strategy Factory that creates the {@link Bson} for persisting {@link ThingEvent}s.
  */
-public final class MongoEventToPersistenceStrategyFactory<T extends ThingEvent> extends
-        EventToPersistenceStrategyFactory<T,
-                Bson, PolicyUpdate> {
+public final class MongoEventToPersistenceStrategyFactory extends
+        EventToPersistenceStrategyFactory<ThingEvent, Bson, PolicyUpdate> {
 
-    private static final Map<String, MongoEventToPersistenceStrategy> PERSISTENCE_STRATEGIES;
+    private static final MongoEventToPersistenceStrategyFactory INSTANCE = new MongoEventToPersistenceStrategyFactory();
 
-    static {
-        final Map<String, MongoEventToPersistenceStrategy> creationStrategies = new HashMap<>();
-        creationStrategies.put(AclEntryCreated.TYPE, new MongoAclEntryCreatedStrategy());
-        creationStrategies.put(AclEntryModified.TYPE, new MongoAclEntryModifiedStrategy());
-        creationStrategies.put(AclEntryDeleted.TYPE, new MongoAclEntryDeletedStrategy());
-        creationStrategies.put(AclModified.TYPE, new MongoAclModifiedStrategy());
-        creationStrategies.put(AttributeCreated.TYPE, new MongoAttributeCreatedStrategy());
-        creationStrategies.put(AttributeModified.TYPE, new MongoAttributeModifiedStrategy());
-        creationStrategies.put(AttributeDeleted.TYPE, new MongoAttributeDeletedStrategy());
-        creationStrategies.put(AttributesCreated.TYPE, new MongoAttributesCreatedStrategy());
-        creationStrategies.put(AttributesModified.TYPE, new MongoAttributesModifiedStrategy());
-        creationStrategies.put(AttributesDeleted.TYPE, new MongoAttributesDeletedStrategy());
-        creationStrategies.put(FeatureCreated.TYPE, new MongoFeatureCreatedStrategy());
-        creationStrategies.put(FeatureModified.TYPE, new MongoFeatureModifiedStrategy());
-        creationStrategies.put(FeatureDeleted.TYPE, new MongoFeatureDeletedStrategy());
-        creationStrategies.put(FeaturesCreated.TYPE, new MongoFeaturesCreatedStrategy());
-        creationStrategies.put(FeaturesModified.TYPE, new MongoFeaturesModifiedStrategy());
-        creationStrategies.put(FeaturesDeleted.TYPE, new MongoFeaturesDeletedStrategy());
-        creationStrategies.put(
-                FeaturePropertyCreated.TYPE, new MongoFeaturePropertyCreatedStrategy());
-        creationStrategies.put(
-                FeaturePropertyModified.TYPE, new MongoFeaturePropertyModifiedStrategy());
-        creationStrategies.put(
-                FeaturePropertyDeleted.TYPE, new MongoFeaturePropertyDeletedStrategy());
-        creationStrategies.put(
-                FeaturePropertiesCreated.TYPE, new MongoFeaturePropertiesCreatedStrategy());
-        creationStrategies.put(
-                FeaturePropertiesModified.TYPE, new MongoFeaturePropertiesModifiedStrategy());
-        creationStrategies.put(
-                FeaturePropertiesDeleted.TYPE, new MongoFeaturePropertiesDeletedStrategy());
-        creationStrategies.put(ThingCreated.TYPE, new MongoThingCreatedStrategy());
-        creationStrategies.put(ThingModified.TYPE, new MongoThingModifiedStrategy());
-        creationStrategies.put(ThingDeleted.TYPE, new MongoThingDeletedStrategy());
-        PERSISTENCE_STRATEGIES = Collections.unmodifiableMap(creationStrategies);
+    private final Map<String, MongoEventToPersistenceStrategy<? extends ThingEvent>> persistenceStrategies;
+
+    private MongoEventToPersistenceStrategyFactory() {
+        final Map<String, MongoEventToPersistenceStrategy<? extends ThingEvent>> strategies = createPersistenceStrategies();
+        persistenceStrategies = Collections.unmodifiableMap(strategies);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    protected EventToPersistenceStrategy<T, Bson, PolicyUpdate> getInstance(final String type) {
-        return PERSISTENCE_STRATEGIES.get(type);
+    protected EventToPersistenceStrategy<ThingEvent, Bson, PolicyUpdate> getInstance(final String type) {
+        @SuppressWarnings("unchecked")
+        final EventToPersistenceStrategy<ThingEvent, Bson, PolicyUpdate> strategy =
+                (EventToPersistenceStrategy<ThingEvent, Bson, PolicyUpdate>) persistenceStrategies.get(type);
+
+        return strategy;
+    }
+
+    /**
+     * Returns the single instance of this factory.
+     *
+     * @return the instance.
+     */
+    public static MongoEventToPersistenceStrategyFactory getInstance() {
+        return INSTANCE;
+    }
+
+    private static Map<String, MongoEventToPersistenceStrategy<? extends ThingEvent>> createPersistenceStrategies() {
+        final Map<String, MongoEventToPersistenceStrategy<? extends ThingEvent>> strategies = new HashMap<>();
+
+        strategies.put(AclEntryCreated.TYPE, new MongoAclEntryCreatedStrategy());
+        strategies.put(AclEntryModified.TYPE, new MongoAclEntryModifiedStrategy());
+        strategies.put(AclEntryDeleted.TYPE, new MongoAclEntryDeletedStrategy());
+        strategies.put(AclModified.TYPE, new MongoAclModifiedStrategy());
+        strategies.put(AttributeCreated.TYPE, new MongoAttributeCreatedStrategy());
+        strategies.put(AttributeModified.TYPE, new MongoAttributeModifiedStrategy());
+        strategies.put(AttributeDeleted.TYPE, new MongoAttributeDeletedStrategy());
+        strategies.put(AttributesCreated.TYPE, new MongoAttributesCreatedStrategy());
+        strategies.put(AttributesModified.TYPE, new MongoAttributesModifiedStrategy());
+        strategies.put(AttributesDeleted.TYPE, new MongoAttributesDeletedStrategy());
+        strategies.put(FeatureCreated.TYPE, new MongoFeatureCreatedStrategy());
+        strategies.put(FeatureModified.TYPE, new MongoFeatureModifiedStrategy());
+        strategies.put(FeatureDeleted.TYPE, new MongoFeatureDeletedStrategy());
+        strategies.put(FeaturesCreated.TYPE, new MongoFeaturesCreatedStrategy());
+        strategies.put(FeaturesModified.TYPE, new MongoFeaturesModifiedStrategy());
+        strategies.put(FeaturesDeleted.TYPE, new MongoFeaturesDeletedStrategy());
+        strategies.put(
+                FeaturePropertyCreated.TYPE, new MongoFeaturePropertyCreatedStrategy());
+        strategies.put(
+                FeaturePropertyModified.TYPE, new MongoFeaturePropertyModifiedStrategy());
+        strategies.put(
+                FeaturePropertyDeleted.TYPE, new MongoFeaturePropertyDeletedStrategy());
+        strategies.put(
+                FeaturePropertiesCreated.TYPE, new MongoFeaturePropertiesCreatedStrategy());
+        strategies.put(
+                FeaturePropertiesModified.TYPE, new MongoFeaturePropertiesModifiedStrategy());
+        strategies.put(
+                FeaturePropertiesDeleted.TYPE, new MongoFeaturePropertiesDeletedStrategy());
+        strategies.put(ThingCreated.TYPE, new MongoThingCreatedStrategy());
+        strategies.put(ThingModified.TYPE, new MongoThingModifiedStrategy());
+        strategies.put(ThingDeleted.TYPE, new MongoThingDeletedStrategy());
+
+        return strategies;
     }
 }

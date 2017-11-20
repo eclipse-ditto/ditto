@@ -25,7 +25,6 @@ import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceCons
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.UNSET;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
@@ -379,11 +378,24 @@ public final class MongoThingsSearchUpdaterPersistence extends AbstractThingsSea
     }
 
     private static List<UpdateOneModel<Document>> createThingIndexModels(final Bson filter, final PolicyUpdate update) {
-        final UpdateOneModel<Document> removeOldEntries = new UpdateOneModel<>(filter, update.getPullGlobalReads());
-        final UpdateOneModel<Document> addNewEntries = new UpdateOneModel<>(filter, update.getPushGlobalReads());
-        final UpdateOneModel<Document> removeAclEntries = new UpdateOneModel<>(filter, update.getPullAclEntries());
+        final List<UpdateOneModel<Document>> updates = new ArrayList<>(3);
 
-        return Arrays.asList(removeOldEntries, addNewEntries, removeAclEntries);
+        final Bson pullGlobalReads = update.getPullGlobalReads();
+        if (pullGlobalReads != null) {
+            updates.add(new UpdateOneModel<>(filter, pullGlobalReads));
+        }
+
+        final Bson pushGlobalReads = update.getPushGlobalReads();
+        if (pushGlobalReads != null) {
+            updates.add(new UpdateOneModel<>(filter, pushGlobalReads));
+        }
+
+        final Bson pullAclEntries = update.getPullAclEntries();
+        if (pullAclEntries != null) {
+            updates.add(new UpdateOneModel<>(filter, pullAclEntries));
+        }
+
+        return updates;
     }
 
     private static boolean isErrorOfType(final int errorCode, final Object o) {

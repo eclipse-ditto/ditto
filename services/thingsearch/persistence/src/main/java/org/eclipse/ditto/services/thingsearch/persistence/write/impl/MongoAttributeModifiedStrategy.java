@@ -23,7 +23,7 @@ import org.eclipse.ditto.services.thingsearch.persistence.write.IndexLengthRestr
 import org.eclipse.ditto.signals.events.things.AttributeModified;
 
 /**
- * Strategy that allows create {@link Bson} for {@link AttributeModified} events.
+ * Strategy that creates {@link Bson} for {@link AttributeModified} events.
  */
 public final class MongoAttributeModifiedStrategy extends MongoEventToPersistenceStrategy<AttributeModified> {
 

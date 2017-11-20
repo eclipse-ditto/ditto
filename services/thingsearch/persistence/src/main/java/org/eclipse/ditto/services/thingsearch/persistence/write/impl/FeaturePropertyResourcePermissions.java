@@ -85,7 +85,7 @@ final class FeaturePropertyResourcePermissions implements ResourcePermissions {
 
     private static String toStringWithoutStartingSlash(final JsonPointer jsonPointer) {
         final String s = jsonPointer.toString();
-        if (s.startsWith(PersistenceConstants.SLASH) && !s.isEmpty()) {
+        if (s.startsWith(PersistenceConstants.SLASH)) {
             return s.substring(1);
         }
         return s;

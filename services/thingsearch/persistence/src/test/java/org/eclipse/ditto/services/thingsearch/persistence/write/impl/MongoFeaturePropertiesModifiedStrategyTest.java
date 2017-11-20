@@ -13,18 +13,14 @@ package org.eclipse.ditto.services.thingsearch.persistence.write.impl;
 
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
 
 import java.util.List;
 
 import org.bson.conversions.Bson;
-import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.services.thingsearch.persistence.ProcessableThingEvent;
 import org.eclipse.ditto.services.thingsearch.persistence.TestConstants;
 import org.eclipse.ditto.signals.events.things.FeaturePropertiesModified;
 import org.junit.Test;
-import org.mockito.ArgumentMatchers;
 
 public final class MongoFeaturePropertiesModifiedStrategyTest extends AbstractMongoEventToPersistenceStrategyTest {
 
@@ -34,18 +30,12 @@ public final class MongoFeaturePropertiesModifiedStrategyTest extends AbstractMo
     public void thingUpdates() throws Exception {
         final List<Bson> updates = strategy.thingUpdates(thingEvent(), indexLengthRestrictionEnforcer);
         assertThat(updates).hasSize(2);
-
-        verify(indexLengthRestrictionEnforcer).enforceRestrictions(
-                thingEvent().getThingEvent().getFeatureId(),
-                thingEvent().getThingEvent().getProperties());
     }
 
     @Test
     public void policyUpdates() {
         final List<PolicyUpdate> updates = strategy.policyUpdates(thingEvent(), policyEnforcer);
         verifyPolicyUpdatesForSchemaVersion(updates, 1);
-        verifyPermissionCallForSchemaVersion(() -> any(ResourceKey.class), ArgumentMatchers::anyString,
-                TestConstants.ThingEvent.FEATURE_PROPERTIES_MODIFIED.getProperties().getSize());
     }
 
     private ProcessableThingEvent<FeaturePropertiesModified> thingEvent() {

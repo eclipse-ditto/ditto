@@ -19,7 +19,7 @@ import org.eclipse.ditto.services.thingsearch.persistence.write.IndexLengthRestr
 import org.eclipse.ditto.signals.events.things.AclEntryModified;
 
 /**
- * Strategy that allows create {@link Bson} for {@link AclEntryModified} events.
+ * Strategy that creates {@link Bson} for {@link AclEntryModified} events.
  */
 public final class MongoAclEntryModifiedStrategy extends MongoEventToPersistenceStrategy<AclEntryModified> {
 

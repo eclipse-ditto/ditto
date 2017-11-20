@@ -13,18 +13,14 @@ package org.eclipse.ditto.services.thingsearch.persistence.write.impl;
 
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
 
 import java.util.List;
 
 import org.bson.conversions.Bson;
-import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.services.thingsearch.persistence.ProcessableThingEvent;
 import org.eclipse.ditto.services.thingsearch.persistence.TestConstants;
 import org.eclipse.ditto.signals.events.things.AttributeCreated;
 import org.junit.Test;
-import org.mockito.ArgumentMatchers;
 
 public final class MongoAttributeCreatedStrategyTest extends AbstractMongoEventToPersistenceStrategyTest {
 
@@ -34,16 +30,12 @@ public final class MongoAttributeCreatedStrategyTest extends AbstractMongoEventT
     public void thingUpdates() throws Exception {
         final List<Bson> updates = strategy.thingUpdates(thingEvent(), indexLengthRestrictionEnforcer);
         assertThat(updates).hasSize(3);
-        verify(indexLengthRestrictionEnforcer).enforceRestrictionsOnAttributeValue(
-                thingEvent().getThingEvent().getAttributePointer(),
-                thingEvent().getThingEvent().getAttributeValue());
     }
 
     @Test
     public void policyUpdates() {
         final List<PolicyUpdate> updates = strategy.policyUpdates(thingEvent(), policyEnforcer);
         verifyPolicyUpdatesForSchemaVersion(updates, 1);
-        verifyPermissionCallForSchemaVersion(() -> any(ResourceKey.class), ArgumentMatchers::anyString, 2);
     }
 
     private ProcessableThingEvent<AttributeCreated> thingEvent() {

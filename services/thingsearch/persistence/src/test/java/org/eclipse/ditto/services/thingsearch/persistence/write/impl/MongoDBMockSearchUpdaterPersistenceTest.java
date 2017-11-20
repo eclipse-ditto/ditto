@@ -12,14 +12,15 @@
 package org.eclipse.ditto.services.thingsearch.persistence.write.impl;
 
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyList;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
 import java.util.List;
 
+import org.bson.conversions.Bson;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -30,18 +31,12 @@ import org.eclipse.ditto.model.policiesenforcers.PolicyEnforcers;
 import org.eclipse.ditto.services.thingsearch.persistence.MongoClientWrapper;
 import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
 import org.eclipse.ditto.services.thingsearch.persistence.ProcessableThingEvent;
-import org.eclipse.ditto.services.thingsearch.persistence.write.EventToPersistenceStrategy;
 import org.eclipse.ditto.services.thingsearch.persistence.write.EventToPersistenceStrategyFactory;
-import org.eclipse.ditto.services.thingsearch.persistence.write.IndexLengthRestrictionEnforcer;
 import org.eclipse.ditto.signals.events.things.AttributeCreated;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.junit.MockitoJUnitRunner;
 import org.reactivestreams.Publisher;
 
 import com.mongodb.bulk.BulkWriteResult;
@@ -60,7 +55,6 @@ import akka.stream.testkit.javadsl.TestSink;
  * Mocks the connection to MongoDB to be able to test handling of exceptions and other stuff not possible with real
  * MongoDB client.
  */
-@RunWith(MockitoJUnitRunner.class)
 public final class MongoDBMockSearchUpdaterPersistenceTest {
 
     private MongoThingsSearchUpdaterPersistence persistence;
@@ -69,20 +63,20 @@ public final class MongoDBMockSearchUpdaterPersistenceTest {
     private ActorSystem actorSystem;
     private ActorMaterializer actorMaterializer;
 
-    @Mock
-    private EventToPersistenceStrategyFactory eventToPersistenceStrategyFactory;
+    private final EventToPersistenceStrategyFactory<ThingEvent, Bson, PolicyUpdate> eventToPersistenceStrategyFactory =
+            MongoEventToPersistenceStrategyFactory.getInstance();
 
     @Before
     public void init() throws InterruptedException {
         actorSystem = ActorSystem.create("AkkaTestSystem");
         actorMaterializer = ActorMaterializer.create(actorSystem);
 
-        final LoggingAdapter loggingAdapter = Mockito.mock(LoggingAdapter.class);
-        final MongoClientWrapper clientWrapper = Mockito.mock(MongoClientWrapper.class);
-        final MongoDatabase db = Mockito.mock(MongoDatabase.class);
+        final LoggingAdapter loggingAdapter = mock(LoggingAdapter.class);
+        final MongoClientWrapper clientWrapper = mock(MongoClientWrapper.class);
+        final MongoDatabase db = mock(MongoDatabase.class);
 
-        thingsCollection = Mockito.mock(MongoCollection.class);
-        final MongoCollection policiesCollection = Mockito.mock(MongoCollection.class);
+        thingsCollection = mock(MongoCollection.class);
+        final MongoCollection policiesCollection = mock(MongoCollection.class);
 
         when(clientWrapper.getDatabase())
                 .thenReturn(db);
@@ -91,8 +85,8 @@ public final class MongoDBMockSearchUpdaterPersistenceTest {
         when(db.getCollection(PersistenceConstants.POLICIES_BASED_SEARCH_INDEX_COLLECTION_NAME))
                 .thenReturn(policiesCollection);
 
-        persistence = new MongoThingsSearchUpdaterPersistence(clientWrapper, loggingAdapter,
-                eventToPersistenceStrategyFactory);
+        persistence =
+                new MongoThingsSearchUpdaterPersistence(clientWrapper, loggingAdapter, eventToPersistenceStrategyFactory);
     }
 
     @After
@@ -107,30 +101,15 @@ public final class MongoDBMockSearchUpdaterPersistenceTest {
                 PoliciesModelFactory.newPolicyBuilder(":theThing").build());
         final ThingEvent attributeCreated = AttributeCreated.of(":t", JsonPointer.empty(), JsonValue.of(1), 1L,
                 DittoHeaders.empty());
-        final List<ProcessableThingEvent> combinedThingWrites = Collections.singletonList(
-                ProcessableThingEvent.newInstance(attributeCreated, JsonSchemaVersion.LATEST)
-        );
+        final ProcessableThingEvent wrappedEvent = ProcessableThingEvent.newInstance(attributeCreated, JsonSchemaVersion.LATEST);
+        final List<ProcessableThingEvent> thingEvents = Collections.singletonList(wrappedEvent);
 
         when(thingsCollection.bulkWrite(anyList(), any(BulkWriteOptions.class)))
                 .thenReturn((Publisher<BulkWriteResult>) subscriber
                         -> subscriber.onError(new RuntimeException("db error")));
 
-        when(eventToPersistenceStrategyFactory.getStrategyForType(anyString())).thenReturn(
-                new EventToPersistenceStrategy() {
-                    @Override
-                    public List thingUpdates(final ProcessableThingEvent event,
-                            final IndexLengthRestrictionEnforcer indexLengthRestrictionEnforcer) {
-                        return Collections.emptyList();
-                    }
-
-                    @Override
-                    public List policyUpdates(final ProcessableThingEvent event, final PolicyEnforcer policyEnforcer) {
-                        return Collections.emptyList();
-                    }
-                });
-
         final Source<Boolean, NotUsed> source = persistence.executeCombinedWrites(":theThing",
-                combinedThingWrites, policyEnforcer, 1L);
+                thingEvents, policyEnforcer, 1L);
 
         assertThatExceptionOfType(RuntimeException.class)
                 .isThrownBy(() -> expectError(source))

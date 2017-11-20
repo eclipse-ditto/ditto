@@ -13,7 +13,6 @@ package org.eclipse.ditto.services.thingsearch.persistence.write.impl;
 
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import java.util.List;
 
@@ -31,7 +30,6 @@ public final class MongoAttributesDeletedStrategyTest extends AbstractMongoEvent
     public void thingUpdates() throws Exception {
         final List<Bson> updates = strategy.thingUpdates(thingEvent(), indexLengthRestrictionEnforcer);
         assertThat(updates).hasSize(1);
-        verifyNoMoreInteractions(indexLengthRestrictionEnforcer);
     }
 
     @Test

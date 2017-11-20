@@ -22,6 +22,9 @@ import org.eclipse.ditto.services.thingsearch.persistence.ProcessableThingEvent;
 import org.eclipse.ditto.services.thingsearch.persistence.write.IndexLengthRestrictionEnforcer;
 import org.eclipse.ditto.signals.events.things.AttributeCreated;
 
+/**
+ * Strategy that creates {@link Bson} for {@link AttributeCreated} events.
+ */
 public final class MongoAttributeCreatedStrategy extends MongoEventToPersistenceStrategy<AttributeCreated> {
 
     @Override

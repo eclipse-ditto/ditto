@@ -13,19 +13,15 @@ package org.eclipse.ditto.services.thingsearch.persistence.write.impl;
 
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
 
 import java.util.List;
 
 import org.bson.conversions.Bson;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.services.thingsearch.persistence.ProcessableThingEvent;
 import org.eclipse.ditto.services.thingsearch.persistence.TestConstants;
 import org.eclipse.ditto.signals.events.things.ThingModified;
 import org.junit.Test;
-import org.mockito.ArgumentMatchers;
 
 public final class MongoThingModifiedStrategyTest extends AbstractMongoEventToPersistenceStrategyTest {
 
@@ -35,24 +31,12 @@ public final class MongoThingModifiedStrategyTest extends AbstractMongoEventToPe
     public void thingUpdates() throws Exception {
         final List<Bson> updates = strategy.thingUpdates(thingEvent(), indexLengthRestrictionEnforcer);
         assertThat(updates).hasSize(1);
-        verify(indexLengthRestrictionEnforcer).enforceRestrictions(thingEvent().getThingEvent().getThing());
     }
 
     @Test
     public void policyUpdates() {
         final List<PolicyUpdate> updates = strategy.policyUpdates(thingEvent(), policyEnforcer);
         verifyPolicyUpdatesForSchemaVersion(updates, 1);
-        verifyPermissionCallForSchemaVersion(() -> any(ResourceKey.class), ArgumentMatchers::anyString,
-                expectedPolicyUpdate());
-        ;
-    }
-
-    private int expectedPolicyUpdate() {
-        return 1
-                + thingEvent().getThingEvent().getThing().getFeatures().get().getSize()
-                + thingEvent().getThingEvent().getThing().getFeatures().get().stream().map(ft -> ft
-                .getProperties().get().getSize()).reduce(0, (a, b) -> a + b)
-                + thingEvent().getThingEvent().getThing().getAttributes().get().getSize();
     }
 
     private ProcessableThingEvent<ThingModified> thingEvent() {

@@ -21,7 +21,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Supplier;
-import java.util.stream.Stream;
 
 import org.bson.Document;
 import org.eclipse.ditto.model.things.Thing;
@@ -123,7 +122,8 @@ public abstract class AbstractThingSearchPersistenceTestBase {
     }
 
     protected MongoThingsSearchUpdaterPersistence provideWritePersistence() {
-        return new MongoThingsSearchUpdaterPersistence(mongoClient, log, new MongoEventToPersistenceStrategyFactory());
+        return new MongoThingsSearchUpdaterPersistence(mongoClient, log,
+                MongoEventToPersistenceStrategyFactory.getInstance());
     }
 
     protected static MongoClientWrapper provideClientWrapper() {
@@ -229,9 +229,14 @@ public abstract class AbstractThingSearchPersistenceTestBase {
         }
     }
 
+    protected void runBlocking(final Source<?, NotUsed> publisher) {
+        final List<Source<?, NotUsed>> publishers = Collections.singletonList(publisher);
 
-    protected void runBlocking(final Source<?, NotUsed>... publishers) {
-        Stream.of(publishers)
+        runBlocking(publishers);
+    }
+
+    protected void runBlocking(final List<Source<?, NotUsed>> publishers) {
+        publishers.stream()
                 .map(p -> p.runWith(Sink.ignore(), actorMaterializer))
                 .map(CompletionStage::toCompletableFuture)
                 .forEach(this::finishCompletableFuture);
@@ -240,8 +245,7 @@ public abstract class AbstractThingSearchPersistenceTestBase {
     private void finishCompletableFuture(final CompletableFuture future) {
         try {
             future.get();
-        } catch (InterruptedException | ExecutionException e) {
-            e.printStackTrace();
+        } catch (final InterruptedException | ExecutionException e) {
             throw new RuntimeException(e);
         }
     }

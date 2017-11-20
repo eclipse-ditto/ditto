@@ -20,6 +20,9 @@ import org.eclipse.ditto.services.thingsearch.persistence.ProcessableThingEvent;
 import org.eclipse.ditto.services.thingsearch.persistence.write.IndexLengthRestrictionEnforcer;
 import org.eclipse.ditto.signals.events.things.FeaturePropertiesModified;
 
+/**
+ * Strategy that creates {@link Bson} for {@link FeaturePropertiesModified} events.
+ */
 public final class MongoFeaturePropertiesModifiedStrategy extends
         MongoEventToPersistenceStrategy<FeaturePropertiesModified> {
 

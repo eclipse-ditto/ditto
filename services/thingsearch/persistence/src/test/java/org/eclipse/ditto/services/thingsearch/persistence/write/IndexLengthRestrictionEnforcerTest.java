@@ -14,7 +14,6 @@ package org.eclipse.ditto.services.thingsearch.persistence.write;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.lang.reflect.Field;
 import java.util.Random;
 
 import org.eclipse.ditto.json.JsonPointer;
@@ -25,7 +24,6 @@ import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
-import org.eclipse.ditto.services.thingsearch.persistence.write.IndexLengthRestrictionEnforcer;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -47,24 +45,14 @@ public final class IndexLengthRestrictionEnforcerTest {
 
     @Before
     public void setUp() {
-        this.indexLengthRestrictionEnforcer = IndexLengthRestrictionEnforcer.getInstance(log);
-    }
-
-    /**
-     * Verifies the corrects lengths of the static fields so that no careless mistake can happen.
-     */
-    @Test
-    public void testStaticFields() {
-        assertThat(IndexLengthRestrictionEnforcer.MAX_ATTRIBUTE_VALUE_LENGTH).isEqualTo(950);
-        assertThat(IndexLengthRestrictionEnforcer.MAX_FEATURE_PROPERTY_VALUE_LENGTH).isEqualTo(950);
+        this.indexLengthRestrictionEnforcer = IndexLengthRestrictionEnforcer.newInstance(log);
     }
 
     @Test
-    public void newBuilder() throws Exception {
+    public void newInstance() throws Exception {
         final IndexLengthRestrictionEnforcer
-                indexLengthRestrictionEnforcer = IndexLengthRestrictionEnforcer.getInstance(log);
+                indexLengthRestrictionEnforcer = IndexLengthRestrictionEnforcer.newInstance(log);
         assertThat(indexLengthRestrictionEnforcer).isNotNull();
-        assertThat(getFieldViaReflection(indexLengthRestrictionEnforcer, "log")).isEqualTo(log);
     }
 
     @Test
@@ -296,7 +284,7 @@ public final class IndexLengthRestrictionEnforcerTest {
                         ("features".length()
                                 + PersistenceConstants.SLASH.length()
                                 + featureId.length() +
-                                +PersistenceConstants.SLASH.length()
+                                + PersistenceConstants.SLASH.length()
                                 + "properties".length()
                                 + PersistenceConstants.SLASH.length()
                                 + "last-message".length());
@@ -333,7 +321,7 @@ public final class IndexLengthRestrictionEnforcerTest {
                         ("features".length()
                                 + PersistenceConstants.SLASH.length()
                                 + featureId.length() +
-                                +PersistenceConstants.SLASH.length()
+                                + PersistenceConstants.SLASH.length()
                                 + "properties".length()
                                 + PersistenceConstants.SLASH.length()
                                 + "last-message".length());
@@ -401,19 +389,7 @@ public final class IndexLengthRestrictionEnforcerTest {
                 .isEqualTo(expected);
     }
 
-
-    private Object getFieldViaReflection(final Object o, final String fieldName) {
-        try {
-            final Field f = o.getClass().getDeclaredField(fieldName);
-            f.setAccessible(true);
-            return f.get(o);
-        } catch (NoSuchFieldException | IllegalAccessException e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
-
-    private String createString(final int length) {
+    private static String createString(final int length) {
         return new Random().ints()
                 .limit(length)
                 .mapToObj(i -> "$")

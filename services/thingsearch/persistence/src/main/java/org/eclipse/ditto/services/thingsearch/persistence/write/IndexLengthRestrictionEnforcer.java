@@ -87,7 +87,7 @@ public final class IndexLengthRestrictionEnforcer {
      * @param loggingAdapter the logging adapter used to log size restriction enforcements.
      * @return the instance.
      */
-    public static IndexLengthRestrictionEnforcer getInstance(final LoggingAdapter loggingAdapter) {
+    public static IndexLengthRestrictionEnforcer newInstance(final LoggingAdapter loggingAdapter) {
         return new IndexLengthRestrictionEnforcer(loggingAdapter);
     }
 

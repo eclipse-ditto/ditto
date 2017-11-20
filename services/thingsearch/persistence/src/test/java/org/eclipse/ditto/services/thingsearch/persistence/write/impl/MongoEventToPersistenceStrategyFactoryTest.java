@@ -12,9 +12,12 @@
 package org.eclipse.ditto.services.thingsearch.persistence.write.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import java.util.Arrays;
 import java.util.List;
+
+import javax.annotation.Nullable;
 
 import org.eclipse.ditto.services.thingsearch.persistence.write.EventToPersistenceStrategy;
 import org.eclipse.ditto.signals.events.things.AclEntryCreated;
@@ -42,7 +45,6 @@ import org.eclipse.ditto.signals.events.things.FeaturesModified;
 import org.eclipse.ditto.signals.events.things.ThingCreated;
 import org.eclipse.ditto.signals.events.things.ThingDeleted;
 import org.eclipse.ditto.signals.events.things.ThingModified;
-import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -78,13 +80,14 @@ public final class MongoEventToPersistenceStrategyFactoryTest {
                 {ThingCreated.TYPE, true, MongoThingCreatedStrategy.class},
                 {ThingModified.TYPE, true, MongoThingModifiedStrategy.class},
                 {ThingDeleted.TYPE, true, MongoThingDeletedStrategy.class},
-                {"unknownType", false, Void.class}
+                {"unknownType", false, null}
         });
     }
 
-    private MongoEventToPersistenceStrategyFactory factory = new MongoEventToPersistenceStrategyFactory();
+    private MongoEventToPersistenceStrategyFactory factory = MongoEventToPersistenceStrategyFactory.getInstance();
     private String type;
     private boolean isAllowed;
+    @Nullable
     private Class expectedClass;
 
     public MongoEventToPersistenceStrategyFactoryTest(final String type, final boolean isAllowed,
@@ -103,12 +106,10 @@ public final class MongoEventToPersistenceStrategyFactoryTest {
             assertThat(strategy.getClass())
                     .isEqualTo(expectedClass);
         } else {
-            try {
-                factory.getStrategyForType(type);
-                Assert.fail("should never get here");
-            } catch (IllegalStateException ex) {
-
-            }
+            assertThatExceptionOfType(IllegalStateException.class)
+                    .isThrownBy(() -> {
+                        factory.getStrategyForType(type);
+                    });
         }
     }
 
