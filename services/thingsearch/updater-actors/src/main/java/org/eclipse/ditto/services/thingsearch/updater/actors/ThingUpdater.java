@@ -259,9 +259,9 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
                     sequenceNumber = retrievedThingMetadata.getThingRevision();
                     policyId = retrievedThingMetadata.getPolicyId();
                     policyRevision = retrievedThingMetadata.getPolicyRevision();
-                    becomeInitialThingTagAwaiting();
+                    becomeInitialMessageHandling();
                 })
-                .match(ActorInitializationComplete.class, msg -> becomeInitialThingTagAwaiting())
+                .match(ActorInitializationComplete.class, msg -> becomeInitialMessageHandling())
                 .matchAny(msg -> stashWithErrorsIgnored())
                 .build();
     }
@@ -297,11 +297,12 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
     }
 
     /**
-     * Shortcut to handle creation due to stale ThingTag messages. If this actor is created by a ThingTag whose
+     * Shortcut to handle creation due to stale ThingTag or ThingEvent. If this actor is created by a message whose
      * corresponding Thing is up-to-date in the search index, then this actor terminates itself immediately.
      */
-    private void becomeInitialThingTagAwaiting() {
+    private void becomeInitialMessageHandling() {
         final Receive behavior = ReceiveBuilder.create()
+                .match(ThingEvent.class, this::processInitialThingEvent)
                 .match(ThingTag.class, thingTag -> {
                     // process initial ThingTag with EventProcessing as the default next behavior
                     becomeEventProcessing();
@@ -315,6 +316,33 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
                 .build();
         getContext().become(behavior);
         unstashAll();
+    }
+
+    /**
+     * Handles the first message sent to this actor if it is a Thing event. Terminates self if the event is stale,
+     * takes shortcut if the event contains the corresponding Thing, and triggers synchronization otherwise.
+     *
+     * @param thingEvent The first message sent to this actor.
+     */
+    private void processInitialThingEvent(final ThingEvent thingEvent) {
+        LogUtil.enhanceLogWithCorrelationId(log, thingEvent);
+
+        log.debug("Received initial thing event for thing id <{}> with revision <{}>.", thingId,
+                thingEvent.getRevision());
+
+        if (thingEvent.getRevision() <= sequenceNumber) {
+            log.info("Dropped initial thing event for thing id <{}> with revision <{}> because it was older than or "
+                            + "equal to the current sequence number <{}> of the update actor. Terminating.", thingId,
+                    thingEvent.getRevision(), sequenceNumber);
+            stopThisActor();
+        }
+        else if (shortcutTakenForThingEvent(thingEvent)) {
+            log.debug("Shortcut taken for initial thing event <{}>.", thingEvent);
+            becomeEventProcessing();
+        } else {
+            log.debug("Synchronization is triggered for initial thing event <{}>.", thingEvent);
+            triggerSynchronization();
+        }
     }
 
     ///////////////////////////
