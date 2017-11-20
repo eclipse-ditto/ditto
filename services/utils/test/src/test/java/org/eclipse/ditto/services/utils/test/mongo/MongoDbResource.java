@@ -20,8 +20,6 @@ import java.util.function.Supplier;
 
 import org.junit.Assume;
 import org.junit.rules.ExternalResource;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import de.flapdoodle.embed.mongo.Command;
 import de.flapdoodle.embed.mongo.MongodExecutable;
@@ -34,11 +32,9 @@ import de.flapdoodle.embed.mongo.config.MongodConfigBuilder;
 import de.flapdoodle.embed.mongo.config.Net;
 import de.flapdoodle.embed.mongo.config.RuntimeConfigBuilder;
 import de.flapdoodle.embed.mongo.distribution.Version;
-import de.flapdoodle.embed.process.config.io.ProcessOutput;
 import de.flapdoodle.embed.process.config.store.HttpProxyFactory;
 import de.flapdoodle.embed.process.config.store.IProxyFactory;
 import de.flapdoodle.embed.process.config.store.NoProxyFactory;
-import de.flapdoodle.embed.process.io.Processors;
 import de.flapdoodle.embed.process.io.progress.StandardConsoleProgressListener;
 
 /**
@@ -160,7 +156,6 @@ public final class MongoDbResource extends ExternalResource {
 
         final MongodStarter mongodStarter = MongodStarter.getInstance(new RuntimeConfigBuilder()
                 .defaults(command)
-//                .processOutput(ProcessOutput.getDefaultInstanceSilent())
                 .artifactStore(new ArtifactStoreBuilder()
                         .defaults(command)
                         .download(new DownloadConfigBuilder()
