@@ -12,6 +12,7 @@
 package org.eclipse.ditto.services.thingsearch.updater.actors;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.concurrent.TimeUnit;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -26,7 +27,6 @@ import akka.event.DiagnosticLoggingAdapter;
 import akka.event.Logging;
 import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
-import akka.serialization.Serialization;
 import scala.concurrent.duration.FiniteDuration;
 
 /**
@@ -90,14 +90,14 @@ public final class ThingsSynchronizerActor extends AbstractActor {
 
     private void retrieveLastModifiedThingTags() {
         // TODO: make streaming rate configurable.
+        // TODO: compute time window from timestamp of last successful full sync.
         final int temporaryStreamingRate = 100;
-
-        final String updaterPath = Serialization.serializedActorPath(thingsUpdater);
-        final String selfPath = Serialization.serializedActorPath(getSelf());
+        final Instant now = Instant.now();
+        final Instant start = now.minus(modifiedSince);
+        final Instant end = now.minus(modifiedOffset);
 
         final SudoStreamModifiedEntities retrieveModifiedThingTags =
-                SudoStreamModifiedEntities.of(modifiedSince, modifiedOffset, temporaryStreamingRate, updaterPath,
-                        selfPath, DittoHeaders.empty());
+                SudoStreamModifiedEntities.of(start, end, temporaryStreamingRate, DittoHeaders.empty());
 
         pubSubMediator
                 .tell(new DistributedPubSubMediator.Send(THINGS_ACTOR_PATH, retrieveModifiedThingTags, true),
