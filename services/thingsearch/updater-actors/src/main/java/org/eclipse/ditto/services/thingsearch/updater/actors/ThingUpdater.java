@@ -68,13 +68,13 @@ import org.eclipse.ditto.signals.events.things.ThingCreated;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.eclipse.ditto.signals.events.things.ThingModified;
 
-import akka.Done;
 import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Cancellable;
 import akka.actor.Props;
 import akka.actor.Scheduler;
+import akka.actor.Status;
 import akka.cluster.ddata.LWWRegister;
 import akka.cluster.ddata.ReplicatedData;
 import akka.cluster.ddata.Replicator;
@@ -753,7 +753,8 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
     private void reportSyncSuccess() {
         final ActorRef deadLetters = getContext().getSystem().deadLetters();
         if (null != syncStatusRecipient && !Objects.equals(syncStatusRecipient, deadLetters)) {
-            syncStatusRecipient.tell(Done.getInstance(), getSelf());
+            final Object success = new Status.Success(thingId);
+            syncStatusRecipient.tell(success, getSelf());
         }
         syncStatusRecipient = null;
     }
