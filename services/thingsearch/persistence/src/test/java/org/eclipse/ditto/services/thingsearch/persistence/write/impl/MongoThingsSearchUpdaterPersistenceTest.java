@@ -75,7 +75,6 @@ import org.eclipse.ditto.signals.events.things.FeaturePropertyDeleted;
 import org.eclipse.ditto.signals.events.things.FeaturePropertyModified;
 import org.eclipse.ditto.signals.events.things.FeaturesDeleted;
 import org.eclipse.ditto.signals.events.things.FeaturesModified;
-import org.eclipse.ditto.signals.events.things.ThingCreated;
 import org.eclipse.ditto.signals.events.things.ThingDeleted;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.junit.Assert;
@@ -162,8 +161,7 @@ public final class MongoThingsSearchUpdaterPersistenceTest extends AbstractThing
                 thingCollectionField.setAccessible(true);
 
                 final Object spyObj = Mockito.spy(thingCollectionField.get(object));
-                @SuppressWarnings("unchecked")
-                final T spy = (T) spyObj;
+                @SuppressWarnings("unchecked") final T spy = (T) spyObj;
                 thingCollectionField.set(object, spy);
 
                 return spy;
@@ -573,7 +571,7 @@ public final class MongoThingsSearchUpdaterPersistenceTest extends AbstractThing
 
             final List<ProcessableThingEvent> writes2 =
                     Collections.singletonList(wrapEvent(createAttributeModified(KEY1, newValue(NEW_VALUE_2), 3L),
-                                    apiVersion));
+                            apiVersion));
 
             Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes2,
                     policyEnforcer, 3L)))
@@ -730,7 +728,6 @@ public final class MongoThingsSearchUpdaterPersistenceTest extends AbstractThing
 
             assertThat(findAll(aggregation2)).contains(KNOWN_THING_ID);
         }
-
 
 
         @Test
@@ -1386,7 +1383,13 @@ public final class MongoThingsSearchUpdaterPersistenceTest extends AbstractThing
         @Test
         public void createThingAndUpdateAcl() throws ExecutionException, InterruptedException {
             final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
-            final ThingCreated thingCreated = ThingCreated.of(thing, 1L, DittoHeaders.empty());
+            Assertions.assertThat(
+                    runBlockingWithReturn(writePersistence.insertOrUpdate(thing, 0L, 1L)))
+                    .isTrue();
+            if (isV2) {
+                Assertions.assertThat(runBlockingWithReturn(writePersistence.updatePolicy(thing, policyEnforcer)))
+                        .isTrue();
+            }
 
             final AclEntry aclEntry =
                     ThingsModelFactory.newAclEntry(newAuthSubject("newSid"),
@@ -1394,14 +1397,13 @@ public final class MongoThingsSearchUpdaterPersistenceTest extends AbstractThing
                             org.eclipse.ditto.model.things.Permission.WRITE,
                             org.eclipse.ditto.model.things.Permission.ADMINISTRATE);
             final AccessControlList acl = ThingsModelFactory.newAcl(aclEntry);
-            final AclModified aclModified = AclModified.of(KNOWN_THING_ID, acl, 2L, DittoHeaders.empty());
+            final AclModified aclModified = AclModified.of(KNOWN_THING_ID, acl, 1L, DittoHeaders.empty());
 
             final List<ProcessableThingEvent> writes = new ArrayList<>();
-            writes.add(wrapEvent(thingCreated, apiVersion));
             writes.add(wrapEvent(aclModified, apiVersion));
 
             Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID,
-                    writes, policyEnforcer, 2L)))
+                    writes, policyEnforcer, 1L)))
                     .isTrue();
 
             final PolicyRestrictedSearchAggregation aggregation1 = abf

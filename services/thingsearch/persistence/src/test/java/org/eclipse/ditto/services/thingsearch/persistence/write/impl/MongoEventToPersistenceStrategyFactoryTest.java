@@ -77,9 +77,9 @@ public final class MongoEventToPersistenceStrategyFactoryTest {
                 {FeaturePropertiesCreated.TYPE, true, MongoFeaturePropertiesCreatedStrategy.class},
                 {FeaturePropertiesModified.TYPE, true, MongoFeaturePropertiesModifiedStrategy.class},
                 {FeaturePropertiesDeleted.TYPE, true, MongoFeaturePropertiesDeletedStrategy.class},
-                {ThingCreated.TYPE, true, MongoThingCreatedStrategy.class},
-                {ThingModified.TYPE, true, MongoThingModifiedStrategy.class},
                 {ThingDeleted.TYPE, true, MongoThingDeletedStrategy.class},
+                {ThingCreated.TYPE, false, null},
+                {ThingModified.TYPE, false, null},
                 {"unknownType", false, null}
         });
     }

@@ -38,10 +38,8 @@ import org.eclipse.ditto.signals.events.things.FeaturePropertyModified;
 import org.eclipse.ditto.signals.events.things.FeaturesCreated;
 import org.eclipse.ditto.signals.events.things.FeaturesDeleted;
 import org.eclipse.ditto.signals.events.things.FeaturesModified;
-import org.eclipse.ditto.signals.events.things.ThingCreated;
 import org.eclipse.ditto.signals.events.things.ThingDeleted;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
-import org.eclipse.ditto.signals.events.things.ThingModified;
 
 /**
  * Factory class that creates {@link EventToPersistenceStrategy} instances for a given {@link ThingEvent}.
@@ -78,8 +76,6 @@ public abstract class EventToPersistenceStrategyFactory<T extends ThingEvent, D,
         types.add(FeaturePropertiesCreated.TYPE);
         types.add(FeaturePropertiesModified.TYPE);
         types.add(FeaturePropertiesDeleted.TYPE);
-        types.add(ThingCreated.TYPE);
-        types.add(ThingModified.TYPE);
         types.add(ThingDeleted.TYPE);
         AVAILABLE_TYPES = Collections.unmodifiableSet(types);
     }

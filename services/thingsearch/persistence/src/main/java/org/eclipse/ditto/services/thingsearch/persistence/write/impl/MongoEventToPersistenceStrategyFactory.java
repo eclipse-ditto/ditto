@@ -112,8 +112,6 @@ public final class MongoEventToPersistenceStrategyFactory extends
                 FeaturePropertiesModified.TYPE, new MongoFeaturePropertiesModifiedStrategy());
         strategies.put(
                 FeaturePropertiesDeleted.TYPE, new MongoFeaturePropertiesDeletedStrategy());
-        strategies.put(ThingCreated.TYPE, new MongoThingCreatedStrategy());
-        strategies.put(ThingModified.TYPE, new MongoThingModifiedStrategy());
         strategies.put(ThingDeleted.TYPE, new MongoThingDeletedStrategy());
 
         return strategies;
