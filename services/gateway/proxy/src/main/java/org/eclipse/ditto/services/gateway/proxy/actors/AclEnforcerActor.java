@@ -209,7 +209,7 @@ public final class AclEnforcerActor extends AbstractActorWithStash {
                 /* other Live Signals then messages: */
                 .match(Signal.class, AclEnforcerActor::isLiveSignal, liveSignal -> {
                     final Signal enrichedSignal = enrichDittoHeaders(liveSignal);
-                    getSender().tell(enrichedSignal, getSelf());
+                    getSender().forward(enrichedSignal, getContext());
                 })
 
                 .match(CreateThing.class, createThing -> acl == null, this::forwardModifyCommand)
