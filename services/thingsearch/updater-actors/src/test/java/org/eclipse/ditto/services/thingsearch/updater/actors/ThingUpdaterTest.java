@@ -60,7 +60,6 @@ import org.eclipse.ditto.services.utils.distributedcache.actors.CacheFacadeActor
 import org.eclipse.ditto.services.utils.distributedcache.actors.CacheRole;
 import org.eclipse.ditto.signals.events.policies.PolicyModified;
 import org.eclipse.ditto.signals.events.things.AttributeCreated;
-import org.eclipse.ditto.signals.events.things.AttributeModified;
 import org.eclipse.ditto.signals.events.things.ThingCreated;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.eclipse.ditto.signals.events.things.ThingModified;
@@ -79,7 +78,6 @@ import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
-import akka.event.LoggingAdapter;
 import akka.pattern.CircuitBreaker;
 import akka.stream.javadsl.Source;
 import akka.testkit.TestProbe;
@@ -97,8 +95,6 @@ public final class ThingUpdaterTest {
 
     private static final long REVISION = 1L;
 
-    private static final int MAX_ATTRIBUTE_VALUE_LENGTH = 950;
-
     private static final AuthorizationSubject AUTHORIZATION_SUBJECT = AuthorizationSubject.newInstance("sid");
 
     private static final AclEntry ACL_ENTRY =
@@ -115,10 +111,6 @@ public final class ThingUpdaterTest {
 
     @Mock
     private ThingsSearchUpdaterPersistence persistenceMock;
-
-    @Mock
-    private LoggingAdapter log;
-
 
     private Source<Boolean, NotUsed> successWithDelay() {
         final int sourceDelayMillis = 1500;
@@ -203,11 +195,11 @@ public final class ThingUpdaterTest {
                 AttributeCreated.of(THING_ID, newPointer("p3"), newValue(true), 5L, dittoHeaders);
 
         final List<ProcessableThingEvent> expectedWrites1 =
-                Collections.singletonList(ProcessableThingEvent.newInstance(attributeCreated0, V_1));
+                Collections.singletonList(wrapV1Event(attributeCreated0));
         final List<ProcessableThingEvent> expectedWrites2 = new ArrayList<>();
-        expectedWrites2.add(ProcessableThingEvent.newInstance(attributeCreated1, V_1));
-        expectedWrites2.add(ProcessableThingEvent.newInstance(attributeCreated2, V_1));
-        expectedWrites2.add(ProcessableThingEvent.newInstance(attributeCreated3, V_1));
+        expectedWrites2.add(wrapV1Event(attributeCreated1));
+        expectedWrites2.add(wrapV1Event(attributeCreated2));
+        expectedWrites2.add(wrapV1Event(attributeCreated3));
 
 
         when(persistenceMock.executeCombinedWrites(eq(THING_ID), eq(expectedWrites1),
@@ -236,12 +228,6 @@ public final class ThingUpdaterTest {
                 waitUntil().executeCombinedWrites(eq(THING_ID), eq(expectedWrites2), any(), eq(5L));
             }
         };
-    }
-
-    private static AttributeModified createAttributeModified(final CharSequence attributePointer,
-            final JsonValue attributeValue, final long revision, final JsonSchemaVersion schemaVersion) {
-        return AttributeModified.of(THING_ID, newPointer(attributePointer), attributeValue, revision,
-                DittoHeaders.newBuilder().schemaVersion(schemaVersion).build());
     }
 
     @Test
@@ -291,7 +277,7 @@ public final class ThingUpdaterTest {
                 .setPermissions(ACL)
                 .build();
         final List<ProcessableThingEvent> expectedWrite =
-                Collections.singletonList(ProcessableThingEvent.newInstance(attributeCreated, V_1));
+                Collections.singletonList(wrapV1Event(attributeCreated));
         final Source<Boolean, NotUsed> sourceUnsuccess = Source.single(Boolean.FALSE);
 
         when(persistenceMock.executeCombinedWrites(eq(THING_ID), eq(expectedWrite), any(), anyLong())).thenReturn(
@@ -317,11 +303,10 @@ public final class ThingUpdaterTest {
                 .build();
         final ThingEvent attributeCreated =
                 AttributeCreated.of(THING_ID, newPointer("p1"), newValue(true), 1L, dittoHeaders);
-        final List<ProcessableThingEvent> expectedWrites = Collections.singletonList(
-                ProcessableThingEvent.newInstance(attributeCreated, V_1)
-        );
-        when(persistenceMock.executeCombinedWrites(eq(THING_ID), any(List.class), any(), anyLong())).thenThrow(
-                new RuntimeException("db operation failed."));
+        final List<ProcessableThingEvent> expectedWrites =
+                Collections.singletonList(wrapV1Event(attributeCreated));
+        when(persistenceMock.executeCombinedWrites(eq(THING_ID), eq(expectedWrites), any(), anyLong())).thenThrow(
+                new RuntimeException("db operation mock error."));
 
         new JavaTestProbe(actorSystem) {
             {
@@ -464,14 +449,13 @@ public final class ThingUpdaterTest {
                 waitUntil().insertOrUpdate(eq(thingWithRevision), eq(revision), eq(-1L));
 
                 when(persistenceMock.executeCombinedWrites(any(), any(), any(), anyLong()))
-                        .thenThrow(new IllegalStateException("justForTest"));
+                        .thenThrow(new IllegalStateException("requiredByTest"));
 
-                final ThingEvent changeEvent =
+                final AttributeCreated changeEvent =
                         AttributeCreated.of(THING_ID, JsonPointer.of("/foo"), JsonValue.of("bar"),
                                 revision + 1, dittoHeaders);
-                final List<ProcessableThingEvent> expectedWrites = Collections.singletonList(
-                        ProcessableThingEvent.newInstance(changeEvent, changeEvent.getImplementedSchemaVersion())
-                );
+                final List<ProcessableThingEvent> expectedWrites =
+                        Collections.singletonList(wrapEvent(changeEvent, changeEvent.getImplementedSchemaVersion()));
                 underTest.tell(changeEvent, getRef());
 
 
@@ -829,15 +813,6 @@ public final class ThingUpdaterTest {
         return verify(persistenceMock, timeout(MOCKITO_TIMEOUT));
     }
 
-    private static ThingEvent<?> createInvalidThingEvent() {
-        final ThingEvent<?> invalidThingEvent = mock(ThingEvent.class);
-        when(invalidThingEvent.getRevision()).thenReturn(1L);
-        when(invalidThingEvent.getDittoHeaders()).thenReturn(DittoHeaders.empty());
-        // null type makes the event invalid!!
-        when(invalidThingEvent.getType()).thenReturn(null);
-        return invalidThingEvent;
-    }
-
     /**
      * Provides the persistence mock with fresh streams of answers for a policy update.
      */
@@ -849,7 +824,25 @@ public final class ThingUpdaterTest {
                 Source.single(new ThingMetadata(thingRevision, policyId, policyRevision)));
     }
 
-    private void expectShardedSudoRetrieveThing(final TestProbe thingsShardProbe, final String thingId) {
+    private static ThingEvent<?> createInvalidThingEvent() {
+        final ThingEvent<?> invalidThingEvent = mock(ThingEvent.class);
+        when(invalidThingEvent.getRevision()).thenReturn(1L);
+        when(invalidThingEvent.getDittoHeaders()).thenReturn(DittoHeaders.empty());
+        // null type makes the event invalid!!
+        when(invalidThingEvent.getType()).thenReturn(null);
+        return invalidThingEvent;
+    }
+
+
+    private static ProcessableThingEvent wrapV1Event(final ThingEvent thingEvent) {
+        return wrapEvent(thingEvent, JsonSchemaVersion.V_1);
+    }
+
+    private static ProcessableThingEvent wrapEvent(final ThingEvent thingEvent, final JsonSchemaVersion version) {
+        return ProcessableThingEvent.newInstance(thingEvent, version);
+    }
+
+    private static void expectShardedSudoRetrieveThing(final TestProbe thingsShardProbe, final String thingId) {
         final ShardedMessageEnvelope envelope = thingsShardProbe.expectMsgClass(ShardedMessageEnvelope.class);
         assertThat(envelope.getType()).isEqualTo(SudoRetrieveThing.TYPE);
         assertThat(envelope.getId()).isEqualTo(thingId);
