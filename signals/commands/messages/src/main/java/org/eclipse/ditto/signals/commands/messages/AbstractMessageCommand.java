@@ -109,16 +109,9 @@ abstract class AbstractMessageCommand<T, C extends AbstractMessageCommand> exten
         final JsonObject headersObject = message.getHeaders().toJson();
         messageBuilder.set(MessageCommand.JsonFields.JSON_MESSAGE_HEADERS, headersObject, predicate);
 
+        final Optional<ByteBuffer> rawPayloadOptional = message.getRawPayload();
         final Optional<T> payloadOptional = message.getPayload();
-        if (payloadOptional.isPresent()) {
-            final T payload = payloadOptional.get();
-            if (payload instanceof JsonValue) {
-                messageBuilder.set(MessageCommand.JsonFields.JSON_MESSAGE_PAYLOAD, (JsonValue) payload, predicate);
-            } else {
-                messageBuilder.set(MessageCommand.JsonFields.JSON_MESSAGE_PAYLOAD, JsonValue.of(payload.toString()),
-                        predicate);
-            }
-        } else {
+        if (rawPayloadOptional.isPresent() && !payloadOptional.filter(p -> p instanceof JsonValue).isPresent()) {
             final String encodedString;
             if (shouldBeInterpretedAsText(message.getContentType().orElse(""))) {
                 encodedString = message.getRawPayload()
@@ -130,7 +123,16 @@ abstract class AbstractMessageCommand<T, C extends AbstractMessageCommand> exten
                         .map(base64Encoded -> new String(base64Encoded.array(), StandardCharsets.UTF_8))
                         .orElse("");
             }
+
             messageBuilder.set(MessageCommand.JsonFields.JSON_MESSAGE_PAYLOAD, JsonValue.of(encodedString), predicate);
+        } else if (payloadOptional.isPresent()) {
+            final T payload = payloadOptional.get();
+            if (payload instanceof JsonValue) {
+                messageBuilder.set(MessageCommand.JsonFields.JSON_MESSAGE_PAYLOAD, (JsonValue) payload, predicate);
+            } else {
+                messageBuilder.set(MessageCommand.JsonFields.JSON_MESSAGE_PAYLOAD, JsonValue.of(payload.toString()),
+                        predicate);
+            }
         }
 
         final JsonObject messageObject = messageBuilder.build();
@@ -148,20 +150,23 @@ abstract class AbstractMessageCommand<T, C extends AbstractMessageCommand> exten
         final JsonObject messageObject = jsonObject.getValueOrThrow(MessageCommand.JsonFields.JSON_MESSAGE);
         final JsonObject messageHeadersObject =
                 messageObject.getValueOrThrow(MessageCommand.JsonFields.JSON_MESSAGE_HEADERS);
-        final JsonValue messagePayloadValue =
-                messageObject.getValueOrThrow(MessageCommand.JsonFields.JSON_MESSAGE_PAYLOAD);
 
         final MessageHeaders messageHeaders = MessageHeaders.of(messageHeadersObject);
+        final MessageBuilder<T> messageBuilder = Message.<T>newBuilder(messageHeaders);
 
-        final MessageBuilder<T> messageBuilder = Message.newBuilder(messageHeaders);
-        final String payloadStr = messagePayloadValue.isString()
-                ? messagePayloadValue.asString()
-                : messagePayloadValue.toString();
-        final byte[] payloadBytes = payloadStr.getBytes(StandardCharsets.UTF_8);
-        if (shouldBeInterpretedAsText(messageHeaders.getContentType().orElse(""))) {
-            messageBuilder.rawPayload(ByteBuffer.wrap(payloadBytes));
-        } else {
-            messageBuilder.rawPayload(ByteBuffer.wrap(BASE64_DECODER.decode(payloadBytes)));
+        final Optional<JsonValue> messagePayloadValue =
+                messageObject.getValue(MessageCommand.JsonFields.JSON_MESSAGE_PAYLOAD);
+        if (messagePayloadValue.isPresent()) {
+            final JsonValue payload = messagePayloadValue.get();
+            final String payloadStr = payload.isString()
+                    ? payload.asString()
+                    : payload.toString();
+            final byte[] payloadBytes = payloadStr.getBytes(StandardCharsets.UTF_8);
+            if (shouldBeInterpretedAsText(messageHeaders.getContentType().orElse(""))) {
+                messageBuilder.rawPayload(ByteBuffer.wrap(payloadBytes));
+            } else {
+                messageBuilder.rawPayload(ByteBuffer.wrap(BASE64_DECODER.decode(payloadBytes)));
+            }
         }
         return messageBuilder.build();
     }
