@@ -18,7 +18,6 @@ import org.bson.conversions.Bson;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.policiesenforcers.PolicyEnforcer;
-import org.eclipse.ditto.services.thingsearch.persistence.ProcessableThingEvent;
 import org.eclipse.ditto.services.thingsearch.persistence.write.IndexLengthRestrictionEnforcer;
 import org.eclipse.ditto.signals.events.things.AttributeModified;
 
@@ -31,11 +30,10 @@ public final class MongoAttributeModifiedStrategy extends MongoEventToPersistenc
      * {@inheritDoc}
      */
     @Override
-    public final List<Bson> thingUpdates(final ProcessableThingEvent<AttributeModified> event,
+    public final List<Bson> thingUpdates(final AttributeModified event,
             final IndexLengthRestrictionEnforcer indexLengthRestrictionEnforcer) {
-        final AttributeModified attributeModified = event.getThingEvent();
-        final JsonPointer pointer = attributeModified.getAttributePointer();
-        final JsonValue value = attributeModified.getAttributeValue();
+        final JsonPointer pointer = event.getAttributePointer();
+        final JsonValue value = event.getAttributeValue();
         return AttributesUpdateFactory.createAttributesUpdates(indexLengthRestrictionEnforcer, pointer, value);
     }
 
@@ -43,14 +41,12 @@ public final class MongoAttributeModifiedStrategy extends MongoEventToPersistenc
      * {@inheritDoc}
      */
     @Override
-    public final List<PolicyUpdate> policyUpdates(final ProcessableThingEvent<AttributeModified> event,
-            final PolicyEnforcer policyEnforcer) {
-        if (isPolicyRevelant(event.getJsonSchemaVersion())) {
-            final AttributeModified attributeModified = event.getThingEvent();
-            final JsonPointer pointer = attributeModified.getAttributePointer();
-            final JsonValue value = attributeModified.getAttributeValue();
+    public final List<PolicyUpdate> policyUpdates(final AttributeModified event, final PolicyEnforcer policyEnforcer) {
+        if (isPolicyRevelant(event.getImplementedSchemaVersion())) {
+            final JsonPointer pointer = event.getAttributePointer();
+            final JsonValue value = event.getAttributeValue();
             return Collections.singletonList(
-                    PolicyUpdateFactory.createAttributePolicyIndexUpdate(attributeModified.getThingId(),
+                    PolicyUpdateFactory.createAttributePolicyIndexUpdate(event.getThingId(),
                             pointer,
                             value,
                             policyEnforcer));

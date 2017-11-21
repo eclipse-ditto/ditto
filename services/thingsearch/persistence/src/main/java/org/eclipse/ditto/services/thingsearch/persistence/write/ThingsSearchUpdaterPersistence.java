@@ -16,7 +16,7 @@ import java.util.Set;
 
 import org.eclipse.ditto.model.policiesenforcers.PolicyEnforcer;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.services.thingsearch.persistence.ProcessableThingEvent;
+import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 import akka.NotUsed;
 import akka.stream.javadsl.Source;
@@ -64,7 +64,7 @@ public interface ThingsSearchUpdaterPersistence {
      * revision of the last element in {@code gatheredEvents}.
      * @return a {@link Source} holding the publisher to execute the operation.
      */
-    Source<Boolean, NotUsed> executeCombinedWrites(String thingId, List<ProcessableThingEvent> gatheredEvents,
+    Source<Boolean, NotUsed> executeCombinedWrites(String thingId, List<ThingEvent> gatheredEvents,
             PolicyEnforcer policyEnforcer, long targetRevision);
 
     /**

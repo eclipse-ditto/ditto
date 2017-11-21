@@ -40,16 +40,14 @@ import org.eclipse.ditto.signals.events.things.FeaturePropertyModified;
 import org.eclipse.ditto.signals.events.things.FeaturesCreated;
 import org.eclipse.ditto.signals.events.things.FeaturesDeleted;
 import org.eclipse.ditto.signals.events.things.FeaturesModified;
-import org.eclipse.ditto.signals.events.things.ThingCreated;
 import org.eclipse.ditto.signals.events.things.ThingDeleted;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
-import org.eclipse.ditto.signals.events.things.ThingModified;
 
 /**
  * Persistence Strategy Factory that creates the {@link Bson} for persisting {@link ThingEvent}s.
  */
 public final class MongoEventToPersistenceStrategyFactory extends
-        EventToPersistenceStrategyFactory<ThingEvent, Bson, PolicyUpdate> {
+        EventToPersistenceStrategyFactory<Bson, PolicyUpdate> {
 
     private static final MongoEventToPersistenceStrategyFactory INSTANCE = new MongoEventToPersistenceStrategyFactory();
 
@@ -64,11 +62,10 @@ public final class MongoEventToPersistenceStrategyFactory extends
      * {@inheritDoc}
      */
     @Override
-    protected EventToPersistenceStrategy<ThingEvent, Bson, PolicyUpdate> getInstance(final String type) {
+    protected <T extends ThingEvent> EventToPersistenceStrategy<T, Bson, PolicyUpdate> getInstance(final String type) {
         @SuppressWarnings("unchecked")
-        final EventToPersistenceStrategy<ThingEvent, Bson, PolicyUpdate> strategy =
-                (EventToPersistenceStrategy<ThingEvent, Bson, PolicyUpdate>) persistenceStrategies.get(type);
-
+        final EventToPersistenceStrategy<T, Bson, PolicyUpdate> strategy =
+                (EventToPersistenceStrategy<T, Bson, PolicyUpdate>) persistenceStrategies.get(type);
         return strategy;
     }
 

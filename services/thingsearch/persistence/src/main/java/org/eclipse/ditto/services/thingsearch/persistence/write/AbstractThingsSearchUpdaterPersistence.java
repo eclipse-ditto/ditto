@@ -57,7 +57,7 @@ public abstract class AbstractThingsSearchUpdaterPersistence implements ThingsSe
      * {@inheritDoc}
      */
     @Override
-    public final Source<Boolean, NotUsed> insertOrUpdate(final Thing thing, final long revision, final long
+    public Source<Boolean, NotUsed> insertOrUpdate(final Thing thing, final long revision, final long
             policyRevision) {
         // enforce the restrictions on the data
         final Thing toSave = indexLengthRestrictionEnforcer.enforceRestrictions(thing);

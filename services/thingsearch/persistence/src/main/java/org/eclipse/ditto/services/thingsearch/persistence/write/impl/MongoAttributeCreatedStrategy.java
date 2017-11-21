@@ -18,7 +18,6 @@ import org.bson.conversions.Bson;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.policiesenforcers.PolicyEnforcer;
-import org.eclipse.ditto.services.thingsearch.persistence.ProcessableThingEvent;
 import org.eclipse.ditto.services.thingsearch.persistence.write.IndexLengthRestrictionEnforcer;
 import org.eclipse.ditto.signals.events.things.AttributeCreated;
 
@@ -28,23 +27,20 @@ import org.eclipse.ditto.signals.events.things.AttributeCreated;
 public final class MongoAttributeCreatedStrategy extends MongoEventToPersistenceStrategy<AttributeCreated> {
 
     @Override
-    public final List<Bson> thingUpdates(final ProcessableThingEvent<AttributeCreated> event,
+    public final List<Bson> thingUpdates(final AttributeCreated event,
             final IndexLengthRestrictionEnforcer indexLengthRestrictionEnforcer) {
-        final AttributeCreated attributeCreated = event.getThingEvent();
-        final JsonPointer pointer = attributeCreated.getAttributePointer();
-        final JsonValue value = attributeCreated.getAttributeValue();
+        final JsonPointer pointer = event.getAttributePointer();
+        final JsonValue value = event.getAttributeValue();
         return AttributesUpdateFactory.createAttributesUpdates(indexLengthRestrictionEnforcer, pointer, value);
     }
 
     @Override
-    public final List<PolicyUpdate> policyUpdates(final ProcessableThingEvent<AttributeCreated> event,
-            final PolicyEnforcer policyEnforcer) {
-        if (isPolicyRevelant(event.getJsonSchemaVersion())) {
-            final AttributeCreated attributeCreated = event.getThingEvent();
-            final JsonPointer pointer = attributeCreated.getAttributePointer();
-            final JsonValue value = attributeCreated.getAttributeValue();
+    public final List<PolicyUpdate> policyUpdates(final AttributeCreated event, final PolicyEnforcer policyEnforcer) {
+        if (isPolicyRevelant(event.getImplementedSchemaVersion())) {
+            final JsonPointer pointer = event.getAttributePointer();
+            final JsonValue value = event.getAttributeValue();
             return Collections.singletonList(
-                    PolicyUpdateFactory.createAttributePolicyIndexUpdate(attributeCreated.getThingId(),
+                    PolicyUpdateFactory.createAttributePolicyIndexUpdate(event.getThingId(),
                             pointer,
                             value,
                             policyEnforcer));

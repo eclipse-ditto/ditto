@@ -49,7 +49,6 @@ import org.eclipse.ditto.services.models.things.ThingTag;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SyncThing;
-import org.eclipse.ditto.services.thingsearch.persistence.ProcessableThingEvent;
 import org.eclipse.ditto.services.thingsearch.persistence.write.EventToPersistenceStrategyFactory;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -148,7 +147,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
     private boolean transactionActive;
     private int syncAttempts;
     private Cancellable activityChecker;
-    private List<ProcessableThingEvent> gatheredEvents;
+    private List<ThingEvent> gatheredEvents;
     private boolean checkThingTagOnly;
 
     // state of Thing and Policy
@@ -571,17 +570,20 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
                     throw new IllegalStateException(MessageFormat.format(pattern, thingEvent.getType()));
                 }
 
-                final ProcessableThingEvent processableThingEvent = ProcessableThingEvent.newInstance(thingEvent,
-                        schemaVersionToCheck());
+                // TODO: explicitly setting the schema version here feels wrong...
+                final DittoHeaders versionedHeaders = thingEvent.getDittoHeaders().toBuilder()
+                        .schemaVersion(schemaVersionToCheck())
+                        .build();
+                final ThingEvent versionedThingEvent = thingEvent.setDittoHeaders(versionedHeaders);
                 if (transactionActive) {
                     log.info("The update actor for thing <{}> is currently busy. The current event will be " +
                                     "processed after the actor is.",
                             thingId);
-                    addEventToGatheredEvents(processableThingEvent);
+                    addEventToGatheredEvents(versionedThingEvent);
                     log.debug("Currently gathered <{}> events to be processed after actor has finished being busy",
                             gatheredEvents.size());
                 } else {
-                    persistThingEvents(Collections.singletonList(processableThingEvent));
+                    persistThingEvents(Collections.singletonList(versionedThingEvent));
                 }
 
                 // Update state related to the Thing. Policy state is maintained by synchronization.
@@ -593,8 +595,8 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         }
     }
 
-    private void addEventToGatheredEvents(final ProcessableThingEvent processableThingEvent) {
-        gatheredEvents.add(processableThingEvent);
+    private void addEventToGatheredEvents(final ThingEvent thingEvent) {
+        gatheredEvents.add(thingEvent);
     }
 
     private static boolean needToReloadPolicy(final ThingEvent thingEvent) {
@@ -626,7 +628,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
                 .orElse(policyId == null ? JsonSchemaVersion.V_1 : JsonSchemaVersion.LATEST);
     }
 
-    private void persistThingEvents(final List<ProcessableThingEvent> thingEvents) {
+    private void persistThingEvents(final List<ThingEvent> thingEvents) {
         log.debug("Executing bulk write operation with <{}> updates.", thingEvents.size());
         if (!thingEvents.isEmpty()) {
             transactionActive = true;
@@ -662,7 +664,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         } else if (result.isSuccess()) {
             if (!gatheredEvents.isEmpty()) {
                 log.info("<{}> gathered events will now be persisted.", gatheredEvents.size());
-                final List<ProcessableThingEvent> eventsToPersist = gatheredEvents;
+                final List<ThingEvent> eventsToPersist = gatheredEvents;
                 // reset the gathered events
                 resetGatheredEvents();
                 persistThingEvents(eventsToPersist);
@@ -820,6 +822,10 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
             log.error("Thing to update in search index had neither a policyId nor an ACL: {}", thing);
             triggerSynchronization();
             return;
+        }
+
+        if (policyIdOfThing == null) {
+            schemaVersion = JsonSchemaVersion.V_1;
         }
 
         // always synchronize policy if the schema version calls for it

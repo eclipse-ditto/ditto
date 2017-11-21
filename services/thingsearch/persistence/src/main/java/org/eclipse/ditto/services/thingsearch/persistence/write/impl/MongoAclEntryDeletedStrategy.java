@@ -16,7 +16,6 @@ import java.util.List;
 
 import org.bson.conversions.Bson;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
-import org.eclipse.ditto.services.thingsearch.persistence.ProcessableThingEvent;
 import org.eclipse.ditto.services.thingsearch.persistence.write.IndexLengthRestrictionEnforcer;
 import org.eclipse.ditto.signals.events.things.AclEntryDeleted;
 
@@ -29,9 +28,9 @@ public final class MongoAclEntryDeletedStrategy extends MongoEventToPersistenceS
      * {@inheritDoc}
      */
     @Override
-    public List<Bson> thingUpdates(final ProcessableThingEvent<AclEntryDeleted> event,
+    public List<Bson> thingUpdates(final AclEntryDeleted event,
             final IndexLengthRestrictionEnforcer indexLengthRestrictionEnforcer) {
-        final AuthorizationSubject authorizationSubject = event.getThingEvent().getAuthorizationSubject();
+        final AuthorizationSubject authorizationSubject = event.getAuthorizationSubject();
         return Collections.singletonList(AclUpdatesFactory.deleteAclEntry(authorizationSubject.getId()));
     }
 }

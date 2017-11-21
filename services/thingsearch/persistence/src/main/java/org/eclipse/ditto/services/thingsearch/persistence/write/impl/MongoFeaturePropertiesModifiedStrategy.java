@@ -16,7 +16,6 @@ import java.util.List;
 
 import org.bson.conversions.Bson;
 import org.eclipse.ditto.model.policiesenforcers.PolicyEnforcer;
-import org.eclipse.ditto.services.thingsearch.persistence.ProcessableThingEvent;
 import org.eclipse.ditto.services.thingsearch.persistence.write.IndexLengthRestrictionEnforcer;
 import org.eclipse.ditto.signals.events.things.FeaturePropertiesModified;
 
@@ -27,23 +26,22 @@ public final class MongoFeaturePropertiesModifiedStrategy extends
         MongoEventToPersistenceStrategy<FeaturePropertiesModified> {
 
     @Override
-    public final List<Bson> thingUpdates(final ProcessableThingEvent<FeaturePropertiesModified> event,
+    public final List<Bson> thingUpdates(final FeaturePropertiesModified event,
             final IndexLengthRestrictionEnforcer indexLengthRestrictionEnforcer) {
-        final FeaturePropertiesModified e = event.getThingEvent();
         return FeaturesUpdateFactory.createUpdateForFeatureProperties(indexLengthRestrictionEnforcer,
-                e.getFeatureId(),
-                e.getProperties());
+                event.getFeatureId(),
+                event.getProperties());
     }
 
     @Override
-    public final List<PolicyUpdate> policyUpdates(final ProcessableThingEvent<FeaturePropertiesModified> event,
+    public final List<PolicyUpdate> policyUpdates(final FeaturePropertiesModified event,
             final PolicyEnforcer policyEnforcer) {
-        if (isPolicyRevelant(event.getJsonSchemaVersion())) {
-            final FeaturePropertiesModified e = event.getThingEvent();
+
+        if (isPolicyRevelant(event.getImplementedSchemaVersion())) {
             return Collections.singletonList(PolicyUpdateFactory.createFeaturePropertiesUpdate(
-                    e.getThingId(),
-                    e.getFeatureId(),
-                    e.getProperties(),
+                    event.getThingId(),
+                    event.getFeatureId(),
+                    event.getProperties(),
                     policyEnforcer));
         }
         return Collections.emptyList();

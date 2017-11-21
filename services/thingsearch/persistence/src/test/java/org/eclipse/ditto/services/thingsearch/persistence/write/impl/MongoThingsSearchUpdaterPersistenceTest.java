@@ -56,7 +56,6 @@ import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.models.policies.Permission;
 import org.eclipse.ditto.services.thingsearch.persistence.AbstractThingSearchPersistenceTestBase;
-import org.eclipse.ditto.services.thingsearch.persistence.ProcessableThingEvent;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingMetadata;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.PolicyRestrictedSearchAggregation;
 import org.eclipse.ditto.signals.events.things.AclEntryDeleted;
@@ -361,7 +360,7 @@ public final class MongoThingsSearchUpdaterPersistenceTest extends AbstractThing
             final AttributesCreated attributesCreated =
                     AttributesCreated.of(KNOWN_THING_ID, newAttributes, 2L, DittoHeaders.empty());
 
-            final List<ProcessableThingEvent> writes = Collections.singletonList(
+            final List<ThingEvent> writes = Collections.singletonList(
                     wrapEvent(attributesCreated, apiVersion));
 
             Assertions.assertThat(
@@ -433,7 +432,7 @@ public final class MongoThingsSearchUpdaterPersistenceTest extends AbstractThing
             final AttributeModified attributeModified =
                     AttributeModified.of(KNOWN_THING_ID, pointer, JsonValue.of(value), 2L, DittoHeaders.empty());
 
-            final List<ProcessableThingEvent> writes = Collections.singletonList(
+            final List<ThingEvent> writes = Collections.singletonList(
                     wrapEvent(attributeModified, apiVersion));
 
             Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes,
@@ -462,7 +461,7 @@ public final class MongoThingsSearchUpdaterPersistenceTest extends AbstractThing
             final AttributeCreated attributeCreated =
                     AttributeCreated.of(KNOWN_THING_ID, pointer, value, 2L, DittoHeaders.empty());
 
-            final List<ProcessableThingEvent> writes =
+            final List<ThingEvent> writes =
                     Collections.singletonList(wrapEvent(attributeCreated, apiVersion));
 
             Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes,
@@ -491,7 +490,7 @@ public final class MongoThingsSearchUpdaterPersistenceTest extends AbstractThing
             final AttributeModified attributeModified =
                     AttributeModified.of(KNOWN_THING_ID, pointer, value, 2L, DittoHeaders.empty());
 
-            final List<ProcessableThingEvent> writes =
+            final List<ThingEvent> writes =
                     Collections.singletonList(wrapEvent(attributeModified, apiVersion));
 
             Assertions.assertThat(
@@ -543,7 +542,7 @@ public final class MongoThingsSearchUpdaterPersistenceTest extends AbstractThing
                     .build();
             final AttributeModified attributeModified = createAttributeModified(KEY1, value, 2L);
 
-            final List<ProcessableThingEvent> writes =
+            final List<ThingEvent> writes =
                     Collections.singletonList(wrapEvent(attributeModified, apiVersion));
 
             Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes,
@@ -569,7 +568,7 @@ public final class MongoThingsSearchUpdaterPersistenceTest extends AbstractThing
 
             Mockito.reset(writeThingsCollectionSpy, writePoliciesCollectionSpy);
 
-            final List<ProcessableThingEvent> writes2 =
+            final List<ThingEvent> writes2 =
                     Collections.singletonList(wrapEvent(createAttributeModified(KEY1, newValue(NEW_VALUE_2), 3L),
                             apiVersion));
 
@@ -599,7 +598,7 @@ public final class MongoThingsSearchUpdaterPersistenceTest extends AbstractThing
             final AttributeDeleted attributeDeleted =
                     AttributeDeleted.of(KNOWN_THING_ID, attributePointer, 2L, DittoHeaders.empty());
 
-            final List<ProcessableThingEvent> writes =
+            final List<ThingEvent> writes =
                     Collections.singletonList(wrapEvent(attributeDeleted, apiVersion));
 
             Assertions.assertThat(
@@ -625,7 +624,7 @@ public final class MongoThingsSearchUpdaterPersistenceTest extends AbstractThing
             insertBlockingAndResetMocks(isV2, thing, 1L, -1L, policyEnforcer, writePoliciesCollectionSpy,
                     writeThingsCollectionSpy);
 
-            final List<ProcessableThingEvent> writes =
+            final List<ThingEvent> writes =
                     Collections.singletonList(wrapEvent(AttributesDeleted.of(KNOWN_THING_ID, 2L,
                             DittoHeaders.empty()), apiVersion));
 
@@ -670,8 +669,7 @@ public final class MongoThingsSearchUpdaterPersistenceTest extends AbstractThing
             final FeatureDeleted featureDeleted =
                     FeatureDeleted.of(KNOWN_THING_ID, FEATURE_ID1, 2L, DittoHeaders.empty());
 
-            final List<ProcessableThingEvent> writes =
-                    Collections.singletonList(wrapEvent(featureDeleted, apiVersion));
+            final List<ThingEvent> writes = Collections.singletonList(wrapEvent(featureDeleted, apiVersion));
 
             Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes,
                     policyEnforcer, 2L)))
@@ -712,7 +710,7 @@ public final class MongoThingsSearchUpdaterPersistenceTest extends AbstractThing
             final Collection<String> result = findAll(aggregation1);
             assertThat(result).isEmpty();
 
-            final List<ProcessableThingEvent> writes =
+            final List<ThingEvent> writes =
                     Collections.singletonList(wrapEvent(createFeatureCreated(FEATURE_ID2), apiVersion));
 
             Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes,
@@ -765,7 +763,7 @@ public final class MongoThingsSearchUpdaterPersistenceTest extends AbstractThing
         private void verifyCreateFeature(final String featureId) throws ExecutionException,
                 InterruptedException {
             final long targetRevision = 1L;
-            final List<ProcessableThingEvent> writes = Collections.singletonList(
+            final List<ThingEvent> writes = Collections.singletonList(
                     wrapEvent(createFeatureCreated(featureId), apiVersion));
 
             Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID,
@@ -795,8 +793,8 @@ public final class MongoThingsSearchUpdaterPersistenceTest extends AbstractThing
             insertBlockingAndResetMocks(isV2, createThing(KNOWN_THING_ID, VALUE1, isV2), 1L, -1L, policyEnforcer,
                     writeThingsCollectionSpy, writePoliciesCollectionSpy);
 
-            final List<ProcessableThingEvent> writes = Collections.singletonList(
-                    wrapEvent(createFeaturePropertiesDeleted(FEATURE_ID1), apiVersion));
+            final List<ThingEvent> writes =
+                    Collections.singletonList(wrapEvent(createFeaturePropertiesDeleted(FEATURE_ID1), apiVersion));
 
             Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID,
                     writes, policyEnforcer, 1L)))
@@ -827,7 +825,7 @@ public final class MongoThingsSearchUpdaterPersistenceTest extends AbstractThing
             insertBlockingAndResetMocks(isV2, thing, 1L, -1L, policyEnforcer, writeThingsCollectionSpy,
                     writePoliciesCollectionSpy);
 
-            final List<ProcessableThingEvent> writes = Collections.singletonList(
+            final List<ThingEvent> writes = Collections.singletonList(
                     wrapEvent(createFeaturePropertiesModified(FEATURE_ID1), apiVersion));
 
             Assertions.assertThat(runBlockingWithReturn(
@@ -851,7 +849,7 @@ public final class MongoThingsSearchUpdaterPersistenceTest extends AbstractThing
             insertBlockingAndResetMocks(isV2, thing, 1L, -1L, policyEnforcer, writeThingsCollectionSpy,
                     writePoliciesCollectionSpy);
 
-            final List<ProcessableThingEvent> writes = Collections.singletonList(
+            final List<ThingEvent> writes = Collections.singletonList(
                     wrapEvent(createFeaturePropertiesModified(FEATURE_ID2), apiVersion));
 
             Assertions.assertThat(runBlockingWithReturn(
@@ -884,7 +882,7 @@ public final class MongoThingsSearchUpdaterPersistenceTest extends AbstractThing
             insertBlockingAndResetMocks(isV2, thing, 1L, -1L, policyEnforcer, writeThingsCollectionSpy,
                     writePoliciesCollectionSpy);
 
-            final List<ProcessableThingEvent> writes = Collections.singletonList(
+            final List<ThingEvent> writes = Collections.singletonList(
                     wrapEvent(createFeaturePropertyDeleted(FEATURE_ID1, PROP1, 2L), apiVersion));
 
             Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID,
@@ -916,7 +914,7 @@ public final class MongoThingsSearchUpdaterPersistenceTest extends AbstractThing
             final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
             insertBlockingAndResetMocks(isV2, thing, 1L, -1L, policyEnforcer, writeThingsCollectionSpy,
                     writePoliciesCollectionSpy);
-            final List<ProcessableThingEvent> writes = Collections.singletonList(
+            final List<ThingEvent> writes = Collections.singletonList(
                     wrapEvent(createFeaturePropertyDeleted(FEATURE_ID1, PROP1, 1L), apiVersion));
 
             Assertions.assertThat(runBlockingWithReturn(
@@ -931,7 +929,7 @@ public final class MongoThingsSearchUpdaterPersistenceTest extends AbstractThing
             insertBlockingAndResetMocks(isV2, thing, 1L, -1L, policyEnforcer, writeThingsCollectionSpy,
                     writePoliciesCollectionSpy);
 
-            final List<ProcessableThingEvent> writes = Collections.singletonList(
+            final List<ThingEvent> writes = Collections.singletonList(
                     wrapEvent(createFeaturePropertyModified(FEATURE_ID1, PROP1, newValue(true),
                             2L), apiVersion));
 
@@ -965,7 +963,7 @@ public final class MongoThingsSearchUpdaterPersistenceTest extends AbstractThing
             insertBlockingAndResetMocks(isV2, thing, 1L, -1L, policyEnforcer, writeThingsCollectionSpy,
                     writePoliciesCollectionSpy);
 
-            final List<ProcessableThingEvent> writes = Collections.singletonList(
+            final List<ThingEvent> writes = Collections.singletonList(
                     wrapEvent(createFeaturePropertyModified(FEATURE_ID1, PROP7, newValue("simple"), 2L),
                             apiVersion));
 
@@ -998,7 +996,7 @@ public final class MongoThingsSearchUpdaterPersistenceTest extends AbstractThing
             insertBlockingAndResetMocks(isV2, thing, 1L, -1L, policyEnforcer, writeThingsCollectionSpy,
                     writePoliciesCollectionSpy);
 
-            final List<ProcessableThingEvent> writes = Collections.singletonList(
+            final List<ThingEvent> writes = Collections.singletonList(
                     wrapEvent(FeaturesDeleted.of(KNOWN_THING_ID, 2L, DittoHeaders.empty()),
                             apiVersion));
 
@@ -1061,7 +1059,7 @@ public final class MongoThingsSearchUpdaterPersistenceTest extends AbstractThing
                 targetRevision)
                 throws ExecutionException, InterruptedException {
 
-            final List<ProcessableThingEvent> writes = Collections.singletonList(
+            final List<ThingEvent> writes = Collections.singletonList(
                     wrapEvent(createFeaturesModified(features), apiVersion));
 
             Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID,
@@ -1102,7 +1100,7 @@ public final class MongoThingsSearchUpdaterPersistenceTest extends AbstractThing
             insertBlockingAndResetMocks(isV2, thing, 1L, -1L, policyEnforcer, writePoliciesCollectionSpy,
                     writeThingsCollectionSpy);
 
-            final List<ProcessableThingEvent> writes = new ArrayList<>();
+            final List<ThingEvent> writes = new ArrayList<>();
             writes.add(wrapEvent(createFeaturePropertiesModified(FEATURE_ID1),
                     apiVersion));
             writes.add(wrapEvent(createAttributeModified(PROP1, newValue("s0meattr12"), 3L),
@@ -1138,7 +1136,7 @@ public final class MongoThingsSearchUpdaterPersistenceTest extends AbstractThing
             insertBlockingAndResetMocks(isV2, createThing(KNOWN_THING_ID, VALUE1, isV2), 1L, -1L, policyEnforcer,
                     writeThingsCollectionSpy, writePoliciesCollectionSpy);
 
-            final List<ProcessableThingEvent> writes = new ArrayList<>();
+            final List<ThingEvent> writes = new ArrayList<>();
             writes.add(wrapEvent(
                     createAclModified("anotherSid", 2L, org.eclipse.ditto.model.things.Permission.READ),
                     apiVersion));
@@ -1198,11 +1196,10 @@ public final class MongoThingsSearchUpdaterPersistenceTest extends AbstractThing
             insertBlockingAndResetMocks(isV2, thing, 0, 0, policyEnforcer, writePoliciesCollectionSpy,
                     writeThingsCollectionSpy);
 
-            final List<ProcessableThingEvent> writes = Collections.singletonList(
+            final List<ThingEvent> writes = Collections.singletonList(
                     wrapEvent(
                             createAclModified("anotherSid", 1L, org.eclipse.ditto.model.things.Permission.READ),
-                            JsonSchemaVersion.V_1)
-            );
+                            JsonSchemaVersion.V_1));
 
             final PolicyRestrictedSearchAggregation aggregation =
                     abf.newBuilder(cf.fieldCriteria(fef.filterByAttribute(KEY1), cf.eq(VALUE1)))
@@ -1225,11 +1222,10 @@ public final class MongoThingsSearchUpdaterPersistenceTest extends AbstractThing
             insertBlockingAndResetMocks(isV2, thing, 0, 0, policyEnforcer, writeThingsCollectionSpy,
                     writePoliciesCollectionSpy);
 
-            final List<ProcessableThingEvent> writes = Collections.singletonList(
+            final List<ThingEvent> writes = Collections.singletonList(
                     wrapEvent(
                             createAclModified("iot-things:mySid2", 1L, org.eclipse.ditto.model.things.Permission.READ,
-                                    org.eclipse.ditto.model.things.Permission.WRITE), JsonSchemaVersion.V_1)
-            );
+                                    org.eclipse.ditto.model.things.Permission.WRITE), JsonSchemaVersion.V_1));
 
             final PolicyRestrictedSearchAggregation aggregation =
                     abf.newBuilder(cf.fieldCriteria(fef.filterByAttribute(KEY1), cf.eq(VALUE1)))
@@ -1254,10 +1250,9 @@ public final class MongoThingsSearchUpdaterPersistenceTest extends AbstractThing
             insertBlockingAndResetMocks(isV2, thing, 0, 0, policyEnforcer, writeThingsCollectionSpy,
                     writePoliciesCollectionSpy);
 
-            final List<ProcessableThingEvent> writes = Collections.singletonList(
+            final List<ThingEvent> writes = Collections.singletonList(
                     wrapEvent(createAclModified("iot-things:mySid3", 1L,
-                            org.eclipse.ditto.model.things.Permission.WRITE), JsonSchemaVersion.V_1)
-            );
+                            org.eclipse.ditto.model.things.Permission.WRITE), JsonSchemaVersion.V_1));
 
             final PolicyRestrictedSearchAggregation aggregation =
                     abf.newBuilder(cf.fieldCriteria(fef.filterByAttribute(KEY1), cf.eq(VALUE1)))
@@ -1283,12 +1278,11 @@ public final class MongoThingsSearchUpdaterPersistenceTest extends AbstractThing
             insertBlockingAndResetMocks(isV2, thing, 0, 0, policyEnforcer, writeThingsCollectionSpy,
                     writePoliciesCollectionSpy);
 
-            final List<ProcessableThingEvent> writes = Collections.singletonList(
+            final List<ThingEvent> writes = Collections.singletonList(
                     wrapEvent(
                             AclEntryDeleted.of(KNOWN_THING_ID, AuthorizationSubject.newInstance("iot-things:mySid3"),
                                     1L,
-                                    DittoHeaders.empty()), JsonSchemaVersion.V_1)
-            );
+                                    DittoHeaders.empty()), JsonSchemaVersion.V_1));
 
 
             final PolicyRestrictedSearchAggregation aggregation =
@@ -1314,12 +1308,11 @@ public final class MongoThingsSearchUpdaterPersistenceTest extends AbstractThing
             insertBlockingAndResetMocks(isV2, thing, 0, 0, policyEnforcer, writePoliciesCollectionSpy,
                     writeThingsCollectionSpy);
 
-            final List<ProcessableThingEvent> writes = Collections.singletonList(
+            final List<ThingEvent> writes = Collections.singletonList(
                     wrapEvent(
                             createAclModified("newSid", 1L, org.eclipse.ditto.model.things.Permission.READ,
                                     org.eclipse.ditto.model.things.Permission.WRITE,
-                                    org.eclipse.ditto.model.things.Permission.ADMINISTRATE), JsonSchemaVersion.V_1)
-            );
+                                    org.eclipse.ditto.model.things.Permission.ADMINISTRATE), JsonSchemaVersion.V_1));
 
             Assertions.assertThat(
                     runBlockingWithReturn(
@@ -1352,7 +1345,7 @@ public final class MongoThingsSearchUpdaterPersistenceTest extends AbstractThing
             final AclEntry entry = ThingsModelFactory.newAclEntry(newAuthSubject("anotherSid"),
                     org.eclipse.ditto.model.things.Permission.READ);
 
-            final List<ProcessableThingEvent> writes = new ArrayList<>();
+            final List<ThingEvent> writes = new ArrayList<>();
             writes.add(wrapEvent(
                     AclEntryModified.of(KNOWN_THING_ID, entry, 2L, DittoHeaders.empty()),
                     apiVersion));
@@ -1399,7 +1392,7 @@ public final class MongoThingsSearchUpdaterPersistenceTest extends AbstractThing
             final AccessControlList acl = ThingsModelFactory.newAcl(aclEntry);
             final AclModified aclModified = AclModified.of(KNOWN_THING_ID, acl, 1L, DittoHeaders.empty());
 
-            final List<ProcessableThingEvent> writes = new ArrayList<>();
+            final List<ThingEvent> writes = new ArrayList<>();
             writes.add(wrapEvent(aclModified, apiVersion));
 
             Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID,
@@ -1809,8 +1802,11 @@ public final class MongoThingsSearchUpdaterPersistenceTest extends AbstractThing
         return FeaturesModified.of(KNOWN_THING_ID, features, 2L, DittoHeaders.empty());
     }
 
-    private static ProcessableThingEvent wrapEvent(final ThingEvent thingEvent, final JsonSchemaVersion version) {
-        return ProcessableThingEvent.newInstance(thingEvent, version);
+    private static ThingEvent wrapEvent(final ThingEvent thingEvent, final JsonSchemaVersion version) {
+        final DittoHeaders versionedHeaders = thingEvent.getDittoHeaders().toBuilder()
+                .schemaVersion(version)
+                .build();
+        return thingEvent.setDittoHeaders(versionedHeaders);
     }
 }
 

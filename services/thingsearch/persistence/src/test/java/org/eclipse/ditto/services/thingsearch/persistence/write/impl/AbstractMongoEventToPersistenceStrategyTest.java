@@ -20,12 +20,14 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.model.policiesenforcers.EffectedSubjectIds;
 import org.eclipse.ditto.model.policiesenforcers.ImmutableEffectedSubjectIds;
 import org.eclipse.ditto.model.policiesenforcers.PolicyEnforcer;
 import org.eclipse.ditto.services.thingsearch.persistence.write.IndexLengthRestrictionEnforcer;
+import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.junit.Before;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -71,6 +73,14 @@ public abstract class AbstractMongoEventToPersistenceStrategyTest {
 
     private boolean isV1() {
         return version.equals(JsonSchemaVersion.V_1);
+    }
+
+    <T extends ThingEvent> T setVersion(final T thingEvent) {
+        final DittoHeaders versionedHeader =
+                thingEvent.getDittoHeaders().toBuilder().schemaVersion(version).build();
+        @SuppressWarnings("unchecked")
+        final T versionedEvent = (T) thingEvent.setDittoHeaders(versionedHeader);
+        return versionedEvent;
     }
 
 }

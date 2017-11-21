@@ -17,8 +17,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.List;
 
 import org.bson.conversions.Bson;
-import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.services.thingsearch.persistence.ProcessableThingEvent;
 import org.eclipse.ditto.services.thingsearch.persistence.TestConstants;
 import org.eclipse.ditto.signals.events.things.ThingDeleted;
 import org.junit.Test;
@@ -39,11 +37,8 @@ public final class MongoThingDeletedStrategyTest extends AbstractMongoEventToPer
         verifyPolicyUpdatesForSchemaVersion(updates, 1);
     }
 
-    private ProcessableThingEvent<ThingDeleted> thingEvent() {
-        if (JsonSchemaVersion.V_1.equals(version)) {
-            return ProcessableThingEvent.newInstance(TestConstants.ThingEvent.THING_DELETED_V1, version);
-        }
-        return ProcessableThingEvent.newInstance(TestConstants.ThingEvent.THING_DELETED, version);
+    private ThingDeleted thingEvent() {
+        return setVersion(TestConstants.ThingEvent.THING_DELETED);
     }
 
 }

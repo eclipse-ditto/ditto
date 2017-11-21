@@ -13,6 +13,8 @@ package org.eclipse.ditto.services.thingsearch.persistence.write.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
 import java.util.List;
@@ -44,6 +46,7 @@ import org.eclipse.ditto.signals.events.things.FeaturesDeleted;
 import org.eclipse.ditto.signals.events.things.FeaturesModified;
 import org.eclipse.ditto.signals.events.things.ThingCreated;
 import org.eclipse.ditto.signals.events.things.ThingDeleted;
+import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.eclipse.ditto.signals.events.things.ThingModified;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -86,6 +89,7 @@ public final class MongoEventToPersistenceStrategyFactoryTest {
 
     private MongoEventToPersistenceStrategyFactory factory = MongoEventToPersistenceStrategyFactory.getInstance();
     private String type;
+    private ThingEvent eventMock;
     private boolean isAllowed;
     @Nullable
     private Class expectedClass;
@@ -93,22 +97,23 @@ public final class MongoEventToPersistenceStrategyFactoryTest {
     public MongoEventToPersistenceStrategyFactoryTest(final String type, final boolean isAllowed,
             final Class expectedClass) {
         this.type = type;
+        this.eventMock = mock(ThingEvent.class);
+        when(eventMock.getType()).thenReturn(type);
         this.isAllowed = isAllowed;
         this.expectedClass = expectedClass;
     }
 
+
     @Test
-    public void getStrategyForType() {
+    public void getStrategy() {
         if (isAllowed) {
-            final EventToPersistenceStrategy strategy = factory.getStrategyForType(type);
-            assertThat(strategy)
-                    .isNotNull();
-            assertThat(strategy.getClass())
-                    .isEqualTo(expectedClass);
+            final EventToPersistenceStrategy strategy = factory.getStrategy(eventMock);
+            assertThat(strategy).isNotNull();
+            assertThat(strategy.getClass()).isEqualTo(expectedClass);
         } else {
             assertThatExceptionOfType(IllegalStateException.class)
                     .isThrownBy(() -> {
-                        factory.getStrategyForType(type);
+                        factory.getStrategy(eventMock);
                     });
         }
     }
@@ -117,13 +122,10 @@ public final class MongoEventToPersistenceStrategyFactoryTest {
     public void getInstance() throws Exception {
         final EventToPersistenceStrategy strategy = factory.getInstance(type);
         if (isAllowed) {
-            assertThat(strategy)
-                    .isNotNull();
-            assertThat(strategy.getClass())
-                    .isEqualTo(expectedClass);
+            assertThat(strategy).isNotNull();
+            assertThat(strategy.getClass()).isEqualTo(expectedClass);
         } else {
-            assertThat(strategy)
-                    .isNull();
+            assertThat(strategy).isNull();
         }
     }
 

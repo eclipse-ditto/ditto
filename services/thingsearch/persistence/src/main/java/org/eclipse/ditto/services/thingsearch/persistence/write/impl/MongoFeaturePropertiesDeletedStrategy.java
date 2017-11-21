@@ -16,7 +16,6 @@ import java.util.List;
 
 import org.bson.conversions.Bson;
 import org.eclipse.ditto.model.policiesenforcers.PolicyEnforcer;
-import org.eclipse.ditto.services.thingsearch.persistence.ProcessableThingEvent;
 import org.eclipse.ditto.services.thingsearch.persistence.write.IndexLengthRestrictionEnforcer;
 import org.eclipse.ditto.signals.events.things.FeaturePropertiesDeleted;
 
@@ -30,22 +29,22 @@ public final class MongoFeaturePropertiesDeletedStrategy extends
      * {@inheritDoc}
      */
     @Override
-    public final List<Bson> thingUpdates(final ProcessableThingEvent<FeaturePropertiesDeleted> event,
+    public final List<Bson> thingUpdates(final FeaturePropertiesDeleted event,
             final IndexLengthRestrictionEnforcer indexLengthRestrictionEnforcer) {
         return Collections.singletonList(
-                FeaturesUpdateFactory.createDeleteFeaturePropertiesUpdate(event.getThingEvent().getFeatureId()));
+                FeaturesUpdateFactory.createDeleteFeaturePropertiesUpdate(event.getFeatureId()));
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public final List<PolicyUpdate> policyUpdates(final ProcessableThingEvent<FeaturePropertiesDeleted> event,
+    public final List<PolicyUpdate> policyUpdates(final FeaturePropertiesDeleted event,
             final PolicyEnforcer policyEnforcer) {
-        if (isPolicyRevelant(event.getJsonSchemaVersion())) {
+
+        if (isPolicyRevelant(event.getImplementedSchemaVersion())) {
             return Collections.singletonList(
-                    PolicyUpdateFactory.createFeaturePropertiesDeletion(event.getThingEvent().getThingId(),
-                            event.getThingEvent().getFeatureId()));
+                    PolicyUpdateFactory.createFeaturePropertiesDeletion(event.getThingId(), event.getFeatureId()));
         }
         return Collections.emptyList();
     }

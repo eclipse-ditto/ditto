@@ -16,7 +16,6 @@ import java.util.List;
 
 import org.bson.conversions.Bson;
 import org.eclipse.ditto.model.policiesenforcers.PolicyEnforcer;
-import org.eclipse.ditto.services.thingsearch.persistence.ProcessableThingEvent;
 import org.eclipse.ditto.services.thingsearch.persistence.write.IndexLengthRestrictionEnforcer;
 import org.eclipse.ditto.signals.events.things.FeaturePropertyCreated;
 
@@ -29,25 +28,23 @@ public final class MongoFeaturePropertyCreatedStrategy extends MongoEventToPersi
      * {@inheritDoc}
      */
     @Override
-    public final List<Bson> thingUpdates(final ProcessableThingEvent<FeaturePropertyCreated> event,
+    public final List<Bson> thingUpdates(final FeaturePropertyCreated event,
             final IndexLengthRestrictionEnforcer indexLengthRestrictionEnforcer) {
-        final FeaturePropertyCreated e = event.getThingEvent();
         return FeaturesUpdateFactory.createUpdateForFeatureProperty(indexLengthRestrictionEnforcer,
-                e.getFeatureId(),
-                e.getPropertyPointer(), e.getPropertyValue());
+                event.getFeatureId(), event.getPropertyPointer(), event.getPropertyValue());
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public final List<PolicyUpdate> policyUpdates(final ProcessableThingEvent<FeaturePropertyCreated> event,
+    public final List<PolicyUpdate> policyUpdates(final FeaturePropertyCreated event,
             final PolicyEnforcer policyEnforcer) {
-        if (isPolicyRevelant(event.getJsonSchemaVersion())) {
-            final FeaturePropertyCreated e = event.getThingEvent();
-            return Collections.singletonList(PolicyUpdateFactory.createFeaturePropertyUpdate(e.getThingId(), e
-                            .getFeatureId(),
-                    e.getPropertyPointer(), e.getPropertyValue(), policyEnforcer));
+
+        if (isPolicyRevelant(event.getImplementedSchemaVersion())) {
+            return Collections.singletonList(
+                    PolicyUpdateFactory.createFeaturePropertyUpdate(event.getThingId(), event.getFeatureId(),
+                            event.getPropertyPointer(), event.getPropertyValue(), policyEnforcer));
         }
         return Collections.emptyList();
     }

@@ -20,6 +20,7 @@ import static org.mockito.Mockito.when;
 import java.util.Collections;
 import java.util.List;
 
+import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
@@ -30,16 +31,13 @@ import org.eclipse.ditto.model.policiesenforcers.PolicyEnforcer;
 import org.eclipse.ditto.model.policiesenforcers.PolicyEnforcers;
 import org.eclipse.ditto.services.thingsearch.persistence.MongoClientWrapper;
 import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
-import org.eclipse.ditto.services.thingsearch.persistence.ProcessableThingEvent;
 import org.eclipse.ditto.services.thingsearch.persistence.write.EventToPersistenceStrategyFactory;
 import org.eclipse.ditto.signals.events.things.AttributeCreated;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.reactivestreams.Publisher;
 
-import com.mongodb.bulk.BulkWriteResult;
 import com.mongodb.client.model.BulkWriteOptions;
 import com.mongodb.reactivestreams.client.MongoCollection;
 import com.mongodb.reactivestreams.client.MongoDatabase;
@@ -58,12 +56,12 @@ import akka.stream.testkit.javadsl.TestSink;
 public final class MongoDBMockSearchUpdaterPersistenceTest {
 
     private MongoThingsSearchUpdaterPersistence persistence;
-    private MongoCollection thingsCollection;
+    private MongoCollection<Document> thingsCollection;
 
     private ActorSystem actorSystem;
     private ActorMaterializer actorMaterializer;
 
-    private final EventToPersistenceStrategyFactory<ThingEvent, Bson, PolicyUpdate> eventToPersistenceStrategyFactory =
+    private final EventToPersistenceStrategyFactory<Bson, PolicyUpdate> eventToPersistenceStrategyFactory =
             MongoEventToPersistenceStrategyFactory.getInstance();
 
     @Before
@@ -75,8 +73,8 @@ public final class MongoDBMockSearchUpdaterPersistenceTest {
         final MongoClientWrapper clientWrapper = mock(MongoClientWrapper.class);
         final MongoDatabase db = mock(MongoDatabase.class);
 
-        thingsCollection = mock(MongoCollection.class);
-        final MongoCollection policiesCollection = mock(MongoCollection.class);
+        thingsCollection = createMockCollection();
+        final MongoCollection<Document> policiesCollection = createMockCollection();
 
         when(clientWrapper.getDatabase())
                 .thenReturn(db);
@@ -89,6 +87,11 @@ public final class MongoDBMockSearchUpdaterPersistenceTest {
                 new MongoThingsSearchUpdaterPersistence(clientWrapper, loggingAdapter, eventToPersistenceStrategyFactory);
     }
 
+    @SuppressWarnings("unchecked")
+    private static MongoCollection<Document> createMockCollection() {
+        return mock(MongoCollection.class);
+    }
+
     @After
     public void shutdown() {
         actorSystem.terminate();
@@ -96,17 +99,15 @@ public final class MongoDBMockSearchUpdaterPersistenceTest {
 
     @Test
     public void testExceptionHandling() {
-
         final PolicyEnforcer policyEnforcer = PolicyEnforcers.defaultEvaluator(
                 PoliciesModelFactory.newPolicyBuilder(":theThing").build());
         final ThingEvent attributeCreated = AttributeCreated.of(":t", JsonPointer.empty(), JsonValue.of(1), 1L,
-                DittoHeaders.empty());
-        final ProcessableThingEvent wrappedEvent = ProcessableThingEvent.newInstance(attributeCreated, JsonSchemaVersion.LATEST);
-        final List<ProcessableThingEvent> thingEvents = Collections.singletonList(wrappedEvent);
+                DittoHeaders.newBuilder().schemaVersion(JsonSchemaVersion.LATEST).build());
+        final List<ThingEvent> thingEvents = Collections.singletonList(attributeCreated);
 
+        final String mockErrorMessage = "db mock error";
         when(thingsCollection.bulkWrite(anyList(), any(BulkWriteOptions.class)))
-                .thenReturn((Publisher<BulkWriteResult>) subscriber
-                        -> subscriber.onError(new RuntimeException("db error")));
+                .thenReturn(subscriber -> subscriber.onError(new RuntimeException(mockErrorMessage)));
 
         final Source<Boolean, NotUsed> source = persistence.executeCombinedWrites(":theThing",
                 thingEvents, policyEnforcer, 1L);
@@ -114,7 +115,7 @@ public final class MongoDBMockSearchUpdaterPersistenceTest {
         assertThatExceptionOfType(RuntimeException.class)
                 .isThrownBy(() -> expectError(source))
                 .withNoCause()
-                .withMessage("db error");
+                .withMessage(mockErrorMessage);
     }
 
     private <T> void expectError(final Source<T, NotUsed> source) throws Throwable {

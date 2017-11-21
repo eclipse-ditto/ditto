@@ -14,7 +14,6 @@ package org.eclipse.ditto.services.thingsearch.persistence.write.impl;
 import java.util.List;
 
 import org.bson.conversions.Bson;
-import org.eclipse.ditto.services.thingsearch.persistence.ProcessableThingEvent;
 import org.eclipse.ditto.services.thingsearch.persistence.write.IndexLengthRestrictionEnforcer;
 import org.eclipse.ditto.signals.events.things.AclEntryCreated;
 
@@ -27,8 +26,8 @@ public final class MongoAclEntryCreatedStrategy extends MongoEventToPersistenceS
      * {@inheritDoc}
      */
     @Override
-    public List<Bson> thingUpdates(final ProcessableThingEvent<AclEntryCreated> event,
+    public List<Bson> thingUpdates(final AclEntryCreated event,
             final IndexLengthRestrictionEnforcer indexLengthRestrictionEnforcer) {
-        return AclUpdatesFactory.createUpdateAclEntry(event.getThingEvent().getAclEntry());
+        return AclUpdatesFactory.createUpdateAclEntry(event.getAclEntry());
     }
 }

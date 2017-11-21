@@ -16,7 +16,6 @@ import java.util.List;
 
 import org.bson.conversions.Bson;
 import org.eclipse.ditto.model.policiesenforcers.PolicyEnforcer;
-import org.eclipse.ditto.services.thingsearch.persistence.ProcessableThingEvent;
 import org.eclipse.ditto.services.thingsearch.persistence.write.IndexLengthRestrictionEnforcer;
 import org.eclipse.ditto.signals.events.things.ThingDeleted;
 
@@ -29,7 +28,7 @@ public final class MongoThingDeletedStrategy extends MongoEventToPersistenceStra
      * {@inheritDoc}
      */
     @Override
-    public final List<Bson> thingUpdates(final ProcessableThingEvent<ThingDeleted> event,
+    public final List<Bson> thingUpdates(final ThingDeleted event,
             final IndexLengthRestrictionEnforcer indexLengthRestrictionEnforcer) {
         return Collections.singletonList(ThingUpdateFactory.createDeleteThingUpdate());
 
@@ -39,11 +38,11 @@ public final class MongoThingDeletedStrategy extends MongoEventToPersistenceStra
      * {@inheritDoc}
      */
     @Override
-    public final List<PolicyUpdate> policyUpdates(final ProcessableThingEvent<ThingDeleted> event,
+    public final List<PolicyUpdate> policyUpdates(final ThingDeleted event,
             final PolicyEnforcer policyEnforcer) {
-        if (isPolicyRevelant(event.getJsonSchemaVersion())) {
+        if (isPolicyRevelant(event.getImplementedSchemaVersion())) {
             return Collections.singletonList(
-                    PolicyUpdateFactory.createDeleteThingUpdate(event.getThingEvent().getThingId()));
+                    PolicyUpdateFactory.createDeleteThingUpdate(event.getThingId()));
         }
         return Collections.emptyList();
     }

@@ -40,7 +40,6 @@ import org.eclipse.ditto.model.policiesenforcers.PolicyEnforcer;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.thingsearch.persistence.MongoClientWrapper;
 import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
-import org.eclipse.ditto.services.thingsearch.persistence.ProcessableThingEvent;
 import org.eclipse.ditto.services.thingsearch.persistence.read.document.DocumentMapper;
 import org.eclipse.ditto.services.thingsearch.persistence.write.AbstractThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.thingsearch.persistence.write.EventToPersistenceStrategyFactory;
@@ -78,7 +77,7 @@ public final class MongoThingsSearchUpdaterPersistence extends AbstractThingsSea
     private static final int MONGO_INDEX_VALUE_ERROR_CODE = 17280;
     private final MongoCollection<Document> collection;
     private final MongoCollection<Document> policiesCollection;
-    private final EventToPersistenceStrategyFactory<? extends ThingEvent, Bson, PolicyUpdate>
+    private final EventToPersistenceStrategyFactory<Bson, PolicyUpdate>
             persistenceStrategyFactory;
 
     /**
@@ -90,7 +89,7 @@ public final class MongoThingsSearchUpdaterPersistence extends AbstractThingsSea
      */
     public MongoThingsSearchUpdaterPersistence(final MongoClientWrapper clientWrapper,
             final LoggingAdapter log,
-            final EventToPersistenceStrategyFactory<? extends ThingEvent, Bson, PolicyUpdate> persistenceStrategyFactory) {
+            final EventToPersistenceStrategyFactory<Bson, PolicyUpdate> persistenceStrategyFactory) {
         super(log);
         collection = clientWrapper.getDatabase().getCollection(THINGS_COLLECTION_NAME);
         policiesCollection = clientWrapper.getDatabase().getCollection(POLICIES_BASED_SEARCH_INDEX_COLLECTION_NAME);
@@ -201,23 +200,22 @@ public final class MongoThingsSearchUpdaterPersistence extends AbstractThingsSea
      */
     @Override
     public Source<Boolean, NotUsed> executeCombinedWrites(final String thingId,
-            final List<ProcessableThingEvent> thingEvents,
+            final List<ThingEvent> thingEvents,
             final PolicyEnforcer policyEnforcer, final long targetRevision) {
         if (!thingEvents.isEmpty()) {
             final BulkWriteOptions writeOrdered = new BulkWriteOptions();
             writeOrdered.ordered(true);
 
-            final long lastKnownRevision = thingEvents.get(0).getThingEvent().getRevision() - 1;
+            final long lastKnownRevision = thingEvents.get(0).getRevision() - 1;
             final Bson filter = filterWithExactRevision(thingId, lastKnownRevision);
 
             // convert the events to the write models
             final List<WriteModel<Document>> thingWriteModels = new ArrayList<>();
             final List<WriteModel<Document>> policyWriteModels = new ArrayList<>();
 
-            for (final ProcessableThingEvent processableThingEvent : thingEvents) {
-                final List<WriteModel<Document>> thingUpdates = createThingUpdates(filter, processableThingEvent);
-                final List<WriteModel<Document>> policyUpdates =
-                        createPolicyUpdates(processableThingEvent, policyEnforcer);
+            for (final ThingEvent thingEvent : thingEvents) {
+                final List<WriteModel<Document>> thingUpdates = createThingUpdates(filter, thingEvent);
+                final List<WriteModel<Document>> policyUpdates = createPolicyUpdates(thingEvent, policyEnforcer);
 
                 thingWriteModels.addAll(thingUpdates);
                 policyWriteModels.addAll(policyUpdates);
@@ -235,9 +233,9 @@ public final class MongoThingsSearchUpdaterPersistence extends AbstractThingsSea
         return Source.single(true);
     }
 
-    private List<WriteModel<Document>> createThingUpdates(final Bson filter, final ProcessableThingEvent thingEvent) {
-        @SuppressWarnings("unchecked") final List<Bson> updates = persistenceStrategyFactory
-                .getStrategyForType(thingEvent.getThingEvent().getType())
+    private <T extends ThingEvent> List<WriteModel<Document>> createThingUpdates(final Bson filter, final T thingEvent) {
+        final List<Bson> updates = persistenceStrategyFactory
+                .getStrategy(thingEvent)
                 .thingUpdates(thingEvent, indexLengthRestrictionEnforcer);
         return updates
                 .stream()
@@ -245,10 +243,10 @@ public final class MongoThingsSearchUpdaterPersistence extends AbstractThingsSea
                 .collect(Collectors.toList());
     }
 
-    private List<WriteModel<Document>> createPolicyUpdates(final ProcessableThingEvent thingEvent,
+    private <T extends ThingEvent> List<WriteModel<Document>> createPolicyUpdates(final T thingEvent,
             final PolicyEnforcer policyEnforcer) {
-        @SuppressWarnings("unchecked") final List<PolicyUpdate> updates = persistenceStrategyFactory
-                .getStrategyForType(thingEvent.getThingEvent().getType())
+        final List<PolicyUpdate> updates = persistenceStrategyFactory
+                .getStrategy(thingEvent)
                 .policyUpdates(thingEvent, policyEnforcer);
 
         final List<WriteModel<Document>> writeModels = new ArrayList<>();

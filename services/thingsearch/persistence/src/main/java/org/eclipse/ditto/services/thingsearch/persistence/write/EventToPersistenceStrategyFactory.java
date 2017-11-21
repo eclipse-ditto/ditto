@@ -11,6 +11,8 @@
  */
 package org.eclipse.ditto.services.thingsearch.persistence.write;
 
+import static java.util.Objects.requireNonNull;
+
 import java.text.MessageFormat;
 import java.util.Collections;
 import java.util.HashSet;
@@ -44,11 +46,10 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
 /**
  * Factory class that creates {@link EventToPersistenceStrategy} instances for a given {@link ThingEvent}.
  *
- * @param <T> Type of the {@code ThingEvent}.
  * @param <D> Type of the Updates for the Thing.
  * @param <P> Type of the Updates for the Policies of a Thing.
  */
-public abstract class EventToPersistenceStrategyFactory<T extends ThingEvent, D, P> {
+public abstract class EventToPersistenceStrategyFactory<D, P> {
 
     private static final Set<String> AVAILABLE_TYPES;
 
@@ -81,13 +82,20 @@ public abstract class EventToPersistenceStrategyFactory<T extends ThingEvent, D,
     }
 
     /**
-     * Get the {@link EventToPersistenceStrategy} that allows you to create persistable objects for {@code type}. This
-     * method will throw an {@link IllegalStateException} if the type is not allowed or unknown.
+     * Get the {@link EventToPersistenceStrategy} that allows to create persistable objects for the given {@code
+     * event}.
+     * This method will throw an {@link IllegalStateException} if the event type is not allowed or unknown.
      *
-     * @param type The type of the {@link ThingEvent} using {@link ThingEvent#getType()}.
-     * @return The strategy to create persistable ojects.
+     * @param event The event.
+     * @param <T> Type of the event.
+     * @return The strategy to create persistable objects.
      */
-    public final EventToPersistenceStrategy<T, D, P> getStrategyForType(final String type) {
+    public final <T extends ThingEvent> EventToPersistenceStrategy<T, D, P> getStrategy(final T event) {
+        requireNonNull(event);
+        return getStrategyForType(event.getType());
+    }
+
+    private <T extends ThingEvent> EventToPersistenceStrategy<T, D, P> getStrategyForType(final String type) {
         if (isTypeAllowed(type)) {
             return getInstance(type);
         }
@@ -99,9 +107,10 @@ public abstract class EventToPersistenceStrategyFactory<T extends ThingEvent, D,
      * Get an instance of the {@link EventToPersistenceStrategy} that creates persistable objects.
      *
      * @param type The type of the {@link ThingEvent} using {@link ThingEvent#getType()}.
+     * @param <T> Type of the event.
      * @return The strategy to create persistable objects or null if none could be found.
      */
-    protected abstract EventToPersistenceStrategy<T, D, P> getInstance(final String type);
+    protected abstract <T extends ThingEvent>  EventToPersistenceStrategy<T, D, P> getInstance(final String type);
 
     /**
      * Checks if the given {@code type} is allowed for creating {@link EventToPersistenceStrategy}.

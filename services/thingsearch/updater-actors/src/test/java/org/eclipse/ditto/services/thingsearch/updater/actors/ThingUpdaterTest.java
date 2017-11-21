@@ -36,7 +36,6 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
-import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policiesenforcers.PolicyEnforcer;
 import org.eclipse.ditto.model.things.AccessControlList;
@@ -51,7 +50,6 @@ import org.eclipse.ditto.services.models.things.ThingTag;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SyncThing;
-import org.eclipse.ditto.services.thingsearch.persistence.ProcessableThingEvent;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingMetadata;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.utils.akka.JavaTestProbe;
@@ -194,12 +192,12 @@ public final class ThingUpdaterTest {
         final ThingEvent attributeCreated3 =
                 AttributeCreated.of(THING_ID, newPointer("p3"), newValue(true), 5L, dittoHeaders);
 
-        final List<ProcessableThingEvent> expectedWrites1 =
-                Collections.singletonList(wrapV1Event(attributeCreated0));
-        final List<ProcessableThingEvent> expectedWrites2 = new ArrayList<>();
-        expectedWrites2.add(wrapV1Event(attributeCreated1));
-        expectedWrites2.add(wrapV1Event(attributeCreated2));
-        expectedWrites2.add(wrapV1Event(attributeCreated3));
+        final List<ThingEvent> expectedWrites1 =
+                Collections.singletonList(attributeCreated0);
+        final List<ThingEvent> expectedWrites2 = new ArrayList<>();
+        expectedWrites2.add(attributeCreated1);
+        expectedWrites2.add(attributeCreated2);
+        expectedWrites2.add(attributeCreated3);
 
 
         when(persistenceMock.executeCombinedWrites(eq(THING_ID), eq(expectedWrites1),
@@ -276,8 +274,8 @@ public final class ThingUpdaterTest {
                 .setRevision(revision)
                 .setPermissions(ACL)
                 .build();
-        final List<ProcessableThingEvent> expectedWrite =
-                Collections.singletonList(wrapV1Event(attributeCreated));
+        final List<ThingEvent> expectedWrite =
+                Collections.singletonList(attributeCreated);
         final Source<Boolean, NotUsed> sourceUnsuccess = Source.single(Boolean.FALSE);
 
         when(persistenceMock.executeCombinedWrites(eq(THING_ID), eq(expectedWrite), any(), anyLong())).thenReturn(
@@ -303,8 +301,8 @@ public final class ThingUpdaterTest {
                 .build();
         final ThingEvent attributeCreated =
                 AttributeCreated.of(THING_ID, newPointer("p1"), newValue(true), 1L, dittoHeaders);
-        final List<ProcessableThingEvent> expectedWrites =
-                Collections.singletonList(wrapV1Event(attributeCreated));
+        final List<ThingEvent> expectedWrites =
+                Collections.singletonList(attributeCreated);
         when(persistenceMock.executeCombinedWrites(eq(THING_ID), eq(expectedWrites), any(), anyLong())).thenThrow(
                 new RuntimeException("db operation mock error."));
 
@@ -454,8 +452,8 @@ public final class ThingUpdaterTest {
                 final AttributeCreated changeEvent =
                         AttributeCreated.of(THING_ID, JsonPointer.of("/foo"), JsonValue.of("bar"),
                                 revision + 1, dittoHeaders);
-                final List<ProcessableThingEvent> expectedWrites =
-                        Collections.singletonList(wrapEvent(changeEvent, changeEvent.getImplementedSchemaVersion()));
+                final List<ThingEvent> expectedWrites =
+                        Collections.singletonList(changeEvent);
                 underTest.tell(changeEvent, getRef());
 
 
@@ -831,15 +829,6 @@ public final class ThingUpdaterTest {
         // null type makes the event invalid!!
         when(invalidThingEvent.getType()).thenReturn(null);
         return invalidThingEvent;
-    }
-
-
-    private static ProcessableThingEvent wrapV1Event(final ThingEvent thingEvent) {
-        return wrapEvent(thingEvent, JsonSchemaVersion.V_1);
-    }
-
-    private static ProcessableThingEvent wrapEvent(final ThingEvent thingEvent, final JsonSchemaVersion version) {
-        return ProcessableThingEvent.newInstance(thingEvent, version);
     }
 
     private static void expectShardedSudoRetrieveThing(final TestProbe thingsShardProbe, final String thingId) {

@@ -17,7 +17,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.List;
 
 import org.bson.conversions.Bson;
-import org.eclipse.ditto.services.thingsearch.persistence.ProcessableThingEvent;
 import org.eclipse.ditto.services.thingsearch.persistence.TestConstants;
 import org.eclipse.ditto.signals.events.things.FeaturesDeleted;
 import org.junit.Test;
@@ -38,8 +37,8 @@ public final class MongoFeaturesDeletedStrategyTest extends AbstractMongoEventTo
         verifyPolicyUpdatesForSchemaVersion(updates, 1);
     }
 
-    private ProcessableThingEvent<FeaturesDeleted> thingEvent() {
-        return ProcessableThingEvent.newInstance(TestConstants.ThingEvent.FEATURES_DELETED, version);
+    private FeaturesDeleted thingEvent() {
+        return setVersion(TestConstants.ThingEvent.FEATURES_DELETED);
     }
 
 }

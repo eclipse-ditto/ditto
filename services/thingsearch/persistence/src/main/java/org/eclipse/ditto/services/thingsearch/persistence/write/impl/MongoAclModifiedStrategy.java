@@ -15,7 +15,6 @@ import java.util.List;
 
 import org.bson.conversions.Bson;
 import org.eclipse.ditto.model.things.AccessControlList;
-import org.eclipse.ditto.services.thingsearch.persistence.ProcessableThingEvent;
 import org.eclipse.ditto.services.thingsearch.persistence.write.IndexLengthRestrictionEnforcer;
 import org.eclipse.ditto.signals.events.things.AclModified;
 
@@ -28,9 +27,8 @@ public final class MongoAclModifiedStrategy extends MongoEventToPersistenceStrat
      * {@inheritDoc}
      */
     @Override
-    public List<Bson> thingUpdates(final ProcessableThingEvent<AclModified> event,
-            final IndexLengthRestrictionEnforcer indexLengthRestrictionEnforcer) {
-        final AccessControlList acl = event.getThingEvent().getAccessControlList();
+    public List<Bson> thingUpdates(final AclModified event, final IndexLengthRestrictionEnforcer indexLengthRestrictionEnforcer) {
+        final AccessControlList acl = event.getAccessControlList();
         return AclUpdatesFactory.createUpdateAclEntries(acl);
     }
 }

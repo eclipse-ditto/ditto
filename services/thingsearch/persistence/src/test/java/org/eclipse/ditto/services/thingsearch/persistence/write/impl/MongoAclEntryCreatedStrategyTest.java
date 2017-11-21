@@ -18,7 +18,6 @@ import java.util.Collections;
 import java.util.List;
 
 import org.bson.conversions.Bson;
-import org.eclipse.ditto.services.thingsearch.persistence.ProcessableThingEvent;
 import org.eclipse.ditto.services.thingsearch.persistence.TestConstants;
 import org.eclipse.ditto.signals.events.things.AclEntryCreated;
 import org.junit.Test;
@@ -39,8 +38,8 @@ public final class MongoAclEntryCreatedStrategyTest extends AbstractMongoEventTo
                 .isEqualTo(Collections.emptyList());
     }
 
-    private ProcessableThingEvent<AclEntryCreated> thingEvent() {
-        return ProcessableThingEvent.newInstance(TestConstants.ThingEvent.ACL_ENTRY_CREATED, version);
+    private AclEntryCreated thingEvent() {
+        return setVersion(TestConstants.ThingEvent.ACL_ENTRY_CREATED);
     }
 
 }

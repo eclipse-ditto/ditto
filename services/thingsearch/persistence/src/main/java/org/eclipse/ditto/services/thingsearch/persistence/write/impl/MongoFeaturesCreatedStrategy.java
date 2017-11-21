@@ -16,7 +16,6 @@ import java.util.List;
 
 import org.bson.conversions.Bson;
 import org.eclipse.ditto.model.policiesenforcers.PolicyEnforcer;
-import org.eclipse.ditto.services.thingsearch.persistence.ProcessableThingEvent;
 import org.eclipse.ditto.services.thingsearch.persistence.write.IndexLengthRestrictionEnforcer;
 import org.eclipse.ditto.signals.events.things.FeaturesCreated;
 
@@ -29,23 +28,22 @@ public final class MongoFeaturesCreatedStrategy extends MongoEventToPersistenceS
      * {@inheritDoc}
      */
     @Override
-    public final List<Bson> thingUpdates(final ProcessableThingEvent<FeaturesCreated> event,
+    public final List<Bson> thingUpdates(final FeaturesCreated event,
             final IndexLengthRestrictionEnforcer indexLengthRestrictionEnforcer) {
-        return FeaturesUpdateFactory.updateFeatures(
-                indexLengthRestrictionEnforcer, event.getThingEvent()
-                        .getFeatures());
+        return FeaturesUpdateFactory.updateFeatures(indexLengthRestrictionEnforcer, event.getFeatures());
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public final List<PolicyUpdate> policyUpdates(final ProcessableThingEvent<FeaturesCreated> event,
+    public final List<PolicyUpdate> policyUpdates(final FeaturesCreated event,
             final PolicyEnforcer policyEnforcer) {
-        if (isPolicyRevelant(event.getJsonSchemaVersion())) {
+
+        if (isPolicyRevelant(event.getImplementedSchemaVersion())) {
             return Collections.singletonList(PolicyUpdateFactory.createFeaturesUpdate(
-                    event.getThingEvent().getThingId(),
-                    event.getThingEvent().getFeatures(),
+                    event.getThingId(),
+                    event.getFeatures(),
                     policyEnforcer));
         }
         return Collections.emptyList();

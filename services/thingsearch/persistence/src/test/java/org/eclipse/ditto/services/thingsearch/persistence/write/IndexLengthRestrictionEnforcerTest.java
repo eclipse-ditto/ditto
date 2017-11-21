@@ -13,8 +13,7 @@ package org.eclipse.ditto.services.thingsearch.persistence.write;
 
 
 import static org.assertj.core.api.Assertions.assertThat;
-
-import java.util.Random;
+import static org.eclipse.ditto.services.thingsearch.persistence.util.TestStringGenerator.createString;
 
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
@@ -387,13 +386,6 @@ public final class IndexLengthRestrictionEnforcerTest {
         assertThat(value).isNotEqualTo(expected);
         assertThat(indexLengthRestrictionEnforcer.enforceRestrictionsOnAttributeValue(key, value))
                 .isEqualTo(expected);
-    }
-
-    private static String createString(final int length) {
-        return new Random().ints()
-                .limit(length)
-                .mapToObj(i -> "$")
-                .reduce("", (a, b) -> a + b);
     }
 
 }

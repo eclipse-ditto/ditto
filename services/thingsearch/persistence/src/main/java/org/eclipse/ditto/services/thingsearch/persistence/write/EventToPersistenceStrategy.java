@@ -14,7 +14,6 @@ package org.eclipse.ditto.services.thingsearch.persistence.write;
 import java.util.List;
 
 import org.eclipse.ditto.model.policiesenforcers.PolicyEnforcer;
-import org.eclipse.ditto.services.thingsearch.persistence.ProcessableThingEvent;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 /**
@@ -33,8 +32,7 @@ public interface EventToPersistenceStrategy<T extends ThingEvent, D, P> {
      * @param indexLengthRestrictionEnforcer The length enforcer to restrict length before perstisting.
      * @return Te updates needed to persist the information of {@code event}.
      */
-    List<D> thingUpdates(ProcessableThingEvent<T> event,
-            final IndexLengthRestrictionEnforcer indexLengthRestrictionEnforcer);
+    List<D> thingUpdates(T event, final IndexLengthRestrictionEnforcer indexLengthRestrictionEnforcer);
 
     /**
      * Create all updates needed to persist the policy changes made by {@code event}.
@@ -43,6 +41,5 @@ public interface EventToPersistenceStrategy<T extends ThingEvent, D, P> {
      * @param policyEnforcer The policy enforcer.
      * @return The updates needed to persist the policy information of {@code event}.
      */
-    List<P> policyUpdates(ProcessableThingEvent<T> event,
-            final PolicyEnforcer policyEnforcer);
+    List<P> policyUpdates(T event, final PolicyEnforcer policyEnforcer);
 }
