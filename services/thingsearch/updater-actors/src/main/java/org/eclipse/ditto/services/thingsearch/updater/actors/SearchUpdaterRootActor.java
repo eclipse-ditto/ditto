@@ -109,7 +109,7 @@ public final class SearchUpdaterRootActor extends AbstractActor {
         final MongoClientWrapper mongoClientWrapper = new MongoClientWrapper(config);
         final ThingsSearchUpdaterPersistence searchUpdaterPersistence =
                 new MongoThingsSearchUpdaterPersistence(mongoClientWrapper, log,
-                        new MongoEventToPersistenceStrategyFactory());
+                        MongoEventToPersistenceStrategyFactory.getInstance());
 
         final int maxFailures = config.getInt(ConfigKeys.MONGO_CIRCUIT_BREAKER_FAILURES);
         final Duration callTimeout = config.getDuration(ConfigKeys.MONGO_CIRCUIT_BREAKER_TIMEOUT_CALL);
