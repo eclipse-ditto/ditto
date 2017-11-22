@@ -1,36 +1,40 @@
 ---
 title: Protocol specification
-keywords: protocol, specification, twin, digital twin, channel, criterion, action
+keywords: action, channel, criterion, digital twin, envelope, payload, protocol, specification, twin
 tags: [protocol]
 permalink: protocol-specification.html
 ---
 
-In order to comply with the Ditto Protocol, a Protocol message must consist of the following two parts:
+In order to comply with the Ditto Protocol, a Protocol message must consist of
 
-* A Ditto Protocol envelope (JSON)
-* A Ditto Protocol payload (JSON)
+* a Ditto Protocol envelope (JSON) and
+* a Ditto Protocol payload (JSON).
 
 
 ## Ditto Protocol
 
 The communication protocol envelope is implicitly defined by the underlying messaging system 
-(e.g. [WebSocket](protocol-bindings-websocket.html)) used to transport/serialize the messages over the wire.<br/>
-Please refer to the respective [communication protocol binding](protocol-bindings.html) for information how to encode the data in a protocol specific way.
+(e.g. [WebSocket](protocol-bindings-websocket.html)) used to transport/serialize the messages over the wire.
+Please refer to the respective [communication protocol binding](protocol-bindings.html) for information how to encode
+the data in a protocol specific way.
 
 
 ### Ditto Protocol envelope {#dittoProtocolEnvelope}
 
-The Ditto Protocol envelope describes the content of the message (the affected thing entity, a message type, protocol version etc.) and allows the message to be routed by intermediary nodes to its final destination without parsing the actual payload.
+The Ditto Protocol envelope describes the content of the message (the affected thing entity, a message type, protocol
+version etc.) and allows the message to be routed by intermediary nodes to its final destination without parsing the
+actual payload.
 
-The Protocol envelope is formatted as JSON (`content-type=application/json`) and must correspond to the following JSON schema:
+The Protocol envelope is formatted as JSON object (`content-type=application/json`) and must correspond to the 
+following JSON schema:
 
 {% include docson.html schema="jsonschema/protocol-envelope.json" %}
 
 
 ### Ditto Protocol payload (JSON) {#dittoProtocolPayload}
 
-The Ditto model payload contains the application data, e.g. an updated sensor value or a `Thing` in JSON representation.
-See the [specification for Things](protocol-specification-things.html) for the schema of a `Thing`.
+The Ditto model payload contains the application data, e.g. an updated sensor value or a Thing in JSON representation.
+See the [specification for Things](protocol-specification-things.html) for the schema of a Thing.
 
 
 ### Ditto Protocol response {#dittoProtocolResponse}
@@ -41,27 +45,25 @@ The Ditto response for a successful command has the following format:
 
 {% include docson.html schema="jsonschema/protocol-response.json" %}
 
-
 In case the execution failed an error response with information about the error is sent:
 
 {% include docson.html schema="jsonschema/protocol-error_response.json" %}
 
-
-The following sections specify in detail which fields of the Protocol envelope, payload, response are used to contain
+The following sections specify in detail which fields of the Protocol envelope, payload and response are used to contain
 which information.
 
 
 ## Topic
 
 Protocol messages contain a [topic](protocol-specification-topic.html) which is used for
-* addressing an entity
-* defining the `channel` (_twin_ vs. _live_)
-* specifying what the intention of the Protocol message is
+* addressing an entity,
+* defining the `channel` (*twin* vs. *live*) and
+* specifying what the intention of the Protocol message is.
 
 ## Headers
 
-Protocol messages contain headers as JSON object with arbitrary content.<br/>
-There are some pre defined headers which have a special meaning for Ditto:
+Protocol messages contain headers as JSON object with arbitrary content.
+There are some pre-defined headers which have a special meaning for Ditto:
 
 | Header Key | Description                    | Possible values           |
 |------------|--------------------------------|---------------------------|
@@ -71,8 +73,9 @@ There are some pre defined headers which have a special meaning for Ditto:
 
 ## Path
 
-Contains a JSON pointer of where to apply the [value](#value) of the Protocol message. May also be `/` when the value
-contains a replacement for the complete addressed entity (e.g. a complete [Thing](basic-thing.html) JSON).
+Contains a JSON pointer of where to apply the [value](#value) of the Protocol message.
+May also be `/` when the value contains a replacement for the complete addressed entity (e.g. a complete
+[Thing](basic-thing.html) JSON).
 
 ## Value
 

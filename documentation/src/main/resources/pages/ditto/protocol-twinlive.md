@@ -1,6 +1,6 @@
 ---
 title: Protocol twin/live channel
-keywords: protocol, command, response, event, channel, twin, live
+keywords: channel, command, device, event, live, message, protocol, response, twin
 tags: [protocol]
 permalink: protocol-twinlive.html
 ---
@@ -10,18 +10,18 @@ their **Digital Twins**.
 
 ## Twin
 
-The first _channel_, **twin**, handles the digital representation of a `Thing`.<br/>
-This `Thing` is managed with Ditto and its state and properties can be read and updated.
+The first *channel*, **twin**, connects to the digital representation of a Thing.
+This Thing is managed with Ditto and its state and properties can be read and updated.
 
 {% include image.html file="pages/protocol/ditto-twin-channel.png" alt="Ditto twin channel" caption="Ditto twin channel pattern" max-width=800 %}
 
 ## Live
 
-The second _channel_, **live**, routes a command/message towards an actual device.<br/>
-The execution of what to do when a device (or a gateway which connects the device) does with a received command/message
-is out of scope of Ditto and solution specific implementation.
+The second *channel*, **live**, routes a command/message towards an actual device.
+The handling and execution of a received command/message by a device (or a gateway which connects the device) is very 
+specific to the solution and thus out of Ditto's scope.
 
 {% include image.html file="pages/protocol/ditto-live-channel.png" alt="Ditto live channel" caption="Ditto live channel pattern" max-width=800 %}
 
-What Ditto however does when routing **live** commands/messages is an [authorization check](basic-auth.html). So Ditto ensures
-that only authorized parties are able to send a commands or messages.
+What Ditto however does, when routing **live** commands/messages, is an [authorization check](basic-auth.html).
+Thus Ditto ensures that only authorized parties are able to send commands or messages.

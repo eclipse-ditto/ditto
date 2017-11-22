@@ -1,6 +1,6 @@
 ---
 title: Thing
-keywords: entity, model, thing, feature
+keywords: entity, feature, model, namespace, thing
 tags: [model]
 permalink: basic-thing.html
 ---
@@ -14,43 +14,47 @@ Things are very generic entities and are mostly used as a “handle” for multi
 
 Examples:
 
-* Physical Device: a lawn mower, a sensor, a vehicle, a lamp
-* Virtual Device: a room in a house, a virtual power plant spanning multiple power plants, the weather information for a specific location collected by various sensors
-* Transactional entity: a tour of a vehicle (from start until stop), a series of measurements of a machine
-* Master data entity: a supplier of devices or a service provider for devices, an entity representing a city/region
-* Anything else - if it can be modeled and managed appropriately by the supported concepts/capabilities
+* Physical Device: a lawn mower, a sensor, a vehicle, a lamp.
+* Virtual Device: a room in a house, a virtual power plant spanning multiple power plants, the weather information for
+  a specific location collected by various sensors.
+* Transactional entity: a tour of a vehicle (from start until stop), a series of measurements of a machine.
+* Master data entity: a supplier of devices or a service provider for devices, an entity representing a city/region.
+* Anything else - if it can be modeled and managed appropriately by the supported concepts/capabilities.
 
 
 ### Thing ID
 
-For choosing custom Thing IDs when creating a Thing, following rules apply:
+Unique identifier of a Thin. For choosing custom Thing IDs when creating a Thing, following rules apply:
 
 #### Allowed Characters
 
-Due to the fact that a Thing ID often needs to be set in the path of a HTTP request, we have restricted the set of allowed characters to those for Uniform Resource Identifiers (URI) see http://www.ietf.org/rfc/rfc2396.txt.
-Namespace
+Due to the fact that a Thing ID often needs to be set in the path of a HTTP request, we have restricted the set of
+allowed characters to those for [Uniform Resource Identifiers (URI)](http://www.ietf.org/rfc/rfc2396.txt).
 
-In order to separate Things from different Solution spaces from each other, they are required to be created in a specific Namespace.
-This Namespace needs to be provided additionally to every REST request as a **prefix** of the thingId:
+In order to separate Things from different Solution spaces from each other, they are required to be created in a
+specific *Namespace*.
+This Namespace needs to be provided additionally to every REST request as a **prefix** of the Thing ID:
 
 * The Namespace must conform to Java package naming:
-    * must start with a lower- or uppercase character from a-z
-    * can use dots (`.`) to separate characters
-    * a dot (`.`) must be followed by a lower- or uppercase character from a-z
-    * numbers can be used
-    * underscore can be used
-* The Namespace is separated by a mandatory colon (`:`) from the thingId
+    * must start with a lower- or uppercase character from a-z,
+    * can use dots (`.`) to separate characters,
+    * a dot (`.`) must be followed by a lower- or uppercase character from a-z,
+    * numbers can be used,
+    * underscore can be used,
+* The Namespace is separated by a mandatory colon (`:`) from the thingId.
 
-Examples for a valid Thing ID:
-* `org.eclipse.ditto:fancycar-1`
-* `foo:fancycar-1`
-* `org.eclipse.ditto_42:fancycar-1`
+#### Examples
+
+Following some examples of valid Thing IDs are given:
+* `org.eclipse.ditto:fancycar-1`,
+* `foo:fancycar-1`,
+* `org.eclipse.ditto_42:fancycar-1`.
 
 
 ### Access control
 
-A Thing in API version 1 contains an inline [ACL](basic-acl.html) defining which authenticated parties may READ, WRITE and 
-ADMINISTRATE the `Thing`.
+A Thing in API version 1 contains an inline [ACL](basic-acl.html) defining which authenticated parties may READ, WRITE
+and ADMINISTRATE the `Thing`.
 
 A Thing in API version 2 does no longer contain the <a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossary.acl}}">ACL</a>.
 Instead it contains a link to a [Policy](basic-policy.html) in form of a `policyId`. This 
@@ -60,14 +64,17 @@ authenticated subjects may READ and WRITE the Thing or even parts of it (hierarc
 
 ### Attributes
 
-Attributes describe the Thing in more detail and can be of any type. Attributes can also be used to find Things. Attributes are typically used to model rather static properties at the Thing level. Static means that the values do not change as frequently as property values of Features.
+Attributes describe the Thing in more detail and can be of any type. Attributes can also be used to find Things.
+Attributes are typically used to model rather static properties at the Thing level. Static means that the values do not
+change as frequently as property values of Features.
 
 
 ### Features
 
 A Thing may contain an arbitrary amount of [Features](basic-feature.html). 
 
-{% include image.html file="pages/basic/ditto-thing-feature.png" alt="Thing and Feature" caption="One Thing can have many Features" max-width=100 %}
+{% include image.html file="pages/basic/ditto-thing-feature.png" alt="Thing and Feature" caption="One Thing can have
+many Features" max-width=100 %}
 
 
 ### Model specification
@@ -81,7 +88,7 @@ A Thing may contain an arbitrary amount of [Features](basic-feature.html).
 {% include docson.html schema="jsonschema/thing_v2.json" %}
 
 
-### Example
+### Example (API version 1)
 
 ```json
 {

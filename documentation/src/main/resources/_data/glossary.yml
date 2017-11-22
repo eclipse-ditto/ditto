@@ -1,30 +1,31 @@
 acl: "An access control list (ACL) holds the current status on who (subject) is permitted to which extent
       (read, write, administrate) to manage a Thing."
 
-asset: "An asset can be anything from a tangible and physical device to the more intangible such as the reputation of a company.
-        In our context we define an asset as any item, entity, application or even system of applications that can be registered
-        at Eclipse Ditto using the `Thing` concept."
-
-thing: "A Thing is a generic entity and is mostly used to cluster multiple Features and manage the access to the data
-        and functionality the Thing represents.
-        A Thing may have additional meta data (Attributes) that describes the Thing in more detail."
+asset: "An asset can be anything from a tangible and physical device to the more intangible such as the reputation of a
+       company. In our context we define an asset as any item, entity, application or even system of applications that
+       can be registered at Eclipse Ditto using the `Thing` concept."
 
 attributes: "Attributes describe the Thing in more detail and can be of any type.
              Attributes can be used to find Things.
              Attributes are typically used to model rather static properties at the Thing level.
              Static means that the values do not change as frequently as property values of Features."
 
+cqrs: "Command-Query Responsibility Segregation. A pattern Ditto applies in order to handle commands (ModifyCommands in
+      Ditto) and queries (QueryCommands in Ditto) differently, e.g. by reading queries from memory and persisting
+      commands to a datastore."
+
 feature: "A Feature clusters a set of coherent Properties and has an optional Feature definition."
+
+iiot: "Industrial Internet of Things - also known as 'Industry 4.0'"
+
+iot: "Internet of Things"
+
+jwt: "JSON Web Token (JWT)"
 
 policy: "A Policy enables developers to configure fine-grained access control in an easy way.
          A specific policy defines who (subject) is granted or revoked permissions (rights) on a specific resource.
          The resource can be defined as rough or as fine-grained as necessary for the respective use case. "
 
-iot: "Internet of Things"
-
-iiot: "Industrial Internet of Things - also known as 'Industry 4.0'"
-
-jwt: "JSON Web Token (JWT)"
-
-cqrs: "Command-query responsibility segregation. A pattern Ditto applies in order to handle commands (ModifyCommands in Ditto)
-       and queries (QueryCommands in Ditto) differently, e.g. by reading queries from memory and persisting commands to a datastore."
+thing: "A Thing is a generic entity and is mostly used to cluster multiple Features and manage the access to the data
+        and functionality the Thing represents.
+        A Thing may have additional meta data (Attributes) that describes the Thing in more detail."

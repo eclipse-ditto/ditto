@@ -14,16 +14,18 @@ A valid topic consists of six elements, describing the thing affected by this me
 /<namespace>/<thingId>/things/<channel>/<criterion>/<action>
 ```
 
-1. `namespace`: the namespace of the `Thing`
-2. `thingId`: the `Thing ID`
-3. `group`: is, when addressing `Things`, _things_ 
-4. `channel`: the “channel” of the Protocol message, can be either _live_ or _twin_
-5. `criterion`: the type of Protocol message, can be either of _commands_, _events_, 
-   _[search](protocol-specification-things-search.html)_ or _[messages](protocol-specification-things-messages.html)_
-6. `action`: the action executed on the `Thing`, only needed for:
-    1. _commands_: _[create](protocol-specification-things-create.html), [modify](protocol-specification-things-modify.html),
-      [retrieve](protocol-specification-things-retrieve.html), [delete](protocol-specification-things-delete.html)_
-    2. _events_: _created, modified, deleted_
+1. `namespace`: the namespace of the Thing.
+2. `thingId`: the Thing ID.
+3. `group`: the appropriate group for addressing Things is `things`. 
+4. `channel`: the channel of the Protocol message; can either be `live` or `twin`.
+5. `criterion`: the type of Protocol message; can either be `commands`, `events`, 
+   [`search`](protocol-specification-things-search.html) or [`messages`](protocol-specification-things-messages.html).
+6. `action`: the action executed on the Thing, only required for:
+    1. Commands: [`create,`](protocol-specification-things-create.html)
+       [`modify,`](protocol-specification-things-modify.html)
+       [`retrieve`](protocol-specification-things-retrieve.html) or
+       [`delete.`](protocol-specification-things-delete.html).
+    2. Events: `created,` `modified,` `deleted.`
 
 
 ## Thing representation

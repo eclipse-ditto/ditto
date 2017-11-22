@@ -29,7 +29,7 @@
       "properties": {
         "status": {
           "type": "integer",
-          "description": "The status code that indicate the result of the command. The semantics of the used status codes are based on the [HTTP status codes](https://tools.ietf.org/html/rfc7231#section-6)."
+          "description": "The status code that indicates the result of the command. The semantics of the used status codes are based on the [HTTP status codes](https://tools.ietf.org/html/rfc7231#section-6)."
         },
         "error": {
           "type": "string",
@@ -47,7 +47,7 @@
     },
     "status": {
       "type": "integer",
-      "description": "The status code that indicate the result of the command. The semantics of the used status codes are based on the [HTTP status codes](https://tools.ietf.org/html/rfc7231#section-6)."
+      "description": "The status code that indicates the result of the command. The semantics of the used status codes are based on the [HTTP status codes](https://tools.ietf.org/html/rfc7231#section-6)."
     }
   },
   "required": [ "topic", "headers", "path", "status" ]
