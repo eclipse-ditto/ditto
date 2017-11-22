@@ -8,13 +8,21 @@ node {
     checkout scm
   }
 
-  // Mark the code build 'stage'....
+  stage('set version to ${theBranch}') {
+    withMaven(
+      maven: 'maven-3.5.0',
+      mavenLocalRepo: theMvnRepo) {
+
+      sh "mvn versions:set -DnewVersion=0-${theBranch}-SNAPSHOT"
+    }
+  }
+
   stage('Build') {
     withMaven(
       maven: 'maven-3.5.0',
       mavenLocalRepo: theMvnRepo) {
 
-      sh "mvn clean install javadoc:jar source:jar-no-fork --batch-mode --errors -Pbuild-documentation -DcreateJavadoc=true"
+      sh "mvn clean install javadoc:jar source:jar-no-fork --batch-mode --errors -Pbuild-documentation,internal-repos -DcreateJavadoc=true"
     }
   }
 }
