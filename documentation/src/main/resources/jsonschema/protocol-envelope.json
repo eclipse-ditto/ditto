@@ -1,8 +1,8 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
   "type": "object",
-  "description": "The Thing Protocol Envelope of a Thing Protocol Message. This wraps the actual payload in the `value` field.",
-  "title": "Thing Protocol Envelope",
+  "description": "The Ditto Protocol envelope of a Ditto Protocol message. This wraps the actual payload in the `value` field.",
+  "title": "Ditto Protocol envelope",
   "properties": {
     "topic": {
       "type": "string",

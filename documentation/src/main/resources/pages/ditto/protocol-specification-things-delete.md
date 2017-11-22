@@ -1,12 +1,12 @@
 ---
-title: Delete protocol specification
-keywords: protocol, specification, delete
+title: Things - Delete protocol specification
+keywords: protocol, specification, delete, thing
 tags: [protocol]
-permalink: protocol-specification-delete.html
+permalink: protocol-specification-things-delete.html
 ---
 
 All `topics` contain the `<channel>` which may be either `twin` or `live`.<br/>
-For the meaning of those two channels see [Protocol Overview](protocol-overview.html).
+For the meaning of those two channels see [Protocol specification](protocol-specification.html).
 
 ## Delete a Thing
 

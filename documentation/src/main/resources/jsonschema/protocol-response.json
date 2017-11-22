@@ -1,9 +1,13 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
   "type": "object",
-  "description": "The Thing Protocol Response is sent in response to a command.",
-  "title": "Thing Protocol Response",
+  "description": "The Ditto Protocol response is sent in response to a command.",
+  "title": "Ditto Protocol response",
   "properties": {
+    "topic": {
+      "type": "string",
+      "description": "Contains the same topic as the commands which this response correlates to."
+    },
     "headers": {
       "type": "object",
       "description": "Additional headers.",
@@ -31,8 +35,8 @@
     },
     "status": {
       "type": "integer",
-      "description": "The status code that indicate the result of the command. The semantics of the used status codes are based on the [HTTP status codes](https://tools.ietf.org/html/rfc7231#section-6)."
+      "description": "The status code that indicates the result of the command. The semantics of the used status codes are based on the [HTTP status codes](https://tools.ietf.org/html/rfc7231#section-6)."
     }
   },
-  "required": [ "headers", "path", "status" ]
+  "required": [ "topic", "headers", "path", "status" ]
 }

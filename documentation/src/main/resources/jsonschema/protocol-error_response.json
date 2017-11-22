@@ -1,9 +1,13 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
   "type": "object",
-  "description": "The Thing Protocol Error Response is sent in response to a command that failed during execution.",
-  "title": "Thing Protocol Error Response",
+  "description": "The Ditto Protocol error response is sent in response to a command that failed during execution.",
+  "title": "Ditto Protocol error response",
   "properties": {
+    "topic": {
+      "type": "string",
+      "description": "Contains the topic of the error including on which channel it was issued."
+    },
     "headers": {
       "type": "object",
       "description": "Additional headers.",
@@ -25,7 +29,7 @@
       "properties": {
         "status": {
           "type": "integer",
-          "description": "The status code that indicate the result of the command. The semantics of the used status codes are based on the [HTTP status codes](https://tools.ietf.org/html/rfc7231#section-6)."
+          "description": "The status code that indicates the result of the command. The semantics of the used status codes are based on the [HTTP status codes](https://tools.ietf.org/html/rfc7231#section-6)."
         },
         "error": {
           "type": "string",
@@ -43,8 +47,8 @@
     },
     "status": {
       "type": "integer",
-      "description": "The status code that indicate the result of the command. The semantics of the used status codes are based on the [HTTP status codes](https://tools.ietf.org/html/rfc7231#section-6)."
+      "description": "The status code that indicates the result of the command. The semantics of the used status codes are based on the [HTTP status codes](https://tools.ietf.org/html/rfc7231#section-6)."
     }
   },
-  "required": [ "headers", "path", "status" ]
+  "required": [ "topic", "headers", "path", "status" ]
 }

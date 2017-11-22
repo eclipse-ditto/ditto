@@ -1,12 +1,12 @@
 ---
-title: Modify protocol specification
-keywords: protocol, specification, modify
+title: Things - Modify protocol specification
+keywords: protocol, specification, modify, thing
 tags: [protocol]
-permalink: protocol-specification-modify.html
+permalink: protocol-specification-things-modify.html
 ---
 
 All `topics` contain the `<channel>` which may be either `twin` or `live`.<br/>
-For the meaning of those two channels see [Protocol Overview](protocol-overview.html).
+For the meaning of those two channels see [Protocol specification](protocol-specification.html).
 
 ## Modify a Thing
 
