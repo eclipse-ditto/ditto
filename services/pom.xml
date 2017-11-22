@@ -43,7 +43,6 @@
 
         <docker.registry>docker.io</docker.registry>
         <docker.repository>${docker.registry}/eclipseditto</docker.repository>
-        <docker.image.version.suffix/>
         <docker.image.additional.tag/>
         <docker.image.jdk>docker.io/openjdk:8-jdk-alpine</docker.image.jdk>
         <docker.image.port>8080</docker.image.port>
