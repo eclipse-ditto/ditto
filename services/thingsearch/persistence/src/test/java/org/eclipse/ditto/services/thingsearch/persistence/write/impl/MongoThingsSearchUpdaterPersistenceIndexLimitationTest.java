@@ -24,7 +24,8 @@ import org.junit.Test;
 /**
  * Test for the index limitation applied by the search updater persistence .
  */
-public final class MongoThingsSearchUpdaterPersistenceIndexLimitationTest extends AbstractThingSearchPersistenceTestBase {
+public final class MongoThingsSearchUpdaterPersistenceIndexLimitationTest
+        extends AbstractThingSearchPersistenceTestBase {
 
     private static final String MUCH_TOO_LONG_STRING = TestStringGenerator.createString(10_000);
     private static final JsonValue MUCH_TOO_LONG_JSON_VALUE = JsonValue.of(MUCH_TOO_LONG_STRING);
@@ -55,7 +56,9 @@ public final class MongoThingsSearchUpdaterPersistenceIndexLimitationTest extend
     }
 
     private ResultList<String> findAllWithAttributeHavingPrefix(final String attributeKey, final String prefix) {
-        return findAll(cf.fieldCriteria(fef.filterByAttribute(attributeKey), cf.like(prefix + "*")));
+        return findAll(qbf.newBuilder(
+                cf.fieldCriteria(fef.filterByAttribute(attributeKey), cf.like(prefix + "*"))
+        ).build());
     }
 
 }

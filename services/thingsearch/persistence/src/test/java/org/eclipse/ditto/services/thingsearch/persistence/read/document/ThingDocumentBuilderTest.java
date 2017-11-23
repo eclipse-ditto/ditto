@@ -16,16 +16,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.List;
 
 import org.bson.Document;
-import org.junit.Test;
-
 import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
+import org.junit.Test;
 
 /**
  * Tests {@link ThingDocumentBuilder}.
  */
 public final class ThingDocumentBuilderTest {
 
-    private static final String THING_ID = "myThing1";
+    private static final String THING_ID = "namespace:myThing1";
     private static final String KEY1 = "key1";
     private static final String KEY2 = "key2";
     private static final String KEY3 = "key3";

@@ -34,7 +34,6 @@ public final class ThingDocumentBuilder {
     private final AttributesDocumentBuilder attributesBuilder;
     private final FeaturesDocumentBuilder featuresdocumentBuilder;
     private final List<Document> aclEntries;
-    private final List<Document> globalReads;
 
     private ThingDocumentBuilder(final String thingId, final String namespace, final String policyId) {
         tDocument = new Document();
@@ -42,7 +41,6 @@ public final class ThingDocumentBuilder {
         tDocument.append(PersistenceConstants.FIELD_NAMESPACE, namespace);
         tDocument.append(PersistenceConstants.FIELD_POLICY_ID, policyId);
         aclEntries = new ArrayList<>();
-        globalReads = new ArrayList<>();
         attributesBuilder = AttributesDocumentBuilder.create();
         featuresdocumentBuilder = FeaturesDocumentBuilder.create();
     }
@@ -164,22 +162,6 @@ public final class ThingDocumentBuilder {
     }
 
     /**
-     * Directly manipulates the global-reads field.
-     * <p>
-     * WARNING: Currently only used in tests. For Prod, the following (package-private) method is used:
-     * {@code PolicyUpdateFactory#createPolicyIndexUpdate(Thing,PolicyEnforcer)}
-     * </p>
-     *
-     * @param globalReadEntries Elements to add to the global-reads field.
-     * @return This object.
-     */
-    public ThingDocumentBuilder globalReads(final Collection<String> globalReadEntries) {
-        globalReadEntries.forEach(u -> this.globalReads
-                .add(new Document().append(PersistenceConstants.FIELD_GLOBAL_READS, u)));
-        return this;
-    }
-
-    /**
      * Returns the built document.
      *
      * @return the document.
@@ -191,7 +173,6 @@ public final class ThingDocumentBuilder {
         final Collection<Document> internal = (Collection<Document>) attributes.get(PersistenceConstants.FIELD_INTERNAL);
         addAclEntries(internal);
         addFeatureEntries(internal, (Collection<Document>) features.get(PersistenceConstants.FIELD_INTERNAL));
-        internal.addAll(globalReads);
         tDocument.append(PersistenceConstants.FIELD_INTERNAL, internal);
         tDocument.append(PersistenceConstants.FIELD_ATTRIBUTES, attributes.get(PersistenceConstants.FIELD_ATTRIBUTES));
         tDocument.append(PersistenceConstants.FIELD_FEATURES, features.get(PersistenceConstants.FIELD_FEATURES));

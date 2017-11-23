@@ -13,36 +13,31 @@ package org.eclipse.ditto.services.thingsearch.persistence.read;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 
-import org.bson.Document;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.Features;
-import org.eclipse.ditto.model.things.ThingsModelFactory;
-import org.junit.Before;
-import org.junit.Test;
-
-import org.eclipse.ditto.services.thingsearch.persistence.read.document.ThingDocumentBuilder;
 import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Criteria;
 import org.eclipse.ditto.services.thingsearch.querymodel.criteria.CriteriaFactory;
 import org.eclipse.ditto.services.thingsearch.querymodel.criteria.CriteriaFactoryImpl;
 import org.eclipse.ditto.services.thingsearch.querymodel.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.services.thingsearch.querymodel.expression.ThingsFieldExpressionFactoryImpl;
+import org.junit.Test;
 
 /**
  * Test the exists field expressions against the database.
  */
-public final class MongoSearchPersistenceExistsTest extends AbstractReadPersistenceTestBase {
+public final class ExistsTest extends AbstractQueryAndAggregationTest {
 
-    private static final String THING1_ID = "thing1";
+    private static final String THING1_ID = "thingsearch.read:thing1";
     private static final String THING1_KNOWN_ATTR = "attr1/a/b/c";
     private static final String THING1_KNOWN_ATTR_VALUE = "thing1";
     private static final String THING1_KNOWN_FEATURE_ID = "feature1";
     private static final String THING1_KNOWN_PROPERTY = "property/a/b/c";
     private static final long THING1_KNOWN_PROPERTY_VALUE = 1;
-    private static final String THING2_ID = "thing2";
+    private static final String THING2_ID = "thingsearch.read:thing2";
     private static final String THING2_KNOWN_ATTR = "attr1/a/b/d";
     private static final String THING2_KNOWN_ATTR_VALUE = "thing2";
     private static final String THING2_KNOWN_FEATURE_ID = "feature2";
@@ -60,17 +55,20 @@ public final class MongoSearchPersistenceExistsTest extends AbstractReadPersiste
     private final ThingsFieldExpressionFactory ef = new ThingsFieldExpressionFactoryImpl();
 
     @Override
-    @Before
-    public void before() {
-        super.before();
-        insertDocs();
+    void createTestDataV1() {
+        insertThings();
+    }
+
+    @Override
+    void createTestDataV2() {
+        insertThings();
     }
 
     /** */
     @Test
     public void existsByKnownFeatureId() {
         final Criteria crit = cf.existsCriteria(ef.existsByFeatureId(THING2_KNOWN_FEATURE_ID));
-        final Collection<String> result = findAll(crit);
+        final Collection<String> result = executeVersionedQuery(crit);
         assertThat(result).containsOnly(THING2_ID);
     }
 
@@ -79,7 +77,7 @@ public final class MongoSearchPersistenceExistsTest extends AbstractReadPersiste
     public void existsByKnownFeatureIdAndProperty() {
         final Criteria crit =
                 cf.existsCriteria(ef.existsByFeatureProperty(THING1_KNOWN_FEATURE_ID, THINGS_KNOWN_PROPERTY));
-        final Collection<String> result = findAll(crit);
+        final Collection<String> result = executeVersionedQuery(crit);
         assertThat(result).containsOnly(THING1_ID);
     }
 
@@ -87,7 +85,7 @@ public final class MongoSearchPersistenceExistsTest extends AbstractReadPersiste
     @Test
     public void existsByExactProperty() {
         final Criteria crit = cf.existsCriteria(ef.existsByFeatureProperty(THING1_KNOWN_PROPERTY));
-        final Collection<String> result = findAll(crit);
+        final Collection<String> result = executeVersionedQuery(crit);
         assertThat(result).containsOnly(THING1_ID);
     }
 
@@ -95,7 +93,7 @@ public final class MongoSearchPersistenceExistsTest extends AbstractReadPersiste
     @Test
     public void existsByKnownProperty() {
         final Criteria crit = cf.existsCriteria(ef.existsByFeatureProperty(THINGS_KNOWN_PROPERTY));
-        final Collection<String> result = findAll(crit);
+        final Collection<String> result = executeVersionedQuery(crit);
         assertThat(result).containsOnly(THING1_ID, THING2_ID);
     }
 
@@ -103,7 +101,7 @@ public final class MongoSearchPersistenceExistsTest extends AbstractReadPersiste
     @Test
     public void existsByUnknownProperty() {
         final Criteria crit = cf.existsCriteria(ef.existsByFeatureProperty(THINGS_UNKNOWN_PROPERTY));
-        final Collection<String> result = findAll(crit);
+        final Collection<String> result = executeVersionedQuery(crit);
         assertThat(result).isEmpty();
     }
 
@@ -111,7 +109,7 @@ public final class MongoSearchPersistenceExistsTest extends AbstractReadPersiste
     @Test
     public void existsByPartOfKnownProperty() {
         final Criteria crit = cf.existsCriteria(ef.existsByFeatureProperty(THINGS_KNOWN_PROPERTY_PART));
-        final Collection<String> result = findAll(crit);
+        final Collection<String> result = executeVersionedQuery(crit);
         assertThat(result).isEmpty();
     }
 
@@ -119,7 +117,7 @@ public final class MongoSearchPersistenceExistsTest extends AbstractReadPersiste
     @Test
     public void existsByExactAttribute() {
         final Criteria crit = cf.existsCriteria(ef.existsByAttribute(THING2_KNOWN_ATTR));
-        final Collection<String> result = findAll(crit);
+        final Collection<String> result = executeVersionedQuery(crit);
         assertThat(result).containsOnly(THING2_ID);
     }
 
@@ -127,7 +125,7 @@ public final class MongoSearchPersistenceExistsTest extends AbstractReadPersiste
     @Test
     public void existsByKnownAttribute() {
         final Criteria crit = cf.existsCriteria(ef.existsByAttribute(THINGS_KNOWN_ATTR));
-        final Collection<String> result = findAll(crit);
+        final Collection<String> result = executeVersionedQuery(crit);
         assertThat(result).containsOnly(THING1_ID, THING2_ID);
     }
 
@@ -135,7 +133,7 @@ public final class MongoSearchPersistenceExistsTest extends AbstractReadPersiste
     @Test
     public void existsByUnknownAttribute() {
         final Criteria crit = cf.existsCriteria(ef.existsByAttribute(THINGS_UNKNOWN_ATTR));
-        final Collection<String> result = findAll(crit);
+        final Collection<String> result = executeVersionedQuery(crit);
         assertThat(result).isEmpty();
     }
 
@@ -143,30 +141,47 @@ public final class MongoSearchPersistenceExistsTest extends AbstractReadPersiste
     @Test
     public void existsByPartOfKnownAttribute() {
         final Criteria crit = cf.existsCriteria(ef.existsByFeatureProperty(THINGS_KNOWN_ATTR_PART));
-        final Collection<String> result = findAll(crit);
+        final Collection<String> result = executeVersionedQuery(crit);
         assertThat(result).isEmpty();
     }
 
-    private void insertDocs() {
-        final Attributes attributes1 = createAttributes(THING1_KNOWN_ATTR, THING1_KNOWN_ATTR_VALUE);
 
+    /** */
+    @Test
+    public void notExistsByKnownPropertyWithEmptyExpectedResult() {
+        final Criteria crit = cf.nor(Collections.singletonList(
+                cf.existsCriteria(fef.existsByFeatureProperty(THINGS_KNOWN_PROPERTY))));
+
+        final Collection<String> result = executeVersionedQuery(crit);
+        assertThat(result).isEmpty();
+    }
+
+    /** */
+    @Test
+    public void notExistsByThing1KnownProperty() {
+        final Criteria crit = cf.nor(Collections.singletonList(
+                cf.existsCriteria(fef.existsByFeatureProperty(THING1_KNOWN_PROPERTY))));
+
+        final Collection<String> result = executeVersionedQuery(crit);
+
+        assertThat(result).containsOnly(THING2_ID);
+    }
+
+    private void insertThings() {
+        final Attributes attributes1 = createAttributes(THING1_KNOWN_ATTR, THING1_KNOWN_ATTR_VALUE);
         final Features features1 =
                 createFeatures(THING1_KNOWN_FEATURE_ID, THING1_KNOWN_PROPERTY, THING1_KNOWN_PROPERTY_VALUE);
 
         final Attributes attributes2 = createAttributes(THING2_KNOWN_ATTR, THING2_KNOWN_ATTR_VALUE);
-
         final Features features2 =
                 createFeatures(THING2_KNOWN_FEATURE_ID, THING2_KNOWN_PROPERTY, THING2_KNOWN_PROPERTY_VALUE);
 
-        final Collection<Document> documents = new ArrayList<>(2);
-        documents.add(createThingDocument(THING1_ID, attributes1, features1));
-        documents.add(createThingDocument(THING2_ID, attributes2, features2));
-
-        insertDocs(documents);
+        persistThing(createThing(THING1_ID).setAttributes(attributes1).setFeatures(features1));
+        persistThing(createThing(THING2_ID).setAttributes(attributes2).setFeatures(features2));
     }
 
     private static Attributes createAttributes(final String attributeKey, final String attributeValue) {
-        return ThingsModelFactory.newAttributesBuilder()
+        return Attributes.newBuilder()
                 .set(attributeKey, attributeValue)
                 .build();
     }
@@ -174,17 +189,7 @@ public final class MongoSearchPersistenceExistsTest extends AbstractReadPersiste
     private static Features createFeatures(final String featureId, final CharSequence propertyKey,
             final long propertyValue) {
 
-        final Feature feature = ThingsModelFactory.newFeature(featureId).setProperty(propertyKey, propertyValue);
-        return ThingsModelFactory.newFeatures(feature);
+        final Feature feature = Feature.newBuilder().withId(featureId).build().setProperty(propertyKey, propertyValue);
+        return Features.newBuilder().set(feature).build();
     }
-
-    private static Document createThingDocument(final String thingId, final Attributes attributes,
-            final Features features) {
-
-        return ThingDocumentBuilder.create(thingId)
-                .attributes(attributes)
-                .features(features)
-                .build();
-    }
-
 }

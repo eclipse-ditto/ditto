@@ -19,8 +19,6 @@ import static org.mockito.Mockito.when;
 import java.util.Arrays;
 import java.util.List;
 
-import javax.annotation.Nullable;
-
 import org.eclipse.ditto.services.thingsearch.persistence.write.EventToPersistenceStrategy;
 import org.eclipse.ditto.signals.events.things.AclEntryCreated;
 import org.eclipse.ditto.signals.events.things.AclEntryDeleted;
@@ -87,12 +85,11 @@ public final class MongoEventToPersistenceStrategyFactoryTest {
         });
     }
 
-    private MongoEventToPersistenceStrategyFactory factory = MongoEventToPersistenceStrategyFactory.getInstance();
-    private String type;
-    private ThingEvent eventMock;
-    private boolean isAllowed;
-    @Nullable
-    private Class expectedClass;
+    private final MongoEventToPersistenceStrategyFactory factory = MongoEventToPersistenceStrategyFactory.getInstance();
+    private final String type;
+    private final ThingEvent eventMock;
+    private final boolean isAllowed;
+    private final Class expectedClass;
 
     public MongoEventToPersistenceStrategyFactoryTest(final String type, final boolean isAllowed,
             final Class expectedClass) {
@@ -112,9 +109,7 @@ public final class MongoEventToPersistenceStrategyFactoryTest {
             assertThat(strategy.getClass()).isEqualTo(expectedClass);
         } else {
             assertThatExceptionOfType(IllegalStateException.class)
-                    .isThrownBy(() -> {
-                        factory.getStrategy(eventMock);
-                    });
+                    .isThrownBy(() -> factory.getStrategy(eventMock));
         }
     }
 

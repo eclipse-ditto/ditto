@@ -1484,7 +1484,8 @@ public final class MongoThingsSearchUpdaterPersistenceTest extends AbstractThing
             assertThat(result.size())
                     .isEqualTo(2);
             assertThat(result)
-                    .containsOnly(thing1.getId().get(), thing2.getId().get());
+                    .containsOnly(thing1.getId().orElseThrow(IllegalStateException::new),
+                            thing2.getId().orElseThrow(IllegalStateException::new));
         }
 
         @Test
@@ -1555,9 +1556,8 @@ public final class MongoThingsSearchUpdaterPersistenceTest extends AbstractThing
 
         @Test
         public void errorRecoveryForDuplicateKey() throws ExecutionException, InterruptedException {
-            final String thingId = KNOWN_THING_ID;
             final PartialFunction<Throwable, Source<Boolean, NotUsed>> recovery =
-                    writePersistence.errorRecovery(thingId);
+                    writePersistence.errorRecovery(KNOWN_THING_ID);
 
             assertThat(runBlockingWithReturn(recovery.apply(createMongoWriteException(11000))))
                     .isEqualTo(Boolean.FALSE);
@@ -1565,9 +1565,8 @@ public final class MongoThingsSearchUpdaterPersistenceTest extends AbstractThing
 
         @Test
         public void errorRecoveryForIndexTooLong() throws ExecutionException, InterruptedException {
-            final String thingId = KNOWN_THING_ID;
             final PartialFunction<Throwable, Source<Boolean, NotUsed>> recovery =
-                    writePersistence.errorRecovery(thingId);
+                    writePersistence.errorRecovery(KNOWN_THING_ID);
 
             assertThat(runBlockingWithReturn(recovery.apply(createMongoWriteException(17280))))
                     .isEqualTo(Boolean.TRUE);
@@ -1575,9 +1574,8 @@ public final class MongoThingsSearchUpdaterPersistenceTest extends AbstractThing
 
         @Test
         public void errorRecoveryForUnhandledException() throws ExecutionException, InterruptedException {
-            final String thingId = KNOWN_THING_ID;
             final PartialFunction<Throwable, Source<Boolean, NotUsed>> recovery =
-                    writePersistence.errorRecovery(thingId);
+                    writePersistence.errorRecovery(KNOWN_THING_ID);
 
             final IllegalArgumentException toThrow = new IllegalArgumentException("any");
             try {
