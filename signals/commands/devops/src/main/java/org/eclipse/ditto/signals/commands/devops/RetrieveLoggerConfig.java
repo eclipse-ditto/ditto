@@ -33,6 +33,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 
 /**
  * Command to retrieve the {@link org.eclipse.ditto.model.devops.LoggerConfig} for each configured Logger.
@@ -207,7 +208,7 @@ public final class RetrieveLoggerConfig extends AbstractDevOpsCommand<RetrieveLo
      * format.
      */
     public static RetrieveLoggerConfig fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new DevOpsCommandJsonDeserializer<RetrieveLoggerConfig>(TYPE, jsonObject).deserialize(() -> {
+        return new CommandJsonDeserializer<RetrieveLoggerConfig>(TYPE, jsonObject).deserialize(() -> {
             final String serviceName = jsonObject.getValue(DevOpsCommand.JsonFields.JSON_SERVICE_NAME).orElse(null);
             final Integer instance = jsonObject.getValue(DevOpsCommand.JsonFields.JSON_INSTANCE).orElse(null);
             final boolean isAllKnownLoggers = jsonObject.getValueOrThrow(JSON_ALL_KNOWN_LOGGERS);

@@ -26,6 +26,7 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 
 /**
  * Response to the {@link ChangeLogLevel} command.
@@ -46,7 +47,8 @@ public final class ChangeLogLevelResponse extends AbstractDevOpsCommandResponse<
 
     private ChangeLogLevelResponse(@Nullable final String serviceName, @Nullable final Integer instance,
             final boolean successful, final DittoHeaders dittoHeaders) {
-        super(TYPE, serviceName, instance, successful ? HttpStatusCode.OK : HttpStatusCode.INTERNAL_SERVER_ERROR, dittoHeaders);
+        super(TYPE, serviceName, instance, successful ? HttpStatusCode.OK : HttpStatusCode.INTERNAL_SERVER_ERROR,
+                dittoHeaders);
         this.successful = successful;
     }
 
@@ -90,14 +92,15 @@ public final class ChangeLogLevelResponse extends AbstractDevOpsCommandResponse<
      * format.
      */
     public static ChangeLogLevelResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new DevOpsCommandResponseJsonDeserializer<ChangeLogLevelResponse>(TYPE, jsonObject).deserialize(() -> {
-            final String serviceName = jsonObject.getValue(DevOpsCommandResponse.JsonFields.JSON_SERVICE_NAME)
-                    .orElse(null);
-            final Integer instance = jsonObject.getValue(DevOpsCommandResponse.JsonFields.JSON_INSTANCE)
-                    .orElse(null);
-            final boolean successful = jsonObject.getValueOrThrow(JSON_SUCCESSFUL);
-            return ChangeLogLevelResponse.of(serviceName, instance, successful, dittoHeaders);
-        });
+        return new CommandResponseJsonDeserializer<ChangeLogLevelResponse>(TYPE, jsonObject).deserialize(
+                (statusCode) -> {
+                    final String serviceName = jsonObject.getValue(DevOpsCommandResponse.JsonFields.JSON_SERVICE_NAME)
+                            .orElse(null);
+                    final Integer instance = jsonObject.getValue(DevOpsCommandResponse.JsonFields.JSON_INSTANCE)
+                            .orElse(null);
+                    final boolean successful = jsonObject.getValueOrThrow(JSON_SUCCESSFUL);
+                    return ChangeLogLevelResponse.of(serviceName, instance, successful, dittoHeaders);
+                });
     }
 
     /**

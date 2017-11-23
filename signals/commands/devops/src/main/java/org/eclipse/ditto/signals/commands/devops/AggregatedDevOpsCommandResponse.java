@@ -33,10 +33,12 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.base.JsonParsable;
+import org.eclipse.ditto.signals.commands.base.CommandResponse;
+import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.signals.commands.base.WithEntity;
 
 /**
- * A {@link DevOpsCommandResponse} aggregating multiple {@link DevOpsCommandResponse}s.
+ * A {@link DevOpsCommandResponse} aggregating multiple {@link CommandResponse}s.
  */
 @Immutable
 public final class AggregatedDevOpsCommandResponse
@@ -55,12 +57,12 @@ public final class AggregatedDevOpsCommandResponse
             JsonFactory.newJsonObjectFieldDefinition("responses", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
-    private final List<DevOpsCommandResponse<?>> aggregatedResponses;
+    private final List<CommandResponse<?>> aggregatedResponses;
     private final String responsesType;
 
-    private AggregatedDevOpsCommandResponse(final List<DevOpsCommandResponse<?>> aggregatedResponses,
-            final String responsesType, final DittoHeaders dittoHeaders) {
-        super(TYPE, null, null, HttpStatusCode.OK, dittoHeaders);
+    private AggregatedDevOpsCommandResponse(final List<CommandResponse<?>> aggregatedResponses,
+            final String responsesType, final HttpStatusCode httpStatusCode, final DittoHeaders dittoHeaders) {
+        super(TYPE, null, null, httpStatusCode, dittoHeaders);
         this.aggregatedResponses = Collections.unmodifiableList(new ArrayList<>(aggregatedResponses));
         this.responsesType = responsesType;
     }
@@ -68,14 +70,15 @@ public final class AggregatedDevOpsCommandResponse
     /**
      * Returns a new instance of {@code AggregatedDevOpsCommandResponse}.
      *
-     * @param devOpsCommandResponses the aggregated {@link DevOpsCommandResponse}s.
+     * @param commandResponses the aggregated {@link DevOpsCommandResponse}s.
      * @param responsesType the responses type of the responses to expect.
+     * @param httpStatusCode the {@link HttpStatusCode} to send back as response status.
      * @param dittoHeaders the headers of the request.
      * @return the new RetrieveLoggerConfigResponse response.
      */
-    public static AggregatedDevOpsCommandResponse of(final List<DevOpsCommandResponse<?>> devOpsCommandResponses,
-            final String responsesType, final DittoHeaders dittoHeaders) {
-        return new AggregatedDevOpsCommandResponse(devOpsCommandResponses, responsesType, dittoHeaders);
+    public static AggregatedDevOpsCommandResponse of(final List<CommandResponse<?>> commandResponses,
+            final String responsesType, final HttpStatusCode httpStatusCode, final DittoHeaders dittoHeaders) {
+        return new AggregatedDevOpsCommandResponse(commandResponses, responsesType, httpStatusCode, dittoHeaders);
     }
 
     /**
@@ -106,11 +109,11 @@ public final class AggregatedDevOpsCommandResponse
      */
     public static AggregatedDevOpsCommandResponse fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders, final Map<String, JsonParsable<DevOpsCommandResponse>> parseStrategies) {
-        return new DevOpsCommandResponseJsonDeserializer<AggregatedDevOpsCommandResponse>(TYPE, jsonObject)
-                .deserialize(() -> {
+        return new CommandResponseJsonDeserializer<AggregatedDevOpsCommandResponse>(TYPE, jsonObject)
+                .deserialize((statusCode) -> {
                     final String theResponsesType = jsonObject.getValueOrThrow(JSON_RESPONSES_TYPE);
                     final JsonObject aggregatedResponsesJsonObj = jsonObject.getValueOrThrow(JSON_AGGREGATED_RESPONSES);
-                    final List<DevOpsCommandResponse<?>> theDevOpsCommandsResponses =
+                    final List<CommandResponse<?>> theDevOpsCommandsResponses =
                             aggregatedResponsesJsonObj.stream()
                                     .flatMap(serviceField -> {
                                         final JsonValue serviceInstances = serviceField.getValue();
@@ -124,13 +127,13 @@ public final class AggregatedDevOpsCommandResponse
                                                 });
                                     }).collect(Collectors.toList());
 
-                    return of(theDevOpsCommandsResponses, theResponsesType, dittoHeaders);
+                    return of(theDevOpsCommandsResponses, theResponsesType, statusCode, dittoHeaders);
                 });
     }
 
     @Override
     public AggregatedDevOpsCommandResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(aggregatedResponses, responsesType, dittoHeaders);
+        return of(aggregatedResponses, responsesType, getStatusCode(), dittoHeaders);
     }
 
     /**
@@ -141,9 +144,9 @@ public final class AggregatedDevOpsCommandResponse
     }
 
     /**
-     * @return the aggregated {@link DevOpsCommandResponse}s.
+     * @return the aggregated {@link CommandResponse}s.
      */
-    public List<DevOpsCommandResponse<?>> getAggregatedResponses() {
+    public List<CommandResponse<?>> getAggregatedResponses() {
         return aggregatedResponses;
     }
 
@@ -172,11 +175,30 @@ public final class AggregatedDevOpsCommandResponse
         final JsonObjectBuilder builder = JsonObject.newBuilder();
 
         aggregatedResponses.forEach(cmdR ->
-                builder.set("/" + cmdR.getServiceName().orElse("empty") + "/" +
-                                String.valueOf(cmdR.getInstance().orElse(-1)),
+                builder.set("/" + calculateServiceName(cmdR) + "/" + String.valueOf(calculateInstance(cmdR)),
                         cmdR.toJson(predicate)));
 
-        return builder.build();
+        if (builder.isEmpty()) {
+            return JsonFactory.nullObject();
+        } else {
+            return builder.build();
+        }
+    }
+
+    private static String calculateServiceName(final CommandResponse<?> commandResponse) {
+        if (commandResponse instanceof DevOpsCommandResponse) {
+            return ((DevOpsCommandResponse<?>) commandResponse).getServiceName().orElse("?");
+        } else {
+            return "?";
+        }
+    }
+
+    private static Integer calculateInstance(final CommandResponse<?> commandResponse) {
+        if (commandResponse instanceof DevOpsCommandResponse) {
+            return ((DevOpsCommandResponse<?>) commandResponse).getInstance().orElse(-1);
+        } else {
+            return -1;
+        }
     }
 
     @SuppressWarnings("squid:MethodCyclomaticComplexity")

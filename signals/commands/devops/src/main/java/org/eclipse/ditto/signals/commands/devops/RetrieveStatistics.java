@@ -22,6 +22,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 
 /**
  * Command which retrieves publicly available statistics about the stored Things currently present.
@@ -92,7 +93,7 @@ public final class RetrieveStatistics extends AbstractDevOpsCommand<RetrieveStat
      * format.
      */
     public static RetrieveStatistics fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new DevOpsCommandJsonDeserializer<RetrieveStatistics>(TYPE, jsonObject)
+        return new CommandJsonDeserializer<RetrieveStatistics>(TYPE, jsonObject)
                 .deserialize(() -> {
                     final String serviceName = jsonObject.getValue(DevOpsCommand.JsonFields.JSON_SERVICE_NAME).orElse(null);
                     final Integer instance = jsonObject.getValue(DevOpsCommand.JsonFields.JSON_INSTANCE).orElse(null);

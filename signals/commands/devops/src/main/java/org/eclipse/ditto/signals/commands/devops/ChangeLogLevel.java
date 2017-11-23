@@ -29,6 +29,7 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.devops.ImmutableLoggerConfig;
 import org.eclipse.ditto.model.devops.LoggerConfig;
+import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 
 /**
  * Command to change the LogLevel of a Service's Logger at runtime. The Logger to change can be specified through {@link
@@ -125,7 +126,7 @@ public final class ChangeLogLevel extends AbstractDevOpsCommand<ChangeLogLevel> 
      * format.
      */
     public static ChangeLogLevel fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new DevOpsCommandJsonDeserializer<ChangeLogLevel>(TYPE, jsonObject).deserialize(() -> {
+        return new CommandJsonDeserializer<ChangeLogLevel>(TYPE, jsonObject).deserialize(() -> {
             final String serviceName = jsonObject.getValue(DevOpsCommand.JsonFields.JSON_SERVICE_NAME).orElse(null);
             final Integer instance = jsonObject.getValue(DevOpsCommand.JsonFields.JSON_INSTANCE).orElse(null);
             final JsonObject loggerConfigJsonObject = jsonObject.getValueOrThrow(JSON_LOGGER_CONFIG);

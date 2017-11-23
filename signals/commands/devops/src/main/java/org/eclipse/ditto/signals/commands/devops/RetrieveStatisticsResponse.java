@@ -26,6 +26,7 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 
 /**
  * Response to a {@link RetrieveStatistics} command containing a {@link JsonObject} of the retrieved Statistics.
@@ -91,8 +92,8 @@ public final class RetrieveStatisticsResponse extends AbstractDevOpsCommandRespo
      * format.
      */
     public static RetrieveStatisticsResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new DevOpsCommandResponseJsonDeserializer<RetrieveStatisticsResponse>(TYPE, jsonObject)
-                .deserialize(() -> {
+        return new CommandResponseJsonDeserializer<RetrieveStatisticsResponse>(TYPE, jsonObject)
+                .deserialize((statusCode) -> {
                     final String serviceName = jsonObject.getValue(DevOpsCommandResponse.JsonFields.JSON_SERVICE_NAME)
                             .orElse(null);
                     final Integer instance = jsonObject.getValue(DevOpsCommandResponse.JsonFields.JSON_INSTANCE)
