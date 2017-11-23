@@ -52,6 +52,7 @@ import org.eclipse.ditto.services.gateway.endpoints.directives.auth.jwt.JwtAuthe
 import org.eclipse.ditto.services.gateway.endpoints.directives.auth.jwt.JwtSubjectIssuerConfig;
 import org.eclipse.ditto.services.gateway.endpoints.directives.auth.jwt.JwtSubjectIssuersConfig;
 import org.eclipse.ditto.services.gateway.endpoints.directives.auth.jwt.PublicKeyProvider;
+import org.eclipse.ditto.services.gateway.endpoints.routes.devops.DevOpsRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.health.CachingHealthRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.policies.PoliciesRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.sse.SseThingsRoute;
@@ -102,6 +103,7 @@ public final class RootRoute {
 
     private final OverallStatusRoute overallStatusRoute;
     private final CachingHealthRoute cachingHealthRoute;
+    private final DevOpsRoute devopsRoute;
 
     private final PoliciesRoute policiesRoute;
     private final SseThingsRoute sseThingsRoute;
@@ -142,6 +144,7 @@ public final class RootRoute {
                 statusHealthHelper);
         cachingHealthRoute = new CachingHealthRoute(statusHealthHelper,
                 config.getDuration(ConfigKeys.STATUS_HEALTH_EXTERNAL_CACHE_TIMEOUT));
+        devopsRoute = new DevOpsRoute(proxyActor, actorSystem);
 
         policiesRoute = new PoliciesRoute(proxyActor, actorSystem);
         sseThingsRoute = new SseThingsRoute(proxyActor, actorSystem, streamingActor);
@@ -199,13 +202,18 @@ public final class RootRoute {
      * @return the {@code /} route.
      */
     public Route buildRoute() {
-        return wrapWithRootDirectives(correlationId -> Directives.route(
-                statsRoute.buildStatsRoute(correlationId), // /stats
-                overallStatusRoute.buildStatusRoute(), // /status
-                cachingHealthRoute.buildHealthRoute(), // /health
-                api(correlationId), // /api
-                ws(correlationId) // /ws
-        ));
+        return wrapWithRootDirectives(correlationId ->
+                extractRequestContext(ctx ->
+                        route(
+                                statsRoute.buildStatsRoute(correlationId), // /stats
+                                overallStatusRoute.buildStatusRoute(), // /status
+                                cachingHealthRoute.buildHealthRoute(), // /health
+                                devopsRoute.buildDevopsRoute(ctx), // /devops
+                                api(ctx, correlationId), // /api
+                                ws(correlationId) // /ws
+                        )
+                )
+        );
     }
 
     private Route wrapWithRootDirectives(final java.util.function.Function<String, Route> rootRoute) {
@@ -260,25 +268,23 @@ public final class RootRoute {
      *
      * @return route for API resource.
      */
-    private Route api(final String correlationId) {
+    private Route api(final RequestContext ctx, final String correlationId) {
         return rawPathPrefix(mergeDoubleSlashes().concat(HTTP_PATH_API_PREFIX), () -> // /api
                 ensureSchemaVersion(apiVersion -> // /api/<apiVersion>
                         apiAuthentication(correlationId,
                                 authContextWithPrefixedSubjects ->
-                                        extractRequestContext(ctx ->
-                                                mapAuthorizationContext(
-                                                        correlationId,
-                                                        apiVersion,
-                                                        authContextWithPrefixedSubjects,
-                                                        authContext ->
-                                                                extractDittoHeaders(
-                                                                        authContext,
-                                                                        apiVersion,
-                                                                        correlationId,
-                                                                        dittoHeaders ->
-                                                                                buildApiSubRoutes(ctx, dittoHeaders)
-                                                                )
-                                                )
+                                        mapAuthorizationContext(
+                                                correlationId,
+                                                apiVersion,
+                                                authContextWithPrefixedSubjects,
+                                                authContext ->
+                                                        extractDittoHeaders(
+                                                                authContext,
+                                                                apiVersion,
+                                                                correlationId,
+                                                                dittoHeaders ->
+                                                                        buildApiSubRoutes(ctx, dittoHeaders)
+                                                        )
                                         )
                         )
                 )
@@ -389,3 +395,4 @@ public final class RootRoute {
     }
 
 }
+
