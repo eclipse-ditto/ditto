@@ -12,6 +12,8 @@
 package org.eclipse.ditto.services.thingsearch.persistence.read;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.eclipse.ditto.services.thingsearch.persistence.TestConstants.Thing.NAMESPACE;
+import static org.eclipse.ditto.services.thingsearch.persistence.TestConstants.thingId;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -29,15 +31,15 @@ import org.junit.Test;
 /**
  * Test the exists field expressions against the database.
  */
-public final class ExistsTest extends AbstractQueryAndAggregationTest {
+public final class ExistsTest extends AbstractVersionedThingSearchPersistenceTestBase {
 
-    private static final String THING1_ID = "thingsearch.read:thing1";
+    private static final String THING1_ID = thingId(NAMESPACE, "thing1");
     private static final String THING1_KNOWN_ATTR = "attr1/a/b/c";
     private static final String THING1_KNOWN_ATTR_VALUE = "thing1";
     private static final String THING1_KNOWN_FEATURE_ID = "feature1";
     private static final String THING1_KNOWN_PROPERTY = "property/a/b/c";
     private static final long THING1_KNOWN_PROPERTY_VALUE = 1;
-    private static final String THING2_ID = "thingsearch.read:thing2";
+    private static final String THING2_ID = thingId(NAMESPACE, "thing2");
     private static final String THING2_KNOWN_ATTR = "attr1/a/b/d";
     private static final String THING2_KNOWN_ATTR_VALUE = "thing2";
     private static final String THING2_KNOWN_FEATURE_ID = "feature2";

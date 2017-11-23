@@ -12,6 +12,8 @@
 package org.eclipse.ditto.services.thingsearch.persistence.read;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.eclipse.ditto.services.thingsearch.persistence.TestConstants.Thing.NAMESPACE;
+import static org.eclipse.ditto.services.thingsearch.persistence.TestConstants.thingId;
 
 import java.util.Collection;
 import java.util.stream.Stream;
@@ -27,15 +29,19 @@ import org.junit.Test;
 /**
  * Tests for search persistence.
  */
-public final class SimpleCriteriaTest extends AbstractQueryAndAggregationTest {
+public final class SimpleCriteriaTest extends
+        AbstractVersionedThingSearchPersistenceTestBase {
 
-    private static final String THING_ID_WITH_KNOWN_STR_ATTR_VALUE = "thingsearch.read:withKnownStrAttrValue";
-    private static final String THING_ID_WITH_KNOWN_NUMBER_ATTR_VALUE = "thingsearch.read:withKnownNumberAttrValue";
-    private static final String THING_ID_WITH_KNOWN_BOOLEAN_ATTR_VALUE = "thingsearch.read:withKnownBooleanAttrValue";
-    private static final String THING_ID_WITH_OTHER_ATTR_VALUE = "thingsearch.read:withOtherAttrValue";
-    private static final String THING_ID_WITH_OTHER_INT_VALUE = "thingsearch.read:withOtherIntValue";
-    private static final String THING_ID_WITH_OTHER_BOOLEAN_VALUE = "thingsearch.read:withOtherBooleanValue";
-    private static final String THING_ID_WITH_NULL_VALUE = "thingsearch.read:withNullValue";
+    private static final String THING_ID_WITH_KNOWN_STR_ATTR_VALUE =
+            thingId(NAMESPACE, "withKnownStrAttrValue");
+    private static final String THING_ID_WITH_KNOWN_NUMBER_ATTR_VALUE =
+            thingId(NAMESPACE, "withKnownNumberAttrValue");
+    private static final String THING_ID_WITH_KNOWN_BOOLEAN_ATTR_VALUE =
+            thingId(NAMESPACE, "withKnownBooleanAttrValue");
+    private static final String THING_ID_WITH_OTHER_ATTR_VALUE = thingId(NAMESPACE, "withOtherAttrValue");
+    private static final String THING_ID_WITH_OTHER_INT_VALUE = thingId(NAMESPACE, "withOtherIntValue");
+    private static final String THING_ID_WITH_OTHER_BOOLEAN_VALUE = thingId(NAMESPACE, "withOtherBooleanValue");
+    private static final String THING_ID_WITH_NULL_VALUE = thingId(NAMESPACE, "withNullValue");
 
     private static final String KNOWN_ATTRIBUTE_KEY = "attributeKey";
     private static final String KNOWN_STRING_VALUE = "value";

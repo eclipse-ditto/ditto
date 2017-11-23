@@ -9,7 +9,7 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package org.eclipse.ditto.services.thingsearch.persistence.read.document;
+package org.eclipse.ditto.services.thingsearch.persistence.mapping;
 
 import java.util.Collections;
 import java.util.List;

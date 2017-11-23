@@ -9,7 +9,7 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package org.eclipse.ditto.services.thingsearch.persistence.read.document;
+package org.eclipse.ditto.services.thingsearch.persistence.mapping;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -31,7 +31,7 @@ final class FeaturesDocumentBuilder {
     private FeaturesDocumentBuilder() {
         tDocument = new Document();
         tDocument.append(PersistenceConstants.FIELD_INTERNAL, new ArrayList<Document>());
-        tDocument.append(PersistenceConstants.FIELD_FEATURES, DocumentMapper.newDocument());
+        tDocument.append(PersistenceConstants.FIELD_FEATURES, ThingDocumentMapper.newDocument());
     }
 
     /**
@@ -53,7 +53,7 @@ final class FeaturesDocumentBuilder {
     public FeaturesDocumentBuilder features(final Features features) {
         features.forEach(feature -> {
             feature.getProperties().ifPresent(featureProperties -> featureProperties.forEach(field -> {
-                final Object value = DocumentMapper.toValue(field.getValue());
+                final Object value = ThingDocumentMapper.toValue(field.getValue());
                 mainFeatureProperties(field.getKeyName(), value, feature.getId());
                 addInternalFeatures(field.getKeyName(), field.getValue(), feature.getId());
             }));
@@ -73,7 +73,7 @@ final class FeaturesDocumentBuilder {
     }
 
     private void addDefaultFeatureEntry(final String id) {
-        final List<Document> internalAttributes = DocumentMapper.toList(tDocument, PersistenceConstants.FIELD_INTERNAL);
+        final List<Document> internalAttributes = ThingDocumentMapper.toList(tDocument, PersistenceConstants.FIELD_INTERNAL);
         internalAttributes.add(new Document(PersistenceConstants.FIELD_INTERNAL_FEATURE_ID, id));
     }
 
@@ -94,7 +94,7 @@ final class FeaturesDocumentBuilder {
     }
 
     private Document newFeaturePropertiesDocument() {
-        return new Document(PersistenceConstants.FIELD_PROPERTIES, DocumentMapper.newDocument());
+        return new Document(PersistenceConstants.FIELD_PROPERTIES, ThingDocumentMapper.newDocument());
     }
 
     private void addInternalFeatures(final String path, final JsonValue jsonValue, final String featureId) {
@@ -123,8 +123,8 @@ final class FeaturesDocumentBuilder {
 
     private void featureInternally(final String key, final Object value, final String featureId) {
         // add attribute to flat representation
-        final List<Document> attributes1 = DocumentMapper.toList(tDocument, PersistenceConstants.FIELD_INTERNAL);
-        final Document doc = DocumentMapper.newDocument();
+        final List<Document> attributes1 = ThingDocumentMapper.toList(tDocument, PersistenceConstants.FIELD_INTERNAL);
+        final Document doc = ThingDocumentMapper.newDocument();
         doc.append(PersistenceConstants.FIELD_INTERNAL_KEY,
                 PersistenceConstants.FIELD_FEATURE_PROPERTIES_PREFIX + PersistenceConstants.SLASH + key);
         doc.append(PersistenceConstants.FIELD_INTERNAL_VALUE, value);

@@ -9,7 +9,7 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package org.eclipse.ditto.services.thingsearch.persistence.read.document;
+package org.eclipse.ditto.services.thingsearch.persistence.mapping;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -28,7 +28,7 @@ import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
 /**
  * Builder to create Thing {@link Document}s which are saved into the mongoDB search collection.
  */
-public final class ThingDocumentBuilder {
+final class ThingDocumentBuilder {
 
     private final Document tDocument;
     private final AttributesDocumentBuilder attributesBuilder;

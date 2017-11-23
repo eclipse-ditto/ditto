@@ -40,7 +40,7 @@ import org.eclipse.ditto.model.policiesenforcers.PolicyEnforcer;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.thingsearch.persistence.MongoClientWrapper;
 import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
-import org.eclipse.ditto.services.thingsearch.persistence.read.document.DocumentMapper;
+import org.eclipse.ditto.services.thingsearch.persistence.mapping.ThingDocumentMapper;
 import org.eclipse.ditto.services.thingsearch.persistence.write.AbstractThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.thingsearch.persistence.write.EventToPersistenceStrategyFactory;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingMetadata;
@@ -124,7 +124,7 @@ public final class MongoThingsSearchUpdaterPersistence extends AbstractThingsSea
     @Override
     protected final Source<Boolean, NotUsed> save(final Thing thing, final long revision, final long policyRevision) {
         final Bson filter = filterWithLowerRevision(getThingId(thing), revision);
-        final Document document = toUpdate(DocumentMapper.toDocument(thing), revision, policyRevision);
+        final Document document = toUpdate(ThingDocumentMapper.toDocument(thing), revision, policyRevision);
         return Source.fromPublisher(collection.updateOne(filter, document, new UpdateOptions().upsert(true)))
                 .map(updateResult -> updateResult.getMatchedCount() > 0 || null != updateResult.getUpsertedId());
     }

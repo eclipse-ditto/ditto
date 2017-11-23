@@ -25,7 +25,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.services.thingsearch.persistence.MongoSortKeyMappingFunction;
 import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
-import org.eclipse.ditto.services.thingsearch.persistence.read.document.DocumentMapper;
+import org.eclipse.ditto.services.thingsearch.persistence.mapping.ThingDocumentMapper;
 import org.eclipse.ditto.services.thingsearch.persistence.write.IndexLengthRestrictionEnforcer;
 
 /**
@@ -150,13 +150,13 @@ final class AttributesUpdateFactory {
         final Document setExecutions = new Document();
         final String sortKey = MongoSortKeyMappingFunction.mapSortKey(
                 PersistenceConstants.FIELD_ATTRIBUTES + jsonPointer.toString());
-        setExecutions.append(sortKey, DocumentMapper.toValue(value));
+        setExecutions.append(sortKey, ThingDocumentMapper.toValue(value));
         return setExecutions;
     }
 
     private static Document createSetUpdatePart(final JsonObject attributes) {
         final Document setExecutions = new Document();
-        setExecutions.append(PersistenceConstants.FIELD_ATTRIBUTES, DocumentMapper.toValue(attributes));
+        setExecutions.append(PersistenceConstants.FIELD_ATTRIBUTES, ThingDocumentMapper.toValue(attributes));
         return setExecutions;
     }
 

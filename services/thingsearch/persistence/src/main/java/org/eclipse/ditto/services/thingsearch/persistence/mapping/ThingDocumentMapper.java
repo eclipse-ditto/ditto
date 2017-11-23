@@ -9,7 +9,7 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package org.eclipse.ditto.services.thingsearch.persistence.read.document;
+package org.eclipse.ditto.services.thingsearch.persistence.mapping;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -21,11 +21,11 @@ import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.thingsearch.common.util.KeyEscapeUtil;
 
 /**
- * A mapper for {@link Document} instances.
+ * A mapper for {@link Document} instance to a {@link Thing} and vice versa.
  */
-public final class DocumentMapper {
+public final class ThingDocumentMapper {
 
-    private DocumentMapper() {
+    private ThingDocumentMapper() {
         throw new AssertionError();
     }
 

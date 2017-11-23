@@ -11,6 +11,8 @@
  */
 package org.eclipse.ditto.services.thingsearch.persistence;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.Arrays;
 
 import org.eclipse.ditto.json.JsonFactory;
@@ -68,6 +70,10 @@ public final class TestConstants {
 
     private TestConstants() {
         throw new AssertionError();
+    }
+
+    public static String thingId(final String namespace, final String idWithoutNamespace) {
+        return requireNonNull(namespace) + ":" + requireNonNull(idWithoutNamespace);
     }
 
     /**
@@ -221,7 +227,9 @@ public final class TestConstants {
         public static final AccessControlList ACL =
                 ThingsModelFactory.newAcl(Authorization.ACL_ENTRY_OLDMAN, Authorization.ACL_ENTRY_GRIMES);
 
-        public static final JsonPointer MANUFACTURER_PATH = JsonFactory.newPointer("attributes/manufacturer");
+        private static final String MANUFACTURER_ATTRIBUTE_KEY = "manufacturer";
+        public static final JsonPointer MANUFACTURER_POINTER = JsonFactory.newPointer("attributes/" +
+                MANUFACTURER_ATTRIBUTE_KEY);
 
         public static final JsonObject LOCATION_ATTRIBUTE = JsonFactory.newObjectBuilder()
                 .set("latitude", 44.673856)
@@ -230,7 +238,7 @@ public final class TestConstants {
 
         public static final Attributes ATTRIBUTES = ThingsModelFactory.newAttributesBuilder()
                 .set("location", LOCATION_ATTRIBUTE)
-                .set(MANUFACTURER_PATH.getLeaf().get(), "Bosch")
+                .set(MANUFACTURER_ATTRIBUTE_KEY, "Bosch")
                 .build();
 
         public static final long REVISION_NUMBER = 0;

@@ -12,6 +12,8 @@
 package org.eclipse.ditto.services.thingsearch.persistence.read;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.eclipse.ditto.services.thingsearch.persistence.TestConstants.Thing.NAMESPACE;
+import static org.eclipse.ditto.services.thingsearch.persistence.TestConstants.thingId;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -28,10 +30,10 @@ import org.junit.Test;
  */
 public class AggregationV1AndV2MergedTest extends AbstractReadPersistenceTestBase {
 
-    private static final String THING_V1_ID1 = "thingsearch.read:thingV1_1";
-    private static final String THING_V1_ID2 = "thingsearch.read:thingV1_2";
-    private static final String THING_V2_ID1 = "thingsearch.read:thingV2_1";
-    private static final String THING_V2_ID2 = "thingsearch.read:thingV2_2";
+    private static final String THING_V1_ID1 = thingId(NAMESPACE, "thingV1_1");
+    private static final String THING_V1_ID2 = thingId(NAMESPACE, "thingV1_2");
+    private static final String THING_V2_ID1 = thingId(NAMESPACE, "thingV2_1");
+    private static final String THING_V2_ID2 = thingId(NAMESPACE, "thingV2_2");
 
     private static final String KNOWN_NUMBER_ATTR = "magicNo";
     private static final String KNOWN_STRING_ATTR = "cuttingEdge";

@@ -12,6 +12,8 @@
 package org.eclipse.ditto.services.thingsearch.persistence.read;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.eclipse.ditto.services.thingsearch.persistence.TestConstants.Thing.NAMESPACE;
+import static org.eclipse.ditto.services.thingsearch.persistence.TestConstants.thingId;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -27,26 +29,27 @@ import org.junit.Test;
 /**
  * Tests for search persistence.
  */
-public final class FilterCriteriaTest extends AbstractQueryAndAggregationTest {
+public final class FilterCriteriaTest extends
+        AbstractVersionedThingSearchPersistenceTestBase {
 
     private static final String KNOWN_NUMBER_ATTR = "numberAttr";
     private static final String KNOWN_STRING_ATTR = "stringAttr";
     private static final String KNOWN_BOOL_ATTR = "boolAttr";
     private static final String KNOWN_REGEX_ATTR = "stringRegex";
 
-    private static final String THING1_ID = "thingsearch.read:thing1";
+    private static final String THING1_ID = thingId(NAMESPACE, "thing1");
     private static final String THING1_KNOWN_STR_ATTR_VALUE = "a";
     private static final int THING1_KNOWN_NUM_ATTR_VALUE = 1;
     private static final boolean THING1_KNOWN_BOOL_ATTR_VALUE = true;
-    private static final String THING2_ID = "thingsearch.read:thing2";
+    private static final String THING2_ID = thingId(NAMESPACE, "thing2");
     private static final String THING2_KNOWN_STR_ATTR_VALUE = "b";
     private static final int THING2_KNOWN_NUM_ATTR_VALUE = 2;
     private static final boolean THING2_KNOWN_BOOL_ATTR_VALUE = true;
-    private static final String THING3_ID = "thingsearch.read:thing3";
+    private static final String THING3_ID = thingId(NAMESPACE, "thing3");
     private static final String THING3_KNOWN_STR_ATTR_VALUE = "c";
     private static final double THING3_KNOWN_NUM_ATTR_VALUE = 3.1;
     private static final boolean THING3_KNOWN_BOOL_ATTR_VALUE = false;
-    private static final String THING4_ID = "thingsearch.read:thing4";
+    private static final String THING4_ID = thingId(NAMESPACE, "thing4");
     private static final String THING4_KNOWN_STR_ATTR_VALUE = "d";
     private static final int THING4_KNOWN_NUM_ATTR_VALUE = 4;
     private static final boolean THING4_KNOWN_BOOL_ATTR_VALUE = false;

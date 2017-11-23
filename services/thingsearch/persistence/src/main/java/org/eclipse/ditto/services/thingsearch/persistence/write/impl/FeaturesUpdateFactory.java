@@ -30,7 +30,7 @@ import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.thingsearch.persistence.MongoSortKeyMappingFunction;
 import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
-import org.eclipse.ditto.services.thingsearch.persistence.read.document.DocumentMapper;
+import org.eclipse.ditto.services.thingsearch.persistence.mapping.ThingDocumentMapper;
 import org.eclipse.ditto.services.thingsearch.persistence.write.IndexLengthRestrictionEnforcer;
 
 /**
@@ -221,7 +221,7 @@ final class FeaturesUpdateFactory {
             pushes.addAll(createPushes(f));
             featuresObjectBuilder.set(f.getId(), propertiesJson);
         });
-        final Object featuresDocument = DocumentMapper.toValue(featuresObjectBuilder.build());
+        final Object featuresDocument = ThingDocumentMapper.toValue(featuresObjectBuilder.build());
 
         final Bson update2 = new Document()
                 .append(PersistenceConstants.SET,
@@ -255,7 +255,7 @@ final class FeaturesUpdateFactory {
         update.append(
                 MongoSortKeyMappingFunction.mapSortKey(PersistenceConstants.FIELD_FEATURES, featureId,
                         PersistenceConstants.FIELD_PROPERTIES + featurePointer),
-                DocumentMapper.toValue(propertyValue));
+                ThingDocumentMapper.toValue(propertyValue));
         return new Document(PersistenceConstants.SET, update);
     }
 
@@ -286,7 +286,7 @@ final class FeaturesUpdateFactory {
     }
 
     private static Object createComplexPropertiesRepresentations(final JsonValue properties) {
-        return DocumentMapper.toValue(properties);
+        return ThingDocumentMapper.toValue(properties);
     }
 
     private static String createPrefixRegex(final JsonPointer jsonPointer) {

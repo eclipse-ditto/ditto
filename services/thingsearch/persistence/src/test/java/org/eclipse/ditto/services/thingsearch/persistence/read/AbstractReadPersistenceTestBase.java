@@ -38,7 +38,6 @@ import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.thingsearch.persistence.AbstractThingSearchPersistenceTestBase;
 import org.eclipse.ditto.services.thingsearch.persistence.write.impl.MongoEventToPersistenceStrategyFactory;
 import org.eclipse.ditto.services.thingsearch.persistence.write.impl.MongoThingsSearchUpdaterPersistence;
-import org.junit.Assert;
 import org.junit.Before;
 
 
@@ -55,33 +54,26 @@ public abstract class AbstractReadPersistenceTestBase extends AbstractThingSearc
     public void initTestDataPersistence() {
         policyEnforcer = PolicyEnforcers.defaultEvaluator(createPolicy());
         writePersistence = new MongoThingsSearchUpdaterPersistence(getClient(),
-                log,
-                MongoEventToPersistenceStrategyFactory.getInstance());
+                log, MongoEventToPersistenceStrategyFactory.getInstance());
     }
 
-    boolean isV2() {
-        if (getVersion() == JsonSchemaVersion.V_1) {
-            return false;
-        } else if (getVersion() == JsonSchemaVersion.V_2) {
-            return true;
-        } else {
-            throw new IllegalStateException("Unknown version: " + getVersion());
-        }
+    boolean isV1() {
+        return getVersion() == JsonSchemaVersion.V_1;
     }
 
     Thing persistThing(final Thing thing) {
-        if (isV2()) {
-            return persistThingV2(thing);
-        } else {
+        if (isV1()) {
             return persistThingV1(thing);
+        } else {
+            return persistThingV2(thing);
         }
     }
 
     Thing createThing(final String thingId) {
-        if (isV2()) {
-            return createThingV2(thingId);
-        } else {
+        if (isV1()) {
             return createThingV1(thingId);
+        } else {
+            return createThingV2(thingId);
         }
     }
 
@@ -125,10 +117,7 @@ public abstract class AbstractReadPersistenceTestBase extends AbstractThingSearc
                     .isTrue();
             return thingV1;
         } catch (final ExecutionException | InterruptedException e) {
-            final String pattern = "Inserting Thing <{}> failed with error: <{}>";
-            Assert.fail(MessageFormat.format(pattern, thingV1, e.getMessage()));
-            // wrap the exception and throw it so it doesn't get lost
-            throw new RuntimeException(e);
+           throw new IllegalStateException(e);
         }
     }
 
@@ -156,11 +145,8 @@ public abstract class AbstractReadPersistenceTestBase extends AbstractThingSearc
                     .orElseThrow(() -> new IllegalStateException("not possible"))))))
                     .isTrue();
             return thingV2;
-        } catch (ExecutionException | InterruptedException e) {
-            final String pattern = "Inserting Thing <{}> failed with error: <{}>";
-            Assert.fail(MessageFormat.format(pattern, thingV2, e.getMessage()));
-            // wrap the exception and throw it so it doesn't get lost
-            throw new RuntimeException(e);
+        } catch (final ExecutionException | InterruptedException e) {
+            throw new IllegalStateException(e);
         }
     }
 

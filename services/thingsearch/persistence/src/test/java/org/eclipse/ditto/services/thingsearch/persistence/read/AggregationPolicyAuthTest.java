@@ -12,6 +12,8 @@
 package org.eclipse.ditto.services.thingsearch.persistence.read;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.eclipse.ditto.services.thingsearch.persistence.TestConstants.Thing.NAMESPACE;
+import static org.eclipse.ditto.services.thingsearch.persistence.TestConstants.thingId;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -31,6 +33,7 @@ import org.eclipse.ditto.model.policies.SubjectType;
 import org.eclipse.ditto.model.policiesenforcers.PolicyEnforcer;
 import org.eclipse.ditto.model.policiesenforcers.PolicyEnforcers;
 import org.eclipse.ditto.model.things.Attributes;
+import org.eclipse.ditto.model.things.Permission;
 import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Criteria;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.PolicyRestrictedSearchAggregation;
 import org.junit.Before;
@@ -50,20 +53,20 @@ public final class AggregationPolicyAuthTest extends AbstractReadPersistenceTest
     private static final String KNOWN_BOOL_ATTR2 = "boolAttr2";
     private static final String KNOWN_REGEX_ATTR2 = "stringRegex2";
 
-    private static final String THING1_ID = "thingsearch.read:thing1";
+    private static final String THING1_ID = thingId(NAMESPACE, "thing1");
     private static final String THING1_KNOWN_STR_ATTR_VALUE = "a";
     private static final int THING1_KNOWN_NUM_ATTR_VALUE = 1;
     private static final boolean THING1_KNOWN_BOOL_ATTR_VALUE = true;
-    private static final String THING2_ID = "thingsearch.read:thing2";
+    private static final String THING2_ID = thingId(NAMESPACE, "thing2");
     private static final String THING2_KNOWN_STR_ATTR_VALUE = "b";
     private static final int THING2_KNOWN_NUM_ATTR_VALUE = 1;
     private static final boolean THING2_KNOWN_BOOL_ATTR_VALUE = true;
-    private static final String THING3_ID = "thingsearch.read:thing3";
+    private static final String THING3_ID = thingId(NAMESPACE, "thing3");
     private static final String THING3_KNOWN_STR_ATTR_VALUE = "c";
     private static final double THING3_KNOWN_NUM_ATTR_VALUE = 1;
     private static final boolean THING3_KNOWN_BOOL_ATTR_VALUE = true;
-    private static final String THING4_ID = "thingsearch.read:thing4";
-    private static final String THING5_ID = "thingsearch.read:thing5";
+    private static final String THING4_ID = thingId(NAMESPACE, "thing4");
+    private static final String THING5_ID = thingId(NAMESPACE, "thing5");
     private static final String THING4_KNOWN_STR_ATTR_VALUE = "d";
     private static final int THING4_KNOWN_NUM_ATTR_VALUE = 1;
     private static final boolean THING4_KNOWN_BOOL_ATTR_VALUE = false;
@@ -236,13 +239,10 @@ public final class AggregationPolicyAuthTest extends AbstractReadPersistenceTest
      */
     @Override
     protected PolicyEnforcer getPolicyEnforcer(final String thingId) {
-        switch (thingId) {
-            case THING1_ID:
-            case THING5_ID:
-                return policyEnforcerThing1_5;
-            default:
-                return policyEnforcerThing2_3_4;
+        if (thingId.equals(THING1_ID) || thingId.equals(THING5_ID)) {
+            return policyEnforcerThing1_5;
         }
+        return policyEnforcerThing2_3_4;
     }
 
     private static Policy createPolicy1_5() {
@@ -277,10 +277,10 @@ public final class AggregationPolicyAuthTest extends AbstractReadPersistenceTest
     }
 
 
-    private static PolicyEntry createPolicyEntry(final String label, final Collection<String> resourceKeys, final
-    Collection<String> subjects) {
+    private static PolicyEntry createPolicyEntry(final String label, final Collection<String> resourceKeys,
+            final Collection<String> subjects) {
         return createPolicyEntry(label, resourceKeys, subjects, Collections
-                        .singletonList("READ"),
+                        .singletonList(Permission.READ.name()),
                 Collections.emptyList());
     }
 

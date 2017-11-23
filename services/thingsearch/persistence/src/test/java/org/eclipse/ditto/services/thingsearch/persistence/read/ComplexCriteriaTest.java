@@ -12,6 +12,8 @@
 package org.eclipse.ditto.services.thingsearch.persistence.read;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.eclipse.ditto.services.thingsearch.persistence.TestConstants.Thing.NAMESPACE;
+import static org.eclipse.ditto.services.thingsearch.persistence.TestConstants.thingId;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -24,7 +26,8 @@ import org.junit.Test;
 /**
  * Tests for complex search criteria on the persistence.
  */
-public final class ComplexCriteriaTest extends AbstractQueryAndAggregationTest {
+public final class ComplexCriteriaTest extends
+        AbstractVersionedThingSearchPersistenceTestBase {
 
     private static final String KNOWN_ATTRIBUTE_KEY_1 = "attributeKey1";
     private static final String KNOWN_ATTRIBUTE_KEY_2 = "attributeKey2";
@@ -32,12 +35,12 @@ public final class ComplexCriteriaTest extends AbstractQueryAndAggregationTest {
     private static final String KNOWN_STRING_VALUE = "value";
     private static final String OTHER_STRING_VALUE = "otherValue";
 
-    private static final String THING_ID_WITH_KEY_1_AND_2 = "thingsearch.read:with1and2";
-    private static final String THING_ID_WITH_KEY_1_ONLY = "thingsearch.read:with1Only";
-    private static final String THING_ID_WITH_KEY_2_ONLY = "thingsearch.read:with2Only";
-    private static final String THING_ID_WITH_OTHER_VALUE_1 = "thingsearch.read:withOtherValue1";
-    private static final String THING_ID_WITH_OTHER_VALUE_2 = "thingsearch.read:withOtherValue2";
-    private static final String THING_ID_WITH_NO_KEY = "thingsearch.read:withNoKey";
+    private static final String THING_ID_WITH_KEY_1_AND_2 = thingId(NAMESPACE, "with1and2");
+    private static final String THING_ID_WITH_KEY_1_ONLY = thingId(NAMESPACE, "with1Only");
+    private static final String THING_ID_WITH_KEY_2_ONLY = thingId(NAMESPACE,"with2Only");
+    private static final String THING_ID_WITH_OTHER_VALUE_1 = thingId(NAMESPACE,"withOtherValue1");
+    private static final String THING_ID_WITH_OTHER_VALUE_2 = thingId(NAMESPACE,"withOtherValue2");
+    private static final String THING_ID_WITH_NO_KEY = thingId(NAMESPACE, "withNoKey");
 
     @Override
     void createTestDataV1() {

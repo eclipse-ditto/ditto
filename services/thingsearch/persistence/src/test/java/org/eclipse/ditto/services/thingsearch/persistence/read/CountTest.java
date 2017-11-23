@@ -12,6 +12,8 @@
 package org.eclipse.ditto.services.thingsearch.persistence.read;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.eclipse.ditto.services.thingsearch.persistence.TestConstants.Thing.NAMESPACE;
+import static org.eclipse.ditto.services.thingsearch.persistence.TestConstants.thingId;
 
 import java.util.Collections;
 import java.util.List;
@@ -30,16 +32,17 @@ import org.junit.Test;
 /**
  * Tests for complex search criteria on the persistence.
  */
-public final class CountTest extends AbstractQueryAndAggregationTest {
+public final class CountTest extends AbstractVersionedThingSearchPersistenceTestBase {
 
     private static final List<String> UNKNOWN_SUBJECTS = Collections.singletonList("any:other_user");
     private static final String UNKNOWN_POLICY_ID = "any:other_policy";
 
-    private static final String THING_BASE_ID = "thingsearch:countThing";
+    private static final String THING_BASE_ID = thingId("thingsearch", "countThing");
     private static final String KNOWN_ATTRIBUTE_KEY_1 = "attributeKey1";
     private static final String KNOWN_ATTRIBUTE_KEY_2 = "attributeKey2";
 
     private static final String KNOWN_STRING_VALUE = "value";
+    private static final String SUDO_NAMESPACE = "sudoThings";
 
     private final PolicyEnforcer otherPolicyEnforcer = PolicyEnforcers.defaultEvaluator(createOtherPolicy());
 
@@ -75,7 +78,7 @@ public final class CountTest extends AbstractQueryAndAggregationTest {
         if (JsonSchemaVersion.V_2.equals(getVersion())) {
             final Random random = new Random();
             final long expectedCount = random.nextInt(100) + 10;
-            final String countThingId = "sudoThings:countThing";
+            final String countThingId = thingId(SUDO_NAMESPACE, "countThing");
 
             for (int i = 0; i < expectedCount; i++) {
                 insertThingWithAttribute(countThingId + i, KNOWN_STRING_VALUE, false);
@@ -114,7 +117,7 @@ public final class CountTest extends AbstractQueryAndAggregationTest {
     /** */
     @Test
     public void countWithNoMatchingResults() {
-        final String nonExistingThingId = "thingsearch.read:" + UUID.randomUUID().toString();
+        final String nonExistingThingId = thingId(NAMESPACE, UUID.randomUUID().toString());
 
         final long actualCount = executeVersionedCountQuery(
                 cf.fieldCriteria(
@@ -128,11 +131,10 @@ public final class CountTest extends AbstractQueryAndAggregationTest {
         final Thing thing;
         if (JsonSchemaVersion.V_1.equals(getVersion())) {
             thing = createThingV1(thingId, known ? KNOWN_SUBJECTS : UNKNOWN_SUBJECTS);
-        } else if (JsonSchemaVersion.V_2.equals(getVersion())) {
-            thing = createThingV2(thingId, known ? POLICY_ID : UNKNOWN_POLICY_ID);
         } else {
-            throw new IllegalStateException("unknown JsonSchemaVersion");
+            thing = createThingV2(thingId, known ? POLICY_ID : UNKNOWN_POLICY_ID);
         }
+
         persistThing(thing
                 .setAttribute(KNOWN_ATTRIBUTE_KEY_1, attributeValue)
                 .setAttribute(KNOWN_ATTRIBUTE_KEY_2, KNOWN_STRING_VALUE));
@@ -140,7 +142,7 @@ public final class CountTest extends AbstractQueryAndAggregationTest {
 
     @Override
     protected PolicyEnforcer getPolicyEnforcer(final String thingId) {
-        if (null != thingId && thingId.startsWith("sudoThings:")) {
+        if (thingId.startsWith(SUDO_NAMESPACE + ":")) {
             return otherPolicyEnforcer;
         } else {
             return super.getPolicyEnforcer(thingId);
@@ -154,12 +156,11 @@ public final class CountTest extends AbstractQueryAndAggregationTest {
     }
 
 
-    private Long executeVersionedCountQuery(final Criteria criteria) {
+    private long executeVersionedCountQuery(final Criteria criteria) {
         return executeVersionedCountQuery(criteria, false);
     }
 
-    private Long executeVersionedCountQuery(final Criteria criteria, final boolean
-            sudo) {
+    private long executeVersionedCountQuery(final Criteria criteria, final boolean sudo) {
         return executeVersionedQuery(
                 crit -> qbf.newUnlimitedBuilder(crit).build(),
                 crit -> abf.newCountBuilder(crit)

@@ -9,9 +9,14 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package org.eclipse.ditto.services.thingsearch.persistence.write.impl;
+package org.eclipse.ditto.services.thingsearch.persistence.mapping;
 
 import static org.eclipse.ditto.model.base.assertions.DittoBaseAssertions.assertThat;
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_ACL;
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_ATTRIBUTE_PREFIX_WITH_ENDING_SLASH;
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_FEATURE_PROPERTIES_PREFIX_WITH_ENDING_SLASH;
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_ID;
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_INTERNAL;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -31,12 +36,10 @@ import org.eclipse.ditto.model.things.Permission;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
-import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
-import org.eclipse.ditto.services.thingsearch.persistence.read.document.DocumentMapper;
 import org.junit.Test;
 
 /**
- * Unit test for {@link DocumentMapper}.
+ * Unit test for {@link ThingDocumentMapper}.
  */
 public final class ThingDocumentMapperTest {
 
@@ -57,28 +60,26 @@ public final class ThingDocumentMapperTest {
 
     @SuppressWarnings("unchecked")
     private static void assertDocumentCorrect(final Document document) {
-        assertThat(((List<Document>) document.get(PersistenceConstants.FIELD_INTERNAL)).size()).isEqualTo(8);
-        ((List<Document>) document.get(PersistenceConstants.FIELD_INTERNAL)).forEach(doc -> {
+        assertThat(((List<Document>) document.get(FIELD_INTERNAL)).size()).isEqualTo(8);
+        ((List<Document>) document.get(FIELD_INTERNAL)).forEach(doc -> {
             if (doc.get("f") != null) {
                 assertThat(doc.get("k"))
-                        .isIn(Arrays.asList(
-                                PersistenceConstants.FIELD_FEATURE_PROPERTIES_PREFIX_WITH_ENDING_SLASH + PROP1_KEY,
-                                null));
+                        .isIn(Arrays.asList(FIELD_FEATURE_PROPERTIES_PREFIX_WITH_ENDING_SLASH + PROP1_KEY, null));
                 assertThat(doc.get("v")).isIn(Arrays.asList(PROP1_VALUE, null));
-                assertThat(doc.get("f")).isIn(Arrays.asList(FEATURE_ID1));
+                assertThat(doc.get("f")).isIn(Collections.singletonList(FEATURE_ID1));
             } else if (doc.get("k") != null) {
                 assertThat(doc.get("k")).isIn(Arrays
-                        .asList(PersistenceConstants.FIELD_ATTRIBUTE_PREFIX_WITH_ENDING_SLASH + KEY1,
-                                PersistenceConstants.FIELD_ATTRIBUTE_PREFIX_WITH_ENDING_SLASH + KEY2,
-                                PersistenceConstants.FIELD_ATTRIBUTE_PREFIX_WITH_ENDING_SLASH + KEY3,
-                                PersistenceConstants.FIELD_ATTRIBUTE_PREFIX_WITH_ENDING_SLASH + KEY4,
-                                PersistenceConstants.FIELD_ATTRIBUTE_PREFIX_WITH_ENDING_SLASH + KEY5));
+                        .asList(FIELD_ATTRIBUTE_PREFIX_WITH_ENDING_SLASH + KEY1,
+                                FIELD_ATTRIBUTE_PREFIX_WITH_ENDING_SLASH + KEY2,
+                                FIELD_ATTRIBUTE_PREFIX_WITH_ENDING_SLASH + KEY3,
+                                FIELD_ATTRIBUTE_PREFIX_WITH_ENDING_SLASH + KEY4,
+                                FIELD_ATTRIBUTE_PREFIX_WITH_ENDING_SLASH + KEY5));
                 assertThat(doc.get("v")).isIn(Arrays.asList(VALUE1, VALUE2, VALUE3, VALUE4, VALUE5));
             } else {
-                assertThat(doc.get(PersistenceConstants.FIELD_ACL)).isEqualTo("newSid");
+                assertThat(doc.get(FIELD_ACL)).isEqualTo("newSid");
             }
         });
-        assertThat(document.get(PersistenceConstants.FIELD_ID)).isEqualTo(THING_ID);
+        assertThat(document.get(FIELD_ID)).isEqualTo(THING_ID);
         System.out.println(document.toJson());
     }
 
@@ -107,7 +108,7 @@ public final class ThingDocumentMapperTest {
                 ThingsModelFactory.newThingBuilder().setId(THING_ID).setPermissions(acl).setAttributes(attributes)
                         .setFeatures(features).setLifecycle(ThingLifecycle.ACTIVE).setRevision(0L).build();
 
-        final Document mappedDoc = DocumentMapper.toDocument(thing);
+        final Document mappedDoc = ThingDocumentMapper.toDocument(thing);
         assertDocumentCorrect(mappedDoc);
     }
 

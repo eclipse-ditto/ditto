@@ -12,6 +12,8 @@
 package org.eclipse.ditto.services.thingsearch.persistence.read;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.eclipse.ditto.services.thingsearch.persistence.TestConstants.Thing.NAMESPACE;
+import static org.eclipse.ditto.services.thingsearch.persistence.TestConstants.thingId;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -33,15 +35,15 @@ import org.junit.Test;
 /**
  * Tests for the paging functionality of search persistence.
  */
-public final class PagingTest extends AbstractQueryAndAggregationTest {
+public final class PagingTest extends AbstractVersionedThingSearchPersistenceTestBase {
 
     private static final int KNOWN_LIMIT = 2;
-    private static final String THING_ID1 = "thingsearch.read:thingId1";
-    private static final String THING_ID2 = "thingsearch.read:thingId2";
-    private static final String THING_ID3 = "thingsearch.read:thingId3";
-    private static final String THING_ID4 = "thingsearch.read:thingId4";
-    private static final String THING_ID5 = "thingsearch.read:thingId5";
-    private static final String THING_ID6 = "thingsearch.read:thingId6";
+    private static final String THING_ID1 = thingId(NAMESPACE, "thingId1");
+    private static final String THING_ID2 = thingId(NAMESPACE, "thingId2");
+    private static final String THING_ID3 = thingId(NAMESPACE, "thingId3");
+    private static final String THING_ID4 = thingId(NAMESPACE, "thingId4");
+    private static final String THING_ID5 = thingId(NAMESPACE, "thingId5");
+    private static final String THING_ID6 = thingId(NAMESPACE, "thingId6");
     private static final List<String> THING_IDS = Arrays.asList(THING_ID1, THING_ID2, THING_ID3, THING_ID4, THING_ID5,
             THING_ID6);
     private final ThingsFieldExpressionFactory eft = new ThingsFieldExpressionFactoryImpl();
@@ -139,7 +141,7 @@ public final class PagingTest extends AbstractQueryAndAggregationTest {
         final long totalThingsCount = QueryConstants.DEFAULT_LIMIT + moreThanLimit;
         final List<String> allThings = new ArrayList<>((int) totalThingsCount);
         for (int i = 0; i < totalThingsCount; i++) {
-            final String thingId = "thingsearch.read:thingId" + String.format("%03d", i);
+            final String thingId = thingId(NAMESPACE, "thingId") + String.format("%03d", i);
             persistThing(createThing(thingId));
             allThings.add(thingId);
         }

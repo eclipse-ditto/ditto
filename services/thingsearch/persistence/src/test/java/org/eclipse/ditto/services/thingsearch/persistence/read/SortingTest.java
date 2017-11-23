@@ -22,10 +22,8 @@ import java.util.List;
 import java.util.Random;
 import java.util.UUID;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.Features;
@@ -52,7 +50,7 @@ import org.junit.runners.Parameterized;
  * Tests for sorting functionality of search persistence.
  */
 @RunWith(Parameterized.class)
-public final class SortingTest extends AbstractQueryAndAggregationTest {
+public final class SortingTest extends AbstractVersionedThingSearchPersistenceTestBase {
 
     private static final List<SortDirection> SORT_DIRECTIONS = Arrays.asList(SortDirection.values());
     private static final Random RANDOM = new Random();
@@ -71,24 +69,17 @@ public final class SortingTest extends AbstractQueryAndAggregationTest {
 
     @Parameterized.Parameters(name = "v{0} - {1} - {2}")
     public static List<Object[]> parameters() {
-        final Object[] apiVersions = apiVersions().toArray();
+        final List<Object[]> versionsWithQueryClass = versionAndQueryClassParameters();
         final Object[] sortDirections = SORT_DIRECTIONS.toArray();
-        final List<Object[]> result = new ArrayList<>();
-        for (final Object apiVersion : apiVersions) {
-            final String queryClass;
-            if (JsonSchemaVersion.V_1.equals(apiVersion)) {
-                queryClass = Query.class.getSimpleName();
-            }  else if (JsonSchemaVersion.V_2.equals(apiVersion)) {
-                queryClass = PolicyRestrictedSearchAggregation.class.getSimpleName();
-            } else {
-                throw new IllegalStateException("should never happen");
-            }
-
+        final List<Object[]> parameters = new ArrayList<>();
+        for (final Object[] versionAndQueryClass : versionsWithQueryClass) {
             for (final Object sortDirection : sortDirections) {
-                result.add(new Object[]{apiVersion, queryClass, sortDirection});
+                final List<Object> singleParamList = new ArrayList<>(Arrays.asList(versionAndQueryClass));
+                singleParamList.add(sortDirection);
+                parameters.add(singleParamList.toArray());
             }
         }
-        return result;
+        return parameters;
     }
 
     private final CriteriaFactory cf = new CriteriaFactoryImpl();
@@ -272,10 +263,12 @@ public final class SortingTest extends AbstractQueryAndAggregationTest {
     private Function<Thing, String> extractStringField(final FieldExpression sortField) {
         return (thing) -> {
             if (sortField instanceof SimpleFieldExpressionImpl) {
-                return thing.getId().orElseThrow(illegalStateException());
+                return thing.getId().orElseThrow(IllegalStateException::new);
             } else {
-                return thing.getAttributes().orElseThrow(illegalStateException())
-                        .getValue(((AttributeExpressionImpl) sortField).getKey()).orElseThrow(illegalStateException())
+                return thing.getAttributes()
+                        .orElseThrow(IllegalStateException::new)
+                        .getValue(((AttributeExpressionImpl) sortField).getKey())
+                        .orElseThrow(IllegalStateException::new)
                         .asString();
             }
         };
@@ -284,16 +277,18 @@ public final class SortingTest extends AbstractQueryAndAggregationTest {
     private Function<Thing, Long> extractLongField(final FieldExpression sortField) {
         return (thing) -> {
             if (sortField instanceof AttributeExpressionImpl) {
-                return thing.getAttributes().orElseThrow(illegalStateException())
-                        .getValue(((AttributeExpressionImpl) sortField).getKey()).orElseThrow(illegalStateException())
+                return thing.getAttributes()
+                        .orElseThrow(IllegalStateException::new)
+                        .getValue(((AttributeExpressionImpl) sortField).getKey())
+                        .orElseThrow(IllegalStateException::new)
                         .asLong();
             } else if (sortField instanceof FeatureIdPropertyExpressionImpl) {
                 return thing.getFeatures()
-                        .orElseThrow(illegalStateException())
+                        .orElseThrow(IllegalStateException::new)
                         .getFeature(((FeatureIdPropertyExpressionImpl) sortField).getFeatureId())
-                        .orElseThrow(illegalStateException())
+                        .orElseThrow(IllegalStateException::new)
                         .getProperty(((FeatureIdPropertyExpressionImpl) sortField).getProperty())
-                        .orElseThrow(illegalStateException())
+                        .orElseThrow(IllegalStateException::new)
                         .asLong();
             } else {
                 throw new UnsupportedOperationException(sortField.getClass().getName() + " not supported");
@@ -312,7 +307,7 @@ public final class SortingTest extends AbstractQueryAndAggregationTest {
 
         final List<String> simpleList = things.stream()
                 .sorted(comparator)
-                .map(thing -> thing.getId().orElseThrow(() -> new IllegalStateException("should never happen")))
+                .map(thing -> thing.getId().orElseThrow(IllegalStateException::new))
                 .collect(Collectors.toList());
         return new ResultListImpl<>(simpleList, ResultList.NO_NEXT_PAGE);
     }
@@ -321,7 +316,4 @@ public final class SortingTest extends AbstractQueryAndAggregationTest {
         return "thingsearch.read:" + UUID.randomUUID().toString();
     }
 
-    private static Supplier<RuntimeException> illegalStateException() {
-        return () -> new IllegalStateException("illegal state");
-    }
 }

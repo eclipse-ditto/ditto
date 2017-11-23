@@ -9,7 +9,7 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package org.eclipse.ditto.services.thingsearch.persistence.read.document;
+package org.eclipse.ditto.services.thingsearch.persistence.mapping;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.argumentNotNull;
 
@@ -33,7 +33,7 @@ final class AttributesDocumentBuilder {
     private AttributesDocumentBuilder() {
         tDocument = new Document();
         tDocument.append(PersistenceConstants.FIELD_INTERNAL, new ArrayList<Document>());
-        tDocument.append(PersistenceConstants.FIELD_ATTRIBUTES, DocumentMapper.newDocument());
+        tDocument.append(PersistenceConstants.FIELD_ATTRIBUTES, ThingDocumentMapper.newDocument());
     }
 
     /**
@@ -55,8 +55,8 @@ final class AttributesDocumentBuilder {
     public AttributesDocumentBuilder attributes(final Attributes attributes) {
         argumentNotNull(attributes);
 
-        attributes.getKeys().forEach((key) -> {
-            final Object val = attributes.getValue(key).map(DocumentMapper::toValue).orElse(null);
+        attributes.getKeys().forEach(key -> {
+            final Object val = attributes.getValue(key).map(ThingDocumentMapper::toValue).orElse(null);
             mainAttribute(key.toString(), val);
             addInternalAttributes(key.toString(), attributes.getValue(key).orElse(null));
         });
@@ -112,8 +112,8 @@ final class AttributesDocumentBuilder {
 
     private AttributesDocumentBuilder attributeInternally(final String key, final Object value) {
         // add attribute to flat representation
-        final List<Document> attributesList = DocumentMapper.toList(tDocument, PersistenceConstants.FIELD_INTERNAL);
-        final Document doc = DocumentMapper.newDocument();
+        final List<Document> attributesList = ThingDocumentMapper.toList(tDocument, PersistenceConstants.FIELD_INTERNAL);
+        final Document doc = ThingDocumentMapper.newDocument();
         doc.append(
                 PersistenceConstants.FIELD_INTERNAL_KEY, PersistenceConstants.FIELD_ATTRIBUTE_PREFIX_WITH_ENDING_SLASH + key);
         doc.append(PersistenceConstants.FIELD_INTERNAL_VALUE, value);
