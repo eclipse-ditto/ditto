@@ -64,6 +64,10 @@
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-services-utils-config</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-services-utils-devops</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>org.eclipse.ditto</groupId>

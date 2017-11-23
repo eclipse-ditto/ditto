@@ -36,6 +36,8 @@ import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
 import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
+import org.eclipse.ditto.services.utils.devops.DevOpsCommandsActor;
+import org.eclipse.ditto.services.utils.devops.LogbackLoggingFacade;
 import org.eclipse.ditto.services.utils.distributedcache.actors.CacheFacadeActor;
 import org.eclipse.ditto.services.utils.distributedcache.actors.CacheRole;
 import org.eclipse.ditto.services.utils.health.HealthCheckingActor;
@@ -186,8 +188,12 @@ final class GatewayRootActor extends AbstractActor {
                 EnforcerLookupActor.props(aclEnforcerShardRegion, policyEnforcerShardRegion, thingCacheFacade,
                         thingEnforcerLookupFunction));
 
+        final ActorRef devOpsCommandsActor = startChildActor(DevOpsCommandsActor.ACTOR_NAME,
+                DevOpsCommandsActor.props(LogbackLoggingFacade.newInstance(), GatewayService.SERVICE_NAME,
+                        ConfigUtil.instanceIndex()));
+
         final ActorRef proxyActor = startChildActor(ProxyActor.ACTOR_NAME,
-                ProxyActor.props(pubSubMediator, aclEnforcerShardRegion, policyEnforcerShardRegion,
+                ProxyActor.props(pubSubMediator, devOpsCommandsActor, aclEnforcerShardRegion, policyEnforcerShardRegion,
                         thingEnforcerLookupActor, thingCacheFacade));
 
         pubSubMediator.tell(new DistributedPubSubMediator.Put(getSelf()), getSelf());

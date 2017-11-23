@@ -43,14 +43,6 @@ public interface Command<T extends Command> extends Signal<T> {
      */
     String getTypePrefix();
 
-    /**
-     * Returns the type of this command.
-     *
-     * @return the type.
-     */
-    @Override
-    String getType();
-
     @Override
     T setDittoHeaders(DittoHeaders dittoHeaders);
 

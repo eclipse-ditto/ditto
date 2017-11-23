@@ -38,22 +38,6 @@ public interface CommandResponse<T extends CommandResponse> extends Signal<T> {
      */
     String TYPE_QUALIFIER = "responses";
 
-    /**
-     * Returns the type of this response.
-     *
-     * @return the type of this response.
-     */
-    String getType();
-
-    /**
-     * Returns the name of the response. This is gathered by the type of the response in the default implementation.
-     *
-     * @return the response name.
-     */
-    default String getName() {
-        return getType().contains(":") ? getType().split(":")[1] : getType();
-    }
-
     @Override
     T setDittoHeaders(DittoHeaders dittoHeaders);
 

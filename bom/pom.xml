@@ -458,12 +458,12 @@
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-services-utils-health</artifactId>
+                <artifactId>ditto-services-utils-devops</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-services-utils-logging</artifactId>
+                <artifactId>ditto-services-utils-health</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

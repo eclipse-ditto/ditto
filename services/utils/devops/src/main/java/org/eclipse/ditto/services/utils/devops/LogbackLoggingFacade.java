@@ -9,13 +9,15 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package org.eclipse.ditto.services.utils.logging;
+package org.eclipse.ditto.services.utils.devops;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
+
+import javax.annotation.Nonnull;
 
 import org.eclipse.ditto.model.devops.ImmutableLoggerConfig;
 import org.eclipse.ditto.model.devops.LogLevel;
@@ -45,7 +47,7 @@ public final class LogbackLoggingFacade implements LoggingFacade {
     }
 
     @Override
-    public boolean setLogLevel(final LoggerConfig loggerConfig) {
+    public boolean setLogLevel(@Nonnull final LoggerConfig loggerConfig) {
         final Level level = Level.valueOf(loggerConfig.getLevel().getIdentifier());
         final String loggerName = loggerConfig.getLogger().orElse(Logger.ROOT_LOGGER_NAME);
         final Logger logger = (Logger) LoggerFactory.getLogger(loggerName);
@@ -56,6 +58,7 @@ public final class LogbackLoggingFacade implements LoggingFacade {
     }
 
     @Override
+    @Nonnull
     public List<LoggerConfig> getLoggerConfig() {
         final Logger rootLogger = (Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
         final List<Logger> loggerList = rootLogger.getLoggerContext().getLoggerList();
@@ -64,7 +67,8 @@ public final class LogbackLoggingFacade implements LoggingFacade {
     }
 
     @Override
-    public List<LoggerConfig> getLoggerConfig(final Iterable<String> loggerNames) {
+    @Nonnull
+    public List<LoggerConfig> getLoggerConfig(@Nonnull final Iterable<String> loggerNames) {
         final List<Logger> loggerList = StreamSupport.stream(loggerNames.spliterator(), false) //
                 .map(logger -> (Logger) LoggerFactory.getLogger(logger)) //
                 .collect(Collectors.toList());
@@ -79,6 +83,7 @@ public final class LogbackLoggingFacade implements LoggingFacade {
             final Level level = Optional.ofNullable(logger.getLevel()).orElse(Level.OFF);
             final Optional<LogLevel> logLevelOptional = LogLevel.forIdentifier(level.toString());
             logLevelOptional
+                    .filter(logLevel -> !logLevel.equals(LogLevel.OFF)) // filter out the "off" loggers
                     .ifPresent(logLevel -> loggerConfigList.add(ImmutableLoggerConfig.of(logLevel, logger.getName())));
         });
 

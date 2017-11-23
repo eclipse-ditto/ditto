@@ -11,31 +11,32 @@
  */
 package org.eclipse.ditto.signals.commands.devops;
 
-import javax.annotation.concurrent.Immutable;
+import java.util.Optional;
 
 import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
-import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
-import org.eclipse.ditto.model.base.headers.WithManifest;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.signals.commands.base.Command;
 
 /**
- * Base interface for all devops commands which are understood by things, keystore and messages services.
+ * Base interface for all devops commands which are understood by all services.
  *
  * @param <T> the type of the implementing class.
  */
-public interface DevOpsCommand<T extends DevOpsCommand> extends Jsonifiable.WithPredicate<JsonObject, JsonField>,
-        WithDittoHeaders<T>, WithManifest {
+public interface DevOpsCommand<T extends DevOpsCommand> extends Command<T> {
 
     /**
      * Type Prefix of DevOps commands.
      */
-    String TYPE_PREFIX = "things.devops.commands:";
+    String TYPE_PREFIX = "devops.commands:";
+
+    /**
+     * DevOps resource type.
+     */
+    String RESOURCE_TYPE = "devops";
 
     /**
      * Returns the type of this command.
@@ -44,49 +45,57 @@ public interface DevOpsCommand<T extends DevOpsCommand> extends Jsonifiable.With
      */
     String getType();
 
-    /**
-     * Returns the name of the command. This is gathered by the type of the command in the default implementation.
-     *
-     * @return the command name.
-     */
-    default String getName() {
-        return getType().contains(":") ? getType().split(":")[1] : getType();
-    }
-
     @Override
     T setDittoHeaders(DittoHeaders dittoHeaders);
 
     @Override
-    default JsonSchemaVersion getImplementedSchemaVersion() {
-        return getDittoHeaders().getSchemaVersion().orElse(getLatestSchemaVersion());
+    default String getId() {
+        return ""; // empty ID for DevOps commands
     }
 
-    /**
-     * Returns all non hidden marked fields of this command.
-     *
-     * @return a JSON object representation of this command including only non hidden marked fields.
-     */
     @Override
-    default JsonObject toJson() {
-        return toJson(FieldType.notHidden());
+    default String getTypePrefix() {
+        return TYPE_PREFIX;
+    }
+
+    @Override
+    default String getResourceType() {
+        return RESOURCE_TYPE;
+    }
+
+    @Override
+    default JsonPointer getResourcePath() {
+        return JsonPointer.empty(); // empty resource path for DevOps commands
     }
 
     /**
-     * An enumeration of the known {@link JsonField}s of a {@code DevOpsCommand}.
+     * @return the service name to which to send the DevOpsCommand.
      */
-    @Immutable
-    final class JsonFields {
+    Optional<String> getServiceName();
+
+    /**
+     * @return the instance index of the serviceName to which to send the DevOpsCommand.
+     */
+    Optional<Integer> getInstance();
+
+    /**
+     * An enumeration of the known {@link org.eclipse.ditto.json.JsonField}s of a DevOpsCommand.
+     */
+    class JsonFields extends Command.JsonFields {
 
         /**
-         * JSON field containing the command's type.
+         * JSON field containing the serviceName to which to send the DevOpsCommand.
          */
-        public static final JsonFieldDefinition<String> TYPE =
-                JsonFactory.newStringFieldDefinition("type", FieldType.REGULAR, JsonSchemaVersion.V_1,
+        public static final JsonFieldDefinition<String> JSON_SERVICE_NAME =
+                JsonFactory.newStringFieldDefinition("serviceName", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
-        private JsonFields() {
-            throw new AssertionError();
-        }
+        /**
+         * JSON field containing the instance index of the serviceName serviceName to which to send the DevOpsCommand.
+         */
+        public static final JsonFieldDefinition<Integer> JSON_INSTANCE =
+                JsonFactory.newIntFieldDefinition("instance", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
 
     }
 

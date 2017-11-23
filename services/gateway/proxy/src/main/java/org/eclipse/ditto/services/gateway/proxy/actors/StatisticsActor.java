@@ -124,7 +124,7 @@ public final class StatisticsActor extends AbstractActor {
                     final ActorRef self = getSelf();
                     final ActorRef sender = getSender();
                     becomeStatisticsAwaiting(shardStatisticsMap, statistics ->
-                            sender.tell(RetrieveStatisticsResponse.of(statistics.toJson(),
+                            sender.tell(RetrieveStatisticsResponse.of(null, null, statistics.toJson(),
                                     retrieveStatistics.getDittoHeaders()), self)
                     );
                 })
@@ -157,8 +157,8 @@ public final class StatisticsActor extends AbstractActor {
 
         getContext().become(ReceiveBuilder.create()
                 .match(RetrieveStatistics.class, rs -> currentStatistics != null,
-                        retrieveStatistics -> getSender().tell(RetrieveStatisticsResponse.of(currentStatistics.toJson(),
-                                retrieveStatistics.getDittoHeaders()), getSelf())
+                        retrieveStatistics -> getSender().tell(RetrieveStatisticsResponse.of(null, null,
+                                currentStatistics.toJson(), retrieveStatistics.getDittoHeaders()), getSelf())
                 )
                 .match(ShardRegion.CurrentShardRegionState.class, currentShardRegionState -> {
                     final ShardStatisticsWrapper shardStatistics = getShardStatistics(shardStatisticsMap);
