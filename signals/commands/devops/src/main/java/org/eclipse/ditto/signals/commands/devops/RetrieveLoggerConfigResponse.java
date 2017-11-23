@@ -35,6 +35,7 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.devops.ImmutableLoggerConfig;
 import org.eclipse.ditto.model.devops.LoggerConfig;
+import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.signals.commands.base.WithEntity;
 
 /**
@@ -103,8 +104,8 @@ public final class RetrieveLoggerConfigResponse extends AbstractDevOpsCommandRes
      */
     public static RetrieveLoggerConfigResponse fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
-        return new DevOpsCommandResponseJsonDeserializer<RetrieveLoggerConfigResponse>(TYPE, jsonObject)
-                .deserialize(() -> {
+        return new CommandResponseJsonDeserializer<RetrieveLoggerConfigResponse>(TYPE, jsonObject)
+                .deserialize((statusCode) -> {
                     final String serviceName = jsonObject.getValue(DevOpsCommandResponse.JsonFields.JSON_SERVICE_NAME)
                             .orElse(null);
                     final Integer instance = jsonObject.getValue(DevOpsCommandResponse.JsonFields.JSON_INSTANCE)
