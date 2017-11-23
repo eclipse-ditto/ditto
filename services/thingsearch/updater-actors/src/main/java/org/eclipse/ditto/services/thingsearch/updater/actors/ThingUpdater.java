@@ -48,17 +48,14 @@ import org.eclipse.ditto.services.models.things.ThingTag;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SyncThing;
+import org.eclipse.ditto.services.thingsearch.persistence.write.ThingMetadata;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.thingsearch.persistence.write.impl.CombinedThingWrites;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.ShardedMessageEnvelope;
-import org.eclipse.ditto.services.utils.distributedcache.actors.CacheType;
 import org.eclipse.ditto.services.utils.distributedcache.actors.ModifyCacheEntryResponse;
-import org.eclipse.ditto.services.utils.distributedcache.actors.ReadConsistency;
 import org.eclipse.ditto.services.utils.distributedcache.actors.RegisterForCacheUpdates;
-import org.eclipse.ditto.services.utils.distributedcache.actors.RetrieveCacheEntry;
 import org.eclipse.ditto.services.utils.distributedcache.actors.RetrieveCacheEntryResponse;
-import org.eclipse.ditto.services.utils.distributedcache.model.CacheEntry;
 import org.eclipse.ditto.signals.commands.base.ErrorResponse;
 import org.eclipse.ditto.signals.commands.policies.PolicyErrorResponse;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyNotAccessibleException;
@@ -139,7 +136,6 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
 
     // transducer state-transition table
     private final Receive eventProcessingBehavior = createEventProcessingBehavior();
-    private final Receive initialBehaviour = createInitialBehavior();
     private final Receive awaitSyncResultBehavior = createAwaitSyncResultBehavior();
 
     // maintenance and book-keeping
@@ -147,7 +143,6 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
     private int syncAttempts;
     private Cancellable activityChecker;
     private CombinedThingWrites.Builder intermediateCombinedWritesBuilder;
-    private boolean checkThingTagOnly;
 
     // state of Thing and Policy
     private long sequenceNumber = -1L;
@@ -185,26 +180,20 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         searchUpdaterPersistence.getThingMetadata(thingId)
                 .runWith(Sink.last(), materializer)
                 .whenComplete((retrievedThingMetadata, throwable) -> {
-                    if (throwable instanceof NoSuchElementException) {
-                        // Thing not present in search index
-                        log.debug("Thing was not yet present in search index: {}", thingId);
-                    } else if (throwable != null) {
-                        log.error(throwable, "Unexpected exception when retrieving latest revision from search index");
+                    if (throwable == null) {
+                        getSelf().tell(retrievedThingMetadata, null);
                     } else {
-                        sequenceNumber = retrievedThingMetadata.getThingRevision();
-                        policyId = retrievedThingMetadata.getPolicyId();
-                        policyRevision = retrievedThingMetadata.getPolicyRevision();
+                        if (throwable instanceof NoSuchElementException) {
+                            // Thing not present in search index
+                            log.debug("Thing was not yet present in search index: {}", thingId);
+                        } else {
+                            log.error(throwable,
+                                    "Unexpected exception when retrieving latest revision from search index");
+                        }
+                        // metadata retrieval failed, try to initialize by event update or synchronization
+                        getSelf().tell(new ActorInitializationComplete(), null);
                     }
-                    retrieveCacheEntry();
-
-                    // initialization is complete, switch to normal ThingUpdater behavior.
-                    getSelf().tell(new ActorInitializationComplete(), null);
                 });
-    }
-
-    private void retrieveCacheEntry() {
-        final Object cacheContext = CacheType.THING.getContext();
-        thingCacheFacade.tell(new RetrieveCacheEntry(thingId, cacheContext, ReadConsistency.LOCAL), getSelf());
     }
 
     private String tryToGetThingId(final Charset charset) {
@@ -266,14 +255,15 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
-                .match(ActorInitializationComplete.class, msg -> becomeActorInitialized())
+                .match(ThingMetadata.class, retrievedThingMetadata -> {
+                    sequenceNumber = retrievedThingMetadata.getThingRevision();
+                    policyId = retrievedThingMetadata.getPolicyId();
+                    policyRevision = retrievedThingMetadata.getPolicyRevision();
+                    becomeInitialThingTagAwaiting();
+                })
+                .match(ActorInitializationComplete.class, msg -> becomeInitialThingTagAwaiting())
                 .matchAny(msg -> stashWithErrorsIgnored())
                 .build();
-    }
-
-    private void becomeActorInitialized() {
-        getContext().become(initialBehaviour);
-        unstashAll();
     }
 
     private void scheduleCheckForThingActivity() {
@@ -306,115 +296,26 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         }
     }
 
-    ///////////////////////////
-    ///// INITIALIZED /////
-    ///////////////////////////
-
-    // The initial state of this Actor and also switched to when triggerSynchronization() is invoked
-
     /**
-     * Initial state of the synchronization cycle.
+     * Shortcut to handle creation due to stale ThingTag messages. If this actor is created by a ThingTag whose
+     * corresponding Thing is up-to-date in the search index, then this actor terminates itself immediately.
      */
-    private void becomeSyncInitialized() {
-        log.debug("Becoming 'initialized' ...");
-        retrieveCacheEntry();
-        getContext().become(initialBehaviour);
-    }
-
-    private Receive createInitialBehavior() {
-        return ReceiveBuilder.create()
-                .match(SyncThing.class, s -> {
-                    LogUtil.enhanceLogWithCorrelationId(log, s);
-                    log.info("Got external SyncThing request in 'initialized': {}", s);
-                    triggerSynchronization();
-                })
-                .match(ThingTag.class, tt -> {
-                    log.debug("Got ThingTag during 'initialBehaviour': {}", tt);
-                    checkThingTagOnly = true;
-                    stash();
-                })
-                .match(ThingCreated.class, this::processInitialThingEvent)
-                .match(RetrieveCacheEntryResponse.class, this::processCacheEntryResponse)
-                .matchAny(msg -> stashWithErrorsIgnored()) // stash all other messages
-                .build();
-    }
-
-    private void processCacheEntryResponse(final RetrieveCacheEntryResponse cacheEntryResponse) {
-        if (cacheEntryResponse.hasContextOfType(CacheType.THING)) {
-            processThingCacheEntryResponse(cacheEntryResponse);
-        } else if (cacheEntryResponse.hasContextOfType(CacheType.POLICY)) {
-            processPolicyCacheEntryResponse(cacheEntryResponse);
-        } else {
-            log.warning("Received unknown CacheEntry Response: {}", cacheEntryResponse);
-        }
-    }
-
-    private void processThingCacheEntryResponse(final RetrieveCacheEntryResponse thingCacheEntryResponse) {
-        final Optional<CacheEntry> cacheEntryOpt = thingCacheEntryResponse.getCacheEntry();
-
-        if (cacheEntryOpt.isPresent() && cacheEntryOpt.get().getRevision() <= sequenceNumber) {
-            log.debug("CacheEntry has seqNo {}, metadata has seqNo {}. Start event processing.",
-                    cacheEntryOpt.get().getRevision(), sequenceNumber);
-            becomeEventProcessing();
-        } else if (cacheEntryOpt.isPresent() && cacheEntryOpt.get().isDeleted()) {
-            log.debug("CacheEntry is marked as deleted -> deleting Thing from search index");
-            // thing is/was deleted
-            final Cancellable timeout =
-                    scheduleTimeoutForResponse(Timeout.durationToTimeout(thingsTimeout),
-                            "Deleting Thing from search index failed.");
-            deleteThingFromSearchIndex(timeout);
-        } else if (cacheEntryOpt.isPresent()) {
-            final CacheEntry cacheEntry = cacheEntryOpt.get();
-            policyId = cacheEntry.getPolicyId().orElse(null);
-
-            if (cacheEntry.getRevision() > sequenceNumber) {
-                log.debug("CacheEntry has higher revision ({}) than locally known one {} - " +
-                        "syncing the Thing as a result!", cacheEntry.getRevision(), sequenceNumber);
-                syncThing();
-            } else {
-                log.debug("CacheEntry has equal or lower revision ({}) than locally known one {}",
-                        cacheEntry.getRevision(), sequenceNumber);
-
-                if (policyId != null) {
-                    // Thing in V2 with a policyId --> also retrieve policy from cache
-                    final Object cacheContext = CacheType.POLICY.getContext();
-                    policyCacheFacade.tell(
-                            new RetrieveCacheEntry(policyId, cacheContext, ReadConsistency.LOCAL),
-                            getSelf());
-                    // and subscribe for changes
-                    policyCacheFacade.tell(new RegisterForCacheUpdates(policyId, getSelf()),
-                            getSelf());
-                    // don't become another behavior!
-                } else {
-                    // Thing in V1 - directly become eventProcessing
+    private void becomeInitialThingTagAwaiting() {
+        final Receive behavior = ReceiveBuilder.create()
+                .match(ThingTag.class, thingTag -> {
+                    // process initial ThingTag with EventProcessing as the default next behavior
                     becomeEventProcessing();
-                }
-            }
-        } else {
-            log.debug("CacheEntry was absent or marked as deleted - syncing the Thing as a result!");
-            syncThing();
-        }
+                    processThingTag(thingTag, true);
+                })
+                .matchAny(message -> {
+                    // this actor is not created due to a ThingTag message; handle current message by event processing
+                    becomeEventProcessing();
+                    getSelf().forward(message, getContext());
+                })
+                .build();
+        getContext().become(behavior);
+        unstashAll();
     }
-
-    private void processPolicyCacheEntryResponse(final RetrieveCacheEntryResponse policyCacheResponse) {
-        final Optional<CacheEntry> cacheEntryOpt = policyCacheResponse.getCacheEntry();
-        if (cacheEntryOpt.isPresent() && !cacheEntryOpt.get().isDeleted()) {
-            final CacheEntry cacheEntry = cacheEntryOpt.get();
-            if (cacheEntry.getRevision() > policyRevision) {
-                log.debug("PolicyCache has higher revision ({}) than locally known one {} - " +
-                        "syncing the Policy as a result!", cacheEntry.getRevision(), policyRevision);
-                syncPolicy(null);
-            } else {
-                log.debug("PolicyCache has equal or lower revision ({}) than locally known one {}",
-                        cacheEntry.getRevision(), policyRevision);
-                becomeEventProcessing();
-            }
-        } else {
-            log.debug("Policy entry was absent or marked as deleted - syncing the Policy as a result!");
-            syncPolicy(null);
-        }
-    }
-
 
     ///////////////////////////
     ///// EVENT PROCESSING ////
@@ -442,7 +343,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
                 })
                 .match(ThingEvent.class, this::processThingEvent)
                 .match(PolicyEvent.class, this::processPolicyEvent)
-                .match(ThingTag.class, this::processThingTag)
+                .match(ThingTag.class, thingTag -> processThingTag(thingTag, false))
                 .match(Replicator.Changed.class, this::processChangedCacheEntry)
                 .match(CheckForActivity.class, this::checkActivity)
                 .match(PersistenceWriteResult.class, this::handlePersistenceUpdateResult)
@@ -467,18 +368,21 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         }
     }
 
-    private void processThingTag(final ThingTag thingTag) {
+    private void processThingTag(final ThingTag thingTag, final boolean checkThingTagOnly) {
         log.debug("Received new Thing Tag for thing <{}> with revision <{}> - last known revision is <{}>",
                 thingId, thingTag.getRevision(), sequenceNumber);
 
+        final boolean shouldStopThisActor;
         if (thingTag.getRevision() > sequenceNumber) {
             log.info("The Thing Tag for the thing <{}> has the revision {} which is greater than the current actor's"
                     + " sequence number <{}>.", thingId, thingTag.getRevision(), sequenceNumber);
-            checkThingTagOnly = false;
+            shouldStopThisActor = false;
             triggerSynchronization();
+        } else {
+            shouldStopThisActor = checkThingTagOnly;
         }
 
-        if (checkThingTagOnly) {
+        if (shouldStopThisActor) {
             // the actor was only started to check the received tag, if nothing has to be done, we can shutdown immediately
             stopThisActor();
         }
@@ -551,21 +455,16 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
             log.info("Dropped thing event for thing id <{}> with revision <{}> because it was older than or "
                             + "equal to the current sequence number <{}> of the update actor.", thingId,
                     thingEvent.getRevision(), sequenceNumber);
-            return;
         }
-
-        if (thingEvent.getRevision() > sequenceNumber + 1) {
+        else if (shortcutTakenForThingEvent(thingEvent)) {
+            log.debug("Shortcut taken for thing event <{}>.", thingEvent);
+        }
+        else if (thingEvent.getRevision() > sequenceNumber + 1) {
             log.info("Triggering synchronization for thing <{}> because the received revision <{}> is higher than"
                     + " the expected sequence number <{}>.", thingId, thingEvent.getRevision(), sequenceNumber + 1);
             triggerSynchronization();
-            return;
-        }
-
-        if (processInitialThingEvent(thingEvent)) {
-            log.debug("Processed initial event: {}", thingEvent.getType());
         } else if (needToReloadPolicy(thingEvent)) {
-            // check if it is necessary to load the policy first before processing the event
-            // if the policy needs to be loaded first, drop everything and synchronize.
+            //if the policy needs to be loaded first, drop everything and synchronize.
             triggerSynchronization();
         } else {
             // attempt to add event, trigger synchronization in case of failures
@@ -599,7 +498,13 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         return thingEvent instanceof PolicyIdCreated || thingEvent instanceof PolicyIdModified;
     }
 
-    private boolean processInitialThingEvent(final ThingEvent thingEvent) {
+    /**
+     * Takes shortcut for ThingCreated and ThingModified events.
+     *
+     * @return true if shortcut for ThingCreated and ThingModified events are taken and no further action is needed for
+     * the thing event; false if the thing event remains to be processed.
+     */
+    private boolean shortcutTakenForThingEvent(final ThingEvent thingEvent) {
         if (thingEvent instanceof ThingCreated) {
             // if the very first event in initial phase is the "ThingCreated", we can shortcut a lot ..
             final ThingCreated tc = (ThingCreated) thingEvent;
@@ -614,8 +519,9 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
             final Thing modifiedThing = tm.getThing().toBuilder().setRevision(tm.getRevision()).build();
             updateThingSearchIndex(null, modifiedThing);
             return true;
+        } else {
+            return false;
         }
-        return false;
     }
 
     private JsonSchemaVersion schemaVersionToCheck(final ThingEvent thingEvent) {
@@ -704,7 +610,6 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         policyEnforcer = null; // reset policyEnforcer
 
         syncAttempts++;
-        becomeSyncInitialized();
         transactionActive = false;
         resetIntermediateCombinedWritesBuilder();
         if (syncAttempts <= 3) {
@@ -1078,7 +983,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         try {
             stash();
         } catch (final IllegalStateException e) {
-            // ignore errors due to stashing a message.
+            // ignore errors due to stashing a message more than once.
         }
     }
 
