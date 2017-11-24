@@ -61,6 +61,12 @@ public final class SendThingMessageTest {
             .rawPayload(ByteBuffer.wrap(KNOWN_RAW_PAYLOAD_BYTES))
             .build();
 
+    private static final Message<?> MESSAGE_EMPTY_PAYLOAD = MessagesModelFactory.newMessageBuilder(
+            MessageHeaders.newBuilder(MessageDirection.TO, THING_ID, SUBJECT)
+                    .contentType(CONTENT_TYPE)
+                    .build())
+            .build();
+
     private static final JsonObject KNOWN_MESSAGE_AS_JSON = JsonFactory.newObjectBuilder()
             .set(MessageCommand.JsonFields.JSON_MESSAGE_HEADERS, MESSAGE.getHeaders().toJson())
             .set(MessageCommand.JsonFields.JSON_MESSAGE_PAYLOAD, JsonFactory.newValue(new String(Base64.getEncoder()
@@ -68,11 +74,22 @@ public final class SendThingMessageTest {
             )
             .build();
 
+    private static final JsonObject KNOWN_EMPTY_PAYLOAD_MESSAGE_AS_JSON = JsonFactory.newObjectBuilder()
+            .set(MessageCommand.JsonFields.JSON_MESSAGE_HEADERS, MESSAGE.getHeaders().toJson())
+            .build();
+
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(Command.JsonFields.TYPE, SendThingMessage.TYPE)
             .set(MessageCommand.JsonFields.JSON_THING_ID, THING_ID)
             .set(MessageCommand.JsonFields.JSON_MESSAGE, KNOWN_MESSAGE_AS_JSON)
             .build();
+
+    private static final JsonObject KNOWN_JSON_WITH_EMPTY_PAYLOAD = JsonFactory.newObjectBuilder()
+            .set(Command.JsonFields.TYPE, SendThingMessage.TYPE)
+            .set(MessageCommand.JsonFields.JSON_THING_ID, THING_ID)
+            .set(MessageCommand.JsonFields.JSON_MESSAGE, KNOWN_EMPTY_PAYLOAD_MESSAGE_AS_JSON)
+            .build();
+
 
     @Test
     public void assertImmutability() {
@@ -123,6 +140,18 @@ public final class SendThingMessageTest {
     }
 
     @Test
+    public void toJsonWithEmptyPayloadReturnsExpected() {
+        final SendThingMessage<?> underTest =
+                SendThingMessage.of(THING_ID, MESSAGE_EMPTY_PAYLOAD, TestConstants.EMPTY_DITTO_HEADERS);
+        final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
+
+        System.out.println(actualJson.toString());
+        System.out.println(KNOWN_JSON_WITH_EMPTY_PAYLOAD.toString());
+
+        assertThat(actualJson).isEqualTo(KNOWN_JSON_WITH_EMPTY_PAYLOAD);
+    }
+
+    @Test
     public void createInstanceFromValidJson() {
         final SendThingMessage<?> underTest =
                 SendThingMessage.fromJson(KNOWN_JSON.toString(), TestConstants.EMPTY_DITTO_HEADERS);
@@ -131,6 +160,19 @@ public final class SendThingMessageTest {
         assertThat(underTest.getThingId()).isEqualTo(THING_ID);
         assertThat(underTest.getMessageType()).isEqualTo(SendThingMessage.NAME);
         assertThat(underTest.getMessage()).isEqualTo(MESSAGE);
+    }
+
+    @Test
+    public void createInstanceFromValidJsonWithEmptyPayload() {
+        final SendThingMessage<?> underTest =
+                SendThingMessage.fromJson(KNOWN_JSON_WITH_EMPTY_PAYLOAD, TestConstants.EMPTY_DITTO_HEADERS);
+
+        assertThat(underTest).isNotNull();
+        assertThat(underTest.getThingId()).isEqualTo(THING_ID);
+        assertThat(underTest.getMessageType()).isEqualTo(SendThingMessage.NAME);
+        assertThat(underTest.getMessage()).isEqualTo(MESSAGE_EMPTY_PAYLOAD);
+        assertThat(underTest.getMessage().getPayload()).isEmpty();
+        assertThat(underTest.getMessage().getRawPayload()).isEmpty();
     }
 
 
