@@ -226,7 +226,8 @@ public final class DevOpsRoute extends AbstractRoute {
         }
     }
 
-    private static JsonPointer transformerPointer(@Nullable final String serviceName, @Nullable final Integer instance) {
+    private static JsonPointer transformerPointer(@Nullable final String serviceName,
+            @Nullable final Integer instance) {
         JsonPointer newPointer = JsonPointer.empty();
         if (serviceName != null) {
             newPointer = newPointer.append(JsonPointer.of(serviceName));
