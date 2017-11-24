@@ -20,7 +20,6 @@ import java.util.regex.Pattern;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
@@ -146,11 +145,9 @@ final class MessageAdaptableHelper {
                 value.ifPresent(jsonValue -> messageBuilder.payload((T) jsonValue));
             }
         } else {
-            final byte[] messagePayloadBytes = value
-                    .map(jsonValue -> jsonValue.isString() ? jsonValue.asString() : jsonValue.toString())
+            value.map(jsonValue -> jsonValue.isString() ? jsonValue.asString() : jsonValue.toString())
                     .map(payloadString -> payloadString.getBytes(charset))
-                    .orElseThrow(() -> JsonParseException.newBuilder().build());
-            messageBuilder.rawPayload(ByteBuffer.wrap(tryToDecode(messagePayloadBytes)));
+                    .ifPresent(bytes -> messageBuilder.rawPayload(ByteBuffer.wrap(tryToDecode(bytes))));
         }
         return messageBuilder.build();
     }
