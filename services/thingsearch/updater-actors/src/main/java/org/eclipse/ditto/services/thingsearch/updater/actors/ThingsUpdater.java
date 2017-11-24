@@ -12,7 +12,6 @@
 package org.eclipse.ditto.services.thingsearch.updater.actors;
 
 import java.time.Duration;
-import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
@@ -25,12 +24,12 @@ import org.eclipse.ditto.services.models.policies.PolicyTag;
 import org.eclipse.ditto.services.models.things.ThingTag;
 import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SyncThing;
+import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.ShardedMessageEnvelope;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.policies.PolicyEvent;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
-import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -121,8 +120,8 @@ final class ThingsUpdater extends AbstractActor {
      * updated
      * @param thingCacheFacade the {@link org.eclipse.ditto.services.utils.distributedcache.actors.CacheFacadeActor} for
      * accessing the Thing cache in cluster.
-     * @param policyCacheFacade the {@link org.eclipse.ditto.services.utils.distributedcache.actors.CacheFacadeActor} for
-     * accessing the Policy cache in cluster.
+     * @param policyCacheFacade the {@link org.eclipse.ditto.services.utils.distributedcache.actors.CacheFacadeActor}
+     * for accessing the Policy cache in cluster.
      * @return the Akka configuration Props object
      */
     static Props props(final int numberOfShards,
@@ -155,11 +154,32 @@ final class ThingsUpdater extends AbstractActor {
                 .match(PolicyEvent.class, this::processPolicyEvent)
                 .match(ThingTag.class, this::processThingTag)
                 .match(SyncThing.class, this::syncThing)
+                .match(SearchSynchronizationSuccess.class, this::processSearchSynchronizationSuccess)
                 .match(DistributedPubSubMediator.SubscribeAck.class, this::subscribeAck)
                 .matchAny(m -> {
                     log.warning("Unknown message: {}", m);
                     unhandled(m);
                 }).build();
+    }
+
+    // TODO: test
+    private void processSearchSynchronizationSuccess(final SearchSynchronizationSuccess searchSynchronizationSuccess) {
+        log.debug("Got SearchSynchronizationSuccess: <{}>");
+        searchUpdaterPersistence.updateLastSuccessfulSyncTimestamp(searchSynchronizationSuccess.getUtcTimestamp())
+                .runWith(Sink.last(), materializer)
+                .whenComplete((r, t) -> this.processUpdateLastSuccessfulSyncTimestampResult(r, t, getSender()));
+    }
+
+    private void processUpdateLastSuccessfulSyncTimestampResult(final Boolean result,
+            final Throwable throwable,
+            final ActorRef sender) {
+        if (null != throwable || null == result) {
+            log.error(throwable, "Error while updating last successful sync timestamp");
+            sender.tell(Boolean.FALSE, sender);
+        }
+        log.debug("Write result for updating the last successful sync timestamp: <{}>",
+                Boolean.TRUE.equals(result) ? "Success" : "Failure");
+        sender.tell(result, sender);
     }
 
     private void processThingTag(final ThingTag thingTag) {

@@ -16,6 +16,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.LocalDateTime;
 import java.util.Set;
 
 import org.eclipse.ditto.model.policiesenforcers.PolicyEnforcer;
@@ -137,6 +138,16 @@ public final class AbstractThingsSearchUpdaterPersistenceTest extends AbstractTh
 
         @Override
         public Source<ThingMetadata, NotUsed> getThingMetadata(final String thingId) {
+            return null;
+        }
+
+        @Override
+        public Source<Boolean, NotUsed> updateLastSuccessfulSyncTimestamp(final LocalDateTime utcTimestamp) {
+            return null;
+        }
+
+        @Override
+        public Source<LocalDateTime, NotUsed> retrieveLastSuccessfulSyncTimestamp() {
             return null;
         }
     }

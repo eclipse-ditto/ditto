@@ -25,9 +25,13 @@ public final class PersistenceConstants {
     public static final String THINGS_COLLECTION_NAME = "thingEntities";
 
     /**
-     * The thing collection name.
+     * The policies based search collection name.
      */
     public static final String POLICIES_BASED_SEARCH_INDEX_COLLECTION_NAME = "policiesBasedSearchIndex";
+    /**
+     * The collection name for the collection storing the last known successful full sync of search.
+     */
+    public static final String LAST_SUCCESSFUL_SYNC_COLLECTION_NAME = "lastSuccessfulSync";
 
     /**
      * Field name for revision.
