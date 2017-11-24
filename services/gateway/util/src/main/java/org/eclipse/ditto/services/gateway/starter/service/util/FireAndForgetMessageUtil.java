@@ -15,9 +15,7 @@ import java.time.Duration;
 import java.util.Optional;
 
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
-
-import akka.http.javadsl.model.HttpResponse;
-import akka.http.javadsl.model.StatusCodes;
+import org.eclipse.ditto.signals.commands.messages.SendMessageAcceptedResponse;
 
 /**
  * Implements fire-and-forget semantics for message commands. Message commands sent with timeout 0 are considered
@@ -28,21 +26,24 @@ public final class FireAndForgetMessageUtil {
     private FireAndForgetMessageUtil() {}
 
     /**
-     * Creates an HTTP response for a message command if it is fire-and-forget.
+     * Creates an @{SendMessageAcceptedResponse} for a message command if it is fire-and-forget.
      *
      * @param command The message command.
      * @return The HTTP response if the message command is fire-and-forget, {@code Optional.empty()} otherwise.
      */
-    public static Optional<HttpResponse> getResponseForFireAndForgetMessage(final MessageCommand<?, ?> command) {
+    public static Optional<SendMessageAcceptedResponse> getResponseForFireAndForgetMessage(
+            final MessageCommand<?, ?> command) {
         if (isFireAndForgetMessage(command)) {
-            return Optional.of(HttpResponse.create().withStatus(StatusCodes.ACCEPTED));
+            return Optional.of(
+                    SendMessageAcceptedResponse.newInstance(command.getThingId(), command.getMessage().getHeaders(),
+                            command.getDittoHeaders()));
         } else {
             return Optional.empty();
         }
     }
 
     /**
-     * Tests whether a mesage command is fire-and-forget.
+     * Tests whether a message command is fire-and-forget.
      *
      * @param command The message command.
      * @return {@code true} if the message's timeout header is 0 or if the message is flagged not to require a response,

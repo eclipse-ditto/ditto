@@ -70,19 +70,6 @@ public final class SendFeatureMessage<T> extends AbstractMessageCommand<T, SendF
         return of(getThingId(), featureId, getMessage(), dittoHeaders);
     }
 
-    @Override
-    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
-            final Predicate<JsonField> predicate) {
-        super.appendPayload(jsonObjectBuilder, schemaVersion, predicate);
-
-        jsonObjectBuilder.remove(MessageCommand.JsonFields.JSON_THING_ID);
-        final JsonObject superBuild = jsonObjectBuilder.build();
-        jsonObjectBuilder.removeAll();
-        jsonObjectBuilder.set(MessageCommand.JsonFields.JSON_THING_ID, getThingId());
-        jsonObjectBuilder.set(JSON_FEATURE_ID, getFeatureId());
-        jsonObjectBuilder.setAll(superBuild);
-    }
-
     /**
      * Creates a new instance of {@code SendFeatureMessage}.
      *
@@ -139,6 +126,19 @@ public final class SendFeatureMessage<T> extends AbstractMessageCommand<T, SendF
     @Override
     public String getFeatureId() {
         return featureId;
+    }
+
+    @Override
+    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
+            final Predicate<JsonField> predicate) {
+        super.appendPayload(jsonObjectBuilder, schemaVersion, predicate);
+
+        jsonObjectBuilder.remove(MessageCommand.JsonFields.JSON_THING_ID);
+        final JsonObject superBuild = jsonObjectBuilder.build();
+        jsonObjectBuilder.removeAll();
+        jsonObjectBuilder.set(MessageCommand.JsonFields.JSON_THING_ID, getThingId());
+        jsonObjectBuilder.set(JSON_FEATURE_ID, getFeatureId());
+        jsonObjectBuilder.setAll(superBuild);
     }
 
     @SuppressWarnings("squid:S109")

@@ -35,6 +35,12 @@
             <type>gem</type>
             <optional>true</optional>
         </dependency>
+        <dependency>
+            <groupId>rubygems</groupId>
+            <artifactId>jekyll-sitemap</artifactId>
+            <type>gem</type>
+            <optional>true</optional>
+        </dependency>
     </dependencies>
 
     <dependencyManagement>
@@ -45,12 +51,7 @@
                 <version>3.6.2</version>
                 <type>gem</type>
             </dependency>
-            <dependency>
-                <groupId>rubygems</groupId>
-                <artifactId>jekyll-sitemap</artifactId>
-                <version>1.1.1</version>
-                <type>gem</type>
-            </dependency>
+            <!-- Jekyll dependencies - explicitly defined so the gem proxy resolution works faster in the build: -->
             <dependency>
                 <groupId>rubygems</groupId>
                 <artifactId>addressable</artifactId>
@@ -103,7 +104,7 @@
                 <groupId>rubygems</groupId>
                 <artifactId>public_suffix</artifactId>
                 <type>gem</type>
-                <version>3.0.0</version>
+                <version>3.0.1</version>
             </dependency>
             <dependency>
                 <groupId>rubygems</groupId>
@@ -164,6 +165,13 @@
                 <artifactId>ffi</artifactId>
                 <type>gem</type>
                 <version>1.9.18</version>
+            </dependency>
+            <!-- end of Jekyll dependencies -->
+            <dependency>
+                <groupId>rubygems</groupId>
+                <artifactId>jekyll-sitemap</artifactId>
+                <version>1.1.1</version>
+                <type>gem</type>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -244,21 +252,179 @@
                     </plugin>
                 </plugins>
             </build>
+        </profile>
 
+        <!-- currently the "validate-documentation" profile does not work as JRuby throws an error when running htmlproofer:
+            [INFO] htmlproofer 3.7.4 | Error:  undefined method `superclass' for #<Class:Java::OrgJrubyExtPsych>
+            That will hopefully be fixed in JRuby 9.2 (see: https://github.com/jruby/jruby/issues/4528)
+            Until then we can only use the installed "htmlproofer" ruby gem (see README.md)
+        -->
+        <profile>
+            <id>validate-documentation</id>
+            <repositories>
+                <repository>
+                    <id>rubygems-proxy</id>
+                    <name>Rubygems Proxy</name>
+                    <url>http://rubygems-proxy.torquebox.org/releases</url>
+                    <layout>default</layout>
+                    <releases>
+                        <enabled>true</enabled>
+                    </releases>
+                    <snapshots>
+                        <enabled>false</enabled>
+                        <updatePolicy>never</updatePolicy>
+                    </snapshots>
+                </repository>
+            </repositories>
+            <dependencyManagement>
+                <dependencies>
+                    <dependency>
+                        <groupId>rubygems</groupId>
+                        <artifactId>html-proofer</artifactId>
+                        <version>3.7.4</version>
+                        <type>gem</type>
+                    </dependency>
+                    <!-- html-proofer dependencies - explicitly defined so the gem proxy resolution works faster in the build: -->
+                    <dependency>
+                        <groupId>rubygems</groupId>
+                        <artifactId>nokogiri</artifactId>
+                        <version>1.8.1</version>
+                        <type>gem</type>
+                    </dependency>
+                    <dependency>
+                        <groupId>rubygems</groupId>
+                        <artifactId>colorize</artifactId>
+                        <version>0.8.1</version>
+                        <type>gem</type>
+                    </dependency>
+                    <dependency>
+                        <groupId>rubygems</groupId>
+                        <artifactId>typhoeus</artifactId>
+                        <version>0.7.3</version>
+                        <type>gem</type>
+                    </dependency>
+                    <dependency>
+                        <groupId>rubygems</groupId>
+                        <artifactId>ethon</artifactId>
+                        <version>0.11.0</version>
+                        <type>gem</type>
+                    </dependency>
+                    <dependency>
+                        <groupId>rubygems</groupId>
+                        <artifactId>yell</artifactId>
+                        <version>2.0.7</version>
+                        <type>gem</type>
+                    </dependency>
+                    <dependency>
+                        <groupId>rubygems</groupId>
+                        <artifactId>parallel</artifactId>
+                        <version>1.12.0</version>
+                        <type>gem</type>
+                    </dependency>
+                    <dependency>
+                        <groupId>rubygems</groupId>
+                        <artifactId>activesupport</artifactId>
+                        <version>5.1.4</version>
+                        <type>gem</type>
+                    </dependency>
+                    <dependency>
+                        <groupId>rubygems</groupId>
+                        <artifactId>i18n</artifactId>
+                        <version>0.9.1</version>
+                        <type>gem</type>
+                    </dependency>
+                    <dependency>
+                        <groupId>rubygems</groupId>
+                        <artifactId>concurrent-ruby</artifactId>
+                        <version>1.0.5</version>
+                        <type>gem</type>
+                    </dependency>
+                    <dependency>
+                        <groupId>rubygems</groupId>
+                        <artifactId>tzinfo</artifactId>
+                        <version>1.2.4</version>
+                        <type>gem</type>
+                    </dependency>
+                    <dependency>
+                        <groupId>rubygems</groupId>
+                        <artifactId>thread_safe</artifactId>
+                        <version>0.3.6</version>
+                        <type>gem</type>
+                    </dependency>
+                    <dependency>
+                        <groupId>rubygems</groupId>
+                        <artifactId>atomic</artifactId>
+                        <version>1.1.99</version>
+                        <type>gem</type>
+                    </dependency>
+                    <dependency>
+                        <groupId>rubygems</groupId>
+                        <artifactId>minitest</artifactId>
+                        <version>5.1.0</version>
+                        <type>gem</type>
+                    </dependency>
+                    <dependency>
+                        <groupId>rubygems</groupId>
+                        <artifactId>mini_portile2</artifactId>
+                        <version>2.3.0</version>
+                        <type>gem</type>
+                    </dependency>
+                    <!-- end of html-proofer dependencies -->
+                </dependencies>
+            </dependencyManagement>
             <dependencies>
                 <dependency>
                     <groupId>rubygems</groupId>
-                    <artifactId>jekyll</artifactId>
-                    <type>gem</type>
-                    <optional>true</optional>
-                </dependency>
-                <dependency>
-                    <groupId>rubygems</groupId>
-                    <artifactId>jekyll-sitemap</artifactId>
+                    <artifactId>html-proofer</artifactId> <!-- doc: https://github.com/gjtorikian/html-proofer -->
                     <type>gem</type>
                     <optional>true</optional>
                 </dependency>
             </dependencies>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>de.saumya.mojo</groupId>
+                        <artifactId>gem-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>validate-html</id>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <phase>generate-resources</phase>
+                                <configuration>
+                                    <file>${project.build.directory}/rubygems/bin/htmlproofer</file>
+                                    <execArgs>--assume-extension --allow-hash-href --disable-external --url-ignore "/http-api-doc.html.*/" ${project.build.outputDirectory}</execArgs>
+                                </configuration>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <supportNative>true</supportNative>
+                            <jrubyVersion>9.1.12.0</jrubyVersion>
+                            <addProjectClasspath>true</addProjectClasspath>
+                            <jrubyVerbose>false</jrubyVerbose>
+                        </configuration>
+                    </plugin>
+
+                    <plugin>
+                        <artifactId>maven-assembly-plugin</artifactId>
+                        <configuration>
+                            <descriptors>
+                                <descriptor>src/main/resources/assembly.xml</descriptor>
+                            </descriptors>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>make-assembly</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>single</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
         </profile>
 
         <!-- Jekyll Windows Build -->
@@ -269,12 +435,6 @@
                     <plugin>
                         <groupId>org.codehaus.mojo</groupId>
                         <artifactId>exec-maven-plugin</artifactId>
-                        <configuration>
-                            <supportNative>true</supportNative>
-                            <jrubyVersion>9.1.12.0</jrubyVersion>
-                            <addProjectClasspath>true</addProjectClasspath>
-                            <jrubyVerbose>false</jrubyVerbose>
-                        </configuration>
                         <executions>
                             <execution>
                                 <id>generate-documentation</id>

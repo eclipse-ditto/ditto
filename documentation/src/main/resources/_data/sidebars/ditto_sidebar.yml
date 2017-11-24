@@ -46,29 +46,56 @@ entries:
     - title: Overview
       url: /basic-overview.html
       output: web
-    - title: Things and Features
-      url: /basic-thingsfeatures.html
-      output: web
-    - title: Definitions
-      url: /basic-definitions.html
-      output: web
+
+      subfolders:
+      - title: Model entites
+        output: web
+        subfolderitems:
+        - title: Thing
+          url: /basic-thing.html
+          output: web
+        - title: Access Control List (ACL)
+          url: /basic-acl.html
+          output: web
+        - title: Feature
+          url: /basic-feature.html
+          output: web
+        - title: Policy
+          url: /basic-policy.html
+          output: web
+
     - title: Authentication and Authorization
       url: /basic-auth.html
-      output: web
-    - title: Access Control List (ACL)
-      url: /basic-acl.html
-      output: web
-    - title: Policies
-      url: /basic-policies.html
       output: web
     - title: Messages
       url: /basic-messages.html
       output: web
-    - title: Events
-      url: /basic-events.html
+    - title: Signals
+      url: /basic-signals.html
       output: web
-    - title: Which API to use?
-      url: /basic-whichapi.html
+
+      subfolders:
+      - title: Signal types
+        output: web
+        subfolderitems:
+        - title: Command
+          url: /basic-signals-command.html
+          output: web
+        - title: Command response
+          url: /basic-signals-commandresponse.html
+          output: web
+        - title: Error response
+          url: /basic-signals-errorresponse.html
+          output: web
+        - title: Event
+          url: /basic-signals-event.html
+          output: web
+
+    - title: APIs
+      url: /basic-apis.html
+      output: web
+    - title: Change notifications
+      url: /basic-changenotifications.html
       output: web
 
   - title: Architecture
@@ -103,32 +130,46 @@ entries:
     - title: Overview
       url: /protocol-overview.html
       output: web
+    - title: Twin/live channel
+      url: /protocol-twinlive.html
+      output: web
     - title: Specification
       url: /protocol-specification.html
       output: web
+    - title: Protocol topic
+      url: /protocol-specification-topic.html
+      output: web
+    - title: Things group
+      url: /protocol-specification-things.html
+      output: web
 
       subfolders:
-      - title: Things Spec
+      - title: → commands/events
         output: web
         subfolderitems:
-        - title: General
-          url: /protocol-specification-general.html
-          output: web
         - title: Create
-          url: /protocol-specification-create.html
+          url: /protocol-specification-things-create.html
           output: web
         - title: Retrieve
-          url: /protocol-specification-retrieve.html
-          output: web
-        - title: Search
-          url: /protocol-specification-search.html
+          url: /protocol-specification-things-retrieve.html
           output: web
         - title: Modify
-          url: /protocol-specification-modify.html
+          url: /protocol-specification-things-modify.html
           output: web
         - title: Delete
-          url: /protocol-specification-delete.html
+          url: /protocol-specification-things-delete.html
           output: web
+
+      - title: → search/messages
+        output: web
+        subfolderitems:
+        - title: Search
+          url: /protocol-specification-things-search.html
+          output: web
+        - title: Messages
+          url: /protocol-specification-things-messages.html
+          output: web
+
 
     - title: Bindings
       url: /protocol-bindings.html
@@ -141,7 +182,7 @@ entries:
       output: web
 
       subfolders:
-      - title: Things Examples
+      - title: → Things examples
         output: web
         subfolderitems:
         - title: Create a Thing

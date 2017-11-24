@@ -131,19 +131,16 @@ final class MessageAdaptableHelper {
      * value for {@link MessageHeaderDefinition#SUBJECT}.
      */
     static <T> Message<T> messageFrom(final Adaptable adaptable) {
-        final MessageHeaders messageHeaders = adaptable.getHeaders()
-                .map(MessagesModelFactory::newHeadersBuilder)
-                .map(MessageHeadersBuilder::build)
-                .orElseThrow(() -> new IllegalArgumentException("Adaptable did not have headers at all!"));
+        final MessageHeaders messageHeaders = messageHeadersFrom(adaptable);
 
         final String contentType = String.valueOf(messageHeaders.get(DittoHeaderDefinition.CONTENT_TYPE.getKey()));
-        final boolean isPlainText = shouldBeInterpretedAsText(contentType);
-        final Charset charset = isPlainText ? determineCharset(contentType) : StandardCharsets.UTF_8;
+        final boolean shouldBeInterpretedAsText = shouldBeInterpretedAsText(contentType);
+        final Charset charset = shouldBeInterpretedAsText ? determineCharset(contentType) : StandardCharsets.UTF_8;
 
         final MessageBuilder<T> messageBuilder = MessagesModelFactory.<T>newMessageBuilder(messageHeaders);
         final Optional<JsonValue> value = adaptable.getPayload().getValue();
-        if (isPlainText) {
-            if (value.filter(JsonValue::isString).isPresent()) {
+        if (shouldBeInterpretedAsText) {
+            if (isPlainText(contentType) && value.filter(JsonValue::isString).isPresent()) {
                 messageBuilder.payload((T) value.get().asString());
             } else {
                 value.ifPresent(jsonValue -> messageBuilder.payload((T) jsonValue));
@@ -158,6 +155,28 @@ final class MessageAdaptableHelper {
         return messageBuilder.build();
     }
 
+    /**
+     * Creates {@link MessageHeaders} from the passed {@link Adaptable}.
+     *
+     * @param adaptable the Adaptable to created the MessageHeaders from.
+     * @return the MessageHeaders.
+     * @throws NullPointerException if {@code adaptable} is {@code null}.
+     * @throws IllegalArgumentException if {@code adaptable}
+     * <ul>
+     *     <li>has no headers,</li>
+     *     <li>contains headers with a value that did not represent its appropriate Java type or</li>
+     *     <li>if the headers of {@code adaptable} did lack a mandatory header.</li>
+     * </ul>
+     * @throws org.eclipse.ditto.model.messages.SubjectInvalidException if {@code initialHeaders} contains an invalid
+     * value for {@link MessageHeaderDefinition#SUBJECT}.
+     */
+    static MessageHeaders messageHeadersFrom(final Adaptable adaptable) {
+        return adaptable.getHeaders()
+                .map(MessagesModelFactory::newHeadersBuilder)
+                .map(MessageHeadersBuilder::build)
+                .orElseThrow(() -> new IllegalArgumentException("Adaptable did not have headers at all!"));
+    }
+
     private static byte[] tryToDecode(final byte[] bytes) {
         try {
             return BASE_64_DECODER.decode(bytes);
@@ -167,7 +186,11 @@ final class MessageAdaptableHelper {
     }
 
     private static boolean shouldBeInterpretedAsText(final String contentType) {
-        return contentType.startsWith(TEXT_PLAIN) || contentType.startsWith(APPLICATION_JSON);
+        return isPlainText(contentType) || contentType.startsWith(APPLICATION_JSON);
+    }
+
+    private static boolean isPlainText(final String contentType) {
+        return contentType.startsWith(TEXT_PLAIN);
     }
 
     private static Charset determineCharset(final CharSequence contentType) {

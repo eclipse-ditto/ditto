@@ -2,7 +2,7 @@
 title: Create a single feature
 keywords: examples, create feature
 search: exclude
-permalink: protocol-examples-createfeature.html
+permalink: protocol-examples-deletefeature.html
 ---
 
 {% capture command %}{% include_relative protocol/things/commands/modify/deletefeature.md %}{% endcapture %}
