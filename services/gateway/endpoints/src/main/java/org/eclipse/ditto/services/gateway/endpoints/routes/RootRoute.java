@@ -20,6 +20,8 @@ import static akka.http.javadsl.server.Directives.route;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.CorrelationIdEnsuringDirective.ensureCorrelationId;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.CustomPathMatchers.mergeDoubleSlashes;
+import static org.eclipse.ditto.services.gateway.endpoints.directives.DevopsBasicAuthenticationDirective.REALM_DEVOPS;
+import static org.eclipse.ditto.services.gateway.endpoints.directives.DevopsBasicAuthenticationDirective.authenticateDevopsBasic;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.RequestResultLoggingDirective.logRequestResult;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.ResponseRewritingDirective.rewriteResponse;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.auth.AuthorizationContextVersioningDirective.mapAuthorizationContext;
@@ -40,6 +42,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
+import org.eclipse.ditto.services.gateway.endpoints.directives.CorsEnablingDirective;
 import org.eclipse.ditto.services.gateway.endpoints.directives.EncodingEnsuringDirective;
 import org.eclipse.ditto.services.gateway.endpoints.directives.HttpsEnsuringDirective;
 import org.eclipse.ditto.services.gateway.endpoints.directives.RequestTimeoutHandlingDirective;
@@ -78,7 +81,6 @@ import akka.dispatch.MessageDispatcher;
 import akka.http.javadsl.model.ContentTypes;
 import akka.http.javadsl.model.HttpResponse;
 import akka.http.javadsl.model.StatusCodes;
-import akka.http.javadsl.server.Directives;
 import akka.http.javadsl.server.ExceptionHandler;
 import akka.http.javadsl.server.PathMatchers;
 import akka.http.javadsl.server.RejectionHandler;
@@ -206,9 +208,13 @@ public final class RootRoute {
                 extractRequestContext(ctx ->
                         route(
                                 statsRoute.buildStatsRoute(correlationId), // /stats
-                                overallStatusRoute.buildStatusRoute(), // /status
-                                cachingHealthRoute.buildHealthRoute(), // /health
-                                devopsRoute.buildDevopsRoute(ctx), // /devops
+                                authenticateDevopsBasic(REALM_DEVOPS,
+                                    route(
+                                            overallStatusRoute.buildStatusRoute(), // /status
+                                            cachingHealthRoute.buildHealthRoute(), // /health
+                                            devopsRoute.buildDevopsRoute(ctx) // /devops
+                                    )
+                                ),
                                 api(ctx, correlationId), // /api
                                 ws(correlationId) // /ws
                         )
@@ -226,22 +232,25 @@ public final class RootRoute {
                                         logRequestResult(correlationId, () ->
                                                 EncodingEnsuringDirective.ensureEncoding(correlationId, () ->
                                                         HttpsEnsuringDirective.ensureHttps(correlationId, () ->
-                                                                SecurityResponseHeadersDirective.addSecurityResponseHeaders(
-                                                                        () ->
+                                                                CorsEnablingDirective.enableCors(() ->
+                                                                                SecurityResponseHeadersDirective.addSecurityResponseHeaders(
+                                                                                        () ->
                                                             /* handling the rejections is done by akka automatically, but if we
                                                                do it here explicitly, we are able to log the status code for the
                                                                rejection (e.g. 404 or 405) in a wrapping directive. */
-                                                                                handleRejections(
-                                                                                        RejectionHandler.defaultHandler(),
-                                                                                        () ->
+                                                                                                handleRejections(
+                                                                                                        RejectionHandler.defaultHandler(),
+                                                                                                        () ->
                                                                     /* the inner handleExceptions is for handling exceptions
                                                                        occurring in the route route. It makes sure that the
                                                                        wrapping directives such as addSecurityResponseHeaders are
                                                                        even called in an error case in the route route. */
-                                                                                                handleExceptions(
-                                                                                                        exceptionHandler,
-                                                                                                        () -> rootRoute.apply(
-                                                                                                                correlationId))
+                                                                                                                handleExceptions(
+                                                                                                                        exceptionHandler,
+                                                                                                                        () -> rootRoute
+                                                                                                                                .apply(
+                                                                                                                                        correlationId))
+                                                                                                )
                                                                                 )
                                                                 )
                                                         )
