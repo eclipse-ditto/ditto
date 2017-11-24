@@ -105,31 +105,42 @@ public final class WebsocketRoute {
         protocolAdapter = DittoProtocolAdapter.newInstance();
     }
 
+    /**
+     * Builds the {@code /ws} route.
+     *
+     * @return the {@code /ws} route.
+     */
+    public Route buildWebsocketRoute(final Integer version, final String correlationId,
+            final AuthorizationContext connectionAuthContext) {
+        return buildWebsocketRoute(version, correlationId, connectionAuthContext, DittoHeaders.empty());
+    }
 
     /**
      * Builds the {@code /ws} route.
      *
      * @return the {@code /ws} route.
      */
-    public Route buildWebsocketRoute(final String correlationId, final AuthorizationContext authContext, final Integer
-            version) {
+    public Route buildWebsocketRoute(final Integer version, final String correlationId,
+            final AuthorizationContext connectionAuthContext, final DittoHeaders additionalHeaders) {
         return extractUpgradeToWebSocket(upgradeToWebSocket ->
                 complete(
-                        createWebsocket(upgradeToWebSocket, authContext, version, correlationId)
+                        createWebsocket(upgradeToWebSocket, version, correlationId, connectionAuthContext,
+                                additionalHeaders)
                 )
         );
     }
 
-    private HttpResponse createWebsocket(final UpgradeToWebSocket upgradeToWebSocket,
-            final AuthorizationContext authContext, final Integer version, final String connectionCorrelationId) {
+    private HttpResponse createWebsocket(final UpgradeToWebSocket upgradeToWebSocket, final Integer version,
+            final String connectionCorrelationId, final AuthorizationContext connectionAuthContext,
+            final DittoHeaders additionalHeaders) {
         // build Sink and Source in order to support rpc style patterns as well as server push:
         return upgradeToWebSocket.handleMessagesWith(
-                createSink(authContext, version, connectionCorrelationId),
+                createSink(version, connectionCorrelationId, connectionAuthContext, additionalHeaders),
                 createSource(connectionCorrelationId));
     }
 
-    private Sink<Message, NotUsed> createSink(final AuthorizationContext authContext, final Integer version,
-            final String connectionCorrelationId) {
+    private Sink<Message, NotUsed> createSink(final Integer version, final String connectionCorrelationId,
+            final AuthorizationContext connectionAuthContext, final DittoHeaders additionalHeaders) {
         return Flow.<Message>create()
                 .filter(Message::isText)
                 .map(Message::asTextMessage)
@@ -141,8 +152,9 @@ public final class WebsocketRoute {
                     }
                 })
                 .flatMapConcat(textMsg -> textMsg.fold("", (str1, str2) -> str1 + str2))
-                .filter(strictText -> processProtocolMessage(authContext, connectionCorrelationId, strictText))
-                .map(buildSignal(version, authContext, connectionCorrelationId))
+                .filter(strictText -> processProtocolMessage(connectionAuthContext, connectionCorrelationId,
+                        strictText))
+                .map(buildSignal(version, connectionCorrelationId, connectionAuthContext, additionalHeaders))
                 .to(Sink.actorSubscriber(CommandSubscriber.props(streamingActor, subscriberBackpressureQueueSize)));
     }
 
@@ -201,8 +213,8 @@ public final class WebsocketRoute {
                 .map(TextMessage::create);
     }
 
-    private Function<String, Signal> buildSignal(final Integer version, final AuthorizationContext authContext,
-            final String connectionCorrelationId) {
+    private Function<String, Signal> buildSignal(final Integer version, final String connectionCorrelationId,
+            final AuthorizationContext connectionAuthContext, final DittoHeaders additionalHeaders) {
         return cmdString -> {
             if (cmdString.isEmpty()) {
                 throw new IllegalArgumentException("Empty command");
@@ -210,14 +222,14 @@ public final class WebsocketRoute {
 
             final JsonObject jsonObject = wrapJsonRuntimeException(cmdString, DittoHeaders.newBuilder()
                             .schemaVersion(JsonSchemaVersion.forInt(version).orElse(JsonSchemaVersion.LATEST))
-                            .authorizationContext(authContext)
+                            .authorizationContext(connectionAuthContext)
                             .correlationId(connectionCorrelationId)
                             .build(),
                     (str, headers) -> JsonFactory.readFrom(str).asObject());
             final JsonifiableAdaptable jsonifiableAdaptable = wrapJsonRuntimeException(jsonObject,
                     DittoHeaders.newBuilder()
                             .schemaVersion(JsonSchemaVersion.forInt(version).orElse(JsonSchemaVersion.LATEST))
-                            .authorizationContext(authContext)
+                            .authorizationContext(connectionAuthContext)
                             .correlationId(jsonObject.getValue(JsonifiableAdaptable.JsonFields.HEADERS.getPointer()
                                     .append(JsonPointer.of(DittoHeaderDefinition.CORRELATION_ID.getKey())))
                                     .filter(JsonValue::isString)
@@ -238,12 +250,13 @@ public final class WebsocketRoute {
             final Map<String, String> allHeaders = new HashMap<>(headers);
 
             final DittoHeaders adjustedHeaders = DittoHeaders.newBuilder()
-                    .authorizationContext(authContext)
+                    .authorizationContext(connectionAuthContext)
                     .schemaVersion(jsonSchemaVersion)
                     .correlationId(wsCorrelationId)
                     .build();
 
             allHeaders.putAll(DittoProtocolAdapter.newHeaders(adjustedHeaders));
+            allHeaders.putAll(additionalHeaders);
 
             final AdaptableBuilder adaptableBuilder = DittoProtocolAdapter.newAdaptableBuilder(jsonifiableAdaptable)
                     .withHeaders(DittoProtocolAdapter.newHeaders(allHeaders));

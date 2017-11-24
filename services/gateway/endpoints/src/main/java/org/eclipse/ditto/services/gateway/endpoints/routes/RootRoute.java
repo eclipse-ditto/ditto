@@ -332,8 +332,8 @@ public final class RootRoute {
                                 mapAuthorizationContext(correlationId, wsVersion,
                                         authContextWithPrefixedSubjects,
                                         authContext ->
-                                                websocketRoute.buildWebsocketRoute(correlationId, authContext,
-                                                        wsVersion)
+                                                websocketRoute.buildWebsocketRoute(wsVersion, correlationId,
+                                                        authContext)
                                 )
                         )
                 )
