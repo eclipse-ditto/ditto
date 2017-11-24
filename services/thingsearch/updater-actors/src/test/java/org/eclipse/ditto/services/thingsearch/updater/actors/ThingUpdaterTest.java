@@ -30,7 +30,6 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
@@ -62,7 +61,6 @@ import org.eclipse.ditto.services.utils.distributedcache.actors.CacheRole;
 import org.eclipse.ditto.signals.events.policies.PolicyDeleted;
 import org.eclipse.ditto.signals.events.policies.PolicyModified;
 import org.eclipse.ditto.signals.events.things.AttributeCreated;
-import org.eclipse.ditto.signals.events.things.AttributeModified;
 import org.eclipse.ditto.signals.events.things.FeatureModified;
 import org.eclipse.ditto.signals.events.things.ThingCreated;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
@@ -129,7 +127,7 @@ public final class ThingUpdaterTest {
         actorSystem = ActorSystem.create("AkkaTestSystem", config);
         when(persistenceMock.getThingMetadata(any())).thenReturn(Source.single(new ThingMetadata(-1L, null, -1L)));
         when(persistenceMock.insertOrUpdate(any(), anyLong(), anyLong())).thenReturn(Source.single(true));
-        when(persistenceMock.executeCombinedWrites(any(), any())).thenReturn(Source.single(true));
+        when(persistenceMock.executeCombinedWrites(any(), any(), any(), anyLong())).thenReturn(Source.single(true));
     }
 
     /** */
@@ -169,7 +167,7 @@ public final class ThingUpdaterTest {
             {
                 final TestProbe thingsShardProbe = TestProbe.apply(actorSystem);
                 final TestProbe policiesShardProbe = TestProbe.apply(actorSystem);
-                final ActorRef underTest = createThingUpdaterActor(thingsShardProbe, policiesShardProbe);
+                final ActorRef underTest = createInitializedThingUpdaterActor(thingsShardProbe, policiesShardProbe);
 
                 waitUntil().insertOrUpdate(any(Thing.class), anyLong(), anyLong());
                 // now that ThingUpdater is in eventProcessing behavior we can try to insert unknown event
@@ -272,7 +270,7 @@ public final class ThingUpdaterTest {
 
     @Test
     public void unsuccessfulUpdateTriggersSync() {
-        final long revision = 4L;
+        final long revision = 0L;
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                 .schemaVersion(V_1)
                 .build();
@@ -289,7 +287,7 @@ public final class ThingUpdaterTest {
 
         when(persistenceMock.executeCombinedWrites(eq(THING_ID), eq(expectedWrite), any(), anyLong())).thenReturn(
                 sourceUnsuccess);
-        when(persistenceMock.getThingMetadata(any())).thenReturn(Source.single(new ThingMetadata(revision, null, -1L)));
+        when(persistenceMock.getThingMetadata(any())).thenReturn(Source.single(new ThingMetadata(-1L, null, -1L)));
 
         new TestKit(actorSystem) {
             {
@@ -943,7 +941,6 @@ public final class ThingUpdaterTest {
         return invalidThingEvent;
     }
 
-    private static void expectShardedSudoRetrieveThing(final TestProbe thingsShardProbe, final String thingId) {
     private ShardedMessageEnvelope expectShardedSudoRetrieveThing(final TestProbe thingsShardProbe,
             final String thingId) {
         final ShardedMessageEnvelope envelope = thingsShardProbe.expectMsgClass(ShardedMessageEnvelope.class);

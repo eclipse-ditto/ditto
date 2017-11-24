@@ -131,7 +131,6 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
     private final java.time.Duration activityCheckInterval;
     private final ThingsSearchUpdaterPersistence searchUpdaterPersistence;
     private final CircuitBreaker circuitBreaker;
-    private final ActorRef thingCacheFacade;
     private final ActorRef policyCacheFacade;
     private final Materializer materializer;
 
@@ -167,7 +166,6 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         this.activityCheckInterval = activityCheckInterval;
         this.searchUpdaterPersistence = searchUpdaterPersistence;
         this.circuitBreaker = circuitBreaker;
-        this.thingCacheFacade = thingCacheFacade;
         this.policyCacheFacade = policyCacheFacade;
         this.gatheredEvents = new ArrayList<>();
 
@@ -452,11 +450,9 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
             log.info("Dropped thing event for thing id <{}> with revision <{}> because it was older than or "
                             + "equal to the current sequence number <{}> of the update actor.", thingId,
                     thingEvent.getRevision(), sequenceNumber);
-        }
-        else if (shortcutTakenForThingEvent(thingEvent)) {
+        } else if (shortcutTakenForThingEvent(thingEvent)) {
             log.debug("Shortcut taken for thing event <{}>.", thingEvent);
-        }
-        else if (thingEvent.getRevision() > sequenceNumber + 1) {
+        } else if (thingEvent.getRevision() > sequenceNumber + 1) {
             log.info("Triggering synchronization for thing <{}> because the received revision <{}> is higher than"
                     + " the expected sequence number <{}>.", thingId, thingEvent.getRevision(), sequenceNumber + 1);
             triggerSynchronization();
@@ -518,6 +514,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
             log.debug("Got ThingCreated: {}", tc);
             final Thing createdThing = tc.getThing().toBuilder().setRevision(tc.getRevision()).build();
             updateThingSearchIndex(null, createdThing);
+            return true;
         } else if (thingEvent instanceof ThingModified) {
             // if the very first event in initial phase is the "ThingModified", we can shortcut a lot ..
             final ThingModified tm = (ThingModified) thingEvent;
