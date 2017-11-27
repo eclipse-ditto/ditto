@@ -18,6 +18,7 @@ import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceCons
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.PULL;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.PUSH;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -29,8 +30,7 @@ import org.eclipse.ditto.model.things.AclEntry;
 import org.eclipse.ditto.model.things.Permission;
 
 /**
- * Factory to create {@link CombinedUpdates} on the {@link AccessControlList} of a {@link
- * org.eclipse.ditto.model.things.Thing}.
+ * Factory to create updates on the {@link AccessControlList} of a {@link org.eclipse.ditto.model.things.Thing}.
  */
 final class AclUpdatesFactory {
 
@@ -41,34 +41,35 @@ final class AclUpdatesFactory {
         throw new AssertionError();
     }
 
+
     /**
-     * Creates an {@code AclUpdate} for a whole {@code AccessControlList}.
+     * Creates all ACL updates for a whole {@code AccessControlList}.
      *
      * @param acl the acl to be set
-     * @return a wrapper holding the update info
+     * @return the updates as Bson.
      */
-    static CombinedUpdates createUpdateAclEntries(final AccessControlList acl) {
+    static List<Bson> createUpdateAclEntries(final AccessControlList acl) {
         final List<String> newAclEntries = extractReadEntries(acl);
         final Bson pushBson = createAclPushAndRevisionBson(newAclEntries);
 
-        return CombinedUpdates.of(PULL_ACL, pushBson);
+        return Arrays.asList(PULL_ACL, pushBson);
     }
 
     /**
-     * Creates an {@code AclUpdate} for a single {@code AclEntry}.
+     * Creates an {@code AclUpdate} as Bson for a single {@code AclEntry}.
      *
      * @param aclEntry the entry to be updated/inserted
-     * @return a wrapper holding the update info
+     * @return The updates as Bson.
      */
-    static CombinedUpdates createUpdateAclEntry(final AclEntry aclEntry) {
+    static List<Bson> createUpdateAclEntry(final AclEntry aclEntry) {
         final Bson pullExistingEntry = createPullExistingAclEntryBson(aclEntry.getAuthorizationSubject().getId());
 
         if (aclEntry.contains(Permission.READ)) {
             final Bson pushBson = createAclPushAndRevisionBson(
                     Collections.singletonList(aclEntry.getAuthorizationSubject().getId()));
-            return CombinedUpdates.of(pullExistingEntry, pushBson);
+            return Arrays.asList(pullExistingEntry, pushBson);
         } else {
-            return CombinedUpdates.of(pullExistingEntry);
+            return Collections.singletonList(pullExistingEntry);
         }
     }
 
@@ -85,15 +86,15 @@ final class AclUpdatesFactory {
     private static List<String> extractReadEntries(final AccessControlList acl) {
         return acl.getEntriesSet() //
                 .stream() //
-                .filter((entry) -> entry.contains(Permission.READ)) //
-                .map((entry) -> entry.getAuthorizationSubject().getId()) //
+                .filter(entry -> entry.contains(Permission.READ)) //
+                .map(entry -> entry.getAuthorizationSubject().getId()) //
                 .collect(Collectors.toList());
     }
 
     private static Document createAclPushAndRevisionBson(final List<String> newAclEntries) {
         final List<Document> pushEntries =
                 newAclEntries.stream() //
-                        .map((id) -> new Document().append(FIELD_ACL, id)) //
+                        .map(id -> new Document().append(FIELD_ACL, id)) //
                         .collect(Collectors.toList());
 
         return new Document(PUSH, new Document(FIELD_INTERNAL, new Document(EACH, pushEntries)));

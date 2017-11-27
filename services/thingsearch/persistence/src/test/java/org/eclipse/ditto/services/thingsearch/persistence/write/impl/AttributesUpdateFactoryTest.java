@@ -16,9 +16,13 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
+
+import org.bson.conversions.Bson;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.things.Attributes;
+import org.eclipse.ditto.services.thingsearch.persistence.write.IndexLengthRestrictionEnforcer;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -26,7 +30,7 @@ import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class AttributesUpdateFactoryTest {
+public final class AttributesUpdateFactoryTest {
 
     @Mock
     private IndexLengthRestrictionEnforcer indexLengthRestrictionEnforcer;
@@ -42,14 +46,14 @@ public class AttributesUpdateFactoryTest {
                 .enforceRestrictionsOnAttributeValue(any(JsonPointer.class), any(JsonValue.class)))
                 .thenReturn(restrictedValue);
 
-        final CombinedUpdates combinedUpdates = AttributesUpdateFactory
+        final List<Bson> updates = AttributesUpdateFactory
                 .createAttributesUpdates(indexLengthRestrictionEnforcer, pointer, value);
 
-        assertThat(combinedUpdates.getUpdates().size())
+        assertThat(updates.size())
                 .isEqualTo(3);
-        assertThat(combinedUpdates.getUpdates().get(0).toString().contains("restrictedManufacturer"))
+        assertThat(updates.get(0).toString().contains("restrictedManufacturer"))
                 .isTrue();
-        assertThat(combinedUpdates.getUpdates().get(2).toString().contains("restrictedManufacturer"))
+        assertThat(updates.get(2).toString().contains("restrictedManufacturer"))
                 .isTrue();
 
         verify(indexLengthRestrictionEnforcer)
@@ -66,14 +70,14 @@ public class AttributesUpdateFactoryTest {
         when(indexLengthRestrictionEnforcer.enforceRestrictions(any(Attributes.class)))
                 .thenReturn(restrictedAttributes);
 
-        final CombinedUpdates combinedUpdates = AttributesUpdateFactory
+        final List<Bson> updates = AttributesUpdateFactory
                 .createAttributesUpdate(indexLengthRestrictionEnforcer, attributes);
 
-        assertThat(combinedUpdates.getUpdates().size())
+        assertThat(updates.size())
                 .isEqualTo(3);
-        assertThat(combinedUpdates.getUpdates().get(0).toString().contains("restrictedManufacturer"))
+        assertThat(updates.get(0).toString().contains("restrictedManufacturer"))
                 .isTrue();
-        assertThat(combinedUpdates.getUpdates().get(2).toString().contains("restrictedManufacturer"))
+        assertThat(updates.get(2).toString().contains("restrictedManufacturer"))
                 .isTrue();
 
         verify(indexLengthRestrictionEnforcer)

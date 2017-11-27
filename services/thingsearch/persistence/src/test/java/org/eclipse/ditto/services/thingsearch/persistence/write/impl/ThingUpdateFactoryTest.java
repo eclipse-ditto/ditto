@@ -23,7 +23,8 @@ import java.util.Date;
 import org.bson.Document;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
-import org.eclipse.ditto.services.thingsearch.persistence.read.document.DocumentMapper;
+import org.eclipse.ditto.services.thingsearch.persistence.mapping.ThingDocumentMapper;
+import org.eclipse.ditto.services.thingsearch.persistence.write.IndexLengthRestrictionEnforcer;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -60,7 +61,7 @@ public class ThingUpdateFactoryTest {
                 .setId(":thing")
                 .build();
 
-        final Document expected = new Document(PersistenceConstants.SET, DocumentMapper.toDocument(restricted))
+        final Document expected = new Document(PersistenceConstants.SET, ThingDocumentMapper.toDocument(restricted))
                 .append(PersistenceConstants.UNSET, new Document(PersistenceConstants.FIELD_DELETED, 1));
 
         when(indexLengthRestrictionEnforcer.enforceRestrictions(any(Thing.class))).thenReturn(restricted);

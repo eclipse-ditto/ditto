@@ -12,7 +12,6 @@
 package org.eclipse.ditto.services.thingsearch.persistence.write.impl;
 
 import static com.mongodb.client.model.Filters.and;
-import static com.mongodb.client.model.Filters.regex;
 
 import java.util.Collection;
 import java.util.Collections;
