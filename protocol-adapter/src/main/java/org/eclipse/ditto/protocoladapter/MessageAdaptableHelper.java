@@ -20,7 +20,6 @@ import java.util.regex.Pattern;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
@@ -46,6 +45,7 @@ final class MessageAdaptableHelper {
 
     private static final String TEXT_PLAIN = "text/plain";
     private static final String APPLICATION_JSON = "application/json";
+    private static final String APPLICATION_OCTET_STREAM = "application/octet-stream";
 
     /**
      * Creates an {@link Adaptable} from the passed {@link Message} and its related arguments.
@@ -94,7 +94,8 @@ final class MessageAdaptableHelper {
                         .filter(JsonValue::isString)
                         .map(JsonValue::asString)
                         .map(contentType -> {
-                            if (MessageAdaptableHelper.shouldBeInterpretedAsText(contentType)) {
+                            if (MessageAdaptableHelper.shouldBeInterpretedAsText(contentType) ||
+                                    MessageAdaptableHelper.shouldBeInterpretedAsBinary(contentType)) {
                                 return p;
                             } else {
                                 return JsonValue.of(
@@ -146,11 +147,9 @@ final class MessageAdaptableHelper {
                 value.ifPresent(jsonValue -> messageBuilder.payload((T) jsonValue));
             }
         } else {
-            final byte[] messagePayloadBytes = value
-                    .map(jsonValue -> jsonValue.isString() ? jsonValue.asString() : jsonValue.toString())
+            value.map(jsonValue -> jsonValue.isString() ? jsonValue.asString() : jsonValue.toString())
                     .map(payloadString -> payloadString.getBytes(charset))
-                    .orElseThrow(() -> JsonParseException.newBuilder().build());
-            messageBuilder.rawPayload(ByteBuffer.wrap(tryToDecode(messagePayloadBytes)));
+                    .ifPresent(bytes -> messageBuilder.rawPayload(ByteBuffer.wrap(tryToDecode(bytes))));
         }
         return messageBuilder.build();
     }
@@ -187,6 +186,10 @@ final class MessageAdaptableHelper {
 
     private static boolean shouldBeInterpretedAsText(final String contentType) {
         return isPlainText(contentType) || contentType.startsWith(APPLICATION_JSON);
+    }
+
+    private static boolean shouldBeInterpretedAsBinary(final String contentType) {
+        return contentType.startsWith(APPLICATION_OCTET_STREAM);
     }
 
     private static boolean isPlainText(final String contentType) {

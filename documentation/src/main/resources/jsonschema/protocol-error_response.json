@@ -1,0 +1,54 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
+  "description": "The Ditto Protocol error response is sent in response to a command that failed during execution.",
+  "title": "Ditto Protocol error response",
+  "properties": {
+    "topic": {
+      "type": "string",
+      "description": "Contains the topic of the error including on which channel it was issued."
+    },
+    "headers": {
+      "type": "object",
+      "description": "Additional headers.",
+      "properties": {
+        "correlation-id": {
+          "type": "string",
+          "description": "The correlation-id header is used for linking one message with another. It typically links a reply message with its requesting message."
+        }
+      },
+      "required": [ "correlation-id" ]
+    },
+    "path": {
+      "type": "string",
+      "description": "The path is always `/` for error responses."
+    },
+    "value": {
+      "type": "object",
+      "description": "The _value_ field contains information about the error that occurred.",
+      "properties": {
+        "status": {
+          "type": "integer",
+          "description": "The status code that indicates the result of the command. The semantics of the used status codes are based on the [HTTP status codes](https://tools.ietf.org/html/rfc7231#section-6)."
+        },
+        "error": {
+          "type": "string",
+          "description": "The error code that uniquely identifies the error e.g. `things:features.notfound`."
+        },
+        "message": {
+          "type": "string",
+          "description": "A human readable message that explains in detail what went wrong during the execution of a command."
+        },
+        "description": {
+          "type": "string",
+          "description": "Contains further information about the error e.g. a hint what caused the problem and how to solve it."
+        }
+      }
+    },
+    "status": {
+      "type": "integer",
+      "description": "The status code that indicates the result of the command. The semantics of the used status codes are based on the [HTTP status codes](https://tools.ietf.org/html/rfc7231#section-6)."
+    }
+  },
+  "required": [ "topic", "headers", "path", "status" ]
+}

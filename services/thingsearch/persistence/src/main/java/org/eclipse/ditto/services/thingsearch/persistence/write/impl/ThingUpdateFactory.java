@@ -20,7 +20,8 @@ import java.util.Date;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.services.thingsearch.persistence.read.document.DocumentMapper;
+import org.eclipse.ditto.services.thingsearch.persistence.mapping.ThingDocumentMapper;
+import org.eclipse.ditto.services.thingsearch.persistence.write.IndexLengthRestrictionEnforcer;
 
 /**
  * Factory to create updates on thing level.
@@ -48,7 +49,7 @@ final class ThingUpdateFactory {
      * @return the update Bson
      */
     static Bson createUpdateThingUpdate(final IndexLengthRestrictionEnforcer indexLengthRestrictionEnforcer, final Thing thing) {
-        return toUpdate(DocumentMapper.toDocument(indexLengthRestrictionEnforcer.enforceRestrictions(thing)));
+        return toUpdate(ThingDocumentMapper.toDocument(indexLengthRestrictionEnforcer.enforceRestrictions(thing)));
     }
 
     private static Document toUpdate(final Document document) {

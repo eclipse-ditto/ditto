@@ -241,7 +241,7 @@
                         <image>
                             <alias>${policies.docker.image.name}</alias>
                             <name>
-                                ${docker.repository}/${policies.docker.image.name}:${project.version}${docker.image.version.suffix}
+                                ${docker.repository}/${policies.docker.image.name}:${project.version}
                             </name>
                             <build>
                                 <from>${docker.image.jdk}</from>

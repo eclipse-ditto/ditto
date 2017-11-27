@@ -12,6 +12,7 @@
 package org.eclipse.ditto.services.thingsearch.persistence;
 
 import java.util.Arrays;
+import java.util.Collections;
 
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.services.utils.config.MongoConfig;
@@ -41,23 +42,12 @@ public class MongoClientWrapperTest {
     private static final int KNOWN_PORT = 27777;
     private static final Config CONFIG = ConfigFactory.load("test");
 
-    private static void assertConnectionPoolSettings(final MongoClientWrapper wrapper,
-            final ConnectionPoolSettings expectedConnectionPoolSettings) {
-        final MongoClient mongoClient = wrapper.getMongoClient();
-        Assertions.assertThat(mongoClient).isNotNull();
-
-        final MongoClientSettings mongoClientSettings = mongoClient.getSettings();
-        Assertions.assertThat(mongoClientSettings).isNotNull();
-        final ConnectionPoolSettings connectionPoolSettings = mongoClientSettings.getConnectionPoolSettings();
-        Assertions.assertThat(connectionPoolSettings).isNotNull().isEqualTo(expectedConnectionPoolSettings);
-    }
-
     private static String createUri(final boolean sslEnabled) {
         final ConnectionString connectionString = new ConnectionString(
                 "mongodb://" + KNOWN_USER + ":" + KNOWN_PASSWORD + "@" + KNOWN_SERVER_ADDRESS + "/" + KNOWN_DB_NAME +
                         "?ssl="
                         + sslEnabled);
-        return connectionString.getURI();
+        return connectionString.getConnectionString();
     }
 
     private static void assertCreatedByUri(final boolean sslEnabled, final MongoClientWrapper wrapper) {
@@ -66,9 +56,9 @@ public class MongoClientWrapperTest {
 
         final MongoClientSettings mongoClientSettings = mongoClient.getSettings();
         Assertions.assertThat(mongoClientSettings.getClusterSettings().getHosts())
-                .isEqualTo(Arrays.asList(new ServerAddress(KNOWN_SERVER_ADDRESS)));
+                .isEqualTo(Collections.singletonList(new ServerAddress(KNOWN_SERVER_ADDRESS)));
         Assertions.assertThat(mongoClientSettings.getCredentialList()).isEqualTo(
-                Arrays.asList(
+                Collections.singletonList(
                         MongoCredential.createCredential(KNOWN_USER, KNOWN_DB_NAME, KNOWN_PASSWORD.toCharArray())));
         Assertions.assertThat(mongoClientSettings.getSslSettings().isEnabled()).isEqualTo(sslEnabled);
         final MongoDatabase mongoDatabase = wrapper.getDatabase();
@@ -80,7 +70,7 @@ public class MongoClientWrapperTest {
         final MongoClient mongoClient = wrapper.getMongoClient();
         Assertions.assertThat(mongoClient).isNotNull();
         Assertions.assertThat(mongoClient.getSettings().getClusterSettings().getHosts())
-                .isEqualTo(Arrays.asList(new ServerAddress(KNOWN_HOST, KNOWN_PORT)));
+                .isEqualTo(Collections.singletonList(new ServerAddress(KNOWN_HOST, KNOWN_PORT)));
         final MongoDatabase mongoDatabase = wrapper.getDatabase();
         Assertions.assertThat(mongoDatabase).isNotNull();
         Assertions.assertThat(mongoDatabase.getName()).isEqualTo(KNOWN_DB_NAME);
@@ -92,9 +82,9 @@ public class MongoClientWrapperTest {
 
         final MongoClientSettings mongoClientSettings = mongoClient.getSettings();
         Assertions.assertThat(mongoClientSettings.getClusterSettings().getHosts())
-                .isEqualTo(Arrays.asList(new ServerAddress(KNOWN_HOST, KNOWN_PORT)));
+                .isEqualTo(Collections.singletonList(new ServerAddress(KNOWN_HOST, KNOWN_PORT)));
         Assertions.assertThat(mongoClientSettings.getCredentialList()).isEqualTo(
-                Arrays.asList(
+                Collections.singletonList(
                         MongoCredential.createCredential(KNOWN_USER, KNOWN_DB_NAME, KNOWN_PASSWORD.toCharArray())));
         final MongoDatabase mongoDatabase = wrapper.getDatabase();
         Assertions.assertThat(mongoDatabase).isNotNull();
@@ -107,7 +97,7 @@ public class MongoClientWrapperTest {
 
         final MongoClientSettings mongoClientSettings = mongoClient.getSettings();
         Assertions.assertThat(mongoClientSettings.getClusterSettings().getHosts())
-                .isEqualTo(Arrays.asList(new ServerAddress(KNOWN_HOST, KNOWN_PORT)));
+                .isEqualTo(Collections.singletonList(new ServerAddress(KNOWN_HOST, KNOWN_PORT)));
         final MongoDatabase mongoDatabase = wrapper.getDatabase();
         Assertions.assertThat(mongoDatabase).isNotNull();
         Assertions.assertThat(mongoDatabase.getName()).isEqualTo(KNOWN_DB_NAME);

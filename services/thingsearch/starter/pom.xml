@@ -214,7 +214,7 @@
                         <image>
                             <alias>${things-search.docker.image.name}</alias>
                             <name>
-                                ${docker.repository}/${things-search.docker.image.name}:${project.version}${docker.image.version.suffix}
+                                ${docker.repository}/${things-search.docker.image.name}:${project.version}
                             </name>
                             <build>
                                 <from>${docker.image.jdk}</from>

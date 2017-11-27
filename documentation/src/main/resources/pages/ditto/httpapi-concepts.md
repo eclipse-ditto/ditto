@@ -3,8 +3,6 @@ title: HTTP API concepts
 keywords: http, api, concepts, partial
 tags: [http]
 permalink: httpapi-concepts.html
-summary: This page describes the concepts and ideas behind Ditto's HTTP API. The development started with the HTTP API, so the 
-         Websocket API and the Ditto protocol follows the initial HTTP API design.
 ---
 
 {% include warning.html content="This page is still a work in progress." %}

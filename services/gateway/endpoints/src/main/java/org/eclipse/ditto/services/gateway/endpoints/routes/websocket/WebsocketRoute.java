@@ -246,7 +246,8 @@ public final class WebsocketRoute {
             allHeaders.putAll(DittoProtocolAdapter.newHeaders(adjustedHeaders));
 
             final AdaptableBuilder adaptableBuilder = DittoProtocolAdapter.newAdaptableBuilder(jsonifiableAdaptable)
-                    .withHeaders(DittoProtocolAdapter.newHeaders(allHeaders));
+                    .withHeaders(DittoProtocolAdapter.newHeaders(allHeaders))
+                    .withPayload(jsonifiableAdaptable.getPayload());
 
             return protocolAdapter.fromAdaptable(adaptableBuilder.build());
         };

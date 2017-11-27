@@ -28,7 +28,6 @@ import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceCons
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
@@ -43,9 +42,13 @@ import org.bson.conversions.Bson;
 import org.eclipse.ditto.model.policiesenforcers.PolicyEnforcer;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.thingsearch.persistence.MongoClientWrapper;
-import org.eclipse.ditto.services.thingsearch.persistence.read.document.DocumentMapper;
+import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
+import org.eclipse.ditto.services.thingsearch.persistence.mapping.ThingDocumentMapper;
+import org.eclipse.ditto.services.thingsearch.persistence.write.AbstractThingsSearchUpdaterPersistence;
+import org.eclipse.ditto.services.thingsearch.persistence.write.EventToPersistenceStrategyFactory;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingMetadata;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
+import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.reactivestreams.Publisher;
 
 import com.mongodb.MongoBulkWriteException;
@@ -53,7 +56,6 @@ import com.mongodb.MongoWriteException;
 import com.mongodb.WriteError;
 import com.mongodb.bulk.BulkWriteResult;
 import com.mongodb.client.model.BulkWriteOptions;
-import com.mongodb.client.model.CreateCollectionOptions;
 import com.mongodb.client.model.DeleteManyModel;
 import com.mongodb.client.model.InsertOneModel;
 import com.mongodb.client.model.Projections;
@@ -79,14 +81,19 @@ public final class MongoThingsSearchUpdaterPersistence extends AbstractThingsSea
     private final MongoCollection<Document> collection;
     private final MongoCollection<Document> policiesCollection;
     private final MongoCollection<Document> lastSuccessfulSearchSyncCollection;
+    private final EventToPersistenceStrategyFactory<Bson, PolicyUpdate>
+            persistenceStrategyFactory;
 
     /**
      * Constructor.
      *
      * @param clientWrapper the client wrapper holding the connection information.
      * @param log the logger to use for logging.
+     * @param persistenceStrategyFactory The persistence strategy factory to use.
      */
-    public MongoThingsSearchUpdaterPersistence(final MongoClientWrapper clientWrapper, final LoggingAdapter log) {
+    public MongoThingsSearchUpdaterPersistence(final MongoClientWrapper clientWrapper,
+            final LoggingAdapter log,
+            final EventToPersistenceStrategyFactory<Bson, PolicyUpdate> persistenceStrategyFactory) {
         super(log);
         collection = clientWrapper.getDatabase().getCollection(THINGS_COLLECTION_NAME);
         policiesCollection = clientWrapper.getDatabase().getCollection(POLICIES_BASED_SEARCH_INDEX_COLLECTION_NAME);
@@ -96,13 +103,7 @@ public final class MongoThingsSearchUpdaterPersistence extends AbstractThingsSea
 //                CreateCollectionOptions().capped(true).sizeInBytes(1024L).maxDocuments(1L));
         lastSuccessfulSearchSyncCollection = clientWrapper.getDatabase().getCollection(
                 LAST_SUCCESSFUL_SYNC_COLLECTION_NAME);
-    }
-
-    private static List<UpdateOneModel<Document>> createWriteModels(final Bson filter,
-            final CombinedThingWrites combinedThingWrites) {
-        return combinedThingWrites.getCombinedWriteDocuments().stream()
-                .map(update -> new UpdateOneModel<Document>(filter, update, new UpdateOptions().upsert(true)))
-                .collect(Collectors.toList());
+        this.persistenceStrategyFactory = persistenceStrategyFactory;
     }
 
     private static Bson filterWithExactRevision(final String thingId, final long revision) {
@@ -133,7 +134,7 @@ public final class MongoThingsSearchUpdaterPersistence extends AbstractThingsSea
     @Override
     protected final Source<Boolean, NotUsed> save(final Thing thing, final long revision, final long policyRevision) {
         final Bson filter = filterWithLowerRevision(getThingId(thing), revision);
-        final Document document = toUpdate(DocumentMapper.toDocument(thing), revision, policyRevision);
+        final Document document = toUpdate(ThingDocumentMapper.toDocument(thing), revision, policyRevision);
         return Source.fromPublisher(collection.updateOne(filter, document, new UpdateOptions().upsert(true)))
                 .map(updateResult -> updateResult.getMatchedCount() > 0 || null != updateResult.getUpsertedId());
     }
@@ -198,61 +199,98 @@ public final class MongoThingsSearchUpdaterPersistence extends AbstractThingsSea
     }
 
     /**
-     * /** Executes the passed in {@link CombinedThingWrites} using a bulk write operation on MongoDB. The bulk write is
-     * performed with the ordered options which means that if one write fails, the other writes will not be executed.
+     * Executes the passed in events using a bulk write operation on MongoDB. The bulk write is performed with the
+     * ordered options which means that if one write fails, the other writes will not be executed.
      *
      * @param thingId the id of the thing to update.
-     * @param combinedThingWrites the combined thing writes to execute in this update.
+     * @param thingEvents the events to persist in this update.
+     * @param policyEnforcer the policy enforcer to enforce the policies.
+     * @param targetRevision The target sequence number after all
      * @return a {@link Source} holding the publisher to execute the operation.
      */
     @Override
-    public final Source<Boolean, NotUsed> executeCombinedWrites(final String thingId,
-            final CombinedThingWrites combinedThingWrites) {
-        final Bson filter = filterWithExactRevision(thingId, combinedThingWrites.getSourceSequenceNumber());
-        final List<UpdateOneModel<Document>> writeModels = createWriteModels(filter, combinedThingWrites);
-        addPolicyRelatedThingWrites(filter, writeModels, combinedThingWrites.getCombinedPolicyUpdates());
-        writeModels.add(new UpdateOneModel<>(filter, combinedThingWrites.getSequenceNumberUpdate()));
+    public Source<Boolean, NotUsed> executeCombinedWrites(final String thingId,
+            final List<ThingEvent> thingEvents,
+            final PolicyEnforcer policyEnforcer, final long targetRevision) {
+        if (!thingEvents.isEmpty()) {
+            final BulkWriteOptions writeOrdered = new BulkWriteOptions();
+            writeOrdered.ordered(true);
 
-        final BulkWriteOptions writeOrdered = new BulkWriteOptions();
-        writeOrdered.ordered(true);
+            final long lastKnownRevision = thingEvents.get(0).getRevision() - 1;
+            final Bson filter = filterWithExactRevision(thingId, lastKnownRevision);
 
-        return Source.fromPublisher(collection.bulkWrite(writeModels, writeOrdered))
-                .flatMapConcat(mapCombinedWritesResult(combinedThingWrites))
-                .recoverWithRetries(1, errorRecovery(thingId));
+            // convert the events to the write models
+            final List<WriteModel<Document>> thingWriteModels = new ArrayList<>();
+            final List<WriteModel<Document>> policyWriteModels = new ArrayList<>();
+
+            for (final ThingEvent thingEvent : thingEvents) {
+                final List<WriteModel<Document>> thingUpdates = createThingUpdates(filter, thingEvent);
+                final List<WriteModel<Document>> policyUpdates = createPolicyUpdates(thingEvent, policyEnforcer);
+
+                thingWriteModels.addAll(thingUpdates);
+                policyWriteModels.addAll(policyUpdates);
+            }
+
+            // add the revision update model
+            thingWriteModels.add(createRevisionUpdate(filter, targetRevision));
+
+            return Source.fromPublisher(collection.bulkWrite(thingWriteModels, writeOrdered))
+                    .flatMapConcat(mapCombinedWritesResult(policyWriteModels))
+                    .recoverWithRetries(1, errorRecovery(thingId));
+
+        }
+        // return true if nothing to change
+        return Source.single(true);
+    }
+
+    private <T extends ThingEvent> List<WriteModel<Document>> createThingUpdates(final Bson filter, final T thingEvent) {
+        final List<Bson> updates = persistenceStrategyFactory
+                .getStrategy(thingEvent)
+                .thingUpdates(thingEvent, indexLengthRestrictionEnforcer);
+        return updates
+                .stream()
+                .map(update -> new UpdateOneModel<Document>(filter, update, new UpdateOptions().upsert(true)))
+                .collect(Collectors.toList());
+    }
+
+    private <T extends ThingEvent> List<WriteModel<Document>> createPolicyUpdates(final T thingEvent,
+            final PolicyEnforcer policyEnforcer) {
+        final List<PolicyUpdate> updates = persistenceStrategyFactory
+                .getStrategy(thingEvent)
+                .policyUpdates(thingEvent, policyEnforcer);
+
+        final List<WriteModel<Document>> writeModels = new ArrayList<>();
+        updates.forEach(policyUpdate -> {
+            writeModels.add(new DeleteManyModel<>(policyUpdate.getPolicyIndexRemoveFilter()));
+            policyUpdate.getPolicyIndexInsertEntries()
+                    .forEach(document -> writeModels.add(new InsertOneModel<>(document)));
+        });
+        return writeModels;
+    }
+
+    private UpdateOneModel<Document> createRevisionUpdate(final Bson thingFilter, final long targetRevision) {
+        final Document update = new Document(PersistenceConstants.SET,
+                new Document(PersistenceConstants.FIELD_REVISION, targetRevision));
+        return new UpdateOneModel<>(thingFilter, update);
     }
 
     private Function<BulkWriteResult, Source<Boolean, NotUsed>> mapCombinedWritesResult(
-            final CombinedThingWrites combinedThingWrites) {
-        final List<WriteModel<Document>> policyWriteModels = createPolicyWriteModels(combinedThingWrites
-                .getCombinedPolicyUpdates());
+            final List<WriteModel<Document>> policyWriteModels) {
         final BulkWriteOptions writeOrdered = new BulkWriteOptions();
         writeOrdered.ordered(true);
-        return r -> {
-            if (r.getModifiedCount() > 0 || r.getInsertedCount() > 0) {
+        return bulkWriteResult -> {
+            if (bulkWriteResult.getModifiedCount() > 0 || bulkWriteResult.getInsertedCount() > 0) {
                 if (!policyWriteModels.isEmpty()) {
                     return Source.fromPublisher(policiesCollection.bulkWrite(policyWriteModels, writeOrdered))
-                            .map(r2 -> Boolean.TRUE);
+                            .map(policiesWriteResult -> Boolean.TRUE);
                 } else {
                     return Source.single(Boolean.TRUE);
                 }
             } else {
+                // return false if the previous bulk write did not modify anything
                 return Source.single(Boolean.FALSE);
             }
         };
-    }
-
-    private static void addPolicyRelatedThingWrites(final Bson filter,
-            final Collection<UpdateOneModel<Document>> writeModels,
-            final Iterable<PolicyUpdate> combinedPolicyUpdates) {
-
-        combinedPolicyUpdates.forEach(policyUpdate -> {
-            if (policyUpdate.getPullGlobalReads() != null) {
-                writeModels.add(new UpdateOneModel<>(filter, policyUpdate.getPullGlobalReads()));
-            }
-            if (policyUpdate.getPushGlobalReads() != null) {
-                writeModels.add(new UpdateOneModel<>(filter, policyUpdate.getPushGlobalReads()));
-            }
-        });
     }
 
     /**
@@ -397,24 +435,25 @@ public final class MongoThingsSearchUpdaterPersistence extends AbstractThingsSea
         return writeModels;
     }
 
-    private static List<WriteModel<Document>> createPolicyWriteModels(
-            final Iterable<PolicyUpdate> combinedPolicyUpdates) {
-
-        final List<WriteModel<Document>> writeModels = new ArrayList<>();
-        combinedPolicyUpdates.forEach(policyUpdate -> {
-            writeModels.add(new DeleteManyModel<>(policyUpdate.getPolicyIndexRemoveFilter()));
-            policyUpdate.getPolicyIndexInsertEntries()
-                    .forEach(document -> writeModels.add(new InsertOneModel<>(document)));
-        });
-        return writeModels;
-    }
-
     private static List<UpdateOneModel<Document>> createThingIndexModels(final Bson filter, final PolicyUpdate update) {
-        final UpdateOneModel<Document> removeOldEntries = new UpdateOneModel<>(filter, update.getPullGlobalReads());
-        final UpdateOneModel<Document> addNewEntries = new UpdateOneModel<>(filter, update.getPushGlobalReads());
-        final UpdateOneModel<Document> removeAclEntries = new UpdateOneModel<>(filter, update.getPullAclEntries());
+        final List<UpdateOneModel<Document>> updates = new ArrayList<>(3);
 
-        return Arrays.asList(removeOldEntries, addNewEntries, removeAclEntries);
+        final Bson pullGlobalReads = update.getPullGlobalReads();
+        if (pullGlobalReads != null) {
+            updates.add(new UpdateOneModel<>(filter, pullGlobalReads));
+        }
+
+        final Bson pushGlobalReads = update.getPushGlobalReads();
+        if (pushGlobalReads != null) {
+            updates.add(new UpdateOneModel<>(filter, pushGlobalReads));
+        }
+
+        final Bson pullAclEntries = update.getPullAclEntries();
+        if (pullAclEntries != null) {
+            updates.add(new UpdateOneModel<>(filter, pullAclEntries));
+        }
+
+        return updates;
     }
 
     private static boolean isErrorOfType(final int errorCode, final Object o) {
