@@ -18,11 +18,6 @@ import javax.annotation.ParametersAreNonnullByDefault;
 import javax.annotation.concurrent.Immutable;
 
 /**
- * todo: in which module and package should this class be saved?
- * <p>
- * todo: needs this class to be serializable to be sent using akka? -> serialize localDateTime using {@link
- * LocalDateTime#toString()} and {@link LocalDateTime#parse(CharSequence)}.
- * <p>
  * Represents the success message of a synchronization of search.
  */
 @ParametersAreNonnullByDefault
