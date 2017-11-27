@@ -50,7 +50,11 @@ import akka.japi.function.Function;
  */
 public final class DevOpsRoute extends AbstractRoute {
 
-    private static final String PATH_DEVOPS = "devops";
+    /**
+     * Public endpoint of devops.
+     */
+    public static final String PATH_DEVOPS = "devops";
+
     private static final String PATH_LOGGING = "logging";
     private static final String PATH_PIGGYBACK = "piggyback";
 

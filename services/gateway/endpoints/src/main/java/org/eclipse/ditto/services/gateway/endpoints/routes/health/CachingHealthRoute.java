@@ -33,7 +33,10 @@ import akka.http.javadsl.server.Route;
  */
 public final class CachingHealthRoute {
 
-    private static final String PATH_HEALTH = "health";
+    /**
+     * Public endpoint of health.
+     */
+    public static final String PATH_HEALTH = "health";
 
     private final StatusHealthHelper statusHealthHelper;
     private final Duration refreshInterval;

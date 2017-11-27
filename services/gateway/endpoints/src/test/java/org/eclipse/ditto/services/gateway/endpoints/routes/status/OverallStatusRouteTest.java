@@ -64,12 +64,6 @@ public class OverallStatusRouteTest extends EndpointTestBase {
     }
 
     @Test
-    public void getStatusWithoutAuth() {
-        final TestRouteResult result = statusTestRoute.run(HttpRequest.GET(STATUS_PATH));
-        result.assertStatusCode(StatusCodes.UNAUTHORIZED);
-    }
-
-    @Test
     public void getStatusOwnStatus() {
         // we don't need credentials here, because nginx denies all requests to /status/own*
         final TestRouteResult result = statusTestRoute.run(HttpRequest.GET(STATUS_OWN_STATUS_PATH));
@@ -98,22 +92,10 @@ public class OverallStatusRouteTest extends EndpointTestBase {
     }
 
     @Test
-    public void getStatusHealthWithoutAuth() {
-        final TestRouteResult result = statusTestRoute.run(HttpRequest.GET(STATUS_HEALTH_PATH));
-        result.assertStatusCode(StatusCodes.UNAUTHORIZED);
-    }
-
-    @Test
     public void getStatusClusterWithAuth() {
         final TestRouteResult result =
                 statusTestRoute.run(withDevopsCredentials(HttpRequest.GET(STATUS_CLUSTER_PATH)));
         result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
-    }
-
-    @Test
-    public void getStatusClusterWithoutAuth() {
-        final TestRouteResult result = statusTestRoute.run(HttpRequest.GET(STATUS_CLUSTER_PATH));
-        result.assertStatusCode(StatusCodes.UNAUTHORIZED);
     }
 
     @Test

@@ -42,7 +42,11 @@ import akka.http.javadsl.server.Route;
  */
 public final class OverallStatusRoute {
 
+    /**
+     * Public endpoint of overall status.
+     */
     public static final String PATH_STATUS = "status";
+
     static final String PATH_HEALTH = "health";
     static final String PATH_CLUSTER = "cluster";
     static final String PATH_OWN = "own";
