@@ -15,6 +15,7 @@ import static akka.http.javadsl.server.Directives.complete;
 import static akka.http.javadsl.server.Directives.extractRequestContext;
 import static akka.http.javadsl.server.Directives.handleExceptions;
 import static akka.http.javadsl.server.Directives.handleRejections;
+import static akka.http.javadsl.server.Directives.pathPrefixTest;
 import static akka.http.javadsl.server.Directives.rawPathPrefix;
 import static akka.http.javadsl.server.Directives.route;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
@@ -32,6 +33,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Supplier;
+import java.util.regex.Pattern;
 
 import org.eclipse.ditto.json.JsonRuntimeException;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
@@ -81,6 +83,7 @@ import akka.dispatch.MessageDispatcher;
 import akka.http.javadsl.model.ContentTypes;
 import akka.http.javadsl.model.HttpResponse;
 import akka.http.javadsl.model.StatusCodes;
+import akka.http.javadsl.server.Directives;
 import akka.http.javadsl.server.ExceptionHandler;
 import akka.http.javadsl.server.PathMatchers;
 import akka.http.javadsl.server.RejectionHandler;
@@ -102,6 +105,12 @@ public final class RootRoute {
 
     private static final String BLOCKING_DISPATCHER_NAME = "blocking-dispatcher";
     private static final String JWK_RESOURCE_GOOGLE = "https://www.googleapis.com/oauth2/v2/certs";
+
+    private static final Pattern DEVOPS_AUTH_SECURED = Pattern.compile("(" +
+            OverallStatusRoute.PATH_STATUS + "|" +
+            CachingHealthRoute.PATH_HEALTH + "|" +
+            DevOpsRoute.PATH_DEVOPS + ").*"
+    );
 
     private final OverallStatusRoute overallStatusRoute;
     private final CachingHealthRoute cachingHealthRoute;
@@ -208,15 +217,19 @@ public final class RootRoute {
                 extractRequestContext(ctx ->
                         route(
                                 statsRoute.buildStatsRoute(correlationId), // /stats
-                                authenticateDevopsBasic(REALM_DEVOPS,
-                                    route(
-                                            overallStatusRoute.buildStatusRoute(), // /status
-                                            cachingHealthRoute.buildHealthRoute(), // /health
-                                            devopsRoute.buildDevopsRoute(ctx) // /devops
-                                    )
-                                ),
                                 api(ctx, correlationId), // /api
-                                ws(correlationId) // /ws
+                                ws(correlationId), // /ws
+                                pathPrefixTest(PathMatchers.segment(DEVOPS_AUTH_SECURED), segment ->
+                                        authenticateDevopsBasic(REALM_DEVOPS,
+                                                Directives.route(
+                                                        overallStatusRoute.buildStatusRoute(), // /status
+                                                        cachingHealthRoute.buildHealthRoute(), // /health
+                                                        devopsRoute.buildDevopsRoute(ctx) // /devops
+                                                )
+                                        )
+                                )
+
+
                         )
                 )
         );
@@ -323,7 +336,7 @@ public final class RootRoute {
     }
 
     private Route buildApiSubRoutes(final RequestContext ctx, final DittoHeaders dittoHeaders) {
-        return route(
+        return Directives.route(
                 // /api/{apiVersion}/policies
                 policiesRoute.buildPoliciesRoute(ctx, dittoHeaders),
                 // /api/{apiVersion}/things SSE support
