@@ -31,7 +31,6 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
-import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveModifiedThingTagsResponse;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThings;
@@ -117,14 +116,6 @@ public final class CommandAndEventJsonExamplesProducer {
                 SudoStreamModifiedEntities.of(start, end, rate, TestConstants.EMPTY_HEADERS);
         writeJson(sudoCommandsDir.resolve(Paths.get("sudoStreamModifiedEntities.json")),
                 sudoRetrieveModifiedThingTags);
-
-        final SudoRetrieveModifiedThingTagsResponse sudoRetrieveModifiedThingTagsResponse =
-                SudoRetrieveModifiedThingTagsResponse.of(Arrays
-                        .asList(ThingTag.of("org.eclipse.ditto:the_thingId_1", 3),
-                                ThingTag.of("org.eclipse.ditto:the_thingId_2", 6),
-                                ThingTag.of("org.eclipse.ditto:the_thingId_4", 1)), TestConstants.EMPTY_HEADERS);
-        writeJson(sudoCommandsDir.resolve(Paths.get("sudoRetrieveModifiedThingTagsResponse.json")),
-                sudoRetrieveModifiedThingTagsResponse);
     }
 
     private static Thing createExampleThing(final String thingId) {
