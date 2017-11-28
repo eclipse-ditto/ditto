@@ -124,8 +124,9 @@ public final class DevOpsCommandsActor extends AbstractActor {
                         .orElseThrow(() -> new IllegalArgumentException("Missing correlation-id for DevOpsCommand")));
 
         final String topic;
-        if (command.getServiceName().isPresent()) {
-            final String serviceName = command.getServiceName().get();
+        final Optional<String> serviceNameOpt = command.getServiceName();
+        if (serviceNameOpt.isPresent()) {
+            final String serviceName = serviceNameOpt.get();
             if (command.getInstance().isPresent()) {
                 topic = command.getType() + ":" + serviceName + ":" + command.getInstance().get();
             } else {
