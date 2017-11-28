@@ -37,7 +37,7 @@ public interface JsonFieldConverter extends Function<JsonField, JsonField> {
     Function<JsonValue, JsonValue> getValueConverter();
 
     /**
-     * Applies the {@link JsonField} -> {@link JsonField} conversion by applying the {@link #getKeyConverter()} and
+     * Applies the {@link JsonField} to {@link JsonField} conversion by applying the {@link #getKeyConverter()} and
      * {@link #getValueConverter()} Functions if they are non-null.
      * <p>
      * Applies the conversion recursively downwards for {@link JsonObject}s and {@link JsonArray}s of {@link JsonObject}s.
