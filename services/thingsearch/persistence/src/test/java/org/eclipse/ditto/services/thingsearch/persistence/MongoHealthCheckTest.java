@@ -37,14 +37,14 @@ public final class MongoHealthCheckTest {
 
     /** */
     @Before
-    public void before() throws InterruptedException {
+    public void before() {
         final Config config = ConfigFactory.load("test");
         actorSystem = ActorSystem.create("AkkaTestSystem", config);
     }
 
     /** */
     @After
-    public void after() throws InterruptedException {
+    public void after() {
         if (actorSystem != null) {
             TestKit.shutdownActorSystem(actorSystem);
             actorSystem = null;

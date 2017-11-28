@@ -57,6 +57,8 @@ public final class ConfigKeys {
 
     private static final String MONGO_CONNECTION_POOL_PREFIX = MONGO_CONFIG_PREFIX + "connection-pool.";
 
+    private static final String ENABLED_SUFFIX = "enabled";
+
     /**
      * Key of the "max-size" of the connection pool.
      */
@@ -80,21 +82,30 @@ public final class ConfigKeys {
      * Controls whether thing tags processing should be active or not.
      */
     public static final String THING_TAGS_PROCESSING_ACTIVE = SEARCH_UPDATER_PREFIX + "thing-tags-processing.active";
+
+    /**
+     * The interval which defines how long a thing updater is considered active. When not active, the corresponding
+     * actor can be stopped.
+     */
+    public static final String THINGS_ACTIVITY_CHECK_INTERVAL = SEARCH_UPDATER_PREFIX +
+            "activity-check-interval";
     /**
      * Key of the how many shards should be used in the cluster.
      */
     public static final String CLUSTER_NUMBER_OF_SHARDS = CLUSTER_PREFIX + "number-of-shards";
+
     /**
      * Key of the majority check enabled configuration.
      */
-    public static final String CLUSTER_MAJORITY_CHECK_ENABLED = CLUSTER_MAJORITY_CHECK_PREFIX + "enabled";
+    public static final String CLUSTER_MAJORITY_CHECK_ENABLED = CLUSTER_MAJORITY_CHECK_PREFIX + ENABLED_SUFFIX;
     /**
      * Key of the majority check delay.
      */
     public static final String CLUSTER_MAJORITY_CHECK_DELAY = CLUSTER_MAJORITY_CHECK_PREFIX + "delay";
     private static final String SYNC_PREFIX = SEARCH_UPDATER_PREFIX + "sync.";
     /**
-     * The syncing period within which there are requested updated things.
+     * The syncing period within which there are requested updated things - only used in case no successful sync has
+     * been run yet, otherwise sync is started where the last run finished.
      */
     public static final String THINGS_SYNCER_PERIOD = SYNC_PREFIX + "period";
     /**
@@ -102,9 +113,20 @@ public final class ConfigKeys {
      */
     public static final String THINGS_SYNCER_OFFSET = SYNC_PREFIX + "offset";
     /**
+     * The maximum idle time of the syncer (as a Duration).
+     */
+    public static final String THINGS_SYNCER_MAX_IDLE_TIME = SYNC_PREFIX + "max-idle-time";
+
+    /**
+     * The elements to be streamed per second by the sync process.
+     */
+    public static final String THINGS_SYNCER_ELEMENTS_STREAMED_PER_SECOND = SYNC_PREFIX +
+            "elements-streamed-per-second";
+    /**
      * Controls whether the sync should be active or not.
      */
     public static final String THINGS_SYNCER_ACTIVE = SYNC_PREFIX + "active";
+
     private static final String HTTP_PREFIX = SEARCH_PREFIX + "http.";
     /**
      * Key of the hostname value of a HTTP service.
@@ -118,7 +140,7 @@ public final class ConfigKeys {
     /**
      * Whether the health check should be enabled (globally) or not.
      */
-    public static final String HEALTH_CHECK_ENABLED = HEALTH_CHECK_PREFIX + "enabled";
+    public static final String HEALTH_CHECK_ENABLED = HEALTH_CHECK_PREFIX + ENABLED_SUFFIX;
     /**
      * The interval of the health check.
      */
@@ -127,7 +149,7 @@ public final class ConfigKeys {
     /**
      * Whether the health check for persistence should be enabled or not.
      */
-    public static final String HEALTH_CHECK_PERSISTENCE_ENABLED = HEALTH_CHECK_PERSISTENCE_PREFIX + "enabled";
+    public static final String HEALTH_CHECK_PERSISTENCE_ENABLED = HEALTH_CHECK_PERSISTENCE_PREFIX + ENABLED_SUFFIX;
     /**
      * The timeout of the health check for persistence. If the persistence takes longer than that to respond, it is
      * considered "DOWN".

@@ -19,14 +19,11 @@ import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceCons
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_POLICY_ID;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_POLICY_REVISION;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_REVISION;
-import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.LAST_SUCCESSFUL_SYNC_COLLECTION_NAME;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.POLICIES_BASED_SEARCH_INDEX_COLLECTION_NAME;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.SET;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.THINGS_COLLECTION_NAME;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.UNSET;
 
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
@@ -80,7 +77,6 @@ public final class MongoThingsSearchUpdaterPersistence extends AbstractThingsSea
     private static final int MONGO_INDEX_VALUE_ERROR_CODE = 17280;
     private final MongoCollection<Document> collection;
     private final MongoCollection<Document> policiesCollection;
-    private final MongoCollection<Document> lastSuccessfulSearchSyncCollection;
     private final EventToPersistenceStrategyFactory<Bson, PolicyUpdate>
             persistenceStrategyFactory;
 
@@ -97,12 +93,7 @@ public final class MongoThingsSearchUpdaterPersistence extends AbstractThingsSea
         super(log);
         collection = clientWrapper.getDatabase().getCollection(THINGS_COLLECTION_NAME);
         policiesCollection = clientWrapper.getDatabase().getCollection(POLICIES_BASED_SEARCH_INDEX_COLLECTION_NAME);
-        // todo: nowehere documented what createCollection will return if the collection already exists
-//        clientWrapper.getDatabase().createCollection(LAST_SUCCESSFUL_SYNC_COLLECTION_NAME, new
-//                // sizeinbytes needed?
-//                CreateCollectionOptions().capped(true).sizeInBytes(1024L).maxDocuments(1L));
-        lastSuccessfulSearchSyncCollection = clientWrapper.getDatabase().getCollection(
-                LAST_SUCCESSFUL_SYNC_COLLECTION_NAME);
+
         this.persistenceStrategyFactory = persistenceStrategyFactory;
     }
 
@@ -360,56 +351,6 @@ public final class MongoThingsSearchUpdaterPersistence extends AbstractThingsSea
                 .projection(Projections.include(FIELD_REVISION, FIELD_POLICY_ID, FIELD_POLICY_REVISION)))
                 .map(mapThingMetadataToModel())
                 .orElse(defaultThingMetadata());
-    }
-
-    /**
-     * todo: test
-     * <p>
-     * {@inheritDoc}
-     */
-    @Override
-    public Source<Boolean, NotUsed> updateLastSuccessfulSyncTimestamp(final LocalDateTime utcTimestamp) {
-        if (null == utcTimestamp) {
-            log.error("Timestamp was null when trying to update the last successful sync timestamp");
-            return Source.single(Boolean.FALSE);
-        }
-
-        final Date mongoStorableDate = Date.from(utcTimestamp.toInstant(ZoneOffset.UTC));
-
-        final Bson filter = eq(FIELD_ID, "search");
-        final Document toStore = new Document()
-                .append(FIELD_ID, "search")
-                .append("date", mongoStorableDate);
-        // todo: need to handle errors here?
-        return Source.fromPublisher(lastSuccessfulSearchSyncCollection.findOneAndReplace(filter, toStore))
-                .map(document -> {
-                    if (null == document) {
-                        log.debug("Successfully inserted first timestamp for search synchronization: <{}>",
-                                utcTimestamp.toString());
-                    } else {
-                        log.debug("Replaced last synchronization timestamp document <{}> with <{}>.",
-                                document.toJson(), utcTimestamp.toString());
-                    }
-                    return Boolean.TRUE;
-                });
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    // TODO: test
-    @Override
-    public Source<LocalDateTime, NotUsed> retrieveLastSuccessfulSyncTimestamp() {
-        final Bson filter = eq(FIELD_ID, "search");
-        return Source.fromPublisher(lastSuccessfulSearchSyncCollection.find(filter))
-                .map(document -> {
-                    if (document.containsKey("search")) {
-                        return LocalDateTime.from(document.getDate("search").toInstant());
-                    } else {
-                        return LocalDateTime.from(new Date(0L).toInstant());
-
-                    }
-                });
     }
 
     private Source<ThingMetadata, NotUsed> defaultThingMetadata() {

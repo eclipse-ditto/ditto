@@ -70,7 +70,7 @@ final class ThingsUpdater extends AbstractActor {
             final CircuitBreaker circuitBreaker,
             final boolean eventProcessingActive,
             final boolean thingTagsProcessingActive,
-            final Duration activityCheckInterval,
+            final Duration thingUpdaterActivityCheckInterval,
             final ActorRef thingCacheFacade,
             final ActorRef policyCacheFacade) {
 
@@ -85,7 +85,7 @@ final class ThingsUpdater extends AbstractActor {
 
         final Props thingUpdaterProps =
                 ThingUpdater.props(searchUpdaterPersistence, circuitBreaker, thingsShardRegion, policiesShardRegion,
-                        activityCheckInterval, ThingUpdater.DEFAULT_THINGS_TIMEOUT, thingCacheFacade, policyCacheFacade)
+                        thingUpdaterActivityCheckInterval, ThingUpdater.DEFAULT_THINGS_TIMEOUT, thingCacheFacade, policyCacheFacade)
                         .withMailbox("akka.actor.custom-updater-mailbox");
 
         shardRegion = shardRegionFactory.getSearchUpdaterShardRegion(numberOfShards, thingUpdaterProps);
@@ -116,7 +116,7 @@ final class ThingsUpdater extends AbstractActor {
      * Creates Akka configuration object for this actor.
      *
      * @param numberOfShards the number of shards the "search-updater" shardRegion should be started with.
-     * @param activityCheckInterval the interval at which is checked, if the corresponding Thing is still actively
+     * @param thingUpdaterActivityCheckInterval the interval at which is checked, if the corresponding Thing is still actively
      * updated
      * @param thingCacheFacade the {@link org.eclipse.ditto.services.utils.distributedcache.actors.CacheFacadeActor} for
      * accessing the Thing cache in cluster.
@@ -129,7 +129,7 @@ final class ThingsUpdater extends AbstractActor {
             final CircuitBreaker circuitBreaker,
             final boolean eventProcessingActive,
             final boolean thingTagsProcessingActive,
-            final Duration activityCheckInterval,
+            final Duration thingUpdaterActivityCheckInterval,
             final ActorRef thingCacheFacade,
             final ActorRef policyCacheFacade) {
 
@@ -139,7 +139,7 @@ final class ThingsUpdater extends AbstractActor {
             @Override
             public ThingsUpdater create() throws Exception {
                 return new ThingsUpdater(numberOfShards, searchUpdaterPersistence, circuitBreaker,
-                        eventProcessingActive, thingTagsProcessingActive, activityCheckInterval, thingCacheFacade,
+                        eventProcessingActive, thingTagsProcessingActive, thingUpdaterActivityCheckInterval, thingCacheFacade,
                         policyCacheFacade);
             }
         });
@@ -154,32 +154,11 @@ final class ThingsUpdater extends AbstractActor {
                 .match(PolicyEvent.class, this::processPolicyEvent)
                 .match(ThingTag.class, this::processThingTag)
                 .match(SyncThing.class, this::syncThing)
-                .match(SearchSynchronizationSuccess.class, this::processSearchSynchronizationSuccess)
                 .match(DistributedPubSubMediator.SubscribeAck.class, this::subscribeAck)
                 .matchAny(m -> {
                     log.warning("Unknown message: {}", m);
                     unhandled(m);
                 }).build();
-    }
-
-    // TODO: test
-    private void processSearchSynchronizationSuccess(final SearchSynchronizationSuccess searchSynchronizationSuccess) {
-        log.debug("Got SearchSynchronizationSuccess: <{}>");
-        searchUpdaterPersistence.updateLastSuccessfulSyncTimestamp(searchSynchronizationSuccess.getUtcTimestamp())
-                .runWith(Sink.last(), materializer)
-                .whenComplete((r, t) -> this.processUpdateLastSuccessfulSyncTimestampResult(r, t, getSender()));
-    }
-
-    private void processUpdateLastSuccessfulSyncTimestampResult(final Boolean result,
-            final Throwable throwable,
-            final ActorRef sender) {
-        if (null != throwable || null == result) {
-            log.error(throwable, "Error while updating last successful sync timestamp");
-            sender.tell(Boolean.FALSE, sender);
-        }
-        log.debug("Write result for updating the last successful sync timestamp: <{}>",
-                Boolean.TRUE.equals(result) ? "Success" : "Failure");
-        sender.tell(result, sender);
     }
 
     private void processThingTag(final ThingTag thingTag) {

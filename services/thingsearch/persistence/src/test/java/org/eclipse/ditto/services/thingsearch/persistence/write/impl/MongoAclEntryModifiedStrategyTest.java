@@ -27,7 +27,7 @@ public final class MongoAclEntryModifiedStrategyTest extends AbstractMongoEventT
     private final MongoAclEntryModifiedStrategy strategy = new MongoAclEntryModifiedStrategy();
 
     @Test
-    public void thingUpdates() throws Exception {
+    public void thingUpdates() {
         final List<Bson> updates = strategy.thingUpdates(thingEvent(), indexLengthRestrictionEnforcer);
         assertThat(updates).hasSize(2);
     }

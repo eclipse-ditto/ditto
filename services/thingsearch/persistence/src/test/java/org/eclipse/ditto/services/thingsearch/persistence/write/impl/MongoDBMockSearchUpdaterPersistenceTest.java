@@ -65,7 +65,7 @@ public final class MongoDBMockSearchUpdaterPersistenceTest {
             MongoEventToPersistenceStrategyFactory.getInstance();
 
     @Before
-    public void init() throws InterruptedException {
+    public void init() {
         actorSystem = ActorSystem.create("AkkaTestSystem");
         actorMaterializer = ActorMaterializer.create(actorSystem);
 

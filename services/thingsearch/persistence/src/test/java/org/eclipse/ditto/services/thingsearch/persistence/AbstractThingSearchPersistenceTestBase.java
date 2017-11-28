@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.services.thingsearch.persistence;
 
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.LAST_SUCCESSFUL_SYNC_COLLECTION_NAME;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.POLICIES_BASED_SEARCH_INDEX_COLLECTION_NAME;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.THINGS_COLLECTION_NAME;
 
@@ -29,6 +30,7 @@ import org.eclipse.ditto.services.thingsearch.persistence.read.MongoThingsSearch
 import org.eclipse.ditto.services.thingsearch.persistence.read.query.MongoAggregationBuilderFactory;
 import org.eclipse.ditto.services.thingsearch.persistence.read.query.MongoQueryBuilderFactory;
 import org.eclipse.ditto.services.thingsearch.persistence.write.impl.MongoEventToPersistenceStrategyFactory;
+import org.eclipse.ditto.services.thingsearch.persistence.write.impl.MongoThingsSearchSyncPersistence;
 import org.eclipse.ditto.services.thingsearch.persistence.write.impl.MongoThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.thingsearch.querymodel.criteria.CriteriaFactory;
 import org.eclipse.ditto.services.thingsearch.querymodel.criteria.CriteriaFactoryImpl;
@@ -81,7 +83,10 @@ public abstract class AbstractThingSearchPersistenceTestBase {
     private MongoThingsSearchPersistence readPersistence;
     private MongoCollection<Document> thingsCollection;
     private MongoCollection<Document> policiesCollection;
+    private MongoCollection<Document> syncCollection;
     protected MongoThingsSearchUpdaterPersistence writePersistence;
+    protected MongoThingsSearchSyncPersistence syncPersistence;
+
 
     private ActorSystem actorSystem;
     private ActorMaterializer actorMaterializer;
@@ -103,11 +108,10 @@ public abstract class AbstractThingSearchPersistenceTestBase {
         actorMaterializer = ActorMaterializer.create(actorSystem);
         readPersistence = provideReadPersistence();
         writePersistence = provideWritePersistence();
+        syncPersistence = provideSyncPersistence(actorMaterializer);
         thingsCollection = mongoClient.getDatabase().getCollection(THINGS_COLLECTION_NAME);
-        policiesCollection = mongoClient.getDatabase().getCollection
-                (POLICIES_BASED_SEARCH_INDEX_COLLECTION_NAME);
-
-        log.info("before() method of test is done..");
+        policiesCollection = mongoClient.getDatabase().getCollection(POLICIES_BASED_SEARCH_INDEX_COLLECTION_NAME);
+        syncCollection = mongoClient.getDatabase().getCollection(LAST_SUCCESSFUL_SYNC_COLLECTION_NAME);
     }
 
     private MongoThingsSearchPersistence provideReadPersistence() {
@@ -122,17 +126,22 @@ public abstract class AbstractThingSearchPersistenceTestBase {
                 MongoEventToPersistenceStrategyFactory.getInstance());
     }
 
+    private MongoThingsSearchSyncPersistence provideSyncPersistence(final ActorMaterializer materializer) {
+        final MongoThingsSearchSyncPersistence mongoThingsSearchSyncPersistence =
+                new MongoThingsSearchSyncPersistence(mongoClient, log, materializer);
+        mongoThingsSearchSyncPersistence.init();
+        return mongoThingsSearchSyncPersistence;
+    }
+
     private static MongoClientWrapper provideClientWrapper() {
         return new MongoClientWrapper(mongoResource.getBindIp(), mongoResource.getPort(), "testSearchDB", CONFIG);
     }
 
     /** */
     @After
-    public void after() throws InterruptedException {
+    public void after() {
         if (mongoClient != null) {
-            if (thingsCollection != null)
-                retryWithBackoff(() -> thingsCollection.drop());
-            retryWithBackoff(() -> policiesCollection.drop());
+            dropCollections(Arrays.asList(thingsCollection, policiesCollection, syncCollection));
         }
         if (actorSystem != null) {
             TestKit.shutdownActorSystem(actorSystem);
@@ -140,6 +149,14 @@ public abstract class AbstractThingSearchPersistenceTestBase {
             log = null;
             actorMaterializer = null;
         }
+    }
+
+    private void dropCollections(final List<MongoCollection<Document>> collections) {
+        collections.forEach(collection -> {
+            if (collection != null) {
+                retryWithBackoff(collection::drop);
+            }
+        });
     }
 
     @AfterClass
@@ -164,8 +181,8 @@ public abstract class AbstractThingSearchPersistenceTestBase {
                     .toCompletableFuture() //
                     .get() //
                     .get(0);
-        } catch (InterruptedException | ExecutionException e) {
-            throw new IllegalStateException(e);
+        } catch (final InterruptedException | ExecutionException e) {
+            throw mapAsRuntimeException(e);
         }
     }
 
@@ -176,8 +193,8 @@ public abstract class AbstractThingSearchPersistenceTestBase {
                     .toCompletableFuture() //
                     .get() //
                     .get(0);
-        } catch (InterruptedException | ExecutionException e) {
-            throw new IllegalStateException(e);
+        } catch (final InterruptedException | ExecutionException e) {
+            throw mapAsRuntimeException(e);
         }
     }
 
@@ -193,8 +210,8 @@ public abstract class AbstractThingSearchPersistenceTestBase {
                     .toCompletableFuture() //
                     .get() //
                     .get(0);
-        } catch (InterruptedException | ExecutionException e) {
-            throw new IllegalStateException(e);
+        } catch (final InterruptedException | ExecutionException e) {
+            throw mapAsRuntimeException(e);
         }
     }
 
@@ -215,14 +232,32 @@ public abstract class AbstractThingSearchPersistenceTestBase {
         try {
             future.get();
         } catch (final InterruptedException | ExecutionException e) {
-            throw new RuntimeException(e);
+            throw mapAsRuntimeException(e);
         }
     }
 
-    protected <T> T runBlockingWithReturn(final Source<T, NotUsed> publisher)
-            throws ExecutionException, InterruptedException {
+    protected <T> T runBlockingWithReturn(final Source<T, NotUsed> publisher) {
         final CompletionStage<T> done = publisher.runWith(Sink.last(), actorMaterializer);
-        return done.toCompletableFuture().get();
+        try {
+            return done.toCompletableFuture().get();
+        } catch (final InterruptedException | ExecutionException e) {
+            throw mapAsRuntimeException(e);
+        }
+    }
+
+    private static RuntimeException mapAsRuntimeException(final Throwable t) {
+        // shortcut: RTEs can be returned as-is
+        if (t instanceof RuntimeException) {
+            return (RuntimeException) t;
+        }
+
+        // for ExecutionExceptions, extract the cause
+        if (t instanceof ExecutionException && t.getCause() != null) {
+            return mapAsRuntimeException(t.getCause());
+        }
+
+        // wrap non-RTEs as IllegalStateException
+        return new IllegalStateException(t);
     }
 
     protected void insertOrUpdateThing(final Thing thing, final long revision, final long policyRevision) {
@@ -238,12 +273,12 @@ public abstract class AbstractThingSearchPersistenceTestBase {
     }
 
     private void retryWithBackoff(final Supplier<Publisher<Success>> publisher) {
-        IllegalStateException lastException = null;
+        RuntimeException lastException = null;
         for (int i = 0; i < 20; ++i) {
             try {
                 waitFor(Source.fromPublisher(publisher.get()));
                 return;
-            } catch (final IllegalStateException e) {
+            } catch (final RuntimeException e) {
                 lastException = e;
                 backoff();
             }
@@ -259,8 +294,8 @@ public abstract class AbstractThingSearchPersistenceTestBase {
                     .toCompletableFuture() //
                     .get();
 
-        } catch (InterruptedException | ExecutionException e) {
-            throw new IllegalStateException(e);
+        } catch (final InterruptedException | ExecutionException e) {
+            throw mapAsRuntimeException(e);
         }
     }
 

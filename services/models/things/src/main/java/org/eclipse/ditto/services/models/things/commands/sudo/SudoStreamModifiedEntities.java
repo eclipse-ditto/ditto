@@ -82,8 +82,9 @@ public final class SudoStreamModifiedEntities extends AbstractCommand<SudoStream
     /**
      * Creates a new {@code SudoStreamModifiedEntities} command.
      *
-     * @param start Earliest timestamp of modifications to consider.
-     * @param end Latest timestamp of modifications to consider.
+     * @param start Earliest timestamp of modifications to consider (inclusive).
+     * @param end Latest timestamp of modifications to consider (exclusive).
+     * @param rate the amount of elements to be streamed per second
      * @param dittoHeaders the command headers of the request.
      * @return a command for retrieving modified Things without authorization.
      * @throws NullPointerException if any argument is {@code null}.

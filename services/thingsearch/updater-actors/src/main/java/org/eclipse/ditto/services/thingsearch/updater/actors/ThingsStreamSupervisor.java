@@ -16,57 +16,88 @@ import java.time.Instant;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoStreamModifiedEntities;
+import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchSyncPersistence;
 import org.eclipse.ditto.services.utils.akka.streaming.AbstractStreamSupervisor;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.cluster.pubsub.DistributedPubSub;
-import akka.cluster.pubsub.DistributedPubSubMediator;
+import akka.cluster.pubsub.DistributedPubSubMediator.Send;
 import akka.japi.Creator;
+import akka.stream.Materializer;
+import akka.stream.scaladsl.Sink;
+import scala.compat.java8.FutureConverters;
 
 /**
  * This actor is responsible for triggering a cyclic synchronization of all things which changed within a specified
  * time period.
  */
-public final class ThingsStreamSupervisor extends AbstractStreamSupervisor<DistributedPubSubMediator.Send> {
+public final class ThingsStreamSupervisor extends AbstractStreamSupervisor<Send> {
 
     /**
      * The name of this Actor in the ActorSystem.
      */
     public static final String ACTOR_NAME = "thingsSynchronizer";
+    @SuppressWarnings("squid:S1075")
     private static final String THINGS_ACTOR_PATH = "/user/gatewayRoot/proxy";
     private final ActorRef pubSubMediator;
     private final ActorRef thingsUpdater;
+    private final ThingsSearchSyncPersistence syncPersistence;
+    private final Materializer materializer;
     private final Duration modifiedSince;
     private final Duration modifiedOffset;
+    private final Duration maxIdleTime;
+    private final int elementsStreamedPerSecond;
+    private @Nullable Instant currentStreamEndTs = null;
+    private @Nullable Instant lastStreamEndTs = null;
 
-    private ThingsStreamSupervisor(final ActorRef thingsUpdater, final Duration modifiedSince,
-            final Duration modifiedOffset) {
+    private ThingsStreamSupervisor(final ActorRef thingsUpdater, final ThingsSearchSyncPersistence syncPersistence,
+            final Materializer materializer,
+            final Duration modifiedSince,
+            final Duration modifiedOffset,
+            final Duration maxIdleTime,
+            final int elementsStreamedPerSecond) {
+        this.thingsUpdater = thingsUpdater;
+        this.syncPersistence = syncPersistence;
+        this.materializer = materializer;
+
         this.modifiedSince = modifiedSince;
         this.modifiedOffset = modifiedOffset;
-        this.thingsUpdater = thingsUpdater;
+        this.maxIdleTime = maxIdleTime;
+        this.elementsStreamedPerSecond = elementsStreamedPerSecond;
 
         pubSubMediator = DistributedPubSub.get(getContext().system()).mediator();
     }
 
     /**
-     * Creates the props for {@code ThingsSynchronizerActor}.
+     * Creates the props for {@link ThingsStreamSupervisor}.
      *
      * @param thingsUpdater the things updater actor
+     * @param syncPersistence the sync persistence
+     * @param materializer the materializer for the akka actor system.
      * @param modifiedSince the duration for which the modified tags are requested
      * @param modifiedOffset the offset from which the modified tags are ignored
+     * @param maxIdleTime the maximum idle time of the underlying stream forwarder
+     * @param elementsStreamedPerSecond the elements to be streamed per second
      * @return the props
      */
-    public static Props props(final ActorRef thingsUpdater, final Duration modifiedSince,
-            final Duration modifiedOffset) {
+    public static Props props(final ActorRef thingsUpdater, final ThingsSearchSyncPersistence syncPersistence,
+            final Materializer materializer,
+            final Duration modifiedSince,
+            final Duration modifiedOffset,
+            final Duration maxIdleTime,
+            final int elementsStreamedPerSecond) {
         return Props.create(ThingsStreamSupervisor.class, new Creator<ThingsStreamSupervisor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
             public ThingsStreamSupervisor create() throws Exception {
-                return new ThingsStreamSupervisor(thingsUpdater, modifiedSince, modifiedOffset);
+                return new ThingsStreamSupervisor(thingsUpdater, syncPersistence, materializer, modifiedSince,
+                        modifiedOffset, maxIdleTime, elementsStreamedPerSecond);
             }
         });
     }
@@ -78,31 +109,53 @@ public final class ThingsStreamSupervisor extends AbstractStreamSupervisor<Distr
 
     @Override
     protected Props getStreamForwarderProps() {
-        // TODO: make max idle time configurable.
-        return ThingsStreamForwarder.props(thingsUpdater, Duration.ofMinutes(1));
+        return ThingsStreamForwarder.props(thingsUpdater, getSelf(), maxIdleTime);
     }
 
     @Override
-    protected CompletionStage<DistributedPubSubMediator.Send> newStartStreamingCommand() {
-        // TODO: make streaming rate configurable.
-        // TODO: compute time window from timestamp of last successful full sync.
-        final int temporaryStreamingRate = 100;
-        final Instant now = Instant.now();
-        final Instant start = now.minus(modifiedSince);
-        final Instant end = now.minus(modifiedOffset);
+    protected void onSuccess() {
+        if (currentStreamEndTs == null) {
+            log.error("No currentStreamEndTs available, cannot update last sync timestamp.");
+        } else {
+            lastStreamEndTs = currentStreamEndTs;
+            syncPersistence.updateLastSuccessfulSyncTimestamp(currentStreamEndTs)
+                    .runWith(akka.stream.javadsl.Sink.last(), materializer)
+                    .thenRun(() -> log.info("Updated last sync timestamp to value: {}"));
+        }
+    }
+
+    @Override
+    protected CompletionStage<Send> newStartStreamingCommand() {
+        // short-cut: we do not need to access the database if the last end ts is known
+        if (lastStreamEndTs != null) {
+            return CompletableFuture.completedFuture(createStartStreamingCommand(lastStreamEndTs));
+        }
+
+        // the initial start ts is only used when no sync has been run yet (i.e. no timestamp has been persisted)
+        final Instant initialStartTs = Instant.now().minus(modifiedSince);
+
+        final scala.concurrent.Future<Send> sendFuture =
+                syncPersistence.retrieveLastSuccessfulSyncTimestamp(initialStartTs)
+                        .map(this::createStartStreamingCommand)
+                        .runWith(Sink.head(), materializer);
+
+        return FutureConverters.toJava(sendFuture);
+    }
+
+    private Send createStartStreamingCommand(final Instant startTs) {
+        final Instant endTs = startTs.plus(modifiedOffset);
+        currentStreamEndTs = endTs;
 
         final SudoStreamModifiedEntities retrieveModifiedThingTags =
-                SudoStreamModifiedEntities.of(start, end, temporaryStreamingRate, DittoHeaders.empty());
+                SudoStreamModifiedEntities.of(startTs, endTs, elementsStreamedPerSecond,
+                        DittoHeaders.empty());
 
-        final DistributedPubSubMediator.Send sendCommand =
-                new DistributedPubSubMediator.Send(THINGS_ACTOR_PATH, retrieveModifiedThingTags, true);
-
-        return CompletableFuture.completedFuture(sendCommand);
+        return new Send(THINGS_ACTOR_PATH, retrieveModifiedThingTags, true);
     }
 
     @Override
-    protected Class<DistributedPubSubMediator.Send> getCommandClass() {
-        return DistributedPubSubMediator.Send.class;
+    protected Class<Send> getCommandClass() {
+        return Send.class;
     }
 
     @Override

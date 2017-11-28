@@ -11,7 +11,6 @@
  */
 package org.eclipse.ditto.services.thingsearch.persistence.write;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
 
@@ -94,21 +93,5 @@ public interface ThingsSearchUpdaterPersistence {
      * @return a {@link Source} holding the publisher to execute the operation.
      */
     Source<ThingMetadata, NotUsed> getThingMetadata(String thingId);
-
-
-    /**
-     * Updates the last successful full search sync timestamp in the database.
-     *
-     * @param utcTimestamp The timestamp in UTC.
-     * @return a {@link Source} holding the publisher to execute the operation.
-     */
-    Source<Boolean, NotUsed> updateLastSuccessfulSyncTimestamp(LocalDateTime utcTimestamp);
-
-    /**
-     * Retrieves the last successful full search sync timestamp in the database.
-     *
-     * @return a {@link Source} holding the publisher to execute the operation.
-     */
-    Source<LocalDateTime, NotUsed> retrieveLastSuccessfulSyncTimestamp();
 
 }

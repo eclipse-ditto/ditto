@@ -26,7 +26,7 @@ public final class MongoThingDeletedStrategyTest extends AbstractMongoEventToPer
     private final MongoThingDeletedStrategy strategy = new MongoThingDeletedStrategy();
 
     @Test
-    public void thingUpdates() throws Exception {
+    public void thingUpdates() {
         final List<Bson> updates = strategy.thingUpdates(thingEvent(), indexLengthRestrictionEnforcer);
         assertThat(updates).hasSize(1);
     }

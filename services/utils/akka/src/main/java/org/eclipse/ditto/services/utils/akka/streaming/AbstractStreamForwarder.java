@@ -75,9 +75,17 @@ public abstract class AbstractStreamForwarder<E> extends AbstractActor {
      * Invoked when all stream elements are forwarded and acknowledged.
      * Do not start asynchronous operations: the actor terminates immediately after this method returns.
      */
-    protected void onSuccess() {
+    protected final void onSuccess() {
         log.info("Stream complete: {} elements forwarded, {} acks received.", elementCount, ackCount);
+        getSuccessRecipient().tell(new Status.Success(lastMessageReceived), getSelf());
     }
+
+    /**
+     * Returns the actor to send a success message when the stream has been successfully completed.
+     *
+     * @return Reference of the success recipient actor.
+     */
+    protected abstract ActorRef getSuccessRecipient();
 
     @Override
     public void preStart() throws Exception {
@@ -101,9 +109,10 @@ public abstract class AbstractStreamForwarder<E> extends AbstractActor {
     public Receive createReceive() {
         return ReceiveBuilder.create()
                 .match(getElementClass(), this::transformAndForwardElement)
-                .match(Status.Success.class, this::handleAck)
-                .match(Done.class, this::handleStreamComplete)
-                .match(CheckForActivity.class, this::checkForActivity)
+                .match(Status.Success.class, unused -> handleAck())
+                .match(Status.Failure.class, this::handleFailure)
+                .match(Done.class, unused -> handleStreamComplete())
+                .match(CheckForActivity.class, unused -> checkForActivity())
                 .matchAny(this::unhandled)
                 .build();
     }
@@ -117,13 +126,19 @@ public abstract class AbstractStreamForwarder<E> extends AbstractActor {
         updateLastMessageReceived();
     }
 
-    private void handleAck(final Status.Success success) {
+    private void handleAck() {
         ackCount++;
         updateLastMessageReceived();
         checkAllElementsAreAcknowledged();
     }
 
-    private void handleStreamComplete(final Done done) {
+    private void handleFailure(final Status.Failure failure) {
+        log.warning("Received failure after: {} elements forwarded, {} acks received. Failure: {}", elementCount,
+                ackCount, failure);
+        shutdown();
+    }
+
+    private void handleStreamComplete() {
         streamComplete = true;
         checkAllElementsAreAcknowledged();
     }
@@ -131,20 +146,22 @@ public abstract class AbstractStreamForwarder<E> extends AbstractActor {
     private void checkAllElementsAreAcknowledged() {
         if (streamComplete && ackCount >= elementCount) {
             if (ackCount > elementCount) {
-                log.error("Received {} Ack messages, which are more than the {} stream elements forwarded", ackCount,
-                        elementCount);
+                log.warning("Received {} Ack messages, which are more than the {} stream elements forwarded",
+                        ackCount, elementCount);
             }
+
+            log.info("Stream complete: {} elements forwarded, {} acks received.", elementCount, ackCount);
             onSuccess();
-            getContext().stop(getSelf());
+            shutdown();
         }
     }
 
-    private void checkForActivity(final CheckForActivity message) {
+    private void checkForActivity() {
         final Duration sinceLastMessage = Duration.between(lastMessageReceived, Instant.now());
         if (sinceLastMessage.compareTo(getMaxIdleTime()) > 0) {
             log.error("Stream timed out. {} elements, {} acks. Last message: <{}>", elementCount, ackCount,
                     lastMessageReceived);
-            getContext().stop(getSelf());
+            shutdown();
         }
     }
 
@@ -152,5 +169,10 @@ public abstract class AbstractStreamForwarder<E> extends AbstractActor {
         lastMessageReceived = Instant.now();
     }
 
+    private void shutdown() {
+        getContext().stop(getSelf());
+    }
+
+    @SuppressWarnings("squid:S2094")
     private static final class CheckForActivity {}
 }

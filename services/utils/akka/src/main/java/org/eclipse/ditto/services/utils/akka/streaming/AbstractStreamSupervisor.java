@@ -22,6 +22,7 @@ import akka.actor.ActorRef;
 import akka.actor.Cancellable;
 import akka.actor.OneForOneStrategy;
 import akka.actor.Props;
+import akka.actor.Status;
 import akka.actor.SupervisorStrategy;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.DeciderBuilder;
@@ -33,7 +34,7 @@ import scala.concurrent.duration.FiniteDuration;
  */
 public abstract class AbstractStreamSupervisor<C> extends AbstractActor {
 
-    private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+    protected final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
     private final SupervisorStrategy supervisorStrategy =
             new OneForOneStrategy(true, DeciderBuilder.matchAny(e -> SupervisorStrategy.stop()).build());
@@ -100,12 +101,15 @@ public abstract class AbstractStreamSupervisor<C> extends AbstractActor {
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
-                .match(CheckForActivity.class, this::checkForActivity)
+                .match(CheckForActivity.class, unused -> checkForActivity())
                 .match(getCommandClass(), this::startChildActor)
+                .match(Status.Success.class, unused -> onSuccess())
                 .build();
     }
 
-    private void checkForActivity(final CheckForActivity message) {
+    protected abstract void onSuccess();
+
+    private void checkForActivity() {
         if (hasChild()) {
             getContext().getChildren().forEach(child -> log.info("Activity check - Stream is ongoing: {}", child));
         } else {
@@ -129,5 +133,6 @@ public abstract class AbstractStreamSupervisor<C> extends AbstractActor {
         return getContext().getChildren().iterator().hasNext();
     }
 
+    @SuppressWarnings("squid:S2094")
     private static final class CheckForActivity {}
 }

@@ -51,10 +51,10 @@ public abstract class AbstractStreamingActor<C, E> extends AbstractActor {
     protected abstract Class<C> getCommandClass();
 
     /**
-     * Extract streaming rate from a command.
+     * Extract streaming rate from a command. The rate specifies the number of elements to be streamed per second.
      *
      * @param command The command to start a stream.
-     * @return The number of elements to send per second.
+     * @return The number of elements to streamed per second.
      */
     protected abstract int getRate(final C command);
 
