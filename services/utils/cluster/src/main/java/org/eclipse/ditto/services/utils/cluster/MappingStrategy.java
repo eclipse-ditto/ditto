@@ -23,7 +23,7 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
 import akka.actor.ActorSystem;
 import akka.actor.ExtendedActorSystem;
 import scala.Tuple2;
-import scala.collection.JavaConverters;
+import scala.collection.JavaConversions;
 import scala.reflect.ClassTag;
 import scala.util.Try;
 
@@ -58,8 +58,7 @@ public interface MappingStrategy {
         final List<Tuple2<Class<?>, Object>> constructorArgs = new ArrayList<>();
         final Try<MappingStrategy> mappingStrategy =
                 ((ExtendedActorSystem) actorSystem).dynamicAccess().createInstanceFor(mappingStrategyClass,
-                        JavaConverters.asScalaBuffer(constructorArgs).toList(), tag);
-
+                        JavaConversions.asScalaBuffer(constructorArgs).toList(), tag);
         return mappingStrategy.get();
     }
 
