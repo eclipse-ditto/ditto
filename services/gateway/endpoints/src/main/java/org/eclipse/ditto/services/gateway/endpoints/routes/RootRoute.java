@@ -106,7 +106,10 @@ public final class RootRoute {
     private static final String BLOCKING_DISPATCHER_NAME = "blocking-dispatcher";
     private static final String JWK_RESOURCE_GOOGLE = "https://www.googleapis.com/oauth2/v2/certs";
 
-    private static final Pattern DEVOPS_AUTH_SECURED = Pattern.compile("(" +
+    /**
+     * Contains a Pattern which routes are included in devops Basic Auth secured resources.
+     */
+    public static final Pattern DEVOPS_AUTH_SECURED = Pattern.compile("(" +
             OverallStatusRoute.PATH_STATUS + "|" +
             CachingHealthRoute.PATH_HEALTH + "|" +
             DevOpsRoute.PATH_DEVOPS + ").*"
@@ -221,7 +224,7 @@ public final class RootRoute {
                                 ws(correlationId), // /ws
                                 pathPrefixTest(PathMatchers.segment(DEVOPS_AUTH_SECURED), segment ->
                                         authenticateDevopsBasic(REALM_DEVOPS,
-                                                Directives.route(
+                                                route(
                                                         overallStatusRoute.buildStatusRoute(), // /status
                                                         cachingHealthRoute.buildHealthRoute(), // /health
                                                         devopsRoute.buildDevopsRoute(ctx) // /devops
