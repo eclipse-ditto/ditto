@@ -224,4 +224,14 @@ public interface JsonValue {
     @Override
     String toString();
 
+    /**
+     * Returns the JSON string for this value in its minimal form, without any additional whitespace.
+     *
+     * @param fieldConverter a function which is applied for each {@link JsonField} which {@code this} object contains
+     * in order to optionally convert {@link JsonKey} and {@link JsonValue} before adding to the built JSON string.
+     * @return a JSON string that represents this value. If this value is a JSON string, the returned string is
+     * surrounded by quotes.
+     */
+    String toString(@Nullable JsonFieldConverter fieldConverter);
+
 }

@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
 
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
@@ -34,6 +35,7 @@ import org.eclipse.ditto.services.policies.persistence.testhelper.Assertions;
 import org.eclipse.ditto.services.policies.persistence.testhelper.PoliciesJournalTestHelper;
 import org.eclipse.ditto.services.policies.persistence.testhelper.PoliciesSnapshotTestHelper;
 import org.eclipse.ditto.services.policies.util.ConfigKeys;
+import org.eclipse.ditto.services.utils.persistence.mongo.DittoBsonJSON;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyNotAccessibleException;
 import org.eclipse.ditto.signals.commands.policies.modify.CreatePolicy;
@@ -51,7 +53,6 @@ import org.eclipse.ditto.signals.events.policies.PolicyModified;
 import org.junit.Test;
 
 import com.mongodb.DBObject;
-import com.mongodb.util.DittoBsonJSON;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
@@ -466,9 +467,9 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
 
 
     private Policy convertSnapshotDataToPolicy(final DBObject dbObject, long sequenceNumber) {
-        final String jsonStr = DittoBsonJSON.serialize(dbObject);
+        final JsonObject json = DittoBsonJSON.serialize(dbObject).asObject();
 
-        final Policy policy = PoliciesModelFactory.newPolicy(jsonStr);
+        final Policy policy = PoliciesModelFactory.newPolicy(json);
 
         assertThat(policy.getRevision().map(PolicyRevision::toLong).orElse(null)).isEqualTo(sequenceNumber);
 

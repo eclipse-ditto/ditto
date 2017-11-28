@@ -42,7 +42,7 @@ import org.eclipse.ditto.signals.events.things.ThingCreated;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.junit.Test;
 
-import com.mongodb.util.DittoBsonJSON;
+import org.eclipse.ditto.services.utils.persistence.mongo.DittoBsonJSON;
 
 /**
  * Tests for {@link MongoThingEventAdapter}.
@@ -618,6 +618,6 @@ public class MongoThingEventAdapterTest {
     }
 
     private Object toDbObject(final JsonObject jsonObject) {
-        return DittoBsonJSON.parse(jsonObject.toString());
+        return DittoBsonJSON.parse(jsonObject);
     }
 }

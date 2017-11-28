@@ -22,10 +22,12 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.services.utils.persistence.mongo.DittoBsonJSON;
 import org.eclipse.ditto.signals.base.WithType;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.base.EventRegistry;
@@ -33,7 +35,6 @@ import org.eclipse.ditto.signals.events.policies.PolicyEvent;
 import org.eclipse.ditto.signals.events.policies.PolicyEventRegistry;
 
 import com.mongodb.DBObject;
-import com.mongodb.util.DittoBsonJSON;
 
 import akka.actor.ExtendedActorSystem;
 import akka.persistence.journal.EventAdapter;
@@ -82,7 +83,7 @@ public final class MongoPolicyEventAdapter implements EventAdapter {
             final JsonSchemaVersion schemaVersion = theEvent.getImplementedSchemaVersion();
             final JsonObject jsonObject =
                     theEvent.toJson(schemaVersion, IS_REVISION.negate().and(FieldType.regularOrSpecial()));
-            final Object bson = DittoBsonJSON.parse(jsonObject.toString());
+            final DBObject bson = DittoBsonJSON.parse(jsonObject);
             final Set<String> readSubjects = theEvent.getDittoHeaders().getReadSubjects();
             return new Tagged(bson, readSubjects);
         } else {
@@ -102,7 +103,7 @@ public final class MongoPolicyEventAdapter implements EventAdapter {
         }
     }
 
-    private PolicyEvent tryToCreateEventFrom(final String json) {
+    private PolicyEvent tryToCreateEventFrom(final JsonValue json) {
         try {
             return createEventFrom(json);
         } catch (final JsonParseException | DittoRuntimeException e) {
@@ -115,8 +116,8 @@ public final class MongoPolicyEventAdapter implements EventAdapter {
         }
     }
 
-    private PolicyEvent createEventFrom(final String json) {
-        final JsonObject jsonObject = JsonFactory.newObject(json)
+    private PolicyEvent createEventFrom(final JsonValue json) {
+        final JsonObject jsonObject = json.asObject()
                 .setValue(Event.JsonFields.REVISION.getPointer(), Event.DEFAULT_REVISION);
 
         return eventRegistry.parse(migrateComplex(migratePayload(jsonObject)), DittoHeaders.empty());

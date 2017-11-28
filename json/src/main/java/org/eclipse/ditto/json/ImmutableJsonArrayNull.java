@@ -16,6 +16,7 @@ import java.util.Iterator;
 import java.util.Optional;
 import java.util.stream.Stream;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 /**
@@ -38,7 +39,7 @@ final class ImmutableJsonArrayNull extends AbstractImmutableJsonValue implements
     }
 
     @Override
-    protected String createStringRepresentation() {
+    protected String createStringRepresentation(@Nullable final JsonFieldConverter fieldConverter) {
         return JsonFactory.nullLiteral().toString();
     }
 

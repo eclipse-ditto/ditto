@@ -15,6 +15,8 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.Objects;
 
+import javax.annotation.Nullable;
+
 /**
  * This abstract implementation of an immutable JSON value wraps a JSON value of the Minimal JSON library. This class
  * merely exists to reduce redundancy.
@@ -96,7 +98,8 @@ abstract class AbstractMinimalJsonValueWrapper extends AbstractImmutableJsonValu
     }
 
     @Override
-    protected String createStringRepresentation() {
+    protected String createStringRepresentation(@Nullable final JsonFieldConverter fieldConverter) {
+        // fieldConverter is irrelevant for types of "this" kind:
         return wrapped.toString();
     }
 

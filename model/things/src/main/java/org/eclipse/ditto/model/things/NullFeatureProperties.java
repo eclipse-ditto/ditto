@@ -25,6 +25,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonFieldConverter;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonKey;
@@ -283,7 +284,11 @@ final class NullFeatureProperties implements FeatureProperties {
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + " [wrapped=" + wrapped + "]";
+        return wrapped.toString();
     }
 
+    @Override
+    public String toString(@Nullable final JsonFieldConverter fieldConverter) {
+        return wrapped.toString(fieldConverter);
+    }
 }

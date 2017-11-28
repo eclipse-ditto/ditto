@@ -24,6 +24,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Function;
 
 import javax.annotation.Nullable;
@@ -93,7 +94,7 @@ public final class JsonFactory {
         } else if (value instanceof String || value instanceof CharSequence) {
             result = newValue(String.valueOf(value));
         } else {
-            result = convert(tryToRead(String.valueOf(value)));
+            result = convert(tryToRead(String.valueOf(value)), null);
         }
 
         return result;
@@ -171,13 +172,28 @@ public final class JsonFactory {
      * @throws JsonParseException if {@code json} is empty or if it is no valid JSON.
      */
     public static JsonValue readFrom(final String json) {
+        return readFrom(json, null);
+    }
+
+    /**
+     * Reads the given string and creates a JSON value based on the read data. The actual type of this JSON value is
+     * unknown but can be obtained by invoking the {@code is...} methods.
+     *
+     * @param json the JSON document to read.
+     * @param fieldConverter the {@link JsonFieldConverter} used for converting {@link JsonField}s while transforming
+     * the {@code json} String's content to Json.
+     * @return a JSON value representing the read document. This value can be a JSON literal, a JSON object and so on.
+     * @throws NullPointerException if {@code json} is empty.
+     * @throws JsonParseException if {@code json} is empty or if it is no valid JSON.
+     */
+    public static JsonValue readFrom(final String json, @Nullable final JsonFieldConverter fieldConverter) {
         requireNonNull(json, "The JSON to read from must not be null!");
         if (json.isEmpty()) {
             throw new JsonParseException("The JSON to read from must not be empty!");
         }
 
         final com.eclipsesource.json.JsonValue minimalJsonValue = tryToRead(json);
-        return convert(minimalJsonValue);
+        return convert(minimalJsonValue, fieldConverter);
     }
 
     private static com.eclipsesource.json.JsonValue tryToRead(final String json) {
@@ -206,9 +222,28 @@ public final class JsonFactory {
      * @throws JsonParseException if an I/O error occurred or if the input is no valid JSON.
      */
     public static JsonValue readFrom(final Reader reader) {
+        return readFrom(reader, null);
+    }
+
+    /**
+     * Reads the entire input stream from the specified reader and parses it as JSON value. The input stream is expected
+     * to contain a valid JSON value with optional whitespace padding.
+     * <p>
+     * As characters are read in chunks and buffered internally it does <em>not</em> improve reading performance to wrap
+     * an existing reader in a {@code BufferedReader}.
+     * </p>
+     *
+     * @param reader the reader to read the JSON value from.
+     * @param fieldConverter the {@link JsonFieldConverter} used for converting {@link JsonField}s while transforming
+     * the {@code reader}'s content to Json.
+     * @return a JSON value which represents the read stream.
+     * @throws NullPointerException if {@code reader} is {@code null}.
+     * @throws JsonParseException if an I/O error occurred or if the input is no valid JSON.
+     */
+    public static JsonValue readFrom(final Reader reader, @Nullable final JsonFieldConverter fieldConverter) {
         requireNonNull(reader, "The reader must not be null!");
         final com.eclipsesource.json.JsonValue minimalJsonValue = tryToRead(reader);
-        return convert(minimalJsonValue);
+        return convert(minimalJsonValue, fieldConverter);
     }
 
     private static com.eclipsesource.json.JsonValue tryToRead(final Reader reader) {
@@ -268,6 +303,21 @@ public final class JsonFactory {
      * @throws JsonParseException if {@code jsonString} does not contain a valid JSON object.
      */
     public static JsonObject newObject(final String jsonString) {
+        return newObject(jsonString, null);
+    }
+
+    /**
+     * Creates a JSON object from the given string.
+     *
+     * @param jsonString the string that represents the JSON object.
+     * @param fieldConverter a function which is applied for each {@link JsonField} of the passed {@code jsonString}
+     * in order to optionally convert {@link JsonKey} and {@link JsonValue} before adding to the built JsonObject.
+     * @return the JSON object that has been created from the string.
+     * @throws NullPointerException if {@code jsonString} is {@code null}.
+     * @throws IllegalArgumentException if {@code jsonString} is empty.
+     * @throws JsonParseException if {@code jsonString} does not contain a valid JSON object.
+     */
+    public static JsonObject newObject(final String jsonString, @Nullable final JsonFieldConverter fieldConverter) {
         requireNonNull(jsonString, "The JSON string to create a JSON object from must not be null!");
         if (jsonString.isEmpty()) {
             throw new IllegalArgumentException("The JSON string to create a JSON object from must not be empty!");
@@ -277,7 +327,7 @@ public final class JsonFactory {
             return NULL_JSON_OBJECT;
         } else {
             final com.eclipsesource.json.JsonObject jsonObject = tryToReadJsonObjectFrom(jsonString);
-            return ImmutableJsonObject.of(toMap(jsonObject));
+            return ImmutableJsonObject.of(toMap(jsonObject, fieldConverter));
         }
     }
 
@@ -316,12 +366,17 @@ public final class JsonFactory {
         }
     }
 
-    private static Map<String, JsonField> toMap(final com.eclipsesource.json.JsonObject minimalJsonObject) {
+    private static Map<String, JsonField> toMap(final com.eclipsesource.json.JsonObject minimalJsonObject,
+            @Nullable final JsonFieldConverter fieldConverter) {
         final Map<String, JsonField> result = new LinkedHashMap<>(minimalJsonObject.size());
 
         for (final com.eclipsesource.json.JsonObject.Member member : minimalJsonObject) {
-            final JsonKey key = newKey(member.getName());
-            final JsonValue value = convert(member.getValue());
+            final JsonKey newKey = newKey(member.getName());
+            final JsonKey key = Optional.ofNullable(fieldConverter)
+                    .map(JsonFieldConverter::getKeyConverter)
+                    .map(keyConverter -> keyConverter.apply(newKey))
+                    .orElse(newKey);
+            final JsonValue value = convert(member.getValue(), fieldConverter);
             result.put(key.toString(), newField(key, value));
         }
 
@@ -369,6 +424,21 @@ public final class JsonFactory {
      * @throws JsonParseException if {@code jsonString} does not contain a valid JSON array.
      */
     public static JsonArray newArray(final String jsonString) {
+        return newArray(jsonString, null);
+    }
+
+    /**
+     * Creates a new JSON array from the given string.
+     *
+     * @param jsonString the string that represents the JSON array.
+     * @param fieldConverter a function which is applied for each {@link JsonField} of the passed {@code jsonString}
+     * in order to optionally convert {@link JsonKey} and {@link JsonValue} before adding to the built JsonArray.
+     * @return the JSON array that has been created from the string.
+     * @throws NullPointerException if {@code jsonString} is {@code null}.
+     * @throws IllegalArgumentException if {@code jsonString} is empty.
+     * @throws JsonParseException if {@code jsonString} does not contain a valid JSON array.
+     */
+    public static JsonArray newArray(final String jsonString, @Nullable final JsonFieldConverter fieldConverter) {
         requireNonNull(jsonString, "The JSON string to create JSON array from must not be null!");
         if (jsonString.isEmpty()) {
             throw new IllegalArgumentException("The JSON string to create a JSON array from must not be empty!");
@@ -377,7 +447,7 @@ public final class JsonFactory {
             return NULL_JSON_ARRAY;
         } else {
             final com.eclipsesource.json.JsonArray jsonArray = tryToReadMinimalJsonArrayFrom(jsonString);
-            return ImmutableJsonArray.of(toList(jsonArray));
+            return ImmutableJsonArray.of(toList(jsonArray, fieldConverter));
         }
     }
 
@@ -394,11 +464,12 @@ public final class JsonFactory {
         }
     }
 
-    private static List<JsonValue> toList(final com.eclipsesource.json.JsonArray minimalJsonArray) {
+    private static List<JsonValue> toList(final com.eclipsesource.json.JsonArray minimalJsonArray,
+            @Nullable final JsonFieldConverter fieldConverter) {
         final List<JsonValue> result = new ArrayList<>(minimalJsonArray.size());
 
         for (final com.eclipsesource.json.JsonValue minimalJsonValue : minimalJsonArray) {
-            result.add(convert(minimalJsonValue));
+            result.add(convert(minimalJsonValue, fieldConverter));
         }
 
         return result;
@@ -815,18 +886,19 @@ public final class JsonFactory {
     @SuppressWarnings({"squid:MethodCyclomaticComplexity",
             "checkstyle:com.puppycrawl.tools.checkstyle.checks.metrics.CyclomaticComplexityCheck"})
     @Nullable
-    static JsonValue convert(@Nullable final com.eclipsesource.json.JsonValue minimalJsonValue) {
+    static JsonValue convert(@Nullable final com.eclipsesource.json.JsonValue minimalJsonValue,
+            @Nullable final JsonFieldConverter fieldConverter) {
         final JsonValue result;
 
         if (null == minimalJsonValue) {
             result = null;
         } else if (minimalJsonValue.isObject()) {
-            final Map<String, JsonField> jsonFields = toMap(minimalJsonValue.asObject());
+            final Map<String, JsonField> jsonFields = toMap(minimalJsonValue.asObject(), fieldConverter);
             result = ImmutableJsonObject.of(jsonFields);
         } else if (minimalJsonValue.isString()) {
             result = ImmutableJsonString.of(minimalJsonValue);
         } else if (minimalJsonValue.isArray()) {
-            final List<JsonValue> jsonValues = toList(minimalJsonValue.asArray());
+            final List<JsonValue> jsonValues = toList(minimalJsonValue.asArray(), fieldConverter);
             result = ImmutableJsonArray.of(jsonValues);
         } else if (minimalJsonValue.isBoolean()) {
             result = newValue(minimalJsonValue.asBoolean());
@@ -839,7 +911,10 @@ public final class JsonFactory {
                     MessageFormat.format("Failed to convert {0} to JsonValue!", minimalJsonValue));
         }
 
-        return result;
+        return Optional.ofNullable(fieldConverter)
+                .map(JsonFieldConverter::getValueConverter)
+                .map(valueConverter -> valueConverter.apply(result))
+                .orElse(result);
     }
 
     /**

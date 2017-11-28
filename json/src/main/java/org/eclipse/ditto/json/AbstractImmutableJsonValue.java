@@ -112,6 +112,24 @@ abstract class AbstractImmutableJsonValue implements JsonValue {
         return stringRepresentation.get();
     }
 
-    protected abstract String createStringRepresentation();
+    @Override
+    public String toString(@Nullable final JsonFieldConverter fieldConverter) {
+        return createStringRepresentation(fieldConverter);
+    }
+
+    private String createStringRepresentation() {
+        return createStringRepresentation(null);
+    }
+
+    /**
+     * Creates a String representation of {@code this} {@link JsonValue} by applying the optional (nullable)
+     * {@code fieldConverter} which can convert {@link JsonField}s (their {@link JsonKey}s and {@link JsonValue}s)
+     * during we build the Strring representation.
+     *
+     * @param fieldConverter a function which is applied for each {@link JsonField} which {@code this} object contains
+     * in order to optionally convert {@link JsonKey} and {@link JsonValue} before adding to the built JSON string.
+     * @return the String representation
+     */
+    protected abstract String createStringRepresentation(@Nullable final JsonFieldConverter fieldConverter);
 
 }
