@@ -52,7 +52,7 @@ public final class DevOpsErrorResponse extends AbstractCommandResponse<DevOpsErr
             final JsonObject dittoRuntimeException, final DittoHeaders dittoHeaders) {
         super(TYPE,
                 HttpStatusCode.forInt(dittoRuntimeException.getValueOrThrow(DittoRuntimeException.JsonFields.STATUS))
-                        .get(), dittoHeaders);
+                        .orElse(HttpStatusCode.INTERNAL_SERVER_ERROR), dittoHeaders);
         this.serviceName = serviceName;
         this.instance = instance;
         this.dittoRuntimeException =
