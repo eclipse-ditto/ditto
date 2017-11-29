@@ -23,6 +23,7 @@ import java.util.Optional;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 /**
@@ -211,10 +212,13 @@ final class ImmutableJsonArray extends AbstractImmutableJsonValue implements Jso
     }
 
     @Override
-    protected String createStringRepresentation() {
+    protected String createStringRepresentation(@Nullable final JsonFieldConverter fieldConverter) {
         final com.eclipsesource.json.JsonArray minimalJsonArray = new com.eclipsesource.json.JsonArray();
         for (final JsonValue value : values) {
-            minimalJsonArray.add(JsonFactory.convert(value));
+            final Optional<JsonValue> convertedValue = Optional.ofNullable(fieldConverter)
+                    .map(JsonFieldConverter::getValueConverter)
+                    .map(valueConverter -> valueConverter.apply(value));
+            minimalJsonArray.add(JsonFactory.convert(convertedValue.orElse(value)));
         }
         return minimalJsonArray.toString();
     }

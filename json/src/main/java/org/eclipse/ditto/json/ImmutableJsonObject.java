@@ -456,9 +456,11 @@ final class ImmutableJsonObject extends AbstractImmutableJsonValue implements Js
     }
 
     @Override
-    protected String createStringRepresentation() {
+    protected String createStringRepresentation(@Nullable JsonFieldConverter fieldConverter) {
         final com.eclipsesource.json.JsonObject minJsonObject = new com.eclipsesource.json.JsonObject();
-        fields.values().forEach(field -> minJsonObject.add(field.getKeyName(), JsonFactory.convert(field.getValue())));
+        fields.values().stream()
+                .map(field -> fieldConverter != null ? fieldConverter.apply(field) : field)
+                .forEach(field -> minJsonObject.add(field.getKeyName(), JsonFactory.convert(field.getValue())));
         return minJsonObject.toString();
     }
 

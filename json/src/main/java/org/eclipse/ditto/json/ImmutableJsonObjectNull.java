@@ -40,7 +40,7 @@ final class ImmutableJsonObjectNull extends AbstractImmutableJsonValue implement
     }
 
     @Override
-    protected String createStringRepresentation() {
+    protected String createStringRepresentation(@Nullable final JsonFieldConverter fieldConverter) {
         return JsonFactory.nullLiteral().toString();
     }
 
