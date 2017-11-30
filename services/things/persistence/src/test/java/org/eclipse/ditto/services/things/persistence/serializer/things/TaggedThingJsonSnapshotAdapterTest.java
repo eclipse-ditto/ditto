@@ -14,13 +14,14 @@ package org.eclipse.ditto.services.things.persistence.serializer.things;
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 
 import org.bson.BSONObject;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.things.TestConstants;
+import org.eclipse.ditto.services.utils.persistence.mongo.DittoBsonJson;
 import org.junit.Before;
 import org.junit.Test;
 
 import com.mongodb.DBObject;
-import com.mongodb.util.DittoBsonJSON;
 
 import akka.persistence.SnapshotMetadata;
 import akka.persistence.SnapshotOffer;
@@ -65,9 +66,10 @@ public final class TaggedThingJsonSnapshotAdapterTest {
 
         final ThingWithSnapshotTag thingWithSnapshotTag =
                 ThingWithSnapshotTag.newInstance(TestConstants.Thing.THING_V1, snapshotTag);
-        final String jsonString = thingWithSnapshotTag.toJsonString(thingWithSnapshotTag.getImplementedSchemaVersion(),
+        final JsonObject json = thingWithSnapshotTag.toJson(thingWithSnapshotTag.getImplementedSchemaVersion(),
                 FieldType.regularOrSpecial());
-        final DBObject snapshotEntity = (DBObject) DittoBsonJSON.parse(jsonString);
+        final DittoBsonJson dittoBsonJson = DittoBsonJson.getInstance();
+        final DBObject snapshotEntity = dittoBsonJson.parse(json);
         snapshotEntity.put(TaggedThingJsonSnapshotAdapter.TAG_JSON_KEY, snapshotTag.toString());
 
         final SnapshotOffer snapshotOffer = new SnapshotOffer(SNAPSHOT_METADATA, snapshotEntity);

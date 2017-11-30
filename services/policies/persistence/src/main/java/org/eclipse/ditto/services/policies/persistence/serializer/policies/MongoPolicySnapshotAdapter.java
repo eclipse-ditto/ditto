@@ -15,14 +15,16 @@ import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.services.utils.akka.persistence.SnapshotAdapter;
+import org.eclipse.ditto.services.utils.persistence.mongo.DittoBsonJson;
 
 import com.mongodb.DBObject;
-import com.mongodb.util.DittoBsonJSON;
 
 import akka.actor.ActorSystem;
 import akka.persistence.SelectedSnapshot;
@@ -31,9 +33,9 @@ import akka.persistence.SnapshotOffer;
 /**
  * SnapshotAdapter for {@link Policy}s persisted to/from MongoDB.
  */
-public class MongoPolicySnapshotAdapter implements SnapshotAdapter<Policy> {
+public final class MongoPolicySnapshotAdapter implements SnapshotAdapter<Policy> {
 
-    private static final Function<String, Policy> JSON_TO_POLICY_FUNCTION = PoliciesModelFactory::newPolicy;
+    private static final Function<JsonObject, Policy> JSON_TO_POLICY_FUNCTION = PoliciesModelFactory::newPolicy;
 
     private final ActorSystem system;
 
@@ -43,9 +45,10 @@ public class MongoPolicySnapshotAdapter implements SnapshotAdapter<Policy> {
 
     @Override
     public Object toSnapshotStore(final Policy snapshotEntity) {
-        final String jsonString =
-                snapshotEntity.toJsonString(snapshotEntity.getImplementedSchemaVersion(), FieldType.regularOrSpecial());
-        return DittoBsonJSON.parse(jsonString);
+        final JsonObject json =
+                snapshotEntity.toJson(snapshotEntity.getImplementedSchemaVersion(), FieldType.regularOrSpecial());
+        final DittoBsonJson dittoBsonJson = DittoBsonJson.getInstance();
+        return dittoBsonJson.parse(json);
     }
 
     @Nullable
@@ -66,12 +69,12 @@ public class MongoPolicySnapshotAdapter implements SnapshotAdapter<Policy> {
 
     @Nullable
     private Policy createPolicyFromSnapshot(final String persistenceId, final Object snapshotEntity) {
-
         if (snapshotEntity instanceof DBObject) {
             final DBObject dbObject = (DBObject) snapshotEntity;
             // currently only supported: snapshots starting with "policy:" are Policies
             if (persistenceId.startsWith("policy:")) {
-                return tryToCreatePolicyFrom(DittoBsonJSON.serialize(dbObject));
+                final DittoBsonJson dittoBsonJson = DittoBsonJson.getInstance();
+                return tryToCreatePolicyFrom(dittoBsonJson.serialize(dbObject));
             } else {
                 throw new IllegalArgumentException(
                         "Unknown persistenceId - Unable to restore Policy Snapshot! Was: " + persistenceId);
@@ -80,12 +83,11 @@ public class MongoPolicySnapshotAdapter implements SnapshotAdapter<Policy> {
             throw new IllegalArgumentException(
                     "Unable to fromSnapshotStore a non-'DBObject' object! Was: " + snapshotEntity.getClass());
         }
-
     }
 
-    private Policy tryToCreatePolicyFrom(final String json) {
+    private Policy tryToCreatePolicyFrom(final JsonValue json) {
         try {
-            return JSON_TO_POLICY_FUNCTION.apply(json);
+            return JSON_TO_POLICY_FUNCTION.apply(json.asObject());
         } catch (final JsonParseException e) {
             if (system != null) {
                 system.log().error(e, "Could not deserialize JSON: '{}'", json);

@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.things.persistence.serializer;
 import java.beans.Introspector;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -30,6 +31,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.Policy;
+import org.eclipse.ditto.services.utils.persistence.mongo.DittoBsonJson;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.base.EventRegistry;
 import org.eclipse.ditto.signals.events.things.AclEntryCreated;
@@ -48,7 +50,6 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.eclipse.ditto.signals.events.things.ThingEventRegistry;
 
 import com.mongodb.DBObject;
-import com.mongodb.util.DittoBsonJSON;
 
 import akka.actor.ExtendedActorSystem;
 import akka.persistence.journal.EventAdapter;
@@ -70,18 +71,22 @@ public final class MongoThingEventAdapter implements EventAdapter {
     private static final String THING_ATTRIBUTE_DELETED = "thingAttributeDeleted";
     private static final String ATTRIBUTE = "attribute";
     private static final String PROPERTY = "property";
-    private static final Predicate<JsonField> IS_REVISION =
-            field -> field.getDefinition().map(definition -> definition == Event.JsonFields.REVISION).orElse(false);
+
+    private static final Predicate<JsonField> IS_REVISION = field -> field.getDefinition()
+            .map(definition -> Objects.equals(definition, Event.JsonFields.REVISION))
+            .orElse(false);
+
     private static final JsonPointer POLICY_IN_THING_EVENT_PAYLOAD = ThingEvent.JsonFields.THING.getPointer()
             .append(JsonPointer.of(Policy.INLINED_FIELD_NAME));
+
+    // JSON field containing the event's payload.
+    private static final JsonFieldDefinition<JsonObject> PAYLOAD =
+            JsonFactory.newJsonObjectFieldDefinition("payload", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
 
     private final Map<String, Function<JsonObject, JsonObject>> migrationMappings;
     private final ExtendedActorSystem system;
     private final EventRegistry<ThingEvent> eventRegistry;
-    // JSON field containing the event's payload.
-    private final JsonFieldDefinition<JsonObject> PAYLOAD =
-            JsonFactory.newJsonObjectFieldDefinition("payload", FieldType.REGULAR, JsonSchemaVersion.V_1,
-                    JsonSchemaVersion.V_2);
 
     public MongoThingEventAdapter(final ExtendedActorSystem system) {
         this.system = system;
@@ -135,7 +140,8 @@ public final class MongoThingEventAdapter implements EventAdapter {
                     theEvent.toJson(schemaVersion, IS_REVISION.negate().and(FieldType.regularOrSpecial())) //
                             // remove the policy entries from thing event payload
                             .remove(POLICY_IN_THING_EVENT_PAYLOAD);
-            final Object bson = DittoBsonJSON.parse(jsonObject.toString());
+            final DittoBsonJson dittoBsonJson = DittoBsonJson.getInstance();
+            final Object bson = dittoBsonJson.parse(jsonObject);
             final Set<String> readSubjects = theEvent.getDittoHeaders().getReadSubjects();
             return new Tagged(bson, readSubjects);
         } else {
@@ -147,14 +153,15 @@ public final class MongoThingEventAdapter implements EventAdapter {
     public EventSeq fromJournal(final Object event, final String manifest) {
         if (event instanceof DBObject) {
             final DBObject dbObject = (DBObject) event;
-            return EventSeq.single(tryToCreateEventFrom(DittoBsonJSON.serialize(dbObject)));
+            final DittoBsonJson dittoBsonJson = DittoBsonJson.getInstance();
+            return EventSeq.single(tryToCreateEventFrom(dittoBsonJson.serialize(dbObject)));
         } else {
             throw new IllegalArgumentException(
                     "Unable to fromJournal a non-'DBObject' object! Was: " + event.getClass());
         }
     }
 
-    private Event tryToCreateEventFrom(final String json) {
+    private Event tryToCreateEventFrom(final JsonValue json) {
         try {
             return createEventFrom(json);
         } catch (final JsonParseException | DittoRuntimeException e) {
@@ -167,8 +174,8 @@ public final class MongoThingEventAdapter implements EventAdapter {
         }
     }
 
-    private Event createEventFrom(final String json) {
-        final JsonObject jsonObject = JsonFactory.newObject(json)
+    private Event createEventFrom(final JsonValue json) {
+        final JsonObject jsonObject = json.asObject()
                 .setValue(Event.JsonFields.REVISION.getPointer(), Event.DEFAULT_REVISION);
 
         return eventRegistry.parse(migrateComplex(migratePayload(jsonObject)), DittoHeaders.empty());
