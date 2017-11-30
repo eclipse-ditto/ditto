@@ -34,18 +34,23 @@ public final class PersistenceQueriesActor extends AbstractPersistenceStreamingA
     private final DittoJavaDslMongoReadJournal readJournal = PersistenceQuery.get(getContext().getSystem())
             .getReadJournalFor(DittoJavaDslMongoReadJournal.class, DittoMongoReadJournal.Identifier());
 
+    private PersistenceQueriesActor(final int streamingCacheSize) {
+        super(streamingCacheSize);
+    }
+
     /**
      * Creates Akka configuration object Props for this PersistenceQueriesActor.
      *
+     * @param streamingCacheSize the size of the streaming cache.
      * @return the Akka configuration Props object.
      */
-    public static Props props() {
+    public static Props props(final int streamingCacheSize) {
         return Props.create(PersistenceQueriesActor.class, new Creator<PersistenceQueriesActor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
             public PersistenceQueriesActor create() throws Exception {
-                return new PersistenceQueriesActor();
+                return new PersistenceQueriesActor(streamingCacheSize);
             }
         });
     }

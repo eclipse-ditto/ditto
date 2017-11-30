@@ -28,6 +28,16 @@ public final class ConfigKeys {
      */
     public static final String THINGS_LOG_INCOMING_MESSAGES = THINGS_PREFIX + "log-incoming-messages";
 
+    private static final String THINGS_TAGS_PREFIX = THINGS_PREFIX + "tags.";
+
+    /**
+     * The size of the cache used for streaming Thing Tags (each stream has its own cache).
+     */
+    public static final String THINGS_TAGS_STREAMING_CACHE_SIZE = THINGS_TAGS_PREFIX +
+            "streaming-cache-size";
+
+    private static final String ENABLED_SUFFIX = "enabled";
+
     public static final class Http {
 
         private static final String PREFIX = THINGS_PREFIX + "http.";
@@ -62,7 +72,7 @@ public final class ConfigKeys {
         /**
          * Key of the majority check enabled configuration.
          */
-        public static final String MAJORITY_CHECK_ENABLED = MAJORITY_CHECK_PREFIX + "enabled";
+        public static final String MAJORITY_CHECK_ENABLED = MAJORITY_CHECK_PREFIX + ENABLED_SUFFIX;
 
         /**
          * Key of the how many shards should be used in the cluster.
@@ -110,7 +120,7 @@ public final class ConfigKeys {
         /**
          * Whether the health check for persistence should be enabled or not.
          */
-        public static final String PERSISTENCE_ENABLED = PERSISTENCE_PREFIX + "enabled";
+        public static final String PERSISTENCE_ENABLED = PERSISTENCE_PREFIX + ENABLED_SUFFIX;
 
         /**
          * The interval of the health check.
@@ -120,7 +130,7 @@ public final class ConfigKeys {
         /**
          * Whether the health check should be enabled (globally) or not.
          */
-        public static final String ENABLED = PREFIX + "enabled";
+        public static final String ENABLED = PREFIX + ENABLED_SUFFIX;
 
         private HealthCheck() {
             throw new AssertionError();

@@ -24,6 +24,17 @@ import akka.stream.javadsl.Source;
 public abstract class AbstractPersistenceStreamingActor<T>
         extends AbstractStreamingActor<SudoStreamModifiedEntities, T> {
 
+    private final int streamingCacheSize;
+
+    /**
+     * Constructor.
+     *
+     * @param streamingCacheSize the size of the streaming cache
+     */
+    protected AbstractPersistenceStreamingActor(final int streamingCacheSize) {
+        this.streamingCacheSize = streamingCacheSize;
+    }
+
     /**
      * Returns the journal to query for entities modified in a time window in the past.
      *
@@ -52,7 +63,13 @@ public abstract class AbstractPersistenceStreamingActor<T>
 
     @Override
     protected final Source<T, NotUsed> createSource(final SudoStreamModifiedEntities command) {
+        // create a separate cache per stream (don't use member variable!)
+        final ComparableCache<String, Long> cache = new ComparableCache<>(streamingCacheSize);
         return getJournal().sequenceNumbersOfPidsByInterval(command.getStart(), command.getEnd())
+                // avoid unnecessary streaming of old sequence numbers
+                .filter(pidWithSeqNr -> cache.updateIfNewOrGreater(pidWithSeqNr.persistenceId(),
+                        pidWithSeqNr.sequenceNr()))
                 .map(pidWithSeqNr -> createElement(pidWithSeqNr.persistenceId(), pidWithSeqNr.sequenceNr()));
     }
+
 }
