@@ -20,9 +20,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
-import org.eclipse.ditto.services.models.policies.PolicyTag;
 import org.eclipse.ditto.services.models.things.ThingTag;
-import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SyncThing;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -69,7 +67,6 @@ final class ThingsUpdater extends AbstractActor {
             final ThingsSearchUpdaterPersistence searchUpdaterPersistence,
             final CircuitBreaker circuitBreaker,
             final boolean eventProcessingActive,
-            final boolean thingTagsProcessingActive,
             final Duration thingUpdaterActivityCheckInterval,
             final ActorRef thingCacheFacade,
             final ActorRef policyCacheFacade) {
@@ -100,16 +97,6 @@ final class ThingsUpdater extends AbstractActor {
         } else {
             log.warning("Event processing is not active");
         }
-
-        if (thingTagsProcessingActive) {
-            pubSubMediator.tell(
-                    new DistributedPubSubMediator.Subscribe(ThingsMessagingConstants.THING_TAGS_TOPIC, UPDATER_GROUP,
-                            self()), self());
-            pubSubMediator.tell(
-                    new DistributedPubSubMediator.Subscribe(PolicyTag.TOPIC, UPDATER_GROUP, self()), self());
-        } else {
-            log.warning("Thing tags processing is not active");
-        }
     }
 
     /**
@@ -128,7 +115,6 @@ final class ThingsUpdater extends AbstractActor {
             final ThingsSearchUpdaterPersistence searchUpdaterPersistence,
             final CircuitBreaker circuitBreaker,
             final boolean eventProcessingActive,
-            final boolean thingTagsProcessingActive,
             final Duration thingUpdaterActivityCheckInterval,
             final ActorRef thingCacheFacade,
             final ActorRef policyCacheFacade) {
@@ -139,7 +125,7 @@ final class ThingsUpdater extends AbstractActor {
             @Override
             public ThingsUpdater create() throws Exception {
                 return new ThingsUpdater(numberOfShards, searchUpdaterPersistence, circuitBreaker,
-                        eventProcessingActive, thingTagsProcessingActive, thingUpdaterActivityCheckInterval, thingCacheFacade,
+                        eventProcessingActive, thingUpdaterActivityCheckInterval, thingCacheFacade,
                         policyCacheFacade);
             }
         });

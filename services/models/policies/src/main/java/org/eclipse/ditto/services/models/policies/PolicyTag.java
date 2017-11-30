@@ -29,11 +29,6 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
 @Immutable
 public final class PolicyTag implements Jsonifiable {
 
-    /**
-     * Topic at which {@code PolicyTag} objects are published.
-     */
-    public static final String TOPIC = "policies.tags";
-
     private final String policyId;
     private final long revision;
 

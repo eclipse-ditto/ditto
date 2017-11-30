@@ -138,13 +138,12 @@ public final class SearchUpdaterRootActor extends AbstractActor {
         pubSubMediator.tell(new DistributedPubSubMediator.Put(getSelf()), getSelf());
 
         final boolean eventProcessingActive = config.getBoolean(ConfigKeys.THINGS_EVENT_PROCESSING_ACTIVE);
-        final boolean thingTagsProcessingActive = config.getBoolean(ConfigKeys.THING_TAGS_PROCESSING_ACTIVE);
 
         final Duration thingUpdaterActivityCheckInterval =
                 config.getDuration(ConfigKeys.THINGS_ACTIVITY_CHECK_INTERVAL);
         thingsUpdaterActor = startChildActor(ThingsUpdater.ACTOR_NAME, ThingsUpdater
                 .props(numberOfShards, searchUpdaterPersistence, circuitBreaker, eventProcessingActive,
-                        thingTagsProcessingActive, thingUpdaterActivityCheckInterval, thingCacheFacade,
+                        thingUpdaterActivityCheckInterval, thingCacheFacade,
                         policyCacheFacade));
         final boolean synchronizationActive = config.getBoolean(ConfigKeys.THINGS_SYNCER_ACTIVE);
         if (synchronizationActive) {

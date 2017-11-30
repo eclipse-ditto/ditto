@@ -78,10 +78,6 @@ public final class ConfigKeys {
      * Controls whether thing event processing should be active or not.
      */
     public static final String THINGS_EVENT_PROCESSING_ACTIVE = SEARCH_UPDATER_PREFIX + "event-processing.active";
-    /**
-     * Controls whether thing tags processing should be active or not.
-     */
-    public static final String THING_TAGS_PROCESSING_ACTIVE = SEARCH_UPDATER_PREFIX + "thing-tags-processing.active";
 
     /**
      * The interval which defines how long a thing updater is considered active. When not active, the corresponding
