@@ -18,10 +18,10 @@ import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceCons
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
-import java.util.function.Supplier;
 
 import org.bson.Document;
 import org.eclipse.ditto.model.things.Thing;
@@ -45,10 +45,8 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.reactivestreams.Publisher;
 
 import com.mongodb.reactivestreams.client.MongoCollection;
-import com.mongodb.reactivestreams.client.Success;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
@@ -152,11 +150,23 @@ public abstract class AbstractThingSearchPersistenceTestBase {
     }
 
     private void dropCollections(final List<MongoCollection<Document>> collections) {
-        collections.forEach(collection -> {
-            if (collection != null) {
-                retryWithBackoff(collection::drop);
+        collections.stream()
+                .filter(Objects::nonNull)
+                .forEach(this::dropCollectionWithBackoff);
+    }
+
+    private void dropCollectionWithBackoff(final MongoCollection<Document> collection) {
+        RuntimeException lastException = null;
+        for (int i = 0; i < 20; ++i) {
+            try {
+                waitFor(Source.fromPublisher(collection.drop()));
+                return;
+            } catch (final RuntimeException e) {
+                lastException = e;
+                backoff();
             }
-        });
+        }
+        throw lastException;
     }
 
     @AfterClass
@@ -270,20 +280,6 @@ public abstract class AbstractThingSearchPersistenceTestBase {
 
     protected MongoClientWrapper getClient() {
         return mongoClient;
-    }
-
-    private void retryWithBackoff(final Supplier<Publisher<Success>> publisher) {
-        RuntimeException lastException = null;
-        for (int i = 0; i < 20; ++i) {
-            try {
-                waitFor(Source.fromPublisher(publisher.get()));
-                return;
-            } catch (final RuntimeException e) {
-                lastException = e;
-                backoff();
-            }
-        }
-        throw lastException;
     }
 
     private <T> List<T> waitFor(final Source<T, ?> source) {

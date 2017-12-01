@@ -51,6 +51,10 @@ public final class MongoThingsSearchSyncPersistence implements ThingsSearchSyncP
     private static final long COLLECTION_CREATE_TIMEOUT_SECS = 20;
 
     private static final String FIELD_TIMESTAMP = "ts";
+    /**
+     * MongoDB error code if a collection that is being created already exists
+     */
+    private static final int COLLECTION_ALREADY_EXISTS_ERROR_CODE = 48;
 
     /**
      * The logger.
@@ -109,8 +113,7 @@ public final class MongoThingsSearchSyncPersistence implements ThingsSearchSyncP
     private static boolean isCollectionAlreadyExistsError(@Nullable final Throwable t) {
         if (t instanceof MongoCommandException) {
             final MongoCommandException commandException = (MongoCommandException) t;
-            final int collectionAlreadyExistsErrorCode = 48;
-            if (commandException.getErrorCode() == collectionAlreadyExistsErrorCode) {
+            if (commandException.getErrorCode() == COLLECTION_ALREADY_EXISTS_ERROR_CODE) {
                 return true;
             }
         }

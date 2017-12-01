@@ -39,10 +39,10 @@ public class ThingsStreamForwarder extends AbstractStreamForwarder<ThingTag> {
     /**
      * Creates a {@code Props} object to instantiate this actor.
      *
-     * @param thingsUpdater Reference of a {@code ThingsUpdater}, the recipient of streamed {@code ThingTag} messages.
+     * @param thingsUpdater Reference of a {@link org.eclipse.ditto.services.thingsearch.updater.actors.ThingsUpdater },
+     * the recipient of streamed {@link org.eclipse.ditto.services.models.things.ThingTag} messages.
      * @param successRecipient recipient of the success message sent when a stream has been successfully completed.
      * @param maxIdleTime Maximum time this actor stays alive without receiving any message.
-     *
      * @return The {@code Props} object.
      */
     public static Props props(final ActorRef thingsUpdater, final ActorRef successRecipient,
