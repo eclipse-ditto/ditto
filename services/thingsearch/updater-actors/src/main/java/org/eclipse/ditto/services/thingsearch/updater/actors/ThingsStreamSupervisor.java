@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.services.thingsearch.updater.actors;
 
+import java.text.MessageFormat;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.CompletableFuture;
@@ -33,15 +34,15 @@ import akka.stream.scaladsl.Sink;
 import scala.compat.java8.FutureConverters;
 
 /**
- * This actor is responsible for triggering a cyclic synchronization of all things which changed within a specified
- * time period.
+ * This actor is responsible for triggering a cyclic synchronization of all things which changed within a specified time
+ * period.
  */
 public final class ThingsStreamSupervisor extends AbstractStreamSupervisor<Send> {
 
     /**
      * The name of this Actor in the ActorSystem.
      */
-    public static final String ACTOR_NAME = "thingsSynchronizer";
+    static final String ACTOR_NAME = "thingsSynchronizer";
     @SuppressWarnings("squid:S1075")
     private static final String THINGS_ACTOR_PATH = "/user/gatewayRoot/proxy";
     private final ActorRef pubSubMediator;
@@ -118,9 +119,11 @@ public final class ThingsStreamSupervisor extends AbstractStreamSupervisor<Send>
             log.error("No currentStreamEndTs available, cannot update last sync timestamp.");
         } else {
             lastStreamEndTs = currentStreamEndTs;
+            final String successMessage = MessageFormat
+                    .format("Updated last sync timestamp to value: <{0}>", lastStreamEndTs);
             syncPersistence.updateLastSuccessfulSyncTimestamp(currentStreamEndTs)
                     .runWith(akka.stream.javadsl.Sink.last(), materializer)
-                    .thenRun(() -> log.info("Updated last sync timestamp to value: {}"));
+                    .thenRun(() -> log.info(successMessage));
         }
     }
 
