@@ -153,13 +153,13 @@ public final class SearchUpdaterRootActor extends AbstractActor {
                     (mongoClientWrapper, log, materializer);
             syncPersistence.init();
 
-            final Duration initialSyncerPeriod = config.getDuration(ConfigKeys.THINGS_SYNCER_PERIOD);
-            final Duration syncerOffset = config.getDuration(ConfigKeys.THINGS_SYNCER_OFFSET);
+            final Duration initialSyncOffset = config.getDuration(ConfigKeys.THINGS_SYNCER_PERIOD);
+            final Duration pollInterval = config.getDuration(ConfigKeys.THINGS_SYNCER_OFFSET);
             final Duration maxIdleTime = config.getDuration(ConfigKeys.THINGS_SYNCER_MAX_IDLE_TIME);
             final int elementsStreamedPerSecond = config.getInt(ConfigKeys.THINGS_SYNCER_ELEMENTS_STREAMED_PER_SECOND);
             startClusterSingletonActor(ThingsStreamSupervisor.ACTOR_NAME,
-                    ThingsStreamSupervisor.props(thingsUpdaterActor, syncPersistence, materializer, initialSyncerPeriod,
-                            syncerOffset, maxIdleTime, elementsStreamedPerSecond));
+                    ThingsStreamSupervisor.props(thingsUpdaterActor, syncPersistence, materializer, initialSyncOffset,
+                            pollInterval, maxIdleTime, elementsStreamedPerSecond));
         } else {
             log.warning("Things synchronization is not active");
         }

@@ -49,8 +49,8 @@ public final class ThingsStreamSupervisor extends AbstractStreamSupervisor<Send>
     private final ActorRef thingsUpdater;
     private final ThingsSearchSyncPersistence syncPersistence;
     private final Materializer materializer;
-    private final Duration modifiedSince;
-    private final Duration modifiedOffset;
+    private final Duration initialSyncOffset;
+    private final Duration pollInterval;
     private final Duration maxIdleTime;
     private final int elementsStreamedPerSecond;
     private @Nullable Instant currentStreamEndTs = null;
@@ -58,16 +58,16 @@ public final class ThingsStreamSupervisor extends AbstractStreamSupervisor<Send>
 
     private ThingsStreamSupervisor(final ActorRef thingsUpdater, final ThingsSearchSyncPersistence syncPersistence,
             final Materializer materializer,
-            final Duration modifiedSince,
-            final Duration modifiedOffset,
+            final Duration initialSyncOffset,
+            final Duration pollInterval,
             final Duration maxIdleTime,
             final int elementsStreamedPerSecond) {
         this.thingsUpdater = thingsUpdater;
         this.syncPersistence = syncPersistence;
         this.materializer = materializer;
 
-        this.modifiedSince = modifiedSince;
-        this.modifiedOffset = modifiedOffset;
+        this.initialSyncOffset = initialSyncOffset;
+        this.pollInterval = pollInterval;
         this.maxIdleTime = maxIdleTime;
         this.elementsStreamedPerSecond = elementsStreamedPerSecond;
 
@@ -80,16 +80,18 @@ public final class ThingsStreamSupervisor extends AbstractStreamSupervisor<Send>
      * @param thingsUpdater the things updater actor
      * @param syncPersistence the sync persistence
      * @param materializer the materializer for the akka actor system.
-     * @param modifiedSince the duration for which the modified tags are requested
-     * @param modifiedOffset the offset from which the modified tags are ignored
+     * @param initialSyncOffset the duration starting from which the modified tags are requested for the first time
+     * (further syncs will know the last-success timestamp)
+     * @param pollInterval the duration for which the modified tags are requested (starting from last-success
+     * timestamp or initialSyncOffset)
      * @param maxIdleTime the maximum idle time of the underlying stream forwarder
      * @param elementsStreamedPerSecond the elements to be streamed per second
      * @return the props
      */
     public static Props props(final ActorRef thingsUpdater, final ThingsSearchSyncPersistence syncPersistence,
             final Materializer materializer,
-            final Duration modifiedSince,
-            final Duration modifiedOffset,
+            final Duration initialSyncOffset,
+            final Duration pollInterval,
             final Duration maxIdleTime,
             final int elementsStreamedPerSecond) {
         return Props.create(ThingsStreamSupervisor.class, new Creator<ThingsStreamSupervisor>() {
@@ -97,15 +99,15 @@ public final class ThingsStreamSupervisor extends AbstractStreamSupervisor<Send>
 
             @Override
             public ThingsStreamSupervisor create() throws Exception {
-                return new ThingsStreamSupervisor(thingsUpdater, syncPersistence, materializer, modifiedSince,
-                        modifiedOffset, maxIdleTime, elementsStreamedPerSecond);
+                return new ThingsStreamSupervisor(thingsUpdater, syncPersistence, materializer, initialSyncOffset,
+                        pollInterval, maxIdleTime, elementsStreamedPerSecond);
             }
         });
     }
 
     @Override
     protected Duration getPollInterval() {
-        return modifiedOffset;
+        return pollInterval;
     }
 
     @Override
@@ -135,7 +137,7 @@ public final class ThingsStreamSupervisor extends AbstractStreamSupervisor<Send>
         }
 
         // the initial start ts is only used when no sync has been run yet (i.e. no timestamp has been persisted)
-        final Instant initialStartTs = Instant.now().minus(modifiedSince);
+        final Instant initialStartTs = Instant.now().minus(initialSyncOffset);
 
         final scala.concurrent.Future<Send> sendFuture =
                 syncPersistence.retrieveLastSuccessfulSyncTimestamp(initialStartTs)
@@ -146,7 +148,7 @@ public final class ThingsStreamSupervisor extends AbstractStreamSupervisor<Send>
     }
 
     private Send createStartStreamingCommand(final Instant startTs) {
-        final Instant endTs = startTs.plus(modifiedOffset);
+        final Instant endTs = startTs.plus(pollInterval);
         currentStreamEndTs = endTs;
 
         final SudoStreamModifiedEntities retrieveModifiedThingTags =
