@@ -33,7 +33,7 @@ Please find examples of commands and their response pattern at [Protocol example
 
 ### Request receiving events/change notifications
 
-Additionally to the response, which Ditto addresses directly to the instance which was sending the command, an event 
+In addition to the response, which Ditto addresses directly to the instance which was sending the command, an event 
 is generated. <br/>
 This will be delivered to all other clients with read permissions for the respective thing, feature change, etc. 
 
@@ -58,7 +58,7 @@ subscribing/unsubscribing for receiving live commands and events.
 
 ## WebSocket endpoint
 
-The WebSocket endpoint is accessible at these URLs (depdening on which API version to use):
+The WebSocket endpoint is accessible at these URLs (depending on which API version to use):
 
 ```
 ws://localhost:8080/ws/1
@@ -77,15 +77,15 @@ See [Authenticate](basic-auth.html) for more details.
 
 ## WebSocket protocol format
 
-As in the [Protocol specification](protocol-specification.html) defined a Ditto Protocol message consists of different
-information. These information are combined into a single JSON message for the WebSocket endpoint:
+As defined in the [Protocol specification](protocol-specification.html) a Ditto Protocol message consists of different
+information. This information is combined into a single JSON message for the WebSocket endpoint:
 * [topic](protocol-specification.html#topic): JSON string with key `topic`
 * [headers](protocol-specification.html#headers): JSON object with key `headers`
 * [path](protocol-specification.html#path): JSON string with key `path`
 * [value](protocol-specification.html#value): JSON value (e.g. JSON object, string, array, ...) with key `value`
 * [status](protocol-specification.html#status) (for responses): JSON number with key `status`
 
-The schema in for Ditto Protocol message via WebSocket:
+The schema for Ditto Protocol message via WebSocket:
 
 ```json
 {
@@ -124,9 +124,9 @@ This message is acknowledged by Ditto by sending back:
 START-SEND-EVENTS:ACK
 ``` 
 
-From this point on the WebSocket session will receive all change notifications it is entitled to see.
+From then on the WebSocket session will receive all change notifications it is entitled to see.
 
-In order to stop receiving change notifications, following text message has to be sent to the backend:
+In order to stop receiving change notifications, the following text message has to be sent to the backend:
                                                
 ```
 STOP-SEND-EVENTS
@@ -140,9 +140,9 @@ STOP-SEND-EVENTS:ACK
 
 ### Request messages
 
-In order to subscribe for [messages](basic-messages.html) which can be sent from WebSocket session to other WebSocket 
-session or from the [HTTP API](httpapi-overview.html) to a WebSocket session, following text message has to be sent to 
-the backend:
+In order to subscribe for [messages](basic-messages.html) which can be sent from a WebSocket session to another 
+WebSocket session or from the [HTTP API](httpapi-overview.html) to a WebSocket session, the following text message has 
+to be sent to the backend:
 
 ```
 START-SEND-MESSAGES
@@ -154,9 +154,9 @@ This message is acknowledged by Ditto by sending back:
 START-SEND-MESSAGES:ACK
 ``` 
 
-From this point on the WebSocket session will receive all messages it is entitled to see.
+From then on the WebSocket session will receive all messages it is entitled to see.
 
-In order to stop receiving messages, following text message has to be sent to the backend:
+In order to stop receiving messages, the following text message has to be sent to the backend:
                                                
 ```
 STOP-SEND-MESSAGES
@@ -170,8 +170,8 @@ STOP-SEND-MESSAGES:ACK
 
 ### Request live commands
 
-In order to subscribe for [live commands](protocol-twinlive.html) which can be sent from WebSocket session to other 
-WebSocket session, following text message has to be sent to the backend:
+In order to subscribe for [live commands](protocol-twinlive.html) which can be sent from a WebSocket session to another 
+WebSocket session, the following text message has to be sent to the backend:
 
 ```
 START-SEND-LIVE-COMMANDS
@@ -183,9 +183,9 @@ This message is acknowledged by Ditto by sending back:
 START-SEND-LIVE-COMMANDS:ACK
 ``` 
 
-From this point on the WebSocket session will receive all live commands it is entitled to see.
+From then on the WebSocket session will receive all live commands it is entitled to see.
 
-In order to stop receiving live commands, following text message has to be sent to the backend:
+In order to stop receiving live commands, the following text message has to be sent to the backend:
                                                
 ```
 STOP-SEND-LIVE-COMMANDS
@@ -199,8 +199,8 @@ STOP-SEND-LIVE-COMMANDS:ACK
 
 ### Request live events
 
-In order to subscribe for [live events](protocol-twinlive.html) which can be sent from WebSocket session to other 
-WebSocket session, following text message has to be sent to the backend:
+In order to subscribe for [live events](protocol-twinlive.html) which can be sent from a WebSocket session to another 
+WebSocket session, the following text message has to be sent to the backend:
 
 ```
 START-SEND-LIVE-EVENTS
@@ -212,9 +212,9 @@ This message is acknowledged by Ditto by sending back:
 START-SEND-LIVE-EVENTS:ACK
 ``` 
 
-From this point on the WebSocket session will receive all live events it is entitled to see.
+From then on the WebSocket session will receive all live events it is entitled to see.
 
-In order to stop receiving live events, following text message has to be sent to the backend:
+In order to stop receiving live events, the following text message has to be sent to the backend:
                                                
 ```
 STOP-SEND-LIVE-EVENTS
