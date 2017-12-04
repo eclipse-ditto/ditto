@@ -33,8 +33,7 @@ public final class StopStreaming {
     }
 
     /**
-     *
-     * @return
+     * @return the Streaming type of what streaming to stop.
      */
     public StreamingType getStreamingType() {
         return streamingType;

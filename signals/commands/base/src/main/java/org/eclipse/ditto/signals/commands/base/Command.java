@@ -93,12 +93,6 @@ public interface Command<T extends Command> extends Signal<T> {
                 JsonFactory.newStringFieldDefinition("type", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
-         * JSON field containing the command's payload as {@link JsonObject}.
-         */
-        public static final JsonFieldDefinition<JsonObject> PAYLOAD = JsonFactory.newJsonObjectFieldDefinition
-                ("payload", FieldType.REGULAR, JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
-
-        /**
          * Constructs a new {@code JsonFields} object.
          */
         protected JsonFields() {

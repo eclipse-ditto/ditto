@@ -27,6 +27,7 @@ import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StopStreaming;
+import org.eclipse.ditto.services.gateway.streaming.StreamingAck;
 import org.eclipse.ditto.services.gateway.streaming.StreamingType;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.base.Signal;
@@ -53,6 +54,13 @@ import scala.concurrent.duration.FiniteDuration;
  */
 final class StreamingSessionActor extends AbstractActor {
 
+    /**
+     * The max. timeout in milliseconds how long to wait until sending an "acknowledge" message back to the client.
+     * If too small, we might miss some events which the client expects once the "ack" message is received as the
+     * messages via distributed pub/sub are not yet received.
+     */
+    private static final int MAX_SUBSCRIBE_TIMEOUT_MS = 2500;
+
     private final DiagnosticLoggingAdapter logger = LogUtil.obtain(this);
 
     private final String connectionCorrelationId;
@@ -61,6 +69,7 @@ final class StreamingSessionActor extends AbstractActor {
     private final ActorRef eventAndResponsePublisher;
     private final Set<String> outstandingLiveSignals;
     private final Map<String, ActorRef> responseAwaitingLiveSignals;
+    private final Set<StreamingType> outstandingSubscriptionAcks;
 
     private List<String> authorizationSubjects;
 
@@ -72,6 +81,7 @@ final class StreamingSessionActor extends AbstractActor {
         this.eventAndResponsePublisher = eventAndResponsePublisher;
         outstandingLiveSignals = new HashSet<>();
         responseAwaitingLiveSignals = new HashMap<>();
+        outstandingSubscriptionAcks = new HashSet<>();
 
         getContext().watch(eventAndResponsePublisher);
     }
@@ -125,12 +135,14 @@ final class StreamingSessionActor extends AbstractActor {
                 .match(Signal.class, this::isLiveSignal, liveSignal -> {
                     LogUtil.enhanceLogWithCorrelationId(logger, liveSignal);
 
+                    acknowledgeSubscriptionForLiveSignal(liveSignal);
+
                     final DittoHeaders dittoHeaders = liveSignal.getDittoHeaders();
                     final Optional<String> correlationId = dittoHeaders.getCorrelationId();
                     if (correlationId.map(cId -> cId.startsWith(connectionCorrelationId)).orElse(false)) {
                         logger.debug("Got 'Live' Signal <{}> in <{}> session, " +
-                                        "but this was issued by this connection itself, not telling "
-                                        + "eventAndResponsePublisher about it", liveSignal.getType(), type);
+                                "but this was issued by this connection itself, not telling "
+                                + "eventAndResponsePublisher about it", liveSignal.getType(), type);
                     } else {
                         // check if this session is "allowed" to receive the LiveSignal
                         if (authorizationSubjects != null &&
@@ -173,6 +185,10 @@ final class StreamingSessionActor extends AbstractActor {
                 .match(Event.class, event -> {
                     LogUtil.enhanceLogWithCorrelationId(logger, event);
 
+                    if (outstandingSubscriptionAcks.contains(StreamingType.EVENTS)) {
+                        acknowledgeSubscription(StreamingType.EVENTS, getSelf());
+                    }
+
                     final DittoHeaders dittoHeaders = event.getDittoHeaders();
                     final Optional<String> correlationId = dittoHeaders.getCorrelationId();
                     if (correlationId.map(cId -> cId.startsWith(connectionCorrelationId)).orElse(false)) {
@@ -182,7 +198,8 @@ final class StreamingSessionActor extends AbstractActor {
                     } else {
                         final Set<String> readSubjects = dittoHeaders.getReadSubjects();
                         // check if this session is "allowed" to receive the event
-                        if (authorizationSubjects != null && !Collections.disjoint(readSubjects, authorizationSubjects)) {
+                        if (authorizationSubjects != null &&
+                                !Collections.disjoint(readSubjects, authorizationSubjects)) {
                             logger.debug(
                                     "Got 'Event' message in <{}> session, telling eventAndResponsePublisher about it: {}",
                                     type, event);
@@ -194,9 +211,10 @@ final class StreamingSessionActor extends AbstractActor {
                 .match(StartStreaming.class, startStreaming -> {
                     authorizationSubjects = startStreaming.getAuthorizationContext().getAuthorizationSubjectIds();
                     LogUtil.enhanceLogWithCorrelationId(logger, connectionCorrelationId);
-                    logger.info("Got 'StartStreaming' message for WS session, subscribing for <{}> in Cluster..",
-                            startStreaming.getStreamingType().name());
+                    logger.debug("Got 'StartStreaming' message in <{}> session, subscribing for <{}> in Cluster..",
+                            type, startStreaming.getStreamingType().name());
 
+                    outstandingSubscriptionAcks.add(startStreaming.getStreamingType());
                     // In Cluster: Subscribe
                     pubSubMediator.tell(new DistributedPubSubMediator.Subscribe(
                             startStreaming.getStreamingType().getDistributedPubSubTopic(),
@@ -205,8 +223,8 @@ final class StreamingSessionActor extends AbstractActor {
                 })
                 .match(StopStreaming.class, stopStreaming -> {
                     LogUtil.enhanceLogWithCorrelationId(logger, connectionCorrelationId);
-                    logger.info("Got 'StopStreaming' message for WS session, unsubscribing from <{}> in Cluster..",
-                            stopStreaming.getStreamingType().name());
+                    logger.debug("Got 'StopStreaming' message in <{}> session, unsubscribing from <{}> in Cluster..",
+                            type, stopStreaming.getStreamingType().name());
 
                     // In Cluster: Unsubscribe
                     pubSubMediator.tell(new DistributedPubSubMediator.Unsubscribe(
@@ -215,12 +233,31 @@ final class StreamingSessionActor extends AbstractActor {
                 })
                 .match(DistributedPubSubMediator.SubscribeAck.class, subscribeAck -> {
                     LogUtil.enhanceLogWithCorrelationId(logger, connectionCorrelationId);
-                    logger.debug("Subscribed to Cluster <{}> in <{}> session: <{}>",
-                            StreamingType.fromTopic(subscribeAck.subscribe().topic()), type, subscribeAck);
+                    final String topic = subscribeAck.subscribe().topic();
+                    final StreamingType streamingType = StreamingType.fromTopic(topic);
+
+                    final ActorRef self = getSelf();
+                    /* send the StreamingAck with a little delay, as the akka doc states:
+                     * The acknowledgment means that the subscription is registered, but it can still take some time
+                     * until it is replicated to other nodes.
+                     */
+                    getContext().getSystem().scheduler()
+                            .scheduleOnce(FiniteDuration.apply(MAX_SUBSCRIBE_TIMEOUT_MS, TimeUnit.MILLISECONDS), () ->
+                                    acknowledgeSubscription(streamingType, self), getContext().getSystem().dispatcher());
                 })
                 .match(DistributedPubSubMediator.UnsubscribeAck.class, unsubscribeAck -> {
                     LogUtil.enhanceLogWithCorrelationId(logger, connectionCorrelationId);
-                    logger.debug("Unsubscribed from Cluster <{}> in <{}> session: <{}>", type, unsubscribeAck);
+                    final String topic = unsubscribeAck.unsubscribe().topic();
+                    final StreamingType streamingType = StreamingType.fromTopic(topic);
+
+                    final ActorRef self = getSelf();
+                    /* send the StreamingAck with a little delay, as the akka doc states:
+                     * The acknowledgment means that the subscription is registered, but it can still take some time
+                     * until it is replicated to other nodes.
+                     */
+                    getContext().getSystem().scheduler()
+                            .scheduleOnce(FiniteDuration.apply(MAX_SUBSCRIBE_TIMEOUT_MS, TimeUnit.MILLISECONDS), () ->
+                                    acknowledgeUnsubscription(streamingType, self), getContext().getSystem().dispatcher());
                 })
                 .match(Terminated.class, terminated -> {
                     LogUtil.enhanceLogWithCorrelationId(logger, connectionCorrelationId);
@@ -246,8 +283,37 @@ final class StreamingSessionActor extends AbstractActor {
                 .build();
     }
 
+    private void acknowledgeSubscriptionForLiveSignal(final Signal liveSignal) {
+        if (liveSignal instanceof MessageCommand) {
+            if (outstandingSubscriptionAcks.contains(StreamingType.MESSAGES)) {
+                acknowledgeSubscription(StreamingType.MESSAGES, getSelf());
+            }
+        } else if (liveSignal instanceof Command) {
+            if (outstandingSubscriptionAcks.contains(StreamingType.LIVE_COMMANDS)) {
+                acknowledgeSubscription(StreamingType.LIVE_COMMANDS, getSelf());
+            }
+        } else if (liveSignal instanceof Event) {
+            if (outstandingSubscriptionAcks.contains(StreamingType.LIVE_EVENTS)) {
+                acknowledgeSubscription(StreamingType.LIVE_EVENTS, getSelf());
+            }
+        }
+    }
+
+    private void acknowledgeSubscription(final StreamingType streamingType, final ActorRef self) {
+        outstandingSubscriptionAcks.remove(streamingType);
+        eventAndResponsePublisher.tell(new StreamingAck(streamingType, true), self);
+        logger.debug("Subscribed to Cluster <{}> in <{}> session", streamingType, type);
+    }
+
+    private void acknowledgeUnsubscription(final StreamingType streamingType, final ActorRef self) {
+        eventAndResponsePublisher.tell(new StreamingAck(streamingType, false), self);
+        logger.debug("Unsubscribed from Cluster <{}> in <{}> session", streamingType, type);
+    }
+
     private FI.UnitApply<Signal> publishLiveSignal(final String topic) {
         return liveSignal -> {
+            acknowledgeSubscriptionForLiveSignal(liveSignal);
+
             LogUtil.enhanceLogWithCorrelationId(logger, liveSignal);
             if (notYetPublished(liveSignal)) {
                 logger.debug("Publishing 'Live' Signal <{}> on topic <{}> into cluster.", liveSignal.getType(), topic);

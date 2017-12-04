@@ -2537,7 +2537,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         }
 
         private void logInfoAboutIncomingMessage(final String messageType) {
-            log.info("<{}> got <{}>.", thingId, messageType);
+            log.debug("<{}> got <{}>.", thingId, messageType);
         }
 
     }

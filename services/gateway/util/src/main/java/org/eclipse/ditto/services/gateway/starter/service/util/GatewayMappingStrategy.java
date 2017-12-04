@@ -18,6 +18,7 @@ import java.util.function.BiFunction;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.services.gateway.streaming.StreamingAck;
 import org.eclipse.ditto.services.models.policies.PoliciesMappingStrategy;
 import org.eclipse.ditto.services.models.things.ThingsMappingStrategy;
 import org.eclipse.ditto.services.models.thingsearch.ThingSearchMappingStrategy;
@@ -59,6 +60,9 @@ public final class GatewayMappingStrategy implements MappingStrategy {
 
         builder.add(BaseCacheEntry.class,
                 jsonObject -> BaseCacheEntry.fromJson(jsonObject)); // do not replace with lambda!
+
+        builder.add(StreamingAck.class,
+                jsonObject -> StreamingAck.fromJson(jsonObject)); // do not replace with lambda!
 
         addMessagesStrategies(builder);
         addDevOpsStrategies(builder);
