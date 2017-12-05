@@ -90,7 +90,7 @@ public final class ScenarioSetup {
             final Jsonifiable.WithFieldSelectorAndPredicate<JsonField> fullJsonifiable,
             final JsonObject expectedJsonView,
             final String description,
-            final Set<String> excpectedSubjectIds,
+            final Set<String> expectedSubjectIds,
             final Function<PolicyAlgorithm, Boolean> additionalAlgorithmFunction) {
 
         this.policy = policy;
@@ -101,7 +101,7 @@ public final class ScenarioSetup {
         this.fullJsonifiable = fullJsonifiable;
         this.description = description;
         this.expectedJsonView = expectedJsonView;
-        expectedSubjectIds = excpectedSubjectIds;
+        this.expectedSubjectIds = expectedSubjectIds;
         this.type = type;
         this.additionalAlgorithmFunction = additionalAlgorithmFunction;
     }
