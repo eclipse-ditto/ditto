@@ -18,9 +18,9 @@ import static org.eclipse.ditto.json.JsonFactory.newValue;
 import static org.eclipse.ditto.model.base.assertions.DittoBaseAssertions.assertThat;
 import static org.eclipse.ditto.model.base.json.JsonSchemaVersion.V_1;
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyLong;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
@@ -30,6 +30,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
@@ -75,6 +76,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
+import com.typesafe.config.ConfigValueFactory;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;
@@ -125,7 +127,7 @@ public final class ThingUpdaterTest {
     @Before
     public void setUpBase() {
         final Config config = ConfigFactory.load("test");
-        actorSystem = ActorSystem.create("AkkaTestSystem", config);
+        startActorSystem(config);
         when(persistenceMock.getThingMetadata(any())).thenReturn(Source.single(new ThingMetadata(-1L, null, -1L)));
         when(persistenceMock.insertOrUpdate(any(), anyLong(), anyLong())).thenReturn(Source.single(true));
         when(persistenceMock.executeCombinedWrites(any(), any(), any(), anyLong())).thenReturn(Source.single(true));
@@ -134,6 +136,15 @@ public final class ThingUpdaterTest {
     /** */
     @After
     public void tearDownBase() {
+        shutdownActorSystem();
+    }
+
+    private void startActorSystem(final Config config) {
+        shutdownActorSystem();
+        actorSystem = ActorSystem.create("AkkaTestSystem", config);
+    }
+
+    private void shutdownActorSystem() {
         if (actorSystem != null) {
             TestKit.shutdownActorSystem(actorSystem);
             actorSystem = null;
@@ -220,7 +231,7 @@ public final class ThingUpdaterTest {
 
                 //This processing will cause that the mocked mongoDB operation to last for 500 ms
                 underTest.tell(thingCreated, getRef());
-                waitUntil().insertOrUpdate(eq(thingWithAcl), eq(1L), eq(-1L));
+                waitUntil().insertOrUpdate(eq(thingWithAcl), eq(thingCreated.getRevision()), eq(-1L));
 
 
                 underTest.tell(attributeCreated0, getRef());
@@ -231,7 +242,8 @@ public final class ThingUpdaterTest {
                 underTest.tell(attributeCreated2, getRef());
                 underTest.tell(attributeCreated3, getRef());
 
-                waitUntil().executeCombinedWrites(eq(THING_ID), eq(expectedWrites2), any(), eq(5L));
+                waitUntil().executeCombinedWrites(eq(THING_ID), eq(expectedWrites1), any(), eq(attributeCreated0.getRevision()));
+                waitUntil().executeCombinedWrites(eq(THING_ID), eq(expectedWrites2), any(), eq(attributeCreated3.getRevision()));
             }
         };
     }
@@ -288,14 +300,13 @@ public final class ThingUpdaterTest {
 
         when(persistenceMock.executeCombinedWrites(eq(THING_ID), eq(expectedWrite), any(), anyLong())).thenReturn(
                 sourceUnsuccess);
-        when(persistenceMock.getThingMetadata(any())).thenReturn(Source.single(new ThingMetadata(-1L, null, -1L)));
 
         new TestKit(actorSystem) {
             {
                 final ActorRef underTest = createInitializedThingUpdaterActor();
                 // will cause that a sync is triggered
                 underTest.tell(attributeCreated, getRef());
-                waitUntil().executeCombinedWrites(eq(THING_ID), eq(expectedWrite), any(), eq(0L));
+                waitUntil().executeCombinedWrites(eq(THING_ID), eq(expectedWrite), any(), eq(attributeCreated.getRevision()));
                 underTest.tell(SudoRetrieveThingResponse.of(currentThing, f -> true, dittoHeaders), getRef());
                 waitUntil().insertOrUpdate(eq(currentThing), eq(revision), eq(-1L));
             }
@@ -322,7 +333,7 @@ public final class ThingUpdaterTest {
                 // will cause that a sync is triggered
                 underTest.tell(attributeCreated, ref());
 
-                waitUntil().executeCombinedWrites(eq(THING_ID), eq(expectedWrites), any(), eq(0L));
+                waitUntil().executeCombinedWrites(eq(THING_ID), eq(expectedWrites), any(), eq(attributeCreated.getRevision()));
 
                 // resync should be triggered
                 expectShardedSudoRetrieveThing(thingsShardProbe, THING_ID);
@@ -465,7 +476,7 @@ public final class ThingUpdaterTest {
                 underTest.tell(changeEvent, getRef());
 
 
-                waitUntil().executeCombinedWrites(eq(THING_ID), eq(expectedWrites), eq(null), eq(revision));
+                waitUntil().executeCombinedWrites(eq(THING_ID), eq(expectedWrites), eq(null), eq(changeEvent.getRevision()));
                 // should trigger sync
                 expectShardedSudoRetrieveThing(thingsShardProbe, THING_ID);
             }
@@ -551,6 +562,11 @@ public final class ThingUpdaterTest {
                 .build();
 
         when(persistenceMock.getThingMetadata(any())).thenReturn(Source.single(new ThingMetadata(0L, null, -1L)));
+
+        // set config with stash size of 3
+        final Config config = ConfigFactory.load("test")
+                .withValue("akka.actor.custom-updater-mailbox.stash-capacity", ConfigValueFactory.fromAnyRef(3));
+        startActorSystem(config);
 
         new TestKit(actorSystem) {
             {

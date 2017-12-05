@@ -307,11 +307,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
     private void becomeInitialMessageHandling() {
         final Receive behavior = ReceiveBuilder.create()
                 .match(ThingEvent.class, this::processInitialThingEvent)
-                .match(ThingTag.class, thingTag -> {
-                    // process initial ThingTag with EventProcessing as the default next behavior
-                    becomeEventProcessing();
-                    processThingTag(thingTag, true);
-                })
+                .match(ThingTag.class, thingTag -> processThingTag(thingTag, true))
                 .matchAny(message -> {
                     // this actor is not created due to a ThingTag message; handle current message by event processing
                     becomeEventProcessing();
@@ -341,7 +337,6 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
             stopThisActor();
         } else if (shortcutTakenForThingEvent(thingEvent)) {
             log.debug("Shortcut taken for initial thing event <{}>.", thingEvent);
-            becomeEventProcessing();
         } else {
             log.debug("Synchronization is triggered for initial thing event <{}>.", thingEvent);
             triggerSynchronization();
@@ -380,8 +375,6 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
                 .match(PersistenceWriteResult.class, this::handlePersistenceUpdateResult)
                 .match(ModifyCacheEntryResponse.class,
                         r -> log.debug("Got ModifyCacheEntryResponse: {}", r))
-                .match(ModifyCacheEntryResponse.class,
-                        r -> log.debug("Got ModifyPolicyCacheEntryResponse: {}", r))
                 .match(RetrieveCacheEntryResponse.class,
                         resp -> log.debug("Got RetrieveCacheEntryResponse: {}", resp))
                 .matchAny(m -> {
@@ -515,7 +508,8 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
                     log.debug("Currently gathered <{}> events to be processed after actor has finished being busy",
                             gatheredEvents.size());
                 } else {
-                    persistThingEvents(Collections.singletonList(versionedThingEvent));
+                    // persist with sequenceNumber + 1 since we don't want to increase sequenceNumber in case of failure
+                    persistThingEvents(Collections.singletonList(versionedThingEvent), sequenceNumber + 1);
                 }
 
                 // Update state related to the Thing. Policy state is maintained by synchronization.
@@ -567,12 +561,16 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
     }
 
     private void persistThingEvents(final List<ThingEvent> thingEvents) {
+        persistThingEvents(thingEvents, sequenceNumber);
+    }
+
+    private void persistThingEvents(final List<ThingEvent> thingEvents, final long targetRevision) {
         log.debug("Executing bulk write operation with <{}> updates.", thingEvents.size());
         if (!thingEvents.isEmpty()) {
             transactionActive = true;
             final TraceContext traceContext = Kamon.tracer().newContext(TRACE_THING_BULK_UPDATE);
             circuitBreaker.callWithCircuitBreakerCS(() -> searchUpdaterPersistence
-                    .executeCombinedWrites(thingId, thingEvents, policyEnforcer, sequenceNumber)
+                    .executeCombinedWrites(thingId, thingEvents, policyEnforcer, targetRevision)
                     .via(finishTrace(traceContext))
                     .runWith(Sink.last(), materializer)
                     .whenComplete(this::processWriteResult))
