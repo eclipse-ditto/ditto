@@ -26,11 +26,9 @@ import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
@@ -52,7 +50,6 @@ import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePoli
 import org.eclipse.ditto.services.models.things.ThingTag;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
-import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SyncThing;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingMetadata;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.utils.akka.JavaTestProbe;
@@ -497,50 +494,6 @@ public final class ThingUpdaterTest {
 
                 // should trigger sync
                 expectShardedSudoRetrieveThing(thingsShardProbe, THING_ID);
-            }
-        };
-    }
-
-    @Test
-    public void syncTimeoutRetriggersSync() {
-        // Command headers to make SudoRetrieveThingResponse return the access control list.
-        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
-                .schemaVersion(V_1)
-                .build();
-        final SudoRetrieveThing retrieveThing = SudoRetrieveThing.withOriginalSchemaVersion(THING_ID, dittoHeaders);
-
-        new TestKit(actorSystem) {
-            {
-                final TestProbe thingsShardProbe = TestProbe.apply(actorSystem);
-                final TestProbe policiesShardProbe = TestProbe.apply(actorSystem);
-
-                // Timeout should be enough for initial synchronization to succeed, but not so long that 3 timeout
-                // cause an order-of-magnitude increase in test execution time.
-                final java.time.Duration underTestTimeout = java.time.Duration.of(1, ChronoUnit.NANOS);
-
-                final ActorRef underTest =
-                        createInitializedThingUpdaterActor(thingsShardProbe, policiesShardProbe, underTestTimeout);
-
-                final Thing thingWithAcl =
-                        thing.setAclEntry(AclEntry.newInstance(AuthorizationSubject.newInstance("user1"),
-                                Permission.READ));
-
-                final ThingEvent thingCreated = ThingCreated.of(thingWithAcl, 1L, dittoHeaders);
-
-                underTest.tell(thingCreated, getRef());
-                waitUntil().insertOrUpdate(eq(thingWithAcl), eq(1L), eq(-1L));
-
-                underTest.tell(SyncThing.of(THING_ID, DittoHeaders.empty()), getRef());
-
-                // at the moment we have 3 retries
-                ShardedMessageEnvelope envelope = thingsShardProbe.expectMsgClass(ShardedMessageEnvelope.class);
-                assertEquals(retrieveThing.toJson(), envelope.getMessage());
-                envelope = thingsShardProbe.expectMsgClass(ShardedMessageEnvelope.class);
-                assertEquals(retrieveThing.toJson(), envelope.getMessage());
-                envelope = thingsShardProbe.expectMsgClass(ShardedMessageEnvelope.class);
-                assertEquals(retrieveThing.toJson(), envelope.getMessage());
-                watch(underTest);
-                expectTerminated(underTest);
             }
         };
     }

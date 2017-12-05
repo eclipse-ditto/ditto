@@ -21,7 +21,6 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.services.models.things.ThingTag;
-import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SyncThing;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.ShardedMessageEnvelope;
@@ -139,7 +138,6 @@ final class ThingsUpdater extends AbstractActor {
                 .match(ThingEvent.class, this::processThingEvent)
                 .match(PolicyEvent.class, this::processPolicyEvent)
                 .match(ThingTag.class, this::processThingTag)
-                .match(SyncThing.class, this::syncThing)
                 .match(DistributedPubSubMediator.SubscribeAck.class, this::subscribeAck)
                 .matchAny(m -> {
                     log.warning("Unknown message: {}", m);
@@ -168,17 +166,6 @@ final class ThingsUpdater extends AbstractActor {
 
     private CompletionStage<Set<String>> thingIdsForPolicy(final String policyId) {
         return searchUpdaterPersistence.getThingIdsForPolicy(policyId).runWith(Sink.last(), materializer);
-    }
-
-    private void syncThing(final SyncThing message) {
-        LogUtil.enhanceLogWithCorrelationId(log, message);
-        log.debug("Forwarding incoming SyncThing message for thingId '{}'", message.getThingId());
-        forwardToShardRegion(
-                message,
-                SyncThing::getThingId,
-                SyncThing::getType,
-                syncThing -> syncThing.toJson(syncThing.getImplementedSchemaVersion(), FieldType.regularOrSpecial()),
-                SyncThing::getDittoHeaders);
     }
 
     private <J extends Jsonifiable<?>> void forwardJsonifiableToShardRegion(final J message,

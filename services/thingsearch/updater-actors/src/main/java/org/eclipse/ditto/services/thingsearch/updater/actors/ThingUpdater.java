@@ -48,7 +48,6 @@ import org.eclipse.ditto.services.models.things.ThingCacheEntry;
 import org.eclipse.ditto.services.models.things.ThingTag;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
-import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SyncThing;
 import org.eclipse.ditto.services.thingsearch.persistence.write.EventToPersistenceStrategyFactory;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingMetadata;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
@@ -362,11 +361,6 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
 
     private Receive createEventProcessingBehavior() {
         return ReceiveBuilder.create()
-                .match(SyncThing.class, s -> {
-                    LogUtil.enhanceLogWithCorrelationId(log, s);
-                    log.info("Got external SyncThing request in 'eventProcessing': {}", s);
-                    triggerSynchronization();
-                })
                 .match(ThingEvent.class, this::processThingEvent)
                 .match(PolicyEvent.class, this::processPolicyEvent)
                 .match(ThingTag.class, thingTag -> processThingTag(thingTag, false))
