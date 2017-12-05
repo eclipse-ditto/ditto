@@ -123,7 +123,7 @@ public final class ThingsStreamSupervisor extends AbstractStreamSupervisor<Send>
             lastStreamEndTs = currentStreamEndTs;
             final String successMessage = MessageFormat
                     .format("Updated last sync timestamp to value: <{0}>", lastStreamEndTs);
-            syncPersistence.updateLastSuccessfulSyncTimestamp(currentStreamEndTs)
+            syncPersistence.updateLastSuccessfulSyncTimestamp(lastStreamEndTs)
                     .runWith(akka.stream.javadsl.Sink.last(), materializer)
                     .thenRun(() -> log.info(successMessage));
         }

@@ -75,7 +75,7 @@ public abstract class AbstractStreamForwarder<E> extends AbstractActor {
      * Invoked when all stream elements are forwarded and acknowledged.
      * Do not start asynchronous operations: the actor terminates immediately after this method returns.
      */
-    protected final void onSuccess() {
+    private void onSuccess() {
         log.info("Stream complete: {} elements forwarded, {} acks received.", elementCount, ackCount);
         getSuccessRecipient().tell(new Status.Success(lastMessageReceived), getSelf());
     }
