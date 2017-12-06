@@ -31,6 +31,7 @@ public class JsonViewScenario11 implements JsonViewScenario {
     private final ScenarioSetup setup;
 
     public JsonViewScenario11() {
+        final String resourcePath = "/features/firmware";
         setup = Scenario.newScenarioSetup( //
                 true, //
                 "Subject has READ granted on '/attributes/attr2'. "
@@ -44,9 +45,10 @@ public class JsonViewScenario11 implements JsonViewScenario {
                         + "Can see in JsonView: granted subresource of /features/firmware",
                 getPolicy(), //
                 Scenario.newAuthorizationContext(SUBJECT_SOME_GRANTED, SUBJECT_SOME_REVOKED), //
-                "/features/firmware", //
+                resourcePath, //
                 THING, //
-                THING.toJson(JsonFieldSelector.newInstance("/features/firmware/properties/modulesVersions/b")),
+                THING.toJson(JsonFieldSelector.newInstance("/features/firmware/properties/modulesVersions/b"))
+                        .getValue(resourcePath).get().asObject(),
                 Stream.of(
                         SubjectId.newInstance(SubjectIssuer.GOOGLE_URL, SUBJECT_ALL_GRANTED).toString(),
                         SubjectId.newInstance(SubjectIssuer.GOOGLE_URL, SUBJECT_FEATURES_READ_GRANTED).toString(),
