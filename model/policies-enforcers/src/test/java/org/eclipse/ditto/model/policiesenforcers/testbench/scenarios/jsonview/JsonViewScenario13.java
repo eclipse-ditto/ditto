@@ -39,6 +39,7 @@ import org.eclipse.ditto.model.things.ThingsModelFactory;
 public final class JsonViewScenario13 implements JsonViewScenario {
 
     private static final class Permission {
+
         public static final String READ = "READ";
         public static final String WRITE = "WRITE";
 
@@ -96,9 +97,7 @@ public final class JsonViewScenario13 implements JsonViewScenario {
 
         final AuthorizationContext authorizationContext = Scenario.newAuthorizationContext(LABEL_CLIENT);
         final String resource = "/features/" + GYROSCOPE_FEATURE_ID;
-        final JsonObject expectedJsonView = JsonFactory.newObjectBuilder()
-                .set("features", TEST_FEATURES.toJson())
-                .build();
+        final JsonObject expectedJsonView = GYROSCOPE_FEATURE.toJson();
         final Set<String> expectedSubjectIds = new HashSet<>();
         Collections.addAll(expectedSubjectIds, SUBJECT_ID_OWNER.toString(), SUBJECT_ID_CLIENT.toString());
 

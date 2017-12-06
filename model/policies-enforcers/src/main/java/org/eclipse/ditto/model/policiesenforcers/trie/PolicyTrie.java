@@ -169,39 +169,27 @@ final class PolicyTrie {
         return children.containsKey(childKey);
     }
 
-    JsonObject buildJsonView(final Iterator<JsonKey> path, final Iterable<JsonField> jsonFields,
+    JsonObject buildJsonView(final Iterable<JsonField> jsonFields,
             final Set<String> subjectIds, final Permissions permissions) {
 
         // converts jsonFields into a JsonObject
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
         jsonFields.forEach(jsonObjectBuilder::set);
 
-        return buildJsonObjectView(path, jsonObjectBuilder.build(), subjectIds, permissions);
+        return buildJsonObjectView(jsonObjectBuilder.build(), subjectIds, permissions);
     }
 
-    private JsonObject buildJsonObjectView(final Iterator<JsonKey> path, final JsonObject inputObject,
-            final Set<String> subjectIds, final Permissions permissions) {
+    private JsonObject buildJsonObjectView(final JsonObject inputObject, final Set<String> subjectIds,
+            final Permissions permissions) {
 
         final JsonObjectBuilder outputObjectBuilder = JsonFactory.newObjectBuilder();
 
         final PolicyTrie defaultPolicyTrie = new PolicyTrie(grantRevokeIndex, Collections.emptyMap());
 
-        final Stream<JsonField> objectFieldsToCheck;
-
-        if (path.hasNext()) {
-            final JsonKey childKey = path.next();
-            final Optional<JsonValue> maybeFieldValue = inputObject.getValue(childKey);
-            objectFieldsToCheck = maybeFieldValue
-                    .map(value -> Stream.of(JsonField.newInstance(childKey, value)))
-                    .orElse(Stream.empty());
-        } else {
-            objectFieldsToCheck = inputObject.stream();
-        }
-
-        objectFieldsToCheck.forEach(jsonField -> {
+        inputObject.forEach(jsonField -> {
             final JsonValue fieldValue = jsonField.getValue();
             final PolicyTrie relevantTrie = children.getOrDefault(jsonField.getKey(), defaultPolicyTrie);
-            relevantTrie.buildPossiblyEmptyViewForJsonObjectsArraysAndScalars(path, fieldValue, subjectIds, permissions)
+            relevantTrie.buildPossiblyEmptyViewForJsonObjectsArraysAndScalars(fieldValue, subjectIds, permissions)
                     .ifPresent(value -> {
                         if (jsonField.getDefinition().isPresent()) {
                             outputObjectBuilder.set(jsonField.getDefinition().get(), value);
@@ -214,13 +202,13 @@ final class PolicyTrie {
         return outputObjectBuilder.build();
     }
 
-    private Optional<JsonValue> buildPossiblyEmptyViewForJsonObjectsArraysAndScalars(final Iterator<JsonKey> path,
+    private Optional<JsonValue> buildPossiblyEmptyViewForJsonObjectsArraysAndScalars(
             final JsonValue jsonValue,
             final Set<String> subjectIds,
             final Permissions permissions) {
 
         if (jsonValue.isObject()) {
-            final JsonObject candidate = buildJsonObjectView(path, jsonValue.asObject(), subjectIds, permissions);
+            final JsonObject candidate = buildJsonObjectView(jsonValue.asObject(), subjectIds, permissions);
             if (!candidate.isEmpty() || grantRevokeIndex.hasPermissions(subjectIds, permissions)) {
                 return Optional.of(candidate);
             } else {
@@ -229,7 +217,7 @@ final class PolicyTrie {
         } else if (jsonValue.isArray()) {
             final JsonArrayBuilder jsonArrayBuilder = JsonFactory.newArrayBuilder();
             jsonValue.asArray().forEach(element ->
-                    buildPossiblyEmptyViewForJsonObjectsArraysAndScalars(path, element, subjectIds,
+                    buildPossiblyEmptyViewForJsonObjectsArraysAndScalars(element, subjectIds,
                             permissions).ifPresent(
                             jsonArrayBuilder::add));
             final JsonArray candidate = jsonArrayBuilder.build();

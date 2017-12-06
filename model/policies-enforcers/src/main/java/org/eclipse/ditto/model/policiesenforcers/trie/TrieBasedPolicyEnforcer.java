@@ -181,9 +181,8 @@ public final class TrieBasedPolicyEnforcer implements PolicyEnforcer {
         final JsonKey typeKey = JsonKey.of(resourceKey.getResourceType());
 
         if (inheritedTrie.hasChild(typeKey)) {
-            final PolicyTrie start = inheritedTrie.seekToLeastAncestor(Collections.singletonList(typeKey).iterator());
-            final Iterator<JsonKey> pathWithoutType = resourceKey.getResourcePath().iterator();
-            return start.buildJsonView(pathWithoutType, jsonFields, subjectIds, permissions);
+            final PolicyTrie start = inheritedTrie.seekToLeastAncestor(PolicyTrie.getJsonKeyIterator(resourceKey));
+            return start.buildJsonView(jsonFields, subjectIds, permissions);
         } else {
             return JsonFactory.newObject();
         }
