@@ -94,83 +94,64 @@ public final class DevOpsRoute extends AbstractRoute {
      * @return {@code /devops/logging} route.
      */
     private Route logging(final RequestContext ctx, final DittoHeaders dittoHeaders) {
-
-        return route(
-                // /devops/logging/<serviceName>
-                loggingServiceName(ctx, dittoHeaders),
-                // /devops/logging
-                routeLogging(ctx, dittoHeaders, null, null)
-        );
-    }
-
-    /*
-     * @return {@code /devops/logging/<serviceName>} route.
-     */
-    private Route loggingServiceName(final RequestContext ctx, final DittoHeaders dittoHeaders) {
-
-        return rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment()), serviceName ->
-                route(
-                        // /devops/logging/<serviceName>/<instance>
-                        loggingInstance(ctx, dittoHeaders, serviceName),
-                        // /devops/logging/<serviceName>
-                        routeLogging(ctx, dittoHeaders, serviceName, null)
-                )
-        );
-    }
-
-    /*
-     * @return {@code /devops/logging/<serviceName>/<instance>} route.
-     */
-    private Route loggingInstance(final RequestContext ctx, final DittoHeaders dittoHeaders, final String serviceName) {
-        return rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment()),
-                // /devops/logging/<serviceName>/<instance>
-                instance ->
-                        routeLogging(ctx, dittoHeaders, serviceName, Integer.parseInt(instance))
-        );
+        return buildRouteWithOptionalServiceNameAndInstance(ctx, dittoHeaders, this::routeLogging);
     }
 
     /*
     * @return {@code /devops/piggyback} route.
     */
     private Route piggyback(final RequestContext ctx, final DittoHeaders dittoHeaders) {
-        return route(
-                // /devops/piggyback/<serviceName>
-                piggybackServiceName(ctx, dittoHeaders),
-                // /devops/piggyback
-                routePiggyback(ctx, null, null, dittoHeaders)
+        return buildRouteWithOptionalServiceNameAndInstance(ctx, dittoHeaders, this::routePiggyback);
+    }
 
+    /*
+     * @return {@code /devops/<logging|piggyback>/} route.
+     */
+    private static Route buildRouteWithOptionalServiceNameAndInstance(final RequestContext ctx,
+            final DittoHeaders dittoHeaders,
+            final RouteBuilderWithOptionalServiceNameAndInstance routeBuilder) {
+
+        return route(
+                // /devops/<logging|piggyback>/<serviceName>
+                buildRouteWithServiceNameAndOptionalInstance(ctx, dittoHeaders, routeBuilder),
+                // /devops/<logging|piggyback>/
+                routeBuilder.build(ctx, null, null, dittoHeaders)
         );
     }
 
     /*
-     * @return {@code /devops/piggyback/<serviceName>} route.
+     * @return {@code /devops/<logging|piggyback>/<serviceName>} route.
      */
-    private Route piggybackServiceName(final RequestContext ctx, final DittoHeaders dittoHeaders) {
+    private static Route buildRouteWithServiceNameAndOptionalInstance(final RequestContext ctx,
+            final DittoHeaders dittoHeaders,
+            final RouteBuilderWithOptionalServiceNameAndInstance routeBuilder) {
 
         return rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment()), serviceName ->
                 route(
-                        // /devops/piggyback/<serviceName>/<instance>
-                        piggybackInstance(ctx, serviceName, dittoHeaders),
-                        // /devops/piggyback/<serviceName>
-                        routePiggyback(ctx, serviceName, null, dittoHeaders)
+                        // /devops/<logging|piggyback>/<serviceName>/<instance>
+                        buildRouteWithServiceNameAndInstance(ctx, serviceName, dittoHeaders, routeBuilder),
+                        // /devops/<logging|piggyback>/<serviceName>
+                        routeBuilder.build(ctx, serviceName, null, dittoHeaders)
                 )
         );
     }
 
     /*
-     * @return {@code /devops/piggyback/<serviceName>/<instance>} route.
+     * @return {@code /devops/<logging|piggyback>/<serviceName>/<instance>} route.
      */
-    private Route piggybackInstance(final RequestContext ctx, final String serviceName,
-            final DittoHeaders dittoHeaders) {
+    private static Route buildRouteWithServiceNameAndInstance(final RequestContext ctx,
+            final String serviceName,
+            final DittoHeaders dittoHeaders,
+            final RouteBuilderWithOptionalServiceNameAndInstance routeBuilder) {
 
         return rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment()), instance ->
-                // /devops/piggyback/<serviceName>/<instance>
-                routePiggyback(ctx, serviceName, Integer.parseInt(instance), dittoHeaders)
+                // /devops/<logging|piggyback>/<serviceName>/<instance>
+                routeBuilder.build(ctx, serviceName, Integer.parseInt(instance), dittoHeaders)
         );
     }
 
-    private Route routeLogging(final RequestContext ctx, final DittoHeaders dittoHeaders, final String serviceName,
-            final Integer instance) {
+    private Route routeLogging(final RequestContext ctx, final String serviceName, final Integer instance,
+            final DittoHeaders dittoHeaders) {
 
         return route(
                 get(() ->
@@ -247,6 +228,13 @@ public final class DevOpsRoute extends AbstractRoute {
                 DittoHeaders.newBuilder().correlationId(UUID.randomUUID().toString());
         optionalTimeout.ifPresent(t -> headersBuilder.putHeader(TIMEOUT_PARAMETER, Long.toString(t)));
         return headersBuilder.build();
+    }
+
+    @FunctionalInterface
+    private interface RouteBuilderWithOptionalServiceNameAndInstance {
+
+        Route build(final RequestContext ctx, final String serviceName, final Integer instance,
+                final DittoHeaders dittoHeaders);
     }
 
 }
