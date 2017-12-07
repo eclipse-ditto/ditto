@@ -12,6 +12,7 @@
 package org.eclipse.ditto.services.thingsearch.updater.actors;
 
 import java.time.Duration;
+import java.util.function.Function;
 
 import org.eclipse.ditto.services.models.things.ThingTag;
 import org.eclipse.ditto.services.utils.akka.streaming.AbstractStreamForwarder;
@@ -69,5 +70,10 @@ public class ThingsStreamForwarder extends AbstractStreamForwarder<ThingTag> {
     @Override
     protected Class<ThingTag> getElementClass() {
         return ThingTag.class;
+    }
+
+    @Override
+    protected Function<ThingTag, String> getElementIdentifierFunction() {
+        return ThingTag::asIdentifierString;
     }
 }

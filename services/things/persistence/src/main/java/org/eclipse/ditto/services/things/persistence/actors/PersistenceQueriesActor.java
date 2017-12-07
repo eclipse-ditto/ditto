@@ -31,11 +31,17 @@ public final class PersistenceQueriesActor extends AbstractPersistenceStreamingA
      */
     public static final String ACTOR_NAME = "persistenceQueries";
 
-    private final DittoJavaDslMongoReadJournal readJournal = PersistenceQuery.get(getContext().getSystem())
-            .getReadJournalFor(DittoJavaDslMongoReadJournal.class, DittoMongoReadJournal.Identifier());
+    private final DittoJavaDslMongoReadJournal readJournal;
 
     private PersistenceQueriesActor(final int streamingCacheSize) {
         super(streamingCacheSize);
+        this.readJournal = PersistenceQuery.get(getContext().getSystem())
+                .getReadJournalFor(DittoJavaDslMongoReadJournal.class, DittoMongoReadJournal.Identifier());
+    }
+
+    private PersistenceQueriesActor(final int streamingCacheSize, final DittoJavaDslMongoReadJournal readJournal) {
+        super(streamingCacheSize);
+        this.readJournal = readJournal;
     }
 
     /**
@@ -49,8 +55,19 @@ public final class PersistenceQueriesActor extends AbstractPersistenceStreamingA
             private static final long serialVersionUID = 1L;
 
             @Override
-            public PersistenceQueriesActor create() throws Exception {
+            public PersistenceQueriesActor create() {
                 return new PersistenceQueriesActor(streamingCacheSize);
+            }
+        });
+    }
+
+    static Props props(final int streamingCacheSize, final DittoJavaDslMongoReadJournal readJournal) {
+        return Props.create(PersistenceQueriesActor.class, new Creator<PersistenceQueriesActor>() {
+            private static final long serialVersionUID = 1L;
+
+            @Override
+            public PersistenceQueriesActor create() {
+                return new PersistenceQueriesActor(streamingCacheSize, readJournal);
             }
         });
     }

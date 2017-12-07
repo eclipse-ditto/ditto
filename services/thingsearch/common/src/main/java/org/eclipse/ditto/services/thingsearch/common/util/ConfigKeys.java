@@ -99,15 +99,29 @@ public final class ConfigKeys {
      */
     public static final String CLUSTER_MAJORITY_CHECK_DELAY = CLUSTER_MAJORITY_CHECK_PREFIX + "delay";
     private static final String SYNC_PREFIX = SEARCH_UPDATER_PREFIX + "sync.";
+
     /**
-     * The syncing period within which there are requested updated things - only used in case no successful sync has
-     * been run yet, otherwise sync is started where the last run finished.
+     * The syncing period within which there are requested updated things if sync has never been run before -
+     * otherwise sync is started where the last run finished.
      */
-    public static final String THINGS_SYNCER_PERIOD = SYNC_PREFIX + "period";
+    public static final String THINGS_SYNCER_START_OFFSET = SYNC_PREFIX + "start-offset";
+
     /**
-     * The offset for the syncing of things.
+     * The duration from now to somewhere in the past for which things are requested if sync has never
+     * been run before - otherwise sync is started where the last run finished.
+     *
+     * <p>
+     *     NOTE: {@link #THINGS_SYNCER_START_OFFSET} will be added to this duration.
+     * </p>
      */
-    public static final String THINGS_SYNCER_OFFSET = SYNC_PREFIX + "offset";
+    public static final String THINGS_SYNCER_INITIAL_START_OFFSET = SYNC_PREFIX + "initial-start-offset";
+
+    /**
+     * The default interval for polling things (polling may happen more frequently when lots of changes have to be
+     * applied).
+     */
+    public static final String THINGS_SYNCER_POLL_INTERVAL = SYNC_PREFIX + "poll-interval";
+
     /**
      * The maximum idle time of the syncer (as a Duration).
      */

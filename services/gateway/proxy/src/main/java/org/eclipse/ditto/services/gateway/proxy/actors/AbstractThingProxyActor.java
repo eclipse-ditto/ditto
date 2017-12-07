@@ -102,7 +102,7 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
                 })
                 .match(SudoStreamModifiedEntities.class, command -> {
                     getLogger().debug(
-                            "Got 'SudoRetrieveModifiedThingTags' message, forwarding to the Things Persistence");
+                            "Got 'SudoStreamModifiedEntities' message, forwarding to the Things Persistence");
                     pubSubMediator.tell(
                             new DistributedPubSubMediator.Send(THINGS_PERSISTENCE_QUERIES_ACTOR_PATH, command),
                             getSender());

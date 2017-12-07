@@ -109,6 +109,14 @@ public final class ThingTag implements Jsonifiable {
                 .build();
     }
 
+    /**
+     * Returns this tag as an identifier in the format {@code <thingId>:<revision>}.
+     * @return the tag as an identifier
+     */
+    public String asIdentifierString() {
+        return thingId + ":" + revision;
+    }
+
     @Override
     public int hashCode() {
         return Objects.hash(thingId, revision);

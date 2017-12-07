@@ -66,10 +66,12 @@ public abstract class AbstractPersistenceStreamingActor<T>
         // create a separate cache per stream (don't use member variable!)
         final ComparableCache<String, Long> cache = new ComparableCache<>(streamingCacheSize);
         return getJournal().sequenceNumbersOfPidsByInterval(command.getStart(), command.getEnd())
+                .log("unfiltered-streaming", log)
                 // avoid unnecessary streaming of old sequence numbers
                 .filter(pidWithSeqNr -> cache.updateIfNewOrGreater(pidWithSeqNr.persistenceId(),
                         pidWithSeqNr.sequenceNr()))
-                .map(pidWithSeqNr -> createElement(pidWithSeqNr.persistenceId(), pidWithSeqNr.sequenceNr()));
+                .map(pidWithSeqNr -> createElement(pidWithSeqNr.persistenceId(), pidWithSeqNr.sequenceNr()))
+                .log("filtered-streaming", log);
     }
 
 }

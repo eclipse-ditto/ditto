@@ -18,6 +18,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.annotation.Nullable;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.cache.CacheBuilder;
 
 /**
@@ -28,6 +31,8 @@ import com.google.common.cache.CacheBuilder;
  * @param <V> the type of mapped values, has to extend {@link Comparable}
  */
 final class ComparableCache<K, V extends Comparable<V>> {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(ComparableCache.class);
 
     private final ConcurrentMap<K, V> internalCache;
 
@@ -77,7 +82,9 @@ final class ComparableCache<K, V extends Comparable<V>> {
             return existingValue;
         });
 
-        return updated.get();
+        final boolean result = updated.get();
+        LOGGER.debug("Cache update with key <{}> and value <{}> returned: <{}>", key, newValue, result);
+        return result;
     }
 
 }

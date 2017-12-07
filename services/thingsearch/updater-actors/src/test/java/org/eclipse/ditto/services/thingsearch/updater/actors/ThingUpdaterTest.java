@@ -65,6 +65,7 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.eclipse.ditto.signals.events.things.ThingModified;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -797,6 +798,7 @@ public final class ThingUpdaterTest {
         }};
     }
 
+    @Ignore("TODO CR-4696")
     @Test
     public void updaterTerminatesIfAwakenByStaleThingTag() {
         new TestKit(actorSystem) {{

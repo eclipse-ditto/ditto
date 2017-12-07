@@ -11,13 +11,17 @@
  */
 package org.eclipse.ditto.services.utils.akka.streaming;
 
+import static org.eclipse.ditto.services.utils.akka.streaming.StreamConstants.STREAM_FINISHED_MSG;
+
 import java.time.Duration;
 import java.time.Instant;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
-import akka.Done;
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Cancellable;
@@ -27,12 +31,10 @@ import akka.japi.pf.ReceiveBuilder;
 import scala.concurrent.duration.FiniteDuration;
 
 /**
- * Actor that receives a stream of elements, forwards them to another actor, and expects as many
- * acknowledgements as there are streamed elements. Terminates self if no message was received for a period of time.
- * <p>
- * Each stream element is to be acknowledged by a {@code akka.actor.Status.Success}. An {@code akka.Done} object
- * should be sent at the end of the stream.
- * </p>
+ * Actor that receives a stream of elements, forwards them to another actor, and expects as many acknowledgements as
+ * there are streamed elements. Terminates self if no message was received for a period of time. <p> Each stream element
+ * is to be acknowledged by a {@code akka.actor.Status.Success}. At the end of the stream, the special success
+ * message {@link StreamConstants#STREAM_FINISHED_MSG} MUST be sent. </p>
  *
  * @param <E> Type of received stream elements.
  */
@@ -44,11 +46,16 @@ public abstract class AbstractStreamForwarder<E> extends AbstractActor {
     protected final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
     private Instant lastMessageReceived = Instant.now();
-    private long elementCount = 0;
-    private long ackCount = 0;
+    private Set<String> toBeAckedElementIds = new HashSet<>();
+    private long forwardedElementCount = 0;
+    private long ackedElementCount = 0;
     private boolean streamComplete = false;
 
     private Cancellable activityCheck;
+
+    protected AbstractStreamForwarder() {
+        log.info("Creating new StreamForwarder");
+    }
 
     /**
      * Returns the actor to send transformed stream elements to.
@@ -72,12 +79,28 @@ public abstract class AbstractStreamForwarder<E> extends AbstractActor {
     protected abstract Class<E> getElementClass();
 
     /**
-     * Invoked when all stream elements are forwarded and acknowledged.
-     * Do not start asynchronous operations: the actor terminates immediately after this method returns.
+     * Returns a function which maps a stream element to an identifier (to correlate acks).
+     *
+     * @return The function.
+     */
+    protected abstract Function<E, String> getElementIdentifierFunction();
+
+    /**
+     * Invoked when all stream elements are forwarded and acknowledged. Do not start asynchronous operations: the actor
+     * terminates immediately after this method returns.
      */
     private void onSuccess() {
-        log.info("Stream complete: {} elements forwarded, {} acks received.", elementCount, ackCount);
+        log.info("Stream successfully finished");
+        logStreamStatus();
         getSuccessRecipient().tell(new Status.Success(lastMessageReceived), getSelf());
+    }
+
+    private void logStreamStatus() {
+        if (log.isDebugEnabled()) {
+            log.debug("Stream status: {} elements forwarded, {} acks received, " +
+                            "lastMessage received at {}. To be acked: {}",
+                    forwardedElementCount, ackedElementCount, lastMessageReceived, toBeAckedElementIds);
+        }
     }
 
     /**
@@ -108,10 +131,10 @@ public abstract class AbstractStreamForwarder<E> extends AbstractActor {
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
+                .matchEquals(STREAM_FINISHED_MSG, this::handleStreamComplete)
                 .match(getElementClass(), this::transformAndForwardElement)
-                .match(Status.Success.class, unused -> handleAck())
+                .match(Status.Success.class, this::handleAck)
                 .match(Status.Failure.class, this::handleFailure)
-                .match(Done.class, unused -> handleStreamComplete())
                 .match(CheckForActivity.class, unused -> checkForActivity())
                 .matchAny(this::unhandled)
                 .build();
@@ -119,38 +142,55 @@ public abstract class AbstractStreamForwarder<E> extends AbstractActor {
 
     private void transformAndForwardElement(final E element) {
         if (streamComplete) {
-            log.error("Received stream element <{}> after stream termination; will forward it anyway.", element);
+            log.warning("Received stream element <{}> after stream termination; will forward it anyway.", element);
         }
-        elementCount++;
+        final String identifier = getElementIdentifierFunction().apply(element);
+        toBeAckedElementIds.add(identifier);
+        forwardedElementCount++;
+        log.debug("Got element with identifier: {}", identifier);
+
         getRecipient().tell(element, getSelf());
         updateLastMessageReceived();
     }
 
-    private void handleAck() {
-        ackCount++;
+    private void handleAck(final Status.Success success) {
+        final Object status = success.status();
+        if (!(status instanceof String)) {
+            log.warning("Got unexpected ack type: {}", status);
+            return;
+        }
+
+        final String identifier = (String) status;
+        final boolean wasExpected = toBeAckedElementIds.remove(identifier);
+        if (!wasExpected) {
+            log.warning("Got unexpected ack: {}", identifier);
+            return;
+        } else {
+            log.debug("Got ack: {}", identifier);
+            ackedElementCount++;
+        }
+
         updateLastMessageReceived();
         checkAllElementsAreAcknowledged();
     }
 
+
     private void handleFailure(final Status.Failure failure) {
-        log.warning("Received failure after: {} elements forwarded, {} acks received. Failure: {}", elementCount,
-                ackCount, failure);
+        log.warning("Received failure: {}", failure);
+        logStreamStatus();
         shutdown();
     }
 
-    private void handleStreamComplete() {
+    private void handleStreamComplete(final Object msg) {
+        log.debug("Received completion msg: {}", msg);
         streamComplete = true;
         checkAllElementsAreAcknowledged();
     }
 
     private void checkAllElementsAreAcknowledged() {
-        if (streamComplete && ackCount >= elementCount) {
-            if (ackCount > elementCount) {
-                log.warning("Received {} Ack messages, which are more than the {} stream elements forwarded",
-                        ackCount, elementCount);
-            }
-
-            log.info("Stream complete: {} elements forwarded, {} acks received.", elementCount, ackCount);
+        if (streamComplete && toBeAckedElementIds.isEmpty()) {
+            log.info("Stream complete");
+            logStreamStatus();
             onSuccess();
             shutdown();
         }
@@ -159,14 +199,19 @@ public abstract class AbstractStreamForwarder<E> extends AbstractActor {
     private void checkForActivity() {
         final Duration sinceLastMessage = Duration.between(lastMessageReceived, Instant.now());
         if (sinceLastMessage.compareTo(getMaxIdleTime()) > 0) {
-            log.error("Stream timed out. {} elements, {} acks. Last message: <{}>", elementCount, ackCount,
-                    lastMessageReceived);
+            log.error("Stream timed out");
+            logStreamStatus();
             shutdown();
+        } else {
+            log.debug("Stream is still considered as active");
+            logStreamStatus();
         }
     }
 
     private void updateLastMessageReceived() {
         lastMessageReceived = Instant.now();
+        log.debug("Updated last message");
+        logStreamStatus();
     }
 
     private void shutdown() {

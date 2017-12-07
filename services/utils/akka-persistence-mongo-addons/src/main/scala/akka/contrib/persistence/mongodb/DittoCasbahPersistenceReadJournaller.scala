@@ -11,6 +11,7 @@
  */
 package akka.contrib.persistence.mongodb
 
+import java.time.temporal.ChronoUnit
 import java.time.{Duration, Instant}
 import java.util.{Date, UUID}
 
@@ -171,47 +172,41 @@ class SequenceNumbersOfPidsByInterval(val driver: CasbahMongoDriver, start: Inst
 
   import JournallingFieldNames._
 
-  // MongoDB 3.4 object ID consists of:
-  // - 4 byte: number of epoch seconds
-  // - 3 byte: machine ID
-  // - 2 byte: process ID
-  // - 3 byte: counter
-  //
-  // The epoch seconds field is allowed to overflow after year 2038.
-  // The epoch seconds field will no longer reflect the insert time after year 2075.
-  //
-  // The object ID bounds need to be aware of overflow.
-  //
-  def getMongoEpochSecond(instant: Instant): Int = {
-    val epochSeconds: Long = instant.getEpochSecond
-    if (epochSeconds > 0xffffffffL) {
-      val message = s"Year 2106 problem: MongoDB object ID timestamp field overflows unsigned Int! <$instant>"
-      throw new IllegalArgumentException(message)
-    } else {
-      epochSeconds.toInt
-    }
-  }
-
   override protected def initialCursor: Stream[PidWithSeqNr] = {
-    val lowerBound: Int = getMongoEpochSecond(start)
-    val upperBound: Int = getMongoEpochSecond(end.plus(Duration.ofSeconds(1)))
+    /* MongoDBObject IDs do not only contain dates with precision of seconds, thus adjust the range of the query
+       appropriately to make sure a client does not miss data when providing Instants with higher precision
+     */
+    val startTruncatedToSecs = start.truncatedTo(ChronoUnit.SECONDS)
+    val endTruncatedToSecs = end.truncatedTo(ChronoUnit.SECONDS).plus(Duration.ofSeconds(1))
+
+    log.debug("Getting modified PIDs from {} to {}", startTruncatedToSecs, endTruncatedToSecs)
+
+    //val lowerBound: Int = getMongoEpochSecond(start)
+    //val upperBound: Int = getMongoEpochSecond(endPlusOffset)
+    val startObjectId = new ObjectId(Date.from(startTruncatedToSecs))
+    val endObjectId = new ObjectId(Date.from(endTruncatedToSecs))
+
+    log.debug("Limiting query to ObjectIds $gte {} and $lt {}", startObjectId, endObjectId)
+
     driver.journal
       .aggregate(
         List(
           MongoDBObject("$match" -> MongoDBObject(
             "_id" -> MongoDBObject(
-              "$gte" -> new ObjectId(lowerBound, 0, 0.toShort, 0),
-              "$lt" -> new ObjectId(upperBound, 0, 0.toShort, 0))
+              "$gte" -> startObjectId,
+              "$lt" -> endObjectId)
           )),
           MongoDBObject("$project" -> MongoDBObject(
             PROCESSOR_ID -> true,
-            SEQUENCE_NUMBER -> s"$$$EVENTS.$SEQUENCE_NUMBER"
+            SEQUENCE_NUMBER -> "$to" /* "to" contains the max event sequence no for a journal entry (in case of MongoDB
+            there seems to be only one event per entry anyway, thus "from" could also be used. */
           ))
         ),
         AggregationOptions(AggregationOptions.CURSOR)
       )
       .toStream
-      .map(foo => PidWithSeqNr(foo.getAs[String](PROCESSOR_ID).get, foo.getAs[Long](SEQUENCE_NUMBER).get))
+      .map(foo => PidWithSeqNr(foo.getAs[String](PROCESSOR_ID).get,
+        foo.getAs[Long](SEQUENCE_NUMBER).get))
   }
 
   override protected def next(c: Stream[PidWithSeqNr], atMost: Long): (Vector[PidWithSeqNr], Stream[PidWithSeqNr]) = {

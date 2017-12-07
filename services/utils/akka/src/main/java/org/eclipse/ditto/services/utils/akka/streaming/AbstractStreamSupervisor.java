@@ -34,6 +34,8 @@ import scala.concurrent.duration.FiniteDuration;
  */
 public abstract class AbstractStreamSupervisor<C> extends AbstractActor {
 
+    private static final String STREAM_FORWARDER_ACTOR_NAME = "streamForwarder";
+
     protected final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
     private final SupervisorStrategy supervisorStrategy =
@@ -109,6 +111,13 @@ public abstract class AbstractStreamSupervisor<C> extends AbstractActor {
 
     protected abstract void onSuccess();
 
+    /**
+     * Allows to trigger streaming on demand, independently from {@link #getPollInterval()}.
+     */
+    protected final void triggerStreaming() {
+        checkForActivity();
+    }
+
     private void checkForActivity() {
         if (hasChild()) {
             getContext().getChildren().forEach(child -> log.info("Activity check - Stream is ongoing: {}", child));
@@ -122,7 +131,7 @@ public abstract class AbstractStreamSupervisor<C> extends AbstractActor {
             log.error("Got unexpected startStreamCommand while a stream is ongoing: <{}>", startStreamCommand);
         } else {
             final ActorRef streamingActor = getStreamingActor();
-            final ActorRef child = getContext().actorOf(getStreamForwarderProps());
+            final ActorRef child = getContext().actorOf(getStreamForwarderProps(), STREAM_FORWARDER_ACTOR_NAME);
             log.info("Requesting stream from <{}> on behalf of <{}> by <{}>", streamingActor, child,
                     startStreamCommand);
             getStreamingActor().tell(startStreamCommand, child);

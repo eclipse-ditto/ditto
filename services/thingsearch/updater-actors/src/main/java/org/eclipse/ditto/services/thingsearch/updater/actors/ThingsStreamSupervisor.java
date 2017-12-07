@@ -49,16 +49,22 @@ public final class ThingsStreamSupervisor extends AbstractStreamSupervisor<Send>
     private final ActorRef thingsUpdater;
     private final ThingsSearchSyncPersistence syncPersistence;
     private final Materializer materializer;
-    private final Duration initialSyncOffset;
+    private final Duration initialStartOffset;
     private final Duration pollInterval;
     private final Duration maxIdleTime;
     private final int elementsStreamedPerSecond;
+    /* the offset for the start timestamp - needed to make sure that we don't lose events, cause the timestamp
+       of a thing-event is created before the actual insert to the DB
+     */
+    private Duration startOffset;
+    private @Nullable Instant currentStreamStartTs = null;
     private @Nullable Instant currentStreamEndTs = null;
-    private @Nullable Instant lastStreamEndTs = null;
+    private @Nullable Instant lastSuccessfulStreamEndTs = null;
 
     private ThingsStreamSupervisor(final ActorRef thingsUpdater, final ThingsSearchSyncPersistence syncPersistence,
             final Materializer materializer,
-            final Duration initialSyncOffset,
+            final Duration startOffset,
+            final Duration initialStartOffset,
             final Duration pollInterval,
             final Duration maxIdleTime,
             final int elementsStreamedPerSecond) {
@@ -66,7 +72,8 @@ public final class ThingsStreamSupervisor extends AbstractStreamSupervisor<Send>
         this.syncPersistence = syncPersistence;
         this.materializer = materializer;
 
-        this.initialSyncOffset = initialSyncOffset;
+        this.startOffset = startOffset;
+        this.initialStartOffset = initialStartOffset;
         this.pollInterval = pollInterval;
         this.maxIdleTime = maxIdleTime;
         this.elementsStreamedPerSecond = elementsStreamedPerSecond;
@@ -80,17 +87,20 @@ public final class ThingsStreamSupervisor extends AbstractStreamSupervisor<Send>
      * @param thingsUpdater the things updater actor
      * @param syncPersistence the sync persistence
      * @param materializer the materializer for the akka actor system.
-     * @param initialSyncOffset the duration starting from which the modified tags are requested for the first time
+     * @param startOffset the offset for the start timestamp - it is needed to make sure that we don't lose events,
+     * cause the timestamp of a thing-event is created before the actual insert to the DB
+     * @param initialStartOffset the duration starting from which the modified tags are requested for the first time
      * (further syncs will know the last-success timestamp)
-     * @param pollInterval the duration for which the modified tags are requested (starting from last-success
-     * timestamp or initialSyncOffset)
+     * @param pollInterval the duration for which the modified tags are requested (starting from last-success timestamp
+     * or initialStartOffset)
      * @param maxIdleTime the maximum idle time of the underlying stream forwarder
      * @param elementsStreamedPerSecond the elements to be streamed per second
      * @return the props
      */
     public static Props props(final ActorRef thingsUpdater, final ThingsSearchSyncPersistence syncPersistence,
             final Materializer materializer,
-            final Duration initialSyncOffset,
+            final Duration startOffset,
+            final Duration initialStartOffset,
             final Duration pollInterval,
             final Duration maxIdleTime,
             final int elementsStreamedPerSecond) {
@@ -99,8 +109,8 @@ public final class ThingsStreamSupervisor extends AbstractStreamSupervisor<Send>
 
             @Override
             public ThingsStreamSupervisor create() throws Exception {
-                return new ThingsStreamSupervisor(thingsUpdater, syncPersistence, materializer, initialSyncOffset,
-                        pollInterval, maxIdleTime, elementsStreamedPerSecond);
+                return new ThingsStreamSupervisor(thingsUpdater, syncPersistence, materializer, startOffset,
+                        initialStartOffset, pollInterval, maxIdleTime, elementsStreamedPerSecond);
             }
         });
     }
@@ -120,27 +130,46 @@ public final class ThingsStreamSupervisor extends AbstractStreamSupervisor<Send>
         if (currentStreamEndTs == null) {
             log.error("No currentStreamEndTs available, cannot update last sync timestamp.");
         } else {
-            lastStreamEndTs = currentStreamEndTs;
+            lastSuccessfulStreamEndTs = currentStreamEndTs;
             final String successMessage = MessageFormat
-                    .format("Updated last sync timestamp to value: <{0}>", lastStreamEndTs);
-            syncPersistence.updateLastSuccessfulSyncTimestamp(lastStreamEndTs)
+                    .format("Updating last sync timestamp to value: <{0}>", lastSuccessfulStreamEndTs);
+            syncPersistence.updateLastSuccessfulSyncTimestamp(lastSuccessfulStreamEndTs)
                     .runWith(akka.stream.javadsl.Sink.last(), materializer)
                     .thenRun(() -> log.info(successMessage));
+
+            // explicitly trigger streaming (independently from pollInterval) when we have to catch up..
+            final Instant now = Instant.now();
+            final Duration diffBetweenNowAndLastSuccessfulStreamEndTs =
+                    Duration.between(now, lastSuccessfulStreamEndTs);
+            if (diffBetweenNowAndLastSuccessfulStreamEndTs.compareTo(pollInterval) > 0) {
+                log.warning("Difference between lastSuccessfulStreamEndTs <{}> and " +
+                                " now <{}> is <{}>, which is greater than pollInterval <{}>. Explicitly trigger streaming.",
+                        lastSuccessfulStreamEndTs, now, diffBetweenNowAndLastSuccessfulStreamEndTs, pollInterval);
+                triggerStreaming();
+            }
         }
     }
 
     @Override
     protected CompletionStage<Send> newStartStreamingCommand() {
-        // short-cut: we do not need to access the database if the last end ts is known
-        if (lastStreamEndTs != null) {
-            return CompletableFuture.completedFuture(createStartStreamingCommand(lastStreamEndTs));
+        // short-cut: we do not need to access the database if last synch was successful
+        if (lastSuccessfulStreamEndTs != null) {
+            return CompletableFuture.completedFuture(
+                    createStartStreamingCommand(lastSuccessfulStreamEndTs.minus(startOffset)));
+        }
+
+        // short-cut: if there was already a synch executed and it was not successful, re-trigger with this startTs
+        if (currentStreamStartTs != null) {
+            return CompletableFuture.completedFuture(createStartStreamingCommand(currentStreamStartTs));
         }
 
         // the initial start ts is only used when no sync has been run yet (i.e. no timestamp has been persisted)
-        final Instant initialStartTs = Instant.now().minus(initialSyncOffset);
+        final Instant now = Instant.now();
+        final Instant initialStartTsWithoutStandardOffset = now.minus(initialStartOffset);
 
         final scala.concurrent.Future<Send> sendFuture =
-                syncPersistence.retrieveLastSuccessfulSyncTimestamp(initialStartTs)
+                syncPersistence.retrieveLastSuccessfulSyncTimestamp(initialStartTsWithoutStandardOffset)
+                        .map(startTsWithoutOffset -> startTsWithoutOffset.minus(startOffset))
                         .map(this::createStartStreamingCommand)
                         .runWith(Sink.head(), materializer);
 
@@ -148,7 +177,9 @@ public final class ThingsStreamSupervisor extends AbstractStreamSupervisor<Send>
     }
 
     private Send createStartStreamingCommand(final Instant startTs) {
-        final Instant endTs = startTs.plus(pollInterval);
+        currentStreamStartTs = startTs;
+        lastSuccessfulStreamEndTs = null;
+        final Instant endTs = calculateEndTs(Instant.now(), startTs);
         currentStreamEndTs = endTs;
 
         final SudoStreamModifiedEntities retrieveModifiedThingTags =
@@ -156,6 +187,14 @@ public final class ThingsStreamSupervisor extends AbstractStreamSupervisor<Send>
                         DittoHeaders.empty());
 
         return new Send(THINGS_ACTOR_PATH, retrieveModifiedThingTags, true);
+    }
+
+    private Instant calculateEndTs(final Instant now, final Instant startTs) {
+        if (Duration.between(now, startTs).compareTo(pollInterval) > 0) {
+            return startTs.plus(pollInterval);
+        } else {
+            return now;
+        }
     }
 
     @Override

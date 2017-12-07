@@ -151,8 +151,8 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
     private long policyRevision = -1L;
     private PolicyEnforcer policyEnforcer;
 
-    // recipient of notification of successful synchronization
-    private ActorRef syncStatusRecipient = null;
+    // notification of successful synchronization
+    private SyncSuccessMessage syncSuccessMessage = null;
 
     private ThingUpdater(final java.time.Duration thingsTimeout,
             final ActorRef thingsShardRegion,
@@ -306,7 +306,11 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
     private void becomeInitialMessageHandling() {
         final Receive behavior = ReceiveBuilder.create()
                 .match(ThingEvent.class, this::processInitialThingEvent)
-                .match(ThingTag.class, thingTag -> processThingTag(thingTag, true))
+                /* TODO CR-4696: with the new tags-streaming approach, checkThingTagOnly-param seems not to make sense
+                   anymore, cause we don't know which and how many events will arrive in the future and we
+                   might get lots of unnecessary actor restarts
+                 */
+                .match(ThingTag.class, thingTag -> processThingTag(thingTag, false))
                 .matchAny(message -> {
                     // this actor is not created due to a ThingTag message; handle current message by event processing
                     becomeEventProcessing();
@@ -390,7 +394,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         log.debug("Received new Thing Tag for thing <{}> with revision <{}> - last known revision is <{}>",
                 thingId, thingTag.getRevision(), sequenceNumber);
 
-        syncStatusRecipient = getSender();
+        syncSuccessMessage = new SyncSuccessMessage(getSender(), thingTag);
 
         final boolean shouldStopThisActor;
         if (thingTag.getRevision() > sequenceNumber) {
@@ -730,12 +734,22 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
      * with nonempty sender for example.
      */
     private void reportSyncSuccess() {
+        if (syncSuccessMessage == null) {
+            log.debug("Cannot report success, cause no recipient is available.");
+            return;
+        }
+
+        final ActorRef syncStatusRecipient = syncSuccessMessage.recipient;
         final ActorRef deadLetters = getContext().getSystem().deadLetters();
-        if (null != syncStatusRecipient && !Objects.equals(syncStatusRecipient, deadLetters)) {
-            final Object success = new Status.Success(thingId);
+        if (Objects.equals(syncStatusRecipient, deadLetters)) {
+            log.debug("Cannot report success, cause recipient is deadletters.");
+        } else {
+            final Object success = syncSuccessMessage.success;
+            log.debug("Reporting sync-success <{}> to <{}>", success, syncStatusRecipient);
             syncStatusRecipient.tell(success, getSelf());
         }
-        syncStatusRecipient = null;
+
+        syncSuccessMessage = null;
     }
 
     private void handleSyncThingResponse(final Cancellable timeout, final SudoRetrieveThingResponse response) {
@@ -856,6 +870,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         if (isTrue(success)) {
             log.info("Thing <{}> was deleted from search index due to synchronization. The actor will be stopped now.",
                     thingId);
+            reportSyncSuccess();
             //stop the actor as the thing was deleted
             stopThisActor();
         } else if (throwable != null) {
@@ -864,6 +879,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
             triggerSynchronization();
         } else {
             //the thing did not exist anyway in the search index -> stop the actor
+            reportSyncSuccess();
             stopThisActor();
         }
     }
@@ -1042,4 +1058,13 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
 
     private static class ActorInitializationComplete {}
 
+    private static final class SyncSuccessMessage {
+        private final ActorRef recipient;
+        private final Status.Success success;
+
+        private SyncSuccessMessage(final ActorRef recipient, final ThingTag thingTag) {
+            this.recipient = recipient;
+            this.success = new Status.Success(thingTag.asIdentifierString());
+        }
+    }
 }

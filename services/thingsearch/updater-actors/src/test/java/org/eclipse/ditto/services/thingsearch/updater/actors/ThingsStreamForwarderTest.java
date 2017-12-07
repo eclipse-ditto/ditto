@@ -12,6 +12,7 @@
 package org.eclipse.ditto.services.thingsearch.updater.actors;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.eclipse.ditto.services.utils.akka.streaming.StreamConstants.STREAM_FINISHED_MSG;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -24,7 +25,6 @@ import org.junit.Test;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
-import akka.Done;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Status;
@@ -103,7 +103,7 @@ public class ThingsStreamForwarderTest {
                 thingsUpdater.expectMsg(KNOWN_TAG_2);
                 thingsUpdater.reply(new Status.Failure(new IllegalStateException("something bad happened")));
 
-                thingsStreamForwarder.tell(Done.getInstance(), ActorRef.noSender());
+                thingsStreamForwarder.tell(STREAM_FINISHED_MSG, ActorRef.noSender());
 
                 expectTerminated(thingsStreamForwarder);
                 successRecipient.expectNoMessage(FiniteDuration.Zero());
@@ -123,14 +123,14 @@ public class ThingsStreamForwarderTest {
                 thingsStreamForwarder.tell(KNOWN_TAG_1, ActorRef.noSender());
 
                 thingsUpdater.expectMsg(KNOWN_TAG_1);
-                thingsUpdater.reply(new Status.Success(KNOWN_THING_ID));
+                thingsUpdater.reply(new Status.Success(KNOWN_TAG_1.asIdentifierString()));
 
                 thingsStreamForwarder.tell(KNOWN_TAG_2, ActorRef.noSender());
 
                 thingsUpdater.expectMsg(KNOWN_TAG_2);
-                thingsUpdater.reply(new Status.Success(KNOWN_THING_ID));
+                thingsUpdater.reply(new Status.Success(KNOWN_TAG_2.asIdentifierString()));
 
-                thingsStreamForwarder.tell(Done.getInstance(), ActorRef.noSender());
+                thingsStreamForwarder.tell(STREAM_FINISHED_MSG, ActorRef.noSender());
 
                 final Status.Success success = successRecipient.expectMsgClass(Status.Success.class);
 

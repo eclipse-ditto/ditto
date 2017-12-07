@@ -12,10 +12,10 @@
 package org.eclipse.ditto.services.utils.akka.streaming;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.eclipse.ditto.services.utils.akka.streaming.StreamConstants.STREAM_FINISHED_MSG;
 
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
-import akka.Done;
 import akka.NotUsed;
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -75,13 +75,15 @@ public abstract class AbstractStreamingActor<C, E> extends AbstractActor {
     }
 
     private void startStreaming(final C command) {
+        log.debug("Starting streaming due to command: {}", command);
         final ActorRef recipient = getSender();
         final int elementsPerSecond = getRate(command);
         final FiniteDuration second = FiniteDuration.create(1, SECONDS);
 
         createSource(command)
                 .throttle(elementsPerSecond, second, elementsPerSecond, ThrottleMode.shaping())
-                .runWith(Sink.actorRef(recipient, Done.getInstance()), materializer);
+                .log("throttled-streaming", log)
+                .runWith(Sink.actorRef(recipient, STREAM_FINISHED_MSG), materializer);
 
     }
 }
