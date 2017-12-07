@@ -95,7 +95,7 @@ public final class DevOpsCommandsActor extends AbstractActor {
      */
     public static Props props(final LoggingFacade loggingFacade, final String serviceName, final Integer instance) {
         return Props.create(DevOpsCommandsActor.class,
-                (Creator<DevOpsCommandsActor>) () -> new DevOpsCommandsActor(loggingFacade, serviceName, instance));
+                () -> new DevOpsCommandsActor(loggingFacade, serviceName, instance));
     }
 
     @Override
