@@ -77,26 +77,30 @@ public abstract class AbstractMongoEventAdapter<T extends Event> implements Even
     public EventSeq fromJournal(final Object event, final String manifest) {
         if (event instanceof DBObject) {
             final DBObject dbObject = (DBObject) event;
-            return EventSeq.single(tryToParseEvent(DittoBsonJson.getInstance().serialize(dbObject)));
+            return EventSeq.single(tryParseEvent(DittoBsonJson.getInstance().serialize(dbObject)));
         } else {
             throw new IllegalArgumentException(
                     "Unable to fromJournal a non-'DBObject' object! Was: " + event.getClass());
         }
     }
 
-    private T tryToParseEvent(final JsonValue json) {
+    private T tryParseEvent(final JsonValue jsonValue) {
         try {
-            final JsonObject jsonObject = json.asObject()
-                    .setValue(Event.JsonFields.REVISION.getPointer(), Event.DEFAULT_REVISION);
-            return eventRegistry.parse(jsonObject, DittoHeaders.empty());
+            return parseEvent(jsonValue);
         } catch (final JsonParseException | DittoRuntimeException e) {
             if (system != null) {
-                system.log().error(e, "Could not deserialize Event JSON: '{}'", json);
+                system.log().error(e, "Could not deserialize Event JSON: '{}'", jsonValue);
             } else {
-                LOGGER.error("Could not deserialize Event JSON: '{}': {}", json, e.getMessage());
+                LOGGER.error("Could not deserialize Event JSON: '{}': {}", jsonValue, e.getMessage());
             }
             return null;
         }
+    }
+
+    private T parseEvent(final JsonValue jsonValue) {
+        final JsonObject jsonObject = jsonValue.asObject()
+                .setValue(Event.JsonFields.REVISION.getPointer(), Event.DEFAULT_REVISION);
+        return eventRegistry.parse(jsonObject, DittoHeaders.empty());
     }
 
 }
