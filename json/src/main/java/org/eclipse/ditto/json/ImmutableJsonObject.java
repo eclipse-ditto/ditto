@@ -227,27 +227,17 @@ final class ImmutableJsonObject extends AbstractImmutableJsonValue implements Js
         final Optional<JsonValue> result;
 
         final JsonKey rootKey = pointer.getRoot().orElse(ROOT_KEY);
-        if (1 >= pointer.getLevelCount()) {
+        final int levelCount = pointer.getLevelCount();
+        if (0 == levelCount) {
+            result = Optional.of(this);
+        } else if (1 == levelCount) {
             // same as getting a value for a key
             result = getValueForKey(rootKey);
         } else {
-            final Optional<JsonValue> jsonValue = getValueForKey(rootKey);
-            final boolean isArray = jsonValue.filter(JsonValue::isArray).isPresent();
-
-            if (isArray) {
-                result = jsonValue
-                        .map(JsonValue::asArray)
-                        .map(JsonValueContainer::stream)
-                        .map(jsonValueStream -> jsonValueStream
-                                .map(JsonValue::asObject)
-                                .map(jsonObject -> jsonObject.getValue(pointer.nextLevel()))
-                                .map(Optional::get)
-                                .collect(JsonCollectors.valuesToArray()));
-            } else {
-                result = jsonValue.filter(JsonValue::isObject)
-                        .map(JsonValue::asObject)
-                        .flatMap(jsonObject -> jsonObject.getValue(pointer.nextLevel()));
-            }
+            result = getValueForKey(rootKey)
+                    .filter(JsonValue::isObject)
+                    .map(JsonValue::asObject)
+                    .flatMap(jsonObject -> jsonObject.getValue(pointer.nextLevel()));
         }
 
         return result;
