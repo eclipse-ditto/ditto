@@ -35,7 +35,7 @@ import akka.persistence.journal.EventSeq;
 /**
  * Abstract event adapter for {@link org.eclipse.ditto.signals.events.base.Event}.
  */
-public class AbstractMongoEventAdapter<T extends Event> implements EventAdapter {
+public abstract class AbstractMongoEventAdapter<T extends Event> implements EventAdapter {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractMongoEventAdapter.class);
     private static final Predicate<JsonField> IS_REVISION = field -> field.getDefinition()
