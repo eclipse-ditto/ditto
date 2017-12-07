@@ -145,15 +145,15 @@ public final class DevOpsCommandsActor extends AbstractActor {
 
         final DevOpsCommand wrappedCommand = devOpsCommandViaPubSub.wrappedCommand;
         if (wrappedCommand instanceof ChangeLogLevel) {
-            handleDevOpsCommand((ChangeLogLevel) wrappedCommand);
+            handleChangeLogLevel((ChangeLogLevel) wrappedCommand);
         } else if (wrappedCommand instanceof RetrieveLoggerConfig) {
-            handleDevOpsCommand((RetrieveLoggerConfig) wrappedCommand);
+            handleRetrieveLoggerConfig((RetrieveLoggerConfig) wrappedCommand);
         } else if (wrappedCommand instanceof ExecutePiggybackCommand) {
-            handleDevOpsCommand((ExecutePiggybackCommand) wrappedCommand);
+            handleExecutePiggyBack((ExecutePiggybackCommand) wrappedCommand);
         }
     }
 
-    private void handleDevOpsCommand(final ChangeLogLevel command) {
+    private void handleChangeLogLevel(final ChangeLogLevel command) {
 
         final Boolean isApplied = loggingFacade.setLogLevel(command.getLoggerConfig());
         final ChangeLogLevelResponse changeLogLevelResponse =
@@ -161,7 +161,7 @@ public final class DevOpsCommandsActor extends AbstractActor {
         getSender().tell(changeLogLevelResponse, getSelf());
     }
 
-    private void handleDevOpsCommand(final RetrieveLoggerConfig command) {
+    private void handleRetrieveLoggerConfig(final RetrieveLoggerConfig command) {
 
         final List<LoggerConfig> loggerConfigs;
 
@@ -176,7 +176,7 @@ public final class DevOpsCommandsActor extends AbstractActor {
         getSender().tell(retrieveLoggerConfigResponse, getSelf());
     }
 
-    private void handleDevOpsCommand(final ExecutePiggybackCommand command) {
+    private void handleExecutePiggyBack(final ExecutePiggybackCommand command) {
 
         LogUtil.enhanceLogWithCorrelationId(log, command);
 
@@ -264,7 +264,8 @@ public final class DevOpsCommandsActor extends AbstractActor {
     }
 
     /**
-     * Child actor correlating the {@link DevOpsCommandResponse}s
+     * Child actor correlating the {@link DevOpsCommandResponse}s. Waits for and collects responses until time runs out,
+     * then forwards all collected responses to the sender of the original DevOps command.
      */
     private static final class DevOpsCommandResponseCorrelationActor extends AbstractActor {
 
