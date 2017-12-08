@@ -16,9 +16,7 @@ import static java.util.Objects.requireNonNull;
 import java.io.NotSerializableException;
 import java.nio.charset.Charset;
 import java.text.MessageFormat;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiFunction;
@@ -43,10 +41,6 @@ import org.slf4j.LoggerFactory;
 
 import akka.actor.ExtendedActorSystem;
 import akka.serialization.SerializerWithStringManifest;
-import scala.Tuple2;
-import scala.collection.JavaConversions;
-import scala.reflect.ClassTag;
-import scala.util.Try;
 
 /**
  * Abstract {@link SerializerWithStringManifest} which handles serializing and deserializing {@link Jsonifiable}s
@@ -76,17 +70,10 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
 
         this.identifier = identifier;
 
-        // load via config the class implementing MappingStrategy:
-        final String mappingStrategyClass =
-                actorSystem.settings().config().getString("ditto.mapping-strategy.implementation");
-        final ClassTag<MappingStrategy> tag = scala.reflect.ClassTag$.MODULE$.apply(MappingStrategy.class);
-        final List<Tuple2<Class<?>, Object>> constructorArgs = new ArrayList<>();
-        final Try<MappingStrategy> mappingStrategy =
-                actorSystem.dynamicAccess().createInstanceFor(mappingStrategyClass,
-                        JavaConversions.asScalaBuffer(constructorArgs).toList(), tag);
+        final MappingStrategy mappingStrategy = MappingStrategy.loadMappingStrategy(actorSystem);
 
         mappingStrategies = new HashMap<>();
-        mappingStrategies.putAll(requireNonNull(mappingStrategy.get().determineStrategy(), "mapping strategy"));
+        mappingStrategies.putAll(requireNonNull(mappingStrategy.determineStrategy(), "mapping strategy"));
         this.manifestProvider = requireNonNull(manifestProvider, "manifest provider");
     }
 

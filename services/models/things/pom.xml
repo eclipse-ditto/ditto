@@ -38,6 +38,10 @@
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-signals-commands-things</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-signals-commands-devops</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>org.eclipse.ditto</groupId>

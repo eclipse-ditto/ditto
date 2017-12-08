@@ -17,6 +17,8 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Objects;
@@ -27,7 +29,6 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
-import org.bson.conversions.Bson;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
@@ -48,9 +49,9 @@ import org.eclipse.ditto.services.models.things.ThingTag;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SyncThing;
+import org.eclipse.ditto.services.thingsearch.persistence.write.EventToPersistenceStrategyFactory;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingMetadata;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
-import org.eclipse.ditto.services.thingsearch.persistence.write.impl.CombinedThingWrites;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.ShardedMessageEnvelope;
 import org.eclipse.ditto.services.utils.distributedcache.actors.ModifyCacheEntryResponse;
@@ -130,7 +131,6 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
     private final java.time.Duration activityCheckInterval;
     private final ThingsSearchUpdaterPersistence searchUpdaterPersistence;
     private final CircuitBreaker circuitBreaker;
-    private final ActorRef thingCacheFacade;
     private final ActorRef policyCacheFacade;
     private final Materializer materializer;
 
@@ -142,7 +142,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
     private boolean transactionActive;
     private int syncAttempts;
     private Cancellable activityChecker;
-    private CombinedThingWrites.Builder intermediateCombinedWritesBuilder;
+    private List<ThingEvent> gatheredEvents;
 
     // state of Thing and Policy
     private long sequenceNumber = -1L;
@@ -166,8 +166,8 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         this.activityCheckInterval = activityCheckInterval;
         this.searchUpdaterPersistence = searchUpdaterPersistence;
         this.circuitBreaker = circuitBreaker;
-        this.thingCacheFacade = thingCacheFacade;
         this.policyCacheFacade = policyCacheFacade;
+        this.gatheredEvents = new ArrayList<>();
 
         thingId = tryToGetThingId(StandardCharsets.UTF_8);
         materializer = ActorMaterializer.create(getContext());
@@ -410,10 +410,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         if (cacheEntry.getRevision() > sequenceNumber) {
             if (cacheEntry.isDeleted()) {
                 log.info("ThingCacheEntry was deleted, therefore deleting the Thing from search index: {}", cacheEntry);
-                final Cancellable timeout =
-                        scheduleTimeoutForResponse(Timeout.durationToTimeout(thingsTimeout),
-                                "Deleting Thing from search index failed.");
-                deleteThingFromSearchIndex(timeout);
+                deleteThingFromSearchIndex(thingsTimeout);
             } else {
                 log.info(
                         "The ThingCacheEntry for the thing <{}> has the revision {} with is greater than the current actor's"
@@ -433,10 +430,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
                         cacheEntry);
                 policyEnforcer = null;
                 policyRevision = cacheEntry.getRevision();
-                final Cancellable timeout =
-                        scheduleTimeoutForResponse(Timeout.durationToTimeout(thingsTimeout),
-                                "Deleting Thing from search index failed.");
-                deleteThingFromSearchIndex(timeout);
+                deleteThingFromSearchIndex(thingsTimeout);
             } else {
                 log.info(
                         "The PolicyCacheEntry for the policy <{}> has the revision {} with is greater than the current actor's"
@@ -451,15 +445,14 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         log.debug("Received new thing event for thing id <{}> with revision <{}>.", thingId,
                 thingEvent.getRevision());
 
+        // check if the revision is valid (thingEvent.revision = 1 + sequenceNumber)
         if (thingEvent.getRevision() <= sequenceNumber) {
             log.info("Dropped thing event for thing id <{}> with revision <{}> because it was older than or "
                             + "equal to the current sequence number <{}> of the update actor.", thingId,
                     thingEvent.getRevision(), sequenceNumber);
-        }
-        else if (shortcutTakenForThingEvent(thingEvent)) {
+        } else if (shortcutTakenForThingEvent(thingEvent)) {
             log.debug("Shortcut taken for thing event <{}>.", thingEvent);
-        }
-        else if (thingEvent.getRevision() > sequenceNumber + 1) {
+        } else if (thingEvent.getRevision() > sequenceNumber + 1) {
             log.info("Triggering synchronization for thing <{}> because the received revision <{}> is higher than"
                     + " the expected sequence number <{}>.", thingId, thingEvent.getRevision(), sequenceNumber + 1);
             triggerSynchronization();
@@ -469,20 +462,26 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         } else {
             // attempt to add event, trigger synchronization in case of failures
             try {
-                if (transactionActive) {
-                    log.info("The update actor for thing <{}> is at the moment already processing a MongoDB update"
-                                    + " operation and therefore the the current event is added to the"
-                                    + " intermediate write builder.",
-                            thingId);
-                    addEventToIntermediateBuilder(thingEvent);
-                    log.debug("Intermediate CombinedWrites builder has <{}> entries.",
-                            intermediateCombinedWritesBuilder.getSize());
-                } else {
-                    final CombinedThingWrites.Builder localCombinedWritesBuilder =
-                            CombinedThingWrites.newBuilder(log, sequenceNumber, policyEnforcer);
+                // verify the type is one of the 'allowed' types
+                if (!EventToPersistenceStrategyFactory.isTypeAllowed(thingEvent.getType())) {
+                    final String pattern = "Not processing Thing Event since its Type <{0}> is not allowed";
+                    throw new IllegalStateException(MessageFormat.format(pattern, thingEvent.getType()));
+                }
 
-                    addEventToBuilder(localCombinedWritesBuilder, thingEvent);
-                    executeWrites(localCombinedWritesBuilder);
+                // TODO: explicitly setting the schema version here feels wrong...
+                final DittoHeaders versionedHeaders = thingEvent.getDittoHeaders().toBuilder()
+                        .schemaVersion(schemaVersionToCheck())
+                        .build();
+                final ThingEvent versionedThingEvent = thingEvent.setDittoHeaders(versionedHeaders);
+                if (transactionActive) {
+                    log.info("The update actor for thing <{}> is currently busy. The current event will be " +
+                                    "processed after the actor is.",
+                            thingId);
+                    addEventToGatheredEvents(versionedThingEvent);
+                    log.debug("Currently gathered <{}> events to be processed after actor has finished being busy",
+                            gatheredEvents.size());
+                } else {
+                    persistThingEvents(Collections.singletonList(versionedThingEvent));
                 }
 
                 // Update state related to the Thing. Policy state is maintained by synchronization.
@@ -492,6 +491,10 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
                 triggerSynchronization();
             }
         }
+    }
+
+    private void addEventToGatheredEvents(final ThingEvent thingEvent) {
+        gatheredEvents.add(thingEvent);
     }
 
     private static boolean needToReloadPolicy(final ThingEvent thingEvent) {
@@ -524,41 +527,32 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         }
     }
 
-    private JsonSchemaVersion schemaVersionToCheck(final ThingEvent thingEvent) {
-        if (thingEvent instanceof ThingCreated) {
-            return ((ThingCreated) thingEvent).getThing().getImplementedSchemaVersion();
-        } else if (thingEvent instanceof ThingModified) {
-            // handle things migrating from v1 to v2.
-            // v1 events always come with ACL.
-            // v2 events has no ACL. if it has no policyId either, then sync will be triggered.
-            return ((ThingModified) thingEvent).getThing().getImplementedSchemaVersion();
-        } else {
-            return Optional.ofNullable(schemaVersion)
-                    .orElse(policyId == null ? JsonSchemaVersion.V_1 : JsonSchemaVersion.LATEST);
-        }
+    private JsonSchemaVersion schemaVersionToCheck() {
+        return Optional.ofNullable(schemaVersion)
+                .orElse(policyId == null ? JsonSchemaVersion.V_1 : JsonSchemaVersion.LATEST);
     }
 
-    private void executeWrites(final CombinedThingWrites.Builder combinedWritesBuilder) {
-        final CombinedThingWrites combinedWrites = combinedWritesBuilder.build();
-        final List<Bson> combinedWriteDocuments = combinedWrites.getCombinedWriteDocuments();
-        log.debug("Executing bulk write operation with <{}> updates.", combinedWriteDocuments.size());
-        transactionActive = true;
+    private void persistThingEvents(final List<ThingEvent> thingEvents) {
+        log.debug("Executing bulk write operation with <{}> updates.", thingEvents.size());
+        if (!thingEvents.isEmpty()) {
+            transactionActive = true;
+            final TraceContext traceContext = Kamon.tracer().newContext(TRACE_THING_BULK_UPDATE);
+            circuitBreaker.callWithCircuitBreakerCS(() -> searchUpdaterPersistence
+                    .executeCombinedWrites(thingId, thingEvents, policyEnforcer, sequenceNumber)
+                    .via(finishTrace(traceContext))
+                    .runWith(Sink.last(), materializer)
+                    .whenComplete(this::processWriteResult))
+                    .exceptionally(t -> {
+                        if (t != null) {
+                            log.error(t, "There occurred an error while processing a write operation within the"
+                                    + " circuit breaker for thing <{}>.", thingId);
+                            //e.g. in case of a circuit breaker timeout, the running transaction must be stopped
+                            processWriteResult(false, t);
+                        }
+                        return null;
+                    });
+        }
 
-        final TraceContext traceContext = Kamon.tracer().newContext(TRACE_THING_BULK_UPDATE);
-        circuitBreaker.callWithCircuitBreakerCS(() -> searchUpdaterPersistence
-                .executeCombinedWrites(thingId, combinedWrites)
-                .via(finishTrace(traceContext))
-                .runWith(Sink.last(), materializer)
-                .whenComplete(this::processWriteResult))
-                .exceptionally(t -> {
-                    if (t != null) {
-                        log.error(t, "There occurred an error while processing a write operation within the"
-                                + " circuit breaker for thing <{}>.", thingId);
-                        //e.g. in case of a circuit breaker timeout, the running transaction must be stopped
-                        processWriteResult(false, t);
-                    }
-                    return null;
-                });
     }
 
     private void processWriteResult(final boolean success, final Throwable throwable) {
@@ -572,28 +566,17 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
             log.error(result.getError(), "The MongoDB operation for thing <{}> failed with an error!", thingId);
             triggerSynchronization();
         } else if (result.isSuccess()) {
-            if (intermediateCombinedWritesBuilder != null) {
-                log.debug("Intermediate combined writes are now written ..");
-                final CombinedThingWrites.Builder builder = intermediateCombinedWritesBuilder;
-                resetIntermediateCombinedWritesBuilder();
-                executeWrites(builder);
+            if (!gatheredEvents.isEmpty()) {
+                log.info("<{}> gathered events will now be persisted.", gatheredEvents.size());
+                final List<ThingEvent> eventsToPersist = gatheredEvents;
+                // reset the gathered events
+                resetGatheredEvents();
+                persistThingEvents(eventsToPersist);
             }
         } else {
             log.warning("The update operation for thing <{}> failed due to an unexpected sequence number!", thingId);
             triggerSynchronization();
         }
-    }
-
-    private void addEventToIntermediateBuilder(final ThingEvent thingEvent) {
-        if (intermediateCombinedWritesBuilder == null) {
-            intermediateCombinedWritesBuilder = CombinedThingWrites.newBuilder(log, sequenceNumber, policyEnforcer);
-        }
-        addEventToBuilder(intermediateCombinedWritesBuilder, thingEvent);
-    }
-
-    private void addEventToBuilder(final CombinedThingWrites.Builder builder, final ThingEvent thingEvent) {
-        final JsonSchemaVersion localSchemaVersion = schemaVersionToCheck(thingEvent);
-        builder.addEvent(thingEvent, localSchemaVersion);
     }
 
     ///////////////////////////
@@ -611,7 +594,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
 
         syncAttempts++;
         transactionActive = false;
-        resetIntermediateCombinedWritesBuilder();
+        resetGatheredEvents();
         if (syncAttempts <= 3) {
             log.info("Synchronization of thing <{}> is now triggered (attempt={}).", thingId, syncAttempts);
             syncThing();
@@ -744,6 +727,10 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
             return;
         }
 
+        if (policyIdOfThing == null) {
+            schemaVersion = JsonSchemaVersion.V_1;
+        }
+
         // always synchronize policy if the schema version calls for it
         if (schemaVersionHasPolicy(schemaVersion)) {
             if (policyEnforcer != null) {
@@ -805,6 +792,11 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
                     exception.getClass().getSimpleName(), exception.getMessage());
             triggerSynchronization();
         }
+    }
+
+    private void deleteThingFromSearchIndex(final FiniteDuration timeout) {
+        deleteThingFromSearchIndex(scheduleTimeoutForResponse(Timeout.durationToTimeout(timeout),
+                "Deleting Thing from search index failed."));
     }
 
     private void deleteThingFromSearchIndex(final Cancellable timeout) {
@@ -998,8 +990,8 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         return success != null && success;
     }
 
-    private void resetIntermediateCombinedWritesBuilder() {
-        intermediateCombinedWritesBuilder = null;
+    private void resetGatheredEvents() {
+        gatheredEvents = new ArrayList<>();
     }
 
     private static final class SyncSuccess {}

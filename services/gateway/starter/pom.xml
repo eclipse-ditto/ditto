@@ -74,6 +74,10 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-services-utils-devops</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-services-utils-health</artifactId>
         </dependency>
         <dependency>
@@ -262,7 +266,7 @@
                         <image>
                             <alias>${gateway.docker.image.name}</alias>
                             <name>
-                                ${docker.repository}/${gateway.docker.image.name}:${project.version}${docker.image.version.suffix}
+                                ${docker.repository}/${gateway.docker.image.name}:${project.version}
                             </name>
                             <build>
                                 <from>${docker.image.jdk}</from>

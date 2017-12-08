@@ -21,7 +21,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Supplier;
-import java.util.stream.Stream;
 
 import org.bson.Document;
 import org.eclipse.ditto.model.things.Thing;
@@ -29,8 +28,8 @@ import org.eclipse.ditto.services.thingsearch.common.model.ResultList;
 import org.eclipse.ditto.services.thingsearch.persistence.read.MongoThingsSearchPersistence;
 import org.eclipse.ditto.services.thingsearch.persistence.read.query.MongoAggregationBuilderFactory;
 import org.eclipse.ditto.services.thingsearch.persistence.read.query.MongoQueryBuilderFactory;
+import org.eclipse.ditto.services.thingsearch.persistence.write.impl.MongoEventToPersistenceStrategyFactory;
 import org.eclipse.ditto.services.thingsearch.persistence.write.impl.MongoThingsSearchUpdaterPersistence;
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Criteria;
 import org.eclipse.ditto.services.thingsearch.querymodel.criteria.CriteriaFactory;
 import org.eclipse.ditto.services.thingsearch.querymodel.criteria.CriteriaFactoryImpl;
 import org.eclipse.ditto.services.thingsearch.querymodel.expression.ThingsFieldExpressionFactory;
@@ -57,7 +56,7 @@ import akka.event.LoggingAdapter;
 import akka.stream.ActorMaterializer;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
-import akka.testkit.JavaTestKit;
+import akka.testkit.javadsl.TestKit;
 
 
 /**
@@ -67,29 +66,26 @@ public abstract class AbstractThingSearchPersistenceTestBase {
 
     protected static final List<String> KNOWN_SUBJECTS = Collections.singletonList("abc:mySid");
     protected static final List<String> KNOWN_SUBJECTS_2 = Arrays.asList("iot-things:mySid", "iot-things:unknown");
-    protected static final List<String> KNOWN_REVOKED_SUBJECTS = Collections.singletonList("xyz:revoked");
-    protected static final String KNOWN_VALUE = "value";
     protected static final String KNOWN_ATTRIBUTE_1 = "attribute1";
     protected static final String KNOWN_NEW_VALUE = "newValue";
 
     private static final Config CONFIG = ConfigFactory.load("test");
 
     protected static final CriteriaFactory cf = new CriteriaFactoryImpl();
-    protected static final ThingsFieldExpressionFactory ef = new ThingsFieldExpressionFactoryImpl();
+    protected static final ThingsFieldExpressionFactory fef = new ThingsFieldExpressionFactoryImpl();
     protected static final QueryBuilderFactory qbf = new MongoQueryBuilderFactory();
     protected static final AggregationBuilderFactory abf = new MongoAggregationBuilderFactory();
-
+    private static MongoDbResource mongoResource;
+    private static MongoClientWrapper mongoClient;
     /** */
-    protected static MongoDbResource mongoResource;
-    protected static MongoClientWrapper mongoClient;
-    protected MongoThingsSearchPersistence readPersistence;
+    private MongoThingsSearchPersistence readPersistence;
+    private MongoCollection<Document> thingsCollection;
+    private MongoCollection<Document> policiesCollection;
     protected MongoThingsSearchUpdaterPersistence writePersistence;
-    protected MongoCollection<Document> thingsCollection;
-    protected MongoCollection<Document> policiesCollection;
 
-    protected ActorSystem actorSystem;
+    private ActorSystem actorSystem;
+    private ActorMaterializer actorMaterializer;
     protected LoggingAdapter log;
-    protected ActorMaterializer actorMaterializer;
 
     @BeforeClass
     public static void startMongoResource() {
@@ -108,23 +104,25 @@ public abstract class AbstractThingSearchPersistenceTestBase {
         readPersistence = provideReadPersistence();
         writePersistence = provideWritePersistence();
         thingsCollection = mongoClient.getDatabase().getCollection(THINGS_COLLECTION_NAME);
-        policiesCollection = mongoClient.getDatabase().getCollection(POLICIES_BASED_SEARCH_INDEX_COLLECTION_NAME);
+        policiesCollection = mongoClient.getDatabase().getCollection
+                (POLICIES_BASED_SEARCH_INDEX_COLLECTION_NAME);
 
         log.info("before() method of test is done..");
     }
 
-    protected MongoThingsSearchPersistence provideReadPersistence() {
+    private MongoThingsSearchPersistence provideReadPersistence() {
         final MongoThingsSearchPersistence mongoThingsSearchPersistence =
                 new MongoThingsSearchPersistence(provideClientWrapper(), actorSystem);
         mongoThingsSearchPersistence.initIndexes();
         return mongoThingsSearchPersistence;
     }
 
-    protected MongoThingsSearchUpdaterPersistence provideWritePersistence() {
-        return new MongoThingsSearchUpdaterPersistence(mongoClient, log);
+    private MongoThingsSearchUpdaterPersistence provideWritePersistence() {
+        return new MongoThingsSearchUpdaterPersistence(mongoClient, log,
+                MongoEventToPersistenceStrategyFactory.getInstance());
     }
 
-    protected static MongoClientWrapper provideClientWrapper() {
+    private static MongoClientWrapper provideClientWrapper() {
         return new MongoClientWrapper(mongoResource.getBindIp(), mongoResource.getPort(), "testSearchDB", CONFIG);
     }
 
@@ -137,7 +135,7 @@ public abstract class AbstractThingSearchPersistenceTestBase {
             retryWithBackoff(() -> policiesCollection.drop());
         }
         if (actorSystem != null) {
-            JavaTestKit.shutdownActorSystem(actorSystem);
+            TestKit.shutdownActorSystem(actorSystem);
             actorSystem = null;
             log = null;
             actorMaterializer = null;
@@ -158,12 +156,6 @@ public abstract class AbstractThingSearchPersistenceTestBase {
         }
     }
 
-    protected Long count(final Criteria crit) {
-        final Query query = qbf.newUnlimitedBuilder(crit).build();
-
-        return count(query);
-    }
-
     protected Long count(final Query query) {
         try {
             return readPersistence.count(query) //
@@ -175,14 +167,6 @@ public abstract class AbstractThingSearchPersistenceTestBase {
         } catch (InterruptedException | ExecutionException e) {
             throw new IllegalStateException(e);
         }
-    }
-
-    protected long aggregateCount(final Criteria crit) {
-        final PolicyRestrictedSearchAggregation policyRestrictedSearchAggregation = abf.newCountBuilder(crit)
-                .authorizationSubjects(KNOWN_SUBJECTS)
-                .build();
-
-        return aggregateCount(policyRestrictedSearchAggregation);
     }
 
     protected long aggregateCount(final PolicyRestrictedSearchAggregation policyRestrictedSearchAggregation) {
@@ -197,21 +181,8 @@ public abstract class AbstractThingSearchPersistenceTestBase {
         }
     }
 
-    protected long aggregationSudoCount(final Criteria crit) {
-        final PolicyRestrictedSearchAggregation policyRestrictedSearchAggregation = abf.newCountBuilder(crit)
-                .sudo(true)
-                .build();
-
-        return aggregateCount(policyRestrictedSearchAggregation);
-    }
-
     protected ResultList<String> findAll(final PolicyRestrictedSearchAggregation policyRestrictedSearchAggregation) {
         return waitFor(readPersistence.findAll(policyRestrictedSearchAggregation)).get(0);
-    }
-
-    protected ResultList<String> findAll(final Criteria crit) {
-        final Query query = qbf.newBuilder(crit).build();
-        return findAll(query);
     }
 
     protected ResultList<String> findAll(final Query query) {
@@ -227,9 +198,14 @@ public abstract class AbstractThingSearchPersistenceTestBase {
         }
     }
 
+    protected void runBlocking(final Source<?, NotUsed> publisher) {
+        final List<Source<?, NotUsed>> publishers = Collections.singletonList(publisher);
 
-    protected void runBlocking(final Source<?, NotUsed>... publishers) {
-        Stream.of(publishers)
+        runBlocking(publishers);
+    }
+
+    protected void runBlocking(final List<Source<?, NotUsed>> publishers) {
+        publishers.stream()
                 .map(p -> p.runWith(Sink.ignore(), actorMaterializer))
                 .map(CompletionStage::toCompletableFuture)
                 .forEach(this::finishCompletableFuture);
@@ -238,8 +214,7 @@ public abstract class AbstractThingSearchPersistenceTestBase {
     private void finishCompletableFuture(final CompletableFuture future) {
         try {
             future.get();
-        } catch (InterruptedException | ExecutionException e) {
-            e.printStackTrace();
+        } catch (final InterruptedException | ExecutionException e) {
             throw new RuntimeException(e);
         }
     }
@@ -250,13 +225,16 @@ public abstract class AbstractThingSearchPersistenceTestBase {
         return done.toCompletableFuture().get();
     }
 
-    protected void insertOrUpdateThing(final Thing thing, final long revision, final long policyRevision)
-            throws ExecutionException, InterruptedException {
+    protected void insertOrUpdateThing(final Thing thing, final long revision, final long policyRevision) {
         runBlocking(writePersistence.insertOrUpdate(thing, revision, policyRevision));
     }
 
-    protected void delete(final String thingId, final long revision) throws ExecutionException, InterruptedException {
+    protected void delete(final String thingId, final long revision) {
         runBlocking(writePersistence.delete(thingId, revision));
+    }
+
+    protected MongoClientWrapper getClient() {
+        return mongoClient;
     }
 
     private void retryWithBackoff(final Supplier<Publisher<Success>> publisher) {
@@ -273,7 +251,7 @@ public abstract class AbstractThingSearchPersistenceTestBase {
         throw lastException;
     }
 
-    protected <T> List<T> waitFor(final Source<T, ?> source) {
+    private <T> List<T> waitFor(final Source<T, ?> source) {
         try {
             return source
                     .limit(1) //
@@ -286,6 +264,7 @@ public abstract class AbstractThingSearchPersistenceTestBase {
         }
     }
 
+    @SuppressWarnings("squid:S2925")
     private void backoff() {
         try {
             Thread.sleep(100);

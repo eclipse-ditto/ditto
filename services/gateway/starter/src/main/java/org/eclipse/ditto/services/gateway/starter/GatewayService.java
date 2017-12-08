@@ -47,8 +47,8 @@ public class GatewayService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(GatewayService.class);
 
-    private static final String SERVICE_NAME = "gateway";
     private static final String CLUSTER_NAME = "ditto-cluster";
+    static final String SERVICE_NAME = "gateway";
 
     /**
      * Starts the gateway server.

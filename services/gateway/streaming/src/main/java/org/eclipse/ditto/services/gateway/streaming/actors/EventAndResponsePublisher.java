@@ -20,11 +20,9 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
-import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.gateway.streaming.Connect;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.events.base.Event;
 
@@ -89,52 +87,15 @@ public final class EventAndResponsePublisher
         this.connectionCorrelationId = connectionCorrelationId;
 
         return ReceiveBuilder.create()
-                .match(Command.class, command -> buffer.size() >= backpressureBufferSize, command -> {
-                    LogUtil.enhanceLogWithCorrelationId(logger, command);
-                    handleBackpressureFor((Command<?>) command);
+                .match(Signal.class, signal -> buffer.size() >= backpressureBufferSize, signal -> {
+                    LogUtil.enhanceLogWithCorrelationId(logger, signal);
+                    handleBackpressureFor((Signal<?>) signal);
                 })
-                .match(Command.class, command -> {
+                .match(Signal.class, signal -> {
                     if (buffer.isEmpty() && totalDemand() > 0) {
-                        onNext((Command<?>) command);
+                        onNext((Signal<?>) signal);
                     } else {
-                        buffer.add((Command<?>) command);
-                        deliverBuf();
-                    }
-                })
-                .match(CommandResponse.class, response -> buffer.size() >= backpressureBufferSize, response -> {
-                    LogUtil.enhanceLogWithCorrelationId(logger, response.getDittoHeaders().getCorrelationId());
-                    handleBackpressureFor((CommandResponse<?>) response);
-                })
-                .match(CommandResponse.class, response -> {
-                    if (buffer.isEmpty() && totalDemand() > 0) {
-                        onNext((CommandResponse<?>) response);
-                    } else {
-                        buffer.add((CommandResponse<?>) response);
-                        deliverBuf();
-                    }
-                })
-                .match(Event.class, event -> buffer.size() >= backpressureBufferSize, event -> {
-                    LogUtil.enhanceLogWithCorrelationId(logger, event.getDittoHeaders().getCorrelationId());
-                    handleBackpressureFor((Event<?>) event);
-                })
-                .match(Event.class, event -> {
-                    if (buffer.isEmpty() && totalDemand() > 0) {
-                        onNext((Event<?>) event);
-                    } else {
-                        buffer.add((Event<?>) event);
-                        deliverBuf();
-                    }
-                })
-                .match(Signal.class, signal -> isLiveSignal(signal) && buffer.size() >= backpressureBufferSize,
-                        liveSignal -> {
-                            LogUtil.enhanceLogWithCorrelationId(logger, liveSignal);
-                            handleBackpressureFor((Signal<?>) liveSignal);
-                        })
-                .match(Signal.class, EventAndResponsePublisher::isLiveSignal, liveSignal -> {
-                    if (buffer.isEmpty() && totalDemand() > 0) {
-                        onNext((Signal<?>) liveSignal);
-                    } else {
-                        buffer.add((Signal<?>) liveSignal);
+                        buffer.add((Signal<?>) signal);
                         deliverBuf();
                     }
                 })
@@ -150,6 +111,16 @@ public final class EventAndResponsePublisher
                         deliverBuf();
                     }
                 })
+                .match(Jsonifiable.WithPredicate.class, signal -> buffer.size() >= backpressureBufferSize,
+                        this::handleBackpressureFor)
+                .match(Jsonifiable.WithPredicate.class, jsonifiable -> {
+                    if (buffer.isEmpty() && totalDemand() > 0) {
+                        onNext(jsonifiable);
+                    } else {
+                        buffer.add(jsonifiable);
+                        deliverBuf();
+                    }
+                })
                 .match(ActorPublisherMessage.Request.class, request -> {
                     LogUtil.enhanceLogWithCorrelationId(logger, connectionCorrelationId);
                     logger.debug("Got new demand: {}", request);
@@ -161,10 +132,6 @@ public final class EventAndResponsePublisher
                     logger.warning("Got unknown message during connected phase: '{}'", any);
                 })
                 .build();
-    }
-
-    private static boolean isLiveSignal(final Signal<?> signal) {
-        return signal.getDittoHeaders().getChannel().filter(TopicPath.Channel.LIVE.getName()::equals).isPresent();
     }
 
     private void handleBackpressureFor(final Jsonifiable.WithPredicate<JsonObject, JsonField> jsonifiable) {

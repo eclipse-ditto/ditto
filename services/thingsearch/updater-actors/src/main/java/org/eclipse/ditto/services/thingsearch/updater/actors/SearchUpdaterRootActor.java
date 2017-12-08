@@ -20,6 +20,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.services.thingsearch.common.util.ConfigKeys;
 import org.eclipse.ditto.services.thingsearch.persistence.MongoClientWrapper;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
+import org.eclipse.ditto.services.thingsearch.persistence.write.impl.MongoEventToPersistenceStrategyFactory;
 import org.eclipse.ditto.services.thingsearch.persistence.write.impl.MongoThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.utils.distributedcache.actors.CacheFacadeActor;
 import org.eclipse.ditto.services.utils.distributedcache.actors.CacheRole;
@@ -107,7 +108,8 @@ public final class SearchUpdaterRootActor extends AbstractActor {
 
         final MongoClientWrapper mongoClientWrapper = new MongoClientWrapper(config);
         final ThingsSearchUpdaterPersistence searchUpdaterPersistence =
-                new MongoThingsSearchUpdaterPersistence(mongoClientWrapper, log);
+                new MongoThingsSearchUpdaterPersistence(mongoClientWrapper, log,
+                        MongoEventToPersistenceStrategyFactory.getInstance());
 
         final int maxFailures = config.getInt(ConfigKeys.MONGO_CIRCUIT_BREAKER_FAILURES);
         final Duration callTimeout = config.getDuration(ConfigKeys.MONGO_CIRCUIT_BREAKER_TIMEOUT_CALL);

@@ -11,14 +11,18 @@
  */
 package org.eclipse.ditto.services.thingsearch.persistence;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.Arrays;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.model.policies.Subject;
 import org.eclipse.ditto.model.policies.SubjectId;
@@ -33,6 +37,31 @@ import org.eclipse.ditto.model.things.Permission;
 import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingRevision;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.signals.events.things.AclEntryCreated;
+import org.eclipse.ditto.signals.events.things.AclEntryDeleted;
+import org.eclipse.ditto.signals.events.things.AclEntryModified;
+import org.eclipse.ditto.signals.events.things.AclModified;
+import org.eclipse.ditto.signals.events.things.AttributeCreated;
+import org.eclipse.ditto.signals.events.things.AttributeDeleted;
+import org.eclipse.ditto.signals.events.things.AttributeModified;
+import org.eclipse.ditto.signals.events.things.AttributesCreated;
+import org.eclipse.ditto.signals.events.things.AttributesDeleted;
+import org.eclipse.ditto.signals.events.things.AttributesModified;
+import org.eclipse.ditto.signals.events.things.FeatureCreated;
+import org.eclipse.ditto.signals.events.things.FeatureDeleted;
+import org.eclipse.ditto.signals.events.things.FeatureModified;
+import org.eclipse.ditto.signals.events.things.FeaturePropertiesCreated;
+import org.eclipse.ditto.signals.events.things.FeaturePropertiesDeleted;
+import org.eclipse.ditto.signals.events.things.FeaturePropertiesModified;
+import org.eclipse.ditto.signals.events.things.FeaturePropertyCreated;
+import org.eclipse.ditto.signals.events.things.FeaturePropertyDeleted;
+import org.eclipse.ditto.signals.events.things.FeaturePropertyModified;
+import org.eclipse.ditto.signals.events.things.FeaturesCreated;
+import org.eclipse.ditto.signals.events.things.FeaturesDeleted;
+import org.eclipse.ditto.signals.events.things.FeaturesModified;
+import org.eclipse.ditto.signals.events.things.ThingCreated;
+import org.eclipse.ditto.signals.events.things.ThingDeleted;
+import org.eclipse.ditto.signals.events.things.ThingModified;
 
 /**
  * Defines constants for testing.
@@ -41,6 +70,10 @@ public final class TestConstants {
 
     private TestConstants() {
         throw new AssertionError();
+    }
+
+    public static String thingId(final String namespace, final String idWithoutNamespace) {
+        return requireNonNull(namespace) + ":" + requireNonNull(idWithoutNamespace);
     }
 
     /**
@@ -166,9 +199,9 @@ public final class TestConstants {
 
         public static final org.eclipse.ditto.model.things.Feature FLUX_CAPACITOR =
                 ThingsModelFactory.newFeatureBuilder()
-                .properties(FLUX_CAPACITOR_PROPERTIES)
-                .withId(FLUX_CAPACITOR_ID)
-                .build();
+                        .properties(FLUX_CAPACITOR_PROPERTIES)
+                        .withId(FLUX_CAPACITOR_ID)
+                        .build();
 
 
         public static final Features FEATURES = ThingsModelFactory.newFeatures(FLUX_CAPACITOR);
@@ -194,7 +227,9 @@ public final class TestConstants {
         public static final AccessControlList ACL =
                 ThingsModelFactory.newAcl(Authorization.ACL_ENTRY_OLDMAN, Authorization.ACL_ENTRY_GRIMES);
 
-        public static final JsonPointer MANUFACTURER_PATH = JsonFactory.newPointer("attributes/manufacturer");
+        private static final String MANUFACTURER_ATTRIBUTE_KEY = "manufacturer";
+        public static final JsonPointer MANUFACTURER_POINTER = JsonFactory.newPointer("attributes/" +
+                MANUFACTURER_ATTRIBUTE_KEY);
 
         public static final JsonObject LOCATION_ATTRIBUTE = JsonFactory.newObjectBuilder()
                 .set("latitude", 44.673856)
@@ -203,7 +238,7 @@ public final class TestConstants {
 
         public static final Attributes ATTRIBUTES = ThingsModelFactory.newAttributesBuilder()
                 .set("location", LOCATION_ATTRIBUTE)
-                .set(MANUFACTURER_PATH.getLeaf().get(), "Bosch")
+                .set(MANUFACTURER_ATTRIBUTE_KEY, "Bosch")
                 .build();
 
         public static final long REVISION_NUMBER = 0;
@@ -233,4 +268,161 @@ public final class TestConstants {
             throw new AssertionError();
         }
     }
+
+    /**
+     * ThingEvent-related test constants.
+     */
+    public static final class ThingEvent {
+
+        public static final long REVISION = 42L;
+        public static final DittoHeaders DITTO_HEADERS = DittoHeaders.empty();
+        public static final JsonPointer ATTRIBUTE_KEY = JsonPointer.of("location");
+        public static final JsonValue ATTRIBUTE_VALUE = Thing.LOCATION_ATTRIBUTE;
+        public static final JsonPointer FEATURE_KEY = JsonPointer.of("target_year_1");
+        public static final JsonValue FEATURE_VALUE = JsonValue.of(1955);
+
+        public static final org.eclipse.ditto.signals.events.things.AclEntryCreated ACL_ENTRY_CREATED =
+                AclEntryCreated.of(Thing.THING_ID, Authorization.ACL_ENTRY_GRIMES, REVISION, DITTO_HEADERS);
+
+        public static final org.eclipse.ditto.signals.events.things.AclEntryModified ACL_ENTRY_MODIFIED =
+                AclEntryModified.of(Thing.THING_ID, Authorization.ACL_ENTRY_GRIMES, REVISION, DITTO_HEADERS);
+
+        public static final org.eclipse.ditto.signals.events.things.AclEntryDeleted ACL_ENTRY_DELETED =
+                AclEntryDeleted.of(Thing.THING_ID, Authorization.AUTH_SUBJECT_GRIMES, REVISION, DITTO_HEADERS);
+
+        public static final org.eclipse.ditto.signals.events.things.AclModified ACL_MODIFIED =
+                AclModified.of(Thing.THING_ID, Thing.ACL, REVISION, DITTO_HEADERS);
+
+        public static final org.eclipse.ditto.signals.events.things.AttributeCreated ATTRIBUTE_CREATED =
+                AttributeCreated.of(Thing.THING_ID, ATTRIBUTE_KEY, ATTRIBUTE_VALUE, REVISION,
+                        DITTO_HEADERS);
+
+        public static final org.eclipse.ditto.signals.events.things.AttributeModified ATTRIBUTE_MODIFIED =
+                AttributeModified.of(Thing.THING_ID, ATTRIBUTE_KEY, ATTRIBUTE_VALUE, REVISION,
+                        DITTO_HEADERS);
+
+        public static final org.eclipse.ditto.signals.events.things.AttributeDeleted ATTRIBUTE_DELETED =
+                AttributeDeleted.of(Thing.THING_ID, ATTRIBUTE_KEY, REVISION, DITTO_HEADERS);
+
+        public static final org.eclipse.ditto.signals.events.things.AttributesCreated ATTRIBUTES_CREATED =
+                AttributesCreated.of(Thing.THING_ID, Thing.ATTRIBUTES, REVISION,
+                        DITTO_HEADERS);
+
+        public static final org.eclipse.ditto.signals.events.things.AttributesModified ATTRIBUTES_MODIFIED =
+                AttributesModified.of(Thing.THING_ID, Thing.ATTRIBUTES, REVISION,
+                        DITTO_HEADERS);
+
+        public static final org.eclipse.ditto.signals.events.things.AttributesDeleted ATTRIBUTES_DELETED =
+                AttributesDeleted.of(Thing.THING_ID, REVISION, DITTO_HEADERS);
+
+        public static final org.eclipse.ditto.signals.events.things.FeatureCreated FEATURE_CREATED =
+                FeatureCreated.of(Thing.THING_ID, Feature.FLUX_CAPACITOR, REVISION,
+                        DITTO_HEADERS);
+
+        public static final org.eclipse.ditto.signals.events.things.FeatureModified FEATURE_MODIFIED =
+                FeatureModified.of(Thing.THING_ID, Feature.FLUX_CAPACITOR, REVISION,
+                        DITTO_HEADERS);
+
+        public static final org.eclipse.ditto.signals.events.things.FeatureDeleted FEATURE_DELETED =
+                FeatureDeleted.of(Thing.THING_ID, Feature.FLUX_CAPACITOR.getId(), REVISION, DITTO_HEADERS);
+
+        public static final org.eclipse.ditto.signals.events.things.FeaturesCreated FEATURES_CREATED =
+                FeaturesCreated.of(Thing.THING_ID, Feature.FEATURES, REVISION,
+                        DITTO_HEADERS);
+
+        public static final org.eclipse.ditto.signals.events.things.FeaturesModified FEATURES_MODIFIED =
+                FeaturesModified.of(Thing.THING_ID, Feature.FEATURES, REVISION,
+                        DITTO_HEADERS);
+
+        public static final org.eclipse.ditto.signals.events.things.FeaturesDeleted FEATURES_DELETED =
+                FeaturesDeleted.of(Thing.THING_ID, REVISION, DITTO_HEADERS);
+
+        public static final org.eclipse.ditto.signals.events.things.FeaturePropertyCreated
+                FEATURE_PROPERTY_CREATED =
+                FeaturePropertyCreated.of(Thing.THING_ID,
+                        Feature.FLUX_CAPACITOR_ID,
+                        FEATURE_KEY,
+                        FEATURE_VALUE,
+                        REVISION,
+                        DITTO_HEADERS);
+
+        public static final org.eclipse.ditto.signals.events.things.FeaturePropertyModified
+                FEATURE_PROPERTY_MODIFIED =
+                FeaturePropertyModified.of(Thing.THING_ID,
+                        Feature.FLUX_CAPACITOR_ID,
+                        FEATURE_KEY,
+                        FEATURE_VALUE,
+                        REVISION,
+                        DITTO_HEADERS);
+
+        public static final org.eclipse.ditto.signals.events.things.FeaturePropertyDeleted
+                FEATURE_PROPERTY_DELETED =
+                FeaturePropertyDeleted.of(Thing.THING_ID,
+                        Feature.FLUX_CAPACITOR_ID,
+                        FEATURE_KEY,
+                        REVISION,
+                        DITTO_HEADERS);
+
+        public static final org.eclipse.ditto.signals.events.things.FeaturePropertiesCreated
+                FEATURE_PROPERTIES_CREATED =
+                FeaturePropertiesCreated.of(Thing.THING_ID,
+                        Feature.FLUX_CAPACITOR_ID,
+                        Feature.FLUX_CAPACITOR_PROPERTIES,
+                        REVISION,
+                        DITTO_HEADERS);
+
+        public static final org.eclipse.ditto.signals.events.things.FeaturePropertiesModified
+                FEATURE_PROPERTIES_MODIFIED =
+                FeaturePropertiesModified.of(Thing.THING_ID,
+                        Feature.FLUX_CAPACITOR_ID,
+                        Feature.FLUX_CAPACITOR_PROPERTIES,
+                        REVISION,
+                        DITTO_HEADERS);
+
+        public static final org.eclipse.ditto.signals.events.things.FeaturePropertiesDeleted
+                FEATURE_PROPERTIES_DELETED =
+                FeaturePropertiesDeleted.of(Thing.THING_ID,
+                        Feature.FLUX_CAPACITOR_ID,
+                        REVISION,
+                        DITTO_HEADERS);
+
+        public static final org.eclipse.ditto.signals.events.things.ThingCreated
+                THING_CREATED_V1 =
+                ThingCreated.of(Thing.THING_V1,
+                        REVISION,
+                        DITTO_HEADERS);
+
+        public static final org.eclipse.ditto.signals.events.things.ThingModified
+                THING_MODIFIED_V1 =
+                ThingModified.of(Thing.THING_V1,
+                        REVISION,
+                        DITTO_HEADERS);
+
+        public static final org.eclipse.ditto.signals.events.things.ThingDeleted
+                THING_DELETED_V1 =
+                ThingDeleted.of(Thing.THING_ID,
+                        REVISION,
+                        DITTO_HEADERS);
+
+        public static final org.eclipse.ditto.signals.events.things.ThingCreated
+                THING_CREATED =
+                ThingCreated.of(Thing.THING,
+                        REVISION,
+                        DITTO_HEADERS);
+
+        public static final org.eclipse.ditto.signals.events.things.ThingModified
+                THING_MODIFIED =
+                ThingModified.of(Thing.THING,
+                        REVISION,
+                        DITTO_HEADERS);
+
+        public static final org.eclipse.ditto.signals.events.things.ThingDeleted
+                THING_DELETED =
+                ThingDeleted.of(Thing.THING_ID,
+                        REVISION,
+                        DITTO_HEADERS);
+
+    }
+
+
 }

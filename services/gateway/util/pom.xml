@@ -25,6 +25,12 @@
 
     <dependencies>
         <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>ditto-services-gateway-streaming</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-json</artifactId>
         </dependency>

@@ -15,6 +15,7 @@ import static org.eclipse.ditto.services.gateway.starter.service.util.FireAndFor
 
 import java.nio.ByteBuffer;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -36,7 +37,6 @@ import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.base.ErrorResponse;
 import org.eclipse.ditto.signals.commands.base.WithEntity;
-import org.eclipse.ditto.signals.commands.devops.DevOpsCommand;
 import org.eclipse.ditto.signals.commands.devops.RetrieveStatisticsResponse;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
@@ -393,21 +393,6 @@ public final class HttpRequestActor extends AbstractActor {
                 })
                 .matchEquals(ServerRequestTimeoutMessage.INSTANCE,
                         serverRequestTimeoutMessage -> handleServerRequestTimeout())
-                .match(DevOpsCommand.class, command -> { // receive DevOpsCommands
-                    logger.debug("Got 'DevOpsCommand' message, telling the targetActor about it");
-
-                    newTraceFor(command, TRACE_ROUNDTRIP_HTTP + "_" + command.getType());
-
-                    proxyActor.tell(command, getSelf());
-
-                    if (!command.getDittoHeaders().isResponseRequired()) {
-                        completeWithResult(HttpResponse.create().withStatus(StatusCodes.ACCEPTED));
-                        finishTraceAndStop();
-                    } else {
-                        // after a Command was received, this Actor can only receive the correlating CommandResponse:
-                        getContext().become(commandResponseAwaiting);
-                    }
-                })
                 .match(Command.class, command -> { // receive Commands
                     logger.debug("Got 'Command' message, telling the targetActor about it");
 
@@ -531,21 +516,11 @@ public final class HttpRequestActor extends AbstractActor {
         final Optional<String> tokenOptional = command.getDittoHeaders().getCorrelationId();
         final Option<String> tokenScalaOption = tokenOptional
                 .map(Option::<String>apply)
-                .orElse(Option.<String>empty());
+                .orElse(Option.apply(UUID.randomUUID().toString()));
         LogUtil.enhanceLogWithCorrelationId(logger, tokenOptional);
         traceContext = Kamon.tracer().newContext(name, tokenScalaOption);
         traceContext.addTag(TRACE_TAG_TYPE, command.getType());
         traceContext.addTag(TRACE_TAG_TYPE_PREFIX, command.getTypePrefix());
-    }
-
-    private void newTraceFor(final DevOpsCommand command, final String name) {
-        final Option<String> token = command.getDittoHeaders().getCorrelationId()
-                .map(Option::<String>apply)
-                .orElse(Option.<String>empty());
-        LogUtil.enhanceLogWithCorrelationId(logger, token.get());
-        traceContext = Kamon.tracer().newContext(name, token);
-        traceContext.addTag(TRACE_TAG_TYPE, command.getType());
-        traceContext.addTag(TRACE_TAG_TYPE_PREFIX, DevOpsCommand.TYPE_PREFIX);
     }
 
     private static final class ServerRequestTimeoutMessage {

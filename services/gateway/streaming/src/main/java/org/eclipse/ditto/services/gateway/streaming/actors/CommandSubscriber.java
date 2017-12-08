@@ -87,12 +87,12 @@ public final class CommandSubscriber extends AbstractActorSubscriber {
                                             " - backpressureQueueSize is: " + backpressureQueueSize);
                         }
 
-                        logger.debug("Got new 'Signal', currently outstanding are '{}'",
+                        logger.debug("Got new Signal <{}>, currently outstanding are <{}>", signal.getType(),
                                 outstandingCommandCorrelationIds.size());
                         delegateActor.tell(signal, getSelf());
                     } else {
-                        logger.warning("Got a 'Signal' without correlationId, NOT accepting/forwarding it: {}",
-                                signal);
+                        logger.warning("Got a Signal <{}> without correlationId, NOT accepting/forwarding it: {}",
+                                signal.getType(), signal);
                     }
                 })
                 .match(CommandResponse.class, response -> {

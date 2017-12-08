@@ -87,7 +87,7 @@ public abstract class AbstractThingPolicyEnforcerActor extends AbstractPolicyEnf
                 .match(Signal.class, AbstractPolicyEnforcerActor::isLiveSignal, liveSignal -> {
                     final Signal enrichedSignal =
                             enrichDittoHeaders(liveSignal, liveSignal.getResourcePath(), liveSignal.getResourceType());
-                    getSender().tell(enrichedSignal, getSelf());
+                    getSender().forward(enrichedSignal, getContext());
                 })
 
                 /* ThingCommands */

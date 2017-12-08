@@ -24,7 +24,7 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorSystem;
-import akka.testkit.JavaTestKit;
+import akka.testkit.javadsl.TestKit;
 
 /**
  * Test for {@link MongoHealthCheck}.
@@ -46,7 +46,7 @@ public final class MongoHealthCheckTest {
     @After
     public void after() throws InterruptedException {
         if (actorSystem != null) {
-            JavaTestKit.shutdownActorSystem(actorSystem);
+            TestKit.shutdownActorSystem(actorSystem);
             actorSystem = null;
         }
     }
@@ -57,8 +57,9 @@ public final class MongoHealthCheckTest {
         mongoResource.start();
 
         final MongoHealthCheck persistenceUnderTest =
-                new MongoHealthCheck(new MongoClientWrapper(mongoResource.getBindIp(), mongoResource.getPort(), UUID.randomUUID()
-                        .toString(), CONFIG), actorSystem, actorSystem.log());
+                new MongoHealthCheck(
+                        new MongoClientWrapper(mongoResource.getBindIp(), mongoResource.getPort(), UUID.randomUUID()
+                                .toString(), CONFIG), actorSystem, actorSystem.log());
 
         assertThat(persistenceUnderTest.checkHealth()).isTrue();
 
