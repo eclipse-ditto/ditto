@@ -25,7 +25,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -238,8 +237,7 @@ public final class TreeBasedPolicyEnforcer implements PolicyEnforcer {
                 JsonFactory.newPointer(ROOT_RESOURCE), resourceKey.getResourceType(), authorizationSubjectIds,
                 permissions);
         final List<PointerAndValue> flatPointers = new ArrayList<>();
-        StreamSupport.stream(jsonFields.spliterator(), false)
-                .forEach(jsonField -> collectFlatPointers(JsonPointer.of(jsonField.getKey()), jsonField, flatPointers));
+        jsonFields.forEach(jsonField -> collectFlatPointers(jsonField.getKey().asPointer(), jsonField, flatPointers));
         final Set<JsonPointer> grantedResources = extractJsonPointers(effectedResources.getGrantedResources());
         final Set<JsonPointer> revokedResources = extractJsonPointers(effectedResources.getRevokedResources());
 
@@ -292,9 +290,8 @@ public final class TreeBasedPolicyEnforcer implements PolicyEnforcer {
                 .filter(pointerAndValue -> pointerAndValue.pointer.toString().startsWith(resourcePath.toString()))
                 .filter(pointerAndValue -> {
                     final JsonPointer rootResourcePointer = JsonFactory.newPointer(ROOT_RESOURCE);
-                    boolean accessible =
-                            (grantedResources.contains(rootResourcePointer) &&
-                            !revokedResources.contains(rootResourcePointer));
+                    boolean accessible = grantedResources.contains(rootResourcePointer) &&
+                            !revokedResources.contains(rootResourcePointer);
 
                     final JsonPointer pointer = pointerAndValue.pointer;
 
@@ -319,6 +316,7 @@ public final class TreeBasedPolicyEnforcer implements PolicyEnforcer {
 
         return builder.build()
                 .getValue(resourcePath)
+                .filter(JsonValue::isObject)
                 .map(JsonValue::asObject)
                 .orElseGet(JsonFactory::newObject);
     }
@@ -334,8 +332,7 @@ public final class TreeBasedPolicyEnforcer implements PolicyEnforcer {
         return resources.stream().anyMatch(p -> p.equals(prefix));
     }
 
-    private EffectedResources getGrantedAndRevokedSubResource(
-            final JsonPointer resource,
+    private EffectedResources getGrantedAndRevokedSubResource(final JsonPointer resource,
             final String type,
             final Iterable<String> subjectIds,
             final Permissions permissions) {

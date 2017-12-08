@@ -506,7 +506,8 @@ public abstract class AbstractPolicyAlgorithmTest {
             final String actualJsonView = setup.getFullJsonifiable()
                     .map(jsonifiable -> {
                         final JsonPointer resourcePointer = setup.getResource();
-                        final JsonObject inputJson = jsonifiable.toJson().getValue(resourcePointer)
+                        final JsonObject inputJson = jsonifiable.toJson()
+                                .getValue(resourcePointer)
                                 .map(JsonValue::asObject)
                                 .orElse(JsonFactory.newObject());
                         return algorithm.buildJsonView(inputJson, setup);

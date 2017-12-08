@@ -15,6 +15,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
 import org.eclipse.ditto.model.policiesenforcers.testbench.scenarios.Scenario;
@@ -48,7 +49,9 @@ public class JsonViewScenario11 implements JsonViewScenario {
                 resourcePath, //
                 THING, //
                 THING.toJson(JsonFieldSelector.newInstance("/features/firmware/properties/modulesVersions/b"))
-                        .getValue(resourcePath).get().asObject(),
+                        .getValue(resourcePath)
+                        .map(JsonValue::asObject)
+                        .orElseThrow(NullPointerException::new),
                 Stream.of(
                         SubjectId.newInstance(SubjectIssuer.GOOGLE_URL, SUBJECT_ALL_GRANTED).toString(),
                         SubjectId.newInstance(SubjectIssuer.GOOGLE_URL, SUBJECT_FEATURES_READ_GRANTED).toString(),
