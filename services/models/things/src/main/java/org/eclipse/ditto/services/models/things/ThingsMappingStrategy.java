@@ -24,6 +24,8 @@ import org.eclipse.ditto.services.models.things.commands.sudo.SudoCommandRespons
 import org.eclipse.ditto.services.utils.cluster.MappingStrategiesBuilder;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
 import org.eclipse.ditto.services.utils.distributedcache.model.BaseCacheEntry;
+import org.eclipse.ditto.signals.commands.devops.DevOpsCommandRegistry;
+import org.eclipse.ditto.signals.commands.devops.DevOpsCommandResponseRegistry;
 import org.eclipse.ditto.signals.commands.things.ThingCommandRegistry;
 import org.eclipse.ditto.signals.commands.things.ThingCommandResponseRegistry;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingErrorRegistry;
@@ -36,7 +38,16 @@ public final class ThingsMappingStrategy implements MappingStrategy {
 
     @Override
     public Map<String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>> determineStrategy() {
-        return MappingStrategiesBuilder.newInstance()
+        final MappingStrategiesBuilder builder = MappingStrategiesBuilder.newInstance();
+
+        addThingsStrategies(builder);
+        addDevOpsStrategies(builder);
+
+        return builder.build();
+    }
+
+    private static void addThingsStrategies(final MappingStrategiesBuilder builder) {
+        builder
                 .add(ThingErrorRegistry.newInstance())
                 .add(ThingCommandRegistry.newInstance())
                 .add(ThingCommandResponseRegistry.newInstance())
@@ -49,7 +60,11 @@ public final class ThingsMappingStrategy implements MappingStrategy {
                         jsonObject -> BaseCacheEntry.fromJson(jsonObject)) // do not replace with lambda!
                 .add(ThingCacheEntry.class,
                         jsonObject -> ThingCacheEntry.fromJson(jsonObject)) // do not replace with lambda!
-                .add(ThingTag.class, jsonObject -> ThingTag.fromJson(jsonObject)) // do not replace with lambda!
-                .build();
+                .add(ThingTag.class, jsonObject -> ThingTag.fromJson(jsonObject));  // do not replace with lambda!
+    }
+
+    private static void addDevOpsStrategies(final MappingStrategiesBuilder builder) {
+        builder.add(DevOpsCommandRegistry.newInstance());
+        builder.add(DevOpsCommandResponseRegistry.newInstance());
     }
 }

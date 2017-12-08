@@ -18,11 +18,13 @@ import java.util.concurrent.TimeUnit;
 
 import org.eclipse.ditto.services.thingsearch.common.util.ConfigKeys;
 import org.eclipse.ditto.services.thingsearch.starter.actors.SearchRootActor;
+import org.eclipse.ditto.services.thingsearch.updater.actors.SearchUpdaterRootActor;
 import org.eclipse.ditto.services.utils.cluster.ClusterMemberAwareActor;
 import org.eclipse.ditto.services.utils.cluster.ClusterUtil;
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
+import org.eclipse.ditto.services.utils.devops.DevOpsCommandsActor;
+import org.eclipse.ditto.services.utils.devops.LogbackLoggingFacade;
 import org.eclipse.ditto.services.utils.health.status.StatusSupplierActor;
-import org.eclipse.ditto.services.thingsearch.updater.actors.SearchUpdaterRootActor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -72,6 +74,9 @@ public final class SearchService {
         final Config config = ConfigUtil.determineConfig(SERVICE_NAME);
         final ActorSystem system = ActorSystem.create(CLUSTER_NAME, config);
         system.actorOf(StatusSupplierActor.props(SearchRootActor.ACTOR_NAME), StatusSupplierActor.ACTOR_NAME);
+        system.actorOf(
+                DevOpsCommandsActor.props(LogbackLoggingFacade.newInstance(), SERVICE_NAME, ConfigUtil.instanceIndex()),
+                DevOpsCommandsActor.ACTOR_NAME);
 
         ClusterUtil.joinCluster(system, config);
         // important: register Kamon::shutdown after joining the cluster as there is also a "registerOnTermination"

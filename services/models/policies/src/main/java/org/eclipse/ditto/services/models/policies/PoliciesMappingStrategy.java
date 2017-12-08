@@ -25,6 +25,8 @@ import org.eclipse.ditto.services.models.policies.commands.sudo.SudoCommandRespo
 import org.eclipse.ditto.services.utils.cluster.MappingStrategiesBuilder;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
 import org.eclipse.ditto.services.utils.distributedcache.model.BaseCacheEntry;
+import org.eclipse.ditto.signals.commands.devops.DevOpsCommandRegistry;
+import org.eclipse.ditto.signals.commands.devops.DevOpsCommandResponseRegistry;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommandRegistry;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommandResponseRegistry;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyErrorRegistry;
@@ -37,7 +39,16 @@ public final class PoliciesMappingStrategy implements MappingStrategy {
 
     @Override
     public Map<String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>> determineStrategy() {
-        return MappingStrategiesBuilder.newInstance()
+        final MappingStrategiesBuilder builder = MappingStrategiesBuilder.newInstance();
+
+        addPoliciesStrategies(builder);
+        addDevOpsStrategies(builder);
+
+        return builder.build();
+    }
+
+    private static void addPoliciesStrategies(final MappingStrategiesBuilder builder) {
+        builder
                 .add(PolicyErrorRegistry.newInstance())
                 .add(PolicyCommandRegistry.newInstance())
                 .add(PolicyCommandResponseRegistry.newInstance())
@@ -49,7 +60,11 @@ public final class PoliciesMappingStrategy implements MappingStrategy {
                         jsonObject -> BaseCacheEntry.fromJson(jsonObject)) // do not replace with lambda!
                 .add(PolicyCacheEntry.class,
                         jsonObject -> PolicyCacheEntry.fromJson(jsonObject)) // do not replace with lambda!
-                .add(PolicyTag.class, jsonObject -> PolicyTag.fromJson(jsonObject)) // do not replace with lambda!
-                .build();
+                .add(PolicyTag.class, jsonObject -> PolicyTag.fromJson(jsonObject));  // do not replace with lambda!
+    }
+
+    private static void addDevOpsStrategies(final MappingStrategiesBuilder builder) {
+        builder.add(DevOpsCommandRegistry.newInstance());
+        builder.add(DevOpsCommandResponseRegistry.newInstance());
     }
 }

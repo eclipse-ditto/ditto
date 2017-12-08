@@ -19,8 +19,6 @@ import static akka.http.javadsl.server.Directives.pathEndOrSingleSlash;
 import static akka.http.javadsl.server.Directives.rawPathPrefix;
 import static akka.http.javadsl.server.Directives.route;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.CustomPathMatchers.mergeDoubleSlashes;
-import static org.eclipse.ditto.services.gateway.endpoints.directives.DevopsBasicAuthenticationDirective.REALM_DEVOPS;
-import static org.eclipse.ditto.services.gateway.endpoints.directives.DevopsBasicAuthenticationDirective.authenticateDevopsBasic;
 
 import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
@@ -37,7 +35,6 @@ import akka.actor.ActorSystem;
 import akka.http.javadsl.model.ContentTypes;
 import akka.http.javadsl.model.HttpResponse;
 import akka.http.javadsl.model.StatusCodes;
-import akka.http.javadsl.server.Directives;
 import akka.http.javadsl.server.Route;
 
 /**
@@ -45,7 +42,11 @@ import akka.http.javadsl.server.Route;
  */
 public final class OverallStatusRoute {
 
+    /**
+     * Public endpoint of overall status.
+     */
     public static final String PATH_STATUS = "status";
+
     static final String PATH_HEALTH = "health";
     static final String PATH_CLUSTER = "cluster";
     static final String PATH_OWN = "own";
@@ -84,19 +85,17 @@ public final class OverallStatusRoute {
                                 // /status/own/status/health
                                 // /status/own/status/cluster
                                 rawPathPrefix(mergeDoubleSlashes().concat(PATH_OWN), ownStatusRoute::buildStatusRoute),
-                                authenticateDevopsBasic(REALM_DEVOPS,
-                                        Directives.route(
-                                                // /status
-                                                pathEndOrSingleSlash(
-                                                        () -> completeWithFuture(createOverallStatusResponse())),
-                                                // /status/health
-                                                path(PATH_HEALTH,
-                                                        () -> completeWithFuture(createOverallHealthResponse())),
-                                                path(PATH_CLUSTER, () -> complete( // /status/cluster
-                                                        HttpResponse.create().withStatus(StatusCodes.OK)
-                                                                .withEntity(ContentTypes.APPLICATION_JSON,
-                                                                        clusterStateSupplier.get().toJson().toString()))
-                                                )
+                                route(
+                                        // /status
+                                        pathEndOrSingleSlash(
+                                                () -> completeWithFuture(createOverallStatusResponse())),
+                                        // /status/health
+                                        path(PATH_HEALTH,
+                                                () -> completeWithFuture(createOverallHealthResponse())),
+                                        path(PATH_CLUSTER, () -> complete( // /status/cluster
+                                                HttpResponse.create().withStatus(StatusCodes.OK)
+                                                        .withEntity(ContentTypes.APPLICATION_JSON,
+                                                                clusterStateSupplier.get().toJson().toString()))
                                         )
                                 )
                         )

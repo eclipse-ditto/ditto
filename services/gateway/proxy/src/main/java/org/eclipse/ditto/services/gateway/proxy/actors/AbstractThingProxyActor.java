@@ -25,6 +25,7 @@ import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThings
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingsResponse;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.commands.devops.DevOpsCommand;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.policies.modify.ModifyPolicy;
@@ -58,12 +59,14 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
 
     private final ActorRef pubSubMediator;
     private final ActorRef aclEnforcerShardRegion;
+    private final ActorRef devOpsCommandsActor;
     private final ActorRef policyEnforcerShardRegion;
     private final ActorRef thingEnforcerLookup;
     private final ActorRef thingCacheFacade;
     private final ActorRef thingsAggregator;
 
     protected AbstractThingProxyActor(final ActorRef pubSubMediator,
+            final ActorRef devOpsCommandsActor,
             final ActorRef aclEnforcerShardRegion,
             final ActorRef policyEnforcerShardRegion,
             final ActorRef thingEnforcerLookup,
@@ -71,6 +74,7 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
         super(pubSubMediator);
 
         this.pubSubMediator = pubSubMediator;
+        this.devOpsCommandsActor = devOpsCommandsActor;
         this.policyEnforcerShardRegion = policyEnforcerShardRegion;
         this.aclEnforcerShardRegion = aclEnforcerShardRegion;
         this.thingCacheFacade = thingCacheFacade;
@@ -90,6 +94,14 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
     @Override
     protected void addCommandBehaviour(final ReceiveBuilder receiveBuilder) {
         receiveBuilder
+                /* DevOps Commands */
+                .match(DevOpsCommand.class, command -> {
+                    LogUtil.enhanceLogWithCorrelationId(getLogger(), command);
+                    getLogger().debug("Got 'DevOpsCommand' message <{}>, forwarding to local devOpsCommandsActor",
+                            command.getType());
+                    devOpsCommandsActor.forward(command, getContext());
+                })
+
                 /* Sudo Commands */
                 .match(SudoRetrieveThings.class, command -> {
                     getLogger().debug("Got 'SudoRetrieveThings' message, forwarding to the Things Aggregator");

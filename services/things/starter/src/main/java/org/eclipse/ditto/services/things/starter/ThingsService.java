@@ -35,7 +35,7 @@ public final class ThingsService {
     /**
      * Name for the Akka Actor System of the Things Service.
      */
-    private static final String SERVICE_NAME = "things";
+    static final String SERVICE_NAME = "things";
 
     private ThingsService() {
         // no-op

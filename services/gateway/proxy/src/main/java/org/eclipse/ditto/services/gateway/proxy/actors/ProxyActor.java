@@ -23,17 +23,20 @@ import akka.japi.Creator;
 public final class ProxyActor extends AbstractThingProxyActor {
 
     private ProxyActor(final ActorRef pubSubMediator,
+            final ActorRef devOpsCommandsActor,
             final ActorRef aclEnforcerShardRegion,
             final ActorRef policyEnforcerShardRegion,
             final ActorRef thingEnforcerLookup,
             final ActorRef thingCacheFacade) {
-        super(pubSubMediator, aclEnforcerShardRegion, policyEnforcerShardRegion, thingEnforcerLookup, thingCacheFacade);
+        super(pubSubMediator, devOpsCommandsActor, aclEnforcerShardRegion, policyEnforcerShardRegion,
+                thingEnforcerLookup, thingCacheFacade);
     }
 
     /**
      * Creates Akka configuration object Props for this ProxyActor.
      *
      * @param pubSubMediator the Pub/Sub mediator to use for subscribing for events.
+     * @param devOpsCommandsActor the Actor ref to the local DevOpsCommandsActor.
      * @param aclEnforcerShardRegion the Actor ref of the acl enforcer shard region.
      * @param policyEnforcerShardRegion the Actor ref of the policy enforcer shard region.
      * @param thingEnforcerLookup the Actor ref to the thing enforcer lookup actor.
@@ -41,6 +44,7 @@ public final class ProxyActor extends AbstractThingProxyActor {
      * @return the Akka configuration Props object.
      */
     public static Props props(final ActorRef pubSubMediator,
+            final ActorRef devOpsCommandsActor,
             final ActorRef aclEnforcerShardRegion,
             final ActorRef policyEnforcerShardRegion,
             final ActorRef thingEnforcerLookup,
@@ -50,8 +54,8 @@ public final class ProxyActor extends AbstractThingProxyActor {
 
             @Override
             public ProxyActor create() throws Exception {
-                return new ProxyActor(pubSubMediator, aclEnforcerShardRegion, policyEnforcerShardRegion,
-                        thingEnforcerLookup, thingCacheFacade);
+                return new ProxyActor(pubSubMediator, devOpsCommandsActor, aclEnforcerShardRegion,
+                        policyEnforcerShardRegion, thingEnforcerLookup, thingCacheFacade);
             }
         });
     }

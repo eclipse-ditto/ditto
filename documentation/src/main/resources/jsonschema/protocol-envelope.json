@@ -39,11 +39,11 @@
     },
     "fields": {
       "type": "string",
-      "description": "The fields of a Thing that are included in the response.\nExample: `thingId,attributes(location)`"
+      "description": "The fields that should be included in the response.\nExample: `thingId,attributes(location)`"
     },
     "value": {
-      "type": "object",
-      "description": "The `value` field contains the actual payload e.g. a sensor value. The content must follow the *Things Model Schema*."
+      "type": ["object","string","number","array","boolean"],
+      "description": "The `value` field contains the actual payload e.g. a sensor value."
     }
   },
   "required": [ "topic", "headers", "path", "value" ]

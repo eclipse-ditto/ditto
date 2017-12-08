@@ -11,20 +11,18 @@
  */
 package org.eclipse.ditto.signals.commands.devops;
 
-import static java.util.Objects.requireNonNull;
-
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Predicate;
 
-import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 
 /**
  * Abstract implementation of the {@link DevOpsCommand} interface.
@@ -32,68 +30,53 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
  * @param <T> the type of the implementing class.
  */
 @Immutable
-abstract class AbstractDevOpsCommand<T extends AbstractDevOpsCommand> implements DevOpsCommand<T> {
+abstract class AbstractDevOpsCommand<T extends AbstractDevOpsCommand> extends AbstractCommand<T>
+        implements DevOpsCommand<T> {
 
-    private final String type;
-    private final DittoHeaders dittoHeaders;
+    @Nullable private final String serviceName;
+    @Nullable private final Integer instance;
 
     /**
      * Constructs a new {@code AbstractDevOpsCommand} object.
      *
      * @param type the name of this command.
+     * @param serviceName the service name to which to send the DevOpsCommand.
+     * @param instance the instance index of the serviceName to which to send the DevOpsCommand.
      * @param dittoHeaders the headers of this command.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    protected AbstractDevOpsCommand(final String type, final DittoHeaders dittoHeaders) {
-        this.type = requireNonNull(type, "The type must not be null!");
-        this.dittoHeaders = requireNonNull(dittoHeaders, "The Command Headers must not be null!");
+    protected AbstractDevOpsCommand(final String type, @Nullable final String serviceName,
+            @Nullable final Integer instance, final DittoHeaders dittoHeaders) {
+        super(type, dittoHeaders);
+        this.serviceName = serviceName;
+        this.instance = instance;
+    }
+
+    public Optional<String> getServiceName() {
+        return Optional.ofNullable(serviceName);
+    }
+
+    public Optional<Integer> getInstance() {
+        return Optional.ofNullable(instance);
     }
 
     @Override
-    public String getType() {
-        return type;
-    }
+    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
+            final Predicate<JsonField> thePredicate) {
 
-    @Nonnull
-    @Override
-    public String getManifest() {
-        return getType();
-    }
-
-    @Override
-    public DittoHeaders getDittoHeaders() {
-        return dittoHeaders;
-    }
-
-    @Override
-    public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
-
-        jsonObjectBuilder.set(JsonFields.TYPE, type, predicate);
-        appendPayload(jsonObjectBuilder, schemaVersion, thePredicate);
-
-        return jsonObjectBuilder.build();
+        jsonObjectBuilder.set(DevOpsCommand.JsonFields.JSON_SERVICE_NAME, serviceName, predicate);
+        jsonObjectBuilder.set(DevOpsCommand.JsonFields.JSON_INSTANCE, instance, predicate);
     }
-
-    /**
-     * Appends the command specific custom payload to the passed {@code jsonObjectBuilder}.
-     *
-     * @param jsonObjectBuilder the JsonObjectBuilder to add the custom payload to.
-     * @param schemaVersion the JsonSchemaVersion used in toJson().
-     * @param predicate the predicate to evaluate when adding the payload.
-     */
-    protected abstract void appendPayload(JsonObjectBuilder jsonObjectBuilder, JsonSchemaVersion schemaVersion,
-            Predicate<JsonField> predicate);
 
     @Override
     public int hashCode() {
-        return Objects.hash(type, dittoHeaders);
+        return Objects.hash(super.hashCode(), serviceName, instance);
     }
 
     @SuppressWarnings({"squid:MethodCyclomaticComplexity", "squid:S1067"})
     @Override
-    public boolean equals(final Object o) {
+    public boolean equals(@Nullable final Object o) {
         if (this == o) {
             return true;
         }
@@ -101,17 +84,16 @@ abstract class AbstractDevOpsCommand<T extends AbstractDevOpsCommand> implements
             return false;
         }
         final AbstractDevOpsCommand that = (AbstractDevOpsCommand) o;
-        return that.canEqual(this) && Objects.equals(type, that.type) && Objects
-                .equals(dittoHeaders, that.dittoHeaders);
+        return that.canEqual(this) && Objects.equals(serviceName, that.serviceName)
+                && Objects.equals(instance, that.instance) && super.equals(that);
     }
 
-    protected boolean canEqual(final Object other) {
+    protected boolean canEqual(@Nullable final Object other) {
         return other instanceof AbstractDevOpsCommand;
     }
 
     @Override
     public String toString() {
-        return "type=" + type + ", dittoHeaders=" + dittoHeaders;
+        return "serviceName=" + serviceName + ", instance=" + instance + ", " + super.toString();
     }
-
 }

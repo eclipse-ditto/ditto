@@ -35,39 +35,46 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.devops.ImmutableLoggerConfig;
 import org.eclipse.ditto.model.devops.LoggerConfig;
+import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.signals.commands.base.WithEntity;
 
 /**
  * Response to the {@link RetrieveLoggerConfig} command.
  */
 @Immutable
-public final class RetrieveLoggerConfigResponse extends AbstractDevOpsCommandResponse<RetrieveLoggerConfigResponse> {
+public final class RetrieveLoggerConfigResponse extends AbstractDevOpsCommandResponse<RetrieveLoggerConfigResponse>
+    implements WithEntity<RetrieveLoggerConfigResponse> {
 
     /**
      * Type of this response.
      */
     public static final String TYPE = TYPE_PREFIX + RetrieveLoggerConfig.NAME;
 
-    static final JsonFieldDefinition<JsonArray> JSON_LOGGER_CONFIGS =
+    public static final JsonFieldDefinition<JsonArray> JSON_LOGGER_CONFIGS =
             JsonFactory.newJsonArrayFieldDefinition("loggerConfigs", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
     private final List<LoggerConfig> loggerConfigs;
 
-    private RetrieveLoggerConfigResponse(final List<LoggerConfig> loggerConfigs, final DittoHeaders dittoHeaders) {
-        super(TYPE, HttpStatusCode.OK, dittoHeaders);
+    private RetrieveLoggerConfigResponse(@Nullable final String serviceName, @Nullable final Integer instance,
+            final List<LoggerConfig> loggerConfigs, final DittoHeaders dittoHeaders) {
+        super(TYPE, serviceName, instance, HttpStatusCode.OK, dittoHeaders);
         this.loggerConfigs = Collections.unmodifiableList(new ArrayList<>(loggerConfigs));
     }
 
     /**
      * Returns a new instance of {@code RetrieveLoggerConfigResponse}.
      *
+     * @param serviceName the service name from which the DevOpsCommandResponse originated.
+     * @param instance the instance index of the serviceName from which the DevOpsCommandResponse originated.
      * @param loggerConfigs the retrieved LoggerConfigs.
      * @param dittoHeaders the headers of the request.
      * @return the new RetrieveLoggerConfigResponse response.
      */
-    public static RetrieveLoggerConfigResponse of(final List<LoggerConfig> loggerConfigs,
+    public static RetrieveLoggerConfigResponse of(@Nullable final String serviceName, @Nullable final Integer instance,
+            final List<LoggerConfig> loggerConfigs,
             final DittoHeaders dittoHeaders) {
-        return new RetrieveLoggerConfigResponse(loggerConfigs, dittoHeaders);
+        return new RetrieveLoggerConfigResponse(serviceName, instance, loggerConfigs, dittoHeaders);
     }
 
     /**
@@ -97,8 +104,12 @@ public final class RetrieveLoggerConfigResponse extends AbstractDevOpsCommandRes
      */
     public static RetrieveLoggerConfigResponse fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
-        return new DevOpsCommandResponseJsonDeserializer<RetrieveLoggerConfigResponse>(TYPE, jsonObject)
-                .deserialize(() -> {
+        return new CommandResponseJsonDeserializer<RetrieveLoggerConfigResponse>(TYPE, jsonObject)
+                .deserialize((statusCode) -> {
+                    final String serviceName = jsonObject.getValue(DevOpsCommandResponse.JsonFields.JSON_SERVICE_NAME)
+                            .orElse(null);
+                    final Integer instance = jsonObject.getValue(DevOpsCommandResponse.JsonFields.JSON_INSTANCE)
+                            .orElse(null);
                     final JsonArray loggerConfigsJsonArray = jsonObject.getValueOrThrow(JSON_LOGGER_CONFIGS);
                     final List<LoggerConfig> loggerConfigs = loggerConfigsJsonArray.stream()
                             .filter(JsonValue::isObject)
@@ -106,13 +117,13 @@ public final class RetrieveLoggerConfigResponse extends AbstractDevOpsCommandRes
                             .map(ImmutableLoggerConfig::fromJson)
                             .collect(Collectors.toList());
 
-                    return of(loggerConfigs, dittoHeaders);
+                    return of(serviceName, instance, loggerConfigs, dittoHeaders);
                 });
     }
 
     @Override
     public RetrieveLoggerConfigResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(loggerConfigs, dittoHeaders);
+        return of(getServiceName().orElse(null), getInstance().orElse(null), loggerConfigs, dittoHeaders);
     }
 
     /**
@@ -125,8 +136,26 @@ public final class RetrieveLoggerConfigResponse extends AbstractDevOpsCommandRes
     }
 
     @Override
+    public RetrieveLoggerConfigResponse setEntity(final JsonValue entity) {
+        return of(getServiceName().orElse(null), getInstance().orElse(null), entity.asArray().stream()
+                .filter(JsonValue::isObject)
+                .map(JsonValue::asObject)
+                .map(ImmutableLoggerConfig::fromJson)
+                .collect(Collectors.toList()), getDittoHeaders());
+    }
+
+    @Override
+    public JsonValue getEntity(final JsonSchemaVersion schemaVersion) {
+        return loggerConfigs.stream()
+                .map(LoggerConfig::toJson)
+                .collect(JsonCollectors.valuesToArray());
+    }
+
+    @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
+        super.appendPayload(jsonObjectBuilder, schemaVersion, thePredicate);
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(JSON_LOGGER_CONFIGS, loggerConfigs.stream()
@@ -160,7 +189,7 @@ public final class RetrieveLoggerConfigResponse extends AbstractDevOpsCommandRes
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + " [" + super.toString() + "loggerConfigs=" + loggerConfigs + "]";
+        return getClass().getSimpleName() + " [" + super.toString() + ", loggerConfigs=" + loggerConfigs + "]";
     }
 
 }

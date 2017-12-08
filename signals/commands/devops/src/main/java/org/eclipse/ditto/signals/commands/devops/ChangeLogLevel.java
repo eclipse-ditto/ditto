@@ -29,6 +29,7 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.devops.ImmutableLoggerConfig;
 import org.eclipse.ditto.model.devops.LoggerConfig;
+import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 
 /**
  * Command to change the LogLevel of a Service's Logger at runtime. The Logger to change can be specified through {@link
@@ -47,15 +48,45 @@ public final class ChangeLogLevel extends AbstractDevOpsCommand<ChangeLogLevel> 
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition<JsonObject> JSON_LOGGER_CONFIG =
+    public static final JsonFieldDefinition<JsonObject> JSON_LOGGER_CONFIG =
             JsonFactory.newJsonObjectFieldDefinition("loggerConfig", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
     private final LoggerConfig loggerConfig;
 
-    private ChangeLogLevel(final LoggerConfig loggerConfig, final DittoHeaders dittoHeaders) {
-        super(TYPE, dittoHeaders);
+    private ChangeLogLevel(@Nullable final String serviceName, @Nullable final Integer instance,
+            final LoggerConfig loggerConfig, final DittoHeaders dittoHeaders) {
+        super(TYPE, serviceName, instance, dittoHeaders);
         this.loggerConfig = requireNonNull(loggerConfig, "The logger configuration must not be null!");
+    }
+
+    /**
+     * Returns a new instance of {@code ChangeLogLevel}.
+     *
+     * @param serviceName the service name to which to send the DevOpsCommand.
+     * @param instance the instance index of the serviceName to which to send the DevOpsCommand.
+     * @param loggerConfig the configuration for the logger to change.
+     * @param dittoHeaders the headers of the request.
+     * @return a new ChangeLogLevel command.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public static ChangeLogLevel of(@Nullable final String serviceName, @Nullable final Integer instance,
+            final LoggerConfig loggerConfig, final DittoHeaders dittoHeaders) {
+        return new ChangeLogLevel(serviceName, instance, loggerConfig, dittoHeaders);
+    }
+
+    /**
+     * Returns a new instance of {@code ChangeLogLevel}.
+     *
+     * @param serviceName the service name to which to send the DevOpsCommand.
+     * @param loggerConfig the configuration for the logger to change.
+     * @param dittoHeaders the headers of the request.
+     * @return a new ChangeLogLevel command.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public static ChangeLogLevel of(@Nullable final String serviceName,
+            final LoggerConfig loggerConfig, final DittoHeaders dittoHeaders) {
+        return new ChangeLogLevel(serviceName, null, loggerConfig, dittoHeaders);
     }
 
     /**
@@ -67,7 +98,7 @@ public final class ChangeLogLevel extends AbstractDevOpsCommand<ChangeLogLevel> 
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static ChangeLogLevel of(final LoggerConfig loggerConfig, final DittoHeaders dittoHeaders) {
-        return new ChangeLogLevel(loggerConfig, dittoHeaders);
+        return new ChangeLogLevel(null, null, loggerConfig, dittoHeaders);
     }
 
     /**
@@ -95,11 +126,13 @@ public final class ChangeLogLevel extends AbstractDevOpsCommand<ChangeLogLevel> 
      * format.
      */
     public static ChangeLogLevel fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new DevOpsCommandJsonDeserializer<ChangeLogLevel>(TYPE, jsonObject).deserialize(() -> {
+        return new CommandJsonDeserializer<ChangeLogLevel>(TYPE, jsonObject).deserialize(() -> {
+            final String serviceName = jsonObject.getValue(DevOpsCommand.JsonFields.JSON_SERVICE_NAME).orElse(null);
+            final Integer instance = jsonObject.getValue(DevOpsCommand.JsonFields.JSON_INSTANCE).orElse(null);
             final JsonObject loggerConfigJsonObject = jsonObject.getValueOrThrow(JSON_LOGGER_CONFIG);
             final LoggerConfig loggerConfig = ImmutableLoggerConfig.fromJson(loggerConfigJsonObject);
 
-            return of(loggerConfig, dittoHeaders);
+            return of(serviceName, instance, loggerConfig, dittoHeaders);
         });
     }
 
@@ -114,12 +147,15 @@ public final class ChangeLogLevel extends AbstractDevOpsCommand<ChangeLogLevel> 
 
     @Override
     public ChangeLogLevel setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(loggerConfig, dittoHeaders);
+        return of(getServiceName().orElse(null), getInstance().orElse(null), loggerConfig, dittoHeaders);
     }
 
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
+        super.appendPayload(jsonObjectBuilder, schemaVersion, thePredicate);
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(JSON_LOGGER_CONFIG, loggerConfig.toJson(schemaVersion, thePredicate), predicate);
     }
@@ -149,7 +185,7 @@ public final class ChangeLogLevel extends AbstractDevOpsCommand<ChangeLogLevel> 
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + " [" + super.toString() + "loggerConfig=" + loggerConfig + "]";
+        return getClass().getSimpleName() + " [" + super.toString() + ", loggerConfig=" + loggerConfig + "]";
     }
 
 }

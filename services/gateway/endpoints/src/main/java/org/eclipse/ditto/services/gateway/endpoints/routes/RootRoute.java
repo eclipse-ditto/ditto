@@ -15,11 +15,15 @@ import static akka.http.javadsl.server.Directives.complete;
 import static akka.http.javadsl.server.Directives.extractRequestContext;
 import static akka.http.javadsl.server.Directives.handleExceptions;
 import static akka.http.javadsl.server.Directives.handleRejections;
+import static akka.http.javadsl.server.Directives.pathPrefixTest;
 import static akka.http.javadsl.server.Directives.rawPathPrefix;
 import static akka.http.javadsl.server.Directives.route;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.CorrelationIdEnsuringDirective.ensureCorrelationId;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.CustomPathMatchers.mergeDoubleSlashes;
+import static org.eclipse.ditto.services.gateway.endpoints.directives.DevopsBasicAuthenticationDirective.REALM_DEVOPS;
+import static org.eclipse.ditto.services.gateway.endpoints.directives.DevopsBasicAuthenticationDirective.REALM_HEALTH;
+import static org.eclipse.ditto.services.gateway.endpoints.directives.DevopsBasicAuthenticationDirective.authenticateDevopsBasic;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.RequestResultLoggingDirective.logRequestResult;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.ResponseRewritingDirective.rewriteResponse;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.auth.AuthorizationContextVersioningDirective.mapAuthorizationContext;
@@ -30,6 +34,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Supplier;
+import java.util.regex.Pattern;
 
 import org.eclipse.ditto.json.JsonRuntimeException;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
@@ -40,6 +45,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
+import org.eclipse.ditto.services.gateway.endpoints.directives.CorsEnablingDirective;
 import org.eclipse.ditto.services.gateway.endpoints.directives.EncodingEnsuringDirective;
 import org.eclipse.ditto.services.gateway.endpoints.directives.HttpsEnsuringDirective;
 import org.eclipse.ditto.services.gateway.endpoints.directives.RequestTimeoutHandlingDirective;
@@ -52,6 +58,7 @@ import org.eclipse.ditto.services.gateway.endpoints.directives.auth.jwt.JwtAuthe
 import org.eclipse.ditto.services.gateway.endpoints.directives.auth.jwt.JwtSubjectIssuerConfig;
 import org.eclipse.ditto.services.gateway.endpoints.directives.auth.jwt.JwtSubjectIssuersConfig;
 import org.eclipse.ditto.services.gateway.endpoints.directives.auth.jwt.PublicKeyProvider;
+import org.eclipse.ditto.services.gateway.endpoints.routes.devops.DevOpsRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.health.CachingHealthRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.policies.PoliciesRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.sse.SseThingsRoute;
@@ -100,8 +107,18 @@ public final class RootRoute {
     private static final String BLOCKING_DISPATCHER_NAME = "blocking-dispatcher";
     private static final String JWK_RESOURCE_GOOGLE = "https://www.googleapis.com/oauth2/v2/certs";
 
+    /**
+     * Contains a Pattern which routes are included in devops Basic Auth secured resources.
+     */
+    public static final Pattern DEVOPS_AUTH_SECURED = Pattern.compile("(" +
+            OverallStatusRoute.PATH_STATUS + "|" +
+            CachingHealthRoute.PATH_HEALTH + "|" +
+            DevOpsRoute.PATH_DEVOPS + ").*"
+    );
+
     private final OverallStatusRoute overallStatusRoute;
     private final CachingHealthRoute cachingHealthRoute;
+    private final DevOpsRoute devopsRoute;
 
     private final PoliciesRoute policiesRoute;
     private final SseThingsRoute sseThingsRoute;
@@ -142,6 +159,7 @@ public final class RootRoute {
                 statusHealthHelper);
         cachingHealthRoute = new CachingHealthRoute(statusHealthHelper,
                 config.getDuration(ConfigKeys.STATUS_HEALTH_EXTERNAL_CACHE_TIMEOUT));
+        devopsRoute = new DevOpsRoute(proxyActor, actorSystem);
 
         policiesRoute = new PoliciesRoute(proxyActor, actorSystem);
         sseThingsRoute = new SseThingsRoute(proxyActor, actorSystem, streamingActor);
@@ -199,13 +217,27 @@ public final class RootRoute {
      * @return the {@code /} route.
      */
     public Route buildRoute() {
-        return wrapWithRootDirectives(correlationId -> Directives.route(
-                statsRoute.buildStatsRoute(correlationId), // /stats
-                overallStatusRoute.buildStatusRoute(), // /status
-                cachingHealthRoute.buildHealthRoute(), // /health
-                api(correlationId), // /api
-                ws(correlationId) // /ws
-        ));
+        return wrapWithRootDirectives(correlationId ->
+                extractRequestContext(ctx ->
+                        route(
+                                statsRoute.buildStatsRoute(correlationId), // /stats
+                                api(ctx, correlationId), // /api
+                                ws(correlationId), // /ws
+                                pathPrefixTest(PathMatchers.segment(DEVOPS_AUTH_SECURED), segment -> {
+                                    final String realm = getRealmFromSegment(segment);
+                                    return authenticateDevopsBasic(realm,
+                                            route(
+                                                    overallStatusRoute.buildStatusRoute(), // /status
+                                                    cachingHealthRoute.buildHealthRoute(), // /health
+                                                    devopsRoute.buildDevopsRoute(ctx) // /devops
+                                            )
+                                    );
+                                })
+
+
+                        )
+                )
+        );
     }
 
     private Route wrapWithRootDirectives(final java.util.function.Function<String, Route> rootRoute) {
@@ -218,22 +250,25 @@ public final class RootRoute {
                                         logRequestResult(correlationId, () ->
                                                 EncodingEnsuringDirective.ensureEncoding(correlationId, () ->
                                                         HttpsEnsuringDirective.ensureHttps(correlationId, () ->
-                                                                SecurityResponseHeadersDirective.addSecurityResponseHeaders(
-                                                                        () ->
+                                                                CorsEnablingDirective.enableCors(() ->
+                                                                                SecurityResponseHeadersDirective.addSecurityResponseHeaders(
+                                                                                        () ->
                                                             /* handling the rejections is done by akka automatically, but if we
                                                                do it here explicitly, we are able to log the status code for the
                                                                rejection (e.g. 404 or 405) in a wrapping directive. */
-                                                                                handleRejections(
-                                                                                        RejectionHandler.defaultHandler(),
-                                                                                        () ->
+                                                                                                handleRejections(
+                                                                                                        RejectionHandler.defaultHandler(),
+                                                                                                        () ->
                                                                     /* the inner handleExceptions is for handling exceptions
                                                                        occurring in the route route. It makes sure that the
                                                                        wrapping directives such as addSecurityResponseHeaders are
                                                                        even called in an error case in the route route. */
-                                                                                                handleExceptions(
-                                                                                                        exceptionHandler,
-                                                                                                        () -> rootRoute.apply(
-                                                                                                                correlationId))
+                                                                                                                handleExceptions(
+                                                                                                                        exceptionHandler,
+                                                                                                                        () -> rootRoute
+                                                                                                                                .apply(
+                                                                                                                                        correlationId))
+                                                                                                )
                                                                                 )
                                                                 )
                                                         )
@@ -260,25 +295,23 @@ public final class RootRoute {
      *
      * @return route for API resource.
      */
-    private Route api(final String correlationId) {
+    private Route api(final RequestContext ctx, final String correlationId) {
         return rawPathPrefix(mergeDoubleSlashes().concat(HTTP_PATH_API_PREFIX), () -> // /api
                 ensureSchemaVersion(apiVersion -> // /api/<apiVersion>
                         apiAuthentication(correlationId,
                                 authContextWithPrefixedSubjects ->
-                                        extractRequestContext(ctx ->
-                                                mapAuthorizationContext(
-                                                        correlationId,
-                                                        apiVersion,
-                                                        authContextWithPrefixedSubjects,
-                                                        authContext ->
-                                                                extractDittoHeaders(
-                                                                        authContext,
-                                                                        apiVersion,
-                                                                        correlationId,
-                                                                        dittoHeaders ->
-                                                                                buildApiSubRoutes(ctx, dittoHeaders)
-                                                                )
-                                                )
+                                        mapAuthorizationContext(
+                                                correlationId,
+                                                apiVersion,
+                                                authContextWithPrefixedSubjects,
+                                                authContext ->
+                                                        extractDittoHeaders(
+                                                                authContext,
+                                                                apiVersion,
+                                                                correlationId,
+                                                                dittoHeaders ->
+                                                                        buildApiSubRoutes(ctx, dittoHeaders)
+                                                        )
                                         )
                         )
                 )
@@ -308,7 +341,7 @@ public final class RootRoute {
     }
 
     private Route buildApiSubRoutes(final RequestContext ctx, final DittoHeaders dittoHeaders) {
-        return route(
+        return Directives.route(
                 // /api/{apiVersion}/policies
                 policiesRoute.buildPoliciesRoute(ctx, dittoHeaders),
                 // /api/{apiVersion}/things SSE support
@@ -388,4 +421,19 @@ public final class RootRoute {
         return builder.build();
     }
 
+    /**
+     * Computes the basic-auth realm from the path segment.
+     *
+     * @param segment The path segment, should match {@link this#DEVOPS_AUTH_SECURED}
+     * @return Basic-auth realm for the path
+     */
+    private static String getRealmFromSegment(final String segment) {
+        if (segment.startsWith(CachingHealthRoute.PATH_HEALTH)) {
+            return REALM_HEALTH;
+        } else {
+            return REALM_DEVOPS;
+        }
+    }
+
 }
+

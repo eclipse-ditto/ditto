@@ -22,6 +22,8 @@ import org.eclipse.ditto.services.things.starter.util.ConfigKeys;
 import org.eclipse.ditto.services.utils.cluster.ClusterMemberAwareActor;
 import org.eclipse.ditto.services.utils.cluster.ClusterUtil;
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
+import org.eclipse.ditto.services.utils.devops.DevOpsCommandsActor;
+import org.eclipse.ditto.services.utils.devops.LogbackLoggingFacade;
 import org.eclipse.ditto.services.utils.health.status.StatusSupplierActor;
 import org.slf4j.Logger;
 
@@ -90,6 +92,9 @@ public final class ThingsApplication {
 
         final ActorSystem system = ActorSystem.create(clusterName, thingsConfig);
         system.actorOf(StatusSupplierActor.props(ThingsRootActor.ACTOR_NAME), StatusSupplierActor.ACTOR_NAME);
+        system.actorOf(
+                DevOpsCommandsActor.props(LogbackLoggingFacade.newInstance(), ThingsService.SERVICE_NAME, ConfigUtil.instanceIndex()),
+                DevOpsCommandsActor.ACTOR_NAME);
 
         ClusterUtil.joinCluster(system, thingsConfig);
         // important: register Kamon::shutdown after joining the cluster as there is also a "registerOnTermination"

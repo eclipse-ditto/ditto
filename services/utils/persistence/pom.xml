@@ -26,6 +26,11 @@
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>ditto-signals-events-base</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>ditto-services-utils-akka-persistence-mongo-addons</artifactId>
             <version>${project.version}</version>
         </dependency>

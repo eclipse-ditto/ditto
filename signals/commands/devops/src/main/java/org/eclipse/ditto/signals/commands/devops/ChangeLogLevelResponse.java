@@ -26,6 +26,7 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 
 /**
  * Response to the {@link ChangeLogLevel} command.
@@ -44,20 +45,25 @@ public final class ChangeLogLevelResponse extends AbstractDevOpsCommandResponse<
 
     private final boolean successful;
 
-    private ChangeLogLevelResponse(final boolean successful, final DittoHeaders dittoHeaders) {
-        super(TYPE, successful ? HttpStatusCode.OK : HttpStatusCode.INTERNAL_SERVER_ERROR, dittoHeaders);
+    private ChangeLogLevelResponse(@Nullable final String serviceName, @Nullable final Integer instance,
+            final boolean successful, final DittoHeaders dittoHeaders) {
+        super(TYPE, serviceName, instance, successful ? HttpStatusCode.OK : HttpStatusCode.INTERNAL_SERVER_ERROR,
+                dittoHeaders);
         this.successful = successful;
     }
 
     /**
      * Creates a new ChangeLogLevelResponse instance.
      *
+     * @param serviceName the service name from which the DevOpsCommandResponse originated.
+     * @param instance the instance index of the serviceName from which the DevOpsCommandResponse originated.
      * @param successful indicates whether the persistence snapshot was successful.
      * @param dittoHeaders the DittoHeaders of the repsonse.
      * @return the new ChangeLogLevelResponse instance.
      */
-    public static ChangeLogLevelResponse of(final boolean successful, final DittoHeaders dittoHeaders) {
-        return new ChangeLogLevelResponse(successful, dittoHeaders);
+    public static ChangeLogLevelResponse of(@Nullable final String serviceName, @Nullable final Integer instance,
+            final boolean successful, final DittoHeaders dittoHeaders) {
+        return new ChangeLogLevelResponse(serviceName, instance, successful, dittoHeaders);
     }
 
     /**
@@ -86,10 +92,15 @@ public final class ChangeLogLevelResponse extends AbstractDevOpsCommandResponse<
      * format.
      */
     public static ChangeLogLevelResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new DevOpsCommandResponseJsonDeserializer<ChangeLogLevelResponse>(TYPE, jsonObject).deserialize(() -> {
-            final boolean successful = jsonObject.getValueOrThrow(JSON_SUCCESSFUL);
-            return ChangeLogLevelResponse.of(successful, dittoHeaders);
-        });
+        return new CommandResponseJsonDeserializer<ChangeLogLevelResponse>(TYPE, jsonObject).deserialize(
+                (statusCode) -> {
+                    final String serviceName = jsonObject.getValue(DevOpsCommandResponse.JsonFields.JSON_SERVICE_NAME)
+                            .orElse(null);
+                    final Integer instance = jsonObject.getValue(DevOpsCommandResponse.JsonFields.JSON_INSTANCE)
+                            .orElse(null);
+                    final boolean successful = jsonObject.getValueOrThrow(JSON_SUCCESSFUL);
+                    return ChangeLogLevelResponse.of(serviceName, instance, successful, dittoHeaders);
+                });
     }
 
     /**
@@ -103,12 +114,15 @@ public final class ChangeLogLevelResponse extends AbstractDevOpsCommandResponse<
 
     @Override
     public ChangeLogLevelResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(successful, dittoHeaders);
+        return of(getServiceName().orElse(null), getInstance().orElse(null), successful, dittoHeaders);
     }
 
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
+        super.appendPayload(jsonObjectBuilder, schemaVersion, thePredicate);
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(JSON_SUCCESSFUL, successful, predicate);
     }
@@ -138,7 +152,7 @@ public final class ChangeLogLevelResponse extends AbstractDevOpsCommandResponse<
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + " [" + super.toString() + "successful=" + successful + "]";
+        return getClass().getSimpleName() + " [" + super.toString() + ", successful=" + successful + "]";
     }
 
 }

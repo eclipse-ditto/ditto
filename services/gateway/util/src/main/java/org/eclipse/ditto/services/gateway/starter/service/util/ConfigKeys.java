@@ -28,6 +28,10 @@ public final class ConfigKeys {
      */
     public static final String FORCE_HTTPS = GATEWAY_PREFIX + "forcehttps";
     /**
+     * Key of the "enablecors" config entry.
+     */
+    public static final String ENABLE_CORS = GATEWAY_PREFIX + "enablecors";
+    /**
      * Configures whether the client/requester should be redirected to the HTTPS URL if he tries to access via plain
      * HTTP and {@link #FORCE_HTTPS} is set to true.
      */

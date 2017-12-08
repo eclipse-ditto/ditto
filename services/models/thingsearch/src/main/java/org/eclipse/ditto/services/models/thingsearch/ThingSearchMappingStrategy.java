@@ -25,6 +25,8 @@ import org.eclipse.ditto.services.models.thingsearch.commands.sudo.ThingSearchSu
 import org.eclipse.ditto.services.utils.cluster.MappingStrategiesBuilder;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
 import org.eclipse.ditto.services.utils.distributedcache.model.BaseCacheEntry;
+import org.eclipse.ditto.signals.commands.devops.DevOpsCommandRegistry;
+import org.eclipse.ditto.signals.commands.devops.DevOpsCommandResponseRegistry;
 import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommandRegistry;
 import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommandResponseRegistry;
 import org.eclipse.ditto.signals.commands.thingsearch.exceptions.ThingSearchErrorRegistry;
@@ -57,6 +59,7 @@ public final class ThingSearchMappingStrategy implements MappingStrategy {
                 jsonObject -> BaseCacheEntry.fromJson(jsonObject)); // do not replace with lambda!
 
         addThingSearchStrategies(builder);
+        addDevOpsStrategies(builder);
 
         combinedStrategy.putAll(builder.build());
         return combinedStrategy;
@@ -68,6 +71,11 @@ public final class ThingSearchMappingStrategy implements MappingStrategy {
         builder.add(ThingSearchErrorRegistry.newInstance());
         builder.add(ThingSearchSudoCommandRegistry.newInstance());
         builder.add(ThingSearchSudoCommandResponseRegistry.newInstance());
+    }
+
+    private static void addDevOpsStrategies(final MappingStrategiesBuilder builder) {
+        builder.add(DevOpsCommandRegistry.newInstance());
+        builder.add(DevOpsCommandResponseRegistry.newInstance());
     }
 
 }
