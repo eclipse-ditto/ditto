@@ -24,11 +24,13 @@ import java.util.Set;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonRuntimeException;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -382,15 +384,10 @@ public abstract class AbstractPolicyEnforcerActor extends AbstractActorWithStash
                 .match(CommandResponse.class, response -> response instanceof WithEntity, response -> {
                     queryTimeout.cancel();
                     final WithEntity withEntity = (WithEntity) response;
-                    final JsonValue value = withEntity.getEntity();
+                    final JsonValue responseEntity = withEntity.getEntity();
 
-                    if (value.isObject()) {
-                        final String type = response.getResourceType();
-                        final JsonFieldSelector whitelist = whitelistedJsonFields.get(response.getResourceType());
-                        final JsonObject filterView =
-                                policyEnforcer.buildJsonView(ResourceKey.newInstance(type, JsonFactory.emptyPointer()),
-                                        value.asObject(), response.getDittoHeaders().getAuthorizationContext(),
-                                        whitelist, Permissions.newInstance(READ));
+                    if (responseEntity.isObject()) {
+                        final JsonObject filterView = getJsonViewForResponse(response, responseEntity.asObject());
                         try {
                             queryOriginalSender.tell(withEntity.setEntity(filterView), getSelf());
                         } catch (final DittoRuntimeException e) {
@@ -418,6 +415,18 @@ public abstract class AbstractPolicyEnforcerActor extends AbstractActorWithStash
                 })
                 .matchAny(msg -> doStash()) // stash all other messages
                 .build();
+    }
+
+    private <T extends CommandResponse> JsonObject getJsonViewForResponse(final T commandResponse,
+            final Iterable<JsonField> responseEntity) {
+
+        final String resType = commandResponse.getResourceType();
+        final ResourceKey resKey = ResourceKey.newInstance(resType, commandResponse.getResourcePath());
+        final AuthorizationContext authorizationContext = commandResponse.getDittoHeaders().getAuthorizationContext();
+        final JsonFieldSelector whitelist = whitelistedJsonFields.get(resType);
+
+        return policyEnforcer.buildJsonView(resKey, responseEntity, authorizationContext, whitelist,
+                Permissions.newInstance(READ));
     }
 
     private Receive buildSynchronizingBehaviour() {
