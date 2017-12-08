@@ -46,6 +46,7 @@ public final class JsonViewScenario13 implements JsonViewScenario {
         private Permission() {
             throw new AssertionError();
         }
+
     }
 
     private static final String POLICY_ID = "org.eclipse.ditto:" + JsonViewScenario13.class.getSimpleName();
@@ -54,7 +55,6 @@ public final class JsonViewScenario13 implements JsonViewScenario {
     private static final SubjectId SUBJECT_ID_OWNER = SubjectId.newInstance(SubjectIssuer.GOOGLE_URL, LABEL_OWNER);
     private static final SubjectId SUBJECT_ID_CLIENT = SubjectId.newInstance(SubjectIssuer.GOOGLE_URL, LABEL_CLIENT);
     private static final String TEST_THING_ID = "org.eclipse.ditto:thing1";
-    private static final String GYROSCOPE_FEATURE_ID = "Gyroscope.0";
     private static final Feature GYROSCOPE_FEATURE = ThingsModelFactory.newFeatureBuilder()
             .properties(ThingsModelFactory.newFeaturePropertiesBuilder()
                     .set("status", JsonFactory.newObjectBuilder()
@@ -66,7 +66,7 @@ public final class JsonViewScenario13 implements JsonViewScenario {
                             .set("maxRangeValue", 2000)
                             .build())
                     .build())
-            .withId(GYROSCOPE_FEATURE_ID)
+            .withId("Gyroscope.0")
             .build();
     private static final Features TEST_FEATURES = ThingsModelFactory.newFeatures(GYROSCOPE_FEATURE);
     private static final Thing TEST_THING = ThingsModelFactory.newThingBuilder()
@@ -96,7 +96,7 @@ public final class JsonViewScenario13 implements JsonViewScenario {
         checkNotNull(policy, "policy of the scenario setup");
 
         final AuthorizationContext authorizationContext = Scenario.newAuthorizationContext(LABEL_CLIENT);
-        final String resource = "/features/" + GYROSCOPE_FEATURE_ID;
+        final String resource = "/features/" + GYROSCOPE_FEATURE.getId();
         final JsonObject expectedJsonView = GYROSCOPE_FEATURE.toJson();
         final Set<String> expectedSubjectIds = new HashSet<>();
         Collections.addAll(expectedSubjectIds, SUBJECT_ID_OWNER.toString(), SUBJECT_ID_CLIENT.toString());
@@ -114,7 +114,7 @@ public final class JsonViewScenario13 implements JsonViewScenario {
                 .setGrantedPermissions(PoliciesResourceType.messageResource("/"), Permission.READ, Permission.WRITE)
                 .forLabel(LABEL_CLIENT)
                 .setSubject(SUBJECT_ID_CLIENT, SubjectType.UNKNOWN)
-                .setGrantedPermissions(PoliciesResourceType.thingResource("/features/" + GYROSCOPE_FEATURE_ID),
+                .setGrantedPermissions(PoliciesResourceType.thingResource("/features/" + GYROSCOPE_FEATURE.getId()),
                         Permission.READ, Permission.WRITE)
                 .build();
     }
