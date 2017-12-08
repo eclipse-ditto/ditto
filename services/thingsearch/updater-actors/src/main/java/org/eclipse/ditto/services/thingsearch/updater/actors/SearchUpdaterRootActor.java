@@ -141,8 +141,10 @@ public final class SearchUpdaterRootActor extends AbstractActor {
 
         final Duration thingUpdaterActivityCheckInterval =
                 config.getDuration(ConfigKeys.THINGS_ACTIVITY_CHECK_INTERVAL);
+        final ShardRegionFactory shardRegionFactory = ShardRegionFactory.getInstance(getContext().getSystem());
         thingsUpdaterActor = startChildActor(ThingsUpdater.ACTOR_NAME, ThingsUpdater
-                .props(numberOfShards, searchUpdaterPersistence, circuitBreaker, eventProcessingActive,
+                .props(numberOfShards, shardRegionFactory, searchUpdaterPersistence, circuitBreaker,
+                        eventProcessingActive,
                         thingUpdaterActivityCheckInterval, thingCacheFacade,
                         policyCacheFacade));
         final boolean synchronizationActive = config.getBoolean(ConfigKeys.THINGS_SYNCER_ACTIVE);

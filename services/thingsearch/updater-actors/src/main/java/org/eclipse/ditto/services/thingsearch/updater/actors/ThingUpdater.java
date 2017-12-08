@@ -262,6 +262,9 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
                     sequenceNumber = retrievedThingMetadata.getThingRevision();
                     policyId = retrievedThingMetadata.getPolicyId();
                     policyRevision = retrievedThingMetadata.getPolicyRevision();
+                    if (Objects.nonNull(policyId)) {
+                        policyCacheFacade.tell(new RegisterForCacheUpdates(policyId, getSelf()), getSelf());
+                    }
                     becomeInitialMessageHandling();
                 })
                 .match(ActorInitializationComplete.class, msg -> becomeInitialMessageHandling())

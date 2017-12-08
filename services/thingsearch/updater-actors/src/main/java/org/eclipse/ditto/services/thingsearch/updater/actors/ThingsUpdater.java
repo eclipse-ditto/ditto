@@ -63,6 +63,7 @@ final class ThingsUpdater extends AbstractActor {
     private final Materializer materializer;
 
     private ThingsUpdater(final int numberOfShards,
+            final ShardRegionFactory shardRegionFactory,
             final ThingsSearchUpdaterPersistence searchUpdaterPersistence,
             final CircuitBreaker circuitBreaker,
             final boolean eventProcessingActive,
@@ -71,7 +72,6 @@ final class ThingsUpdater extends AbstractActor {
             final ActorRef policyCacheFacade) {
 
         final ActorSystem actorSystem = context().system();
-        final ShardRegionFactory shardRegionFactory = ShardRegionFactory.getInstance(actorSystem);
 
         // Start the proxy for the Things and Policies sharding, too.
         final ActorRef thingsShardRegion = shardRegionFactory.getThingsShardRegion(numberOfShards);
@@ -102,6 +102,7 @@ final class ThingsUpdater extends AbstractActor {
      * Creates Akka configuration object for this actor.
      *
      * @param numberOfShards the number of shards the "search-updater" shardRegion should be started with.
+     * @param shardRegionFactory The shard region factory to use when creating sharded actors.
      * @param thingUpdaterActivityCheckInterval the interval at which is checked, if the corresponding Thing is still actively
      * updated
      * @param thingCacheFacade the {@link org.eclipse.ditto.services.utils.distributedcache.actors.CacheFacadeActor} for
@@ -111,6 +112,7 @@ final class ThingsUpdater extends AbstractActor {
      * @return the Akka configuration Props object
      */
     static Props props(final int numberOfShards,
+            final ShardRegionFactory shardRegionFactory,
             final ThingsSearchUpdaterPersistence searchUpdaterPersistence,
             final CircuitBreaker circuitBreaker,
             final boolean eventProcessingActive,
@@ -123,7 +125,7 @@ final class ThingsUpdater extends AbstractActor {
 
             @Override
             public ThingsUpdater create() throws Exception {
-                return new ThingsUpdater(numberOfShards, searchUpdaterPersistence, circuitBreaker,
+                return new ThingsUpdater(numberOfShards, shardRegionFactory, searchUpdaterPersistence, circuitBreaker,
                         eventProcessingActive, thingUpdaterActivityCheckInterval, thingCacheFacade,
                         policyCacheFacade);
             }
