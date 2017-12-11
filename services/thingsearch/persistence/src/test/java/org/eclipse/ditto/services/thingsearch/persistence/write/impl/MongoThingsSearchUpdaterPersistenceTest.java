@@ -132,7 +132,7 @@ public final class MongoThingsSearchUpdaterPersistenceTest extends AbstractThing
     private static final String FEATURE_ID1 = "feature1";
     private static final String FEATURE_ID2 = "feature2";
     private static final String FEATURE_WITH_DOTS = "feature.with.dots";
-    private static final List<String> DEFAULT_POLICY_SUBJECTS = Collections.singletonList("iot-things:mySid");
+    private static final List<String> DEFAULT_POLICY_SUBJECTS = Collections.singletonList("some:mySid");
 
 
     private static abstract class BaseClass extends AbstractThingSearchPersistenceTestBase {
@@ -1224,12 +1224,12 @@ public final class MongoThingsSearchUpdaterPersistenceTest extends AbstractThing
 
             final List<ThingEvent> writes = Collections.singletonList(
                     wrapEvent(
-                            createAclModified("iot-things:mySid2", 1L, org.eclipse.ditto.model.things.Permission.READ,
+                            createAclModified("some:mySid2", 1L, org.eclipse.ditto.model.things.Permission.READ,
                                     org.eclipse.ditto.model.things.Permission.WRITE), JsonSchemaVersion.V_1));
 
             final PolicyRestrictedSearchAggregation aggregation =
                     abf.newBuilder(cf.fieldCriteria(fef.filterByAttribute(KEY1), cf.eq(VALUE1)))
-                            .authorizationSubjects(Collections.singletonList("iot-things:mySid2"))
+                            .authorizationSubjects(Collections.singletonList("some:mySid2"))
                             .build();
 
             Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes,
@@ -1251,12 +1251,12 @@ public final class MongoThingsSearchUpdaterPersistenceTest extends AbstractThing
                     writePoliciesCollectionSpy);
 
             final List<ThingEvent> writes = Collections.singletonList(
-                    wrapEvent(createAclModified("iot-things:mySid3", 1L,
+                    wrapEvent(createAclModified("some:mySid3", 1L,
                             org.eclipse.ditto.model.things.Permission.WRITE), JsonSchemaVersion.V_1));
 
             final PolicyRestrictedSearchAggregation aggregation =
                     abf.newBuilder(cf.fieldCriteria(fef.filterByAttribute(KEY1), cf.eq(VALUE1)))
-                            .authorizationSubjects(Collections.singletonList("iot-things:mySid3"))
+                            .authorizationSubjects(Collections.singletonList("some:mySid3"))
                             .build();
 
             Assertions.assertThat(
@@ -1280,14 +1280,14 @@ public final class MongoThingsSearchUpdaterPersistenceTest extends AbstractThing
 
             final List<ThingEvent> writes = Collections.singletonList(
                     wrapEvent(
-                            AclEntryDeleted.of(KNOWN_THING_ID, AuthorizationSubject.newInstance("iot-things:mySid3"),
+                            AclEntryDeleted.of(KNOWN_THING_ID, AuthorizationSubject.newInstance("some:mySid3"),
                                     1L,
                                     DittoHeaders.empty()), JsonSchemaVersion.V_1));
 
 
             final PolicyRestrictedSearchAggregation aggregation =
                     abf.newBuilder(cf.fieldCriteria(fef.filterByAttribute(KEY1), cf.eq(VALUE1)))
-                            .authorizationSubjects(Collections.singletonList("iot-things:mySid3"))
+                            .authorizationSubjects(Collections.singletonList("some:mySid3"))
                             .build();
 
             Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes,
@@ -1535,7 +1535,7 @@ public final class MongoThingsSearchUpdaterPersistenceTest extends AbstractThing
             final List<String> foundAll = findAll(aggregation1);
             assertThat(foundAll).containsOnly(KNOWN_THING_ID);
 
-            final String newUser = "iot-things:someNewUser";
+            final String newUser = "some:someNewUser";
             final Policy newPolicy = createPolicyFor(newUser);
 
             insertBlockingAndResetMocks(true, thing, 2L, 0, PolicyEnforcers.defaultEvaluator(newPolicy));
@@ -1638,11 +1638,11 @@ public final class MongoThingsSearchUpdaterPersistenceTest extends AbstractThing
 
     private static Thing thingV1(final String thingId, final String attributeValue) {
         final AccessControlList acl = ThingsModelFactory.newAclBuilder()
-                .set(ThingsModelFactory.newAclEntry(newAuthSubject("iot-things:mySid"),
+                .set(ThingsModelFactory.newAclEntry(newAuthSubject("some:mySid"),
                         ThingsModelFactory.allPermissions()))
-                .set(ThingsModelFactory.newAclEntry(newAuthSubject("iot-things:mySid2"),
+                .set(ThingsModelFactory.newAclEntry(newAuthSubject("some:mySid2"),
                         org.eclipse.ditto.model.things.Permission.WRITE))
-                .set(ThingsModelFactory.newAclEntry(newAuthSubject("iot-things:mySid3"),
+                .set(ThingsModelFactory.newAclEntry(newAuthSubject("some:mySid3"),
                         org.eclipse.ditto.model.things.Permission.READ))
                 .build();
 
@@ -1724,8 +1724,8 @@ public final class MongoThingsSearchUpdaterPersistenceTest extends AbstractThing
         return PoliciesModelFactory.newPolicyBuilder(KNOWN_THING_ID)
                 .forLabel("someLabel")
                 .setSubjects(
-                        Subjects.newInstance(Subject.newInstance(SubjectId.newInstance("iot-things:user88")),
-                                Subject.newInstance(SubjectId.newInstance("iot-things:user2"))))
+                        Subjects.newInstance(Subject.newInstance(SubjectId.newInstance("some:user88")),
+                                Subject.newInstance(SubjectId.newInstance("some:user2"))))
                 .setGrantedPermissions("thing", "/", Permission.READ)
                 .setRevision(2L)
                 .build();
