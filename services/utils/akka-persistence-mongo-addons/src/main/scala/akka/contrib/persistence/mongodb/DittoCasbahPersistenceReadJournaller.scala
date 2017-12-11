@@ -20,137 +20,8 @@ import com.mongodb.BasicDBObject
 import com.mongodb.casbah.Imports._
 import org.bson.types.ObjectId
 
-object MongoDateUtil {
-
-  /**
-    * Utility method returning the [[Date]] retrieved by MongoDB minus the passed [[Duration]].
-    *
-    * @param driver   the CasbahMongoDriver to use.
-    * @param duration the Duration to substract.
-    * @return the calulated Date from MongoDB minus the passed [[Duration]].
-    */
-  def retrieveCurrentMongoDateMinusDuration(driver: CasbahMongoDriver, duration: Duration): Date =
-    new MongoDateUtil(driver).retrieveCurrentMongoDateMinusDuration(duration)
-}
-
-class MongoDateUtil(val driver: CasbahMongoDriver) {
-  val TEST_COLLECTION_NAME = "test"
-  val CURRENT_DATE_FUNC = "$currentDate"
-  val DATE_FIELD = "date"
-  val MONGO_ID = "_id"
-  val WRITE_CONCERN = WriteConcern.Acknowledged
-
-  def retrieveCurrentMongoDateMinusDuration(duration: Duration): Date = {
-    val query = new BasicDBObject(MONGO_ID, UUID.randomUUID().toString)
-    // should never match
-    val update = new BasicDBObject(CURRENT_DATE_FUNC,
-      new BasicDBObject(DATE_FIELD, true)
-    )
-    val upsertedId = driver.collection(TEST_COLLECTION_NAME).update(query, update, upsert = true, multi = false, WRITE_CONCERN).getUpsertedId
-    val mongoDate = driver.collection(TEST_COLLECTION_NAME).findOneByID(upsertedId).get(DATE_FIELD).asInstanceOf[Date]
-    driver.collection(TEST_COLLECTION_NAME).remove(MongoDBObject(MONGO_ID -> upsertedId), WRITE_CONCERN)
-    Date.from(mongoDate.toInstant.minusMillis(duration.toMillis))
-  }
-}
-
 /**
-  * Factory for class [[ModifiedPidsOfTimespan]].
-  */
-object ModifiedPidsOfTimespan {
-  def props(driver: CasbahMongoDriver, duration: Duration): Props =
-    Props(new ModifiedPidsOfTimespan(driver, duration))
-}
-
-/**
-  * Class providing the implementation for retrieving the modified persistenceIds of a given Duration as a Stream of
-  * [[String]]s.
-  *
-  * @param driver   the CasbahMongoDriver to use.
-  * @param duration the Duration.
-  */
-class ModifiedPidsOfTimespan(val driver: CasbahMongoDriver, duration: Duration)
-  extends SyncActorPublisher[String, Stream[String]] {
-
-  import JournallingFieldNames._
-
-  val searchDate = MongoDateUtil.retrieveCurrentMongoDateMinusDuration(driver, duration)
-
-  override protected def initialCursor: Stream[String] =
-    driver.journal
-      .distinct(PROCESSOR_ID, MongoDBObject("_id" -> MongoDBObject("$gte" -> new ObjectId(searchDate))))
-      .toStream
-      .map(any => any.asInstanceOf[String])
-
-  override protected def next(c: Stream[String], atMost: Long): (Vector[String], Stream[String]) = {
-    val (buf, remainder) = c.splitAt(atMost.toIntWithoutWrapping)
-    (buf.toVector, remainder)
-  }
-
-  override protected def isCompleted(c: Stream[String]): Boolean = {
-    c.isEmpty
-  }
-
-  override protected def discard(c: Stream[String]): Unit = ()
-}
-
-/**
-  * Factory for class [[SequenceNumbersOfPids]].
-  */
-object SequenceNumbersOfPids {
-  def props(driver: CasbahMongoDriver, pids: Array[String], offset: Duration): Props =
-    Props(new SequenceNumbersOfPids(driver, pids, offset))
-}
-
-/**
-  * Class providing the implementation for retrieving the highest sequence numbers for the modified persistenceIds as a
-  * Stream of [[PidWithSeqNr]]s.
-  *
-  * @param driver the CasbahMongoDriver to use.
-  * @param pids   the persistenceIds to retrieve the highest sequenceNumber for.
-  */
-class SequenceNumbersOfPids(val driver: CasbahMongoDriver, pids: Array[String], offset: Duration)
-  extends SyncActorPublisher[PidWithSeqNr, Stream[PidWithSeqNr]] {
-
-  import JournallingFieldNames._
-
-  val offsetDate = MongoDateUtil.retrieveCurrentMongoDateMinusDuration(driver, offset)
-
-  override protected def initialCursor: Stream[PidWithSeqNr] =
-    driver.journal
-      .aggregate(List(
-        MongoDBObject("$match" -> MongoDBObject(
-          PROCESSOR_ID -> MongoDBObject("$in" -> pids))
-        ),
-        MongoDBObject("$sort" -> MongoDBObject(TO -> -1)),
-        MongoDBObject("$group" -> MongoDBObject(
-          "_id" -> "$".concat(PROCESSOR_ID),
-          "maxSeqNr" -> MongoDBObject("$first" -> "$".concat(TO)),
-          "oId" -> MongoDBObject("$first" -> "$_id")))
-        ,
-        MongoDBObject("$match" -> MongoDBObject(
-          "oId" -> MongoDBObject("$lte" -> new ObjectId(offsetDate)))
-        )
-      )
-        ,
-        AggregationOptions(AggregationOptions.CURSOR)
-      )
-      .toStream
-      .map(foo => PidWithSeqNr(foo.getAs[String]("_id").get, foo.getAs[Long]("maxSeqNr").get))
-
-  override protected def next(c: Stream[PidWithSeqNr], atMost: Long): (Vector[PidWithSeqNr], Stream[PidWithSeqNr]) = {
-    val (buf, remainder) = c.splitAt(atMost.toIntWithoutWrapping)
-    (buf.toVector, remainder)
-  }
-
-  override protected def isCompleted(c: Stream[PidWithSeqNr]): Boolean = {
-    c.isEmpty
-  }
-
-  override protected def discard(c: Stream[PidWithSeqNr]): Unit = ()
-}
-
-/**
-  * Factory for class [[SequenceNumbersOfPids]].
+  * Factory for class [[SequenceNumbersOfPidsByInterval]].
   */
 object SequenceNumbersOfPidsByInterval {
   def props(driver: CasbahMongoDriver, start: Instant, end: Instant): Props =
@@ -173,7 +44,7 @@ class SequenceNumbersOfPidsByInterval(val driver: CasbahMongoDriver, start: Inst
   import JournallingFieldNames._
 
   override protected def initialCursor: Stream[PidWithSeqNr] = {
-    /* MongoDBObject IDs do not only contain dates with precision of seconds, thus adjust the range of the query
+    /* MongoDBObject IDs only contain dates with precision of seconds, thus adjust the range of the query
        appropriately to make sure a client does not miss data when providing Instants with higher precision
      */
     val startTruncatedToSecs = start.truncatedTo(ChronoUnit.SECONDS)
@@ -181,32 +52,33 @@ class SequenceNumbersOfPidsByInterval(val driver: CasbahMongoDriver, start: Inst
 
     log.debug("Getting modified PIDs from {} to {}", startTruncatedToSecs, endTruncatedToSecs)
 
-    //val lowerBound: Int = getMongoEpochSecond(start)
-    //val upperBound: Int = getMongoEpochSecond(endPlusOffset)
     val startObjectId = new ObjectId(Date.from(startTruncatedToSecs))
     val endObjectId = new ObjectId(Date.from(endTruncatedToSecs))
 
     log.debug("Limiting query to ObjectIds $gte {} and $lt {}", startObjectId, endObjectId)
 
+    val filterObject: DBObject = DBObject.newBuilder
+      .+=("_id" -> DBObject.newBuilder
+        .+=("$gte" -> startObjectId)
+        .+=("$lt" -> endObjectId)
+        .result())
+      .result()
+
+    val projectObject: DBObject = DBObject.newBuilder
+      .+=(PROCESSOR_ID -> 1)
+      .+=(TO -> 1)
+      .result()
+
+    val sortObject: DBObject = DBObject.newBuilder
+      .+=("_id" -> -1)
+      .result()
+
     driver.journal
-      .aggregate(
-        List(
-          MongoDBObject("$match" -> MongoDBObject(
-            "_id" -> MongoDBObject(
-              "$gte" -> startObjectId,
-              "$lt" -> endObjectId)
-          )),
-          MongoDBObject("$project" -> MongoDBObject(
-            PROCESSOR_ID -> true,
-            SEQUENCE_NUMBER -> "$to" /* "to" contains the max event sequence no for a journal entry (in case of MongoDB
-            there seems to be only one event per entry anyway, thus "from" could also be used. */
-          ))
-        ),
-        AggregationOptions(AggregationOptions.CURSOR)
-      )
+      .find(filterObject, projectObject)
+      .sort(sortObject)
       .toStream
       .map(foo => PidWithSeqNr(foo.getAs[String](PROCESSOR_ID).get,
-        foo.getAs[Long](SEQUENCE_NUMBER).get))
+        foo.getAs[Long](TO).get))
   }
 
   override protected def next(c: Stream[PidWithSeqNr], atMost: Long): (Vector[PidWithSeqNr], Stream[PidWithSeqNr]) = {
@@ -228,11 +100,6 @@ class SequenceNumbersOfPidsByInterval(val driver: CasbahMongoDriver, start: Inst
   * @param driver the CasbahMongoDriver to use.
   */
 class DittoCasbahPersistenceReadJournaller(driver: CasbahMongoDriver) extends CasbahPersistenceReadJournaller(driver) with DittoMongoPersistenceReadJournallingApi {
-  override def modifiedPidsOfTimespan(duration: Duration): Props =
-    ModifiedPidsOfTimespan.props(driver, duration)
-
-  override def sequenceNumbersOfPids(pids: Array[String], offset: Duration): Props =
-    SequenceNumbersOfPids.props(driver, pids, offset)
 
   override def sequenceNumbersOfPidsByInterval(start: Instant, end: Instant): Props =
     SequenceNumbersOfPidsByInterval.props(driver, start, end)

@@ -52,26 +52,6 @@ class DittoMongoReadJournal(system: ExtendedActorSystem, config: Config) extends
   */
 class DittoScalaDslMongoReadJournal(impl: DittoMongoPersistenceReadJournallingApi)(implicit m: Materializer) extends ScalaDslMongoReadJournal(impl) {
 
-  /**
-    * Query returning stream of the last modified persistenceIds of the passed duration.
-    *
-    * @param duration the Duration in which to search for the last modified persistenceIds.
-    * @return the [[Source]] of [[String]]s containing the last modified peristenceIds.
-    */
-  def modifiedPidsOfTimespan(duration: Duration): Source[String, NotUsed] =
-    Source.actorPublisher[String](impl.modifiedPidsOfTimespan(duration))
-      .mapMaterializedValue(_ => NotUsed)
-
-  /**
-    * Query returning stream of the persistenceIds and their highest sequence number of the passed list of pids.
-    *
-    * @param pids the list of persistenceIds for which to return the last sequenceNumbers.
-    * @return the [[Source]] of [[PidWithSeqNr]]s containing the peristenceIds with their highest sequence number.
-    */
-  def sequenceNumbersOfPids(pids: Array[String], offset: Duration): Source[PidWithSeqNr, NotUsed] =
-    Source.actorPublisher[PidWithSeqNr](impl.sequenceNumbersOfPids(pids, offset))
-      .mapMaterializedValue(_ => NotUsed)
-
   def sequenceNumbersOfPidsByInterval(start: Instant, end: Instant): Source[PidWithSeqNr, NotUsed] =
     Source.actorPublisher[PidWithSeqNr](impl.sequenceNumbersOfPidsByInterval(start, end))
       .mapMaterializedValue(_ => NotUsed)
@@ -85,25 +65,6 @@ class DittoScalaDslMongoReadJournal(impl: DittoMongoPersistenceReadJournallingAp
   */
 class DittoJavaDslMongoReadJournal(rj: DittoScalaDslMongoReadJournal) extends JavaDslMongoReadJournal(rj) {
 
-  /**
-    * Query returning stream of the last modified persistenceIds of the passed duration.
-    *
-    * @param duration the Duration in which to search for the last modified persistenceIds.
-    * @return the [[JSource]] of [[String]]s containing the last modified peristenceIds.
-    */
-  def modifiedPidsOfTimespan(duration: Duration): JSource[String, NotUsed] =
-    rj.modifiedPidsOfTimespan(duration).asJava
-
-  /**
-    * Query returning stream of the last modified persistenceIds and their highest sequence number of the passed
-    * duration.
-    *
-    * @param pids the list of persistenceIds for which to return the last sequenceNumbers.
-    * @return the [[JSource]] of [[String]]s containing the last modified peristenceIds.
-    */
-  def sequenceNumbersOfPids(pids: Array[String], offset: Duration): JSource[PidWithSeqNr, NotUsed] =
-    rj.sequenceNumbersOfPids(pids, offset).asJava
-
   def sequenceNumbersOfPidsByInterval(start: Instant, end: Instant): JSource[PidWithSeqNr, NotUsed] =
     rj.sequenceNumbersOfPidsByInterval(start, end).asJava
 }
@@ -112,9 +73,6 @@ class DittoJavaDslMongoReadJournal(rj: DittoScalaDslMongoReadJournal) extends Ja
   * Trait containing the additional Ditto specific ReadJournal operations.
   */
 trait DittoMongoPersistenceReadJournallingApi extends MongoPersistenceReadJournallingApi {
-  def modifiedPidsOfTimespan(duration: Duration): Props
-
-  def sequenceNumbersOfPids(pids: Array[String], offset: Duration): Props
 
   def sequenceNumbersOfPidsByInterval(start: Instant, end: Instant): Props
 }
