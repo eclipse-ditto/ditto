@@ -140,7 +140,7 @@ public final class ThingsStreamSupervisor extends AbstractStreamSupervisor<Send>
             // explicitly trigger streaming (independently from pollInterval) when we have to catch up..
             final Instant now = Instant.now();
             final Duration diffBetweenNowAndLastSuccessfulStreamEndTs =
-                    Duration.between(now, lastSuccessfulStreamEndTs);
+                    Duration.between(lastSuccessfulStreamEndTs, now);
             if (diffBetweenNowAndLastSuccessfulStreamEndTs.compareTo(pollInterval) > 0) {
                 log.warning("Difference between lastSuccessfulStreamEndTs <{}> and " +
                                 " now <{}> is <{}>, which is greater than pollInterval <{}>. Explicitly trigger streaming.",
@@ -190,7 +190,7 @@ public final class ThingsStreamSupervisor extends AbstractStreamSupervisor<Send>
     }
 
     private Instant calculateEndTs(final Instant now, final Instant startTs) {
-        if (Duration.between(now, startTs).compareTo(pollInterval) > 0) {
+        if (Duration.between(startTs, now).compareTo(pollInterval) > 0) {
             return startTs.plus(pollInterval);
         } else {
             return now;

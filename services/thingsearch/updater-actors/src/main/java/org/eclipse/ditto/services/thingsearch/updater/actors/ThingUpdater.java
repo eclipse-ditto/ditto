@@ -72,6 +72,7 @@ import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Cancellable;
+import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.actor.Scheduler;
 import akka.actor.Status;
@@ -290,7 +291,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
     }
 
     private void stopThisActor() {
-        getContext().stop(getSelf());
+        getSelf().tell(PoisonPill.getInstance(), ActorRef.noSender());
     }
 
     @Override
@@ -633,6 +634,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
             syncThing();
         } else {
             log.error("Synchronization failed after <{}> attempts.", syncAttempts - 1);
+            // TODO: report sync failure
             stopThisActor();
         }
     }

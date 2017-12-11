@@ -41,7 +41,7 @@ import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 
 @RunWith(MockitoJUnitRunner.class)
-@Ignore("CR-4951")
+@Ignore
 public class ThingsStreamSupervisorTest {
 
     private static final Instant KNOWN_LAST_SUCCESSFUL_SYNC = Instant.now().minusSeconds(37);
