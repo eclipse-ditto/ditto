@@ -510,8 +510,9 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
                     log.debug("Currently gathered <{}> events to be processed after actor has finished being busy",
                             gatheredEvents.size());
                 } else {
-                    // persist with sequenceNumber + 1 since we don't want to increase sequenceNumber in case of failure
-                    persistThingEvents(Collections.singletonList(versionedThingEvent), sequenceNumber + 1);
+                    // do not increment sequenceNumber before this point, since we don't want to increase sequenceNumber
+                    // in case of persistence failure
+                    persistThingEvents(Collections.singletonList(versionedThingEvent), thingEvent.getRevision());
                 }
 
                 // Update state related to the Thing. Policy state is maintained by synchronization.
