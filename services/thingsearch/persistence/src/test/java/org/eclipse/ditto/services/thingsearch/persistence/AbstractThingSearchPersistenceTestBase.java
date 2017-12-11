@@ -65,7 +65,7 @@ import akka.testkit.javadsl.TestKit;
 public abstract class AbstractThingSearchPersistenceTestBase {
 
     protected static final List<String> KNOWN_SUBJECTS = Collections.singletonList("abc:mySid");
-    protected static final List<String> KNOWN_SUBJECTS_2 = Arrays.asList("iot-things:mySid", "iot-things:unknown");
+    protected static final List<String> KNOWN_SUBJECTS_2 = Arrays.asList("some:mySid", "some:unknown");
     protected static final String KNOWN_ATTRIBUTE_1 = "attribute1";
     protected static final String KNOWN_NEW_VALUE = "newValue";
 

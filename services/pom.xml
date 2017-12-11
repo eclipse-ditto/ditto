@@ -28,6 +28,7 @@
     <modules>
         <module>models</module>
         <module>utils</module>
+        <module>amqp-bridge</module>
         <module>policies</module>
         <module>things</module>
         <module>thingsearch</module>
@@ -51,6 +52,7 @@
         <things.docker.image.name>ditto-things</things.docker.image.name>
         <things-search.docker.image.name>ditto-things-search</things-search.docker.image.name>
         <gateway.docker.image.name>ditto-gateway</gateway.docker.image.name>
+        <amqp-bridge.docker.image.name>ditto-amqp-bridge</amqp-bridge.docker.image.name>
     </properties>
 
     <dependencies>
