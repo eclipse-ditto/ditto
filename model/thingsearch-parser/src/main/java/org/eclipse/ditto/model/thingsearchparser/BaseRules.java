@@ -11,13 +11,11 @@
  */
 package org.eclipse.ditto.model.thingsearchparser;
 
-import org.parboiled.Action;
 import org.parboiled.BaseParser;
 import org.parboiled.Rule;
 import org.parboiled.annotations.MemoMismatches;
 import org.parboiled.annotations.SuppressNode;
 import org.parboiled.annotations.SuppressSubnodes;
-import org.parboiled.errors.ActionException;
 
 /**
  * Defines the basic rule set ready to use by concrete parser implementations.
@@ -76,11 +74,11 @@ public abstract class BaseRules extends BaseParser<Object> {
     @SuppressSubnodes
     protected Rule integerLiteral() {
         return Sequence(FirstOf('0', Sequence(Optional(AnyOf("+-")), digitWithoutZero(), ZeroOrMore(digit()))),
-                validateIntegerLiteral(), push(Long.parseLong(match())));
+                new IntegerLiteralAction(), push(Long.parseLong(match())));
     }
 
     protected Rule floatLiteral() {
-        return Sequence(decimalFloat(), validateFloatingPointLiteral(), push(Double.parseDouble(match())));
+        return Sequence(decimalFloat(), new FloatingPointLiteral(), push(Double.parseDouble(match())));
     }
 
     @SuppressSubnodes
@@ -109,30 +107,6 @@ public abstract class BaseRules extends BaseParser<Object> {
 
     protected Rule escape() {
         return Sequence('\\', AnyOf("\""));
-    }
-
-    @SuppressWarnings({"squid:S2201", "ResultOfMethodCallIgnored"})
-    protected Action validateIntegerLiteral() {
-        return context -> {
-            try {
-                Long.parseLong(context.getMatch());
-            } catch (final NumberFormatException ignored) {
-                throw new ActionException("Invalid number literal (the value is too big).");
-            }
-            return true;
-        };
-    }
-
-    @SuppressWarnings({"squid:S2201", "ResultOfMethodCallIgnored"})
-    protected Action validateFloatingPointLiteral() {
-        return context -> {
-            try {
-                Double.parseDouble(context.getMatch());
-            } catch (final NumberFormatException ignored) {
-                throw new ActionException("Invalid IEEE 754-2008 binary64 (double precision) number.");
-            }
-            return true;
-        };
     }
 
 }
