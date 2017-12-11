@@ -131,6 +131,8 @@ public final class ThingsStreamSupervisor extends AbstractStreamSupervisor<Send>
             log.error("No currentStreamEndTs available, cannot update last sync timestamp.");
         } else {
             lastSuccessfulStreamEndTs = currentStreamEndTs;
+            currentStreamStartTs = null;
+            currentStreamEndTs = null;
             final String successMessage = MessageFormat
                     .format("Updating last sync timestamp to value: <{0}>", lastSuccessfulStreamEndTs);
             syncPersistence.updateLastSuccessfulSyncTimestamp(lastSuccessfulStreamEndTs)

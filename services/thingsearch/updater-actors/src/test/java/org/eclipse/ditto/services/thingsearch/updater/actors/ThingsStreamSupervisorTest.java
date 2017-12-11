@@ -20,10 +20,10 @@ import static org.mockito.Mockito.when;
 import java.time.Duration;
 import java.time.Instant;
 
+import org.eclipse.ditto.services.models.things.commands.sudo.SudoStreamModifiedEntities;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchSyncPersistence;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -32,16 +32,18 @@ import org.mockito.junit.MockitoJUnitRunner;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
+import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
+import akka.actor.Props;
 import akka.actor.Status;
+import akka.japi.pf.ReceiveBuilder;
 import akka.stream.ActorMaterializer;
 import akka.stream.javadsl.Source;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 
 @RunWith(MockitoJUnitRunner.class)
-@Ignore
 public class ThingsStreamSupervisorTest {
 
     private static final Instant KNOWN_LAST_SUCCESSFUL_SYNC = Instant.now().minusSeconds(37);
@@ -98,7 +100,8 @@ public class ThingsStreamSupervisorTest {
             streamSupervisor.tell(new Status.Success(1), ActorRef.noSender());
 
             // verify the db is called with the last successful sync timestamp plus the modified offset
-            final Instant expectedPersistedTimestamp = KNOWN_LAST_SUCCESSFUL_SYNC.plus(POLL_INTERVAL).plus(START_OFFSET);
+            final Instant expectedPersistedTimestamp =
+                    KNOWN_LAST_SUCCESSFUL_SYNC.minus(START_OFFSET).plus(POLL_INTERVAL);
             verify(searchSyncPersistence, timeout(1000L)).updateLastSuccessfulSyncTimestamp(
                     eq(expectedPersistedTimestamp));
         }};
