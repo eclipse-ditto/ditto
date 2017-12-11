@@ -66,7 +66,7 @@ class SequenceNumbersOfPidsByInterval(val driver: CasbahMongoDriver, start: Inst
     log.debug("Limiting query to ObjectIds $gte {} and $lt {}", startObjectId, endObjectId)
 
     val filterObject: DBObject = DBObject.newBuilder
-      .+=("_id" -> DBObject.newBuilder
+      .+=(ID -> DBObject.newBuilder
         .+=("$gte" -> startObjectId)
         .+=("$lt" -> endObjectId)
         .result())
@@ -78,7 +78,7 @@ class SequenceNumbersOfPidsByInterval(val driver: CasbahMongoDriver, start: Inst
       .result()
 
     val sortObject: DBObject = DBObject.newBuilder
-      .+=("_id" -> -1)
+      .+=(ID -> -1)
       .result()
 
     driver.journal
