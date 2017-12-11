@@ -13,10 +13,9 @@ package akka.contrib.persistence.mongodb
 
 import java.time.temporal.ChronoUnit
 import java.time.{Duration, Instant}
-import java.util.{Date, UUID}
+import java.util.Date
 
 import akka.actor.Props
-import com.mongodb.BasicDBObject
 import com.mongodb.casbah.Imports._
 import org.bson.types.ObjectId
 
@@ -52,8 +51,17 @@ class SequenceNumbersOfPidsByInterval(val driver: CasbahMongoDriver, start: Inst
 
     log.debug("Getting modified PIDs from {} to {}", startTruncatedToSecs, endTruncatedToSecs)
 
-    val startObjectId = new ObjectId(Date.from(startTruncatedToSecs))
-    val endObjectId = new ObjectId(Date.from(endTruncatedToSecs))
+    /* Do not use
+
+         new ObjectId(Date.from(startTruncatedToSecs))
+
+       to compute object ID boundaries. The 1-argument constructor above appends incidental non-zero bits after
+       the timestamp and may filter out events persisted after 'startTruncatedToSecs' if they happen to have
+       a lower machine ID, process ID or counter value. (A MongoDB ObjectID is a byte array with fields for timestamp,
+       machine ID, process ID and counter such that timestamp occupies the most significant bits.)
+     */
+    val startObjectId = instantToObjectIdBoundary(startTruncatedToSecs)
+    val endObjectId = instantToObjectIdBoundary(endTruncatedToSecs)
 
     log.debug("Limiting query to ObjectIds $gte {} and $lt {}", startObjectId, endObjectId)
 
@@ -91,6 +99,11 @@ class SequenceNumbersOfPidsByInterval(val driver: CasbahMongoDriver, start: Inst
   }
 
   override protected def discard(c: Stream[PidWithSeqNr]): Unit = ()
+
+  /* Create a ObjectID boundary from a timestamp to be used for comparison in MongoDB queries. */
+  private[this] def instantToObjectIdBoundary(instant: Instant): Unit = {
+    new ObjectId(Date.from(instant), 0, 0.toShort, 0)
+  }
 }
 
 /**
