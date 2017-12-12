@@ -52,6 +52,7 @@ import org.eclipse.ditto.services.thingsearch.persistence.write.EventToPersisten
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingMetadata;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akka.streaming.StreamAck;
 import org.eclipse.ditto.services.utils.cluster.ShardedMessageEnvelope;
 import org.eclipse.ditto.services.utils.distributedcache.actors.ModifyCacheEntryResponse;
 import org.eclipse.ditto.services.utils.distributedcache.actors.RegisterForCacheUpdates;
@@ -75,7 +76,6 @@ import akka.actor.Cancellable;
 import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.actor.Scheduler;
-import akka.actor.Status;
 import akka.cluster.ddata.LWWRegister;
 import akka.cluster.ddata.ReplicatedData;
 import akka.cluster.ddata.Replicator;
@@ -116,6 +116,10 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
      * How long to wait for things and policies by default.
      */
     static final java.time.Duration DEFAULT_THINGS_TIMEOUT = java.time.Duration.of(20, ChronoUnit.SECONDS);
+    /**
+     * Max attempts when trying to sync a thing.
+     */
+    private static final int MAX_SYNC_ATTEMPTS = 3;
 
     private static final String TRACE_THING_MODIFIED = "thing.modified";
     private static final String TRACE_THING_BULK_UPDATE = "thing.bulkUpdate";
@@ -152,8 +156,8 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
     private long policyRevision = -1L;
     private PolicyEnforcer policyEnforcer;
 
-    // notification of successful synchronization
-    private SyncSuccessMessage syncSuccessMessage = null;
+    // notification of synchronization
+    private SyncStatusMessage syncStatusMessage = null;
 
     private ThingUpdater(final java.time.Duration thingsTimeout,
             final ActorRef thingsShardRegion,
@@ -195,7 +199,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
                                     "Unexpected exception when retrieving latest revision from search index");
                         }
                         // metadata retrieval failed, try to initialize by event update or synchronization
-                        getSelf().tell(new ActorInitializationComplete(), null);
+                        getSelf().tell(ActorInitializationComplete.INSTANCE, null);
                     }
                 });
     }
@@ -326,8 +330,8 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
     }
 
     /**
-     * Handles the first message sent to this actor if it is a Thing event. Terminates self if the event is stale,
-     * takes shortcut if the event contains the corresponding Thing, and triggers synchronization otherwise.
+     * Handles the first message sent to this actor if it is a Thing event. Terminates self if the event is stale, takes
+     * shortcut if the event contains the corresponding Thing, and triggers synchronization otherwise.
      *
      * @param thingEvent The first message sent to this actor.
      */
@@ -398,7 +402,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         log.debug("Received new Thing Tag for thing <{}> with revision <{}> - last known revision is <{}>",
                 thingId, thingTag.getRevision(), sequenceNumber);
 
-        syncSuccessMessage = new SyncSuccessMessage(getSender(), thingTag);
+        syncStatusMessage = new SyncStatusMessage(getSender(), thingTag);
 
         final boolean shouldStopThisActor;
         if (thingTag.getRevision() > sequenceNumber) {
@@ -408,7 +412,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
             triggerSynchronization();
         } else {
             shouldStopThisActor = checkThingTagOnly;
-            reportSyncSuccess();
+            reportSyncStatus(true);
         }
 
         if (shouldStopThisActor) {
@@ -630,12 +634,12 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         syncAttempts++;
         transactionActive = false;
         resetGatheredEvents();
-        if (syncAttempts <= 3) {
+        if (syncAttempts <= MAX_SYNC_ATTEMPTS) {
             log.info("Synchronization of thing <{}> is now triggered (attempt={}).", thingId, syncAttempts);
             syncThing();
         } else {
             log.error("Synchronization failed after <{}> attempts.", syncAttempts - 1);
-            // TODO: report sync failure
+            reportSyncStatus(false);
             stopThisActor();
         }
     }
@@ -727,7 +731,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
     private Receive createAwaitSyncResultBehavior() {
         return ReceiveBuilder.create()
                 .match(SyncSuccess.class, s -> {
-                    reportSyncSuccess();
+                    reportSyncStatus(true);
                     becomeEventProcessing();
                 })
                 .match(SyncFailure.class, f -> triggerSynchronization())
@@ -736,26 +740,33 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
     }
 
     /**
-     * Sends acknowledgement after a successful synchronization if acknowledgement was requested, by a ThingTag message
-     * with nonempty sender for example.
+     * Sends acknowledgement after a synchronization if acknowledgement was requested, by a ThingTag message with
+     * nonempty sender for example.
+     *
+     * @param success If the sync was successful.
      */
-    private void reportSyncSuccess() {
-        if (syncSuccessMessage == null) {
-            log.debug("Cannot report success, cause no recipient is available.");
+    private void reportSyncStatus(final boolean success) {
+        if (syncStatusMessage == null) {
+            log.debug("Cannot report status, cause no recipient is available.");
             return;
         }
 
-        final ActorRef syncStatusRecipient = syncSuccessMessage.recipient;
+        final ActorRef syncStatusRecipient = syncStatusMessage.getRecipient();
         final ActorRef deadLetters = getContext().getSystem().deadLetters();
         if (Objects.equals(syncStatusRecipient, deadLetters)) {
             log.debug("Cannot report success, cause recipient is deadletters.");
         } else {
-            final Object success = syncSuccessMessage.success;
-            log.debug("Reporting sync-success <{}> to <{}>", success, syncStatusRecipient);
-            syncStatusRecipient.tell(success, getSelf());
+            final Object message;
+            if (success) {
+                message = syncStatusMessage.getSuccess();
+            } else {
+                message = syncStatusMessage.getFailure();
+            }
+            log.debug("Reporting sync-result <{}> to <{}>", message, syncStatusRecipient);
+            syncStatusRecipient.tell(message, getSelf());
         }
 
-        syncSuccessMessage = null;
+        syncStatusMessage = null;
     }
 
     private void handleSyncThingResponse(final Cancellable timeout, final SudoRetrieveThingResponse response) {
@@ -876,7 +887,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         if (isTrue(success)) {
             log.info("Thing <{}> was deleted from search index due to synchronization. The actor will be stopped now.",
                     thingId);
-            reportSyncSuccess();
+            reportSyncStatus(true);
             //stop the actor as the thing was deleted
             stopThisActor();
         } else if (throwable != null) {
@@ -885,7 +896,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
             triggerSynchronization();
         } else {
             //the thing did not exist anyway in the search index -> stop the actor
-            reportSyncSuccess();
+            reportSyncStatus(true);
             stopThisActor();
         }
     }
@@ -973,18 +984,18 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
             if (indexChanged) {
                 log.debug("The thing <{}> was successfully updated in search index", thingId);
                 syncAttempts = 0;
-                getSelf().tell(new SyncSuccess(), null);
+                getSelf().tell(SyncSuccess.INSTANCE, null);
             } else {
                 log.warning("The thing <{}> was not updated as the index was not changed by the upsert: {}",
                         thingId, entity);
-                getSelf().tell(new SyncFailure(), null);
+                getSelf().tell(SyncFailure.INSTANCE, null);
             }
         } else {
             final String msgTemplate =
                     "The thing <{}> was not successfully updated in the search index as the update " +
                             "operation failed: {}";
             log.error(throwable, msgTemplate, thingId, throwable.getMessage());
-            getSelf().tell(new SyncFailure(), null);
+            getSelf().tell(SyncFailure.INSTANCE, null);
         }
     }
 
@@ -1058,19 +1069,68 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         gatheredEvents = new ArrayList<>();
     }
 
-    private static final class SyncSuccess {}
+    private static final class SyncSuccess {
 
-    private static final class SyncFailure {}
+        static final SyncSuccess INSTANCE = new SyncSuccess();
 
-    private static class ActorInitializationComplete {}
+        private SyncSuccess() {
+            // no-op
+        }
+    }
 
-    private static final class SyncSuccessMessage {
+    private static final class SyncFailure {
+
+        static final SyncFailure INSTANCE = new SyncFailure();
+
+        private SyncFailure() {
+            // no-op
+        }
+    }
+
+    private static class ActorInitializationComplete {
+
+        static final ActorInitializationComplete INSTANCE = new ActorInitializationComplete();
+
+        private ActorInitializationComplete() {
+            // no-op
+        }
+    }
+
+    private static final class SyncStatusMessage {
+
         private final ActorRef recipient;
-        private final Status.Success success;
+        private final String thingIdentifier;
 
-        private SyncSuccessMessage(final ActorRef recipient, final ThingTag thingTag) {
+        private SyncStatusMessage(final ActorRef recipient, final ThingTag thingTag) {
             this.recipient = recipient;
-            this.success = new Status.Success(thingTag.asIdentifierString());
+            thingIdentifier = thingTag.asIdentifierString();
+        }
+
+        /**
+         * Get the recipient of the message.
+         *
+         * @return ActorRef to the recipient of the message.
+         */
+        private ActorRef getRecipient() {
+            return recipient;
+        }
+
+        /**
+         * Get an instance of a success message.
+         *
+         * @return The success message.
+         */
+        private StreamAck getSuccess() {
+            return StreamAck.success(thingIdentifier);
+        }
+
+        /**
+         * Get an instance of a failure message.
+         *
+         * @return The failure message.
+         */
+        private StreamAck getFailure() {
+            return StreamAck.failure(thingIdentifier);
         }
     }
 }

@@ -133,8 +133,7 @@ public abstract class AbstractStreamForwarder<E> extends AbstractActor {
         return ReceiveBuilder.create()
                 .matchEquals(STREAM_FINISHED_MSG, this::handleStreamComplete)
                 .match(getElementClass(), this::transformAndForwardElement)
-                .match(Status.Success.class, this::handleAck)
-                .match(Status.Failure.class, this::handleFailure)
+                .match(StreamAck.class, this::onAck)
                 .match(CheckForActivity.class, unused -> checkForActivity())
                 .matchAny(this::unhandled)
                 .build();
@@ -153,32 +152,23 @@ public abstract class AbstractStreamForwarder<E> extends AbstractActor {
         updateLastMessageReceived();
     }
 
-    private void handleAck(final Status.Success success) {
-        final Object status = success.status();
-        if (!(status instanceof String)) {
-            log.warning("Got unexpected ack type: {}", status);
-            return;
+    private void onAck(final StreamAck streamAck) {
+        final String elementId = streamAck.getElementId();
+        if (StreamAck.Status.SUCCESS.equals(streamAck.getStatus())) {
+            log.debug("Got successful ack for element: <{}>", elementId);
+        } else {
+            log.warning("Got unsuccessful ack with status <{}> for element: <{}>", streamAck.getStatus(), elementId);
         }
-
-        final String identifier = (String) status;
-        final boolean wasExpected = toBeAckedElementIds.remove(identifier);
+        final boolean wasExpected = toBeAckedElementIds.remove(elementId);
         if (!wasExpected) {
-            log.warning("Got unexpected ack: {}", identifier);
+            log.warning("Got unexpected ack for element: <{}>", elementId);
             return;
         } else {
-            log.debug("Got ack: {}", identifier);
             ackedElementCount++;
         }
 
         updateLastMessageReceived();
         checkAllElementsAreAcknowledged();
-    }
-
-
-    private void handleFailure(final Status.Failure failure) {
-        log.warning("Received failure: {}", failure);
-        logStreamStatus();
-        shutdown();
     }
 
     private void handleStreamComplete(final Object msg) {

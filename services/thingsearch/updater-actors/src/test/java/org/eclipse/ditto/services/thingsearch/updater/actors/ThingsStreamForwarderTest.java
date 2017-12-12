@@ -18,6 +18,7 @@ import java.time.Duration;
 import java.time.Instant;
 
 import org.eclipse.ditto.services.models.things.ThingTag;
+import org.eclipse.ditto.services.utils.akka.streaming.StreamAck;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -75,7 +76,7 @@ public class ThingsStreamForwarderTest {
                 thingsStreamForwarder.tell(KNOWN_TAG_1, ActorRef.noSender());
 
                 thingsUpdater.expectMsg(KNOWN_TAG_1);
-                thingsUpdater.reply(new Status.Success(KNOWN_THING_ID));
+                thingsUpdater.reply(successResponse(KNOWN_TAG_1));
 
                 // now wait for timeout to apply
                 Thread.sleep(MAX_IDLE_TIME.plusSeconds(1).toMillis());
@@ -86,27 +87,38 @@ public class ThingsStreamForwarderTest {
         };
     }
 
+    /**
+     * Verify that even if a failure is returned by the thingupdater, the forwarder still returns success.
+     */
     @Test
     public void streamWithFailure() throws Exception {
         new TestKit(actorSystem) {
             {
+                final Instant before = Instant.now().minusSeconds(1);
                 final ActorRef thingsStreamForwarder = createThingsStreamForwarder();
                 watch(thingsStreamForwarder);
 
                 thingsStreamForwarder.tell(KNOWN_TAG_1, ActorRef.noSender());
 
                 thingsUpdater.expectMsg(KNOWN_TAG_1);
-                thingsUpdater.reply(new Status.Success(KNOWN_THING_ID));
+                thingsUpdater.reply(successResponse(KNOWN_TAG_1));
 
                 thingsStreamForwarder.tell(KNOWN_TAG_2, ActorRef.noSender());
 
                 thingsUpdater.expectMsg(KNOWN_TAG_2);
-                thingsUpdater.reply(new Status.Failure(new IllegalStateException("something bad happened")));
+                thingsUpdater.reply(failureResponse(KNOWN_TAG_2));
 
                 thingsStreamForwarder.tell(STREAM_FINISHED_MSG, ActorRef.noSender());
 
+                final Status.Success success = successRecipient.expectMsgClass(Status.Success.class);
+
+                final Instant after = Instant.now().plusSeconds(1);
+                assertThat(success.status())
+                        .isInstanceOf(Instant.class);
+                assertThat((Instant) success.status())
+                        .isBefore(after)
+                        .isAfter(before);
                 expectTerminated(thingsStreamForwarder);
-                successRecipient.expectNoMessage(FiniteDuration.Zero());
             }
         };
     }
@@ -115,7 +127,6 @@ public class ThingsStreamForwarderTest {
     public void successfulStream() throws Exception {
         new TestKit(actorSystem) {
             {
-
                 final Instant before = Instant.now().minusSeconds(1);
                 final ActorRef thingsStreamForwarder = createThingsStreamForwarder();
                 watch(thingsStreamForwarder);
@@ -123,12 +134,12 @@ public class ThingsStreamForwarderTest {
                 thingsStreamForwarder.tell(KNOWN_TAG_1, ActorRef.noSender());
 
                 thingsUpdater.expectMsg(KNOWN_TAG_1);
-                thingsUpdater.reply(new Status.Success(KNOWN_TAG_1.asIdentifierString()));
+                thingsUpdater.reply(successResponse(KNOWN_TAG_1));
 
                 thingsStreamForwarder.tell(KNOWN_TAG_2, ActorRef.noSender());
 
                 thingsUpdater.expectMsg(KNOWN_TAG_2);
-                thingsUpdater.reply(new Status.Success(KNOWN_TAG_2.asIdentifierString()));
+                thingsUpdater.reply(successResponse(KNOWN_TAG_2));
 
                 thingsStreamForwarder.tell(STREAM_FINISHED_MSG, ActorRef.noSender());
 
@@ -144,6 +155,14 @@ public class ThingsStreamForwarderTest {
             }
         };
 
+    }
+
+    private StreamAck successResponse(final ThingTag tag) {
+        return StreamAck.success(tag.asIdentifierString());
+    }
+
+    private StreamAck failureResponse(final ThingTag tag) {
+        return StreamAck.failure(tag.asIdentifierString());
     }
 
     private ActorRef createThingsStreamForwarder() {

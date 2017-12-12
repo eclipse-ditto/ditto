@@ -27,6 +27,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.services.utils.akka.SimpleCommand;
 import org.eclipse.ditto.services.utils.akka.SimpleCommandResponse;
+import org.eclipse.ditto.services.utils.akka.streaming.StreamAck;
 import org.eclipse.ditto.services.utils.health.Health;
 import org.eclipse.ditto.services.utils.health.HealthStatus;
 import org.eclipse.ditto.signals.base.JsonParsableRegistry;
@@ -38,6 +39,10 @@ import org.eclipse.ditto.signals.base.JsonParsableRegistry;
 @NotThreadSafe
 public final class MappingStrategiesBuilder {
 
+    /**
+     * Failure message when json deserialization function is null.
+     */
+    private static final String ERROR_MESSAGE_JSON_DESERIALIZATION_FUNCTION = "JSON deserialization function";
     private final Map<String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>> strategies;
 
     private MappingStrategiesBuilder() {
@@ -60,9 +65,10 @@ public final class MappingStrategiesBuilder {
                 jsonObject -> SimpleCommand.fromJson(jsonObject)); // do not replace with lambda!
         builder.add(SimpleCommandResponse.class,
                 jsonObject -> SimpleCommandResponse.fromJson(jsonObject)); // do not replace with lambda!
-        builder.add(Health.class, (jsonObject) -> Health.fromJson(jsonObject)); // do not replace with lambda!
+        builder.add(Health.class, jsonObject -> Health.fromJson(jsonObject)); // do not replace with lambda!
         builder.add(HealthStatus.class,
                 jsonObject -> HealthStatus.fromJson(jsonObject)); // do not replace with lambda!
+        builder.add(StreamAck.class, StreamAck::fromJson);
 
         return builder;
     }
@@ -95,7 +101,7 @@ public final class MappingStrategiesBuilder {
     public MappingStrategiesBuilder add(@Nonnull final Class<?> klasse,
             @Nonnull final Function<JsonObject, Jsonifiable<?>> jsonDeserializer) {
         checkNotNull(klasse, "class");
-        checkNotNull(jsonDeserializer, "JSON deserialization function");
+        checkNotNull(jsonDeserializer, ERROR_MESSAGE_JSON_DESERIALIZATION_FUNCTION);
         // Translate simple Function to BiFunction ignoring the command headers
         strategies.put(klasse.getSimpleName(), (jsonObject, dittoHeaders) -> jsonDeserializer.apply(jsonObject));
         return this;
@@ -112,7 +118,7 @@ public final class MappingStrategiesBuilder {
     public MappingStrategiesBuilder add(@Nonnull final Class<?> klasse,
             @Nonnull final BiFunction<JsonObject, DittoHeaders, Jsonifiable<?>> jsonDeserializer) {
         checkNotNull(klasse, "class");
-        checkNotNull(jsonDeserializer, "JSON deserialization function");
+        checkNotNull(jsonDeserializer, ERROR_MESSAGE_JSON_DESERIALIZATION_FUNCTION);
         // Translate simple Function to BiFunction ignoring the command headers
         strategies.put(klasse.getSimpleName(), jsonDeserializer::apply);
         return this;
@@ -129,7 +135,7 @@ public final class MappingStrategiesBuilder {
     public MappingStrategiesBuilder add(@Nonnull final String type,
             @Nonnull final Function<JsonObject, Jsonifiable<?>> jsonDeserializer) {
         checkNotNull(type, "type");
-        checkNotNull(jsonDeserializer, "JSON deserialization function");
+        checkNotNull(jsonDeserializer, ERROR_MESSAGE_JSON_DESERIALIZATION_FUNCTION);
         // Translate simple Function to BiFunction ignoring the command headers
         strategies.put(type, (jsonObject, dittoHeaders) -> jsonDeserializer.apply(jsonObject));
         return this;
@@ -146,7 +152,7 @@ public final class MappingStrategiesBuilder {
     public MappingStrategiesBuilder add(@Nonnull final String type,
             @Nonnull final BiFunction<JsonObject, DittoHeaders, Jsonifiable<?>> jsonDeserializer) {
         checkNotNull(type, "type");
-        checkNotNull(jsonDeserializer, "JSON deserialization function");
+        checkNotNull(jsonDeserializer, ERROR_MESSAGE_JSON_DESERIALIZATION_FUNCTION);
         // Translate simple Function to BiFunction ignoring the command headers
         strategies.put(type, jsonDeserializer::apply);
         return this;

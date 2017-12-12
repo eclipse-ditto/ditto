@@ -59,6 +59,7 @@ import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingR
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingMetadata;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.utils.akka.JavaTestProbe;
+import org.eclipse.ditto.services.utils.akka.streaming.StreamAck;
 import org.eclipse.ditto.services.utils.cluster.ShardedMessageEnvelope;
 import org.eclipse.ditto.services.utils.distributedcache.actors.CacheFacadeActor;
 import org.eclipse.ditto.services.utils.distributedcache.actors.CacheRole;
@@ -88,11 +89,11 @@ import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
-import akka.actor.Status;
 import akka.cluster.Cluster;
 import akka.cluster.ddata.LWWRegister;
 import akka.cluster.ddata.LWWRegisterKey;
 import akka.cluster.ddata.Replicator;
+import akka.pattern.AskTimeoutException;
 import akka.pattern.CircuitBreaker;
 import akka.stream.javadsl.Source;
 import akka.testkit.TestProbe;
@@ -868,7 +869,35 @@ public final class ThingUpdaterTest {
                 waitUntil().insertOrUpdate(eq(currentThing), eq(thingRevision), eq(-1L));
 
                 // THEN: success is acknowledged
-                expectMsgClass(Status.Success.class);
+                expectMsgEquals(StreamAck.success(thingTag.asIdentifierString()));
+            }
+        };
+    }
+
+    @Test
+    public void acknowledgesFailedSync() {
+        final long thingTagRevision = 7L;
+
+        new JavaTestProbe(actorSystem) {
+            {
+                final TestProbe thingsShardProbe = TestProbe.apply(actorSystem);
+                final TestProbe policiesShardProbe = TestProbe.apply(actorSystem);
+                final ActorRef underTest = createInitializedThingUpdaterActor(thingsShardProbe, policiesShardProbe);
+
+                // GIVEN: a ThingTag with nonempty sender triggers synchronization
+                final ThingTag thingTag = ThingTag.of(THING_ID, thingTagRevision);
+                underTest.tell(thingTag, ref());
+
+                // WHEN: synchronization is unsuccessful, thing updater will retry two times
+                expectShardedSudoRetrieveThing(thingsShardProbe, THING_ID);
+                underTest.tell(new AskTimeoutException("forced timeout for testing"), ActorRef.noSender());
+                expectShardedSudoRetrieveThing(thingsShardProbe, THING_ID);
+                underTest.tell(new AskTimeoutException("forced timeout for testing"), ActorRef.noSender());
+                expectShardedSudoRetrieveThing(thingsShardProbe, THING_ID);
+                underTest.tell(new AskTimeoutException("forced timeout for testing"), ActorRef.noSender());
+
+                // THEN: failure is acknowledged
+                expectMsgEquals(StreamAck.failure(thingTag.asIdentifierString()));
             }
         };
     }
@@ -888,7 +917,7 @@ public final class ThingUpdaterTest {
                 underTest.tell(thingTag, ref());
 
                 // THEN: success is acknowledged
-                expectMsgClass(Status.Success.class);
+                expectMsgEquals(StreamAck.success(thingTag.asIdentifierString()));
             }
         };
     }
