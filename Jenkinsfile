@@ -10,7 +10,7 @@ node {
 
   stage('set version to ${theBranch}') {
     withMaven(
-      maven: 'maven-3.5.0',
+      maven: 'maven-3.5.2',
       mavenLocalRepo: theMvnRepo) {
 
       sh "mvn versions:set -DnewVersion=0-${theBranch}-SNAPSHOT"
@@ -19,7 +19,7 @@ node {
 
   stage('Build') {
     withMaven(
-      maven: 'maven-3.5.0',
+      maven: 'maven-3.5.2',
       mavenLocalRepo: theMvnRepo) {
 
       sh "mvn clean deploy javadoc:jar source:jar-no-fork --batch-mode --errors -Pbuild-documentation,internal-repos -DcreateJavadoc=true"
