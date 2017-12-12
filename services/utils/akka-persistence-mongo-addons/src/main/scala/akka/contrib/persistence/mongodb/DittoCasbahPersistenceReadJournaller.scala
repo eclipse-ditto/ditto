@@ -60,26 +60,16 @@ class SequenceNumbersOfPidsByInterval(val driver: CasbahMongoDriver, start: Inst
        a lower machine ID, process ID or counter value. (A MongoDB ObjectID is a byte array with fields for timestamp,
        machine ID, process ID and counter such that timestamp occupies the most significant bits.)
      */
-    val startObjectId = instantToObjectIdBoundary(startTruncatedToSecs)
-    val endObjectId = instantToObjectIdBoundary(endTruncatedToSecs)
+    val startObjectId: ObjectId = instantToObjectIdBoundary(startTruncatedToSecs)
+    val endObjectId: ObjectId = instantToObjectIdBoundary(endTruncatedToSecs)
 
     log.debug("Limiting query to ObjectIds $gte {} and $lt {}", startObjectId, endObjectId)
 
-    val filterObject: DBObject = DBObject.newBuilder
-      .+=(ID -> DBObject.newBuilder
-        .+=("$gte" -> startObjectId)
-        .+=("$lt" -> endObjectId)
-        .result())
-      .result()
+    val filterObject: DBObject = DBObject(ID -> DBObject("$gte" -> startObjectId, "$lt" -> endObjectId))
 
-    val projectObject: DBObject = DBObject.newBuilder
-      .+=(PROCESSOR_ID -> 1)
-      .+=(TO -> 1)
-      .result()
+    val projectObject: DBObject = DBObject(PROCESSOR_ID -> 1, TO -> 1)
 
-    val sortObject: DBObject = DBObject.newBuilder
-      .+=(ID -> -1)
-      .result()
+    val sortObject: DBObject = DBObject(ID -> -1)
 
     driver.journal
       .find(filterObject, projectObject)
@@ -101,7 +91,7 @@ class SequenceNumbersOfPidsByInterval(val driver: CasbahMongoDriver, start: Inst
   override protected def discard(c: Stream[PidWithSeqNr]): Unit = ()
 
   /* Create a ObjectID boundary from a timestamp to be used for comparison in MongoDB queries. */
-  private[this] def instantToObjectIdBoundary(instant: Instant): Unit = {
+  private[this] def instantToObjectIdBoundary(instant: Instant): ObjectId = {
     new ObjectId(Date.from(instant), 0, 0.toShort, 0)
   }
 }
