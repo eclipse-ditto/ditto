@@ -134,7 +134,7 @@ public abstract class AbstractStreamSupervisor<C> extends AbstractActor {
             final ActorRef child = getContext().actorOf(getStreamForwarderProps(), STREAM_FORWARDER_ACTOR_NAME);
             log.info("Requesting stream from <{}> on behalf of <{}> by <{}>", streamingActor, child,
                     startStreamCommand);
-            getStreamingActor().tell(startStreamCommand, child);
+            streamingActor.tell(startStreamCommand, child);
         }
     }
 

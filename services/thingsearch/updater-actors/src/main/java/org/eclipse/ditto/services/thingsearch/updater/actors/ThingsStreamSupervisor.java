@@ -44,7 +44,7 @@ public final class ThingsStreamSupervisor extends AbstractStreamSupervisor<Send>
      */
     static final String ACTOR_NAME = "thingsSynchronizer";
     @SuppressWarnings("squid:S1075")
-    private static final String THINGS_ACTOR_PATH = "/user/gatewayRoot/proxy";
+    private static final String THINGS_ACTOR_PATH = "/user/thingsRoot/persistenceQueries";
     private final ActorRef pubSubMediator;
     private final ActorRef thingsUpdater;
     private final ThingsSearchSyncPersistence syncPersistence;
@@ -169,13 +169,11 @@ public final class ThingsStreamSupervisor extends AbstractStreamSupervisor<Send>
         final Instant now = Instant.now();
         final Instant initialStartTsWithoutStandardOffset = now.minus(initialStartOffset);
 
-        final scala.concurrent.Future<Send> sendFuture =
+        return FutureConverters.toJava(
                 syncPersistence.retrieveLastSuccessfulSyncTimestamp(initialStartTsWithoutStandardOffset)
                         .map(startTsWithoutOffset -> startTsWithoutOffset.minus(startOffset))
                         .map(this::createStartStreamingCommand)
-                        .runWith(Sink.head(), materializer);
-
-        return FutureConverters.toJava(sendFuture);
+                        .runWith(Sink.<Send>head(), materializer));
     }
 
     private Send createStartStreamingCommand(final Instant startTs) {
