@@ -36,7 +36,6 @@ import org.eclipse.ditto.model.messages.MessageBuilder;
 import org.eclipse.ditto.model.messages.MessageDirection;
 import org.eclipse.ditto.model.messages.MessageHeaderDefinition;
 import org.eclipse.ditto.model.messages.MessageHeaders;
-import org.eclipse.ditto.model.messages.MessageHeadersBuilder;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.messages.SendClaimMessage;
 import org.eclipse.ditto.signals.commands.messages.SendFeatureMessage;
@@ -119,21 +118,8 @@ public class MessageCommandAdapterTest {
         final DittoHeaders theHeaders = dittoHeaders(subject, contentType);
 
         // build expected message and message command
-        final MessageHeaders messageHeaders =
-                MessageHeaders.newBuilder(direction, TestConstants.THING_ID, subject)
-                        .contentType(contentType)
-                        .correlationId(TestConstants.CORRELATION_ID)
-                        .featureId(SendFeatureMessage.TYPE.equals(type) ? FEATURE_ID : null)
-                        .schemaVersion(version)
-                        .build();
-        final MessageBuilder<Object> messageBuilder = Message.newBuilder(messageHeaders);
-        if (payload.raw) {
-            messageBuilder.rawPayload(ByteBuffer.wrap((byte[]) payload.asObject));
-        } else {
-            messageBuilder.payload(payload.asObject);
-        }
-        final Message<Object> expectedMessage = messageBuilder.build();
-        final MessageCommand expectedMessageCommand = buildMessageCommand(type, expectedMessage, theHeaders);
+        final Message<Object> expectedMessage = message(subject, contentType, payload.asObject);
+        final MessageCommand expectedMessageCommand = messageCommand(type, expectedMessage, theHeaders);
 
         // build the adaptable that will be converted to a message command
         final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
@@ -153,6 +139,15 @@ public class MessageCommandAdapterTest {
         assertThat(actualMessageCommand).isEqualTo(expectedMessageCommand);
     }
 
+    private MessageHeaders messageHeaders(final String subject, final String contentType) {
+        return MessageHeaders.newBuilder(direction, TestConstants.THING_ID, subject)
+                .contentType(contentType)
+                .correlationId(TestConstants.CORRELATION_ID)
+                .featureId(SendFeatureMessage.TYPE.equals(type) ? FEATURE_ID : null)
+                .schemaVersion(version)
+                .build();
+    }
+
     @Test
     public void testMessageToAdaptable() {
         final String subject = subject();
@@ -165,43 +160,36 @@ public class MessageCommandAdapterTest {
                 .messages()
                 .subject(subject)
                 .build();
-
         final DittoHeaders expectedHeaders = dittoHeaders(subject, contentType);
+
         final PayloadBuilder payloadBuilder = Payload.newBuilder(path);
         if (payload.asJson != null) {
             payloadBuilder.withValue(payload.asJson);
         }
 
-        final Adaptable expected = Adaptable.newBuilder(topicPath)
+        final Adaptable expectedAdaptable = Adaptable.newBuilder(topicPath)
                 .withPayload(payloadBuilder.build())
                 .withHeaders(expectedHeaders)
                 .build();
 
         // build the message that will be converted to an adaptable
-        final Message<Object> theMessage = message(subject, contentType);
+        final Message<Object> theMessage = message(subject, contentType, payload.asObject);
         final DittoHeaders theHeaders = dittoHeaders(subject, contentType);
-        final MessageCommand messageCommand = buildMessageCommand(type, theMessage, theHeaders);
+        final MessageCommand messageCommand = messageCommand(type, theMessage, theHeaders);
 
         // test
         final Adaptable actual = underTest.toAdaptable(messageCommand);
-        assertThat(actual).isEqualTo(expected);
+        assertThat(actual).isEqualTo(expectedAdaptable);
     }
 
-    private Message<Object> message(final String subject, final String contentType) {
-        final MessageHeadersBuilder messageHeadersBuilder = MessageHeaders
-                .newBuilder(direction, TestConstants.THING_ID, subject)
-                .correlationId(TestConstants.CORRELATION_ID)
-                .schemaVersion(version);
-        if (contentType != null) {
-            messageHeadersBuilder.contentType(contentType);
-        }
-
-        final MessageBuilder<Object> messageBuilder = Message.newBuilder(messageHeadersBuilder.build());
-        if (payload.asObject != null) {
+    private Message<Object> message(final String subject, final String contentType, Object thePayload) {
+        final MessageHeaders messageHeaders = messageHeaders(subject, contentType);
+        final MessageBuilder<Object> messageBuilder = Message.newBuilder(messageHeaders);
+        if (thePayload != null) {
             if (payload.raw) {
-                messageBuilder.rawPayload(ByteBuffer.wrap((byte[]) payload.asObject));
+                messageBuilder.rawPayload(ByteBuffer.wrap((byte[]) thePayload));
             } else {
-                messageBuilder.payload(payload.asObject);
+                messageBuilder.payload(thePayload);
             }
         }
         return messageBuilder.build();
@@ -209,12 +197,13 @@ public class MessageCommandAdapterTest {
 
     private JsonPointer path(final String subject) {
         final JsonPointer path;
-        if (direction == MessageDirection.FROM) {
-            path = JsonPointer.of("/outbox");
+        if (SendFeatureMessage.TYPE.equals(type)) {
+            path = JsonPointer.empty().addLeaf(JsonKey.of("features")).addLeaf(JsonKey.of(FEATURE_ID));
         } else {
-            path = JsonPointer.of("/inbox");
+            path = JsonPointer.empty();
         }
-        return path.addLeaf(JsonKey.of("messages")).addLeaf(JsonKey.of(subject));
+        final JsonKey directionKey = (direction == MessageDirection.FROM ? JsonKey.of("outbox") : JsonKey.of("inbox"));
+        return path.addLeaf(directionKey).addLeaf(JsonKey.of("messages")).addLeaf(JsonKey.of(subject));
     }
 
     private DittoHeaders dittoHeaders(final String subject, final String contentType) {
@@ -233,7 +222,31 @@ public class MessageCommandAdapterTest {
         return headersBuilder.build();
     }
 
+
+    private static MessageCommand messageCommand(final String type, final Message<Object> message,
+            final DittoHeaders headers) {
+        switch (type) {
+            case SendThingMessage.TYPE:
+                return SendThingMessage.of(TestConstants.THING_ID, message, headers);
+            case SendFeatureMessage.TYPE:
+                return SendFeatureMessage.of(TestConstants.THING_ID, TestConstants.FEATURE_ID, message, headers);
+            case SendClaimMessage.TYPE:
+                return SendClaimMessage.of(TestConstants.THING_ID, message, headers);
+            default:
+                throw new IllegalArgumentException(type + " not supported.");
+        }
+    }
+
+    private String subject() {
+        return SendClaimMessage.TYPE.equals(type) ? KnownMessageSubjects.CLAIM_SUBJECT : SUBJECT;
+    }
+
     private static class TestPayload {
+
+        private String contentType;
+        private JsonValue asJson; // json representation (how the payload is represented in a message command)
+        private Object asObject; // java representation (how the payload is represented in an adaptable)
+        private boolean raw; // should the payload be interpreted as raw (base64)
 
         private TestPayload(final String contentType, final JsonValue asJson, final Object asObject,
                 final boolean raw) {
@@ -252,11 +265,6 @@ public class MessageCommandAdapterTest {
             return new TestPayload(contentType, asJson, asObject, raw);
         }
 
-        private String contentType;
-        private JsonValue asJson; // json representation
-        private Object asObject; // java representation
-        private boolean raw;
-
         @Override
         public String toString() {
             return "TestPayload{" +
@@ -266,23 +274,5 @@ public class MessageCommandAdapterTest {
                     ", raw=" + raw +
                     '}';
         }
-    }
-
-    private static MessageCommand buildMessageCommand(final String type, final Message<Object> message,
-            final DittoHeaders headers) {
-        switch (type) {
-            case SendThingMessage.TYPE:
-                return SendThingMessage.of(TestConstants.THING_ID, message, headers);
-            case SendFeatureMessage.TYPE:
-                return SendFeatureMessage.of(TestConstants.THING_ID, TestConstants.FEATURE_ID, message, headers);
-            case SendClaimMessage.TYPE:
-                return SendClaimMessage.of(TestConstants.THING_ID, message, headers);
-            default:
-                throw new IllegalArgumentException(type + " not supported.");
-        }
-    }
-
-    private String subject() {
-        return SendClaimMessage.TYPE.equals(type) ? KnownMessageSubjects.CLAIM_SUBJECT : SUBJECT;
     }
 }
