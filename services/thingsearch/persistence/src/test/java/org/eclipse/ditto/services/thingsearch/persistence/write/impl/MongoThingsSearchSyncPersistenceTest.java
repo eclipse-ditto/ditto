@@ -40,8 +40,7 @@ public final class MongoThingsSearchSyncPersistenceTest extends AbstractThingSea
     public void retrieveFallbackForLastSuccessfulSyncTimestamp() {
         final Instant fallbackTs = Instant.now();
 
-        final Instant actualTs =
-                runBlockingWithReturn(syncPersistence.retrieveLastSuccessfulSyncTimestamp(fallbackTs));
+        final Instant actualTs = syncPersistence.retrieveLastSuccessfulStreamEnd(fallbackTs);
         assertThat(actualTs).isEqualTo(fallbackTs);
     }
 
@@ -53,11 +52,10 @@ public final class MongoThingsSearchSyncPersistenceTest extends AbstractThingSea
         final Instant ts = Instant.now();
 
 
-        runBlocking(syncPersistence.updateLastSuccessfulSyncTimestamp(ts));
+        runBlocking(syncPersistence.updateLastSuccessfulStreamEnd(ts));
 
         final Instant fallbackTs = ts.minusSeconds(1000);
-        final Instant persistedTs =
-                runBlockingWithReturn(syncPersistence.retrieveLastSuccessfulSyncTimestamp(fallbackTs));
+        final Instant persistedTs = syncPersistence.retrieveLastSuccessfulStreamEnd(fallbackTs);
         assertThat(persistedTs).isEqualTo(ts);
     }
 }

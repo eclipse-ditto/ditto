@@ -19,7 +19,6 @@ import java.util.concurrent.TimeUnit;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.services.thingsearch.common.util.ConfigKeys;
 import org.eclipse.ditto.services.thingsearch.persistence.MongoClientWrapper;
-import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchSyncPersistence;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.thingsearch.persistence.write.impl.MongoEventToPersistenceStrategyFactory;
 import org.eclipse.ditto.services.thingsearch.persistence.write.impl.MongoThingsSearchSyncPersistence;
@@ -151,8 +150,8 @@ public final class SearchUpdaterRootActor extends AbstractActor {
         if (synchronizationActive) {
             final ActorMaterializer materializer = ActorMaterializer.create(getContext().getSystem());
 
-            final ThingsSearchSyncPersistence syncPersistence = new MongoThingsSearchSyncPersistence
-                    (mongoClientWrapper, log, materializer);
+            final MongoThingsSearchSyncPersistence syncPersistence =
+                    new MongoThingsSearchSyncPersistence(mongoClientWrapper, log, materializer);
             syncPersistence.init();
 
             final Duration startOffset = config.getDuration(ConfigKeys.THINGS_SYNCER_START_OFFSET);
@@ -160,9 +159,10 @@ public final class SearchUpdaterRootActor extends AbstractActor {
             final Duration pollInterval = config.getDuration(ConfigKeys.THINGS_SYNCER_POLL_INTERVAL);
             final Duration maxIdleTime = config.getDuration(ConfigKeys.THINGS_SYNCER_MAX_IDLE_TIME);
             final int elementsStreamedPerSecond = config.getInt(ConfigKeys.THINGS_SYNCER_ELEMENTS_STREAMED_PER_SECOND);
+
             startClusterSingletonActor(ThingsStreamSupervisor.ACTOR_NAME,
-                    ThingsStreamSupervisor.props(thingsUpdaterActor, syncPersistence, materializer,
-                            startOffset, initialStartOffset, pollInterval, maxIdleTime, elementsStreamedPerSecond));
+                    ThingsStreamSupervisor.props(thingsUpdaterActor, syncPersistence, materializer, startOffset,
+                            initialStartOffset, pollInterval, maxIdleTime, elementsStreamedPerSecond));
         } else {
             log.warning("Things synchronization is not active");
         }

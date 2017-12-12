@@ -24,7 +24,7 @@ import javax.annotation.Nullable;
 
 import org.bson.Document;
 import org.eclipse.ditto.services.thingsearch.persistence.MongoClientWrapper;
-import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchSyncPersistence;
+import org.eclipse.ditto.services.utils.akka.streaming.StreamMetadataPersistence;
 import org.reactivestreams.Publisher;
 
 import com.mongodb.MongoCommandException;
@@ -39,16 +39,16 @@ import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 
 /**
- * MongoDB implementation of {@link ThingsSearchSyncPersistence}.
+ * MongoDB implementation of {@link StreamMetadataPersistence}.
  */
-public final class MongoThingsSearchSyncPersistence implements ThingsSearchSyncPersistence {
+public final class MongoThingsSearchSyncPersistence implements StreamMetadataPersistence {
 
     /**
      * The minimum size a capped collection claims in MongoDB.
      */
     private static final long MIN_CAPPED_COLLECTION_SIZE_IN_BYTES = 4096;
 
-    private static final long COLLECTION_CREATE_TIMEOUT_SECS = 20;
+    private static final long BLOCKING_TIMEOUT_SECS = 20;
 
     private static final String FIELD_TIMESTAMP = "ts";
     /**
@@ -83,7 +83,9 @@ public final class MongoThingsSearchSyncPersistence implements ThingsSearchSyncP
                 LAST_SUCCESSFUL_SYNC_COLLECTION_NAME);
     }
 
-    @Override
+    /**
+     * Initializes the persistence.
+     */
     public void init() {
         final CreateCollectionOptions collectionOptions = new CreateCollectionOptions()
                 .autoIndex(false)
@@ -95,7 +97,7 @@ public final class MongoThingsSearchSyncPersistence implements ThingsSearchSyncP
         final Source<Success, NotUsed> source = Source.fromPublisher(publisher);
         final CompletionStage<Success> done = source.runWith(Sink.head(), mat);
         try {
-            done.toCompletableFuture().get(COLLECTION_CREATE_TIMEOUT_SECS, TimeUnit.SECONDS);
+            done.toCompletableFuture().get(BLOCKING_TIMEOUT_SECS, TimeUnit.SECONDS);
             log.debug("Successfully created collection: {}", LAST_SUCCESSFUL_SYNC_COLLECTION_NAME);
         } catch (final InterruptedException | TimeoutException e) {
             throw new IllegalStateException(e);
@@ -122,7 +124,7 @@ public final class MongoThingsSearchSyncPersistence implements ThingsSearchSyncP
     }
 
     @Override
-    public Source<NotUsed, NotUsed> updateLastSuccessfulSyncTimestamp(final Instant timestamp) {
+    public Source<NotUsed, NotUsed> updateLastSuccessfulStreamEnd(final Instant timestamp) {
         checkInitialized();
 
         final Date mongoStorableDate = Date.from(timestamp);
@@ -138,9 +140,19 @@ public final class MongoThingsSearchSyncPersistence implements ThingsSearchSyncP
     }
 
     @Override
-    public Source<Instant, NotUsed> retrieveLastSuccessfulSyncTimestamp(final Instant defaultTimestamp) {
+    public Instant retrieveLastSuccessfulStreamEnd(final Instant defaultTimestamp) {
         checkInitialized();
 
+        final Source<Instant, NotUsed> source = retrieveLastSuccessfulStreamEndAsync(defaultTimestamp);
+        final CompletionStage<Instant> done = source.runWith(Sink.head(), mat);
+        try {
+            return done.toCompletableFuture().get(BLOCKING_TIMEOUT_SECS, TimeUnit.SECONDS);
+        } catch (final InterruptedException | ExecutionException | TimeoutException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    private Source<Instant, NotUsed> retrieveLastSuccessfulStreamEndAsync(final Instant defaultTimestamp) {
         return Source.fromPublisher(lastSuccessfulSearchSyncCollection.find())
                 .limit(1)
                 .flatMapConcat(doc -> {

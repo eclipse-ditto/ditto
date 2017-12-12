@@ -9,7 +9,7 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package org.eclipse.ditto.services.thingsearch.persistence.write;
+package org.eclipse.ditto.services.utils.akka.streaming;
 
 import java.time.Instant;
 
@@ -17,29 +17,24 @@ import akka.NotUsed;
 import akka.stream.javadsl.Source;
 
 /**
- * Defines operations for managing synchronization state.
+ * Defines operations for managing metadata of streams.
  */
-public interface ThingsSearchSyncPersistence {
+public interface StreamMetadataPersistence {
 
     /**
-     * Initializes the persistence.
-     */
-    void init();
-
-    /**
-     * Updates the last successful full search sync timestamp in the database.
+     * Updates the end timestamp of the last successful stream.
      *
      * @param timestamp The timestamp.
      * @return a {@link Source} holding the publisher to execute the operation.
      */
-    Source<NotUsed, NotUsed> updateLastSuccessfulSyncTimestamp(Instant timestamp);
+    Source<NotUsed, NotUsed> updateLastSuccessfulStreamEnd(Instant timestamp);
 
     /**
-     * Retrieves the last successful full search sync timestamp from the database or the provided {@code
-     * defaultTimestamp}, if a timestamp has not yet been persisted.
+     * <strong>Blocking:</strong> Retrieves the end timestamp of the last successful stream or the provided
+     * {@code defaultTimestamp}, if a timestamp has not yet been persisted.
      *
      * @param defaultTimestamp The default timestamp to be returned if a timestamp has not yet been persisted.
      * @return a {@link Source} holding the publisher to execute the operation.
      */
-    Source<Instant, NotUsed> retrieveLastSuccessfulSyncTimestamp(Instant defaultTimestamp);
+    Instant retrieveLastSuccessfulStreamEnd(Instant defaultTimestamp);
 }

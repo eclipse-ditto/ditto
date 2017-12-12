@@ -92,7 +92,7 @@ public abstract class AbstractStreamForwarder<E> extends AbstractActor {
     private void onSuccess() {
         log.info("Stream successfully finished");
         logStreamStatus();
-        getSuccessRecipient().tell(new Status.Success(lastMessageReceived), getSelf());
+        getCompletionRecipient().tell(new Status.Success(lastMessageReceived), getSelf());
     }
 
     private void logStreamStatus() {
@@ -104,11 +104,11 @@ public abstract class AbstractStreamForwarder<E> extends AbstractActor {
     }
 
     /**
-     * Returns the actor to send a success message when the stream has been successfully completed.
+     * Returns the actor to send a message when the stream has been successfully completed.
      *
-     * @return Reference of the success recipient actor.
+     * @return Reference of the recipient actor.
      */
-    protected abstract ActorRef getSuccessRecipient();
+    protected abstract ActorRef getCompletionRecipient();
 
     @Override
     public void preStart() throws Exception {

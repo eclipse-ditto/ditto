@@ -20,8 +20,7 @@ import static org.mockito.Mockito.when;
 import java.time.Duration;
 import java.time.Instant;
 
-import org.eclipse.ditto.services.models.things.commands.sudo.SudoStreamModifiedEntities;
-import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchSyncPersistence;
+import org.eclipse.ditto.services.utils.akka.streaming.StreamMetadataPersistence;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -32,12 +31,9 @@ import org.mockito.junit.MockitoJUnitRunner;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
-import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
-import akka.actor.Props;
 import akka.actor.Status;
-import akka.japi.pf.ReceiveBuilder;
 import akka.stream.ActorMaterializer;
 import akka.stream.javadsl.Source;
 import akka.testkit.TestProbe;
@@ -58,7 +54,7 @@ public class ThingsStreamSupervisorTest {
     private ActorMaterializer materializer;
     private TestProbe thingsUpdater;
     @Mock
-    private ThingsSearchSyncPersistence searchSyncPersistence;
+    private StreamMetadataPersistence searchSyncPersistence;
 
     /** */
     @Before
@@ -68,9 +64,9 @@ public class ThingsStreamSupervisorTest {
         materializer = ActorMaterializer.create(actorSystem);
         thingsUpdater = TestProbe.apply(actorSystem);
 
-        when(searchSyncPersistence.retrieveLastSuccessfulSyncTimestamp(any(Instant.class)))
-                .thenAnswer(unused -> Source.single(KNOWN_LAST_SUCCESSFUL_SYNC));
-        when(searchSyncPersistence.updateLastSuccessfulSyncTimestamp(any(Instant.class)))
+        when(searchSyncPersistence.retrieveLastSuccessfulStreamEnd(any(Instant.class)))
+                .thenAnswer(unused -> KNOWN_LAST_SUCCESSFUL_SYNC);
+        when(searchSyncPersistence.updateLastSuccessfulStreamEnd(any(Instant.class)))
                 .thenReturn(Source.empty());
     }
 
@@ -95,14 +91,14 @@ public class ThingsStreamSupervisorTest {
             // wait for the actor to start streaming the first time
             Thread.sleep(POLL_INTERVAL.plusSeconds(1).toMillis());
 
-            verify(searchSyncPersistence).retrieveLastSuccessfulSyncTimestamp(any(Instant.class));
+            verify(searchSyncPersistence).retrieveLastSuccessfulStreamEnd(any(Instant.class));
 
             streamSupervisor.tell(new Status.Success(1), ActorRef.noSender());
 
             // verify the db is called with the last successful sync timestamp plus the modified offset
             final Instant expectedPersistedTimestamp =
                     KNOWN_LAST_SUCCESSFUL_SYNC.minus(START_OFFSET).plus(POLL_INTERVAL);
-            verify(searchSyncPersistence, timeout(1000L)).updateLastSuccessfulSyncTimestamp(
+            verify(searchSyncPersistence, timeout(1000L)).updateLastSuccessfulStreamEnd(
                     eq(expectedPersistedTimestamp));
         }};
     }
