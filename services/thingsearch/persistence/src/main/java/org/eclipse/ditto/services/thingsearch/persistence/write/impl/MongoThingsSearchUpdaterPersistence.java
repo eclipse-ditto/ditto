@@ -14,6 +14,8 @@ package org.eclipse.ditto.services.thingsearch.persistence.write.impl;
 import static com.mongodb.client.model.Filters.and;
 import static com.mongodb.client.model.Filters.eq;
 import static com.mongodb.client.model.Filters.lt;
+import static com.mongodb.client.model.Filters.lte;
+import static com.mongodb.client.model.Filters.or;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_DELETED;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_ID;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_POLICY_ID;
@@ -109,6 +111,17 @@ public final class MongoThingsSearchUpdaterPersistence extends AbstractThingsSea
         return and(eq(FIELD_ID, thingId), lt(FIELD_REVISION, revision));
     }
 
+    private static Bson filterWithLowerThingRevisionOrLowerPolicyRevision(final String thingId,
+            final long revision, final long policyRevision) {
+        // In case of a policy update, it is ok when the current thing revision is equal to new one (must not be
+        // less than!
+        final Bson thingLowerRevision = lt(FIELD_REVISION, revision);
+        final Bson policyLowerRevision = and(
+                lt(FIELD_POLICY_REVISION, policyRevision),
+                lte(FIELD_REVISION, revision));
+        return and(eq(FIELD_ID, thingId), or(thingLowerRevision, policyLowerRevision));
+    }
+
     private static Document toUpdate(final Document document, final long thingRevision, final long policyRevision) {
         document.put(FIELD_REVISION, thingRevision);
         document.put(FIELD_POLICY_REVISION, policyRevision);
@@ -124,7 +137,7 @@ public final class MongoThingsSearchUpdaterPersistence extends AbstractThingsSea
      */
     @Override
     protected final Source<Boolean, NotUsed> save(final Thing thing, final long revision, final long policyRevision) {
-        final Bson filter = filterWithLowerRevision(getThingId(thing), revision);
+        final Bson filter = filterWithLowerThingRevisionOrLowerPolicyRevision(getThingId(thing), revision, policyRevision);
         final Document document = toUpdate(ThingDocumentMapper.toDocument(thing), revision, policyRevision);
         return Source.fromPublisher(collection.updateOne(filter, document, new UpdateOptions().upsert(true)))
                 .map(updateResult -> updateResult.getMatchedCount() > 0 || null != updateResult.getUpsertedId());
@@ -234,7 +247,8 @@ public final class MongoThingsSearchUpdaterPersistence extends AbstractThingsSea
         return Source.single(true);
     }
 
-    private <T extends ThingEvent> List<WriteModel<Document>> createThingUpdates(final Bson filter, final T thingEvent) {
+    private <T extends ThingEvent> List<WriteModel<Document>> createThingUpdates(final Bson filter,
+            final T thingEvent) {
         final List<Bson> updates = persistenceStrategyFactory
                 .getStrategy(thingEvent)
                 .thingUpdates(thingEvent, indexLengthRestrictionEnforcer);

@@ -1488,6 +1488,32 @@ public final class MongoThingsSearchUpdaterPersistenceTest extends AbstractThing
                     .isTrue();
         }
 
+        @Test
+        public void insertWithSameRevisionAndSamePolicyRevision() {
+            final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
+            final long thingRevision = 1L;
+            final long policyRevision = 0;
+
+            insertBlockingAndResetMocks(isV2, thing, thingRevision, policyRevision, policyEnforcer);
+
+            // should not insert thing with same revision and policy revision
+            Assertions.assertThat(runBlockingWithReturn(
+                    writePersistence.insertOrUpdate(thing, thingRevision, policyRevision))).isFalse();
+        }
+
+        @Test
+        public void insertWithSameRevisionAndSameHigherPolicyRevision() {
+            final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
+            final long thingRevision = 1L;
+            final long policyRevision = 0L;
+            final long higherPolicyRevision = 1L;
+
+            insertBlockingAndResetMocks(isV2, thing, thingRevision, policyRevision, policyEnforcer);
+
+            // should insert thing with same revision but higher policy revision
+            Assertions.assertThat(runBlockingWithReturn(
+                    writePersistence.insertOrUpdate(thing, thingRevision, higherPolicyRevision))).isTrue();
+        }
     }
 
     public static class MongoThingsSearchUpdaterPersistenceDefaultTests extends BaseClass {
