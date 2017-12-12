@@ -54,7 +54,6 @@ import akka.routing.FromConfig;
 public abstract class AbstractThingProxyActor extends AbstractProxyActor {
 
     private static final String THINGS_SEARCH_ACTOR_PATH = "/user/thingsSearchRoot/thingsSearch";
-    private static final String THINGS_PERSISTENCE_QUERIES_ACTOR_PATH = "/user/thingsRoot/persistenceQueries";
 
     private final ActorRef pubSubMediator;
     private final ActorRef aclEnforcerShardRegion;
@@ -99,13 +98,6 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
                     } else {
                         thingsAggregator.forward(command, getContext());
                     }
-                })
-                .match(SudoStreamModifiedEntities.class, command -> {
-                    getLogger().debug(
-                            "Got 'SudoStreamModifiedEntities' message, forwarding to the Things Persistence");
-                    pubSubMediator.tell(
-                            new DistributedPubSubMediator.Send(THINGS_PERSISTENCE_QUERIES_ACTOR_PATH, command),
-                            getSender());
                 })
                 .match(SudoCommand.class, forwardToLocalEnforcerLookup(thingEnforcerLookup))
 
