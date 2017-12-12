@@ -156,13 +156,14 @@ public final class SearchUpdaterRootActor extends AbstractActor {
 
             final Duration startOffset = config.getDuration(ConfigKeys.THINGS_SYNCER_START_OFFSET);
             final Duration initialStartOffset = config.getDuration(ConfigKeys.THINGS_SYNCER_INITIAL_START_OFFSET);
-            final Duration pollInterval = config.getDuration(ConfigKeys.THINGS_SYNCER_POLL_INTERVAL);
+            final Duration streamInterval = config.getDuration(ConfigKeys.THINGS_SYNCER_STREAM_INTERVAL);
+            final Duration warnOffset = config.getDuration(ConfigKeys.THINGS_SYNCER_WARN_OFFSET);
             final Duration maxIdleTime = config.getDuration(ConfigKeys.THINGS_SYNCER_MAX_IDLE_TIME);
             final int elementsStreamedPerSecond = config.getInt(ConfigKeys.THINGS_SYNCER_ELEMENTS_STREAMED_PER_SECOND);
 
             startClusterSingletonActor(ThingsStreamSupervisor.ACTOR_NAME,
                     ThingsStreamSupervisor.props(thingsUpdaterActor, syncPersistence, materializer, startOffset,
-                            initialStartOffset, pollInterval, maxIdleTime, elementsStreamedPerSecond));
+                            streamInterval, initialStartOffset, warnOffset, maxIdleTime, elementsStreamedPerSecond));
         } else {
             log.warning("Things synchronization is not active");
         }

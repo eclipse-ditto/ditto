@@ -101,26 +101,29 @@ public final class ConfigKeys {
     private static final String SYNC_PREFIX = SEARCH_UPDATER_PREFIX + "sync.";
 
     /**
-     * The syncing period within which there are requested updated things if sync has never been run before -
-     * otherwise sync is started where the last run finished.
+     * The syncer makes sure that all requested stream elements have at least an age of this offset, e.g. by
+     * triggering a stream at a later time.
      */
     public static final String THINGS_SYNCER_START_OFFSET = SYNC_PREFIX + "start-offset";
 
     /**
-     * The duration from now to somewhere in the past for which things are requested if sync has never
+     * The duration from now to somewhere in the past for which stream elements are requested if sync has never
      * been run before - otherwise sync is started where the last run finished.
-     *
-     * <p>
-     *     NOTE: {@link #THINGS_SYNCER_START_OFFSET} will be added to this duration.
-     * </p>
      */
     public static final String THINGS_SYNCER_INITIAL_START_OFFSET = SYNC_PREFIX + "initial-start-offset";
+
+    /**
+     * The interval for the query restricting the stream (i.e. the difference between query-start and
+     * query-end). This query-interval is used for <strong>all</strong> queries, but the interval of stream-starts
+     * varies depending on the stream load.
+     */
+    public static final String THINGS_SYNCER_STREAM_INTERVAL = SYNC_PREFIX + "stream-interval";
 
     /**
      * The default interval for polling things (polling may happen more frequently when lots of changes have to be
      * applied).
      */
-    public static final String THINGS_SYNCER_POLL_INTERVAL = SYNC_PREFIX + "poll-interval";
+    public static final String THINGS_SYNCER_WARN_OFFSET = SYNC_PREFIX + "warn-offset";
 
     /**
      * The maximum idle time of the syncer (as a Duration).

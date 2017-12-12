@@ -48,10 +48,10 @@ public final class ThingsStreamSupervisor extends AbstractStreamSupervisor<Send>
     private ThingsStreamSupervisor(final ActorRef thingsUpdater, final StreamMetadataPersistence syncPersistence,
             final Materializer materializer,
             final Duration startOffset,
-            final Duration streamInterval, final Duration initialStartOffset,
+            final Duration streamInterval, final Duration initialStartOffset, final Duration warnOffset,
             final Duration maxIdleTime,
             final int elementsStreamedPerSecond) {
-        super(syncPersistence, materializer, startOffset, streamInterval, initialStartOffset);
+        super(syncPersistence, materializer, startOffset, streamInterval, initialStartOffset, warnOffset);
         this.thingsUpdater = thingsUpdater;
         this.elementsStreamedPerSecond = elementsStreamedPerSecond;
         this.maxIdleTime = maxIdleTime;
@@ -67,10 +67,11 @@ public final class ThingsStreamSupervisor extends AbstractStreamSupervisor<Send>
      * @param materializer the materializer for the akka actor system.
      * @param startOffset the offset for the start timestamp - it is needed to make sure that we don't lose events,
      * cause the timestamp of a thing-event is created before the actual insert to the DB
+     * @param streamInterval this interval defines the minimum and maximum creation time of the entities to be queried
+     * by the underlying stream.
      * @param initialStartOffset the duration starting from which the modified tags are requested for the first time
      * (further syncs will know the last-success timestamp)
-     * @param pollInterval the duration for which the modified tags are requested (starting from last-success timestamp
-     * or initialStartOffset)
+     * @param warnOffset if a query-start is more than this offset in the past, a warning will be logged
      * @param maxIdleTime the maximum idle time of the underlying stream forwarder
      * @param elementsStreamedPerSecond the elements to be streamed per second
      * @return the props
@@ -78,8 +79,7 @@ public final class ThingsStreamSupervisor extends AbstractStreamSupervisor<Send>
     public static Props props(final ActorRef thingsUpdater, final StreamMetadataPersistence syncPersistence,
             final Materializer materializer,
             final Duration startOffset,
-            final Duration initialStartOffset,
-            final Duration pollInterval,
+            final Duration streamInterval, final Duration initialStartOffset, final Duration warnOffset,
             final Duration maxIdleTime,
             final int elementsStreamedPerSecond) {
         return Props.create(ThingsStreamSupervisor.class, new Creator<ThingsStreamSupervisor>() {
@@ -88,7 +88,7 @@ public final class ThingsStreamSupervisor extends AbstractStreamSupervisor<Send>
             @Override
             public ThingsStreamSupervisor create() throws Exception {
                 return new ThingsStreamSupervisor(thingsUpdater, syncPersistence, materializer, startOffset,
-                        pollInterval, initialStartOffset, maxIdleTime, elementsStreamedPerSecond);
+                        streamInterval, initialStartOffset, warnOffset, maxIdleTime, elementsStreamedPerSecond);
             }
         });
     }

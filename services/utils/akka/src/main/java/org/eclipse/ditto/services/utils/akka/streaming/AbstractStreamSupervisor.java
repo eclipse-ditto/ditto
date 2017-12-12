@@ -53,6 +53,7 @@ public abstract class AbstractStreamSupervisor<C> extends AbstractActor {
     private Duration startOffset;
     private final Duration streamInterval;
     private final Duration initialStartOffset;
+    private final Duration warnOffset;
     private @Nullable StreamTrigger nextStream;
     private @Nullable StreamTrigger activeStream;
 
@@ -69,17 +70,19 @@ public abstract class AbstractStreamSupervisor<C> extends AbstractActor {
      * by the underlying stream.
      * @param initialStartOffset this offset is only on initial start, i.e. when the last query end cannot be retrieved
      * by means of {@code streamMetadataPersistence}.
+     * @param warnOffset if a query-start is more than this offset in the past, a warning will be logged
      */
     protected AbstractStreamSupervisor(final StreamMetadataPersistence streamMetadataPersistence,
             final Materializer materializer,
             final Duration startOffset,
-            final Duration streamInterval, final Duration initialStartOffset) {
+            final Duration streamInterval, final Duration initialStartOffset, final Duration warnOffset) {
         this.streamMetadataPersistence = streamMetadataPersistence;
         this.materializer = materializer;
 
         this.startOffset = startOffset;
         this.streamInterval = streamInterval;
         this.initialStartOffset = initialStartOffset;
+        this.warnOffset = warnOffset;
     }
 
     /**
@@ -184,6 +187,14 @@ public abstract class AbstractStreamSupervisor<C> extends AbstractActor {
             final Instant initialStartTsWithoutStandardOffset = now.minus(initialStartOffset);
 
             queryStart = streamMetadataPersistence.retrieveLastSuccessfulStreamEnd(initialStartTsWithoutStandardOffset);
+        }
+
+        final Duration offsetFromNow = Duration.between(queryStart, now);
+        // if offset is not in the future, i.e. in the past
+        if (!offsetFromNow.isNegative() && offsetFromNow.compareTo(warnOffset) > 0) {
+            log.warning("The next Query-Start <{}> is older than the configured warn-offset <{}>. Please verify that" +
+                            " this does not happen frequently, otherwise won't get \"up-to-date\" anymore.",
+                    queryStart, warnOffset);
         }
 
         return StreamTrigger.calculateStreamTrigger(now, queryStart, startOffset, streamInterval);

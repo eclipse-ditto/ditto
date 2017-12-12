@@ -27,6 +27,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.verification.VerificationWithTimeout;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -42,13 +43,16 @@ import akka.testkit.javadsl.TestKit;
 @RunWith(MockitoJUnitRunner.class)
 public class ThingsStreamSupervisorTest {
 
-    private static final Instant KNOWN_LAST_SUCCESSFUL_SYNC = Instant.now().minusSeconds(37);
-
     private static final Duration START_OFFSET = Duration.ofMinutes(2);
+
+    /* make sure that known last sync is longer in the past than start-offset -> streaming will be triggered "now",
+       allows fast testing */
+   private static final Instant KNOWN_LAST_SYNC = Instant.now().minus(START_OFFSET).minusSeconds(1);
+
     private static final Duration INITIAL_START_OFFSET = Duration.ofDays(1);
-    private static final Duration POLL_INTERVAL = Duration.ofSeconds(5);
-    private static final Duration MAX_IDLE_TIME = Duration.ofSeconds(10);
-    private static final int ELEMENTS_STREAMED_PER_SECOND = 5;
+    private static final Duration STREAM_INTERVAL = Duration.ofSeconds(5);
+
+    private static final VerificationWithTimeout SHORT_TIMEOUT = timeout(1000L);
 
     private ActorSystem actorSystem;
     private ActorMaterializer materializer;
@@ -65,7 +69,7 @@ public class ThingsStreamSupervisorTest {
         thingsUpdater = TestProbe.apply(actorSystem);
 
         when(searchSyncPersistence.retrieveLastSuccessfulStreamEnd(any(Instant.class)))
-                .thenAnswer(unused -> KNOWN_LAST_SUCCESSFUL_SYNC);
+                .thenAnswer(unused -> KNOWN_LAST_SYNC);
         when(searchSyncPersistence.updateLastSuccessfulStreamEnd(any(Instant.class)))
                 .thenReturn(Source.empty());
     }
@@ -81,24 +85,23 @@ public class ThingsStreamSupervisorTest {
 
     /**
      * This Test verifies the behavior of the first sync after the Actor has been started. The StreamSupervisor will
-     * send itself a CheckForActivity message after POLL_INTERVAL which triggers synchronization. Afterwards it will
+     * send itself a CheckForActivity message after STREAM_INTERVAL which triggers synchronization. Afterwards it will
      * persist a successful sync timestamp if it receives a Status.Success message.
      */
     @Test
     public void successfulSync() throws InterruptedException {
         new TestKit(actorSystem) {{
             final ActorRef streamSupervisor = createStreamSupervisor();
-            // wait for the actor to start streaming the first time
-            Thread.sleep(POLL_INTERVAL.plusSeconds(1).toMillis());
 
-            verify(searchSyncPersistence).retrieveLastSuccessfulStreamEnd(any(Instant.class));
+            // wait for the actor to start streaming the first time
+            verify(searchSyncPersistence, SHORT_TIMEOUT).retrieveLastSuccessfulStreamEnd(any(Instant.class));
 
             streamSupervisor.tell(new Status.Success(1), ActorRef.noSender());
 
             // verify the db is called with the last successful sync timestamp plus the modified offset
             final Instant expectedPersistedTimestamp =
-                    KNOWN_LAST_SUCCESSFUL_SYNC.minus(START_OFFSET).plus(POLL_INTERVAL);
-            verify(searchSyncPersistence, timeout(1000L)).updateLastSuccessfulStreamEnd(
+                    KNOWN_LAST_SYNC.plus(STREAM_INTERVAL);
+            verify(searchSyncPersistence, SHORT_TIMEOUT).updateLastSuccessfulStreamEnd(
                     eq(expectedPersistedTimestamp));
         }};
     }
@@ -107,8 +110,7 @@ public class ThingsStreamSupervisorTest {
         return actorSystem.actorOf(
                 ThingsStreamSupervisor.props(thingsUpdater.ref(), searchSyncPersistence, materializer,
                         START_OFFSET,
-                        INITIAL_START_OFFSET,
-                        POLL_INTERVAL,
-                        MAX_IDLE_TIME, ELEMENTS_STREAMED_PER_SECOND));
+                        STREAM_INTERVAL, INITIAL_START_OFFSET, Duration.ofDays(10),
+                        Duration.ofSeconds(10), 5));
     }
 }
