@@ -204,4 +204,6 @@ final class MessageAdaptableHelper {
         return StandardCharsets.UTF_8;
     }
 
+    private MessageAdaptableHelper() {
+    }
 }

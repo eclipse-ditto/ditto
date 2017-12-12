@@ -25,7 +25,7 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
-import org.eclipse.ditto.model.messages.MessageHeaders;
+import org.eclipse.ditto.model.messages.MessageHeaderDefinition;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.AccessControlListModelFactory;
 import org.eclipse.ditto.model.things.AclEntry;
@@ -125,6 +125,12 @@ abstract class AbstractAdapter<T extends Jsonifiable> implements Adapter<T> {
     protected static String featureIdFrom(final Adaptable adaptable) {
         final JsonPointer path = adaptable.getPayload().getPath();
         return path.get(1).orElseThrow(() -> UnknownPathException.newBuilder(path).build()).toString();
+    }
+
+    protected static String featureIdForMessageFrom(final Adaptable adaptable) {
+        return adaptable.getHeaders()
+                .map(h -> h.get(MessageHeaderDefinition.FEATURE_ID.getKey()))
+                .orElseThrow(() -> JsonParseException.newBuilder().build());
     }
 
     protected static Features featuresFrom(final Adaptable adaptable) {

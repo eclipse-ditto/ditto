@@ -49,7 +49,7 @@ final class MessageCommandAdapter extends AbstractAdapter<MessageCommand> {
                 adaptable -> SendThingMessage.of(thingIdFrom(adaptable), MessageAdaptableHelper.messageFrom(adaptable),
                         dittoHeadersFrom(adaptable)));
         mappingStrategies.put(SendFeatureMessage.TYPE,
-                adaptable -> SendFeatureMessage.of(thingIdFrom(adaptable), featureIdFrom(adaptable),
+                adaptable -> SendFeatureMessage.of(thingIdFrom(adaptable), featureIdForMessageFrom(adaptable),
                         MessageAdaptableHelper.messageFrom(adaptable), dittoHeadersFrom(adaptable)));
 
         return mappingStrategies;
