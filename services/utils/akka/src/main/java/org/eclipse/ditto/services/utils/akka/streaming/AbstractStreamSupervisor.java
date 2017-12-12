@@ -214,7 +214,8 @@ public abstract class AbstractStreamSupervisor<C> extends AbstractActor {
                     existingChild.get(), rescheduledPlannedStreamStart);
 
             if (activeStream == null) {
-                throw new IllegalStateException("There must be no forwarder when there is no active stream.");
+                log.warning("Cannot re-schedule stream, because metadata of active stream is unknown.");
+                return;
             }
 
             final StreamTrigger rescheduledStreamTrigger = activeStream.rescheduleAt(rescheduledPlannedStreamStart);
