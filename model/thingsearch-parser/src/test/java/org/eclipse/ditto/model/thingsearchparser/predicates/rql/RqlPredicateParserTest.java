@@ -48,19 +48,19 @@ public class RqlPredicateParserTest {
 
         final SingleComparisonNode comparison = (SingleComparisonNode) root.getChildren().get(0);
         assertThat(comparison.getComparisonValue().getClass()).isEqualTo(String.class);
-        assertThat(comparison.getComparisonValue()).isEqualTo("te\\\"st");
+        assertThat(comparison.getComparisonValue()).isEqualTo("te\"st");
     }
 
     @Test
     public void testComparisonEqualsWithStringValueContainingBackslash() throws ParserException {
-        final RootNode root = parser.parse("eq(username,\"abc\\xyz\")");
+        final RootNode root = parser.parse("eq(username,\"abc\\nyz\")");
 
         assertThat(root).isNotNull();
         assertThat(root.getChildren().size()).isEqualTo(1);
 
         final SingleComparisonNode comparison = (SingleComparisonNode) root.getChildren().get(0);
         assertThat(comparison.getComparisonValue().getClass()).isEqualTo(String.class);
-        assertThat(comparison.getComparisonValue()).isEqualTo("abc\\xyz");
+        assertThat(comparison.getComparisonValue()).isEqualTo("abc\nyz");
     }
 
     @Test(expected = ParserException.class)

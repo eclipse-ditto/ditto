@@ -13,6 +13,9 @@ package org.eclipse.ditto.model.thingsearchparser.predicates.ast;
 
 import static java.util.Objects.requireNonNull;
 
+import java.util.Arrays;
+import java.util.Collection;
+
 /**
  * Implements logical nodes like AND or OR. A logical node has a name and several children to which the logic of this
  * node has to be applied.
@@ -42,6 +45,29 @@ public final class LogicalNode extends SuperNode {
         super();
         this.type = type;
         this.name = type.getName();
+    }
+
+    /**
+     * Constructor. Creates a new node with the given type.
+     *
+     * @param type type of this logical node.
+     * @param subNodes the Nodes to add directly as children.
+     */
+    public LogicalNode(final Type type, final Node... subNodes) {
+        this(type, Arrays.asList(subNodes));
+    }
+
+    /**
+     * Constructor. Creates a new node with the given type.
+     *
+     * @param type type of this logical node.
+     * @param subNodes the Nodes to add directly as children.
+     */
+    public LogicalNode(final Type type, final Collection<Node> subNodes) {
+        super();
+        this.type = type;
+        this.name = type.getName();
+        getChildren().addAll(subNodes);
     }
 
     /**
