@@ -20,7 +20,7 @@
     <version>0.1.0-SNAPSHOT</version>
     <name>Eclipse Ditto</name>
 
-    <url>https://projects.eclipse.org/projects/iot.ditto</url>
+    <url>https://eclipse.org/ditto/</url>
     <inceptionYear>2017</inceptionYear>
 
     <organization>
@@ -308,7 +308,7 @@
                     <configuration>
                         <instructions>
                             <Bundle-Vendor>Eclipse Ditto</Bundle-Vendor>
-                            <Bundle-DocURL>https://projects.eclipse.org/projects/iot.ditto</Bundle-DocURL>
+                            <Bundle-DocURL>https://eclipse.org/ditto/</Bundle-DocURL>
                             <_noee>true</_noee>
                             <Bundle-RequiredExecutionEnvironment>JavaSE-1.8</Bundle-RequiredExecutionEnvironment>
                         </instructions>
