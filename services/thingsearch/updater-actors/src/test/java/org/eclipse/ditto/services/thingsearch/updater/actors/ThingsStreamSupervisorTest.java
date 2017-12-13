@@ -11,6 +11,8 @@
  */
 package org.eclipse.ditto.services.thingsearch.updater.actors;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.eclipse.ditto.services.utils.akka.streaming.StreamConstants.STREAM_FINISHED_MSG;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.timeout;
@@ -20,6 +22,8 @@ import static org.mockito.Mockito.when;
 import java.time.Duration;
 import java.time.Instant;
 
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.services.models.things.commands.sudo.SudoStreamModifiedEntities;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamMetadataPersistence;
 import org.junit.After;
 import org.junit.Before;
@@ -34,7 +38,7 @@ import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
-import akka.actor.Status;
+import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.stream.ActorMaterializer;
 import akka.stream.javadsl.Source;
 import akka.testkit.TestProbe;
@@ -51,12 +55,14 @@ public class ThingsStreamSupervisorTest {
 
     private static final Duration INITIAL_START_OFFSET = Duration.ofDays(1);
     private static final Duration STREAM_INTERVAL = Duration.ofSeconds(5);
+    private static final int ELEMENTS_STREAMED_PER_SECOND = 5;
 
-    private static final VerificationWithTimeout SHORT_TIMEOUT = timeout(1000L);
+    private static final VerificationWithTimeout SHORT_TIMEOUT = timeout(3000L);
 
     private ActorSystem actorSystem;
     private ActorMaterializer materializer;
     private TestProbe thingsUpdater;
+    private TestProbe pubSubMediator;
     @Mock
     private StreamMetadataPersistence searchSyncPersistence;
 
@@ -67,6 +73,7 @@ public class ThingsStreamSupervisorTest {
         actorSystem = ActorSystem.create("AkkaTestSystem", config);
         materializer = ActorMaterializer.create(actorSystem);
         thingsUpdater = TestProbe.apply(actorSystem);
+        pubSubMediator = TestProbe.apply(actorSystem);
 
         when(searchSyncPersistence.retrieveLastSuccessfulStreamEnd(any(Instant.class)))
                 .thenAnswer(unused -> KNOWN_LAST_SYNC);
@@ -89,21 +96,34 @@ public class ThingsStreamSupervisorTest {
      * persist a successful sync timestamp if it receives a Status.Success message.
      */
     @Test
-    public void successfulSync() throws InterruptedException {
+    public void successfulSync() {
         new TestKit(actorSystem) {{
             final ActorRef streamSupervisor = createStreamSupervisor();
+            final Instant expectedQueryEnd = KNOWN_LAST_SYNC.plus(STREAM_INTERVAL);
 
-            // wait for the actor to start streaming the first time
-            verify(searchSyncPersistence, SHORT_TIMEOUT).retrieveLastSuccessfulStreamEnd(any(Instant.class));
+            // wait for the actor to start streaming the first time by expecting the corresponding send-message
+            final SudoStreamModifiedEntities msg = expectStreamTriggerMsg();
+            final SudoStreamModifiedEntities expectedStreamTriggerMsg =
+                    SudoStreamModifiedEntities.of(KNOWN_LAST_SYNC, expectedQueryEnd, ELEMENTS_STREAMED_PER_SECOND,
+                    DittoHeaders.empty());
+            assertThat(msg).isEqualTo(expectedStreamTriggerMsg);
 
-            streamSupervisor.tell(new Status.Success(1), ActorRef.noSender());
+            // verify that last query end has been retrieved from persistence
+            verify(searchSyncPersistence).retrieveLastSuccessfulStreamEnd(any(Instant.class));
 
-            // verify the db is called with the last successful sync timestamp plus the modified offset
-            final Instant expectedPersistedTimestamp =
-                    KNOWN_LAST_SYNC.plus(STREAM_INTERVAL);
-            verify(searchSyncPersistence, SHORT_TIMEOUT).updateLastSuccessfulStreamEnd(
-                    eq(expectedPersistedTimestamp));
+            // signal completion to the supervisor
+            streamSupervisor.tell(STREAM_FINISHED_MSG, ActorRef.noSender());
+
+            // verify the db has been updated with the queryEnd of the completed stream
+            verify(searchSyncPersistence, SHORT_TIMEOUT).updateLastSuccessfulStreamEnd(eq(expectedQueryEnd));
         }};
+    }
+
+    private SudoStreamModifiedEntities expectStreamTriggerMsg() {
+        final DistributedPubSubMediator.Send expectedPubSubMsg =
+                pubSubMediator.expectMsgClass(DistributedPubSubMediator.Send.class);
+        final Object extractedMsg = expectedPubSubMsg.msg();
+        return (SudoStreamModifiedEntities) extractedMsg;
     }
 
     private ActorRef createStreamSupervisor() {
@@ -111,6 +131,6 @@ public class ThingsStreamSupervisorTest {
                 ThingsStreamSupervisor.props(thingsUpdater.ref(), searchSyncPersistence, materializer,
                         START_OFFSET,
                         STREAM_INTERVAL, INITIAL_START_OFFSET, Duration.ofDays(10),
-                        Duration.ofSeconds(10), 5));
+                        Duration.ofSeconds(10), ELEMENTS_STREAMED_PER_SECOND, pubSubMediator.ref()));
     }
 }

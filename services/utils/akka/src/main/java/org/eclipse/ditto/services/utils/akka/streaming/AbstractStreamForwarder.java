@@ -25,7 +25,6 @@ import org.eclipse.ditto.services.utils.akka.LogUtil;
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Cancellable;
-import akka.actor.Status;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
 import scala.concurrent.duration.FiniteDuration;
@@ -92,7 +91,7 @@ public abstract class AbstractStreamForwarder<E> extends AbstractActor {
     private void onSuccess() {
         log.info("Stream successfully finished");
         logStreamStatus();
-        getCompletionRecipient().tell(new Status.Success(lastMessageReceived), getSelf());
+        getCompletionRecipient().tell(STREAM_FINISHED_MSG, getSelf());
     }
 
     private void logStreamStatus() {

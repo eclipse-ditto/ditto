@@ -11,6 +11,8 @@
  */
 package org.eclipse.ditto.services.utils.akka.streaming;
 
+import static org.eclipse.ditto.services.utils.akka.streaming.StreamConstants.STREAM_FINISHED_MSG;
+
 import java.text.MessageFormat;
 import java.time.Duration;
 import java.time.Instant;
@@ -26,7 +28,6 @@ import akka.actor.ActorRef;
 import akka.actor.Cancellable;
 import akka.actor.OneForOneStrategy;
 import akka.actor.Props;
-import akka.actor.Status;
 import akka.actor.SupervisorStrategy;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.DeciderBuilder;
@@ -115,7 +116,6 @@ public abstract class AbstractStreamSupervisor<C> extends AbstractActorWithStash
     public void preStart() throws Exception {
         super.preStart();
 
-        Thread.sleep(5000);
         final StreamTrigger nextStreamTrigger = computeNextStreamTrigger(null);
         scheduleStream(nextStreamTrigger);
     }
@@ -175,8 +175,8 @@ public abstract class AbstractStreamSupervisor<C> extends AbstractActorWithStash
 
     private Receive createSupervisingBehavior() {
         return ReceiveBuilder.create()
+                .matchEquals(STREAM_FINISHED_MSG, unused -> streamCompleted())
                 .match(TryToStartStream.class, unused -> tryToStartStream())
-                .match(Status.Success.class, unused -> streamCompleted())
                 .matchAny(m -> {
                     log.warning("Unknown message: {}", m);
                     unhandled(m);

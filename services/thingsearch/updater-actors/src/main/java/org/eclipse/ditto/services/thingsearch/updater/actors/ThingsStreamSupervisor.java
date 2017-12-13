@@ -13,6 +13,8 @@ package org.eclipse.ditto.services.thingsearch.updater.actors;
 
 import java.time.Duration;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.models.things.ThingTag;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoStreamModifiedEntities;
@@ -50,13 +52,25 @@ public final class ThingsStreamSupervisor extends AbstractStreamSupervisor<Send>
             final Duration startOffset,
             final Duration streamInterval, final Duration initialStartOffset, final Duration warnOffset,
             final Duration maxIdleTime,
-            final int elementsStreamedPerSecond) {
+            final int elementsStreamedPerSecond, @Nullable final ActorRef pubSubMediator) {
         super(syncPersistence, materializer, startOffset, streamInterval, initialStartOffset, warnOffset);
         this.thingsUpdater = thingsUpdater;
         this.elementsStreamedPerSecond = elementsStreamedPerSecond;
         this.maxIdleTime = maxIdleTime;
 
-        pubSubMediator = DistributedPubSub.get(getContext().system()).mediator();
+        this.pubSubMediator =
+                pubSubMediator != null ? pubSubMediator : DistributedPubSub.get(getContext().system()).mediator();
+    }
+
+    private ThingsStreamSupervisor(final ActorRef thingsUpdater, final StreamMetadataPersistence syncPersistence,
+            final Materializer materializer,
+            final Duration startOffset,
+            final Duration streamInterval, final Duration initialStartOffset, final Duration warnOffset,
+            final Duration maxIdleTime,
+            final int elementsStreamedPerSecond) {
+        this(thingsUpdater, syncPersistence, materializer, startOffset, streamInterval, initialStartOffset, warnOffset,
+                maxIdleTime,
+                elementsStreamedPerSecond, null);
     }
 
     /**
@@ -89,6 +103,25 @@ public final class ThingsStreamSupervisor extends AbstractStreamSupervisor<Send>
             public ThingsStreamSupervisor create() throws Exception {
                 return new ThingsStreamSupervisor(thingsUpdater, syncPersistence, materializer, startOffset,
                         streamInterval, initialStartOffset, warnOffset, maxIdleTime, elementsStreamedPerSecond);
+            }
+        });
+    }
+
+    // for testing only
+    static Props props(final ActorRef thingsUpdater, final StreamMetadataPersistence syncPersistence,
+            final Materializer materializer,
+            final Duration startOffset,
+            final Duration streamInterval, final Duration initialStartOffset, final Duration warnOffset,
+            final Duration maxIdleTime,
+            final int elementsStreamedPerSecond, final ActorRef pubSubMediator) {
+        return Props.create(ThingsStreamSupervisor.class, new Creator<ThingsStreamSupervisor>() {
+            private static final long serialVersionUID = 1L;
+
+            @Override
+            public ThingsStreamSupervisor create() throws Exception {
+                return new ThingsStreamSupervisor(thingsUpdater, syncPersistence, materializer, startOffset,
+                        streamInterval, initialStartOffset, warnOffset, maxIdleTime, elementsStreamedPerSecond,
+                        pubSubMediator);
             }
         });
     }
