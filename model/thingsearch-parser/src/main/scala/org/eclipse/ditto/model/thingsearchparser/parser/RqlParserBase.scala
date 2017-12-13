@@ -29,10 +29,8 @@ import shapeless.HNil
 protected class RqlParserBase(val input: ParserInput) extends Parser with StringBuilding {
 
   private val WhiteSpaceChar = CharPredicate(" \n\r\t\f")
-  private val CommaClosingParanQuote = CharPredicate(",)\"\\")
-  private val CommaClosingParanQuoteSlash = CommaClosingParanQuote ++ "/"
-  private val QuoteBackslash = CharPredicate("\"\\")
-  private val QuoteSlashBackSlash = QuoteBackslash ++ "/"
+  private val CommaClosingParenthesisQuote = CharPredicate(",)\"\\")
+  private val CommaClosingParenthesisQuoteSlash = CommaClosingParenthesisQuote ++ "/"
 
   protected def Literal: Rule1[java.lang.Object] = rule {
     (DoubleLiteral | LongLiteral | StringLiteral | "true" ~ WhiteSpace ~ push(java.lang.Boolean.TRUE) |
@@ -42,6 +40,7 @@ protected class RqlParserBase(val input: ParserInput) extends Parser with String
   protected def DoubleLiteral: Rule1[java.lang.Double] = rule {
     capture(Integer ~ Frac) ~> (numb => java.lang.Double.valueOf(numb)) ~ WhiteSpace
   }
+
   protected def LongLiteral: Rule1[java.lang.Long] = rule {
     !"-0" ~ capture(Integer) ~> (numb => java.lang.Long.valueOf(numb)) ~ WhiteSpace
   }
@@ -66,16 +65,16 @@ protected class RqlParserBase(val input: ParserInput) extends Parser with String
     clearSB() ~ Characters ~ push(sb.toString)
   }
 
-  protected def Characters = rule {
+  protected def Characters: Rule[HNil, HNil] = rule {
     zeroOrMore(NormalChar | '\\' ~ EscapedChar)
   }
 
   protected def NormalChar: Rule[HNil, HNil] = rule {
-    !CommaClosingParanQuote ~ ANY ~ appendSB()
+    !CommaClosingParenthesisQuote ~ ANY ~ appendSB()
   }
 
-  protected def EscapedChar: Rule[HNil, HNil] = rule (
-    CommaClosingParanQuoteSlash ~ appendSB()
+  protected def EscapedChar: Rule[HNil, HNil] = rule(
+    CommaClosingParenthesisQuoteSlash ~ appendSB()
       | 'b' ~ appendSB('\b')
       | 'f' ~ appendSB('\f')
       | 'n' ~ appendSB('\n')
@@ -89,7 +88,11 @@ protected class RqlParserBase(val input: ParserInput) extends Parser with String
       ((code: String) => java.lang.Integer.parseInt(code, 16))
   }
 
-  protected def WhiteSpace = rule { zeroOrMore(WhiteSpaceChar) }
+  protected def WhiteSpace: Rule[HNil, HNil] = rule {
+    zeroOrMore(WhiteSpaceChar)
+  }
 
-  protected def ws(c: Char) = rule { c ~ WhiteSpace }
+  protected def ws(c: Char): Rule[HNil, HNil] = rule {
+    c ~ WhiteSpace
+  }
 }
