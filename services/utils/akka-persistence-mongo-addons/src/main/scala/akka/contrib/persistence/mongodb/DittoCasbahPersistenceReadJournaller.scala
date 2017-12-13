@@ -23,6 +23,9 @@ import org.bson.types.ObjectId
   * Factory for class [[SequenceNumbersOfPidsByInterval]].
   */
 object SequenceNumbersOfPidsByInterval {
+  val ProjectionInclude: Int = 1
+  val SortDescending: Int = -1
+
   def props(driver: CasbahMongoDriver, start: Instant, end: Instant): Props =
     Props(new SequenceNumbersOfPidsByInterval(driver, start, end))
 }
@@ -41,6 +44,7 @@ class SequenceNumbersOfPidsByInterval(val driver: CasbahMongoDriver, start: Inst
   extends SyncActorPublisher[PidWithSeqNr, Stream[PidWithSeqNr]] {
 
   import JournallingFieldNames._
+  import SequenceNumbersOfPidsByInterval._
 
   override protected def initialCursor: Stream[PidWithSeqNr] = {
     /* MongoDBObject IDs only contain dates with precision of seconds, thus adjust the range of the query
@@ -67,9 +71,9 @@ class SequenceNumbersOfPidsByInterval(val driver: CasbahMongoDriver, start: Inst
 
     val filterObject: DBObject = DBObject(ID -> DBObject("$gte" -> startObjectId, "$lt" -> endObjectId))
 
-    val projectObject: DBObject = DBObject(PROCESSOR_ID -> 1, TO -> 1)
+    val projectObject: DBObject = DBObject(PROCESSOR_ID -> ProjectionInclude, TO -> ProjectionInclude)
 
-    val sortObject: DBObject = DBObject(ID -> -1)
+    val sortObject: DBObject = DBObject(ID -> SortDescending)
 
     driver.journal
       .find(filterObject, projectObject)
