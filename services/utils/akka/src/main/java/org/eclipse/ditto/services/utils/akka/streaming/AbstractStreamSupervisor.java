@@ -115,6 +115,7 @@ public abstract class AbstractStreamSupervisor<C> extends AbstractActorWithStash
     public void preStart() throws Exception {
         super.preStart();
 
+        Thread.sleep(5000);
         final StreamTrigger nextStreamTrigger = computeNextStreamTrigger(null);
         scheduleStream(nextStreamTrigger);
     }
@@ -157,7 +158,7 @@ public abstract class AbstractStreamSupervisor<C> extends AbstractActorWithStash
                 .match(TryToStartStream.class, tryToStartStream -> {
                     log.debug("Switching to supervisingBehaviour has been triggered by message: {}",
                             tryToStartStream);
-                    getContext().become(createSupervisingBehavior());
+                    becomeSupervising();
                     tryToStartStream();
                 })
                 .matchAny(m -> {
@@ -165,6 +166,11 @@ public abstract class AbstractStreamSupervisor<C> extends AbstractActorWithStash
                     stash();
                 })
                 .build();
+    }
+
+    private void becomeSupervising() {
+        getContext().become(createSupervisingBehavior());
+        unstashAll();
     }
 
     private Receive createSupervisingBehavior() {
