@@ -13,7 +13,7 @@ node {
       maven: 'maven-3.5.2',
       mavenLocalRepo: theMvnRepo) {
 
-      sh "mvn versions:set -DnewVersion=0-${theBranch}-SNAPSHOT"
+      sh "mvn versions:set -nsu -DnewVersion=0-${theBranch}-SNAPSHOT"
     }
   }
 
