@@ -12,6 +12,8 @@
 package org.eclipse.ditto.services.utils.akka.streaming;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
+import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonValue;
@@ -24,34 +26,39 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  */
 public class StreamAckTest {
 
-    private static final String KNOWN_ELEMENT_ID = "namespace:id:312";
+    private static final String KNOWN_ELEMENT_ID = "knownElementId";
 
     @Test
-    public void success() throws Exception {
+    public void assertImmutability() {
+        assertInstancesOf(StreamAck.class, areImmutable());
+    }
+
+    @Test
+    public void equalsAndHashcode() throws Exception {
+        EqualsVerifier.forClass(StreamAck.class).verify();
+    }
+
+    @Test
+    public void success() {
         final StreamAck ack = StreamAck.success(KNOWN_ELEMENT_ID);
         assertThat(ack.getElementId()).isEqualTo(KNOWN_ELEMENT_ID);
         assertThat(ack.getStatus()).isEqualTo(StreamAck.Status.SUCCESS);
     }
 
     @Test
-    public void failure() throws Exception {
+    public void failure() {
         final StreamAck ack = StreamAck.failure(KNOWN_ELEMENT_ID);
         assertThat(ack.getElementId()).isEqualTo(KNOWN_ELEMENT_ID);
         assertThat(ack.getStatus()).isEqualTo(StreamAck.Status.FAILURE);
     }
 
     @Test
-    public void toJson() throws Exception {
+    public void toJson() {
         final StreamAck original = StreamAck.success(KNOWN_ELEMENT_ID);
         final JsonValue serialized = original.toJson();
         final StreamAck deserialized = StreamAck.fromJson(JsonFactory.newObject(serialized.toString()));
         assertThat(deserialized)
                 .isEqualTo(original);
-    }
-
-    @Test
-    public void equalsAndHashcode() throws Exception {
-        EqualsVerifier.forClass(StreamAck.class).verify();
     }
 
 }
