@@ -42,7 +42,7 @@ import scala.util.{Failure, Success}
 private class RqlPredicateParser(override val input: ParserInput) extends RqlParserBase(input) {
 
   /**
-    * @return the root Route for parsing an RQL Predicate.
+    * @return the root for parsing an RQL Predicate.
     */
   def PredicateRoot: Rule1[Node] = rule { WhiteSpace ~ Query ~ EOI }
 

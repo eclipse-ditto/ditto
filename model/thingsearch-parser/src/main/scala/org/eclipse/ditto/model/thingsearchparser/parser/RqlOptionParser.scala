@@ -36,7 +36,7 @@ import scala.util.{Failure, Success}
 private class RqlOptionParser(override val input: ParserInput) extends RqlParserBase(input) {
 
   /**
-    * @return the root Route for parsing RQL Options.
+    * @return the root for parsing RQL Options.
     */
   def OptionsRoot: Rule1[Seq[thingsearch.Option]] = rule { WhiteSpace ~ Options ~ EOI }
 
