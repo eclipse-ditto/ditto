@@ -21,7 +21,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
-import akka.actor.AbstractActor;
+import akka.actor.AbstractActorWithStash;
 import akka.actor.ActorRef;
 import akka.actor.Cancellable;
 import akka.actor.OneForOneStrategy;
@@ -37,7 +37,7 @@ import scala.concurrent.duration.FiniteDuration;
 /**
  * An actor that supervises stream forwarders.
  */
-public abstract class AbstractStreamSupervisor<C> extends AbstractActor {
+public abstract class AbstractStreamSupervisor<C> extends AbstractActorWithStash {
 
     private static final String STREAM_FORWARDER_ACTOR_NAME = "streamForwarder";
 
@@ -144,7 +144,7 @@ public abstract class AbstractStreamSupervisor<C> extends AbstractActor {
     }
 
     @Override
-    public void postStop() throws Exception {
+    public void postStop() {
         if (null != activityCheck) {
             activityCheck.cancel();
         }
@@ -154,14 +154,34 @@ public abstract class AbstractStreamSupervisor<C> extends AbstractActor {
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
+                .match(TryToStartStream.class, tryToStartStream -> {
+                    log.debug("Switching to supervisingBehaviour has been triggered by message: {}",
+                            tryToStartStream);
+                    getContext().become(createSupervisingBehavior());
+                    tryToStartStream();
+                })
+                .matchAny(m -> {
+                    log.debug("Initial behavior - Stashing message: {}", m);
+                    stash();
+                })
+                .build();
+    }
+
+    private Receive createSupervisingBehavior() {
+        return ReceiveBuilder.create()
                 .match(TryToStartStream.class, unused -> tryToStartStream())
                 .match(Status.Success.class, unused -> streamCompleted())
+                .matchAny(m -> {
+                    log.warning("Unknown message: {}", m);
+                    unhandled(m);
+                })
                 .build();
     }
 
     private void streamCompleted() {
         if (activeStream == null) {
-            throw new IllegalStateException("The active stream should be the one that has been completed.");
+            log.warning("Got completed-message from unknown stream.");
+            return;
         }
 
         final Instant lastSuccessfulQueryEnd = activeStream.getQueryEnd();
