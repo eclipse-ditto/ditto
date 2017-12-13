@@ -156,8 +156,8 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
     private long policyRevision = -1L;
     private PolicyEnforcer policyEnforcer;
 
-    // notification of synchronization
-    private SyncStatusMessage syncStatusMessage = null;
+    // required for acking of synchronization
+    private SyncMetadata activeSyncMetadata = null;
 
     private ThingUpdater(final java.time.Duration thingsTimeout,
             final ActorRef thingsShardRegion,
@@ -402,7 +402,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         log.debug("Received new Thing Tag for thing <{}> with revision <{}> - last known revision is <{}>",
                 thingId, thingTag.getRevision(), sequenceNumber);
 
-        syncStatusMessage = new SyncStatusMessage(getSender(), thingTag);
+        activeSyncMetadata = new SyncMetadata(getSender(), thingTag);
 
         final boolean shouldStopThisActor;
         if (thingTag.getRevision() > sequenceNumber) {
@@ -412,7 +412,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
             triggerSynchronization();
         } else {
             shouldStopThisActor = checkThingTagOnly;
-            reportSyncStatus(true);
+            ackSync(true);
         }
 
         if (shouldStopThisActor) {
@@ -639,7 +639,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
             syncThing();
         } else {
             log.error("Synchronization failed after <{}> attempts.", syncAttempts - 1);
-            reportSyncStatus(false);
+            ackSync(false);
             stopThisActor();
         }
     }
@@ -731,7 +731,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
     private Receive createAwaitSyncResultBehavior() {
         return ReceiveBuilder.create()
                 .match(SyncSuccess.class, s -> {
-                    reportSyncStatus(true);
+                    ackSync(true);
                     becomeEventProcessing();
                 })
                 .match(SyncFailure.class, f -> triggerSynchronization())
@@ -745,28 +745,28 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
      *
      * @param success If the sync was successful.
      */
-    private void reportSyncStatus(final boolean success) {
-        if (syncStatusMessage == null) {
-            log.debug("Cannot report status, cause no recipient is available.");
+    private void ackSync(final boolean success) {
+        if (activeSyncMetadata == null) {
+            log.debug("Cannot ack sync, cause no recipient is available.");
             return;
         }
 
-        final ActorRef syncStatusRecipient = syncStatusMessage.getRecipient();
+        final ActorRef syncAckRecipient = activeSyncMetadata.getAckRecipient();
         final ActorRef deadLetters = getContext().getSystem().deadLetters();
-        if (Objects.equals(syncStatusRecipient, deadLetters)) {
-            log.debug("Cannot report success, cause recipient is deadletters.");
+        if (Objects.equals(syncAckRecipient, deadLetters)) {
+            log.debug("Cannot ack sync, cause recipient is deadletters.");
         } else {
             final Object message;
             if (success) {
-                message = syncStatusMessage.getSuccess();
+                message = activeSyncMetadata.getSuccess();
             } else {
-                message = syncStatusMessage.getFailure();
+                message = activeSyncMetadata.getFailure();
             }
-            log.debug("Reporting sync-result <{}> to <{}>", message, syncStatusRecipient);
-            syncStatusRecipient.tell(message, getSelf());
+            log.debug("Acking sync with result <{}> to <{}>", message, syncAckRecipient);
+            syncAckRecipient.tell(message, getSelf());
         }
 
-        syncStatusMessage = null;
+        activeSyncMetadata = null;
     }
 
     private void handleSyncThingResponse(final Cancellable timeout, final SudoRetrieveThingResponse response) {
@@ -887,7 +887,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         if (isTrue(success)) {
             log.info("Thing <{}> was deleted from search index due to synchronization. The actor will be stopped now.",
                     thingId);
-            reportSyncStatus(true);
+            ackSync(true);
             //stop the actor as the thing was deleted
             stopThisActor();
         } else if (throwable != null) {
@@ -896,7 +896,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
             triggerSynchronization();
         } else {
             //the thing did not exist anyway in the search index -> stop the actor
-            reportSyncStatus(true);
+            ackSync(true);
             stopThisActor();
         }
     }
@@ -1096,23 +1096,23 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         }
     }
 
-    private static final class SyncStatusMessage {
+    private static final class SyncMetadata {
 
-        private final ActorRef recipient;
+        private final ActorRef ackRecipient;
         private final String thingIdentifier;
 
-        private SyncStatusMessage(final ActorRef recipient, final ThingTag thingTag) {
-            this.recipient = recipient;
+        private SyncMetadata(final ActorRef ackRecipient, final ThingTag thingTag) {
+            this.ackRecipient = ackRecipient;
             thingIdentifier = thingTag.asIdentifierString();
         }
 
         /**
-         * Get the recipient of the message.
+         * Get the recipient of the ack message.
          *
-         * @return ActorRef to the recipient of the message.
+         * @return ActorRef to the recipient of the ack message.
          */
-        private ActorRef getRecipient() {
-            return recipient;
+        private ActorRef getAckRecipient() {
+            return ackRecipient;
         }
 
         /**
