@@ -113,7 +113,7 @@ final class ThingQueryCommandAdapter extends AbstractAdapter<ThingQueryCommand> 
     }
 
     private static Adaptable handleSingleRetrieve(final ThingQueryCommand<?> command, final TopicPath.Channel channel) {
-        final TopicPathBuilder topicPathBuilder = DittoProtocolAdapter.newTopicPathBuilder(command.getThingId());
+        final TopicPathBuilder topicPathBuilder = ProtocolFactory.newTopicPathBuilder(command.getThingId());
 
         final CommandsTopicPathBuilder commandsTopicPathBuilder;
         commandsTopicPathBuilder = fromTopicPathBuilderWithChannel(topicPathBuilder, channel);
@@ -128,7 +128,7 @@ final class ThingQueryCommandAdapter extends AbstractAdapter<ThingQueryCommand> 
 
         return Adaptable.newBuilder(commandsTopicPathBuilder.retrieve().build())
                 .withPayload(payloadBuilder.build())
-                .withHeaders(DittoProtocolAdapter.newHeaders(command.getDittoHeaders()))
+                .withHeaders(ProtocolFactory.newHeaders(command.getDittoHeaders()))
                 .build();
     }
 
@@ -141,7 +141,7 @@ final class ThingQueryCommandAdapter extends AbstractAdapter<ThingQueryCommand> 
         }
 
         final String namespace = command.getNamespace().orElse("_");
-        final TopicPathBuilder topicPathBuilder = DittoProtocolAdapter.newTopicPathBuilderFromNamespace(namespace);
+        final TopicPathBuilder topicPathBuilder = ProtocolFactory.newTopicPathBuilderFromNamespace(namespace);
         final CommandsTopicPathBuilder commandsTopicPathBuilder =
                 fromTopicPathBuilderWithChannel(topicPathBuilder, channel);
 
@@ -151,7 +151,7 @@ final class ThingQueryCommandAdapter extends AbstractAdapter<ThingQueryCommand> 
 
         return Adaptable.newBuilder(commandsTopicPathBuilder.retrieve().build())
                 .withPayload(payloadBuilder.build())
-                .withHeaders(DittoProtocolAdapter.newHeaders(command.getDittoHeaders()))
+                .withHeaders(ProtocolFactory.newHeaders(command.getDittoHeaders()))
                 .build();
     }
 

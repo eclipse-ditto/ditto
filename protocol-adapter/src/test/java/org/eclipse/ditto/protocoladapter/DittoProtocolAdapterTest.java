@@ -60,7 +60,7 @@ public final class DittoProtocolAdapterTest {
                 .build();
 
         final TopicPath actual =
-                DittoProtocolAdapter.newTopicPath("org.eclipse.ditto.test/myThing/things/twin/commands/modify");
+                ProtocolFactory.newTopicPath("org.eclipse.ditto.test/myThing/things/twin/commands/modify");
 
         assertThat(actual).isEqualTo(expected);
     }
@@ -245,12 +245,12 @@ public final class DittoProtocolAdapterTest {
     public void modifyFeaturePropertyFromAdaptable() {
         final String topicPathString =
                 "org.eclipse.ditto.client.test/7a96e7a4-b20c-43eb-b669-f75514af30d0/things/twin/commands/modify";
-        final TopicPath topicPath = DittoProtocolAdapter.newTopicPath(topicPathString);
+        final TopicPath topicPath = ProtocolFactory.newTopicPath(topicPathString);
 
         final String jsonString = "{\"path\":\"/features/feature_id_2/properties/complex/bum\",\"value\":\"bar\"}";
-        final Payload payload = DittoProtocolAdapter.newPayload(jsonString);
+        final Payload payload = ProtocolFactory.newPayload(jsonString);
 
-        final Adaptable adaptable = DittoProtocolAdapter.newAdaptableBuilder(topicPath).withPayload(payload).build();
+        final Adaptable adaptable = ProtocolFactory.newAdaptableBuilder(topicPath).withPayload(payload).build();
 
         final Jsonifiable<JsonObject> jsonifiable = underTest.fromAdaptable(adaptable);
 
@@ -264,7 +264,7 @@ public final class DittoProtocolAdapterTest {
         final String thingId = "7a96e7a4-b20c-43eb-b669-f75514af30d0";
         final String topicPathString =
                 "org.eclipse.ditto.client.test/" + thingId + "/things/live/messages/" + subject;
-        final TopicPath topicPath = DittoProtocolAdapter.newTopicPath(topicPathString);
+        final TopicPath topicPath = ProtocolFactory.newTopicPath(topicPathString);
 
         assertThat(topicPath.getSubject()).contains(subject);
         assertThat(topicPath.getId()).isEqualTo(thingId);

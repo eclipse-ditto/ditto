@@ -34,8 +34,9 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.AdaptableBuilder;
-import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
+import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
+import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.gateway.streaming.Connect;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
@@ -92,7 +93,7 @@ public final class WebsocketRoute {
     private final int subscriberBackpressureQueueSize;
     private final int publisherBackpressureBufferSize;
 
-    private final DittoProtocolAdapter protocolAdapter;
+    private final ProtocolAdapter protocolAdapter;
 
     /**
      * Constructs the {@code /ws} route builder.
@@ -105,11 +106,11 @@ public final class WebsocketRoute {
      * reached.
      */
     public WebsocketRoute(final ActorRef streamingActor, final int subscriberBackpressureQueueSize,
-            final int publisherBackpressureBufferSize) {
+            final int publisherBackpressureBufferSize, final ProtocolAdapter protocolAdapter) {
         this.streamingActor = streamingActor;
         this.subscriberBackpressureQueueSize = subscriberBackpressureQueueSize;
         this.publisherBackpressureBufferSize = publisherBackpressureBufferSize;
-        protocolAdapter = DittoProtocolAdapter.newInstance();
+        this.protocolAdapter = protocolAdapter;
     }
 
     /**
@@ -244,9 +245,9 @@ public final class WebsocketRoute {
                                     .orElse(connectionCorrelationId)
                             )
                             .build(),
-                    (jo, cmdHeaders) -> DittoProtocolAdapter.jsonifiableAdaptableFromJson(jo));
+                    (jo, cmdHeaders) -> ProtocolFactory.jsonifiableAdaptableFromJson(jo));
 
-            final DittoHeaders headers = jsonifiableAdaptable.getHeaders().orElse(DittoProtocolAdapter.emptyHeaders());
+            final DittoHeaders headers = jsonifiableAdaptable.getHeaders().orElse(ProtocolFactory.emptyHeaders());
             final String wsCorrelationId = headers.getCorrelationId()
                     .map(msgCorId -> connectionCorrelationId + ":" + msgCorId)
                     .orElseGet(() -> connectionCorrelationId + ":" + UUID.randomUUID());
@@ -262,11 +263,11 @@ public final class WebsocketRoute {
                     .correlationId(wsCorrelationId)
                     .build();
 
-            allHeaders.putAll(DittoProtocolAdapter.newHeaders(adjustedHeaders));
+            allHeaders.putAll(ProtocolFactory.newHeaders(adjustedHeaders));
             allHeaders.putAll(additionalHeaders);
 
-            final AdaptableBuilder adaptableBuilder = DittoProtocolAdapter.newAdaptableBuilder(jsonifiableAdaptable)
-                    .withHeaders(DittoProtocolAdapter.newHeaders(allHeaders))
+            final AdaptableBuilder adaptableBuilder = ProtocolFactory.newAdaptableBuilder(jsonifiableAdaptable)
+                    .withHeaders(ProtocolFactory.newHeaders(allHeaders))
                     .withPayload(jsonifiableAdaptable.getPayload());
 
             return protocolAdapter.fromAdaptable(adaptableBuilder.build());
@@ -319,10 +320,10 @@ public final class WebsocketRoute {
         final DittoHeaders adjustedHeaders = dittoHeadersBuilder.build();
 
         final Map<String, String> allHeaders = new HashMap<>(adaptable.getHeaders().orElse(DittoHeaders.empty()));
-        allHeaders.putAll(DittoProtocolAdapter.newHeaders(adjustedHeaders));
+        allHeaders.putAll(ProtocolFactory.newHeaders(adjustedHeaders));
 
-        final JsonifiableAdaptable jsonifiableAdaptable = DittoProtocolAdapter.wrapAsJsonifiableAdaptable(adaptable);
-        final JsonObject jsonObject = jsonifiableAdaptable.toJson(DittoProtocolAdapter.newHeaders(allHeaders));
+        final JsonifiableAdaptable jsonifiableAdaptable = ProtocolFactory.wrapAsJsonifiableAdaptable(adaptable);
+        final JsonObject jsonObject = jsonifiableAdaptable.toJson(ProtocolFactory.newHeaders(allHeaders));
         return jsonObject.toString();
     }
 

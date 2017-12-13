@@ -163,7 +163,7 @@ final class ThingModifyCommandResponseAdapter extends AbstractAdapter<ThingModif
             throw UnknownCommandResponseException.newBuilder(responseName).build();
         }
 
-        final TopicPathBuilder topicPathBuilder = DittoProtocolAdapter.newTopicPathBuilder(commandResponse.getId());
+        final TopicPathBuilder topicPathBuilder = ProtocolFactory.newTopicPathBuilder(commandResponse.getId());
 
         final CommandsTopicPathBuilder commandsTopicPathBuilder =
                 fromTopicPathBuilderWithChannel(topicPathBuilder, channel);
@@ -187,7 +187,7 @@ final class ThingModifyCommandResponseAdapter extends AbstractAdapter<ThingModif
 
         return Adaptable.newBuilder(commandsTopicPathBuilder.build()) //
                 .withPayload(payloadBuilder.build()) //
-                .withHeaders(DittoProtocolAdapter.newHeaders(commandResponse.getDittoHeaders())) //
+                .withHeaders(ProtocolFactory.newHeaders(commandResponse.getDittoHeaders())) //
                 .build();
     }
 }
