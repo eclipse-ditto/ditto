@@ -11,22 +11,50 @@
  */
 package org.eclipse.ditto.protocoladapter;
 
-import org.eclipse.ditto.signals.commands.base.Command;
-import org.eclipse.ditto.signals.events.base.Event;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
+import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 
 /**
- * Contract for the Ditto Protocol Adapter library. Provides methods for mapping {@link Command} and {@link Event}
- * instances to an {@link Adaptable}.
+ * Contract for the Ditto protocol adapter library.
  */
 public final class DittoProtocolAdapter extends AbstractProtocolAdapter {
-
 
     private DittoProtocolAdapter() {
         super();
     }
 
+    /**
+     * Creates a new {@code DittoProtocolAdapter} instance.
+     *
+     * @return the instance.
+     */
     public static DittoProtocolAdapter newInstance() {
         return new DittoProtocolAdapter();
+    }
+
+    @Override
+    protected ThingErrorResponse thingErrorResponseFromAdaptable(final Adaptable adaptable) {
+        final JsonObjectBuilder jsonObjectBuilder =
+                JsonObject.newBuilder().set(ThingCommandResponse.JsonFields.TYPE, ThingErrorResponse.TYPE);
+
+        adaptable.getPayload().getStatus()
+                .ifPresent(status -> jsonObjectBuilder.set(ThingCommandResponse.JsonFields.STATUS, status.toInt()));
+
+        adaptable.getPayload().getValue()
+                .ifPresent(value -> jsonObjectBuilder.set(ThingCommandResponse.JsonFields.PAYLOAD, value));
+
+        jsonObjectBuilder.set(ThingCommandResponse.JsonFields.JSON_THING_ID, adaptable.getTopicPath().getNamespace()
+                + ":" + adaptable.getTopicPath().getId());
+
+        final DittoHeaders dittoHeaders = adaptable.getHeaders().orElse(DittoHeaders.empty());
+        final DittoHeaders adjustedHeaders = dittoHeaders.toBuilder()
+                .channel(adaptable.getTopicPath().getChannel().getName())
+                .build();
+
+        return ThingErrorResponse.fromJson(jsonObjectBuilder.build(), adjustedHeaders);
     }
 
 }

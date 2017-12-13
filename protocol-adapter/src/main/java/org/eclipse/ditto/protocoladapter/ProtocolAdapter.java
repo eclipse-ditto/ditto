@@ -25,7 +25,19 @@ import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommandResponse
 import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 
+/**
+ * A protocol adapter provides methods for mapping {@link Signal} instances to an {@link Adaptable}.
+ */
 public interface ProtocolAdapter {
+
+    /**
+     * Maps the given {@code adaptable} to the corresponding {@code Signal}, which can be a {@code Command},
+     * {@code CommandResponse} or an {@code Event}.
+     *
+     * @param adaptable the adaptable.
+     * @return the Signal.
+     */
+    Signal<?> fromAdaptable(final Adaptable adaptable);
 
     /**
      * Maps the given {@code CommandResponse} to an {@code Adaptable}.
@@ -219,12 +231,4 @@ public interface ProtocolAdapter {
      */
     Adaptable toAdaptable(ThingEvent<?> thingEvent, TopicPath.Channel channel);
 
-    /**
-     * Maps the given {@code adaptable} to the corresponding {@code Signal}, which can be a {@code Command},
-     * {@code CommandResponse} or an {@code Event}.
-     *
-     * @param adaptable the adaptable.
-     * @return the Signal.
-     */
-    Signal<?> fromAdaptable(final Adaptable adaptable);
 }
