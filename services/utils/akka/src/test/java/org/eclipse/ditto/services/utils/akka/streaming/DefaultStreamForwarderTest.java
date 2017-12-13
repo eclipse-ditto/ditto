@@ -11,11 +11,10 @@
  */
 package org.eclipse.ditto.services.utils.akka.streaming;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.eclipse.ditto.services.utils.akka.streaming.StreamConstants.FORWARDER_EXCEEDED_MAX_IDLE_TIME_MSG;
 import static org.eclipse.ditto.services.utils.akka.streaming.StreamConstants.STREAM_FINISHED_MSG;
 
 import java.time.Duration;
-import java.time.Instant;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.After;
@@ -28,7 +27,6 @@ import com.typesafe.config.ConfigFactory;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
-import akka.actor.Status;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 import scala.concurrent.duration.FiniteDuration;
@@ -66,7 +64,7 @@ public class DefaultStreamForwarderTest {
     }
 
     @Test
-    public void streamWithTimeout() throws Exception {
+    public void streamWithTimeout() {
         new TestKit(actorSystem) {
             {
                 final ActorRef streamForwarder = createStreamForwarder();
@@ -81,7 +79,7 @@ public class DefaultStreamForwarderTest {
                 expectTerminated(FiniteDuration.apply(moreThanIdleTime.toNanos(), TimeUnit.NANOSECONDS),
                         streamForwarder);
 
-                completionRecipient.expectNoMessage(FiniteDuration.Zero());
+                completionRecipient.expectMsg(FORWARDER_EXCEEDED_MAX_IDLE_TIME_MSG);
             }
         };
     }
@@ -90,10 +88,9 @@ public class DefaultStreamForwarderTest {
      * Verify that even if a failure is returned by the stream, the forwarder still returns success.
      */
     @Test
-    public void streamWithFailure() throws Exception {
+    public void streamWithFailure() {
         new TestKit(actorSystem) {
             {
-                final Instant before = Instant.now().minusSeconds(1);
                 final ActorRef streamForwarder = createStreamForwarder();
                 watch(streamForwarder);
 
@@ -104,25 +101,17 @@ public class DefaultStreamForwarderTest {
 
                 streamForwarder.tell(STREAM_FINISHED_MSG, ActorRef.noSender());
 
-                final Status.Success success = completionRecipient.expectMsgClass(Status.Success.class);
+                completionRecipient.expectMsg(STREAM_FINISHED_MSG);
 
-                final Instant after = Instant.now().plusSeconds(1);
-                assertThat(success.status())
-                        .isInstanceOf(Instant.class);
-                assertThat((Instant) success.status())
-                        .isBefore(after)
-                        .isAfter(before);
                 expectTerminated(streamForwarder);
             }
         };
     }
 
     @Test
-    public void successfulStream() throws Exception {
+    public void successfulStream() {
         new TestKit(actorSystem) {
             {
-
-                final Instant before = Instant.now().minusSeconds(1);
                 final ActorRef streamForwarder = createStreamForwarder();
                 watch(streamForwarder);
 
@@ -138,14 +127,8 @@ public class DefaultStreamForwarderTest {
 
                 streamForwarder.tell(STREAM_FINISHED_MSG, ActorRef.noSender());
 
-                final Status.Success success = completionRecipient.expectMsgClass(Status.Success.class);
+                completionRecipient.expectMsg(STREAM_FINISHED_MSG);
 
-                final Instant after = Instant.now().plusSeconds(1);
-                assertThat(success.status())
-                        .isInstanceOf(Instant.class);
-                assertThat((Instant) success.status())
-                        .isBefore(after)
-                        .isAfter(before);
                 expectTerminated(streamForwarder);
             }
         };

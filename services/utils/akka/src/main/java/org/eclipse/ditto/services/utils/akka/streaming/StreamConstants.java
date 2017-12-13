@@ -25,6 +25,13 @@ public final class StreamConstants {
      */
     public static final Object STREAM_FINISHED_MSG = new Status.Success(STREAM_FINISHED_TXT);
 
+    private static final String FORWARDER_EXCEEDED_MAX_IDLE_TIME_TXT = "max-idle-time-exceeded";
+    /**
+     * Message which signals the forwarder stayed idle for too long.
+     */
+    public static final Object FORWARDER_EXCEEDED_MAX_IDLE_TIME_MSG =
+            new Status.Success(FORWARDER_EXCEEDED_MAX_IDLE_TIME_TXT);
+
     private StreamConstants() {
         throw new AssertionError();
     }

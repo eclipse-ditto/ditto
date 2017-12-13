@@ -11,8 +11,10 @@
  */
 package org.eclipse.ditto.services.utils.akka.streaming;
 
+import static org.eclipse.ditto.services.utils.akka.streaming.StreamConstants.FORWARDER_EXCEEDED_MAX_IDLE_TIME_MSG;
 import static org.eclipse.ditto.services.utils.akka.streaming.StreamConstants.STREAM_FINISHED_MSG;
 
+import java.text.MessageFormat;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.HashSet;
@@ -32,8 +34,8 @@ import scala.concurrent.duration.FiniteDuration;
 /**
  * Actor that receives a stream of elements, forwards them to another actor, and expects as many acknowledgements as
  * there are streamed elements. Terminates self if no message was received for a period of time. <p> Each stream element
- * is to be acknowledged by a {@code akka.actor.Status.Success}. At the end of the stream, the special success
- * message {@link StreamConstants#STREAM_FINISHED_MSG} MUST be sent. </p>
+ * is to be acknowledged by a {@code akka.actor.Status.Success}. At the end of the stream, the special success message
+ * {@link StreamConstants#STREAM_FINISHED_MSG} MUST be sent. </p>
  *
  * @param <E> Type of received stream elements.
  */
@@ -89,17 +91,31 @@ public abstract class AbstractStreamForwarder<E> extends AbstractActor {
      * terminates immediately after this method returns.
      */
     private void onSuccess() {
-        log.info("Stream successfully finished");
-        logStreamStatus();
+        logInfoWithDetails("Stream successfully finished");
         getCompletionRecipient().tell(STREAM_FINISHED_MSG, getSelf());
     }
 
-    private void logStreamStatus() {
+    private void logDebugWithDetails(final String mainMessage) {
         if (log.isDebugEnabled()) {
-            log.debug("Stream status: {} elements forwarded, {} acks received, " +
-                            "lastMessage received at {}. To be acked: {}",
-                    forwardedElementCount, ackedElementCount, lastMessageReceived, toBeAckedElementIds);
+            log.debug(createDetailedMessage(mainMessage));
         }
+    }
+
+    private void logInfoWithDetails(final String mainMessage) {
+        if (log.isInfoEnabled()) {
+            log.info(createDetailedMessage(mainMessage));
+        }
+    }
+
+    private void logErrorWithDetails(final String mainMessage) {
+        log.error(createDetailedMessage(mainMessage));
+    }
+
+    private String createDetailedMessage(final String mainMessage) {
+        return MessageFormat.format(
+                "{0}. Stream status: {1} elements forwarded, {2} acks received, lastMessage received at {3}. " +
+                        "To be acked: <{4}>.",
+                mainMessage, forwardedElementCount, ackedElementCount, lastMessageReceived, toBeAckedElementIds);
     }
 
     /**
@@ -115,7 +131,7 @@ public abstract class AbstractStreamForwarder<E> extends AbstractActor {
 
         final FiniteDuration delayAndInterval = FiniteDuration.create(getMaxIdleTime().getSeconds(), TimeUnit.SECONDS);
         activityCheck = getContext().system().scheduler()
-                .schedule(delayAndInterval, delayAndInterval, getSelf(), new CheckForActivity(),
+                .schedule(delayAndInterval, delayAndInterval, getSelf(), CheckForActivity.INSTANCE,
                         getContext().dispatcher(), ActorRef.noSender());
     }
 
@@ -178,8 +194,7 @@ public abstract class AbstractStreamForwarder<E> extends AbstractActor {
 
     private void checkAllElementsAreAcknowledged() {
         if (streamComplete && toBeAckedElementIds.isEmpty()) {
-            log.info("Stream complete");
-            logStreamStatus();
+            logInfoWithDetails("Stream complete");
             onSuccess();
             shutdown();
         }
@@ -188,25 +203,29 @@ public abstract class AbstractStreamForwarder<E> extends AbstractActor {
     private void checkForActivity() {
         final Duration sinceLastMessage = Duration.between(lastMessageReceived, Instant.now());
         if (sinceLastMessage.compareTo(getMaxIdleTime()) > 0) {
-            log.error("Stream timed out");
-            logStreamStatus();
+            logErrorWithDetails("Stream timed out");
+            getCompletionRecipient().tell(FORWARDER_EXCEEDED_MAX_IDLE_TIME_MSG, getSelf());
             shutdown();
         } else {
-            log.debug("Stream is still considered as active");
-            logStreamStatus();
+            logDebugWithDetails("Stream is still considered as active");
         }
     }
 
     private void updateLastMessageReceived() {
         lastMessageReceived = Instant.now();
-        log.debug("Updated last message");
-        logStreamStatus();
+        logDebugWithDetails("Updated last message");
     }
 
     private void shutdown() {
         getContext().stop(getSelf());
     }
 
-    @SuppressWarnings("squid:S2094")
-    private static final class CheckForActivity {}
+    private static final class CheckForActivity {
+
+        private static final CheckForActivity INSTANCE = new CheckForActivity();
+
+        private CheckForActivity() {
+            // no-op
+        }
+    }
 }

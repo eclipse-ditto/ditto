@@ -11,12 +11,13 @@
  */
 package org.eclipse.ditto.services.utils.akka.streaming;
 
+import static org.eclipse.ditto.services.utils.akka.streaming.StreamConstants.FORWARDER_EXCEEDED_MAX_IDLE_TIME_MSG;
 import static org.eclipse.ditto.services.utils.akka.streaming.StreamConstants.STREAM_FINISHED_MSG;
 
 import java.text.MessageFormat;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Optional;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
@@ -29,10 +30,12 @@ import akka.actor.Cancellable;
 import akka.actor.OneForOneStrategy;
 import akka.actor.Props;
 import akka.actor.SupervisorStrategy;
+import akka.actor.Terminated;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.ReceiveBuilder;
 import akka.stream.Materializer;
+import scala.Option;
 import scala.concurrent.duration.FiniteDuration;
 
 /**
@@ -40,7 +43,10 @@ import scala.concurrent.duration.FiniteDuration;
  */
 public abstract class AbstractStreamSupervisor<C> extends AbstractActorWithStash {
 
-    private static final String STREAM_FORWARDER_ACTOR_NAME = "streamForwarder";
+    /**
+     * The name of the supervised stream forwarder.
+     */
+    public static final String STREAM_FORWARDER_ACTOR_NAME = "streamForwarder";
 
     protected final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
@@ -55,8 +61,10 @@ public abstract class AbstractStreamSupervisor<C> extends AbstractActorWithStash
     private final Duration streamInterval;
     private final Duration initialStartOffset;
     private final Duration warnOffset;
+    private @Nullable ActorRef forwarder;
     private @Nullable StreamTrigger nextStream;
     private @Nullable StreamTrigger activeStream;
+    private @Nullable Boolean activeStreamSuccess;
 
     /**
      * Constructor.
@@ -140,7 +148,7 @@ public abstract class AbstractStreamSupervisor<C> extends AbstractActorWithStash
 
         final FiniteDuration finiteDuration = FiniteDuration.create(duration.getSeconds(), TimeUnit.SECONDS);
         activityCheck = getContext().system().scheduler()
-                .scheduleOnce(finiteDuration, getSelf(), new TryToStartStream(),
+                .scheduleOnce(finiteDuration, getSelf(), TryToStartStream.INSTANCE,
                         getContext().dispatcher(), ActorRef.noSender());
     }
 
@@ -161,6 +169,7 @@ public abstract class AbstractStreamSupervisor<C> extends AbstractActorWithStash
                     becomeSupervising();
                     tryToStartStream();
                 })
+                .match(Terminated.class, this::terminated)
                 .matchAny(m -> {
                     log.debug("Initial behavior - Stashing message: {}", m);
                     stash();
@@ -169,6 +178,7 @@ public abstract class AbstractStreamSupervisor<C> extends AbstractActorWithStash
     }
 
     private void becomeSupervising() {
+        log.debug("becoming supervising...");
         getContext().become(createSupervisingBehavior());
         unstashAll();
     }
@@ -176,6 +186,8 @@ public abstract class AbstractStreamSupervisor<C> extends AbstractActorWithStash
     private Receive createSupervisingBehavior() {
         return ReceiveBuilder.create()
                 .matchEquals(STREAM_FINISHED_MSG, unused -> streamCompleted())
+                .matchEquals(FORWARDER_EXCEEDED_MAX_IDLE_TIME_MSG, unused -> streamTimedOut())
+                .match(Terminated.class, this::terminated)
                 .match(TryToStartStream.class, unused -> tryToStartStream())
                 .matchAny(m -> {
                     log.warning("Unknown message: {}", m);
@@ -185,20 +197,38 @@ public abstract class AbstractStreamSupervisor<C> extends AbstractActorWithStash
     }
 
     private void streamCompleted() {
+        log.debug("Stream completed.");
+        activeStreamSuccess = true;
+    }
+
+    private void streamTimedOut() {
+        log.debug("Stream timed out.");
+        activeStreamSuccess = false;
+    }
+
+    private void scheduleNextStream() {
         if (activeStream == null) {
-            log.warning("Got completed-message from unknown stream.");
+            log.error("Cannot schedule next stream, because active stream is unknown.");
+            return;
+        }
+        if (activeStreamSuccess == null) {
+            log.warning("Cannot schedule next stream, because success of active stream is unknown.");
             return;
         }
 
-        final Instant lastSuccessfulQueryEnd = activeStream.getQueryEnd();
-        final String successMessage = MessageFormat
-                .format("Updating last sync timestamp to value: <{0}>", lastSuccessfulQueryEnd);
-        streamMetadataPersistence.updateLastSuccessfulStreamEnd(lastSuccessfulQueryEnd)
-                .runWith(akka.stream.javadsl.Sink.last(), materializer)
-                .thenRun(() -> log.info(successMessage));
+        if (activeStreamSuccess) {
+            final Instant lastSuccessfulQueryEnd = activeStream.getQueryEnd();
+            final String successMessage = MessageFormat
+                    .format("Updating last sync timestamp to value: <{0}>", lastSuccessfulQueryEnd);
+            streamMetadataPersistence.updateLastSuccessfulStreamEnd(lastSuccessfulQueryEnd)
+                    .runWith(akka.stream.javadsl.Sink.last(), materializer)
+                    .thenRun(() -> log.info(successMessage));
 
-        final StreamTrigger nextStreamTrigger = computeNextStreamTrigger(lastSuccessfulQueryEnd);
-        scheduleStream(nextStreamTrigger);
+            final StreamTrigger nextStreamTrigger = computeNextStreamTrigger(lastSuccessfulQueryEnd);
+            scheduleStream(nextStreamTrigger);
+        } else {
+            rescheduleActiveStream();
+        }
     }
 
     private StreamTrigger computeNextStreamTrigger(@Nullable final Instant lastSuccessfulQueryEnd) {
@@ -233,32 +263,72 @@ public abstract class AbstractStreamSupervisor<C> extends AbstractActorWithStash
     }
 
     private void tryToStartStream() {
-        final Optional<ActorRef> existingChild = getContext().findChild(STREAM_FORWARDER_ACTOR_NAME);
-        if (existingChild.isPresent()) {
-            final Instant rescheduledPlannedStreamStart = Instant.now().plus(streamInterval);
-            log.warning("Activity check - Stream is still running: {}. Re-scheduling at {}",
-                    existingChild.get(), rescheduledPlannedStreamStart);
-
-            if (activeStream == null) {
-                log.warning("Cannot re-schedule stream, because metadata of active stream is unknown.");
-                return;
-            }
-
-            final StreamTrigger rescheduledStreamTrigger = activeStream.rescheduleAt(rescheduledPlannedStreamStart);
-            scheduleStream(rescheduledStreamTrigger);
+        if (forwarder != null) {
+            log.warning("Forwarder is still running: {}. Re-scheduling current stream.", forwarder);
+            rescheduleActiveStream();
         } else {
             final C startStreamCommand = newStartStreamingCommand(nextStream);
 
             final ActorRef streamingActor = getStreamingActor();
-            final ActorRef child = getContext().actorOf(getStreamForwarderProps(), STREAM_FORWARDER_ACTOR_NAME);
-            log.info("Requesting stream from <{}> on behalf of <{}> by <{}>", streamingActor, child,
+            forwarder = createOrGetForwarder();
+
+            log.info("Requesting stream from <{}> on behalf of <{}> by <{}>", streamingActor, forwarder,
                     startStreamCommand);
-            getStreamingActor().tell(startStreamCommand, child);
+            getStreamingActor().tell(startStreamCommand, forwarder);
             activeStream = nextStream;
+            activeStreamSuccess = null;
         }
     }
 
+    private void rescheduleActiveStream() {
+        final Instant rescheduledPlannedStreamStart = Instant.now().plus(streamInterval);
+        log.warning("Re-scheduling at {}", rescheduledPlannedStreamStart);
 
-    @SuppressWarnings("squid:S2094")
-    private static final class TryToStartStream {}
+        if (activeStream == null) {
+            log.error("Cannot re-schedule stream, because metadata of active stream is unknown.");
+            return;
+        }
+
+        final StreamTrigger rescheduledStreamTrigger = activeStream.rescheduleAt(rescheduledPlannedStreamStart);
+        scheduleStream(rescheduledStreamTrigger);
+    }
+
+    private ActorRef createOrGetForwarder() {
+        final Option<ActorRef> refOption = getContext().child(STREAM_FORWARDER_ACTOR_NAME);
+        final ActorRef forwarderRef;
+        if (refOption.isDefined()) {
+            forwarderRef = refOption.get();
+        } else {
+            forwarderRef = getContext().actorOf(getStreamForwarderProps(), STREAM_FORWARDER_ACTOR_NAME);
+            log.debug("Watching forwarder: {}", forwarderRef);
+            // important: watch the child to get notified when it terminates
+            getContext().watch(forwarderRef);
+        }
+
+        return forwarderRef;
+    }
+
+    private void terminated(final Terminated terminated) {
+        final ActorRef terminatedActor = terminated.getActor();
+        log.error("Received Terminated-Message: {}", terminated);
+
+        if (!Objects.equals(terminatedActor, forwarder)) {
+            log.warning("Received Terminated-Message from actor <{}> which does not match current forwarder <{}>",
+                    terminatedActor, forwarder);
+            return;
+        }
+
+        getContext().unwatch(terminatedActor);
+        forwarder = null;
+
+        scheduleNextStream();
+    }
+
+    private static final class TryToStartStream {
+        private static final TryToStartStream INSTANCE = new TryToStartStream();
+
+        private TryToStartStream() {
+            // no-op
+        }
+    }
 }
