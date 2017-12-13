@@ -73,7 +73,6 @@ final class MessageCommandAdapter extends AbstractAdapter<MessageCommand> {
 
     @Override
     public Adaptable toAdaptable(final MessageCommand command, final TopicPath.Channel channel) {
-
         return MessageAdaptableHelper.adaptableFrom(channel, command.getThingId(), command.toJson(),
                 command.getResourcePath(), command.getMessage(), command.getDittoHeaders());
     }

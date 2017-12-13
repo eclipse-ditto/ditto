@@ -22,6 +22,7 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collection;
 
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
@@ -49,7 +50,7 @@ import org.junit.runners.Parameterized;
  * Unit test for {@link MessageCommandAdapter}.
  */
 @RunWith(Parameterized.class)
-public class MessageCommandAdapterTest {
+public final class MessageCommandAdapterTest {
 
     private static final String APPLICATION_JSON = "application/json";
     private static final String APPLICATION_OCTET_STREAM = "application/octet-stream";
@@ -59,8 +60,6 @@ public class MessageCommandAdapterTest {
 
     @Parameterized.Parameters(name = "version={0}, direction={1}, type={2}, payload={3}")
     public static Collection<Object[]> data() {
-        final Collection<JsonSchemaVersion> versions = Arrays.asList(JsonSchemaVersion.values());
-        final Collection<MessageDirection> directions = Arrays.asList(MessageDirection.values());
         final Collection<TestPayload> payloads = Arrays.asList(
                 TestPayload.of("text/plain", JsonValue.of("stringPayload"), "stringPayload", false),
                 TestPayload.of(APPLICATION_JSON, JsonObject.newBuilder().set("hello", 42).set("foo", false).build()),
@@ -77,11 +76,11 @@ public class MessageCommandAdapterTest {
                 Arrays.asList(SendThingMessage.TYPE, SendFeatureMessage.TYPE, SendClaimMessage.TYPE);
 
         final Collection<Object[]> params = new ArrayList<>();
-        for (JsonSchemaVersion version : versions) {
-            for (MessageDirection direction : directions) {
-                for (String type : messageTypes) {
-                    for (TestPayload payload : payloads) {
-                        params.add(new Object[]{version, direction, type, payload});
+        for (final JsonSchemaVersion version : JsonSchemaVersion.values()) {
+            for (final MessageDirection direction : MessageDirection.values()) {
+                for (final String messageType : messageTypes) {
+                    for (final TestPayload payload : payloads) {
+                        params.add(new Object[]{version, direction, messageType, payload});
                     }
                 }
             }
@@ -139,7 +138,7 @@ public class MessageCommandAdapterTest {
         assertThat(actualMessageCommand).isEqualTo(expectedMessageCommand);
     }
 
-    private MessageHeaders messageHeaders(final String subject, final String contentType) {
+    private MessageHeaders messageHeaders(final CharSequence subject, final CharSequence contentType) {
         return MessageHeaders.newBuilder(direction, TestConstants.THING_ID, subject)
                 .contentType(contentType)
                 .correlationId(TestConstants.CORRELATION_ID)
@@ -182,7 +181,9 @@ public class MessageCommandAdapterTest {
         assertThat(actual).isEqualTo(expectedAdaptable);
     }
 
-    private Message<Object> message(final String subject, final String contentType, Object thePayload) {
+    private Message<Object> message(final CharSequence subject, final CharSequence contentType,
+            final Object thePayload) {
+
         final MessageHeaders messageHeaders = messageHeaders(subject, contentType);
         final MessageBuilder<Object> messageBuilder = Message.newBuilder(messageHeaders);
         if (thePayload != null) {
@@ -195,18 +196,19 @@ public class MessageCommandAdapterTest {
         return messageBuilder.build();
     }
 
-    private JsonPointer path(final String subject) {
+    private JsonPointer path(final CharSequence subject) {
         final JsonPointer path;
         if (SendFeatureMessage.TYPE.equals(type)) {
-            path = JsonPointer.empty().addLeaf(JsonKey.of("features")).addLeaf(JsonKey.of(FEATURE_ID));
+            path = JsonFactory.newPointer(JsonKey.of("features"), JsonKey.of(FEATURE_ID));
         } else {
             path = JsonPointer.empty();
         }
         final JsonKey directionKey = (direction == MessageDirection.FROM ? JsonKey.of("outbox") : JsonKey.of("inbox"));
+
         return path.addLeaf(directionKey).addLeaf(JsonKey.of("messages")).addLeaf(JsonKey.of(subject));
     }
 
-    private DittoHeaders dittoHeaders(final String subject, final String contentType) {
+    private DittoHeaders dittoHeaders(final CharSequence subject, final CharSequence contentType) {
         final DittoHeadersBuilder headersBuilder = DittoHeaders.newBuilder();
         headersBuilder.correlationId(TestConstants.CORRELATION_ID);
         headersBuilder.schemaVersion(version);
@@ -241,15 +243,18 @@ public class MessageCommandAdapterTest {
         return SendClaimMessage.TYPE.equals(type) ? KnownMessageSubjects.CLAIM_SUBJECT : SUBJECT;
     }
 
-    private static class TestPayload {
+    private static final class TestPayload {
 
-        private String contentType;
-        private JsonValue asJson; // json representation (how the payload is represented in a message command)
-        private Object asObject; // java representation (how the payload is represented in an adaptable)
-        private boolean raw; // should the payload be interpreted as raw (base64)
+        private final String contentType;
+        private final JsonValue asJson; // json representation (how the payload is represented in a message command)
+        private final Object asObject; // java representation (how the payload is represented in an adaptable)
+        private final boolean raw; // should the payload be interpreted as raw (base64)
 
-        private TestPayload(final String contentType, final JsonValue asJson, final Object asObject,
+        private TestPayload(final String contentType,
+                final JsonValue asJson,
+                final Object asObject,
                 final boolean raw) {
+
             this.contentType = contentType;
             this.asJson = asJson;
             this.asObject = asObject;
@@ -274,5 +279,7 @@ public class MessageCommandAdapterTest {
                     ", raw=" + raw +
                     '}';
         }
+
     }
+
 }

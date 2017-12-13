@@ -15,9 +15,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.protocoladapter.TestConstants.CORRELATION_ID;
 import static org.eclipse.ditto.protocoladapter.TestConstants.FEATURE_ID;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
@@ -47,7 +47,7 @@ import org.junit.runners.Parameterized;
  * Unit test for {@link MessageCommandResponseAdapter}.
  */
 @RunWith(Parameterized.class)
-public class MessageCommandResponseAdapterTest {
+public final class MessageCommandResponseAdapterTest {
 
     private MessageCommandResponseAdapter underTest;
 
@@ -58,15 +58,10 @@ public class MessageCommandResponseAdapterTest {
 
     @Parameterized.Parameters(name = "type={0}")
     public static Collection<Object[]> data() {
-        final Collection<String> messageTypes =
-                Arrays.asList(SendThingMessageResponse.TYPE, SendFeatureMessageResponse.TYPE,
-                        SendClaimMessageResponse.TYPE, SendMessageAcceptedResponse.TYPE);
-
-        final Collection<Object[]> params = new ArrayList<>();
-        for (String type : messageTypes) {
-            params.add(new Object[]{type});
-        }
-        return params;
+        return Stream.of(SendThingMessageResponse.TYPE, SendFeatureMessageResponse.TYPE, SendClaimMessageResponse.TYPE,
+                SendMessageAcceptedResponse.TYPE)
+                .map(type -> new Object[]{type})
+                .collect(Collectors.toList());
     }
 
     @Parameterized.Parameter
@@ -92,18 +87,21 @@ public class MessageCommandResponseAdapterTest {
         sendMessageResponseFromAdaptable(messageDirection, subject, payload, payload, contentType);
     }
 
-    private void sendMessageResponseFromAdaptable(final MessageDirection messageDirection, final String subject,
-            final JsonValue jsonPayload, Object javaPayload, final String contentType) {
+    private void sendMessageResponseFromAdaptable(final MessageDirection messageDirection,
+            final String subject,
+            final JsonValue jsonPayload,
+            final Object javaPayload,
+            final CharSequence contentType) {
+
         final HttpStatusCode statusCode = HttpStatusCode.OK;
 
         final MessageHeadersBuilder messageHeadersBuilder =
-                MessageHeaders
-                        .newBuilder(messageDirection, TestConstants.THING_ID, subject)
+                MessageHeaders.newBuilder(messageDirection, TestConstants.THING_ID, subject)
                         .contentType(contentType)
                         .correlationId(CORRELATION_ID)
-                        .featureId(isFeatureResonse() ? FEATURE_ID : null)
+                        .featureId(isFeatureResponse() ? FEATURE_ID : null)
                         .schemaVersion(JsonSchemaVersion.V_2);
-        if (isAcceptedResonse()) {
+        if (isAcceptedResponse()) {
             messageHeadersBuilder.responseRequired(false);
         }
         final Message<Object> expectedMessage = Message.newBuilder(messageHeadersBuilder.build())
@@ -112,7 +110,6 @@ public class MessageCommandResponseAdapterTest {
         final DittoHeaders expectedHeaders = buildMessageHeaders(TestConstants.DITTO_HEADERS_V_2.toBuilder(),
                 messageDirection, subject, contentType);
         final MessageCommandResponse messageCommandResponse = messageCommandResponse(expectedMessage, expectedHeaders);
-
 
         final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
                 .live()
@@ -163,7 +160,7 @@ public class MessageCommandResponseAdapterTest {
         final Adaptable expected = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
                         .withStatus(statusCode)
-                        .withValue(isAcceptedResonse() ? null : payload)
+                        .withValue(isAcceptedResponse() ? null : payload)
                         .build())
                 .withHeaders(expectedHeaders)
                 .build();
@@ -174,8 +171,7 @@ public class MessageCommandResponseAdapterTest {
                         .correlationId(CORRELATION_ID)
                         .statusCode(statusCode)
                         .schemaVersion(JsonSchemaVersion.V_2)
-                        .build()
-        )
+                        .build())
                 .payload(payload)
                 .build();
         final DittoHeaders theHeaders =
@@ -187,7 +183,6 @@ public class MessageCommandResponseAdapterTest {
 
         assertThat(actual).isEqualTo(expected);
     }
-
 
     private MessageCommandResponse messageCommandResponse(final Message<Object> message, final DittoHeaders headers) {
         switch (type) {
@@ -207,25 +202,28 @@ public class MessageCommandResponseAdapterTest {
     }
 
     private DittoHeaders buildMessageHeaders(final DittoHeadersBuilder headersBuilder,
-            final MessageDirection messageDirection, final String subject, final String contentType) {
+            final MessageDirection messageDirection,
+            final CharSequence subject,
+            final CharSequence contentType) {
+
         headersBuilder.putHeader(MessageHeaderDefinition.THING_ID.getKey(), TestConstants.THING_ID);
         headersBuilder.putHeader(MessageHeaderDefinition.SUBJECT.getKey(), subject);
         headersBuilder.putHeader(MessageHeaderDefinition.DIRECTION.getKey(), messageDirection.name());
         headersBuilder.putHeader(DittoHeaderDefinition.CONTENT_TYPE.getKey(), contentType);
-        if (isFeatureResonse()) {
+        if (isFeatureResponse()) {
             headersBuilder.putHeader(MessageHeaderDefinition.FEATURE_ID.getKey(), FEATURE_ID);
         }
-        if (isAcceptedResonse()) {
+        if (isAcceptedResponse()) {
             headersBuilder.putHeader(DittoHeaderDefinition.RESPONSE_REQUIRED.getKey(), "false");
         }
         return headersBuilder.build();
     }
 
-    private boolean isFeatureResonse() {
+    private boolean isFeatureResponse() {
         return SendFeatureMessageResponse.TYPE.equals(type);
     }
 
-    private boolean isAcceptedResonse() {
+    private boolean isAcceptedResponse() {
         return SendMessageAcceptedResponse.TYPE.equals(type);
     }
 
