@@ -28,7 +28,19 @@ public final class MultiComparisonNode extends ComparisonNode<MultiComparisonNod
      * @param comparisonProperty the property to compare on.
      */
     public MultiComparisonNode(final Type comparisonType, final String comparisonProperty) {
-        super(comparisonType, comparisonProperty, new ArrayList<>());
+        this(comparisonType, comparisonProperty, new ArrayList<>());
+    }
+
+    /**
+     * Constructor. Creates a new comparison node with the given type, property and list of values.
+     *
+     * @param comparisonType the type of the comparison.
+     * @param comparisonProperty the property to compare on.
+     * @param comparisonPropertyValues the property to compare on.
+     */
+    public MultiComparisonNode(final Type comparisonType, final String comparisonProperty,
+            final List<Object> comparisonPropertyValues) {
+        super(comparisonType, comparisonProperty, comparisonPropertyValues);
     }
 
     /**

@@ -1,5 +1,6 @@
    ch.qos.logback:logback-classic:jar:1.2.3:compile
    ch.qos.logback:logback-core:jar:1.2.3:compile
+   com.chuusai:shapeless_2.12:jar:2.3.2:compile
    com.eclipsesource.minimal-json:minimal-json:jar:0.9.4:compile
    com.fasterxml.jackson.core:jackson-annotations:jar:2.8.0:compile
    com.fasterxml.jackson.core:jackson-core:jar:2.8.10:compile
@@ -36,7 +37,6 @@
    io.dropwizard.metrics:metrics-core:jar:3.1.2:compile
    io.dropwizard.metrics:metrics-healthchecks:jar:3.1.2:compile
    io.jsonwebtoken:jjwt:jar:0.7.0:compile
-   io.kamon:kamon-akka-2.4_2.12:jar:0.6.7:compile
    io.kamon:kamon-akka-2.5_2.12:jar:0.6.7:compile
    io.kamon:kamon-akka-remote-2.4_2.12:jar:0.6.7:compile
    io.kamon:kamon-core_2.12:jar:0.6.7:compile
@@ -63,15 +63,15 @@
    org.mongodb:mongodb-driver-core:jar:3.5.0:compile
    org.mongodb:mongodb-driver-reactivestreams:jar:1.6.0:compile
    org.mongodb:mongo-java-driver:jar:3.5.0:compile
-   org.ow2.asm:asm:jar:5.2:compile
    org.ow2.asm:asm-analysis:jar:5.2:compile
    org.ow2.asm:asm-commons:jar:5.2:compile
+   org.ow2.asm:asm:jar:5.2:compile
    org.ow2.asm:asm-tree:jar:5.2:compile
    org.ow2.asm:asm-util:jar:5.2:compile
-   org.parboiled:parboiled-core:jar:1.1.8:compile
-   org.parboiled:parboiled-java:jar:1.1.8:compile
+   org.parboiled:parboiled_2.12:jar:2.1.4:compile
    org.reactivestreams:reactive-streams:jar:1.0.1:compile
    org.scala-lang.modules:scala-java8-compat_2.12:jar:0.8.0:compile
    org.scala-lang.modules:scala-parser-combinators_2.12:jar:1.0.4:compile
    org.scala-lang:scala-library:jar:2.12.3:compile
    org.slf4j:slf4j-api:jar:1.7.25:compile
+   org.typelevel:macro-compat_2.12:jar:1.1.1:compile

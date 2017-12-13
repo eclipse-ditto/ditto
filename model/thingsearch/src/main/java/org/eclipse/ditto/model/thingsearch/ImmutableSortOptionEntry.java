@@ -35,6 +35,18 @@ final class ImmutableSortOptionEntry implements SortOptionEntry {
     }
 
     /**
+     * Constructs new SortOptionEntry.
+     *
+     * @param sortOrder the sortOrder.
+     * @param propertyPath the propertyPath.
+     * @return the SortOptionEntry.
+     * @throws NullPointerException if {@code propertyPath} is {@code null}.
+     */
+    public static ImmutableSortOptionEntry of(final SortOrder sortOrder, final CharSequence propertyPath) {
+        return new ImmutableSortOptionEntry(sortOrder, propertyPath);
+    }
+
+    /**
      * Sort for propertyPath ascending.
      *
      * @param propertyPath the propertyPath.
