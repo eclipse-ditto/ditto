@@ -67,7 +67,7 @@ public class DefaultStreamForwarderTest {
     public void streamWithTimeout() {
         new TestKit(actorSystem) {
             {
-                final ActorRef streamForwarder = createStreamForwarder();
+                final ActorRef streamForwarder = createStreamForwarder(Duration.ofMillis(100));
                 watch(streamForwarder);
 
                 streamForwarder.tell(KNOWN_TAG_1, ActorRef.noSender());
@@ -143,12 +143,16 @@ public class DefaultStreamForwarderTest {
         return StreamAck.failure(tag);
     }
 
-    private ActorRef createStreamForwarder() {
+    private ActorRef createStreamForwarder(final Duration maxIdleTime) {
         // for simplicity, just use String as elementClass
-        final Props props = DefaultStreamForwarder.props(recipient.ref(), completionRecipient.ref(), MAX_IDLE_TIME,
+        final Props props = DefaultStreamForwarder.props(recipient.ref(), completionRecipient.ref(), maxIdleTime,
                 String.class, String::toString);
 
         return actorSystem.actorOf(props);
+    }
+
+    private ActorRef createStreamForwarder() {
+        return createStreamForwarder(MAX_IDLE_TIME);
     }
 
 }
