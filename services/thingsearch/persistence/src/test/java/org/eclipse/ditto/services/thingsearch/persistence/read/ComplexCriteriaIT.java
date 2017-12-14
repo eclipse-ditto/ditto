@@ -26,8 +26,8 @@ import org.junit.Test;
 /**
  * Tests for complex search criteria on the persistence.
  */
-public final class ComplexCriteriaTest extends
-        AbstractVersionedThingSearchPersistenceTestBase {
+public final class ComplexCriteriaIT extends
+        AbstractVersionedThingSearchPersistenceITBase {
 
     private static final String KNOWN_ATTRIBUTE_KEY_1 = "attributeKey1";
     private static final String KNOWN_ATTRIBUTE_KEY_2 = "attributeKey2";

@@ -20,7 +20,7 @@ import java.util.Collection;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.model.things.Attributes;
-import org.eclipse.ditto.services.thingsearch.persistence.AbstractThingSearchPersistenceTestBase;
+import org.eclipse.ditto.services.thingsearch.persistence.AbstractThingSearchPersistenceITBase;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.PolicyRestrictedSearchAggregation;
 import org.junit.Before;
 import org.junit.Test;
@@ -28,7 +28,7 @@ import org.junit.Test;
 /**
  * Tests whether there are also found things which have V1 and Things with V2 in one query.
  */
-public class AggregationV1AndV2MergedTest extends AbstractReadPersistenceTestBase {
+public class AggregationV1AndV2MergedIT extends AbstractReadPersistenceITBase {
 
     private static final String THING_V1_ID1 = thingId(NAMESPACE, "thingV1_1");
     private static final String THING_V1_ID2 = thingId(NAMESPACE, "thingV1_2");
@@ -86,11 +86,11 @@ public class AggregationV1AndV2MergedTest extends AbstractReadPersistenceTestBas
     /** */
     @Test
     public void findAllByLtNumber() {
-        final PolicyRestrictedSearchAggregation aggregation1 = AbstractThingSearchPersistenceTestBase.abf
-                .newBuilder(AbstractThingSearchPersistenceTestBase.cf.fieldCriteria(
-                        AbstractThingSearchPersistenceTestBase.fef.filterByAttribute(KNOWN_NUMBER_ATTR),
-                        AbstractThingSearchPersistenceTestBase.cf.lt(200)))
-                .authorizationSubjects(AbstractThingSearchPersistenceTestBase.KNOWN_SUBJECTS)
+        final PolicyRestrictedSearchAggregation aggregation1 = AbstractThingSearchPersistenceITBase.abf
+                .newBuilder(AbstractThingSearchPersistenceITBase.cf.fieldCriteria(
+                        AbstractThingSearchPersistenceITBase.fef.filterByAttribute(KNOWN_NUMBER_ATTR),
+                        AbstractThingSearchPersistenceITBase.cf.lt(200)))
+                .authorizationSubjects(AbstractThingSearchPersistenceITBase.KNOWN_SUBJECTS)
                 .build();
 
         final Collection<String> result = findAll(aggregation1);
@@ -100,19 +100,19 @@ public class AggregationV1AndV2MergedTest extends AbstractReadPersistenceTestBas
     /** */
     @Test
     public void findAllByStrings() {
-        final PolicyRestrictedSearchAggregation aggregation1 = AbstractThingSearchPersistenceTestBase.abf
-                .newBuilder(AbstractThingSearchPersistenceTestBase.cf.or(Arrays.asList(
+        final PolicyRestrictedSearchAggregation aggregation1 = AbstractThingSearchPersistenceITBase.abf
+                .newBuilder(AbstractThingSearchPersistenceITBase.cf.or(Arrays.asList(
 
-                        AbstractThingSearchPersistenceTestBase.cf.fieldCriteria(
-                                AbstractThingSearchPersistenceTestBase.fef.filterByAttribute(KNOWN_STRING_ATTR),
-                                AbstractThingSearchPersistenceTestBase.cf.eq(KNOWN_STRING_ATTR_VALUE_THING_1_V1)),
+                        AbstractThingSearchPersistenceITBase.cf.fieldCriteria(
+                                AbstractThingSearchPersistenceITBase.fef.filterByAttribute(KNOWN_STRING_ATTR),
+                                AbstractThingSearchPersistenceITBase.cf.eq(KNOWN_STRING_ATTR_VALUE_THING_1_V1)),
 
-                        AbstractThingSearchPersistenceTestBase.cf.fieldCriteria(
-                                AbstractThingSearchPersistenceTestBase.fef.filterByAttribute
+                        AbstractThingSearchPersistenceITBase.cf.fieldCriteria(
+                                AbstractThingSearchPersistenceITBase.fef.filterByAttribute
                                         (KNOWN_STRING_ATTR),
-                                AbstractThingSearchPersistenceTestBase.cf.eq(KNOWN_STRING_ATTR_VALUE_THING_2_V2))
+                                AbstractThingSearchPersistenceITBase.cf.eq(KNOWN_STRING_ATTR_VALUE_THING_2_V2))
                 )))
-                .authorizationSubjects(AbstractThingSearchPersistenceTestBase.KNOWN_SUBJECTS)
+                .authorizationSubjects(AbstractThingSearchPersistenceITBase.KNOWN_SUBJECTS)
                 .build();
 
         final Collection<String> result = findAll(aggregation1);

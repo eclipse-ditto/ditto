@@ -29,7 +29,7 @@ import akka.testkit.javadsl.TestKit;
 /**
  * Test for {@link MongoHealthCheck}.
  */
-public final class MongoHealthCheckTest {
+public final class MongoHealthCheckIT {
 
     private static final Config CONFIG = ConfigFactory.load("test");
 

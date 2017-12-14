@@ -29,8 +29,8 @@ import org.junit.Test;
 /**
  * Tests for search persistence.
  */
-public final class SimpleCriteriaTest extends
-        AbstractVersionedThingSearchPersistenceTestBase {
+public final class SimpleCriteriaIT extends
+        AbstractVersionedThingSearchPersistenceITBase {
 
     private static final String THING_ID_WITH_KNOWN_STR_ATTR_VALUE =
             thingId(NAMESPACE, "withKnownStrAttrValue");

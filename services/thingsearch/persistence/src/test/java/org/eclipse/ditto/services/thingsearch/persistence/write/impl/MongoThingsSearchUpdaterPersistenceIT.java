@@ -55,7 +55,7 @@ import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.models.policies.Permission;
-import org.eclipse.ditto.services.thingsearch.persistence.AbstractThingSearchPersistenceTestBase;
+import org.eclipse.ditto.services.thingsearch.persistence.AbstractThingSearchPersistenceITBase;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingMetadata;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.PolicyRestrictedSearchAggregation;
 import org.eclipse.ditto.signals.events.things.AclEntryDeleted;
@@ -97,7 +97,7 @@ import scala.PartialFunction;
  * Tests for search updater persistence.
  */
 @RunWith(Enclosed.class)
-public final class MongoThingsSearchUpdaterPersistenceTest extends AbstractThingSearchPersistenceTestBase {
+public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSearchPersistenceITBase {
 
     private static final String KNOWN_THING_ID = ":myThing1";
     private static final String KEY1 = "key1";
@@ -135,7 +135,7 @@ public final class MongoThingsSearchUpdaterPersistenceTest extends AbstractThing
     private static final List<String> DEFAULT_POLICY_SUBJECTS = Collections.singletonList("iot-things:mySid");
 
 
-    private static abstract class BaseClass extends AbstractThingSearchPersistenceTestBase {
+    private static abstract class BaseClass extends AbstractThingSearchPersistenceITBase {
 
         PolicyEnforcer policyEnforcer;
 
