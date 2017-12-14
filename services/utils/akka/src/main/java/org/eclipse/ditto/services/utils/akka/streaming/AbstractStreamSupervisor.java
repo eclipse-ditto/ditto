@@ -222,7 +222,12 @@ public abstract class AbstractStreamSupervisor<C> extends AbstractActorWithStash
                     .format("Updating last sync timestamp to value: <{0}>", lastSuccessfulQueryEnd);
             streamMetadataPersistence.updateLastSuccessfulStreamEnd(lastSuccessfulQueryEnd)
                     .runWith(akka.stream.javadsl.Sink.last(), materializer)
-                    .thenRun(() -> log.info(successMessage));
+                    .thenRun(() -> log.info(successMessage))
+                    .exceptionally(error -> {
+                        log.error("Failed to update last sync timestamp to value: <{}>, due to: <{}>",
+                                lastSuccessfulQueryEnd, error);
+                        return null;
+                    });
 
             final StreamTrigger nextStreamTrigger = computeNextStreamTrigger(lastSuccessfulQueryEnd);
             scheduleStream(nextStreamTrigger);
@@ -310,7 +315,7 @@ public abstract class AbstractStreamSupervisor<C> extends AbstractActorWithStash
 
     private void terminated(final Terminated terminated) {
         final ActorRef terminatedActor = terminated.getActor();
-        log.error("Received Terminated-Message: {}", terminated);
+        log.debug("Received Terminated-Message: {}", terminated);
 
         if (!Objects.equals(terminatedActor, forwarder)) {
             log.warning("Received Terminated-Message from actor <{}> which does not match current forwarder <{}>",
@@ -325,6 +330,7 @@ public abstract class AbstractStreamSupervisor<C> extends AbstractActorWithStash
     }
 
     private static final class TryToStartStream {
+
         private static final TryToStartStream INSTANCE = new TryToStartStream();
 
         private TryToStartStream() {
