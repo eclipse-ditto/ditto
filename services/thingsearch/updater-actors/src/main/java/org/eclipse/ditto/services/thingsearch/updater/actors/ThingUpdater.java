@@ -467,7 +467,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
                 // Update state related to the Thing. Policy state is maintained by synchronization.
                 sequenceNumber = thingEvent.getRevision();
             } catch (final RuntimeException e) {
-                log.error("Sync is triggered because: Failed to add event {} due to exception {}", thingEvent, e);
+                log.error(e,"Failed to process event <{}>. Triggering sync.", thingEvent);
                 triggerSynchronization();
             }
         }
@@ -527,12 +527,10 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
                     .runWith(Sink.last(), materializer)
                     .whenComplete(this::processWriteResult))
                     .exceptionally(t -> {
-                        if (t != null) {
-                            log.error(t, "There occurred an error while processing a write operation within the"
-                                    + " circuit breaker for thing <{}>.", thingId);
-                            //e.g. in case of a circuit breaker timeout, the running transaction must be stopped
-                            processWriteResult(false, t);
-                        }
+                        log.error(t, "There occurred an error while processing a write operation within the"
+                                + " circuit breaker for thing <{}>.", thingId);
+                        //e.g. in case of a circuit breaker timeout, the running transaction must be stopped
+                        processWriteResult(false, t);
                         return null;
                     });
         }

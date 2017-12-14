@@ -218,14 +218,12 @@ public abstract class AbstractStreamSupervisor<C> extends AbstractActorWithStash
 
         if (activeStreamSuccess) {
             final Instant lastSuccessfulQueryEnd = activeStream.getQueryEnd();
-            final String successMessage = MessageFormat
-                    .format("Updating last sync timestamp to value: <{0}>", lastSuccessfulQueryEnd);
             streamMetadataPersistence.updateLastSuccessfulStreamEnd(lastSuccessfulQueryEnd)
                     .runWith(akka.stream.javadsl.Sink.last(), materializer)
-                    .thenRun(() -> log.info(successMessage))
+                    .thenRun(() -> log.info("Updated last sync timestamp to value: <{}>.", lastSuccessfulQueryEnd))
                     .exceptionally(error -> {
-                        log.error("Failed to update last sync timestamp to value: <{}>, due to: <{}>",
-                                lastSuccessfulQueryEnd, error);
+                        log.error(error, "Failed to update last sync timestamp to value: <{}>.",
+                                lastSuccessfulQueryEnd);
                         return null;
                     });
 
