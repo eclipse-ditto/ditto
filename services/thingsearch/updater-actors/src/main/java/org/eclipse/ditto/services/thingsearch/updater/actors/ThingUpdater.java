@@ -270,9 +270,9 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
                     if (Objects.nonNull(policyId)) {
                         policyCacheFacade.tell(new RegisterForCacheUpdates(policyId, getSelf()), getSelf());
                     }
-                    becomeInitialMessageHandling();
+                    becomeEventProcessing();
                 })
-                .match(ActorInitializationComplete.class, msg -> becomeInitialMessageHandling())
+                .match(ActorInitializationComplete.class, msg -> becomeEventProcessing())
                 .matchAny(msg -> stashWithErrorsIgnored())
                 .build();
     }
@@ -307,53 +307,6 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         }
     }
 
-    /**
-     * Shortcut to handle creation due to stale ThingTag or ThingEvent. If this actor is created by a message whose
-     * corresponding Thing is up-to-date in the search index, then this actor terminates itself immediately.
-     */
-    private void becomeInitialMessageHandling() {
-        final Receive behavior = ReceiveBuilder.create()
-                .match(ThingEvent.class, this::processInitialThingEvent)
-                /* TODO CR-4696: with the new tags-streaming approach, checkThingTagOnly-param seems not to make sense
-                   anymore, cause we don't know which and how many events will arrive in the future and we
-                   might get lots of unnecessary actor restarts
-                 */
-                .match(ThingTag.class, thingTag -> processThingTag(thingTag, false))
-                .matchAny(message -> {
-                    // this actor is not created due to a ThingTag message; handle current message by event processing
-                    becomeEventProcessing();
-                    getSelf().forward(message, getContext());
-                })
-                .build();
-        getContext().become(behavior);
-        unstashAll();
-    }
-
-    /**
-     * Handles the first message sent to this actor if it is a Thing event. Terminates self if the event is stale, takes
-     * shortcut if the event contains the corresponding Thing, and triggers synchronization otherwise.
-     *
-     * @param thingEvent The first message sent to this actor.
-     */
-    private void processInitialThingEvent(final ThingEvent thingEvent) {
-        LogUtil.enhanceLogWithCorrelationId(log, thingEvent);
-
-        log.debug("Received initial thing event for thing id <{}> with revision <{}>.", thingId,
-                thingEvent.getRevision());
-
-        if (thingEvent.getRevision() <= sequenceNumber) {
-            log.info("Dropped initial thing event for thing id <{}> with revision <{}> because it was older than or "
-                            + "equal to the current sequence number <{}> of the update actor. Terminating.", thingId,
-                    thingEvent.getRevision(), sequenceNumber);
-            stopThisActor();
-        } else if (shortcutTakenForThingEvent(thingEvent)) {
-            log.debug("Shortcut taken for initial thing event <{}>.", thingEvent);
-        } else {
-            log.debug("Synchronization is triggered for initial thing event <{}>.", thingEvent);
-            triggerSynchronization();
-        }
-    }
-
     ///////////////////////////
     ///// EVENT PROCESSING ////
     ///////////////////////////
@@ -375,7 +328,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         return ReceiveBuilder.create()
                 .match(ThingEvent.class, this::processThingEvent)
                 .match(PolicyEvent.class, this::processPolicyEvent)
-                .match(ThingTag.class, thingTag -> processThingTag(thingTag, false))
+                .match(ThingTag.class, this::processThingTag)
                 .match(Replicator.Changed.class, this::processChangedCacheEntry)
                 .match(CheckForActivity.class, this::checkActivity)
                 .match(PersistenceWriteResult.class, this::handlePersistenceUpdateResult)
@@ -398,26 +351,18 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         }
     }
 
-    private void processThingTag(final ThingTag thingTag, final boolean checkThingTagOnly) {
+    private void processThingTag(final ThingTag thingTag) {
         log.debug("Received new Thing Tag for thing <{}> with revision <{}> - last known revision is <{}>",
                 thingId, thingTag.getRevision(), sequenceNumber);
 
         activeSyncMetadata = new SyncMetadata(getSender(), thingTag);
 
-        final boolean shouldStopThisActor;
         if (thingTag.getRevision() > sequenceNumber) {
             log.info("The Thing Tag for the thing <{}> has the revision {} which is greater than the current actor's"
                     + " sequence number <{}>.", thingId, thingTag.getRevision(), sequenceNumber);
-            shouldStopThisActor = false;
             triggerSynchronization();
         } else {
-            shouldStopThisActor = checkThingTagOnly;
             ackSync(true);
-        }
-
-        if (shouldStopThisActor) {
-            // the actor was only started to check the received tag, if nothing has to be done, we can shutdown immediately
-            stopThisActor();
         }
     }
 
@@ -747,26 +692,29 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
      */
     private void ackSync(final boolean success) {
         if (activeSyncMetadata == null) {
+            // This branch is expected for synchronization not triggered by any ThingTag message from a stream
+            // supervisor, hence the log level DEBUG.
             log.debug("Cannot ack sync, cause no recipient is available.");
-            return;
-        }
-
-        final ActorRef syncAckRecipient = activeSyncMetadata.getAckRecipient();
-        final ActorRef deadLetters = getContext().getSystem().deadLetters();
-        if (Objects.equals(syncAckRecipient, deadLetters)) {
-            log.debug("Cannot ack sync, cause recipient is deadletters.");
         } else {
-            final Object message;
-            if (success) {
-                message = activeSyncMetadata.getSuccess();
+            final ActorRef syncAckRecipient = activeSyncMetadata.getAckRecipient();
+            final ActorRef deadLetters = getContext().getSystem().deadLetters();
+            if (Objects.equals(syncAckRecipient, deadLetters)) {
+                // This branch is expected for ThingTags messages sent with ActorRef.noSender() as sender address,
+                // hence the log level DEBUG.
+                log.debug("Cannot ack sync, cause recipient is deadletters.");
             } else {
-                message = activeSyncMetadata.getFailure();
+                final Object message;
+                if (success) {
+                    message = activeSyncMetadata.getSuccess();
+                } else {
+                    message = activeSyncMetadata.getFailure();
+                }
+                log.debug("Acking sync with result <{}> to <{}>", message, syncAckRecipient);
+                syncAckRecipient.tell(message, getSelf());
             }
-            log.debug("Acking sync with result <{}> to <{}>", message, syncAckRecipient);
-            syncAckRecipient.tell(message, getSelf());
-        }
 
-        activeSyncMetadata = null;
+            activeSyncMetadata = null;
+        }
     }
 
     private void handleSyncThingResponse(final Cancellable timeout, final SudoRetrieveThingResponse response) {
