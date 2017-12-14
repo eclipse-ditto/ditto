@@ -520,6 +520,20 @@ public class RqlPredicateParserTest {
         assertThat(existsNode.getProperty()).isEqualTo("features/scanner");
     }
 
+    @Test
+    public void testComplexSpecialChars() throws ParserException {
+        final String complexVal = "!#$%&'()*+,/:;=?@[\\\\]{|} äaZ0";
+        final RootNode root = parser.parse("eq(attributes/complex,\"" + complexVal + "\")");
+
+        assertThat(root).isNotNull();
+        assertThat(root.getChildren().size()).isEqualTo(1);
+
+        final SingleComparisonNode comparisonNode = (SingleComparisonNode) root.getChildren().get(0);
+        assertThat(comparisonNode.getComparisonProperty()).isEqualTo("attributes/complex");
+        assertThat(comparisonNode.getComparisonValue().getClass()).isEqualTo(String.class);
+        assertThat(comparisonNode.getComparisonValue()).isEqualTo("!#$%&'()*+,/:;=?@[\\]{|} äaZ0");
+    }
+
     @Test(expected = ParserException.class)
     public void testFieldExistsInvalidWithQuotes() throws ParserException {
         parser.parse("exists(\"features/scanner\")");
