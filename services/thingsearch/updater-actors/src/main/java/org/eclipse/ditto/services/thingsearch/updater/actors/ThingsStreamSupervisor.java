@@ -39,7 +39,7 @@ public final class ThingsStreamSupervisor extends AbstractStreamSupervisor<Send>
     /**
      * The name of this Actor in the ActorSystem.
      */
-    static final String ACTOR_NAME = "thingsSynchronizer";
+    static final String ACTOR_NAME = "thingsStreamSupervisor";
     @SuppressWarnings("squid:S1075")
     private static final String THINGS_ACTOR_PATH = "/user/thingsRoot/persistenceQueries";
     private final ActorRef pubSubMediator;
