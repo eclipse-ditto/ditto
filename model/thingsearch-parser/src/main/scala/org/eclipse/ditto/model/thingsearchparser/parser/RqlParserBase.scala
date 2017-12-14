@@ -30,7 +30,8 @@ protected class RqlParserBase(val input: ParserInput) extends Parser with String
 
   private val WhiteSpaceChar = CharPredicate(" \n\r\t\f")
   private val CommaClosingParenthesisQuote = CharPredicate(",)\"\\")
-  private val CommaClosingParenthesisQuoteSlash = CommaClosingParenthesisQuote ++ "/"
+  private val QuoteBackslash = CharPredicate("\"\\")
+  private val QuoteBackslashSlash = QuoteBackslash ++ "/"
 
   protected def Literal: Rule1[java.lang.Object] = rule {
     (DoubleLiteral | LongLiteral | StringLiteral | "true" ~ WhiteSpace ~ push(java.lang.Boolean.TRUE) |
@@ -58,23 +59,29 @@ protected class RqlParserBase(val input: ParserInput) extends Parser with String
   }
 
   protected def StringLiteral: Rule1[java.lang.String] = rule {
-    '"' ~ clearSB() ~ Characters ~ ws('"') ~ push(sb.toString)
+    '"' ~ clearSB() ~ CharactersInQuotes ~ ws('"') ~ push(sb.toString)
   }
 
   protected def PropertyLiteral: Rule1[java.lang.String] = rule {
     clearSB() ~ Characters ~ push(sb.toString)
   }
 
+  protected def CharactersInQuotes: Rule[HNil, HNil] = rule {
+    zeroOrMore(NormalCharInQuotes | '\\' ~ EscapedChar)
+  }
   protected def Characters: Rule[HNil, HNil] = rule {
     zeroOrMore(NormalChar | '\\' ~ EscapedChar)
   }
 
+  protected def NormalCharInQuotes: Rule[HNil, HNil] = rule {
+    !QuoteBackslash ~ ANY ~ appendSB()
+  }
   protected def NormalChar: Rule[HNil, HNil] = rule {
     !CommaClosingParenthesisQuote ~ ANY ~ appendSB()
   }
 
   protected def EscapedChar: Rule[HNil, HNil] = rule(
-    CommaClosingParenthesisQuoteSlash ~ appendSB()
+    QuoteBackslashSlash ~ appendSB()
       | 'b' ~ appendSB('\b')
       | 'f' ~ appendSB('\f')
       | 'n' ~ appendSB('\n')
