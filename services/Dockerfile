@@ -13,10 +13,10 @@ EXPOSE 8080
 
 RUN set -x \
     && apk upgrade libssl1.0 --update-cache \
-    && apk --no-cache --virtual .tmp-deps wget ca-certificates \
+    && apk add --no-cache --virtual .tmp-deps wget ca-certificates \
     && mkdir -p $DITTO_HOME \
     && cd $DITTO_HOME \
-    && wget -O ${SERVICE_STARTER}-${SERVICE_VERSION}-allinone.jar ${MAVEN_REPO}${SERVICE_STARTER}/${SERVICE_VERSION}/${SERVICE_STARTER}-${SERVICE_VERSION}-allinone.jar \
+    && wget -q --show-progress -O ${SERVICE_STARTER}-${SERVICE_VERSION}-allinone.jar ${MAVEN_REPO}${SERVICE_STARTER}/${SERVICE_VERSION}/${SERVICE_STARTER}-${SERVICE_VERSION}-allinone.jar \
     && ln -s ${SERVICE_STARTER}-${SERVICE_VERSION}-allinone.jar starter.jar \
     && apk del .tmp-deps
 
