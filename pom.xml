@@ -18,8 +18,9 @@
     <artifactId>ditto</artifactId>
     <packaging>pom</packaging>
     <version>0.1.0-SNAPSHOT</version>
-    <name>Eclipse Ditto</name>
 
+    <name>Eclipse Ditto</name>
+    <description>Eclipse Ditto is a framework for creating and managing digital twins in the IoT.</description>
     <url>https://eclipse.org/ditto/</url>
     <inceptionYear>2017</inceptionYear>
 
