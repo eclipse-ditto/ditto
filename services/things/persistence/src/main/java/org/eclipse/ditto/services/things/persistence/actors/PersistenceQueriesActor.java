@@ -17,12 +17,12 @@ import org.eclipse.ditto.services.models.things.ThingTag;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveModifiedThingTags;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveModifiedThingTagsResponse;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akkapersistence.mongoaddons.DittoJavaDslMongoReadJournal;
+import org.eclipse.ditto.services.utils.akkapersistence.mongoaddons.DittoMongoReadJournal;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import akka.contrib.persistence.mongodb.DittoJavaDslMongoReadJournal;
-import akka.contrib.persistence.mongodb.DittoMongoReadJournal;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;

@@ -9,14 +9,19 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package akka.contrib.persistence.mongodb
+package org.eclipse.ditto.services.utils.akkapersistence
 
 /**
-  * Wrapper containing result of of ModifiedPidsAndSeqNrOfTimespan query.
-  *
-  * @param persistenceId the Akka persistence persistenceId.
-  * @param sequenceNr    the sequence number.
+  * Contains implicits for this package.
   */
-final case class PidWithSeqNr(
-                               persistenceId: String,
-                               sequenceNr: Long)
+package object mongoaddons {
+  implicit class NonWrappingLongToInt(val pimped: Long) extends AnyVal {
+    def toIntWithoutWrapping: Int = {
+      if (pimped > Int.MaxValue) {
+        Int.MaxValue
+      } else {
+        pimped.intValue
+      }
+    }
+  }
+}

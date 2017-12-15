@@ -9,12 +9,13 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package akka.contrib.persistence.mongodb
+package org.eclipse.ditto.services.utils.akkapersistence.mongoaddons
 
 import java.time.Duration
 import java.util.{Date, UUID}
 
 import akka.actor.Props
+import akka.contrib.persistence.mongodb.{CasbahPersistenceReadJournaller, SyncActorPublisher}
 import com.mongodb.BasicDBObject
 import com.mongodb.casbah.Imports._
 import org.bson.types.ObjectId
@@ -24,15 +25,15 @@ object MongoDateUtil {
   /**
     * Utility method returning the [[Date]] retrieved by MongoDB minus the passed [[Duration]].
     *
-    * @param driver   the CasbahMongoDriver to use.
+    * @param driver   the DittoCasbahMongoDriver to use.
     * @param duration the Duration to substract.
-    * @return the calulated Date from MongoDB minus the passed [[Duration]].
+    * @return the calculated Date from MongoDB minus the passed [[Duration]].
     */
-  def retrieveCurrentMongoDateMinusDuration(driver: CasbahMongoDriver, duration: Duration): Date =
+  def retrieveCurrentMongoDateMinusDuration(driver: DittoCasbahMongoDriver, duration: Duration): Date =
     new MongoDateUtil(driver).retrieveCurrentMongoDateMinusDuration(duration)
 }
 
-class MongoDateUtil(val driver: CasbahMongoDriver) {
+class MongoDateUtil(val driver: DittoCasbahMongoDriver) {
   val TEST_COLLECTION_NAME = "test"
   val CURRENT_DATE_FUNC = "$currentDate"
   val DATE_FIELD = "date"
@@ -45,9 +46,9 @@ class MongoDateUtil(val driver: CasbahMongoDriver) {
     val update = new BasicDBObject(CURRENT_DATE_FUNC,
       new BasicDBObject(DATE_FIELD, true)
     )
-    val upsertedId = driver.collection(TEST_COLLECTION_NAME).update(query, update, upsert = true, multi = false, WRITE_CONCERN).getUpsertedId
-    val mongoDate = driver.collection(TEST_COLLECTION_NAME).findOneByID(upsertedId).get(DATE_FIELD).asInstanceOf[Date]
-    driver.collection(TEST_COLLECTION_NAME).remove(MongoDBObject(MONGO_ID -> upsertedId), WRITE_CONCERN)
+    val upsertedId = driver.dittoCollection(TEST_COLLECTION_NAME).update(query, update, upsert = true, multi = false, WRITE_CONCERN).getUpsertedId
+    val mongoDate = driver.dittoCollection(TEST_COLLECTION_NAME).findOneByID(upsertedId).get(DATE_FIELD).asInstanceOf[Date]
+    driver.dittoCollection(TEST_COLLECTION_NAME).remove(MongoDBObject(MONGO_ID -> upsertedId), WRITE_CONCERN)
     Date.from(mongoDate.toInstant.minusMillis(duration.toMillis))
   }
 }
@@ -56,7 +57,7 @@ class MongoDateUtil(val driver: CasbahMongoDriver) {
   * Factory for class [[ModifiedPidsOfTimespan]].
   */
 object ModifiedPidsOfTimespan {
-  def props(driver: CasbahMongoDriver, duration: Duration): Props =
+  def props(driver: DittoCasbahMongoDriver, duration: Duration): Props =
     Props(new ModifiedPidsOfTimespan(driver, duration))
 }
 
@@ -64,18 +65,18 @@ object ModifiedPidsOfTimespan {
   * Class providing the implementation for retrieving the modified persistenceIds of a given Duration as a Stream of
   * [[String]]s.
   *
-  * @param driver   the CasbahMongoDriver to use.
+  * @param driver   the DittoCasbahMongoDriver to use.
   * @param duration the Duration.
   */
-class ModifiedPidsOfTimespan(val driver: CasbahMongoDriver, duration: Duration)
+class ModifiedPidsOfTimespan(val driver: DittoCasbahMongoDriver, duration: Duration)
   extends SyncActorPublisher[String, Stream[String]] {
 
-  import JournallingFieldNames._
+  import akka.contrib.persistence.mongodb.JournallingFieldNames._
 
   val searchDate = MongoDateUtil.retrieveCurrentMongoDateMinusDuration(driver, duration)
 
   override protected def initialCursor: Stream[String] =
-    driver.journal
+    driver.dittoJournal
       .distinct(PROCESSOR_ID, MongoDBObject("_id" -> MongoDBObject("$gte" -> new ObjectId(searchDate))))
       .toStream
       .map(any => any.asInstanceOf[String])
@@ -96,7 +97,7 @@ class ModifiedPidsOfTimespan(val driver: CasbahMongoDriver, duration: Duration)
   * Factory for class [[SequenceNumbersOfPids]].
   */
 object SequenceNumbersOfPids {
-  def props(driver: CasbahMongoDriver, pids: Array[String], offset: Duration): Props =
+  def props(driver: DittoCasbahMongoDriver, pids: Array[String], offset: Duration): Props =
     Props(new SequenceNumbersOfPids(driver, pids, offset))
 }
 
@@ -104,18 +105,18 @@ object SequenceNumbersOfPids {
   * Class providing the implementation for retrieving the highest sequence numbers for the modified persistenceIds as a
   * Stream of [[PidWithSeqNr]]s.
   *
-  * @param driver the CasbahMongoDriver to use.
+  * @param driver the DittoCasbahMongoDriver to use.
   * @param pids   the persistenceIds to retrieve the highest sequenceNumber for.
   */
-class SequenceNumbersOfPids(val driver: CasbahMongoDriver, pids: Array[String], offset: Duration)
+class SequenceNumbersOfPids(val driver: DittoCasbahMongoDriver, pids: Array[String], offset: Duration)
   extends SyncActorPublisher[PidWithSeqNr, Stream[PidWithSeqNr]] {
 
-  import JournallingFieldNames._
+  import akka.contrib.persistence.mongodb.JournallingFieldNames._
 
   val offsetDate = MongoDateUtil.retrieveCurrentMongoDateMinusDuration(driver, offset)
 
   override protected def initialCursor: Stream[PidWithSeqNr] =
-    driver.journal
+    driver.dittoJournal
       .aggregate(List(
         MongoDBObject("$match" -> MongoDBObject(
           PROCESSOR_ID -> MongoDBObject("$in" -> pids))
@@ -152,7 +153,7 @@ class SequenceNumbersOfPids(val driver: CasbahMongoDriver, pids: Array[String], 
   * Factory for class [[SequenceNumbersOfPids]].
   */
 object SequenceNumbersOfPidsByDuration {
-  def props(driver: CasbahMongoDriver, duration: Duration, offset: Duration): Props =
+  def props(driver: DittoCasbahMongoDriver, duration: Duration, offset: Duration): Props =
     Props(new SequenceNumbersOfPidsByDuration(driver, duration, offset))
 }
 
@@ -161,19 +162,19 @@ object SequenceNumbersOfPidsByDuration {
   * Class providing the implementation for retrieving the highest sequence numbers for the modified persistenceIds as a
   * Stream of [[PidWithSeqNr]]s.
   *
-  * @param driver the CasbahMongoDriver to use.
+  * @param driver the DittoCasbahMongoDriver to use.
   * @param duration   the persistenceIds to retrieve the highest sequenceNumber for.
   */
-class SequenceNumbersOfPidsByDuration(val driver: CasbahMongoDriver, duration: Duration, offset: Duration)
+class SequenceNumbersOfPidsByDuration(val driver: DittoCasbahMongoDriver, duration: Duration, offset: Duration)
   extends SyncActorPublisher[PidWithSeqNr, Stream[PidWithSeqNr]] {
 
-  import JournallingFieldNames._
+  import akka.contrib.persistence.mongodb.JournallingFieldNames._
 
   val offsetDate = MongoDateUtil.retrieveCurrentMongoDateMinusDuration(driver, offset)
   val searchDate = MongoDateUtil.retrieveCurrentMongoDateMinusDuration(driver, duration)
 
   override protected def initialCursor: Stream[PidWithSeqNr] =
-    driver.journal
+    driver.dittoJournal
       .aggregate(List(
         MongoDBObject("$match" -> MongoDBObject(
           "_id" -> MongoDBObject("$gte" -> new ObjectId(searchDate)))
@@ -210,9 +211,9 @@ class SequenceNumbersOfPidsByDuration(val driver: CasbahMongoDriver, duration: D
   * Implementation of Trait DittoMongoPersistenceReadJournallingApi providing implementation for Ditto specific Event-Journal
   * queries.
   *
-  * @param driver the CasbahMongoDriver to use.
+  * @param driver the DittoCasbahMongoDriver to use.
   */
-class DittoCasbahPersistenceReadJournaller(driver: CasbahMongoDriver) extends CasbahPersistenceReadJournaller(driver) with DittoMongoPersistenceReadJournallingApi {
+class DittoCasbahPersistenceReadJournaller(driver: DittoCasbahMongoDriver) extends CasbahPersistenceReadJournaller(driver) with DittoMongoPersistenceReadJournallingApi {
   override def modifiedPidsOfTimespan(duration: Duration): Props =
     ModifiedPidsOfTimespan.props(driver, duration)
 

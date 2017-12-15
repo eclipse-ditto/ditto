@@ -114,7 +114,8 @@ public final class QueryActor extends AbstractActor {
         try {
             consumer.accept(command);
         } catch (final InvalidFilterException | InvalidOptionException e) {
-            logger.warning("Error when creating Query from Command: {}", e.getMessage());
+            LogUtil.enhanceLogWithCorrelationId(logger, command);
+            logger.info("Error when creating Query from Command: {}", e.getMessage());
             getSender().tell(e, getSelf());
         }
     }
