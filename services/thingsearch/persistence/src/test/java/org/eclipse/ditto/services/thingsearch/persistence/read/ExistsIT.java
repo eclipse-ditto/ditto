@@ -31,7 +31,7 @@ import org.junit.Test;
 /**
  * Test the exists field expressions against the database.
  */
-public final class ExistsTest extends AbstractVersionedThingSearchPersistenceTestBase {
+public final class ExistsIT extends AbstractVersionedThingSearchPersistenceITBase {
 
     private static final String THING1_ID = thingId(NAMESPACE, "thing1");
     private static final String THING1_KNOWN_ATTR = "attr1/a/b/c";
