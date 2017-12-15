@@ -30,17 +30,10 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  */
 public class StreamTriggerTest {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(StreamTriggerTest.class);
-
     private static final Duration VERY_LONG_DURATION = Duration.ofHours(10);
     private static final Instant NOW = Instant.now();
     private static final Duration MIN_START_OFFSET = Duration.ofMinutes(15);
     private static final Duration STREAM_INTERVAL = Duration.ofMinutes(5);
-
-    @BeforeClass
-    public static void beforeClass() {
-        LOGGER.debug("NOW is: {}", NOW);
-    }
 
     @Test
     public void assertImmutability() {

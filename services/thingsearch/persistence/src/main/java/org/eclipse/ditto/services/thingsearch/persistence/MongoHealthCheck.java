@@ -19,6 +19,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import org.bson.Document;
+import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
 
 import com.mongodb.ReadPreference;
 import com.mongodb.reactivestreams.client.MongoCollection;

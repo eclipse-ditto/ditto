@@ -29,6 +29,7 @@ import org.eclipse.ditto.services.utils.akka.streaming.AbstractStreamSupervisor;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamConstants;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamMetadataPersistence;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -36,6 +37,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.verification.VerificationWithTimeout;
 
+import com.mongodb.MongoException;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
@@ -122,6 +124,34 @@ public class ThingsStreamSupervisorTest {
         }};
     }
 
+    /**
+     * This test verifies the Stream Supervisor isn't shutdown if an error occurs on saving the end timestamp.
+     */
+    @Test
+    public void errorWhenUpdatingLastSuccessfulStreamEnd() throws Exception {
+        new TestKit(actorSystem) {{
+            final ActorRef streamSupervisor = createStreamSupervisor();
+            final Instant expectedQueryEnd = KNOWN_LAST_SYNC.plus(STREAM_INTERVAL);
+            watch(streamSupervisor);
+
+            // wait for the actor to start streaming the first time by expecting the corresponding send-message
+            expectStreamTriggerMsg(expectedQueryEnd);
+
+            // verify that last query end has been retrieved from persistence
+            verify(searchSyncPersistence).retrieveLastSuccessfulStreamEnd(any(Instant.class));
+
+            when(searchSyncPersistence.updateLastSuccessfulStreamEnd(any(Instant.class)))
+                    .thenReturn(Source.failed(new MongoException("a mongo error")));
+
+            sendMessageToForwarderAndExpectTerminated(this, streamSupervisor, StreamConstants.STREAM_FINISHED_MSG);
+
+            // verify the db has been updated with the queryEnd of the completed stream
+            verify(searchSyncPersistence, SHORT_MOCKITO_TIMEOUT).updateLastSuccessfulStreamEnd(eq(expectedQueryEnd));
+            // verify the actor is not terminated
+            expectNotTerminated(this, streamSupervisor, SHORT_TIMEOUT);
+        }};
+    }
+
     @Test
     public void streamIsRetriggeredOnTimeout() throws Exception {
         new TestKit(actorSystem) {{
@@ -184,8 +214,7 @@ public class ThingsStreamSupervisorTest {
             final Duration timeout) throws Exception {
         final ActorRef forwarderActor = getForwarderActor(superVisorActorRef);
 
-        testKit.watch(forwarderActor);
-        testKit.expectTerminated(FiniteDuration.apply(timeout.toNanos(), TimeUnit.NANOSECONDS), forwarderActor);
+        expectTerminated(testKit, forwarderActor, timeout);
     }
 
     private ActorRef getForwarderActor(final ActorRef superVisorActorRef) throws Exception {
@@ -198,4 +227,18 @@ public class ThingsStreamSupervisorTest {
         return forwarderActorFuture.value().get().get();
     }
 
+    private void expectNotTerminated(final TestKit testKit, final ActorRef actor, final Duration timeout) {
+        try {
+            expectTerminated(testKit, actor, timeout);
+            Assert.fail("the actor should not be terminated");
+        } catch (final AssertionError assertionError) {
+            // everything fine since the actor was not terminated
+        }
+    }
+
+    private void expectTerminated(final TestKit testKit, final ActorRef actor, final Duration timeout)
+            throws AssertionError {
+        testKit.watch(actor);
+        testKit.expectTerminated(FiniteDuration.apply(timeout.toNanos(), TimeUnit.NANOSECONDS), actor);
+    }
 }

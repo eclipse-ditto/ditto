@@ -30,7 +30,6 @@ import org.eclipse.ditto.services.thingsearch.persistence.read.MongoThingsSearch
 import org.eclipse.ditto.services.thingsearch.persistence.read.query.MongoAggregationBuilderFactory;
 import org.eclipse.ditto.services.thingsearch.persistence.read.query.MongoQueryBuilderFactory;
 import org.eclipse.ditto.services.thingsearch.persistence.write.impl.MongoEventToPersistenceStrategyFactory;
-import org.eclipse.ditto.services.thingsearch.persistence.write.impl.MongoThingsSearchSyncPersistence;
 import org.eclipse.ditto.services.thingsearch.persistence.write.impl.MongoThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.thingsearch.querymodel.criteria.CriteriaFactory;
 import org.eclipse.ditto.services.thingsearch.querymodel.criteria.CriteriaFactoryImpl;
@@ -40,6 +39,8 @@ import org.eclipse.ditto.services.thingsearch.querymodel.query.AggregationBuilde
 import org.eclipse.ditto.services.thingsearch.querymodel.query.PolicyRestrictedSearchAggregation;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.Query;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.QueryBuilderFactory;
+import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
+import org.eclipse.ditto.services.utils.persistence.mongo.streaming.MongoSearchSyncPersistence;
 import org.eclipse.ditto.services.utils.test.mongo.MongoDbResource;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -69,8 +70,6 @@ public abstract class AbstractThingSearchPersistenceTestBase {
     protected static final String KNOWN_ATTRIBUTE_1 = "attribute1";
     protected static final String KNOWN_NEW_VALUE = "newValue";
 
-    private static final Config CONFIG = ConfigFactory.load("test");
-
     protected static final CriteriaFactory cf = new CriteriaFactoryImpl();
     protected static final ThingsFieldExpressionFactory fef = new ThingsFieldExpressionFactoryImpl();
     protected static final QueryBuilderFactory qbf = new MongoQueryBuilderFactory();
@@ -83,7 +82,7 @@ public abstract class AbstractThingSearchPersistenceTestBase {
     private MongoCollection<Document> policiesCollection;
     private MongoCollection<Document> syncCollection;
     protected MongoThingsSearchUpdaterPersistence writePersistence;
-    protected MongoThingsSearchSyncPersistence syncPersistence;
+    protected MongoSearchSyncPersistence syncPersistence;
 
 
     private ActorSystem actorSystem;
@@ -124,15 +123,16 @@ public abstract class AbstractThingSearchPersistenceTestBase {
                 MongoEventToPersistenceStrategyFactory.getInstance());
     }
 
-    private MongoThingsSearchSyncPersistence provideSyncPersistence(final ActorMaterializer materializer) {
-        final MongoThingsSearchSyncPersistence mongoThingsSearchSyncPersistence =
-                new MongoThingsSearchSyncPersistence(mongoClient, log, materializer);
-        mongoThingsSearchSyncPersistence.init();
-        return mongoThingsSearchSyncPersistence;
+    private MongoSearchSyncPersistence provideSyncPersistence(final ActorMaterializer materializer) {
+        final MongoSearchSyncPersistence mongoSearchSyncPersistence =
+                MongoSearchSyncPersistence.initializedInstance(LAST_SUCCESSFUL_SYNC_COLLECTION_NAME, mongoClient,
+                        log, materializer);
+        return mongoSearchSyncPersistence;
     }
 
     private static MongoClientWrapper provideClientWrapper() {
-        return new MongoClientWrapper(mongoResource.getBindIp(), mongoResource.getPort(), "testSearchDB", CONFIG);
+        return MongoClientWrapper.newInstance(mongoResource.getBindIp(), mongoResource.getPort(), "testSearchDB",
+                100, 500000, 30);
     }
 
     /** */

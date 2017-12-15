@@ -29,11 +29,11 @@ import org.eclipse.ditto.services.models.thingsearch.SearchNamespaceReportResult
 import org.eclipse.ditto.services.models.thingsearch.SearchNamespaceResultEntry;
 import org.eclipse.ditto.services.thingsearch.persistence.BsonUtil;
 import org.eclipse.ditto.services.thingsearch.persistence.IndexInitializer;
-import org.eclipse.ditto.services.thingsearch.persistence.MongoClientWrapper;
 import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
 import org.eclipse.ditto.services.thingsearch.persistence.read.criteria.visitors.CreateBsonVisitor;
 import org.eclipse.ditto.services.thingsearch.persistence.read.query.MongoQuery;
 import org.eclipse.ditto.services.utils.config.MongoConfig;
+import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayQueryTimeExceededException;
 import org.eclipse.ditto.services.thingsearch.common.model.ResultList;
 import org.eclipse.ditto.services.thingsearch.common.model.ResultListImpl;

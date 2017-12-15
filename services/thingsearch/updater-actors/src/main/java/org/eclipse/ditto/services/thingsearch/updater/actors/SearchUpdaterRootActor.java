@@ -11,6 +11,8 @@
  */
 package org.eclipse.ditto.services.thingsearch.updater.actors;
 
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.LAST_SUCCESSFUL_SYNC_COLLECTION_NAME;
+
 import java.net.ConnectException;
 import java.time.Duration;
 import java.util.NoSuchElementException;
@@ -18,13 +20,14 @@ import java.util.concurrent.TimeUnit;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.services.thingsearch.common.util.ConfigKeys;
-import org.eclipse.ditto.services.thingsearch.persistence.MongoClientWrapper;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.thingsearch.persistence.write.impl.MongoEventToPersistenceStrategyFactory;
-import org.eclipse.ditto.services.thingsearch.persistence.write.impl.MongoThingsSearchSyncPersistence;
 import org.eclipse.ditto.services.thingsearch.persistence.write.impl.MongoThingsSearchUpdaterPersistence;
+import org.eclipse.ditto.services.utils.akka.streaming.StreamMetadataPersistence;
 import org.eclipse.ditto.services.utils.distributedcache.actors.CacheFacadeActor;
 import org.eclipse.ditto.services.utils.distributedcache.actors.CacheRole;
+import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
+import org.eclipse.ditto.services.utils.persistence.mongo.streaming.MongoSearchSyncPersistence;
 
 import com.typesafe.config.Config;
 
@@ -110,7 +113,14 @@ public final class SearchUpdaterRootActor extends AbstractActor {
     private SearchUpdaterRootActor(final Config config, final ActorRef pubSubMediator) {
         final int numberOfShards = config.getInt(ConfigKeys.CLUSTER_NUMBER_OF_SHARDS);
 
-        final MongoClientWrapper mongoClientWrapper = new MongoClientWrapper(config);
+        final int maxPoolSize = config.getInt(ConfigKeys.MONGO_CONNECTION_POOL_MAX_SIZE);
+        final int maxPoolQueueSize = config.getInt(ConfigKeys.MONGO_CONNECTION_POOL_MAX_WAIT_QUEUE_SIZE);
+        final int maxWaitTimeSecs = config.getInt(ConfigKeys.MONGO_CONNECTION_POOL_MAX_WAIT_TIME);
+        final MongoClientWrapper mongoClientWrapper = MongoClientWrapper.newInstance(config,
+                maxPoolSize,
+                maxPoolQueueSize,
+                maxWaitTimeSecs
+        );
         final ThingsSearchUpdaterPersistence searchUpdaterPersistence =
                 new MongoThingsSearchUpdaterPersistence(mongoClientWrapper, log,
                         MongoEventToPersistenceStrategyFactory.getInstance());
@@ -150,9 +160,9 @@ public final class SearchUpdaterRootActor extends AbstractActor {
         if (synchronizationActive) {
             final ActorMaterializer materializer = ActorMaterializer.create(getContext().getSystem());
 
-            final MongoThingsSearchSyncPersistence syncPersistence =
-                    new MongoThingsSearchSyncPersistence(mongoClientWrapper, log, materializer);
-            syncPersistence.init();
+            final StreamMetadataPersistence syncPersistence =
+                    MongoSearchSyncPersistence.initializedInstance(LAST_SUCCESSFUL_SYNC_COLLECTION_NAME,
+                            mongoClientWrapper, log, materializer);
 
             final Duration startOffset = config.getDuration(ConfigKeys.THINGS_SYNCER_START_OFFSET);
             final Duration initialStartOffset = config.getDuration(ConfigKeys.THINGS_SYNCER_INITIAL_START_OFFSET);

@@ -9,9 +9,8 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package org.eclipse.ditto.services.thingsearch.persistence;
+package org.eclipse.ditto.services.utils.persistence.mongo;
 
-import java.util.Arrays;
 import java.util.Collections;
 
 import org.assertj.core.api.Assertions;
@@ -22,7 +21,6 @@ import com.mongodb.ConnectionString;
 import com.mongodb.MongoCredential;
 import com.mongodb.ServerAddress;
 import com.mongodb.async.client.MongoClientSettings;
-import com.mongodb.connection.ConnectionPoolSettings;
 import com.mongodb.reactivestreams.client.MongoClient;
 import com.mongodb.reactivestreams.client.MongoDatabase;
 import com.typesafe.config.Config;
@@ -34,6 +32,9 @@ import com.typesafe.config.ConfigValueFactory;
  */
 public class MongoClientWrapperTest {
 
+    private static final int KNOWN_MAX_POOL_SIZE = 100;
+    private static final int KNOWN_MAX_POOL_WAIT_QUEUE_SIZE = 5000;
+    private static final int KNOWN_MAX_POOL_WAIT_SECS = 10;
     private static final String KNOWN_SERVER_ADDRESS = "xy.example.org:34850";
     private static final String KNOWN_DB_NAME = "someGeneratedName";
     private static final String KNOWN_USER = "theUser";
@@ -114,7 +115,8 @@ public class MongoClientWrapperTest {
 
 
         // test
-        final MongoClientWrapper wrapper = new MongoClientWrapper(config);
+        final MongoClientWrapper wrapper = MongoClientWrapper.newInstance(config, KNOWN_MAX_POOL_SIZE,
+                KNOWN_MAX_POOL_WAIT_QUEUE_SIZE, KNOWN_MAX_POOL_WAIT_SECS);
 
         // verify
         assertCreatedByUri(sslEnabled, wrapper);
@@ -128,7 +130,8 @@ public class MongoClientWrapperTest {
         final Config config = CONFIG.withValue(MongoConfig.URI, ConfigValueFactory.fromAnyRef(uriWithSslEnabled));
 
         // test
-        final MongoClientWrapper wrapper = new MongoClientWrapper(config);
+        final MongoClientWrapper wrapper = MongoClientWrapper.newInstance(config, KNOWN_MAX_POOL_SIZE,
+                KNOWN_MAX_POOL_WAIT_QUEUE_SIZE, KNOWN_MAX_POOL_WAIT_SECS);
 
         // verify
         assertCreatedByUri(false, wrapper);
@@ -138,7 +141,8 @@ public class MongoClientWrapperTest {
     @Test
     public void createByHostAndPort() {
         // test
-        final MongoClientWrapper wrapper = new MongoClientWrapper(KNOWN_HOST, KNOWN_PORT, KNOWN_DB_NAME, CONFIG);
+        final MongoClientWrapper wrapper = MongoClientWrapper.newInstance(KNOWN_HOST, KNOWN_PORT, KNOWN_DB_NAME,
+                KNOWN_MAX_POOL_SIZE, KNOWN_MAX_POOL_WAIT_QUEUE_SIZE, KNOWN_MAX_POOL_WAIT_SECS);
 
         // verify
         assertCreatedByHostAndPort(wrapper);
@@ -149,7 +153,8 @@ public class MongoClientWrapperTest {
     public void createByAll() {
         // test
         final MongoClientWrapper wrapper =
-                new MongoClientWrapper(KNOWN_HOST, KNOWN_PORT, KNOWN_USER, KNOWN_PASSWORD, KNOWN_DB_NAME, CONFIG);
+                MongoClientWrapper.newInstance(KNOWN_HOST, KNOWN_PORT, KNOWN_USER, KNOWN_PASSWORD, KNOWN_DB_NAME,
+                        KNOWN_MAX_POOL_SIZE, KNOWN_MAX_POOL_WAIT_QUEUE_SIZE, KNOWN_MAX_POOL_WAIT_SECS);
 
         // verify
         assertCreatedByAll(wrapper);
@@ -159,8 +164,9 @@ public class MongoClientWrapperTest {
     @Test
     public void createWithDatabaseName() {
         // test
-        final MongoClientWrapper wrapper = new MongoClientWrapper(KNOWN_HOST, KNOWN_PORT, null, null, KNOWN_DB_NAME,
-                CONFIG);
+        final MongoClientWrapper wrapper =
+                MongoClientWrapper.newInstance(KNOWN_HOST, KNOWN_PORT, null, null, KNOWN_DB_NAME,
+                        KNOWN_MAX_POOL_SIZE, KNOWN_MAX_POOL_WAIT_QUEUE_SIZE, KNOWN_MAX_POOL_WAIT_SECS);
 
         // verify
         assertCreatedWithDatabaseName(wrapper);
@@ -170,7 +176,8 @@ public class MongoClientWrapperTest {
     @Test(expected = NullPointerException.class)
     public void createWithoutPassword() {
         // test
-        new MongoClientWrapper(KNOWN_HOST, KNOWN_PORT, KNOWN_USER, null, KNOWN_DB_NAME, CONFIG);
+        MongoClientWrapper.newInstance(KNOWN_HOST, KNOWN_PORT, KNOWN_USER, null, KNOWN_DB_NAME,
+                KNOWN_MAX_POOL_SIZE, KNOWN_MAX_POOL_WAIT_QUEUE_SIZE, KNOWN_MAX_POOL_WAIT_SECS);
     }
 
 }

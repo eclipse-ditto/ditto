@@ -14,7 +14,6 @@ package org.eclipse.ditto.services.utils.akka.streaming;
 import static org.eclipse.ditto.services.utils.akka.streaming.StreamConstants.FORWARDER_EXCEEDED_MAX_IDLE_TIME_MSG;
 import static org.eclipse.ditto.services.utils.akka.streaming.StreamConstants.STREAM_FINISHED_MSG;
 
-import java.text.MessageFormat;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;
@@ -75,8 +74,8 @@ public abstract class AbstractStreamSupervisor<C> extends AbstractActorWithStash
      * @param startOffset The offset for the start timestamp - needed to make sure that we don't lose events, cause the
      * timestamp of a event might be created before the actual insert to the DB. Furthermore the offset helps minimizing
      * conflicts with the event-processing mechanism.
-     * @param streamInterval this interval defines the minimum and maximum creation time of the entities to be queried
-     * by the underlying stream.
+     * @param streamInterval this interval defines the duration for which entities will be queried by the underlying
+     * stream: {@code streamInterval == queryEnd - queryStart}.
      * @param initialStartOffset this offset is only on initial start, i.e. when the last query end cannot be retrieved
      * by means of {@code streamMetadataPersistence}.
      * @param warnOffset if a query-start is more than this offset in the past, a warning will be logged
@@ -126,30 +125,6 @@ public abstract class AbstractStreamSupervisor<C> extends AbstractActorWithStash
 
         final StreamTrigger nextStreamTrigger = computeNextStreamTrigger(null);
         scheduleStream(nextStreamTrigger);
-    }
-
-    private void scheduleStream(final Instant when) {
-        final Duration duration;
-        final Instant now = Instant.now();
-        if (now.isAfter(when)) {
-            // if "when" is in the past, schedule immediately
-            duration = Duration.ZERO;
-        } else {
-            duration = Duration.between(now, when);
-        }
-
-        scheduleStream(duration);
-    }
-
-    private void scheduleStream(final Duration duration) {
-        if (activityCheck != null) {
-            activityCheck.cancel();
-        }
-
-        final FiniteDuration finiteDuration = FiniteDuration.create(duration.getSeconds(), TimeUnit.SECONDS);
-        activityCheck = getContext().system().scheduler()
-                .scheduleOnce(finiteDuration, getSelf(), TryToStartStream.INSTANCE,
-                        getContext().dispatcher(), ActorRef.noSender());
     }
 
     @Override
@@ -249,7 +224,7 @@ public abstract class AbstractStreamSupervisor<C> extends AbstractActorWithStash
         }
 
         final Duration offsetFromNow = Duration.between(queryStart, now);
-        // if offset is not in the future, i.e. in the past
+        // check if the queryStart is very long in the past to be able to log a warning
         if (!offsetFromNow.isNegative() && offsetFromNow.compareTo(warnOffset) > 0) {
             log.warning("The next Query-Start <{}> is older than the configured warn-offset <{}>. Please verify that" +
                             " this does not happen frequently, otherwise won't get \"up-to-date\" anymore.",
@@ -263,6 +238,30 @@ public abstract class AbstractStreamSupervisor<C> extends AbstractActorWithStash
         this.nextStream = streamTrigger;
 
         scheduleStream(streamTrigger.getPlannedStreamStart());
+    }
+
+    private void scheduleStream(final Instant when) {
+        final Duration duration;
+        final Instant now = Instant.now();
+        if (when.isBefore(now)) {
+            // if "when" is in the past, schedule immediately
+            duration = Duration.ZERO;
+        } else {
+            duration = Duration.between(now, when);
+        }
+
+        scheduleStream(duration);
+    }
+
+    private void scheduleStream(final Duration duration) {
+        if (activityCheck != null) {
+            activityCheck.cancel();
+        }
+
+        final FiniteDuration finiteDuration = FiniteDuration.create(duration.getSeconds(), TimeUnit.SECONDS);
+        activityCheck = getContext().system().scheduler()
+                .scheduleOnce(finiteDuration, getSelf(), TryToStartStream.INSTANCE,
+                        getContext().dispatcher(), ActorRef.noSender());
     }
 
     private void tryToStartStream() {

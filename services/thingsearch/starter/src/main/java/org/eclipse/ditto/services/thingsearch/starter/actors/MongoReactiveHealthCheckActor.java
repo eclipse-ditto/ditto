@@ -21,9 +21,9 @@ import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
 
-import org.eclipse.ditto.services.thingsearch.persistence.MongoClientWrapper;
 import org.eclipse.ditto.services.thingsearch.persistence.MongoHealthCheck;
 import org.eclipse.ditto.services.thingsearch.persistence.PersistenceHealthCheck;
+import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
 
 /**
  * Actor encapsulating {@link MongoHealthCheck} and reacting on {@link RetrieveMongoStatus} messages.
