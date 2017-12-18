@@ -44,7 +44,16 @@ public final class AmqpBridgeMappingStrategy implements MappingStrategy {
      * Constructs a new Mapping Strategy for AMQP Bridge.
      */
     public AmqpBridgeMappingStrategy() {
-        thingsMappingStrategy = new ThingsMappingStrategy();
+        this(new ThingsMappingStrategy());
+    }
+
+    /**
+     * Constructs a new Mapping Strategy for AMQP Bridge.
+     *
+     * @param thingsMappingStrategy the existing ThingsMappingStrategy to use.
+     */
+    public AmqpBridgeMappingStrategy(final ThingsMappingStrategy thingsMappingStrategy) {
+        this.thingsMappingStrategy = thingsMappingStrategy;
     }
 
     @Override
