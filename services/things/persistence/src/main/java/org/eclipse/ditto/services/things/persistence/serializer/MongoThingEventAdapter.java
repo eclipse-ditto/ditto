@@ -18,6 +18,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
@@ -142,11 +143,17 @@ public final class MongoThingEventAdapter implements EventAdapter {
                             .remove(POLICY_IN_THING_EVENT_PAYLOAD);
             final DittoBsonJson dittoBsonJson = DittoBsonJson.getInstance();
             final Object bson = dittoBsonJson.parse(jsonObject);
-            final Set<String> readSubjects = theEvent.getDittoHeaders().getReadSubjects();
+            final Set<String> readSubjects = calculateReadSubjects(theEvent);
             return new Tagged(bson, readSubjects);
         } else {
             throw new IllegalArgumentException("Unable to toJournal a non-'Event' object! Was: " + event.getClass());
         }
+    }
+
+    private Set<String> calculateReadSubjects(final Event<?> theEvent) {
+        return theEvent.getDittoHeaders().getReadSubjects().stream()
+                .map(rs -> "rs:" + rs)
+                .collect(Collectors.toSet());
     }
 
     @Override
