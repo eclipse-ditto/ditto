@@ -62,7 +62,7 @@ public final class MongoClientWrapper {
      * @param maxPoolWaitTimeSecs the max wait time in the pool.
      */
     public static MongoClientWrapper newInstance(final String host, final int port, final String dbName, final int
-            maxPoolSize, final int maxPoolWaitQueueSize, final int maxPoolWaitTimeSecs) {
+            maxPoolSize, final int maxPoolWaitQueueSize, final long maxPoolWaitTimeSecs) {
         return newInstance(host, port, null, null, dbName, maxPoolSize, maxPoolWaitQueueSize, maxPoolWaitTimeSecs);
     }
 
@@ -87,7 +87,7 @@ public final class MongoClientWrapper {
             final String database,
             final int maxPoolSize,
             final int maxPoolWaitQueueSize,
-            final int maxPoolWaitTimeSecs) {
+            final long maxPoolWaitTimeSecs) {
         final MongoClientSettings.Builder builder = MongoClientSettings.builder()
                 .readPreference(ReadPreference.secondaryPreferred())
                 .clusterSettings(ClusterSettings.builder()

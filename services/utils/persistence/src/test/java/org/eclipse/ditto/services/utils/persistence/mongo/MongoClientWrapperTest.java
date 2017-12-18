@@ -34,7 +34,7 @@ public class MongoClientWrapperTest {
 
     private static final int KNOWN_MAX_POOL_SIZE = 100;
     private static final int KNOWN_MAX_POOL_WAIT_QUEUE_SIZE = 5000;
-    private static final int KNOWN_MAX_POOL_WAIT_SECS = 10;
+    private static final long KNOWN_MAX_POOL_WAIT_SECS = 10L;
     private static final String KNOWN_SERVER_ADDRESS = "xy.example.org:34850";
     private static final String KNOWN_DB_NAME = "someGeneratedName";
     private static final String KNOWN_USER = "theUser";
