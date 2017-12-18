@@ -12,17 +12,14 @@
 package org.eclipse.ditto.services.utils.persistence.mongo;
 
 import java.io.Closeable;
-import java.io.IOException;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.Collections;
-import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 import org.eclipse.ditto.services.utils.config.MongoConfig;
 
 import com.mongodb.ConnectionString;
-import com.mongodb.MongoCredential;
 import com.mongodb.ReadPreference;
 import com.mongodb.ServerAddress;
 import com.mongodb.async.client.MongoClientSettings;
@@ -54,60 +51,6 @@ public final class MongoClientWrapper implements Closeable {
     }
 
     /**
-     * Initializes the persistence with a passed in {@code host} and {@code port}.
-     *
-     * @param host the host name of the mongoDB
-     * @param port the port of the mongoDB
-     * @param dbName the database of the mongoDB
-     * @param maxPoolSize the max pool size of the db.
-     * @param maxPoolWaitQueueSize the max queue size of the pool.
-     * @param maxPoolWaitTimeSecs the max wait time in the pool.
-     */
-    public static MongoClientWrapper newInstance(final String host, final int port, final String dbName, final int
-            maxPoolSize, final int maxPoolWaitQueueSize, final long maxPoolWaitTimeSecs) {
-        return newInstance(host, port, null, null, dbName, maxPoolSize, maxPoolWaitQueueSize, maxPoolWaitTimeSecs);
-    }
-
-    /**
-     * Initializes the persistence with a passed in {@code host}, {@code port}, {@code username}, {@code password} and
-     * {@code database}.
-     *
-     * @param host the host name of the mongoDB
-     * @param port the port of the mongoDB
-     * @param username the username of the mongoDB (may be null)
-     * @param password the password of the mongoDB (may be null if {@code username} is null, too)
-     * @param database the database of the mongoDB (may be null)
-     * @param maxPoolSize the max pool size of the db.
-     * @param maxPoolWaitQueueSize the max queue size of the pool.
-     * @param maxPoolWaitTimeSecs the max wait time in the pool.
-     */
-    @SuppressWarnings("squid:S00107") // remove after creating a configurable mongoconfig
-    public static MongoClientWrapper newInstance(final String host,
-            final int port,
-            final String username,
-            final String password,
-            final String database,
-            final int maxPoolSize,
-            final int maxPoolWaitQueueSize,
-            final long maxPoolWaitTimeSecs) {
-        final MongoClientSettings.Builder builder = MongoClientSettings.builder()
-                .readPreference(ReadPreference.secondaryPreferred())
-                .clusterSettings(ClusterSettings.builder()
-                        .hosts(Collections.singletonList(new ServerAddress(host, port)))
-                        .build());
-
-        if (username != null) {
-            builder.credentialList(Collections.singletonList(MongoCredential.createCredential(username, database,
-                    Objects.requireNonNull(password, "password can not be null if a username is given")
-                            .toCharArray())));
-        }
-
-        final MongoClientSettings mongoClientSettings = buildClientSettings(builder, maxPoolSize,
-                maxPoolWaitQueueSize, Duration.of(maxPoolWaitTimeSecs, ChronoUnit.SECONDS));
-        return new MongoClientWrapper(database, mongoClientSettings);
-    }
-
-    /**
      * Initializes the persistence with a passed in {@code config} containing the {@code uri}.
      *
      * @param config Config containing mongoDB settings including the URI.
@@ -132,6 +75,33 @@ public final class MongoClientWrapper implements Closeable {
                 maxPoolWaitQueueSize, maxPoolWaitTime);
 
         return new MongoClientWrapper(database, mongoClientSettings);
+    }
+
+    /**
+     * Initializes the persistence with a passed in parameters. Does NOT allow to specify credentials, is useful for
+     * testing purposes.
+     *
+     * @param host the host name of the mongoDB
+     * @param port the port of the mongoDB
+     * @param dbName the database of the mongoDB
+     * @param maxPoolSize the max pool size of the db.
+     * @param maxPoolWaitQueueSize the max queue size of the pool.
+     * @param maxPoolWaitTimeSecs the max wait time in the pool.
+     *
+     * @see #newInstance(Config) for production purposes
+     */
+    public static MongoClientWrapper newInstance(final String host, final int port, final String dbName,
+            final int maxPoolSize, final int maxPoolWaitQueueSize, final long maxPoolWaitTimeSecs) {
+
+        final MongoClientSettings.Builder builder = MongoClientSettings.builder()
+                .readPreference(ReadPreference.secondaryPreferred())
+                .clusterSettings(ClusterSettings.builder()
+                        .hosts(Collections.singletonList(new ServerAddress(host, port)))
+                        .build());
+
+        final MongoClientSettings mongoClientSettings = buildClientSettings(builder, maxPoolSize,
+                maxPoolWaitQueueSize, Duration.of(maxPoolWaitTimeSecs, ChronoUnit.SECONDS));
+        return new MongoClientWrapper(dbName, mongoClientSettings);
     }
 
 

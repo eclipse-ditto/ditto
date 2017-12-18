@@ -11,9 +11,11 @@
  */
 package org.eclipse.ditto.services.utils.persistence.mongo;
 
-import java.util.Collections;
+import static org.assertj.core.api.Assertions.assertThat;
 
-import org.assertj.core.api.Assertions;
+import java.util.Collections;
+import java.util.List;
+
 import org.eclipse.ditto.services.utils.config.MongoConfig;
 import org.junit.Test;
 
@@ -35,12 +37,12 @@ public class MongoClientWrapperTest {
     private static final int KNOWN_MAX_POOL_SIZE = 100;
     private static final int KNOWN_MAX_POOL_WAIT_QUEUE_SIZE = 5000;
     private static final long KNOWN_MAX_POOL_WAIT_SECS = 10L;
-    private static final String KNOWN_SERVER_ADDRESS = "xy.example.org:34850";
     private static final String KNOWN_DB_NAME = "someGeneratedName";
     private static final String KNOWN_USER = "theUser";
     private static final String KNOWN_PASSWORD = "thePassword";
-    private static final String KNOWN_HOST = "knownHost";
+    private static final String KNOWN_HOST = "xy.example.org";
     private static final int KNOWN_PORT = 27777;
+    private static final String KNOWN_SERVER_ADDRESS = KNOWN_HOST + ":" + KNOWN_PORT;
     private static final Config CONFIG = ConfigFactory.load("test");
 
     private static String createUri(final boolean sslEnabled) {
@@ -49,59 +51,6 @@ public class MongoClientWrapperTest {
                         "?ssl="
                         + sslEnabled);
         return connectionString.getConnectionString();
-    }
-
-    private static void assertCreatedByUri(final boolean sslEnabled, final MongoClientWrapper wrapper) {
-        final MongoClient mongoClient = wrapper.getMongoClient();
-        Assertions.assertThat(mongoClient).isNotNull();
-
-        final MongoClientSettings mongoClientSettings = mongoClient.getSettings();
-        Assertions.assertThat(mongoClientSettings.getClusterSettings().getHosts())
-                .isEqualTo(Collections.singletonList(new ServerAddress(KNOWN_SERVER_ADDRESS)));
-        Assertions.assertThat(mongoClientSettings.getCredentialList()).isEqualTo(
-                Collections.singletonList(
-                        MongoCredential.createCredential(KNOWN_USER, KNOWN_DB_NAME, KNOWN_PASSWORD.toCharArray())));
-        Assertions.assertThat(mongoClientSettings.getSslSettings().isEnabled()).isEqualTo(sslEnabled);
-        final MongoDatabase mongoDatabase = wrapper.getDatabase();
-        Assertions.assertThat(mongoDatabase).isNotNull();
-        Assertions.assertThat(mongoDatabase.getName()).isEqualTo(KNOWN_DB_NAME);
-    }
-
-    private static void assertCreatedByHostAndPort(final MongoClientWrapper wrapper) {
-        final MongoClient mongoClient = wrapper.getMongoClient();
-        Assertions.assertThat(mongoClient).isNotNull();
-        Assertions.assertThat(mongoClient.getSettings().getClusterSettings().getHosts())
-                .isEqualTo(Collections.singletonList(new ServerAddress(KNOWN_HOST, KNOWN_PORT)));
-        final MongoDatabase mongoDatabase = wrapper.getDatabase();
-        Assertions.assertThat(mongoDatabase).isNotNull();
-        Assertions.assertThat(mongoDatabase.getName()).isEqualTo(KNOWN_DB_NAME);
-    }
-
-    private static void assertCreatedByAll(final MongoClientWrapper wrapper) {
-        final MongoClient mongoClient = wrapper.getMongoClient();
-        Assertions.assertThat(mongoClient).isNotNull();
-
-        final MongoClientSettings mongoClientSettings = mongoClient.getSettings();
-        Assertions.assertThat(mongoClientSettings.getClusterSettings().getHosts())
-                .isEqualTo(Collections.singletonList(new ServerAddress(KNOWN_HOST, KNOWN_PORT)));
-        Assertions.assertThat(mongoClientSettings.getCredentialList()).isEqualTo(
-                Collections.singletonList(
-                        MongoCredential.createCredential(KNOWN_USER, KNOWN_DB_NAME, KNOWN_PASSWORD.toCharArray())));
-        final MongoDatabase mongoDatabase = wrapper.getDatabase();
-        Assertions.assertThat(mongoDatabase).isNotNull();
-        Assertions.assertThat(mongoDatabase.getName()).isEqualTo(KNOWN_DB_NAME);
-    }
-
-    private static void assertCreatedWithDatabaseName(final MongoClientWrapper wrapper) {
-        final MongoClient mongoClient = wrapper.getMongoClient();
-        Assertions.assertThat(mongoClient).isNotNull();
-
-        final MongoClientSettings mongoClientSettings = mongoClient.getSettings();
-        Assertions.assertThat(mongoClientSettings.getClusterSettings().getHosts())
-                .isEqualTo(Collections.singletonList(new ServerAddress(KNOWN_HOST, KNOWN_PORT)));
-        final MongoDatabase mongoDatabase = wrapper.getDatabase();
-        Assertions.assertThat(mongoDatabase).isNotNull();
-        Assertions.assertThat(mongoDatabase.getName()).isEqualTo(KNOWN_DB_NAME);
     }
 
     /** */
@@ -118,7 +67,7 @@ public class MongoClientWrapperTest {
         final MongoClientWrapper wrapper = MongoClientWrapper.newInstance(config);
 
         // verify
-        assertCreatedByUri(sslEnabled, wrapper);
+        assertWithExpected(wrapper, false, true);
     }
 
     @Test(expected = UnsupportedOperationException.class)
@@ -132,7 +81,7 @@ public class MongoClientWrapperTest {
         final MongoClientWrapper wrapper = MongoClientWrapper.newInstance(config);
 
         // verify
-        assertCreatedByUri(false, wrapper);
+        assertWithExpected(wrapper, false, true);
     }
 
     /** */
@@ -143,7 +92,7 @@ public class MongoClientWrapperTest {
                 KNOWN_MAX_POOL_SIZE, KNOWN_MAX_POOL_WAIT_QUEUE_SIZE, KNOWN_MAX_POOL_WAIT_SECS);
 
         // verify
-        assertCreatedByHostAndPort(wrapper);
+        assertWithExpected(wrapper, false, false);
     }
 
     /** */
@@ -151,31 +100,29 @@ public class MongoClientWrapperTest {
     public void createByAll() {
         // test
         final MongoClientWrapper wrapper =
-                MongoClientWrapper.newInstance(KNOWN_HOST, KNOWN_PORT, KNOWN_USER, KNOWN_PASSWORD, KNOWN_DB_NAME,
+                MongoClientWrapper.newInstance(KNOWN_HOST, KNOWN_PORT, KNOWN_DB_NAME,
                         KNOWN_MAX_POOL_SIZE, KNOWN_MAX_POOL_WAIT_QUEUE_SIZE, KNOWN_MAX_POOL_WAIT_SECS);
 
         // verify
-        assertCreatedByAll(wrapper);
+        assertWithExpected(wrapper, false, false);
     }
 
-    /** */
-    @Test
-    public void createWithDatabaseName() {
-        // test
-        final MongoClientWrapper wrapper =
-                MongoClientWrapper.newInstance(KNOWN_HOST, KNOWN_PORT, null, null, KNOWN_DB_NAME,
-                        KNOWN_MAX_POOL_SIZE, KNOWN_MAX_POOL_WAIT_QUEUE_SIZE, KNOWN_MAX_POOL_WAIT_SECS);
+    private static void assertWithExpected(final MongoClientWrapper wrapper, final boolean sslEnabled,
+            final boolean withCredentials) {
+        final MongoClient mongoClient = wrapper.getMongoClient();
+        assertThat(mongoClient).isNotNull();
 
-        // verify
-        assertCreatedWithDatabaseName(wrapper);
+        final MongoClientSettings mongoClientSettings = mongoClient.getSettings();
+        assertThat(mongoClientSettings.getClusterSettings().getHosts())
+                .isEqualTo(Collections.singletonList(new ServerAddress(KNOWN_SERVER_ADDRESS)));
+        final List<MongoCredential> expectedCredentials = withCredentials ? Collections.singletonList(
+                MongoCredential.createCredential(KNOWN_USER, KNOWN_DB_NAME, KNOWN_PASSWORD.toCharArray())) :
+                Collections.emptyList();
+        assertThat(mongoClientSettings.getCredentialList()).isEqualTo(
+                expectedCredentials);
+        assertThat(mongoClientSettings.getSslSettings().isEnabled()).isEqualTo(sslEnabled);
+        final MongoDatabase mongoDatabase = wrapper.getDatabase();
+        assertThat(mongoDatabase).isNotNull();
+        assertThat(mongoDatabase.getName()).isEqualTo(KNOWN_DB_NAME);
     }
-
-    /** */
-    @Test(expected = NullPointerException.class)
-    public void createWithoutPassword() {
-        // test
-        MongoClientWrapper.newInstance(KNOWN_HOST, KNOWN_PORT, KNOWN_USER, null, KNOWN_DB_NAME,
-                KNOWN_MAX_POOL_SIZE, KNOWN_MAX_POOL_WAIT_QUEUE_SIZE, KNOWN_MAX_POOL_WAIT_SECS);
-    }
-
 }
