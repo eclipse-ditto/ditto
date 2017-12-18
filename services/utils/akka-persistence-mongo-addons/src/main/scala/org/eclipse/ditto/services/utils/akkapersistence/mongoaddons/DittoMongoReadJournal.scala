@@ -9,12 +9,13 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package akka.contrib.persistence.mongodb
+package org.eclipse.ditto.services.utils.akkapersistence.mongoaddons
 
 import java.time.Duration
 
 import akka.NotUsed
 import akka.actor.{ExtendedActorSystem, Props}
+import akka.contrib.persistence.mongodb.{JavaDslMongoReadJournal, MongoPersistenceReadJournallingApi, ScalaDslMongoReadJournal}
 import akka.persistence.query._
 import akka.stream.javadsl.{Source => JSource}
 import akka.stream.scaladsl.Source
@@ -22,14 +23,7 @@ import akka.stream.{ActorMaterializer, Materializer}
 import com.typesafe.config.Config
 
 /**
-  * Singleton companion object of [[DittoMongoReadJournal]].
-  */
-object DittoMongoReadJournal {
-  val Identifier = "ditto-akka-persistence-mongo-readjournal"
-}
-
-/**
-  * Ditto specific ReadJournal queries enhancing the [[MongoReadJournal]] of the "akka-persistence-mongo" library.
+  * Ditto specific ReadJournal queries enhancing the [[ReadJournalProvider]] of the "akka-persistence-mongo" library.
   *
   * @param system the Akka system.
   * @param config the config to use.
@@ -42,6 +36,13 @@ class DittoMongoReadJournal(system: ExtendedActorSystem, config: Config) extends
   override def scaladslReadJournal(): scaladsl.ReadJournal = new DittoScalaDslMongoReadJournal(impl)
 
   override def javadslReadJournal(): javadsl.ReadJournal = new DittoJavaDslMongoReadJournal(new DittoScalaDslMongoReadJournal(impl))
+}
+
+/**
+  * Singleton companion object of [[DittoMongoReadJournal]].
+  */
+object DittoMongoReadJournal {
+  val Identifier = "ditto-akka-persistence-mongo-readjournal"
 }
 
 /**

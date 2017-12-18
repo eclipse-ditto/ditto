@@ -9,11 +9,12 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package akka.contrib.persistence.mongodb
+package org.eclipse.ditto.services.utils.akkapersistence.mongoaddons
 
 import java.util.concurrent.ConcurrentHashMap
 
 import akka.actor.{ActorSystem, ExtendedActorSystem, ExtensionId}
+import akka.contrib.persistence.mongodb.{ConfiguredExtension, MongoPersistenceExtension, MongoSettings}
 import com.typesafe.config.Config
 
 import scala.collection.JavaConverters._
