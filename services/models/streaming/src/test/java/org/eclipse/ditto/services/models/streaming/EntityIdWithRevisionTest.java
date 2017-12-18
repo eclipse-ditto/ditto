@@ -13,8 +13,11 @@ package org.eclipse.ditto.services.models.streaming;/*
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.junit.Test;
 import org.mutabilitydetector.unittesting.MutabilityAssert;
 import org.mutabilitydetector.unittesting.MutabilityMatchers;
@@ -29,10 +32,10 @@ public final class EntityIdWithRevisionTest {
     private static final String ENTITY_ID = "entity:id:123456789";
     private static final long REVISION_NUMBER = 123456789;
 
-    private static final JsonValue KNOWN_JSON = JsonFactory.newObjectBuilder()
+    private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(EntityIdWithRevision.JsonFields.ID, ENTITY_ID)
             .set(EntityIdWithRevision.JsonFields.REVISION, REVISION_NUMBER)
-            .set(EntityIdWithRevision.JsonFields.TYPE, EntityIdWithRevision.class.getName())
+            .set(EntityIdWithRevision.JsonFields.TYPE, EntityIdWithRevision.TYPE)
             .build();
 
     @Test
@@ -42,10 +45,7 @@ public final class EntityIdWithRevisionTest {
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(EntityIdWithRevision.class) //
-                .usingGetClass() //
-                .withRedefinedSuperclass() //
-                .verify();
+        EqualsVerifier.forClass(EntityIdWithRevision.class).verify();
     }
 
     @Test
@@ -63,5 +63,16 @@ public final class EntityIdWithRevisionTest {
         assertThat(underTest).isNotNull();
         assertThat(underTest.getId()).isEqualTo(ENTITY_ID);
         assertThat(underTest.getRevision()).isEqualTo(REVISION_NUMBER);
+    }
+
+    @Test
+    public void parseWithRegistry() {
+        final EntityIdWithRevision expected =
+                EntityIdWithRevision.fromJson(KNOWN_JSON);
+
+        final Jsonifiable parsed =
+                StreamingRegistry.newInstance().parse(KNOWN_JSON.toString(), DittoHeaders.empty());
+
+        assertThat(expected).isEqualTo(parsed);
     }
 }

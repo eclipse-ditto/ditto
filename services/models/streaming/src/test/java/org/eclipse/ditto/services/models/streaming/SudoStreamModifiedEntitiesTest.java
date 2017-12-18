@@ -12,18 +12,16 @@
 package org.eclipse.ditto.services.models.streaming;
 
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.time.Instant;
 
 import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.junit.Test;
 
@@ -49,9 +47,7 @@ public final class SudoStreamModifiedEntitiesTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(SudoStreamModifiedEntities.class,
-                areImmutable(),
-                provided(AuthorizationContext.class, JsonFieldSelector.class).isAlsoImmutable());
+        assertInstancesOf(SudoStreamModifiedEntities.class, areImmutable());
     }
 
     @Test
@@ -82,17 +78,16 @@ public final class SudoStreamModifiedEntitiesTest {
         assertThat(underTest).isEqualTo(expectedCommand);
     }
 
-    /* TODO: add after registry
+
     @Test
-    public void checkSudoCommandTypeWorks() {
-        final SudoStreamModifiedEntities underTest =
+    public void parseWithRegistry() {
+        final SudoStreamModifiedEntities expected =
                 SudoStreamModifiedEntities.fromJson(KNOWN_JSON, EMPTY_DITTO_HEADERS);
 
-        final SudoCommand sudoCommand =
-                SudoCommandRegistry.newInstance().parse(KNOWN_JSON.toString(), EMPTY_DITTO_HEADERS);
+        final Jsonifiable parsed =
+                StreamingRegistry.newInstance().parse(KNOWN_JSON.toString(), EMPTY_DITTO_HEADERS);
 
-        assertThat(underTest).isEqualTo(sudoCommand);
+        assertThat(expected).isEqualTo(parsed);
     }
-    */
 
 }

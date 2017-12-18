@@ -29,12 +29,12 @@ import org.eclipse.ditto.signals.commands.base.Command;
  * Represents the ID of an entity with a revision of the entity.
  */
 @Immutable
-public final class EntityIdWithRevision implements Jsonifiable {
+public final class EntityIdWithRevision implements Jsonifiable, StreamingMessage {
 
     /**
      * Type of this message.
      */
-    public static final String TYPE = EntityIdWithRevision.class.getName();
+    public static final String TYPE = TYPE_PREFIX + EntityIdWithRevision.class.getName();
 
     private final String id;
     private final long revision;

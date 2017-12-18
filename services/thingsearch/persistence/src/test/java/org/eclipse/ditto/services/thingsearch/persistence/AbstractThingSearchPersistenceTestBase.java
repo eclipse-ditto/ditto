@@ -40,7 +40,6 @@ import org.eclipse.ditto.services.thingsearch.querymodel.query.PolicyRestrictedS
 import org.eclipse.ditto.services.thingsearch.querymodel.query.Query;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.QueryBuilderFactory;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
-import org.eclipse.ditto.services.utils.persistence.mongo.streaming.MongoSearchSyncPersistence;
 import org.eclipse.ditto.services.utils.test.mongo.MongoDbResource;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -82,7 +81,6 @@ public abstract class AbstractThingSearchPersistenceTestBase {
     private MongoCollection<Document> policiesCollection;
     private MongoCollection<Document> syncCollection;
     protected MongoThingsSearchUpdaterPersistence writePersistence;
-    protected MongoSearchSyncPersistence syncPersistence;
 
 
     private ActorSystem actorSystem;
@@ -105,7 +103,6 @@ public abstract class AbstractThingSearchPersistenceTestBase {
         actorMaterializer = ActorMaterializer.create(actorSystem);
         readPersistence = provideReadPersistence();
         writePersistence = provideWritePersistence();
-        syncPersistence = provideSyncPersistence(actorMaterializer);
         thingsCollection = mongoClient.getDatabase().getCollection(THINGS_COLLECTION_NAME);
         policiesCollection = mongoClient.getDatabase().getCollection(POLICIES_BASED_SEARCH_INDEX_COLLECTION_NAME);
         syncCollection = mongoClient.getDatabase().getCollection(LAST_SUCCESSFUL_SYNC_COLLECTION_NAME);
@@ -121,13 +118,6 @@ public abstract class AbstractThingSearchPersistenceTestBase {
     private MongoThingsSearchUpdaterPersistence provideWritePersistence() {
         return new MongoThingsSearchUpdaterPersistence(mongoClient, log,
                 MongoEventToPersistenceStrategyFactory.getInstance());
-    }
-
-    private MongoSearchSyncPersistence provideSyncPersistence(final ActorMaterializer materializer) {
-        final MongoSearchSyncPersistence mongoSearchSyncPersistence =
-                MongoSearchSyncPersistence.initializedInstance(LAST_SUCCESSFUL_SYNC_COLLECTION_NAME, mongoClient,
-                        log, materializer);
-        return mongoSearchSyncPersistence;
     }
 
     private static MongoClientWrapper provideClientWrapper() {

@@ -42,12 +42,13 @@ import org.eclipse.ditto.signals.commands.base.AbstractCommand;
  * synchronize their search index.
  */
 @Immutable
-public final class SudoStreamModifiedEntities extends AbstractCommand<SudoStreamModifiedEntities> {
+public final class SudoStreamModifiedEntities extends AbstractCommand<SudoStreamModifiedEntities>
+        implements StreamingMessage {
 
     /**
      * Type of this command.
      */
-    public static final String TYPE = SudoStreamModifiedEntities.class.getName();
+    public static final String TYPE = TYPE_PREFIX + SudoStreamModifiedEntities.class.getName();
 
     static final JsonFieldDefinition<String> JSON_START =
             JsonFactory.newStringFieldDefinition("payload/start", REGULAR, V_1, V_2);
@@ -152,7 +153,7 @@ public final class SudoStreamModifiedEntities extends AbstractCommand<SudoStream
 
     @Override
     public String getTypePrefix() {
-        return null;
+        return TYPE_PREFIX;
     }
 
     @Override
