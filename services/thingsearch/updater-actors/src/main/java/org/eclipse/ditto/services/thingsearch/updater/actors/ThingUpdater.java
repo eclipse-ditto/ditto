@@ -44,8 +44,8 @@ import org.eclipse.ditto.model.things.ThingRevision;
 import org.eclipse.ditto.services.models.policies.PolicyCacheEntry;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicy;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicyResponse;
+import org.eclipse.ditto.services.models.streaming.EntityIdWithRevision;
 import org.eclipse.ditto.services.models.things.ThingCacheEntry;
-import org.eclipse.ditto.services.models.things.ThingTag;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.services.thingsearch.persistence.write.EventToPersistenceStrategyFactory;
@@ -328,7 +328,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         return ReceiveBuilder.create()
                 .match(ThingEvent.class, this::processThingEvent)
                 .match(PolicyEvent.class, this::processPolicyEvent)
-                .match(ThingTag.class, this::processThingTag)
+                .match(EntityIdWithRevision.class, this::processEntityIdWithRevision)
                 .match(Replicator.Changed.class, this::processChangedCacheEntry)
                 .match(CheckForActivity.class, this::checkActivity)
                 .match(PersistenceWriteResult.class, this::handlePersistenceUpdateResult)
@@ -351,15 +351,15 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         }
     }
 
-    private void processThingTag(final ThingTag thingTag) {
+    private void processEntityIdWithRevision(final EntityIdWithRevision entityIdWithRevision) {
         log.debug("Received new Thing Tag for thing <{}> with revision <{}> - last known revision is <{}>",
-                thingId, thingTag.getRevision(), sequenceNumber);
+                thingId, entityIdWithRevision.getRevision(), sequenceNumber);
 
-        activeSyncMetadata = new SyncMetadata(getSender(), thingTag);
+        activeSyncMetadata = new SyncMetadata(getSender(), entityIdWithRevision);
 
-        if (thingTag.getRevision() > sequenceNumber) {
+        if (entityIdWithRevision.getRevision() > sequenceNumber) {
             log.info("The Thing Tag for the thing <{}> has the revision {} which is greater than the current actor's"
-                    + " sequence number <{}>.", thingId, thingTag.getRevision(), sequenceNumber);
+                    + " sequence number <{}>.", thingId, entityIdWithRevision.getRevision(), sequenceNumber);
             triggerSynchronization();
         } else {
             ackSync(true);
@@ -467,7 +467,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
                 // Update state related to the Thing. Policy state is maintained by synchronization.
                 sequenceNumber = thingEvent.getRevision();
             } catch (final RuntimeException e) {
-                log.error(e,"Failed to process event <{}>. Triggering sync.", thingEvent);
+                log.error(e, "Failed to process event <{}>. Triggering sync.", thingEvent);
                 triggerSynchronization();
             }
         }
@@ -1047,9 +1047,9 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         private final ActorRef ackRecipient;
         private final String thingIdentifier;
 
-        private SyncMetadata(final ActorRef ackRecipient, final ThingTag thingTag) {
+        private SyncMetadata(final ActorRef ackRecipient, final EntityIdWithRevision entityIdWithRevision) {
             this.ackRecipient = ackRecipient;
-            thingIdentifier = thingTag.asIdentifierString();
+            thingIdentifier = entityIdWithRevision.asIdentifierString();
         }
 
         /**

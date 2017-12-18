@@ -11,7 +11,7 @@
  */
 package org.eclipse.ditto.services.utils.persistence.mongo;
 
-import org.eclipse.ditto.services.models.things.commands.sudo.SudoStreamModifiedEntities;
+import org.eclipse.ditto.services.models.streaming.SudoStreamModifiedEntities;
 import org.eclipse.ditto.services.utils.akka.streaming.AbstractStreamingActor;
 
 import akka.NotUsed;

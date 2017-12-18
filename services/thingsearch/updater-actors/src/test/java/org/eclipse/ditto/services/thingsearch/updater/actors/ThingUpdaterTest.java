@@ -52,8 +52,8 @@ import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.models.policies.PolicyCacheEntry;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicy;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicyResponse;
+import org.eclipse.ditto.services.models.streaming.EntityIdWithRevision;
 import org.eclipse.ditto.services.models.things.ThingCacheEntry;
-import org.eclipse.ditto.services.models.things.ThingTag;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingMetadata;
@@ -74,7 +74,6 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.eclipse.ditto.signals.events.things.ThingModified;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -361,7 +360,7 @@ public final class ThingUpdaterTest {
     @Test
     public void thingTagWithHigherSequenceNumberTriggersSync() {
         final long revision = 7L;
-        final ThingTag thingTag = ThingTag.of(THING_ID, revision);
+        final EntityIdWithRevision thingTag = EntityIdWithRevision.of(THING_ID, revision);
         final Thing currentThing = ThingsModelFactory.newThingBuilder()
                 .setId(THING_ID)
                 .setRevision(revision)
@@ -405,7 +404,7 @@ public final class ThingUpdaterTest {
                         .setPermissions(ACL)
                         .build();
 
-                final ThingTag thingTag = ThingTag.of(THING_ID, revision);
+                final EntityIdWithRevision thingTag = EntityIdWithRevision.of(THING_ID, revision);
                 final DittoHeaders dittoHeaders = DittoHeaders.empty();
 
                 final TestProbe thingsShardProbe = TestProbe.apply(actorSystem);
@@ -555,8 +554,8 @@ public final class ThingUpdaterTest {
 
                 waitUntil().insertOrUpdate(eq(thingWithAcl), eq(1L), eq(-1L));
 
-                // send a ThingTag with sequence number = 3, which is unexpected and the updater should trigger a sync
-                underTest.tell(ThingTag.of(THING_ID, 3L), ActorRef.noSender());
+                // send a EntityIdWithRevision with sequence number = 3, which is unexpected and the updater should trigger a sync
+                underTest.tell(EntityIdWithRevision.of(THING_ID, 3L), ActorRef.noSender());
                 assertThat(expectShardedSudoRetrieveThing(thingsShardProbe, THING_ID).getMessage())
                         .isEqualToIgnoringFieldDefinitions(retrieveThing.toJson());
 
@@ -752,8 +751,8 @@ public final class ThingUpdaterTest {
             final ActorRef dummy = TestProbe.apply(actorSystem).ref();
             final ActorRef underTest = createUninitializedThingUpdaterActor(thingsProbe.ref(), dummy, dummy, dummy);
 
-            // WHEN: updater receives ThingTag with a bigger sequence number during initialization
-            final Object message = ThingTag.of(THING_ID, 1L);
+            // WHEN: updater receives EntityIdWithRevision with a bigger sequence number during initialization
+            final Object message = EntityIdWithRevision.of(THING_ID, 1L);
             underTest.tell(message, ActorRef.noSender());
 
             // THEN: sync is triggered
@@ -838,8 +837,8 @@ public final class ThingUpdaterTest {
                 final TestProbe policiesShardProbe = TestProbe.apply(actorSystem);
                 final ActorRef underTest = createInitializedThingUpdaterActor(thingsShardProbe, policiesShardProbe);
 
-                // GIVEN: a ThingTag with nonempty sender triggers synchronization
-                final ThingTag thingTag = ThingTag.of(THING_ID, thingTagRevision);
+                // GIVEN: a EntityIdWithRevision with nonempty sender triggers synchronization
+                final EntityIdWithRevision thingTag = EntityIdWithRevision.of(THING_ID, thingTagRevision);
                 underTest.tell(thingTag, ref());
 
                 // WHEN: synchronization is successful
@@ -863,8 +862,8 @@ public final class ThingUpdaterTest {
                 final TestProbe policiesShardProbe = TestProbe.apply(actorSystem);
                 final ActorRef underTest = createInitializedThingUpdaterActor(thingsShardProbe, policiesShardProbe);
 
-                // GIVEN: a ThingTag with nonempty sender triggers synchronization
-                final ThingTag thingTag = ThingTag.of(THING_ID, thingTagRevision);
+                // GIVEN: a EntityIdWithRevision with nonempty sender triggers synchronization
+                final EntityIdWithRevision thingTag = EntityIdWithRevision.of(THING_ID, thingTagRevision);
                 underTest.tell(thingTag, ref());
 
                 // WHEN: synchronization is unsuccessful, thing updater will retry two times
@@ -891,8 +890,8 @@ public final class ThingUpdaterTest {
                 final TestProbe policiesShardProbe = TestProbe.apply(actorSystem);
                 final ActorRef underTest = createInitializedThingUpdaterActor(thingsShardProbe, policiesShardProbe);
 
-                // GIVEN: a ThingTag with nonempty sender does not trigger synchronization
-                final ThingTag thingTag = ThingTag.of(THING_ID, thingTagRevision);
+                // GIVEN: a EntityIdWithRevision with nonempty sender does not trigger synchronization
+                final EntityIdWithRevision thingTag = EntityIdWithRevision.of(THING_ID, thingTagRevision);
                 underTest.tell(thingTag, ref());
 
                 // THEN: success is acknowledged

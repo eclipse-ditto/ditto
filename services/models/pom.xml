@@ -28,6 +28,7 @@
         <module>policies</module>
         <module>things</module>
         <module>thingsearch</module>
+        <module>streaming</module>
     </modules>
 
     <dependencies>

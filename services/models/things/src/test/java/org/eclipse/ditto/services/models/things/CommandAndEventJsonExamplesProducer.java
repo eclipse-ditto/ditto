@@ -17,7 +17,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.Instant;
 import java.util.Arrays;
 
 import org.eclipse.ditto.json.JsonFactory;
@@ -35,7 +34,6 @@ import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThings;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingsResponse;
-import org.eclipse.ditto.services.models.things.commands.sudo.SudoStreamModifiedEntities;
 
 /* */
 public final class CommandAndEventJsonExamplesProducer {
@@ -107,15 +105,6 @@ public final class CommandAndEventJsonExamplesProducer {
                         sudoFieldSelector, FieldType.regularOrSpecial(), TestConstants.EMPTY_HEADERS);
         writeJson(sudoCommandsDir.resolve(Paths.get("sudoRetrieveThingsResponse-withFieldSelector.json")),
                 sudoRetrieveThingsResponseWithFieldSelector);
-
-        final Instant start = Instant.EPOCH;
-        final Instant end = Instant.now();
-        final int rate = 100;
-
-        final SudoStreamModifiedEntities sudoRetrieveModifiedThingTags =
-                SudoStreamModifiedEntities.of(start, end, rate, TestConstants.EMPTY_HEADERS);
-        writeJson(sudoCommandsDir.resolve(Paths.get("sudoStreamModifiedEntities.json")),
-                sudoRetrieveModifiedThingTags);
     }
 
     private static Thing createExampleThing(final String thingId) {

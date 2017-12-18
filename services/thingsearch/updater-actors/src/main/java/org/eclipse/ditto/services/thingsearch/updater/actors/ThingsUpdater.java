@@ -20,7 +20,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
-import org.eclipse.ditto.services.models.things.ThingTag;
+import org.eclipse.ditto.services.models.streaming.EntityIdWithRevision;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.ShardedMessageEnvelope;
@@ -139,7 +139,7 @@ final class ThingsUpdater extends AbstractActor {
                         shardRegion.forward(getShardRegionState, getContext()))
                 .match(ThingEvent.class, this::processThingEvent)
                 .match(PolicyEvent.class, this::processPolicyEvent)
-                .match(ThingTag.class, this::processThingTag)
+                .match(EntityIdWithRevision.class, this::processEntityIdWithRevision)
                 .match(DistributedPubSubMediator.SubscribeAck.class, this::subscribeAck)
                 .matchAny(m -> {
                     log.warning("Unknown message: {}", m);
@@ -147,9 +147,9 @@ final class ThingsUpdater extends AbstractActor {
                 }).build();
     }
 
-    private void processThingTag(final ThingTag thingTag) {
-        log.debug("Forwarding incoming ThingTag for thingId '{}'", thingTag.getThingId());
-        forwardJsonifiableToShardRegion(thingTag, ThingTag::getThingId);
+    private void processEntityIdWithRevision(final EntityIdWithRevision thingTag) {
+        log.debug("Forwarding incoming EntityIdWithRevision for thingId '{}'", thingTag.getId());
+        forwardJsonifiableToShardRegion(thingTag, EntityIdWithRevision::getId);
     }
 
     private void processThingEvent(final ThingEvent<?> thingEvent) {

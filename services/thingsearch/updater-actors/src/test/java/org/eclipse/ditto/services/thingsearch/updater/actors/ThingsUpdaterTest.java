@@ -26,7 +26,7 @@ import java.util.Set;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
-import org.eclipse.ditto.services.models.things.ThingTag;
+import org.eclipse.ditto.services.models.streaming.EntityIdWithRevision;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.utils.cluster.ShardedMessageEnvelope;
 import org.eclipse.ditto.signals.events.policies.PolicyDeleted;
@@ -120,11 +120,11 @@ public class ThingsUpdaterTest {
 
     @Test
     public void thingTagIsForwarded() {
-        final ThingTag event = ThingTag.of(KNOWN_THING_ID, KNOWN_REVISION);
+        final EntityIdWithRevision event = EntityIdWithRevision.of(KNOWN_THING_ID, KNOWN_REVISION);
         new TestKit(actorSystem) {{
             final ActorRef underTest = createThingsUpdater();
             underTest.tell(event, getRef());
-            expectShardedMessage(shardMessageReceiver, event, event.getThingId());
+            expectShardedMessage(shardMessageReceiver, event, event.getId());
         }};
     }
 

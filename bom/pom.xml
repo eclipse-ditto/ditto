@@ -443,6 +443,11 @@
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
+                <artifactId>ditto-services-models-streaming</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-services-utils-akka</artifactId>
                 <version>${project.version}</version>
             </dependency>

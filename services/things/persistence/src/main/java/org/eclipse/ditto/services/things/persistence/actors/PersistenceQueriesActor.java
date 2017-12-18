@@ -11,7 +11,7 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors;
 
-import org.eclipse.ditto.services.models.things.ThingTag;
+import org.eclipse.ditto.services.models.streaming.EntityIdWithRevision;
 import org.eclipse.ditto.services.utils.persistence.mongo.AbstractPersistenceStreamingActor;
 
 import akka.actor.Props;
@@ -24,7 +24,7 @@ import akka.persistence.query.PersistenceQuery;
 /**
  * Actor which executes special persistence queries on the things event store.
  */
-public final class PersistenceQueriesActor extends AbstractPersistenceStreamingActor<ThingTag> {
+public final class PersistenceQueriesActor extends AbstractPersistenceStreamingActor<EntityIdWithRevision> {
 
     /**
      * The name of this Actor in the ActorSystem.
@@ -78,7 +78,7 @@ public final class PersistenceQueriesActor extends AbstractPersistenceStreamingA
     }
 
     @Override
-    protected ThingTag createElement(final String pid, final long sequenceNumber) {
-        return ThingTag.of(pid.replaceFirst(ThingPersistenceActor.PERSISTENCE_ID_PREFIX, ""), sequenceNumber);
+    protected EntityIdWithRevision createElement(final String pid, final long sequenceNumber) {
+        return EntityIdWithRevision.of(pid.replaceFirst(ThingPersistenceActor.PERSISTENCE_ID_PREFIX, ""), sequenceNumber);
     }
 }

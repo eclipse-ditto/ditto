@@ -20,7 +20,6 @@ import org.eclipse.ditto.services.gateway.proxy.actors.handlers.ModifyThingHandl
 import org.eclipse.ditto.services.gateway.proxy.actors.handlers.RetrieveThingHandlerActor;
 import org.eclipse.ditto.services.gateway.proxy.actors.handlers.ThingHandlerCreator;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoCommand;
-import org.eclipse.ditto.services.models.things.commands.sudo.SudoStreamModifiedEntities;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThings;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingsResponse;
 import org.eclipse.ditto.services.utils.akka.LogUtil;

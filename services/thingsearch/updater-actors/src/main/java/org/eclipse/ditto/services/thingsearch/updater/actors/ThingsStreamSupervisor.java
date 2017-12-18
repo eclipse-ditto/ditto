@@ -16,8 +16,8 @@ import java.time.Duration;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.services.models.things.ThingTag;
-import org.eclipse.ditto.services.models.things.commands.sudo.SudoStreamModifiedEntities;
+import org.eclipse.ditto.services.models.streaming.EntityIdWithRevision;
+import org.eclipse.ditto.services.models.streaming.SudoStreamModifiedEntities;
 import org.eclipse.ditto.services.utils.akka.streaming.AbstractStreamSupervisor;
 import org.eclipse.ditto.services.utils.akka.streaming.DefaultStreamForwarder;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamMetadataPersistence;
@@ -129,16 +129,16 @@ public final class ThingsStreamSupervisor extends AbstractStreamSupervisor<Send>
     @Override
     protected Props getStreamForwarderProps() {
         return DefaultStreamForwarder.props(thingsUpdater, getSelf(), maxIdleTime,
-                ThingTag.class, ThingTag::asIdentifierString);
+                EntityIdWithRevision.class, EntityIdWithRevision::asIdentifierString);
     }
 
     @Override
     protected Send newStartStreamingCommand(final StreamTrigger streamRestrictions) {
-        final SudoStreamModifiedEntities retrieveModifiedThingTags =
+        final SudoStreamModifiedEntities retrieveModifiedEntityIdWithRevisions =
                 SudoStreamModifiedEntities.of(streamRestrictions.getQueryStart(), streamRestrictions.getQueryEnd(),
                         elementsStreamedPerSecond, DittoHeaders.empty());
 
-        return new Send(THINGS_ACTOR_PATH, retrieveModifiedThingTags, true);
+        return new Send(THINGS_ACTOR_PATH, retrieveModifiedEntityIdWithRevisions, true);
     }
 
     @Override

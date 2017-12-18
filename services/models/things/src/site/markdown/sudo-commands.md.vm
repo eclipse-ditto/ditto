@@ -65,10 +65,3 @@ Example response:
 ```
 #parse( "snippet" )
 ```
-
-$h2 Sudo Stream Modified Entities
-
-#set( $snippetFile = "/target/generated-resources/commands/sudo/sudoStreamModifiedEntities.json" )
-```
-#parse( "snippet" )
-```

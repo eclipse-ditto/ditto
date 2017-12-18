@@ -19,6 +19,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.services.models.streaming.StreamingRegistry;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoCommandRegistry;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoCommandResponseRegistry;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategiesBuilder;
@@ -43,13 +44,13 @@ public final class ThingsMappingStrategy implements MappingStrategy {
                 .add(ThingEventRegistry.newInstance())
                 .add(SudoCommandRegistry.newInstance())
                 .add(SudoCommandResponseRegistry.newInstance())
+                .add(StreamingRegistry.newInstance())
                 .add(Thing.class,
                         (jsonObject) -> ThingsModelFactory.newThing(jsonObject)) // do not replace with lambda!
                 .add(BaseCacheEntry.class,
                         jsonObject -> BaseCacheEntry.fromJson(jsonObject)) // do not replace with lambda!
                 .add(ThingCacheEntry.class,
                         jsonObject -> ThingCacheEntry.fromJson(jsonObject)) // do not replace with lambda!
-                .add(ThingTag.class, jsonObject -> ThingTag.fromJson(jsonObject)) // do not replace with lambda!
                 .build();
     }
 }

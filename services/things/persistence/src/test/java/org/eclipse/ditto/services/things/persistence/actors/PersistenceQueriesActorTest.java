@@ -20,8 +20,8 @@ import java.time.Instant;
 import java.util.UUID;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.services.models.things.ThingTag;
-import org.eclipse.ditto.services.models.things.commands.sudo.SudoStreamModifiedEntities;
+import org.eclipse.ditto.services.models.streaming.EntityIdWithRevision;
+import org.eclipse.ditto.services.models.streaming.SudoStreamModifiedEntities;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -83,7 +83,7 @@ public final class PersistenceQueriesActorTest {
 
             sendCommand(this, underTest, command);
 
-            expectMsgEquals(ThingTag.of(ID, REVISION));
+            expectMsgEquals(EntityIdWithRevision.of(ID, REVISION));
             expectMsgEquals(STREAM_FINISHED_MSG);
         }};
     }

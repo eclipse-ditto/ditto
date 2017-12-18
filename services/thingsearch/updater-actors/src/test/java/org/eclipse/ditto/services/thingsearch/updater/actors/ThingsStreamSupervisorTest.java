@@ -24,7 +24,7 @@ import java.time.Instant;
 import java.util.concurrent.TimeUnit;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.services.models.things.commands.sudo.SudoStreamModifiedEntities;
+import org.eclipse.ditto.services.models.streaming.SudoStreamModifiedEntities;
 import org.eclipse.ditto.services.utils.akka.streaming.AbstractStreamSupervisor;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamConstants;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamMetadataPersistence;

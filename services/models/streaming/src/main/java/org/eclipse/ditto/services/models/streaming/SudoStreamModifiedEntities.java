@@ -9,7 +9,7 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package org.eclipse.ditto.services.models.things.commands.sudo;
+package org.eclipse.ditto.services.models.streaming;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.model.base.json.FieldType.REGULAR;
@@ -31,29 +31,23 @@ import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonParseException;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.services.models.things.ThingTag;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 
 /**
- * Command which retrieves several {@link ThingTag}s based on the the passed in time span without authorization. This
- * command is sent only internally by the Ditto services, e.g. eventing or search, in order to synchronize their Things
- * cache.
+ * Command which starts a stream from a persistence query actor based on the the passed in time span without
+ * authorization. This command is sent only internally by the Ditto services, e.g. eventing or search, in order to
+ * synchronize their search index.
  */
 @Immutable
-public final class SudoStreamModifiedEntities extends AbstractCommand<SudoStreamModifiedEntities> implements
-        SudoCommand<SudoStreamModifiedEntities> {
-
-    /**
-     * Name of this command.
-     */
-    public static final String NAME = "sudoStreamModifiedEntities";
+public final class SudoStreamModifiedEntities extends AbstractCommand<SudoStreamModifiedEntities> {
 
     /**
      * Type of this command.
      */
-    public static final String TYPE = TYPE_PREFIX + NAME;
+    public static final String TYPE = SudoStreamModifiedEntities.class.getName();
 
     static final JsonFieldDefinition<String> JSON_START =
             JsonFactory.newStringFieldDefinition("payload/start", REGULAR, V_1, V_2);
@@ -157,6 +151,11 @@ public final class SudoStreamModifiedEntities extends AbstractCommand<SudoStream
     }
 
     @Override
+    public String getTypePrefix() {
+        return null;
+    }
+
+    @Override
     public SudoStreamModifiedEntities setDittoHeaders(final DittoHeaders dittoHeaders) {
         return of(start, end, rate, dittoHeaders);
     }
@@ -197,4 +196,18 @@ public final class SudoStreamModifiedEntities extends AbstractCommand<SudoStream
                 + "]";
     }
 
+    @Override
+    public String getId() {
+        return "";
+    }
+
+    @Override
+    public JsonPointer getResourcePath() {
+        return JsonPointer.empty();
+    }
+
+    @Override
+    public String getResourceType() {
+        return TYPE;
+    }
 }

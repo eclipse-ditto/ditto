@@ -45,7 +45,6 @@ public class SudoCommandRegistry extends AbstractCommandRegistry<SudoCommand> {
         parseStrategies.put(TakeSnapshot.TYPE, TakeSnapshot::fromJson);
         parseStrategies.put(SudoRetrieveThing.TYPE, SudoRetrieveThing::fromJson);
         parseStrategies.put(SudoRetrieveThings.TYPE, SudoRetrieveThings::fromJson);
-        parseStrategies.put(SudoStreamModifiedEntities.TYPE, SudoStreamModifiedEntities::fromJson);
 
         return new SudoCommandRegistry(parseStrategies);
     }
