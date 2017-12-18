@@ -11,6 +11,8 @@
  */
 package org.eclipse.ditto.services.utils.persistence.mongo;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.Collections;
@@ -35,7 +37,7 @@ import com.typesafe.config.Config;
 /**
  * MongoDB Client Wrapper.
  */
-public final class MongoClientWrapper {
+public final class MongoClientWrapper implements Closeable {
 
     private final MongoClient mongoClient;
     private final MongoDatabase mongoDatabase;
@@ -158,5 +160,10 @@ public final class MongoClientWrapper {
      */
     public MongoDatabase getDatabase() {
         return mongoDatabase;
+    }
+
+    @Override
+    public void close() {
+        mongoClient.close();
     }
 }
