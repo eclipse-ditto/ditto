@@ -132,7 +132,7 @@ public final class SearchRootActor extends AbstractActor {
 
         final int maxPoolSize = config.getInt(ConfigKeys.MONGO_CONNECTION_POOL_MAX_SIZE);
         final int maxPoolQueueSize = config.getInt(ConfigKeys.MONGO_CONNECTION_POOL_MAX_WAIT_QUEUE_SIZE);
-        final int maxWaitTimeSecs = config.getInt(ConfigKeys.MONGO_CONNECTION_POOL_MAX_WAIT_TIME);
+        final long maxWaitTimeSecs = config.getDuration(ConfigKeys.MONGO_CONNECTION_POOL_MAX_WAIT_TIME).getSeconds();
         final MongoClientWrapper mongoClientWrapper = MongoClientWrapper.newInstance(config,
                 maxPoolSize,
                 maxPoolQueueSize,
