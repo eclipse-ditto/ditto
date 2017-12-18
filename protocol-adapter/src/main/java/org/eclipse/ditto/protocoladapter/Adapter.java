@@ -25,15 +25,17 @@ public interface Adapter<T extends Jsonifiable> {
      *
      * @param adaptable the adaptable to map.
      * @return the mapped object.
+     * @throws NullPointerException if {@code adaptable} is {@code null}.
      */
     T fromAdaptable(Adaptable adaptable);
 
     /**
-     * Maps the given {@code t} to it's corresponding {@code Adaptable} using the
-     * {@link TopicPath.Channel#TWIN Twin} channel.
+     * Maps the given {@code t} to it's corresponding {@code Adaptable} using the {@link TopicPath.Channel#TWIN Twin}
+     * channel.
      *
      * @param t the object to map.
      * @return the mapped adaptable.
+     * @throws NullPointerException if {@code t} is {@code null}.
      */
     default Adaptable toAdaptable(final T t) {
         return toAdaptable(t, TopicPath.Channel.TWIN);
@@ -45,6 +47,8 @@ public interface Adapter<T extends Jsonifiable> {
      * @param t the object to map.
      * @param channel the Channel (Twin/Live) to use.
      * @return the mapped adaptable.
+     * @throws NullPointerException if {@code t} is {@code null}.
+     * @throws IllegalArgumentException if {@code channel} is unknown.
      */
     Adaptable toAdaptable(T t, TopicPath.Channel channel);
 

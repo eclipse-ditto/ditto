@@ -23,21 +23,21 @@ import org.eclipse.ditto.model.policiesenforcers.testbench.scenarios.Scenario;
 
 public interface Scenario1Simple extends Scenario {
 
-    String SCENARIO_GROUP_NAME = Scenario1Simple1.class.getSimpleName();
+    String SCENARIO_GROUP_NAME = Scenario1Simple.class.getSimpleName();
 
     String SUBJECT_ALL_GRANTED = "sid_all";
     String SUBJECT_NONE_GRANTED = "sid_none";
     String SUBJECT_WRITE_REVOKED = "sid_write_revoke";
 
-    Policy POLICY = PoliciesModelFactory //
-            .newPolicyBuilder("benchmark:" + Scenario1Simple1.class.getSimpleName()) //
-            .forLabel("all") //
-            .setSubject(SubjectIssuer.GOOGLE_URL, SUBJECT_ALL_GRANTED) //
-            .setSubject(SubjectIssuer.GOOGLE_URL, SUBJECT_WRITE_REVOKED) //
-            .setGrantedPermissions(PoliciesResourceType.thingResource("/"), "READ", "WRITE") //
-            .forLabel("revokeWrite") //
-            .setSubject(SubjectIssuer.GOOGLE_URL, SUBJECT_WRITE_REVOKED) //
-            .setRevokedPermissions(PoliciesResourceType.thingResource("/"), "WRITE") //
+    Policy POLICY = PoliciesModelFactory
+            .newPolicyBuilder("benchmark:" + SCENARIO_GROUP_NAME)
+            .forLabel("all")
+            .setSubject(SubjectIssuer.GOOGLE_URL, SUBJECT_ALL_GRANTED)
+            .setSubject(SubjectIssuer.GOOGLE_URL, SUBJECT_WRITE_REVOKED)
+            .setGrantedPermissions(PoliciesResourceType.thingResource("/"), "READ", "WRITE")
+            .forLabel("revokeWrite")
+            .setSubject(SubjectIssuer.GOOGLE_URL, SUBJECT_WRITE_REVOKED)
+            .setRevokedPermissions(PoliciesResourceType.thingResource("/"), "WRITE")
             .build();
 
     default Policy getPolicy() {
@@ -53,4 +53,5 @@ public interface Scenario1Simple extends Scenario {
     default Function<PolicyAlgorithm, Boolean> getApplyAlgorithmFunction() {
         return algorithm -> algorithm.hasPermissionsOnResource(getSetup());
     }
+
 }

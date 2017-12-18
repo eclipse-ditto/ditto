@@ -279,6 +279,7 @@ public interface JsonObject extends JsonValue, JsonValueContainer<JsonField> {
      * </pre>
      * this method is called with key {@code "attributes/someAttr/subsel"} an empty Optional is returned. Is the key
      * {@code "thingId"} used instead the returned Optional would contain {@code "myThing"}.
+     * If the specified key is empty or {@code "/"} this object reference is returned within the result.
      *
      * @param key defines which value to get.
      * @return the JSON value at the key-defined location within this object.

@@ -13,7 +13,7 @@ services:
        TZ: Europe/Berlin
 
   policies:
-    image: docker.io/eclipseditto/ditto-policies:0.1.0-SNAPSHOT
+    image: docker.io/eclipse/ditto-policies:${DITTO_VERSION:-latest}
     networks:
       default:
         aliases:
@@ -25,7 +25,7 @@ services:
       - _JAVA_OPTIONS=-Xms256m -Xmx256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError -Dditto.cluster.become-leader=true
 
   things:
-    image: docker.io/eclipseditto/ditto-things:0.1.0-SNAPSHOT
+    image: docker.io/eclipse/ditto-things:${DITTO_VERSION:-latest}
     networks:
       default:
         aliases:
@@ -40,7 +40,7 @@ services:
       - _JAVA_OPTIONS=-Xms256m -Xmx256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError
 
   things-search:
-    image: docker.io/eclipseditto/ditto-things-search:0.1.0-SNAPSHOT
+    image: docker.io/eclipse/ditto-things-search:${DITTO_VERSION:-latest}
     networks:
       default:
         aliases:
@@ -55,7 +55,7 @@ services:
       - _JAVA_OPTIONS=-Xms256m -Xmx256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError
 
   gateway:
-    image: docker.io/eclipseditto/ditto-gateway:0.1.0-SNAPSHOT
+    image: docker.io/eclipse/ditto-gateway:${DITTO_VERSION:-latest}
     networks:
       default:
         aliases:

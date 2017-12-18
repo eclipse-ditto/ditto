@@ -72,6 +72,8 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveAttribute;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributeResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributes;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributesResponse;
+import org.eclipse.ditto.signals.commands.things.query.RetrieveFeature;
+import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatures;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeaturesResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
@@ -89,6 +91,7 @@ import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.testkit.JavaTestKit;
 import akka.testkit.TestActorRef;
+import akka.testkit.javadsl.TestKit;
 import scala.PartialFunction;
 import scala.concurrent.Await;
 import scala.concurrent.Future;
@@ -1117,6 +1120,53 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 assertThat(getLastSender()).isEqualTo(thingPersistenceActorRecovered);
             }
         };
+    }
+
+    @Test
+    public void retrieveFeatureReturnsExpected() {
+        final String thingId = "org.eclipse.ditto:thing1";
+        final String gyroscopeFeatureId = "Gyroscope.0";
+        final Feature gyroscopeFeature = ThingsModelFactory.newFeatureBuilder()
+                .properties(ThingsModelFactory.newFeaturePropertiesBuilder()
+                        .set("status", JsonFactory.newObjectBuilder()
+                                .set("minRangeValue", -2000)
+                                .set("xValue", -0.05071427300572395)
+                                .set("units", "Deg/s")
+                                .set("yValue", -0.4192921817302704)
+                                .set("zValue", 0.20766231417655945)
+                                .set("maxRangeValue", 2000)
+                                .build())
+                        .build())
+                .withId(gyroscopeFeatureId)
+                .build();
+        final Thing thing = ThingsModelFactory.newThingBuilder()
+                .setId(thingId)
+                .setPolicyId("Foo")
+                .setAttributes(ThingsModelFactory.newAttributesBuilder()
+                        .set("isOnline", false)
+                        .set("lastUpdate", "Thu Sep 28 15:01:43 CEST 2017")
+                        .build())
+                .setFeature(gyroscopeFeature)
+                .build();
+
+        final ThingQueryCommandResponse<RetrieveFeatureResponse> expectedResponse =
+                RetrieveFeatureResponse.of(thingId, gyroscopeFeature, dittoHeadersV2);
+
+        new TestKit(actorSystem) {{
+            final ActorRef thingPersistenceActor = createPersistenceActorFor(thing);
+
+            // create Thing
+            final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV2);
+            thingPersistenceActor.tell(createThing, getRef());
+            expectMsgClass(CreateThingResponse.class);
+
+            // retrieve Feature
+            final RetrieveFeature retrieveFeatureCmd = RetrieveFeature.of(thingId, gyroscopeFeatureId, dittoHeadersV2);
+            thingPersistenceActor.tell(retrieveFeatureCmd, getRef());
+            final Object receivedResponse = expectMsgClass(RetrieveFeatureResponse.class);
+
+            assertThat(receivedResponse).isEqualTo(expectedResponse);
+        }};
     }
 
     private static void assertThingInResponse(final Thing actualThing, final Thing expectedThing) {

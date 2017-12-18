@@ -22,17 +22,20 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.signals.commands.base.WithEntity;
 
 /**
  * Response to a {@link RetrieveStatistics} command containing a {@link JsonObject} of the retrieved Statistics.
  */
 @Immutable
-public final class RetrieveStatisticsResponse extends AbstractDevOpsCommandResponse<RetrieveStatisticsResponse> {
+public final class RetrieveStatisticsResponse extends AbstractDevOpsCommandResponse<RetrieveStatisticsResponse>
+        implements WithEntity<RetrieveStatisticsResponse> {
 
     /**
      * Type of this response.
@@ -109,6 +112,16 @@ public final class RetrieveStatisticsResponse extends AbstractDevOpsCommandRespo
      * @return the JSON representation of the statistics.
      */
     public JsonObject getStatistics() {
+        return statistics;
+    }
+
+    @Override
+    public RetrieveStatisticsResponse setEntity(final JsonValue entity) {
+        return of(getServiceName().orElse(null), getInstance().orElse(null), entity.asObject(), getDittoHeaders());
+    }
+
+    @Override
+    public JsonValue getEntity(final JsonSchemaVersion schemaVersion) {
         return statistics;
     }
 
