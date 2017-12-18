@@ -9,7 +9,7 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package org.eclipse.ditto.services.thingsearch.updater.actors;
+package org.eclipse.ditto.services.utils.akka.streaming;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -22,12 +22,10 @@ import static org.mockito.Mockito.when;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.models.streaming.SudoStreamModifiedEntities;
-import org.eclipse.ditto.services.utils.akka.streaming.AbstractStreamSupervisor;
-import org.eclipse.ditto.services.utils.akka.streaming.StreamConstants;
-import org.eclipse.ditto.services.utils.akka.streaming.StreamMetadataPersistence;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -37,14 +35,12 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.verification.VerificationWithTimeout;
 
-import com.mongodb.MongoException;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
 import akka.actor.ActorSystem;
-import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.stream.ActorMaterializer;
 import akka.stream.javadsl.Source;
 import akka.testkit.TestProbe;
@@ -53,8 +49,11 @@ import scala.concurrent.Await;
 import scala.concurrent.Future;
 import scala.concurrent.duration.FiniteDuration;
 
+/**
+ * Tests {@link DefaultStreamSupervisor}.
+ */
 @RunWith(MockitoJUnitRunner.class)
-public class ThingsStreamSupervisorTest {
+public class DefaultStreamSupervisorTest {
 
     private static final Duration START_OFFSET = Duration.ofMinutes(2);
 
@@ -66,13 +65,13 @@ public class ThingsStreamSupervisorTest {
     private static final Duration STREAM_INTERVAL = Duration.ofSeconds(5);
     private static final int ELEMENTS_STREAMED_PER_SECOND = 5;
 
-    private static final Duration SHORT_TIMEOUT = Duration.ofSeconds(5);
+    private static final Duration SHORT_TIMEOUT = Duration.ofSeconds(10);
     private static final VerificationWithTimeout SHORT_MOCKITO_TIMEOUT = timeout(SHORT_TIMEOUT.toMillis());
 
     private ActorSystem actorSystem;
     private ActorMaterializer materializer;
-    private TestProbe thingsUpdater;
-    private TestProbe pubSubMediator;
+    private TestProbe forwardTo;
+    private TestProbe provider;
     @Mock
     private StreamMetadataPersistence searchSyncPersistence;
 
@@ -82,8 +81,8 @@ public class ThingsStreamSupervisorTest {
         final Config config = ConfigFactory.load("test");
         actorSystem = ActorSystem.create("AkkaTestSystem", config);
         materializer = ActorMaterializer.create(actorSystem);
-        thingsUpdater = TestProbe.apply(actorSystem);
-        pubSubMediator = TestProbe.apply(actorSystem);
+        forwardTo = TestProbe.apply(actorSystem);
+        provider = TestProbe.apply(actorSystem);
 
         when(searchSyncPersistence.retrieveLastSuccessfulStreamEnd(any(Instant.class)))
                 .thenAnswer(unused -> KNOWN_LAST_SYNC);
@@ -141,7 +140,7 @@ public class ThingsStreamSupervisorTest {
             verify(searchSyncPersistence).retrieveLastSuccessfulStreamEnd(any(Instant.class));
 
             when(searchSyncPersistence.updateLastSuccessfulStreamEnd(any(Instant.class)))
-                    .thenReturn(Source.failed(new MongoException("a mongo error")));
+                    .thenReturn(Source.failed(new IllegalStateException("mocked stream-metadata-persistence error")));
 
             sendMessageToForwarderAndExpectTerminated(this, streamSupervisor, StreamConstants.STREAM_FINISHED_MSG);
 
@@ -174,19 +173,12 @@ public class ThingsStreamSupervisorTest {
     }
 
     private void expectStreamTriggerMsg(final Instant expectedQueryEnd) {
-        final SudoStreamModifiedEntities msg = expectPubSubMessage(SudoStreamModifiedEntities.class);
+        final SudoStreamModifiedEntities msg = provider.expectMsgClass(FiniteDuration.apply(SHORT_TIMEOUT.toMillis(),
+                TimeUnit.MILLISECONDS), SudoStreamModifiedEntities.class);
         final SudoStreamModifiedEntities expectedStreamTriggerMsg =
                 SudoStreamModifiedEntities.of(KNOWN_LAST_SYNC, expectedQueryEnd, ELEMENTS_STREAMED_PER_SECOND,
                         DittoHeaders.empty());
         assertThat(msg).isEqualTo(expectedStreamTriggerMsg);
-    }
-
-    private <T> T expectPubSubMessage(final Class<T> clazz) {
-        final DistributedPubSubMediator.Send pubSubMsg =
-                pubSubMediator.expectMsgClass(FiniteDuration.apply(15, TimeUnit.SECONDS), DistributedPubSubMediator
-                        .Send.class);
-        final Object wrappedMsg = pubSubMsg.msg();
-        return clazz.cast(wrappedMsg);
     }
 
     private ActorRef createStreamSupervisor() {
@@ -194,11 +186,10 @@ public class ThingsStreamSupervisorTest {
     }
 
     private ActorRef createStreamSupervisor(final Duration maxIdleTime) {
-        return actorSystem.actorOf(
-                ThingsStreamSupervisor.props(thingsUpdater.ref(), searchSyncPersistence, materializer,
-                        START_OFFSET,
-                        STREAM_INTERVAL, INITIAL_START_OFFSET, Duration.ofDays(10),
-                        maxIdleTime, ELEMENTS_STREAMED_PER_SECOND, pubSubMediator.ref()));
+        final StreamConsumerSettings streamConsumerSettings = StreamConsumerSettings.of(START_OFFSET,
+                STREAM_INTERVAL, INITIAL_START_OFFSET, maxIdleTime, ELEMENTS_STREAMED_PER_SECOND, Duration.ofDays(10));
+        return actorSystem.actorOf(DefaultStreamSupervisor.props(forwardTo.ref(), provider.ref(), Function.identity(),
+                searchSyncPersistence, materializer, streamConsumerSettings));
     }
 
     private void sendMessageToForwarderAndExpectTerminated(final TestKit testKit, final ActorRef superVisorActorRef,
@@ -219,7 +210,7 @@ public class ThingsStreamSupervisorTest {
 
     private ActorRef getForwarderActor(final ActorRef superVisorActorRef) throws Exception {
         final String forwarderPath =
-                superVisorActorRef.path() + "/" + AbstractStreamSupervisor.STREAM_FORWARDER_ACTOR_NAME;
+                superVisorActorRef.path() + "/" + DefaultStreamSupervisor.STREAM_FORWARDER_ACTOR_NAME;
         final ActorSelection forwarderActorSelection = actorSystem.actorSelection(forwarderPath);
         final Future<ActorRef> forwarderActorFuture =
                 forwarderActorSelection.resolveOne(scala.concurrent.duration.Duration.create(5, TimeUnit.SECONDS));

@@ -23,6 +23,7 @@ import org.eclipse.ditto.services.thingsearch.common.util.ConfigKeys;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.thingsearch.persistence.write.impl.MongoEventToPersistenceStrategyFactory;
 import org.eclipse.ditto.services.thingsearch.persistence.write.impl.MongoThingsSearchUpdaterPersistence;
+import org.eclipse.ditto.services.utils.akka.streaming.StreamConsumerSettings;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamMetadataPersistence;
 import org.eclipse.ditto.services.utils.distributedcache.actors.CacheFacadeActor;
 import org.eclipse.ditto.services.utils.distributedcache.actors.CacheRole;
@@ -155,21 +156,28 @@ public final class SearchUpdaterRootActor extends AbstractActor {
 
             final StreamMetadataPersistence syncPersistence =
                     MongoSearchSyncPersistence.initializedInstance(LAST_SUCCESSFUL_SYNC_COLLECTION_NAME,
-                            mongoClientWrapper, log, materializer);
+                            mongoClientWrapper, materializer);
 
-            final Duration startOffset = config.getDuration(ConfigKeys.THINGS_SYNCER_START_OFFSET);
-            final Duration initialStartOffset = config.getDuration(ConfigKeys.THINGS_SYNCER_INITIAL_START_OFFSET);
-            final Duration streamInterval = config.getDuration(ConfigKeys.THINGS_SYNCER_STREAM_INTERVAL);
-            final Duration warnOffset = config.getDuration(ConfigKeys.THINGS_SYNCER_WARN_OFFSET);
-            final Duration maxIdleTime = config.getDuration(ConfigKeys.THINGS_SYNCER_MAX_IDLE_TIME);
-            final int elementsStreamedPerSecond = config.getInt(ConfigKeys.THINGS_SYNCER_ELEMENTS_STREAMED_PER_SECOND);
+            final StreamConsumerSettings streamConsumerSettings = createThingStreamConsumerSettings(config);
 
-            startClusterSingletonActor(ThingsStreamSupervisor.ACTOR_NAME,
-                    ThingsStreamSupervisor.props(thingsUpdaterActor, syncPersistence, materializer, startOffset,
-                            streamInterval, initialStartOffset, warnOffset, maxIdleTime, elementsStreamedPerSecond));
+            startClusterSingletonActor(ThingsStreamSupervisorCreator.ACTOR_NAME,
+                    ThingsStreamSupervisorCreator.props(thingsUpdaterActor, pubSubMediator, syncPersistence,
+                            materializer, streamConsumerSettings));
         } else {
             log.warning("Things synchronization is not active");
         }
+    }
+
+    private static StreamConsumerSettings createThingStreamConsumerSettings(final Config config) {
+        final Duration startOffset = config.getDuration(ConfigKeys.THINGS_SYNCER_START_OFFSET);
+        final Duration streamInterval = config.getDuration(ConfigKeys.THINGS_SYNCER_STREAM_INTERVAL);
+        final Duration initialStartOffset = config.getDuration(ConfigKeys.THINGS_SYNCER_INITIAL_START_OFFSET);
+        final Duration maxIdleTime = config.getDuration(ConfigKeys.THINGS_SYNCER_MAX_IDLE_TIME);
+        final int elementsStreamedPerSecond = config.getInt(ConfigKeys.THINGS_SYNCER_ELEMENTS_STREAMED_PER_SECOND);
+        final Duration outdatedWarningOffset = config.getDuration(ConfigKeys.THINGS_SYNCER_WARN_OFFSET);
+
+        return StreamConsumerSettings.of(startOffset, streamInterval, initialStartOffset, maxIdleTime,
+                elementsStreamedPerSecond, outdatedWarningOffset);
     }
 
     /**
