@@ -113,14 +113,7 @@ public final class SearchUpdaterRootActor extends AbstractActor {
     private SearchUpdaterRootActor(final Config config, final ActorRef pubSubMediator) {
         final int numberOfShards = config.getInt(ConfigKeys.CLUSTER_NUMBER_OF_SHARDS);
 
-        final int maxPoolSize = config.getInt(ConfigKeys.MONGO_CONNECTION_POOL_MAX_SIZE);
-        final int maxPoolQueueSize = config.getInt(ConfigKeys.MONGO_CONNECTION_POOL_MAX_WAIT_QUEUE_SIZE);
-        final int maxWaitTimeSecs = config.getInt(ConfigKeys.MONGO_CONNECTION_POOL_MAX_WAIT_TIME);
-        final MongoClientWrapper mongoClientWrapper = MongoClientWrapper.newInstance(config,
-                maxPoolSize,
-                maxPoolQueueSize,
-                maxWaitTimeSecs
-        );
+        final MongoClientWrapper mongoClientWrapper = MongoClientWrapper.newInstance(config);
         final ThingsSearchUpdaterPersistence searchUpdaterPersistence =
                 new MongoThingsSearchUpdaterPersistence(mongoClientWrapper, log,
                         MongoEventToPersistenceStrategyFactory.getInstance());

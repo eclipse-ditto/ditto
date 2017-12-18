@@ -11,6 +11,8 @@
  */
 package org.eclipse.ditto.services.utils.persistence.mongo;
 
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
@@ -99,24 +101,19 @@ public final class MongoClientWrapper {
         }
 
         final MongoClientSettings mongoClientSettings = buildClientSettings(builder, maxPoolSize,
-                maxPoolWaitQueueSize, maxPoolWaitTimeSecs);
+                maxPoolWaitQueueSize, Duration.of(maxPoolWaitTimeSecs, ChronoUnit.SECONDS));
         return new MongoClientWrapper(database, mongoClientSettings);
     }
 
     /**
-     * TODO: use configurable 'mongoconfig' that can get the pool size etc via configurable parameters
-     *
      * Initializes the persistence with a passed in {@code config} containing the {@code uri}.
      *
      * @param config Config containing mongoDB settings including the URI.
-     * @param maxPoolSize the max pool size of the db.
-     * @param maxPoolWaitQueueSize the max queue size of the pool.
-     * @param maxPoolWaitTimeSecs the max wait time in the pool.
      */
-    public static MongoClientWrapper newInstance(final Config config,
-            final int maxPoolSize,
-            final int maxPoolWaitQueueSize,
-            final int maxPoolWaitTimeSecs) {
+    public static MongoClientWrapper newInstance(final Config config) {
+        final int maxPoolSize = MongoConfig.getPoolMaxSize(config);
+        final int maxPoolWaitQueueSize = MongoConfig.getPoolMaxWaitQueueSize(config);
+        final Duration maxPoolWaitTime = MongoConfig.getPoolMaxWaitTime(config);
         final String uri = MongoConfig.getMongoUri(config);
         final ConnectionString connectionString = new ConnectionString(uri);
         final String database = connectionString.getDatabase();
@@ -130,7 +127,7 @@ public final class MongoClientWrapper {
             builder.writeConcern(connectionString.getWriteConcern());
         }
         final MongoClientSettings mongoClientSettings = buildClientSettings(builder, maxPoolSize,
-                maxPoolWaitQueueSize, maxPoolWaitTimeSecs);
+                maxPoolWaitQueueSize, maxPoolWaitTime);
 
         return new MongoClientWrapper(database, mongoClientSettings);
     }
@@ -139,11 +136,12 @@ public final class MongoClientWrapper {
     private static MongoClientSettings buildClientSettings(final MongoClientSettings.Builder builder,
             final int maxPoolSize,
             final int maxPoolWaitQueueSize,
-            final int maxPoolWaitTimeSecs) {
+            final Duration maxPoolWaitTime) {
 
         builder.connectionPoolSettings(
                 ConnectionPoolSettings.builder().maxSize(maxPoolSize).maxWaitQueueSize(maxPoolWaitQueueSize)
-                        .maxWaitTime(maxPoolWaitTimeSecs, TimeUnit.SECONDS).build());
+                        .maxWaitTime(maxPoolWaitTime.toMillis(), TimeUnit.MILLISECONDS)
+                        .build());
 
         return builder.build();
     }

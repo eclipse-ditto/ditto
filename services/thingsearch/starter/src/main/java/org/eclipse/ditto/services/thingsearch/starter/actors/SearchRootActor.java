@@ -130,14 +130,7 @@ public final class SearchRootActor extends AbstractActor {
             hcBuilder.enablePersistenceCheck();
         }
 
-        final int maxPoolSize = config.getInt(ConfigKeys.MONGO_CONNECTION_POOL_MAX_SIZE);
-        final int maxPoolQueueSize = config.getInt(ConfigKeys.MONGO_CONNECTION_POOL_MAX_WAIT_QUEUE_SIZE);
-        final int maxWaitTimeSecs = config.getInt(ConfigKeys.MONGO_CONNECTION_POOL_MAX_WAIT_TIME);
-        final MongoClientWrapper mongoClientWrapper = MongoClientWrapper.newInstance(config,
-                maxPoolSize,
-                maxPoolQueueSize,
-                maxWaitTimeSecs
-        );
+        final MongoClientWrapper mongoClientWrapper = MongoClientWrapper.newInstance(config);
 
         final ActorRef mongoHealthCheckActor = startChildActor(MongoReactiveHealthCheckActor.ACTOR_NAME,
                 MongoReactiveHealthCheckActor.props(mongoClientWrapper));

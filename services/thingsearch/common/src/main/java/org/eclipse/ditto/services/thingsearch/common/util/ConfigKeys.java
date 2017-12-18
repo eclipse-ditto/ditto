@@ -55,24 +55,7 @@ public final class ConfigKeys {
     public static final String MONGO_CIRCUIT_BREAKER_TIMEOUT_RESET =
             MONGO_CIRCUIT_BREAKER_CONFIG_PREFIX + "timeout.reset";
 
-    private static final String MONGO_CONNECTION_POOL_PREFIX = MONGO_CONFIG_PREFIX + "connection-pool.";
-
     private static final String ENABLED_SUFFIX = "enabled";
-
-    /**
-     * Key of the "max-size" of the connection pool.
-     */
-    public static final String MONGO_CONNECTION_POOL_MAX_SIZE = MONGO_CONNECTION_POOL_PREFIX + "max-size";
-
-    /**
-     * Key of the "max-wait-time" of the connection pool.
-     */
-    public static final String MONGO_CONNECTION_POOL_MAX_WAIT_TIME = MONGO_CONNECTION_POOL_PREFIX + "max-wait-time";
-
-    /**
-     * Key of the "max-wait-queue-size" of the connection pool.
-     */
-    public static final String MONGO_CONNECTION_POOL_MAX_WAIT_QUEUE_SIZE = MONGO_CONNECTION_POOL_PREFIX + "max-wait-queue-size";
 
     /**
      * Controls whether thing event processing should be active or not.

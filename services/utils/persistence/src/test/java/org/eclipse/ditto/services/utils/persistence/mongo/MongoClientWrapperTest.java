@@ -115,8 +115,7 @@ public class MongoClientWrapperTest {
 
 
         // test
-        final MongoClientWrapper wrapper = MongoClientWrapper.newInstance(config, KNOWN_MAX_POOL_SIZE,
-                KNOWN_MAX_POOL_WAIT_QUEUE_SIZE, KNOWN_MAX_POOL_WAIT_SECS);
+        final MongoClientWrapper wrapper = MongoClientWrapper.newInstance(config);
 
         // verify
         assertCreatedByUri(sslEnabled, wrapper);
@@ -130,8 +129,7 @@ public class MongoClientWrapperTest {
         final Config config = CONFIG.withValue(MongoConfig.URI, ConfigValueFactory.fromAnyRef(uriWithSslEnabled));
 
         // test
-        final MongoClientWrapper wrapper = MongoClientWrapper.newInstance(config, KNOWN_MAX_POOL_SIZE,
-                KNOWN_MAX_POOL_WAIT_QUEUE_SIZE, KNOWN_MAX_POOL_WAIT_SECS);
+        final MongoClientWrapper wrapper = MongoClientWrapper.newInstance(config);
 
         // verify
         assertCreatedByUri(false, wrapper);
