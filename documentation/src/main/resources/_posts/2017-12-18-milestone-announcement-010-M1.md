@@ -1,7 +1,7 @@
 ---
-title: "Announcing Ditto Milestone 0.1.0M1"
+title: "Announcing Ditto Milestone 0.1.0-M1"
 published: true
-permalink: 2017-12-14-milestone-announcement-010M1.html
+permalink: 2017-12-18-milestone-announcement-010-M1.html
 layout: post
 author: thomas_jaeckle
 tags: [blog]
@@ -9,7 +9,7 @@ hide_sidebar: true
 sidebar: false
 ---
 
-We finally managed to build our first milestone of Eclipse Ditto: [0.1.0M1](release_notes_010M1.html)
+We finally managed to build our first milestone of Eclipse Ditto: [0.1.0-M1](release_notes_010-M1.html)
 
 Java artifacts were published to both the [Eclipse Maven repository](https://repo.eclipse.org/content/repositories/ditto/)
 as well as [Maven central](repo1.maven.org/maven2/org/eclipse/ditto/).
