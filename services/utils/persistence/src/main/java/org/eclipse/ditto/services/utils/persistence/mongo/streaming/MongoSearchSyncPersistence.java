@@ -24,6 +24,8 @@ import org.bson.Document;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamMetadataPersistence;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
 import org.reactivestreams.Publisher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.mongodb.MongoCommandException;
 import com.mongodb.client.model.CreateCollectionOptions;
@@ -31,7 +33,6 @@ import com.mongodb.reactivestreams.client.MongoCollection;
 import com.mongodb.reactivestreams.client.Success;
 
 import akka.NotUsed;
-import akka.event.LoggingAdapter;
 import akka.stream.Materializer;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
@@ -57,7 +58,7 @@ public final class MongoSearchSyncPersistence implements StreamMetadataPersisten
     /**
      * The logger.
      */
-    private final LoggingAdapter log;
+    private static final Logger LOGGER = LoggerFactory.getLogger(MongoSearchSyncPersistence.class);
     private final Materializer mat;
     private final MongoCollection<Document> lastSuccessfulSearchSyncCollection;
 
@@ -66,12 +67,10 @@ public final class MongoSearchSyncPersistence implements StreamMetadataPersisten
      *
      * @param lastSuccessfulSearchSyncCollection the collection in which the last successful sync timestamps can be
      * stored.
-     * @param log the logger to use for logging.
      * @param mat the {@link Materializer} to be used for stream
      */
     private MongoSearchSyncPersistence(final MongoCollection<Document> lastSuccessfulSearchSyncCollection,
-            final LoggingAdapter log, final Materializer mat) {
-        this.log = log;
+            final Materializer mat) {
         this.mat = mat;
         this.lastSuccessfulSearchSyncCollection = lastSuccessfulSearchSyncCollection;
     }
@@ -81,20 +80,17 @@ public final class MongoSearchSyncPersistence implements StreamMetadataPersisten
      *
      * @param collectionName The name of the collection.
      * @param clientWrapper the client wrapper holding the connection information.
-     * @param log the logger to use for logging.
      * @param materializer the {@link Materializer} to be used for stream
      */
     public static MongoSearchSyncPersistence initializedInstance(final String collectionName,
-            final MongoClientWrapper
-                    clientWrapper,
-            final LoggingAdapter log, final Materializer materializer) {
+            final MongoClientWrapper clientWrapper, final Materializer materializer) {
         final MongoCollection<Document> lastSuccessfulSearchSyncCollection = createOrGetCappedCollection(
                 clientWrapper,
                 collectionName,
                 MIN_CAPPED_COLLECTION_SIZE_IN_BYTES,
                 BLOCKING_TIMEOUT_SECS,
-                materializer, log);
-        return new MongoSearchSyncPersistence(lastSuccessfulSearchSyncCollection, log, materializer);
+                materializer);
+        return new MongoSearchSyncPersistence(lastSuccessfulSearchSyncCollection, materializer);
     }
 
 
@@ -107,7 +103,7 @@ public final class MongoSearchSyncPersistence implements StreamMetadataPersisten
 
         return Source.fromPublisher(lastSuccessfulSearchSyncCollection.insertOne(toStore))
                 .map(success -> {
-                    log.debug("Successfully inserted timestamp for search synchronization: <{}>", timestamp);
+                    LOGGER.debug("Successfully inserted timestamp for search synchronization: <{}>", timestamp);
                     return NotUsed.getInstance();
                 });
     }
@@ -129,7 +125,7 @@ public final class MongoSearchSyncPersistence implements StreamMetadataPersisten
                 .flatMapConcat(doc -> {
                     final Date date = doc.getDate(FIELD_TIMESTAMP);
                     final Instant timestamp = date.toInstant();
-                    log.debug("Returning last timestamp of search synchronization: <{}>", timestamp);
+                    LOGGER.debug("Returning last timestamp of search synchronization: <{}>", timestamp);
                     return Source.single(timestamp);
                 })
                 .orElse(Source.single(defaultTimestamp));
@@ -143,7 +139,6 @@ public final class MongoSearchSyncPersistence implements StreamMetadataPersisten
      * @param cappedCollectionSizeInBytes The size in bytes of the collection that should be created.
      * @param createTimeoutSeconds How long to wait for success of the create operation.
      * @param materializer The {@link akka.stream.Materializer} to be used for streams
-     * @param log The logger used to output the result of the create operation.
      * @return Returns the created or retrieved collection.
      */
     private static MongoCollection<Document> createOrGetCappedCollection(
@@ -151,66 +146,41 @@ public final class MongoSearchSyncPersistence implements StreamMetadataPersisten
             final String collectionName,
             final long cappedCollectionSizeInBytes,
             final long createTimeoutSeconds,
-            final Materializer materializer,
-            final LoggingAdapter log) {
-        if (tryToCreateCappedCollection(clientWrapper, collectionName, cappedCollectionSizeInBytes,
-                createTimeoutSeconds,
-                materializer)) {
-            log.debug("Successfully created collection: {}", collectionName);
-        } else {
-            log.debug("Collection already exists: {}", collectionName);
-        }
+            final Materializer materializer) {
+        createCappedCollectionIfItDoesNotExist(clientWrapper, collectionName, cappedCollectionSizeInBytes,
+                createTimeoutSeconds, materializer);
         return clientWrapper
                 .getDatabase()
                 .getCollection(collectionName);
     }
 
-    /**
-     * Tries to create the capped collection {@code collectionName} using {@code clientWrapper}. Will throw an {@link
-     * java.lang.IllegalStateException} if an unexpected error happened.
-     *
-     * @param clientWrapper The client to use.
-     * @param collectionName The name of the capped collection that should be created.
-     * @param cappedCollectionSizeInBytes The size in bytes of the collection that should be created.
-     * @param createTimeoutSeconds How long to wait for success of the create operation.
-     * @param materializer The {@link akka.stream.Materializer} to be used for streams
-     */
-    private static boolean tryToCreateCappedCollection(
+    private static void createCappedCollectionIfItDoesNotExist(
             final MongoClientWrapper clientWrapper,
             final String collectionName,
             final long cappedCollectionSizeInBytes,
             final long createTimeoutSeconds,
             final Materializer materializer) {
         try {
-            createCappedCollection(clientWrapper, collectionName, cappedCollectionSizeInBytes, createTimeoutSeconds,
-                    materializer);
-            return true;
+            final CreateCollectionOptions collectionOptions = new CreateCollectionOptions()
+                    .autoIndex(false)
+                    .capped(true)
+                    .sizeInBytes(cappedCollectionSizeInBytes)
+                    .maxDocuments(1);
+            final Publisher<Success> publisher = clientWrapper.getDatabase()
+                    .createCollection(collectionName, collectionOptions);
+            final Source<Success, NotUsed> source = Source.fromPublisher(publisher);
+            final CompletionStage<Success> done = source.runWith(Sink.head(), materializer);
+            done.toCompletableFuture().get(createTimeoutSeconds, TimeUnit.SECONDS);
+            LOGGER.debug("Successfully created collection: {}");
         } catch (final InterruptedException | TimeoutException e) {
             throw new IllegalStateException(e);
         } catch (final ExecutionException e) {
-            if (!isCollectionAlreadyExistsError(e.getCause())) {
-                throw new IllegalStateException(e);
+            if (isCollectionAlreadyExistsError(e.getCause())) {
+                LOGGER.debug("Collection already exists: {}");
             } else {
-                return false;
+                throw new IllegalStateException(e);
             }
         }
-    }
-
-    private static void createCappedCollection(final MongoClientWrapper clientWrapper,
-            final String collectionName,
-            final long cappedCollectionSizeInBytes,
-            final long createTimeoutSeconds,
-            final Materializer materializer) throws InterruptedException, ExecutionException, TimeoutException {
-        final CreateCollectionOptions collectionOptions = new CreateCollectionOptions()
-                .autoIndex(false)
-                .capped(true)
-                .sizeInBytes(cappedCollectionSizeInBytes)
-                .maxDocuments(1);
-        final Publisher<Success> publisher = clientWrapper.getDatabase()
-                .createCollection(collectionName, collectionOptions);
-        final Source<Success, NotUsed> source = Source.fromPublisher(publisher);
-        final CompletionStage<Success> done = source.runWith(Sink.head(), materializer);
-        done.toCompletableFuture().get(createTimeoutSeconds, TimeUnit.SECONDS);
     }
 
     private static boolean isCollectionAlreadyExistsError(@Nullable final Throwable t) {

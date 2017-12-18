@@ -14,7 +14,6 @@ package org.eclipse.ditto.services.utils.persistence.mongo.streaming;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Instant;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -64,7 +63,6 @@ public final class MongoSearchSyncPersistenceTest {
     public static void stopMongoResource() {
         try {
             Optional.ofNullable(mongoClient)
-                    .filter(Objects::nonNull)
                     .map(MongoClientWrapper::getMongoClient)
                     .ifPresent(MongoClient::close);
             Optional.ofNullable(mongoResource)
@@ -81,9 +79,7 @@ public final class MongoSearchSyncPersistenceTest {
         actorSystem = ActorSystem.create("AkkaTestSystem", config);
         actorSystem = ActorSystem.create("actors");
         materializer = ActorMaterializer.create(actorSystem);
-        syncPersistence =
-                MongoSearchSyncPersistence.initializedInstance(KNOWN_COLLECTION, mongoClient, actorSystem.log(),
-                        materializer);
+        syncPersistence = MongoSearchSyncPersistence.initializedInstance(KNOWN_COLLECTION, mongoClient, materializer);
     }
 
 
@@ -154,13 +150,5 @@ public final class MongoSearchSyncPersistenceTest {
         return new IllegalStateException(t);
     }
 
-    @SuppressWarnings("squid:S2925")
-    private void backoff() {
-        try {
-            Thread.sleep(100);
-        } catch (final InterruptedException e) {
-            // do nothing
-        }
-    }
 }
 
