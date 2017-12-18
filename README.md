@@ -14,8 +14,6 @@ Find the documentation on the project site: [https://eclipse.org/ditto/](https:/
 ## Getting started
 
 In order to start up Ditto, you'll need
-* JDK 8 >= 1.8.0_92 (due to a bug in older versions of the JDK you'll get a compile error)
-* Apache Maven 3.x installed
 * a running Docker daemon (at least version 17.06 CE)
 * Docker Compose installed (at least version 1.14)
 
@@ -33,7 +31,14 @@ Check the logs after starting up:
 docker-compose logs -f
 ```
 
+Open following URL to get started: [http://localhost:8080](http://localhost:8080)<br/>
+Or have a look at the ["Hello World"](https://eclipse.org/ditto/intro-hello-world.html)
+
 ### Build and start Ditto
+
+In order to build Ditto, you'll need
+* JDK 8 >= 1.8.0_92 (due to a bug in older versions of the JDK you'll get a compile error)
+* Apache Maven 3.x installed
 
 In order to first build Ditto and then start the built Docker images
 
