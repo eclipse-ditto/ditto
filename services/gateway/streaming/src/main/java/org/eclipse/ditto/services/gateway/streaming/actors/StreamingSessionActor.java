@@ -119,7 +119,11 @@ final class StreamingSessionActor extends AbstractActor {
                 /* Live Signals */
                 // publish all those live signals which were issued by this session into the cluster
                 .match(Signal.class, signal -> isLiveSignal(signal) && wasIssuedByThisSession(signal) &&
-                                (signal instanceof MessageCommand || signal instanceof MessageCommandResponse),
+                                (signal instanceof MessageCommand),
+                        signal -> logger.debug("Don't publishing message again - was already published: <{}>", signal)
+                )
+                .match(Signal.class, signal -> isLiveSignal(signal) && wasIssuedByThisSession(signal) &&
+                                (signal instanceof MessageCommandResponse),
                         publishLiveSignal(StreamingType.MESSAGES.getDistributedPubSubTopic())
                 )
                 .match(Signal.class, signal -> isLiveSignal(signal) && wasIssuedByThisSession(signal) &&
