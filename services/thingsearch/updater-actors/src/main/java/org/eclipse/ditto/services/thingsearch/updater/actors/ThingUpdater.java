@@ -54,9 +54,7 @@ import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpda
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamAck;
 import org.eclipse.ditto.services.utils.cluster.ShardedMessageEnvelope;
-import org.eclipse.ditto.services.utils.distributedcache.actors.ModifyCacheEntryResponse;
 import org.eclipse.ditto.services.utils.distributedcache.actors.RegisterForCacheUpdates;
-import org.eclipse.ditto.services.utils.distributedcache.actors.RetrieveCacheEntryResponse;
 import org.eclipse.ditto.signals.commands.base.ErrorResponse;
 import org.eclipse.ditto.signals.commands.policies.PolicyErrorResponse;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyNotAccessibleException;
@@ -332,10 +330,6 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
                 .match(Replicator.Changed.class, this::processChangedCacheEntry)
                 .match(CheckForActivity.class, this::checkActivity)
                 .match(PersistenceWriteResult.class, this::handlePersistenceUpdateResult)
-                .match(ModifyCacheEntryResponse.class,
-                        r -> log.debug("Got ModifyCacheEntryResponse: {}", r))
-                .match(RetrieveCacheEntryResponse.class,
-                        resp -> log.debug("Got RetrieveCacheEntryResponse: {}", resp))
                 .matchAny(m -> {
                     log.warning("Unknown message in 'eventProcessing' behavior: {}", m);
                     unhandled(m);
@@ -352,6 +346,8 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
     }
 
     private void processEntityIdWithRevision(final EntityIdWithRevision entityIdWithRevision) {
+        LogUtil.enhanceLogWithCorrelationId(log, "tags-sync-" + entityIdWithRevision.asIdentifierString());
+
         log.debug("Received new Thing Tag for thing <{}> with revision <{}> - last known revision is <{}>",
                 thingId, entityIdWithRevision.getRevision(), sequenceNumber);
 
@@ -382,6 +378,8 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
     }
 
     private void processThingCacheEntry(final ThingCacheEntry cacheEntry) {
+        LogUtil.enhanceLogWithCorrelationId(log, "thing-cache-sync");
+
         log.debug("Received new ThingCacheEntry for thing <{}> with revision <{}>.", thingId,
                 cacheEntry.getRevision());
 
@@ -399,6 +397,8 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
     }
 
     private void processPolicyCacheEntry(final PolicyCacheEntry cacheEntry) {
+        LogUtil.enhanceLogWithCorrelationId(log, "policy-cache-sync");
+
         log.debug("Received new PolicyCacheEntry for policy <{}> with revision <{}>.", policyId,
                 cacheEntry.getRevision());
 
@@ -420,6 +420,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
 
     private void processThingEvent(final ThingEvent thingEvent) {
         LogUtil.enhanceLogWithCorrelationId(log, thingEvent);
+
         log.debug("Received new thing event for thing id <{}> with revision <{}>.", thingId,
                 thingEvent.getRevision());
 
