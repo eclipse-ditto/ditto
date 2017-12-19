@@ -165,7 +165,7 @@ public final class ThingQueryCommandResponseAdapterTest {
                 RetrieveThingResponse.of(THING_ID, TestConstants.THING, TestConstants.DITTO_HEADERS_V_2);
         final Adaptable actual = underTest.toAdaptable(retrieveThing);
 
-        final JsonifiableAdaptable jsonifiableAdaptable = DittoProtocolAdapter.wrapAsJsonifiableAdaptable(actual);
+        final JsonifiableAdaptable jsonifiableAdaptable = ProtocolFactory.wrapAsJsonifiableAdaptable(actual);
         final JsonObject jsonObject = jsonifiableAdaptable.toJson();
         System.out.println(jsonObject.toString());
 
