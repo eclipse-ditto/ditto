@@ -38,6 +38,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
+import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
@@ -189,7 +190,7 @@ final class CommandProcessorActor extends AbstractActor {
             final JsonObject publicCommandJsonObject = JsonFactory.newObject(commandJsonString);
 
             final JsonifiableAdaptable jsonifiableAdaptable =
-                    DittoProtocolAdapter.jsonifiableAdaptableFromJson(publicCommandJsonObject);
+                    ProtocolFactory.jsonifiableAdaptableFromJson(publicCommandJsonObject);
 
             // use correlationId from json headers if present
             final String correlationId = jsonifiableAdaptable.getHeaders()
