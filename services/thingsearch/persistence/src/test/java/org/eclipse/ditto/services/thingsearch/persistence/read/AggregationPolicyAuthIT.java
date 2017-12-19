@@ -42,7 +42,7 @@ import org.junit.Test;
 /**
  * Tests the correct authorization checking on searches by policies.
  */
-public final class AggregationPolicyAuthTest extends AbstractReadPersistenceTestBase {
+public final class AggregationPolicyAuthIT extends AbstractReadPersistenceITBase {
 
     private static final String KNOWN_NUMBER_ATTR = "numberAttr";
     private static final String KNOWN_STRING_ATTR = "stringAttr";

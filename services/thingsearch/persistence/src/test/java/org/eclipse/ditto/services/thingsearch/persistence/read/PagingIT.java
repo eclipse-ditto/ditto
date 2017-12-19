@@ -35,7 +35,7 @@ import org.junit.Test;
 /**
  * Tests for the paging functionality of search persistence.
  */
-public final class PagingTest extends AbstractVersionedThingSearchPersistenceTestBase {
+public final class PagingIT extends AbstractVersionedThingSearchPersistenceITBase {
 
     private static final int KNOWN_LIMIT = 2;
     private static final String THING_ID1 = thingId(NAMESPACE, "thingId1");

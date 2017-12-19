@@ -163,7 +163,7 @@
                 <executions>
                     <execution>
                         <id>create-json-examples</id>
-                        <phase>package</phase>
+                        <phase>pre-site</phase>
                         <goals>
                             <goal>site</goal>
                         </goals>

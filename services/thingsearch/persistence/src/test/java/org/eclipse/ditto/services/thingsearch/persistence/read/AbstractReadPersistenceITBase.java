@@ -35,7 +35,7 @@ import org.eclipse.ditto.model.policiesenforcers.PolicyEnforcers;
 import org.eclipse.ditto.model.things.AclEntry;
 import org.eclipse.ditto.model.things.Permission;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.services.thingsearch.persistence.AbstractThingSearchPersistenceTestBase;
+import org.eclipse.ditto.services.thingsearch.persistence.AbstractThingSearchPersistenceITBase;
 import org.eclipse.ditto.services.thingsearch.persistence.write.impl.MongoEventToPersistenceStrategyFactory;
 import org.eclipse.ditto.services.thingsearch.persistence.write.impl.MongoThingsSearchUpdaterPersistence;
 import org.junit.Before;
@@ -44,7 +44,7 @@ import org.junit.Before;
 /**
  * Abstract base class for search persistence tests.
  */
-public abstract class AbstractReadPersistenceTestBase extends AbstractThingSearchPersistenceTestBase {
+public abstract class AbstractReadPersistenceITBase extends AbstractThingSearchPersistenceITBase {
 
     static final String POLICY_ID = "global:policy";
 

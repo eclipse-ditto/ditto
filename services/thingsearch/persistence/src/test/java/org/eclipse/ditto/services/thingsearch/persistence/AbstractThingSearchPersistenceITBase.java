@@ -62,7 +62,7 @@ import akka.testkit.javadsl.TestKit;
 /**
  * Abstract base class for search persistence tests.
  */
-public abstract class AbstractThingSearchPersistenceTestBase {
+public abstract class AbstractThingSearchPersistenceITBase {
 
     protected static final List<String> KNOWN_SUBJECTS = Collections.singletonList("abc:mySid");
     protected static final List<String> KNOWN_SUBJECTS_2 = Arrays.asList("some:mySid", "some:unknown");

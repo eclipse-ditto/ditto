@@ -50,7 +50,7 @@ import org.junit.runners.Parameterized;
  * Tests for sorting functionality of search persistence.
  */
 @RunWith(Parameterized.class)
-public final class SortingTest extends AbstractVersionedThingSearchPersistenceTestBase {
+public final class SortingIT extends AbstractVersionedThingSearchPersistenceITBase {
 
     private static final List<SortDirection> SORT_DIRECTIONS = Arrays.asList(SortDirection.values());
     private static final Random RANDOM = new Random();
