@@ -23,6 +23,10 @@
     <artifactId>ditto-services-things-persistence</artifactId>
     <name>Eclipse Ditto :: Services :: Things :: Persistence</name>
 
+    <properties>
+        <akka.test.single-expect-default>10s</akka.test.single-expect-default>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
