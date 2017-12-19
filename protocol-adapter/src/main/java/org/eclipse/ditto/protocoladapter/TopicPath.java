@@ -25,6 +25,7 @@ import java.util.stream.Stream;
  */
 public interface TopicPath {
 
+    String ID_PLACEHOLDER = "_";
     /**
      * Returns a mutable builder to create immutable {@code TopicPath} instances for a given {@code thingId}.
      *
@@ -33,7 +34,7 @@ public interface TopicPath {
      * @throws NullPointerException if {@code thingId} is {@code null}.
      */
     static TopicPathBuilder newBuilder(final String thingId) {
-        return DittoProtocolAdapter.newTopicPathBuilder(thingId);
+        return ProtocolFactory.newTopicPathBuilder(thingId);
     }
 
     /**
@@ -44,7 +45,7 @@ public interface TopicPath {
      * @throws NullPointerException if {@code namespace} is {@code null}.
      */
     static TopicPathBuilder fromNamespace(final String namespace) {
-        return DittoProtocolAdapter.newTopicPathBuilderFromNamespace(namespace);
+        return ProtocolFactory.newTopicPathBuilderFromNamespace(namespace);
     }
 
     /**
@@ -104,7 +105,7 @@ public interface TopicPath {
     String getPath();
 
     default boolean isWildcardTopic() {
-        return DittoProtocolAdapter.ID_PLACEHOLDER.equals(getId());
+        return ID_PLACEHOLDER.equals(getId());
     }
 
     /**
