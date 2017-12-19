@@ -38,7 +38,7 @@ public interface Payload extends Jsonifiable<JsonObject> {
      * @throws NullPointerException if {@code path} is {@code null}.
      */
     static PayloadBuilder newBuilder(final JsonPointer path) {
-        return DittoProtocolAdapter.newPayloadBuilder(path);
+        return ProtocolFactory.newPayloadBuilder(path);
     }
 
     /**
@@ -47,7 +47,7 @@ public interface Payload extends Jsonifiable<JsonObject> {
      * @return the builder.
      */
     static PayloadBuilder newBuilder() {
-        return DittoProtocolAdapter.newPayloadBuilder();
+        return ProtocolFactory.newPayloadBuilder();
     }
 
     /**

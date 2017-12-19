@@ -57,15 +57,15 @@ final class ImmutableJsonifiableAdaptable implements JsonifiableAdaptable {
      */
     public static ImmutableJsonifiableAdaptable fromJson(final JsonObject jsonObject) {
         final TopicPath topicPath = jsonObject.getValue(JsonFields.TOPIC)
-                .map(DittoProtocolAdapter::newTopicPath)
-                .orElseGet(DittoProtocolAdapter::emptyTopicPath);
+                .map(ProtocolFactory::newTopicPath)
+                .orElseGet(ProtocolFactory::emptyTopicPath);
 
         final DittoHeaders headers = jsonObject.getValue(JsonFields.HEADERS)
-                .map(DittoProtocolAdapter::newHeaders)
+                .map(ProtocolFactory::newHeaders)
                 .orElse(DittoHeaders.empty());
 
         return new ImmutableJsonifiableAdaptable(ImmutableAdaptable.of(topicPath,
-                DittoProtocolAdapter.newPayload(jsonObject), headers));
+                ProtocolFactory.newPayload(jsonObject), headers));
     }
 
     @Override
@@ -90,13 +90,13 @@ final class ImmutableJsonifiableAdaptable implements JsonifiableAdaptable {
 
     @Override
     public JsonObject toJson() {
-        return toJson(getHeaders().orElse(DittoProtocolAdapter.emptyHeaders()));
+        return toJson(getHeaders().orElse(ProtocolFactory.emptyHeaders()));
     }
 
     @Override
     public JsonObject toJson(final DittoHeaders specificHeaders) {
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
-        if (!getTopicPath().equals(DittoProtocolAdapter.emptyTopicPath())) {
+        if (!getTopicPath().equals(ProtocolFactory.emptyTopicPath())) {
             jsonObjectBuilder.set(JsonFields.TOPIC, getTopicPath().getPath());
         }
         return jsonObjectBuilder

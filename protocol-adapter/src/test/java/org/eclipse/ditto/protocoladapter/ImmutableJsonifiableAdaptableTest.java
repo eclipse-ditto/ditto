@@ -76,7 +76,7 @@ public final class ImmutableJsonifiableAdaptableTest {
         final ImmutablePayload payload =
                 ImmutablePayload.of(KNOWN_PATH, KNOWN_VALUE, KNOWN_STATUS, KNOWN_REVISION, KNOWN_FIELDS);
 
-        final Adaptable adaptable = ImmutableAdaptable.of(DittoProtocolAdapter.newTopicPath(KNOWN_TOPIC), payload,
+        final Adaptable adaptable = ImmutableAdaptable.of(ProtocolFactory.newTopicPath(KNOWN_TOPIC), payload,
                 DittoHeaders.newBuilder(KNOWN_HEADERS).build());
         final JsonifiableAdaptable jsonifiableAdaptable = ImmutableJsonifiableAdaptable.of(adaptable);
 
@@ -90,7 +90,7 @@ public final class ImmutableJsonifiableAdaptableTest {
         final ImmutablePayload payload =
                 ImmutablePayload.of(KNOWN_PATH, KNOWN_VALUE, KNOWN_STATUS, KNOWN_REVISION, KNOWN_FIELDS);
 
-        final Adaptable adaptable = ImmutableAdaptable.of(DittoProtocolAdapter.newTopicPath(KNOWN_TOPIC), payload,
+        final Adaptable adaptable = ImmutableAdaptable.of(ProtocolFactory.newTopicPath(KNOWN_TOPIC), payload,
                 DittoHeaders.newBuilder(KNOWN_HEADERS).build());
         final JsonifiableAdaptable expected = ImmutableJsonifiableAdaptable.of(adaptable);
 

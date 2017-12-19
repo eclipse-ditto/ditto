@@ -121,9 +121,9 @@ final class ThingQueryCommandResponseAdapter extends AbstractAdapter<ThingQueryC
         final TopicPathBuilder topicPathBuilder;
         if (commandResponse instanceof RetrieveThingsResponse) {
             final String namespace = ((WithNamespace) commandResponse).getNamespace().orElse("_");
-            topicPathBuilder = DittoProtocolAdapter.newTopicPathBuilderFromNamespace(namespace);
+            topicPathBuilder = ProtocolFactory.newTopicPathBuilderFromNamespace(namespace);
         } else {
-            topicPathBuilder = DittoProtocolAdapter.newTopicPathBuilder(commandResponse.getId());
+            topicPathBuilder = ProtocolFactory.newTopicPathBuilder(commandResponse.getId());
         }
 
         final CommandsTopicPathBuilder commandsTopicPathBuilder =
@@ -143,7 +143,7 @@ final class ThingQueryCommandResponseAdapter extends AbstractAdapter<ThingQueryC
 
         return Adaptable.newBuilder(commandsTopicPathBuilder.build())
                 .withPayload(payload)
-                .withHeaders(DittoProtocolAdapter.newHeaders(commandResponse.getDittoHeaders()))
+                .withHeaders(ProtocolFactory.newHeaders(commandResponse.getDittoHeaders()))
                 .build();
     }
 
