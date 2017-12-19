@@ -25,6 +25,7 @@
     <name>Eclipse Ditto :: Services :: Models</name>
 
     <modules>
+        <module>amqp-bridge</module>
         <module>policies</module>
         <module>things</module>
         <module>thingsearch</module>

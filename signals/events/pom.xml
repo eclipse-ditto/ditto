@@ -26,6 +26,7 @@
 
     <modules>
         <module>base</module>
+        <module>amqp-bridge</module>
         <module>batch</module>
         <module>policies</module>
         <module>things</module>
