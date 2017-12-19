@@ -29,8 +29,8 @@ import org.junit.Test;
 /**
  * Tests for search persistence.
  */
-public final class FilterCriteriaTest extends
-        AbstractVersionedThingSearchPersistenceTestBase {
+public final class FilterCriteriaIT extends
+        AbstractVersionedThingSearchPersistenceITBase {
 
     private static final String KNOWN_NUMBER_ATTR = "numberAttr";
     private static final String KNOWN_STRING_ATTR = "stringAttr";

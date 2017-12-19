@@ -17,15 +17,15 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.thingsearch.common.model.ResultList;
-import org.eclipse.ditto.services.thingsearch.persistence.AbstractThingSearchPersistenceTestBase;
+import org.eclipse.ditto.services.thingsearch.persistence.AbstractThingSearchPersistenceITBase;
 import org.eclipse.ditto.services.thingsearch.persistence.util.TestStringGenerator;
 import org.junit.Test;
 
 /**
  * Test for the index limitation applied by the search updater persistence .
  */
-public final class MongoThingsSearchUpdaterPersistenceIndexLimitationTest
-        extends AbstractThingSearchPersistenceTestBase {
+public final class MongoThingsSearchUpdaterPersistenceIndexLimitationIT
+        extends AbstractThingSearchPersistenceITBase {
 
     private static final String MUCH_TOO_LONG_STRING = TestStringGenerator.createString(10_000);
     private static final JsonValue MUCH_TOO_LONG_JSON_VALUE = JsonValue.of(MUCH_TOO_LONG_STRING);

@@ -46,7 +46,6 @@ public final class MongoDbResource extends ExternalResource {
     /**
      * Default port number of the MongoDB process.
      */
-    private static final int MONGO_DB_PORT_DEFAULT = 27030;
     private static final String HTTP_PROXY_ENV_KEY = "HTTP_PROXY";
 
     private final String bindIp;
@@ -90,11 +89,7 @@ public final class MongoDbResource extends ExternalResource {
                 .map(proxyURI -> ((IProxyFactory) new HttpProxyFactory(
                         proxyURI.getHost(), proxyURI.getPort())))
                 .orElse(new NoProxyFactory());
-
-        int mongoDbPort = MONGO_DB_PORT_DEFAULT;
-        if (System.getProperty("ACTIVE_RANDOM_PORT") != null) {
-            mongoDbPort = findFreePort();
-        }
+        final int mongoDbPort = findFreePort();
         mongodExecutable = tryToConfigureMongoDb(bindIp, mongoDbPort, proxyFactory);
         mongodProcess = tryToStartMongoDb(mongodExecutable);
         Assume.assumeTrue("MongoDBResource failed to start.", isHealthy());

@@ -29,7 +29,7 @@ import org.junit.runners.Parameterized;
  * Abstract base class for search persistence tests parameterized with version.
  */
 @RunWith(Parameterized.class)
-public abstract class AbstractVersionedThingSearchPersistenceTestBase extends AbstractReadPersistenceTestBase {
+public abstract class AbstractVersionedThingSearchPersistenceITBase extends AbstractReadPersistenceITBase {
 
     public static List<JsonSchemaVersion> apiVersions() {
         return Arrays.asList(JsonSchemaVersion.values());

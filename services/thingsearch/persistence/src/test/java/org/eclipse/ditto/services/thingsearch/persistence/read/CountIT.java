@@ -32,7 +32,7 @@ import org.junit.Test;
 /**
  * Tests for complex search criteria on the persistence.
  */
-public final class CountTest extends AbstractVersionedThingSearchPersistenceTestBase {
+public final class CountIT extends AbstractVersionedThingSearchPersistenceITBase {
 
     private static final List<String> UNKNOWN_SUBJECTS = Collections.singletonList("any:other_user");
     private static final String UNKNOWN_POLICY_ID = "any:other_policy";
