@@ -41,7 +41,7 @@ import akka.testkit.javadsl.TestKit;
 /**
  * Tests {@link MongoSearchSyncPersistence}.
  */
-public final class MongoSearchSyncPersistenceTest {
+public final class MongoSearchSyncPersistenceIT {
 
     private static MongoDbResource mongoResource;
     private static MongoClientWrapper mongoClient;
