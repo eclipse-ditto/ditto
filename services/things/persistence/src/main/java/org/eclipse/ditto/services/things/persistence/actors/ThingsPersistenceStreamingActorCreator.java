@@ -19,7 +19,7 @@ import akka.actor.Props;
 
 
 /**
- * Actor which executes special persistence queries on the things event store.
+ * Creates an actor which streams information about persisted things.
  */
 public final class ThingsPersistenceStreamingActorCreator {
 

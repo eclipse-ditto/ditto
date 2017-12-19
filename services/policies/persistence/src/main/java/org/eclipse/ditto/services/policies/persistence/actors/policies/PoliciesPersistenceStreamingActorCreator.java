@@ -20,7 +20,7 @@ import akka.actor.Props;
 
 
 /**
- * Actor which executes special persistence queries on the policies event store.
+ * Creates an actor which streams information about persisted policies.
  */
 public final class PoliciesPersistenceStreamingActorCreator {
 
