@@ -22,7 +22,8 @@ node {
       maven: 'maven-3.5.2',
       mavenLocalRepo: theMvnRepo) {
 
-      sh "mvn clean deploy javadoc:jar source:jar-no-fork" +
+      // TODO CR-5012 restore 'deploy' goal to ditto Jenkinsfile
+      sh "mvn clean install javadoc:jar source:jar-no-fork" +
               " -T16 --batch-mode --errors" +
               " -Pbuild-documentation,internal-repos -DcreateJavadoc=true"
     }
