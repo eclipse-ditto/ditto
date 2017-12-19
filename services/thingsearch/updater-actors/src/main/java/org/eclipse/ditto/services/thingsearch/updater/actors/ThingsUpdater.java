@@ -20,6 +20,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.services.models.streaming.AbstractEntityIdWithRevision;
 import org.eclipse.ditto.services.models.streaming.EntityIdWithRevision;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -139,7 +140,7 @@ final class ThingsUpdater extends AbstractActor {
                         shardRegion.forward(getShardRegionState, getContext()))
                 .match(ThingEvent.class, this::processThingEvent)
                 .match(PolicyEvent.class, this::processPolicyEvent)
-                .match(EntityIdWithRevision.class, this::processEntityIdWithRevision)
+                .match(AbstractEntityIdWithRevision.class, this::processEntityIdWithRevision)
                 .match(DistributedPubSubMediator.SubscribeAck.class, this::subscribeAck)
                 .matchAny(m -> {
                     log.warning("Unknown message: {}", m);

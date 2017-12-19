@@ -44,7 +44,7 @@ import org.eclipse.ditto.model.things.ThingRevision;
 import org.eclipse.ditto.services.models.policies.PolicyCacheEntry;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicy;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicyResponse;
-import org.eclipse.ditto.services.models.streaming.EntityIdWithRevision;
+import org.eclipse.ditto.services.models.streaming.AbstractEntityIdWithRevision;
 import org.eclipse.ditto.services.models.things.ThingCacheEntry;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
@@ -326,7 +326,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         return ReceiveBuilder.create()
                 .match(ThingEvent.class, this::processThingEvent)
                 .match(PolicyEvent.class, this::processPolicyEvent)
-                .match(EntityIdWithRevision.class, this::processEntityIdWithRevision)
+                .match(AbstractEntityIdWithRevision.class, this::processEntityIdWithRevision)
                 .match(Replicator.Changed.class, this::processChangedCacheEntry)
                 .match(CheckForActivity.class, this::checkActivity)
                 .match(PersistenceWriteResult.class, this::handlePersistenceUpdateResult)
@@ -345,7 +345,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         }
     }
 
-    private void processEntityIdWithRevision(final EntityIdWithRevision entityIdWithRevision) {
+    private void processEntityIdWithRevision(final AbstractEntityIdWithRevision entityIdWithRevision) {
         LogUtil.enhanceLogWithCorrelationId(log, "tags-sync-" + entityIdWithRevision.asIdentifierString());
 
         log.debug("Received new Thing Tag for thing <{}> with revision <{}> - last known revision is <{}>",
@@ -1048,7 +1048,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         private final ActorRef ackRecipient;
         private final String thingIdentifier;
 
-        private SyncMetadata(final ActorRef ackRecipient, final EntityIdWithRevision entityIdWithRevision) {
+        private SyncMetadata(final ActorRef ackRecipient, final AbstractEntityIdWithRevision entityIdWithRevision) {
             this.ackRecipient = ackRecipient;
             thingIdentifier = entityIdWithRevision.asIdentifierString();
         }

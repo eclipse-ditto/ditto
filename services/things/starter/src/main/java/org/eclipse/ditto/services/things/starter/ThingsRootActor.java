@@ -21,7 +21,7 @@ import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
-import org.eclipse.ditto.services.things.persistence.actors.PersistenceQueriesActor;
+import org.eclipse.ditto.services.things.persistence.actors.ThingsPersistenceStreamingActorCreator;
 import org.eclipse.ditto.services.things.persistence.actors.ThingsActorsCreator;
 import org.eclipse.ditto.services.things.starter.util.ConfigKeys;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -166,12 +166,12 @@ final class ThingsRootActor extends AbstractActor {
         final ActorRef healthCheckingActor = startChildActor(HealthCheckingActor.ACTOR_NAME,
                 HealthCheckingActor.props(healthCheckingActorOptions, mongoClient));
 
-        final int thingTagsStreamingCacheSize = config.getInt(ConfigKeys.THINGS_TAGS_STREAMING_CACHE_SIZE);
-        final ActorRef persistenceQueriesActor = startChildActor(PersistenceQueriesActor.ACTOR_NAME,
-                PersistenceQueriesActor.props(thingTagsStreamingCacheSize));
+        final int tagsStreamingCacheSize = config.getInt(ConfigKeys.THINGS_TAGS_STREAMING_CACHE_SIZE);
+        final ActorRef persistenceStreamingActor = startChildActor(ThingsPersistenceStreamingActorCreator.ACTOR_NAME,
+                ThingsPersistenceStreamingActorCreator.props(tagsStreamingCacheSize));
 
         pubSubMediator.tell(new DistributedPubSubMediator.Put(getSelf()), getSelf());
-        pubSubMediator.tell(new DistributedPubSubMediator.Put(persistenceQueriesActor), getSelf());
+        pubSubMediator.tell(new DistributedPubSubMediator.Put(persistenceStreamingActor), getSelf());
 
         String hostname = config.getString(ConfigKeys.Http.HOSTNAME);
         if (hostname.isEmpty()) {

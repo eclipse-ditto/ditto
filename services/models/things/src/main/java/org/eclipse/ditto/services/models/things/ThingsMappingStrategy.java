@@ -62,6 +62,7 @@ public final class ThingsMappingStrategy implements MappingStrategy {
                         jsonObject -> BaseCacheEntry.fromJson(jsonObject)) // do not replace with lambda!
                 .add(ThingCacheEntry.class,
                         jsonObject -> ThingCacheEntry.fromJson(jsonObject)) // do not replace with lambda!
+                .add(ThingTag.class, jsonObject -> ThingTag.fromJson(jsonObject))  // do not replace with lambda!
                 .build();
     }
 

@@ -24,7 +24,7 @@ import java.util.function.Function;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.services.models.streaming.EntityIdWithRevision;
+import org.eclipse.ditto.services.models.streaming.AbstractEntityIdWithRevision;
 import org.eclipse.ditto.services.models.streaming.SudoStreamModifiedEntities;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
@@ -118,7 +118,7 @@ public final class DefaultStreamSupervisor extends AbstractActorWithStash {
 
     private Props getStreamForwarderProps() {
         return DefaultStreamForwarder.props(forwardTo, getSelf(), streamConsumerSettings.getMaxIdleTime(),
-                EntityIdWithRevision.class, EntityIdWithRevision::asIdentifierString);
+                AbstractEntityIdWithRevision.class, AbstractEntityIdWithRevision::asIdentifierString);
     }
 
     private Object newStartStreamingCommand(final StreamTrigger streamRestrictions) {

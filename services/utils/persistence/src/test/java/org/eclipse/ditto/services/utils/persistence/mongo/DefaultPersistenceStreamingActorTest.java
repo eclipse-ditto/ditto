@@ -9,7 +9,7 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package org.eclipse.ditto.services.things.persistence.actors;
+package org.eclipse.ditto.services.utils.persistence.mongo;
 
 import static org.eclipse.ditto.services.utils.akka.streaming.StreamConstants.STREAM_FINISHED_MSG;
 import static org.mockito.Matchers.any;
@@ -20,7 +20,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.services.models.streaming.EntityIdWithRevision;
+import org.eclipse.ditto.services.models.streaming.AbstractEntityIdWithRevision;
 import org.eclipse.ditto.services.models.streaming.SudoStreamModifiedEntities;
 import org.eclipse.ditto.services.utils.akkapersistence.mongoaddons.DittoJavaDslMongoReadJournal;
 import org.eclipse.ditto.services.utils.akkapersistence.mongoaddons.PidWithSeqNr;
@@ -40,13 +40,13 @@ import akka.stream.javadsl.Source;
 import akka.testkit.javadsl.TestKit;
 
 /**
- * Test for {@link PersistenceQueriesActor}.
+ * Test for {@link DefaultPersistenceStreamingActor}.
  */
-public final class PersistenceQueriesActorTest {
+public final class DefaultPersistenceStreamingActorTest {
 
     private static ActorSystem actorSystem;
 
-    private static final String ID = "ns:topo1";
+    private static final String ID = "ns:knownId";
     private static final long REVISION = 32L;
 
     @BeforeClass
@@ -83,7 +83,7 @@ public final class PersistenceQueriesActorTest {
 
             sendCommand(this, underTest, command);
 
-            expectMsgEquals(EntityIdWithRevision.of(ID, REVISION));
+            expectMsgEquals(new SimpleEntityIdWithRevision(ID, REVISION));
             expectMsgEquals(STREAM_FINISHED_MSG);
         }};
     }
@@ -99,7 +99,8 @@ public final class PersistenceQueriesActorTest {
     private static ActorRef createPersistenceQueriesActor(final Source<PidWithSeqNr, NotUsed> mockedSource) {
         final DittoJavaDslMongoReadJournal mock = mock(DittoJavaDslMongoReadJournal.class);
         when(mock.sequenceNumbersOfPidsByInterval(any(), any())).thenReturn(mockedSource);
-        final Props props = PersistenceQueriesActor.props(100, mock);
+        final Props props = DefaultPersistenceStreamingActor.props(100,
+                DefaultPersistenceStreamingActorTest::mapEntity, mock);
         return actorSystem.actorOf(props, "persistenceQueriesActor-" + UUID.randomUUID());
     }
 
@@ -107,4 +108,13 @@ public final class PersistenceQueriesActorTest {
         actorRef.tell(command, testKit.getRef());
     }
 
+    private static SimpleEntityIdWithRevision mapEntity(final PidWithSeqNr pidWithSeqNr) {
+        return new SimpleEntityIdWithRevision(pidWithSeqNr.persistenceId(), pidWithSeqNr.sequenceNr());
+    }
+
+    private static final class SimpleEntityIdWithRevision extends AbstractEntityIdWithRevision {
+        private SimpleEntityIdWithRevision(final String id, final long revision) {
+            super(id, revision);
+        }
+    }
 }

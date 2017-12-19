@@ -9,7 +9,7 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package org.eclipse.ditto.services.models.policies;
+package org.eclipse.ditto.services.models.things;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -17,43 +17,43 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.services.models.streaming.AbstractEntityIdWithRevision;
 
 /**
- * Represents the ID and revision of a Policy.
+ * Represents the ID and revision of a Thing.
  */
 @Immutable
-public final class PolicyTag extends AbstractEntityIdWithRevision {
+public final class ThingTag extends AbstractEntityIdWithRevision {
 
-    private PolicyTag(final String id, final long revision) {
+    private ThingTag(final String id, final long revision) {
         super(id, revision);
     }
 
-    private PolicyTag(final JsonObject jsonObject) {
+    private ThingTag(final JsonObject jsonObject) {
         super(jsonObject);
     }
 
     /**
-     * Returns a new {@link PolicyTag}.
+     * Returns a new {@link ThingTag}.
      *
-     * @param id the ID of the modified Policy.
-     * @param revision the revision of the modified Policy.
-     * @return a new {@link PolicyTag}.
+     * @param id the ID of the modified Thing.
+     * @param revision the revision of the modified Thing.
+     * @return a new {@link ThingTag}.
      */
-    public static PolicyTag of(final String id, final long revision) {
-        return new PolicyTag(id, revision);
+    public static ThingTag of(final String id, final long revision) {
+        return new ThingTag(id, revision);
     }
 
     /**
-     * Creates a new {@link PolicyTag} from a JSON object.
+     * Creates a new {@link ThingTag} from a JSON object.
      *
-     * @param jsonObject the JSON object of which a new {@link PolicyTag} is to be created.
-     * @return the {@link PolicyTag} which was created from the given JSON object.
+     * @param jsonObject the JSON object of which a new {@link ThingTag} is to be created.
+     * @return the {@link ThingTag} which was created from the given JSON object.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      * @throws IllegalArgumentException if {@code jsonObject} is empty.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} is not valid JSON.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if the passed in {@code jsonObject} was not in the
      * expected format.
      */
-    public static PolicyTag fromJson(final JsonObject jsonObject) {
-        return new PolicyTag(jsonObject);
+    public static ThingTag fromJson(final JsonObject jsonObject) {
+        return new ThingTag(jsonObject);
     }
 
 }

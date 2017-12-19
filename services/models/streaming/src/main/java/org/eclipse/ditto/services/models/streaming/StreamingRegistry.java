@@ -55,7 +55,6 @@ public final class StreamingRegistry extends AbstractJsonParsableRegistry<Jsonif
         final Map<String, JsonParsable<Jsonifiable>> parseStrategies = new HashMap<>();
 
         parseStrategies.put(SudoStreamModifiedEntities.TYPE, SudoStreamModifiedEntities::fromJson);
-        parseStrategies.put(EntityIdWithRevision.TYPE, (string, headers) -> EntityIdWithRevision.fromJson(string));
 
         return new StreamingRegistry(parseStrategies);
     }
