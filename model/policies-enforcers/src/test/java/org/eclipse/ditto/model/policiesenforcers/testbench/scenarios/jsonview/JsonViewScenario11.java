@@ -15,6 +15,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
 import org.eclipse.ditto.model.policiesenforcers.testbench.scenarios.Scenario;
@@ -31,6 +32,7 @@ public class JsonViewScenario11 implements JsonViewScenario {
     private final ScenarioSetup setup;
 
     public JsonViewScenario11() {
+        final String resourcePath = "/features/firmware";
         setup = Scenario.newScenarioSetup( //
                 true, //
                 "Subject has READ granted on '/attributes/attr2'. "
@@ -44,9 +46,12 @@ public class JsonViewScenario11 implements JsonViewScenario {
                         + "Can see in JsonView: granted subresource of /features/firmware",
                 getPolicy(), //
                 Scenario.newAuthorizationContext(SUBJECT_SOME_GRANTED, SUBJECT_SOME_REVOKED), //
-                "/features/firmware", //
+                resourcePath, //
                 THING, //
-                THING.toJson(JsonFieldSelector.newInstance("/features/firmware/properties/modulesVersions/b")),
+                THING.toJson(JsonFieldSelector.newInstance("/features/firmware/properties/modulesVersions/b"))
+                        .getValue(resourcePath)
+                        .map(JsonValue::asObject)
+                        .orElseThrow(NullPointerException::new),
                 Stream.of(
                         SubjectId.newInstance(SubjectIssuer.GOOGLE_URL, SUBJECT_ALL_GRANTED).toString(),
                         SubjectId.newInstance(SubjectIssuer.GOOGLE_URL, SUBJECT_FEATURES_READ_GRANTED).toString(),

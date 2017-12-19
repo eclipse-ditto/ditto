@@ -42,7 +42,7 @@
         <mongo-java-driver.version>3.5.0</mongo-java-driver.version>
         <mongo-reactivestreams.version>1.6.0</mongo-reactivestreams.version>
 
-        <parboiled.version>1.1.8</parboiled.version>
+        <parboiled.version>2.1.4</parboiled.version>
         <guava.version>21.0</guava.version>
         <jjwt.version>0.7.0</jjwt.version>
         <jackson-databind.version>2.8.10</jackson-databind.version>
@@ -185,7 +185,7 @@
 
             <dependency>
                 <groupId>org.parboiled</groupId>
-                <artifactId>parboiled-java</artifactId>
+                <artifactId>parboiled_${scala.version}</artifactId>
                 <version>${parboiled.version}</version>
             </dependency>
             <dependency>

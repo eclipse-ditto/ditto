@@ -80,9 +80,9 @@ public final class ImmutableJsonObjectTest {
         final SoftReference<JsonObject> red = new SoftReference<>(JsonFactory.newObject("{\"foo\": 1}"));
         final SoftReference<JsonObject> black = new SoftReference<>(JsonFactory.newObject("{\"foo\": 2}"));
 
-        EqualsVerifier.forClass(ImmutableJsonObject.class) //
-                .withIgnoredFields("stringRepresentation") //
-                .withPrefabValues(SoftReference.class, red, black) //
+        EqualsVerifier.forClass(ImmutableJsonObject.class)
+                .withIgnoredFields("stringRepresentation")
+                .withPrefabValues(SoftReference.class, red, black)
                 .verify();
     }
 
@@ -485,7 +485,7 @@ public final class ImmutableJsonObjectTest {
     public void getValueWithEmptyStringReturnsEmptyOptional() {
         final JsonObject underTest = ImmutableJsonObject.of(KNOWN_FIELDS);
 
-        assertThat(underTest.getValue("")).isEmpty();
+        assertThat(underTest.getValue("")).contains(underTest);
     }
 
     @Test(expected = NullPointerException.class)
@@ -513,6 +513,24 @@ public final class ImmutableJsonObjectTest {
         final JsonObject underTest = ImmutableJsonObject.of(KNOWN_FIELDS);
 
         assertThat(underTest).contains(KNOWN_KEY_BAZ, KNOWN_VALUE_BAZ);
+    }
+
+    @Test
+    public void getValueWithPointerFromJsonObjectWithJsonArrayAtSomePointerLevel() {
+        final JsonObject underTest = JsonFactory.newObjectBuilder()
+                .set(KNOWN_KEY_FOO, KNOWN_VALUE_FOO)
+                .set(KNOWN_KEY_BAR, JsonFactory.newArrayBuilder()
+                        .add(KNOWN_INT_23)
+                        .add("Morty")
+                        .add(KNOWN_INT_42)
+                        .build())
+                .set(KNOWN_KEY_BAZ, KNOWN_VALUE_BAZ)
+                .build();
+
+        final Optional<JsonValue> value = underTest.getValue("/bar/Morty/oogle");
+
+        assertThat(underTest).isInstanceOf(ImmutableJsonObject.class);
+        assertThat(value).isEmpty();
     }
 
     @Test(expected = NullPointerException.class)
@@ -1012,7 +1030,7 @@ public final class ImmutableJsonObjectTest {
 
         final Optional<JsonValue> value = underTest.getValue(JsonFactory.emptyPointer());
 
-        assertThat(value).isEmpty();
+        assertThat(value).contains(underTest);
     }
 
     @Test

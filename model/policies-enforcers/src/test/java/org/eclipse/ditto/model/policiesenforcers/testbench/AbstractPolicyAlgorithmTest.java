@@ -16,7 +16,10 @@ import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 import java.util.Set;
 import java.util.UUID;
 
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.policies.Permissions;
@@ -35,6 +38,7 @@ import org.eclipse.ditto.model.policiesenforcers.testbench.scenarios.jsonview.Js
 import org.eclipse.ditto.model.policiesenforcers.testbench.scenarios.jsonview.JsonViewScenario10;
 import org.eclipse.ditto.model.policiesenforcers.testbench.scenarios.jsonview.JsonViewScenario11;
 import org.eclipse.ditto.model.policiesenforcers.testbench.scenarios.jsonview.JsonViewScenario12;
+import org.eclipse.ditto.model.policiesenforcers.testbench.scenarios.jsonview.JsonViewScenario13;
 import org.eclipse.ditto.model.policiesenforcers.testbench.scenarios.jsonview.JsonViewScenario2;
 import org.eclipse.ditto.model.policiesenforcers.testbench.scenarios.jsonview.JsonViewScenario3;
 import org.eclipse.ditto.model.policiesenforcers.testbench.scenarios.jsonview.JsonViewScenario4;
@@ -483,6 +487,11 @@ public abstract class AbstractPolicyAlgorithmTest {
         testScenarioWithAlgorithm(new JsonViewScenario12());
     }
 
+    @Test
+    public void testJsonViewScenario13() {
+        testScenarioWithAlgorithm(JsonViewScenario13.getInstance());
+    }
+
     private void testScenarioWithAlgorithm(final Scenario scenario) {
         final ScenarioSetup setup = scenario.getSetup();
         final PolicyAlgorithm algorithm = getPolicyAlgorithm(scenario.getPolicy());
@@ -495,7 +504,14 @@ public abstract class AbstractPolicyAlgorithmTest {
 
         setup.getExpectedJsonView().ifPresent(expectedJsonView -> {
             final String actualJsonView = setup.getFullJsonifiable()
-                    .map(jsonifiable -> algorithm.buildJsonView(jsonifiable.toJson(), setup))
+                    .map(jsonifiable -> {
+                        final JsonPointer resourcePointer = setup.getResource();
+                        final JsonObject inputJson = jsonifiable.toJson()
+                                .getValue(resourcePointer)
+                                .map(JsonValue::asObject)
+                                .orElse(JsonFactory.newObject());
+                        return algorithm.buildJsonView(inputJson, setup);
+                    })
                     .map(JsonObject::toString)
                     .orElseThrow(() -> new AssertionError("jsonView was empty"));
 
@@ -504,7 +520,7 @@ public abstract class AbstractPolicyAlgorithmTest {
 
         setup.getExpectedSubjectIds().ifPresent(expectedSubjectIds -> {
             final ResourceKey resKey = ResourceKey.newInstance(Scenario.THING_TYPE, setup.getResource());
-            final Permissions reqPermissions= setup.getRequiredPermissions();
+            final Permissions reqPermissions = setup.getRequiredPermissions();
             final EffectedSubjectIds effectedSubjectIds = algorithm.getSubjectIdsWithPermission(resKey, reqPermissions);
             final Set<String> grantedSubjectIds = effectedSubjectIds.getGranted();
 

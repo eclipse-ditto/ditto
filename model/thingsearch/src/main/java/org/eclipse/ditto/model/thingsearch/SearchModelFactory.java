@@ -223,6 +223,18 @@ public final class SearchModelFactory {
     }
 
     /**
+     * Creates a new {@link SortOptionEntry} for the provided {@code order} and {@code propertyPath}.
+     *
+     * @param sortOrder the {@code order} of the SortOptionEntry to create
+     * @param propertyPath the {@code propertyPath} of the SortOptionEntry to create
+     * @return the created SortOption.
+     */
+    public static SortOptionEntry newSortOptionEntry(final SortOptionEntry.SortOrder sortOrder,
+            final CharSequence propertyPath) {
+        return ImmutableSortOptionEntry.of(sortOrder, propertyPath);
+    }
+
+    /**
      * Creates a new {@link LimitOption} for the provided {@code offset} and {@code count}.
      *
      * @param offset the offset to use for the LimitOption

@@ -11,8 +11,12 @@
  */
 package org.eclipse.ditto.protocoladapter;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Predicate;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.eclipse.ditto.json.JsonArray;
@@ -25,7 +29,7 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
-import org.eclipse.ditto.model.messages.MessageHeaders;
+import org.eclipse.ditto.model.messages.MessageHeaderDefinition;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.AccessControlListModelFactory;
 import org.eclipse.ditto.model.things.AclEntry;
@@ -57,7 +61,7 @@ abstract class AbstractAdapter<T extends Jsonifiable> implements Adapter<T> {
     }
 
     protected static DittoHeaders dittoHeadersFrom(final Adaptable adaptable) {
-        return adaptable.getHeaders().orElse(DittoHeaders.empty());
+        return adaptable.getHeaders().orElseGet(DittoHeaders::empty);
     }
 
     protected static AuthorizationSubject authorizationSubjectFrom(final Adaptable adaptable) {
@@ -125,6 +129,12 @@ abstract class AbstractAdapter<T extends Jsonifiable> implements Adapter<T> {
     protected static String featureIdFrom(final Adaptable adaptable) {
         final JsonPointer path = adaptable.getPayload().getPath();
         return path.get(1).orElseThrow(() -> UnknownPathException.newBuilder(path).build()).toString();
+    }
+
+    protected static String featureIdForMessageFrom(final Adaptable adaptable) {
+        return adaptable.getHeaders()
+                .map(h -> h.get(MessageHeaderDefinition.FEATURE_ID.getKey()))
+                .orElseThrow(() -> JsonParseException.newBuilder().build());
     }
 
     protected static Features featuresFrom(final Adaptable adaptable) {
@@ -196,8 +206,6 @@ abstract class AbstractAdapter<T extends Jsonifiable> implements Adapter<T> {
         return commandsTopicPathBuilder;
     }
 
-    protected abstract String getType(final Adaptable adaptable);
-
     protected static TopicPath.Action getAction(final TopicPath topicPath) {
         return topicPath.getAction()
                 .orElseThrow(() -> new NullPointerException("TopicPath did not contain an Action!"));
@@ -205,15 +213,17 @@ abstract class AbstractAdapter<T extends Jsonifiable> implements Adapter<T> {
 
     @Override
     public T fromAdaptable(final Adaptable adaptable) {
+        checkNotNull(adaptable, "Adaptable");
         final String type = getType(adaptable);
         final JsonifiableMapper<T> jsonifiableMapper = mappingStrategies.get(type);
-
         if (null == jsonifiableMapper) {
             throw UnknownTopicPathException.newBuilder(adaptable.getTopicPath()).build();
         }
 
         return DittoJsonException.wrapJsonRuntimeException(() -> jsonifiableMapper.map(adaptable));
     }
+
+    protected abstract String getType(Adaptable adaptable);
 
     /**
      * Returns the given String {@code s} with an upper case first letter.
@@ -236,26 +246,26 @@ abstract class AbstractAdapter<T extends Jsonifiable> implements Adapter<T> {
      */
     static final class PathMatcher {
 
-        static final Map<String, Pattern> PATTERN = new HashMap<>();
+        static final Map<String, Pattern> PATTERNS = new HashMap<>();
 
         static {
-            PATTERN.put("thing", java.util.regex.Pattern.compile("^/$"));
-            PATTERN.put("acl", java.util.regex.Pattern.compile("^/acl$"));
-            PATTERN.put("aclEntry", java.util.regex.Pattern.compile("^/acl/[^/]*$"));
-            PATTERN.put("policyId", java.util.regex.Pattern.compile("^/policyId$"));
-            PATTERN.put("policy", java.util.regex.Pattern.compile("^/_policy"));
-            PATTERN.put("policyEntries", java.util.regex.Pattern.compile("^/_policy/entries$"));
-            PATTERN.put("policyEntry", java.util.regex.Pattern.compile("^/_policy/entries/.*$"));
-            PATTERN.put("policyEntrySubjects", java.util.regex.Pattern.compile("^/_policy/entries/[^/]*/subjects$"));
-            PATTERN.put("policyEntrySubject", java.util.regex.Pattern.compile("^/_policy/entries/[^/]*/subjects/.*$"));
-            PATTERN.put("policyEntryResources", java.util.regex.Pattern.compile("^/_policy/entries/[^/]*/resources$"));
-            PATTERN.put("policyEntryResource", java.util.regex.Pattern.compile("^/_policy/entries/[^/]*/resources/.*$"));
-            PATTERN.put("attributes", java.util.regex.Pattern.compile("^/attributes$"));
-            PATTERN.put("attribute", java.util.regex.Pattern.compile("^/attributes/.*$"));
-            PATTERN.put("features", java.util.regex.Pattern.compile("^/features$"));
-            PATTERN.put("feature", java.util.regex.Pattern.compile("^/features/[^/]*$"));
-            PATTERN.put("featureProperties", java.util.regex.Pattern.compile("^/features/[^/]*/properties$"));
-            PATTERN.put("featureProperty", java.util.regex.Pattern.compile("^/features/[^/]*/properties/.*$"));
+            PATTERNS.put("thing", Pattern.compile("^/$"));
+            PATTERNS.put("acl", Pattern.compile("^/acl$"));
+            PATTERNS.put("aclEntry", Pattern.compile("^/acl/[^/]*$"));
+            PATTERNS.put("policyId", Pattern.compile("^/policyId$"));
+            PATTERNS.put("policy", Pattern.compile("^/_policy"));
+            PATTERNS.put("policyEntries", Pattern.compile("^/_policy/entries$"));
+            PATTERNS.put("policyEntry", Pattern.compile("^/_policy/entries/.*$"));
+            PATTERNS.put("policyEntrySubjects", Pattern.compile("^/_policy/entries/[^/]*/subjects$"));
+            PATTERNS.put("policyEntrySubject", Pattern.compile("^/_policy/entries/[^/]*/subjects/.*$"));
+            PATTERNS.put("policyEntryResources", Pattern.compile("^/_policy/entries/[^/]*/resources$"));
+            PATTERNS.put("policyEntryResource", Pattern.compile("^/_policy/entries/[^/]*/resources/.*$"));
+            PATTERNS.put("attributes", Pattern.compile("^/attributes$"));
+            PATTERNS.put("attribute", Pattern.compile("^/attributes/.*$"));
+            PATTERNS.put("features", Pattern.compile("^/features$"));
+            PATTERNS.put("feature", Pattern.compile("^/features/[^/]*$"));
+            PATTERNS.put("featureProperties", Pattern.compile("^/features/[^/]*/properties$"));
+            PATTERNS.put("featureProperty", Pattern.compile("^/features/[^/]*/properties/.*$"));
         }
 
         private PathMatcher() {
@@ -270,8 +280,15 @@ abstract class AbstractAdapter<T extends Jsonifiable> implements Adapter<T> {
          * @throws UnknownPathException if {@code path} matched no known scheme.
          */
         static String match(final JsonPointer path) {
-            return PATTERN.entrySet().stream()
-                    .filter(entry -> entry.getValue().matcher(path.toString()).matches())
+            final Predicate<Map.Entry<String, Pattern>> pathMatchesPattern = entry -> {
+                final Pattern pattern = entry.getValue();
+                final Matcher matcher = pattern.matcher(path);
+                return matcher.matches();
+            };
+
+            return PATTERNS.entrySet()
+                    .stream()
+                    .filter(pathMatchesPattern)
                     .findFirst()
                     .map(Map.Entry::getKey)
                     .orElseThrow(() -> UnknownPathException.newBuilder(path).build());

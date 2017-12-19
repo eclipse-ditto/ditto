@@ -9,3 +9,4 @@
 target/
 /ditto_all_dependencies/
 dependencies.txt
+/docker/.env

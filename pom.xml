@@ -18,9 +18,10 @@
     <artifactId>ditto</artifactId>
     <packaging>pom</packaging>
     <version>0.1.0-SNAPSHOT</version>
-    <name>Eclipse Ditto</name>
 
-    <url>https://projects.eclipse.org/projects/iot.ditto</url>
+    <name>Eclipse Ditto</name>
+    <description>Eclipse Ditto is a framework for creating and managing digital twins in the IoT.</description>
+    <url>https://eclipse.org/ditto/</url>
     <inceptionYear>2017</inceptionYear>
 
     <organization>
@@ -308,7 +309,7 @@
                     <configuration>
                         <instructions>
                             <Bundle-Vendor>Eclipse Ditto</Bundle-Vendor>
-                            <Bundle-DocURL>https://projects.eclipse.org/projects/iot.ditto</Bundle-DocURL>
+                            <Bundle-DocURL>https://eclipse.org/ditto/</Bundle-DocURL>
                             <_noee>true</_noee>
                             <Bundle-RequiredExecutionEnvironment>JavaSE-1.8</Bundle-RequiredExecutionEnvironment>
                         </instructions>
@@ -553,7 +554,37 @@
         </profile>
 
         <profile>
-            <id>signArtifacts</id>
+            <id>signArtifactsEclipse</id>
+            <activation>
+                <property>
+                    <name>signArtifactsEclipse</name>
+                    <value>true</value>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.eclipse.cbi.maven.plugins</groupId>
+                        <artifactId>eclipse-jarsigner-plugin</artifactId>
+                        <configuration>
+                            <excludeInnerJars>true</excludeInnerJars>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>sign-jars</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>sign</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <profile>
+            <id>signArtifactsMavenCentral</id>
             <activation>
                 <property>
                     <name>signArtifacts</name>
@@ -568,22 +599,6 @@
                         <executions>
                             <execution>
                                 <id>sign-artifacts</id>
-                                <phase>verify</phase>
-                                <goals>
-                                    <goal>sign</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                    </plugin>
-                    <plugin>
-                        <groupId>org.eclipse.cbi.maven.plugins</groupId>
-                        <artifactId>eclipse-jarsigner-plugin</artifactId>
-                        <configuration>
-                            <excludeInnerJars>true</excludeInnerJars>
-                        </configuration>
-                        <executions>
-                            <execution>
-                                <id>sign-jars</id>
                                 <phase>verify</phase>
                                 <goals>
                                     <goal>sign</goal>
@@ -606,10 +621,10 @@
         </profile>
 
         <profile>
-            <id>publishToSontatypeOssMavenRepo</id>
+            <id>publishToMavenCentral</id>
             <activation>
                 <property>
-                    <name>publishToSontatypeOssMavenRepo</name>
+                    <name>publishToMavenCentral</name>
                     <value>true</value>
                 </property>
             </activation>

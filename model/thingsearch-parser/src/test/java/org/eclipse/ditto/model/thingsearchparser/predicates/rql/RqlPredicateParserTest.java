@@ -48,19 +48,19 @@ public class RqlPredicateParserTest {
 
         final SingleComparisonNode comparison = (SingleComparisonNode) root.getChildren().get(0);
         assertThat(comparison.getComparisonValue().getClass()).isEqualTo(String.class);
-        assertThat(comparison.getComparisonValue()).isEqualTo("te\\\"st");
+        assertThat(comparison.getComparisonValue()).isEqualTo("te\"st");
     }
 
     @Test
     public void testComparisonEqualsWithStringValueContainingBackslash() throws ParserException {
-        final RootNode root = parser.parse("eq(username,\"abc\\xyz\")");
+        final RootNode root = parser.parse("eq(username,\"abc\\nyz\")");
 
         assertThat(root).isNotNull();
         assertThat(root.getChildren().size()).isEqualTo(1);
 
         final SingleComparisonNode comparison = (SingleComparisonNode) root.getChildren().get(0);
         assertThat(comparison.getComparisonValue().getClass()).isEqualTo(String.class);
-        assertThat(comparison.getComparisonValue()).isEqualTo("abc\\xyz");
+        assertThat(comparison.getComparisonValue()).isEqualTo("abc\nyz");
     }
 
     @Test(expected = ParserException.class)
@@ -518,6 +518,20 @@ public class RqlPredicateParserTest {
         final ExistsNode existsNode = (ExistsNode) root.getChildren().get(0);
         assertThat(existsNode.getProperty().getClass()).isEqualTo(String.class);
         assertThat(existsNode.getProperty()).isEqualTo("features/scanner");
+    }
+
+    @Test
+    public void testComplexSpecialChars() throws ParserException {
+        final String complexVal = "!#$%&'()*+,/:;=?@[\\\\]{|} äaZ0";
+        final RootNode root = parser.parse("eq(attributes/complex,\"" + complexVal + "\")");
+
+        assertThat(root).isNotNull();
+        assertThat(root.getChildren().size()).isEqualTo(1);
+
+        final SingleComparisonNode comparisonNode = (SingleComparisonNode) root.getChildren().get(0);
+        assertThat(comparisonNode.getComparisonProperty()).isEqualTo("attributes/complex");
+        assertThat(comparisonNode.getComparisonValue().getClass()).isEqualTo(String.class);
+        assertThat(comparisonNode.getComparisonValue()).isEqualTo("!#$%&'()*+,/:;=?@[\\]{|} äaZ0");
     }
 
     @Test(expected = ParserException.class)

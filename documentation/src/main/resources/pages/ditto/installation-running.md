@@ -12,7 +12,7 @@ In order to start Ditto, you'll need:
 * Docker Compose installed (at least version 1.14),
 * the built Docker images of Ditto
     * either by building them as described in [Building Ditto](installation-building.html),
-    * or by using the pre-built [Ditto images on Docker Hub](https://hub.docker.com/u/eclipseditto/).
+    * or by using the pre-built [Ditto images on Docker Hub](https://hub.docker.com/u/eclipse/).
 
 ```bash
 # switch to the docker/ directory:
