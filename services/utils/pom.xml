@@ -28,9 +28,9 @@
         <module>akka-persistence-mongo-addons</module>
         <module>akka</module>
         <module>cluster</module>
+        <module>devops</module>
         <module>config</module>
         <module>health</module>
-        <module>logging</module>
         <module>persistence</module>
         <module>distributed-cache</module>
         <module>test</module>

@@ -20,7 +20,6 @@ import java.time.Instant;
 import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.services.gateway.endpoints.directives.DevopsBasicAuthenticationDirective;
 import org.eclipse.ditto.services.gateway.health.StatusHealthHelper;
 import org.eclipse.ditto.services.utils.health.HealthStatus;
 
@@ -34,7 +33,10 @@ import akka.http.javadsl.server.Route;
  */
 public final class CachingHealthRoute {
 
-    private static final String PATH_HEALTH = "health";
+    /**
+     * Public endpoint of health.
+     */
+    public static final String PATH_HEALTH = "health";
 
     private final StatusHealthHelper statusHealthHelper;
     private final Duration refreshInterval;
@@ -61,10 +63,7 @@ public final class CachingHealthRoute {
     public Route buildHealthRoute() {
         return path(PATH_HEALTH, () -> // /health
                 get(() -> // GET
-                        DevopsBasicAuthenticationDirective.authenticateDevopsBasic(
-                                DevopsBasicAuthenticationDirective.REALM_HEALTH,
-                                completeWithFuture(createOverallHealthResponse())
-                        )
+                        completeWithFuture(createOverallHealthResponse())
                 )
         );
     }

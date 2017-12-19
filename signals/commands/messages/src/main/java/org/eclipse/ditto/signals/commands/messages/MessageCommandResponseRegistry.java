@@ -39,7 +39,6 @@ public final class MessageCommandResponseRegistry extends AbstractCommandRespons
         final Map<String, JsonParsable<MessageCommandResponse>> parseStrategies = new HashMap<>();
 
         parseStrategies.put(SendClaimMessageResponse.TYPE, SendClaimMessageResponse::fromJson);
-        parseStrategies.put(SendEmptyMessageResponse.TYPE, SendEmptyMessageResponse::fromJson);
         parseStrategies.put(SendMessageAcceptedResponse.TYPE, SendMessageAcceptedResponse::fromJson);
         parseStrategies.put(SendThingMessageResponse.TYPE, SendThingMessageResponse::fromJson);
         parseStrategies.put(SendFeatureMessageResponse.TYPE, SendFeatureMessageResponse::fromJson);

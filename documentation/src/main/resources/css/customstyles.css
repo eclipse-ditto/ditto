@@ -8,15 +8,22 @@ h1,h2 {
     font-weight: bold;
 }
 
-.ditto-header {
-    height: 350px;
-    /*background: url('http://placehold.it/1920x350') center center no-repeat scroll;*/
-    background: url('../images/startpage_background_sized.png') center center no-repeat scroll;
-    /* source: https://unsplash.com/photos/wBfcPTEBiPI */
-    -webkit-background-size: cover;
-    -moz-background-size: cover;
-    background-size: cover;
-    -o-background-size: cover;
+a.navbar-ditto-home:hover {
+    color: transparent;
+    text-decoration: none;
+}
+.navbar-ditto-home .ditto-navbar-symbol {
+    padding: 5px;
+    max-height: 3em;
+}
+.navbar-ditto-home .ditto-navbar-symbol-text {
+    max-height: 2em;
+}
+
+.ditto-logo {
+    min-width: 18em;
+    padding-top: 3em;
+    padding-bottom: 4em;
 }
 
 .startpage h1 a, .startpage h2 a, .startpage h3 a, .startpage h4 a {
@@ -34,7 +41,7 @@ h1,h2 {
 }
 
 .text-primary {
-    color: #347DBE;
+    color: #3a8c9a;
 }
 
 .equal {
@@ -407,7 +414,7 @@ a.accordion-toggle, a.accordion-collapsed {
 }
 
 .nav > li.active > a  {
-background-color: #347DBE;
+background-color: #3a8c9a;
 }
 
 .nav li a {
@@ -1255,6 +1262,13 @@ h4.panel-title {
     }
     .navbar-collapse.collapse {
         display: none!important;
+        max-height: inherit;
+    }
+    .navbar-collapse.collapse .navbar-nav {
+        /*margin-top: 0;*/
+    }
+    .navbar-collapse.collapse .navbar-nav > li > a{
+        line-height: inherit;
     }
     .navbar-nav {
         float: none!important;
@@ -1267,8 +1281,9 @@ h4.panel-title {
         padding-top: 10px;
         padding-bottom: 10px;
     }
-    .collapse.in{
+    .navbar-collapse.collapse.in {
         display:block !important;
+        overflow: hidden;
     }
 }
 

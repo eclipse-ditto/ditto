@@ -13,29 +13,30 @@ package org.eclipse.ditto.model.policiesenforcers.trie;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
-import java.util.AbstractMap;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonArray;
-import org.eclipse.ditto.json.JsonArrayBuilder;
+import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.json.JsonValueContainer;
 import org.eclipse.ditto.model.policies.EffectedPermissions;
 import org.eclipse.ditto.model.policies.Permissions;
 import org.eclipse.ditto.model.policies.PolicyEntry;
@@ -83,6 +84,23 @@ final class PolicyTrie {
         return prototype;
     }
 
+    private void addPolicyEntry(final PolicyEntry policyEntry) {
+        final Collection<String> subjectIds = getSubjectIds(policyEntry.getSubjects());
+        policyEntry.getResources().forEach(resource -> {
+            final PolicyTrie target = seekOrCreate(getJsonKeyIterator(resource.getResourceKey()));
+            final EffectedPermissions effectedPermissions = resource.getEffectedPermissions();
+            target.grant(subjectIds, effectedPermissions.getGrantedPermissions());
+            target.revoke(subjectIds, effectedPermissions.getRevokedPermissions());
+        });
+    }
+
+    private static Collection<String> getSubjectIds(final Subjects subjects) {
+        return subjects.stream()
+                .map(Subject::getId)
+                .map(SubjectId::toString)
+                .collect(Collectors.toSet());
+    }
+
     /**
      * Converts a {@link ResourceKey} to an iterator of JSON keys by prepending the resource type to the resource path.
      *
@@ -93,6 +111,36 @@ final class PolicyTrie {
     static Iterator<JsonKey> getJsonKeyIterator(final ResourceKey resourceKey) {
         checkNotNull(resourceKey, "resource key to convert");
         return JsonFactory.newPointer(resourceKey.getResourceType()).append(resourceKey.getResourcePath()).iterator();
+    }
+
+    /**
+     * Seek to a trie node matching the given path exactly, or create it and all needed if they did not exist. Analogous
+     * to {@code mkdir -p}.
+     *
+     * @param path The resource path to seek/create a node for.
+     * @return The node whose path from root matches {@code path} exactly.
+     */
+    private PolicyTrie seekOrCreate(final Iterator<JsonKey> path) {
+        return path.hasNext() ? computeForChild(path) : this;
+    }
+
+    private PolicyTrie computeForChild(final Iterator<JsonKey> path) {
+        final PolicyTrie childNode = compute(path.next(), Function.identity());
+        return childNode.seekOrCreate(path);
+    }
+
+    // wrapper of Map.compute
+    private PolicyTrie compute(final JsonKey childKey, final Function<PolicyTrie, PolicyTrie> childUpdate) {
+        return children.compute(childKey,
+                (key, childTrie) -> childTrie == null ? new PolicyTrie() : childUpdate.apply(childTrie));
+    }
+
+    private void grant(final Collection<String> subjectIds, final Iterable<String> permissions) {
+        grantRevokeIndex.getGranted().addTotalRelationOfWeightZero(permissions, subjectIds);
+    }
+
+    private void revoke(final Collection<String> subjectIds, final Iterable<String> permissions) {
+        grantRevokeIndex.getRevoked().addTotalRelationOfWeightZero(permissions, subjectIds);
     }
 
     /**
@@ -116,12 +164,10 @@ final class PolicyTrie {
 
     private static PolicyTrie computeTransitiveClosure(final PolicyTrie thisTrie, final GrantRevokeIndex inherited) {
         final GrantRevokeIndex thisMap = inherited.copyWithDecrementedWeight().overrideBy(thisTrie.grantRevokeIndex);
-        final Map<JsonKey, PolicyTrie> children = thisTrie.children.entrySet()
-                .stream()
-                .map(entry -> new AbstractMap.SimpleEntry<>(entry.getKey(),
-                        computeTransitiveClosure(entry.getValue(), thisMap)))
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-        return new PolicyTrie(thisMap, children);
+        final Map<JsonKey, PolicyTrie> newChildren = new HashMap<>(thisTrie.children.size());
+        thisTrie.children.forEach((key, oldChild) -> newChildren.put(key, computeTransitiveClosure(oldChild, thisMap)));
+
+        return new PolicyTrie(thisMap, newChildren);
     }
 
     /**
@@ -130,15 +176,22 @@ final class PolicyTrie {
      * @return A copy of this trie with grants pushed up from descendants to ancestors.
      */
     PolicyTrie getBottomUpGrantTrie() {
-        final Map<JsonKey, PolicyTrie> newChildren = children.entrySet()
-                .stream()
-                .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().getBottomUpGrantTrie()));
+        final Map<JsonKey, PolicyTrie> newChildren = new HashMap<>(children.size());
         final PermissionSubjectsMap newGrantMap = grantRevokeIndex.getGranted().copy();
-        newChildren.values().forEach(child ->
-                newGrantMap.addAllEntriesFrom(child.getGrantRevokeIndex().getGranted().copyWithIncrementedWeight()));
+
+        children.forEach((key, oldChild) -> {
+            final PolicyTrie newChild = oldChild.getBottomUpGrantTrie();
+            newChildren.put(key, newChild);
+
+            final GrantRevokeIndex newChildGrantRevokeIndex = newChild.getGrantRevokeIndex();
+            final PermissionSubjectsMap granted = newChildGrantRevokeIndex.getGranted();
+            newGrantMap.addAllEntriesFrom(granted.copyWithIncrementedWeight());
+        });
+
         final PermissionSubjectsMap newRevokeMap = grantRevokeIndex.getRevoked().copy();
         newRevokeMap.removeAllEntriesFrom(newGrantMap);
         final GrantRevokeIndex newGrantRevokeMap = new GrantRevokeIndex(newGrantMap, newRevokeMap);
+
         return new PolicyTrie(newGrantRevokeMap, newChildren);
     }
 
@@ -148,14 +201,21 @@ final class PolicyTrie {
      * @return A copy of this trie with revokes pushed up from descendants to ancestors.
      */
     PolicyTrie getBottomUpRevokeTrie() {
-        final Map<JsonKey, PolicyTrie> newChildren = children.entrySet()
-                .stream()
-                .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().getBottomUpRevokeTrie()));
+        final Map<JsonKey, PolicyTrie> newChildren = new HashMap<>(children.size());
         final PermissionSubjectsMap newRevokeMap = grantRevokeIndex.getRevoked().copy();
-        newChildren.values().forEach(child ->
-                newRevokeMap.addAllEntriesFrom(child.getGrantRevokeIndex().getRevoked().copyWithIncrementedWeight()));
+
+        children.forEach((key, oldChild) -> {
+            final PolicyTrie newChild = oldChild.getBottomUpRevokeTrie();
+            newChildren.put(key, newChild);
+
+            final GrantRevokeIndex newChildGrantRevokeIndex = newChild.getGrantRevokeIndex();
+            final PermissionSubjectsMap revoked = newChildGrantRevokeIndex.getRevoked();
+            newRevokeMap.addAllEntriesFrom(revoked.copyWithIncrementedWeight());
+        });
+
         final PermissionSubjectsMap newGrantMap = grantRevokeIndex.getGranted().copy();
         final GrantRevokeIndex newGrantRevokeMap = new GrantRevokeIndex(newGrantMap, newRevokeMap);
+
         return new PolicyTrie(newGrantRevokeMap, newChildren);
     }
 
@@ -169,124 +229,83 @@ final class PolicyTrie {
         return children.containsKey(childKey);
     }
 
-    JsonObject buildJsonView(final Iterator<JsonKey> path, final Iterable<JsonField> jsonFields,
-            final Set<String> subjectIds, final Permissions permissions) {
-
-        // converts jsonFields into a JsonObject
-        final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
-        jsonFields.forEach(jsonObjectBuilder::set);
-
-        return buildJsonObjectView(path, jsonObjectBuilder.build(), subjectIds, permissions);
-    }
-
-    private JsonObject buildJsonObjectView(final Iterator<JsonKey> path, final JsonObject inputObject,
-            final Set<String> subjectIds, final Permissions permissions) {
-
-        final JsonObjectBuilder outputObjectBuilder = JsonFactory.newObjectBuilder();
+    @SuppressWarnings("unchecked")
+    JsonObject buildJsonView(final Iterable<JsonField> jsonFields, final Set<String> subjectIds,
+            final Permissions permissions) {
 
         final PolicyTrie defaultPolicyTrie = new PolicyTrie(grantRevokeIndex, Collections.emptyMap());
 
-        final Stream<JsonField> objectFieldsToCheck;
-
-        if (path.hasNext()) {
-            final JsonKey childKey = path.next();
-            final Optional<JsonValue> maybeFieldValue = inputObject.getValue(childKey);
-            objectFieldsToCheck = maybeFieldValue
-                    .map(value -> Stream.of(JsonField.newInstance(childKey, value)))
-                    .orElse(Stream.empty());
-        } else {
-            objectFieldsToCheck = inputObject.stream();
+        final JsonObjectBuilder outputObjectBuilder = JsonFactory.newObjectBuilder();
+        for (final JsonField field : jsonFields) {
+            final JsonValue jsonView = getViewForJsonFieldOrNull(field, defaultPolicyTrie, subjectIds, permissions);
+            if (null != jsonView) {
+                final Optional<JsonFieldDefinition> definitionOptional = field.getDefinition();
+                if (definitionOptional.isPresent()) {
+                    outputObjectBuilder.set(definitionOptional.get(), jsonView);
+                } else {
+                    outputObjectBuilder.set(field.getKey(), jsonView);
+                }
+            }
         }
-
-        objectFieldsToCheck.forEach(jsonField -> {
-            final JsonValue fieldValue = jsonField.getValue();
-            final PolicyTrie relevantTrie = children.getOrDefault(jsonField.getKey(), defaultPolicyTrie);
-            relevantTrie.buildPossiblyEmptyViewForJsonObjectsArraysAndScalars(path, fieldValue, subjectIds, permissions)
-                    .ifPresent(value -> {
-                        if (jsonField.getDefinition().isPresent()) {
-                            outputObjectBuilder.set(jsonField.getDefinition().get(), value);
-                        } else {
-                            outputObjectBuilder.set(jsonField.getKey(), value);
-                        }
-                    });
-        });
 
         return outputObjectBuilder.build();
     }
 
-    private Optional<JsonValue> buildPossiblyEmptyViewForJsonObjectsArraysAndScalars(final Iterator<JsonKey> path,
-            final JsonValue jsonValue,
+    @Nullable
+    private JsonValue getViewForJsonFieldOrNull(final JsonField jsonField,
+            final PolicyTrie defaultPolicyTrie,
             final Set<String> subjectIds,
             final Permissions permissions) {
 
+        final PolicyTrie relevantTrie = children.getOrDefault(jsonField.getKey(), defaultPolicyTrie);
+        return relevantTrie.getViewForJsonValueOrNull(jsonField.getValue(), subjectIds, permissions);
+    }
+
+    @Nullable
+    private JsonValue getViewForJsonValueOrNull(final JsonValue jsonValue, final Set<String> subjectIds,
+            final Permissions permissions) {
+
+        final JsonValue result;
         if (jsonValue.isObject()) {
-            final JsonObject candidate = buildJsonObjectView(path, jsonValue.asObject(), subjectIds, permissions);
-            if (!candidate.isEmpty() || grantRevokeIndex.hasPermissions(subjectIds, permissions)) {
-                return Optional.of(candidate);
-            } else {
-                return Optional.empty();
-            }
+            result = getViewForJsonObjectOrNull(jsonValue.asObject(), subjectIds, permissions);
         } else if (jsonValue.isArray()) {
-            final JsonArrayBuilder jsonArrayBuilder = JsonFactory.newArrayBuilder();
-            jsonValue.asArray().forEach(element ->
-                    buildPossiblyEmptyViewForJsonObjectsArraysAndScalars(path, element, subjectIds,
-                            permissions).ifPresent(
-                            jsonArrayBuilder::add));
-            final JsonArray candidate = jsonArrayBuilder.build();
-            if (!candidate.isEmpty() || grantRevokeIndex.hasPermissions(subjectIds, permissions)) {
-                return Optional.of(candidate);
-            } else {
-                return Optional.empty();
-            }
+            result = getViewForJsonArrayOrNull(jsonValue.asArray(), subjectIds, permissions);
+        } else if (grantRevokeIndex.hasPermissions(subjectIds, permissions)) {
+            result = jsonValue;
         } else {
-            return grantRevokeIndex.hasPermissions(subjectIds, permissions) ? Optional.of(jsonValue) : Optional.empty();
+            result = null;
         }
+
+        return result;
     }
 
-    private void addPolicyEntry(final PolicyEntry policyEntry) {
-        final Collection<String> subjectIds = getSubjectIds(policyEntry.getSubjects());
-        policyEntry.getResources().forEach(resource -> {
-            final PolicyTrie target = seekOrCreate(getJsonKeyIterator(resource.getResourceKey()));
-            final EffectedPermissions effectedPermissions = resource.getEffectedPermissions();
-            target.grant(subjectIds, effectedPermissions.getGrantedPermissions());
-            target.revoke(subjectIds, effectedPermissions.getRevokedPermissions());
-        });
+    @Nullable
+    private JsonValue getViewForJsonObjectOrNull(final Iterable<JsonField> jsonObject, final Set<String> subjectIds,
+            final Permissions permissions) {
+
+        return filterCandidate(buildJsonView(jsonObject, subjectIds, permissions), subjectIds, permissions);
     }
 
-    private static Collection<String> getSubjectIds(final Subjects subjects) {
-        return subjects.stream()
-                .map(Subject::getId)
-                .map(SubjectId::toString)
-                .collect(Collectors.toSet());
+    @Nullable
+    private <T extends JsonValue & JsonValueContainer> T filterCandidate(final T candidate,
+            final Set<String> subjectIds, final Collection<String> permissions) {
+
+        if (!candidate.isEmpty() || grantRevokeIndex.hasPermissions(subjectIds, permissions)) {
+            return candidate;
+        }
+        return null;
     }
 
-    /**
-     * Seek to a trie node matching the given path exactly, or create it and all needed if they did not exist. Analogous
-     * to {@code mkdir -p}.
-     *
-     * @param path The resource path to seek/create a node for.
-     * @return The node whose path from root matches {@code path} exactly.
-     */
-    private PolicyTrie seekOrCreate(final Iterator<JsonKey> path) {
-        final Supplier<PolicyTrie> computeForChild = () -> {
-            final PolicyTrie childNode = compute(path.next(), Function.identity());
-            return childNode.seekOrCreate(path);
-        };
-        return path.hasNext() ? computeForChild.get() : this;
-    }
+    @Nullable
+    private JsonValue getViewForJsonArrayOrNull(final JsonValueContainer<JsonValue> jsonArray,
+            final Set<String> subjectIds, final Permissions permissions) {
 
-    // wrapper of Map.compute
-    private PolicyTrie compute(final JsonKey childKey, final Function<PolicyTrie, PolicyTrie> childUpdate) {
-        return children.compute(childKey,
-                (key, childTrie) -> childTrie == null ? new PolicyTrie() : childUpdate.apply(childTrie));
-    }
+        final JsonArray candidate = jsonArray.stream()
+                .map(value -> getViewForJsonValueOrNull(value, subjectIds, permissions))
+                .filter(Objects::nonNull)
+                .collect(JsonCollectors.valuesToArray());
 
-    private void grant(final Collection<String> subjectIds, final Iterable<String> permissions) {
-        grantRevokeIndex.getGranted().addTotalRelationOfWeightZero(permissions, subjectIds);
-    }
-
-    private void revoke(final Collection<String> subjectIds, final Iterable<String> permissions) {
-        grantRevokeIndex.getRevoked().addTotalRelationOfWeightZero(permissions, subjectIds);
+        return filterCandidate(candidate, subjectIds, permissions);
     }
 
     /**
@@ -322,14 +341,21 @@ final class PolicyTrie {
      */
     private <T> T seek(final Iterator<JsonKey> path, final Function<PolicyTrie, T> endOfPath,
             final Function<PolicyTrie, T> endOfTrie) {
+
+        final T result;
         if (path.hasNext()) {
             final JsonKey key = path.next();
-            return children.containsKey(key)
-                    ? children.get(key).seek(path, endOfPath, endOfTrie)
-                    : endOfTrie.apply(this);
+            final PolicyTrie policyTrie = children.get(key);
+            if (null != policyTrie) {
+                result = policyTrie.seek(path, endOfPath, endOfTrie);
+            } else {
+                result = endOfTrie.apply(this);
+            }
         } else {
-            return endOfPath.apply(this);
+            result = endOfPath.apply(this);
         }
+
+        return result;
     }
 
 }

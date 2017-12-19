@@ -14,9 +14,7 @@ package org.eclipse.ditto.services.utils.cluster;
 import static java.util.Objects.requireNonNull;
 
 import java.text.MessageFormat;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.BiFunction;
@@ -27,12 +25,7 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.signals.base.WithId;
 
 import akka.actor.ActorSystem;
-import akka.actor.ExtendedActorSystem;
 import akka.cluster.sharding.ShardRegion;
-import scala.Tuple2;
-import scala.collection.JavaConverters;
-import scala.reflect.ClassTag;
-import scala.util.Try;
 
 
 /**
@@ -59,16 +52,9 @@ public final class ShardRegionExtractor implements ShardRegion.MessageExtractor 
      * @param actorSystem the ActorSystem to use for looking up the MappingStrategy.
      */
     public static ShardRegionExtractor of(final int numberOfShards, final ActorSystem actorSystem) {
-        // load via config the class implementing MappingStrategy:
-        final String mappingStrategyClass =
-                actorSystem.settings().config().getString("ditto.mapping-strategy.implementation");
-        final ClassTag<MappingStrategy> tag = scala.reflect.ClassTag$.MODULE$.apply(MappingStrategy.class);
-        final List<Tuple2<Class<?>, Object>> constructorArgs = new ArrayList<>();
-        final Try<MappingStrategy> mappingStrategy =
-                ((ExtendedActorSystem) actorSystem).dynamicAccess().createInstanceFor(mappingStrategyClass,
-                        JavaConverters.asScalaBuffer(constructorArgs).toList(), tag);
 
-        return new ShardRegionExtractor(numberOfShards, mappingStrategy.get().determineStrategy());
+        final MappingStrategy mappingStrategy = MappingStrategy.loadMappingStrategy(actorSystem);
+        return new ShardRegionExtractor(numberOfShards, mappingStrategy.determineStrategy());
     }
 
     /**

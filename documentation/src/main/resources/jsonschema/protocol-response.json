@@ -30,8 +30,8 @@
       "description": "A Path that references a part of a Thing which is affected by this message.\nExamples:\n * `/feature/location/properties/longitude` (a single sensor value)\n * `/` (the whole Thing)"
     },
     "value": {
-      "type": "object",
-      "description": "The _value_ field contains the actual payload e.g. a sensor value. The content must follow the *Things Model Schema*."
+      "type": ["object","string","number","array","boolean"],
+      "description": "The _value_ field contains the actual payload e.g. a sensor value."
     },
     "status": {
       "type": "integer",

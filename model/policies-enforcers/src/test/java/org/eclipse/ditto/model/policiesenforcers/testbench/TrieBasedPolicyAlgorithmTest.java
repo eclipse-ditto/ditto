@@ -15,7 +15,6 @@ import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policiesenforcers.testbench.algorithms.PolicyAlgorithm;
 import org.eclipse.ditto.model.policiesenforcers.testbench.algorithms.TrieBasedPolicyAlgorithm;
 
-
 public final class TrieBasedPolicyAlgorithmTest extends AbstractPolicyAlgorithmTest {
 
     @Override

@@ -9,7 +9,7 @@
 # Contributors:
 #    Bosch Software Innovations GmbH - initial contribution
 cd ..
-mvn dependency:list -DexcludeGroupIds=org.eclipse.ditto -Dsort=true -DoutputFile=dependencies.txt
+mvn dependency:list -DexcludeGroupIds=org.eclipse.ditto,rubygems -Dsort=true -DoutputFile=dependencies.txt
 find . -name dependencies.txt|while read i; do cat $i;done|grep '.*:.*:compile'|sort|uniq > 3rd-dependencies/compile.txt
 find . -name dependencies.txt|while read i; do cat $i;done|grep '.*:.*:test'|sort|uniq > 3rd-dependencies/test.txt
 find . -name dependencies.txt|while read i; do cat $i;done|grep '.*:.*:provided'|sort|uniq > 3rd-dependencies/provided.txt

@@ -47,6 +47,10 @@ final class MessageAdaptableHelper {
     private static final String APPLICATION_JSON = "application/json";
     private static final String APPLICATION_OCTET_STREAM = "application/octet-stream";
 
+    private MessageAdaptableHelper() {
+        throw new AssertionError();
+    }
+
     /**
      * Creates an {@link Adaptable} from the passed {@link Message} and its related arguments.
      *

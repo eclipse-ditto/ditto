@@ -15,8 +15,14 @@ import org.eclipse.ditto.services.models.streaming.EntityIdWithRevision;
 import org.eclipse.ditto.services.utils.persistence.mongo.AbstractPersistenceStreamingActor;
 
 import akka.actor.Props;
-import akka.contrib.persistence.mongodb.DittoJavaDslMongoReadJournal;
-import akka.contrib.persistence.mongodb.DittoMongoReadJournal;
+import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akkapersistence.mongoaddons.DittoJavaDslMongoReadJournal;
+import org.eclipse.ditto.services.utils.akkapersistence.mongoaddons.DittoMongoReadJournal;
+
+import akka.actor.AbstractActor;
+import akka.actor.ActorRef;
+import akka.actor.Props;
+import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
 import akka.persistence.query.PersistenceQuery;
 

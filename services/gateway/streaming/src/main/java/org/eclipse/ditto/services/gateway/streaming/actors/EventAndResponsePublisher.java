@@ -111,6 +111,16 @@ public final class EventAndResponsePublisher
                         deliverBuf();
                     }
                 })
+                .match(Jsonifiable.WithPredicate.class, signal -> buffer.size() >= backpressureBufferSize,
+                        this::handleBackpressureFor)
+                .match(Jsonifiable.WithPredicate.class, jsonifiable -> {
+                    if (buffer.isEmpty() && totalDemand() > 0) {
+                        onNext(jsonifiable);
+                    } else {
+                        buffer.add(jsonifiable);
+                        deliverBuf();
+                    }
+                })
                 .match(ActorPublisherMessage.Request.class, request -> {
                     LogUtil.enhanceLogWithCorrelationId(logger, connectionCorrelationId);
                     logger.debug("Got new demand: {}", request);

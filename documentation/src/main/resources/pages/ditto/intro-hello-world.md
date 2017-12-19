@@ -53,7 +53,9 @@ Inside that JSON object we can add as much JSON keys as we like with any JSON va
 
 ## Creating your first Thing
 
-We create a Thing for the example from above by using [cURL](https://github.com/curl/curl). Basic authentication will use the credentials of a user "ditto". Those credentials have been created by default in the [nginx](https://github.com/nginx/nginx) started via "docker". (See ditto/docker/README.md)
+We create a Thing for the example from above by using [cURL](https://github.com/curl/curl). Basic authentication will use the credentials of a user "ditto". 
+Those credentials have been created by default in the [nginx](https://github.com/nginx/nginx) started via "docker". 
+(See [ditto/docker/README.md](https://github.com/eclipse/ditto/blob/master/docker/README.md))
 
 ```bash
 curl -u ditto:ditto -X PUT -d '{

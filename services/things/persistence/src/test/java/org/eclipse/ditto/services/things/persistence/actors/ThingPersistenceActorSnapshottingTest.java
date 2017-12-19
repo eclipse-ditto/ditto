@@ -24,6 +24,7 @@ import java.util.function.BiFunction;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -39,6 +40,7 @@ import org.eclipse.ditto.services.things.persistence.testhelper.Assertions;
 import org.eclipse.ditto.services.things.persistence.testhelper.ThingsJournalTestHelper;
 import org.eclipse.ditto.services.things.persistence.testhelper.ThingsSnapshotTestHelper;
 import org.eclipse.ditto.services.things.starter.util.ConfigKeys;
+import org.eclipse.ditto.services.utils.persistence.mongo.DittoBsonJson;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.assertions.ThingCommandAssertions;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
@@ -58,7 +60,6 @@ import org.eclipse.ditto.signals.events.things.ThingModified;
 import org.junit.Test;
 
 import com.mongodb.DBObject;
-import com.mongodb.util.DittoBsonJSON;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
@@ -830,9 +831,10 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
     }
 
     private static Thing convertSnapshotDataToThing(final DBObject dbObject, final long sequenceNumber) {
-        final String jsonStr = DittoBsonJSON.serialize(dbObject);
+        final DittoBsonJson dittoBsonJson = DittoBsonJson.getInstance();
+        final JsonObject json = dittoBsonJson.serialize(dbObject).asObject();
 
-        final Thing thing = ThingsModelFactory.newThing(jsonStr);
+        final Thing thing = ThingsModelFactory.newThing(json);
 
         DittoThingsAssertions.assertThat(thing).hasRevision(ThingRevision.newInstance(sequenceNumber));
 

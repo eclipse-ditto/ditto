@@ -11,12 +11,21 @@
  */
 package org.eclipse.ditto.services.utils.cluster;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
+
+import akka.actor.ActorSystem;
+import akka.actor.ExtendedActorSystem;
+import scala.Tuple2;
+import scala.collection.JavaConversions;
+import scala.reflect.ClassTag;
+import scala.util.Try;
 
 /**
  * Implementations define the mapping strategies for both persistence (JsonifiableSerializer) as well as Cluster
@@ -26,10 +35,31 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
  */
 public interface MappingStrategy {
 
+    String CONFIGKEY_DITTO_MAPPING_STRATEGY_IMPLEMENTATION = "ditto.mapping-strategy.implementation";
+
     /**
      * Determines the mapping strategies from String {@code manifest} to a BiFunction from {@code (JsonObject,
      * DittoHeaders) -> (Jsonifiable)} with which to deserialize JsonObjects to Jsonifiables again.
      */
     Map<String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>> determineStrategy();
+
+    /**
+     * Loads the {@link MappingStrategy} in the passed ActorSystem this is running in by looking up the config key
+     * {@value CONFIGKEY_DITTO_MAPPING_STRATEGY_IMPLEMENTATION}.
+     *
+     * @param actorSystem the ActorSystem we are running in.
+     * @return the resolved MappingStrategy.
+     */
+    static MappingStrategy loadMappingStrategy(final ActorSystem actorSystem) {
+        // load via config the class implementing MappingStrategy:
+        final String mappingStrategyClass =
+                actorSystem.settings().config().getString(CONFIGKEY_DITTO_MAPPING_STRATEGY_IMPLEMENTATION);
+        final ClassTag<MappingStrategy> tag = scala.reflect.ClassTag$.MODULE$.apply(MappingStrategy.class);
+        final List<Tuple2<Class<?>, Object>> constructorArgs = new ArrayList<>();
+        final Try<MappingStrategy> mappingStrategy =
+                ((ExtendedActorSystem) actorSystem).dynamicAccess().createInstanceFor(mappingStrategyClass,
+                        JavaConversions.asScalaBuffer(constructorArgs).toList(), tag);
+        return mappingStrategy.get();
+    }
 
 }

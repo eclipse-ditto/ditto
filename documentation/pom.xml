@@ -28,21 +28,6 @@
         <jekyll.config>_config.yml</jekyll.config>
     </properties>
 
-    <dependencies>
-        <dependency>
-            <groupId>rubygems</groupId>
-            <artifactId>jekyll</artifactId>
-            <type>gem</type>
-            <optional>true</optional>
-        </dependency>
-        <dependency>
-            <groupId>rubygems</groupId>
-            <artifactId>jekyll-sitemap</artifactId>
-            <type>gem</type>
-            <optional>true</optional>
-        </dependency>
-    </dependencies>
-
     <dependencyManagement>
         <dependencies>
             <dependency>
@@ -195,6 +180,20 @@
                     </snapshots>
                 </repository>
             </repositories>
+            <dependencies>
+                <dependency>
+                    <groupId>rubygems</groupId>
+                    <artifactId>jekyll</artifactId>
+                    <type>gem</type>
+                    <optional>true</optional>
+                </dependency>
+                <dependency>
+                    <groupId>rubygems</groupId>
+                    <artifactId>jekyll-sitemap</artifactId>
+                    <type>gem</type>
+                    <optional>true</optional>
+                </dependency>
+            </dependencies>
             <build>
                 <plugins>
                     <plugin>

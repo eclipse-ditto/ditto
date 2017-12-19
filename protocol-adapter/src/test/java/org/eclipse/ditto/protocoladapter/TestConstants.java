@@ -36,6 +36,8 @@ final class TestConstants {
     static final String ID = "myThing";
     static final String ID2 = "myThing2";
 
+    static final String CORRELATION_ID = "dittoCorrelationId";
+
     static final String THING_ID = NAMESPACE + ":" + ID;
     static final String THING_ID2 = NAMESPACE + ":" + ID2;
 
@@ -56,6 +58,8 @@ final class TestConstants {
 
     static final String FEATURE_ID = "fluxCompensator";
 
+    static final String SUBJECT = "message:subject";
+
     static final JsonPointer FEATURE_PROPERTY_POINTER = JsonPointer.of("/baz");
 
     static final JsonValue FEATURE_PROPERTY_VALUE = JsonValue.of(42);
@@ -75,12 +79,12 @@ final class TestConstants {
     static final Thing THING2 = Thing.newBuilder().setId(THING_ID2).build();
 
     static final DittoHeaders DITTO_HEADERS_V_1 = DittoHeaders.newBuilder()
-            .correlationId("correlationId")
+            .correlationId(CORRELATION_ID)
             .schemaVersion(JsonSchemaVersion.V_1)
             .build();
 
     static final DittoHeaders DITTO_HEADERS_V_2 = DittoHeaders.newBuilder()
-            .correlationId("correlationId")
+            .correlationId(CORRELATION_ID)
             .schemaVersion(JsonSchemaVersion.V_2)
             .build();
 

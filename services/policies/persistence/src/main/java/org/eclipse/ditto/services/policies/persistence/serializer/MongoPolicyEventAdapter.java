@@ -16,16 +16,19 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.services.utils.persistence.mongo.DittoBsonJson;
 import org.eclipse.ditto.signals.base.WithType;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.base.EventRegistry;
@@ -33,7 +36,6 @@ import org.eclipse.ditto.signals.events.policies.PolicyEvent;
 import org.eclipse.ditto.signals.events.policies.PolicyEventRegistry;
 
 import com.mongodb.DBObject;
-import com.mongodb.util.DittoBsonJSON;
 
 import akka.actor.ExtendedActorSystem;
 import akka.persistence.journal.EventAdapter;
@@ -82,8 +84,9 @@ public final class MongoPolicyEventAdapter implements EventAdapter {
             final JsonSchemaVersion schemaVersion = theEvent.getImplementedSchemaVersion();
             final JsonObject jsonObject =
                     theEvent.toJson(schemaVersion, IS_REVISION.negate().and(FieldType.regularOrSpecial()));
-            final Object bson = DittoBsonJSON.parse(jsonObject.toString());
-            final Set<String> readSubjects = theEvent.getDittoHeaders().getReadSubjects();
+            final DittoBsonJson dittoBsonJson = DittoBsonJson.getInstance();
+            final DBObject bson = dittoBsonJson.parse(jsonObject);
+            final Set<String> readSubjects = calculateReadSubjects(theEvent);
             return new Tagged(bson, readSubjects);
         } else {
             throw new IllegalArgumentException(
@@ -91,18 +94,25 @@ public final class MongoPolicyEventAdapter implements EventAdapter {
         }
     }
 
+    private Set<String> calculateReadSubjects(final Event<?> theEvent) {
+        return theEvent.getDittoHeaders().getReadSubjects().stream()
+                .map(rs -> "rs:" + rs)
+                .collect(Collectors.toSet());
+    }
+
     @Override
     public EventSeq fromJournal(final Object event, final String manifest) {
         if (event instanceof DBObject) {
             final DBObject dbObject = (DBObject) event;
-            return EventSeq.single(tryToCreateEventFrom(DittoBsonJSON.serialize(dbObject)));
+            final DittoBsonJson dittoBsonJson = DittoBsonJson.getInstance();
+            return EventSeq.single(tryToCreateEventFrom(dittoBsonJson.serialize(dbObject)));
         } else {
             throw new IllegalArgumentException(
                     "Unable to fromJournal a non-'DBObject' object! Was: " + event.getClass());
         }
     }
 
-    private PolicyEvent tryToCreateEventFrom(final String json) {
+    private PolicyEvent tryToCreateEventFrom(final JsonValue json) {
         try {
             return createEventFrom(json);
         } catch (final JsonParseException | DittoRuntimeException e) {
@@ -115,8 +125,8 @@ public final class MongoPolicyEventAdapter implements EventAdapter {
         }
     }
 
-    private PolicyEvent createEventFrom(final String json) {
-        final JsonObject jsonObject = JsonFactory.newObject(json)
+    private PolicyEvent createEventFrom(final JsonValue json) {
+        final JsonObject jsonObject = json.asObject()
                 .setValue(Event.JsonFields.REVISION.getPointer(), Event.DEFAULT_REVISION);
 
         return eventRegistry.parse(migrateComplex(migratePayload(jsonObject)), DittoHeaders.empty());

@@ -22,8 +22,9 @@ node {
       maven: 'maven-3.5.2',
       mavenLocalRepo: theMvnRepo) {
 
-      sh "mvn clean deploy javadoc:jar source:jar-no-fork -nsu --batch-mode --errors -Pbuild-documentation," +
-              "internal-repos -DcreateJavadoc=true"
+      sh "mvn clean deploy javadoc:jar source:jar-no-fork" +
+              " -T16 --batch-mode --errors -nsu" +
+              " -Pbuild-documentation,internal-repos -DcreateJavadoc=true"
     }
   }
 }

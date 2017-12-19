@@ -13,9 +13,9 @@ package org.eclipse.ditto.services.utils.persistence.mongo;
 
 import org.eclipse.ditto.services.models.streaming.SudoStreamModifiedEntities;
 import org.eclipse.ditto.services.utils.akka.streaming.AbstractStreamingActor;
+import org.eclipse.ditto.services.utils.akkapersistence.mongoaddons.DittoJavaDslMongoReadJournal;
 
 import akka.NotUsed;
-import akka.contrib.persistence.mongodb.DittoJavaDslMongoReadJournal;
 import akka.stream.javadsl.Source;
 
 /**

@@ -40,6 +40,7 @@ import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.gateway.streaming.Connect;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StopStreaming;
+import org.eclipse.ditto.services.gateway.streaming.StreamingAck;
 import org.eclipse.ditto.services.gateway.streaming.StreamingType;
 import org.eclipse.ditto.services.gateway.streaming.actors.CommandSubscriber;
 import org.eclipse.ditto.services.gateway.streaming.actors.EventAndResponsePublisher;
@@ -78,6 +79,12 @@ public final class WebsocketRoute {
 
     private static final String START_SEND_LIVE_EVENTS = "START-SEND-LIVE-EVENTS";
     private static final String STOP_SEND_LIVE_EVENTS = "STOP-SEND-LIVE-EVENTS";
+
+    /**
+     * The backend sends the protocol message above suffixed by ":ACK" when the subscription was created. E.g.: {@code
+     * START-SEND-EVENTS:ACK}
+     */
+    private static final String PROTOCOL_CMD_ACK_SUFFIX = ":ACK";
 
     private static final String STREAMING_TYPE_WS = "WS";
 
@@ -147,9 +154,9 @@ public final class WebsocketRoute {
     }
 
     private boolean processProtocolMessage(final AuthorizationContext authContext, final String connectionCorrelationId,
-            final String strictText) {
+            final String protocolMessage) {
         final Object messageToTellStreamingActor;
-        switch (strictText) {
+        switch (protocolMessage) {
             case START_SEND_EVENTS:
                 messageToTellStreamingActor =
                         new StartStreaming(StreamingType.EVENTS, connectionCorrelationId, authContext);
@@ -258,6 +265,27 @@ public final class WebsocketRoute {
         final Adaptable adaptable;
         if (jsonifiable instanceof Signal && isLiveSignal((Signal<?>) jsonifiable)) {
             adaptable = jsonifiableToAdaptable(jsonifiable, TopicPath.Channel.LIVE);
+        } else if (jsonifiable instanceof StreamingAck) {
+            final StreamingType streamingType = ((StreamingAck) jsonifiable).getStreamingType();
+            final boolean subscribed = ((StreamingAck) jsonifiable).isSubscribed();
+            final String protocolMessage;
+            switch (streamingType) {
+                case EVENTS:
+                    protocolMessage = subscribed ? START_SEND_EVENTS : STOP_SEND_EVENTS;
+                    break;
+                case MESSAGES:
+                    protocolMessage = subscribed ? START_SEND_MESSAGES : STOP_SEND_MESSAGES;
+                    break;
+                case LIVE_COMMANDS:
+                    protocolMessage = subscribed ? START_SEND_LIVE_COMMANDS : STOP_SEND_LIVE_COMMANDS;
+                    break;
+                case LIVE_EVENTS:
+                    protocolMessage = subscribed ? START_SEND_LIVE_EVENTS : STOP_SEND_LIVE_EVENTS;
+                    break;
+                default:
+                    throw new IllegalArgumentException("Unknown streamingType: " + streamingType);
+            }
+            return protocolMessage + PROTOCOL_CMD_ACK_SUFFIX;
         } else {
             adaptable = jsonifiableToAdaptable(jsonifiable, TopicPath.Channel.TWIN);
         }

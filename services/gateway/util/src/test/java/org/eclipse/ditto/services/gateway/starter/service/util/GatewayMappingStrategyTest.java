@@ -38,7 +38,6 @@ import org.eclipse.ditto.signals.commands.devops.RetrieveStatistics;
 import org.eclipse.ditto.signals.commands.devops.RetrieveStatisticsResponse;
 import org.eclipse.ditto.signals.commands.messages.SendClaimMessage;
 import org.eclipse.ditto.signals.commands.messages.SendClaimMessageResponse;
-import org.eclipse.ditto.signals.commands.messages.SendEmptyMessageResponse;
 import org.eclipse.ditto.signals.commands.messages.SendFeatureMessage;
 import org.eclipse.ditto.signals.commands.messages.SendFeatureMessageResponse;
 import org.eclipse.ditto.signals.commands.messages.SendMessageAcceptedResponse;
@@ -87,7 +86,6 @@ public final class GatewayMappingStrategyTest {
                 .knows(SendThingMessage.TYPE)
                 .knows(SendFeatureMessage.TYPE)
                 .knows(SendClaimMessageResponse.TYPE)
-                .knows(SendEmptyMessageResponse.TYPE)
                 .knows(SendMessageAcceptedResponse.TYPE)
                 .knows(SendThingMessageResponse.TYPE)
                 .knows(SendFeatureMessageResponse.TYPE)

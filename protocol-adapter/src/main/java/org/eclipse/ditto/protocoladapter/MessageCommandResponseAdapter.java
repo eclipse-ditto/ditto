@@ -19,7 +19,6 @@ import org.eclipse.ditto.model.messages.KnownMessageSubjects;
 import org.eclipse.ditto.model.messages.MessageHeaderDefinition;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
 import org.eclipse.ditto.signals.commands.messages.SendClaimMessageResponse;
-import org.eclipse.ditto.signals.commands.messages.SendEmptyMessageResponse;
 import org.eclipse.ditto.signals.commands.messages.SendFeatureMessageResponse;
 import org.eclipse.ditto.signals.commands.messages.SendMessageAcceptedResponse;
 import org.eclipse.ditto.signals.commands.messages.SendThingMessageResponse;
@@ -55,12 +54,8 @@ final class MessageCommandResponseAdapter extends AbstractAdapter<MessageCommand
                         MessageAdaptableHelper.messageFrom(adaptable),
                         statusCodeFrom(adaptable), dittoHeadersFrom(adaptable)));
         mappingStrategies.put(SendFeatureMessageResponse.TYPE,
-                adaptable -> SendFeatureMessageResponse.of(thingIdFrom(adaptable), featureIdFrom(adaptable),
+                adaptable -> SendFeatureMessageResponse.of(thingIdFrom(adaptable), featureIdForMessageFrom(adaptable),
                         MessageAdaptableHelper.messageFrom(adaptable), statusCodeFrom(adaptable),
-                        dittoHeadersFrom(adaptable)));
-        mappingStrategies.put(SendEmptyMessageResponse.TYPE,
-                adaptable -> SendEmptyMessageResponse.newInstance(thingIdFrom(adaptable),
-                        MessageAdaptableHelper.messageHeadersFrom(adaptable), statusCodeFrom(adaptable),
                         dittoHeadersFrom(adaptable)));
         mappingStrategies.put(SendMessageAcceptedResponse.TYPE,
                 adaptable -> SendMessageAcceptedResponse.newInstance(thingIdFrom(adaptable),
@@ -78,14 +73,12 @@ final class MessageCommandResponseAdapter extends AbstractAdapter<MessageCommand
     protected String getType(final Adaptable adaptable) {
         if (adaptable.getTopicPath().getSubject().filter(KnownMessageSubjects.CLAIM_SUBJECT::equals).isPresent()) {
             return SendClaimMessageResponse.TYPE;
+        } else if (!adaptable.getHeaders().map(DittoHeaders::isResponseRequired).orElse(true)) {
+            return SendMessageAcceptedResponse.TYPE;
         } else if (adaptable.containsHeaderForKey(MessageHeaderDefinition.FEATURE_ID.getKey())) {
             return SendFeatureMessageResponse.TYPE;
-        } else if (adaptable.containsHeaderForKey(MessageHeaderDefinition.THING_ID.getKey())) {
-            return SendThingMessageResponse.TYPE;
-        } else if (adaptable.getHeaders().map(DittoHeaders::isResponseRequired).orElse(true)) {
-            return SendEmptyMessageResponse.TYPE;
         } else {
-            return SendMessageAcceptedResponse.TYPE;
+            return SendThingMessageResponse.TYPE;
         }
     }
 

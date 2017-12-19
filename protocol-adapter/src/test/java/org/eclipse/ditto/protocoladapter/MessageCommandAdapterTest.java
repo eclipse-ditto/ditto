@@ -12,10 +12,18 @@
 package org.eclipse.ditto.protocoladapter;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.eclipse.ditto.protocoladapter.TestConstants.FEATURE_ID;
+import static org.eclipse.ditto.protocoladapter.TestConstants.SUBJECT;
 
-import java.util.Optional;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Base64;
+import java.util.Collection;
 
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
@@ -23,186 +31,127 @@ import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.messages.KnownMessageSubjects;
 import org.eclipse.ditto.model.messages.Message;
 import org.eclipse.ditto.model.messages.MessageBuilder;
 import org.eclipse.ditto.model.messages.MessageDirection;
 import org.eclipse.ditto.model.messages.MessageHeaderDefinition;
 import org.eclipse.ditto.model.messages.MessageHeaders;
-import org.eclipse.ditto.model.messages.MessageHeadersBuilder;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
+import org.eclipse.ditto.signals.commands.messages.SendClaimMessage;
+import org.eclipse.ditto.signals.commands.messages.SendFeatureMessage;
 import org.eclipse.ditto.signals.commands.messages.SendThingMessage;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 /**
  * Unit test for {@link MessageCommandAdapter}.
  */
-public class MessageCommandAdapterTest {
+@RunWith(Parameterized.class)
+public final class MessageCommandAdapterTest {
 
     private static final String APPLICATION_JSON = "application/json";
+    private static final String APPLICATION_OCTET_STREAM = "application/octet-stream";
+    private static final byte[] BINARY_PAYLOAD = "binary payload".getBytes(StandardCharsets.UTF_8);
+    private static final String XML_PAYLOAD = "<xml>test</xml>";
     private MessageCommandAdapter underTest;
 
+    @Parameterized.Parameters(name = "version={0}, direction={1}, type={2}, payload={3}")
+    public static Collection<Object[]> data() {
+        final Collection<TestPayload> payloads = Arrays.asList(
+                TestPayload.of("text/plain", JsonValue.of("stringPayload"), "stringPayload", false),
+                TestPayload.of(APPLICATION_JSON, JsonObject.newBuilder().set("hello", 42).set("foo", false).build()),
+                TestPayload.of(APPLICATION_JSON, JsonValue.of(3.14159265359)),
+                TestPayload.of(APPLICATION_JSON, JsonValue.of("payload")),
+                TestPayload.of(APPLICATION_JSON, JsonValue.of(null)),
+                TestPayload.of(APPLICATION_JSON, null),
+                TestPayload.of(APPLICATION_OCTET_STREAM, binaryPayloadAsJson(), BINARY_PAYLOAD, true),
+                TestPayload.of("text/xml", JsonValue.of(XML_PAYLOAD), XML_PAYLOAD.getBytes(StandardCharsets.UTF_8),
+                        true),
+                TestPayload.of(null, null)
+        );
+        final Collection<String> messageTypes =
+                Arrays.asList(SendThingMessage.TYPE, SendFeatureMessage.TYPE, SendClaimMessage.TYPE);
+
+        final Collection<Object[]> params = new ArrayList<>();
+        for (final JsonSchemaVersion version : JsonSchemaVersion.values()) {
+            for (final MessageDirection direction : MessageDirection.values()) {
+                for (final String messageType : messageTypes) {
+                    for (final TestPayload payload : payloads) {
+                        params.add(new Object[]{version, direction, messageType, payload});
+                    }
+                }
+            }
+        }
+        return params;
+    }
+
+    private static JsonValue binaryPayloadAsJson() {
+        return JsonValue.of(Base64.getEncoder().encodeToString(BINARY_PAYLOAD));
+    }
+
+    @Parameterized.Parameter
+    public JsonSchemaVersion version;
+
+    @Parameterized.Parameter(1)
+    public MessageDirection direction;
+
+    @Parameterized.Parameter(2)
+    public String type;
+
+    @Parameterized.Parameter(3)
+    public TestPayload payload;
+
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         underTest = MessageCommandAdapter.newInstance();
     }
 
     @Test
-    public void sendThingMessagePlainTextFromAdaptable() {
-        final MessageDirection messageDirection = MessageDirection.TO;
-        final String subject = "foo";
-        final String payload = "Huhu!";
-        final String contentType = "text/plain";
+    public void testMessageFromAdaptable() {
+        final String subject = subject();
+        final String contentType = payload.contentType;
+        final JsonPointer path = path(subject);
+        final DittoHeaders theHeaders = dittoHeaders(subject, contentType);
 
-        final Message expectedMessage = Message.newBuilder(
-                MessageHeaders.newBuilder(messageDirection, TestConstants.THING_ID, subject)
-                        .contentType(contentType)
-                        .correlationId("correlationId")
-                        .schemaVersion(JsonSchemaVersion.V_2)
-                        .build()
-        )
-                .payload(payload)
-                .build();
-        final DittoHeaders expectedHeaders = buildMessageHeaders(TestConstants.DITTO_HEADERS_V_2.toBuilder(),
-                messageDirection, subject, contentType);
-        final SendThingMessage expected = SendThingMessage.of(
-                TestConstants.THING_ID,
-                expectedMessage,
-                expectedHeaders);
+        // build expected message and message command
+        final Message<Object> expectedMessage = message(subject, contentType, payload.asObject);
+        final MessageCommand expectedMessageCommand = messageCommand(type, expectedMessage, theHeaders);
 
+        // build the adaptable that will be converted to a message command
         final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
                 .live()
                 .messages()
                 .subject(subject)
                 .build();
-
-        final JsonPointer path = JsonPointer.of("/inbox/messages/" + subject);
-
-        final DittoHeaders headers = TestConstants.HEADERS_V_2;
-        final DittoHeaders theHeaders =
-                buildMessageHeaders(headers.toBuilder(), messageDirection, subject, contentType);
-
         final Adaptable adaptable = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withValue(JsonValue.of(payload))
+                        .withValue(payload.asJson)
                         .build())
                 .withHeaders(theHeaders)
                 .build();
-        final MessageCommand actual = underTest.fromAdaptable(adaptable);
 
-        assertThat(actual).isEqualTo(expected);
+        final MessageCommand actualMessageCommand = underTest.fromAdaptable(adaptable);
+
+        assertThat(actualMessageCommand).isEqualTo(expectedMessageCommand);
     }
 
-    @Test
-    public void sendThingMessageWithJsonObjectPayloadFromAdaptable() {
-        final JsonObject payload = JsonObject.newBuilder().set("hello", 42).set("foo", false).build();
-        sendThingMessageJsonFromAdaptable(payload, APPLICATION_JSON);
-    }
-
-    @Test
-    public void sendThingMessageWithJsonStringPayloadFromAdaptable() {
-        sendThingMessageJsonFromAdaptable(JsonValue.of("payload"), APPLICATION_JSON);
-    }
-
-    @Test
-    public void sendThingMessageWithJsonNumberPayloadFromAdaptable() {
-        sendThingMessageJsonFromAdaptable(JsonValue.of(3.14159265359), APPLICATION_JSON);
-    }
-
-    @Test
-    public void sendThingMessageWithJsonBooleanPayloadFromAdaptable() {
-        sendThingMessageJsonFromAdaptable(JsonValue.of(true), APPLICATION_JSON);
-    }
-
-    @Test
-    public void sendThingMessageWithEmptyRawPayloadFromAdaptable() {
-        sendThingMessageJsonFromAdaptable(null, null);
-    }
-
-    @Test
-    public void sendThingMessageWithEmptyJsonPayloadFromAdaptable() {
-        sendThingMessageJsonFromAdaptable(null, APPLICATION_JSON);
-    }
-
-    private void sendThingMessageJsonFromAdaptable(final JsonValue payload, final String contentType) {
-        final MessageDirection messageDirection = MessageDirection.FROM;
-        final String subject = "json-yeah";
-
-        // build the expected message
-        final MessageHeadersBuilder messageHeadersBuilder =
-                MessageHeaders.newBuilder(messageDirection, TestConstants.THING_ID, subject)
-                        .correlationId("correlationId")
-                        .schemaVersion(JsonSchemaVersion.V_2);
-        Optional.ofNullable(contentType).ifPresent(messageHeadersBuilder::contentType);
-        final MessageBuilder<Object> messageBuilder = Message.newBuilder(messageHeadersBuilder.build());
-        Optional.ofNullable(payload).ifPresent(messageBuilder::payload);
-        final Message<Object> expectedMessage = messageBuilder.build();
-
-        final DittoHeaders expectedHeaders = buildMessageHeaders(TestConstants.DITTO_HEADERS_V_2.toBuilder(),
-                messageDirection, subject, contentType);
-        final SendThingMessage expected = SendThingMessage.of(
-                TestConstants.THING_ID,
-                expectedMessage,
-                expectedHeaders);
-
-        // build the adaptable that is vonverted to a message
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
-                .live()
-                .messages()
-                .subject(subject)
+    private MessageHeaders messageHeaders(final CharSequence subject, final CharSequence contentType) {
+        return MessageHeaders.newBuilder(direction, TestConstants.THING_ID, subject)
+                .contentType(contentType)
+                .correlationId(TestConstants.CORRELATION_ID)
+                .featureId(SendFeatureMessage.TYPE.equals(type) ? FEATURE_ID : null)
+                .schemaVersion(version)
                 .build();
-
-        final JsonPointer path = JsonPointer.of("/inbox/messages/" + subject);
-
-        final DittoHeaders headers = TestConstants.HEADERS_V_2;
-        final DittoHeaders theHeaders =
-                buildMessageHeaders(headers.toBuilder(), messageDirection, subject, contentType);
-
-        final AdaptableBuilder adaptableBuilder = Adaptable.newBuilder(topicPath);
-        final PayloadBuilder payloadBuilder = Payload.newBuilder(path);
-        Optional.ofNullable(payload).ifPresent(p -> payloadBuilder.withValue(payload));
-        final Adaptable adaptable =
-                adaptableBuilder.withHeaders(theHeaders).withPayload(payloadBuilder.build()).build();
-
-        // test
-        final MessageCommand actual = underTest.fromAdaptable(adaptable);
-        assertThat(actual).isEqualTo(expected);
     }
 
     @Test
-    public void sendThingMessageWithNumberToAdaptable() {
-        sendThingMessageWithPayloadToAdaptable(JsonFactory.newValue(3.14159265359), APPLICATION_JSON);
-    }
-
-    @Test
-    public void sendThingMessageWithBooelanToAdaptable() {
-        sendThingMessageWithPayloadToAdaptable(JsonFactory.newValue(true), APPLICATION_JSON);
-    }
-
-    @Test
-    public void sendThingMessageWithJsonObjectToAdaptable() {
-        final JsonObject payload = JsonObject.newBuilder().set("hello", 42).set("foo", false).build();
-        sendThingMessageWithPayloadToAdaptable(payload, APPLICATION_JSON);
-    }
-
-    @Test
-    public void sendThingMessageWithJsonStringPayloadToAdaptable() {
-        sendThingMessageWithPayloadToAdaptable(JsonFactory.newValue("payload"), APPLICATION_JSON);
-    }
-
-    @Test
-    public void sendThingMessageWithEmptyRawPayloadToAdaptable() {
-        sendThingMessageWithPayloadToAdaptable(null, null);
-    }
-
-    @Test
-    public void sendThingMessageWithEmptyJsonPayloadToAdaptable() {
-        sendThingMessageWithPayloadToAdaptable(null, APPLICATION_JSON);
-    }
-
-    private void sendThingMessageWithPayloadToAdaptable(JsonValue payload, final String contentType) {
-        final MessageDirection messageDirection = MessageDirection.FROM;
-        final String subject = "newMsg:stuff";
+    public void testMessageToAdaptable() {
+        final String subject = subject();
+        final String contentType = payload.contentType;
+        final JsonPointer path = path(subject);
 
         // build expected adaptable
         final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
@@ -210,47 +159,127 @@ public class MessageCommandAdapterTest {
                 .messages()
                 .subject(subject)
                 .build();
-        final JsonPointer path = JsonPointer.of("/outbox/messages/" + subject);
+        final DittoHeaders expectedHeaders = dittoHeaders(subject, contentType);
 
-        final DittoHeaders expectedHeaders = buildMessageHeaders(TestConstants.DITTO_HEADERS_V_2.toBuilder(),
-                messageDirection, subject, contentType);
         final PayloadBuilder payloadBuilder = Payload.newBuilder(path);
-        Optional.ofNullable(payload).ifPresent(payloadBuilder::withValue);
-        final Adaptable expected = Adaptable.newBuilder(topicPath)
+        if (payload.asJson != null) {
+            payloadBuilder.withValue(payload.asJson);
+        }
+
+        final Adaptable expectedAdaptable = Adaptable.newBuilder(topicPath)
                 .withPayload(payloadBuilder.build())
                 .withHeaders(expectedHeaders)
                 .build();
 
         // build the message that will be converted to an adaptable
-        final MessageHeadersBuilder messageHeadersBuilder =
-                MessageHeaders.newBuilder(messageDirection, TestConstants.THING_ID, subject);
-        messageHeadersBuilder.correlationId("correlationId").schemaVersion(JsonSchemaVersion.V_2);
-        Optional.ofNullable(contentType).ifPresent(messageHeadersBuilder::contentType);
-        final MessageBuilder<Object> messageBuilder = Message.newBuilder(messageHeadersBuilder.build());
-        Optional.ofNullable(payload).ifPresent(messageBuilder::payload);
-        final Message<Object> theMessage = messageBuilder.build();
-        final DittoHeaders theHeaders = buildMessageHeaders(TestConstants.DITTO_HEADERS_V_2.toBuilder(),
-                messageDirection, subject, contentType);
-
-        final SendThingMessage sendThingMessage = SendThingMessage.of(
-                TestConstants.THING_ID,
-                theMessage,
-                theHeaders);
+        final Message<Object> theMessage = message(subject, contentType, payload.asObject);
+        final DittoHeaders theHeaders = dittoHeaders(subject, contentType);
+        final MessageCommand messageCommand = messageCommand(type, theMessage, theHeaders);
 
         // test
-        final Adaptable actual = underTest.toAdaptable(sendThingMessage);
-        assertThat(actual).isEqualTo(expected);
+        final Adaptable actual = underTest.toAdaptable(messageCommand);
+        assertThat(actual).isEqualTo(expectedAdaptable);
     }
 
-    private DittoHeaders buildMessageHeaders(final DittoHeadersBuilder headersBuilder,
-            final MessageDirection messageDirection, final String subject, final String contentType) {
+    private Message<Object> message(final CharSequence subject, final CharSequence contentType,
+            final Object thePayload) {
+
+        final MessageHeaders messageHeaders = messageHeaders(subject, contentType);
+        final MessageBuilder<Object> messageBuilder = Message.newBuilder(messageHeaders);
+        if (thePayload != null) {
+            if (payload.raw) {
+                messageBuilder.rawPayload(ByteBuffer.wrap((byte[]) thePayload));
+            } else {
+                messageBuilder.payload(thePayload);
+            }
+        }
+        return messageBuilder.build();
+    }
+
+    private JsonPointer path(final CharSequence subject) {
+        final JsonPointer path;
+        if (SendFeatureMessage.TYPE.equals(type)) {
+            path = JsonFactory.newPointer(JsonKey.of("features"), JsonKey.of(FEATURE_ID));
+        } else {
+            path = JsonPointer.empty();
+        }
+        final JsonKey directionKey = (direction == MessageDirection.FROM ? JsonKey.of("outbox") : JsonKey.of("inbox"));
+
+        return path.addLeaf(directionKey).addLeaf(JsonKey.of("messages")).addLeaf(JsonKey.of(subject));
+    }
+
+    private DittoHeaders dittoHeaders(final CharSequence subject, final CharSequence contentType) {
+        final DittoHeadersBuilder headersBuilder = DittoHeaders.newBuilder();
+        headersBuilder.correlationId(TestConstants.CORRELATION_ID);
+        headersBuilder.schemaVersion(version);
         headersBuilder.putHeader(MessageHeaderDefinition.THING_ID.getKey(), TestConstants.THING_ID);
         headersBuilder.putHeader(MessageHeaderDefinition.SUBJECT.getKey(), subject);
-        headersBuilder.putHeader(MessageHeaderDefinition.DIRECTION.getKey(), messageDirection.name());
+        headersBuilder.putHeader(MessageHeaderDefinition.DIRECTION.getKey(), direction.name());
+        if (SendFeatureMessage.TYPE.equals(type)) {
+            headersBuilder.putHeader(MessageHeaderDefinition.FEATURE_ID.getKey(), FEATURE_ID);
+        }
         if (contentType != null) {
             headersBuilder.putHeader(DittoHeaderDefinition.CONTENT_TYPE.getKey(), contentType);
         }
         return headersBuilder.build();
+    }
+
+
+    private static MessageCommand messageCommand(final String type, final Message<Object> message,
+            final DittoHeaders headers) {
+        switch (type) {
+            case SendThingMessage.TYPE:
+                return SendThingMessage.of(TestConstants.THING_ID, message, headers);
+            case SendFeatureMessage.TYPE:
+                return SendFeatureMessage.of(TestConstants.THING_ID, TestConstants.FEATURE_ID, message, headers);
+            case SendClaimMessage.TYPE:
+                return SendClaimMessage.of(TestConstants.THING_ID, message, headers);
+            default:
+                throw new IllegalArgumentException(type + " not supported.");
+        }
+    }
+
+    private String subject() {
+        return SendClaimMessage.TYPE.equals(type) ? KnownMessageSubjects.CLAIM_SUBJECT : SUBJECT;
+    }
+
+    private static final class TestPayload {
+
+        private final String contentType;
+        private final JsonValue asJson; // json representation (how the payload is represented in a message command)
+        private final Object asObject; // java representation (how the payload is represented in an adaptable)
+        private final boolean raw; // should the payload be interpreted as raw (base64)
+
+        private TestPayload(final String contentType,
+                final JsonValue asJson,
+                final Object asObject,
+                final boolean raw) {
+
+            this.contentType = contentType;
+            this.asJson = asJson;
+            this.asObject = asObject;
+            this.raw = raw;
+        }
+
+        private static TestPayload of(final String contentType, final JsonValue asJson) {
+            return new TestPayload(contentType, asJson, asJson, false);
+        }
+
+        private static TestPayload of(final String contentType, final JsonValue asJson, final Object asObject,
+                final boolean raw) {
+            return new TestPayload(contentType, asJson, asObject, raw);
+        }
+
+        @Override
+        public String toString() {
+            return "TestPayload{" +
+                    "contentType='" + contentType + '\'' +
+                    ", asJson=" + asJson +
+                    ", asObject=" + asObject +
+                    ", raw=" + raw +
+                    '}';
+        }
+
     }
 
 }

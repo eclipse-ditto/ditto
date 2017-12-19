@@ -28,7 +28,7 @@ import org.junit.Test;
  */
 public final class RqlOptionsParserTest {
 
-    private final RqlOptionParser parser = new RqlOptionParser();
+    private final OptionParser parser = new RqlOptionParser();
 
     @Test
     public void parseSortWithOnePropertyAscending() throws ParserException {

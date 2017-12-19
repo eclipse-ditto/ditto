@@ -13,8 +13,6 @@ package org.eclipse.ditto.model.policiesenforcers.trie;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
-import java.util.Collections;
-import java.util.Iterator;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -169,8 +167,10 @@ public final class TrieBasedPolicyEnforcer implements PolicyEnforcer {
     }
 
     @Override
-    public JsonObject buildJsonView(final ResourceKey resourceKey, final Iterable<JsonField> jsonFields,
-            final AuthorizationContext authorizationContext, final Permissions permissions) {
+    public JsonObject buildJsonView(final ResourceKey resourceKey,
+            final Iterable<JsonField> jsonFields,
+            final AuthorizationContext authorizationContext,
+            final Permissions permissions) {
 
         checkResourceKey(resourceKey);
         checkNotNull(jsonFields, "JSON fields");
@@ -181,9 +181,8 @@ public final class TrieBasedPolicyEnforcer implements PolicyEnforcer {
         final JsonKey typeKey = JsonKey.of(resourceKey.getResourceType());
 
         if (inheritedTrie.hasChild(typeKey)) {
-            final PolicyTrie start = inheritedTrie.seekToLeastAncestor(Collections.singletonList(typeKey).iterator());
-            final Iterator<JsonKey> pathWithoutType = resourceKey.getResourcePath().iterator();
-            return start.buildJsonView(pathWithoutType, jsonFields, subjectIds, permissions);
+            final PolicyTrie start = inheritedTrie.seekToLeastAncestor(PolicyTrie.getJsonKeyIterator(resourceKey));
+            return start.buildJsonView(jsonFields, subjectIds, permissions);
         } else {
             return JsonFactory.newObject();
         }

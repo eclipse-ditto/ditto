@@ -14,51 +14,17 @@ package org.eclipse.ditto.model.thingsearchparser.options.rql;
 import java.util.List;
 
 import org.eclipse.ditto.model.thingsearch.Option;
-import org.eclipse.ditto.model.thingsearchparser.RqlParserBase;
-import org.eclipse.ditto.model.thingsearchparser.predicates.rql.RqlPredicateParser;
-import org.parboiled.parserunners.ReportingParseRunner;
+import org.eclipse.ditto.model.thingsearchparser.parser.RqlOptionParser$;
 
 /**
- * RQL Parser. Parses options in the RQL "standard" according to https://github.com/persvr/rql with the following EBNF:
- * <pre>
- * Options                    = Option, { ',', Option }
- * Option                     = Sort | Limit
- * Sort                       = "sort", '(', SortProperty, { ',', SortProperty }, ')'
- * SortProperty               = SortOrder, PropertyLiteral
- * SortOrder                  = '+' | '-'
- * Limit                      = "limit", '(', IntegerLiteral, ',', IntegerLiteral, ')'
- * Literal                    = FloatLiteral | IntegerLiteral | StringLiteral | "true" | "false" | "null"
- * FloatLiteral               = [ '+' | '-' ], "0.", Digit, { Digit } |
- *                              [ '+' | '-' ], DigitWithoutZero, { Digit }, '.', Digit, { Digit }
- * IntegerLiteral             = '0' | [ '+' | '-' ], DigitWithoutZero, { Digit }
- * DigitWithoutZero           = '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9'
- * Digit                      = '0' | DigitWithoutZero
- * StringLiteral              = '"', ? printable characters ?, '"'
- * PropertyLiteral            = ? printable characters ?
- * </pre>
+ * RQL Parser parsing options in the RQL "standard" according to https://github.com/persvr/rql.
  */
-public final class RqlOptionParser extends RqlParserBase<OptionRules, List<Option>> implements OptionParser {
+public final class RqlOptionParser implements OptionParser {
 
-    /**
-     * The default {@link org.parboiled.parserunners.ParseRunner}.
-     */
-    private static final ParseRunnerProvider DEFAULT_PARSE_RUNNER_PROVIDER = ReportingParseRunner::new;
+    private static final OptionParser PARSER = RqlOptionParser$.MODULE$;
 
-    /**
-     * Creates a new RQL parser with the given {@link RqlPredicateParser.ParseRunnerProvider}.
-     *
-     * @param parseRunnerProvider instance of a {@code RqlPredicateParser.ParseRunnerProvider}.
-     * @throws NullPointerException if {@code parseRunnerProvider} is {@code null}.
-     */
-    public RqlOptionParser(final ParseRunnerProvider parseRunnerProvider) {
-        super(parseRunnerProvider, OptionRules.class);
+    @Override
+    public List<Option> parse(final String input) {
+        return PARSER.parse(input);
     }
-
-    /**
-     * Creates a new RQL parser using the default ParseRunnerProvider as {@link RqlOptionParser.ParseRunnerProvider}.
-     */
-    public RqlOptionParser() {
-        this(DEFAULT_PARSE_RUNNER_PROVIDER);
-    }
-
 }

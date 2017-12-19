@@ -19,7 +19,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.ThreadSafe;
 
-import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
@@ -27,11 +26,11 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.utils.akka.persistence.SnapshotAdapter;
+import org.eclipse.ditto.services.utils.persistence.mongo.DittoBsonJson;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.mongodb.DBObject;
-import com.mongodb.util.DittoBsonJSON;
 
 import akka.actor.ActorSystem;
 import akka.event.LoggingAdapter;
@@ -60,9 +59,10 @@ abstract class MongoThingSnapshotAdapter<T extends Thing> implements SnapshotAda
 
     @Override
     public Object toSnapshotStore(final T snapshotEntity) {
-        final String jsonString = getJsonString(convertToJson(snapshotEntity));
+        final JsonObject json = convertToJson(snapshotEntity);
 
-        return DittoBsonJSON.parse(jsonString);
+        final DittoBsonJson dittoBsonJson = DittoBsonJson.getInstance();
+        return dittoBsonJson.parse(json);
     }
 
     /**
@@ -147,8 +147,9 @@ abstract class MongoThingSnapshotAdapter<T extends Thing> implements SnapshotAda
     @Nonnull
     private static JsonObject convertToJson(@Nonnull final DBObject dbObject) {
         checkNotNull(dbObject, "DBObject to be converted");
-        final String jsonObjectString = DittoBsonJSON.serialize(dbObject);
-        return DittoJsonException.wrapJsonRuntimeException(() -> JsonFactory.newObject(jsonObjectString));
+        final DittoBsonJson dittoBsonJson = DittoBsonJson.getInstance();
+        final JsonObject jsonObject = dittoBsonJson.serialize(dbObject).asObject();
+        return DittoJsonException.wrapJsonRuntimeException(() -> jsonObject);
     }
 
     @Nullable

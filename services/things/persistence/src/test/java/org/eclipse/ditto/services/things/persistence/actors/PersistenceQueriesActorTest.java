@@ -22,6 +22,8 @@ import java.util.UUID;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.models.streaming.EntityIdWithRevision;
 import org.eclipse.ditto.services.models.streaming.SudoStreamModifiedEntities;
+import org.eclipse.ditto.services.utils.akkapersistence.mongoaddons.DittoJavaDslMongoReadJournal;
+import org.eclipse.ditto.services.utils.akkapersistence.mongoaddons.PidWithSeqNr;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -34,8 +36,6 @@ import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
-import akka.contrib.persistence.mongodb.DittoJavaDslMongoReadJournal;
-import akka.contrib.persistence.mongodb.PidWithSeqNr;
 import akka.stream.javadsl.Source;
 import akka.testkit.javadsl.TestKit;
 
