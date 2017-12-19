@@ -2,6 +2,8 @@
 
 [![Join the chat at https://gitter.im/eclipse/ditto](https://badges.gitter.im/eclipse/ditto.svg)](https://gitter.im/eclipse/ditto?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![Build Status](https://travis-ci.org/eclipse/ditto.svg?branch=master)](https://travis-ci.org/eclipse/ditto)
+[![Maven Central](https://img.shields.io/maven-metadata/v/http/central.maven.org/maven2/org/eclipse/ditto/ditto/maven-metadata.xml.svg)](http://search.maven.org/#search|ga|1|org.eclipse.ditto)
+
 
 ![Ditto Logo](./documentation/src/main/resources/images/ditto.svg)
 
