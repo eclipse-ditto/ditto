@@ -27,7 +27,8 @@ import akka.japi.Creator;
 public final class DefaultPersistenceStreamingActor<T extends EntityIdWithRevision>
         extends AbstractPersistenceStreamingActor<T> {
 
-    private DefaultPersistenceStreamingActor(final int streamingCacheSize, final Function<PidWithSeqNr, T> entityMapper) {
+    private DefaultPersistenceStreamingActor(final int streamingCacheSize,
+            final Function<PidWithSeqNr, T> entityMapper) {
         this(streamingCacheSize, entityMapper, null);
     }
 
@@ -42,20 +43,13 @@ public final class DefaultPersistenceStreamingActor<T extends EntityIdWithRevisi
      * @param streamingCacheSize the size of the streaming cache.
      * @param entityMapper the mapper used to map {@link PidWithSeqNr} to {@code T}. The resulting entity will be
      * streamed to the recipient actor.
-     *
      * @return the Akka configuration Props object.
      */
     public static <T extends EntityIdWithRevision> Props props(final int streamingCacheSize,
             final Function<PidWithSeqNr, T> entityMapper) {
 
-        return Props.create(DefaultPersistenceStreamingActor.class, new Creator<DefaultPersistenceStreamingActor<T>>() {
-            private static final long serialVersionUID = 1L;
-
-            @Override
-            public DefaultPersistenceStreamingActor<T> create() {
-                return new DefaultPersistenceStreamingActor<>(streamingCacheSize, entityMapper);
-            }
-        });
+        return Props.create(DefaultPersistenceStreamingActor.class,
+                () -> new DefaultPersistenceStreamingActor<>(streamingCacheSize, entityMapper));
     }
 
     static <T extends EntityIdWithRevision> Props props(final int streamingCacheSize,
