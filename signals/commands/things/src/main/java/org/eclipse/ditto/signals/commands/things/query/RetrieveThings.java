@@ -144,25 +144,11 @@ public final class RetrieveThings extends AbstractCommand<RetrieveThings>
      * specified RetrieveThings.
      *
      * @param retrieveThings a {@code RetrieveThings} object which acts as template for the new builder.
-     * @param thingIds one or more Thing IDs to be retrieved.
      * @return a builder for a Thing retrieving command.
      * @throws NullPointerException if {@code authorizationContext} is {@code null}.
      */
-    public static Builder getBuilder(final RetrieveThings retrieveThings, final String... thingIds) {
-        return new Builder(retrieveThings, Arrays.asList(thingIds));
-    }
-
-    /**
-     * Returns a builder for a command for retrieving Things. The builder gets initialised with the data from the
-     * specified RetrieveThings.
-     *
-     * @param retrieveThings a {@code RetrieveThings} object which acts as template for the new builder.
-     * @param thingIds the Thing IDs to be retrieved.
-     * @return a builder for a Thing retrieving command.
-     * @throws NullPointerException if {@code authorizationContext} is {@code null}.
-     */
-    public static Builder getBuilder(final RetrieveThings retrieveThings, final List<String> thingIds) {
-        return new Builder(retrieveThings, thingIds);
+    public static Builder getBuilder(final RetrieveThings retrieveThings) {
+        return new Builder(retrieveThings);
     }
 
     /**
@@ -310,8 +296,8 @@ public final class RetrieveThings extends AbstractCommand<RetrieveThings>
             namespace = null;
         }
 
-        private Builder(final RetrieveThings retrieveThings, final List<String> thingIds) {
-            this.thingIds = new ArrayList<>(thingIds);
+        private Builder(final RetrieveThings retrieveThings) {
+            this.thingIds = retrieveThings.getThingIds();
             dittoHeaders = retrieveThings.getDittoHeaders();
             selectedFields = retrieveThings.getSelectedFields().orElse(null);
             namespace = retrieveThings.getNamespace().orElse(null);

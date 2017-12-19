@@ -124,7 +124,7 @@ final class ThingModifyCommandAdapter extends AbstractAdapter<ThingModifyCommand
 
     @Override
     public Adaptable toAdaptable(final ThingModifyCommand command, final TopicPath.Channel channel) {
-        final TopicPathBuilder topicPathBuilder = DittoProtocolAdapter.newTopicPathBuilder(command.getThingId());
+        final TopicPathBuilder topicPathBuilder = ProtocolFactory.newTopicPathBuilder(command.getThingId());
 
         final CommandsTopicPathBuilder commandsTopicPathBuilder =
                 fromTopicPathBuilderWithChannel(topicPathBuilder, channel);
@@ -147,7 +147,7 @@ final class ThingModifyCommandAdapter extends AbstractAdapter<ThingModifyCommand
 
         return Adaptable.newBuilder(commandsTopicPathBuilder.build())
                 .withPayload(payloadBuilder.build())
-                .withHeaders(DittoProtocolAdapter.newHeaders(command.getDittoHeaders()))
+                .withHeaders(ProtocolFactory.newHeaders(command.getDittoHeaders()))
                 .build();
     }
 

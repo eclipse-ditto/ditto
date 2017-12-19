@@ -34,7 +34,7 @@ import akka.cluster.Member;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
-import scala.collection.JavaConverters;
+import scala.collection.JavaConversions;
 import scala.concurrent.duration.FiniteDuration;
 
 /**
@@ -141,7 +141,7 @@ public final class ClusterMemberAwareActor extends AbstractActor {
                             weaklyUpMember,
                             knownAddress);
 
-                    final Set<Member> unreachableMembers = JavaConverters.setAsJavaSet(cluster.state().unreachable());
+                    final Set<Member> unreachableMembers = JavaConversions.setAsJavaSet(cluster.state().unreachable());
                     unreachableMembers.stream().map(Member::address).filter(a -> a.equals(knownAddress))
                             .findFirst().ifPresent(a ->
                     {
@@ -229,8 +229,8 @@ public final class ClusterMemberAwareActor extends AbstractActor {
     private void handleCheckForMajority() {
         majorityCheck = null;
 
-        final Set<Member> unreachableMembers = JavaConverters.setAsJavaSet(cluster.state().unreachable());
-        final Set<Member> currentMembers = JavaConverters.setAsJavaSet(cluster.state().members());
+        final Set<Member> unreachableMembers = JavaConversions.setAsJavaSet(cluster.state().unreachable());
+        final Set<Member> currentMembers = JavaConversions.setAsJavaSet(cluster.state().members());
         final Set<Member> reachableMembers =
                 currentMembers.stream().filter(member -> !unreachableMembers.contains(member))
                         .collect(Collectors.toSet());

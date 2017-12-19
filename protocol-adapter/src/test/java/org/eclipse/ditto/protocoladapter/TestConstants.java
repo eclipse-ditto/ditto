@@ -88,9 +88,9 @@ final class TestConstants {
             .schemaVersion(JsonSchemaVersion.V_2)
             .build();
 
-    static final DittoHeaders HEADERS_V_1 = DittoProtocolAdapter.newHeaders(DITTO_HEADERS_V_1);
+    static final DittoHeaders HEADERS_V_1 = ProtocolFactory.newHeaders(DITTO_HEADERS_V_1);
 
-    static final DittoHeaders HEADERS_V_2 = DittoProtocolAdapter.newHeaders(DITTO_HEADERS_V_2);
+    static final DittoHeaders HEADERS_V_2 = ProtocolFactory.newHeaders(DITTO_HEADERS_V_2);
 
     static final long REVISION = 1337;
 
