@@ -13,7 +13,7 @@ node {
       maven: 'maven-3.5.2',
       mavenLocalRepo: theMvnRepo) {
 
-      sh "mvn versions:set -nsu -DnewVersion=0-${theBranch}-SNAPSHOT"
+      sh "mvn versions:set -DnewVersion=0-${theBranch}-SNAPSHOT"
     }
   }
 
@@ -23,7 +23,7 @@ node {
       mavenLocalRepo: theMvnRepo) {
 
       sh "mvn clean deploy javadoc:jar source:jar-no-fork" +
-              " -T16 --batch-mode --errors -nsu" +
+              " -T16 --batch-mode --errors" +
               " -Pbuild-documentation,internal-repos -DcreateJavadoc=true"
     }
   }
