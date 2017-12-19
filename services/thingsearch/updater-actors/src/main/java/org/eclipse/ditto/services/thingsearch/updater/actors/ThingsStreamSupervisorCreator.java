@@ -32,7 +32,7 @@ public final class ThingsStreamSupervisorCreator {
      */
     static final String ACTOR_NAME = "thingsStreamSupervisor";
     @SuppressWarnings("squid:S1075")
-    private static final String THINGS_ACTOR_PATH = "/user/thingsRoot/persistenceQueries";
+    private static final String THINGS_ACTOR_PATH = "/user/thingsRoot/persistenceStreamingActor";
 
     private ThingsStreamSupervisorCreator() {
         throw new AssertionError();
