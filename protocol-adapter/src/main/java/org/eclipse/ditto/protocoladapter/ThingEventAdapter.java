@@ -182,7 +182,7 @@ final class ThingEventAdapter extends AbstractAdapter<ThingEvent> {
 
     @Override
     public Adaptable toAdaptable(final ThingEvent event, final TopicPath.Channel channel) {
-        final TopicPathBuilder topicPathBuilder = DittoProtocolAdapter.newTopicPathBuilder(event.getThingId());
+        final TopicPathBuilder topicPathBuilder = ProtocolFactory.newTopicPathBuilder(event.getThingId());
 
         final EventsTopicPathBuilder eventsTopicPathBuilder;
         if (channel == TopicPath.Channel.TWIN) {
@@ -213,7 +213,7 @@ final class ThingEventAdapter extends AbstractAdapter<ThingEvent> {
 
         return Adaptable.newBuilder(eventsTopicPathBuilder.build()) //
                 .withPayload(payloadBuilder.build()) //
-                .withHeaders(DittoProtocolAdapter.newHeaders(event.getDittoHeaders())) //
+                .withHeaders(ProtocolFactory.newHeaders(event.getDittoHeaders())) //
                 .build();
     }
 

@@ -28,6 +28,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
+import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 
 import com.eclipsesource.json.Json;
@@ -125,7 +126,7 @@ public final class PublicCommandAndEventJsonExamplesProducer extends CommandAndE
 
         if (adaptable.isPresent()) {
             final String jsonString =
-                    adaptable.map(adaptable1 -> DittoProtocolAdapter.wrapAsJsonifiableAdaptable(adaptable1)
+                    adaptable.map(adaptable1 -> ProtocolFactory.wrapAsJsonifiableAdaptable(adaptable1)
                             .toJsonString()).get();
 
             try {

@@ -69,7 +69,7 @@ final class MessageAdaptableHelper {
             final Message<?> message,
             final DittoHeaders dittoHeaders) {
 
-        final TopicPathBuilder topicPathBuilder = DittoProtocolAdapter.newTopicPathBuilder(thingId);
+        final TopicPathBuilder topicPathBuilder = ProtocolFactory.newTopicPathBuilder(thingId);
 
         final MessagesTopicPathBuilder messagesTopicPathBuilder;
         if (channel == TopicPath.Channel.LIVE) {

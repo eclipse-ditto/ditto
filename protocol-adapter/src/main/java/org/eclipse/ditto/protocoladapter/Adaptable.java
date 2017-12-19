@@ -29,7 +29,7 @@ public interface Adaptable {
      * @throws NullPointerException if {@code topicPath} is {@code null}.
      */
     static AdaptableBuilder newBuilder(final TopicPath topicPath) {
-        return DittoProtocolAdapter.newAdaptableBuilder(topicPath);
+        return ProtocolFactory.newAdaptableBuilder(topicPath);
     }
 
     /**

@@ -104,11 +104,12 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
 
                 /* Sudo Commands */
                 .match(SudoRetrieveThings.class, command -> {
-                    getLogger().debug("Got 'SudoRetrieveThings' message, forwarding to the Things Aggregator");
                     if (command.getThingIds().isEmpty()) {
+                        getLogger().debug("Got 'SudoRetrieveThings' message with no ThingIds");
                         notifySender(SudoRetrieveThingsResponse.of(JsonArray.newBuilder().build(),
                                 command.getDittoHeaders()));
                     } else {
+                        getLogger().debug("Got 'SudoRetrieveThings' message, forwarding to the Things Aggregator");
                         thingsAggregator.forward(command, getContext());
                     }
                 })
@@ -141,11 +142,12 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
 
                 /* Thing Commands */
                 .match(RetrieveThings.class, command -> {
-                    getLogger().debug("Got 'RetrieveThings' message, forwarding to the Things Aggregator");
                     if (command.getThingIds().isEmpty()) {
+                        getLogger().debug("Got 'RetrieveThings' message with no ThingIds");
                         notifySender(RetrieveThingsResponse.of(JsonFactory.newArray(),
                                 command.getNamespace().orElse(null), command.getDittoHeaders()));
                     } else {
+                        getLogger().debug("Got 'RetrieveThings' message, forwarding to the Things Aggregator");
                         thingsAggregator.forward(command, getContext());
                     }
                 })
