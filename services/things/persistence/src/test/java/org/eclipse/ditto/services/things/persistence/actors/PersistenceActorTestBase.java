@@ -136,7 +136,7 @@ public abstract class PersistenceActorTestBase {
     }
 
     protected ActorRef createSupervisorActorFor(final String thingId) {
-        final java.time.Duration minBackoff = java.time.Duration.ofSeconds(3);
+        final java.time.Duration minBackoff = java.time.Duration.ofSeconds(7);
         final java.time.Duration maxBackoff = java.time.Duration.ofSeconds(60);
         final double randomFactor = 0.2;
 

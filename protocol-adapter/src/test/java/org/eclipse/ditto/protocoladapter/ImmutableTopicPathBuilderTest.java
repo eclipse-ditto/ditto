@@ -25,7 +25,7 @@ public class ImmutableTopicPathBuilderTest {
         final TopicPath expected = ImmutableTopicPath
                 .of("org.eclipse.ditto.test", "myThing", TopicPath.Group.THINGS, TopicPath.Channel.TWIN,
                         TopicPath.Criterion.COMMANDS, TopicPath.Action.MODIFY);
-        final TopicPath actual = DittoProtocolAdapter.newTopicPathBuilder("org.eclipse.ditto.test:myThing") //
+        final TopicPath actual = ProtocolFactory.newTopicPathBuilder("org.eclipse.ditto.test:myThing") //
                 .twin() //
                 .commands() //
                 .modify() //
@@ -43,7 +43,7 @@ public class ImmutableTopicPathBuilderTest {
         final TopicPath expected = ImmutableTopicPath
                 .of("org.eclipse.ditto.test", "myThing", TopicPath.Group.THINGS, TopicPath.Channel.TWIN,
                         TopicPath.Criterion.EVENTS, TopicPath.Action.MODIFIED);
-        final TopicPath actual = DittoProtocolAdapter.newTopicPathBuilder("org.eclipse.ditto.test:myThing") //
+        final TopicPath actual = ProtocolFactory.newTopicPathBuilder("org.eclipse.ditto.test:myThing") //
                 .twin() //
                 .events() //
                 .modified() //
