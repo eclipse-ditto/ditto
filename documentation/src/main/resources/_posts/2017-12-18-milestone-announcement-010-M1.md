@@ -12,7 +12,7 @@ sidebar: false
 We finally managed to build our first milestone of Eclipse Ditto: [0.1.0-M1](release_notes_010-M1.html)
 
 Java artifacts were published to both the [Eclipse Maven repository](https://repo.eclipse.org/content/repositories/ditto/)
-as well as [Maven central](repo1.maven.org/maven2/org/eclipse/ditto/).
+as well as [Maven central](https://repo1.maven.org/maven2/org/eclipse/ditto/).
 
 Additionally Docker images were pushed to Docker Hub:
 * [eclipse/ditto-policies](https://hub.docker.com/r/eclipse/ditto-policies/)
