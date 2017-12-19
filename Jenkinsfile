@@ -8,7 +8,7 @@ node {
     checkout scm
   }
 
-  stage('set version to ${theBranch}') {
+  stage("set version to ${theBranch}") {
     withMaven(
       maven: 'maven-3.5.2',
       mavenLocalRepo: theMvnRepo) {
