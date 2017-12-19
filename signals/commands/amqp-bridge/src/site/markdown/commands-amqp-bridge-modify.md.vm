@@ -1,0 +1,32 @@
+#set( $h1 = '#' )
+#set( $h2 = '##' )
+#set( $h3 = '###' )
+#set( $snippetName = "" )
+
+$h3 Create Connection
+
+#set( $snippetFile = "/target/generated-resources/amqp-bridge/commands/modify/createConnection.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Delete Connection
+
+#set( $snippetFile = "/target/generated-resources/amqp-bridge/commands/modify/deleteConnection.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Open Connection
+
+#set( $snippetFile = "/target/generated-resources/amqp-bridge/commands/modify/openConnection.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Close Connection
+
+#set( $snippetFile = "/target/generated-resources/amqp-bridge/commands/modify/closeConnection.json" )
+```
+#parse( "snippet" )
+```

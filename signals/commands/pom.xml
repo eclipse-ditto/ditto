@@ -27,6 +27,7 @@
 
     <modules>
         <module>base</module>
+        <module>amqp-bridge</module>
         <module>batch</module>
         <module>devops</module>
         <module>live</module>
