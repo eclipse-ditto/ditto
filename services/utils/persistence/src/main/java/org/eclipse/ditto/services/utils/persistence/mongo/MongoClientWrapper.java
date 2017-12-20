@@ -34,7 +34,8 @@ import com.typesafe.config.Config;
 /**
  * MongoDB Client Wrapper.
  */
-public final class MongoClientWrapper implements Closeable {
+public class MongoClientWrapper implements Closeable {
+    // not final to test with Mockito
 
     private final MongoClient mongoClient;
     private final MongoDatabase mongoDatabase;
@@ -54,6 +55,7 @@ public final class MongoClientWrapper implements Closeable {
      * Initializes the persistence with a passed in {@code config} containing the {@code uri}.
      *
      * @param config Config containing mongoDB settings including the URI.
+     * @return a new {@code MongoClientWrapper} object.
      */
     public static MongoClientWrapper newInstance(final Config config) {
         final int maxPoolSize = MongoConfig.getPoolMaxSize(config);
@@ -87,6 +89,7 @@ public final class MongoClientWrapper implements Closeable {
      * @param maxPoolSize the max pool size of the db.
      * @param maxPoolWaitQueueSize the max queue size of the pool.
      * @param maxPoolWaitTimeSecs the max wait time in the pool.
+     * @return a new {@code MongoClientWrapper} object.
      *
      * @see #newInstance(Config) for production purposes
      */

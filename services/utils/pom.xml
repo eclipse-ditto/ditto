@@ -25,7 +25,6 @@
     <name>Eclipse Ditto :: Services :: Utils</name>
 
     <modules>
-        <module>akka-persistence-mongo-addons</module>
         <module>akka</module>
         <module>cluster</module>
         <module>devops</module>

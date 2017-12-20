@@ -15,29 +15,27 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.function.Function;
 
-import javax.annotation.Nullable;
-
 import org.eclipse.ditto.services.models.streaming.EntityIdWithRevision;
 import org.eclipse.ditto.services.models.streaming.SudoStreamModifiedEntities;
 import org.eclipse.ditto.services.utils.akka.streaming.AbstractStreamingActor;
-import org.eclipse.ditto.services.utils.akkapersistence.mongoaddons.DittoJavaDslMongoReadJournal;
-import org.eclipse.ditto.services.utils.akkapersistence.mongoaddons.DittoMongoReadJournal;
-import org.eclipse.ditto.services.utils.akkapersistence.mongoaddons.PidWithSeqNr;
+import org.eclipse.ditto.services.utils.persistence.mongo.streaming.MongoReadJournal;
+import org.eclipse.ditto.services.utils.persistence.mongo.streaming.PidWithSeqNr;
+import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
 import akka.NotUsed;
-import akka.persistence.query.PersistenceQuery;
 import akka.stream.javadsl.Source;
 
 /**
  * Abstract implementation of an Actor that streams information about persisted entities modified in a time window in
  * the past.
  */
+@AllValuesAreNonnullByDefault
 public abstract class AbstractPersistenceStreamingActor<T extends EntityIdWithRevision>
         extends AbstractStreamingActor<SudoStreamModifiedEntities, T> {
 
     private final int streamingCacheSize;
     private final Function<PidWithSeqNr, T> entityMapper;
-    private final DittoJavaDslMongoReadJournal readJournal;
+    private final MongoReadJournal readJournal;
 
     /**
      * Constructor.
@@ -45,15 +43,14 @@ public abstract class AbstractPersistenceStreamingActor<T extends EntityIdWithRe
      * @param streamingCacheSize the size of the streaming cache.
      * @param entityMapper the mapper used to map {@link PidWithSeqNr} to {@code T}. The resulting entity will be
      * streamed to the recipient actor.
-     * @param readJournal the journal to query for entities modified in a time window in the past. If {@code null},
-     * the read journal will be retrieved from the actor context.
+     * @param readJournal the journal to query for entities modified in a time window in the past. If {@code null}, the
+     * read journal will be retrieved from the actor context.
      */
     protected AbstractPersistenceStreamingActor(final int streamingCacheSize,
-            final Function<PidWithSeqNr, T> entityMapper, @Nullable final DittoJavaDslMongoReadJournal readJournal) {
+            final Function<PidWithSeqNr, T> entityMapper, final MongoReadJournal readJournal) {
         this.streamingCacheSize = streamingCacheSize;
         this.entityMapper = requireNonNull(entityMapper);
-        this.readJournal = readJournal != null ? readJournal : PersistenceQuery.get(getContext().getSystem())
-                .getReadJournalFor(DittoJavaDslMongoReadJournal.class, DittoMongoReadJournal.Identifier());
+        this.readJournal = readJournal;
     }
 
     @Override
@@ -74,16 +71,16 @@ public abstract class AbstractPersistenceStreamingActor<T extends EntityIdWithRe
 
         // create a separate cache per stream (don't use member variable!)
         final ComparableCache<String, Long> cache = new ComparableCache<>(streamingCacheSize);
-        return readJournal.sequenceNumbersOfPidsByInterval(command.getStart(), command.getEnd())
+        return readJournal.getPidWithSeqNrsByInterval(command.getStart(), command.getEnd())
                 .log(unfilteredStreamingLogName, log)
                 // avoid unnecessary streaming of old sequence numbers
-                .filter(pidWithSeqNr -> cache.updateIfNewOrGreater(pidWithSeqNr.persistenceId(),
-                        pidWithSeqNr.sequenceNr()))
+                .filter(pidWithSeqNr ->
+                        cache.updateIfNewOrGreater(pidWithSeqNr.getPersistenceId(), pidWithSeqNr.getSequenceNr()))
                 .map(this::mapEntity)
                 .log(filteredStreamingLogName, log);
     }
 
     private T mapEntity(final PidWithSeqNr pidWithSeqNr) {
-        return entityMapper.apply(pidWithSeqNr) ;
+        return entityMapper.apply(pidWithSeqNr);
     }
 }
