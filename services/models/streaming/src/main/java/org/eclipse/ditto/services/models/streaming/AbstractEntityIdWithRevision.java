@@ -18,7 +18,6 @@ import java.util.Objects;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 
@@ -82,29 +81,6 @@ public abstract class AbstractEntityIdWithRevision implements EntityIdWithRevisi
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" + "id=" + id + ", revision=" + revision + "]";
-    }
-
-    /**
-     * An enumeration of the known {@link org.eclipse.ditto.json.JsonField}s of a EntityIdWithRevision.
-     */
-    @Immutable
-    public static final class JsonFields {
-
-        /**
-         * JSON field containing the message's ID.
-         */
-        public static final JsonFieldDefinition<String> ID = JsonFactory.newStringFieldDefinition("id");
-
-        /**
-         * JSON field containing the message's revision.
-         */
-        public static final JsonFieldDefinition<Long> REVISION = JsonFactory.newLongFieldDefinition("revision");
-
-
-        private JsonFields() {
-            throw new AssertionError();
-        }
-
     }
 
 }

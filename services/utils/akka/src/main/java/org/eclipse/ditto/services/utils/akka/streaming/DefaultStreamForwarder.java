@@ -11,6 +11,8 @@
  */
 package org.eclipse.ditto.services.utils.akka.streaming;
 
+import static java.util.Objects.requireNonNull;
+
 import java.time.Duration;
 import java.util.function.Function;
 
@@ -23,27 +25,21 @@ import akka.actor.Props;
  */
 public final class DefaultStreamForwarder<E> extends AbstractStreamForwarder<E> {
 
-    private final ActorRef recipient;
-    private final ActorRef completionRecipient;
+    private final ForwardingStrategy<E> forwardingStrategy;
     private final Duration maxIdleTime;
     private final Class<E> elementClass;
-    private final Function<E, String> elementIdentifierFunction;
 
-    private DefaultStreamForwarder(final ActorRef recipient, final ActorRef completionRecipient,
-            final Duration maxIdleTime, final Class<E> elementClass,
-            final Function<E, String> elementIdentifierFunction) {
-        this.recipient = recipient;
-        this.completionRecipient = completionRecipient;
-        this.maxIdleTime = maxIdleTime;
-        this.elementClass = elementClass;
-        this.elementIdentifierFunction = elementIdentifierFunction;
+    private DefaultStreamForwarder(final ForwardingStrategy<E> forwardingStrategy,
+            final Duration maxIdleTime, final Class<E> elementClass) {
+        this.forwardingStrategy = requireNonNull(forwardingStrategy);
+        this.maxIdleTime = requireNonNull(maxIdleTime);
+        this.elementClass = requireNonNull(elementClass);
     }
 
     /**
-     * Creates a {@code Props} object to instantiate this actor.
+     * Creates a {@code Props} object to instantiate this actor using {@link DefaultForwardingStrategy}.
      *
      * @param recipient Actor reference which is the recipient of the streamed messages.
-     * @param completionRecipient recipient of the message sent when a stream has been completed.
      * @param maxIdleTime Maximum time this actor stays alive without receiving any message.
      * @param elementClass the class of stream elements.
      * @param elementIdentifierFunction a function which maps a stream element to an identifier (to correlate acks).
@@ -53,18 +49,28 @@ public final class DefaultStreamForwarder<E> extends AbstractStreamForwarder<E> 
             final Duration maxIdleTime, final Class<E> elementClass,
             final Function<E, String> elementIdentifierFunction) {
         return Props.create(DefaultStreamForwarder.class,
-                () -> new DefaultStreamForwarder(recipient, completionRecipient, maxIdleTime, elementClass,
-                        elementIdentifierFunction));
+                () -> new DefaultStreamForwarder(new DefaultForwardingStrategy<>(recipient,
+                        elementIdentifierFunction, completionRecipient),
+                        maxIdleTime, elementClass));
+    }
+
+    /**
+     * Creates a {@code Props} object to instantiate this actor.
+     *
+     * @param forwardingStrategy the strategy used for forwarding elements.
+     * @param maxIdleTime Maximum time this actor stays alive without receiving any message.
+     * @param elementClass the class of stream elements.
+     * @return The {@code Props} object.
+     */
+    public static <E> Props props(ForwardingStrategy<E> forwardingStrategy,
+            final Duration maxIdleTime, final Class<E> elementClass) {
+        return Props.create(DefaultStreamForwarder.class,
+                () -> new DefaultStreamForwarder(forwardingStrategy, maxIdleTime, elementClass));
     }
 
     @Override
-    protected ActorRef getRecipient() {
-        return recipient;
-    }
-
-    @Override
-    protected ActorRef getCompletionRecipient() {
-        return completionRecipient;
+    protected ForwardingStrategy<E> getForwardingStrategy() {
+        return forwardingStrategy;
     }
 
     @Override
@@ -77,8 +83,4 @@ public final class DefaultStreamForwarder<E> extends AbstractStreamForwarder<E> 
         return elementClass;
     }
 
-    @Override
-    protected Function<E, String> getElementIdentifierFunction() {
-        return elementIdentifierFunction;
-    }
 }

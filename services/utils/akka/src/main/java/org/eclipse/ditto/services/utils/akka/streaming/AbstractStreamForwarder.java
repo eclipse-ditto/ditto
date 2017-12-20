@@ -11,7 +11,6 @@
  */
 package org.eclipse.ditto.services.utils.akka.streaming;
 
-import static org.eclipse.ditto.services.utils.akka.streaming.StreamConstants.FORWARDER_EXCEEDED_MAX_IDLE_TIME_MSG;
 import static org.eclipse.ditto.services.utils.akka.streaming.StreamConstants.STREAM_FINISHED_MSG;
 
 import java.text.MessageFormat;
@@ -20,7 +19,6 @@ import java.time.Instant;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
 
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
@@ -39,7 +37,7 @@ import scala.concurrent.duration.FiniteDuration;
  *
  * @param <E> Type of received stream elements.
  */
-public abstract class AbstractStreamForwarder<E> extends AbstractActor {
+public abstract class AbstractStreamForwarder<E> extends AbstractActor implements ForwarderCallback {
 
     /**
      * Logger associated with this actor.
@@ -59,13 +57,6 @@ public abstract class AbstractStreamForwarder<E> extends AbstractActor {
     }
 
     /**
-     * Returns the actor to send transformed stream elements to.
-     *
-     * @return Reference of the recipient actor.
-     */
-    protected abstract ActorRef getRecipient();
-
-    /**
      * Returns the maximum time this actor waits for a message before it terminates itself.
      *
      * @return The maximum idle time.
@@ -80,11 +71,18 @@ public abstract class AbstractStreamForwarder<E> extends AbstractActor {
     protected abstract Class<E> getElementClass();
 
     /**
-     * Returns a function which maps a stream element to an identifier (to correlate acks).
+     * Returns the {@link ForwardingStrategy}.
      *
-     * @return The function.
+     * @return The {@link ForwardingStrategy}.
      */
-    protected abstract Function<E, String> getElementIdentifierFunction();
+    protected abstract ForwardingStrategy<E> getForwardingStrategy();
+
+    @Override
+    public void forwarded(final String identifier) {
+        log.debug("Forwarded element with identifier: {}", identifier);
+        toBeAckedElementIds.add(identifier);
+        forwardedElementCount++;
+    }
 
     /**
      * Invoked when all stream elements are forwarded and acknowledged. Do not start asynchronous operations: the actor
@@ -92,7 +90,7 @@ public abstract class AbstractStreamForwarder<E> extends AbstractActor {
      */
     private void onSuccess() {
         logInfoWithDetails("Stream successfully finished");
-        getCompletionRecipient().tell(STREAM_FINISHED_MSG, getSelf());
+        getForwardingStrategy().onComplete(self());
     }
 
     private void logDebugWithDetails(final String mainMessage) {
@@ -117,13 +115,6 @@ public abstract class AbstractStreamForwarder<E> extends AbstractActor {
                         "To be acked: <{4}>.",
                 mainMessage, forwardedElementCount, ackedElementCount, lastMessageReceived, toBeAckedElementIds);
     }
-
-    /**
-     * Returns the actor to send a message when the stream has been successfully completed.
-     *
-     * @return Reference of the recipient actor.
-     */
-    protected abstract ActorRef getCompletionRecipient();
 
     @Override
     public void preStart() throws Exception {
@@ -155,16 +146,14 @@ public abstract class AbstractStreamForwarder<E> extends AbstractActor {
     }
 
     private void transformAndForwardElement(final E element) {
+        log.debug("Got element: {}", element);
         if (streamComplete) {
             log.warning("Received stream element <{}> after stream termination; will forward it anyway.", element);
         }
-        final String identifier = getElementIdentifierFunction().apply(element);
-        toBeAckedElementIds.add(identifier);
-        forwardedElementCount++;
-        log.debug("Got element with identifier: {}", identifier);
 
-        getRecipient().tell(element, getSelf());
         updateLastMessageReceived();
+
+        getForwardingStrategy().forward(element, self(), this);
     }
 
     private void onAck(final StreamAck streamAck) {
@@ -204,7 +193,7 @@ public abstract class AbstractStreamForwarder<E> extends AbstractActor {
         final Duration sinceLastMessage = Duration.between(lastMessageReceived, Instant.now());
         if (sinceLastMessage.compareTo(getMaxIdleTime()) > 0) {
             logErrorWithDetails("Stream timed out");
-            getCompletionRecipient().tell(FORWARDER_EXCEEDED_MAX_IDLE_TIME_MSG, getSelf());
+            getForwardingStrategy().maxIdleTimeExceeded(self());
             shutdown();
         } else {
             logDebugWithDetails("Stream is still considered as active");

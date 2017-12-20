@@ -62,7 +62,8 @@ public final class PoliciesMappingStrategy implements MappingStrategy {
                         jsonObject -> BaseCacheEntry.fromJson(jsonObject)) // do not replace with lambda!
                 .add(PolicyCacheEntry.class,
                         jsonObject -> PolicyCacheEntry.fromJson(jsonObject)) // do not replace with lambda!
-                .add(PolicyTag.class, jsonObject -> PolicyTag.fromJson(jsonObject));  // do not replace with lambda!
+                .add(PolicyTag.class, jsonObject -> PolicyTag.fromJson(jsonObject))  // do not replace with lambda!
+                .add(PolicyReferenceTag.class, jsonObject -> PolicyReferenceTag.fromJson(jsonObject));  // do not replace with lambda!
     }
 
     private static void addDevOpsStrategies(final MappingStrategiesBuilder builder) {

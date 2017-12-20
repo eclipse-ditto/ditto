@@ -89,13 +89,12 @@ public final class DefaultStreamSupervisor extends AbstractActorWithStash {
      *
      * @param forwardTo the {@link ActorRef} to which the stream will be forwarded.
      * @param provider the {@link ActorRef} which provides the stream.
-     * @param streamTriggerMessageMapper a mapping function to convert a {@link SudoStreamModifiedEntities} message
-     * to a message understood by the stream provider. Can be used to send messages via Akka PubSub.
+     * @param streamTriggerMessageMapper a mapping function to convert a {@link SudoStreamModifiedEntities} message to a
+     * message understood by the stream provider. Can be used to send messages via Akka PubSub.
      * @param streamMetadataPersistence the {@link StreamMetadataPersistence} used to read and write stream metadata (is
      * used to remember the end time of the last stream after a re-start).
      * @param materializer the materializer to run Akka streams with.
      * @param streamConsumerSettings The settings for stream consumption.
-     *
      * @return the props
      */
     public static Props props(final ActorRef forwardTo, final ActorRef provider,

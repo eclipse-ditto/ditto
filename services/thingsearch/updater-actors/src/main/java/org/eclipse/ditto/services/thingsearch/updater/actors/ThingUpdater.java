@@ -42,10 +42,10 @@ import org.eclipse.ditto.model.policiesenforcers.PolicyEnforcers;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingRevision;
 import org.eclipse.ditto.services.models.policies.PolicyCacheEntry;
-import org.eclipse.ditto.services.models.policies.PolicyTag;
+import org.eclipse.ditto.services.models.policies.PolicyReferenceTag;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicy;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicyResponse;
-import org.eclipse.ditto.services.models.streaming.EntityIdWithRevision;
+import org.eclipse.ditto.services.models.streaming.IdentifiableStreamingMessage;
 import org.eclipse.ditto.services.models.things.ThingCacheEntry;
 import org.eclipse.ditto.services.models.things.ThingTag;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
@@ -329,7 +329,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
                 .match(ThingEvent.class, this::processThingEvent)
                 .match(PolicyEvent.class, this::processPolicyEvent)
                 .match(ThingTag.class, this::processThingTag)
-                .match(PolicyTag.class, this::processPolicyTag)
+                .match(PolicyReferenceTag.class, this::processPolicyRefenceTag)
                 .match(Replicator.Changed.class, this::processChangedCacheEntry)
                 .match(CheckForActivity.class, this::checkActivity)
                 .match(PersistenceWriteResult.class, this::handlePersistenceUpdateResult)
@@ -365,41 +365,41 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         }
     }
 
-    private void processPolicyTag(final PolicyTag policyTag) {
-        LogUtil.enhanceLogWithCorrelationId(log, "policies-tags-sync-" + policyTag.asIdentifierString());
+    private void processPolicyRefenceTag(final PolicyReferenceTag policyReferenceTag) {
+        LogUtil.enhanceLogWithCorrelationId(log, "policies-tags-sync-" + policyReferenceTag.asIdentifierString());
 
 
         if (log.isDebugEnabled()) {
-            log.debug("Received new Policy Tag for thing <{}> with revision <{}>,  policy-id <{}> and " +
+            log.debug("Received new Policy-Reference-Tag for thing <{}> with revision <{}>,  policy-id <{}> and " +
                             "policy-revision <{}>: <{}>.",
-                    new Object[]{thingId, sequenceNumber, policyId, policyRevision, policyTag.asIdentifierString()});
+                    new Object[]{thingId, sequenceNumber, policyId, policyRevision, policyReferenceTag.asIdentifierString()});
         }
 
-        //TODO consider to aggregate acks for PolicyTags
-        //activeSyncMetadata = new SyncMetadata(getSender(), policyTag);
+        activeSyncMetadata = new SyncMetadata(getSender(), policyReferenceTag);
 
         boolean triggerSync;
         if (policyId == null) {
             log.debug("Currently no policy-id is available for the thing <{}>.", thingId);
             triggerSync = true;
-        } else if (!policyTag.getId().equals(policyId)) {
+        } else if (!policyReferenceTag.getPolicyTag().getId().equals(policyId)) {
             // may happen sometimes due to timing: when the Policy of the Thing has changed after
             // the ThingsUpdater has correlated this thing with the Policy referenced by this PolicyTag
             if (log.isDebugEnabled()) {
-                log.debug("Policy Tag has different policy-id than the current policy-id <{}> for the thing <{}>: <{}>.",
-                        policyId, thingId, policyTag.asIdentifierString());
+                log.debug("Policy-Reference-Tag has different policy-id than the current policy-id <{}> for the " +
+                                "thing <{}>: <{}>.",
+                        policyId, thingId, policyReferenceTag.asIdentifierString());
             }
             triggerSync = false;
-        } else if (policyTag.getRevision() > policyRevision) {
-            log.info("The Policy Tag has a revision which is greater " +
+        } else if (policyReferenceTag.getPolicyTag().getRevision() > policyRevision) {
+            log.info("The Policy-Reference-Tag has a revision which is greater " +
                     "than the current policy-revision <{}> for thing <{}>: <{}>.", policyRevision, thingId,
-                    policyTag.asIdentifierString());
+                    policyReferenceTag.asIdentifierString());
             triggerSync = true;
         } else {
             if (log.isDebugEnabled()) {
-                log.debug("The Policy Tag has a revision which is less than or equal to " +
+                log.debug("The Policy-Reference-Tag has a revision which is less than or equal to " +
                                 "the current policy-revision <{}> for thing <{}>: <{}>.", policyRevision, thingId,
-                        policyTag.asIdentifierString());
+                        policyReferenceTag.asIdentifierString());
             }
             triggerSync = false;
         }
@@ -407,8 +407,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         if (triggerSync) {
             triggerSynchronization();
         } else {
-            //TODO consider to aggregate acks for PolicyTags
-            //ackSync(true);
+            ackSync(true);
         }
     }
 
@@ -1098,9 +1097,9 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         private final ActorRef ackRecipient;
         private final String thingIdentifier;
 
-        private SyncMetadata(final ActorRef ackRecipient, final EntityIdWithRevision entityIdWithRevision) {
+        private SyncMetadata(final ActorRef ackRecipient, final IdentifiableStreamingMessage message) {
             this.ackRecipient = ackRecipient;
-            thingIdentifier = entityIdWithRevision.asIdentifierString();
+            thingIdentifier = message.asIdentifierString();
         }
 
         /**

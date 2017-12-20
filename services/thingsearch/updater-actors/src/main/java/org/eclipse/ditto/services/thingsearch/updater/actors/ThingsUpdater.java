@@ -20,11 +20,17 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.services.models.policies.PolicyReferenceTag;
 import org.eclipse.ditto.services.models.policies.PolicyTag;
 import org.eclipse.ditto.services.models.things.ThingTag;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akka.PrefixedActorNameFactory;
+import org.eclipse.ditto.services.utils.akka.streaming.DefaultStreamForwarder;
+import org.eclipse.ditto.services.utils.akka.streaming.ForwarderCallback;
+import org.eclipse.ditto.services.utils.akka.streaming.ForwardingStrategy;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamAck;
+import org.eclipse.ditto.services.utils.akka.streaming.StreamConstants;
 import org.eclipse.ditto.services.utils.cluster.ShardedMessageEnvelope;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.policies.PolicyEvent;
@@ -63,6 +69,10 @@ final class ThingsUpdater extends AbstractActor {
     private final ActorRef shardRegion;
     private final ThingsSearchUpdaterPersistence searchUpdaterPersistence;
     private final Materializer materializer;
+    private final PrefixedActorNameFactory policyTagDispatcherActorNameFactory =
+            PrefixedActorNameFactory.of("policyTagDispatcher");
+    //TODO: make configurable
+    private Duration policyTagDispatcherMaxIdleTime = Duration.ofMinutes(1);
 
     private ThingsUpdater(final int numberOfShards,
             final ShardRegionFactory shardRegionFactory,
@@ -83,7 +93,8 @@ final class ThingsUpdater extends AbstractActor {
 
         final Props thingUpdaterProps =
                 ThingUpdater.props(searchUpdaterPersistence, circuitBreaker, thingsShardRegion, policiesShardRegion,
-                        thingUpdaterActivityCheckInterval, ThingUpdater.DEFAULT_THINGS_TIMEOUT, thingCacheFacade, policyCacheFacade)
+                        thingUpdaterActivityCheckInterval, ThingUpdater.DEFAULT_THINGS_TIMEOUT, thingCacheFacade,
+                        policyCacheFacade)
                         .withMailbox("akka.actor.custom-updater-mailbox");
 
         shardRegion = shardRegionFactory.getSearchUpdaterShardRegion(numberOfShards, thingUpdaterProps);
@@ -105,8 +116,8 @@ final class ThingsUpdater extends AbstractActor {
      *
      * @param numberOfShards the number of shards the "search-updater" shardRegion should be started with.
      * @param shardRegionFactory The shard region factory to use when creating sharded actors.
-     * @param thingUpdaterActivityCheckInterval the interval at which is checked, if the corresponding Thing is still actively
-     * updated
+     * @param thingUpdaterActivityCheckInterval the interval at which is checked, if the corresponding Thing is still
+     * actively updated
      * @param thingCacheFacade the {@link org.eclipse.ditto.services.utils.distributedcache.actors.CacheFacadeActor} for
      * accessing the Thing cache in cluster.
      * @param policyCacheFacade the {@link org.eclipse.ditto.services.utils.distributedcache.actors.CacheFacadeActor}
@@ -159,12 +170,55 @@ final class ThingsUpdater extends AbstractActor {
     private void processPolicyTag(final PolicyTag policyTag) {
         LogUtil.enhanceLogWithCorrelationId(log, "policies-tags-sync-" + policyTag.asIdentifierString());
         log.debug("Forwarding incoming PolicyTag '{}'", policyTag.asIdentifierString());
-        thingIdsForPolicy(policyTag.getId())
-                .thenAccept(thingIds ->
-                        thingIds.forEach(id -> forwardJsonifiableToShardRegion(policyTag, unused -> id))
-                );
-        //TODO consider to aggregate acks for PolicyTags
-        sender().tell(StreamAck.success(policyTag.asIdentifierString()), self());
+
+        dispatchPolicyTagToThings(policyTag);
+    }
+
+    private void dispatchPolicyTagToThings(final PolicyTag policyTag) {
+        final ActorRef policyTagsStreamProvider = sender();
+
+        final ForwardingStrategy<PolicyTag> policyTagDispatchingStrategy =
+                createPolicyTagDispatchingStrategy(policyTag, policyTagsStreamProvider);
+        final Props forwarderProps = DefaultStreamForwarder.props(policyTagDispatchingStrategy,
+                policyTagDispatcherMaxIdleTime, PolicyTag.class);
+        final ActorRef forwarder =
+                getContext().actorOf(forwarderProps, policyTagDispatcherActorNameFactory.createActorName());
+
+        // provide a stream of just one element
+        forwarder.tell(policyTag, self());
+        // don't forget to complete the stream!
+        forwarder.tell(StreamConstants.STREAM_FINISHED_MSG, self());
+    }
+
+    private ForwardingStrategy<PolicyTag> createPolicyTagDispatchingStrategy(final PolicyTag policyTag,
+            final ActorRef policyTagsStreamProvider) {
+        return new ForwardingStrategy<PolicyTag>() {
+                @Override
+                public void forward(final PolicyTag element, final ActorRef forwarderActorRef,
+                        final ForwarderCallback callback) {
+                    thingIdsForPolicy(element.getId())
+                            .thenAccept(thingIds ->
+                                    thingIds.forEach(id -> forwardPolicyReferenceTag(id, element))
+                            );
+                }
+
+                @Override
+                public void onComplete(final ActorRef forwarderActorRef) {
+                    policyTagsStreamProvider.tell(StreamAck.success(policyTag.asIdentifierString()), forwarderActorRef);
+                }
+
+                @Override
+                public void maxIdleTimeExceeded(final ActorRef forwarderActorRef) {
+                    policyTagsStreamProvider.tell(StreamAck.failure(policyTag.asIdentifierString()), forwarderActorRef);
+                }
+            };
+    }
+
+    private void forwardPolicyReferenceTag(final String thingId, final PolicyTag policyTag) {
+        final PolicyReferenceTag policyReferenceTag = PolicyReferenceTag.of(thingId, policyTag);
+        log.debug("Forwarding PolicyReferenceTag '{}'", policyReferenceTag.asIdentifierString());
+
+        forwardJsonifiableToShardRegion(policyReferenceTag, unused -> policyReferenceTag.getEntityId());
     }
 
     private void processThingEvent(final ThingEvent<?> thingEvent) {

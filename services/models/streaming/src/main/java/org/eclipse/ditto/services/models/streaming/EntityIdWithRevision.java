@@ -11,12 +11,16 @@
  */
 package org.eclipse.ditto.services.models.streaming;
 
+import javax.annotation.concurrent.Immutable;
+
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 
 /**
  * Represents the ID of an entity with a revision of the entity.
  */
-public interface EntityIdWithRevision extends Jsonifiable, StreamingMessage {
+public interface EntityIdWithRevision extends Jsonifiable, IdentifiableStreamingMessage {
 
     /**
      * Returns the ID of the modified entity.
@@ -39,5 +43,28 @@ public interface EntityIdWithRevision extends Jsonifiable, StreamingMessage {
      */
     default String asIdentifierString() {
         return getId() + ":" + getRevision();
+    }
+
+    /**
+     * An enumeration of the known {@link org.eclipse.ditto.json.JsonField}s of a EntityIdWithRevision.
+     */
+    @Immutable
+    final class JsonFields {
+
+        /**
+         * JSON field containing the message's ID.
+         */
+        public static final JsonFieldDefinition<String> ID = JsonFactory.newStringFieldDefinition("id");
+
+        /**
+         * JSON field containing the message's revision.
+         */
+        public static final JsonFieldDefinition<Long> REVISION = JsonFactory.newLongFieldDefinition("revision");
+
+
+        private JsonFields() {
+            throw new AssertionError();
+        }
+
     }
 }
