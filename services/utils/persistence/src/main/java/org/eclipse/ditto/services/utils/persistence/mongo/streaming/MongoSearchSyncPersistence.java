@@ -81,6 +81,7 @@ public final class MongoSearchSyncPersistence implements StreamMetadataPersisten
      * @param collectionName The name of the collection.
      * @param clientWrapper the client wrapper holding the connection information.
      * @param materializer the {@link Materializer} to be used for stream
+     * @return a new initialized instance.
      */
     public static MongoSearchSyncPersistence initializedInstance(final String collectionName,
             final MongoClientWrapper clientWrapper, final Materializer materializer) {

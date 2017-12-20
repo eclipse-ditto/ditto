@@ -44,6 +44,7 @@ public final class DefaultPersistenceStreamingActor<T extends EntityIdWithRevisi
     /**
      * Creates Akka configuration object Props for this PersistenceStreamingActor.
      *
+     * @param <T> type of messages to stream.
      * @param config the configuration of the akka system.
      * @param streamingCacheSize the size of the streaming cache.
      * @param entityMapper the mapper used to map {@link PidWithSeqNr} to {@code T}. The resulting entity will be

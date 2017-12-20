@@ -37,7 +37,6 @@ import akka.stream.javadsl.Source;
 
 /**
  * Reads the event journal of com.github.scullxbones.akka-persistence-mongo plugin.
- * <p>
  * In the Akka system configuration,
  * <ul>
  * <li>
@@ -49,7 +48,6 @@ import akka.stream.javadsl.Source;
  * collection.
  * </li>
  * </ul>
- * </p>
  */
 @AllValuesAreNonnullByDefault
 public class MongoReadJournal {
@@ -88,6 +86,7 @@ public class MongoReadJournal {
      *
      * @param config The Akka system configuration.
      * @param clientWrapper The Mongo client wrapper.
+     * @return A {@code MongoReadJournal} object.
      */
     public static MongoReadJournal newInstance(final Config config, final MongoClientWrapper clientWrapper) {
         final String journalCollectionName = resolveJournalCollectionName(config);
@@ -101,6 +100,7 @@ public class MongoReadJournal {
      *
      * @param start start of the time window.
      * @param end end of the time window.
+     * @return source of persistence IDs and sequence numbers written within the given time window.
      */
     public Source<PidWithSeqNr, NotUsed> getPidWithSeqNrsByInterval(final Instant start, final Instant end) {
 
