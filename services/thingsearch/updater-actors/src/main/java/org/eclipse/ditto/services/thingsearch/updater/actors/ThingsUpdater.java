@@ -20,10 +20,11 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
-import org.eclipse.ditto.services.models.streaming.AbstractEntityIdWithRevision;
-import org.eclipse.ditto.services.models.streaming.EntityIdWithRevision;
+import org.eclipse.ditto.services.models.policies.PolicyTag;
+import org.eclipse.ditto.services.models.things.ThingTag;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akka.streaming.StreamAck;
 import org.eclipse.ditto.services.utils.cluster.ShardedMessageEnvelope;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.policies.PolicyEvent;
@@ -140,7 +141,8 @@ final class ThingsUpdater extends AbstractActor {
                         shardRegion.forward(getShardRegionState, getContext()))
                 .match(ThingEvent.class, this::processThingEvent)
                 .match(PolicyEvent.class, this::processPolicyEvent)
-                .match(AbstractEntityIdWithRevision.class, this::processEntityIdWithRevision)
+                .match(ThingTag.class, this::processThingTag)
+                .match(PolicyTag.class, this::processPolicyTag)
                 .match(DistributedPubSubMediator.SubscribeAck.class, this::subscribeAck)
                 .matchAny(m -> {
                     log.warning("Unknown message: {}", m);
@@ -148,9 +150,21 @@ final class ThingsUpdater extends AbstractActor {
                 }).build();
     }
 
-    private void processEntityIdWithRevision(final EntityIdWithRevision thingTag) {
-        log.debug("Forwarding incoming EntityIdWithRevision for thingId '{}'", thingTag.getId());
-        forwardJsonifiableToShardRegion(thingTag, EntityIdWithRevision::getId);
+    private void processThingTag(final ThingTag thingTag) {
+        LogUtil.enhanceLogWithCorrelationId(log, "things-tags-sync-" + thingTag.asIdentifierString());
+        log.debug("Forwarding incoming ThingTag '{}'", thingTag.asIdentifierString());
+        forwardJsonifiableToShardRegion(thingTag, ThingTag::getId);
+    }
+
+    private void processPolicyTag(final PolicyTag policyTag) {
+        LogUtil.enhanceLogWithCorrelationId(log, "policies-tags-sync-" + policyTag.asIdentifierString());
+        log.debug("Forwarding incoming PolicyTag '{}'", policyTag.asIdentifierString());
+        thingIdsForPolicy(policyTag.getId())
+                .thenAccept(thingIds ->
+                        thingIds.forEach(id -> forwardJsonifiableToShardRegion(policyTag, unused -> id))
+                );
+        //TODO consider to aggregate acks for PolicyTags
+        sender().tell(StreamAck.success(policyTag.asIdentifierString()), self());
     }
 
     private void processThingEvent(final ThingEvent<?> thingEvent) {

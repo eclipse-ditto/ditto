@@ -11,7 +11,8 @@
  */
 package org.eclipse.ditto.services.thingsearch.updater.actors;
 
-import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.LAST_SUCCESSFUL_SYNC_COLLECTION_NAME;
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.POLICIES_SYNC_STATE_COLLECTION_NAME;
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.THINGS_SYNC_STATE_COLLECTION_NAME;
 
 import java.net.ConnectException;
 import java.time.Duration;
@@ -150,31 +151,61 @@ public final class SearchUpdaterRootActor extends AbstractActor {
                         eventProcessingActive,
                         thingUpdaterActivityCheckInterval, thingCacheFacade,
                         policyCacheFacade));
-        final boolean synchronizationActive = config.getBoolean(ConfigKeys.THINGS_SYNCER_ACTIVE);
-        if (synchronizationActive) {
+
+        final boolean thingsSynchronizationActive = config.getBoolean(ConfigKeys.THINGS_SYNCER_ACTIVE);
+        if (thingsSynchronizationActive) {
             final ActorMaterializer materializer = ActorMaterializer.create(getContext().getSystem());
 
-            final StreamMetadataPersistence syncPersistence =
-                    MongoSearchSyncPersistence.initializedInstance(LAST_SUCCESSFUL_SYNC_COLLECTION_NAME,
+            final StreamMetadataPersistence thingsSyncPersistence =
+                    MongoSearchSyncPersistence.initializedInstance(THINGS_SYNC_STATE_COLLECTION_NAME,
                             mongoClientWrapper, materializer);
 
-            final StreamConsumerSettings streamConsumerSettings = createThingStreamConsumerSettings(config);
+            final StreamConsumerSettings streamConsumerSettings = createThingsStreamConsumerSettings(config);
 
             startClusterSingletonActor(ThingsStreamSupervisorCreator.ACTOR_NAME,
-                    ThingsStreamSupervisorCreator.props(thingsUpdaterActor, pubSubMediator, syncPersistence,
+                    ThingsStreamSupervisorCreator.props(thingsUpdaterActor, pubSubMediator, thingsSyncPersistence,
                             materializer, streamConsumerSettings));
         } else {
             log.warning("Things synchronization is not active");
         }
+
+        final boolean policiesSynchronizationActive = config.getBoolean(ConfigKeys.POLICIES_SYNCER_ACTIVE);
+        if (policiesSynchronizationActive) {
+            final ActorMaterializer materializer = ActorMaterializer.create(getContext().getSystem());
+
+            final StreamMetadataPersistence policiesSyncPersistence =
+                    MongoSearchSyncPersistence.initializedInstance(POLICIES_SYNC_STATE_COLLECTION_NAME,
+                            mongoClientWrapper, materializer);
+
+            final StreamConsumerSettings streamConsumerSettings = createPoliciesStreamConsumerSettings(config);
+
+            startClusterSingletonActor(PoliciesStreamSupervisorCreator.ACTOR_NAME,
+                    PoliciesStreamSupervisorCreator.props(thingsUpdaterActor, pubSubMediator, policiesSyncPersistence,
+                            materializer, streamConsumerSettings));
+        } else {
+            log.warning("Policies synchronization is not active");
+        }
     }
 
-    private static StreamConsumerSettings createThingStreamConsumerSettings(final Config config) {
+    private static StreamConsumerSettings createThingsStreamConsumerSettings(final Config config) {
         final Duration startOffset = config.getDuration(ConfigKeys.THINGS_SYNCER_START_OFFSET);
         final Duration streamInterval = config.getDuration(ConfigKeys.THINGS_SYNCER_STREAM_INTERVAL);
         final Duration initialStartOffset = config.getDuration(ConfigKeys.THINGS_SYNCER_INITIAL_START_OFFSET);
         final Duration maxIdleTime = config.getDuration(ConfigKeys.THINGS_SYNCER_MAX_IDLE_TIME);
         final int elementsStreamedPerSecond = config.getInt(ConfigKeys.THINGS_SYNCER_ELEMENTS_STREAMED_PER_SECOND);
-        final Duration outdatedWarningOffset = config.getDuration(ConfigKeys.THINGS_SYNCER_WARN_OFFSET);
+        final Duration outdatedWarningOffset = config.getDuration(ConfigKeys.THINGS_SYNCER_OUTDATED_WARNING_OFFSET);
+
+        return StreamConsumerSettings.of(startOffset, streamInterval, initialStartOffset, maxIdleTime,
+                elementsStreamedPerSecond, outdatedWarningOffset);
+    }
+
+    private static StreamConsumerSettings createPoliciesStreamConsumerSettings(final Config config) {
+        final Duration startOffset = config.getDuration(ConfigKeys.POLICIES_SYNCER_START_OFFSET);
+        final Duration streamInterval = config.getDuration(ConfigKeys.POLICIES_SYNCER_STREAM_INTERVAL);
+        final Duration initialStartOffset = config.getDuration(ConfigKeys.POLICIES_SYNCER_INITIAL_START_OFFSET);
+        final Duration maxIdleTime = config.getDuration(ConfigKeys.POLICIES_SYNCER_MAX_IDLE_TIME);
+        final int elementsStreamedPerSecond = config.getInt(ConfigKeys.POLICIES_SYNCER_ELEMENTS_STREAMED_PER_SECOND);
+        final Duration outdatedWarningOffset = config.getDuration(ConfigKeys.POLICIES_SYNCER_OUTDATED_WARNING_OFFSET);
 
         return StreamConsumerSettings.of(startOffset, streamInterval, initialStartOffset, maxIdleTime,
                 elementsStreamedPerSecond, outdatedWarningOffset);

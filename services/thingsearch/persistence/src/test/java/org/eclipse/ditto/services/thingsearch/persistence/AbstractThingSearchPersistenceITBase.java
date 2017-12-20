@@ -11,7 +11,7 @@
  */
 package org.eclipse.ditto.services.thingsearch.persistence;
 
-import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.LAST_SUCCESSFUL_SYNC_COLLECTION_NAME;
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.THINGS_SYNC_STATE_COLLECTION_NAME;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.POLICIES_BASED_SEARCH_INDEX_COLLECTION_NAME;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.THINGS_COLLECTION_NAME;
 
@@ -105,7 +105,7 @@ public abstract class AbstractThingSearchPersistenceITBase {
         writePersistence = provideWritePersistence();
         thingsCollection = mongoClient.getDatabase().getCollection(THINGS_COLLECTION_NAME);
         policiesCollection = mongoClient.getDatabase().getCollection(POLICIES_BASED_SEARCH_INDEX_COLLECTION_NAME);
-        syncCollection = mongoClient.getDatabase().getCollection(LAST_SUCCESSFUL_SYNC_COLLECTION_NAME);
+        syncCollection = mongoClient.getDatabase().getCollection(THINGS_SYNC_STATE_COLLECTION_NAME);
     }
 
     private MongoThingsSearchPersistence provideReadPersistence() {

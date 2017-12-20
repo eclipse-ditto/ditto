@@ -83,45 +83,89 @@ public final class ConfigKeys {
     public static final String CLUSTER_MAJORITY_CHECK_DELAY = CLUSTER_MAJORITY_CHECK_PREFIX + "delay";
     private static final String SYNC_PREFIX = SEARCH_UPDATER_PREFIX + "sync.";
 
+    private static final String SYNC_THINGS_PREFIX = SYNC_PREFIX + "things.";
+
     /**
-     * The syncer makes sure that all requested stream elements have at least an age of this offset, e.g. by
+     * Things-Sync: Controls whether the sync should be active or not.
+     */
+    public static final String THINGS_SYNCER_ACTIVE = SYNC_THINGS_PREFIX + "active";
+
+    /**
+     * Things-Sync: The syncer makes sure that all requested stream elements have at least an age of this offset, e.g by
      * triggering a stream at a later time.
      */
-    public static final String THINGS_SYNCER_START_OFFSET = SYNC_PREFIX + "start-offset";
+    public static final String THINGS_SYNCER_START_OFFSET = SYNC_THINGS_PREFIX + "start-offset";
 
     /**
-     * The duration from now to somewhere in the past for which stream elements are requested if sync has never
-     * been run before - otherwise sync is started where the last run finished.
+     * Things-Sync: The duration from now to somewhere in the past for which stream elements are requested if sync
+     * has never been run before - otherwise sync is started where the last run finished.
      */
-    public static final String THINGS_SYNCER_INITIAL_START_OFFSET = SYNC_PREFIX + "initial-start-offset";
+    public static final String THINGS_SYNCER_INITIAL_START_OFFSET = SYNC_THINGS_PREFIX + "initial-start-offset";
 
     /**
-     * The interval for the query restricting the stream (i.e. the difference between query-start and
+     * Things-Sync: The interval for the query restricting the stream (i.e. the difference between query-start and
      * query-end). This query-interval is used for <strong>all</strong> queries, but the interval of stream-starts
      * varies depending on the stream load.
      */
-    public static final String THINGS_SYNCER_STREAM_INTERVAL = SYNC_PREFIX + "stream-interval";
+    public static final String THINGS_SYNCER_STREAM_INTERVAL = SYNC_THINGS_PREFIX + "stream-interval";
 
     /**
-     * The default interval for polling things (polling may happen more frequently when lots of changes have to be
-     * applied).
+     * Things-Sync: if a query-start is more than this offset in the past, a warning will be logged.
      */
-    public static final String THINGS_SYNCER_WARN_OFFSET = SYNC_PREFIX + "warn-offset";
+    public static final String THINGS_SYNCER_OUTDATED_WARNING_OFFSET = SYNC_THINGS_PREFIX + "outdated-warning-offset";
 
     /**
-     * The maximum idle time of the syncer (as a Duration).
+     * Things-Sync: The maximum idle time of the syncer (as a Duration).
      */
-    public static final String THINGS_SYNCER_MAX_IDLE_TIME = SYNC_PREFIX + "max-idle-time";
+    public static final String THINGS_SYNCER_MAX_IDLE_TIME = SYNC_THINGS_PREFIX + "max-idle-time";
 
     /**
-     * The elements to be streamed per second by the sync process.
+     * Things-Sync: The elements to be streamed per second by the sync process.
      */
-    public static final String THINGS_SYNCER_ELEMENTS_STREAMED_PER_SECOND = SYNC_PREFIX +
+    public static final String THINGS_SYNCER_ELEMENTS_STREAMED_PER_SECOND = SYNC_THINGS_PREFIX +
             "elements-streamed-per-second";
+
+    private static final String SYNC_POLICIES_PREFIX = SYNC_PREFIX + "policies.";
+
     /**
-     * Controls whether the sync should be active or not.
+     * Policies-Sync: Controls whether the sync should be active or not.
      */
-    public static final String THINGS_SYNCER_ACTIVE = SYNC_PREFIX + "active";
+    public static final String POLICIES_SYNCER_ACTIVE = SYNC_POLICIES_PREFIX + "active";
+
+    /**
+     * Policies-Sync: The syncer makes sure that all requested stream elements have at least an age of this offset,
+     * e.g by triggering a stream at a later time.
+     */
+    public static final String POLICIES_SYNCER_START_OFFSET = SYNC_POLICIES_PREFIX + "start-offset";
+
+    /**
+     * Policies-Sync: The duration from now to somewhere in the past for which stream elements are requested if sync
+     * has never been run before - otherwise sync is started where the last run finished.
+     */
+    public static final String POLICIES_SYNCER_INITIAL_START_OFFSET = SYNC_POLICIES_PREFIX + "initial-start-offset";
+
+    /**
+     * Policies-Sync: The interval for the query restricting the stream (i.e. the difference between query-start and
+     * query-end). This query-interval is used for <strong>all</strong> queries, but the interval of stream-starts
+     * varies depending on the stream load.
+     */
+    public static final String POLICIES_SYNCER_STREAM_INTERVAL = SYNC_POLICIES_PREFIX + "stream-interval";
+
+    /**
+     * Policies-Sync: if a query-start is more than this offset in the past, a warning will be logged.
+     */
+    public static final String POLICIES_SYNCER_OUTDATED_WARNING_OFFSET = SYNC_POLICIES_PREFIX + "outdated-warning-offset";
+
+    /**
+     * Policies-Sync: The maximum idle time of the syncer (as a Duration).
+     */
+    public static final String POLICIES_SYNCER_MAX_IDLE_TIME = SYNC_POLICIES_PREFIX + "max-idle-time";
+
+    /**
+     * Policies-Sync: The elements to be streamed per second by the sync process.
+     */
+    public static final String POLICIES_SYNCER_ELEMENTS_STREAMED_PER_SECOND = SYNC_POLICIES_PREFIX +
+            "elements-streamed-per-second";
 
     private static final String HTTP_PREFIX = SEARCH_PREFIX + "http.";
     /**

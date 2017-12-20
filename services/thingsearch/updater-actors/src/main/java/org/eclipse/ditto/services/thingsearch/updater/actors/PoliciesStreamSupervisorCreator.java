@@ -22,24 +22,24 @@ import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.stream.Materializer;
 
 /**
- * Creates an actor which is responsible for triggering a cyclic synchronization of all things which changed within a
+ * Creates an actor which is responsible for triggering a cyclic synchronization of all policies which changed within a
  * specified time period.
  */
-public final class ThingsStreamSupervisorCreator {
+public final class PoliciesStreamSupervisorCreator {
 
     /**
      * The name of this Actor in the ActorSystem.
      */
-    static final String ACTOR_NAME = "thingsStreamSupervisor";
+    static final String ACTOR_NAME = "policiesStreamSupervisor";
     @SuppressWarnings("squid:S1075")
-    private static final String THINGS_STREAM_PROVIDER_ACTOR_PATH = "/user/thingsRoot/persistenceStreamingActor";
+    private static final String POLICIES_STREAM_PROVIDER_ACTOR_PATH = "/user/policiesRoot/persistenceStreamingActor";
 
-    private ThingsStreamSupervisorCreator() {
+    private PoliciesStreamSupervisorCreator() {
         throw new AssertionError();
     }
 
     /**
-     * Creates the props for {@link ThingsStreamSupervisorCreator}.
+     * Creates the props for {@link PoliciesStreamSupervisorCreator}.
      *
      * @param thingsUpdater the things updater actor
      * @param pubSubMediator the PubSub mediator Actor.
@@ -54,13 +54,13 @@ public final class ThingsStreamSupervisorCreator {
             final StreamConsumerSettings streamConsumerSettings) {
 
         return DefaultStreamSupervisor.props(thingsUpdater, pubSubMediator,
-                ThingsStreamSupervisorCreator::mapStreamTriggerCommand,
+                PoliciesStreamSupervisorCreator::mapStreamTriggerCommand,
                 streamMetadataPersistence, materializer, streamConsumerSettings);
     }
 
     private static DistributedPubSubMediator.Send mapStreamTriggerCommand(
             final SudoStreamModifiedEntities sudoStreamModifiedEntities) {
 
-        return new DistributedPubSubMediator.Send(THINGS_STREAM_PROVIDER_ACTOR_PATH, sudoStreamModifiedEntities, true);
+        return new DistributedPubSubMediator.Send(POLICIES_STREAM_PROVIDER_ACTOR_PATH, sudoStreamModifiedEntities, true);
     }
 }

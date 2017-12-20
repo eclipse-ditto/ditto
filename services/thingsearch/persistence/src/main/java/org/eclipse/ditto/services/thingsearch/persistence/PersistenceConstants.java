@@ -30,9 +30,14 @@ public final class PersistenceConstants {
     public static final String POLICIES_BASED_SEARCH_INDEX_COLLECTION_NAME = "policiesBasedSearchIndex";
 
     /**
-     * The collection name for the collection storing the last known successful full sync of search.
+     * The collection name for the collection storing state about things sync.
      */
-    public static final String LAST_SUCCESSFUL_SYNC_COLLECTION_NAME = "lastSuccessfulSync";
+    public static final String THINGS_SYNC_STATE_COLLECTION_NAME = "thingsSearchSyncStateThings";
+
+    /**
+     * The collection name for the collection storing state about policies sync.
+     */
+    public static final String POLICIES_SYNC_STATE_COLLECTION_NAME = "thingsSearchSyncStatePolicies";
 
     public static final String SLASH = "/";
 
