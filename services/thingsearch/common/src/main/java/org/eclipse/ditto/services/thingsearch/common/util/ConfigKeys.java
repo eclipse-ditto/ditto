@@ -103,8 +103,7 @@ public final class ConfigKeys {
     public static final String THINGS_SYNCER_STREAM_INTERVAL = SYNC_PREFIX + "stream-interval";
 
     /**
-     * The default interval for polling things (polling may happen more frequently when lots of changes have to be
-     * applied).
+     * This duration defines how long the last synchronization start may be in the past before a warning will be logged.
      */
     public static final String THINGS_SYNCER_WARN_OFFSET = SYNC_PREFIX + "warn-offset";
 
