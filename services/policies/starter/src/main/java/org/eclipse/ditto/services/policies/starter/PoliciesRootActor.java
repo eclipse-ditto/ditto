@@ -135,7 +135,7 @@ final class PoliciesRootActor extends AbstractActor {
 
         final int tagsStreamingCacheSize = config.getInt(ConfigKeys.POLICIES_TAGS_STREAMING_CACHE_SIZE);
         final ActorRef persistenceStreamingActor = startChildActor(PoliciesPersistenceStreamingActorCreator.ACTOR_NAME,
-                PoliciesPersistenceStreamingActorCreator.props(tagsStreamingCacheSize));
+                PoliciesPersistenceStreamingActorCreator.props(config, tagsStreamingCacheSize));
 
         pubSubMediator.tell(new DistributedPubSubMediator.Put(getSelf()), getSelf());
         pubSubMediator.tell(new DistributedPubSubMediator.Put(persistenceStreamingActor), getSelf());

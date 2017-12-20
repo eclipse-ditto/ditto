@@ -14,54 +14,57 @@ package org.eclipse.ditto.services.utils.persistence.mongo;
 import java.util.function.Function;
 
 import org.eclipse.ditto.services.models.streaming.EntityIdWithRevision;
-import org.eclipse.ditto.services.utils.akkapersistence.mongoaddons.DittoJavaDslMongoReadJournal;
-import org.eclipse.ditto.services.utils.akkapersistence.mongoaddons.PidWithSeqNr;
+import org.eclipse.ditto.services.utils.persistence.mongo.streaming.MongoReadJournal;
+import org.eclipse.ditto.services.utils.persistence.mongo.streaming.PidWithSeqNr;
+import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
+
+import com.typesafe.config.Config;
 
 import akka.actor.Props;
-import akka.japi.Creator;
 
 
 /**
  * Configurable default implementation of {@link AbstractPersistenceStreamingActor}.
  */
+@AllValuesAreNonnullByDefault
 public final class DefaultPersistenceStreamingActor<T extends EntityIdWithRevision>
         extends AbstractPersistenceStreamingActor<T> {
 
-    private DefaultPersistenceStreamingActor(final int streamingCacheSize,
-            final Function<PidWithSeqNr, T> entityMapper) {
-        this(streamingCacheSize, entityMapper, null);
-    }
+    private final MongoClientWrapper mongoClientWrapper;
 
-    private DefaultPersistenceStreamingActor(final int streamingCacheSize,
-            final Function<PidWithSeqNr, T> entityMapper, final DittoJavaDslMongoReadJournal readJournal) {
+    DefaultPersistenceStreamingActor(final int streamingCacheSize,
+            final Function<PidWithSeqNr, T> entityMapper,
+            final MongoReadJournal readJournal,
+            final MongoClientWrapper mongoClientWrapper) {
+
         super(streamingCacheSize, entityMapper, readJournal);
+        this.mongoClientWrapper = mongoClientWrapper;
     }
 
     /**
      * Creates Akka configuration object Props for this PersistenceStreamingActor.
      *
+     * @param config the configuration of the akka system.
      * @param streamingCacheSize the size of the streaming cache.
      * @param entityMapper the mapper used to map {@link PidWithSeqNr} to {@code T}. The resulting entity will be
      * streamed to the recipient actor.
      * @return the Akka configuration Props object.
      */
-    public static <T extends EntityIdWithRevision> Props props(final int streamingCacheSize,
+    public static <T extends EntityIdWithRevision> Props props(final Config config,
+            final int streamingCacheSize,
             final Function<PidWithSeqNr, T> entityMapper) {
 
-        return Props.create(DefaultPersistenceStreamingActor.class,
-                () -> new DefaultPersistenceStreamingActor<>(streamingCacheSize, entityMapper));
+        return Props.create(DefaultPersistenceStreamingActor.class, () -> {
+            final MongoClientWrapper mongoClient = MongoClientWrapper.newInstance(config);
+            final MongoReadJournal readJournal = MongoReadJournal.newInstance(config, mongoClient);
+            return new DefaultPersistenceStreamingActor<>(streamingCacheSize, entityMapper, readJournal, mongoClient);
+        });
     }
 
-    static <T extends EntityIdWithRevision> Props props(final int streamingCacheSize,
-            final Function<PidWithSeqNr, T> entityMapper, final DittoJavaDslMongoReadJournal readJournal) {
-        return Props.create(DefaultPersistenceStreamingActor.class, new Creator<DefaultPersistenceStreamingActor>() {
-            private static final long serialVersionUID = 1L;
-
-            @Override
-            public DefaultPersistenceStreamingActor create() {
-                return new DefaultPersistenceStreamingActor<>(streamingCacheSize, entityMapper, readJournal);
-            }
-        });
+    @Override
+    public void postStop() throws Exception {
+        mongoClientWrapper.close();
+        super.postStop();
     }
 
 }

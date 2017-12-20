@@ -13,8 +13,10 @@ package org.eclipse.ditto.services.policies.persistence.actors.policies;
 
 import org.eclipse.ditto.services.models.policies.PolicyTag;
 import org.eclipse.ditto.services.policies.persistence.actors.policy.PolicyPersistenceActor;
-import org.eclipse.ditto.services.utils.akkapersistence.mongoaddons.PidWithSeqNr;
 import org.eclipse.ditto.services.utils.persistence.mongo.DefaultPersistenceStreamingActor;
+import org.eclipse.ditto.services.utils.persistence.mongo.streaming.PidWithSeqNr;
+
+import com.typesafe.config.Config;
 
 import akka.actor.Props;
 
@@ -32,21 +34,22 @@ public final class PoliciesPersistenceStreamingActorCreator {
     private PoliciesPersistenceStreamingActorCreator() {
         throw new AssertionError();
     }
-    
+
     /**
      * Creates Akka configuration object Props for this PersistenceQueriesActor.
      *
+     * @param config the actor system configuration.
      * @param streamingCacheSize the size of the streaming cache.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final int streamingCacheSize) {
-        return DefaultPersistenceStreamingActor.props(streamingCacheSize,
+    public static Props props(final Config config, final int streamingCacheSize) {
+        return DefaultPersistenceStreamingActor.props(config, streamingCacheSize,
                 PoliciesPersistenceStreamingActorCreator::createElement);
     }
 
     private static PolicyTag createElement(final PidWithSeqNr pidWithSeqNr) {
-        final String id = pidWithSeqNr.persistenceId()
+        final String id = pidWithSeqNr.getPersistenceId()
                 .replaceFirst(PolicyPersistenceActor.PERSISTENCE_ID_PREFIX, "");
-        return PolicyTag.of(id, pidWithSeqNr.sequenceNr());
+        return PolicyTag.of(id, pidWithSeqNr.getSequenceNr());
     }
 }

@@ -12,8 +12,10 @@
 package org.eclipse.ditto.services.things.persistence.actors;
 
 import org.eclipse.ditto.services.models.things.ThingTag;
-import org.eclipse.ditto.services.utils.akkapersistence.mongoaddons.PidWithSeqNr;
 import org.eclipse.ditto.services.utils.persistence.mongo.DefaultPersistenceStreamingActor;
+import org.eclipse.ditto.services.utils.persistence.mongo.streaming.PidWithSeqNr;
+
+import com.typesafe.config.Config;
 
 import akka.actor.Props;
 
@@ -35,17 +37,18 @@ public final class ThingsPersistenceStreamingActorCreator {
     /**
      * Creates Akka configuration object Props for this PersistenceQueriesActor.
      *
+     * @param config the actor system configuration.
      * @param streamingCacheSize the size of the streaming cache.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final int streamingCacheSize) {
-        return DefaultPersistenceStreamingActor.props(streamingCacheSize,
+    public static Props props(final Config config, final int streamingCacheSize) {
+        return DefaultPersistenceStreamingActor.props(config, streamingCacheSize,
                 ThingsPersistenceStreamingActorCreator::createElement);
     }
 
     private static ThingTag createElement(final PidWithSeqNr pidWithSeqNr) {
-        final String id = pidWithSeqNr.persistenceId()
+        final String id = pidWithSeqNr.getPersistenceId()
                 .replaceFirst(ThingPersistenceActor.PERSISTENCE_ID_PREFIX, "");
-        return ThingTag.of(id, pidWithSeqNr.sequenceNr());
+        return ThingTag.of(id, pidWithSeqNr.getSequenceNr());
     }
 }

@@ -34,7 +34,8 @@ import com.typesafe.config.Config;
 /**
  * MongoDB Client Wrapper.
  */
-public final class MongoClientWrapper implements Closeable {
+public class MongoClientWrapper implements Closeable {
+    // not final to test with Mockito
 
     private final MongoClient mongoClient;
     private final MongoDatabase mongoDatabase;
