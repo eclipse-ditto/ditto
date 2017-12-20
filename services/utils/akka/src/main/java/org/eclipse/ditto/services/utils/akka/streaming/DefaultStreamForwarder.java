@@ -22,6 +22,8 @@ import akka.actor.Props;
 /**
  * This actor is responsible for forwarding streamed entities to a configurable recipient and signalling completion to
  * another configurable recipient.
+ *
+ * @param <E> Type of received stream elements.
  */
 public final class DefaultStreamForwarder<E> extends AbstractStreamForwarder<E> {
 
@@ -40,16 +42,18 @@ public final class DefaultStreamForwarder<E> extends AbstractStreamForwarder<E> 
      * Creates a {@code Props} object to instantiate this actor using {@link DefaultForwardingStrategy}.
      *
      * @param recipient Actor reference which is the recipient of the streamed messages.
+     * @param completionRecipient recipient of the message sent when a stream has been completed.
      * @param maxIdleTime Maximum time this actor stays alive without receiving any message.
      * @param elementClass the class of stream elements.
      * @param elementIdentifierFunction a function which maps a stream element to an identifier (to correlate acks).
+     * @param <E> Type of received stream elements.
      * @return The {@code Props} object.
      */
     public static <E> Props props(final ActorRef recipient, final ActorRef completionRecipient,
             final Duration maxIdleTime, final Class<E> elementClass,
             final Function<E, String> elementIdentifierFunction) {
         return Props.create(DefaultStreamForwarder.class,
-                () -> new DefaultStreamForwarder(new DefaultForwardingStrategy<>(recipient,
+                () -> new DefaultStreamForwarder<>(new DefaultForwardingStrategy<>(recipient,
                         elementIdentifierFunction, completionRecipient),
                         maxIdleTime, elementClass));
     }
@@ -60,12 +64,13 @@ public final class DefaultStreamForwarder<E> extends AbstractStreamForwarder<E> 
      * @param forwardingStrategy the strategy used for forwarding elements.
      * @param maxIdleTime Maximum time this actor stays alive without receiving any message.
      * @param elementClass the class of stream elements.
+     * @param <E> Type of received stream elements.
      * @return The {@code Props} object.
      */
     public static <E> Props props(ForwardingStrategy<E> forwardingStrategy,
             final Duration maxIdleTime, final Class<E> elementClass) {
         return Props.create(DefaultStreamForwarder.class,
-                () -> new DefaultStreamForwarder(forwardingStrategy, maxIdleTime, elementClass));
+                () -> new DefaultStreamForwarder<>(forwardingStrategy, maxIdleTime, elementClass));
     }
 
     @Override

@@ -19,7 +19,7 @@ import javax.annotation.concurrent.ThreadSafe;
  * Generates prefixed actor names.
  *
  * <p>This is currently not supported by plain Akka,
- * see <a href="">https://groups.google.com/forum/#!topic/akka-user/XQBwUTeSJj4</a>.
+ * see <a href="https://groups.google.com/forum/#!topic/akka-user/XQBwUTeSJj4">Akka User Group</a>.
  * </p>
  */
 @ThreadSafe

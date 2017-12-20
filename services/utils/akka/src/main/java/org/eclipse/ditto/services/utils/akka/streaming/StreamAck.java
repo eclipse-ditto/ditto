@@ -40,8 +40,7 @@ public final class StreamAck implements Jsonifiable {
     /**
      * Create an ack.
      *
-     * @param elementId the element for which the ack is sent. Should have been created using {@link
-     * AbstractStreamForwarder#getElementIdentifierFunction()}.
+     * @param elementId the element for which the ack is sent.
      * @param status The status of the StreamAck.
      */
     private StreamAck(final String elementId, final Status status) {
@@ -70,8 +69,7 @@ public final class StreamAck implements Jsonifiable {
     /**
      * Create an successful ack.
      *
-     * @param elementId the element for which the ack is sent. Should have been created using {@link
-     * AbstractStreamForwarder#getElementIdentifierFunction()}.
+     * @param elementId the element for which the ack is sent.
      * @return The StreamAck with status {@link Status#SUCCESS}.
      */
     public static StreamAck success(final String elementId) {
@@ -81,8 +79,7 @@ public final class StreamAck implements Jsonifiable {
     /**
      * Create an failure ack.
      *
-     * @param elementId the element for which the ack is sent. Should have been created using {@link
-     * AbstractStreamForwarder#getElementIdentifierFunction()}.
+     * @param elementId the element for which the ack is sent.}.
      * @return The StreamAck with status {@link Status#FAILURE}.
      */
     public static StreamAck failure(final String elementId) {
@@ -92,8 +89,7 @@ public final class StreamAck implements Jsonifiable {
     /**
      * Create an ack.
      *
-     * @param elementId the element for which the ack is sent. Should have been created using {@link
-     * AbstractStreamForwarder#getElementIdentifierFunction()}.
+     * @param elementId the element for which the ack is sent.
      * @param status The status of the StreamAck.
      * @return The StreamAck.
      */
