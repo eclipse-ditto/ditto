@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.services.utils.akka.streaming;
 
+import static java.util.Objects.requireNonNull;
 import static org.eclipse.ditto.services.utils.akka.streaming.StreamConstants.STREAM_FINISHED_MSG;
 
 import java.text.MessageFormat;
@@ -79,9 +80,10 @@ public abstract class AbstractStreamForwarder<E> extends AbstractActor implement
 
     @Override
     public void forwarded(final String identifier) {
-        log.debug("Forwarded element with identifier: {}", identifier);
-        toBeAckedElementIds.add(identifier);
-        forwardedElementCount++;
+        log.debug("Forwarded element with identifier: {}. Sending forwarded-message to self().", identifier);
+
+        // send a message to self() to make this method threadsafe
+        getSelf().tell(new ElementForwarded(identifier), getSelf());
     }
 
     /**
@@ -138,11 +140,20 @@ public abstract class AbstractStreamForwarder<E> extends AbstractActor implement
     public Receive createReceive() {
         return ReceiveBuilder.create()
                 .matchEquals(STREAM_FINISHED_MSG, this::handleStreamComplete)
+                .match(ElementForwarded.class, this::handleElementForwarded)
                 .match(getElementClass(), this::transformAndForwardElement)
                 .match(StreamAck.class, this::onAck)
                 .match(CheckForActivity.class, unused -> checkForActivity())
                 .matchAny(this::unhandled)
                 .build();
+    }
+
+    private void handleElementForwarded(final ElementForwarded elementForwarded) {
+        final String id = elementForwarded.getId();
+
+        log.debug("Got Forwarded-Message with id: {}", id);
+        toBeAckedElementIds.add(id);
+        forwardedElementCount++;
     }
 
     private void transformAndForwardElement(final E element) {
@@ -215,6 +226,19 @@ public abstract class AbstractStreamForwarder<E> extends AbstractActor implement
 
         private CheckForActivity() {
             // no-op
+        }
+    }
+
+    private static final class ElementForwarded {
+
+        private final String id;
+
+        private ElementForwarded(final String id) {
+            this.id = requireNonNull(id);
+        }
+
+        private String getId() {
+            return id;
         }
     }
 }

@@ -12,6 +12,7 @@
 package org.eclipse.ditto.services.thingsearch.updater.actors;
 
 import java.time.Duration;
+import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
@@ -186,37 +187,61 @@ final class ThingsUpdater extends AbstractActor {
 
         // provide a stream of just one element
         forwarder.tell(policyTag, self());
-        // don't forget to complete the stream!
-        forwarder.tell(StreamConstants.STREAM_FINISHED_MSG, self());
     }
 
     private ForwardingStrategy<PolicyTag> createPolicyTagDispatchingStrategy(final PolicyTag policyTag,
             final ActorRef policyTagsStreamProvider) {
         return new ForwardingStrategy<PolicyTag>() {
-                @Override
-                public void forward(final PolicyTag element, final ActorRef forwarderActorRef,
-                        final ForwarderCallback callback) {
-                    thingIdsForPolicy(element.getId())
-                            .thenAccept(thingIds ->
-                                    thingIds.forEach(id -> forwardPolicyReferenceTag(id, element))
-                            );
+            @Override
+            public void forward(final PolicyTag element, final ActorRef forwarderActorRef,
+                    final ForwarderCallback callback) {
+                thingIdsForPolicy(element.getId())
+                        .thenAccept(thingIds -> dispatchToUpdaters(element, thingIds, forwarderActorRef, callback));
+            }
+
+            private void dispatchToUpdaters(final PolicyTag policyTag, final Set<String> ids,
+                    final ActorRef forwarderActorRef,
+                    final ForwarderCallback callback) {
+                final int elementCount = ids.size();
+                if (elementCount == 0) {
+                    // if there are no elements to dispatch, send the completed-message immediately
+                    forwarderActorRef.tell(StreamConstants.STREAM_FINISHED_MSG, self());
                 }
 
-                @Override
-                public void onComplete(final ActorRef forwarderActorRef) {
-                    policyTagsStreamProvider.tell(StreamAck.success(policyTag.asIdentifierString()), forwarderActorRef);
+                final Iterator<String> idIterator = ids.iterator();
+                for (int i = 0; i < elementCount; i++) {
+                    final String id = idIterator.next();
+                    forwardPolicyReferenceTag(id, policyTag, callback);
+                    if (i == elementCount - 1) {
+                        // after the last element has been dispatched, send the completed-message!
+                        sendCompletedMessage(forwarderActorRef);
+                    }
                 }
+            }
 
-                @Override
-                public void maxIdleTimeExceeded(final ActorRef forwarderActorRef) {
-                    policyTagsStreamProvider.tell(StreamAck.failure(policyTag.asIdentifierString()), forwarderActorRef);
-                }
-            };
+            private void sendCompletedMessage(final ActorRef forwarderActorRef) {
+                forwarderActorRef.tell(StreamConstants.STREAM_FINISHED_MSG, self());
+            }
+
+            @Override
+            public void onComplete(final ActorRef forwarderActorRef) {
+                policyTagsStreamProvider.tell(StreamAck.success(policyTag.asIdentifierString()), forwarderActorRef);
+            }
+
+            @Override
+            public void maxIdleTimeExceeded(final ActorRef forwarderActorRef) {
+                policyTagsStreamProvider.tell(StreamAck.failure(policyTag.asIdentifierString()), forwarderActorRef);
+            }
+        };
     }
 
-    private void forwardPolicyReferenceTag(final String thingId, final PolicyTag policyTag) {
+    private void forwardPolicyReferenceTag(final String thingId, final PolicyTag policyTag,
+            final ForwarderCallback forwarderCallback) {
         final PolicyReferenceTag policyReferenceTag = PolicyReferenceTag.of(thingId, policyTag);
-        log.debug("Forwarding PolicyReferenceTag '{}'", policyReferenceTag.asIdentifierString());
+        final String elementIdentifier = policyReferenceTag.asIdentifierString();
+        log.debug("Forwarding PolicyReferenceTag '{}'", elementIdentifier);
+
+        forwarderCallback.forwarded(elementIdentifier);
 
         forwardJsonifiableToShardRegion(policyReferenceTag, unused -> policyReferenceTag.getEntityId());
     }
