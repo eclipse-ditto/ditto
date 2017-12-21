@@ -58,9 +58,14 @@ public final class ConfigKeys {
     private static final String ENABLED_SUFFIX = "enabled";
 
     /**
-     * Controls whether thing event processing should be active or not.
+     * Controls whether thing and policy event processing should be active or not.
      */
-    public static final String THINGS_EVENT_PROCESSING_ACTIVE = SEARCH_UPDATER_PREFIX + "event-processing.active";
+    public static final String EVENT_PROCESSING_ACTIVE = SEARCH_UPDATER_PREFIX + "event-processing.active";
+
+    /**
+     * Controls whether thing and policy cache-updates should be active or not.
+     */
+    public static final String CACHE_UPDATES_ACTIVE = SEARCH_UPDATER_PREFIX + "cache-updates.active";
 
     /**
      * The interval which defines how long a thing updater is considered active. When not active, the corresponding

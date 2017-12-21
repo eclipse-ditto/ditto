@@ -17,6 +17,8 @@ import java.util.Set;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
@@ -81,8 +83,8 @@ final class ThingsUpdater extends AbstractActor {
             final CircuitBreaker circuitBreaker,
             final boolean eventProcessingActive,
             final Duration thingUpdaterActivityCheckInterval,
-            final ActorRef thingCacheFacade,
-            final ActorRef policyCacheFacade) {
+            @Nullable final ActorRef thingCacheFacade,
+            @Nullable final ActorRef policyCacheFacade) {
 
         final ActorSystem actorSystem = context().system();
 
@@ -107,8 +109,6 @@ final class ThingsUpdater extends AbstractActor {
                     self());
             pubSubMediator.tell(new DistributedPubSubMediator.Subscribe(PolicyEvent.TYPE_PREFIX, UPDATER_GROUP, self()),
                     self());
-        } else {
-            log.warning("Event processing is not active");
         }
     }
 
@@ -131,8 +131,8 @@ final class ThingsUpdater extends AbstractActor {
             final CircuitBreaker circuitBreaker,
             final boolean eventProcessingActive,
             final Duration thingUpdaterActivityCheckInterval,
-            final ActorRef thingCacheFacade,
-            final ActorRef policyCacheFacade) {
+            @Nullable final ActorRef thingCacheFacade,
+            @Nullable final ActorRef policyCacheFacade) {
 
         return Props.create(ThingsUpdater.class, new Creator<ThingsUpdater>() {
             private static final long serialVersionUID = 1L;

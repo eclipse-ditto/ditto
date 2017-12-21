@@ -29,6 +29,8 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
@@ -136,6 +138,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
     private final java.time.Duration activityCheckInterval;
     private final ThingsSearchUpdaterPersistence searchUpdaterPersistence;
     private final CircuitBreaker circuitBreaker;
+    private final ActorRef thingCacheFacade;
     private final ActorRef policyCacheFacade;
     private final Materializer materializer;
 
@@ -174,6 +177,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         this.activityCheckInterval = activityCheckInterval;
         this.searchUpdaterPersistence = searchUpdaterPersistence;
         this.circuitBreaker = circuitBreaker;
+        this.thingCacheFacade = thingCacheFacade;
         this.policyCacheFacade = policyCacheFacade;
         this.gatheredEvents = new ArrayList<>();
 
@@ -182,7 +186,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         transactionActive = false;
         syncAttempts = 0;
 
-        thingCacheFacade.tell(new RegisterForCacheUpdates(thingId, getSelf()), getSelf());
+        registerForThingCacheUpdates(thingId);
 
         scheduleCheckForThingActivity();
         searchUpdaterPersistence.getThingMetadata(thingId)
@@ -228,9 +232,9 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
      * updated.
      * @param thingsTimeout how long to wait for Things and Policies service.
      * @param thingCacheFacade the {@link org.eclipse.ditto.services.utils.distributedcache.actors.CacheFacadeActor} for
-     * accessing the Thing cache in cluster.
+     * accessing the Thing cache in cluster, may be {@code null}.
      * @param policyCacheFacade the {@link org.eclipse.ditto.services.utils.distributedcache.actors.CacheFacadeActor}
-     * for accessing the Policy cache in cluster.
+     * for accessing the Policy cache in cluster, may be {@code null}.
      * @return the Akka configuration Props object
      */
     static Props props(final ThingsSearchUpdaterPersistence searchUpdaterPersistence,
@@ -268,7 +272,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
                     policyId = retrievedThingMetadata.getPolicyId();
                     policyRevision = retrievedThingMetadata.getPolicyRevision();
                     if (Objects.nonNull(policyId)) {
-                        policyCacheFacade.tell(new RegisterForCacheUpdates(policyId, getSelf()), getSelf());
+                        registerForPolicyCacheUpdates(policyId);
                     }
                     becomeEventProcessing();
                 })
@@ -276,6 +280,24 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
                 .matchAny(msg -> stashWithErrorsIgnored())
                 .build();
     }
+
+    private void registerForPolicyCacheUpdates(final String policyIdForRegistration) {
+        registerForCacheUpdates(policyIdForRegistration, policyCacheFacade);
+    }
+
+    private void registerForThingCacheUpdates(final String thingIdForRegistration) {
+        registerForCacheUpdates(thingIdForRegistration, thingCacheFacade);
+    }
+
+    private void registerForCacheUpdates(final String id, final @Nullable ActorRef cacheFacade) {
+        if (cacheFacade == null) {
+            return;
+        }
+
+        log.debug("Registering for cache updates with id <{}> at <{}>.", id, cacheFacade);
+        cacheFacade.tell(new RegisterForCacheUpdates(id, getSelf()), getSelf());
+    }
+
 
     private void scheduleCheckForThingActivity() {
         log.debug("Scheduling for activity check in <{}> seconds.", activityCheckInterval.getSeconds());
@@ -784,7 +806,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
                 policyRevision = -1L; // reset policyRevision
                 policyEnforcer = null; // reset policyEnforcer
                 policyId = policyIdOfThing;
-                policyCacheFacade.tell(new RegisterForCacheUpdates(policyIdOfThing, getSelf()), getSelf());
+                registerForPolicyCacheUpdates(policyIdOfThing);
             }
         } else if (hasNonEmptyAcl(thing)) {
             policyRevision = -1L; // reset policyRevision

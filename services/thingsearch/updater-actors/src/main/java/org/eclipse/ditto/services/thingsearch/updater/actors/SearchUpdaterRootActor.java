@@ -134,14 +134,24 @@ public final class SearchUpdaterRootActor extends AbstractActor {
                 "The circuit breaker for this search updater instance is closed again. Therefore all ThingUpdaters" +
                         " process events again"));
 
-        final ActorRef thingCacheFacade = startChildActor(CacheFacadeActor.actorNameFor(CacheRole.THING),
-                CacheFacadeActor.props(CacheRole.THING, config));
-        final ActorRef policyCacheFacade = startChildActor(CacheFacadeActor.actorNameFor(CacheRole.POLICY),
-                CacheFacadeActor.props(CacheRole.POLICY, config));
-
         pubSubMediator.tell(new DistributedPubSubMediator.Put(getSelf()), getSelf());
 
-        final boolean eventProcessingActive = config.getBoolean(ConfigKeys.THINGS_EVENT_PROCESSING_ACTIVE);
+        final boolean eventProcessingActive = config.getBoolean(ConfigKeys.EVENT_PROCESSING_ACTIVE);
+        if (!eventProcessingActive) {
+            log.warning("Event processing is disabled.");
+        }
+
+        final boolean cacheUpdatesActive = config.getBoolean(ConfigKeys.CACHE_UPDATES_ACTIVE);
+        if (!cacheUpdatesActive) {
+            log.warning("Cache-updates are disabled.");
+        }
+
+        final ActorRef thingCacheFacade = cacheUpdatesActive ?
+                startChildActor(CacheFacadeActor.actorNameFor(CacheRole.THING),
+                        CacheFacadeActor.props(CacheRole.THING, config)) : null;
+        final ActorRef policyCacheFacade = cacheUpdatesActive ?
+                startChildActor(CacheFacadeActor.actorNameFor(CacheRole.POLICY),
+                        CacheFacadeActor.props(CacheRole.POLICY, config)) : null;
 
         final Duration thingUpdaterActivityCheckInterval =
                 config.getDuration(ConfigKeys.THINGS_ACTIVITY_CHECK_INTERVAL);
