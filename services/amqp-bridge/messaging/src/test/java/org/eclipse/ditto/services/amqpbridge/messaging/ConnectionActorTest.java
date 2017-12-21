@@ -116,7 +116,6 @@ public class ConnectionActorTest {
             expectMsg(closeConnectionResponse);
 
             // delete connection
-            watch(underTest);
             final DeleteConnection deleteConnection = DeleteConnection.of(connectionId, DittoHeaders.empty());
             underTest.tell(deleteConnection, getRef());
             final DeleteConnectionResponse deleteConnectionResponse =
@@ -142,7 +141,6 @@ public class ConnectionActorTest {
             expectMsg(createConnectionResponse);
 
             // stop actor
-            watch(underTest);
             getSystem().stop(underTest);
             expectTerminated(underTest);
 
@@ -214,7 +212,6 @@ public class ConnectionActorTest {
             expectMsg(createConnectionResponse);
 
             // delete connection
-            watch(underTest);
             final DeleteConnection deleteConnection = DeleteConnection.of(connectionId, DittoHeaders.empty());
             underTest.tell(deleteConnection, getRef());
             final DeleteConnectionResponse deleteConnectionResponse =
