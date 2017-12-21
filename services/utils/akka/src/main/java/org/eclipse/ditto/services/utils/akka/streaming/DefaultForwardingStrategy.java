@@ -55,9 +55,10 @@ public class DefaultForwardingStrategy<E> implements ForwardingStrategy<E> {
         final String identifier = elementIdentifierFunction.apply(element);
         LOGGER.debug("Computed element identifier: {}", identifier);
 
-        recipient.tell(element, forwarderActorRef);
-
+        // important: callback before dispatching the answer, otherwise the message might not be acknowledged
         callback.forwarded(identifier);
+
+        recipient.tell(element, forwarderActorRef);
     }
 
     @Override

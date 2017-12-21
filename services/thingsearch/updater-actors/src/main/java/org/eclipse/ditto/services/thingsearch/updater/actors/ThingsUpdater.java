@@ -241,6 +241,7 @@ final class ThingsUpdater extends AbstractActor {
         final String elementIdentifier = policyReferenceTag.asIdentifierString();
         log.debug("Forwarding PolicyReferenceTag '{}'", elementIdentifier);
 
+        // important: callback before dispatching the answer, otherwise the message might not be acknowledged
         forwarderCallback.forwarded(elementIdentifier);
 
         forwardJsonifiableToShardRegion(policyReferenceTag, unused -> policyReferenceTag.getEntityId());

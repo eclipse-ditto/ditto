@@ -17,8 +17,10 @@ package org.eclipse.ditto.services.utils.akka.streaming;
 public interface ForwarderCallback {
 
     /**
-     * Has to be called for each forwarded element. If you split up an incoming element to {@code n} elements, you
-     * have to make sure to call this method {@code n} times with unique identifiers. Otherwise the forwarder cannot
+     * Has to be called for each forwarded element - <strong>before</strong> the element is actually forwarded,
+     * otherwise messages may not be acknowledged by the forwarder.
+     * If you split up an incoming element to {@code n} elements, you have to make sure to call this method {@code n}
+     * times with unique identifiers. Otherwise the forwarder cannot
      * make sure that each element has been handled by its receiver.
      *
      * @param elementIdentifier the identifier of the forwarded element
