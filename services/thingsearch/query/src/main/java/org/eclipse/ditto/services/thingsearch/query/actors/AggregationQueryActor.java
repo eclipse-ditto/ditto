@@ -11,7 +11,9 @@
  */
 package org.eclipse.ditto.services.thingsearch.query.actors;
 
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -23,18 +25,20 @@ import org.eclipse.ditto.model.thingsearchparser.options.rql.RqlOptionParser;
 import org.eclipse.ditto.model.thingsearchparser.predicates.ast.RootNode;
 import org.eclipse.ditto.model.thingsearchparser.predicates.rql.RqlPredicateParser;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SudoCountThings;
+import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Criteria;
+import org.eclipse.ditto.services.thingsearch.querymodel.criteria.CriteriaFactory;
+import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Predicate;
+import org.eclipse.ditto.services.thingsearch.querymodel.expression.FilterFieldExpression;
+import org.eclipse.ditto.services.thingsearch.querymodel.expression.ThingsFieldExpressionFactory;
+import org.eclipse.ditto.services.thingsearch.querymodel.query.AggregationBuilder;
+import org.eclipse.ditto.services.thingsearch.querymodel.query.AggregationBuilderFactory;
+import org.eclipse.ditto.services.thingsearch.querymodel.query.PolicyRestrictedSearchAggregation;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidFilterException;
 import org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidOptionException;
 import org.eclipse.ditto.signals.commands.thingsearch.query.CountThings;
 import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThings;
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Criteria;
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.CriteriaFactory;
-import org.eclipse.ditto.services.thingsearch.querymodel.expression.ThingsFieldExpressionFactory;
-import org.eclipse.ditto.services.thingsearch.querymodel.query.AggregationBuilder;
-import org.eclipse.ditto.services.thingsearch.querymodel.query.AggregationBuilderFactory;
-import org.eclipse.ditto.services.thingsearch.querymodel.query.PolicyRestrictedSearchAggregation;
 
 import akka.actor.AbstractActor;
 import akka.actor.Props;
@@ -63,7 +67,8 @@ public final class AggregationQueryActor extends AbstractActor {
     private final RqlOptionParser rqlOptionParser;
     private final RqlPredicateParser rqlPredicateParser;
 
-    private AggregationQueryActor(final CriteriaFactory criteriaFactory, final ThingsFieldExpressionFactory fieldExpressionFactory,
+    private AggregationQueryActor(final CriteriaFactory criteriaFactory,
+            final ThingsFieldExpressionFactory fieldExpressionFactory,
             final AggregationBuilderFactory aggregationBuilderFactory) {
         this.criteriaFactory = criteriaFactory;
         this.fieldExpressionFactory = fieldExpressionFactory;
@@ -81,7 +86,8 @@ public final class AggregationQueryActor extends AbstractActor {
      * @return the Akka configuration Props object.
      */
     public static Props props(final CriteriaFactory criteriaFactory,
-            final ThingsFieldExpressionFactory fieldExpressionFactory, final AggregationBuilderFactory aggregationBuilderFactory) {
+            final ThingsFieldExpressionFactory fieldExpressionFactory,
+            final AggregationBuilderFactory aggregationBuilderFactory) {
         return Props.create(AggregationQueryActor.class, new Creator<AggregationQueryActor>() {
             private static final long serialVersionUID = 1L;
 
@@ -133,9 +139,25 @@ public final class AggregationQueryActor extends AbstractActor {
         final AggregationBuilder aggregationBuilder = aggregationBuilderFactory.newBuilder(criteria)
                 .authorizationSubjects(extractSidsAsStrings(command.getDittoHeaders().getAuthorizationContext()));
 
+        final AggregationBuilder finalAggregationBuilder;
+        if (command.getNamespaces().isPresent()) {
+            final Set<String> namespaces = command.getNamespaces().get();
+            final FilterFieldExpression namespaceFieldExpression = fieldExpressionFactory.filterByNamespace();
+            final Predicate namespacesPredicate =
+                    criteriaFactory.in(namespaces.stream().collect(Collectors.toList()));
+            final Criteria namespaceCriteria =
+                    criteriaFactory.fieldCriteria(namespaceFieldExpression, namespacesPredicate);
+
+            final Criteria filteredCriteria =
+                    criteriaFactory.and(Arrays.asList(criteria, namespaceCriteria));
+            finalAggregationBuilder = aggregationBuilderFactory.newBuilder(filteredCriteria);
+        } else {
+            finalAggregationBuilder = aggregationBuilder;
+        }
+
         command.getOptions()
                 .map(optionStrings -> String.join(",", optionStrings))
-                .ifPresent(options -> setOptions(options, aggregationBuilder, command.getDittoHeaders()));
+                .ifPresent(options -> setOptions(options, finalAggregationBuilder, command.getDittoHeaders()));
 
         getSender().tell(aggregationBuilder.build(), getSelf());
     }
@@ -186,8 +208,9 @@ public final class AggregationQueryActor extends AbstractActor {
     private void setOptions(final String options, final AggregationBuilder aggregationBuilder,
             final DittoHeaders dittoHeaders) {
         try {
-            final AggregationParameterOptionVisitor visitor = new AggregationParameterOptionVisitor(fieldExpressionFactory,
-                    aggregationBuilder);
+            final AggregationParameterOptionVisitor visitor =
+                    new AggregationParameterOptionVisitor(fieldExpressionFactory,
+                            aggregationBuilder);
             visitor.visitAll(rqlOptionParser.parse(options));
         } catch (final ParserException | IllegalArgumentException e) {
             throw InvalidOptionException.newBuilder()

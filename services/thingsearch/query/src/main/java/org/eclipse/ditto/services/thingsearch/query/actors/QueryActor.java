@@ -13,6 +13,7 @@ package org.eclipse.ditto.services.thingsearch.query.actors;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -24,6 +25,14 @@ import org.eclipse.ditto.model.thingsearchparser.options.rql.RqlOptionParser;
 import org.eclipse.ditto.model.thingsearchparser.predicates.ast.RootNode;
 import org.eclipse.ditto.model.thingsearchparser.predicates.rql.RqlPredicateParser;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SudoCountThings;
+import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Criteria;
+import org.eclipse.ditto.services.thingsearch.querymodel.criteria.CriteriaFactory;
+import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Predicate;
+import org.eclipse.ditto.services.thingsearch.querymodel.expression.FilterFieldExpression;
+import org.eclipse.ditto.services.thingsearch.querymodel.expression.ThingsFieldExpressionFactory;
+import org.eclipse.ditto.services.thingsearch.querymodel.query.Query;
+import org.eclipse.ditto.services.thingsearch.querymodel.query.QueryBuilder;
+import org.eclipse.ditto.services.thingsearch.querymodel.query.QueryBuilderFactory;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidFilterException;
@@ -36,15 +45,6 @@ import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
-
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Criteria;
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.CriteriaFactory;
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Predicate;
-import org.eclipse.ditto.services.thingsearch.querymodel.expression.FilterFieldExpression;
-import org.eclipse.ditto.services.thingsearch.querymodel.expression.ThingsFieldExpressionFactory;
-import org.eclipse.ditto.services.thingsearch.querymodel.query.Query;
-import org.eclipse.ditto.services.thingsearch.querymodel.query.QueryBuilder;
-import org.eclipse.ditto.services.thingsearch.querymodel.query.QueryBuilderFactory;
 
 /**
  * Actor handling the parsing of search queries. It accepts {@link CountThings} and {@link QueryThings} commands and
@@ -135,8 +135,24 @@ public final class QueryActor extends AbstractActor {
         final Criteria criteria = command.getFilter()
                 .map(filterString -> mapCriteria(filterString, command.getDittoHeaders()))
                 .orElse(criteriaFactory.any());
-        final Criteria filteredCriteria = addAclFilter(criteria, command.getDittoHeaders().getAuthorizationContext());
-        final QueryBuilder queryBuilder = queryBuilderFactory.newBuilder(filteredCriteria);
+        final Criteria aclFilteredCriteria =
+                addAclFilter(criteria, command.getDittoHeaders().getAuthorizationContext());
+
+        final QueryBuilder queryBuilder;
+        if (command.getNamespaces().isPresent()) {
+            final Set<String> namespaces = command.getNamespaces().get();
+            final FilterFieldExpression namespaceFieldExpression = fieldExpressionFactory.filterByNamespace();
+            final Predicate namespacesPredicate =
+                    criteriaFactory.in(namespaces.stream().collect(Collectors.toList()));
+            final Criteria namespaceCriteria =
+                    criteriaFactory.fieldCriteria(namespaceFieldExpression, namespacesPredicate);
+
+            final Criteria filteredCriteria =
+                    criteriaFactory.and(Arrays.asList(aclFilteredCriteria, namespaceCriteria));
+            queryBuilder = queryBuilderFactory.newBuilder(filteredCriteria);
+        } else {
+            queryBuilder = queryBuilderFactory.newBuilder(aclFilteredCriteria);
+        }
 
         command.getOptions()
                 .map(optionStrings -> String.join(",", optionStrings))
