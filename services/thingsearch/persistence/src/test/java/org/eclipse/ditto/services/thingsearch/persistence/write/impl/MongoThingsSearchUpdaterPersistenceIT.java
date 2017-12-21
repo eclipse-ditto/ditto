@@ -1489,7 +1489,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
         }
 
         @Test
-        public void insertWithSameRevisionAndSamePolicyRevision() {
+        public void insertWithSameThingRevisionAndSamePolicyRevision() {
             final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
             final long thingRevision = 1L;
             final long policyRevision = 0;
@@ -1502,7 +1502,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
         }
 
         @Test
-        public void insertWithSameRevisionAndSameHigherPolicyRevision() {
+        public void insertWithSameThingRevisionAndHigherPolicyRevision() {
             final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
             final long thingRevision = 1L;
             final long policyRevision = 0L;
@@ -1513,6 +1513,21 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
             // should insert thing with same revision but higher policy revision
             Assertions.assertThat(runBlockingWithReturn(
                     writePersistence.insertOrUpdate(thing, thingRevision, higherPolicyRevision))).isTrue();
+        }
+
+        @Test
+        public void insertWithLowerThingRevisionAndHigherPolicyRevision() {
+            final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
+            final long lowerThingRevision = 0L;
+            final long thingRevision = 1L;
+            final long policyRevision = 0L;
+            final long higherPolicyRevision = 1L;
+
+            insertBlockingAndResetMocks(isV2, thing, thingRevision, policyRevision, policyEnforcer);
+
+            // should insert thing with same revision but higher policy revision
+            Assertions.assertThat(runBlockingWithReturn(
+                    writePersistence.insertOrUpdate(thing, lowerThingRevision, higherPolicyRevision))).isFalse();
         }
     }
 
