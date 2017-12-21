@@ -17,9 +17,14 @@ import static akka.http.javadsl.server.Directives.path;
 import static akka.http.javadsl.server.Directives.pathEndOrSingleSlash;
 
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.gateway.endpoints.directives.CustomPathMatchers;
 import org.eclipse.ditto.services.gateway.endpoints.routes.AbstractRoute;
@@ -58,15 +63,15 @@ public final class ThingSearchRoute extends AbstractRoute {
      *
      * @return the {@code /search}} route.
      */
-    public Route buildSearchRoute(final RequestContext ctx, final DittoHeaders dittoHeaders) {
+    public Route buildSearchRoute(final RequestContext ctx, final Integer apiVersion, final DittoHeaders dittoHeaders) {
         return Directives.rawPathPrefix(CustomPathMatchers.mergeDoubleSlashes().concat(PATH_SEARCH), () ->
                 Directives.rawPathPrefix(CustomPathMatchers.mergeDoubleSlashes().concat(PATH_THINGS),
                         () -> // /search/things
                                 Directives.route(
                                         // /search/things/count
-                                        path(PATH_COUNT, () -> countThings(ctx, dittoHeaders)),
+                                        path(PATH_COUNT, () -> countThings(ctx, apiVersion, dittoHeaders)),
                                         // /search/things
-                                        pathEndOrSingleSlash(() -> searchThings(ctx, dittoHeaders))
+                                        pathEndOrSingleSlash(() -> searchThings(ctx, apiVersion, dittoHeaders))
                                 )
                 )
         );
@@ -77,10 +82,13 @@ public final class ThingSearchRoute extends AbstractRoute {
      *
      * @return {@code /search/things/count} route.
      */
-    private Route countThings(final RequestContext ctx, final DittoHeaders dittoHeaders) {
-        return get(() -> // GET things/count?filter=<filterString>
+    private Route countThings(final RequestContext ctx, final Integer apiVersion, final DittoHeaders dittoHeaders) {
+        return get(() -> // GET things/count?filter=<filterString>&namespaces=<namespacesString>
                 parameterOptional(ThingSearchParameter.FILTER.toString(), filterString ->
-                        handlePerRequest(ctx, CountThings.of(calculateFilter(filterString), dittoHeaders))
+                        parameterOptional(ThingSearchParameter.NAMESPACES.toString(), namespacesString ->
+                                handlePerRequest(ctx, CountThings.of(calculateFilter(filterString),
+                                        calculateNamespaces(namespacesString, apiVersion), dittoHeaders))
+                        )
                 )
         );
     }
@@ -90,26 +98,43 @@ public final class ThingSearchRoute extends AbstractRoute {
      *
      * @return {@code /search/things} route.
      */
-    private Route searchThings(final RequestContext ctx, final DittoHeaders dittoHeaders) {
-        return get(() -> // GET things?filter=<filterString>&options=<optionsString>&fields=<fieldsString>
-                parameterOptional(ThingSearchParameter.FILTER.toString(), filterString ->
-                        parameterOptional(ThingSearchParameter.OPTION.toString(), optionsString ->
-                                parameterOptional(ThingSearchParameter.FIELDS.toString(),
-                                        fieldsString ->
-                                                handlePerRequest(ctx, QueryThings.of(calculateFilter(filterString),
-                                                        calculateOptions(optionsString),
-                                                        AbstractRoute.calculateSelectedFields(fieldsString)
-                                                                .orElse(null),
-                                                        dittoHeaders))
+    private Route searchThings(final RequestContext ctx, final Integer apiVersion, final DittoHeaders dittoHeaders) {
+        return get(
+                () -> // GET things?filter=<filterString>&options=<optionsString>&fields=<fieldsString>&namespaces=<namespacesString>
+                        parameterOptional(ThingSearchParameter.FILTER.toString(), filterString ->
+                                parameterOptional(ThingSearchParameter.NAMESPACES.toString(), namespacesString ->
+                                        parameterOptional(ThingSearchParameter.OPTION.toString(), optionsString ->
+                                                parameterOptional(ThingSearchParameter.FIELDS.toString(),
+                                                        fieldsString -> handlePerRequest(ctx,
+                                                                QueryThings.of(calculateFilter(filterString),
+                                                                        calculateOptions(optionsString),
+                                                                        AbstractRoute.calculateSelectedFields(
+                                                                                fieldsString)
+                                                                                .orElse(null),
+                                                                        calculateNamespaces(namespacesString, apiVersion),
+                                                                        dittoHeaders))
+                                                )
+                                        )
                                 )
                         )
-                )
         );
     }
 
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     private static String calculateFilter(final Optional<String> filterString) {
         return filterString.orElse(null);
+    }
+
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+    private static Set<String> calculateNamespaces(final Optional<String> namespacesString, final Integer version) {
+
+        if (version.equals(1)) {
+            return null;
+        } else {
+            return namespacesString.map(
+                    s -> Stream.of(namespacesString.get().split(",")).limit(1).collect(Collectors.toSet())
+            ).orElse(null);
+        }
     }
 
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")

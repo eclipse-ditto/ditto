@@ -312,7 +312,7 @@ public final class RootRoute {
                                                                 apiVersion,
                                                                 correlationId,
                                                                 dittoHeaders ->
-                                                                        buildApiSubRoutes(ctx, dittoHeaders)
+                                                                        buildApiSubRoutes(ctx, apiVersion, dittoHeaders)
                                                         )
                                         )
                         )
@@ -342,7 +342,8 @@ public final class RootRoute {
                 });
     }
 
-    private Route buildApiSubRoutes(final RequestContext ctx, final DittoHeaders dittoHeaders) {
+    private Route buildApiSubRoutes(final RequestContext ctx, final Integer apiVersion, final DittoHeaders
+            dittoHeaders) {
         return Directives.route(
                 // /api/{apiVersion}/policies
                 policiesRoute.buildPoliciesRoute(ctx, dittoHeaders),
@@ -351,7 +352,7 @@ public final class RootRoute {
                 // /api/{apiVersion}/things
                 thingsRoute.buildThingsRoute(ctx, dittoHeaders),
                 // /api/{apiVersion}/search/things
-                thingSearchRoute.buildSearchRoute(ctx, dittoHeaders)
+                thingSearchRoute.buildSearchRoute(ctx, apiVersion, dittoHeaders)
         );
     }
 

@@ -12,6 +12,9 @@
 package org.eclipse.ditto.signals.commands.thingsearch.query;
 
 import java.time.Instant;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
@@ -90,6 +93,16 @@ public final class TestConstants {
          * Another known option.
          */
         public static final String KNOWN_OPT_2 = "opt2";
+
+        /**
+         * Kknown namespace.
+         */
+        public static final String KNOWN_NAMESPACE = "com.bosch";
+
+        /**
+         * Kknown namespaces set.
+         */
+        public static final Set<String> KNOWN_NAMESPACES_SET = Collections.singleton(KNOWN_NAMESPACE);
 
         /**
          * A known message for {@code InvalidFilterException}.
