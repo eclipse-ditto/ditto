@@ -76,7 +76,7 @@ public class DefaultStreamForwarderTest {
                 streamForwarder.tell(STREAM_STARTED, getRef());
                 expectMsg(STREAM_ACK_MSG);
 
-                streamForwarder.tell(KNOWN_TAG_1, ActorRef.noSender());
+                streamForwarder.tell(KNOWN_TAG_1, getRef());
                 recipient.expectMsg(KNOWN_TAG_1);
 
                 // now wait for timeout to apply
@@ -102,12 +102,12 @@ public class DefaultStreamForwarderTest {
                 streamForwarder.tell(STREAM_STARTED, getRef());
                 expectMsg(STREAM_ACK_MSG);
 
-                streamForwarder.tell(KNOWN_TAG_1, ActorRef.noSender());
+                streamForwarder.tell(KNOWN_TAG_1, getRef());
                 recipient.expectMsg(KNOWN_TAG_1);
                 recipient.reply(failureResponse(KNOWN_TAG_1));
                 expectMsg(STREAM_ACK_MSG);
 
-                streamForwarder.tell(STREAM_COMPLETED, ActorRef.noSender());
+                streamForwarder.tell(STREAM_COMPLETED, getRef());
                 completionRecipient.expectMsg(STREAM_COMPLETED);
 
                 expectTerminated(streamForwarder);
@@ -125,17 +125,17 @@ public class DefaultStreamForwarderTest {
                 streamForwarder.tell(STREAM_STARTED, getRef());
                 expectMsg(STREAM_ACK_MSG);
 
-                streamForwarder.tell(KNOWN_TAG_1, ActorRef.noSender());
+                streamForwarder.tell(KNOWN_TAG_1, getRef());
                 recipient.expectMsg(KNOWN_TAG_1);
                 recipient.reply(successResponse(KNOWN_TAG_1));
                 expectMsg(STREAM_ACK_MSG);
 
-                streamForwarder.tell(KNOWN_TAG_2, ActorRef.noSender());
+                streamForwarder.tell(KNOWN_TAG_2, getRef());
                 recipient.expectMsg(KNOWN_TAG_2);
                 recipient.reply(successResponse(KNOWN_TAG_2));
                 expectMsg(STREAM_ACK_MSG);
 
-                streamForwarder.tell(STREAM_COMPLETED, ActorRef.noSender());
+                streamForwarder.tell(STREAM_COMPLETED, getRef());
                 completionRecipient.expectMsg(STREAM_COMPLETED);
 
                 expectTerminated(streamForwarder);

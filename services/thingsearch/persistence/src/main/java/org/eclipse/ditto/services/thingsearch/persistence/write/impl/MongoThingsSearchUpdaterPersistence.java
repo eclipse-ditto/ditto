@@ -40,6 +40,7 @@ import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.eclipse.ditto.model.policiesenforcers.PolicyEnforcer;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.services.models.policies.PolicyTag;
 import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
 import org.eclipse.ditto.services.thingsearch.persistence.mapping.ThingDocumentMapper;
 import org.eclipse.ditto.services.thingsearch.persistence.write.AbstractThingsSearchUpdaterPersistence;
@@ -340,9 +341,6 @@ public final class MongoThingsSearchUpdaterPersistence extends AbstractThingsSea
         };
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public final Source<Set<String>, NotUsed> getThingIdsForPolicy(final String policyId) {
         final Bson filter = eq(FIELD_POLICY_ID, policyId);
@@ -353,6 +351,16 @@ public final class MongoThingsSearchUpdaterPersistence extends AbstractThingsSea
                     set.add(id);
                     return set;
                 });
+    }
+
+    @Override
+    public Source<String, NotUsed> getOutdatedThingIds(final PolicyTag policyTag) {
+        final String policyId = policyTag.getId();
+        final Bson filter = and(eq(FIELD_POLICY_ID, policyId), lt(FIELD_POLICY_REVISION, policyTag.getRevision()));
+        final Publisher<Document> publisher =
+                collection.find(filter).projection(new BsonDocument(FIELD_ID, new BsonInt32(1)));
+        return Source.fromPublisher(publisher)
+                .map(doc -> doc.getString(FIELD_ID));
     }
 
     /**

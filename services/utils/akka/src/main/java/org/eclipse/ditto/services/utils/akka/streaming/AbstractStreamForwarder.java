@@ -78,10 +78,7 @@ public abstract class AbstractStreamForwarder<E> extends AbstractActor {
      */
     protected final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
     protected final ActorMaterializer materializer = ActorMaterializer.create(getContext());
-    private Receive iteratingBehavior;
-    private Receive hasNextBehavior;
 
-    private ActorRef streamSender = ActorRef.noSender();
     private Instant lastMessageReceived = Instant.now();
 
     private Cancellable activityCheck;
@@ -110,52 +107,45 @@ public abstract class AbstractStreamForwarder<E> extends AbstractActor {
 
     protected abstract Source<?, ?> mapEntity(final E element);
 
-    private Receive createStartBehavior() {
+    private Receive initialBehavior() {
         return ReceiveBuilder.create()
                 .matchEquals(STREAM_STARTED, unit -> {
-                    streamSender = getSender();
-                    streamSender.tell(STREAM_ACK_MSG, getSelf());
+                    getSender().tell(STREAM_ACK_MSG, getSelf());
                     updateLastMessageReceived();
-                    getContext().become(getIteratingBehavior());
+                    getContext().become(iteratingBehavior());
                 })
                 .matchEquals(STREAM_FAILED, this::streamFailed)
                 .matchEquals(CheckForActivity.INSTANCE, this::checkForActivity)
                 .build();
     }
 
-    private Receive getIteratingBehavior() {
-        if (iteratingBehavior == null) {
-            iteratingBehavior = ReceiveBuilder.create()
-                    .matchEquals(STREAM_COMPLETED, this::streamCompleted)
-                    .matchEquals(STREAM_FAILED, this::streamFailed)
-                    .matchEquals(CheckForActivity.INSTANCE, this::checkForActivity)
-                    .match(getElementClass(), this::transitionToForwardingLoop)
-                    .build();
-        }
-        return iteratingBehavior;
+    private Receive iteratingBehavior() {
+        return ReceiveBuilder.create()
+                .matchEquals(STREAM_COMPLETED, this::streamCompleted)
+                .matchEquals(STREAM_FAILED, this::streamFailed)
+                .matchEquals(CheckForActivity.INSTANCE, this::checkForActivity)
+                .match(getElementClass(), this::transitionToForwardingLoop)
+                .build();
     }
 
-    private Receive getHasNextBehavior() {
-        if (hasNextBehavior == null) {
-            hasNextBehavior = ReceiveBuilder.create()
-                    .matchEquals(STREAM_ACK_MSG, unit -> updateLastMessageReceived())
-                    .matchEquals(DOES_NOT_HAVE_NEXT_MSG, unit -> {
-                        updateLastMessageReceived();
-                        getContext().become(getIteratingBehavior());
-                        streamSender.tell(STREAM_ACK_MSG, getSelf());
-                    })
-                    .matchEquals(STREAM_FAILED, this::streamFailed)
-                    .match(CheckForActivity.class, this::checkForActivity)
-                    .build();
-        }
-        return hasNextBehavior;
+    private Receive hasNextBehavior(final ActorRef elementSender) {
+        return ReceiveBuilder.create()
+                .matchEquals(STREAM_ACK_MSG, unit -> updateLastMessageReceived())
+                .matchEquals(DOES_NOT_HAVE_NEXT_MSG, unit -> {
+                    updateLastMessageReceived();
+                    getContext().become(iteratingBehavior());
+                    elementSender.tell(STREAM_ACK_MSG, getSelf());
+                })
+                .matchEquals(STREAM_FAILED, this::streamFailed)
+                .match(CheckForActivity.class, this::checkForActivity)
+                .build();
     }
 
     private void transitionToForwardingLoop(final E element) {
         final ActorRef self = getSelf();
         final ActorRef recipient = getRecipient();
         final long timeoutMillis = getMaxIdleTime().toMillis();
-        getContext().become(getHasNextBehavior());
+        getContext().become(hasNextBehavior(getSender()));
         mapEntity(element)
                 .mapAsync(1, msgToForward ->
                         PatternsCS.<Object>ask(recipient, msgToForward, timeoutMillis)
@@ -201,7 +191,7 @@ public abstract class AbstractStreamForwarder<E> extends AbstractActor {
 
     @Override
     public Receive createReceive() {
-        return createStartBehavior();
+        return initialBehavior();
     }
 
     private void checkForActivity(final CheckForActivity checkForActivity) {

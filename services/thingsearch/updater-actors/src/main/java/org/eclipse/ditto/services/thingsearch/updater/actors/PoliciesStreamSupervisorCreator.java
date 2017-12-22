@@ -11,8 +11,6 @@
  */
 package org.eclipse.ditto.services.thingsearch.updater.actors;
 
-import java.util.stream.Collectors;
-
 import org.eclipse.ditto.services.models.policies.PolicyReferenceTag;
 import org.eclipse.ditto.services.models.policies.PolicyTag;
 import org.eclipse.ditto.services.models.streaming.SudoStreamModifiedEntities;
@@ -77,9 +75,7 @@ public final class PoliciesStreamSupervisorCreator {
     private static Source<PolicyReferenceTag, ?> toPolicyReferenceTags(final PolicyTag policyTag,
             final ThingsSearchUpdaterPersistence searchUpdaterPersistence) {
 
-        return searchUpdaterPersistence.getThingIdsForPolicy(policyTag.getId())
-                .mapConcat(thingIds -> thingIds.stream()
-                        .map(thingId -> PolicyReferenceTag.of(thingId, policyTag))
-                        .collect(Collectors.toList()));
+        return searchUpdaterPersistence.getOutdatedThingIds(policyTag)
+                .map(thingId -> PolicyReferenceTag.of(thingId, policyTag));
     }
 }
