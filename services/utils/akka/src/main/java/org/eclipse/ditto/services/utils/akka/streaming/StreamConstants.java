@@ -18,19 +18,35 @@ import akka.actor.Status;
  */
 public final class StreamConstants {
 
-    // must not collide with any (thing-)id -> fulfilled if it does not contain ':'
-    private static final String STREAM_FINISHED_TXT = "done";
     /**
      * Message which signals that a stream has been successfully finished.
      */
-    public static final Object STREAM_FINISHED_MSG = new Status.Success(STREAM_FINISHED_TXT);
+    public static final Object STREAM_COMPLETED = new Status.Success("done");
 
-    private static final String FORWARDER_EXCEEDED_MAX_IDLE_TIME_TXT = "max-idle-time-exceeded";
+    /**
+     * Message which signals that a stream is started.
+     */
+    public static final Object STREAM_STARTED = new Status.Success("start");
+
+    /**
+     * Ack message from {@code AbstractStreamForwarder} to {@code AbstractStreamingActor} for back-pressure.
+     */
+    public static final Object STREAM_ACK_MSG = new Status.Success("ack");
+
+    /**
+     * Message to signal upstream failure.
+     */
+    public static final Object STREAM_FAILED = new Status.Success("failed");
+
+    /**
+     * Message received by stream forwarder to signal that all messages for a stream element have been sent.
+     */
+    public static final Object DOES_NOT_HAVE_NEXT_MSG = new Status.Success("no-next");
+
     /**
      * Message which signals the forwarder stayed idle for too long.
      */
-    public static final Object FORWARDER_EXCEEDED_MAX_IDLE_TIME_MSG =
-            new Status.Success(FORWARDER_EXCEEDED_MAX_IDLE_TIME_TXT);
+    public static final Object FORWARDER_EXCEEDED_MAX_IDLE_TIME_MSG = new Status.Success("max-idle-time-exceeded");
 
     private StreamConstants() {
         throw new AssertionError();

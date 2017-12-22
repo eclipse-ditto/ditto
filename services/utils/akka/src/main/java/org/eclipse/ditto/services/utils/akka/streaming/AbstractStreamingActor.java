@@ -12,7 +12,10 @@
 package org.eclipse.ditto.services.utils.akka.streaming;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.eclipse.ditto.services.utils.akka.streaming.StreamConstants.STREAM_FINISHED_MSG;
+import static org.eclipse.ditto.services.utils.akka.streaming.StreamConstants.STREAM_ACK_MSG;
+import static org.eclipse.ditto.services.utils.akka.streaming.StreamConstants.STREAM_FAILED;
+import static org.eclipse.ditto.services.utils.akka.streaming.StreamConstants.STREAM_COMPLETED;
+import static org.eclipse.ditto.services.utils.akka.streaming.StreamConstants.STREAM_STARTED;
 
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
@@ -28,7 +31,7 @@ import akka.stream.javadsl.Source;
 import scala.concurrent.duration.FiniteDuration;
 
 /**
- * Abstract actor that responds to each command by streaming elements from a source to actors specified in the command.
+ * Abstract actor that responds to each command by streaming elements from a source to the sender of the command.
  *
  * @param <C> Type of commands to start a stream.
  * @param <E> Type of elements of a stream.
@@ -80,10 +83,16 @@ public abstract class AbstractStreamingActor<C, E> extends AbstractActor {
         final int elementsPerSecond = getRate(command);
         final FiniteDuration second = FiniteDuration.create(1, SECONDS);
 
+        final Sink<E, ?> sink =
+                Sink.actorRefWithAck(recipient, STREAM_STARTED, STREAM_ACK_MSG, STREAM_COMPLETED, error -> {
+                    log.error(error, "got error");
+                    return STREAM_FAILED;
+                });
+
         createSource(command)
                 .throttle(elementsPerSecond, second, elementsPerSecond, ThrottleMode.shaping())
                 .log("throttled-streaming", log)
-                .runWith(Sink.actorRef(recipient, STREAM_FINISHED_MSG), materializer);
+                .runWith(sink, materializer);
 
     }
 }

@@ -11,14 +11,16 @@
  */
 package org.eclipse.ditto.services.utils.akka.streaming;
 
-import static java.util.Objects.requireNonNull;
-import static org.eclipse.ditto.services.utils.akka.streaming.StreamConstants.STREAM_FINISHED_MSG;
+import static org.eclipse.ditto.services.utils.akka.streaming.StreamConstants.DOES_NOT_HAVE_NEXT_MSG;
+import static org.eclipse.ditto.services.utils.akka.streaming.StreamConstants.FORWARDER_EXCEEDED_MAX_IDLE_TIME_MSG;
+import static org.eclipse.ditto.services.utils.akka.streaming.StreamConstants.STREAM_ACK_MSG;
+import static org.eclipse.ditto.services.utils.akka.streaming.StreamConstants.STREAM_COMPLETED;
+import static org.eclipse.ditto.services.utils.akka.streaming.StreamConstants.STREAM_FAILED;
+import static org.eclipse.ditto.services.utils.akka.streaming.StreamConstants.STREAM_STARTED;
 
-import java.text.MessageFormat;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -28,28 +30,59 @@ import akka.actor.ActorRef;
 import akka.actor.Cancellable;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
+import akka.pattern.PatternsCS;
+import akka.stream.ActorMaterializer;
+import akka.stream.javadsl.Sink;
+import akka.stream.javadsl.Source;
 import scala.concurrent.duration.FiniteDuration;
 
 /**
  * Actor that receives a stream of elements, forwards them to another actor, and expects as many acknowledgements as
- * there are streamed elements. Terminates self if no message was received for a period of time. <p> Each stream element
- * is to be acknowledged by a {@code akka.actor.Status.Success}. At the end of the stream, the special success message
- * {@link StreamConstants#STREAM_FINISHED_MSG} MUST be sent. </p>
+ * there are messages forwarded. Terminates self if no message was received for a period of time. Below is this
+ * actor's state transition diagram.
+ * <pre>
+ * {@code
+ *
+ *    +-----+
+ *    |START|
+ *    +--+--+
+ *       |
+ *       |
+ *       | STREAM_STARTED: ACK
+ *       |
+ *       v
+ *  +----+----+               NO: ACK              +---------+
+ *  |         +<-----------------------------------+         |
+ *  |ITERATING|                                    |HAS_NEXT?|
+ *  |         +----------------------------------->+         |
+ *  +----+----+          ELEMENT: MAP_ENTITY       +--+---+--+
+ *       |                                            |   ^
+ *       |                                            |   |
+ *       |STREAM_FINISHED: ACK            YES: FORWARD|   |ACK
+ *       |                                            |   |
+ *       v                                            v   |
+ *  +----+----+                            +----------+---+----------+
+ *  |KILL_SELF|                            |WAIT_FOR_ACK_FROM_UPDATER|
+ *  +---------+                            +-------------------------+
+ *
+ * }
+ * </pre>
  *
  * @param <E> Type of received stream elements.
  */
-public abstract class AbstractStreamForwarder<E> extends AbstractActor implements ForwarderCallback {
+
+public abstract class AbstractStreamForwarder<E> extends AbstractActor {
 
     /**
      * Logger associated with this actor.
      */
     protected final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+    protected final ActorMaterializer materializer = ActorMaterializer.create(getContext());
+    private Receive iteratingBehavior;
+    private Receive hasNextBehavior;
 
+    private ActorRef streamSender = ActorRef.noSender();
     private Instant lastMessageReceived = Instant.now();
-    private Set<String> toBeAckedElementIds = new HashSet<>();
-    private long forwardedElementCount = 0;
-    private long ackedElementCount = 0;
-    private boolean streamComplete = false;
 
     private Cancellable activityCheck;
 
@@ -71,51 +104,81 @@ public abstract class AbstractStreamForwarder<E> extends AbstractActor implement
      */
     protected abstract Class<E> getElementClass();
 
-    /**
-     * Returns the {@link ForwardingStrategy}.
-     *
-     * @return The {@link ForwardingStrategy}.
-     */
-    protected abstract ForwardingStrategy<E> getForwardingStrategy();
+    protected abstract ActorRef getRecipient();
 
-    @Override
-    public void forwarded(final String identifier) {
-        log.debug("Forwarded element with identifier: {}. Sending forwarded-message to self().", identifier);
+    protected abstract ActorRef getCompletionRecipient();
 
-        // send a message to self() to make this method threadsafe
-        getSelf().tell(new ElementForwarded(identifier), getSelf());
+    protected abstract Source<?, ?> mapEntity(final E element);
+
+    private Receive createStartBehavior() {
+        return ReceiveBuilder.create()
+                .matchEquals(STREAM_STARTED, unit -> {
+                    streamSender = getSender();
+                    streamSender.tell(STREAM_ACK_MSG, getSelf());
+                    updateLastMessageReceived();
+                    getContext().become(getIteratingBehavior());
+                })
+                .matchEquals(STREAM_FAILED, this::streamFailed)
+                .matchEquals(CheckForActivity.INSTANCE, this::checkForActivity)
+                .build();
     }
 
-    /**
-     * Invoked when all stream elements are forwarded and acknowledged. Do not start asynchronous operations: the actor
-     * terminates immediately after this method returns.
-     */
-    private void onSuccess() {
-        logInfoWithDetails("Stream successfully finished");
-        getForwardingStrategy().onComplete(self());
-    }
-
-    private void logDebugWithDetails(final String mainMessage) {
-        if (log.isDebugEnabled()) {
-            log.debug(createDetailedMessage(mainMessage));
+    private Receive getIteratingBehavior() {
+        if (iteratingBehavior == null) {
+            iteratingBehavior = ReceiveBuilder.create()
+                    .matchEquals(STREAM_COMPLETED, this::streamCompleted)
+                    .matchEquals(STREAM_FAILED, this::streamFailed)
+                    .matchEquals(CheckForActivity.INSTANCE, this::checkForActivity)
+                    .match(getElementClass(), this::transitionToForwardingLoop)
+                    .build();
         }
+        return iteratingBehavior;
     }
 
-    private void logInfoWithDetails(final String mainMessage) {
-        if (log.isInfoEnabled()) {
-            log.info(createDetailedMessage(mainMessage));
+    private Receive getHasNextBehavior() {
+        if (hasNextBehavior == null) {
+            hasNextBehavior = ReceiveBuilder.create()
+                    .matchEquals(STREAM_ACK_MSG, unit -> updateLastMessageReceived())
+                    .matchEquals(DOES_NOT_HAVE_NEXT_MSG, unit -> {
+                        updateLastMessageReceived();
+                        getContext().become(getIteratingBehavior());
+                        streamSender.tell(STREAM_ACK_MSG, getSelf());
+                    })
+                    .matchEquals(STREAM_FAILED, this::streamFailed)
+                    .match(CheckForActivity.class, this::checkForActivity)
+                    .build();
         }
+        return hasNextBehavior;
     }
 
-    private void logErrorWithDetails(final String mainMessage) {
-        log.error(createDetailedMessage(mainMessage));
+    private void transitionToForwardingLoop(final E element) {
+        final ActorRef self = getSelf();
+        final ActorRef recipient = getRecipient();
+        final long timeoutMillis = getMaxIdleTime().toMillis();
+        getContext().become(getHasNextBehavior());
+        mapEntity(element)
+                .mapAsync(1, msgToForward ->
+                        PatternsCS.<Object>ask(recipient, msgToForward, timeoutMillis)
+                                .thenApply(ack -> {
+                                    self.tell(STREAM_ACK_MSG, ActorRef.noSender());
+                                    return ack;
+                                })
+                )
+                .mapConcat(ack -> {
+                    // use ack in lambda body to prevent JVM from optimizing this away
+                    if (!isSuccessAck(ack)) {
+                        log.debug("got ack: {}", ack);
+                    } else {
+                        log.error("got failure ack: {}", ack);
+                    }
+                    return Collections.emptyList();
+                })
+                .runWith(Sink.actorRef(self, DOES_NOT_HAVE_NEXT_MSG), materializer);
     }
 
-    private String createDetailedMessage(final String mainMessage) {
-        return MessageFormat.format(
-                "{0}. Stream status: {1} elements forwarded, {2} acks received, lastMessage received at {3}. " +
-                        "To be acked: <{4}>.",
-                mainMessage, forwardedElementCount, ackedElementCount, lastMessageReceived, toBeAckedElementIds);
+    private static boolean isSuccessAck(final Object ack) {
+        return (ack instanceof StreamAck) &&
+                StreamAck.Status.SUCCESS == ((StreamAck) ack).getStatus();
     }
 
     @Override
@@ -138,107 +201,41 @@ public abstract class AbstractStreamForwarder<E> extends AbstractActor implement
 
     @Override
     public Receive createReceive() {
-        return ReceiveBuilder.create()
-                .matchEquals(STREAM_FINISHED_MSG, this::handleStreamComplete)
-                .match(ElementForwarded.class, this::handleElementForwarded)
-                .match(getElementClass(), this::transformAndForwardElement)
-                .match(StreamAck.class, this::onAck)
-                .match(CheckForActivity.class, unused -> checkForActivity())
-                .matchAny(this::unhandled)
-                .build();
+        return createStartBehavior();
     }
 
-    private void handleElementForwarded(final ElementForwarded elementForwarded) {
-        final String id = elementForwarded.getId();
-
-        log.debug("Got Forwarded-Message with id: {}", id);
-        toBeAckedElementIds.add(id);
-        forwardedElementCount++;
-    }
-
-    private void transformAndForwardElement(final E element) {
-        log.debug("Got element: {}", element);
-        if (streamComplete) {
-            log.warning("Received stream element <{}> after stream termination; will forward it anyway.", element);
-        }
-
-        updateLastMessageReceived();
-
-        getForwardingStrategy().forward(element, self(), this);
-    }
-
-    private void onAck(final StreamAck streamAck) {
-        final String elementId = streamAck.getElementId();
-        if (StreamAck.Status.SUCCESS.equals(streamAck.getStatus())) {
-            log.debug("Got successful ack for element: <{}>", elementId);
-        } else {
-            log.warning("Got unsuccessful ack with status <{}> for element: <{}>", streamAck.getStatus(), elementId);
-        }
-        final boolean wasExpected = toBeAckedElementIds.remove(elementId);
-        if (!wasExpected) {
-            log.warning("Got unexpected ack for element: <{}>", elementId);
-            return;
-        } else {
-            ackedElementCount++;
-        }
-
-        updateLastMessageReceived();
-        checkAllElementsAreAcknowledged();
-    }
-
-    private void handleStreamComplete(final Object msg) {
-        log.debug("Received completion msg: {}", msg);
-        streamComplete = true;
-        checkAllElementsAreAcknowledged();
-    }
-
-    private void checkAllElementsAreAcknowledged() {
-        if (streamComplete && toBeAckedElementIds.isEmpty()) {
-            logInfoWithDetails("Stream complete");
-            onSuccess();
-            shutdown();
-        }
-    }
-
-    private void checkForActivity() {
+    private void checkForActivity(final CheckForActivity checkForActivity) {
         final Duration sinceLastMessage = Duration.between(lastMessageReceived, Instant.now());
         if (sinceLastMessage.compareTo(getMaxIdleTime()) > 0) {
-            logErrorWithDetails("Stream timed out");
-            getForwardingStrategy().maxIdleTimeExceeded(self());
+            log.error("Stream timed out");
+            getCompletionRecipient().tell(FORWARDER_EXCEEDED_MAX_IDLE_TIME_MSG, getSelf());
             shutdown();
         } else {
-            logDebugWithDetails("Stream is still considered as active");
+            log.debug("Stream is still considered as active");
         }
+    }
+
+    private void streamCompleted(final Object completionMessage) {
+        log.info("Stream successfully finished.");
+        getCompletionRecipient().tell(completionMessage, getSelf());
+        getContext().stop(getSelf());
+    }
+
+    private void streamFailed(final Object failureMessage) {
+        getCompletionRecipient().forward(failureMessage, getContext());
+        shutdown();
     }
 
     private void updateLastMessageReceived() {
         lastMessageReceived = Instant.now();
-        logDebugWithDetails("Updated last message");
+        log.debug("Updated last message");
     }
 
     private void shutdown() {
         getContext().stop(getSelf());
     }
 
-    private static final class CheckForActivity {
-
-        private static final CheckForActivity INSTANCE = new CheckForActivity();
-
-        private CheckForActivity() {
-            // no-op
-        }
-    }
-
-    private static final class ElementForwarded {
-
-        private final String id;
-
-        private ElementForwarded(final String id) {
-            this.id = requireNonNull(id);
-        }
-
-        private String getId() {
-            return id;
-        }
+    private enum CheckForActivity {
+        INSTANCE
     }
 }

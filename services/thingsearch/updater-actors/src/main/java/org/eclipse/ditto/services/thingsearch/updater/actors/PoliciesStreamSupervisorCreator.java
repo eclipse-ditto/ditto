@@ -11,7 +11,12 @@
  */
 package org.eclipse.ditto.services.thingsearch.updater.actors;
 
+import java.util.stream.Collectors;
+
+import org.eclipse.ditto.services.models.policies.PolicyReferenceTag;
+import org.eclipse.ditto.services.models.policies.PolicyTag;
 import org.eclipse.ditto.services.models.streaming.SudoStreamModifiedEntities;
+import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.utils.akka.streaming.DefaultStreamSupervisor;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamConsumerSettings;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamMetadataPersistence;
@@ -20,6 +25,7 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.stream.Materializer;
+import akka.stream.javadsl.Source;
 
 /**
  * Creates an actor which is responsible for triggering a cyclic synchronization of all policies which changed within a
@@ -51,9 +57,12 @@ public final class PoliciesStreamSupervisorCreator {
      */
     public static Props props(final ActorRef thingsUpdater, final ActorRef pubSubMediator,
             final StreamMetadataPersistence streamMetadataPersistence, final Materializer materializer,
-            final StreamConsumerSettings streamConsumerSettings) {
+            final StreamConsumerSettings streamConsumerSettings,
+            final ThingsSearchUpdaterPersistence searchUpdaterPersistence) {
 
         return DefaultStreamSupervisor.props(thingsUpdater, pubSubMediator,
+                PolicyTag.class,
+                policyTag -> toPolicyReferenceTags(policyTag, searchUpdaterPersistence),
                 PoliciesStreamSupervisorCreator::mapStreamTriggerCommand,
                 streamMetadataPersistence, materializer, streamConsumerSettings);
     }
@@ -61,6 +70,16 @@ public final class PoliciesStreamSupervisorCreator {
     private static DistributedPubSubMediator.Send mapStreamTriggerCommand(
             final SudoStreamModifiedEntities sudoStreamModifiedEntities) {
 
-        return new DistributedPubSubMediator.Send(POLICIES_STREAM_PROVIDER_ACTOR_PATH, sudoStreamModifiedEntities, true);
+        return new DistributedPubSubMediator.Send(POLICIES_STREAM_PROVIDER_ACTOR_PATH, sudoStreamModifiedEntities,
+                true);
+    }
+
+    private static Source<PolicyReferenceTag, ?> toPolicyReferenceTags(final PolicyTag policyTag,
+            final ThingsSearchUpdaterPersistence searchUpdaterPersistence) {
+
+        return searchUpdaterPersistence.getThingIdsForPolicy(policyTag.getId())
+                .mapConcat(thingIds -> thingIds.stream()
+                        .map(thingId -> PolicyReferenceTag.of(thingId, policyTag))
+                        .collect(Collectors.toList()));
     }
 }

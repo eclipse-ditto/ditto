@@ -191,7 +191,7 @@ public final class SearchUpdaterRootActor extends AbstractActor {
 
             startClusterSingletonActor(PoliciesStreamSupervisorCreator.ACTOR_NAME,
                     PoliciesStreamSupervisorCreator.props(thingsUpdaterActor, pubSubMediator, policiesSyncPersistence,
-                            materializer, streamConsumerSettings));
+                            materializer, streamConsumerSettings, searchUpdaterPersistence));
         } else {
             log.warning("Policies synchronization is not active");
         }

@@ -26,6 +26,8 @@ import java.util.Set;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.services.models.policies.PolicyReferenceTag;
+import org.eclipse.ditto.services.models.policies.PolicyTag;
 import org.eclipse.ditto.services.models.streaming.EntityIdWithRevision;
 import org.eclipse.ditto.services.models.things.ThingTag;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
@@ -126,6 +128,16 @@ public class ThingsUpdaterTest {
             final ActorRef underTest = createThingsUpdater();
             underTest.tell(event, getRef());
             expectShardedMessage(shardMessageReceiver, event, event.getId());
+        }};
+    }
+
+    @Test
+    public void policyReferenceTagIsForwarded() {
+        final PolicyReferenceTag message = PolicyReferenceTag.of(KNOWN_THING_ID, PolicyTag.of("a:b", 9L));
+        new TestKit(actorSystem) {{
+            final ActorRef underTest = createThingsUpdater();
+            underTest.tell(message, getRef());
+            expectShardedMessage(shardMessageReceiver, message, message.getEntityId());
         }};
     }
 

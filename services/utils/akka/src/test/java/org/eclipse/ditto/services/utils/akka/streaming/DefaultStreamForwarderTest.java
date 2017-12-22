@@ -12,7 +12,9 @@
 package org.eclipse.ditto.services.utils.akka.streaming;
 
 import static org.eclipse.ditto.services.utils.akka.streaming.StreamConstants.FORWARDER_EXCEEDED_MAX_IDLE_TIME_MSG;
-import static org.eclipse.ditto.services.utils.akka.streaming.StreamConstants.STREAM_FINISHED_MSG;
+import static org.eclipse.ditto.services.utils.akka.streaming.StreamConstants.STREAM_ACK_MSG;
+import static org.eclipse.ditto.services.utils.akka.streaming.StreamConstants.STREAM_COMPLETED;
+import static org.eclipse.ditto.services.utils.akka.streaming.StreamConstants.STREAM_STARTED;
 
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
@@ -27,6 +29,7 @@ import com.typesafe.config.ConfigFactory;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
+import akka.stream.javadsl.Source;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 import scala.concurrent.duration.FiniteDuration;
@@ -70,14 +73,16 @@ public class DefaultStreamForwarderTest {
                 final ActorRef streamForwarder = createStreamForwarder(Duration.ofMillis(100));
                 watch(streamForwarder);
 
-                streamForwarder.tell(KNOWN_TAG_1, ActorRef.noSender());
+                streamForwarder.tell(STREAM_STARTED, getRef());
+                expectMsg(STREAM_ACK_MSG);
 
+                streamForwarder.tell(KNOWN_TAG_1, ActorRef.noSender());
                 recipient.expectMsg(KNOWN_TAG_1);
 
                 // now wait for timeout to apply
-                final Duration moreThanIdleTime = MAX_IDLE_TIME.plusSeconds(1);
-                expectTerminated(FiniteDuration.apply(moreThanIdleTime.toNanos(), TimeUnit.NANOSECONDS),
-                        streamForwarder);
+                final FiniteDuration moreThanIdleTime =
+                        FiniteDuration.create(MAX_IDLE_TIME.plusSeconds(1).toMillis(), TimeUnit.MILLISECONDS);
+                expectTerminated(moreThanIdleTime, streamForwarder);
 
                 completionRecipient.expectMsg(FORWARDER_EXCEEDED_MAX_IDLE_TIME_MSG);
             }
@@ -94,14 +99,16 @@ public class DefaultStreamForwarderTest {
                 final ActorRef streamForwarder = createStreamForwarder();
                 watch(streamForwarder);
 
+                streamForwarder.tell(STREAM_STARTED, getRef());
+                expectMsg(STREAM_ACK_MSG);
+
                 streamForwarder.tell(KNOWN_TAG_1, ActorRef.noSender());
                 recipient.expectMsg(KNOWN_TAG_1);
-
                 recipient.reply(failureResponse(KNOWN_TAG_1));
+                expectMsg(STREAM_ACK_MSG);
 
-                streamForwarder.tell(STREAM_FINISHED_MSG, ActorRef.noSender());
-
-                completionRecipient.expectMsg(STREAM_FINISHED_MSG);
+                streamForwarder.tell(STREAM_COMPLETED, ActorRef.noSender());
+                completionRecipient.expectMsg(STREAM_COMPLETED);
 
                 expectTerminated(streamForwarder);
             }
@@ -115,19 +122,21 @@ public class DefaultStreamForwarderTest {
                 final ActorRef streamForwarder = createStreamForwarder();
                 watch(streamForwarder);
 
-                streamForwarder.tell(KNOWN_TAG_1, ActorRef.noSender());
+                streamForwarder.tell(STREAM_STARTED, getRef());
+                expectMsg(STREAM_ACK_MSG);
 
+                streamForwarder.tell(KNOWN_TAG_1, ActorRef.noSender());
                 recipient.expectMsg(KNOWN_TAG_1);
                 recipient.reply(successResponse(KNOWN_TAG_1));
+                expectMsg(STREAM_ACK_MSG);
 
                 streamForwarder.tell(KNOWN_TAG_2, ActorRef.noSender());
-
                 recipient.expectMsg(KNOWN_TAG_2);
                 recipient.reply(successResponse(KNOWN_TAG_2));
+                expectMsg(STREAM_ACK_MSG);
 
-                streamForwarder.tell(STREAM_FINISHED_MSG, ActorRef.noSender());
-
-                completionRecipient.expectMsg(STREAM_FINISHED_MSG);
+                streamForwarder.tell(STREAM_COMPLETED, ActorRef.noSender());
+                completionRecipient.expectMsg(STREAM_COMPLETED);
 
                 expectTerminated(streamForwarder);
             }
@@ -146,7 +155,7 @@ public class DefaultStreamForwarderTest {
     private ActorRef createStreamForwarder(final Duration maxIdleTime) {
         // for simplicity, just use String as elementClass
         final Props props = DefaultStreamForwarder.props(recipient.ref(), completionRecipient.ref(), maxIdleTime,
-                String.class, String::toString);
+                String.class, Source::single);
 
         return actorSystem.actorOf(props);
     }

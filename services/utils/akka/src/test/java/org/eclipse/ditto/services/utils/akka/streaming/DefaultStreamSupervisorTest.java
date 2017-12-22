@@ -12,6 +12,8 @@
 package org.eclipse.ditto.services.utils.akka.streaming;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.eclipse.ditto.services.utils.akka.streaming.StreamConstants.STREAM_COMPLETED;
+import static org.eclipse.ditto.services.utils.akka.streaming.StreamConstants.STREAM_STARTED;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
@@ -116,7 +118,8 @@ public class DefaultStreamSupervisorTest {
             // verify that last query end has been retrieved from persistence
             verify(searchSyncPersistence).retrieveLastSuccessfulStreamEnd(any(Instant.class));
 
-            sendMessageToForwarderAndExpectTerminated(this, streamSupervisor, StreamConstants.STREAM_FINISHED_MSG);
+            getForwarderActor(streamSupervisor).tell(STREAM_STARTED, ActorRef.noSender());
+            sendMessageToForwarderAndExpectTerminated(this, streamSupervisor, STREAM_COMPLETED);
 
             // verify the db has been updated with the queryEnd of the completed stream
             verify(searchSyncPersistence, SHORT_MOCKITO_TIMEOUT).updateLastSuccessfulStreamEnd(eq(expectedQueryEnd));
@@ -142,7 +145,8 @@ public class DefaultStreamSupervisorTest {
             when(searchSyncPersistence.updateLastSuccessfulStreamEnd(any(Instant.class)))
                     .thenReturn(Source.failed(new IllegalStateException("mocked stream-metadata-persistence error")));
 
-            sendMessageToForwarderAndExpectTerminated(this, streamSupervisor, StreamConstants.STREAM_FINISHED_MSG);
+            getForwarderActor(streamSupervisor).tell(STREAM_STARTED, ActorRef.noSender());
+            sendMessageToForwarderAndExpectTerminated(this, streamSupervisor, STREAM_COMPLETED);
 
             // verify the db has been updated with the queryEnd of the completed stream
             verify(searchSyncPersistence, SHORT_MOCKITO_TIMEOUT).updateLastSuccessfulStreamEnd(eq(expectedQueryEnd));
@@ -162,6 +166,7 @@ public class DefaultStreamSupervisorTest {
             expectStreamTriggerMsg(expectedQueryEnd);
 
             // signal timeout to the supervisor
+            getForwarderActor(streamSupervisor).tell(STREAM_STARTED, ActorRef.noSender());
             expectForwarderTerminated(this, streamSupervisor, smallMaxIdleTime.plus(SHORT_TIMEOUT));
 
             // wait for the actor to re-start streaming
@@ -188,8 +193,9 @@ public class DefaultStreamSupervisorTest {
     private ActorRef createStreamSupervisor(final Duration maxIdleTime) {
         final StreamConsumerSettings streamConsumerSettings = StreamConsumerSettings.of(START_OFFSET,
                 STREAM_INTERVAL, INITIAL_START_OFFSET, maxIdleTime, ELEMENTS_STREAMED_PER_SECOND, Duration.ofDays(10));
-        return actorSystem.actorOf(DefaultStreamSupervisor.props(forwardTo.ref(), provider.ref(), Function.identity(),
-                searchSyncPersistence, materializer, streamConsumerSettings));
+        return actorSystem.actorOf(DefaultStreamSupervisor.props(forwardTo.ref(), provider.ref(),
+                String.class, Source::single,
+                Function.identity(), searchSyncPersistence, materializer, streamConsumerSettings));
     }
 
     private void sendMessageToForwarderAndExpectTerminated(final TestKit testKit, final ActorRef superVisorActorRef,

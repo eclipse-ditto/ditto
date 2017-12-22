@@ -13,7 +13,8 @@ package org.eclipse.ditto.services.utils.akka.streaming;
 
 import static java.util.Objects.requireNonNull;
 import static org.eclipse.ditto.services.utils.akka.streaming.StreamConstants.FORWARDER_EXCEEDED_MAX_IDLE_TIME_MSG;
-import static org.eclipse.ditto.services.utils.akka.streaming.StreamConstants.STREAM_FINISHED_MSG;
+import static org.eclipse.ditto.services.utils.akka.streaming.StreamConstants.STREAM_COMPLETED;
+import static org.eclipse.ditto.services.utils.akka.streaming.StreamConstants.STREAM_FAILED;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -24,11 +25,10 @@ import java.util.function.Function;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.services.models.streaming.AbstractEntityIdWithRevision;
 import org.eclipse.ditto.services.models.streaming.SudoStreamModifiedEntities;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
-import akka.actor.AbstractActorWithStash;
+import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Cancellable;
 import akka.actor.OneForOneStrategy;
@@ -40,13 +40,14 @@ import akka.japi.Creator;
 import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.ReceiveBuilder;
 import akka.stream.Materializer;
+import akka.stream.javadsl.Source;
 import scala.Option;
 import scala.concurrent.duration.FiniteDuration;
 
 /**
  * An actor that supervises stream forwarders.
  */
-public final class DefaultStreamSupervisor extends AbstractActorWithStash {
+public final class DefaultStreamSupervisor<E> extends AbstractActor {
 
     /**
      * The name of the supervised stream forwarder.
@@ -62,6 +63,8 @@ public final class DefaultStreamSupervisor extends AbstractActorWithStash {
 
     private final ActorRef forwardTo;
     private final ActorRef provider;
+    private final Class<E> elementClass;
+    private final Function<E, Source<?, ?>> mapEntityFunction;
     private final Function<SudoStreamModifiedEntities, ?> streamTriggerMessageMapper;
     private final StreamMetadataPersistence streamMetadataPersistence;
     private final Materializer materializer;
@@ -72,12 +75,16 @@ public final class DefaultStreamSupervisor extends AbstractActorWithStash {
     private @Nullable Boolean activeStreamSuccess;
 
     private DefaultStreamSupervisor(final ActorRef forwardTo, final ActorRef provider,
+            final Class<E> elementClass,
+            final Function<E, Source<?, ?>> mapEntityFunction,
             final Function<SudoStreamModifiedEntities, ?> streamTriggerMessageMapper,
             final StreamMetadataPersistence streamMetadataPersistence,
             final Materializer materializer,
             final StreamConsumerSettings streamConsumerSettings) {
         this.forwardTo = requireNonNull(forwardTo);
         this.provider = requireNonNull(provider);
+        this.elementClass = requireNonNull(elementClass);
+        this.mapEntityFunction = requireNonNull(mapEntityFunction);
         this.streamTriggerMessageMapper = requireNonNull(streamTriggerMessageMapper);
         this.streamMetadataPersistence = requireNonNull(streamMetadataPersistence);
         this.materializer = requireNonNull(materializer);
@@ -87,8 +94,11 @@ public final class DefaultStreamSupervisor extends AbstractActorWithStash {
     /**
      * Creates the props for {@link DefaultStreamSupervisor}.
      *
+     * @param <E> the type of elements.
      * @param forwardTo the {@link ActorRef} to which the stream will be forwarded.
      * @param provider the {@link ActorRef} which provides the stream.
+     * @param elementClass the class of elements.
+     * @param mapEntityFunction the function to create a source of messages from each streamed element.
      * @param streamTriggerMessageMapper a mapping function to convert a {@link SudoStreamModifiedEntities} message to a
      * message understood by the stream provider. Can be used to send messages via Akka PubSub.
      * @param streamMetadataPersistence the {@link StreamMetadataPersistence} used to read and write stream metadata (is
@@ -97,7 +107,9 @@ public final class DefaultStreamSupervisor extends AbstractActorWithStash {
      * @param streamConsumerSettings The settings for stream consumption.
      * @return the props
      */
-    public static Props props(final ActorRef forwardTo, final ActorRef provider,
+    public static <E> Props props(final ActorRef forwardTo, final ActorRef provider,
+            final Class<E> elementClass,
+            final Function<E, Source<?, ?>> mapEntityFunction,
             final Function<SudoStreamModifiedEntities, ?> streamTriggerMessageMapper,
             final StreamMetadataPersistence streamMetadataPersistence,
             final Materializer materializer,
@@ -108,16 +120,15 @@ public final class DefaultStreamSupervisor extends AbstractActorWithStash {
 
             @Override
             public DefaultStreamSupervisor create() throws Exception {
-                return new DefaultStreamSupervisor(forwardTo, provider,
-                        streamTriggerMessageMapper,
-                        streamMetadataPersistence, materializer, streamConsumerSettings);
+                return new DefaultStreamSupervisor<>(forwardTo, provider, elementClass, mapEntityFunction,
+                        streamTriggerMessageMapper, streamMetadataPersistence, materializer, streamConsumerSettings);
             }
         });
     }
 
     private Props getStreamForwarderProps() {
         return DefaultStreamForwarder.props(forwardTo, getSelf(), streamConsumerSettings.getMaxIdleTime(),
-                AbstractEntityIdWithRevision.class, AbstractEntityIdWithRevision::asIdentifierString);
+                elementClass, mapEntityFunction);
     }
 
     private Object newStartStreamingCommand(final StreamTrigger streamRestrictions) {
@@ -142,7 +153,7 @@ public final class DefaultStreamSupervisor extends AbstractActorWithStash {
     }
 
     @Override
-    public void postStop() {
+    public void postStop() throws Exception {
         if (null != activityCheck) {
             activityCheck.cancel();
         }
@@ -152,36 +163,28 @@ public final class DefaultStreamSupervisor extends AbstractActorWithStash {
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
-                .match(TryToStartStream.class, tryToStartStream -> {
+                .matchEquals(TryToStartStream.INSTANCE, tryToStartStream -> {
                     log.debug("Switching to supervisingBehaviour has been triggered by message: {}",
                             tryToStartStream);
                     becomeSupervising();
                     tryToStartStream();
                 })
                 .match(Terminated.class, this::terminated)
-                .matchAny(m -> {
-                    log.debug("Initial behavior - Stashing message: {}", m);
-                    stash();
-                })
                 .build();
     }
 
     private void becomeSupervising() {
         log.debug("becoming supervising...");
         getContext().become(createSupervisingBehavior());
-        unstashAll();
     }
 
     private Receive createSupervisingBehavior() {
         return ReceiveBuilder.create()
-                .matchEquals(STREAM_FINISHED_MSG, unused -> streamCompleted())
-                .matchEquals(FORWARDER_EXCEEDED_MAX_IDLE_TIME_MSG, unused -> streamTimedOut())
+                .matchEquals(STREAM_COMPLETED, msg -> streamCompleted())
+                .matchEquals(STREAM_FAILED, msg -> streamFailed())
+                .matchEquals(FORWARDER_EXCEEDED_MAX_IDLE_TIME_MSG, msg -> streamTimedOut())
+                .matchEquals(TryToStartStream.INSTANCE, msg -> tryToStartStream())
                 .match(Terminated.class, this::terminated)
-                .match(TryToStartStream.class, unused -> tryToStartStream())
-                .matchAny(m -> {
-                    log.warning("Unknown message: {}", m);
-                    unhandled(m);
-                })
                 .build();
     }
 
@@ -192,6 +195,11 @@ public final class DefaultStreamSupervisor extends AbstractActorWithStash {
 
     private void streamTimedOut() {
         log.debug("Stream timed out.");
+        activeStreamSuccess = false;
+    }
+
+    private void streamFailed() {
+        log.debug("Stream failed");
         activeStreamSuccess = false;
     }
 
@@ -343,12 +351,7 @@ public final class DefaultStreamSupervisor extends AbstractActorWithStash {
         scheduleNextStream();
     }
 
-    private static final class TryToStartStream {
-
-        private static final TryToStartStream INSTANCE = new TryToStartStream();
-
-        private TryToStartStream() {
-            // no-op
-        }
+    private enum TryToStartStream {
+        INSTANCE
     }
 }

@@ -12,6 +12,7 @@
 package org.eclipse.ditto.services.thingsearch.updater.actors;
 
 import org.eclipse.ditto.services.models.streaming.SudoStreamModifiedEntities;
+import org.eclipse.ditto.services.models.things.ThingTag;
 import org.eclipse.ditto.services.utils.akka.streaming.DefaultStreamSupervisor;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamConsumerSettings;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamMetadataPersistence;
@@ -20,6 +21,7 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.stream.Materializer;
+import akka.stream.javadsl.Source;
 
 /**
  * Creates an actor which is responsible for triggering a cyclic synchronization of all things which changed within a
@@ -54,6 +56,8 @@ public final class ThingsStreamSupervisorCreator {
             final StreamConsumerSettings streamConsumerSettings) {
 
         return DefaultStreamSupervisor.props(thingsUpdater, pubSubMediator,
+                ThingTag.class,
+                Source::single,
                 ThingsStreamSupervisorCreator::mapStreamTriggerCommand,
                 streamMetadataPersistence, materializer, streamConsumerSettings);
     }

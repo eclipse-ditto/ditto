@@ -12,7 +12,6 @@
 package org.eclipse.ditto.services.thingsearch.updater.actors;
 
 import java.time.Duration;
-import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
@@ -24,16 +23,9 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.services.models.policies.PolicyReferenceTag;
-import org.eclipse.ditto.services.models.policies.PolicyTag;
 import org.eclipse.ditto.services.models.things.ThingTag;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.services.utils.akka.PrefixedActorNameFactory;
-import org.eclipse.ditto.services.utils.akka.streaming.DefaultStreamForwarder;
-import org.eclipse.ditto.services.utils.akka.streaming.ForwarderCallback;
-import org.eclipse.ditto.services.utils.akka.streaming.ForwardingStrategy;
-import org.eclipse.ditto.services.utils.akka.streaming.StreamAck;
-import org.eclipse.ditto.services.utils.akka.streaming.StreamConstants;
 import org.eclipse.ditto.services.utils.cluster.ShardedMessageEnvelope;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.policies.PolicyEvent;
@@ -72,10 +64,6 @@ final class ThingsUpdater extends AbstractActor {
     private final ActorRef shardRegion;
     private final ThingsSearchUpdaterPersistence searchUpdaterPersistence;
     private final Materializer materializer;
-    private final PrefixedActorNameFactory policyTagDispatcherActorNameFactory =
-            PrefixedActorNameFactory.of("policyTagDispatcher");
-    //TODO: make configurable
-    private Duration policyTagDispatcherMaxIdleTime = Duration.ofMinutes(1);
 
     private ThingsUpdater(final int numberOfShards,
             final ShardRegionFactory shardRegionFactory,
@@ -154,7 +142,7 @@ final class ThingsUpdater extends AbstractActor {
                 .match(ThingEvent.class, this::processThingEvent)
                 .match(PolicyEvent.class, this::processPolicyEvent)
                 .match(ThingTag.class, this::processThingTag)
-                .match(PolicyTag.class, this::processPolicyTag)
+                .match(PolicyReferenceTag.class, this::processPolicyReferenceTag)
                 .match(DistributedPubSubMediator.SubscribeAck.class, this::subscribeAck)
                 .matchAny(m -> {
                     log.warning("Unknown message: {}", m);
@@ -163,87 +151,16 @@ final class ThingsUpdater extends AbstractActor {
     }
 
     private void processThingTag(final ThingTag thingTag) {
-        LogUtil.enhanceLogWithCorrelationId(log, "things-tags-sync-" + thingTag.asIdentifierString());
-        log.debug("Forwarding incoming ThingTag '{}'", thingTag.asIdentifierString());
+        final String elementIdentifier = thingTag.asIdentifierString();
+        LogUtil.enhanceLogWithCorrelationId(log, "things-tags-sync-" + elementIdentifier);
+        log.debug("Forwarding incoming ThingTag '{}'", elementIdentifier);
         forwardJsonifiableToShardRegion(thingTag, ThingTag::getId);
     }
 
-    private void processPolicyTag(final PolicyTag policyTag) {
-        LogUtil.enhanceLogWithCorrelationId(log, "policies-tags-sync-" + policyTag.asIdentifierString());
-        log.debug("Forwarding incoming PolicyTag '{}'", policyTag.asIdentifierString());
-
-        dispatchPolicyTagToThings(policyTag);
-    }
-
-    private void dispatchPolicyTagToThings(final PolicyTag policyTag) {
-        final ActorRef policyTagsStreamProvider = sender();
-
-        final ForwardingStrategy<PolicyTag> policyTagDispatchingStrategy =
-                createPolicyTagDispatchingStrategy(policyTag, policyTagsStreamProvider);
-        final Props forwarderProps = DefaultStreamForwarder.props(policyTagDispatchingStrategy,
-                policyTagDispatcherMaxIdleTime, PolicyTag.class);
-        final ActorRef forwarder =
-                getContext().actorOf(forwarderProps, policyTagDispatcherActorNameFactory.createActorName());
-
-        // provide a stream of just one element
-        forwarder.tell(policyTag, self());
-    }
-
-    private ForwardingStrategy<PolicyTag> createPolicyTagDispatchingStrategy(final PolicyTag policyTag,
-            final ActorRef policyTagsStreamProvider) {
-        return new ForwardingStrategy<PolicyTag>() {
-            @Override
-            public void forward(final PolicyTag element, final ActorRef forwarderActorRef,
-                    final ForwarderCallback callback) {
-                thingIdsForPolicy(element.getId())
-                        .thenAccept(thingIds -> dispatchToUpdaters(element, thingIds, forwarderActorRef, callback));
-            }
-
-            private void dispatchToUpdaters(final PolicyTag policyTag, final Set<String> ids,
-                    final ActorRef forwarderActorRef,
-                    final ForwarderCallback callback) {
-                final int elementCount = ids.size();
-                if (elementCount == 0) {
-                    // if there are no elements to dispatch, send the completed-message immediately
-                    forwarderActorRef.tell(StreamConstants.STREAM_FINISHED_MSG, self());
-                }
-
-                final Iterator<String> idIterator = ids.iterator();
-                for (int i = 0; i < elementCount; i++) {
-                    final String id = idIterator.next();
-                    forwardPolicyReferenceTag(id, policyTag, callback);
-                    if (i == elementCount - 1) {
-                        // after the last element has been dispatched, send the completed-message!
-                        sendCompletedMessage(forwarderActorRef);
-                    }
-                }
-            }
-
-            private void sendCompletedMessage(final ActorRef forwarderActorRef) {
-                forwarderActorRef.tell(StreamConstants.STREAM_FINISHED_MSG, self());
-            }
-
-            @Override
-            public void onComplete(final ActorRef forwarderActorRef) {
-                policyTagsStreamProvider.tell(StreamAck.success(policyTag.asIdentifierString()), forwarderActorRef);
-            }
-
-            @Override
-            public void maxIdleTimeExceeded(final ActorRef forwarderActorRef) {
-                policyTagsStreamProvider.tell(StreamAck.failure(policyTag.asIdentifierString()), forwarderActorRef);
-            }
-        };
-    }
-
-    private void forwardPolicyReferenceTag(final String thingId, final PolicyTag policyTag,
-            final ForwarderCallback forwarderCallback) {
-        final PolicyReferenceTag policyReferenceTag = PolicyReferenceTag.of(thingId, policyTag);
+    private void processPolicyReferenceTag(final PolicyReferenceTag policyReferenceTag) {
         final String elementIdentifier = policyReferenceTag.asIdentifierString();
+        LogUtil.enhanceLogWithCorrelationId(log, "policies-tags-sync-" + elementIdentifier);
         log.debug("Forwarding PolicyReferenceTag '{}'", elementIdentifier);
-
-        // important: callback before dispatching the answer, otherwise the message might not be acknowledged
-        forwarderCallback.forwarded(elementIdentifier);
-
         forwardJsonifiableToShardRegion(policyReferenceTag, unused -> policyReferenceTag.getEntityId());
     }
 

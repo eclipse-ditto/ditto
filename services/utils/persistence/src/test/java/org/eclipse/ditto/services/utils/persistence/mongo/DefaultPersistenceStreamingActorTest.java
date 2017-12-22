@@ -11,7 +11,7 @@
  */
 package org.eclipse.ditto.services.utils.persistence.mongo;
 
-import static org.eclipse.ditto.services.utils.akka.streaming.StreamConstants.STREAM_FINISHED_MSG;
+import static org.eclipse.ditto.services.utils.akka.streaming.StreamConstants.STREAM_COMPLETED;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -69,7 +69,7 @@ public final class DefaultPersistenceStreamingActorTest {
 
             sendCommand(this, underTest, command);
 
-            expectMsgEquals(STREAM_FINISHED_MSG);
+            expectMsgEquals(STREAM_COMPLETED);
         }};
     }
 
@@ -84,7 +84,7 @@ public final class DefaultPersistenceStreamingActorTest {
             sendCommand(this, underTest, command);
 
             expectMsgEquals(new SimpleEntityIdWithRevision(ID, REVISION));
-            expectMsgEquals(STREAM_FINISHED_MSG);
+            expectMsgEquals(STREAM_COMPLETED);
         }};
     }
 

@@ -18,6 +18,7 @@ import java.util.function.Function;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.stream.javadsl.Source;
 
 /**
  * This actor is responsible for forwarding streamed entities to a configurable recipient and signalling completion to
@@ -27,55 +28,38 @@ import akka.actor.Props;
  */
 public final class DefaultStreamForwarder<E> extends AbstractStreamForwarder<E> {
 
-    private final ForwardingStrategy<E> forwardingStrategy;
+    private final ActorRef recipient;
+    private final ActorRef completionRecipient;
     private final Duration maxIdleTime;
     private final Class<E> elementClass;
+    private final Function<E, Source<?, ?>> mapEntityFunction;
 
-    private DefaultStreamForwarder(final ForwardingStrategy<E> forwardingStrategy,
-            final Duration maxIdleTime, final Class<E> elementClass) {
-        this.forwardingStrategy = requireNonNull(forwardingStrategy);
+    private DefaultStreamForwarder(final ActorRef recipient, final ActorRef completionRecipient,
+            final Duration maxIdleTime, final Class<E> elementClass,
+            final Function<E, Source<?, ?>> mapEntityFunction) {
+        this.recipient = requireNonNull(recipient);
+        this.completionRecipient = requireNonNull(completionRecipient);
         this.maxIdleTime = requireNonNull(maxIdleTime);
         this.elementClass = requireNonNull(elementClass);
-    }
-
-    /**
-     * Creates a {@code Props} object to instantiate this actor using {@link DefaultForwardingStrategy}.
-     *
-     * @param recipient Actor reference which is the recipient of the streamed messages.
-     * @param completionRecipient recipient of the message sent when a stream has been completed.
-     * @param maxIdleTime Maximum time this actor stays alive without receiving any message.
-     * @param elementClass the class of stream elements.
-     * @param elementIdentifierFunction a function which maps a stream element to an identifier (to correlate acks).
-     * @param <E> Type of received stream elements.
-     * @return The {@code Props} object.
-     */
-    public static <E> Props props(final ActorRef recipient, final ActorRef completionRecipient,
-            final Duration maxIdleTime, final Class<E> elementClass,
-            final Function<E, String> elementIdentifierFunction) {
-        return Props.create(DefaultStreamForwarder.class,
-                () -> new DefaultStreamForwarder<>(new DefaultForwardingStrategy<>(recipient,
-                        elementIdentifierFunction, completionRecipient),
-                        maxIdleTime, elementClass));
+        this.mapEntityFunction = requireNonNull(mapEntityFunction);
     }
 
     /**
      * Creates a {@code Props} object to instantiate this actor.
      *
-     * @param forwardingStrategy the strategy used for forwarding elements.
+     * @param recipient Actor reference which is the recipient of the streamed messages.
+     * @param completionRecipient recipient of the message sent when a stream has been completed.
      * @param maxIdleTime Maximum time this actor stays alive without receiving any message.
      * @param elementClass the class of stream elements.
+     * @param mapEntity the function to transform elements into a source of messages to forward.
      * @param <E> Type of received stream elements.
      * @return The {@code Props} object.
      */
-    public static <E> Props props(ForwardingStrategy<E> forwardingStrategy,
-            final Duration maxIdleTime, final Class<E> elementClass) {
-        return Props.create(DefaultStreamForwarder.class,
-                () -> new DefaultStreamForwarder<>(forwardingStrategy, maxIdleTime, elementClass));
-    }
-
-    @Override
-    protected ForwardingStrategy<E> getForwardingStrategy() {
-        return forwardingStrategy;
+    public static <E> Props props(final ActorRef recipient, final ActorRef completionRecipient,
+            final Duration maxIdleTime, final Class<E> elementClass,
+            final Function<E, Source<?, ?>> mapEntity) {
+        return Props.create(DefaultStreamForwarder.class, () ->
+                new DefaultStreamForwarder<>(recipient, completionRecipient, maxIdleTime, elementClass, mapEntity));
     }
 
     @Override
@@ -86,6 +70,21 @@ public final class DefaultStreamForwarder<E> extends AbstractStreamForwarder<E> 
     @Override
     protected Class<E> getElementClass() {
         return elementClass;
+    }
+
+    @Override
+    protected ActorRef getRecipient() {
+        return recipient;
+    }
+
+    @Override
+    protected ActorRef getCompletionRecipient() {
+        return completionRecipient;
+    }
+
+    @Override
+    protected Source<?, ?> mapEntity(final E element) {
+        return mapEntityFunction.apply(element);
     }
 
 }
