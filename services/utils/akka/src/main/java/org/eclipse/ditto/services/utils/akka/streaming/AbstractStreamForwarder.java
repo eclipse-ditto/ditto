@@ -134,6 +134,7 @@ public abstract class AbstractStreamForwarder<E> extends AbstractActor {
                 .matchEquals(DOES_NOT_HAVE_NEXT_MSG, unit -> {
                     updateLastMessageReceived();
                     getContext().become(iteratingBehavior());
+                    log.debug("sending ack {} to streaming actor {}", STREAM_ACK_MSG, elementSender);
                     elementSender.tell(STREAM_ACK_MSG, getSelf());
                 })
                 .matchEquals(STREAM_FAILED, this::streamFailed)
@@ -142,6 +143,7 @@ public abstract class AbstractStreamForwarder<E> extends AbstractActor {
     }
 
     private void transitionToForwardingLoop(final E element) {
+        log.debug("got element: {}", element);
         final ActorRef self = getSelf();
         final ActorRef recipient = getRecipient();
         final long timeoutMillis = getMaxIdleTime().toMillis();
@@ -156,7 +158,7 @@ public abstract class AbstractStreamForwarder<E> extends AbstractActor {
                 )
                 .mapConcat(ack -> {
                     // use ack in lambda body to prevent JVM from optimizing this away
-                    if (!isSuccessAck(ack)) {
+                    if (isSuccessAck(ack)) {
                         log.debug("got ack: {}", ack);
                     } else {
                         log.error("got failure ack: {}", ack);
