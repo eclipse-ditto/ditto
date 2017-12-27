@@ -19,10 +19,12 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.time.Instant;
+import java.util.Collections;
 import java.util.UUID;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.models.streaming.AbstractEntityIdWithRevision;
+import org.eclipse.ditto.services.models.streaming.BatchedEntityIdWithRevisions;
 import org.eclipse.ditto.services.models.streaming.SudoStreamModifiedEntities;
 import org.eclipse.ditto.services.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.services.utils.persistence.mongo.streaming.PidWithSeqNr;
@@ -88,7 +90,10 @@ public final class DefaultPersistenceStreamingActorTest {
             expectMsg(STREAM_STARTED);
             reply(STREAM_ACK_MSG);
 
-            expectMsg(new SimpleEntityIdWithRevision(ID, REVISION));
+            final BatchedEntityIdWithRevisions<?> expectedMessage =
+                    BatchedEntityIdWithRevisions.of(SimpleEntityIdWithRevision.class,
+                            Collections.singletonList(new SimpleEntityIdWithRevision(ID, REVISION)));
+            expectMsg(expectedMessage);
             reply(STREAM_ACK_MSG);
 
             expectMsg(STREAM_COMPLETED);
@@ -100,7 +105,7 @@ public final class DefaultPersistenceStreamingActorTest {
         final Instant startTs = endTs.minusSeconds(10);
 
         final DittoHeaders dittoHeaders = DittoHeaders.empty();
-        return SudoStreamModifiedEntities.of(startTs, endTs, 1000, dittoHeaders);
+        return SudoStreamModifiedEntities.of(startTs, endTs, 1, 10_000L, dittoHeaders);
     }
 
     private static ActorRef createPersistenceQueriesActor(final Source<PidWithSeqNr, NotUsed> mockedSource) {
@@ -108,8 +113,8 @@ public final class DefaultPersistenceStreamingActorTest {
         final MongoReadJournal mockJournal = mock(MongoReadJournal.class);
         when(mockJournal.getPidWithSeqNrsByInterval(any(), any())).thenReturn(mockedSource);
         final Props props = Props.create(DefaultPersistenceStreamingActor.class, () ->
-                new DefaultPersistenceStreamingActor<>(100,
-                        DefaultPersistenceStreamingActorTest::mapEntity, mockJournal, mockClient));
+                new DefaultPersistenceStreamingActor<>(SimpleEntityIdWithRevision.class,
+                        100, DefaultPersistenceStreamingActorTest::mapEntity, mockJournal, mockClient));
         return actorSystem.actorOf(props, "persistenceQueriesActor-" + UUID.randomUUID());
     }
 

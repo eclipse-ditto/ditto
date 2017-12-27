@@ -23,25 +23,29 @@ import javax.annotation.concurrent.Immutable;
  */
 @Immutable
 public final class StreamConsumerSettings {
+
     private final Duration startOffset;
     private final Duration streamInterval;
     private final Duration initialStartOffset;
     private final Duration maxIdleTime;
-    private final int elementsStreamedPerSecond;
+    private final Duration streamingActorTimeout;
+    private final int elementsStreamedPerBatch;
     private final Duration outdatedWarningOffset;
 
     private StreamConsumerSettings(final Duration startOffset,
             final Duration streamInterval, final Duration initialStartOffset,
-            final Duration maxIdleTime, final int elementsStreamedPerSecond, final Duration outdatedWarningOffset) {
+            final Duration maxIdleTime, final Duration streamingActorTimeout,
+            final int elementsStreamedPerBatch, final Duration outdatedWarningOffset) {
         this.startOffset = requireNonNull(checkNonNegative(startOffset));
         this.streamInterval = requireNonNull(checkNonNegative(streamInterval));
         this.initialStartOffset = requireNonNull(checkNonNegative(initialStartOffset));
         this.maxIdleTime = requireNonNull(checkNonNegative(maxIdleTime));
-        if (elementsStreamedPerSecond <= 0) {
-            throw new IllegalArgumentException("elementsStreamedPerSecond should be positive, but is: " +
-                    elementsStreamedPerSecond);
+        this.streamingActorTimeout = requireNonNull(streamingActorTimeout);
+        if (elementsStreamedPerBatch <= 0) {
+            throw new IllegalArgumentException("elementsStreamedPerBatch should be positive, but is: " +
+                    elementsStreamedPerBatch);
         }
-        this.elementsStreamedPerSecond = elementsStreamedPerSecond;
+        this.elementsStreamedPerBatch = elementsStreamedPerBatch;
         this.outdatedWarningOffset = requireNonNull(checkNonNegative(outdatedWarningOffset));
     }
 
@@ -63,16 +67,17 @@ public final class StreamConsumerSettings {
      * (further syncs will know the last-success timestamp).
      * @param maxIdleTime the maximum idle time of a stream forwarder. A stream is considered idle when it does not
      * retrieve any messages.
-     * @param elementsStreamedPerSecond the elements to be streamed per second
-     * @param outdatedWarningOffset if a query-start is more than this offset in the past, a warning will be logged
-     *
-     * @return the created settings
+     * @param streamingActorTimeout timeout at the streaming actor (server) side.
+     * @param elementsStreamedPerBatch the elements to be streamed per batch.
+     * @param outdatedWarningOffset if a query-start is more than this offset in the past, a warning will be logged.
+     * @return the created settings.
      */
     public static StreamConsumerSettings of(final Duration startOffset,
             final Duration streamInterval, final Duration initialStartOffset,
-            final Duration maxIdleTime, final int elementsStreamedPerSecond, final Duration outdatedWarningOffset) {
+            final Duration maxIdleTime, final Duration streamingActorTimeout,
+            final int elementsStreamedPerBatch, final Duration outdatedWarningOffset) {
         return new StreamConsumerSettings(startOffset, streamInterval, initialStartOffset, maxIdleTime,
-                elementsStreamedPerSecond, outdatedWarningOffset);
+                streamingActorTimeout, elementsStreamedPerBatch, outdatedWarningOffset);
     }
 
     /**
@@ -116,12 +121,21 @@ public final class StreamConsumerSettings {
     }
 
     /**
-     * Returns the elements to be streamed per second.
+     * Returns the elements to be streamed per batch.
      *
-     * @return the elements to be streamed per second.
+     * @return the elements to be streamed per batch.
      */
-    public int getElementsStreamedPerSecond() {
-        return elementsStreamedPerSecond;
+    public int getElementsStreamedPerBatch() {
+        return elementsStreamedPerBatch;
+    }
+
+    /**
+     * Returns timeout at the streaming actor (server) side.
+     *
+     * @return timeout at server side.
+     */
+    public Duration getStreamingActorTimeout() {
+        return streamingActorTimeout;
     }
 
     /**
@@ -143,18 +157,19 @@ public final class StreamConsumerSettings {
             return false;
         }
         final StreamConsumerSettings that = (StreamConsumerSettings) o;
-        return elementsStreamedPerSecond == that.elementsStreamedPerSecond &&
+        return elementsStreamedPerBatch == that.elementsStreamedPerBatch &&
                 Objects.equals(startOffset, that.startOffset) &&
                 Objects.equals(streamInterval, that.streamInterval) &&
                 Objects.equals(initialStartOffset, that.initialStartOffset) &&
                 Objects.equals(maxIdleTime, that.maxIdleTime) &&
+                Objects.equals(streamingActorTimeout, that.streamingActorTimeout) &&
                 Objects.equals(outdatedWarningOffset, that.outdatedWarningOffset);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(startOffset, streamInterval, initialStartOffset, maxIdleTime, elementsStreamedPerSecond,
-                outdatedWarningOffset);
+        return Objects.hash(startOffset, streamInterval, initialStartOffset, maxIdleTime, streamingActorTimeout,
+                elementsStreamedPerBatch, outdatedWarningOffset);
     }
 
     @Override
@@ -164,7 +179,8 @@ public final class StreamConsumerSettings {
                 ", streamInterval=" + streamInterval +
                 ", initialStartOffset=" + initialStartOffset +
                 ", maxIdleTime=" + maxIdleTime +
-                ", elementsStreamedPerSecond=" + elementsStreamedPerSecond +
+                ", streamingActorTimeout" + streamingActorTimeout +
+                ", elementsStreamedPerBatch=" + elementsStreamedPerBatch +
                 ", outdatedWarningOffset=" + outdatedWarningOffset +
                 ']';
     }

@@ -64,8 +64,8 @@ public class DefaultStreamSupervisorTest {
     private static final Instant KNOWN_LAST_SYNC = Instant.now().minus(START_OFFSET).minusSeconds(1);
 
     private static final Duration INITIAL_START_OFFSET = Duration.ofDays(1);
-    private static final Duration STREAM_INTERVAL = Duration.ofSeconds(5);
-    private static final int ELEMENTS_STREAMED_PER_SECOND = 5;
+    private static final Duration STREAM_INTERVAL = Duration.ofMillis(50);
+    private static final int ELEMENTS_STREAMED_PER_BATCH = 1;
 
     private static final Duration SHORT_TIMEOUT = Duration.ofSeconds(10);
     private static final VerificationWithTimeout SHORT_MOCKITO_TIMEOUT = timeout(SHORT_TIMEOUT.toMillis());
@@ -151,26 +151,26 @@ public class DefaultStreamSupervisorTest {
             // verify the db has been updated with the queryEnd of the completed stream
             verify(searchSyncPersistence, SHORT_MOCKITO_TIMEOUT).updateLastSuccessfulStreamEnd(eq(expectedQueryEnd));
             // verify the actor is not terminated
-            expectNotTerminated(this, streamSupervisor, SHORT_TIMEOUT);
+            expectNotTerminated(this, streamSupervisor, Duration.ofSeconds(1));
         }};
     }
 
     @Test
     public void streamIsRetriggeredOnTimeout() throws Exception {
         new TestKit(actorSystem) {{
-            final Duration smallMaxIdleTime = Duration.ofSeconds(1);
+            final Duration smallMaxIdleTime = Duration.ofMillis(10);
             final ActorRef streamSupervisor = createStreamSupervisor(smallMaxIdleTime);
             final Instant expectedQueryEnd = KNOWN_LAST_SYNC.plus(STREAM_INTERVAL);
 
             // wait for the actor to start streaming the first time by expecting the corresponding send-message
-            expectStreamTriggerMsg(expectedQueryEnd);
+            expectStreamTriggerMsg(expectedQueryEnd, smallMaxIdleTime);
 
             // signal timeout to the supervisor
             getForwarderActor(streamSupervisor).tell(STREAM_STARTED, ActorRef.noSender());
             expectForwarderTerminated(this, streamSupervisor, smallMaxIdleTime.plus(SHORT_TIMEOUT));
 
             // wait for the actor to re-start streaming
-            expectStreamTriggerMsg(expectedQueryEnd);
+            expectStreamTriggerMsg(expectedQueryEnd, smallMaxIdleTime);
 
             // verify the db has NOT been updated with the queryEnd, cause we never got a success-message
             verify(searchSyncPersistence, never()).updateLastSuccessfulStreamEnd(eq(expectedQueryEnd));
@@ -178,24 +178,37 @@ public class DefaultStreamSupervisorTest {
     }
 
     private void expectStreamTriggerMsg(final Instant expectedQueryEnd) {
+        expectStreamTriggerMsg(expectedQueryEnd, getDefaultMaxIdleTime());
+    }
+
+    private void expectStreamTriggerMsg(final Instant expectedQueryEnd, final Duration maxIdleTime) {
         final SudoStreamModifiedEntities msg = provider.expectMsgClass(FiniteDuration.apply(SHORT_TIMEOUT.toMillis(),
                 TimeUnit.MILLISECONDS), SudoStreamModifiedEntities.class);
+        final Duration streamingActorTimeout = getStreamConsumerSettings(maxIdleTime).getStreamingActorTimeout();
         final SudoStreamModifiedEntities expectedStreamTriggerMsg =
-                SudoStreamModifiedEntities.of(KNOWN_LAST_SYNC, expectedQueryEnd, ELEMENTS_STREAMED_PER_SECOND,
-                        DittoHeaders.empty());
+                SudoStreamModifiedEntities.of(KNOWN_LAST_SYNC, expectedQueryEnd, ELEMENTS_STREAMED_PER_BATCH,
+                        streamingActorTimeout.toMillis(), DittoHeaders.empty());
         assertThat(msg).isEqualTo(expectedStreamTriggerMsg);
     }
 
     private ActorRef createStreamSupervisor() {
-        return createStreamSupervisor(Duration.ofSeconds(10));
+        return createStreamSupervisor(getDefaultMaxIdleTime());
     }
 
     private ActorRef createStreamSupervisor(final Duration maxIdleTime) {
-        final StreamConsumerSettings streamConsumerSettings = StreamConsumerSettings.of(START_OFFSET,
-                STREAM_INTERVAL, INITIAL_START_OFFSET, maxIdleTime, ELEMENTS_STREAMED_PER_SECOND, Duration.ofDays(10));
+        final StreamConsumerSettings streamConsumerSettings = getStreamConsumerSettings(maxIdleTime);
         return actorSystem.actorOf(DefaultStreamSupervisor.props(forwardTo.ref(), provider.ref(),
                 String.class, Source::single,
                 Function.identity(), searchSyncPersistence, materializer, streamConsumerSettings));
+    }
+
+    private static Duration getDefaultMaxIdleTime() {
+        return Duration.ofSeconds(10);
+    }
+
+    private static StreamConsumerSettings getStreamConsumerSettings(final Duration maxIdleTime) {
+        return StreamConsumerSettings.of(START_OFFSET, STREAM_INTERVAL, INITIAL_START_OFFSET, maxIdleTime,
+                Duration.ofDays(1), ELEMENTS_STREAMED_PER_BATCH, Duration.ofDays(10));
     }
 
     private void sendMessageToForwarderAndExpectTerminated(final TestKit testKit, final ActorRef superVisorActorRef,

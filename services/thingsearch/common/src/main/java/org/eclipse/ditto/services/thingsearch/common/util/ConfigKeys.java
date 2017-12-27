@@ -125,10 +125,15 @@ public final class ConfigKeys {
     public static final String THINGS_SYNCER_MAX_IDLE_TIME = SYNC_THINGS_PREFIX + "max-idle-time";
 
     /**
-     * Things-Sync: The elements to be streamed per second by the sync process.
+     * Things-Sync: Timeout at streaming actor (server) side.
      */
-    public static final String THINGS_SYNCER_ELEMENTS_STREAMED_PER_SECOND = SYNC_THINGS_PREFIX +
-            "elements-streamed-per-second";
+    public static final String THINGS_SYNCER_STREAMING_ACTOR_TIMEOUT = SYNC_THINGS_PREFIX + "streaming-actor-timeout";
+
+    /**
+     * Things-Sync: The elements to be streamed per batch by the sync process.
+     */
+    public static final String THINGS_SYNCER_ELEMENTS_STREAMED_PER_BATCH = SYNC_THINGS_PREFIX +
+            "elements-streamed-per-batch";
 
     private static final String SYNC_POLICIES_PREFIX = SYNC_PREFIX + "policies.";
 
@@ -159,7 +164,8 @@ public final class ConfigKeys {
     /**
      * Policies-Sync: if a query-start is more than this offset in the past, a warning will be logged.
      */
-    public static final String POLICIES_SYNCER_OUTDATED_WARNING_OFFSET = SYNC_POLICIES_PREFIX + "outdated-warning-offset";
+    public static final String POLICIES_SYNCER_OUTDATED_WARNING_OFFSET =
+            SYNC_POLICIES_PREFIX + "outdated-warning-offset";
 
     /**
      * Policies-Sync: The maximum idle time of the syncer (as a Duration).
@@ -167,10 +173,16 @@ public final class ConfigKeys {
     public static final String POLICIES_SYNCER_MAX_IDLE_TIME = SYNC_POLICIES_PREFIX + "max-idle-time";
 
     /**
-     * Policies-Sync: The elements to be streamed per second by the sync process.
+     * Policies-Sync: Timeout at streaming actor (server) side.
      */
-    public static final String POLICIES_SYNCER_ELEMENTS_STREAMED_PER_SECOND = SYNC_POLICIES_PREFIX +
-            "elements-streamed-per-second";
+    public static final String POLICIES_SYNCER_STREAMING_ACTOR_TIMEOUT =
+            SYNC_POLICIES_PREFIX + "streaming-actor-timeout";
+
+    /**
+     * Policies-Sync: The elements to be streamed per batch by the sync process.
+     */
+    public static final String POLICIES_SYNCER_ELEMENTS_STREAMED_PER_BATCH = SYNC_POLICIES_PREFIX +
+            "elements-streamed-per-batch";
 
     private static final String HTTP_PREFIX = SEARCH_PREFIX + "http.";
     /**

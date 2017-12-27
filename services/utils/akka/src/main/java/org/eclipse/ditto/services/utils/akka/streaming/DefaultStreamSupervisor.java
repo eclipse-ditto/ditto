@@ -133,8 +133,11 @@ public final class DefaultStreamSupervisor<E> extends AbstractActor {
 
     private Object newStartStreamingCommand(final StreamTrigger streamRestrictions) {
         final SudoStreamModifiedEntities retrieveModifiedEntityIdWithRevisions =
-                SudoStreamModifiedEntities.of(streamRestrictions.getQueryStart(), streamRestrictions.getQueryEnd(),
-                        streamConsumerSettings.getElementsStreamedPerSecond(), DittoHeaders.empty());
+                SudoStreamModifiedEntities.of(streamRestrictions.getQueryStart(),
+                        streamRestrictions.getQueryEnd(),
+                        streamConsumerSettings.getElementsStreamedPerBatch(),
+                        streamConsumerSettings.getStreamingActorTimeout().toMillis(),
+                        DittoHeaders.empty());
 
         return streamTriggerMessageMapper.apply(retrieveModifiedEntityIdWithRevisions);
     }

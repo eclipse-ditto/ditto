@@ -20,9 +20,13 @@ import static org.eclipse.ditto.services.utils.akka.streaming.StreamConstants.ST
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
+import org.eclipse.ditto.services.models.streaming.BatchedEntityIdWithRevisions;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
 import akka.actor.AbstractActor;
@@ -55,7 +59,7 @@ import scala.concurrent.duration.FiniteDuration;
  *  |         +<-----------------------------------+         |
  *  |ITERATING|                                    |HAS_NEXT?|
  *  |         +----------------------------------->+         |
- *  +----+----+          ELEMENT: MAP_ENTITY       +--+---+--+
+ *  +----+----+         ELEMENTS: MAP_ENTITY       +--+---+--+
  *       |                                            |   ^
  *       |                                            |   |
  *       |STREAM_FINISHED: ACK            YES: FORWARD|   |ACK
@@ -124,7 +128,7 @@ public abstract class AbstractStreamForwarder<E> extends AbstractActor {
                 .matchEquals(STREAM_COMPLETED, this::streamCompleted)
                 .matchEquals(STREAM_FAILED, this::streamFailed)
                 .matchEquals(CheckForActivity.INSTANCE, this::checkForActivity)
-                .match(getElementClass(), this::transitionToForwardingLoop)
+                .match(BatchedEntityIdWithRevisions.class, this::transitionToForwardingLoop)
                 .build();
     }
 
@@ -142,13 +146,21 @@ public abstract class AbstractStreamForwarder<E> extends AbstractActor {
                 .build();
     }
 
-    private void transitionToForwardingLoop(final E element) {
-        log.debug("got element: {}", element);
+    /**
+     * Create a source of messages to forward from the batched elements received from the stream, expect
+     * acknowledgement from the recipient for each message, and send self {@code DOES_NOT_HAVE_NEXT_MSG} at the end.
+     *
+     * @param batchedElements the batched stream elements.
+     */
+    private void transitionToForwardingLoop(final BatchedEntityIdWithRevisions<?> batchedElements) {
+        log.debug("got element: {}", batchedElements);
         final ActorRef self = getSelf();
         final ActorRef recipient = getRecipient();
         final long timeoutMillis = getMaxIdleTime().toMillis();
+        final List<E> typedElements = typecheck(batchedElements.getElements());
         getContext().become(hasNextBehavior(getSender()));
-        mapEntity(element)
+        Source.fromIterator(typedElements::iterator)
+                .flatMapConcat(this::mapEntity)
                 .concat(Source.single(DOES_NOT_HAVE_NEXT_MSG))
                 .mapAsync(1, msgToForward -> {
                     if (DOES_NOT_HAVE_NEXT_MSG.equals(msgToForward)) {
@@ -168,6 +180,23 @@ public abstract class AbstractStreamForwarder<E> extends AbstractActor {
                     }
                 })
                 .runWith(Sink.ignore(), materializer);
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<E> typecheck(final List<?> elements) {
+        final List<E> result = new ArrayList<>(elements.size());
+        for (Object element : elements) {
+            if (getElementClass().isInstance(element)) {
+                result.add((E) element);
+            } else {
+                final String failureMessage = String.format("Element type mismatch. Expected <%s>, actual <%s %s>",
+                        getElementClass().toString(), element.getClass().toString(), element.toString());
+                streamFailed(failureMessage);
+                // return empty list to ensure no message is sent downstream before shutdown.
+                return Collections.emptyList();
+            }
+        }
+        return result;
     }
 
     private static boolean isSuccessAck(final Object ack) {

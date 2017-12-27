@@ -22,6 +22,7 @@ import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoCommandRegistry;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoCommandResponseRegistry;
+import org.eclipse.ditto.services.models.streaming.BatchedEntityIdWithRevisions;
 import org.eclipse.ditto.services.models.streaming.StreamingRegistry;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategiesBuilder;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
@@ -63,6 +64,8 @@ public final class PoliciesMappingStrategy implements MappingStrategy {
                 .add(PolicyCacheEntry.class,
                         jsonObject -> PolicyCacheEntry.fromJson(jsonObject)) // do not replace with lambda!
                 .add(PolicyTag.class, jsonObject -> PolicyTag.fromJson(jsonObject))  // do not replace with lambda!
+                .add(BatchedEntityIdWithRevisions.typeOf(PolicyTag.class),
+                        BatchedEntityIdWithRevisions.deserializer(jsonObject -> PolicyTag.fromJson(jsonObject)))
                 .add(PolicyReferenceTag.class, jsonObject -> PolicyReferenceTag.fromJson(jsonObject));  // do not replace with lambda!
     }
 

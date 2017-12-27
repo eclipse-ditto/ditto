@@ -13,8 +13,11 @@ package org.eclipse.ditto.services.utils.persistence.mongo;
 
 import static java.util.Objects.requireNonNull;
 
+import java.util.List;
+import java.util.Optional;
 import java.util.function.Function;
 
+import org.eclipse.ditto.services.models.streaming.BatchedEntityIdWithRevisions;
 import org.eclipse.ditto.services.models.streaming.EntityIdWithRevision;
 import org.eclipse.ditto.services.models.streaming.SudoStreamModifiedEntities;
 import org.eclipse.ditto.services.utils.akka.streaming.AbstractStreamingActor;
@@ -28,6 +31,8 @@ import akka.stream.javadsl.Source;
 /**
  * Abstract implementation of an Actor that streams information about persisted entities modified in a time window in
  * the past.
+ *
+ * @param <T> type of the elements.
  */
 @AllValuesAreNonnullByDefault
 public abstract class AbstractPersistenceStreamingActor<T extends EntityIdWithRevision>
@@ -53,14 +58,31 @@ public abstract class AbstractPersistenceStreamingActor<T extends EntityIdWithRe
         this.readJournal = readJournal;
     }
 
+    /**
+     * Get the class of the elements.
+     *
+     * @return the class of the elements.
+     */
+    protected abstract Class<T> getElementClass();
+
     @Override
     protected final Class<SudoStreamModifiedEntities> getCommandClass() {
         return SudoStreamModifiedEntities.class;
     }
 
     @Override
-    protected int getRate(final SudoStreamModifiedEntities command) {
-        return command.getRate();
+    protected Optional<Integer> getBurst(final SudoStreamModifiedEntities command) {
+        return command.getBurst();
+    }
+
+    @Override
+    protected Optional<Long> getTimeoutMillis(final SudoStreamModifiedEntities command) {
+        return command.getTimeoutMillis();
+    }
+
+    @Override
+    protected Object batchMessages(final List<T> elements) {
+        return BatchedEntityIdWithRevisions.of(getElementClass(), elements);
     }
 
     @Override

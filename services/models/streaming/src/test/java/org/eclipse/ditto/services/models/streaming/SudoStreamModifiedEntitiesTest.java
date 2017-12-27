@@ -34,13 +34,15 @@ public final class SudoStreamModifiedEntitiesTest {
 
     private static final Instant KNOWN_START = Instant.EPOCH;
     private static final Instant KNOWN_END = Instant.now();
-    private static final int KNOWN_RATE = 1234;
+    private static final int KNOWN_BURST = 1234;
+    private static final long KNOWN_TIMEOUT = 60_000L;
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(Command.JsonFields.TYPE, SudoStreamModifiedEntities.TYPE)
             .set(SudoStreamModifiedEntities.JSON_START, KNOWN_START.toString())
             .set(SudoStreamModifiedEntities.JSON_END, KNOWN_END.toString())
-            .set(SudoStreamModifiedEntities.JSON_RATE, KNOWN_RATE)
+            .set(SudoStreamModifiedEntities.JSON_BURST, KNOWN_BURST)
+            .set(SudoStreamModifiedEntities.JSON_TIMEOUT_MILLIS, KNOWN_TIMEOUT)
             .build();
 
     private static final DittoHeaders EMPTY_DITTO_HEADERS = DittoHeaders.empty();
@@ -60,7 +62,7 @@ public final class SudoStreamModifiedEntitiesTest {
     @Test
     public void toJsonReturnsExpected() {
         final SudoStreamModifiedEntities underTest =
-                SudoStreamModifiedEntities.of(KNOWN_START, KNOWN_END, KNOWN_RATE, EMPTY_DITTO_HEADERS);
+                SudoStreamModifiedEntities.of(KNOWN_START, KNOWN_END, KNOWN_BURST, KNOWN_TIMEOUT, EMPTY_DITTO_HEADERS);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
         assertThat(actualJson).isEqualTo(KNOWN_JSON);
@@ -72,7 +74,7 @@ public final class SudoStreamModifiedEntitiesTest {
                 SudoStreamModifiedEntities.fromJson(KNOWN_JSON, EMPTY_DITTO_HEADERS);
 
         final SudoStreamModifiedEntities expectedCommand =
-                SudoStreamModifiedEntities.of(KNOWN_START, KNOWN_END, KNOWN_RATE, EMPTY_DITTO_HEADERS);
+                SudoStreamModifiedEntities.of(KNOWN_START, KNOWN_END, KNOWN_BURST, KNOWN_TIMEOUT, EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
         assertThat(underTest).isEqualTo(expectedCommand);

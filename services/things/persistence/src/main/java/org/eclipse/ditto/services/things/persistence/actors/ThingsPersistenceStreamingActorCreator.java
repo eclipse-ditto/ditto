@@ -42,7 +42,7 @@ public final class ThingsPersistenceStreamingActorCreator {
      * @return the Akka configuration Props object.
      */
     public static Props props(final Config config, final int streamingCacheSize) {
-        return DefaultPersistenceStreamingActor.props(config, streamingCacheSize,
+        return DefaultPersistenceStreamingActor.props(ThingTag.class, config, streamingCacheSize,
                 ThingsPersistenceStreamingActorCreator::createElement);
     }
 

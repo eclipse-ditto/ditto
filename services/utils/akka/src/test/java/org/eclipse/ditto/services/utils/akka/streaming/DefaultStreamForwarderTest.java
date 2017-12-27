@@ -17,8 +17,12 @@ import static org.eclipse.ditto.services.utils.akka.streaming.StreamConstants.ST
 import static org.eclipse.ditto.services.utils.akka.streaming.StreamConstants.STREAM_STARTED;
 
 import java.time.Duration;
+import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 
+import org.eclipse.ditto.services.models.streaming.AbstractEntityIdWithRevision;
+import org.eclipse.ditto.services.models.streaming.BatchedEntityIdWithRevisions;
+import org.eclipse.ditto.services.models.streaming.EntityIdWithRevision;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -41,8 +45,15 @@ public class DefaultStreamForwarderTest {
 
     private static final Duration MAX_IDLE_TIME = Duration.ofSeconds(5);
 
-    private static final String KNOWN_TAG_1 = "element1";
-    private static final String KNOWN_TAG_2 = "element2";
+    private static final EntityIdWithRevision KNOWN_TAG_1 = new AbstractEntityIdWithRevision("element1", 1L) {};
+
+    private static final EntityIdWithRevision KNOWN_TAG_2 = new AbstractEntityIdWithRevision("element2", 2L) {};
+
+    private static final BatchedEntityIdWithRevisions<?> KNOWN_BATCH_1 =
+            BatchedEntityIdWithRevisions.of(EntityIdWithRevision.class, Collections.singletonList(KNOWN_TAG_1));
+
+    private static final BatchedEntityIdWithRevisions<?> KNOWN_BATCH_2 =
+            BatchedEntityIdWithRevisions.of(EntityIdWithRevision.class, Collections.singletonList(KNOWN_TAG_2));
 
     private ActorSystem actorSystem;
     private TestProbe recipient;
@@ -76,7 +87,7 @@ public class DefaultStreamForwarderTest {
                 streamForwarder.tell(STREAM_STARTED, getRef());
                 expectMsg(STREAM_ACK_MSG);
 
-                streamForwarder.tell(KNOWN_TAG_1, getRef());
+                streamForwarder.tell(KNOWN_BATCH_1, getRef());
                 recipient.expectMsg(KNOWN_TAG_1);
 
                 // now wait for timeout to apply
@@ -102,9 +113,9 @@ public class DefaultStreamForwarderTest {
                 streamForwarder.tell(STREAM_STARTED, getRef());
                 expectMsg(STREAM_ACK_MSG);
 
-                streamForwarder.tell(KNOWN_TAG_1, getRef());
+                streamForwarder.tell(KNOWN_BATCH_1, getRef());
                 recipient.expectMsg(KNOWN_TAG_1);
-                recipient.reply(failureResponse(KNOWN_TAG_1));
+                recipient.reply(failureResponse(KNOWN_TAG_1.toString()));
                 expectMsg(STREAM_ACK_MSG);
 
                 streamForwarder.tell(STREAM_COMPLETED, getRef());
@@ -125,14 +136,14 @@ public class DefaultStreamForwarderTest {
                 streamForwarder.tell(STREAM_STARTED, getRef());
                 expectMsg(STREAM_ACK_MSG);
 
-                streamForwarder.tell(KNOWN_TAG_1, getRef());
+                streamForwarder.tell(KNOWN_BATCH_1, getRef());
                 recipient.expectMsg(KNOWN_TAG_1);
-                recipient.reply(successResponse(KNOWN_TAG_1));
+                recipient.reply(successResponse(KNOWN_TAG_1.toString()));
                 expectMsg(STREAM_ACK_MSG);
 
-                streamForwarder.tell(KNOWN_TAG_2, getRef());
+                streamForwarder.tell(KNOWN_BATCH_2, getRef());
                 recipient.expectMsg(KNOWN_TAG_2);
-                recipient.reply(successResponse(KNOWN_TAG_2));
+                recipient.reply(successResponse(KNOWN_TAG_2.toString()));
                 expectMsg(STREAM_ACK_MSG);
 
                 streamForwarder.tell(STREAM_COMPLETED, getRef());
@@ -155,7 +166,7 @@ public class DefaultStreamForwarderTest {
     private ActorRef createStreamForwarder(final Duration maxIdleTime) {
         // for simplicity, just use String as elementClass
         final Props props = DefaultStreamForwarder.props(recipient.ref(), completionRecipient.ref(), maxIdleTime,
-                String.class, Source::single);
+                EntityIdWithRevision.class, Source::single);
 
         return actorSystem.actorOf(props);
     }

@@ -19,8 +19,10 @@ import static org.eclipse.ditto.model.base.json.JsonSchemaVersion.V_2;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Predicate;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
@@ -56,22 +58,30 @@ public final class SudoStreamModifiedEntities extends AbstractCommand<SudoStream
     static final JsonFieldDefinition<String> JSON_END =
             JsonFactory.newStringFieldDefinition("payload/end", REGULAR, V_1, V_2);
 
-    static final JsonFieldDefinition<Integer> JSON_RATE =
-            JsonFactory.newIntFieldDefinition("payload/rate", REGULAR, V_1, V_2);
+    static final JsonFieldDefinition<Integer> JSON_BURST =
+            JsonFactory.newIntFieldDefinition("payload/burst", REGULAR, V_1, V_2);
+
+    static final JsonFieldDefinition<Long> JSON_TIMEOUT_MILLIS =
+            JsonFactory.newLongFieldDefinition("payload/timeoutMillis", REGULAR, V_1, V_2);
 
     private final Instant start;
 
     private final Instant end;
 
-    private final int rate;
+    @Nullable
+    private final Integer burst;
 
-    private SudoStreamModifiedEntities(final Instant start, final Instant end, final int rate,
-            final DittoHeaders dittoHeaders) {
+    @Nullable
+    private final Long timeoutMillis;
+
+    private SudoStreamModifiedEntities(final Instant start, final Instant end, final Integer burst,
+            final Long timeoutMillis, final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
 
         this.start = checkNotNull(start, "start");
         this.end = checkNotNull(end, "end");
-        this.rate = rate;
+        this.burst = burst;
+        this.timeoutMillis = timeoutMillis;
     }
 
     /**
@@ -79,14 +89,15 @@ public final class SudoStreamModifiedEntities extends AbstractCommand<SudoStream
      *
      * @param start Earliest timestamp of modifications to consider (inclusive).
      * @param end Latest timestamp of modifications to consider (exclusive).
-     * @param rate the amount of elements to be streamed per second
+     * @param burst the amount of elements to be collected per message
+     * @param timeoutMillis maximum time to wait for acknowledgement of each stream element.
      * @param dittoHeaders the command headers of the request.
      * @return a command for retrieving modified Things without authorization.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static SudoStreamModifiedEntities of(final Instant start, final Instant end, final int rate,
-            final DittoHeaders dittoHeaders) {
-        return new SudoStreamModifiedEntities(start, end, rate, dittoHeaders);
+    public static SudoStreamModifiedEntities of(final Instant start, final Instant end, final Integer burst,
+            final Long timeoutMillis, final DittoHeaders dittoHeaders) {
+        return new SudoStreamModifiedEntities(start, end, burst, timeoutMillis, dittoHeaders);
     }
 
     /**
@@ -104,8 +115,9 @@ public final class SudoStreamModifiedEntities extends AbstractCommand<SudoStream
         try {
             final Instant start = Instant.parse(jsonObject.getValueOrThrow(JSON_START));
             final Instant end = Instant.parse(jsonObject.getValueOrThrow(JSON_END));
-            final int rate = jsonObject.getValueOrThrow(JSON_RATE);
-            return SudoStreamModifiedEntities.of(start, end, rate, dittoHeaders);
+            final Integer burst = jsonObject.getValue(JSON_BURST).orElse(null);
+            final Long timeoutMillis = jsonObject.getValue(JSON_TIMEOUT_MILLIS).orElse(null);
+            return SudoStreamModifiedEntities.of(start, end, burst, timeoutMillis, dittoHeaders);
         } catch (final DateTimeParseException e) {
             throw JsonParseException.newBuilder()
                     .message("A given instant is not a valid timestamp.")
@@ -134,13 +146,23 @@ public final class SudoStreamModifiedEntities extends AbstractCommand<SudoStream
     }
 
     /**
-     * Returns the streaming rate.
+     * Returns the streaming burst.
      *
-     * @return Number of elements to stream per second.
+     * @return number of elements to send per message.
      */
-    public int getRate() {
-        return rate;
+    public Optional<Integer> getBurst() {
+        return Optional.ofNullable(burst);
     }
+
+    /**
+     * Returns the timeout in milliseconds.
+     *
+     * @return the timeout.
+     */
+    public Optional<Long> getTimeoutMillis() {
+        return Optional.ofNullable(timeoutMillis);
+    }
+
 
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
@@ -148,22 +170,24 @@ public final class SudoStreamModifiedEntities extends AbstractCommand<SudoStream
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(JSON_START, start.toString(), predicate);
         jsonObjectBuilder.set(JSON_END, end.toString(), predicate);
-        jsonObjectBuilder.set(JSON_RATE, rate, predicate);
+        jsonObjectBuilder.set(JSON_BURST, burst, predicate);
+        jsonObjectBuilder.set(JSON_TIMEOUT_MILLIS, timeoutMillis, predicate);
     }
 
     @Override
+    @Nonnull
     public String getTypePrefix() {
         return TYPE_PREFIX;
     }
 
     @Override
     public SudoStreamModifiedEntities setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(start, end, rate, dittoHeaders);
+        return of(start, end, burst, timeoutMillis, dittoHeaders);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), start, end, rate);
+        return Objects.hash(super.hashCode(), start, end, burst, timeoutMillis);
     }
 
     @SuppressWarnings({"squid:MethodCyclomaticComplexity", "squid:S1067", "pmd:SimplifyConditional"})
@@ -179,7 +203,8 @@ public final class SudoStreamModifiedEntities extends AbstractCommand<SudoStream
         return that.canEqual(this)
                 && Objects.equals(start, that.start)
                 && Objects.equals(end, that.end)
-                && Objects.equals(rate, that.rate)
+                && Objects.equals(burst, that.burst)
+                && Objects.equals(timeoutMillis, that.timeoutMillis)
                 && super.equals(that);
     }
 
@@ -192,8 +217,9 @@ public final class SudoStreamModifiedEntities extends AbstractCommand<SudoStream
     public String toString() {
         return getClass().getSimpleName() + " [" + super.toString()
                 + ", start=" + start
-                + ", end= " + end
-                + ", rate= " + rate
+                + ", end=" + end
+                + ", burst=" + burst
+                + ", timeoutMillis=" + timeoutMillis
                 + "]";
     }
 
