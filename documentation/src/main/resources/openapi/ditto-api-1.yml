@@ -1313,7 +1313,7 @@ paths:
             $ref: '#/definitions/AdvancedError'
         '429':
           description: >-
-            The user has sent too many requests in a given amount of time ("burst
+            The user has sent too many requests in a given amount of time ("rate
             limiting").
           schema:
             $ref: '#/definitions/AdvancedError'
