@@ -20,7 +20,7 @@ import static org.eclipse.ditto.services.utils.akka.streaming.StreamConstants.ST
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Collections;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -149,23 +149,25 @@ public abstract class AbstractStreamForwarder<E> extends AbstractActor {
         final long timeoutMillis = getMaxIdleTime().toMillis();
         getContext().become(hasNextBehavior(getSender()));
         mapEntity(element)
-                .mapAsync(1, msgToForward ->
-                        PatternsCS.<Object>ask(recipient, msgToForward, timeoutMillis)
+                .concat(Source.single(DOES_NOT_HAVE_NEXT_MSG))
+                .mapAsync(1, msgToForward -> {
+                    if (DOES_NOT_HAVE_NEXT_MSG.equals(msgToForward)) {
+                        self.tell(msgToForward, self);
+                        return CompletableFuture.completedFuture(msgToForward);
+                    } else {
+                        return PatternsCS.<Object>ask(recipient, msgToForward, timeoutMillis)
                                 .thenApply(ack -> {
+                                    if (isSuccessAck(ack)) {
+                                        log.debug("got ack: {}", ack);
+                                    } else {
+                                        log.error("got failure ack: {}", ack);
+                                    }
                                     self.tell(STREAM_ACK_MSG, ActorRef.noSender());
                                     return ack;
-                                })
-                )
-                .mapConcat(ack -> {
-                    // use ack in lambda body to prevent JVM from optimizing this away
-                    if (isSuccessAck(ack)) {
-                        log.debug("got ack: {}", ack);
-                    } else {
-                        log.error("got failure ack: {}", ack);
+                                });
                     }
-                    return Collections.emptyList();
                 })
-                .runWith(Sink.actorRef(self, DOES_NOT_HAVE_NEXT_MSG), materializer);
+                .runWith(Sink.ignore(), materializer);
     }
 
     private static boolean isSuccessAck(final Object ack) {

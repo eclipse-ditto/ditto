@@ -12,10 +12,11 @@
 package org.eclipse.ditto.services.utils.akka.streaming;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.eclipse.ditto.services.utils.akka.streaming.StreamConstants.STREAM_ACK_MSG;
-import static org.eclipse.ditto.services.utils.akka.streaming.StreamConstants.STREAM_FAILED;
 import static org.eclipse.ditto.services.utils.akka.streaming.StreamConstants.STREAM_COMPLETED;
+import static org.eclipse.ditto.services.utils.akka.streaming.StreamConstants.STREAM_FAILED;
 import static org.eclipse.ditto.services.utils.akka.streaming.StreamConstants.STREAM_STARTED;
+
+import java.util.concurrent.CompletableFuture;
 
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
@@ -23,7 +24,9 @@ import akka.NotUsed;
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.event.DiagnosticLoggingAdapter;
+import akka.japi.pf.PFBuilder;
 import akka.japi.pf.ReceiveBuilder;
+import akka.pattern.PatternsCS;
 import akka.stream.ActorMaterializer;
 import akka.stream.ThrottleMode;
 import akka.stream.javadsl.Sink;
@@ -83,16 +86,28 @@ public abstract class AbstractStreamingActor<C, E> extends AbstractActor {
         final int elementsPerSecond = getRate(command);
         final FiniteDuration second = FiniteDuration.create(1, SECONDS);
 
-        final Sink<E, ?> sink =
-                Sink.actorRefWithAck(recipient, STREAM_STARTED, STREAM_ACK_MSG, STREAM_COMPLETED, error -> {
-                    log.error(error, "got error");
-                    return STREAM_FAILED;
-                });
-
         createSource(command)
+                .prepend(Source.single(STREAM_STARTED))
+                .concat(Source.single(STREAM_COMPLETED))
                 .throttle(elementsPerSecond, second, elementsPerSecond, ThrottleMode.shaping())
+                .recoverWithRetries(1,
+                        new PFBuilder<Throwable, Source<Object, NotUsed>>().matchAny(error -> {
+                            recipient.tell(STREAM_FAILED, ActorRef.noSender());
+                            return Source.single(STREAM_FAILED);
+                        })
+                                .build())
                 .log("throttled-streaming", log)
-                .runWith(sink, materializer);
-
+                .mapAsync(1, message -> {
+                    if (STREAM_COMPLETED.equals(message)) {
+                        recipient.tell(message, ActorRef.noSender());
+                        return CompletableFuture.completedFuture(message);
+                    } else {
+                        return PatternsCS.ask(recipient, message, 60_000L);
+                    }
+                })
+                .log("future completed", log)
+                .runWith(Sink.ignore(), materializer);
+        // CAUTION: Do not replace the .mapAsync block by Sink.actorRefWithAck; the latter does not
+        // work with remote actor references in Akka 2.5.8.
     }
 }
