@@ -19,6 +19,7 @@ import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonArray;
@@ -26,6 +27,7 @@ import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.headers.WithManifest;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.signals.commands.base.Command;
 
@@ -34,7 +36,7 @@ import org.eclipse.ditto.signals.commands.base.Command;
  */
 @Immutable
 public final class BatchedEntityIdWithRevisions<E extends EntityIdWithRevision>
-        implements Jsonifiable<JsonObject>, StreamingMessage {
+        implements Jsonifiable<JsonObject>, StreamingMessage, WithManifest {
 
     static final JsonFieldDefinition<String> JSON_TYPE = Command.JsonFields.TYPE;
 
@@ -132,5 +134,11 @@ public final class BatchedEntityIdWithRevisions<E extends EntityIdWithRevision>
         return getClass().getSimpleName() + " [" + super.toString()
                 + ", elements=" + elements
                 + "]";
+    }
+
+    @Nonnull
+    @Override
+    public String getManifest() {
+        return type;
     }
 }
