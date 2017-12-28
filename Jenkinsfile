@@ -33,7 +33,8 @@ node {
             maven: 'maven-3.5.2',
             mavenLocalRepo: theMvnRepo) {
 
-      sh "mvn package javadoc:jar source:jar deploy:deploy --batch-mode --errors -Pinternal-repos"
+      sh "mvn javadoc:jar source:jar deploy -DskipTests -DskipITs" +
+              " --batch-mode --errors -Pinternal-repos"
     }
   }
 }
