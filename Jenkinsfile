@@ -30,6 +30,9 @@ node {
 
   stage('Deploy') {
     withMaven(
+      options: [
+              junitPublisher(disabled: true)
+      ],
       maven: 'maven-3.5.2',
       mavenLocalRepo: theMvnRepo) {
 
