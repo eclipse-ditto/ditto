@@ -22,9 +22,21 @@ node {
       maven: 'maven-3.5.2',
       mavenLocalRepo: theMvnRepo) {
 
-      sh "mvn clean javadoc:jar source:jar install deploy:deploy" +
+      sh "mvn clean install" +
               " -T16 --batch-mode --errors" +
-              " -Pbuild-documentation,internal-repos -DcreateJavadoc=true"
+              " -Pinternal-repos"
+    }
+  }
+
+  stage('Deploy') {
+    withMaven(
+      maven: 'maven-3.5.2',
+      mavenLocalRepo: theMvnRepo) {
+
+      sh "mvn javadoc:jar source:jar package deploy:deploy" +
+              " --batch-mode --errors" +
+              " -Pbuild-documentation,internal-repos -DcreateJavadoc=true" +
+              " -DskipTests=true -DskipITs=true"
     }
   }
 }
