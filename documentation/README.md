@@ -19,12 +19,13 @@ In order to edit the documentation
 #### Alternative 1: install Jekyll (UNIX)
 
 Use that if you are on a UNIX system (or have the Ubuntu bash subsystem for Windows 10). 
+If you're behind a proxy, you can use the `http_proxy` parameter.
 
 ```bash
 sudo apt-get install build-essential ruby-dev libcurl3
-sudo gem install --http-proxy http://localhost:3128 jekyll
-sudo gem install --http-proxy http://localhost:3128 jekyll-sitemap
-sudo gem install --http-proxy http://localhost:3128 html-proofer
+sudo gem install [--http-proxy http://localhost:3128] jekyll
+sudo gem install [--http-proxy http://localhost:3128] jekyll-sitemap
+sudo gem install [--http-proxy http://localhost:3128] html-proofer
 ```
 
 Watch all resources and start local server serving the Jekyll content at [http://localhost:4000](http://localhost:4000):
