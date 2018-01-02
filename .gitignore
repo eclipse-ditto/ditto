@@ -1,5 +1,6 @@
 .checkstyle
 .classpath
+.flattened-pom.xml
 .idea
 *.iml
 .project
