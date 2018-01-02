@@ -1,45 +1,23 @@
 #!groovy
 node {
   // Need to replace the '%2F' used by Jenkins to deal with / in the path (e.g. story/...)
-  String theBranch = "${env.BRANCH_NAME}".replace('%2F', '-').replace('/','-');
+  String theBranch = "${env.BRANCH_NAME}".replace('%2F', '-').replace('/','-')
+  String theVersion = "0-${theBranch}-SNAPSHOT"
   String theMvnRepo = "$WORKSPACE/../feature-repository-${theBranch}";
 
   stage('Checkout') {
     checkout scm
   }
 
-  stage("set version to ${theBranch}") {
-    withMaven(
-      maven: 'maven-3.5.2',
-      mavenLocalRepo: theMvnRepo) {
-
-      sh "mvn versions:set -DnewVersion=0-${theBranch}-SNAPSHOT"
-    }
-  }
-
   stage('Build') {
     withMaven(
-      maven: 'maven-3.5.2',
+      maven: 'maven-3.3.9',
       mavenLocalRepo: theMvnRepo) {
 
-      sh "mvn clean install" +
+      sh "mvn clean deploy javadoc:jar source:jar" +
               " -T16 --batch-mode --errors" +
-              " -Pinternal-repos"
-    }
-  }
-
-  stage('Deploy') {
-    withMaven(
-      options: [
-              junitPublisher(disabled: true)
-      ],
-      maven: 'maven-3.5.2',
-      mavenLocalRepo: theMvnRepo) {
-
-      sh "mvn javadoc:jar source:jar package deploy:deploy" +
-              " --batch-mode --errors" +
               " -Pbuild-documentation,internal-repos -DcreateJavadoc=true" +
-              " -DskipTests=true -DskipITs=true"
+              " -Drevision=${theVersion}"
     }
   }
 }
