@@ -11,24 +11,13 @@
  */
 package org.eclipse.ditto.services.thingsearch.query.actors;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Set;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
-
-import org.eclipse.ditto.model.base.auth.AuthorizationContext;
-import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.thingsearchparser.ParserException;
 import org.eclipse.ditto.model.thingsearchparser.options.rql.RqlOptionParser;
-import org.eclipse.ditto.model.thingsearchparser.predicates.ast.RootNode;
-import org.eclipse.ditto.model.thingsearchparser.predicates.rql.RqlPredicateParser;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SudoCountThings;
 import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Criteria;
 import org.eclipse.ditto.services.thingsearch.querymodel.criteria.CriteriaFactory;
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Predicate;
-import org.eclipse.ditto.services.thingsearch.querymodel.expression.FilterFieldExpression;
 import org.eclipse.ditto.services.thingsearch.querymodel.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.Query;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.QueryBuilder;
@@ -61,20 +50,18 @@ public final class QueryActor extends AbstractActor {
 
     private final DiagnosticLoggingAdapter logger = LogUtil.obtain(this);
 
-    private final CriteriaFactory criteriaFactory;
+    private final QueryFilterCriteriaFactory queryFilterCriteriaFactory;
     private final ThingsFieldExpressionFactory fieldExpressionFactory;
     private final QueryBuilderFactory queryBuilderFactory;
     private final RqlOptionParser rqlOptionParser;
-    private final RqlPredicateParser rqlPredicateParser;
 
     private QueryActor(final CriteriaFactory criteriaFactory, final ThingsFieldExpressionFactory fieldExpressionFactory,
             final QueryBuilderFactory queryBuilderFactory) {
 
-        this.criteriaFactory = criteriaFactory;
+        this.queryFilterCriteriaFactory = new QueryFilterCriteriaFactory(criteriaFactory, fieldExpressionFactory);
         this.fieldExpressionFactory = fieldExpressionFactory;
         this.queryBuilderFactory = queryBuilderFactory;
         rqlOptionParser = new RqlOptionParser();
-        rqlPredicateParser = new RqlPredicateParser();
     }
 
     /**
@@ -92,7 +79,7 @@ public final class QueryActor extends AbstractActor {
             private static final long serialVersionUID = 1L;
 
             @Override
-            public QueryActor create() throws Exception {
+            public QueryActor create() {
                 return new QueryActor(criteriaFactory, fieldExpressionFactory, queryBuilderFactory);
             }
         });
@@ -121,38 +108,23 @@ public final class QueryActor extends AbstractActor {
     }
 
     private void handleCountThings(final CountThings command) {
-        final Criteria criteria = command.getFilter()
-                .map(filterString -> mapCriteria(filterString, command.getDittoHeaders()))
-                .orElse(criteriaFactory.any());
-        final Criteria filteredCriteria =
-                addAclFilter(criteria, command.getDittoHeaders().getAuthorizationContext());
-        final QueryBuilder queryBuilder = queryBuilderFactory.newUnlimitedBuilder(filteredCriteria);
+        final Criteria filterCriteria = queryFilterCriteriaFactory.filterCriteriaRestrictedByAcl(
+                command.getFilter().orElse(null),
+                command.getDittoHeaders(),
+                command.getDittoHeaders().getAuthorizationContext().getAuthorizationSubjectIds());
+
+        final QueryBuilder queryBuilder = queryBuilderFactory.newUnlimitedBuilder(filterCriteria);
 
         getSender().tell(queryBuilder.build(), getSelf());
     }
 
     private void handleQueryThings(final QueryThings command) {
-        final Criteria criteria = command.getFilter()
-                .map(filterString -> mapCriteria(filterString, command.getDittoHeaders()))
-                .orElse(criteriaFactory.any());
-        final Criteria aclFilteredCriteria =
-                addAclFilter(criteria, command.getDittoHeaders().getAuthorizationContext());
+        final Criteria filterCriteria = queryFilterCriteriaFactory.filterCriteriaRestrictedByAcl(
+                command.getFilter().orElse(null),
+                command.getDittoHeaders(),
+                command.getDittoHeaders().getAuthorizationContext().getAuthorizationSubjectIds());
 
-        final QueryBuilder queryBuilder;
-        if (command.getNamespaces().isPresent()) {
-            final Set<String> namespaces = command.getNamespaces().get();
-            final FilterFieldExpression namespaceFieldExpression = fieldExpressionFactory.filterByNamespace();
-            final Predicate namespacesPredicate =
-                    criteriaFactory.in(namespaces.stream().collect(Collectors.toList()));
-            final Criteria namespaceCriteria =
-                    criteriaFactory.fieldCriteria(namespaceFieldExpression, namespacesPredicate);
-
-            final Criteria filteredCriteria =
-                    criteriaFactory.and(Arrays.asList(aclFilteredCriteria, namespaceCriteria));
-            queryBuilder = queryBuilderFactory.newBuilder(filteredCriteria);
-        } else {
-            queryBuilder = queryBuilderFactory.newBuilder(aclFilteredCriteria);
-        }
+        final QueryBuilder queryBuilder = queryBuilderFactory.newBuilder(filterCriteria);
 
         command.getOptions()
                 .map(optionStrings -> String.join(",", optionStrings))
@@ -162,49 +134,12 @@ public final class QueryActor extends AbstractActor {
     }
 
     private void handleSudoCountThings(final SudoCountThings command) {
-        final Criteria criteria = command.getFilter()
-                .map(filterString -> mapCriteria(filterString, command.getDittoHeaders()))
-                .orElse(criteriaFactory.any());
-        final QueryBuilder queryBuilder = queryBuilderFactory.newUnlimitedBuilder(criteria);
+        final Criteria filterCriteria = queryFilterCriteriaFactory.filterCriteria(
+                command.getFilter().orElse(null), command.getDittoHeaders());
+
+        final QueryBuilder queryBuilder = queryBuilderFactory.newUnlimitedBuilder(filterCriteria);
 
         getSender().tell(queryBuilder.build(), getSelf());
-    }
-
-    private Criteria addAclFilter(final Criteria criteria, final AuthorizationContext authorizationContext) {
-        final List<Object> sids = authorizationContext.getAuthorizationSubjects().stream()
-                .map(AuthorizationSubject::getId)
-                .collect(Collectors.toList());
-        final FilterFieldExpression aclFieldExpression = fieldExpressionFactory.filterByAcl();
-        final Predicate sidPredicate = criteriaFactory.in(sids);
-        final Criteria aclFieldCriteria = criteriaFactory.fieldCriteria(aclFieldExpression, sidPredicate);
-
-        return criteriaFactory.and(Arrays.asList(criteria, aclFieldCriteria));
-    }
-
-    private Criteria mapCriteria(final String filter, final DittoHeaders dittoHeaders) {
-        try {
-            final ParameterPredicateVisitor visitor =
-                    new ParameterPredicateVisitor(criteriaFactory, fieldExpressionFactory);
-
-            final RootNode rootNode = rqlPredicateParser.parse(filter);
-            visitor.visit(rootNode);
-
-            final Criteria criteria;
-            if (visitor.getCriteria().size() > 1) {
-                criteria = criteriaFactory.and(visitor.getCriteria());
-            } else if (visitor.getCriteria().size() == 1) {
-                criteria = visitor.getCriteria().get(0);
-            } else {
-                criteria = criteriaFactory.any();
-            }
-            return criteria;
-        } catch (final ParserException | IllegalArgumentException e) {
-            throw InvalidFilterException.newBuilder()
-                    .message(e.getMessage())
-                    .cause(e)
-                    .dittoHeaders(dittoHeaders)
-                    .build();
-        }
     }
 
     private void setOptions(final String options, final QueryBuilder queryBuilder,
