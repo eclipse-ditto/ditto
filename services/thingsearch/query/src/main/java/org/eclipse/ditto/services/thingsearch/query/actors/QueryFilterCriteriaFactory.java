@@ -13,7 +13,6 @@ package org.eclipse.ditto.services.thingsearch.query.actors;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
@@ -40,11 +39,11 @@ public class QueryFilterCriteriaFactory {
         this.rqlPredicateParser = new RqlPredicateParser();
     }
 
-    public Criteria filterCriteriaRestrictedByAclAndNamespace(final String filter, final DittoHeaders dittoHeaders,
-            final List<String> authorisationSubjectIds, final Set<String> namespaces)
+    public Criteria filterCriteriaRestrictedByNamespace(final String filter, final DittoHeaders dittoHeaders,
+            final Set<String> namespaces)
     {
         final Criteria filterCriteria = filterCriteria(filter, dittoHeaders);
-        return restrictByAclAndNamespace(authorisationSubjectIds, namespaces, filterCriteria);
+        return restrictByNamespace(namespaces, filterCriteria);
     }
 
     public Criteria filterCriteriaRestrictedByAcl(final String filter, final DittoHeaders dittoHeaders,
@@ -52,18 +51,6 @@ public class QueryFilterCriteriaFactory {
     {
         final Criteria filterCriteria = filterCriteria(filter, dittoHeaders);
         return restrictByAcl(authorisationSubjectIds, filterCriteria);
-    }
-
-    public Criteria restrictByAclAndNamespace(final List<String> authorisationSubjectIds, final Set<String>
-            namespaces, Criteria filterCriteria) {
-        final List<Criteria> criteriaElements = new LinkedList<>();
-        criteriaElements.add(aclFilterCriteria(authorisationSubjectIds));
-        if (null != namespaces) {
-            criteriaElements.add(namespaceFilterCriteria(namespaces));
-        }
-
-        criteriaElements.add(filterCriteria);
-        return criteriaFactory.and(criteriaElements);
     }
 
     public Criteria restrictByAcl(final List<String> authorisationSubjectIds, Criteria filterCriteria) {

@@ -11,24 +11,15 @@
  */
 package org.eclipse.ditto.services.thingsearch.query.actors;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Set;
-import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
-import org.eclipse.ditto.model.base.auth.AuthorizationContext;
-import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import java.util.function.Consumer;
+
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.thingsearchparser.ParserException;
 import org.eclipse.ditto.model.thingsearchparser.options.rql.RqlOptionParser;
-import org.eclipse.ditto.model.thingsearchparser.predicates.ast.RootNode;
-import org.eclipse.ditto.model.thingsearchparser.predicates.rql.RqlPredicateParser;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SudoCountThings;
 import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Criteria;
 import org.eclipse.ditto.services.thingsearch.querymodel.criteria.CriteriaFactory;
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Predicate;
-import org.eclipse.ditto.services.thingsearch.querymodel.expression.FilterFieldExpression;
 import org.eclipse.ditto.services.thingsearch.querymodel.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.AggregationBuilder;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.AggregationBuilderFactory;
@@ -61,20 +52,18 @@ public final class AggregationQueryActor extends AbstractActor {
 
     private final DiagnosticLoggingAdapter logger = LogUtil.obtain(this);
 
-    private final CriteriaFactory criteriaFactory;
     private final ThingsFieldExpressionFactory fieldExpressionFactory;
+    private final QueryFilterCriteriaFactory queryFilterCriteriaFactory;
     private final AggregationBuilderFactory aggregationBuilderFactory;
     private final RqlOptionParser rqlOptionParser;
-    private final RqlPredicateParser rqlPredicateParser;
 
     private AggregationQueryActor(final CriteriaFactory criteriaFactory,
             final ThingsFieldExpressionFactory fieldExpressionFactory,
             final AggregationBuilderFactory aggregationBuilderFactory) {
-        this.criteriaFactory = criteriaFactory;
         this.fieldExpressionFactory = fieldExpressionFactory;
         this.aggregationBuilderFactory = aggregationBuilderFactory;
+        this.queryFilterCriteriaFactory = new QueryFilterCriteriaFactory(criteriaFactory, fieldExpressionFactory);
         rqlOptionParser = new RqlOptionParser();
-        rqlPredicateParser = new RqlPredicateParser();
     }
 
     /**
@@ -92,7 +81,7 @@ public final class AggregationQueryActor extends AbstractActor {
             private static final long serialVersionUID = 1L;
 
             @Override
-            public AggregationQueryActor create() throws Exception {
+            public AggregationQueryActor create() {
                 return new AggregationQueryActor(criteriaFactory, fieldExpressionFactory, aggregationBuilderFactory);
             }
         });
@@ -120,89 +109,44 @@ public final class AggregationQueryActor extends AbstractActor {
     }
 
     private void handleCountThings(final CountThings command) {
-        final Criteria criteria = command.getFilter()
-                .map(filterString -> mapCriteria(filterString, command.getDittoHeaders()))
-                .orElse(criteriaFactory.any());
-        final AggregationBuilder aggregationBuilder = aggregationBuilderFactory.newCountBuilder(criteria)
-                .authorizationSubjects(extractSidsAsStrings(command.getDittoHeaders().getAuthorizationContext()));
+        Criteria filterCriteria = queryFilterCriteriaFactory.filterCriteriaRestrictedByNamespace(
+                command.getFilter().orElse(null),
+                command.getDittoHeaders(),
+                command.getNamespaces().orElse(null));
+
+        final AggregationBuilder aggregationBuilder = aggregationBuilderFactory.newCountBuilder(filterCriteria)
+                .authorizationSubjects(command.getDittoHeaders().getAuthorizationContext().getAuthorizationSubjectIds());
 
         getSender().tell(aggregationBuilder.build(), getSelf());
     }
 
     private void handleQueryThings(final QueryThings command) {
-        final Criteria criteria = command.getFilter()
-                .map(filterString -> mapCriteria(filterString, command.getDittoHeaders()))
-                .orElse(criteriaFactory.any());
+        Criteria filterCriteria = queryFilterCriteriaFactory.filterCriteriaRestrictedByNamespace(
+                command.getFilter().orElse(null),
+                command.getDittoHeaders(),
+                command.getNamespaces().orElse(null));
 
-        EnsureMonotonicityVisitor.apply(criteria, command.getDittoHeaders());
+        EnsureMonotonicityVisitor.apply(filterCriteria, command.getDittoHeaders());
 
-        final AggregationBuilder aggregationBuilder = aggregationBuilderFactory.newBuilder(criteria)
-                .authorizationSubjects(extractSidsAsStrings(command.getDittoHeaders().getAuthorizationContext()));
-
-        final AggregationBuilder finalAggregationBuilder;
-        if (command.getNamespaces().isPresent()) {
-            final Set<String> namespaces = command.getNamespaces().get();
-            final FilterFieldExpression namespaceFieldExpression = fieldExpressionFactory.filterByNamespace();
-            final Predicate namespacesPredicate =
-                    criteriaFactory.in(namespaces.stream().collect(Collectors.toList()));
-            final Criteria namespaceCriteria =
-                    criteriaFactory.fieldCriteria(namespaceFieldExpression, namespacesPredicate);
-
-            final Criteria filteredCriteria =
-                    criteriaFactory.and(Arrays.asList(criteria, namespaceCriteria));
-            finalAggregationBuilder = aggregationBuilderFactory.newBuilder(filteredCriteria);
-        } else {
-            finalAggregationBuilder = aggregationBuilder;
-        }
+        final AggregationBuilder aggregationBuilder = aggregationBuilderFactory.newBuilder(filterCriteria)
+                .authorizationSubjects(command.getDittoHeaders().getAuthorizationContext().getAuthorizationSubjectIds());
 
         command.getOptions()
                 .map(optionStrings -> String.join(",", optionStrings))
-                .ifPresent(options -> setOptions(options, finalAggregationBuilder, command.getDittoHeaders()));
+                .ifPresent(options -> setOptions(options, aggregationBuilder, command.getDittoHeaders()));
 
         getSender().tell(aggregationBuilder.build(), getSelf());
     }
 
     private void handleSudoCountThings(final SudoCountThings command) {
-        final Criteria criteria = command.getFilter()
-                .map(filterString -> mapCriteria(filterString, command.getDittoHeaders()))
-                .orElse(criteriaFactory.any());
+        final Criteria criteria = queryFilterCriteriaFactory.filterCriteria(
+                command.getFilter().orElse(null),
+                command.getDittoHeaders());
+
         final AggregationBuilder aggregationBuilder = aggregationBuilderFactory.newCountBuilder(criteria);
         aggregationBuilder.sudo(true);
 
         getSender().tell(aggregationBuilder.build(), getSelf());
-    }
-
-    private static Collection<String> extractSidsAsStrings(final AuthorizationContext authorizationContext) {
-        return authorizationContext.getAuthorizationSubjects()
-                .stream()
-                .map(AuthorizationSubject::getId)
-                .collect(Collectors.toList());
-    }
-
-    private Criteria mapCriteria(final String filter, final DittoHeaders dittoHeaders) {
-        try {
-            final RootNode rootNode = rqlPredicateParser.parse(filter);
-            final ParameterPredicateVisitor visitor =
-                    new ParameterPredicateVisitor(criteriaFactory, fieldExpressionFactory);
-
-            visitor.visit(rootNode);
-
-            final Criteria criteria;
-            if (visitor.getCriteria().size() > 1) {
-                criteria = criteriaFactory.and(visitor.getCriteria());
-            } else if (visitor.getCriteria().size() == 1) {
-                criteria = visitor.getCriteria().get(0);
-            } else {
-                criteria = criteriaFactory.any();
-            }
-            return criteria;
-        } catch (final ParserException | IllegalArgumentException e) {
-            throw InvalidFilterException.newBuilder()
-                    .message(e.getMessage())
-                    .cause(e)
-                    .dittoHeaders(dittoHeaders)
-                    .build();
-        }
     }
 
     private void setOptions(final String options, final AggregationBuilder aggregationBuilder,
