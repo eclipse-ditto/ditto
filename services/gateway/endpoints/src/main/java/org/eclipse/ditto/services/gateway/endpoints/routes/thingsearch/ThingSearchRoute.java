@@ -26,6 +26,7 @@ import java.util.stream.Stream;
 
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.services.gateway.endpoints.directives.CustomPathMatchers;
 import org.eclipse.ditto.services.gateway.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.signals.commands.thingsearch.query.CountThings;
@@ -128,7 +129,7 @@ public final class ThingSearchRoute extends AbstractRoute {
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     private static Set<String> calculateNamespaces(final Optional<String> namespacesString, final Integer version) {
 
-        if (version.equals(1)) {
+        if (version.equals(JsonSchemaVersion.V_1.toInt())) {
             return null;
         } else {
             return namespacesString.map(
