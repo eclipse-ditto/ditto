@@ -25,7 +25,10 @@ import org.eclipse.ditto.services.thingsearch.querymodel.criteria.CriteriaFactor
 import org.eclipse.ditto.services.thingsearch.querymodel.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidFilterException;
 
-public class QueryFilterCriteriaFactory {
+/**
+ * The place for query filter manipulations
+ */
+final class QueryFilterCriteriaFactory {
 
     private final CriteriaFactory criteriaFactory;
     private final ThingsFieldExpressionFactory fieldExpressionFactory;
@@ -39,6 +42,14 @@ public class QueryFilterCriteriaFactory {
         this.rqlPredicateParser = new RqlPredicateParser();
     }
 
+    /**
+     * Creates a filter criterion based on a filter string which includes only items in the given namespaces
+     *
+     * @param filter the filter string
+     * @param dittoHeaders the corresponding command headers
+     * @param namespaces the namespaces
+     * @return a filter criterion based on the filter string which includes only items related to the given namespaces
+     */
     public Criteria filterCriteriaRestrictedByNamespace(final String filter, final DittoHeaders dittoHeaders,
             final Set<String> namespaces)
     {
@@ -47,6 +58,16 @@ public class QueryFilterCriteriaFactory {
         return restrictByNamespace(namespaces, filterCriteria);
     }
 
+    /**
+     * Creates a filter criterion based on a filter string which includes only items related to the given auth
+     * subjects
+     *
+     * @param filter the filter string
+     * @param dittoHeaders the corresponding command headers
+     * @param authorisationSubjectIds the auth subjects
+     * @return a filter criterion based on the filter string which includes only items related to the given auth
+     * subjects
+     */
     public Criteria filterCriteriaRestrictedByAcl(final String filter, final DittoHeaders dittoHeaders,
             final List<String> authorisationSubjectIds)
     {
@@ -54,6 +75,14 @@ public class QueryFilterCriteriaFactory {
         return restrictByAcl(authorisationSubjectIds, filterCriteria);
     }
 
+    /**
+     * Creates a criterion from the given filter string by parsing it. Headers are passed through for eventual error
+     * information.
+     * @param filter the filter string
+     * @param headers the corresponding command headers
+     * @return a criterion built from given filter or null if filter is null.
+     * @throws InvalidFilterException if the filter string cannot be mapped to a valid criterion
+     */
     public Criteria filterCriteria(final String filter, final DittoHeaders headers) {
         return null == filter ? criteriaFactory.any() : mapCriteria(filter, headers);
     }
@@ -76,6 +105,8 @@ public class QueryFilterCriteriaFactory {
         return criteriaFactory.fieldCriteria(fieldExpressionFactory.filterByAcl(),
                 criteriaFactory.in(authorisationSubjectIds));
     }
+
+
 
     private Criteria mapCriteria(final String filter, final DittoHeaders dittoHeaders) {
         try {
