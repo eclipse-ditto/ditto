@@ -31,7 +31,7 @@ public class QueryFilterCriteriaFactory {
     private final ThingsFieldExpressionFactory fieldExpressionFactory;
     private final RqlPredicateParser rqlPredicateParser;
 
-    public QueryFilterCriteriaFactory(final CriteriaFactory criteriaFactory,
+    QueryFilterCriteriaFactory(final CriteriaFactory criteriaFactory,
             final ThingsFieldExpressionFactory fieldExpressionFactory)
     {
         this.criteriaFactory = criteriaFactory;
@@ -43,6 +43,7 @@ public class QueryFilterCriteriaFactory {
             final Set<String> namespaces)
     {
         final Criteria filterCriteria = filterCriteria(filter, dittoHeaders);
+        EnsureMonotonicityVisitor.apply(filterCriteria, dittoHeaders);
         return restrictByNamespace(namespaces, filterCriteria);
     }
 
@@ -53,11 +54,15 @@ public class QueryFilterCriteriaFactory {
         return restrictByAcl(authorisationSubjectIds, filterCriteria);
     }
 
-    public Criteria restrictByAcl(final List<String> authorisationSubjectIds, Criteria filterCriteria) {
+    public Criteria filterCriteria(final String filter, final DittoHeaders headers) {
+        return null == filter ? criteriaFactory.any() : mapCriteria(filter, headers);
+    }
+
+    private Criteria restrictByAcl(final List<String> authorisationSubjectIds, Criteria filterCriteria) {
         return criteriaFactory.and(Arrays.asList(aclFilterCriteria(authorisationSubjectIds), filterCriteria));
     }
 
-    public Criteria restrictByNamespace(final Set<String> namespaces, Criteria filterCriteria) {
+    private Criteria restrictByNamespace(final Set<String> namespaces, Criteria filterCriteria) {
         return criteriaFactory.and(Arrays.asList(namespaceFilterCriteria(namespaces), filterCriteria));
     }
 
@@ -70,10 +75,6 @@ public class QueryFilterCriteriaFactory {
     private Criteria aclFilterCriteria(final List<String> authorisationSubjectIds) {
         return criteriaFactory.fieldCriteria(fieldExpressionFactory.filterByAcl(),
                 criteriaFactory.in(authorisationSubjectIds));
-    }
-
-    public Criteria filterCriteria(final String filter, final DittoHeaders headers) {
-        return null == filter ? criteriaFactory.any() : mapCriteria(filter, headers);
     }
 
     private Criteria mapCriteria(final String filter, final DittoHeaders dittoHeaders) {

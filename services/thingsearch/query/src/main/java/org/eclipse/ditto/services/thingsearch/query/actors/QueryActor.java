@@ -119,16 +119,17 @@ public final class QueryActor extends AbstractActor {
     }
 
     private void handleQueryThings(final QueryThings command) {
+        final DittoHeaders dittoHeaders = command.getDittoHeaders();
         final Criteria filterCriteria = queryFilterCriteriaFactory.filterCriteriaRestrictedByAcl(
                 command.getFilter().orElse(null),
-                command.getDittoHeaders(),
+                dittoHeaders,
                 command.getDittoHeaders().getAuthorizationContext().getAuthorizationSubjectIds());
 
         final QueryBuilder queryBuilder = queryBuilderFactory.newBuilder(filterCriteria);
 
         command.getOptions()
                 .map(optionStrings -> String.join(",", optionStrings))
-                .ifPresent(options -> setOptions(options, queryBuilder, command.getDittoHeaders()));
+                .ifPresent(options -> setOptions(options, queryBuilder, dittoHeaders));
 
         getSender().tell(queryBuilder.build(), getSelf());
     }

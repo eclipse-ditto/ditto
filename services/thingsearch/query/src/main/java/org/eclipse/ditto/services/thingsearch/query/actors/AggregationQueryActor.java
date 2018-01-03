@@ -109,7 +109,7 @@ public final class AggregationQueryActor extends AbstractActor {
     }
 
     private void handleCountThings(final CountThings command) {
-        Criteria filterCriteria = queryFilterCriteriaFactory.filterCriteriaRestrictedByNamespace(
+        final Criteria filterCriteria = queryFilterCriteriaFactory.filterCriteriaRestrictedByNamespace(
                 command.getFilter().orElse(null),
                 command.getDittoHeaders(),
                 command.getNamespaces().orElse(null));
@@ -121,19 +121,18 @@ public final class AggregationQueryActor extends AbstractActor {
     }
 
     private void handleQueryThings(final QueryThings command) {
-        Criteria filterCriteria = queryFilterCriteriaFactory.filterCriteriaRestrictedByNamespace(
+        final DittoHeaders dittoHeaders = command.getDittoHeaders();
+        final Criteria filterCriteria = queryFilterCriteriaFactory.filterCriteriaRestrictedByNamespace(
                 command.getFilter().orElse(null),
-                command.getDittoHeaders(),
+                dittoHeaders,
                 command.getNamespaces().orElse(null));
-
-        EnsureMonotonicityVisitor.apply(filterCriteria, command.getDittoHeaders());
 
         final AggregationBuilder aggregationBuilder = aggregationBuilderFactory.newBuilder(filterCriteria)
                 .authorizationSubjects(command.getDittoHeaders().getAuthorizationContext().getAuthorizationSubjectIds());
 
         command.getOptions()
                 .map(optionStrings -> String.join(",", optionStrings))
-                .ifPresent(options -> setOptions(options, aggregationBuilder, command.getDittoHeaders()));
+                .ifPresent(options -> setOptions(options, aggregationBuilder, dittoHeaders));
 
         getSender().tell(aggregationBuilder.build(), getSelf());
     }
