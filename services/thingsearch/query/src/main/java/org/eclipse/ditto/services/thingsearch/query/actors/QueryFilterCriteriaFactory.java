@@ -88,6 +88,9 @@ final class QueryFilterCriteriaFactory {
     }
 
     private Criteria restrictByAcl(final List<String> authorisationSubjectIds, Criteria filterCriteria) {
+
+
+    private Criteria restrictByAcl(final List<String> authorisationSubjectIds, Criteria filterCriteria) {
         return criteriaFactory.and(Arrays.asList(aclFilterCriteria(authorisationSubjectIds), filterCriteria));
     }
 
@@ -105,8 +108,6 @@ final class QueryFilterCriteriaFactory {
         return criteriaFactory.fieldCriteria(fieldExpressionFactory.filterByAcl(),
                 criteriaFactory.in(authorisationSubjectIds));
     }
-
-
 
     private Criteria mapCriteria(final String filter, final DittoHeaders dittoHeaders) {
         try {
