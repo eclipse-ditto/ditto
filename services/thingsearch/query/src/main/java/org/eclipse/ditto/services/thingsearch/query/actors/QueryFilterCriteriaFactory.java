@@ -88,9 +88,6 @@ final class QueryFilterCriteriaFactory {
     }
 
     private Criteria restrictByAcl(final List<String> authorisationSubjectIds, Criteria filterCriteria) {
-
-
-    private Criteria restrictByAcl(final List<String> authorisationSubjectIds, Criteria filterCriteria) {
         return criteriaFactory.and(Arrays.asList(aclFilterCriteria(authorisationSubjectIds), filterCriteria));
     }
 
