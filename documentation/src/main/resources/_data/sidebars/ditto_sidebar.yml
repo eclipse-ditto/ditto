@@ -148,6 +148,9 @@ entries:
     - title: Search
       url: /httpapi-search.html
       output: web
+    - title: Messages
+      url: /httpapi-messages.html
+      output: web
     - title: Server sent events
       url: /httpapi-sse.html
       output: web
