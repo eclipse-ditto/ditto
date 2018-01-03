@@ -17,6 +17,9 @@ IIoT
 CQRS
 : {{site.data.glossary.cqrs}}
 
+RQL
+: {{site.data.glossary.rql}}
+
 
 ## Ditto specific terms
 
