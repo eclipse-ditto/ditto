@@ -23,6 +23,7 @@ import org.eclipse.ditto.services.models.things.commands.sudo.SudoCommand;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveModifiedThingTags;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThings;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingsResponse;
+import org.eclipse.ditto.services.models.thingsearch.commands.sudo.ThingSearchSudoCommand;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.devops.DevOpsCommand;
@@ -122,6 +123,8 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
                             getSender());
                 })
                 .match(SudoCommand.class, forwardToLocalEnforcerLookup(thingEnforcerLookup))
+                .match(org.eclipse.ditto.services.models.policies.commands.sudo.SudoCommand.class,
+                        forwardToLocalEnforcerLookup(thingEnforcerLookup))
 
                 /* Live Signals */
                 .match(Signal.class, ProxyActor::isLiveSignal, forwardToLocalEnforcerLookup(thingEnforcerLookup))
@@ -167,7 +170,11 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
 
                 /* Search Commands */
                 .match(ThingSearchCommand.class, command -> pubSubMediator.tell(
-                        new DistributedPubSubMediator.Send(THINGS_SEARCH_ACTOR_PATH, command), getSender()));
+                        new DistributedPubSubMediator.Send(THINGS_SEARCH_ACTOR_PATH, command), getSender()))
+
+                .match(ThingSearchSudoCommand.class, command -> pubSubMediator.tell(
+                        new DistributedPubSubMediator.Send(THINGS_SEARCH_ACTOR_PATH, command), getSender()))
+        ;
     }
 
     @Override

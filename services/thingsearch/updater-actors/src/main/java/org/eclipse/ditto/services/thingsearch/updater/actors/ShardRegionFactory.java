@@ -20,6 +20,7 @@ import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.services.models.policies.PoliciesMessagingConstants;
 import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
+import org.eclipse.ditto.services.models.thingsearch.ThingsSearchConstants;
 import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
 
 import akka.actor.ActorRef;
@@ -33,8 +34,6 @@ import akka.cluster.sharding.ClusterShardingSettings;
  */
 @NotThreadSafe
 final class ShardRegionFactory {
-
-    private static final String SEARCH_UPDATER_SHARD_REGION = "search-updater";
 
     private final ActorSystem actorSystem;
 
@@ -101,7 +100,7 @@ final class ShardRegionFactory {
         final ClusterShardingSettings shardingSettings = ClusterShardingSettings.create(actorSystem);
         final ShardRegionExtractor shardRegionExtractor = ShardRegionExtractor.of(numberOfShards, actorSystem);
 
-        return clusterSharding.start(SEARCH_UPDATER_SHARD_REGION, thingUpdaterProps, shardingSettings,
+        return clusterSharding.start(ThingsSearchConstants.SHARD_REGION, thingUpdaterProps, shardingSettings,
                 shardRegionExtractor);
     }
 
