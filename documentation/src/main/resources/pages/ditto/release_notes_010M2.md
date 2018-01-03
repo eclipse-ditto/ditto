@@ -1,6 +1,6 @@
 ---
 title: Release notes 0.1.0-M2
-tags: [release_notes]
+tags: [release_notes, search]
 keywords: release notes, announcements, changelog
 summary: "Version 0.1.0-M2 of Eclipse Ditto, released on xxx"
 permalink: release_notes_010-M2.html
@@ -47,10 +47,8 @@ TODO write
 
 ### Stabilization of eventually consistent search index
 
-In various conditions the search index which is done by the [search aspect](TODO.html) of Ditto was not updated in case
+In various conditions the search index which is updated by the [search](basic-search.html) of Ditto was not updated in case
 events were missed or there were timing issues.
 
 Those issues were resolved by choosing another approach for keeping track of the already processed events. 
-
-TODO document search aspect feature in Ditto.
 

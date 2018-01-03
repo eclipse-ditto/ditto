@@ -1,7 +1,7 @@
 ---
 title: HTTP API search
 keywords: http, api, search, query, rql
-tags: [http]
+tags: [http, search]
 permalink: httpapi-search.html
 summary: The HTTP based search is a mighty concept in order to find Things based on their meta and state data. 
          It utilizes RQL syntax.

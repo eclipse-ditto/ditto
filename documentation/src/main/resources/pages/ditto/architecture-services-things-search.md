@@ -1,7 +1,7 @@
 ---
 title: Things-Search service
 keywords: architecture, service, things-search, search
-tags: [architecture]
+tags: [architecture, search]
 permalink: architecture-services-things-search.html
 ---
 

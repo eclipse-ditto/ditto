@@ -100,6 +100,9 @@ entries:
     - title: Change notifications
       url: /basic-changenotifications.html
       output: web
+    - title: Search
+      url: /basic-search.html
+      output: web
 
   - title: Architecture
     output: web
