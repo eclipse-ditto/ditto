@@ -40,6 +40,7 @@ Further information can be found in the [operating chapter](installation-operati
 ### Search in namespaces
 
 TODO write
+TODO enhance [search](basic-search.html) section
 
 
 
