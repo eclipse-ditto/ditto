@@ -45,7 +45,77 @@ import scala.Option;
 import scala.concurrent.duration.FiniteDuration;
 
 /**
- * An actor that supervises stream forwarders.
+ * An actor that supervises stream forwarders. It maintains the end time of the last successful stream in a
+ * {@code StreamMetadataPersistence} and starts streams whenever the timestamp becomes too old. It collaborates
+ * with {@code AbstractStreamingActor} and {@code AbstractStreamForwarder} to ensure that the recipient of stream
+ * messages eventually receive all messages up until the recent past.
+ * <pre>
+ * {@code
+ * Streaming                                                                       Supervisor           Stream
+ * Actor                                                                              +                 Message
+ *    +                                                                               |                 Recipient
+ *    |                                                                               |                   +
+ *    |                                                                               |                   |
+ *    |                                                                         spawns|                   |
+ *    |                                          START_STREAMING            <---------+                   |
+ *    |  <-----------------------------------------------------+  Stream                                  |
+ *    |                                                           Forwarder                               |
+ *    |                                                              +                                    |
+ *    |                                                              |                                    |
+ *    |                                                              |                                    |
+ *    |                                                              |                                    |
+ *    |                                                              |                                    |
+ *    |                                                              |                                    |
+ *    |                                                              |                                    |
+ *    |  spawns          Akka                                        |                                    |
+ *    |  +------------>  Stream                                      |                                    |
+ *    |                  Source                                      |                                    |
+ *    |                    +                                         |                                    |
+ *    |                    |                                         |                                    |
+ *    |                    |  STREAM_STARTED(BATCH_SIZE)             |                                    |
+ *    |                    |  +----------------------------------->  |                                    |
+ *    |                    |                                         |                                    |
+ *    |                    |                                    ACK  |                                    |
+ *    |                    |  <-----------------------------------+  |                                    |
+ *    |                    |                                         |                                    |
+ *    |                    |                                         |                                    |
+ *    |                    |                                         |                                    |
+ *    |                    |                                         |                                    |
+ *    |                    |  BATCH(ELEMENT)                         |                                    |
+ *    |                    |  +----------------------------------->  |                                    |
+ *    |                    |                                         |                                    |
+ *    |                    |                                         |  MESSAGE #1 of ELEMENT             |
+ *    |                    |                                         |  +------------------------------>  |
+ *    |                    |                                         |                                    |
+ *    |                    |                                         |                               ACK  |
+ *    |                    |                                         |  <------------------------------+  |
+ *    |                    |                                         |                                    |
+ *    |                    |                                         |                                    |
+ *    |                    |                                         |                                    |
+ *    |                    |                                         |  MESSAGE #2 of ELEMENT             |
+ *    |                    |                                         |  +------------------------------>  |
+ *    |                    |                                         |                                    |
+ *    |                    |                                         |                               ACK  |
+ *    |                    |                                         |  <------------------------------+  |
+ *    |                    |                                         |                                    |
+ *    |                    |                                    ACK  |                                    |
+ *    |                    |  <-----------------------------------+  |                                    |
+ *    |                    |                                         |                                    |
+ *    |                    |  STREAM_COMPLETED                       |                                    |
+ *    |                    |  +----------------------------------->  |                                    |
+ *    |                    |                                         |                                    |
+ *    |                    +                                         |                                    |
+ *    |                   Dead                                       | STREAM_COMPLETED                   |
+ *    |                                                              | +--------------+                   |
+ *    |                                                              +                |                   |
+ *    |                                                             Dead              |                   |
+ *    |                                                                               |                   |
+ *    |                                                                               |                   |
+ *    |                                                                               v                   |
+ *    |                                                                            Stream                 |
+ *    |                                                                            Supervisor             |
+ * }
+ * </pre>
  */
 public final class DefaultStreamSupervisor<E> extends AbstractActor {
 

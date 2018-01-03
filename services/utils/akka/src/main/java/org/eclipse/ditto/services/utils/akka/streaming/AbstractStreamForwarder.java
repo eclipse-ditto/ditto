@@ -105,10 +105,26 @@ public abstract class AbstractStreamForwarder<E> extends AbstractActor {
      */
     protected abstract Class<E> getElementClass();
 
+    /**
+     * Returns the recipient of forwarded messages.
+     *
+     * @return The recipient.
+     */
     protected abstract ActorRef getRecipient();
 
+    /**
+     * Returns the recipient of stream status messages.
+     *
+     * @return Whom to send stream completion and failure messages.
+     */
     protected abstract ActorRef getCompletionRecipient();
 
+    /**
+     * Transforms a stream element into a source of messages to forward to the recipient.
+     *
+     * @param element The stream element.
+     * @return A source of messages.
+     */
     protected abstract Source<?, ?> mapEntity(final E element);
 
     private Receive initialBehavior() {
