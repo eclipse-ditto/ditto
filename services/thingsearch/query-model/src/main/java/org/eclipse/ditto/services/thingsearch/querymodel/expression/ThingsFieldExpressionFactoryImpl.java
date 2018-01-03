@@ -172,6 +172,6 @@ public class ThingsFieldExpressionFactoryImpl implements ThingsFieldExpressionFa
 
     @Override
     public FilterFieldExpression filterByNamespace() {
-        return new SimpleFieldExpressionImpl(FieldExpressionUtil.FIELD_NAME_NAMESPACE);
+        return new SimpleFieldExpressionImpl(FieldExpressionUtil.FIELD_NAMESPACE);
     }
 }
