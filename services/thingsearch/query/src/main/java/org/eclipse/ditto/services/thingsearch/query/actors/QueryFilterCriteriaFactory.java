@@ -106,8 +106,6 @@ final class QueryFilterCriteriaFactory {
                 criteriaFactory.in(authorisationSubjectIds));
     }
 
-
-
     private Criteria mapCriteria(final String filter, final DittoHeaders dittoHeaders) {
         try {
             final ParameterPredicateVisitor visitor =
