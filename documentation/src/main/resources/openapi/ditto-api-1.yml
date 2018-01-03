@@ -1565,10 +1565,6 @@ paths:
 
          Attention, at the moment we do not support search on array fields.
 
-         The search result is limited to the Things within the namespace (or namespaces) the solution is configured
-         for. Even though this restriction is currently not implemented, it will be subject to revision without
-         advanced notice.
-
       parameters:
         - $ref: '#/parameters/searchFilter'
         - name: option
@@ -1683,9 +1679,6 @@ paths:
 
          Attention, at the moment we do not support search on array fields.
 
-         The search result is limited to the Things within the namespace (or namespaces) the solution is configured
-         for. Even though this restriction is currently not implemented, it will be subject to revision without
-         advanced notice.
       parameters:
         - $ref: '#/parameters/searchFilter'
       tags:
