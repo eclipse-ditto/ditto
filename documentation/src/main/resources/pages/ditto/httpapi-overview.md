@@ -20,3 +20,4 @@ If you have any feedback on how to improve at that point, Ditto's developer team
 ## Content Type
 
 Currently only content-type `application/json` is supported.
+

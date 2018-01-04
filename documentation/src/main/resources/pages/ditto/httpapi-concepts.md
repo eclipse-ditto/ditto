@@ -7,9 +7,25 @@ permalink: httpapi-concepts.html
 
 Ditto's [HTTP API](http-api-doc.html) follows some concepts which are documented on this page.
 
+The entry point into the HTTP API is:
+```
+http://localhost:8080/api/<apiVersion>
+```
+
 ## API versioning
 
+Ditto's HTTP API is versioned in the URL: `/api/<apiVersion>`. Currently Ditto distinguishes between API version `1` and
+API version `2`.
 
+The API version is a promise that no HTTP resources (the static ones defined by Ditto itself) are modified in an 
+incompatible/breaking way. As the HTTP resources reflect the JSON structure of the `Thing` entity, that also applies for
+this entity. In API version 1, the JSON structure of the `Thing` entity won't be changed in a breaking way 
+(e.g. by removing or renaming a JSON field).
+
+That is also the reason for Ditto having already 2 API versions. In API 2 the `Thing` structure was changed to no longer
+contain the [acl](basic-acl.html) inline as payload of the Thing, but the authorization information in API 2 is managed 
+by [Policies](basic-policy.html). The `acl` field was removed from structure of the `Thing` and the `policyId` added - 
+that's why Ditto had to make this change in an API version 2.
 
 
 ## Endpoints
@@ -58,9 +74,8 @@ For example for a `Thing` with following content:
 ```json
 {
   "thingId": "{thingId}",
-  "policyId": "{policyId}",
   "acl": {
-    "userId": {
+    "{userId}": {
       "READ": true,
       "WRITE": true,
       "ADMINISTRATE": true

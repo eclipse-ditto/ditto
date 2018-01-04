@@ -20,6 +20,9 @@ CQRS
 RQL
 : {{site.data.glossary.rql}}
 
+SSE
+: {{site.data.glossary.sse}}
+
 
 ## Ditto specific terms
 
