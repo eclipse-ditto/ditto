@@ -32,7 +32,7 @@ public final class MongoThingsSearchUpdaterPersistenceIndexLimitationIT
     private static final String VERY_SHORTENED_STRING = MUCH_TOO_LONG_STRING.substring(0, 5);
 
     @Test
-    public void insertOrUpdateIsLimited() throws Exception {
+    public void insertOrUpdateIsLimited() {
         // GIVEN
         final String thingId = ":thingToSave";
         final String attributeKey = "test";

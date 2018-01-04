@@ -21,7 +21,7 @@ import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
-import org.eclipse.ditto.services.things.persistence.actors.PersistenceQueriesActor;
+import org.eclipse.ditto.services.things.persistence.actors.ThingsPersistenceStreamingActorCreator;
 import org.eclipse.ditto.services.things.persistence.actors.ThingsActorsCreator;
 import org.eclipse.ditto.services.things.starter.util.ConfigKeys;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -43,7 +43,6 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.InvalidActorNameException;
 import akka.actor.OneForOneStrategy;
-import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.actor.Status;
 import akka.actor.SupervisorStrategy;
@@ -52,8 +51,6 @@ import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.cluster.sharding.ClusterSharding;
 import akka.cluster.sharding.ClusterShardingSettings;
 import akka.cluster.sharding.ShardRegion;
-import akka.cluster.singleton.ClusterSingletonManager;
-import akka.cluster.singleton.ClusterSingletonManagerSettings;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.http.javadsl.ConnectHttp;
 import akka.http.javadsl.Http;
@@ -75,12 +72,14 @@ final class ThingsRootActor extends AbstractActor {
      */
     static final String ACTOR_NAME = "thingsRoot";
 
+    private static final String RESTARTING_CHILD_MESSAGE = "Restarting child...";
+
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
     private final SupervisorStrategy strategy = new OneForOneStrategy(true, DeciderBuilder
             .match(NullPointerException.class, e ->
             {
                 log.error(e, "NullPointer in child actor: {}", e.getMessage());
-                log.info("Restarting child...");
+                log.info(RESTARTING_CHILD_MESSAGE);
                 return SupervisorStrategy.restart();
             }).match(IllegalArgumentException.class, e ->
             {
@@ -101,7 +100,7 @@ final class ThingsRootActor extends AbstractActor {
             }).match(ConnectException.class, e ->
             {
                 log.warning("ConnectException in child actor: {}", e.getMessage());
-                log.info("Restarting child...");
+                log.info(RESTARTING_CHILD_MESSAGE);
                 return SupervisorStrategy.restart();
             }).match(InvalidActorNameException.class, e ->
             {
@@ -110,7 +109,7 @@ final class ThingsRootActor extends AbstractActor {
             }).match(ActorKilledException.class, e ->
             {
                 log.error(e, "ActorKilledException in child actor: {}", e.message());
-                log.info("Restarting child...");
+                log.info(RESTARTING_CHILD_MESSAGE);
                 return SupervisorStrategy.restart();
             }).match(DittoRuntimeException.class, e ->
             {
@@ -167,11 +166,12 @@ final class ThingsRootActor extends AbstractActor {
         final ActorRef healthCheckingActor = startChildActor(HealthCheckingActor.ACTOR_NAME,
                 HealthCheckingActor.props(healthCheckingActorOptions, mongoClient));
 
-        final ActorRef persistenceQueriesActor = startChildActor(PersistenceQueriesActor.ACTOR_NAME,
-                PersistenceQueriesActor.props());
+        final int tagsStreamingCacheSize = config.getInt(ConfigKeys.THINGS_TAGS_STREAMING_CACHE_SIZE);
+        final ActorRef persistenceStreamingActor = startChildActor(ThingsPersistenceStreamingActorCreator.ACTOR_NAME,
+                ThingsPersistenceStreamingActorCreator.props(config, tagsStreamingCacheSize));
 
         pubSubMediator.tell(new DistributedPubSubMediator.Put(getSelf()), getSelf());
-        pubSubMediator.tell(new DistributedPubSubMediator.Put(persistenceQueriesActor), getSelf());
+        pubSubMediator.tell(new DistributedPubSubMediator.Put(persistenceStreamingActor), getSelf());
 
         String hostname = config.getString(ConfigKeys.Http.HOSTNAME);
         if (hostname.isEmpty()) {
@@ -231,13 +231,6 @@ final class ThingsRootActor extends AbstractActor {
     private ActorRef startChildActor(final String actorName, final Props props) {
         log.info("Starting child actor '{}'", actorName);
         return getContext().actorOf(props, actorName);
-    }
-
-    private void startClusterSingletonActor(final String actorName, final Props props) {
-        final ClusterSingletonManagerSettings settings =
-                ClusterSingletonManagerSettings.create(getContext().system())
-                        .withRole(ThingsMessagingConstants.CLUSTER_ROLE);
-        getContext().actorOf(ClusterSingletonManager.props(props, PoisonPill.getInstance(), settings), actorName);
     }
 
     private static Route createRoute(final ActorSystem actorSystem, final ActorRef healthCheckingActor) {

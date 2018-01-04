@@ -25,9 +25,21 @@ public final class PersistenceConstants {
     public static final String THINGS_COLLECTION_NAME = "thingEntities";
 
     /**
-     * The thing collection name.
+     * The policies based search collection name.
      */
     public static final String POLICIES_BASED_SEARCH_INDEX_COLLECTION_NAME = "policiesBasedSearchIndex";
+
+    /**
+     * The collection name for the collection storing state about things sync.
+     */
+    public static final String THINGS_SYNC_STATE_COLLECTION_NAME = "thingsSearchSyncStateThings";
+
+    /**
+     * The collection name for the collection storing state about policies sync.
+     */
+    public static final String POLICIES_SYNC_STATE_COLLECTION_NAME = "thingsSearchSyncStatePolicies";
+
+    public static final String SLASH = "/";
 
     /**
      * Field name for revision.
@@ -72,7 +84,7 @@ public final class PersistenceConstants {
     /**
      * Field name for attributes with path.
      */
-    public static final String FIELD_ATTRIBUTES_WITH_PATH = FIELD_ATTRIBUTES + "/";
+    public static final String FIELD_ATTRIBUTES_WITH_PATH = FIELD_ATTRIBUTES + SLASH;
 
     /**
      * Field name for features.
@@ -88,19 +100,19 @@ public final class PersistenceConstants {
      * Field name for feature properties with starting path.
      */
 
-    public static final String FIELD_PROPERTIES_WITH_STARTING_PATH = PersistenceConstants.SLASH + FIELD_PROPERTIES;
+    public static final String FIELD_PROPERTIES_WITH_STARTING_PATH = SLASH + FIELD_PROPERTIES;
 
     /**
      * Field name for feature properties with starting and ending path.
      */
     public static final String FIELD_PROPERTIES_WITH_STARTING_ENDING_PATH =
-            PersistenceConstants.FIELD_PROPERTIES_WITH_STARTING_PATH +
-                    PersistenceConstants.SLASH;
+            FIELD_PROPERTIES_WITH_STARTING_PATH +
+                    SLASH;
 
     /**
      * Field name for features.
      */
-    public static final String FIELD_FEATURES_WITH_PATH = FIELD_FEATURES + "/";
+    public static final String FIELD_FEATURES_WITH_PATH = FIELD_FEATURES + SLASH;
 
     /**
      * Field name for attributes.
@@ -110,7 +122,7 @@ public final class PersistenceConstants {
     /**
      * Field name for attributes.
      */
-    public static final String FIELD_ATTRIBUTE_PREFIX_WITH_ENDING_SLASH = FIELD_ATTRIBUTE_PREFIX + "/";
+    public static final String FIELD_ATTRIBUTE_PREFIX_WITH_ENDING_SLASH = FIELD_ATTRIBUTE_PREFIX + SLASH;
 
     /**
      * Field name for feature properties.
@@ -121,7 +133,7 @@ public final class PersistenceConstants {
      * Field name for feature properties.
      */
     public static final String FIELD_FEATURE_PROPERTIES_PREFIX_WITH_ENDING_SLASH =
-            FIELD_FEATURE_PROPERTIES_PREFIX + "/";
+            FIELD_FEATURE_PROPERTIES_PREFIX + SLASH;
 
     /**
      * Field name for internal flat attributes.
@@ -310,7 +322,6 @@ public final class PersistenceConstants {
     public static final String EXISTS = "$exists";
     public static final String CONCAT = "$concat";
     public static final String DOT = ".";
-    public static final String SLASH = "/";
     public static final String REGEX_FIELD_END = "(/|\\z)";
     public static final String REGEX_FIELD_START = "^";
     public static final String REGEX_START_THING_ID = "^(?i)";

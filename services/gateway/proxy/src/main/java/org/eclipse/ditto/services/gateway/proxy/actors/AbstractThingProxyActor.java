@@ -20,7 +20,6 @@ import org.eclipse.ditto.services.gateway.proxy.actors.handlers.ModifyThingHandl
 import org.eclipse.ditto.services.gateway.proxy.actors.handlers.RetrieveThingHandlerActor;
 import org.eclipse.ditto.services.gateway.proxy.actors.handlers.ThingHandlerCreator;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoCommand;
-import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveModifiedThingTags;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThings;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingsResponse;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.ThingSearchSudoCommand;
@@ -56,7 +55,6 @@ import akka.routing.FromConfig;
 public abstract class AbstractThingProxyActor extends AbstractProxyActor {
 
     private static final String THINGS_SEARCH_ACTOR_PATH = "/user/thingsSearchRoot/thingsSearch";
-    private static final String THINGS_PERSISTENCE_QUERIES_ACTOR_PATH = "/user/thingsRoot/persistenceQueries";
 
     private final ActorRef pubSubMediator;
     private final ActorRef aclEnforcerShardRegion;
@@ -114,13 +112,6 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
                         getLogger().debug("Got 'SudoRetrieveThings' message, forwarding to the Things Aggregator");
                         thingsAggregator.forward(command, getContext());
                     }
-                })
-                .match(SudoRetrieveModifiedThingTags.class, command -> {
-                    getLogger().debug(
-                            "Got 'SudoRetrieveModifiedThingTags' message, forwarding to the Things Persistence");
-                    pubSubMediator.tell(
-                            new DistributedPubSubMediator.Send(THINGS_PERSISTENCE_QUERIES_ACTOR_PATH, command),
-                            getSender());
                 })
                 .match(SudoCommand.class, forwardToLocalEnforcerLookup(thingEnforcerLookup))
                 .match(org.eclipse.ditto.services.models.policies.commands.sudo.SudoCommand.class,

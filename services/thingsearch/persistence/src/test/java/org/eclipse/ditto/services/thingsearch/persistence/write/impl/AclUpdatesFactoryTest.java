@@ -26,21 +26,21 @@ public final class AclUpdatesFactoryTest {
 
 
     @Test
-    public void createUpdateAclEntries() throws Exception {
+    public void createUpdateAclEntries() {
         final List<Bson> updates = AclUpdatesFactory.createUpdateAclEntries(TestConstants.Thing.ACL);
         assertThat(updates.size())
                 .isEqualTo(2);
     }
 
     @Test
-    public void createUpdateAclEntry() throws Exception {
+    public void createUpdateAclEntry() {
         final List<Bson> updates = AclUpdatesFactory.createUpdateAclEntry(TestConstants.Authorization.ACL_ENTRY_GRIMES);
         assertThat(updates.size())
                 .isEqualTo(2);
     }
 
     @Test
-    public void deleteAclEntry() throws Exception {
+    public void deleteAclEntry() {
         final Bson delete = AclUpdatesFactory.deleteAclEntry("anyId");
         assertThat(delete)
                 .isNotNull();

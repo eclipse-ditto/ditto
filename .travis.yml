@@ -10,7 +10,7 @@ before_install:
 install: true
 script:
   - if [ ! -n "$TRAVIS_TAG" ]; then
-    mvn install javadoc:jar source:jar-no-fork --batch-mode --errors --quiet -Pbuild-documentation -DcreateJavadoc=true;
+    mvn install javadoc:jar source:jar --batch-mode --errors --quiet -Pbuild-documentation -DcreateJavadoc=true;
     fi;
   - if [ -n "$TRAVIS_TAG" ]; then
     export IMAGE_TAG=$TRAVIS_TAG;

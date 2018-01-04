@@ -48,14 +48,14 @@ public final class IndexLengthRestrictionEnforcerTest {
     }
 
     @Test
-    public void newInstance() throws Exception {
+    public void newInstance() {
         final IndexLengthRestrictionEnforcer
                 indexLengthRestrictionEnforcer = IndexLengthRestrictionEnforcer.newInstance(log);
         assertThat(indexLengthRestrictionEnforcer).isNotNull();
     }
 
     @Test
-    public void enforceRestrictionsOnThing() throws Exception {
+    public void enforceRestrictionsOnThing() {
         final String thingId = ":home-box";
 
         final String featureId1 = "text-too-speech-feature";
@@ -88,7 +88,7 @@ public final class IndexLengthRestrictionEnforcerTest {
     }
 
     @Test
-    public void enforceRestrictionsOnThingAttributeViolation() throws Exception {
+    public void enforceRestrictionsOnThingAttributeViolation() {
         final String thingId = ":home-box";
         final String key = "version";
         final int maxAllowedValueForKey =
@@ -129,7 +129,7 @@ public final class IndexLengthRestrictionEnforcerTest {
     }
 
     @Test
-    public void enforceRestrictionsOnThingFeatureViolation() throws Exception {
+    public void enforceRestrictionsOnThingFeatureViolation() {
         final String thingId = ":home-box";
 
         final String featureId1 = "text-too-speech-feature";
@@ -176,7 +176,7 @@ public final class IndexLengthRestrictionEnforcerTest {
     }
 
     @Test
-    public void enforceRestrictionsOnFeatures() throws Exception {
+    public void enforceRestrictionsOnFeatures() {
         final String featureId1 = "text-too-speech-feature";
         final String featureId2 = "illuminance-sensor";
         final Feature feature1 = Feature.newBuilder()
@@ -200,7 +200,7 @@ public final class IndexLengthRestrictionEnforcerTest {
 
 
     @Test
-    public void enforceRestrictionsOnFeaturesViolation() throws Exception {
+    public void enforceRestrictionsOnFeaturesViolation() {
         final String featureId1 = "text-too-speech-feature";
         final String featureId2 = "illuminance-sensor";
         final int maxAllowedValueForKey =
@@ -235,7 +235,7 @@ public final class IndexLengthRestrictionEnforcerTest {
     }
 
     @Test
-    public void enforceRestrictionsOnFeatureProperty() throws Exception {
+    public void enforceRestrictionsOnFeatureProperty() {
         final String featureId = "text-too-speech-feature";
         final String key = "last-message";
         final String value = "Hello, World";
@@ -245,7 +245,7 @@ public final class IndexLengthRestrictionEnforcerTest {
     }
 
     @Test
-    public void enforceRestrictionsOnFeaturePropertyViolation() throws Exception {
+    public void enforceRestrictionsOnFeaturePropertyViolation() {
         final String featureId = "text-too-speech-feature";
         final String key = "last-message";
         final int maxAllowedValueForKey =
@@ -265,7 +265,7 @@ public final class IndexLengthRestrictionEnforcerTest {
     }
 
     @Test
-    public void enforceRestrictionsOnFeatureProperties() throws Exception {
+    public void enforceRestrictionsOnFeatureProperties() {
         final String featureId = "text-too-speech-feature";
         final FeatureProperties featureProperties = FeatureProperties.newBuilder()
                 .set("connected", true)
@@ -276,7 +276,7 @@ public final class IndexLengthRestrictionEnforcerTest {
     }
 
     @Test
-    public void enforceRestrictionsOnFeaturePropertiesViolation() throws Exception {
+    public void enforceRestrictionsOnFeaturePropertiesViolation() {
         final String featureId = "text-too-speech-feature";
         final int maxAllowedValueForKey =
                 IndexLengthRestrictionEnforcer.MAX_FEATURE_PROPERTY_VALUE_LENGTH -
@@ -300,7 +300,7 @@ public final class IndexLengthRestrictionEnforcerTest {
     }
 
     @Test
-    public void enforceRestrictionsOnFeature() throws Exception {
+    public void enforceRestrictionsOnFeature() {
         final String featureId = "text-too-speech-feature";
         final Feature feature = Feature.newBuilder()
                 .withId(featureId)
@@ -313,7 +313,7 @@ public final class IndexLengthRestrictionEnforcerTest {
     }
 
     @Test
-    public void enforceRestrictionsOnFeatureViolation() throws Exception {
+    public void enforceRestrictionsOnFeatureViolation() {
         final String featureId = "text-too-speech-feature";
         final int maxAllowedValueForKey =
                 IndexLengthRestrictionEnforcer.MAX_FEATURE_PROPERTY_VALUE_LENGTH -
@@ -339,7 +339,7 @@ public final class IndexLengthRestrictionEnforcerTest {
     }
 
     @Test
-    public void enforceRestrictionsOnAttributes() throws Exception {
+    public void enforceRestrictionsOnAttributes() {
         final Attributes attributes = Attributes.newBuilder()
                 .set("ticksPerSecond", 27)
                 .set("version", "v1.7.3")
@@ -349,7 +349,7 @@ public final class IndexLengthRestrictionEnforcerTest {
     }
 
     @Test
-    public void enforceRestrictionsOnAttributesViolation() throws Exception {
+    public void enforceRestrictionsOnAttributesViolation() {
         final String key = "description";
         final int maxAllowedValueForKey =
                 IndexLengthRestrictionEnforcer.MAX_ATTRIBUTE_VALUE_LENGTH -
@@ -368,7 +368,7 @@ public final class IndexLengthRestrictionEnforcerTest {
     }
 
     @Test
-    public void enforceRestrictionsOnAttributeValue() throws Exception {
+    public void enforceRestrictionsOnAttributeValue() {
         final JsonPointer key = JsonPointer.of("version");
         final JsonValue value = JsonValue.of("v1.7.3");
         assertThat(indexLengthRestrictionEnforcer.enforceRestrictionsOnAttributeValue(key, value))
@@ -376,7 +376,7 @@ public final class IndexLengthRestrictionEnforcerTest {
     }
 
     @Test
-    public void enforceRestrictionsOnAttributeValueViolation() throws Exception {
+    public void enforceRestrictionsOnAttributeValueViolation() {
         final JsonPointer key = JsonPointer.of("description");
         final int maxAllowedValueForKey =
                 IndexLengthRestrictionEnforcer.MAX_ATTRIBUTE_VALUE_LENGTH -

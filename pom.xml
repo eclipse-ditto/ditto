@@ -321,7 +321,7 @@
                 <plugin>
                     <groupId>com.github.siom79.japicmp</groupId>
                     <artifactId>japicmp-maven-plugin</artifactId>
-                    <version>0.9.3</version>
+                    <version>0.9.4</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.felix</groupId>
@@ -584,7 +584,7 @@
                             <execution>
                                 <id>attach-sources</id>
                                 <goals>
-                                    <goal>jar-no-fork</goal>
+                                    <goal>jar</goal>
                                 </goals>
                             </execution>
                         </executions>

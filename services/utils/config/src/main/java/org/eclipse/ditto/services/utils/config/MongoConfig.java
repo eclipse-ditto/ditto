@@ -16,7 +16,9 @@ import java.net.URISyntaxException;
 import java.net.URLEncoder;
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import com.typesafe.config.Config;
@@ -28,6 +30,8 @@ import com.typesafe.config.ConfigFactory;
 public final class MongoConfig {
 
     private static final String PREFIX = "ditto.services-utils-config.mongodb";
+
+    private static final String POOL_PREFIX = PREFIX + ".pool";
 
     /**
      * Config key of source MongoDB URI.
@@ -45,18 +49,75 @@ public final class MongoConfig {
     public static final String MAX_QUERY_TIME = PREFIX + ".maxQueryTime";
 
     /**
-     * Default maximum query time. It is set to be the default gateway timeout of 10 seconds.
+     * Config key of maximum number of connections allowed.
      */
-    public static final Duration DEFAULT_MAX_QUERY_TIME = Duration.ofSeconds(10);
+    public static final String POOL_MAX_SIZE = POOL_PREFIX + ".maxSize";
+
+    /**
+     * Maximum number of waiters for a connection to become available from the pool.
+     */
+    public static final String POOL_MAX_WAIT_QUEUE_SIZE = POOL_PREFIX + ".maxWaitQueueSize";
+
+    /**
+     * Maximum number of seconds a thread waits for a connection to become available.
+     */
+    public static final String POOL_MAX_WAIT_TIME = POOL_PREFIX + ".maxWaitTimeSecs";
+
+    /**
+     * Fallback client configuration.
+     */
+    private static final Config fallbackMongoConfig;
+
+    /* Fallback configuration values. */
+    static {
+        final Map<String, Object> fallbackMap = new HashMap<>();
+        fallbackMap.put(POOL_MAX_SIZE, 100);
+        fallbackMap.put(POOL_MAX_WAIT_QUEUE_SIZE, 100);
+        fallbackMap.put(POOL_MAX_WAIT_TIME, Duration.ofSeconds(30));
+        fallbackMap.put(MAX_QUERY_TIME, Duration.ofSeconds(60));
+        fallbackMongoConfig = ConfigFactory.parseMap(fallbackMap);
+    }
 
     private MongoConfig() {}
 
+    /**
+     * Retrieve maximum query duration.
+     *
+     * @param config The configuration.
+     * @return The maximum query duration.
+     */
     public static Duration getMaxQueryTime(final Config config) {
-        if (config.hasPath(MAX_QUERY_TIME)) {
-            return config.getDuration(MAX_QUERY_TIME);
-        } else {
-            return DEFAULT_MAX_QUERY_TIME;
-        }
+        return config.withFallback(fallbackMongoConfig).getDuration(MAX_QUERY_TIME);
+    }
+
+    /**
+     * Retrieve the maximum number of connections in the connection pool.
+     *
+     * @param config The configuration.
+     * @return The maximum number of connections.
+     */
+    public static int getPoolMaxSize(final Config config) {
+        return config.withFallback(fallbackMongoConfig).getInt(POOL_MAX_SIZE);
+    }
+
+    /**
+     * Retrieve the maximum number of threads waiting for a connection to become available.
+     *
+     * @param config The configuration.
+     * @return The maximum number of waiting threads.
+     */
+    public static int getPoolMaxWaitQueueSize(final Config config) {
+        return config.withFallback(fallbackMongoConfig).getInt(POOL_MAX_WAIT_QUEUE_SIZE);
+    }
+
+    /**
+     * Retrieve the maximum time to wait for a connection to become available.
+     *
+     * @param config The configuration.
+     * @return The maximum wait time.
+     */
+    public static Duration getPoolMaxWaitTime(final Config config) {
+        return config.withFallback(fallbackMongoConfig).getDuration(POOL_MAX_WAIT_TIME);
     }
 
     /**

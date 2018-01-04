@@ -15,58 +15,34 @@ import java.time.Duration;
 import java.util.UUID;
 
 import org.bson.Document;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.health.mongo.RetrieveMongoStatus;
 import org.eclipse.ditto.services.utils.health.mongo.RetrieveMongoStatusResponse;
 
-import com.mongodb.MongoClient;
-import com.mongodb.MongoClientOptions;
-import com.mongodb.MongoClientURI;
-import com.mongodb.ReadPreference;
 import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoDatabase;
 
-import akka.actor.AbstractActor;
 import akka.actor.Props;
-import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
 
 /**
  * Actor for handling calls to the mongodb.
  */
-public final class MongoClientActor extends AbstractActor {
+public final class MongoClientActor extends AbstractMongoClientActor {
 
     /**
      * The name of this Actor in the ActorSystem.
      */
     public static final String ACTOR_NAME = "mongoClientActor";
 
-    private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
-    private final MongoDatabase database;
-    private final MongoClient mongoClient;
+    private final String connectionString;
+    private final Duration timeout;
 
     /**
      * Constructs a {@code MongoClientActor}.
      */
     private MongoClientActor(final String connectionString, final Duration timeout) {
-        final MongoClientOptions.Builder mongoClientOptionsBuilder =
-                MongoClientOptions.builder()
-                        .connectTimeout((int) timeout.toMillis())
-                        .socketTimeout((int) timeout.toMillis())
-                        .serverSelectionTimeout((int) timeout.toMillis());
-
-        final MongoClientURI mongoClientURI = new MongoClientURI(connectionString, mongoClientOptionsBuilder);
-
-        mongoClient = new MongoClient(mongoClientURI);
-
-        /*
-         * It's important to have the read preferences to primary preferred because the replication is to slow to retrieve
-         * the inserted document from a secondary directly after inserting it on the primary.
-         */
-        database =
-                mongoClient.getDatabase(mongoClientURI.getDatabase())
-                        .withReadPreference(ReadPreference.primaryPreferred());
+        this.connectionString = connectionString;
+        this.timeout = timeout;
     }
 
     /**
@@ -88,10 +64,13 @@ public final class MongoClientActor extends AbstractActor {
     }
 
     @Override
-    public void postStop() throws Exception {
-        if (mongoClient != null) {
-            mongoClient.close();
-        }
+    protected String getConnectionString() {
+        return connectionString;
+    }
+
+    @Override
+    protected Duration getTimeout() {
+        return timeout;
     }
 
     @Override

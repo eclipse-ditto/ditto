@@ -45,8 +45,6 @@ public class SudoCommandResponseRegistry extends AbstractCommandResponseRegistry
         parseStrategies.put(TakeSnapshotResponse.TYPE, TakeSnapshotResponse::fromJson);
         parseStrategies.put(SudoRetrieveThingResponse.TYPE, SudoRetrieveThingResponse::fromJson);
         parseStrategies.put(SudoRetrieveThingsResponse.TYPE, SudoRetrieveThingsResponse::fromJson);
-        parseStrategies.put(SudoRetrieveModifiedThingTagsResponse.TYPE,
-                SudoRetrieveModifiedThingTagsResponse::fromJson);
 
         return new SudoCommandResponseRegistry(parseStrategies);
     }

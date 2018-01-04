@@ -466,7 +466,7 @@
 
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-services-utils-akka-persistence-mongo-addons</artifactId>
+                <artifactId>ditto-services-models-streaming</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

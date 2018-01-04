@@ -37,7 +37,7 @@ public final class AttributesUpdateFactoryTest {
 
 
     @Test
-    public void createAttributesUpdates() throws Exception {
+    public void createAttributesUpdates() {
         final JsonPointer pointer = JsonPointer.of("manufacturer");
         final JsonValue value = JsonValue.of("any-company");
         final JsonValue restrictedValue = JsonValue.of("restrictedManufacturer");
@@ -61,7 +61,7 @@ public final class AttributesUpdateFactoryTest {
     }
 
     @Test
-    public void createAttributesUpdate() throws Exception {
+    public void createAttributesUpdate() {
         final Attributes attributes = Mockito.mock(Attributes.class);
         final Attributes restrictedAttributes = Attributes.newBuilder()
                 .set("manufacturer", "restrictedManufacturer")
@@ -85,13 +85,13 @@ public final class AttributesUpdateFactoryTest {
     }
 
     @Test
-    public void createAttributeDeletionUpdate() throws Exception {
+    public void createAttributeDeletionUpdate() {
         assertThat(AttributesUpdateFactory.createAttributeDeletionUpdate(JsonPointer.of("manufacturer")))
                 .isNotNull();
     }
 
     @Test
-    public void deleteAttributes() throws Exception {
+    public void deleteAttributes() {
         assertThat(AttributesUpdateFactory.deleteAttributes())
                 .isNotNull();
     }

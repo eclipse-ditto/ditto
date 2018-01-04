@@ -18,24 +18,11 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
-
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.actor.Props;
-import akka.cluster.pubsub.DistributedPubSub;
-import akka.testkit.javadsl.TestKit;
-
 import org.eclipse.ditto.model.amqpbridge.AmqpBridgeModelFactory;
 import org.eclipse.ditto.model.amqpbridge.AmqpConnection;
 import org.eclipse.ditto.model.amqpbridge.ConnectionStatus;
+import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.signals.commands.amqpbridge.exceptions.ConnectionNotAccessibleException;
 import org.eclipse.ditto.signals.commands.amqpbridge.modify.CloseConnection;
 import org.eclipse.ditto.signals.commands.amqpbridge.modify.CloseConnectionResponse;
@@ -45,6 +32,19 @@ import org.eclipse.ditto.signals.commands.amqpbridge.modify.DeleteConnection;
 import org.eclipse.ditto.signals.commands.amqpbridge.modify.DeleteConnectionResponse;
 import org.eclipse.ditto.signals.commands.amqpbridge.query.RetrieveConnectionStatus;
 import org.eclipse.ditto.signals.commands.amqpbridge.query.RetrieveConnectionStatusResponse;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
+
+import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
+import akka.actor.InvalidActorNameException;
+import akka.actor.Props;
+import akka.cluster.pubsub.DistributedPubSub;
+import akka.testkit.javadsl.TestKit;
 
 /**
  * Unit test for {@link ConnectionActor}.
@@ -99,6 +99,7 @@ public class ConnectionActorTest {
             final String connectionId = createRandomConnectionId();
             final AmqpConnection amqpConnection = createConnection(connectionId);
             final ActorRef underTest = createAmqpConnectionActor(connectionId);
+            watch(underTest);
 
             // create connection
             final CreateConnection createConnection = CreateConnection.of(amqpConnection, DittoHeaders.empty());
@@ -115,7 +116,6 @@ public class ConnectionActorTest {
             expectMsg(closeConnectionResponse);
 
             // delete connection
-            watch(underTest);
             final DeleteConnection deleteConnection = DeleteConnection.of(connectionId, DittoHeaders.empty());
             underTest.tell(deleteConnection, getRef());
             final DeleteConnectionResponse deleteConnectionResponse =
@@ -131,6 +131,7 @@ public class ConnectionActorTest {
             final String connectionId = createRandomConnectionId();
             final AmqpConnection amqpConnection = createConnection(connectionId);
             ActorRef underTest = createAmqpConnectionActor(connectionId);
+            watch(underTest);
 
             // create connection
             final CreateConnection createConnection = CreateConnection.of(amqpConnection, DittoHeaders.empty());
@@ -140,7 +141,6 @@ public class ConnectionActorTest {
             expectMsg(createConnectionResponse);
 
             // stop actor
-            watch(underTest);
             getSystem().stop(underTest);
             expectTerminated(underTest);
 
@@ -163,6 +163,7 @@ public class ConnectionActorTest {
             final String connectionId = createRandomConnectionId();
             final AmqpConnection amqpConnection = createConnection(connectionId);
             ActorRef underTest = createAmqpConnectionActor(connectionId);
+            watch(underTest);
 
             // create connection
             final CreateConnection createConnection = CreateConnection.of(amqpConnection, DittoHeaders.empty());
@@ -179,7 +180,6 @@ public class ConnectionActorTest {
             expectMsg(closeConnectionResponse);
 
             // stop actor
-            watch(underTest);
             getSystem().stop(underTest);
             expectTerminated(underTest);
 
@@ -202,6 +202,7 @@ public class ConnectionActorTest {
             final String connectionId = createRandomConnectionId();
             final AmqpConnection amqpConnection = createConnection(connectionId);
             ActorRef underTest = createAmqpConnectionActor(connectionId);
+            watch(underTest);
 
             // create connection
             final CreateConnection createConnection = CreateConnection.of(amqpConnection, DittoHeaders.empty());
@@ -211,7 +212,6 @@ public class ConnectionActorTest {
             expectMsg(createConnectionResponse);
 
             // delete connection
-            watch(underTest);
             final DeleteConnection deleteConnection = DeleteConnection.of(connectionId, DittoHeaders.empty());
             underTest.tell(deleteConnection, getRef());
             final DeleteConnectionResponse deleteConnectionResponse =
@@ -240,7 +240,29 @@ public class ConnectionActorTest {
                 pubSubMediator,
                 PROXY_ACTOR_PATH,
                 CONNECTION_FACTORY);
-        return actorSystem.actorOf(props, connectionId);
+
+        final int maxAttemps = 5;
+        final long backoffMs = 1000L;
+
+        for (int attempt = 1; ; ++attempt) {
+            try {
+                return actorSystem.actorOf(props, connectionId);
+            } catch (final InvalidActorNameException invalidActorNameException) {
+                if (attempt >= maxAttemps) {
+                    throw invalidActorNameException;
+                } else {
+                    backOff(backoffMs);
+                }
+            }
+        }
+    }
+
+    private static void backOff(final long ms) {
+        try {
+            Thread.sleep(ms);
+        } catch (final InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private static String createRandomConnectionId() {
