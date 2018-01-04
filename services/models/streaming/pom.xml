@@ -24,17 +24,6 @@
     <packaging>bundle</packaging>
     <name>Eclipse Ditto :: Services :: Models :: Streaming</name>
 
-    <dependencies>
-        <dependency>
-            <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-signals-commands-base</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.mutabilitydetector</groupId>
-            <artifactId>MutabilityDetector</artifactId>
-        </dependency>
-    </dependencies>
-
     <build>
         <plugins>
             <plugin>
