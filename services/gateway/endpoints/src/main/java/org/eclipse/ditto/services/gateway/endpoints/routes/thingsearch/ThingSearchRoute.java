@@ -17,18 +17,16 @@ import static akka.http.javadsl.server.Directives.path;
 import static akka.http.javadsl.server.Directives.pathEndOrSingleSlash;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
-import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.services.gateway.endpoints.directives.CustomPathMatchers;
 import org.eclipse.ditto.services.gateway.endpoints.routes.AbstractRoute;
+import org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidNamespacesException;
 import org.eclipse.ditto.signals.commands.thingsearch.query.CountThings;
 import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThings;
 
@@ -128,14 +126,19 @@ public final class ThingSearchRoute extends AbstractRoute {
 
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     private static Set<String> calculateNamespaces(final Optional<String> namespacesString, final Integer version) {
+        final Set<String> namespaces = namespacesString.filter(s -> !s.isEmpty()).map(s -> s.split(","))
+                .map(Arrays::asList).map(HashSet::new).map(n -> (Set<String>)n).orElse(Collections.emptySet());
 
-        if (version.equals(JsonSchemaVersion.V_1.toInt())) {
-            return null;
-        } else {
-            return namespacesString.map(
-                    s -> Stream.of(namespacesString.get().split(",")).limit(1).collect(Collectors.toSet())
-            ).orElse(null);
+        //TODO: limited search to single namespace -> ?remove later? EXCEPTION IS NOT LOGGED
+        final int max = 1;
+        if (max < namespaces.size()) {
+            throw InvalidNamespacesException.newBuilder()
+                    .message(String.format("The list of provided namespaces is too long. It exceeds the maximum of " +
+                            "%d namespaces.", max))
+                    .build();
         }
+
+        return namespaces.isEmpty() ? null : namespaces;
     }
 
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")

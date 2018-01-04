@@ -13,9 +13,12 @@ package org.eclipse.ditto.services.thingsearch.query.actors;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
+import org.eclipse.ditto.model.base.common.ConditionChecker;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.thingsearchparser.ParserException;
 import org.eclipse.ditto.model.thingsearchparser.predicates.rql.RqlPredicateParser;
@@ -76,6 +79,31 @@ final class QueryFilterCriteriaFactory {
     }
 
     /**
+     * Creates a filter criterion based on a filter string which includes only items related to the given auth
+     * subjects and if namespaces given also restricts to those
+     *
+     * @param filter the filter string (can be null)
+     * @param dittoHeaders the corresponding command headers
+     * @param authorisationSubjectIds the auth subjects
+     * @param namespaces the namespaces (can be null)
+     * @return a filter criterion based on the filter string which includes only items related to the given auth
+     * subjects
+     */
+    public Criteria filterCriteriaRestrictedByAclAndOptionalNamespaces(final String filter,
+            final DittoHeaders dittoHeaders, final List<String> authorisationSubjectIds, final Set<String> namespaces)
+    {
+        List<Criteria> criteriaList = new LinkedList<>();
+        criteriaList.add(filterCriteria(filter, dittoHeaders));
+        criteriaList.add(aclFilterCriteria(authorisationSubjectIds));
+
+        if (Objects.nonNull(namespaces)) {
+            criteriaList.add(namespaceFilterCriteria(namespaces));
+        }
+
+        return criteriaFactory.and(criteriaList);
+    }
+
+    /**
      * Creates a criterion from the given filter string by parsing it. Headers are passed through for eventual error
      * information.
      * @param filter the filter string
@@ -96,12 +124,14 @@ final class QueryFilterCriteriaFactory {
     }
 
     private Criteria namespaceFilterCriteria(final Set<String> namespaces) {
+        ConditionChecker.checkNotNull(namespaces);
         return criteriaFactory.fieldCriteria(
                 fieldExpressionFactory.filterByNamespace(),
                 criteriaFactory.in(new ArrayList<>(namespaces)));
     }
 
     private Criteria aclFilterCriteria(final List<String> authorisationSubjectIds) {
+        ConditionChecker.checkNotNull(authorisationSubjectIds);
         return criteriaFactory.fieldCriteria(fieldExpressionFactory.filterByAcl(),
                 criteriaFactory.in(authorisationSubjectIds));
     }

@@ -108,10 +108,11 @@ public final class QueryActor extends AbstractActor {
     }
 
     private void handleCountThings(final CountThings command) {
-        final Criteria filterCriteria = queryFilterCriteriaFactory.filterCriteriaRestrictedByAcl(
+        final Criteria filterCriteria = queryFilterCriteriaFactory.filterCriteriaRestrictedByAclAndOptionalNamespaces(
                 command.getFilter().orElse(null),
                 command.getDittoHeaders(),
-                command.getDittoHeaders().getAuthorizationContext().getAuthorizationSubjectIds());
+                command.getDittoHeaders().getAuthorizationContext().getAuthorizationSubjectIds(),
+                command.getNamespaces().map(n -> n.isEmpty() ? null : n).orElse(null));
 
         final QueryBuilder queryBuilder = queryBuilderFactory.newUnlimitedBuilder(filterCriteria);
 
@@ -120,10 +121,11 @@ public final class QueryActor extends AbstractActor {
 
     private void handleQueryThings(final QueryThings command) {
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
-        final Criteria filterCriteria = queryFilterCriteriaFactory.filterCriteriaRestrictedByAcl(
+        final Criteria filterCriteria = queryFilterCriteriaFactory.filterCriteriaRestrictedByAclAndOptionalNamespaces(
                 command.getFilter().orElse(null),
                 dittoHeaders,
-                command.getDittoHeaders().getAuthorizationContext().getAuthorizationSubjectIds());
+                command.getDittoHeaders().getAuthorizationContext().getAuthorizationSubjectIds(),
+                command.getNamespaces().map(n -> n.isEmpty() ? null : n).orElse(null));
 
         final QueryBuilder queryBuilder = queryBuilderFactory.newBuilder(filterCriteria);
 
