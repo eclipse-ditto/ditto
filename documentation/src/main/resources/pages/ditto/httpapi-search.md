@@ -18,7 +18,7 @@ to the search endpoint:
 http://localhost:8080/api/<1|2>/search/things
 ```
 
-If the [filter](#filter) parameter is omitted, the result contains all `Things` the authenticated user is 
+If the `filter` parameter is omitted, the result contains all `Things` the authenticated user is 
 [allowed to read](basic-auth.html).
 
 
@@ -30,6 +30,15 @@ In order to change the sorting and limit the result (also to do paging), the `op
 Complex example:
 ```
 GET .../search/things?filter=eq(attributes/location,"living-room")&option=sort(+thingId),limit(0,5)
+```
+
+The HTTP search API can also profit from the [partial request](httpapi-concepts.html#partial-requests) concept of the API:<br/>
+additionally to a `filter` and `options`, a `fields` paramter may be specified in order to select which data of the result
+set to retrieve.
+
+Example which only returns `thingId` and the `manufacturer` attribute of the found Things:
+```
+GET .../search/things?filter=eq(attributes/location,"living-room")&fields=thingId,attributes/manufacturer
 ```
 
 

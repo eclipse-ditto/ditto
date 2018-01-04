@@ -1,6 +1,6 @@
 ---
 title: Operating Ditto
-tags: [getting_started, installation]
+tags: [installation]
 keywords: operating, docker, docker-compose, devops, logging, logstash, elk, monitoring, graphite, grafana
 permalink: installation-operating.html
 ---
@@ -95,36 +95,36 @@ Example response for retrieving all currently configured log levels:<br/>
 
 ```json
 {
-	"gateway": {
-		"1": {
-			"type": "devops.responses:retrieveLoggerConfig",
-			"status": 200,
-			"serviceName": "gateway",
-			"instance": 1,
-			"loggerConfigs": [{
-				"level": "info",
-				"logger": "ROOT"
-			}, {
-				"level": "info",
-				"logger": "org.eclipse.ditto"
-			}, {
-				"level": "warn",
-				"logger": "org.mongodb.driver"
-			}]
-		}
-	},
-	"things-search": {
-		...
-	},
-	"policies": {
-		...
-	},
-	"things": {
-		...
-	},
-	"amqp-bridge": {
-		...
-	}
+    "gateway": {
+        "1": {
+            "type": "devops.responses:retrieveLoggerConfig",
+            "status": 200,
+            "serviceName": "gateway",
+            "instance": 1,
+            "loggerConfigs": [{
+                "level": "info",
+                "logger": "ROOT"
+            }, {
+                "level": "info",
+                "logger": "org.eclipse.ditto"
+            }, {
+                "level": "warn",
+                "logger": "org.mongodb.driver"
+            }]
+        }
+    },
+    "things-search": {
+        ...
+    },
+    "policies": {
+        ...
+    },
+    "things": {
+        ...
+    },
+    "amqp-bridge": {
+        ...
+    }
 }
 ```
 
@@ -135,8 +135,8 @@ Example request payload to change the log level of logger `org.eclipse.ditto` in
 
 ```json
 {
-	"logger": "org.eclipse.ditto",
-	"level": "debug"
+    "logger": "org.eclipse.ditto",
+    "level": "debug"
 }
 ```
 
@@ -173,29 +173,44 @@ Example request payload to change the log level of logger `org.eclipse.ditto` in
 
 ```json
 {
-	"logger": "org.eclipse.ditto",
-	"level": "debug"
+    "logger": "org.eclipse.ditto",
+    "level": "debug"
 }
 ```
 
-### Create a new AMQP Bridge connection
+### Create a new AMQP-Bridge connection
 
 Example request payload to create a new AMQP 1.0 connection:<br/>
 `POST /devops/piggyback/amqp-bridge`
 
 ```json
 {
-	"targetActorSelection": "/system/sharding/amqp-connection",
-	"headers": {},
-	"piggybackCommand": {
-		"type": "amqp.bridge.commands:createConnection",
-		"connection": {
-			"id": "hono-example-connection-123",
-			"authorizationSubject": "<<<my-subject-id-included-in-policy>>>",
-			"failoverEnabled": false,
-			"uri": "amqps://user:password@hono.eclipse.org:5671",
-			"sources": ["telemetry/DEFAULT_TENANT"]
-		}
-	}
+    "targetActorSelection": "/system/sharding/amqp-connection",
+    "headers": {},
+    "piggybackCommand": {
+        "type": "amqp.bridge.commands:createConnection",
+        "connection": {
+            "id": "hono-example-connection-123",
+            "authorizationSubject": "<<<my-subject-id-included-in-policy-or-acl>>>",
+            "failoverEnabled": false,
+            "uri": "amqps://user:password@hono.eclipse.org:5671",
+            "sources": [
+              "telemetry/DEFAULT_TENANT"
+            ]
+        }
+    }
 }
 ```
+
+The `id` of the connection may be chosen as liked.
+
+The `authorizationSubject` is the subject (e.g. user-id) to use for [authorization](basic-auth.html#authorization) of 
+all messages originating from the created AMQP 1.0 connection.<br/>
+This means that this subject needs to have the permission to WRITE a `Thing` when it or some parts of it should be 
+changed and needs to have the permission to READ a `Thing` when it or some parts of it should be read.
+
+The `failoverEnabled` property defines whether failover is enabled for the connection or not.
+
+The `uri` contains the AMQP 1.0 connection URI including username and password to use.
+
+The `sources` contains an array of Strings of sources/queues to connect to in this connection.

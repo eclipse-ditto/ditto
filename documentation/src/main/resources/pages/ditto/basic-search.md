@@ -9,8 +9,8 @@ Ditto provides a search functionality as one of the services around its managed 
 
 ## Search index
 
-When Ditto's microservice [things-search](architecture-services-things-search.html) is started, it automatically consumes
-all [events](basic-signals-event.html) which are emitted for changes to `Things` and `Policies` and updates an for search 
+Ditto's microservice [things-search](architecture-services-things-search.html) automatically consumes all 
+[events](basic-signals-event.html) which are emitted for changes to `Things` and `Policies` and updates an for search 
 optimized representation of the `Thing` data into its own database.
 
 No custom indexes have to be defined as the structure in the database is "flattened" so that all data contained in 
