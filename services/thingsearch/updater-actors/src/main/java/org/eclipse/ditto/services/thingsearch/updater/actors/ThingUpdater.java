@@ -86,6 +86,7 @@ import akka.dispatch.RequiresMessageQueue;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.event.Logging;
 import akka.japi.Creator;
+import akka.japi.pf.FI;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.AskTimeoutException;
 import akka.pattern.CircuitBreaker;
@@ -93,7 +94,6 @@ import akka.stream.ActorMaterializer;
 import akka.stream.Materializer;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Sink;
-import akka.util.Timeout;
 import kamon.Kamon;
 import kamon.trace.TraceContext;
 import scala.concurrent.ExecutionContextExecutor;
@@ -122,6 +122,11 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
      * Max attempts when trying to sync a thing.
      */
     private static final int MAX_SYNC_ATTEMPTS = 3;
+
+    /**
+     * Sync session ID for sync-like behavior not triggered during any synchronization session
+     */
+    private static final String NO_SYNC_SESSION_ID = "<no-sync-session-id>";
 
     private static final String TRACE_THING_MODIFIED = "thing.modified";
     private static final String TRACE_THING_BULK_UPDATE = "thing.bulkUpdate";
@@ -161,6 +166,10 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
 
     // required for acking of synchronization
     private SyncMetadata activeSyncMetadata = null;
+
+    // ID of a synchronization session
+    private String syncSessionId = NO_SYNC_SESSION_ID;
+    private Cancellable syncTimeout = null;
 
     private ThingUpdater(final java.time.Duration thingsTimeout,
             final ActorRef thingsShardRegion,
@@ -320,13 +329,26 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         getSelf().tell(PoisonPill.getInstance(), ActorRef.noSender());
     }
 
-    @Override
-    public void postStop() throws Exception {
-        super.postStop();
-
+    private void cancelActivityCheck() {
         if (activityChecker != null) {
             activityChecker.cancel();
+            activityChecker = null;
         }
+    }
+
+    private void cancelSyncTimeoutAndResetSessionId() {
+        if (syncTimeout != null) {
+            syncTimeout.cancel();
+            syncTimeout = null;
+        }
+        syncSessionId = NO_SYNC_SESSION_ID;
+    }
+
+    @Override
+    public void postStop() throws Exception {
+        cancelActivityCheck();
+        cancelSyncTimeoutAndResetSessionId();
+        super.postStop();
     }
 
     ///////////////////////////
@@ -342,6 +364,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
      */
     private void becomeEventProcessing() {
         log.debug("Becoming 'eventProcessing' ...");
+        cancelSyncTimeoutAndResetSessionId();
         getContext().become(eventProcessingBehavior);
         unstashAll();
     }
@@ -394,7 +417,8 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         if (log.isDebugEnabled()) {
             log.debug("Received new Policy-Reference-Tag for thing <{}> with revision <{}>,  policy-id <{}> and " +
                             "policy-revision <{}>: <{}>.",
-                    new Object[]{thingId, sequenceNumber, policyId, policyRevision, policyReferenceTag.asIdentifierString()});
+                    new Object[]{thingId, sequenceNumber, policyId, policyRevision,
+                            policyReferenceTag.asIdentifierString()});
         }
 
         activeSyncMetadata = new SyncMetadata(getSender(), policyReferenceTag);
@@ -414,7 +438,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
             triggerSync = false;
         } else if (policyReferenceTag.getPolicyTag().getRevision() > policyRevision) {
             log.info("The Policy-Reference-Tag has a revision which is greater " +
-                    "than the current policy-revision <{}> for thing <{}>: <{}>.", policyRevision, thingId,
+                            "than the current policy-revision <{}> for thing <{}>: <{}>.", policyRevision, thingId,
                     policyReferenceTag.asIdentifierString());
             triggerSync = true;
         } else {
@@ -433,6 +457,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         }
     }
 
+    @SuppressWarnings("unchecked") // ignore unchecked warning due to scala type parameter bound on changed.get
     private void processChangedCacheEntry(final Replicator.Changed changed) {
         final ReplicatedData replicatedData = changed.get(changed.key());
         if (replicatedData instanceof LWWRegister) {
@@ -457,7 +482,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         if (cacheEntry.getRevision() > sequenceNumber) {
             if (cacheEntry.isDeleted()) {
                 log.info("ThingCacheEntry was deleted, therefore deleting the Thing from search index: {}", cacheEntry);
-                deleteThingFromSearchIndex(thingsTimeout);
+                deleteThingFromSearchIndex();
             } else {
                 log.info(
                         "The ThingCacheEntry for the thing <{}> has the revision {} with is greater than the current actor's"
@@ -479,7 +504,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
                         cacheEntry);
                 policyEnforcer = null;
                 policyRevision = cacheEntry.getRevision();
-                deleteThingFromSearchIndex(thingsTimeout);
+                deleteThingFromSearchIndex();
             } else {
                 log.info(
                         "The PolicyCacheEntry for the policy <{}> has the revision {} with is greater than the current actor's"
@@ -497,13 +522,13 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
 
         // check if the revision is valid (thingEvent.revision = 1 + sequenceNumber)
         if (thingEvent.getRevision() <= sequenceNumber) {
-            log.info("Dropped thing event for thing id <{}> with revision <{}> because it was older than or "
+            log.debug("Dropped thing event for thing id <{}> with revision <{}> because it was older than or "
                             + "equal to the current sequence number <{}> of the update actor.", thingId,
                     thingEvent.getRevision(), sequenceNumber);
         } else if (shortcutTakenForThingEvent(thingEvent)) {
             log.debug("Shortcut taken for thing event <{}>.", thingEvent);
         } else if (thingEvent.getRevision() > sequenceNumber + 1) {
-            log.info("Triggering synchronization for thing <{}> because the received revision <{}> is higher than"
+            log.debug("Triggering synchronization for thing <{}> because the received revision <{}> is higher than"
                     + " the expected sequence number <{}>.", thingId, thingEvent.getRevision(), sequenceNumber + 1);
             triggerSynchronization();
         } else if (needToReloadPolicy(thingEvent)) {
@@ -524,7 +549,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
                         .build();
                 final ThingEvent versionedThingEvent = thingEvent.setDittoHeaders(versionedHeaders);
                 if (transactionActive) {
-                    log.info("The update actor for thing <{}> is currently busy. The current event will be " +
+                    log.debug("The update actor for thing <{}> is currently busy. The current event will be " +
                                     "processed after the actor is.",
                             thingId);
                     addEventToGatheredEvents(versionedThingEvent);
@@ -565,14 +590,14 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
             final ThingCreated tc = (ThingCreated) thingEvent;
             log.debug("Got ThingCreated: {}", tc);
             final Thing createdThing = tc.getThing().toBuilder().setRevision(tc.getRevision()).build();
-            updateThingSearchIndex(null, createdThing);
+            updateThingSearchIndex(createdThing);
             return true;
         } else if (thingEvent instanceof ThingModified) {
             // if the very first event in initial phase is the "ThingModified", we can shortcut a lot ..
             final ThingModified tm = (ThingModified) thingEvent;
             log.debug("Got ThingModified: {}", tm);
             final Thing modifiedThing = tm.getThing().toBuilder().setRevision(tm.getRevision()).build();
-            updateThingSearchIndex(null, modifiedThing);
+            updateThingSearchIndex(modifiedThing);
             return true;
         } else {
             return false;
@@ -621,7 +646,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
             triggerSynchronization();
         } else if (result.isSuccess()) {
             if (!gatheredEvents.isEmpty()) {
-                log.info("<{}> gathered events will now be persisted.", gatheredEvents.size());
+                log.debug("<{}> gathered events will now be persisted.", gatheredEvents.size());
                 final List<ThingEvent> eventsToPersist = gatheredEvents;
                 // reset the gathered events
                 resetGatheredEvents();
@@ -644,13 +669,14 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
      * Transition into the synchronization cycle.
      */
     private void triggerSynchronization() {
-        policyEnforcer = null; // reset policyEnforcer
+        beginNewSyncSession();
 
+        policyEnforcer = null; // reset policyEnforcer
         syncAttempts++;
         transactionActive = false;
         resetGatheredEvents();
         if (syncAttempts <= MAX_SYNC_ATTEMPTS) {
-            log.info("Synchronization of thing <{}> is now triggered (attempt={}).", thingId, syncAttempts);
+            log.debug("Synchronization of thing <{}> is now triggered (attempt={}).", thingId, syncAttempts);
             syncThing();
         } else {
             log.error("Synchronization failed after <{}> attempts.", syncAttempts - 1);
@@ -670,29 +696,36 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
 
     private void becomeAwaitingSyncThingResponse() {
         log.debug("Becoming 'awaitingSyncThingResponse' for thing <{}> ...", thingId);
-
-        // schedule a message that indicates a timeout so we do not wait forever
-        final String timeoutExceptionMessage = MessageFormat.format("The synchronization of thing <{0}> " +
-                "did not complete in time!", thingId);
-        final Cancellable timeout =
-                scheduleTimeoutForResponse(Timeout.durationToTimeout(thingsTimeout), timeoutExceptionMessage);
-
-        getContext().become(createAwaitSyncThingBehavior(timeout));
+        getContext().become(createAwaitSyncThingBehavior(syncSessionId));
     }
 
-    private Receive createAwaitSyncThingBehavior(final Cancellable timeout) {
+    private Receive createAwaitSyncThingBehavior(final String sessionId) {
         log.debug("Becoming 'awaitSyncThingBehavior' for thing <{}> ...", thingId);
         return ReceiveBuilder.create()
-                .match(AskTimeoutException.class, e -> {
-                    log.error(e, "Waiting for SudoRetrieveThingResponse timed out!");
-                    triggerSynchronization();
-                })
-                .match(SudoRetrieveThingResponse.class, response -> handleSyncThingResponse(timeout, response))
-                .match(ThingErrorResponse.class, response -> handleErrorResponse(timeout, response))
-                .match(DittoRuntimeException.class, exception -> handleException(timeout, exception))
+                .match(AskTimeoutException.class,
+                        handleSyncTimeout(sessionId, "Timeout after SudoRetrieveThing"))
+                .match(SudoRetrieveThingResponse.class, this::handleSyncThingResponse)
+                .match(ThingErrorResponse.class, this::handleErrorResponse)
+                .match(DittoRuntimeException.class, this::handleException)
                 .match(CheckForActivity.class, this::checkActivity)
                 .matchAny(msg -> stashWithErrorsIgnored()) // stash all other messages
                 .build();
+    }
+
+    private FI.UnitApply<AskTimeoutException> handleSyncTimeout(final String expectedSessionId,
+            final String message) {
+
+        return askTimeoutException -> {
+            final String actualSessionId = askTimeoutException.getMessage();
+            final boolean isSyncSessionActive = !Objects.equals(NO_SYNC_SESSION_ID, expectedSessionId);
+            if (isSyncSessionActive && Objects.equals(actualSessionId, expectedSessionId)) {
+                log.error(message);
+                triggerSynchronization();
+            } else {
+                log.warning("Ignoring AskTimeoutException from session {}. Current session is {}.",
+                        actualSessionId, expectedSessionId);
+            }
+        };
     }
 
     private void syncPolicy(final Thing syncedThing) {
@@ -710,25 +743,18 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
 
     private void becomeAwaitingSyncPolicyResponse(final Thing syncedThing) {
         log.debug("Becoming 'awaitingSyncPolicyResponse' for policy <{}> ...", policyId);
-
-        final String timeoutExceptionMessage = String.format("Synchronization of thing <%s> did not complete. Reason:" +
-                " its policy <%s> was not retrieved in time.", thingId, policyId);
-        final Cancellable timeout =
-                scheduleTimeoutForResponse(Timeout.durationToTimeout(thingsTimeout), timeoutExceptionMessage);
-        getContext().become(createAwaitSyncPolicyBehavior(timeout, syncedThing));
+        getContext().become(createAwaitSyncPolicyBehavior(syncSessionId, syncedThing));
     }
 
-    private Receive createAwaitSyncPolicyBehavior(final Cancellable timeout, final Thing syncedThing) {
+    private Receive createAwaitSyncPolicyBehavior(final String sessionId, final Thing syncedThing) {
         log.debug("Becoming 'awaitSyncPolicyBehavior' for thing <{}> ...", thingId);
         return ReceiveBuilder.create()
-                .match(AskTimeoutException.class, e -> {
-                    log.error(e, "Waiting for SudoRetrievePolicyResponse timed out!");
-                    triggerSynchronization();
-                })
+                .match(AskTimeoutException.class,
+                        handleSyncTimeout(sessionId, "Timeout after SudoRetrievePolicy"))
                 .match(SudoRetrievePolicyResponse.class,
-                        response -> handleSyncPolicyResponse(timeout, syncedThing, response))
-                .match(PolicyErrorResponse.class, response -> handleErrorResponse(timeout, response))
-                .match(DittoRuntimeException.class, exception -> handleException(timeout, exception))
+                        response -> handleSyncPolicyResponse(syncedThing, response))
+                .match(PolicyErrorResponse.class, this::handleErrorResponse)
+                .match(DittoRuntimeException.class, this::handleException)
                 .matchAny(message -> stashWithErrorsIgnored())
                 .build();
     }
@@ -746,6 +772,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
     private Receive createAwaitSyncResultBehavior() {
         return ReceiveBuilder.create()
                 .match(SyncSuccess.class, s -> {
+                    syncAttempts = 0;
                     ackSync(true);
                     becomeEventProcessing();
                 })
@@ -787,14 +814,14 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         }
     }
 
-    private void handleSyncThingResponse(final Cancellable timeout, final SudoRetrieveThingResponse response) {
+    private void handleSyncThingResponse(final SudoRetrieveThingResponse response) {
         log.debug("Retrieved thing response='{}' for thing ID='{}' (attempt={}).", response, thingId, syncAttempts);
 
         final Thing syncedThing = response.getThing();
-        updateThingSearchIndex(timeout, syncedThing);
+        updateThingSearchIndex(syncedThing);
     }
 
-    private void updateThingSearchIndex(final Cancellable timeout, final Thing thing) {
+    private void updateThingSearchIndex(final Thing thing) {
         // reset schema version and revision number
         sequenceNumber = thing.getRevision().map(ThingRevision::toLong).orElse(UNKNOWN_REVISION);
         schemaVersion = thing.getImplementedSchemaVersion();
@@ -825,13 +852,13 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         // always synchronize policy if the schema version calls for it
         if (schemaVersionHasPolicy(schemaVersion)) {
             if (policyEnforcer != null) {
-                updateSearchIndexWithPolicy(timeout, thing, null);
+                updateSearchIndexWithPolicy(thing, null);
             } else {
                 syncPolicy(thing);
             }
         } else {
             // No policy to worry about; we're done.
-            updateSearchIndexWithoutPolicy(timeout, thing);
+            updateSearchIndexWithoutPolicy(thing);
         }
     }
 
@@ -841,8 +868,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
                 .isPresent();
     }
 
-    private void handleSyncPolicyResponse(final Cancellable timeout, final Thing syncedThing,
-            final SudoRetrievePolicyResponse response) {
+    private void handleSyncPolicyResponse(final Thing syncedThing, final SudoRetrievePolicyResponse response) {
         log.debug("Retrieved policy response='{}' for thing ID='{}' and policyId='{}' (attempt={}).",
                 response, thingId, policyId, syncAttempts);
         log.debug("Policy from retrieved policy response is: {}", response.getPolicy());
@@ -856,52 +882,37 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
             policyRevision = policy.getRevision().map(PolicyRevision::toLong).orElse(UNKNOWN_REVISION);
             final PolicyEnforcer thePolicyEnforcer = PolicyEnforcers.defaultEvaluator(policy);
             this.policyEnforcer = thePolicyEnforcer;
-
-            if (syncedThing != null) {
-                // update search index:
-                updateSearchIndexWithPolicy(timeout, syncedThing, thePolicyEnforcer);
-            } else {
-                // Thing was not synced before
-                syncThing();
-            }
+            updateSearchIndexWithPolicy(syncedThing, thePolicyEnforcer);
         } else {
-            log.info("Received policy ID <{0}> is not expected ID <{1}>!", policy.getId(), policyId);
+            log.warning("Received policy ID <{0}> is not expected ID <{1}>!", policy.getId(), policyId);
         }
     }
 
-    private void handleException(final Cancellable timeout, final DittoRuntimeException exception) {
+    private void handleException(final DittoRuntimeException exception) {
 
         if (exception instanceof ThingNotAccessibleException) {
             log.info("Thing no longer accessible - deleting the Thing from search index: {}", exception.getMessage());
-            deleteThingFromSearchIndex(timeout);
+            deleteThingFromSearchIndex();
         } else if (exception instanceof PolicyNotAccessibleException) {
             log.info("Policy no longer accessible - deleting the Thing from search index: {}", exception.getMessage());
-            deleteThingFromSearchIndex(timeout);
+            deleteThingFromSearchIndex();
         } else {
-            timeout.cancel();
             log.error("Received exception while trying to sync thing <{}>: {} {}", thingId,
                     exception.getClass().getSimpleName(), exception.getMessage());
             triggerSynchronization();
         }
     }
 
-    private void deleteThingFromSearchIndex(final FiniteDuration timeout) {
-        deleteThingFromSearchIndex(scheduleTimeoutForResponse(Timeout.durationToTimeout(timeout),
-                "Deleting Thing from search index failed."));
-    }
-
-    private void deleteThingFromSearchIndex(final Cancellable timeout) {
+    private void deleteThingFromSearchIndex() {
         final TraceContext traceContext = Kamon.tracer().newContext(TRACE_THING_DELETE);
         circuitBreaker.callWithCircuitBreakerCS(() -> searchUpdaterPersistence
                 .delete(thingId)
                 .via(finishTrace(traceContext))
                 .runWith(Sink.last(), materializer)
-                .whenComplete((success, throwable) -> handleDeletion(timeout, success, throwable)));
+                .whenComplete(this::handleDeletion));
     }
 
-    private void handleDeletion(final Cancellable timeout, final Boolean success, final Throwable throwable) {
-        timeout.cancel();
-
+    private void handleDeletion(final Boolean success, final Throwable throwable) {
         if (isTrue(success)) {
             log.info("Thing <{}> was deleted from search index due to synchronization. The actor will be stopped now.",
                     thingId);
@@ -919,23 +930,23 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         }
     }
 
-    private void handleErrorResponse(final Cancellable timeout, final ErrorResponse<?> errorResponse) {
+    private void handleErrorResponse(final ErrorResponse<?> errorResponse) {
         final DittoRuntimeException ex = errorResponse.getDittoRuntimeException();
-        handleException(timeout, ex);
+        handleException(ex);
     }
 
     // eventually writes the Thing to the persistence and ends the synchronization cycle.
     // keeps stashing messages in the mean time.
-    private void updateSearchIndexWithoutPolicy(final Cancellable timeout, final Thing newThing) {
+    private void updateSearchIndexWithoutPolicy(final Thing newThing) {
         becomeSyncResultAwaiting();
         updateThing(newThing)
                 .whenComplete((thingIndexChanged, throwable) ->
-                        handleInsertOrUpdateResult(thingIndexChanged, newThing, timeout, throwable));
+                        handleInsertOrUpdateResult(thingIndexChanged, newThing, throwable));
     }
 
     // eventually writes the Thing to the persistence, updates policy, then ends the synchronization cycle.
     // keeps stashing messages in the mean time.
-    private void updateSearchIndexWithPolicy(final Cancellable timeout, final Thing newThing,
+    private void updateSearchIndexWithPolicy(final Thing newThing,
             final PolicyEnforcer thePolicyEnforcer) {
         becomeSyncResultAwaiting();
         updateThing(newThing)
@@ -944,7 +955,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
                                 .whenComplete(
                                         (policyIndexChanged, policyError) -> {
                                             final Throwable error = thingError == null ? policyError : thingError;
-                                            handleInsertOrUpdateResult(thingIndexChanged, newThing, timeout, error);
+                                            handleInsertOrUpdateResult(thingIndexChanged, newThing, error);
                                         })
                 );
     }
@@ -990,18 +1001,10 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
                 }));
     }
 
-    private void handleInsertOrUpdateResult(final boolean indexChanged, final Thing entity, final Cancellable timeout,
-            final Throwable throwable) {
-
-        // cancel the timeout
-        if (timeout != null) {
-            timeout.cancel();
-        }
-
+    private void handleInsertOrUpdateResult(final boolean indexChanged, final Thing entity, final Throwable throwable) {
         if (throwable == null) {
             if (indexChanged) {
                 log.debug("The thing <{}> was successfully updated in search index", thingId);
-                syncAttempts = 0;
                 getSelf().tell(SyncSuccess.INSTANCE, null);
             } else {
                 log.warning("The thing <{}> was not updated as the index was not changed by the upsert: {}",
@@ -1026,18 +1029,23 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
     }
 
     /**
-     * Schedules a message that indicates a timeout so we do not wait forever for a response to arrive.
+     * Generate sync session ID & set as correlation ID, schedule timeout for this sync cycle.
      */
-    private Cancellable scheduleTimeoutForResponse(final Timeout timeout, final String timeoutExceptionMessage) {
+    private void beginNewSyncSession() {
+        cancelSyncTimeoutAndResetSessionId();
+        final String sessionId = UUID.randomUUID().toString();
+        LogUtil.enhanceLogWithCorrelationId(log, sessionId);
+
         final ActorContext actorContext = getContext();
         final ActorSystem actorSystem = actorContext.system();
         final Scheduler scheduler = actorSystem.scheduler();
         final ActorRef receiver = getSelf();
-        final AskTimeoutException askTimeoutException = new AskTimeoutException(timeoutExceptionMessage);
+        final AskTimeoutException askTimeoutException = new AskTimeoutException(sessionId);
         final ExecutionContextExecutor executor = actorContext.dispatcher();
         final ActorRef sender = null;
 
-        return scheduler.scheduleOnce(timeout.duration(), receiver, askTimeoutException, executor, sender);
+        syncSessionId = sessionId;
+        syncTimeout = scheduler.scheduleOnce(thingsTimeout, receiver, askTimeoutException, executor, sender);
     }
 
     private void retrievePolicy(final String thePolicyId) {
