@@ -1338,9 +1338,16 @@ paths:
         identified by the `thingId` path parameter. The request body contains
         the message payload and the `Content-Type` header defines its type. The
         API does not provide any kind of acknowledgement that the message was
-        received by the Thing. The request will simply be handled as fire and
-        forget. In order to send a message, the user needs `WRITE` permission at
-        the Thing level.
+        received by the Thing. In order to send a message, the user needs `WRITE`
+        permission at the Thing level.
+
+        The HTTP request blocks until a response to the message is available
+        or until the `timeout` is expired. If many clients respond to
+        the issued message, the first response will complete the HTTP request.
+
+        In order to handle the message in a fire and forget manner, add
+        a query-parameter `timeout=0` to the request.
+
       tags:
         - Messages
       consumes:
@@ -1389,9 +1396,16 @@ paths:
       description: >-
         Send a message with the subject `messageSubject` `FROM` the Thing
         identified by the `thingId` path parameter. The request body contains
-        the message payload and the `Content-Type` header defines its type. The
-        request will simply be handled as fire and forget. In order to send a
-        message, the user needs `WRITE` permission at the Thing level.
+        the message payload and the `Content-Type` header defines its type.
+        In order to send a message, the user needs `WRITE` permission at the
+        Thing level.
+
+        The HTTP request blocks until a response to the message is available
+        or until the `timeout` is expired. If many clients respond to
+        the issued message, the first response will complete the HTTP request.
+
+        In order to handle the message in a fire and forget manner, add
+        a query-parameter `timeout=0` to the request.
       tags:
         - Messages
       consumes:
@@ -1440,9 +1454,15 @@ paths:
         specified by the `featureId` and `thingId` path parameter. The request
         body contains the message payload and the `Content-Type` header defines
         its type. The API does not provide any kind of acknowledgement that the
-        message was received by the Feature. The request will simply be handled
-        as fire and forget. In order to send a message, the user needs `WRITE`
-        permission at the Thing level.
+        message was received by the Feature. In order to send a message, the user
+        needs `WRITE` permission at the Thing level.
+
+        The HTTP request blocks until a response to the message is available
+        or until the `timeout` is expired. If many clients respond to
+        the issued message, the first response will complete the HTTP request.
+
+        In order to handle the message in a fire and forget manner, add
+        a query-parameter `timeout=0` to the request.
       tags:
         - Messages
       consumes:
@@ -1493,9 +1513,15 @@ paths:
         Send a message with the subject `messageSubject` `FROM` the Feature
         specified by the `featureId` and `thingId` path parameter. The request
         body contains the message payload and the `Content-Type` header defines
-        its type. The request will simply be handled as fire and forget. In
-        order to send a message, the user needs `WRITE` permission at the Thing
-        level.
+        its type. In order to send a message, the user needs `WRITE` permission
+        at the Thing level.
+
+        The HTTP request blocks until a response to the message is available
+        or until the `timeout` is expired. If many clients respond to
+        the issued message, the first response will complete the HTTP request.
+
+        In order to handle the message in a fire and forget manner, add
+        a query-parameter `timeout=0` to the request.
       tags:
         - Messages
       consumes:
