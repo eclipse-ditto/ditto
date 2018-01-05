@@ -88,6 +88,12 @@ public final class ConfigKeys {
      */
     public static final String MESSAGE_MAX_TIMEOUT = MESSAGE_PREFIX + "max-timeout";
 
+    /**
+     * The blacklist of which HTTP headers NOT to forward when forwarding a HTTP message to websockets.
+     * This is an array of Strings.
+     */
+    public static final String MESSAGE_HEADER_BLACKLIST = MESSAGE_PREFIX + "http-header-blacklist";
+
     private static final String CLAIMMESSAGE_PREFIX = GATEWAY_PREFIX + "claim-message.";
     /**
      * The default timeout of claim messages initiated via /claim resource.
