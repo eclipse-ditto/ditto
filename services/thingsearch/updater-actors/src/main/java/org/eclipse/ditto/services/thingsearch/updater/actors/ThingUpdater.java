@@ -329,6 +329,13 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         getSelf().tell(PoisonPill.getInstance(), ActorRef.noSender());
     }
 
+    @Override
+    public void postStop() throws Exception {
+        cancelActivityCheck();
+        cancelSyncTimeoutAndResetSessionId();
+        super.postStop();
+    }
+    
     private void cancelActivityCheck() {
         if (activityChecker != null) {
             activityChecker.cancel();
@@ -342,13 +349,6 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
             syncTimeout = null;
         }
         syncSessionId = NO_SYNC_SESSION_ID;
-    }
-
-    @Override
-    public void postStop() throws Exception {
-        cancelActivityCheck();
-        cancelSyncTimeoutAndResetSessionId();
-        super.postStop();
     }
 
     ///////////////////////////
@@ -374,7 +374,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
                 .match(ThingEvent.class, this::processThingEvent)
                 .match(PolicyEvent.class, this::processPolicyEvent)
                 .match(ThingTag.class, this::processThingTag)
-                .match(PolicyReferenceTag.class, this::processPolicyRefenceTag)
+                .match(PolicyReferenceTag.class, this::processPolicyReferenceTag)
                 .match(Replicator.Changed.class, this::processChangedCacheEntry)
                 .match(CheckForActivity.class, this::checkActivity)
                 .match(PersistenceWriteResult.class, this::handlePersistenceUpdateResult)
@@ -410,9 +410,8 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         }
     }
 
-    private void processPolicyRefenceTag(final PolicyReferenceTag policyReferenceTag) {
+    private void processPolicyReferenceTag(final PolicyReferenceTag policyReferenceTag) {
         LogUtil.enhanceLogWithCorrelationId(log, "policies-tags-sync-" + policyReferenceTag.asIdentifierString());
-
 
         if (log.isDebugEnabled()) {
             log.debug("Received new Policy-Reference-Tag for thing <{}> with revision <{}>,  policy-id <{}> and " +
@@ -702,8 +701,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
     private Receive createAwaitSyncThingBehavior(final String sessionId) {
         log.debug("Becoming 'awaitSyncThingBehavior' for thing <{}> ...", thingId);
         return ReceiveBuilder.create()
-                .match(AskTimeoutException.class,
-                        handleSyncTimeout(sessionId, "Timeout after SudoRetrieveThing"))
+                .match(AskTimeoutException.class, handleSyncTimeout(sessionId, "Timeout after SudoRetrieveThing"))
                 .match(SudoRetrieveThingResponse.class, this::handleSyncThingResponse)
                 .match(ThingErrorResponse.class, this::handleErrorResponse)
                 .match(DittoRuntimeException.class, this::handleException)
@@ -712,8 +710,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
                 .build();
     }
 
-    private FI.UnitApply<AskTimeoutException> handleSyncTimeout(final String expectedSessionId,
-            final String message) {
+    private FI.UnitApply<AskTimeoutException> handleSyncTimeout(final String expectedSessionId, final String message) {
 
         return askTimeoutException -> {
             final String actualSessionId = askTimeoutException.getMessage();
@@ -722,7 +719,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
                 log.error(message);
                 triggerSynchronization();
             } else {
-                log.warning("Ignoring AskTimeoutException from session {}. Current session is {}.",
+                log.warning("Ignoring AskTimeoutException from session <{}>. Current session is <{}>.",
                         actualSessionId, expectedSessionId);
             }
         };
@@ -749,10 +746,8 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
     private Receive createAwaitSyncPolicyBehavior(final String sessionId, final Thing syncedThing) {
         log.debug("Becoming 'awaitSyncPolicyBehavior' for thing <{}> ...", thingId);
         return ReceiveBuilder.create()
-                .match(AskTimeoutException.class,
-                        handleSyncTimeout(sessionId, "Timeout after SudoRetrievePolicy"))
-                .match(SudoRetrievePolicyResponse.class,
-                        response -> handleSyncPolicyResponse(syncedThing, response))
+                .match(AskTimeoutException.class, handleSyncTimeout(sessionId, "Timeout after SudoRetrievePolicy"))
+                .match(SudoRetrievePolicyResponse.class, response -> handleSyncPolicyResponse(syncedThing, response))
                 .match(PolicyErrorResponse.class, this::handleErrorResponse)
                 .match(DittoRuntimeException.class, this::handleException)
                 .matchAny(message -> stashWithErrorsIgnored())
@@ -889,7 +884,6 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
     }
 
     private void handleException(final DittoRuntimeException exception) {
-
         if (exception instanceof ThingNotAccessibleException) {
             log.info("Thing no longer accessible - deleting the Thing from search index: {}", exception.getMessage());
             deleteThingFromSearchIndex();
@@ -946,8 +940,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
 
     // eventually writes the Thing to the persistence, updates policy, then ends the synchronization cycle.
     // keeps stashing messages in the mean time.
-    private void updateSearchIndexWithPolicy(final Thing newThing,
-            final PolicyEnforcer thePolicyEnforcer) {
+    private void updateSearchIndexWithPolicy(final Thing newThing, final PolicyEnforcer thePolicyEnforcer) {
         becomeSyncResultAwaiting();
         updateThing(newThing)
                 .whenComplete((thingIndexChanged, thingError) ->
@@ -1080,7 +1073,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         }
     }
 
-    private Flow<Boolean, Boolean, NotUsed> finishTrace(final TraceContext traceContext) {
+    private static Flow<Boolean, Boolean, NotUsed> finishTrace(final TraceContext traceContext) {
         return Flow.fromFunction(foo -> {
             traceContext.finish(); // finish kamon trace
             return foo;
@@ -1102,6 +1095,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         private SyncSuccess() {
             // no-op
         }
+        
     }
 
     private static final class SyncFailure {
@@ -1111,6 +1105,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         private SyncFailure() {
             // no-op
         }
+        
     }
 
     private static class ActorInitializationComplete {
@@ -1120,6 +1115,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         private ActorInitializationComplete() {
             // no-op
         }
+        
     }
 
     private static final class SyncMetadata {
@@ -1159,4 +1155,5 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
             return StreamAck.failure(thingIdentifier);
         }
     }
+    
 }
