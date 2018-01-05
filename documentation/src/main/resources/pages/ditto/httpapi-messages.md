@@ -12,15 +12,20 @@ at the [Messages page](basic-messages.html).
 {% include tip.html content="Check out the [WebSocket Messages API](protocol-specification-things-messages.html)
 if you also need to *receive* or *reply* to Messages." %}
 
+This page gives you a quick hands-on introduction to the HTTP Messages API. To learn
+about the parameters, constraints, possible responses, etc. move over to the
+[HTTP API Documentation](http-api-doc.html#/Messages).
+
 ## Using the HTTP Messages API
 
 The following parts contain examples on how to send to and from Things and Features.
 For the examples we will use some kind of smart coffee machine with the id *smartcoffee*.
 
 {% include note.html content="Don't forget to replace the Authorization header
-and the host when trying out the examples" %}
+and the host when trying out the examples. Also make sure the Thing, you are sending
+Messages to, is existing." %}
 
-The examples use `curl` for the HTTP requests. You can of course choose 
+The examples use `cURL` for the HTTP requests. You can of course choose 
 whatever tool you prefer to work with.
 
 ### Sending a Message to a Thing
