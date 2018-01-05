@@ -5,7 +5,7 @@ tags: [protocol]
 permalink: protocol-specification-things-messages.html
 ---
 
-Messages with the WebSocket API allow sending, receiving and responding to 
+Messages with the Ditto Protocol allow sending, receiving and responding to 
 Messages. They contain an arbitrary *payload*, so you can choose what content best 
 fits your solution. If you want to learn more about the basic concepts of the Messages 
 functionality, please have a look at the [Messages page](basic-messages.html).
@@ -16,10 +16,10 @@ functionality, please have a look at the [Messages page](basic-messages.html).
  
 ## Messages protocol
 
-The Messages protocol is part of the [Ditto protocol](protocol-specification.html) and therefore 
+The Messages protocol is part of the [Ditto Protocol](protocol-specification.html) and therefore 
 conforms to its specification. This section describes how the protocol envelope can be filled
 for sending Messages. If you want to jump right into using the API, head over to the
-next section that describes how to [use the WebSocket Messages API](#using-the-websocket-messages-api).
+next section that describes how to [use the Messages API](#using-the-messages-api).
 
 There are three protocol parameters that have special meaning for Messages:
 * `topic` : *{namespace}*/*{entityId}*/things/live/messages/*{messageSubject}*
@@ -54,13 +54,13 @@ In the `headers` of the envelope the Messages API requires several fields:
 * `content-type` : The type of the payload you are sending, e.g. *text/plain*
 * `subject` : The *messageSubject* of your Message.
 
-## Using the WebSocket Messages API
+## Using the Messages API
 
-The following parts contain examples that will show you how to leverage the WebSocket API of
-Messages. In the examples we will use some kind of smart coffee machine with the id *smartcoffee*.
+The following parts contain examples that will show you how to leverage the Messages API. 
+In the examples we will use some kind of smart coffee machine with the id *smartcoffee*.
 
-{% include note.html content="When playing around with the examples, make sure you have
- a WebSocket connection and the Thing you are sending Messages to, is existing and has
+{% include note.html content="We encourage you to play around with the examples. You can use
+the WebSocket binding to do so. Make sure the Thing you are sending Messages to is existing and has
  the correct access rights." %}
 
 ### Sending a Message to a Thing
@@ -89,9 +89,10 @@ In this case, we need to specify, that we want to use the live channel
 Notice that our `topic` adheres to the [Ditto Protocol topic definition](protocol-specification-topic.html)
 with *messages* as the criterion, and the message-subject as *action*. 
 
-Since WebSocket messages are sent in a fire-and-forget manner, Ditto
-needs to know who to respond to. For this reason, we sent a *correlation-id* with
-our Message. This way Ditto is able to route the response back to use.
+We encourage you to always send a *correlation-id* with your Messages.
+This is especially important, since the WebSocket Ditto Protocol binding
+sends messages in a fire-and-forget manner. Ditto wouldn't know who to 
+respond to if there was not *correlation-id* in the Message.
 
 {% include tip.html content="If you want to receive the response to 
 a Message, make sure to always send a correlation-id with it." %}
@@ -122,14 +123,16 @@ The response we would get from our coffee machine could look something like this
 The answer of the coffee machine has the same `topic`, `subject` and `correlation-id`
 as the original message. As we can see, the response does not only contain a
 `value` but also the `status` of the response
-which is based on the [HTTP status codes](protocol-specification.html#status). Notice, that the `path` of the Message
-has changed from *inbox* to *outbox*, which means the Message was sent *from* the Thing.
+which is based on the [HTTP status codes](protocol-specification.html#status). 
+Notice, that the `path` of the Message has changed from *inbox* to *outbox*, 
+which means the Message was sent *from* the Thing.
 Ditto automatically added some headers that we can ignore for now.
 
 ### Receiving a message
 
-Using the WebSocket API it is amazingly easy to receive Messages sent *to* or *from* Things. 
-You only need to fulfill these *three* simple requirements:
+To be able to show how to receive Messages, we need to use one of the provided Ditto Protocol
+binding. We will use the WebSocket binding for now. With it, it is amazingly easy to
+receive Messages sent *to* or *from* Things. You only need to fulfill these *three* simple requirements:
 
 1. Having an open connection to the Ditto WebSocket
 2. Having sent the [WebSocket binding specific message](protocol-bindings-websocket.html#request-events) 
@@ -185,7 +188,7 @@ Message we received. To do this, we can re-use the relevant Message contents
 and change the type from incoming to outgoing. Here is a simple JavaScript
 function that shows how you could respond to a given Message. It takes
 the original Message, the response payload and status code and returns the
-response Message you can send via WebSocket.
+response Message you can send using a Ditto Protocol binding.
 
 ```javascript
 createTextResponse = function(originalMessage, payload, statusCode) {
@@ -212,7 +215,7 @@ createTextResponse = function(originalMessage, payload, statusCode) {
 ```
 
 With this method you could create a simple text response, and send it
-using your WebSocket connection. Since the original Message and the response
+using e.g. the WebSocket binding. Since the original Message and the response
 Message have the same correlation-id, the issuer would receive your response:
  
 ```json
