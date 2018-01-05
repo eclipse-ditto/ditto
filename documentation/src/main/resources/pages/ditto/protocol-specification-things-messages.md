@@ -5,4 +5,254 @@ tags: [protocol]
 permalink: protocol-specification-things-messages.html
 ---
 
-{% include warning.html content="Messages commands are not yet mapped in the Ditto protocol.<br/>Stay tuned!" %}
+Messages with the WebSocket API allow sending, receiving and responding to 
+Messages. They contain an arbitrary *payload*, so you can choose what content best 
+fits your solution. If you want to learn more about the basic concepts of the Messages 
+functionality, please have a look at the [Messages page](basic-messages.html).
+
+{% include tip.html content="If you only need to send Messages, but don't need to receive
+ or respond, you could also use the [HTTP Messages API](httpapi-messages.html)" %} 
+ 
+ 
+## Messages protocol
+
+The Messages protocol is part of the [Ditto protocol](protocol-specification.html) and therefore 
+conforms to its specification. This section describes how the protocol envelope can be filled
+for sending Messages. If you want to jump right into using the API, head over to the
+next section that describes how to [use the WebSocket Messages API](#using-the-websocket-messages-api).
+
+There are three protocol parameters that have special meaning for Messages:
+* `topic` : *{namespace}*/*{entityId}*/things/live/messages/*{messageSubject}*
+* `path` : *{addressedPartOfThing}{mailbox}*/messages/*{messageSubject}*
+* `headers` : The headers for Messages require several arguments: *thing-id*, *direction*, *content-type* and *subject*
+
+<br>
+
+The `topic` definition for Messages needs the namespace and entityId
+of the Thing you're sending Messages to. The *messageSubject* describes the Message
+and has to be conform to the *path* as described in [RFC-2396](https://tools.ietf.org/html/rfc2396).
+Examples for valid topics are:
+* `org.eclipse.ditto/smartcoffee/things/live/messages/ask/question`
+* `com.example/smarthome/things/live/messages/turnoff`
+
+<br>
+
+The `path` also contains the *messageSubject* that describes the Message.
+*mailbox* can be *inbox* (Message is sent to a Thing) or *outbox* (Message is
+sent from a Thing). The *addressedPartOfThing* tells which part of the Thing
+is addressed. `/features/water-tank/` would address the water-tank Feature of 
+the Thing, while `/` would address the whole Thing. Valid paths are e.g.:
+* `/inbox/messages/ask/question`
+* `/features/lights/inbox/messages/turnoff`
+* `/features/smokedetector/outbox/messages/smokedetected`
+
+<br>
+
+In the `headers` of the envelope the Messages API requires several fields:
+* `thing-id` : The id of the Thing as a string in the form *{namespace}:{entityId}*
+* `direction` : It is a string and can be either *TO* or *FROM*, which states if the Message is sent to or from a Thing
+* `content-type` : The type of the payload you are sending, e.g. *text/plain*
+* `subject` : The *messageSubject* of your Message.
+
+## Using the WebSocket Messages API
+
+The following parts contain examples that will show you how to leverage the WebSocket API of
+Messages. In the examples we will use some kind of smart coffee machine with the id *smartcoffee*.
+
+{% include note.html content="When playing around with the examples, make sure you have
+ a WebSocket connection and the Thing you are sending Messages to, is existing and has
+ the correct access rights." %}
+
+### Sending a Message to a Thing
+
+When sending a Message to a Thing, we send it to the inbox of the receiving entity.
+What follows is a simple Message that asks our Thing *smartcoffee* how it is feeling today:
+
+```json
+{
+	"topic": "org.eclipse.ditto/smartcoffee/things/live/messages/ask",
+	"headers": {
+		"thing-id": "org.eclipse.ditto:smartcoffee",
+		"content-type": "text/plain",
+		"subject": "ask",
+		"direction": "TO",
+		"correlation-id": "an-unique-string-for-this-message"
+	},
+	"path": "/inbox/messages/ask",
+	"value": "Hey, how are you?"
+}
+```
+
+In this case, we need to specify, that we want to use the live channel
+(which is the only channel capable of sending Messages anyway). The header
+`direction` shows that the Message is sent *TO* the inbox (`path`) of our Thing.
+Notice that our `topic` adheres to the [Ditto Protocol topic definition](protocol-specification-topic.html)
+with *messages* as the criterion, and the message-subject as *action*. 
+
+Since WebSocket messages are sent in a fire-and-forget manner, Ditto
+needs to know who to respond to. For this reason, we sent a *correlation-id* with
+our Message. This way Ditto is able to route the response back to use.
+
+{% include tip.html content="If you want to receive the response to 
+a Message, make sure to always send a correlation-id with it." %}
+
+The response we would get from our coffee machine could look something like this:
+
+```json
+{
+	"topic": "org.eclipse.ditto/smartcoffee/things/live/messages/ask",
+	"headers": {
+		"thing-id": "org.eclipse.ditto:smartcoffee",
+		"read-subjects": ["ditto"],
+		"subject": "ask",
+		"correlation-id": "an-unique-string-for-this-message",
+		"auth-subjects": ["ditto", "nginx:ditto"],
+		"channel": "live",
+		"content-type": "text/plain",
+		"version": 1,
+		"direction": "FROM",
+		"status": "418"
+	},
+	"path": "/outbox/messages/ask",
+	"value": "I do not know, since i am only a coffee machine.",
+	"status": 418
+}
+```
+
+The answer of the coffee machine has the same `topic`, `subject` and `correlation-id`
+as the original message. As we can see, the response does not only contain a
+`value` but also the `status` of the response
+which is based on the [HTTP status codes](protocol-specification.html#status). Notice, that the `path` of the Message
+has changed from *inbox* to *outbox*, which means the Message was sent *from* the Thing.
+Ditto automatically added some headers that we can ignore for now.
+
+### Receiving a message
+
+Using the WebSocket API it is amazingly easy to receive Messages sent *to* or *from* Things. 
+You only need to fulfill these *three* simple requirements:
+
+1. Having an open connection to the Ditto WebSocket
+2. Having sent the [WebSocket binding specific message](protocol-bindings-websocket.html#request-events) 
+`START-SEND-MESSAGES` to the WebSocket to be able to retrieve Messages
+3. You are allowed to view the entity for which you want to see Messages
+
+If we have a user *ditto* that has read rights on *smartcoffee*, we could receive Messages
+for it using a local Ditto instance using simple javascript:
+
+```javascript
+// connect to the WebSocket
+var websocket = new WebSocket('ws://ditto:ditto@localhost:8080/ws/1');
+websocket.onmessage(function(message) {
+    console.log('received message data: ' +  message.data);
+});
+websocket.onopen(function(ws) {
+    // register for receiving messages
+    ws.send('START-SEND-MESSAGES');
+});
+```
+
+If we would send the Message described in [Sending a Message to a Thing](#sending-a-message-to-a-thing)
+to the WebSocket, our JavaScript receiver would receive the following data:
+
+```json
+{
+	"topic": "org.eclipse.ditto/smartcoffee/things/live/messages/ask",
+	"headers": {
+		"thing-id": "org.eclipse.ditto:smartcoffee",
+		"read-subjects": ["ditto"],
+		"subject": "ask",
+		"correlation-id": "an-unique-string-for-this-message",
+		"auth-subjects": ["ditto", "nginx:ditto"],
+		"channel": "live",
+		"content-type": "text/plain",
+		"version": 1,
+		"direction": "TO"
+	},
+	"path": "/inbox/messages/ask",
+	"value": "Hey, how are you?"
+}
+```
+
+The content is almost the same, except for automatically added headers that we can ignore.
+In the next part you can learn how to respond to this Message.
+
+
+### Responding to a Message
+
+After [Sending a Message to a Thing](#sending-a-message-to-a-thing) and 
+[receiving the Message](#receiving-a-message), we are able to respond to the
+Message we received. To do this, we can re-use the relevant Message contents 
+and change the type from incoming to outgoing. Here is a simple JavaScript
+function that shows how you could respond to a given Message. It takes
+the original Message, the response payload and status code and returns the
+response Message you can send via WebSocket.
+
+```javascript
+createTextResponse = function(originalMessage, payload, statusCode) {
+    var topic = originalMessage.topic;
+    var thingId = originalMessage.headers["thing-id"];
+    var subject = originalMessage.headers["subject"];
+    var correlationId = originalMessage.headers["correlation-id"];
+    var outboxPath = originalMessage.replace("inbox", "outbox");
+    
+    return {
+      "topic": topic,
+      "headers": {
+          "thing-id": thingId,
+          "subject": subject,
+          "correlation-id": correlationId,
+          "content-type": "text/plain",
+          "direction": "FROM"
+      },
+      "path": outboxPath,
+      "status": statusCode,
+      "value": payload
+    };
+};
+```
+
+With this method you could create a simple text response, and send it
+using your WebSocket connection. Since the original Message and the response
+Message have the same correlation-id, the issuer would receive your response:
+ 
+```json
+{
+	"topic": "org.eclipse.ditto/smartcoffee/things/live/messages/ask",
+	"headers": {
+		"thing-id": "org.eclipse.ditto:smartcoffee",
+		"read-subjects": ["ditto"],
+		"subject": "ask",
+		"correlation-id": "demo-6qaal9l",
+		"auth-subjects": ["ditto", "nginx:ditto"],
+		"channel": "live",
+		"content-type": "text/plain",
+		"version": 1,
+		"direction": "FROM"
+	},
+	"path": "/outbox/messages/ask",
+	"status": 418,
+	"value": "I don't know since i am only a coffee machine"
+}
+```
+
+### Talking to Features
+
+When sending Messages to or from Features, almost everything stays the same as with
+Things. The `path` in the JSON is the only thing to change. A Message to a Feature
+could therefore have the following JSON:
+
+```json
+{
+	"topic": "org.eclipse.ditto/smartcoffee/things/live/messages/heatUp",
+	"headers": {
+		"thing-id": "org.eclipse.ditto:smartcoffee",
+		"content-type": "text/plain",
+		"subject": "heatUp",
+		"direction": "TO",
+		"correlation-id": "an-unique-string-for-this-message"
+	},
+	"path": "/features/water-tank/inbox/messages/heatUp",
+	"value": "47"
+}
+```
+          
