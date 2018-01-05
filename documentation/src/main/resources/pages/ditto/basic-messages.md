@@ -14,8 +14,9 @@ produced by Ditto and no events which are emitted for messages.
     connected devices."
   %}
 
-Messages provide the possibility to send something **to** or **from** an actual device using an arbitrary subject/topic
-and a custom payload with a custom content-type.
+Messages provide the possibility to send something **to** or **from** an actual device using an arbitrary subject/topic.
+They contain a custom payload with a custom content-type, so you can choose what content best 
+fits your solution.
 
 Expressed differently, messages
 * **to** devices are operations which should trigger an action on a device (e.g. with a subject `turnOff`),
@@ -51,3 +52,41 @@ Messages can be sent via
 
 Messages can, however, be received only via the [WebSocket API](protocol-bindings-websocket.html) as
 [Ditto Protocol](protocol-overview.html) messages.
+
+## Receiving Messages
+
+To be able to receive Messages for a Thing, you need to have `READ` access on that Thing.
+When a Message is sent to or from a Thing, **every** client with the correct
+access rights will receive the Message. If there is more than one response, only the
+first one will be routed back to the initial issuer of a Message.
+
+{% include note.html content="Currently, Messages can only be received using the
+ Ditto Protocol WebSocket binding" %}
+
+## Sending Messages
+
+If you want to send a Message to or from a Thing, you need `WRITE` permissions on that Thing.
+Every WebSocket client that is able to receive Messages for the Thing (`READ` permission), will receive your Message.
+
+## Responding to Messages
+
+Since WebSocket messages are stateless there is no *direct* response to a Message.
+For Ditto to be able to route the response of a Message back to the issuer, the
+correlation-ids need to match. E.g. when the sender uses correlation-id `random-aa98s`,
+any receiver can reply by using the same correlation-id `random-aa98s`.
+
+{% include note.html content="Currently, you can only respond to Messages using the
+ Ditto Protocol WebSocket binding" %}
+
+## Permissions
+
+Permissions are simple for the Message API. If you want to receive Messages of a Thing,
+you need `READ` access on the Thing. To be able to send Messages to or from a Thing
+you need to have `WRITE` permissions.
+
+There is one sole exception, which are [Claim Messages](#claim-messages). You do
+not need access rights for sending them.
+
+## Claim Messages
+
+TODO: document 
