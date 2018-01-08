@@ -44,7 +44,7 @@ as language for specifying queries.
 
 The [RQL project page](https://github.com/persvr/rql) says about it:
 
-> [RQL] is a query language designed for use in URIs with object style data structures. [...]<br/>
+> Resource Query Language (RQL) is a query language designed for use in URIs with object style data structures. [...]<br/>
 RQL can be thought as basically a set of nestable named operators which each have a set of arguments. 
 RQL is designed to have an extremely simple, but extensible grammar that can be written in a URL friendly query string.
 
@@ -53,8 +53,9 @@ An example helps more than a thousand words, so that would be the example of a s
 and(eq(foo,"ditto"),lt(bar,10))
 ```
 
-That query consists of one [logical operator "and"](#logical-operators), two [relational operators](#relational-operators) of
-which each consists of a [property](#query-property) and a [value](#query-value).
+That query consists of one [logical operator ](#logical-operators) ["and"](#and),
+two [relational operators](#relational-operators) of which each consists of a [property](#query-property)
+and a [value](#query-value).
 
 The following sections describe what the RQL syntax is capable of.
 
@@ -100,7 +101,7 @@ eq(attributes/location,"kitchen")
 The following relational operators are supported.
 
 #### eq
-Search for property values equaling a `<value>`.
+Search for property values equal to `<value>`.
 
 ```
 eq(<property>,<value>)
@@ -108,11 +109,11 @@ eq(<property>,<value>)
 
 **Example - search for things owned by "SID123"**
 ```
-eq(owner,"SID123")
+eq(attributes/owner,"SID123")
 ```
 
 #### ne
-Search for property values not equaling a `<value>`.
+Search for property values not equal to `<value>`.
 
 ```
 ne(<property>,<value>)
@@ -120,7 +121,7 @@ ne(<property>,<value>)
 
 **Example - search for things with owner different than "SID123"**
 ```
-ne(attribute/owner,"SID123")
+ne(attributes/owner,"SID123")
 ```
 
 The response will contain only things which **do** provide an owner attribute (in this case with value 0 or not SID123).
@@ -220,12 +221,12 @@ exists(<property>)
 ```
 
 
-**Example - search for things which have a Feature with ID "feature_1"**
+**Example - search for things which have a feature with ID "feature_1"**
 ```
 exists(features/feature_1)
 ```
 
-**Example - search for lamps which are located in the living-room**
+**Example - search for lamps which are located in the "living-room"**
 ```
 and(exists(features/lamp),eq(attributes/location,"living-room"))
 ```
@@ -312,7 +313,7 @@ In case there are multiple things with the same location attribute, these are so
 
 ## RQL paging
 
-The RQL paging part specifies for large result sets which part (a.k.a. "paging") should be returned.
+The RQL limiting part specifies which part (or "page") should be returned of a large result set.
 
 ```
 limit(<offset>,<count>)
