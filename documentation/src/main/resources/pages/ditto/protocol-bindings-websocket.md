@@ -225,3 +225,20 @@ This message is acknowledged by Ditto by sending back:
 ```
 STOP-SEND-LIVE-EVENTS:ACK
 ``` 
+
+### Heartbeat messages
+
+In order to keep the WebSocket connection alive, you need to send data on a
+regular basis. Since there might be times where no data is available before
+the connection would time out, we advise you to send Ping messages **every 
+60 seconds**.
+
+
+Ditto detects any empty binary message as a Heartbeat message and will keep
+the connection alive. If your framework does not support sending Ping messages,
+you can implement them on your own. E.g. when working with JavaScript, you 
+could do this by sending an empty Buffer:
+
+```javascript
+websocket.send(new ArrayBuffer(0))
+```
