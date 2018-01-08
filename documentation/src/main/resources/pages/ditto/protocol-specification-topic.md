@@ -102,8 +102,8 @@ They contain a *status integer* which reflects an HTTP status code with the same
 
 ## Action (optional)
 
-For command and event criteria additional actions are available which further distinguish the purpose of a Protocol
-message. 
+For command, event and messages criteria additional actions are available which further distinguish the purpose of a 
+Protocol message. 
 
 ### Command criterion actions
 
@@ -123,3 +123,8 @@ An entity (e.g. a Thing) or an aspect of an entity was
 * `created`,
 * `modified` or
 * `deleted`.
+
+### Messages criterion actions
+
+For the *messages* criterion the *action* segment specifies the message subject and can be freely chosen by the sender 
+provided that it conforms to [RFC-2396](https://tools.ietf.org/html/rfc2396) (URI).
