@@ -89,4 +89,10 @@ not need access rights for sending them.
 
 ## Claim Messages
 
-TODO: document 
+A Claim Message is used to gain access to a Thing. For this purpose a Claim Messages has two specifics:
+* the predefined message subject is always *claim*
+* you do not require `WRITE` permission to send a Claim Message
+
+Apart from that the Claim Message is handled like a standard Message. It is forwarded to all Ditto Protocol bindings 
+that registered for Claim Messages of the specific Thing. The decision whether to grant access (by setting permissions) 
+is completely up to the receiver of the Claim Message e.g. after verifying the payload of the Message.
