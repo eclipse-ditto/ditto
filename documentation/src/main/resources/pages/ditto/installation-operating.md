@@ -202,15 +202,14 @@ Example request payload to create a new AMQP 1.0 connection:<br/>
 }
 ```
 
-The `id` of the connection may be chosen as liked.
+The `id` of the connection may be any string.
 
 The `authorizationSubject` is the subject (e.g. user-id) to use for [authorization](basic-auth.html#authorization) of 
-all messages originating from the created AMQP 1.0 connection.<br/>
-This means that this subject needs to have the permission to WRITE a `Thing` when it or some parts of it should be 
-changed and needs to have the permission to READ a `Thing` when it or some parts of it should be read.
+all messages originating from the created connection. This subject is required to have WRITE permission on a `Thing` 
+to change it partially or completely and needs to have READ permission to read the `Thing` or any parts of it.
 
-The `failoverEnabled` property defines whether failover is enabled for the connection or not.
+The `failoverEnabled` property defines whether failover is enabled or not.
 
-The `uri` contains the AMQP 1.0 connection URI including username and password to use.
+The `uri` defines the endpoint including username and password to connect to.
 
-The `sources` contains an array of Strings of sources/queues to connect to in this connection.
+The `sources` defines a string array of sources (e.g. hono's [Telemetry API](https://www.eclipse.org/hono/api/telemetry-api)) to consume messages from.

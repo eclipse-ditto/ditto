@@ -6,7 +6,7 @@ permalink: architecture-services-amqp-bridge.html
 ---
 
 In Ditto 0.1.0-M2 the AMQP-Bridge service was added with the goal to be able to establish connections to 
-[Eclipse Hono](https://eclipse.org/hono/) as well as other **AMQP 1.0** endpoints.
+[Eclipse Hono](https://eclipse.org/hono/) as well as other [AMQP 1.0](protocol-bindings-amqp10.html) endpoints.
 
 ## Model
 
@@ -30,9 +30,8 @@ and restore persisted entities.
 
 ## Tasks
 
-* create/remove AMQP 1.0 connections (by persisting them)
-* connect to AMQP 1.0 endpoints
-* restore once created AMQP 1.0 connections upon restart/failover
-* translate [Ditto Protocol](protocol-overview.html) messages incoming via [AMQP 1.0](protocol-bindings-amqp10.html)
-  connections to [commands](basic-signals-command.html) and translates [command responses](basic-signals-commandresponse.html) back
-  to [Ditto Protocol](protocol-overview.html) response messages sending them back to the AMQP connection
+* create/remove connections (by persisting them)
+* connect/disconnect to endpoints
+* restore existing connections upon restart/failover
+* translate incoming [Ditto Protocol](protocol-overview.html) messages to [commands](basic-signals-command.html)
+  and translate [command responses](basic-signals-commandresponse.html) back to [Ditto Protocol](protocol-overview.html) response messages

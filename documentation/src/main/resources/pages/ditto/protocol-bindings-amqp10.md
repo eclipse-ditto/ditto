@@ -18,16 +18,15 @@ application/vnd.eclipse.ditto+json
 
 Supported AMQP 1.0 properties which are interpreted in a specific way are:
 * `content-type`: for defining the Ditto Protocol content-type
-* `reply-to`: for defining the address of the node to send replies to
 * `correlation-id`: for correlating request messages to responses
 
 
 ## Establishing connecting to an AMQP 1.0 endpoint
 
-Ditto's [AMQP-bridge](architecture-services-amqp-bridge.html) is responsible for creating new AMQP 1.0 connections and
-establishing connections.
+Ditto's [AMQP-Bridge](architecture-services-amqp-bridge.html) is responsible for creating new and managing 
+existing connections.
 
-Both can be done dynamically without the need to restart the AMQP-bridge or other Ditto services. This is done via a
+This can be done dynamically at runtime without the need to restart any microservice using a
 [Ditto operations command](installation-operating.html#create-a-new-amqp-bridge-connection).
 
 

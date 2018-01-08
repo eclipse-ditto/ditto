@@ -16,7 +16,7 @@ The gateway service has no model by its own, but uses the model of all the servi
 
 The gateway service has no signals by its own, but uses the signals of all the services it orchestrates.
 
-## Signals
+## Persistence
 
 The gateway service has no persistence by its own.
 
