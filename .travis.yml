@@ -19,6 +19,7 @@ script:
     docker build -f services/Dockerfile --build-arg SERVICE_STARTER=ditto-services-things-starter      --build-arg SERVICE_VERSION=$IMAGE_TAG   -t eclipse/ditto-things:$IMAGE_TAG        -t eclipse/ditto-things:latest .;
     docker build -f services/Dockerfile --build-arg SERVICE_STARTER=ditto-services-thingsearch-starter --build-arg SERVICE_VERSION=$IMAGE_TAG   -t eclipse/ditto-things-search:$IMAGE_TAG -t eclipse/ditto-things-search:latest .;
     docker build -f services/Dockerfile --build-arg SERVICE_STARTER=ditto-services-gateway-starter     --build-arg SERVICE_VERSION=$IMAGE_TAG   -t eclipse/ditto-gateway:$IMAGE_TAG       -t eclipse/ditto-gateway:latest .;
+    docker build -f services/Dockerfile --build-arg SERVICE_STARTER=ditto-services-amqpbridge-starter  --build-arg SERVICE_VERSION=$IMAGE_TAG   -t eclipse/ditto-amqp-bridge:$IMAGE_TAG   -t eclipse/ditto-amqp-bridge:latest .;
     docker push eclipse/ditto-policies:$IMAGE_TAG;
     docker push eclipse/ditto-policies:latest;
     docker push eclipse/ditto-things:$IMAGE_TAG;
@@ -27,4 +28,6 @@ script:
     docker push eclipse/ditto-things-search:latest;
     docker push eclipse/ditto-gateway:$IMAGE_TAG;
     docker push eclipse/ditto-gateway:latest;
+    docker push eclipse/ditto-amqp-bridge:$IMAGE_TAG;
+    docker push eclipse/ditto-amqp-bridge:latest;
     fi;
