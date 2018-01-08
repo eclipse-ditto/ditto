@@ -108,7 +108,12 @@ public abstract class AbstractStreamingActor<C, E> extends AbstractActor {
         // - STREAM_FAILURE is sent when upstream fails.
         //
         // DO NOT replace the stream below by Sink.actorRefWithAck from Akka 2.5.8,
-        // because it does not work when the actor reference points to a remote actor.
+        // because it sends STREAM_COMPLETED without waiting for the acknowledgement
+        // of the final stream element, complicating the state transition of
+        // AbstractStreamForwarder.
+        //
+        // See:
+        // https://github.com/akka/akka/issues/21015
         createSource(command)
                 .grouped(burst)
                 .map(this::batchMessages)
