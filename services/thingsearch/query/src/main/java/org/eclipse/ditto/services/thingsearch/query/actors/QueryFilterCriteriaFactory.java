@@ -13,9 +13,7 @@ package org.eclipse.ditto.services.thingsearch.query.actors;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 
 import org.eclipse.ditto.model.base.common.ConditionChecker;
@@ -31,13 +29,13 @@ import org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidFilterEx
 /**
  * The place for query filter manipulations
  */
-final class QueryFilterCriteriaFactory {
+public final class QueryFilterCriteriaFactory {
 
     private final CriteriaFactory criteriaFactory;
     private final ThingsFieldExpressionFactory fieldExpressionFactory;
     private final RqlPredicateParser rqlPredicateParser;
 
-    QueryFilterCriteriaFactory(final CriteriaFactory criteriaFactory,
+    public QueryFilterCriteriaFactory(final CriteriaFactory criteriaFactory,
             final ThingsFieldExpressionFactory fieldExpressionFactory)
     {
         this.criteriaFactory = criteriaFactory;
@@ -76,31 +74,6 @@ final class QueryFilterCriteriaFactory {
     {
         final Criteria filterCriteria = filterCriteria(filter, dittoHeaders);
         return restrictByAcl(authorisationSubjectIds, filterCriteria);
-    }
-
-    /**
-     * Creates a filter criterion based on a filter string which includes only items related to the given auth
-     * subjects and if namespaces given also restricts to those
-     *
-     * @param filter the filter string (can be null)
-     * @param dittoHeaders the corresponding command headers
-     * @param authorisationSubjectIds the auth subjects
-     * @param namespaces the namespaces (can be null)
-     * @return a filter criterion based on the filter string which includes only items related to the given auth
-     * subjects
-     */
-    public Criteria filterCriteriaRestrictedByAclAndOptionalNamespaces(final String filter,
-            final DittoHeaders dittoHeaders, final List<String> authorisationSubjectIds, final Set<String> namespaces)
-    {
-        List<Criteria> criteriaList = new LinkedList<>();
-        criteriaList.add(filterCriteria(filter, dittoHeaders));
-        criteriaList.add(aclFilterCriteria(authorisationSubjectIds));
-
-        if (Objects.nonNull(namespaces)) {
-            criteriaList.add(namespaceFilterCriteria(namespaces));
-        }
-
-        return criteriaFactory.and(criteriaList);
     }
 
     /**
