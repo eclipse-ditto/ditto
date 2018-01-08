@@ -90,7 +90,8 @@ public final class JsonExamplesProducer {
                 Collections.singletonList(searchQuery.getOptionsAsString()),
                 JsonFactory.newFieldSelector("attributes", JsonFactory.newParseOptionsBuilder()
                         .withoutUrlDecoding()
-                        .build()), knownNamespaces,
+                        .build()),
+                knownNamespaces,
                 DittoHeaders.empty());
 
         writeJson(commandsDir.resolve(Paths.get("query-things-command.json")), queryThingsCommand);
@@ -128,7 +129,7 @@ public final class JsonExamplesProducer {
 
         final DittoRuntimeException e =
                 DittoRuntimeException.newBuilder("search.filter.invalid", HttpStatusCode.BAD_REQUEST)
-                .build();
+                        .build();
         final SearchErrorResponse errorResponse = SearchErrorResponse.of(e, DittoHeaders.empty());
         writeJson(commandsDir.resolve(Paths.get("query-things-error-response.json")), errorResponse);
     }
