@@ -1617,6 +1617,7 @@ paths:
           type: array
           items:
             type: string
+        - $ref: '#/parameters/namespacesFilter'
         - $ref: '#/parameters/thingFieldsQueryParam'
       tags:
         - Search
@@ -1681,6 +1682,7 @@ paths:
 
       parameters:
         - $ref: '#/parameters/searchFilter'
+        - $ref: '#/parameters/namespacesFilter'
       tags:
         - Search
       responses:
@@ -2133,3 +2135,18 @@ parameters:
       * ```or(eq(attributes/location,"kitchen"),eq(attributes/location,"living-room"))```
     required: false
     type: string
+  namespacesFilter:
+    name: namespaces
+    in: query
+    type: string
+    description: >-
+      A comma separated list of namespaces. This list is used to limit the query reach to things in the given
+      namespaces only. When this parameter is omitted, all namespaces will be selected.
+
+      Examples:
+
+      * `?namespaces=com.example.namespace`
+
+      * `?namespaces=com.example.namespace1,com.example.namespace2`
+
+    required: false

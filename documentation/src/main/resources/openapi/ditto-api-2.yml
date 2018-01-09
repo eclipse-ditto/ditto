@@ -2920,13 +2920,11 @@ parameters:
       A comma separated list of namespaces. This list is used to limit the query reach to things in the given
       namespaces only. When this parameter is omitted, all namespaces will be selected.
 
-
-      At this time a maximum count of `1` namespace is allowed for this parameter.
-
-
       Examples:
 
       * `?namespaces=com.example.namespace`
+
+      * `?namespaces=com.example.namespace1,com.example.namespace2`
 
     required: false
 
