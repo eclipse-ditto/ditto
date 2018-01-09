@@ -26,7 +26,6 @@ import java.util.Set;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.gateway.endpoints.directives.CustomPathMatchers;
 import org.eclipse.ditto.services.gateway.endpoints.routes.AbstractRoute;
-import org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidNamespacesException;
 import org.eclipse.ditto.signals.commands.thingsearch.query.CountThings;
 import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThings;
 
@@ -62,15 +61,15 @@ public final class ThingSearchRoute extends AbstractRoute {
      *
      * @return the {@code /search}} route.
      */
-    public Route buildSearchRoute(final RequestContext ctx, final Integer apiVersion, final DittoHeaders dittoHeaders) {
+    public Route buildSearchRoute(final RequestContext ctx, final DittoHeaders dittoHeaders) {
         return Directives.rawPathPrefix(CustomPathMatchers.mergeDoubleSlashes().concat(PATH_SEARCH), () ->
                 Directives.rawPathPrefix(CustomPathMatchers.mergeDoubleSlashes().concat(PATH_THINGS),
                         () -> // /search/things
                                 Directives.route(
                                         // /search/things/count
-                                        path(PATH_COUNT, () -> countThings(ctx, apiVersion, dittoHeaders)),
+                                        path(PATH_COUNT, () -> countThings(ctx, dittoHeaders)),
                                         // /search/things
-                                        pathEndOrSingleSlash(() -> searchThings(ctx, apiVersion, dittoHeaders))
+                                        pathEndOrSingleSlash(() -> searchThings(ctx, dittoHeaders))
                                 )
                 )
         );
@@ -81,12 +80,12 @@ public final class ThingSearchRoute extends AbstractRoute {
      *
      * @return {@code /search/things/count} route.
      */
-    private Route countThings(final RequestContext ctx, final Integer apiVersion, final DittoHeaders dittoHeaders) {
+    private Route countThings(final RequestContext ctx, final DittoHeaders dittoHeaders) {
         return get(() -> // GET things/count?filter=<filterString>&namespaces=<namespacesString>
                 parameterOptional(ThingSearchParameter.FILTER.toString(), filterString ->
                         parameterOptional(ThingSearchParameter.NAMESPACES.toString(), namespacesString ->
                                 handlePerRequest(ctx, CountThings.of(calculateFilter(filterString),
-                                        calculateNamespaces(namespacesString, apiVersion), dittoHeaders))
+                                        calculateNamespaces(namespacesString), dittoHeaders))
                         )
                 )
         );
@@ -97,7 +96,7 @@ public final class ThingSearchRoute extends AbstractRoute {
      *
      * @return {@code /search/things} route.
      */
-    private Route searchThings(final RequestContext ctx, final Integer apiVersion, final DittoHeaders dittoHeaders) {
+    private Route searchThings(final RequestContext ctx, final DittoHeaders dittoHeaders) {
         return get(
                 () -> // GET things?filter=<filterString>&options=<optionsString>&fields=<fieldsString>&namespaces=<namespacesString>
                         parameterOptional(ThingSearchParameter.FILTER.toString(), filterString ->
@@ -110,7 +109,7 @@ public final class ThingSearchRoute extends AbstractRoute {
                                                                         AbstractRoute.calculateSelectedFields(
                                                                                 fieldsString)
                                                                                 .orElse(null),
-                                                                        calculateNamespaces(namespacesString, apiVersion),
+                                                                        calculateNamespaces(namespacesString),
                                                                         dittoHeaders))
                                                 )
                                         )
@@ -125,20 +124,13 @@ public final class ThingSearchRoute extends AbstractRoute {
     }
 
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-    private static Set<String> calculateNamespaces(final Optional<String> namespacesString, final Integer version) {
-        final Set<String> namespaces = namespacesString.filter(s -> !s.isEmpty()).map(s -> s.split(","))
-                .map(Arrays::asList).map(HashSet::new).map(n -> (Set<String>)n).orElse(Collections.emptySet());
-
-        //TODO: limited search to single namespace -> ?remove later? EXCEPTION IS NOT LOGGED
-        final int max = 1;
-        if (max < namespaces.size()) {
-            throw InvalidNamespacesException.newBuilder()
-                    .message(String.format("The list of provided namespaces is too long. It exceeds the maximum of " +
-                            "%d namespaces.", max))
-                    .build();
-        }
-
-        return namespaces.isEmpty() ? null : namespaces;
+    private static Set<String> calculateNamespaces(final Optional<String> namespacesString) {
+        return namespacesString.filter(s -> !s.isEmpty())
+                .map(s -> s.split(","))
+                .map(Arrays::asList)
+                .map(HashSet::new)
+                .map(n -> (Set<String>) n)
+                .orElse(Collections.emptySet());
     }
 
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
