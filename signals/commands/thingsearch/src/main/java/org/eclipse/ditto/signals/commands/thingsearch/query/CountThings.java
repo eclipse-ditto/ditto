@@ -11,6 +11,8 @@
  */
 package org.eclipse.ditto.signals.commands.thingsearch.query;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Objects;
@@ -61,17 +63,12 @@ public final class CountThings extends AbstractCommand<CountThings> implements T
                     JsonSchemaVersion.V_2);
 
     @Nullable private final String filter;
-    @Nullable private final Set<String> namespaces;
+    private final Set<String> namespaces;
 
-    private CountThings(final DittoHeaders dittoHeaders, @Nullable final String filter,
-            @Nullable final Set<String> namespaces) {
+    private CountThings(final DittoHeaders dittoHeaders, @Nullable final String filter, final Set<String> namespaces) {
         super(TYPE, dittoHeaders);
         this.filter = filter;
-        if (namespaces != null) {
-            this.namespaces = Collections.unmodifiableSet(new HashSet<>(namespaces));
-        } else {
-            this.namespaces = null;
-        }
+        this.namespaces = Collections.unmodifiableSet(new HashSet<>(namespaces));
     }
 
     /**
@@ -84,7 +81,7 @@ public final class CountThings extends AbstractCommand<CountThings> implements T
      */
     public static CountThings of(@Nullable final String filter, @Nullable final Set<String> namespaces,
             final DittoHeaders dittoHeaders) {
-
+        checkNotNull(namespaces, "namespaces");
         return new CountThings(dittoHeaders, filter, namespaces);
     }
 
@@ -96,7 +93,7 @@ public final class CountThings extends AbstractCommand<CountThings> implements T
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static CountThings of(final DittoHeaders dittoHeaders) {
-        return new CountThings(dittoHeaders, null, null);
+        return of(null, Collections.emptySet(), dittoHeaders);
     }
 
     /**
@@ -131,7 +128,7 @@ public final class CountThings extends AbstractCommand<CountThings> implements T
                             .filter(JsonValue::isString)
                             .map(JsonValue::asString)
                             .collect(Collectors.toSet()))
-                    .orElse(null);
+                    .orElse(Collections.emptySet());
 
             return new CountThings(dittoHeaders, extractedFilter, extractedNamespaces);
         });
@@ -149,8 +146,8 @@ public final class CountThings extends AbstractCommand<CountThings> implements T
      *
      * @return the optional set of namespaces.
      */
-    public Optional<Set<String>> getNamespaces() {
-        return Optional.ofNullable(namespaces);
+    public Set<String> getNamespaces() {
+        return namespaces;
     }
 
     @Override
@@ -161,9 +158,9 @@ public final class CountThings extends AbstractCommand<CountThings> implements T
         if (filter != null) {
             jsonObjectBuilder.set(JSON_FILTER, filter, predicate);
         }
-        getNamespaces().ifPresent(presentOptions -> jsonObjectBuilder.set(JSON_NAMESPACES, presentOptions.stream()
+        jsonObjectBuilder.set(JSON_NAMESPACES, namespaces.stream()
                 .map(JsonValue::of)
-                .collect(JsonCollectors.valuesToArray()), predicate));
+                .collect(JsonCollectors.valuesToArray()), predicate);
     }
 
     @Override

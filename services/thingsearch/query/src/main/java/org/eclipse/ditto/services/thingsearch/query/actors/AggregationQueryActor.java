@@ -12,7 +12,6 @@
 package org.eclipse.ditto.services.thingsearch.query.actors;
 
 
-import java.util.Collections;
 import java.util.function.Consumer;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -113,10 +112,11 @@ public final class AggregationQueryActor extends AbstractActor {
         final Criteria filterCriteria = queryFilterCriteriaFactory.filterCriteriaRestrictedByNamespace(
                 command.getFilter().orElse(null),
                 command.getDittoHeaders(),
-                command.getNamespaces().orElse(Collections.emptySet()));
+                command.getNamespaces());
 
         final AggregationBuilder aggregationBuilder = aggregationBuilderFactory.newCountBuilder(filterCriteria)
-                .authorizationSubjects(command.getDittoHeaders().getAuthorizationContext().getAuthorizationSubjectIds());
+                .authorizationSubjects(
+                        command.getDittoHeaders().getAuthorizationContext().getAuthorizationSubjectIds());
 
         getSender().tell(aggregationBuilder.build(), getSelf());
     }
@@ -129,7 +129,8 @@ public final class AggregationQueryActor extends AbstractActor {
                 command.getNamespaces());
 
         final AggregationBuilder aggregationBuilder = aggregationBuilderFactory.newBuilder(filterCriteria)
-                .authorizationSubjects(command.getDittoHeaders().getAuthorizationContext().getAuthorizationSubjectIds());
+                .authorizationSubjects(
+                        command.getDittoHeaders().getAuthorizationContext().getAuthorizationSubjectIds());
 
         command.getOptions()
                 .map(optionStrings -> String.join(",", optionStrings))
