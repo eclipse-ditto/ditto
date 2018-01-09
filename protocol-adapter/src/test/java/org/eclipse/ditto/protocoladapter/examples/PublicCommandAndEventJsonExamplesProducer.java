@@ -66,13 +66,6 @@ public final class PublicCommandAndEventJsonExamplesProducer extends CommandAndE
             codeEnd = "```";
             newLine = "\n";
             fileExtension = ".md";
-        } else if (markdownType.equals("dokuwiki")) {
-            h2Begin = "===== ";
-            h2End = " =====";
-            codeJsonBegin = "<code javascript>";
-            codeEnd = "</code>";
-            newLine = "\n";
-            fileExtension = ".txt";
         } else {
             throw new IllegalArgumentException("Unknown markdownType: " + markdownType);
         }

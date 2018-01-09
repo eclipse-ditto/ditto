@@ -198,22 +198,6 @@
                 <artifactId>exec-maven-plugin</artifactId>
                 <executions>
                     <execution>
-                        <id>generate-dokuwiki</id>
-                        <phase>process-test-classes</phase>
-                        <goals>
-                            <goal>java</goal>
-                        </goals>
-                        <configuration>
-                            <classpathScope>test</classpathScope>
-                            <mainClass>
-                                org.eclipse.ditto.protocoladapter.examples.PublicCommandAndEventJsonExamplesProducer
-                            </mainClass>
-                            <arguments>
-                                <argument>${project.build.directory}/generated-resources/dokuwiki</argument>
-                            </arguments>
-                        </configuration>
-                    </execution>
-                    <execution>
                         <id>generate-markdown</id>
                         <phase>process-test-classes</phase>
                         <goals>
