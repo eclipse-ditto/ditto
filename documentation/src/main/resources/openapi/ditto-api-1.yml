@@ -30,7 +30,7 @@ securityDefinitions:
     type: oauth2
     description: Allow Eclipse Ditto to access your Google-ID.
     authorizationUrl: https://accounts.google.com/o/oauth2/v2/auth
-    tokenUrl: https://www.googleapis.com/oauth2/v4/token
+    tokenUrl: /oauth2/google/token
     x-tokenName: id_token
     flow: accessCode
     scopes:

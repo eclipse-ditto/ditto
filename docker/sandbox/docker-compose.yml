@@ -131,7 +131,7 @@ services:
     volumes:
        - ../../documentation/src/main/resources/openapi:/usr/share/nginx/html/openapi:ro
        - ../../documentation/src/main/resources/images:/usr/share/nginx/html/images:ro
-       - ./swagger-index.html:/usr/share/nginx/html/swagger-index.html:ro
+       - ../swagger-index.html:/usr/share/nginx/html/swagger-index.html:ro
 
   nginx:
     image: docker.io/nginx:1.13-alpine

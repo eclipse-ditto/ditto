@@ -34,6 +34,10 @@
         #swagger-ui .swagger-ui.swagger-container .topbar .topbar-wrapper a {
             display: none;
         }
+
+        #swagger-ui .swagger-ui .auth-container .scope-def {
+            display: none;
+        }
     </style>
 </head>
 
@@ -98,8 +102,19 @@
                                        plugins: [
                                            SwaggerUIBundle.plugins.DownloadUrl
                                        ],
-                                       layout: "StandaloneLayout"
+                                       layout: "StandaloneLayout",
+                                       oauth2RedirectUrl: window.location.origin + "/apidoc/oauth2-redirect.html"
                                    })
+
+        ui.initOAuth({
+                         clientId: "853201765597-7nmcpg90krhogd9375dl44sse4tup0gj.apps.googleusercontent.com",
+                         clientSecret: "<leave that empty>",
+                         realm: "eclipse-ditto",
+                         appName: "Eclipse Ditto Sandbox",
+                         scopeSeparator: " ",
+                         additionalQueryStringParams: {
+                         }
+                     })
 
         window.ui = ui
     }
@@ -107,3 +122,4 @@
 </body>
 
 </html>
+
