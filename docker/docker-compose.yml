@@ -71,11 +71,11 @@ services:
       - _JAVA_OPTIONS=-Xms256m -Xmx256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError
 
   swagger-ui:
-    image: docker.io/swaggerapi/swagger-ui:v3.8.1
+    image: docker.io/swaggerapi/swagger-ui:v2.2.9
     volumes:
        - ../documentation/src/main/resources/openapi:/usr/share/nginx/html/openapi:ro
        - ../documentation/src/main/resources/images:/usr/share/nginx/html/images:ro
-       - ./swagger-index.html:/usr/share/nginx/html/swagger-index.html:ro
+       - ./swagger-index.html:/usr/share/nginx/html/index.html:ro
     environment:
       - API_URL=/apidoc/openapi/ditto-api-1.yml
 

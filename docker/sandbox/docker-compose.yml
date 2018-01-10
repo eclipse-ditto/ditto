@@ -88,12 +88,7 @@ services:
       - PUBLIC_HEALTH_PASSWORD=${GATEWAY_DEVOPS_PASSWORD}
 
   graphite:
-    image: hopsoft/graphite-statsd:v0.9.15-phusion0.9.18
-    ports:
-      - target: 2003
-        published: 2003
-        protocol: tcp
-        mode: host
+    image: hopsoft/graphite-statsd:latest
     volumes:
       - "./graphite/storage/whisper:/opt/graphite/storage/whisper"
       - "./graphite/storage-schemas.conf:/opt/graphite/conf/storage-schemas.conf"
@@ -110,14 +105,16 @@ services:
   grafana:
     image: grafana/grafana:4.5.2
     depends_on:
+      - graphite
       - postgres
     environment:
       TZ: Europe/Berlin
-      GF_SERVER_ROOT_URL: http://localhost/grafana/
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_SERVER_ROOT_URL: http://localhost:3000/grafana/
       GF_DATABASE_TYPE: postgres
       GF_DATABASE_HOST: postgres:5432
       GF_DATABASE_USER: admin
-      GF_DATABASE_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_DATABASE_PASSWORD: ${POSTGRES_ADMIN_PASSWORD:-admin}
       GF_DATABASE_NAME: postgres
       GF_USERS_SIGNUP: "false"
       GF_ALLOW_ORG_CREATE: "false"
@@ -127,16 +124,19 @@ services:
       GF_SMTP_ENABLED: "false"
 
   swagger-ui:
-    image: docker.io/swaggerapi/swagger-ui:v3.8.1
+    image: docker.io/swaggerapi/swagger-ui:v2.2.9
     volumes:
        - ../../documentation/src/main/resources/openapi:/usr/share/nginx/html/openapi:ro
        - ../../documentation/src/main/resources/images:/usr/share/nginx/html/images:ro
-       - ../swagger-index.html:/usr/share/nginx/html/swagger-index.html:ro
+       - ../swagger-index.html:/usr/share/nginx/html/index.html:ro
+    environment:
+       - API_URL=/apidoc/openapi/ditto-api-1.yml
 
   nginx:
     image: docker.io/nginx:1.13-alpine
     volumes:
        - ./nginx.conf:/etc/nginx/nginx.conf:ro
+       - ./nginx-devops.htpasswd:/etc/nginx/nginx-devops.htpasswd:ro
        - ./index.html:/etc/nginx/html/index.html:ro
        - ../nginx-cors.conf:/etc/nginx/nginx-cors.conf:ro
        - ../../documentation/src/main/resources/images:/etc/nginx/html/images:ro

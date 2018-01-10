@@ -1,11 +1,17 @@
-<!doctype html>
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-    <title>Welcome to the Eclipse Ditto Sandbox</title>
+    <meta charset="UTF-8">
+    <title>Eclipse Ditto - Sandbox</title>
+    <link rel="icon" type="image/png" href="./images/favicon-16x16.png" sizes="16x16" />
+    <link rel="icon" type="image/png" href="./images/favicon-32x32.png" sizes="32x32" />
+    <link rel="icon" type="image/png" href="./images/favicon-96x96.png" sizes="96x96" />
+
+    <link href="https://fonts.googleapis.com/css?family=Abel&amp;text=0123456789" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+
     <style>
         body {
-            text-align: center;
-            padding: 150px;
         }
 
         h1 {
@@ -17,13 +23,6 @@
             color: #333;
         }
 
-        article {
-            display: block;
-            text-align: left;
-            width: 750px;
-            margin: 0 auto;
-        }
-
         a {
             color: #dc8100;
             text-decoration: none;
@@ -33,26 +32,153 @@
             color: #333;
             text-decoration: none;
         }
+
+        .stats {
+            line-height: 3em;
+        }
+        .stats-count {
+            font: normal 2em Abel;
+            color: #0A8;
+            font-weight: bold;
+            text-align: center;
+            margin: 5px;
+            clear: left;
+            float: left;
+            width: 5em;
+            background-color: lightgray;
+        }
+        .stats-count-text {
+            padding-left: 1em;
+            vertical-align: middle;
+        }
+
+        .health {
+            height: 30px;
+            width: 30px;
+            border-style: solid;
+            border-width: 2px;
+            border-radius: 25px;
+            float: left;
+        }
+        .health-red {
+            background-color: red;
+        }
+        .health-yellow {
+            background-color: yellow;
+        }
+        .health-green {
+            background-color: green;
+        }
+
+        .health-list li {
+            clear: both;
+            line-height: 30px;
+        }
+        .health-key {
+            float: left;
+            width: 9em;
+        }
+        .health-status {
+            line-height: 30px;
+            padding-left: 1em;
+        }
     </style>
 </head>
 <body>
 
 <article>
-    <h1>Welcome to the Eclipse Ditto Sandbox</h1>
+    <h1>Welcome to the Eclipse Ditto sandbox</h1>
     <div>
-        <p>Thank you for trying out Eclipse Ditto!</p>
-        <p>In order to get started quickly, you can now have a look at the OpenAPI documentation for
-        <ul>
-            <li><a href="/apidoc/1">API version 1</a></li>
-            <li><a href="/apidoc/2">API version 2</a></li>
-        </ul>
-        <p>By clicking the "Authorize" button you can authorize with you Google account in order to start using the
-            Ditto HTTP API from there.
+        <p>From here you can have a look at and try out Ditto's <a href="/apidoc">HTTP API</a>.<br/>
+           By clicking the "Authorize" button you can authorize with you Google account in order to start using the Ditto HTTP API from there.
         </p>
-        <p>&mdash; the Ditto team</p>
+    </div>
+    <h2>Statistics</h2>
+    <div>
+        <div class="stats">
+            <span id="total-things-count" class="stats-count"></span><span class="stats-count-text"> persisted <i>Things</i> in the Ditto sandbox</span>
+        </div>
+        <div class="stats">
+            <span id="hot-things-count" class="stats-count"></span><span class="stats-count-text"> currently "hot" <i>Things</i> (accessed within the last 2 hours) in the Ditto sandbox</span>
+        </div>
+    </div>
+    <h2 style="clear: both">Health of sandbox</h2>
+    <div id="health-content">
     </div>
 </article>
 
+<script>
+    function update_count(selector, count) {
+        $(selector).animate({
+              counter: count
+          }, {
+              duration: 3000,
+              easing: 'swing',
+              step: function(now) {
+                  $(this).text(Math.ceil(now));
+              }//,
+              // complete: update_users_count
+          });
+    }
+
+    $.getJSON("/stats/search", function( data ) {
+        let allThingsCount = data.allThingsCount;
+        update_count('#total-things-count', allThingsCount);
+    }).fail(function() {
+        update_count('#total-things-count', 0);
+    });
+    $.getJSON("/stats/things", function( data ) {
+        let hotThingsCount = data.hotThingsCount;
+        update_count('#hot-things-count', hotThingsCount);
+    }).fail(function() {
+        update_count('#hot-things-count', 0);
+    });
+
+    function calcHealthStatusClass(status) {
+        let healthStatusClass;
+        if (status === "UP") {
+            healthStatusClass = "health-green";
+        } else if (status === "DOWN") {
+            healthStatusClass = "health-red";
+        } else {
+            healthStatusClass = "health-yellow";
+        }
+        return healthStatusClass;
+    }
+
+    $.getJSON("/status/health", function( data ) {
+        let overallStatus = data.status;
+        $(`<p>
+            <span class="health-key"></span>
+            <span class="health ${calcHealthStatusClass(overallStatus)}"></span>
+            <span class="health-status">${overallStatus}</span>
+        </p>`).appendTo("#health-content");
+
+        let items = [];
+        $.each(data.roles, function( key, val ) {
+            if (key === "status" || key === "thing-cache-aware" || key === "dc-default" || key === "policy-cache-aware") {
+                // ignore
+            } else {
+                items.push(`<li>
+                    <span class="health-key">${key}:</span>
+                    <span class="health ${calcHealthStatusClass(val.status)}"></span>
+                    <span class="health-status">${val.status}</span>
+                </li>`);
+            }
+        });
+
+        $( "<ul/>", {
+            "class": "health-list",
+            html: items.join( "" )
+        }).appendTo("#health-content");
+    }).fail(function() {
+        $(`<p>
+            <span class="health-key"></span>
+            <span class="health health-red"></span>
+            <span class="health-status">COULD NOT BE DETERMINED</span>
+        </p>`).appendTo("#health-content");
+    })
+</script>
 </body>
 </html>
 
