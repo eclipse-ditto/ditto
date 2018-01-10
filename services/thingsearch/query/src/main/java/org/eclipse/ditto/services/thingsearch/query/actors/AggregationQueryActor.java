@@ -126,7 +126,7 @@ public final class AggregationQueryActor extends AbstractActor {
         final Criteria filterCriteria = queryFilterCriteriaFactory.filterCriteriaRestrictedByNamespace(
                 command.getFilter().orElse(null),
                 dittoHeaders,
-                command.getNamespaces());
+                command.getNamespaces().orElse(Collections.emptySet()));
 
         final AggregationBuilder aggregationBuilder = aggregationBuilderFactory.newBuilder(filterCriteria)
                 .authorizationSubjects(command.getDittoHeaders().getAuthorizationContext().getAuthorizationSubjectIds());

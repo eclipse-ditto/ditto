@@ -19,7 +19,6 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areEffective
 
 import java.util.Arrays;
 
-import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -65,12 +64,10 @@ public final class QueryThingsTest {
 
     private static final String JSON_MINIMAL_V2 = JsonFactory.newObjectBuilder()
             .set(ThingSearchCommand.JsonFields.TYPE, QueryThings.TYPE)
-            .set(QueryThings.JSON_NAMESPACES, JsonFactory.newArray())
             .build().toString();
 
     private static final String JSON_MINIMAL_V1 = JsonFactory.newObjectBuilder()
             .set(ThingSearchCommand.JsonFields.ID, QueryThings.NAME)
-            .set(QueryThings.JSON_NAMESPACES, JsonFactory.newArray())
             .build().toString();
 
 
