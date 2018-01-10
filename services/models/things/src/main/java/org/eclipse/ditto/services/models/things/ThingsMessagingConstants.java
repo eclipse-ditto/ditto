@@ -29,11 +29,6 @@ public final class ThingsMessagingConstants {
      */
     public static final String CLUSTER_ROLE = "things";
 
-    /**
-     * Name of the akka cluster pub sub topic where all thing tags are published to.
-     */
-    public static final String THING_TAGS_TOPIC = "things.tags";
-
     /*
      * Inhibit instantiation of this utility class.
      */

@@ -26,7 +26,6 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.OffsetDateTime;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -47,6 +46,7 @@ import org.eclipse.ditto.model.messages.TimeoutInvalidException;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.gateway.endpoints.HttpRequestActor;
 import org.eclipse.ditto.services.gateway.endpoints.routes.AbstractRoute;
+import org.eclipse.ditto.services.gateway.starter.service.util.ConfigKeys;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.messages.SendClaimMessage;
 import org.eclipse.ditto.signals.commands.messages.SendFeatureMessage;
@@ -82,13 +82,6 @@ final class MessagesRoute extends AbstractRoute {
 
     private static final Pattern INBOX_OUTBOX_PATTERN = Pattern.compile(PATH_INBOX + "|" + PATH_OUTBOX);
 
-    private static final List<String> BLACKLISTED_HTTP_HEADERS = Arrays.asList(
-            "authorization",
-            "raw-request-uri",
-            "cache-control",
-            "connection",
-            "timeout-access");
-
     static final String TIMEOUT_PARAMETER = "timeout";
     private static final String X_DITTO_VALIDATION_URL = "x-ditto-validation-url";
 
@@ -96,6 +89,7 @@ final class MessagesRoute extends AbstractRoute {
     private final Duration maxMessageTimeout;
     private final Duration defaultClaimTimeout;
     private final Duration maxClaimTimeout;
+    private final List<String> headerBlacklist;
 
     /**
      * Constructs the MessagesService route builder.
@@ -121,6 +115,8 @@ final class MessagesRoute extends AbstractRoute {
         this.maxMessageTimeout = maxMessageTimeout;
         this.defaultClaimTimeout = defaultClaimTimeout;
         this.maxClaimTimeout = maxClaimTimeout;
+
+        headerBlacklist = actorSystem.settings().config().getStringList(ConfigKeys.MESSAGE_HEADER_BLACKLIST);
     }
 
     /**
@@ -261,11 +257,11 @@ final class MessagesRoute extends AbstractRoute {
     }
 
     @Nonnull
-    private static Map<String, String> getHeadersAsMap(final HttpMessage httpRequest) {
+    private Map<String, String> getHeadersAsMap(final HttpMessage httpRequest) {
         final Map<String, String> result = new HashMap<>();
         for (final HttpHeader httpHeader : httpRequest.getHeaders()) {
             final String lowerCaseHeaderName = httpHeader.name().toLowerCase();
-            if (!BLACKLISTED_HTTP_HEADERS.contains(lowerCaseHeaderName)) {
+            if (!headerBlacklist.contains(lowerCaseHeaderName)) {
                 result.put(lowerCaseHeaderName, httpHeader.value());
             }
         }

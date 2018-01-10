@@ -16,6 +16,7 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.junit.Test;
 
@@ -26,7 +27,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  */
 public final class PolicyTagTest {
 
-    private static final JsonValue KNOWN_JSON = JsonFactory.newObjectBuilder()
+    private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(PolicyTag.JsonFields.ID, TestConstants.Policy.POLICY_ID)
             .set(PolicyTag.JsonFields.REVISION, TestConstants.Policy.REVISION_NUMBER)
             .build();
@@ -39,7 +40,6 @@ public final class PolicyTagTest {
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(PolicyTag.class)
-                .usingGetClass()
                 .withRedefinedSuperclass()
                 .verify();
     }
@@ -54,10 +54,11 @@ public final class PolicyTagTest {
 
     @Test
     public void createInstanceFromValidJson() {
-        final PolicyTag underTest = PolicyTag.fromJson(KNOWN_JSON.toString());
+
+        final PolicyTag underTest = PolicyTag.fromJson(KNOWN_JSON);
 
         assertThat(underTest).isNotNull();
-        assertThat(underTest.getPolicyId()).isEqualTo(TestConstants.Policy.POLICY_ID);
+        assertThat(underTest.getId()).isEqualTo(TestConstants.Policy.POLICY_ID);
         assertThat(underTest.getRevision()).isEqualTo(TestConstants.Policy.REVISION_NUMBER);
     }
 

@@ -26,7 +26,7 @@ public final class MongoFeaturePropertyCreatedStrategyTest extends AbstractMongo
     private final MongoFeaturePropertyCreatedStrategy strategy = new MongoFeaturePropertyCreatedStrategy();
 
     @Test
-    public void thingUpdates() throws Exception {
+    public void thingUpdates() {
         final List<Bson> updates = strategy.thingUpdates(thingEvent(), indexLengthRestrictionEnforcer);
         assertThat(updates).hasSize(3);
     }

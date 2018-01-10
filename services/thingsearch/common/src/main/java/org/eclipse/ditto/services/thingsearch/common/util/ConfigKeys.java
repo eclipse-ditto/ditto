@@ -55,56 +55,135 @@ public final class ConfigKeys {
     public static final String MONGO_CIRCUIT_BREAKER_TIMEOUT_RESET =
             MONGO_CIRCUIT_BREAKER_CONFIG_PREFIX + "timeout.reset";
 
-    private static final String MONGO_CONNECTION_POOL_PREFIX = MONGO_CONFIG_PREFIX + "connection-pool.";
+    private static final String ENABLED_SUFFIX = "enabled";
 
     /**
-     * Key of the "max-size" of the connection pool.
+     * Controls whether thing and policy event processing should be active or not.
      */
-    public static final String MONGO_CONNECTION_POOL_MAX_SIZE = MONGO_CONNECTION_POOL_PREFIX + "max-size";
+    public static final String EVENT_PROCESSING_ACTIVE = SEARCH_UPDATER_PREFIX + "event-processing.active";
 
     /**
-     * Key of the "max-wait-time" of the connection pool.
+     * Controls whether thing and policy cache-updates should be active or not.
      */
-    public static final String MONGO_CONNECTION_POOL_MAX_WAIT_TIME = MONGO_CONNECTION_POOL_PREFIX + "max-wait-time";
+    public static final String CACHE_UPDATES_ACTIVE = SEARCH_UPDATER_PREFIX + "cache-updates.active";
 
     /**
-     * Key of the "max-wait-queue-size" of the connection pool.
+     * The interval which defines how long a thing updater is considered active. When not active, the corresponding
+     * actor can be stopped.
      */
-    public static final String MONGO_CONNECTION_POOL_MAX_WAIT_QUEUE_SIZE = MONGO_CONNECTION_POOL_PREFIX + "max-wait-queue-size";
-
-    /**
-     * Controls whether thing event processing should be active or not.
-     */
-    public static final String THINGS_EVENT_PROCESSING_ACTIVE = SEARCH_UPDATER_PREFIX + "event-processing.active";
-    /**
-     * Controls whether thing tags processing should be active or not.
-     */
-    public static final String THING_TAGS_PROCESSING_ACTIVE = SEARCH_UPDATER_PREFIX + "thing-tags-processing.active";
+    public static final String THINGS_ACTIVITY_CHECK_INTERVAL = SEARCH_UPDATER_PREFIX +
+            "activity-check-interval";
     /**
      * Key of the how many shards should be used in the cluster.
      */
     public static final String CLUSTER_NUMBER_OF_SHARDS = CLUSTER_PREFIX + "number-of-shards";
+
     /**
      * Key of the majority check enabled configuration.
      */
-    public static final String CLUSTER_MAJORITY_CHECK_ENABLED = CLUSTER_MAJORITY_CHECK_PREFIX + "enabled";
+    public static final String CLUSTER_MAJORITY_CHECK_ENABLED = CLUSTER_MAJORITY_CHECK_PREFIX + ENABLED_SUFFIX;
     /**
      * Key of the majority check delay.
      */
     public static final String CLUSTER_MAJORITY_CHECK_DELAY = CLUSTER_MAJORITY_CHECK_PREFIX + "delay";
     private static final String SYNC_PREFIX = SEARCH_UPDATER_PREFIX + "sync.";
+
+    private static final String SYNC_THINGS_PREFIX = SYNC_PREFIX + "things.";
+
     /**
-     * The syncing period within which there are requested updated things.
+     * Things-Sync: Controls whether the sync should be active or not.
      */
-    public static final String THINGS_SYNCER_PERIOD = SYNC_PREFIX + "period";
+    public static final String THINGS_SYNCER_ACTIVE = SYNC_THINGS_PREFIX + "active";
+
     /**
-     * The offset for the syncing of things.
+     * Things-Sync: The syncer makes sure that all requested stream elements have at least an age of this offset, e.g by
+     * triggering a stream at a later time.
      */
-    public static final String THINGS_SYNCER_OFFSET = SYNC_PREFIX + "offset";
+    public static final String THINGS_SYNCER_START_OFFSET = SYNC_THINGS_PREFIX + "start-offset";
+
     /**
-     * Controls whether the sync should be active or not.
+     * Things-Sync: The duration from now to somewhere in the past for which stream elements are requested if sync
+     * has never been run before - otherwise sync is started where the last run finished.
      */
-    public static final String THINGS_SYNCER_ACTIVE = SYNC_PREFIX + "active";
+    public static final String THINGS_SYNCER_INITIAL_START_OFFSET = SYNC_THINGS_PREFIX + "initial-start-offset";
+
+    /**
+     * Things-Sync: The interval for the query restricting the stream (i.e. the difference between query-start and
+     * query-end). This query-interval is used for <strong>all</strong> queries, but the interval of stream-starts
+     * varies depending on the stream load.
+     */
+    public static final String THINGS_SYNCER_STREAM_INTERVAL = SYNC_THINGS_PREFIX + "stream-interval";
+
+    /**
+     * Things-Sync: if a query-start is more than this offset in the past, a warning will be logged.
+     */
+    public static final String THINGS_SYNCER_OUTDATED_WARNING_OFFSET = SYNC_THINGS_PREFIX + "outdated-warning-offset";
+
+    /**
+     * Things-Sync: The maximum idle time of the syncer (as a Duration).
+     */
+    public static final String THINGS_SYNCER_MAX_IDLE_TIME = SYNC_THINGS_PREFIX + "max-idle-time";
+
+    /**
+     * Things-Sync: Timeout at streaming actor (server) side.
+     */
+    public static final String THINGS_SYNCER_STREAMING_ACTOR_TIMEOUT = SYNC_THINGS_PREFIX + "streaming-actor-timeout";
+
+    /**
+     * Things-Sync: The elements to be streamed per batch by the sync process.
+     */
+    public static final String THINGS_SYNCER_ELEMENTS_STREAMED_PER_BATCH = SYNC_THINGS_PREFIX +
+            "elements-streamed-per-batch";
+
+    private static final String SYNC_POLICIES_PREFIX = SYNC_PREFIX + "policies.";
+
+    /**
+     * Policies-Sync: Controls whether the sync should be active or not.
+     */
+    public static final String POLICIES_SYNCER_ACTIVE = SYNC_POLICIES_PREFIX + "active";
+
+    /**
+     * Policies-Sync: The syncer makes sure that all requested stream elements have at least an age of this offset,
+     * e.g by triggering a stream at a later time.
+     */
+    public static final String POLICIES_SYNCER_START_OFFSET = SYNC_POLICIES_PREFIX + "start-offset";
+
+    /**
+     * Policies-Sync: The duration from now to somewhere in the past for which stream elements are requested if sync
+     * has never been run before - otherwise sync is started where the last run finished.
+     */
+    public static final String POLICIES_SYNCER_INITIAL_START_OFFSET = SYNC_POLICIES_PREFIX + "initial-start-offset";
+
+    /**
+     * Policies-Sync: The interval for the query restricting the stream (i.e. the difference between query-start and
+     * query-end). This query-interval is used for <strong>all</strong> queries, but the interval of stream-starts
+     * varies depending on the stream load.
+     */
+    public static final String POLICIES_SYNCER_STREAM_INTERVAL = SYNC_POLICIES_PREFIX + "stream-interval";
+
+    /**
+     * Policies-Sync: if a query-start is more than this offset in the past, a warning will be logged.
+     */
+    public static final String POLICIES_SYNCER_OUTDATED_WARNING_OFFSET =
+            SYNC_POLICIES_PREFIX + "outdated-warning-offset";
+
+    /**
+     * Policies-Sync: The maximum idle time of the syncer (as a Duration).
+     */
+    public static final String POLICIES_SYNCER_MAX_IDLE_TIME = SYNC_POLICIES_PREFIX + "max-idle-time";
+
+    /**
+     * Policies-Sync: Timeout at streaming actor (server) side.
+     */
+    public static final String POLICIES_SYNCER_STREAMING_ACTOR_TIMEOUT =
+            SYNC_POLICIES_PREFIX + "streaming-actor-timeout";
+
+    /**
+     * Policies-Sync: The elements to be streamed per batch by the sync process.
+     */
+    public static final String POLICIES_SYNCER_ELEMENTS_STREAMED_PER_BATCH = SYNC_POLICIES_PREFIX +
+            "elements-streamed-per-batch";
+
     private static final String HTTP_PREFIX = SEARCH_PREFIX + "http.";
     /**
      * Key of the hostname value of a HTTP service.
@@ -118,7 +197,7 @@ public final class ConfigKeys {
     /**
      * Whether the health check should be enabled (globally) or not.
      */
-    public static final String HEALTH_CHECK_ENABLED = HEALTH_CHECK_PREFIX + "enabled";
+    public static final String HEALTH_CHECK_ENABLED = HEALTH_CHECK_PREFIX + ENABLED_SUFFIX;
     /**
      * The interval of the health check.
      */
@@ -127,7 +206,7 @@ public final class ConfigKeys {
     /**
      * Whether the health check for persistence should be enabled or not.
      */
-    public static final String HEALTH_CHECK_PERSISTENCE_ENABLED = HEALTH_CHECK_PERSISTENCE_PREFIX + "enabled";
+    public static final String HEALTH_CHECK_PERSISTENCE_ENABLED = HEALTH_CHECK_PERSISTENCE_PREFIX + ENABLED_SUFFIX;
     /**
      * The timeout of the health check for persistence. If the persistence takes longer than that to respond, it is
      * considered "DOWN".

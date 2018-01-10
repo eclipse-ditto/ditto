@@ -38,7 +38,7 @@ public class ThingUpdateFactoryTest {
     private IndexLengthRestrictionEnforcer indexLengthRestrictionEnforcer;
 
     @Test
-    public void createDeleteThingUpdate() throws Exception {
+    public void createDeleteThingUpdate() {
         final LocalDateTime before = LocalDateTime.now().minus(1, ChronoUnit.SECONDS);
 
         final Document result = (Document) ThingUpdateFactory.createDeleteThingUpdate();
@@ -55,7 +55,7 @@ public class ThingUpdateFactoryTest {
     }
 
     @Test
-    public void createUpdateThingUpdate() throws Exception {
+    public void createUpdateThingUpdate() {
         final Thing input = Mockito.mock(Thing.class);
         final Thing restricted = Thing.newBuilder()
                 .setId(":thing")

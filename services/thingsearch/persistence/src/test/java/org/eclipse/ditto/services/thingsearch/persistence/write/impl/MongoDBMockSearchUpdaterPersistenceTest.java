@@ -29,9 +29,9 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policiesenforcers.PolicyEnforcer;
 import org.eclipse.ditto.model.policiesenforcers.PolicyEnforcers;
-import org.eclipse.ditto.services.thingsearch.persistence.MongoClientWrapper;
 import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
 import org.eclipse.ditto.services.thingsearch.persistence.write.EventToPersistenceStrategyFactory;
+import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.signals.events.things.AttributeCreated;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.junit.After;
@@ -65,7 +65,7 @@ public final class MongoDBMockSearchUpdaterPersistenceTest {
             MongoEventToPersistenceStrategyFactory.getInstance();
 
     @Before
-    public void init() throws InterruptedException {
+    public void init() {
         actorSystem = ActorSystem.create("AkkaTestSystem");
         actorMaterializer = ActorMaterializer.create(actorSystem);
 

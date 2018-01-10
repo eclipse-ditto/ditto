@@ -11,16 +11,17 @@
  */
 package org.eclipse.ditto.services.thingsearch.persistence;
 
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.THINGS_SYNC_STATE_COLLECTION_NAME;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.POLICIES_BASED_SEARCH_INDEX_COLLECTION_NAME;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.THINGS_COLLECTION_NAME;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
-import java.util.function.Supplier;
 
 import org.bson.Document;
 import org.eclipse.ditto.model.things.Thing;
@@ -38,15 +39,14 @@ import org.eclipse.ditto.services.thingsearch.querymodel.query.AggregationBuilde
 import org.eclipse.ditto.services.thingsearch.querymodel.query.PolicyRestrictedSearchAggregation;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.Query;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.QueryBuilderFactory;
+import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.services.utils.test.mongo.MongoDbResource;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.reactivestreams.Publisher;
 
 import com.mongodb.reactivestreams.client.MongoCollection;
-import com.mongodb.reactivestreams.client.Success;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
@@ -69,8 +69,6 @@ public abstract class AbstractThingSearchPersistenceITBase {
     protected static final String KNOWN_ATTRIBUTE_1 = "attribute1";
     protected static final String KNOWN_NEW_VALUE = "newValue";
 
-    private static final Config CONFIG = ConfigFactory.load("test");
-
     protected static final CriteriaFactory cf = new CriteriaFactoryImpl();
     protected static final ThingsFieldExpressionFactory fef = new ThingsFieldExpressionFactoryImpl();
     protected static final QueryBuilderFactory qbf = new MongoQueryBuilderFactory();
@@ -81,7 +79,9 @@ public abstract class AbstractThingSearchPersistenceITBase {
     private MongoThingsSearchPersistence readPersistence;
     private MongoCollection<Document> thingsCollection;
     private MongoCollection<Document> policiesCollection;
+    private MongoCollection<Document> syncCollection;
     protected MongoThingsSearchUpdaterPersistence writePersistence;
+
 
     private ActorSystem actorSystem;
     private ActorMaterializer actorMaterializer;
@@ -104,10 +104,8 @@ public abstract class AbstractThingSearchPersistenceITBase {
         readPersistence = provideReadPersistence();
         writePersistence = provideWritePersistence();
         thingsCollection = mongoClient.getDatabase().getCollection(THINGS_COLLECTION_NAME);
-        policiesCollection = mongoClient.getDatabase().getCollection
-                (POLICIES_BASED_SEARCH_INDEX_COLLECTION_NAME);
-
-        log.info("before() method of test is done..");
+        policiesCollection = mongoClient.getDatabase().getCollection(POLICIES_BASED_SEARCH_INDEX_COLLECTION_NAME);
+        syncCollection = mongoClient.getDatabase().getCollection(THINGS_SYNC_STATE_COLLECTION_NAME);
     }
 
     private MongoThingsSearchPersistence provideReadPersistence() {
@@ -123,16 +121,15 @@ public abstract class AbstractThingSearchPersistenceITBase {
     }
 
     private static MongoClientWrapper provideClientWrapper() {
-        return new MongoClientWrapper(mongoResource.getBindIp(), mongoResource.getPort(), "testSearchDB", CONFIG);
+        return MongoClientWrapper.newInstance(mongoResource.getBindIp(), mongoResource.getPort(), "testSearchDB",
+                100, 500000, 30);
     }
 
     /** */
     @After
-    public void after() throws InterruptedException {
+    public void after() {
         if (mongoClient != null) {
-            if (thingsCollection != null)
-                retryWithBackoff(() -> thingsCollection.drop());
-            retryWithBackoff(() -> policiesCollection.drop());
+            dropCollections(Arrays.asList(thingsCollection, policiesCollection, syncCollection));
         }
         if (actorSystem != null) {
             TestKit.shutdownActorSystem(actorSystem);
@@ -140,6 +137,26 @@ public abstract class AbstractThingSearchPersistenceITBase {
             log = null;
             actorMaterializer = null;
         }
+    }
+
+    private void dropCollections(final List<MongoCollection<Document>> collections) {
+        collections.stream()
+                .filter(Objects::nonNull)
+                .forEach(this::dropCollectionWithBackoff);
+    }
+
+    private void dropCollectionWithBackoff(final MongoCollection<Document> collection) {
+        RuntimeException lastException = null;
+        for (int i = 0; i < 20; ++i) {
+            try {
+                waitFor(Source.fromPublisher(collection.drop()));
+                return;
+            } catch (final RuntimeException e) {
+                lastException = e;
+                backoff();
+            }
+        }
+        throw lastException;
     }
 
     @AfterClass
@@ -164,8 +181,8 @@ public abstract class AbstractThingSearchPersistenceITBase {
                     .toCompletableFuture() //
                     .get() //
                     .get(0);
-        } catch (InterruptedException | ExecutionException e) {
-            throw new IllegalStateException(e);
+        } catch (final InterruptedException | ExecutionException e) {
+            throw mapAsRuntimeException(e);
         }
     }
 
@@ -176,8 +193,8 @@ public abstract class AbstractThingSearchPersistenceITBase {
                     .toCompletableFuture() //
                     .get() //
                     .get(0);
-        } catch (InterruptedException | ExecutionException e) {
-            throw new IllegalStateException(e);
+        } catch (final InterruptedException | ExecutionException e) {
+            throw mapAsRuntimeException(e);
         }
     }
 
@@ -193,8 +210,8 @@ public abstract class AbstractThingSearchPersistenceITBase {
                     .toCompletableFuture() //
                     .get() //
                     .get(0);
-        } catch (InterruptedException | ExecutionException e) {
-            throw new IllegalStateException(e);
+        } catch (final InterruptedException | ExecutionException e) {
+            throw mapAsRuntimeException(e);
         }
     }
 
@@ -215,14 +232,32 @@ public abstract class AbstractThingSearchPersistenceITBase {
         try {
             future.get();
         } catch (final InterruptedException | ExecutionException e) {
-            throw new RuntimeException(e);
+            throw mapAsRuntimeException(e);
         }
     }
 
-    protected <T> T runBlockingWithReturn(final Source<T, NotUsed> publisher)
-            throws ExecutionException, InterruptedException {
+    protected <T> T runBlockingWithReturn(final Source<T, NotUsed> publisher) {
         final CompletionStage<T> done = publisher.runWith(Sink.last(), actorMaterializer);
-        return done.toCompletableFuture().get();
+        try {
+            return done.toCompletableFuture().get();
+        } catch (final InterruptedException | ExecutionException e) {
+            throw mapAsRuntimeException(e);
+        }
+    }
+
+    private static RuntimeException mapAsRuntimeException(final Throwable t) {
+        // shortcut: RTEs can be returned as-is
+        if (t instanceof RuntimeException) {
+            return (RuntimeException) t;
+        }
+
+        // for ExecutionExceptions, extract the cause
+        if (t instanceof ExecutionException && t.getCause() != null) {
+            return mapAsRuntimeException(t.getCause());
+        }
+
+        // wrap non-RTEs as IllegalStateException
+        return new IllegalStateException(t);
     }
 
     protected void insertOrUpdateThing(final Thing thing, final long revision, final long policyRevision) {
@@ -237,20 +272,6 @@ public abstract class AbstractThingSearchPersistenceITBase {
         return mongoClient;
     }
 
-    private void retryWithBackoff(final Supplier<Publisher<Success>> publisher) {
-        IllegalStateException lastException = null;
-        for (int i = 0; i < 20; ++i) {
-            try {
-                waitFor(Source.fromPublisher(publisher.get()));
-                return;
-            } catch (final IllegalStateException e) {
-                lastException = e;
-                backoff();
-            }
-        }
-        throw lastException;
-    }
-
     private <T> List<T> waitFor(final Source<T, ?> source) {
         try {
             return source
@@ -259,8 +280,8 @@ public abstract class AbstractThingSearchPersistenceITBase {
                     .toCompletableFuture() //
                     .get();
 
-        } catch (InterruptedException | ExecutionException e) {
-            throw new IllegalStateException(e);
+        } catch (final InterruptedException | ExecutionException e) {
+            throw mapAsRuntimeException(e);
         }
     }
 

@@ -19,6 +19,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.services.models.policies.PoliciesMappingStrategy;
+import org.eclipse.ditto.services.models.streaming.StreamingRegistry;
 import org.eclipse.ditto.services.models.things.ThingsMappingStrategy;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.ThingSearchSudoCommandRegistry;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.ThingSearchSudoCommandResponseRegistry;
@@ -71,6 +72,7 @@ public final class ThingSearchMappingStrategy implements MappingStrategy {
         builder.add(ThingSearchErrorRegistry.newInstance());
         builder.add(ThingSearchSudoCommandRegistry.newInstance());
         builder.add(ThingSearchSudoCommandResponseRegistry.newInstance());
+        builder.add(StreamingRegistry.newInstance());
     }
 
     private static void addDevOpsStrategies(final MappingStrategiesBuilder builder) {

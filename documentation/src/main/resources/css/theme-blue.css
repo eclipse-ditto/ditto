@@ -1,11 +1,11 @@
 .summary {
     color: #808080;
-    border-left: 5px solid #ED1951;
+    border-left: 5px solid #696969;
     font-size:16px;
 }
 
 
-h3 {color: #ED1951; }
+h3 {color: #696969; }
 h4 {color: #808080; }
 
 .nav-tabs > li.active > a, .nav-tabs > li.active > a:hover, .nav-tabs > li.active > a:focus {

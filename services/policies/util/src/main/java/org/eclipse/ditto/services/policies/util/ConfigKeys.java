@@ -25,6 +25,14 @@ public final class ConfigKeys {
 
     private static final String POLICIES_PREFIX = DITTO_PREFIX + "policies.";
 
+    private static final String POLICIES_TAGS_PREFIX = POLICIES_PREFIX + "tags.";
+
+    /**
+     * The size of the cache used for streaming Policy Tags (each stream has its own cache).
+     */
+    public static final String POLICIES_TAGS_STREAMING_CACHE_SIZE = POLICIES_TAGS_PREFIX +
+            "streaming-cache-size";
+
     private static final String HTTP_PREFIX = POLICIES_PREFIX + "http.";
 
     /**

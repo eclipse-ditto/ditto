@@ -12,25 +12,24 @@
 package org.eclipse.ditto.services.thingsearch.updater.actors;
 
 import java.time.Duration;
-import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
+
+import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
-import org.eclipse.ditto.services.models.policies.PolicyTag;
+import org.eclipse.ditto.services.models.policies.PolicyReferenceTag;
 import org.eclipse.ditto.services.models.things.ThingTag;
-import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
-import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SyncThing;
+import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.ShardedMessageEnvelope;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.policies.PolicyEvent;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
-import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -67,16 +66,15 @@ final class ThingsUpdater extends AbstractActor {
     private final Materializer materializer;
 
     private ThingsUpdater(final int numberOfShards,
+            final ShardRegionFactory shardRegionFactory,
             final ThingsSearchUpdaterPersistence searchUpdaterPersistence,
             final CircuitBreaker circuitBreaker,
             final boolean eventProcessingActive,
-            final boolean thingTagsProcessingActive,
-            final Duration activityCheckInterval,
-            final ActorRef thingCacheFacade,
-            final ActorRef policyCacheFacade) {
+            final Duration thingUpdaterActivityCheckInterval,
+            @Nullable final ActorRef thingCacheFacade,
+            @Nullable final ActorRef policyCacheFacade) {
 
         final ActorSystem actorSystem = context().system();
-        final ShardRegionFactory shardRegionFactory = ShardRegionFactory.getInstance(actorSystem);
 
         // Start the proxy for the Things and Policies sharding, too.
         final ActorRef thingsShardRegion = shardRegionFactory.getThingsShardRegion(numberOfShards);
@@ -86,7 +84,8 @@ final class ThingsUpdater extends AbstractActor {
 
         final Props thingUpdaterProps =
                 ThingUpdater.props(searchUpdaterPersistence, circuitBreaker, thingsShardRegion, policiesShardRegion,
-                        activityCheckInterval, ThingUpdater.DEFAULT_THINGS_TIMEOUT, thingCacheFacade, policyCacheFacade)
+                        thingUpdaterActivityCheckInterval, ThingUpdater.DEFAULT_THINGS_TIMEOUT, thingCacheFacade,
+                        policyCacheFacade)
                         .withMailbox("akka.actor.custom-updater-mailbox");
 
         shardRegion = shardRegionFactory.getSearchUpdaterShardRegion(numberOfShards, thingUpdaterProps);
@@ -98,18 +97,6 @@ final class ThingsUpdater extends AbstractActor {
                     self());
             pubSubMediator.tell(new DistributedPubSubMediator.Subscribe(PolicyEvent.TYPE_PREFIX, UPDATER_GROUP, self()),
                     self());
-        } else {
-            log.warning("Event processing is not active");
-        }
-
-        if (thingTagsProcessingActive) {
-            pubSubMediator.tell(
-                    new DistributedPubSubMediator.Subscribe(ThingsMessagingConstants.THING_TAGS_TOPIC, UPDATER_GROUP,
-                            self()), self());
-            pubSubMediator.tell(
-                    new DistributedPubSubMediator.Subscribe(PolicyTag.TOPIC, UPDATER_GROUP, self()), self());
-        } else {
-            log.warning("Thing tags processing is not active");
         }
     }
 
@@ -117,30 +104,31 @@ final class ThingsUpdater extends AbstractActor {
      * Creates Akka configuration object for this actor.
      *
      * @param numberOfShards the number of shards the "search-updater" shardRegion should be started with.
-     * @param activityCheckInterval the interval at which is checked, if the corresponding Thing is still actively
-     * updated
+     * @param shardRegionFactory The shard region factory to use when creating sharded actors.
+     * @param thingUpdaterActivityCheckInterval the interval at which is checked, if the corresponding Thing is still
+     * actively updated
      * @param thingCacheFacade the {@link org.eclipse.ditto.services.utils.distributedcache.actors.CacheFacadeActor} for
      * accessing the Thing cache in cluster.
-     * @param policyCacheFacade the {@link org.eclipse.ditto.services.utils.distributedcache.actors.CacheFacadeActor} for
-     * accessing the Policy cache in cluster.
+     * @param policyCacheFacade the {@link org.eclipse.ditto.services.utils.distributedcache.actors.CacheFacadeActor}
+     * for accessing the Policy cache in cluster.
      * @return the Akka configuration Props object
      */
     static Props props(final int numberOfShards,
+            final ShardRegionFactory shardRegionFactory,
             final ThingsSearchUpdaterPersistence searchUpdaterPersistence,
             final CircuitBreaker circuitBreaker,
             final boolean eventProcessingActive,
-            final boolean thingTagsProcessingActive,
-            final Duration activityCheckInterval,
-            final ActorRef thingCacheFacade,
-            final ActorRef policyCacheFacade) {
+            final Duration thingUpdaterActivityCheckInterval,
+            @Nullable final ActorRef thingCacheFacade,
+            @Nullable final ActorRef policyCacheFacade) {
 
         return Props.create(ThingsUpdater.class, new Creator<ThingsUpdater>() {
             private static final long serialVersionUID = 1L;
 
             @Override
             public ThingsUpdater create() throws Exception {
-                return new ThingsUpdater(numberOfShards, searchUpdaterPersistence, circuitBreaker,
-                        eventProcessingActive, thingTagsProcessingActive, activityCheckInterval, thingCacheFacade,
+                return new ThingsUpdater(numberOfShards, shardRegionFactory, searchUpdaterPersistence, circuitBreaker,
+                        eventProcessingActive, thingUpdaterActivityCheckInterval, thingCacheFacade,
                         policyCacheFacade);
             }
         });
@@ -154,7 +142,7 @@ final class ThingsUpdater extends AbstractActor {
                 .match(ThingEvent.class, this::processThingEvent)
                 .match(PolicyEvent.class, this::processPolicyEvent)
                 .match(ThingTag.class, this::processThingTag)
-                .match(SyncThing.class, this::syncThing)
+                .match(PolicyReferenceTag.class, this::processPolicyReferenceTag)
                 .match(DistributedPubSubMediator.SubscribeAck.class, this::subscribeAck)
                 .matchAny(m -> {
                     log.warning("Unknown message: {}", m);
@@ -163,8 +151,17 @@ final class ThingsUpdater extends AbstractActor {
     }
 
     private void processThingTag(final ThingTag thingTag) {
-        log.debug("Forwarding incoming ThingTag for thingId '{}'", thingTag.getThingId());
-        forwardJsonifiableToShardRegion(thingTag, ThingTag::getThingId);
+        final String elementIdentifier = thingTag.asIdentifierString();
+        LogUtil.enhanceLogWithCorrelationId(log, "things-tags-sync-" + elementIdentifier);
+        log.debug("Forwarding incoming ThingTag '{}'", elementIdentifier);
+        forwardJsonifiableToShardRegion(thingTag, ThingTag::getId);
+    }
+
+    private void processPolicyReferenceTag(final PolicyReferenceTag policyReferenceTag) {
+        final String elementIdentifier = policyReferenceTag.asIdentifierString();
+        LogUtil.enhanceLogWithCorrelationId(log, "policies-tags-sync-" + elementIdentifier);
+        log.debug("Forwarding PolicyReferenceTag '{}'", elementIdentifier);
+        forwardJsonifiableToShardRegion(policyReferenceTag, unused -> policyReferenceTag.getEntityId());
     }
 
     private void processThingEvent(final ThingEvent<?> thingEvent) {
@@ -183,17 +180,6 @@ final class ThingsUpdater extends AbstractActor {
 
     private CompletionStage<Set<String>> thingIdsForPolicy(final String policyId) {
         return searchUpdaterPersistence.getThingIdsForPolicy(policyId).runWith(Sink.last(), materializer);
-    }
-
-    private void syncThing(final SyncThing message) {
-        LogUtil.enhanceLogWithCorrelationId(log, message);
-        log.debug("Forwarding incoming SyncThing message for thingId '{}'", message.getThingId());
-        forwardToShardRegion(
-                message,
-                SyncThing::getThingId,
-                SyncThing::getType,
-                syncThing -> syncThing.toJson(syncThing.getImplementedSchemaVersion(), FieldType.regularOrSpecial()),
-                SyncThing::getDittoHeaders);
     }
 
     private <J extends Jsonifiable<?>> void forwardJsonifiableToShardRegion(final J message,

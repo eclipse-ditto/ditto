@@ -43,7 +43,6 @@ public final class ThingSearchSudoCommandRegistry extends AbstractCommandRegistr
 
         parseStrategies.put(SudoCountThings.TYPE, SudoCountThings::fromJson);
         parseStrategies.put(SudoRetrieveNamespaceReport.TYPE, SudoRetrieveNamespaceReport::fromJson);
-        parseStrategies.put(SyncThing.TYPE, SyncThing::fromJson);
 
         return new ThingSearchSudoCommandRegistry(parseStrategies);
     }

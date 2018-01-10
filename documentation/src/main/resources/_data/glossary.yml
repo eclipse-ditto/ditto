@@ -26,6 +26,10 @@ policy: "A Policy enables developers to configure fine-grained access control in
          A specific policy defines who (subject) is granted or revoked permissions (rights) on a specific resource.
          The resource can be defined as rough or as fine-grained as necessary for the respective use case. "
 
+rql: "Resource Query Language"
+
+sse: "Server Sent Events - one way messaging/push from a HTTP server to a consuming client (e.g. a browser)."
+
 thing: "A Thing is a generic entity and is mostly used to cluster multiple Features and manage the access to the data
         and functionality the Thing represents.
         A Thing may have additional meta data (Attributes) that describes the Thing in more detail."

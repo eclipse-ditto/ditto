@@ -466,7 +466,7 @@
 
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-services-utils-akka-persistence-mongo-addons</artifactId>
+                <artifactId>ditto-services-models-streaming</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -727,6 +727,23 @@
             </dependency>
         </dependencies>
     </dependencyManagement>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>flatten-maven-plugin</artifactId>
+                <configuration>
+                    <!-- instead of flattenMode=bom, set the pom-element <dependencyManagement/> explicitly without
+                         <properties/> so that dynamic version properties are resolved in deployed bom. -->
+                    <flattenMode>oss</flattenMode>
+                    <pomElements>
+                        <dependencyManagement/>
+                    </pomElements>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 
 </project>
 

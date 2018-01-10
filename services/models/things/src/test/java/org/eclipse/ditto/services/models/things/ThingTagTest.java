@@ -12,12 +12,12 @@
 package org.eclipse.ditto.services.models.things;
 
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
-import static org.eclipse.ditto.services.models.things.TestConstants.Thing.REVISION_NUMBER;
-import static org.eclipse.ditto.services.models.things.TestConstants.Thing.THING_ID;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.junit.Test;
 
@@ -28,42 +28,38 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  */
 public final class ThingTagTest {
 
-    private static final JsonValue KNOWN_JSON = JsonFactory.newObjectBuilder() //
-            .set(ThingTag.JsonFields.ID, THING_ID) //
-            .set(ThingTag.JsonFields.REVISION, REVISION_NUMBER) //
+    private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
+            .set(ThingTag.JsonFields.ID, TestConstants.Thing.THING_ID)
+            .set(ThingTag.JsonFields.REVISION, TestConstants.Thing.REVISION_NUMBER)
             .build();
 
-    /** */
     @Test
     public void assertImmutability() {
         assertInstancesOf(ThingTag.class, areImmutable());
     }
 
-    /** */
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(ThingTag.class) //
-                .usingGetClass() //
-                .withRedefinedSuperclass() //
+        EqualsVerifier.forClass(ThingTag.class)
+                .withRedefinedSuperclass()
                 .verify();
     }
 
-    /** */
     @Test
     public void toJsonReturnsExpected() {
-        final ThingTag underTest = ThingTag.of(THING_ID, REVISION_NUMBER);
+        final ThingTag underTest = ThingTag.of(TestConstants.Thing.THING_ID, TestConstants.Thing.REVISION_NUMBER);
         final JsonValue jsonValue = underTest.toJson();
 
         assertThat(jsonValue).isEqualTo(KNOWN_JSON);
     }
 
-    /** */
     @Test
     public void createInstanceFromValidJson() {
-        final ThingTag underTest = ThingTag.fromJson(KNOWN_JSON.toString());
+        final ThingTag underTest = ThingTag.fromJson(KNOWN_JSON);
 
-        assertThat(underTest).isNotNull();
-        assertThat(underTest.getThingId()).isEqualTo(THING_ID);
-        assertThat(underTest.getRevision()).isEqualTo(REVISION_NUMBER);
+        Assertions.assertThat(underTest).isNotNull();
+        Assertions.assertThat(underTest.getId()).isEqualTo(TestConstants.Thing.THING_ID);
+        Assertions.assertThat(underTest.getRevision()).isEqualTo(TestConstants.Thing.REVISION_NUMBER);
     }
+
 }

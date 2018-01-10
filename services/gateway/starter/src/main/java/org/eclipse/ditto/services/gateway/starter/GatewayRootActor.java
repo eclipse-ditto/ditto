@@ -32,6 +32,7 @@ import org.eclipse.ditto.services.gateway.starter.service.util.HttpClientFacade;
 import org.eclipse.ditto.services.gateway.streaming.actors.StreamingActor;
 import org.eclipse.ditto.services.models.policies.PoliciesMessagingConstants;
 import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
+import org.eclipse.ditto.services.models.thingsearch.ThingsSearchConstants;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
 import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
@@ -84,9 +85,9 @@ final class GatewayRootActor extends AbstractActor {
     static final String ACTOR_NAME = "gatewayRoot";
 
     private static final String GATEWAY_CLUSTER_ROLE = "gateway";
+
     private static final String ACL_ENFORCER_SHARD_REGION = "aclEnforcer";
     private static final String POLICY_ENFORCER_SHARD_REGION = "policyEnforcer";
-    private static final String SEARCH_UPDATER_SHARD_REGION = "search-updater";
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
@@ -147,7 +148,7 @@ final class GatewayRootActor extends AbstractActor {
                                 getContext().getSystem()));
 
         ClusterSharding.get(this.getContext().system())
-                .startProxy(SEARCH_UPDATER_SHARD_REGION, Optional.of(SEARCH_UPDATER_SHARD_REGION),
+                .startProxy(ThingsSearchConstants.SHARD_REGION, Optional.of(ThingsSearchConstants.CLUSTER_ROLE),
                         ShardRegionExtractor.of(numberOfShards, getContext().getSystem()));
 
         final FiniteDuration enforcerCacheInterval = toFiniteDuration(config.getDuration(ConfigKeys

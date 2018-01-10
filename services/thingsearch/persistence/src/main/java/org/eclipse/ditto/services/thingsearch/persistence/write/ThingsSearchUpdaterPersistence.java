@@ -16,6 +16,7 @@ import java.util.Set;
 
 import org.eclipse.ditto.model.policiesenforcers.PolicyEnforcer;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.services.models.policies.PolicyTag;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 import akka.NotUsed;
@@ -84,6 +85,14 @@ public interface ThingsSearchUpdaterPersistence {
      * @return a {@link Source} holding the publisher to execute the operation.
      */
     Source<Set<String>, NotUsed> getThingIdsForPolicy(String policyId);
+
+    /**
+     * Retrieves a source of Thing IDs with the given policy ID and out-dated revision.
+     *
+     * @param policyTag contains policy ID and policy revision.
+     * @return a Source holding the publisher to execute the operation.
+     */
+    Source<String, NotUsed> getOutdatedThingIds(PolicyTag policyTag);
 
     /**
      * Retrieves the metadata (revision, policyId and policyRevision) how it is persisted in the search index of the

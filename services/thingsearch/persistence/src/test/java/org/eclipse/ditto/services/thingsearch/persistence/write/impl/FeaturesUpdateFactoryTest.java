@@ -39,28 +39,28 @@ public final class FeaturesUpdateFactoryTest {
     private IndexLengthRestrictionEnforcer indexLengthRestrictionEnforcer;
 
     @Test
-    public void createDeleteFeatureUpdate() throws Exception {
+    public void createDeleteFeatureUpdate() {
         assertThat(FeaturesUpdateFactory
                 .createDeleteFeatureUpdate("text-to-speech-actor"))
                 .isNotNull();
     }
 
     @Test
-    public void createDeleteFeaturePropertiesUpdate() throws Exception {
+    public void createDeleteFeaturePropertiesUpdate() {
         assertThat(FeaturesUpdateFactory
                 .createDeleteFeaturePropertiesUpdate("text-to-speech-actor"))
                 .isNotNull();
     }
 
     @Test
-    public void createDeleteFeaturePropertyUpdate() throws Exception {
+    public void createDeleteFeaturePropertyUpdate() {
         assertThat(FeaturesUpdateFactory
                 .createDeleteFeaturePropertyUpdate("text-to-speech-actor", JsonPointer.of("version")))
                 .isNotNull();
     }
 
     @Test
-    public void createUpdateForFeatureCreate() throws Exception {
+    public void createUpdateForFeatureCreate() {
         final String featureId = "text-to-speech-actor";
 
         final Feature feature = Mockito.mock(Feature.class);
@@ -87,7 +87,7 @@ public final class FeaturesUpdateFactoryTest {
     }
 
     @Test
-    public void createUpdateForFeatureUpdate() throws Exception {
+    public void createUpdateForFeatureUpdate() {
         final String featureId = "text-to-speech-actor";
 
         final Feature feature = Mockito.mock(Feature.class);
@@ -114,7 +114,7 @@ public final class FeaturesUpdateFactoryTest {
     }
 
     @Test
-    public void createUpdateForFeatureProperties() throws Exception {
+    public void createUpdateForFeatureProperties() {
         final String featureId = "text-to-speech-actor";
 
         final FeatureProperties properties = Mockito.mock(FeatureProperties.class);
@@ -140,7 +140,7 @@ public final class FeaturesUpdateFactoryTest {
     }
 
     @Test
-    public void createUpdateForFeatureProperty() throws Exception {
+    public void createUpdateForFeatureProperty() {
         final JsonPointer pointer = JsonPointer.of("version");
         final JsonValue value = JsonValue.of("v1.3");
         final JsonValue restrictedValue = JsonValue.of("restrictedVersion");
@@ -166,13 +166,13 @@ public final class FeaturesUpdateFactoryTest {
     }
 
     @Test
-    public void deleteFeatures() throws Exception {
+    public void deleteFeatures() {
         assertThat(FeaturesUpdateFactory.deleteFeatures())
                 .isNotNull();
     }
 
     @Test
-    public void updateFeatures() throws Exception {
+    public void updateFeatures() {
         final Features features = Mockito.mock(Features.class);
         final Features restricted = Features.newBuilder()
                 .set(Feature.newBuilder().withId("feature1").build())

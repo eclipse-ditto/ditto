@@ -20,13 +20,7 @@ import java.util.NoSuchElementException;
 import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
-import org.eclipse.ditto.services.utils.config.ConfigUtil;
-import org.eclipse.ditto.services.utils.health.HealthCheckingActor;
-import org.eclipse.ditto.services.utils.health.HealthCheckingActorOptions;
-import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.services.thingsearch.common.util.ConfigKeys;
-import org.eclipse.ditto.services.thingsearch.persistence.MongoClientWrapper;
 import org.eclipse.ditto.services.thingsearch.persistence.read.MongoThingsSearchPersistence;
 import org.eclipse.ditto.services.thingsearch.persistence.read.ThingsSearchPersistence;
 import org.eclipse.ditto.services.thingsearch.persistence.read.query.MongoAggregationBuilderFactory;
@@ -39,6 +33,12 @@ import org.eclipse.ditto.services.thingsearch.querymodel.expression.ThingsFieldE
 import org.eclipse.ditto.services.thingsearch.querymodel.expression.ThingsFieldExpressionFactoryImpl;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.AggregationBuilderFactory;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.QueryBuilderFactory;
+import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
+import org.eclipse.ditto.services.utils.config.ConfigUtil;
+import org.eclipse.ditto.services.utils.health.HealthCheckingActor;
+import org.eclipse.ditto.services.utils.health.HealthCheckingActorOptions;
+import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
+import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
 
 import com.typesafe.config.Config;
 
@@ -70,6 +70,8 @@ import akka.stream.ActorMaterializer;
  */
 public final class SearchRootActor extends AbstractActor {
 
+    private static final String RESTARTING_CHILD_MESSAGE = "Restarting child...";
+
     /**
      * The name of this Actor in the ActorSystem.
      */
@@ -80,7 +82,7 @@ public final class SearchRootActor extends AbstractActor {
     private final SupervisorStrategy strategy = new OneForOneStrategy(true, DeciderBuilder //
             .match(NullPointerException.class, e -> {
                 log.error(e, "NullPointer in child actor: {}", e.getMessage());
-                log.info("Restarting child...");
+                log.info(RESTARTING_CHILD_MESSAGE);
                 return SupervisorStrategy.restart();
             }).match(IllegalArgumentException.class, e -> {
                 log.warning("Illegal Argument in child actor: {}", e.getMessage());
@@ -96,14 +98,14 @@ public final class SearchRootActor extends AbstractActor {
                 return SupervisorStrategy.resume();
             }).match(ConnectException.class, e -> {
                 log.warning("ConnectException in child actor: {}", e.getMessage());
-                log.info("Restarting child...");
+                log.info(RESTARTING_CHILD_MESSAGE);
                 return SupervisorStrategy.restart();
             }).match(InvalidActorNameException.class, e -> {
                 log.warning("InvalidActorNameException in child actor: {}", e.getMessage());
                 return SupervisorStrategy.resume();
             }).match(ActorKilledException.class, e -> {
                 log.error(e, "ActorKilledException in child actor: {}", e.message());
-                log.info("Restarting child...");
+                log.info(RESTARTING_CHILD_MESSAGE);
                 return SupervisorStrategy.restart();
             }).match(DittoRuntimeException.class, e -> {
                 log.error(e,
@@ -128,7 +130,7 @@ public final class SearchRootActor extends AbstractActor {
             hcBuilder.enablePersistenceCheck();
         }
 
-        final MongoClientWrapper mongoClientWrapper = new MongoClientWrapper(config);
+        final MongoClientWrapper mongoClientWrapper = MongoClientWrapper.newInstance(config);
 
         final ActorRef mongoHealthCheckActor = startChildActor(MongoReactiveHealthCheckActor.ACTOR_NAME,
                 MongoReactiveHealthCheckActor.props(mongoClientWrapper));
