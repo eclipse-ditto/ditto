@@ -47,12 +47,10 @@ public final class CountThingsTest {
 
     private static final String JSON_MINIMAL_V2 = JsonFactory.newObjectBuilder()
             .set(ThingSearchCommand.JsonFields.TYPE, CountThings.TYPE)
-            .set(CountThings.JSON_NAMESPACES, JsonFactory.newArray())
             .build().toString();
 
     private static final String JSON_MINIMAL_V1 = JsonFactory.newObjectBuilder()
             .set(ThingSearchCommand.JsonFields.ID, CountThings.NAME)
-            .set(CountThings.JSON_NAMESPACES, JsonFactory.newArray())
             .build().toString();
 
 
