@@ -17,7 +17,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.Duration;
 import java.util.Arrays;
 
 import org.eclipse.ditto.json.JsonFactory;
@@ -31,8 +30,6 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
-import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveModifiedThingTags;
-import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveModifiedThingTagsResponse;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThings;
@@ -108,22 +105,6 @@ public final class CommandAndEventJsonExamplesProducer {
                         sudoFieldSelector, FieldType.regularOrSpecial(), TestConstants.EMPTY_HEADERS);
         writeJson(sudoCommandsDir.resolve(Paths.get("sudoRetrieveThingsResponse-withFieldSelector.json")),
                 sudoRetrieveThingsResponseWithFieldSelector);
-
-        final Duration timespan = Duration.ofMinutes(5);
-        final Duration offset = Duration.ofMinutes(1);
-
-        final SudoRetrieveModifiedThingTags sudoRetrieveModifiedThingTags =
-                SudoRetrieveModifiedThingTags.of(timespan, offset, TestConstants.EMPTY_HEADERS);
-        writeJson(sudoCommandsDir.resolve(Paths.get("sudoRetrieveModifiedThingTags.json")),
-                sudoRetrieveModifiedThingTags);
-
-        final SudoRetrieveModifiedThingTagsResponse sudoRetrieveModifiedThingTagsResponse =
-                SudoRetrieveModifiedThingTagsResponse.of(Arrays
-                        .asList(ThingTag.of("org.eclipse.ditto:the_thingId_1", 3),
-                                ThingTag.of("org.eclipse.ditto:the_thingId_2", 6),
-                                ThingTag.of("org.eclipse.ditto:the_thingId_4", 1)), TestConstants.EMPTY_HEADERS);
-        writeJson(sudoCommandsDir.resolve(Paths.get("sudoRetrieveModifiedThingTagsResponse.json")),
-                sudoRetrieveModifiedThingTagsResponse);
     }
 
     private static Thing createExampleThing(final String thingId) {

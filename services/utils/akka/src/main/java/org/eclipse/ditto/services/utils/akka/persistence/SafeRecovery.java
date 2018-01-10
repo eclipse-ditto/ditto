@@ -29,6 +29,8 @@ public final class SafeRecovery {
      *
      * @param log The Akka logger to write warnings to.
      * @param receiveRecover The Receive to wrap around.
+     *
+     * @return the created Receive.
      */
     public static AbstractActor.Receive wrapReceive(
             @Nullable final DiagnosticLoggingAdapter log,

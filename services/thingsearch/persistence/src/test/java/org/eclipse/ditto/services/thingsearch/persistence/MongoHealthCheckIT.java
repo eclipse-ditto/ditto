@@ -15,6 +15,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.UUID;
 
+import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.services.utils.test.mongo.MongoDbResource;
 import org.junit.After;
 import org.junit.Before;
@@ -37,14 +38,14 @@ public final class MongoHealthCheckIT {
 
     /** */
     @Before
-    public void before() throws InterruptedException {
+    public void before() {
         final Config config = ConfigFactory.load("test");
         actorSystem = ActorSystem.create("AkkaTestSystem", config);
     }
 
     /** */
     @After
-    public void after() throws InterruptedException {
+    public void after() {
         if (actorSystem != null) {
             TestKit.shutdownActorSystem(actorSystem);
             actorSystem = null;
@@ -58,8 +59,9 @@ public final class MongoHealthCheckIT {
 
         final MongoHealthCheck persistenceUnderTest =
                 new MongoHealthCheck(
-                        new MongoClientWrapper(mongoResource.getBindIp(), mongoResource.getPort(), UUID.randomUUID()
-                                .toString(), CONFIG), actorSystem, actorSystem.log());
+                        MongoClientWrapper.newInstance(mongoResource.getBindIp(), mongoResource.getPort(),
+                                UUID.randomUUID().toString(), 100, 5000,
+                                10), actorSystem, actorSystem.log());
 
         assertThat(persistenceUnderTest.checkHealth()).isTrue();
 

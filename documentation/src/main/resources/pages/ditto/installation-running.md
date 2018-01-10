@@ -1,7 +1,7 @@
 ---
 title: Running Ditto
 tags: [getting_started, installation]
-keywords: running, docker, docker-compose, maven, build, start, run
+keywords: running, docker, docker-compose, start, run
 permalink: installation-running.html
 ---
 

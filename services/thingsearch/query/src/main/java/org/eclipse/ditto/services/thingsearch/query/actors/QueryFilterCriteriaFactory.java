@@ -19,8 +19,8 @@ import java.util.Set;
 import org.eclipse.ditto.model.base.common.ConditionChecker;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.thingsearchparser.ParserException;
-import org.eclipse.ditto.model.thingsearchparser.predicates.rql.RqlPredicateParser;
 import org.eclipse.ditto.model.thingsearchparser.predicates.ast.RootNode;
+import org.eclipse.ditto.model.thingsearchparser.predicates.rql.RqlPredicateParser;
 import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Criteria;
 import org.eclipse.ditto.services.thingsearch.querymodel.criteria.CriteriaFactory;
 import org.eclipse.ditto.services.thingsearch.querymodel.expression.ThingsFieldExpressionFactory;
@@ -36,8 +36,7 @@ public final class QueryFilterCriteriaFactory {
     private final RqlPredicateParser rqlPredicateParser;
 
     public QueryFilterCriteriaFactory(final CriteriaFactory criteriaFactory,
-            final ThingsFieldExpressionFactory fieldExpressionFactory)
-    {
+            final ThingsFieldExpressionFactory fieldExpressionFactory) {
         this.criteriaFactory = criteriaFactory;
         this.fieldExpressionFactory = fieldExpressionFactory;
         this.rqlPredicateParser = new RqlPredicateParser();
@@ -51,9 +50,8 @@ public final class QueryFilterCriteriaFactory {
      * @param namespaces the namespaces
      * @return a filter criterion based on the filter string which includes only items related to the given namespaces
      */
-    public Criteria filterCriteriaRestrictedByNamespace(final String filter, final DittoHeaders dittoHeaders,
-            final Set<String> namespaces)
-    {
+    public Criteria filterCriteriaRestrictedByNamespaces(final String filter, final DittoHeaders dittoHeaders,
+            final Set<String> namespaces) {
         final Criteria filterCriteria = filterCriteria(filter, dittoHeaders);
         EnsureMonotonicityVisitor.apply(filterCriteria, dittoHeaders);
         return restrictByNamespace(namespaces, filterCriteria);
@@ -70,15 +68,32 @@ public final class QueryFilterCriteriaFactory {
      * subjects
      */
     public Criteria filterCriteriaRestrictedByAcl(final String filter, final DittoHeaders dittoHeaders,
-            final List<String> authorisationSubjectIds)
-    {
+            final List<String> authorisationSubjectIds) {
         final Criteria filterCriteria = filterCriteria(filter, dittoHeaders);
         return restrictByAcl(authorisationSubjectIds, filterCriteria);
     }
 
     /**
+     * Creates a filter criterion based on a filter string which includes items related to the given auth
+     * subjects and namespaces
+     *
+     * @param filter the filter string
+     * @param dittoHeaders the corresponding command headers
+     * @param authorisationSubjectIds the auth subjects
+     * @param namespaces the namespaces
+     * @return a filter criterion based on the filter string which includes only items related elated to the given auth
+     * subjects and namespaces
+     */
+    public Criteria filterCriteriaRestrictedByAclAndNamespaces(final String filter, final DittoHeaders dittoHeaders,
+            final List<String> authorisationSubjectIds, final Set<String> namespaces) {
+        final Criteria filterCriteria = filterCriteria(filter, dittoHeaders);
+        return restrictByNamespace(namespaces, restrictByAcl(authorisationSubjectIds, filterCriteria));
+    }
+
+    /**
      * Creates a criterion from the given filter string by parsing it. Headers are passed through for eventual error
      * information.
+     *
      * @param filter the filter string
      * @param headers the corresponding command headers
      * @return a criterion built from given filter or null if filter is null.

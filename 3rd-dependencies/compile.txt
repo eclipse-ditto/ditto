@@ -1,7 +1,7 @@
    ch.qos.logback:logback-classic:jar:1.2.3:compile
    ch.qos.logback:logback-core:jar:1.2.3:compile
    com.chuusai:shapeless_2.12:jar:2.3.2:compile
-   com.eclipsesource.minimal-json:minimal-json:jar:0.9.4:compile
+   com.eclipsesource.minimal-json:minimal-json:jar:0.9.5:compile
    com.fasterxml.jackson.core:jackson-annotations:jar:2.8.0:compile
    com.fasterxml.jackson.core:jackson-core:jar:2.8.10:compile
    com.fasterxml.jackson.core:jackson-databind:jar:2.8.10:compile
@@ -15,20 +15,20 @@
    com.github.scullxbones:akka-persistence-mongo-common_2.12:jar:2.0.4:compile
    com.google.code.findbugs:jsr305:jar:3.0.1:compile
    com.google.guava:guava:jar:21.0:compile
-   com.typesafe.akka:akka-actor_2.12:jar:2.5.6:compile
-   com.typesafe.akka:akka-cluster_2.12:jar:2.5.6:compile
-   com.typesafe.akka:akka-cluster-sharding_2.12:jar:2.5.6:compile
-   com.typesafe.akka:akka-cluster-tools_2.12:jar:2.5.6:compile
-   com.typesafe.akka:akka-distributed-data_2.12:jar:2.5.6:compile
-   com.typesafe.akka:akka-http_2.12:jar:10.0.10:compile
-   com.typesafe.akka:akka-http-core_2.12:jar:10.0.10:compile
-   com.typesafe.akka:akka-parsing_2.12:jar:10.0.10:compile
-   com.typesafe.akka:akka-persistence_2.12:jar:2.5.6:compile
-   com.typesafe.akka:akka-persistence-query_2.12:jar:2.5.6:compile
-   com.typesafe.akka:akka-protobuf_2.12:jar:2.5.6:compile
-   com.typesafe.akka:akka-remote_2.12:jar:2.5.6:compile
-   com.typesafe.akka:akka-slf4j_2.12:jar:2.5.6:compile
-   com.typesafe.akka:akka-stream_2.12:jar:2.5.6:compile
+   com.typesafe.akka:akka-actor_2.12:jar:2.5.8:compile
+   com.typesafe.akka:akka-cluster_2.12:jar:2.5.8:compile
+   com.typesafe.akka:akka-cluster-sharding_2.12:jar:2.5.8:compile
+   com.typesafe.akka:akka-cluster-tools_2.12:jar:2.5.8:compile
+   com.typesafe.akka:akka-distributed-data_2.12:jar:2.5.8:compile
+   com.typesafe.akka:akka-http_2.12:jar:10.0.11:compile
+   com.typesafe.akka:akka-http-core_2.12:jar:10.0.11:compile
+   com.typesafe.akka:akka-parsing_2.12:jar:10.0.11:compile
+   com.typesafe.akka:akka-persistence_2.12:jar:2.5.8:compile
+   com.typesafe.akka:akka-persistence-query_2.12:jar:2.5.8:compile
+   com.typesafe.akka:akka-protobuf_2.12:jar:2.5.8:compile
+   com.typesafe.akka:akka-remote_2.12:jar:2.5.8:compile
+   com.typesafe.akka:akka-slf4j_2.12:jar:2.5.8:compile
+   com.typesafe.akka:akka-stream_2.12:jar:2.5.8:compile
    com.typesafe:config:jar:1.3.1:compile
    com.typesafe:ssl-config-core_2.12:jar:0.2.2:compile
    de.heikoseeberger:akka-sse_2.12:jar:3.0.0:compile
@@ -43,11 +43,25 @@
    io.kamon:kamon-scala_2.12:jar:0.6.7:compile
    io.kamon:kamon-statsd_2.12:jar:0.6.7:compile
    io.kamon:kamon-system-metrics_2.12:jar:0.6.7:compile
+   io.netty:netty-buffer:jar:4.1.16.Final:compile
+   io.netty:netty-codec-http:jar:4.1.16.Final:compile
+   io.netty:netty-codec:jar:4.1.16.Final:compile
+   io.netty:netty-common:jar:4.1.16.Final:compile
+   io.netty:netty-handler:jar:4.1.16.Final:compile
    io.netty:netty:jar:3.10.6.Final:compile
+   io.netty:netty-resolver:jar:4.1.16.Final:compile
+   io.netty:netty-transport:jar:4.1.16.Final:compile
+   io.netty:netty-transport-native-epoll:jar:linux-x86_64:4.1.16.Final:compile
+   io.netty:netty-transport-native-kqueue:jar:osx-x86_64:4.1.16.Final:compile
+   io.netty:netty-transport-native-unix-common:jar:4.1.16.Final:compile
+   javax.jms:javax.jms-api:jar:2.0.1:compile
    joda-time:joda-time:jar:2.9.4:compile
    net.logstash.logback:logstash-logback-encoder:jar:4.11:compile
    nl.grons:metrics-scala_2.12:jar:3.5.5_a2.4:compile
    org.agrona:agrona:jar:0.9.6:compile
+   org.apache.geronimo.specs:geronimo-jms_2.0_spec:jar:1.0-alpha-2:compile
+   org.apache.qpid:proton-j:jar:0.23.0:compile
+   org.apache.qpid:qpid-jms-client:jar:0.27.0:compile
    org.codehaus.janino:commons-compiler:jar:2.7.8:compile
    org.codehaus.janino:janino:jar:2.7.8:compile
    org.hdrhistogram:HdrHistogram:jar:2.1.9:compile

@@ -12,6 +12,7 @@
 package org.eclipse.ditto.services.thingsearch.persistence.write.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.json.JsonFactory.newValue;
 import static org.eclipse.ditto.model.base.auth.AuthorizationModelFactory.newAuthSubject;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
@@ -26,7 +27,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 
 import org.assertj.core.api.Assertions;
 import org.bson.BsonDocument;
@@ -76,7 +76,6 @@ import org.eclipse.ditto.signals.events.things.FeaturesDeleted;
 import org.eclipse.ditto.signals.events.things.FeaturesModified;
 import org.eclipse.ditto.signals.events.things.ThingDeleted;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.runners.Enclosed;
@@ -176,8 +175,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
          */
         void insertBlockingAndResetMocks(final boolean isV2, final Thing thing, final long thingRevision, final long
                 policyRevision,
-                final PolicyEnforcer policyEnforcer, final Object... mocks)
-                throws ExecutionException, InterruptedException {
+                final PolicyEnforcer policyEnforcer, final Object... mocks) {
             if (isV2) {
                 checkNotNull(this.policyEnforcer, "policyEnforcer");
                 runBlocking(writePersistence.insertOrUpdate(thing, thingRevision, policyRevision)
@@ -214,7 +212,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
 
         /** */
         @Test
-        public void insertAndExists() throws ExecutionException, InterruptedException {
+        public void insertAndExists() {
             final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
             insertBlockingAndResetMocks(isV2, thing, 0, 0, policyEnforcer);
 
@@ -224,7 +222,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
 
         /** */
         @Test
-        public void insertAndExistsWithDots() throws ExecutionException, InterruptedException {
+        public void insertAndExistsWithDots() {
 
             final Thing dottedThing = addDottedAttributesFeaturesAndProperties(createThing(KNOWN_THING_ID, VALUE1,
                     isV2));
@@ -251,7 +249,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
 
         /** */
         @Test
-        public void insertWithHigherRevision() throws ExecutionException, InterruptedException {
+        public void insertWithHigherRevision() {
             insertBlockingAndResetMocks(isV2, createThing(KNOWN_THING_ID, VALUE1, isV2), 2, 0,
                     policyEnforcer);
             insertBlockingAndResetMocks(isV2, createThing(KNOWN_THING_ID, "anotherValue", isV2), 3, 0,
@@ -260,7 +258,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
             verifyInsertWithHigherRevision();
         }
 
-        private void verifyInsertWithHigherRevision() throws ExecutionException, InterruptedException {
+        private void verifyInsertWithHigherRevision() {
             final PolicyRestrictedSearchAggregation aggregation1 =
                     abf.newBuilder(cf.fieldCriteria(fef.filterByAttribute(KEY1), cf.eq("anotherValue")))
                             .authorizationSubjects(KNOWN_SUBJECTS_2)
@@ -277,7 +275,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
 
         /** */
         @Test
-        public void insertWithSameRevision() throws ExecutionException, InterruptedException {
+        public void insertWithSameRevision() {
             Assertions.assertThat(
                     runBlockingWithReturn(
                             writePersistence.insertOrUpdate(createThing(KNOWN_THING_ID, VALUE1, isV2), 2, 0)))
@@ -289,7 +287,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
 
         /** */
         @Test
-        public void deleteWithSameRevision() throws ExecutionException, InterruptedException {
+        public void deleteWithSameRevision() {
             // prepare
             insertBlockingAndResetMocks(isV2, createThing(KNOWN_THING_ID, VALUE1, isV2), 2, 0, policyEnforcer);
 
@@ -308,7 +306,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
 
         /** */
         @Test
-        public void deleteWithHigherRevision() throws ExecutionException, InterruptedException {
+        public void deleteWithHigherRevision() {
             // prepare
             insertBlockingAndResetMocks(isV2, createThing(KNOWN_THING_ID, VALUE1, isV2), 2, 0, policyEnforcer);
 
@@ -327,7 +325,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
 
         /** */
         @Test
-        public void insertDeleteAndInsertAgain() throws ExecutionException, InterruptedException {
+        public void insertDeleteAndInsertAgain() {
             insertBlockingAndResetMocks(isV2, createThing(KNOWN_THING_ID, VALUE1, isV2), 2, 0, policyEnforcer);
             delete(KNOWN_THING_ID, 3);
             insertBlockingAndResetMocks(isV2, createThing(KNOWN_THING_ID, "anotherValue", isV2), 4, 0, policyEnforcer);
@@ -337,7 +335,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
 
         /** */
         @Test
-        public void updateAllAttributes() throws ExecutionException, InterruptedException {
+        public void updateAllAttributes() {
             final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
             insertBlockingAndResetMocks(isV2, thing, 1L, -1L, policyEnforcer, writeThingsCollectionSpy,
                     writePoliciesCollectionSpy);
@@ -346,16 +344,14 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
 
         /** */
         @Test
-        public void updateAllAttributesWithDots() throws ExecutionException, InterruptedException {
+        public void updateAllAttributesWithDots() {
             final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
             insertBlockingAndResetMocks(isV2, thing, 1L, -1L, policyEnforcer, writeThingsCollectionSpy,
                     writePoliciesCollectionSpy);
             verifyUpdateAllAttributes("some.attribute.with.dot");
         }
 
-        private void verifyUpdateAllAttributes(final String attributeName)
-                throws ExecutionException, InterruptedException {
-
+        private void verifyUpdateAllAttributes(final String attributeName) {
             final Attributes newAttributes = Attributes.newBuilder().set(attributeName, KNOWN_NEW_VALUE).build();
             final AttributesCreated attributesCreated =
                     AttributesCreated.of(KNOWN_THING_ID, newAttributes, 2L, DittoHeaders.empty());
@@ -399,7 +395,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
 
 
         @Test
-        public void addNewSingleSimpleAttribute() throws ExecutionException, InterruptedException {
+        public void addNewSingleSimpleAttribute() {
             final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
             insertBlockingAndResetMocks(isV2, thing, 1L, -1L, policyEnforcer, writeThingsCollectionSpy,
                     writePoliciesCollectionSpy);
@@ -408,7 +404,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
         }
 
         @Test
-        public void addNewSingleSimpleAttributeWithDots() throws ExecutionException, InterruptedException {
+        public void addNewSingleSimpleAttributeWithDots() {
             final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
             insertBlockingAndResetMocks(isV2, thing, 1L, -1L, policyEnforcer, writeThingsCollectionSpy,
                     writePoliciesCollectionSpy);
@@ -417,7 +413,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
         }
 
         @Test
-        public void updateSingleExistingSimpleAttribute() throws ExecutionException, InterruptedException {
+        public void updateSingleExistingSimpleAttribute() {
             final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
             insertBlockingAndResetMocks(isV2, thing, 1L, -1L, policyEnforcer, writeThingsCollectionSpy,
                     writePoliciesCollectionSpy);
@@ -425,9 +421,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
             verifyUpdateSingleExistingSimpleAttribute(KEY2, KNOWN_NEW_VALUE);
         }
 
-        private void verifyUpdateSingleExistingSimpleAttribute(final String key, final String value)
-                throws ExecutionException, InterruptedException {
-
+        private void verifyUpdateSingleExistingSimpleAttribute(final String key, final String value) {
             final JsonPointer pointer = JsonFactory.newPointer(key);
             final AttributeModified attributeModified =
                     AttributeModified.of(KNOWN_THING_ID, pointer, JsonValue.of(value), 2L, DittoHeaders.empty());
@@ -450,7 +444,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
         }
 
         @Test
-        public void updateSimpleAttributeByNonExistingPrefixName() throws ExecutionException, InterruptedException {
+        public void updateSimpleAttributeByNonExistingPrefixName() {
             final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
             insertBlockingAndResetMocks(isV2, thing, 1L, -1L,
                     policyEnforcer, writeThingsCollectionSpy,
@@ -479,7 +473,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
         }
 
         @Test
-        public void addNewSingleComplexAttribute() throws ExecutionException, InterruptedException {
+        public void addNewSingleComplexAttribute() {
             insertBlockingAndResetMocks(isV2, createThing(KNOWN_THING_ID, VALUE1, isV2), 1L, -1L,
                     policyEnforcer, writeThingsCollectionSpy,
                     writePoliciesCollectionSpy);
@@ -503,7 +497,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
             verifyAddNewSingleComplexAttribute();
         }
 
-        private void verifyAddNewSingleComplexAttribute() throws ExecutionException, InterruptedException {
+        private void verifyAddNewSingleComplexAttribute() {
             final PolicyRestrictedSearchAggregation aggregation1 =
                     abf.newBuilder(cf.fieldCriteria(fef.filterByAttribute("new1/new2/new3/bool1"), cf.eq(Boolean.TRUE)))
                             .authorizationSubjects(KNOWN_SUBJECTS_2)
@@ -531,7 +525,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
         }
 
         @Test
-        public void replaceSimpleWithComplexAttribute() throws ExecutionException, InterruptedException {
+        public void replaceSimpleWithComplexAttribute() {
             insertBlockingAndResetMocks(isV2, createThing(KNOWN_THING_ID, VALUE1, isV2), 1L, -1L,
                     policyEnforcer, writeThingsCollectionSpy,
                     writePoliciesCollectionSpy);
@@ -589,7 +583,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
 
 
         @Test
-        public void deleteSingleAttribute() throws ExecutionException, InterruptedException {
+        public void deleteSingleAttribute() {
             final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
             insertBlockingAndResetMocks(isV2, thing, 1L, -1L, policyEnforcer, writeThingsCollectionSpy,
                     writePoliciesCollectionSpy);
@@ -619,7 +613,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
 
 
         @Test
-        public void deleteAllAttributes() throws ExecutionException, InterruptedException {
+        public void deleteAllAttributes() {
             final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
             insertBlockingAndResetMocks(isV2, thing, 1L, -1L, policyEnforcer, writePoliciesCollectionSpy,
                     writeThingsCollectionSpy);
@@ -652,7 +646,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
         }
 
         @Test
-        public void deleteExistingFeature() throws ExecutionException, InterruptedException {
+        public void deleteExistingFeature() {
             final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
             insertBlockingAndResetMocks(isV2, thing, 1L, -1L, policyEnforcer, writeThingsCollectionSpy,
                     writePoliciesCollectionSpy);
@@ -698,7 +692,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
 
 
         @Test
-        public void addNewFeature() throws ExecutionException, InterruptedException {
+        public void addNewFeature() {
             final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
             insertBlockingAndResetMocks(isV2, thing, 1L, -1L, policyEnforcer, writeThingsCollectionSpy,
                     writePoliciesCollectionSpy);
@@ -729,7 +723,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
 
 
         @Test
-        public void createThingWithNullAttribute() throws ExecutionException, InterruptedException {
+        public void createThingWithNullAttribute() {
             final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
             final Thing thingWithNulLAttribute = thing.setAttribute(NULL_ATTRIBUTE, JsonFactory.nullLiteral());
             insertBlockingAndResetMocks(isV2, thingWithNulLAttribute, 0, 0, policyEnforcer);
@@ -743,7 +737,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
 
 
         @Test
-        public void updateExistingFeature() throws ExecutionException, InterruptedException {
+        public void updateExistingFeature() {
             final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
             insertBlockingAndResetMocks(isV2, thing, 1L, -1L, policyEnforcer, writeThingsCollectionSpy,
                     writePoliciesCollectionSpy);
@@ -752,7 +746,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
         }
 
         @Test
-        public void updateExistingDottedFeatureV1() throws ExecutionException, InterruptedException {
+        public void updateExistingDottedFeatureV1() {
             final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
             insertBlockingAndResetMocks(isV2, thing, 1L, -1L, policyEnforcer, writeThingsCollectionSpy,
                     writePoliciesCollectionSpy);
@@ -760,8 +754,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
             verifyCreateFeature("feature.with.dots");
         }
 
-        private void verifyCreateFeature(final String featureId) throws ExecutionException,
-                InterruptedException {
+        private void verifyCreateFeature(final String featureId) {
             final long targetRevision = 1L;
             final List<ThingEvent> writes = Collections.singletonList(
                     wrapEvent(createFeatureCreated(featureId), apiVersion));
@@ -789,7 +782,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
         }
 
         @Test
-        public void deletePropertiesOfExistingFeature() throws ExecutionException, InterruptedException {
+        public void deletePropertiesOfExistingFeature() {
             insertBlockingAndResetMocks(isV2, createThing(KNOWN_THING_ID, VALUE1, isV2), 1L, -1L, policyEnforcer,
                     writeThingsCollectionSpy, writePoliciesCollectionSpy);
 
@@ -820,7 +813,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
         }
 
         @Test
-        public void updatePropertiesOfExistingFeature() throws ExecutionException, InterruptedException {
+        public void updatePropertiesOfExistingFeature() {
             final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
             insertBlockingAndResetMocks(isV2, thing, 1L, -1L, policyEnforcer, writeThingsCollectionSpy,
                     writePoliciesCollectionSpy);
@@ -844,7 +837,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
         }
 
         @Test
-        public void updatePropertiesOfNotExistingFeature() throws ExecutionException, InterruptedException {
+        public void updatePropertiesOfNotExistingFeature() {
             final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
             insertBlockingAndResetMocks(isV2, thing, 1L, -1L, policyEnforcer, writeThingsCollectionSpy,
                     writePoliciesCollectionSpy);
@@ -877,7 +870,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
 
 
         @Test
-        public void deleteFeatureProperty() throws ExecutionException, InterruptedException {
+        public void deleteFeatureProperty() {
             final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
             insertBlockingAndResetMocks(isV2, thing, 1L, -1L, policyEnforcer, writeThingsCollectionSpy,
                     writePoliciesCollectionSpy);
@@ -909,8 +902,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
         }
 
         @Test
-        public void deleteFeaturePropertyWithWrongSourceSequenceNumber()
-                throws ExecutionException, InterruptedException {
+        public void deleteFeaturePropertyWithWrongSourceSequenceNumber() {
             final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
             insertBlockingAndResetMocks(isV2, thing, 1L, -1L, policyEnforcer, writeThingsCollectionSpy,
                     writePoliciesCollectionSpy);
@@ -924,7 +916,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
 
 
         @Test
-        public void updateFeatureProperty() throws ExecutionException, InterruptedException {
+        public void updateFeatureProperty() {
             final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
             insertBlockingAndResetMocks(isV2, thing, 1L, -1L, policyEnforcer, writeThingsCollectionSpy,
                     writePoliciesCollectionSpy);
@@ -958,7 +950,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
 
 
         @Test
-        public void updateFeaturePropertyByOverridingComplexProperty() throws ExecutionException, InterruptedException {
+        public void updateFeaturePropertyByOverridingComplexProperty() {
             final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
             insertBlockingAndResetMocks(isV2, thing, 1L, -1L, policyEnforcer, writeThingsCollectionSpy,
                     writePoliciesCollectionSpy);
@@ -991,7 +983,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
         }
 
         @Test
-        public void deleteFeatures() throws ExecutionException, InterruptedException {
+        public void deleteFeatures() {
             final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
             insertBlockingAndResetMocks(isV2, thing, 1L, -1L, policyEnforcer, writeThingsCollectionSpy,
                     writePoliciesCollectionSpy);
@@ -1024,7 +1016,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
         }
 
         @Test
-        public void updateFeatures() throws ExecutionException, InterruptedException {
+        public void updateFeatures() {
             final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
             insertBlockingAndResetMocks(isV2, thing, 1L, -1L, policyEnforcer, writeThingsCollectionSpy,
                     writePoliciesCollectionSpy);
@@ -1032,7 +1024,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
         }
 
         @Test
-        public void updateFeaturesWithDottedFeatureId() throws ExecutionException, InterruptedException {
+        public void updateFeaturesWithDottedFeatureId() {
             final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
             insertBlockingAndResetMocks(isV2, thing, 1L, -1L, policyEnforcer, writeThingsCollectionSpy,
                     writePoliciesCollectionSpy);
@@ -1040,7 +1032,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
         }
 
         @Test
-        public void updateFeaturesWithDottedPropertyNames() throws ExecutionException, InterruptedException {
+        public void updateFeaturesWithDottedPropertyNames() {
             final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
             insertBlockingAndResetMocks(isV2, thing, 1L, -1L, policyEnforcer, writeThingsCollectionSpy,
                     writePoliciesCollectionSpy);
@@ -1048,7 +1040,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
         }
 
         @Test
-        public void updateFeaturesV2WithDottedPropertyNames() throws ExecutionException, InterruptedException {
+        public void updateFeaturesV2WithDottedPropertyNames() {
             final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
             insertBlockingAndResetMocks(isV2, thing, 1L, -1L, policyEnforcer, writeThingsCollectionSpy,
                     writePoliciesCollectionSpy);
@@ -1056,8 +1048,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
         }
 
         private void verifyUpdateFeatures(final String expectedFeatureId, final Features features, final long
-                targetRevision)
-                throws ExecutionException, InterruptedException {
+                targetRevision) {
 
             final List<ThingEvent> writes = Collections.singletonList(
                     wrapEvent(createFeaturesModified(features), apiVersion));
@@ -1095,7 +1086,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
 
 
         @Test
-        public void updateFeaturePropertiesAndOneAttribute() throws ExecutionException, InterruptedException {
+        public void updateFeaturePropertiesAndOneAttribute() {
             final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
             insertBlockingAndResetMocks(isV2, thing, 1L, -1L, policyEnforcer, writePoliciesCollectionSpy,
                     writeThingsCollectionSpy);
@@ -1132,7 +1123,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
 
 
         @Test
-        public void updateSeveralFeaturePropertiesAndDeleteThing() throws ExecutionException, InterruptedException {
+        public void updateSeveralFeaturePropertiesAndDeleteThing() {
             insertBlockingAndResetMocks(isV2, createThing(KNOWN_THING_ID, VALUE1, isV2), 1L, -1L, policyEnforcer,
                     writeThingsCollectionSpy, writePoliciesCollectionSpy);
 
@@ -1171,7 +1162,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
 
 
         @Test
-        public void delete() throws ExecutionException, InterruptedException {
+        public void delete() {
             final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
             final long thingRevision = 13;
             final long policyRevision = 77;
@@ -1191,7 +1182,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
         private final JsonSchemaVersion apiVersion = JsonSchemaVersion.V_1;
 
         @Test
-        public void createNewAclEntry() throws ExecutionException, InterruptedException {
+        public void createNewAclEntry() {
             final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
             insertBlockingAndResetMocks(isV2, thing, 0, 0, policyEnforcer, writePoliciesCollectionSpy,
                     writeThingsCollectionSpy);
@@ -1217,7 +1208,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
 
 
         @Test
-        public void updateExistingAclEntryAddRead() throws ExecutionException, InterruptedException {
+        public void updateExistingAclEntryAddRead() {
             final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
             insertBlockingAndResetMocks(isV2, thing, 0, 0, policyEnforcer, writeThingsCollectionSpy,
                     writePoliciesCollectionSpy);
@@ -1245,7 +1236,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
         }
 
         @Test
-        public void updateExistingAclEntryRemoveRead() throws ExecutionException, InterruptedException {
+        public void updateExistingAclEntryRemoveRead() {
             final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
             insertBlockingAndResetMocks(isV2, thing, 0, 0, policyEnforcer, writeThingsCollectionSpy,
                     writePoliciesCollectionSpy);
@@ -1273,7 +1264,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
         }
 
         @Test
-        public void deleteAclEntry() throws ExecutionException, InterruptedException {
+        public void deleteAclEntry() {
             final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
             insertBlockingAndResetMocks(isV2, thing, 0, 0, policyEnforcer, writeThingsCollectionSpy,
                     writePoliciesCollectionSpy);
@@ -1303,7 +1294,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
 
         /** */
         @Test
-        public void updateWholeACL() throws ExecutionException, InterruptedException {
+        public void updateWholeACL() {
             final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
             insertBlockingAndResetMocks(isV2, thing, 0, 0, policyEnforcer, writePoliciesCollectionSpy,
                     writeThingsCollectionSpy);
@@ -1339,7 +1330,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
 
 
         @Test
-        public void updateFeaturePropertyAndAcl() throws ExecutionException, InterruptedException {
+        public void updateFeaturePropertyAndAcl() {
             insertBlockingAndResetMocks(isV2, createThing(KNOWN_THING_ID, VALUE1, isV2), 1L, -1L, policyEnforcer);
 
             final AclEntry entry = ThingsModelFactory.newAclEntry(newAuthSubject("anotherSid"),
@@ -1374,7 +1365,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
         }
 
         @Test
-        public void createThingAndUpdateAcl() throws ExecutionException, InterruptedException {
+        public void createThingAndUpdateAcl() {
             final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
             Assertions.assertThat(
                     runBlockingWithReturn(writePersistence.insertOrUpdate(thing, 0L, 1L)))
@@ -1415,7 +1406,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
         private final boolean isV2 = true;
 
         @Test
-        public void updatePolicyForThing() throws ExecutionException, InterruptedException {
+        public void updatePolicyForThing() {
             final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
 
             insertBlockingAndResetMocks(isV2, thing, 1L, -1L, policyEnforcer);
@@ -1429,7 +1420,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
         }
 
         @Test
-        public void getThingMetadata() throws ExecutionException, InterruptedException {
+        public void getThingMetadata() {
             final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
             final long thingRevision = 13;
             final long policyRevision = 77;
@@ -1445,7 +1436,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
         }
 
         @Test
-        public void getThingMetadataForNotExistingThing() throws ExecutionException, InterruptedException {
+        public void getThingMetadataForNotExistingThing() {
             final ThingMetadata result = runBlockingWithReturn(writePersistence.getThingMetadata(KNOWN_THING_ID));
             assertThat(result.getPolicyId())
                     .isNull();
@@ -1456,7 +1447,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
         }
 
         @Test
-        public void updatePolicyForThingIllegalArguments() throws ExecutionException, InterruptedException {
+        public void updatePolicyForThingIllegalArguments() {
             final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
 
             insertBlockingAndResetMocks(isV2, thing, 1L, -1L, policyEnforcer);
@@ -1471,7 +1462,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
 
 
         @Test
-        public void getThingIdsForPolicy() throws ExecutionException, InterruptedException {
+        public void getThingIdsForPolicy() {
             final String policyId = "any-ns:testPolicyId";
             final Thing thing1 = createThing("test:id1", "val1", isV2).setPolicyId(policyId);
             final Thing thing2 = createThing("test:id2", "val2", isV2).setPolicyId(policyId);
@@ -1489,7 +1480,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
         }
 
         @Test
-        public void getThingIdsForPolicyThatDoesNotExist() throws ExecutionException, InterruptedException {
+        public void getThingIdsForPolicyThatDoesNotExist() {
             final Set<String> result =
                     runBlockingWithReturn(writePersistence.getThingIdsForPolicy("any-ns:testPolicyId"));
 
@@ -1497,12 +1488,53 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
                     .isTrue();
         }
 
+        @Test
+        public void insertWithSameThingRevisionAndSamePolicyRevision() {
+            final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
+            final long thingRevision = 1L;
+            final long policyRevision = 0;
+
+            insertBlockingAndResetMocks(isV2, thing, thingRevision, policyRevision, policyEnforcer);
+
+            // should not insert thing with same revision and policy revision
+            Assertions.assertThat(runBlockingWithReturn(
+                    writePersistence.insertOrUpdate(thing, thingRevision, policyRevision))).isFalse();
+        }
+
+        @Test
+        public void insertWithSameThingRevisionAndHigherPolicyRevision() {
+            final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
+            final long thingRevision = 1L;
+            final long policyRevision = 0L;
+            final long higherPolicyRevision = 1L;
+
+            insertBlockingAndResetMocks(isV2, thing, thingRevision, policyRevision, policyEnforcer);
+
+            // should insert thing with same revision but higher policy revision
+            Assertions.assertThat(runBlockingWithReturn(
+                    writePersistence.insertOrUpdate(thing, thingRevision, higherPolicyRevision))).isTrue();
+        }
+
+        @Test
+        public void insertWithLowerThingRevisionAndHigherPolicyRevision() {
+            final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
+            final long lowerThingRevision = 0L;
+            final long thingRevision = 1L;
+            final long policyRevision = 0L;
+            final long higherPolicyRevision = 1L;
+
+            insertBlockingAndResetMocks(isV2, thing, thingRevision, policyRevision, policyEnforcer);
+
+            // should insert thing with same revision but higher policy revision
+            Assertions.assertThat(runBlockingWithReturn(
+                    writePersistence.insertOrUpdate(thing, lowerThingRevision, higherPolicyRevision))).isFalse();
+        }
     }
 
     public static class MongoThingsSearchUpdaterPersistenceDefaultTests extends BaseClass {
 
         @Test
-        public void deleteForNotExistingThing() throws ExecutionException, InterruptedException {
+        public void deleteForNotExistingThing() {
             final boolean result = runBlockingWithReturn(writePersistence.delete(KNOWN_THING_ID));
 
             assertThat(result)
@@ -1510,7 +1542,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
         }
 
         @Test
-        public void executeCombinedWritesWithoutThingEvents() throws ExecutionException, InterruptedException {
+        public void executeCombinedWritesWithoutThingEvents() {
             Assertions.assertThat(
                     runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID,
                             Collections.emptyList(),
@@ -1522,7 +1554,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
         }
 
         @Test
-        public void migrateExistingThingToV2() throws ExecutionException, InterruptedException {
+        public void migrateExistingThingToV2() {
 
             // create a thing with an ACL
             final Thing thing = createThing(KNOWN_THING_ID, VALUE1, false);
@@ -1555,7 +1587,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
         }
 
         @Test
-        public void errorRecoveryForDuplicateKey() throws ExecutionException, InterruptedException {
+        public void errorRecoveryForDuplicateKey() {
             final PartialFunction<Throwable, Source<Boolean, NotUsed>> recovery =
                     writePersistence.errorRecovery(KNOWN_THING_ID);
 
@@ -1564,7 +1596,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
         }
 
         @Test
-        public void errorRecoveryForIndexTooLong() throws ExecutionException, InterruptedException {
+        public void errorRecoveryForIndexTooLong() {
             final PartialFunction<Throwable, Source<Boolean, NotUsed>> recovery =
                     writePersistence.errorRecovery(KNOWN_THING_ID);
 
@@ -1573,18 +1605,16 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
         }
 
         @Test
-        public void errorRecoveryForUnhandledException() throws ExecutionException, InterruptedException {
+        public void errorRecoveryForUnhandledException() {
             final PartialFunction<Throwable, Source<Boolean, NotUsed>> recovery =
                     writePersistence.errorRecovery(KNOWN_THING_ID);
 
             final IllegalArgumentException toThrow = new IllegalArgumentException("any");
-            try {
-                runBlockingWithReturn(recovery.apply(toThrow));
-                Assert.fail("should never get here");
-            } catch (ExecutionException e) {
-                assertThat(e.getCause())
-                        .isEqualTo(toThrow);
-            }
+            assertThatExceptionOfType(toThrow.getClass())
+                    .isThrownBy(() -> {
+                        runBlockingWithReturn(recovery.apply(toThrow));
+                    })
+                    .isEqualTo(toThrow);
         }
 
         private MongoWriteException createMongoWriteException(final int errorCode) {

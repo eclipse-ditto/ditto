@@ -50,4 +50,4 @@ Messages can be sent via
   blocking way at the [Messages HTTP API endpoint](http-api-doc.html#/Messages)
 
 Messages can, however, be received only via the [WebSocket API](protocol-bindings-websocket.html) as
-[Ditto Protocol] (protocol-overview.html) messages.
+[Ditto Protocol](protocol-overview.html) messages.

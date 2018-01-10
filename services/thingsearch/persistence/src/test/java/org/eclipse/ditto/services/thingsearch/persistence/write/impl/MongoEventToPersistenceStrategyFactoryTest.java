@@ -114,7 +114,7 @@ public final class MongoEventToPersistenceStrategyFactoryTest {
     }
 
     @Test
-    public void getInstance() throws Exception {
+    public void getInstance() {
         final EventToPersistenceStrategy strategy = factory.getInstance(type);
         if (isAllowed) {
             assertThat(strategy).isNotNull();

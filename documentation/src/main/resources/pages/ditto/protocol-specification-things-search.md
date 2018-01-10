@@ -1,7 +1,7 @@
 ---
 title: Things - Search protocol specification
 keywords: protocol, specification, search, thing
-tags: [protocol]
+tags: [protocol, search]
 permalink: protocol-specification-things-search.html
 ---
 

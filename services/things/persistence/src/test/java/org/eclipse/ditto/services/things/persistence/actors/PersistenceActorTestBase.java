@@ -42,7 +42,7 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.cluster.pubsub.DistributedPubSub;
-import akka.testkit.JavaTestKit;
+import akka.testkit.javadsl.TestKit;
 
 /**
  * Base test class for testing persistence actors of the things persistence.
@@ -126,7 +126,7 @@ public abstract class PersistenceActorTestBase {
     /** */
     @After
     public void tearDownBase() {
-        JavaTestKit.shutdownActorSystem(actorSystem);
+        TestKit.shutdownActorSystem(actorSystem);
         actorSystem = null;
     }
 

@@ -5,9 +5,10 @@ This module contains the service
 * **utils** - common functionality shared across all services
 
 and the actual services:
-* **policies** - persistence of `Policy`s
-* **things** - persistence of `Thing`s and `Feature`s
-* **thingsearch** - tracking changes to `Thing`s, `Feature`s and `Policy`s and updating an optimized
+* **policies** - persistence of `Policies`
+* **things** - persistence of `Things` and `Features`
+* **thingsearch** - tracking changes to `Things`, `Features`, `Policies` and updating an optimized
 search index + executes queries on this search index
-* **gateway** - provides HTTP and WebSocket API using the routes defined in the 'endpoints' module + 
-orchestrates the backing persistence services 
+* **gateway** - provides HTTP and WebSocket API and orchestrates the backing persistence services 
+* **amqp-bridge** - connects to an AMQP 1.0 endpoint (e.g. [Eclipse Hono](https://eclipse.org/hono/)) 
+and consumes messages in Ditto Protocol from it

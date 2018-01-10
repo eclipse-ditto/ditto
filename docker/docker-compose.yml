@@ -70,6 +70,22 @@ services:
       - ENABLE_DUMMY_AUTH=true
       - _JAVA_OPTIONS=-Xms256m -Xmx256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError
 
+  amqp-bridge:
+    image: docker.io/eclipse/ditto-amqp-bridge:${DITTO_VERSION:-latest}
+    networks:
+      default:
+        aliases:
+          - ditto-cluster
+    depends_on:
+      - policies
+      - gateway
+    command: sh -c "sleep 10; java -jar /starter.jar"
+    environment:
+      - TZ=Europe/Berlin
+      - INSTANCE_INDEX=1
+      - BIND_HOSTNAME=0.0.0.0
+      - _JAVA_OPTIONS=-Xms256m -Xmx256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError
+
   swagger-ui:
     image: docker.io/swaggerapi/swagger-ui:v2.2.9
     volumes:

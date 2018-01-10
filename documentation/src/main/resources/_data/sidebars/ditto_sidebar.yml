@@ -27,6 +27,9 @@ entries:
     - title: 0.1.0-M1 Release notes
       url: /release_notes_010-M1.html
       output: web
+    - title: 0.1.0-M2 Release notes
+      url: /release_notes_010-M2.html
+      output: web
 
   - title: Installation
     output: web
@@ -37,6 +40,9 @@ entries:
       output: web
     - title: Running Ditto
       url: /installation-running.html
+      output: web
+    - title: Operating Ditto
+      url: /installation-operating.html
       output: web
 
   - title: Basic concepts
@@ -97,6 +103,9 @@ entries:
     - title: Change notifications
       url: /basic-changenotifications.html
       output: web
+    - title: Search
+      url: /basic-search.html
+      output: web
 
   - title: Architecture
     output: web
@@ -105,6 +114,26 @@ entries:
     - title: Overview
       url: /architecture-overview.html
       output: web
+
+      subfolders:
+        - title: Services
+          output: web
+          subfolderitems:
+          - title: Policies
+            url: /architecture-services-policies.html
+            output: web
+          - title: Things
+            url: /architecture-services-things.html
+            output: web
+          - title: Things-Search
+            url: /architecture-services-things-search.html
+            output: web
+          - title: Gateway
+            url: /architecture-services-gateway.html
+            output: web
+          - title: AMQP-Bridge
+            url: /architecture-services-amqp-bridge.html
+            output: web
 
   - title: HTTP API
     output: web
@@ -176,6 +205,9 @@ entries:
       output: web
     - title: Websocket Binding
       url: /protocol-bindings-websocket.html
+      output: web
+    - title: AMQP 1.0 Binding
+      url: /protocol-bindings-amqp10.html
       output: web
     - title: Examples
       url: /protocol-examples.html

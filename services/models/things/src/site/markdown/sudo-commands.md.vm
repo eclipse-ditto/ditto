@@ -65,24 +65,3 @@ Example response:
 ```
 #parse( "snippet" )
 ```
-
-$h2 Sudo Retrieve Modified ThingTags
-
-The `timespan` field contains the `toString()` value of a `java.time.Duration` which is based on the ISO-8601 duration format PnDTnHnMn.nS with days considered to be exactly 24 hours.
-For example:
-
-  * `PT5M` stands for <b>P</b>eriod of <b>T</b>ime of <b>5</b> <b>M</b>inutes
-  * `PT10H` stands for <b>P</b>eriod of <b>T</b>ime of <b>10</b> <b>H</b>ours
-  * `P3DT10H` stands for <b>P</b>eriod of <b>3</b> <b>D</b>ays and <b>T</b>ime of <b>10</b> <b>H</b>ours
-
-#set( $snippetFile = "/target/generated-resources/commands/sudo/sudoRetrieveModifiedThingTags.json" )
-```
-#parse( "snippet" )
-```
-
-Example response:
-   
-#set( $snippetFile = "/target/generated-resources/commands/sudo/sudoRetrieveModifiedThingTagsResponse.json" )
-```
-#parse( "snippet" )
-```

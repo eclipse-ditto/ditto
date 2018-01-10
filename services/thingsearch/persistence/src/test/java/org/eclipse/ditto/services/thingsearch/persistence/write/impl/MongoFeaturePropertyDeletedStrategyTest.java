@@ -26,7 +26,7 @@ public final class MongoFeaturePropertyDeletedStrategyTest extends AbstractMongo
     private final MongoFeaturePropertyDeletedStrategy strategy = new MongoFeaturePropertyDeletedStrategy();
 
     @Test
-    public void thingUpdates() throws Exception {
+    public void thingUpdates() {
         final List<Bson> updates = strategy.thingUpdates(thingEvent(), indexLengthRestrictionEnforcer);
         assertThat(updates).hasSize(1);
     }

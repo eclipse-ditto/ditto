@@ -22,6 +22,8 @@ import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoCommandRegistry;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoCommandResponseRegistry;
+import org.eclipse.ditto.services.models.streaming.BatchedEntityIdWithRevisions;
+import org.eclipse.ditto.services.models.streaming.StreamingRegistry;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategiesBuilder;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
 import org.eclipse.ditto.services.utils.distributedcache.model.BaseCacheEntry;
@@ -55,12 +57,16 @@ public final class PoliciesMappingStrategy implements MappingStrategy {
                 .add(PolicyEventRegistry.newInstance())
                 .add(SudoCommandRegistry.newInstance())
                 .add(SudoCommandResponseRegistry.newInstance())
+                .add(StreamingRegistry.newInstance())
                 .add(Policy.class, (Function<JsonObject, Jsonifiable<?>>) PoliciesModelFactory::newPolicy)
                 .add(BaseCacheEntry.class,
                         jsonObject -> BaseCacheEntry.fromJson(jsonObject)) // do not replace with lambda!
                 .add(PolicyCacheEntry.class,
                         jsonObject -> PolicyCacheEntry.fromJson(jsonObject)) // do not replace with lambda!
-                .add(PolicyTag.class, jsonObject -> PolicyTag.fromJson(jsonObject));  // do not replace with lambda!
+                .add(PolicyTag.class, jsonObject -> PolicyTag.fromJson(jsonObject))  // do not replace with lambda!
+                .add(BatchedEntityIdWithRevisions.typeOf(PolicyTag.class),
+                        BatchedEntityIdWithRevisions.deserializer(jsonObject -> PolicyTag.fromJson(jsonObject)))
+                .add(PolicyReferenceTag.class, jsonObject -> PolicyReferenceTag.fromJson(jsonObject));  // do not replace with lambda!
     }
 
     private static void addDevOpsStrategies(final MappingStrategiesBuilder builder) {

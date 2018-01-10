@@ -17,7 +17,6 @@ import java.text.MessageFormat;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
@@ -108,17 +107,13 @@ public abstract class AbstractReadPersistenceITBase extends AbstractThingSearchP
     }
 
     Thing persistThingV1(final Thing thingV1) {
-        try {
-            final long revision = thingV1.getRevision()
-                    .orElseThrow(() ->
-                            new RuntimeException(MessageFormat.format("Thing <{}> does not contain revision", thingV1)))
-                    .toLong();
-            assertThat(runBlockingWithReturn(writePersistence.insertOrUpdate(thingV1, revision, -1L)))
-                    .isTrue();
-            return thingV1;
-        } catch (final ExecutionException | InterruptedException e) {
-           throw new IllegalStateException(e);
-        }
+        final long revision = thingV1.getRevision()
+                .orElseThrow(() ->
+                        new RuntimeException(MessageFormat.format("Thing <{}> does not contain revision", thingV1)))
+                .toLong();
+        assertThat(runBlockingWithReturn(writePersistence.insertOrUpdate(thingV1, revision, -1L)))
+                .isTrue();
+        return thingV1;
     }
 
     Thing createThingV2(final String id) {
@@ -134,20 +129,16 @@ public abstract class AbstractReadPersistenceITBase extends AbstractThingSearchP
     }
 
     Thing persistThingV2(final Thing thingV2) {
-        try {
-            final long revision = thingV2.getRevision()
-                    .orElseThrow(() ->
-                            new RuntimeException(MessageFormat.format("Thing <{}> does not contain revision", thingV2)))
-                    .toLong();
-            assertThat(runBlockingWithReturn(writePersistence.insertOrUpdate(thingV2, revision, 0L)))
-                    .isTrue();
-            assertThat(runBlockingWithReturn(writePersistence.updatePolicy(thingV2, getPolicyEnforcer(thingV2.getId()
-                    .orElseThrow(() -> new IllegalStateException("not possible"))))))
-                    .isTrue();
-            return thingV2;
-        } catch (final ExecutionException | InterruptedException e) {
-            throw new IllegalStateException(e);
-        }
+        final long revision = thingV2.getRevision()
+                .orElseThrow(() ->
+                        new RuntimeException(MessageFormat.format("Thing <{}> does not contain revision", thingV2)))
+                .toLong();
+        assertThat(runBlockingWithReturn(writePersistence.insertOrUpdate(thingV2, revision, 0L)))
+                .isTrue();
+        assertThat(runBlockingWithReturn(writePersistence.updatePolicy(thingV2, getPolicyEnforcer(thingV2.getId()
+                .orElseThrow(() -> new IllegalStateException("not possible"))))))
+                .isTrue();
+        return thingV2;
     }
 
     /**

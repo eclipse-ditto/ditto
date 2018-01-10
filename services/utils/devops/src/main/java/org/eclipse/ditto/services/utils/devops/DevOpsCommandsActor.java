@@ -91,6 +91,8 @@ public final class DevOpsCommandsActor extends AbstractActor {
      * Creates Akka configuration object Props for this Actor.
      *
      * @param loggingFacade a facade providing logging functionality.
+     * @param serviceName name of the microservice.
+     * @param instance instance number of the microservice instance.
      * @return the Akka configuration Props object.
      */
     public static Props props(final LoggingFacade loggingFacade, final String serviceName, final Integer instance) {
