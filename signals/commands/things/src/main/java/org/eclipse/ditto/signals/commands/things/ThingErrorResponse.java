@@ -25,11 +25,13 @@ import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
+import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.base.ErrorResponse;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingErrorRegistry;
 
@@ -168,7 +170,21 @@ public final class ThingErrorResponse extends AbstractCommandResponse<ThingError
                         .build());
         final JsonObject payload = jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.PAYLOAD).asObject();
 
-        final DittoRuntimeException exception = thingErrorRegistry.parse(payload, dittoHeaders);
+        DittoRuntimeException exception;
+        try {
+            exception = thingErrorRegistry.parse(payload, dittoHeaders);
+        } catch (final Exception e) {
+            final int status = jsonObject.getValue(CommandResponse.JsonFields.STATUS).orElse(500);
+            final String errorCode = payload.getValue(DittoRuntimeException.JsonFields.ERROR_CODE).orElse("unknown:unknown");
+            final String errorMessage =
+                    payload.getValue(DittoRuntimeException.JsonFields.MESSAGE).orElse("An unknown error occurred");
+            final String errorDescription = payload.getValue(DittoRuntimeException.JsonFields.DESCRIPTION).orElse("");
+            exception =
+                    DittoRuntimeException.newBuilder(errorCode, HttpStatusCode.forInt(status).get())
+                            .message(errorMessage)
+                            .description(errorDescription)
+                            .build();
+        }
 
         return of(thingId, exception, dittoHeaders);
     }
