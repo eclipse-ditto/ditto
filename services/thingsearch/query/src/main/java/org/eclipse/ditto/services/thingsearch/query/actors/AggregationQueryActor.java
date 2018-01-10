@@ -12,7 +12,7 @@
 package org.eclipse.ditto.services.thingsearch.query.actors;
 
 
-import java.util.Collections;
+import java.util.Set;
 import java.util.function.Consumer;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -110,26 +110,41 @@ public final class AggregationQueryActor extends AbstractActor {
     }
 
     private void handleCountThings(final CountThings command) {
-        final Criteria filterCriteria = queryFilterCriteriaFactory.filterCriteriaRestrictedByNamespace(
-                command.getFilter().orElse(null),
-                command.getDittoHeaders(),
-                command.getNamespaces().orElse(Collections.emptySet()));
+        final Criteria filterCriteria;
+        final DittoHeaders dittoHeaders = command.getDittoHeaders();
+        final Set<String> namespaces = command.getNamespaces().orElse(null);
+
+        if (namespaces == null) {
+            filterCriteria = queryFilterCriteriaFactory.filterCriteria(
+                    command.getFilter().orElse(null), dittoHeaders);
+        } else {
+            filterCriteria = queryFilterCriteriaFactory.filterCriteriaRestrictedByNamespaces(
+                    command.getFilter().orElse(null),
+                    dittoHeaders, namespaces);
+        }
 
         final AggregationBuilder aggregationBuilder = aggregationBuilderFactory.newCountBuilder(filterCriteria)
-                .authorizationSubjects(command.getDittoHeaders().getAuthorizationContext().getAuthorizationSubjectIds());
+                .authorizationSubjects(dittoHeaders.getAuthorizationContext().getAuthorizationSubjectIds());
 
         getSender().tell(aggregationBuilder.build(), getSelf());
     }
 
     private void handleQueryThings(final QueryThings command) {
+        final Criteria filterCriteria;
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
-        final Criteria filterCriteria = queryFilterCriteriaFactory.filterCriteriaRestrictedByNamespace(
-                command.getFilter().orElse(null),
-                dittoHeaders,
-                command.getNamespaces().orElse(Collections.emptySet()));
+        final Set<String> namespaces = command.getNamespaces().orElse(null);
+
+        if (namespaces == null) {
+            filterCriteria = queryFilterCriteriaFactory.filterCriteria(
+                    command.getFilter().orElse(null), dittoHeaders);
+        } else {
+            filterCriteria = queryFilterCriteriaFactory.filterCriteriaRestrictedByNamespaces(
+                    command.getFilter().orElse(null),
+                    dittoHeaders, namespaces);
+        }
 
         final AggregationBuilder aggregationBuilder = aggregationBuilderFactory.newBuilder(filterCriteria)
-                .authorizationSubjects(command.getDittoHeaders().getAuthorizationContext().getAuthorizationSubjectIds());
+                .authorizationSubjects(dittoHeaders.getAuthorizationContext().getAuthorizationSubjectIds());
 
         command.getOptions()
                 .map(optionStrings -> String.join(",", optionStrings))

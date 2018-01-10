@@ -11,7 +11,9 @@
  */
 package org.eclipse.ditto.services.thingsearch.query.actors;
 
+import java.util.Set;
 import java.util.function.Consumer;
+
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.thingsearchparser.ParserException;
 import org.eclipse.ditto.model.thingsearchparser.options.rql.RqlOptionParser;
@@ -108,10 +110,20 @@ public final class QueryActor extends AbstractActor {
     }
 
     private void handleCountThings(final CountThings command) {
-        final Criteria filterCriteria = queryFilterCriteriaFactory.filterCriteriaRestrictedByAcl(
-                command.getFilter().orElse(null),
-                command.getDittoHeaders(),
-                command.getDittoHeaders().getAuthorizationContext().getAuthorizationSubjectIds());
+        final Criteria filterCriteria;
+        final DittoHeaders dittoHeaders = command.getDittoHeaders();
+        final Set<String> namespaces = command.getNamespaces().orElse(null);
+
+        if (namespaces == null) {
+            filterCriteria = queryFilterCriteriaFactory.filterCriteriaRestrictedByAcl(
+                    command.getFilter().orElse(null), dittoHeaders,
+                    dittoHeaders.getAuthorizationContext().getAuthorizationSubjectIds());
+        } else {
+            filterCriteria = queryFilterCriteriaFactory.filterCriteriaRestrictedByAclAndNamespaces(
+                    command.getFilter().orElse(null), dittoHeaders,
+                    dittoHeaders.getAuthorizationContext().getAuthorizationSubjectIds(),
+                    namespaces);
+        }
 
         final QueryBuilder queryBuilder = queryBuilderFactory.newUnlimitedBuilder(filterCriteria);
 
@@ -119,11 +131,20 @@ public final class QueryActor extends AbstractActor {
     }
 
     private void handleQueryThings(final QueryThings command) {
+        final Criteria filterCriteria;
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
-        final Criteria filterCriteria = queryFilterCriteriaFactory.filterCriteriaRestrictedByAcl(
-                command.getFilter().orElse(null),
-                dittoHeaders,
-                command.getDittoHeaders().getAuthorizationContext().getAuthorizationSubjectIds());
+        final Set<String> namespaces = command.getNamespaces().orElse(null);
+
+        if (namespaces == null) {
+            filterCriteria = queryFilterCriteriaFactory.filterCriteriaRestrictedByAcl(
+                    command.getFilter().orElse(null), dittoHeaders,
+                    dittoHeaders.getAuthorizationContext().getAuthorizationSubjectIds());
+        } else {
+            filterCriteria = queryFilterCriteriaFactory.filterCriteriaRestrictedByAclAndNamespaces(
+                    command.getFilter().orElse(null), dittoHeaders,
+                    dittoHeaders.getAuthorizationContext().getAuthorizationSubjectIds(),
+                    namespaces);
+        }
 
         final QueryBuilder queryBuilder = queryBuilderFactory.newBuilder(filterCriteria);
 
