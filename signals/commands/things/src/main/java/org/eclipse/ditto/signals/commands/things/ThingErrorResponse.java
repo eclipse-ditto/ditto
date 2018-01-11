@@ -175,12 +175,14 @@ public final class ThingErrorResponse extends AbstractCommandResponse<ThingError
             exception = thingErrorRegistry.parse(payload, dittoHeaders);
         } catch (final Exception e) {
             final int status = jsonObject.getValue(CommandResponse.JsonFields.STATUS).orElse(500);
-            final String errorCode = payload.getValue(DittoRuntimeException.JsonFields.ERROR_CODE).orElse("unknown:unknown");
+            final String errorCode =
+                    payload.getValue(DittoRuntimeException.JsonFields.ERROR_CODE).orElse("unknown:unknown");
             final String errorMessage =
                     payload.getValue(DittoRuntimeException.JsonFields.MESSAGE).orElse("An unknown error occurred");
             final String errorDescription = payload.getValue(DittoRuntimeException.JsonFields.DESCRIPTION).orElse("");
             exception =
-                    DittoRuntimeException.newBuilder(errorCode, HttpStatusCode.forInt(status).get())
+                    DittoRuntimeException.newBuilder(errorCode,
+                            HttpStatusCode.forInt(status).orElse(HttpStatusCode.INTERNAL_SERVER_ERROR))
                             .message(errorMessage)
                             .description(errorDescription)
                             .build();
