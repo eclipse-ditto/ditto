@@ -185,6 +185,7 @@ public final class ThingErrorResponse extends AbstractCommandResponse<ThingError
                             HttpStatusCode.forInt(status).orElse(HttpStatusCode.INTERNAL_SERVER_ERROR))
                             .message(errorMessage)
                             .description(errorDescription)
+                            .dittoHeaders(dittoHeaders)
                             .build();
         }
 
