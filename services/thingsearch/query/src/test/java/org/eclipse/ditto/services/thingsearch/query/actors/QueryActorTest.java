@@ -21,6 +21,7 @@ import java.util.Collections;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Criteria;
 import org.eclipse.ditto.services.thingsearch.querymodel.criteria.CriteriaFactory;
 import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Predicate;
@@ -61,6 +62,7 @@ public final class QueryActorTest {
     private static final DittoHeaders KNOWN_DITTO_HEADERS = DittoHeaders.newBuilder()
             .correlationId("someCorrelationId")
             .authorizationContext(AuthorizationContext.newInstance(AuthorizationSubject.newInstance("authSubject")))
+            .schemaVersion(JsonSchemaVersion.V_1)
             .build();
 
     private ActorSystem actorSystem;

@@ -62,7 +62,6 @@ public final class QueryFilterCriteriaFactory {
     public Criteria filterCriteriaRestrictedByNamespaces(final String filter, final DittoHeaders dittoHeaders,
             final Set<String> namespaces) {
         final Criteria filterCriteria = filterCriteria(filter, dittoHeaders);
-        EnsureMonotonicityVisitor.apply(filterCriteria, dittoHeaders);
         return restrictByNamespace(namespaces, filterCriteria);
     }
 

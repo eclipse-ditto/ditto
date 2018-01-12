@@ -123,6 +123,8 @@ public final class AggregationQueryActor extends AbstractActor {
                     dittoHeaders, namespaces);
         }
 
+        EnsureMonotonicityVisitor.apply(filterCriteria, dittoHeaders);
+
         final AggregationBuilder aggregationBuilder = aggregationBuilderFactory.newCountBuilder(filterCriteria)
                 .authorizationSubjects(dittoHeaders.getAuthorizationContext().getAuthorizationSubjectIds());
 
@@ -142,6 +144,8 @@ public final class AggregationQueryActor extends AbstractActor {
                     command.getFilter().orElse(null),
                     dittoHeaders, namespaces);
         }
+
+        EnsureMonotonicityVisitor.apply(filterCriteria, dittoHeaders);
 
         final AggregationBuilder aggregationBuilder = aggregationBuilderFactory.newBuilder(filterCriteria)
                 .authorizationSubjects(dittoHeaders.getAuthorizationContext().getAuthorizationSubjectIds());
