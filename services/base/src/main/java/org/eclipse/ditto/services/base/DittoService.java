@@ -57,22 +57,23 @@ import scala.concurrent.duration.FiniteDuration;
  * Each hook method may be overridden to change this particular part of the startup procedure. Please have a look at
  * the Javadoc comment before overriding a hook method. The hook methods are automatically called in the following
  * order:
+ * </p>
  * <ol>
  *     <li>{@link #determineConfig()},</li>
  *     <li>{@link #createActorSystem(Config)},</li>
  *     <li>{@link #startStatusSupplierActor(ActorSystem, Config)},</li>
  *     <li>{@link #joinCluster(ActorSystem, Config)},</li>
  *     <li>{@link #startClusterMemberAwareActor(ActorSystem, Config)} and</li>
- *     <li>{@link #startServiceRootActors(ActorSystem, Config, Cancellable)}.</li>
- *     <ol>
- *         <li>{@link #startStatsdMetricsReporter(ActorSystem, Config)},</li>
- *         <li>{@link #getMainRootActorProps(Config, ActorRef, ActorMaterializer)},</li>
- *         <li>{@link #startMainRootActor(ActorSystem, Props)},</li>
- *         <li>{@link #getAdditionalRootActorsInformation(Config, ActorRef, ActorMaterializer)} and</li>
- *         <li>{@link #startAdditionalRootActors(ActorSystem, Iterable)}.</li>
- *     </ol>
+ *     <li>{@link #startServiceRootActors(ActorSystem, Config, Cancellable)}.
+     *     <ol>
+     *         <li>{@link #startStatsdMetricsReporter(ActorSystem, Config)},</li>
+     *         <li>{@link #getMainRootActorProps(Config, ActorRef, ActorMaterializer)},</li>
+     *         <li>{@link #startMainRootActor(ActorSystem, Props)},</li>
+     *         <li>{@link #getAdditionalRootActorsInformation(Config, ActorRef, ActorMaterializer)} and</li>
+     *         <li>{@link #startAdditionalRootActors(ActorSystem, Iterable)}.</li>
+     *     </ol>
+ *     </li>
  * </ol>
- * </p>
  */
 @NotThreadSafe
 public abstract class DittoService {
@@ -153,6 +154,7 @@ public abstract class DittoService {
      * May be overridden to change the way how the Akka actor system and actors are started. <em>Note: If this
      * method is overridden, none of the following mentioned methods and their descendant methods will be called
      * automatically:</em>
+     * </p>
      * <ul>
      *     <li>{@link #determineConfig()},</li>
      *     <li>{@link #createActorSystem(Config)},</li>
@@ -161,7 +163,6 @@ public abstract class DittoService {
      *     <li>{@link #startClusterMemberAwareActor(ActorSystem, Config)} and</li>
      *     <li>{@link #startServiceRootActors(ActorSystem, Config, Cancellable)}.</li>
      * </ul>
-     * </p>
      */
     protected void startActorSystem() {
         final Config config = determineConfig();
@@ -228,10 +229,15 @@ public abstract class DittoService {
      * <p>
      * May be overridden to change the way how this service joins the Akka cluster. <em>Note: If this method is
      * overridden the following method won't be called automatically:</em>
+     * </p>
      * <ul>
      *     <li>{@link #scheduleShutdownIfJoinFails(ActorSystem)}.</li>
      * </ul>
-     * </p>
+     *
+     * @param actorSystem Akka actor system for starting actors.
+     * @param config the configuration settings of this service.
+     * @return a Cancellable to abort the scheduled termination of the Akka actor system if the cluster was joined
+     * successfully.
      */
     protected Cancellable joinCluster(final ActorSystem actorSystem, final Config config) {
         ClusterUtil.joinCluster(actorSystem, config);
@@ -288,6 +294,7 @@ public abstract class DittoService {
      * <p>
      * May be overridden to change the way how the root actor(s) of this service are started. <em>Note: If this
      * method is overridden, the following methods will not be called automatically:</em>
+     * </p>
      * <ul>
      *     <li>{@link #startStatsdMetricsReporter(ActorSystem, Config)},</li>
      *     <li>{@link #getMainRootActorProps(Config, ActorRef, ActorMaterializer)},</li>
@@ -295,7 +302,6 @@ public abstract class DittoService {
      *     <li>{@link #getAdditionalRootActorsInformation(Config, ActorRef, ActorMaterializer)} and</li>
      *     <li>{@link #startAdditionalRootActors(ActorSystem, Iterable)}.</li>
      * </ul>
-     * </p>
      *
      * @param actorSystem Akka actor system for starting actors.
      * @param config the configuration settings of this service.
