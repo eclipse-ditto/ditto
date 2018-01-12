@@ -1,14 +1,16 @@
 ---
-title: Release notes 0.1.0-M2
+title: Release notes 0.1.0-M3
 tags: [release_notes, search]
 keywords: release notes, announcements, changelog
-summary: "Version 0.1.0-M2 of Eclipse Ditto, released on xxx"
-permalink: release_notes_010-M2.html
-published: false
+summary: "Version 0.1.0-M3 of Eclipse Ditto, released on 12.01.2018"
+permalink: release_notes_010-M3.html
 ---
 
 Since the first milestone of Eclipse Ditto [0.1.0-M1](release_notes_010-M1.html), the following new features and
 bugfixes were added.
+
+{% include note.html content="In milestone 0.1.0-M2 we had identified a problem right after building it, 
+    that's why M3 follows M1." %}
 
 
 ## New features
@@ -34,12 +36,6 @@ For the start the following commands are supported:
 
 Further information can be found in the [operating chapter](installation-operating.html#devops-commands)
 
-### Search in namespaces
-
-TODO write
-TODO enhance [search](basic-search.html) section
-
-
 
 ## Bugfixes
 
@@ -52,7 +48,7 @@ Those issues were resolved by improving the approach for keeping track of the al
 
 ### Various smaller bugfixes
 
-This is a complete list of the [merged pull requests](github.com/eclipse/ditto/pulls?q=is%3Apr+milestone%3A0.1.0-M2+).
+This is a complete list of the [merged pull requests](https://github.com/eclipse/ditto/pulls?q=is%3Apr+milestone%3A0.1.0-M3+).
 
 
 ## Documentation
@@ -63,3 +59,4 @@ Enhanced the documentation at various places:
 * [architecture overview](architecture-overview.html) including involved microservices
 * notes on how to [operate Ditto](installation-operating.html)
 * ...
+
