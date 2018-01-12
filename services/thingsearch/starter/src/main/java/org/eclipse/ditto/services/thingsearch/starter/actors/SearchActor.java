@@ -360,10 +360,15 @@ public final class SearchActor extends AbstractActor {
         if (command instanceof ThingSearchQueryCommand<?>) {
             final String filter = ((ThingSearchQueryCommand<?>) command).getFilter().orElse(null);
             // useless parsing of command just to choose another actor to "parse" the filter string
-            final Criteria criteria = queryFilterCriteriaFactory.filterCriteria(filter, command.getDittoHeaders());
-            final boolean needToLookupPolicy =
-                    JsonSchemaVersion.V_1 != version || criteria.accept(new IsPolicyLookupNeededVisitor());
-            return needToLookupPolicy ? aggregationQueryActor : findQueryActor;
+            try {
+                final Criteria criteria = queryFilterCriteriaFactory.filterCriteria(filter, command.getDittoHeaders());
+                final boolean needToLookupPolicy =
+                        JsonSchemaVersion.V_1 != version || criteria.accept(new IsPolicyLookupNeededVisitor());
+                return needToLookupPolicy ? aggregationQueryActor : findQueryActor;
+            } catch (final DittoRuntimeException e) {
+                // criteria is invalid, let the query actor deal with it
+                return findQueryActor;
+            }
         } else {
             // don't bother with aggregation for sudo commands
             return findQueryActor;
