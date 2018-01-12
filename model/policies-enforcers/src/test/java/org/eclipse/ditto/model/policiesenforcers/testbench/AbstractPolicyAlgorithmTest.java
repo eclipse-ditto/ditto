@@ -542,7 +542,7 @@ public abstract class AbstractPolicyAlgorithmTest {
 
         final Policy POLICY = Policy.newBuilder(":" + UUID.randomUUID().toString().replace("-", ""))
                 .forLabel("DEFAULT")
-                .setSubject(Subject.newInstance(SubjectIssuer.GOOGLE_URL, SUBJECT_ALL_POLICY_GRANTED))
+                .setSubject(Subject.newInstance(SubjectIssuer.GOOGLE, SUBJECT_ALL_POLICY_GRANTED))
                 .setGrantedPermissions(PoliciesResourceType.policyResource("/"),
                         "READ", "WRITE")
                 .build();
@@ -552,7 +552,7 @@ public abstract class AbstractPolicyAlgorithmTest {
         final boolean actual = policyEnforcer
                 .hasPartialPermissions(PoliciesResourceType.thingResource("/"),
                         AuthorizationContext.newInstance(AuthorizationSubject.newInstance(
-                                SubjectId.newInstance(SubjectIssuer.GOOGLE_URL, SUBJECT_ALL_POLICY_GRANTED)
+                                SubjectId.newInstance(SubjectIssuer.GOOGLE, SUBJECT_ALL_POLICY_GRANTED)
                                         .toString())),
                         "READ");
         assertThat(actual).isFalse();

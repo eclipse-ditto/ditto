@@ -105,7 +105,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
     private static final AuthorizationSubject AUTHORIZATION_SUBJECT =
             AuthorizationModelFactory.newAuthSubject(
-                    SubjectId.newInstance(SubjectIssuer.GOOGLE_URL, "testuser").toString());
+                    SubjectId.newInstance(SubjectIssuer.GOOGLE, "testuser").toString());
     private static final Permissions PERMISSIONS = Thing.MIN_REQUIRED_PERMISSIONS;
 
     private static final JsonParseOptions JSON_PARSE_OPTIONS =

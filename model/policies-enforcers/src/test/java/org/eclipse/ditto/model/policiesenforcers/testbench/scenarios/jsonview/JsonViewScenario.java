@@ -43,40 +43,40 @@ public interface JsonViewScenario extends Scenario {
     Policy POLICY = PoliciesModelFactory //
             .newPolicyBuilder("benchmark:" + JsonViewScenario.class.getSimpleName()) //
             .forLabel("all") //
-            .setSubject(SubjectIssuer.GOOGLE_URL, SUBJECT_ALL_GRANTED) //
-            .setSubject(SubjectIssuer.GOOGLE_URL, SUBJECT_ALL_GRANTED_ATTRIBUTES_REVOKED) //
+            .setSubject(SubjectIssuer.GOOGLE, SUBJECT_ALL_GRANTED) //
+            .setSubject(SubjectIssuer.GOOGLE, SUBJECT_ALL_GRANTED_ATTRIBUTES_REVOKED) //
             .setGrantedPermissions(PoliciesResourceType.thingResource("/"), "READ", "WRITE") //
             .forLabel("all-attributes") //
-            .setSubject(SubjectIssuer.GOOGLE_URL, SUBJECT_ATTRIBUTES_ALL_GRANTED) //
+            .setSubject(SubjectIssuer.GOOGLE, SUBJECT_ATTRIBUTES_ALL_GRANTED) //
             .setGrantedPermissions(PoliciesResourceType.thingResource("/attributes"), "READ",
                     "WRITE") //
             .forLabel("attributes-revoked") //
-            .setSubject(SubjectIssuer.GOOGLE_URL, SUBJECT_ALL_GRANTED_ATTRIBUTES_REVOKED) //
+            .setSubject(SubjectIssuer.GOOGLE, SUBJECT_ALL_GRANTED_ATTRIBUTES_REVOKED) //
             .setRevokedPermissions(PoliciesResourceType.thingResource("/attributes"), "READ",
                     "WRITE") //
             .forLabel("attributes-location-read-allowed") //
-            .setSubject(SubjectIssuer.GOOGLE_URL, SUBJECT_ALL_GRANTED_ATTRIBUTES_REVOKED) //
+            .setSubject(SubjectIssuer.GOOGLE, SUBJECT_ALL_GRANTED_ATTRIBUTES_REVOKED) //
             .setGrantedPermissions(PoliciesResourceType.thingResource("/attributes/location"), "READ") //
             .forLabel("features-read") //
-            .setSubject(SubjectIssuer.GOOGLE_URL, SUBJECT_FEATURES_READ_GRANTED) //
+            .setSubject(SubjectIssuer.GOOGLE, SUBJECT_FEATURES_READ_GRANTED) //
             .setGrantedPermissions(PoliciesResourceType.thingResource("/features"), "READ") //
             .forLabel("features") //
-            .setSubject(SubjectIssuer.GOOGLE_URL, SUBJECT_FEATURES_READ_GRANTED_FIRMWARE_READ_REVOKED) //
+            .setSubject(SubjectIssuer.GOOGLE, SUBJECT_FEATURES_READ_GRANTED_FIRMWARE_READ_REVOKED) //
             .setGrantedPermissions(PoliciesResourceType.thingResource("/features"), "READ") //
             .setRevokedPermissions(PoliciesResourceType.thingResource("/features/firmware"), "READ") //
             .forLabel("features-foo") //
-            .setSubject(SubjectIssuer.GOOGLE_URL, SUBJECT_FEATURE_FOO_ALL_GRANTED_SPECIAL_PROPERTY_REVOKED) //
+            .setSubject(SubjectIssuer.GOOGLE, SUBJECT_FEATURE_FOO_ALL_GRANTED_SPECIAL_PROPERTY_REVOKED) //
             .setGrantedPermissions(PoliciesResourceType.thingResource("/features/foo"), "READ",
                     "WRITE") //
             .forLabel("features-foo-special-property-revoked") //
-            .setSubject(SubjectIssuer.GOOGLE_URL, SUBJECT_FEATURE_FOO_ALL_GRANTED_SPECIAL_PROPERTY_REVOKED) //
+            .setSubject(SubjectIssuer.GOOGLE, SUBJECT_FEATURE_FOO_ALL_GRANTED_SPECIAL_PROPERTY_REVOKED) //
             .setRevokedPermissions(PoliciesResourceType.thingResource("/features/foo/properties/special"),
                     "READ", "WRITE") //
             .forLabel("features-revoked") //
-            .setSubject(SubjectIssuer.GOOGLE_URL, SUBJECT_ALL_FEATURES_REVOKED) //
+            .setSubject(SubjectIssuer.GOOGLE, SUBJECT_ALL_FEATURES_REVOKED) //
             .setRevokedPermissions(PoliciesResourceType.thingResource("/features"), "READ") //
             .forLabel("some-granted-of-each") //
-            .setSubject(SubjectIssuer.GOOGLE_URL, SUBJECT_SOME_GRANTED) //
+            .setSubject(SubjectIssuer.GOOGLE, SUBJECT_SOME_GRANTED) //
             .setGrantedPermissions(PoliciesResourceType.thingResource("/attributes/attr2"), "READ") //
             .setGrantedPermissions(PoliciesResourceType.thingResource("/attributes/location"), "READ") //
             .setGrantedPermissions(
@@ -85,7 +85,7 @@ public interface JsonViewScenario extends Scenario {
             .setGrantedPermissions(PoliciesResourceType.thingResource("/features/foo/properties/special"),
                     "READ") //
             .forLabel("some-revoked-of-each") //
-            .setSubject(SubjectIssuer.GOOGLE_URL, SUBJECT_SOME_REVOKED) //
+            .setSubject(SubjectIssuer.GOOGLE, SUBJECT_SOME_REVOKED) //
             .setRevokedPermissions(PoliciesResourceType.thingResource("/attributes/location/latitude"),
                     "READ") //
             .setRevokedPermissions(PoliciesResourceType.thingResource("/features/firmware/properties/modulesVersions"),
@@ -93,7 +93,7 @@ public interface JsonViewScenario extends Scenario {
             .setRevokedPermissions(PoliciesResourceType.thingResource("/features/foo/properties/special"),
                     "READ") //
             .forLabel("nonexistent-attribute-granted")
-            .setSubject(SubjectIssuer.GOOGLE_URL, SUBJECT_NONEXISTENT_ATTRIBUTE_GRANTED)
+            .setSubject(SubjectIssuer.GOOGLE, SUBJECT_NONEXISTENT_ATTRIBUTE_GRANTED)
             .setGrantedPermissions(PoliciesResourceType.thingResource("/attributes/location/nonexistentAttribute"),
                     "READ")
             .build();

@@ -31,11 +31,11 @@ public interface Scenario2Nested extends Scenario {
     Policy POLICY = PoliciesModelFactory //
             .newPolicyBuilder("benchmark:" + Scenario2Nested1.class.getSimpleName()) //
             .forLabel("attributes") //
-            .setSubject(SubjectIssuer.GOOGLE_URL, SUBJECT_ATTRIBUTES_ALL_GRANTED) //
+            .setSubject(SubjectIssuer.GOOGLE, SUBJECT_ATTRIBUTES_ALL_GRANTED) //
             .setGrantedPermissions(PoliciesResourceType.thingResource("/attributes"), "READ",
                     "WRITE") //
             .forLabel("features") //
-            .setSubject(SubjectIssuer.GOOGLE_URL, SUBJECT_FEATURES_READ_GRANTED) //
+            .setSubject(SubjectIssuer.GOOGLE, SUBJECT_FEATURES_READ_GRANTED) //
             .setGrantedPermissions(PoliciesResourceType.thingResource("/features"), "READ") //
             .build();
 

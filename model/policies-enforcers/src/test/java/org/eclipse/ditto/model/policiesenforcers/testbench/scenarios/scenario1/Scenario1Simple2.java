@@ -35,8 +35,8 @@ public class Scenario1Simple2 implements Scenario1Simple {
                 Scenario.newAuthorizationContext(SUBJECT_NONE_GRANTED), //
                 "/", //
                 Stream.of(
-                        SubjectId.newInstance(SubjectIssuer.GOOGLE_URL, SUBJECT_ALL_GRANTED).toString(),
-                        SubjectId.newInstance(SubjectIssuer.GOOGLE_URL, SUBJECT_WRITE_REVOKED).toString())
+                        SubjectId.newInstance(SubjectIssuer.GOOGLE, SUBJECT_ALL_GRANTED).toString(),
+                        SubjectId.newInstance(SubjectIssuer.GOOGLE, SUBJECT_WRITE_REVOKED).toString())
                         .collect(Collectors.toSet()),
                 "READ");
     }

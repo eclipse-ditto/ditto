@@ -39,7 +39,7 @@ public class Scenario2Nested7 implements Scenario2Nested {
                         !policyAlgorithm.getSubjectIdsWithPartialPermission(
                                 PoliciesResourceType.thingResource("/attributes"), "READ")
                                 .contains(SubjectId
-                                        .newInstance(SubjectIssuer.GOOGLE_URL, SUBJECT_FEATURES_READ_GRANTED)
+                                        .newInstance(SubjectIssuer.GOOGLE, SUBJECT_FEATURES_READ_GRANTED)
                                         .toString()
                                 ),
                 "READ");

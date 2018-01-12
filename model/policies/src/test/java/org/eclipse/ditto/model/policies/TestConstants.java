@@ -52,7 +52,7 @@ public final class TestConstants {
         /**
          * A known Subject Issuer.
          */
-        public static final SubjectIssuer SUBJECT_ISSUER = SubjectIssuer.GOOGLE_URL;
+        public static final SubjectIssuer SUBJECT_ISSUER = SubjectIssuer.GOOGLE;
 
         /**
          * A known Subject Id.

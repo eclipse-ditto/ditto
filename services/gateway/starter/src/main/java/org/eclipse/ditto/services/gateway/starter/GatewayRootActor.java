@@ -164,8 +164,8 @@ final class GatewayRootActor extends AbstractActor {
 
         final Props aclEnforcerProps =
                 AclEnforcerActor.props(pubSubMediator, thingsShardRegionProxy, policiesShardRegionProxy,
-                        thingCacheFacade, enforcerCacheInterval, enforcerInternalAskTimeout, Collections
-                                .singletonList(SubjectIssuer.GOOGLE_URL));
+                        thingCacheFacade, enforcerCacheInterval, enforcerInternalAskTimeout,
+                        Collections.singletonList(SubjectIssuer.GOOGLE));
         aclEnforcerShardRegion = ClusterSharding.get(this.getContext().system())
                 .start(ACL_ENFORCER_SHARD_REGION, aclEnforcerProps, shardingSettings,
                         ShardRegionExtractor.of(numberOfShards, getContext().getSystem()));

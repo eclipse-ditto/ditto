@@ -14,8 +14,6 @@ package org.eclipse.ditto.services.gateway.endpoints.directives.auth.jwt;
 import java.security.PublicKey;
 import java.util.Optional;
 
-import org.eclipse.ditto.model.policies.SubjectIssuer;
-
 /**
  * A provider for {@link PublicKey}s.
  */
@@ -29,5 +27,5 @@ public interface PublicKeyProvider {
      * @return the PublicKey.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    Optional<PublicKey> getPublicKey(SubjectIssuer issuer, String keyId);
+    Optional<PublicKey> getPublicKey(String issuer, String keyId);
 }

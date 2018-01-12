@@ -17,14 +17,9 @@ package org.eclipse.ditto.model.policies;
 public interface SubjectIssuer extends CharSequence {
 
     /**
-     * The known issuer "Google" for JSON Web Tokens.
+     * The issuer for authentication subjects provided by google.
      */
-    SubjectIssuer GOOGLE = PoliciesModelFactory.newSubjectIssuer("accounts.google.com");
-
-    /**
-     * The known issuer "Google" - more precisely its URL - for JSON Web Tokens.
-     */
-    SubjectIssuer GOOGLE_URL = PoliciesModelFactory.newSubjectIssuer("https://accounts.google.com");
+    SubjectIssuer GOOGLE = PoliciesModelFactory.newSubjectIssuer("google");
 
     @Override
     String toString();

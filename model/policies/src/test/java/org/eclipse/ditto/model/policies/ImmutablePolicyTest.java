@@ -38,10 +38,10 @@ public final class ImmutablePolicyTest {
     private static final JsonPointer END_USER_RESOURCE_1 = JsonPointer.of("foo/bar");
     private static final JsonPointer END_USER_RESOURCE_2 = JsonPointer.of("/attributes");
     private static final SubjectId END_USER_SUBJECT_ID_1 =
-            SubjectId.newInstance(SubjectIssuer.GOOGLE_URL, "myself");
+            SubjectId.newInstance(SubjectIssuer.GOOGLE, "myself");
     private static final SubjectType END_USER_SUBJECT_TYPE_1 = SubjectType.newInstance("endUserSubjectType1");
     private static final SubjectId END_USER_SUBJECT_ID_2 =
-            SubjectId.newInstance(SubjectIssuer.GOOGLE_URL, "others");
+            SubjectId.newInstance(SubjectIssuer.GOOGLE, "others");
     private static final SubjectType END_USER_SUBJECT_TYPE_2 = SubjectType.newInstance("endUserSubjectType2");
     private static final EffectedPermissions END_USER_EFFECTED_PERMISSIONS_1 =
             EffectedPermissions.newInstance(Permissions.newInstance(TestConstants.Policy.PERMISSION_READ),
@@ -57,7 +57,7 @@ public final class ImmutablePolicyTest {
 
     private static PolicyEntry createPolicyEntry2() {
         return ImmutablePolicyEntry.of(SUPPORT_LABEL,
-                Subjects.newInstance(Subject.newInstance(SubjectIssuer.GOOGLE_URL, "someGroup")),
+                Subjects.newInstance(Subject.newInstance(SubjectIssuer.GOOGLE, "someGroup")),
                 Resources.newInstance(
                         Resource.newInstance(TestConstants.Policy.RESOURCE_TYPE, JsonPointer.empty(),
                                 EffectedPermissions.newInstance(
@@ -144,9 +144,9 @@ public final class ImmutablePolicyTest {
         final Policy policy = createPolicy();
 
         final Subject NEW_SUBJECT_1 =
-                Subject.newInstance(SubjectIssuer.GOOGLE_URL, "newSubject1");
+                Subject.newInstance(SubjectIssuer.GOOGLE, "newSubject1");
         final Subject NEW_SUBJECT_2 =
-                Subject.newInstance(SubjectIssuer.GOOGLE_URL, "newSubject2");
+                Subject.newInstance(SubjectIssuer.GOOGLE, "newSubject2");
         final Subjects NEW_SUBJECTS = Subjects.newInstance(NEW_SUBJECT_1, NEW_SUBJECT_2);
 
         final Policy policyModified = policy.setSubjectsFor(END_USER_LABEL, NEW_SUBJECTS);
@@ -299,7 +299,7 @@ public final class ImmutablePolicyTest {
         final Policy policy = createPolicy();
         final Optional<EffectedPermissions> actualPermissions =
                 policy.getEffectedPermissionsFor(Label.of("foo"),
-                        SubjectId.newInstance(SubjectIssuer.GOOGLE_URL, "bar"),
+                        SubjectId.newInstance(SubjectIssuer.GOOGLE, "bar"),
                         ResourceKey.newInstance("thing:/foo/bar"));
         assertThat(actualPermissions).isEmpty();
     }

@@ -60,7 +60,7 @@ import akka.testkit.JavaTestKit;
  */
 public abstract class PersistenceActorTestBase {
 
-    private static final SubjectIssuer ISSUER_GOOGLE = SubjectIssuer.GOOGLE_URL;
+    private static final SubjectIssuer ISSUER_GOOGLE = SubjectIssuer.GOOGLE;
 
     protected static final String AUTH_SUBJECT = ISSUER_GOOGLE + ":allowedId";
     protected static final String UNAUTH_SUBJECT = ISSUER_GOOGLE + ":denied";

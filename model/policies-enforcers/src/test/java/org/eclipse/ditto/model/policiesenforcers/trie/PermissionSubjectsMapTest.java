@@ -48,7 +48,7 @@ public final class PermissionSubjectsMapTest {
     public static void initConstants() {
         subjectId = TestConstants.Policy.SUBJECT_ID.toString();
 
-        final SubjectId johnTitor = PoliciesModelFactory.newSubjectId(SubjectIssuer.GOOGLE_URL, "JohnTitor");
+        final SubjectId johnTitor = PoliciesModelFactory.newSubjectId(SubjectIssuer.GOOGLE, "JohnTitor");
         anotherSubjectId = johnTitor.toString();
 
         subjectIds = new HashSet<>(2);

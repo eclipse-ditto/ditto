@@ -32,11 +32,11 @@ public interface Scenario1Simple extends Scenario {
     Policy POLICY = PoliciesModelFactory
             .newPolicyBuilder("benchmark:" + SCENARIO_GROUP_NAME)
             .forLabel("all")
-            .setSubject(SubjectIssuer.GOOGLE_URL, SUBJECT_ALL_GRANTED)
-            .setSubject(SubjectIssuer.GOOGLE_URL, SUBJECT_WRITE_REVOKED)
+            .setSubject(SubjectIssuer.GOOGLE, SUBJECT_ALL_GRANTED)
+            .setSubject(SubjectIssuer.GOOGLE, SUBJECT_WRITE_REVOKED)
             .setGrantedPermissions(PoliciesResourceType.thingResource("/"), "READ", "WRITE")
             .forLabel("revokeWrite")
-            .setSubject(SubjectIssuer.GOOGLE_URL, SUBJECT_WRITE_REVOKED)
+            .setSubject(SubjectIssuer.GOOGLE, SUBJECT_WRITE_REVOKED)
             .setRevokedPermissions(PoliciesResourceType.thingResource("/"), "WRITE")
             .build();
 
