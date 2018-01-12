@@ -1563,10 +1563,15 @@ paths:
 
 
 
-         Attention, at the moment we do not support search on array fields.
+        Attention, at the moment we do not support search on array fields.
+
+
+        The search result can be limited to the Things within a namespace (or namespaces)
+        given in the `namespaces` parameter.
 
       parameters:
         - $ref: '#/parameters/searchFilter'
+        - $ref: '#/parameters/namespacesFilter'
         - name: option
           in: query
           description: >-
@@ -1617,7 +1622,6 @@ paths:
           type: array
           items:
             type: string
-        - $ref: '#/parameters/namespacesFilter'
         - $ref: '#/parameters/thingFieldsQueryParam'
       tags:
         - Search
@@ -1678,7 +1682,11 @@ paths:
 
 
 
-         Attention, at the moment we do not support search on array fields.
+        Attention, at the moment we do not support search on array fields.
+
+
+        The search result can be limited to the Things within a namespace (or namespaces)
+        given in the `namespaces` parameter.
 
       parameters:
         - $ref: '#/parameters/searchFilter'
@@ -2049,8 +2057,7 @@ parameters:
 
       * `?fields=EnvironmentScanner/properties(temperature,humidity)`
 
-      *
-      `?fields=EnvironmentScanner/properties(temperature,humidity),Vehicle/properties/configuration`
+      * `?fields=EnvironmentScanner/properties(temperature,humidity),Vehicle/properties/configuration`
     required: false
     type: string
   featureFieldsQueryParam:
@@ -2143,7 +2150,7 @@ parameters:
       A comma separated list of namespaces. This list is used to limit the query reach to things in the given
       namespaces only. When this parameter is omitted, all namespaces will be selected.
 
-      Examples:
+      ##### Examples:
 
       * `?namespaces=com.example.namespace`
 
