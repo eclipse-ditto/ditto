@@ -10,7 +10,7 @@ by everyone wanting to try out Ditto without starting it locally.
 
 ## Instructions
 
-As Ditto makes use of OAuth2.0 in order to authenticate users the sandbox contains a "login with your Google account"
+As Ditto makes use of OAuth2.0 in order to authenticate users the sandbox contains a "sign in with Google" 
 functionality. Ditto accepts the `id_token` which is issued by Google as `Bearer` token on authentication.
 
 ### HTTP API documentation
@@ -21,7 +21,7 @@ Simply click the green `Authorize` button, check the checkbox `openid` and click
 ask you if the Ditto sandbox may access your Google identity which you should acknowledge.<br/>
 Afterwards you should be authenticated with your Google user (and therefore your Google ID).
 
-You can start trying out the API now. For example, expand the [PUT /things/{thingId}](https://ditto.eclipse.org/apidoc/#!/Things/put_things_thingId)
+You can try out the API now. For example, expand the [PUT /things/{thingId}](https://ditto.eclipse.org/apidoc/#!/Things/put_things_thingId)
 item in order to create a new `Thing`, a **Digital Twin** so to say.<br/>
 Scroll down to the parameters and enter the required ones (in this case the `thingId`), for example:
 
@@ -29,9 +29,9 @@ Scroll down to the parameters and enter the required ones (in this case the `thi
 org.eclipse.ditto.tjaeckle:my-first-thing
 ```
 
-The ID has to contain a namespace (in Java package notation) followed by a `:` and an arbitrary string afterwards.
+The ID must contain a namespace (in Java package notation) followed by a `:` and an arbitrary string afterwards.
 
-The body needs to contain at least an empty JSON object: `{}`<br/>
+The body must be a JSON object, at least an empty one `{}`.<br/>
 Or it can be filled with arbitrary [attributes](basic-thing.html#attributes) and/or [features](basic-thing.html#features), e.g.:
 
 ```json
