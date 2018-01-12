@@ -27,11 +27,11 @@
     <modules>
         <module>akka</module>
         <module>cluster</module>
-        <module>devops</module>
         <module>config</module>
+        <module>devops</module>
+        <module>distributed-cache</module>
         <module>health</module>
         <module>persistence</module>
-        <module>distributed-cache</module>
         <module>test</module>
     </modules>
 

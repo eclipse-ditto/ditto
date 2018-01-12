@@ -30,6 +30,10 @@
 
     <dependencies>
         <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-services-base</artifactId>
+        </dependency>
+        <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>ditto-services-gateway-endpoints</artifactId>
             <version>${project.version}</version>

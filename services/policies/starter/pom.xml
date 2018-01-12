@@ -30,6 +30,10 @@
 
     <dependencies>
         <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-services-base</artifactId>
+        </dependency>
+        <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>ditto-services-policies-persistence</artifactId>
             <version>${project.version}</version>
@@ -215,15 +219,12 @@
                                 </filter>
                             </filters>
                             <transformers>
-                                <transformer
-                                        implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
                                     <resource>reference.conf</resource>
                                 </transformer>
-                                <transformer
-                                        implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                                     <manifestEntries>
-                                        <Main-Class>org.eclipse.ditto.services.policies.starter.PoliciesService
-                                        </Main-Class>
+                                        <Main-Class>org.eclipse.ditto.services.policies.starter.PoliciesService</Main-Class>
                                     </manifestEntries>
                                 </transformer>
                             </transformers>
