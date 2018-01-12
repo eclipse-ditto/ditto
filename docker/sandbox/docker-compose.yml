@@ -9,6 +9,8 @@ services:
           - mongodb
     command: mongod --storageEngine wiredTiger --noscripting
     user: mongodb
+    volumes:
+      - "/opt/docker-volumes/mongo-data:/data/db"
     environment:
        TZ: Europe/Berlin
 
