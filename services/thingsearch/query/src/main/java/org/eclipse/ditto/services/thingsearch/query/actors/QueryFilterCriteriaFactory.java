@@ -43,6 +43,15 @@ public final class QueryFilterCriteriaFactory {
     }
 
     /**
+     * Returns the criteria factory with which this query filter criteria factory was created.
+     *
+     * @return the criteria factory.
+     */
+    public CriteriaFactory getCriteriaFactory() {
+        return criteriaFactory;
+    }
+
+    /**
      * Creates a filter criterion based on a filter string which includes only items in the given namespaces
      *
      * @param filter the filter string

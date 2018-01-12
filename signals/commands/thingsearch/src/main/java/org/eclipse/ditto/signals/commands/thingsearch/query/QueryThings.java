@@ -262,11 +262,7 @@ public final class QueryThings extends AbstractCommand<QueryThings> implements T
         });
     }
 
-    /**
-     * Get the optional filter string.
-     *
-     * @return the optional filter string.
-     */
+    @Override
     public Optional<String> getFilter() {
         return Optional.ofNullable(filter);
     }
@@ -289,11 +285,7 @@ public final class QueryThings extends AbstractCommand<QueryThings> implements T
         return Optional.ofNullable(fields);
     }
 
-    /**
-     * Get the optional namespaces.
-     *
-     * @return the optional namespaces.
-     */
+    @Override
     public Optional<Set<String>> getNamespaces() {
         return Optional.ofNullable(namespaces);
     }

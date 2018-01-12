@@ -11,6 +11,10 @@
  */
 package org.eclipse.ditto.services.thingsearch.query.actors;
 
+import static org.eclipse.ditto.model.base.json.JsonSchemaVersion.V_1;
+
+import java.util.Arrays;
+import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
 
@@ -20,6 +24,7 @@ import org.eclipse.ditto.model.thingsearchparser.options.rql.RqlOptionParser;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SudoCountThings;
 import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Criteria;
 import org.eclipse.ditto.services.thingsearch.querymodel.criteria.CriteriaFactory;
+import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Predicate;
 import org.eclipse.ditto.services.thingsearch.querymodel.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.Query;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.QueryBuilder;
@@ -30,6 +35,7 @@ import org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidFilterEx
 import org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidOptionException;
 import org.eclipse.ditto.signals.commands.thingsearch.query.CountThings;
 import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThings;
+import org.eclipse.ditto.signals.commands.thingsearch.query.ThingSearchQueryCommand;
 
 import akka.actor.AbstractActor;
 import akka.actor.Props;
@@ -110,43 +116,48 @@ public final class QueryActor extends AbstractActor {
     }
 
     private void handleCountThings(final CountThings command) {
-        final Criteria filterCriteria;
-        final DittoHeaders dittoHeaders = command.getDittoHeaders();
-        final Set<String> namespaces = command.getNamespaces().orElse(null);
-
-        if (namespaces == null) {
-            filterCriteria = queryFilterCriteriaFactory.filterCriteriaRestrictedByAcl(
-                    command.getFilter().orElse(null), dittoHeaders,
-                    dittoHeaders.getAuthorizationContext().getAuthorizationSubjectIds());
-        } else {
-            filterCriteria = queryFilterCriteriaFactory.filterCriteriaRestrictedByAclAndNamespaces(
-                    command.getFilter().orElse(null), dittoHeaders,
-                    dittoHeaders.getAuthorizationContext().getAuthorizationSubjectIds(),
-                    namespaces);
-        }
-
-        final QueryBuilder queryBuilder = queryBuilderFactory.newUnlimitedBuilder(filterCriteria);
-
+        final Criteria criteria = parseCriteriaWithAuthorization(command);
+        final QueryBuilder queryBuilder = queryBuilderFactory.newUnlimitedBuilder(criteria);
         getSender().tell(queryBuilder.build(), getSelf());
     }
 
-    private void handleQueryThings(final QueryThings command) {
-        final Criteria filterCriteria;
+    private Criteria parseCriteriaWithAuthorization(final ThingSearchQueryCommand<?> command) {
+        final Criteria criteria;
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
         final Set<String> namespaces = command.getNamespaces().orElse(null);
+        final String filter = command.getFilter().orElse(null);
+        final List<String> subjectIds = dittoHeaders.getAuthorizationContext().getAuthorizationSubjectIds();
 
-        if (namespaces == null) {
-            filterCriteria = queryFilterCriteriaFactory.filterCriteriaRestrictedByAcl(
-                    command.getFilter().orElse(null), dittoHeaders,
-                    dittoHeaders.getAuthorizationContext().getAuthorizationSubjectIds());
+        if (V_1 == command.getImplementedSchemaVersion()) {
+            if (namespaces == null) {
+                criteria =
+                        queryFilterCriteriaFactory.filterCriteriaRestrictedByAcl(filter, dittoHeaders, subjectIds);
+            } else {
+                criteria = queryFilterCriteriaFactory.filterCriteriaRestrictedByAclAndNamespaces(
+                        filter, dittoHeaders, subjectIds, namespaces);
+            }
         } else {
-            filterCriteria = queryFilterCriteriaFactory.filterCriteriaRestrictedByAclAndNamespaces(
-                    command.getFilter().orElse(null), dittoHeaders,
-                    dittoHeaders.getAuthorizationContext().getAuthorizationSubjectIds(),
-                    namespaces);
+            final CriteriaFactory cf = queryFilterCriteriaFactory.getCriteriaFactory();
+            final Predicate subjectPredicate = cf.in(subjectIds);
+            final Criteria globalReadsCriteria =
+                    cf.fieldCriteria(fieldExpressionFactory.filterByGlobalRead(), subjectPredicate);
+            final Criteria aclCriteria =
+                    cf.fieldCriteria(fieldExpressionFactory.filterByAcl(), subjectPredicate);
+            final Criteria authorizationCriteria = cf.or(Arrays.asList(globalReadsCriteria, aclCriteria));
+            final Criteria filterCriteria = namespaces == null
+                    ? queryFilterCriteriaFactory.filterCriteria(filter, dittoHeaders)
+                    : queryFilterCriteriaFactory.filterCriteriaRestrictedByNamespaces(filter, dittoHeaders, namespaces);
+            criteria = cf.and(Arrays.asList(authorizationCriteria, filterCriteria));
         }
 
-        final QueryBuilder queryBuilder = queryBuilderFactory.newBuilder(filterCriteria);
+        return criteria;
+    }
+
+    private void handleQueryThings(final QueryThings command) {
+        final Criteria criteria = parseCriteriaWithAuthorization(command);
+        final DittoHeaders dittoHeaders = command.getDittoHeaders();
+
+        final QueryBuilder queryBuilder = queryBuilderFactory.newBuilder(criteria);
 
         command.getOptions()
                 .map(optionStrings -> String.join(",", optionStrings))
