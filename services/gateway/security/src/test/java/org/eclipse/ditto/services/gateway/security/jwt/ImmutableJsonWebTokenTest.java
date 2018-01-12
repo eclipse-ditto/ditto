@@ -18,10 +18,8 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
-import org.eclipse.ditto.model.policies.SubjectIssuer;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationFailedException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayJwtInvalidException;
 import org.junit.Test;
@@ -33,9 +31,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  * UNKNOWN tokens can be decrypted at https://jwt.io
  */
 public final class ImmutableJsonWebTokenTest {
-
-    private static final String TOKEN_WITH_ISS_MISSING =
-            "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJkaXR0byIsImp0aSI6ImY3ZGUxMDFlLTdhOTUtNGVkZS1iNDJiLTYzOTg0NmE2NTUxNiIsImlhdCI6MTUwNDc2NjM0MSwiZXhwIjoxNTA0NzY5OTQxfQ.vv6_BIMzFpg7vK1us_kGDj3mfurUIj02s3vzhOcNmX4";
 
     private static final String TOKEN_WITH_REQUIRED_FIELDS =
             "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20iLCJzdWIiOiJkaXR0byIsImp0aSI6ImUwMTI1YTZmLTNkMTctNDE0Mi04ZjA4LTk0MzFmMGJhY2FjZSIsImlhdCI6MTUwNDc2NjMwNiwiZXhwIjoxNTA0NzY5OTA2fQ.x29HhiY8YyQ5ODukfVsQAKl-q_KbAAWzQWp5G7gNSUY";
@@ -82,19 +77,11 @@ public final class ImmutableJsonWebTokenTest {
     }
 
     @Test
-    public void tryToParseTokenWithIssMissing() {
-        assertThatExceptionOfType(JsonMissingFieldException.class)
-                .isThrownBy(() ->
-                        ImmutableJsonWebToken.fromAuthorizationString("Authorization " + TOKEN_WITH_ISS_MISSING))
-                .withNoCause();
-    }
-
-    @Test
     public void parseTokenFromValidAuthorization() {
         final JsonWebToken jsonWebToken = ImmutableJsonWebToken.fromAuthorizationString("Authorization " +
                 TOKEN_WITH_REQUIRED_FIELDS);
 
-        assertThat(jsonWebToken.getIssuer()).isEqualTo(SubjectIssuer.GOOGLE_URL.toString());
+        assertThat(jsonWebToken.getIssuer()).isEqualTo("https://accounts.google.com");
     }
 
 }

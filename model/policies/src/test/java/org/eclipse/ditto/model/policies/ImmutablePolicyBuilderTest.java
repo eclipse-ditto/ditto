@@ -145,7 +145,7 @@ public final class ImmutablePolicyBuilderTest {
         final String support = "Support";
 
         final Policy policy = ImmutablePolicyBuilder.of(POLICY_ID)
-                .setSubjectFor(endUser, SubjectIssuer.GOOGLE_URL, SUBJECT_ID, SUBJECT_TYPE)
+                .setSubjectFor(endUser, SubjectIssuer.GOOGLE, SUBJECT_ID, SUBJECT_TYPE)
                 .setGrantedPermissionsFor(endUser, "thing", "/", PERMISSION_READ, PERMISSION_WRITE)
                 .setRevokedPermissionsFor(endUser, "thing", ATTRIBUTES_POINTER, PERMISSION_WRITE)
                 .setRevokedPermissionsFor(support, "thing", FEATURES_POINTER, PERMISSION_READ, PERMISSION_WRITE)
@@ -153,7 +153,7 @@ public final class ImmutablePolicyBuilderTest {
 
         final String newPolicyId = "com.policy:foobar2000";
         final String newEndUser = "NewEndUser";
-        final SubjectId newUserSubjectId = SubjectId.newInstance(SubjectIssuer.GOOGLE_URL, "newUserSubjectId");
+        final SubjectId newUserSubjectId = SubjectId.newInstance(SubjectIssuer.GOOGLE, "newUserSubjectId");
 
         final Policy newPolicy = ImmutablePolicyBuilder.of(policy).setId(newPolicyId)
                 .remove(endUser)
@@ -195,7 +195,7 @@ public final class ImmutablePolicyBuilderTest {
                 PoliciesModelFactory.newPolicyEntry(endUserLabel, endUserSubjects, endUserResources);
 
         final Policy existingPolicy = ImmutablePolicyBuilder.of(POLICY_ID)
-                .setSubjectFor(endUser, SubjectIssuer.GOOGLE_URL, SUBJECT_ID, SUBJECT_TYPE)
+                .setSubjectFor(endUser, SubjectIssuer.GOOGLE, SUBJECT_ID, SUBJECT_TYPE)
                 .setGrantedPermissionsFor(endUser, "thing", "/", PERMISSION_READ, PERMISSION_WRITE)
                 .setRevokedPermissionsFor(endUser, "thing", ATTRIBUTES_POINTER, PERMISSION_WRITE)
                 .build();

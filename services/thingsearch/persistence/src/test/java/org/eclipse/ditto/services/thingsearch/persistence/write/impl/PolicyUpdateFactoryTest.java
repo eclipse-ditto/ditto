@@ -238,7 +238,7 @@ public final class PolicyUpdateFactoryTest {
     }
 
     private static Subject createSubject(final CharSequence subjectIdWithoutIssuer) {
-        return Subject.newInstance(SubjectId.newInstance(SubjectIssuer.GOOGLE_URL, subjectIdWithoutIssuer));
+        return Subject.newInstance(SubjectId.newInstance(SubjectIssuer.GOOGLE, subjectIdWithoutIssuer));
     }
 
     private static void assertPolicyUpdate(final PolicyUpdate policyUpdate,

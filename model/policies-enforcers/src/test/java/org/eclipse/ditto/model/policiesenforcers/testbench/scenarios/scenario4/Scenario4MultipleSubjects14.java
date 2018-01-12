@@ -39,9 +39,9 @@ public class Scenario4MultipleSubjects14 implements Scenario4MultipleSubjects {
                 Scenario.newAuthorizationContext(SUBJECT_5), //
                 "/features/public", //
                 Stream.of(
-                        SubjectId.newInstance(SubjectIssuer.GOOGLE_URL, SUBJECT_1).toString(),
-                        SubjectId.newInstance(SubjectIssuer.GOOGLE_URL, SUBJECT_2).toString(),
-                        SubjectId.newInstance(SubjectIssuer.GOOGLE_URL, SUBJECT_3).toString())
+                        SubjectId.newInstance(SubjectIssuer.GOOGLE, SUBJECT_1).toString(),
+                        SubjectId.newInstance(SubjectIssuer.GOOGLE, SUBJECT_2).toString(),
+                        SubjectId.newInstance(SubjectIssuer.GOOGLE, SUBJECT_3).toString())
                         .collect(Collectors.toSet()),
                 "READ");
     }

@@ -54,6 +54,7 @@ import org.eclipse.ditto.services.gateway.endpoints.directives.SecurityResponseH
 import org.eclipse.ditto.services.gateway.endpoints.directives.auth.AuthenticationProvider;
 import org.eclipse.ditto.services.gateway.endpoints.directives.auth.GatewayAuthenticationDirective;
 import org.eclipse.ditto.services.gateway.endpoints.directives.auth.dummy.DummyAuthenticationProvider;
+import org.eclipse.ditto.services.gateway.endpoints.directives.auth.jwt.DittoAuthorizationSubjectsProvider;
 import org.eclipse.ditto.services.gateway.endpoints.directives.auth.jwt.DittoPublicKeyProvider;
 import org.eclipse.ditto.services.gateway.endpoints.directives.auth.jwt.JwtAuthenticationDirective;
 import org.eclipse.ditto.services.gateway.endpoints.directives.auth.jwt.JwtSubjectIssuerConfig;
@@ -99,13 +100,15 @@ import akka.util.ByteString;
  */
 public final class RootRoute {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(RootRoute.class);
-
     static final String HTTP_PATH_API_PREFIX = "api";
-
     static final String WS_PATH_PREFIX = "ws";
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(RootRoute.class);
+
     private static final String BLOCKING_DISPATCHER_NAME = "blocking-dispatcher";
+
+    private static final String JWT_ISSUER_GOOGLE_DOMAIN = "accounts.google.com";
+    private static final String JWT_ISSUER_GOOGLE_URL = "https://accounts.google.com";
     private static final String JWK_RESOURCE_GOOGLE = "https://www.googleapis.com/oauth2/v2/certs";
 
     /**
@@ -197,7 +200,10 @@ public final class RootRoute {
         final PublicKeyProvider publicKeyProvider = DittoPublicKeyProvider.of(jwtSubjectIssuersConfig, httpClient,
                 config.getInt(ConfigKeys.CACHE_PUBLIC_KEYS_MAX),
                 config.getDuration(ConfigKeys.CACHE_PUBLIC_KEYS_EXPIRY));
-        authenticationChain.add(new JwtAuthenticationDirective(blockingDispatcher, publicKeyProvider));
+        final DittoAuthorizationSubjectsProvider authorizationSubjectsProvider =
+                DittoAuthorizationSubjectsProvider.of(jwtSubjectIssuersConfig);
+        authenticationChain.add(
+                new JwtAuthenticationDirective(blockingDispatcher, publicKeyProvider, authorizationSubjectsProvider));
 
         return new GatewayAuthenticationDirective(authenticationChain);
     }
@@ -205,9 +211,9 @@ public final class RootRoute {
     private JwtSubjectIssuersConfig buildJwtSubjectIssuersConfig() {
         final Set<JwtSubjectIssuerConfig> configItems = new HashSet<>();
 
-        configItems.add(new JwtSubjectIssuerConfig(SubjectIssuer.GOOGLE,
+        configItems.add(new JwtSubjectIssuerConfig(SubjectIssuer.GOOGLE, JWT_ISSUER_GOOGLE_DOMAIN,
                 JWK_RESOURCE_GOOGLE));
-        configItems.add(new JwtSubjectIssuerConfig(SubjectIssuer.GOOGLE_URL,
+        configItems.add(new JwtSubjectIssuerConfig(SubjectIssuer.GOOGLE, JWT_ISSUER_GOOGLE_URL,
                 JWK_RESOURCE_GOOGLE));
 
         return new JwtSubjectIssuersConfig(configItems);

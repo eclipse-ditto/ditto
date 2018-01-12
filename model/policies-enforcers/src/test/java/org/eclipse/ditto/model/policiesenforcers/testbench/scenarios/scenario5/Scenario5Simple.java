@@ -30,10 +30,10 @@ public interface Scenario5Simple extends Scenario {
     Policy POLICY = PoliciesModelFactory //
             .newPolicyBuilder("benchmark:" + Scenario5Simple1.class.getSimpleName()) //
             .forLabel("all") //
-            .setSubject(SubjectIssuer.GOOGLE_URL, SUBJECT) //
+            .setSubject(SubjectIssuer.GOOGLE, SUBJECT) //
             .setGrantedPermissions(PoliciesResourceType.thingResource("/"), "READ") //
             .forLabel("revokeWriteOnPolicy") //
-            .setSubject(SubjectIssuer.GOOGLE_URL, SUBJECT) //
+            .setSubject(SubjectIssuer.GOOGLE, SUBJECT) //
             .setRevokedPermissions(PoliciesResourceType.thingResource("/policy"), "WRITE") //
             .build();
 

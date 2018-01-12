@@ -66,7 +66,7 @@ public class JsonExamplesProducer {
     private static final String POLICY_ID = NAMESPACE + ":the_policy_id";
     private static final Label LABEL = PoliciesModelFactory.newLabel("the_label");
     private static final SubjectId SUBJECT_ID =
-            PoliciesModelFactory.newSubjectId(SubjectIssuer.GOOGLE_URL, "the_subjectid");
+            PoliciesModelFactory.newSubjectId(SubjectIssuer.GOOGLE, "the_subjectid");
     private static final Subject SUBJECT =
             PoliciesModelFactory.newSubject(SUBJECT_ID, SubjectType.newInstance("yourSubjectTypeDescription"));
     private static final Subjects SUBJECTS = PoliciesModelFactory.newSubjects(SUBJECT);

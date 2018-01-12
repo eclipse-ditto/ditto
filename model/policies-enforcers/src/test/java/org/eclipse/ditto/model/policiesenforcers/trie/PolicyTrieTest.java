@@ -56,7 +56,7 @@ public final class PolicyTrieTest {
     public static void initTestConstants() {
         subjectId = TestConstants.Policy.SUBJECT_ID.toString();
 
-        final SubjectId johnTitor = PoliciesModelFactory.newSubjectId(SubjectIssuer.GOOGLE_URL, "JohnTitor");
+        final SubjectId johnTitor = PoliciesModelFactory.newSubjectId(SubjectIssuer.GOOGLE, "JohnTitor");
         anotherSubjectId = johnTitor.toString();
 
         final JsonPointer fooResourcePath = TestConstants.Policy.RESOURCE_PATH;

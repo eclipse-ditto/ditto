@@ -38,16 +38,16 @@ public interface Scenario4MultipleSubjects extends Scenario {
     Policy POLICY = PoliciesModelFactory //
             .newPolicyBuilder("benchmark:" + Scenario4MultipleSubjects.class.getSimpleName()) //
             .forLabel("one") //
-            .setSubject(SubjectIssuer.GOOGLE_URL, SUBJECT_1) //
-            .setSubject(SubjectIssuer.GOOGLE_URL, SUBJECT_2) //
+            .setSubject(SubjectIssuer.GOOGLE, SUBJECT_1) //
+            .setSubject(SubjectIssuer.GOOGLE, SUBJECT_2) //
             .setGrantedPermissions(PoliciesResourceType.thingResource("/"), "READ", "WRITE") //
             .setRevokedPermissions(PoliciesResourceType.thingResource("/attributes"), "READ",
                     "WRITE") //
             .forLabel("two") //
-            .setSubject(SubjectIssuer.GOOGLE_URL, SUBJECT_3) //
+            .setSubject(SubjectIssuer.GOOGLE, SUBJECT_3) //
             .setRevokedPermissions(PoliciesResourceType.thingResource("/"), "WRITE") //
             .forLabel("three") //
-            .setSubject(SubjectIssuer.GOOGLE_URL, SUBJECT_3) //
+            .setSubject(SubjectIssuer.GOOGLE, SUBJECT_3) //
             .setGrantedPermissions(PoliciesResourceType.thingResource("/attributes"), "READ",
                     "WRITE") //
             .setGrantedPermissions(PoliciesResourceType.thingResource("/features"), "READ",
@@ -57,8 +57,8 @@ public interface Scenario4MultipleSubjects extends Scenario {
             .setRevokedPermissions(PoliciesResourceType.thingResource("/features/foo3"), "READ",
                     "WRITE") //
             .forLabel("four") //
-            .setSubject(SubjectIssuer.GOOGLE_URL, SUBJECT_3) //
-            .setSubject(SubjectIssuer.GOOGLE_URL, SUBJECT_4) //
+            .setSubject(SubjectIssuer.GOOGLE, SUBJECT_3) //
+            .setSubject(SubjectIssuer.GOOGLE, SUBJECT_4) //
             .setRevokedPermissions(PoliciesResourceType.thingResource("/attributes/nogo1"), "READ",
                     "WRITE") //
             .setRevokedPermissions(PoliciesResourceType.thingResource("/attributes/nogo2"), "READ") //
@@ -67,28 +67,28 @@ public interface Scenario4MultipleSubjects extends Scenario {
                     "WRITE") //
             .setGrantedPermissions(PoliciesResourceType.thingResource("/attributes/nogo2/go2"), "READ") //
             .forLabel("five") //
-            .setSubject(SubjectIssuer.GOOGLE_URL, SUBJECT_5) //
+            .setSubject(SubjectIssuer.GOOGLE, SUBJECT_5) //
             .setGrantedPermissions(PoliciesResourceType.thingResource("/features/public/properties/location"),
                     "READ") //
             .setGrantedPermissions(PoliciesResourceType.thingResource("/features/lamp/properties/config/on"),
                     "WRITE") //
             .forLabel("six_read") //
-            .setSubject(SubjectIssuer.GOOGLE_URL, SUBJECT_5) //
-            .setSubject(SubjectIssuer.GOOGLE_URL, SUBJECT_6) //
+            .setSubject(SubjectIssuer.GOOGLE, SUBJECT_5) //
+            .setSubject(SubjectIssuer.GOOGLE, SUBJECT_6) //
             .setGrantedPermissions(PoliciesResourceType.thingResource("/attributes/read_write"), "READ") //
             .forLabel("six_write") //
-            .setSubject(SubjectIssuer.GOOGLE_URL, SUBJECT_6) //
-            .setSubject(SubjectIssuer.GOOGLE_URL, SUBJECT_3) //
+            .setSubject(SubjectIssuer.GOOGLE, SUBJECT_6) //
+            .setSubject(SubjectIssuer.GOOGLE, SUBJECT_3) //
             .setGrantedPermissions(PoliciesResourceType.thingResource("/attributes/read_write"), "WRITE") //
             .forLabel("seven_write") //
-            .setSubject(SubjectIssuer.GOOGLE_URL, SUBJECT_7) //
+            .setSubject(SubjectIssuer.GOOGLE, SUBJECT_7) //
             .setGrantedPermissions(PoliciesResourceType.thingResource("/attributes"), "WRITE") //
             .forLabel("eight") //
-            .setSubject(SubjectIssuer.GOOGLE_URL, SUBJECT_8) //
+            .setSubject(SubjectIssuer.GOOGLE, SUBJECT_8) //
             .setGrantedPermissions(PoliciesResourceType.thingResource("/attributes"), "READ",
                     "WRITE") //
             .forLabel("nine_write_only")
-            .setSubject(SubjectIssuer.GOOGLE_URL, SUBJECT_9)
+            .setSubject(SubjectIssuer.GOOGLE, SUBJECT_9)
             .setGrantedPermissions(PoliciesResourceType.thingResource("/attribute/nogo2/go2"), "WRITE")
             .setRevokedPermissions(PoliciesResourceType.thingResource("/attribute/nogo2"), "READ")
             .build();
