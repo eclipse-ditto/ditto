@@ -88,7 +88,7 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
     }
 
     @Override
-    public Optional<PublicKey> getPublicKey(final SubjectIssuer issuer, final String keyId) {
+    public Optional<PublicKey> getPublicKey(final String issuer, final String keyId) {
         argumentNotNull(issuer);
         argumentNotNull(keyId);
 
@@ -98,7 +98,7 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
 
         return Optional.ofNullable(publicKeyCache.get(keyId).orElseGet(() -> {
             try {
-                JsonArray publicKeys = getPublicKeysFromJwkResource(subjectIssuerConfig.getJwkResource());
+                final JsonArray publicKeys = getPublicKeysFromJwkResource(subjectIssuerConfig.getJwkResource());
                 return refreshCache(publicKeys, keyId).orElse(null);
             } catch (final RuntimeException e) {
                 LOGGER.warn("An error occurred while retrieving a JWK: ", e);

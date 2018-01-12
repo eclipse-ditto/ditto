@@ -26,8 +26,6 @@ import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.policies.PoliciesModelFactory;
-import org.eclipse.ditto.model.policies.SubjectIssuer;
 import org.eclipse.ditto.services.gateway.endpoints.directives.auth.AuthenticationProvider;
 import org.eclipse.ditto.services.gateway.endpoints.utils.DirectivesLoggingUtils;
 import org.eclipse.ditto.services.gateway.security.HttpHeader;
@@ -48,7 +46,7 @@ import kamon.Kamon;
 import kamon.trace.TraceContext;
 
 /**
- * Implementation of {@link AuthenticationProvider} handling UNKNOWN authentication.
+ * Implementation of {@link AuthenticationProvider} handling JWT authentication.
  */
 public final class JwtAuthenticationDirective implements AuthenticationProvider {
 
@@ -59,20 +57,24 @@ public final class JwtAuthenticationDirective implements AuthenticationProvider 
     private static final String TRACE_FILTER_AUTH_JWT_FAIL = "filter.auth.jwt.fail";
     private static final String TRACE_FILTER_AUTH_JWT_SUCCESS = "filter.auth.jwt.success";
 
-    private final PublicKeyProvider publicKeyProvider;
     private final MessageDispatcher blockingDispatcher;
+    private final PublicKeyProvider publicKeyProvider;
+    private final AuthorizationSubjectsProvider authorizationSubjectsProvider;
 
     /**
      * Constructs a new {@link JwtAuthenticationDirective}.
      *
      * @param blockingDispatcher a {@link MessageDispatcher} used for blocking calls.
-     * @param publicKeyProvider the provider for UNKNOWN public keys.
-     *
+     * @param publicKeyProvider the provider for public keys.
+     * @param authorizationSubjectsProvider a provider for authorization subjects of a jwt.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public JwtAuthenticationDirective(final MessageDispatcher blockingDispatcher, final PublicKeyProvider publicKeyProvider) {
-        this.blockingDispatcher = checkNotNull(blockingDispatcher, "blockingDispatcher");
-        this.publicKeyProvider = checkNotNull(publicKeyProvider, "publicKeyProvider");
+    public JwtAuthenticationDirective(final MessageDispatcher blockingDispatcher,
+            final PublicKeyProvider publicKeyProvider,
+            final AuthorizationSubjectsProvider authorizationSubjectsProvider) {
+        this.blockingDispatcher = checkNotNull(blockingDispatcher);
+        this.publicKeyProvider = checkNotNull(publicKeyProvider);
+        this.authorizationSubjectsProvider = checkNotNull(authorizationSubjectsProvider);
     }
 
     @Override
@@ -90,36 +92,33 @@ public final class JwtAuthenticationDirective implements AuthenticationProvider 
     public Route authenticate(final String correlationId, final Function<AuthorizationContext, Route> inner) {
         return extractRequestContext(
                 requestContext -> DirectivesLoggingUtils.enhanceLogWithCorrelationId(correlationId, () -> {
-            final Optional<String> authorization =
-                    getRequestHeader(requestContext, HttpHeader.AUTHORIZATION.toString().toLowerCase());
+                    final Optional<String> authorization =
+                            getRequestHeader(requestContext, HttpHeader.AUTHORIZATION.toString().toLowerCase());
 
-            final JsonWebToken jwt = authorization.map(ImmutableJsonWebToken::fromAuthorizationString)
-                    .orElseThrow(() -> buildMissingJwtException(correlationId));
+                    final JsonWebToken jwt = authorization.map(ImmutableJsonWebToken::fromAuthorizationString)
+                            .orElseThrow(() -> buildMissingJwtException(correlationId));
 
-            final TraceContext traceContext = Kamon.tracer().newContext(TRACE_FILTER_AUTH_JWT_FAIL);
+                    final TraceContext traceContext = Kamon.tracer().newContext(TRACE_FILTER_AUTH_JWT_FAIL);
 
-            final SubjectIssuer subjectIssuer = PoliciesModelFactory.newSubjectIssuer(jwt.getIssuer());
+                    return onSuccess(() -> CompletableFuture
+                            .supplyAsync(() -> DirectivesLoggingUtils.enhanceLogWithCorrelationId(correlationId,
+                                    () -> publicKeyProvider.getPublicKey(jwt.getIssuer(), jwt.getKeyId())
+                                            .orElseThrow(() -> buildJwtUnauthorizedException(correlationId))),
+                                    blockingDispatcher)
+                            .thenApply(publicKey -> DirectivesLoggingUtils.enhanceLogWithCorrelationId(correlationId,
+                                    () -> {
+                                        validateToken(jwt, publicKey, correlationId);
+                                        traceContext.rename(TRACE_FILTER_AUTH_JWT_SUCCESS);
 
-            return onSuccess(() -> CompletableFuture
-                    .supplyAsync(() -> DirectivesLoggingUtils.enhanceLogWithCorrelationId(correlationId,
-                            () -> publicKeyProvider.getPublicKey(subjectIssuer, jwt.getKeyId())
-                                    .orElseThrow(() -> buildJwtUnauthorizedException(correlationId))),
-                            blockingDispatcher)
-                    .thenApply(publicKey -> DirectivesLoggingUtils.enhanceLogWithCorrelationId(correlationId, () -> {
-                        validateToken(jwt, publicKey, correlationId);
-                        traceContext.rename(TRACE_FILTER_AUTH_JWT_SUCCESS);
+                                        final AuthorizationContext authContext =
+                                                AuthorizationModelFactory.newAuthContext(
+                                                        authorizationSubjectsProvider.getAuthorizationSubjects(jwt));
 
-                        final AuthorizationSubjectsProvider authSubjectsProvider =
-                                AuthorizationSubjectsProvider.of(subjectIssuer, jwt);
-                        final AuthorizationContext authContext =
-                                AuthorizationModelFactory.newAuthContext(
-                                        authSubjectsProvider.getAuthorizationSubjects());
+                                        traceContext.finish();
 
-                        traceContext.finish();
-
-                        return authContext;
-                    })), inner);
-        }));
+                                        return authContext;
+                                    })), inner);
+                }));
     }
 
     private static DittoRuntimeException buildMissingJwtException(final String correlationId) {
@@ -136,7 +135,8 @@ public final class JwtAuthenticationDirective implements AuthenticationProvider 
         try {
             defaultJwtParser.setSigningKey(publicKey).parse(authorizationToken.getToken());
         } catch (final ExpiredJwtException | MalformedJwtException | SignatureException | IllegalArgumentException e) {
-            LOGGER.info("Got Exception '{}' during parsing UNKNOWN: {}", e.getClass().getSimpleName(), e.getMessage(), e);
+            LOGGER.info("Got Exception '{}' during parsing UNKNOWN: {}", e.getClass().getSimpleName(), e.getMessage(),
+                    e);
             throw buildJwtUnauthorizedException(correlationId);
         }
     }

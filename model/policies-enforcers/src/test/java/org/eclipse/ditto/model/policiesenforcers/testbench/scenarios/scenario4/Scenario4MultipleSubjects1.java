@@ -70,7 +70,7 @@ public class Scenario4MultipleSubjects1 implements Scenario4MultipleSubjects {
     }
 
     private static String createSubjectString(final CharSequence subjectId) {
-        return SubjectId.newInstance(SubjectIssuer.GOOGLE_URL, subjectId).toString();
+        return SubjectId.newInstance(SubjectIssuer.GOOGLE, subjectId).toString();
     }
 
     @Override

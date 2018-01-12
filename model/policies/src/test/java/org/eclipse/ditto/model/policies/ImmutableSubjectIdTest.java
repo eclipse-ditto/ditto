@@ -51,10 +51,10 @@ public final class ImmutableSubjectIdTest {
     public void createNewSubjectIdSuccess() {
         final String KNOWN_SUBJECT = "subject1";
 
-        final SubjectId underTest = SubjectId.newInstance(SubjectIssuer.GOOGLE_URL, KNOWN_SUBJECT);
+        final SubjectId underTest = SubjectId.newInstance(SubjectIssuer.GOOGLE, KNOWN_SUBJECT);
 
         assertThat(underTest).isNotNull();
-        assertThat(underTest.getIssuer()).isEqualTo(SubjectIssuer.GOOGLE_URL);
+        assertThat(underTest.getIssuer()).isEqualTo(SubjectIssuer.GOOGLE);
         assertThat(underTest.getSubject()).isEqualTo(KNOWN_SUBJECT);
     }
 

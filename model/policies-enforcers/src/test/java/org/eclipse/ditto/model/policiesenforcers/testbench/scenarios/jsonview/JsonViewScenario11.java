@@ -53,9 +53,9 @@ public class JsonViewScenario11 implements JsonViewScenario {
                         .map(JsonValue::asObject)
                         .orElseThrow(NullPointerException::new),
                 Stream.of(
-                        SubjectId.newInstance(SubjectIssuer.GOOGLE_URL, SUBJECT_ALL_GRANTED).toString(),
-                        SubjectId.newInstance(SubjectIssuer.GOOGLE_URL, SUBJECT_FEATURES_READ_GRANTED).toString(),
-                        SubjectId.newInstance(SubjectIssuer.GOOGLE_URL, SUBJECT_ALL_GRANTED_ATTRIBUTES_REVOKED)
+                        SubjectId.newInstance(SubjectIssuer.GOOGLE, SUBJECT_ALL_GRANTED).toString(),
+                        SubjectId.newInstance(SubjectIssuer.GOOGLE, SUBJECT_FEATURES_READ_GRANTED).toString(),
+                        SubjectId.newInstance(SubjectIssuer.GOOGLE, SUBJECT_ALL_GRANTED_ATTRIBUTES_REVOKED)
                                 .toString())
                         .collect(Collectors.toSet()),
                 "READ");

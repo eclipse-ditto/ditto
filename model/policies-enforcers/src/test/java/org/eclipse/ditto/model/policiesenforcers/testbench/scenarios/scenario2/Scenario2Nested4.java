@@ -34,7 +34,7 @@ public class Scenario2Nested4 implements Scenario2Nested {
                 getPolicy(), //
                 Scenario.newAuthorizationContext(SUBJECT_ATTRIBUTES_ALL_GRANTED), //
                 "/attributes/foo", //
-                Stream.of(SubjectId.newInstance(SubjectIssuer.GOOGLE_URL, SUBJECT_ATTRIBUTES_ALL_GRANTED)
+                Stream.of(SubjectId.newInstance(SubjectIssuer.GOOGLE, SUBJECT_ATTRIBUTES_ALL_GRANTED)
                         .toString()).collect(Collectors.toSet()),
                 "READ", "WRITE");
     }

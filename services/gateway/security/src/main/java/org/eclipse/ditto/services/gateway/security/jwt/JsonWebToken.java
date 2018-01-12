@@ -18,7 +18,6 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.json.FieldType;
 
 /**
@@ -36,14 +35,14 @@ public interface JsonWebToken {
     String getToken();
 
     /**
-     * Returns the header JSON object from the UNKNOWN.
+     * Returns the header JSON object of the token.
      *
      * @return the header JSON.
      */
     JsonObject getHeader();
 
     /**
-     * Returns the body JSON object from the UNKNOWN.
+     * Returns the body JSON object of the token.
      *
      * @return the body JSON.
      */
@@ -71,11 +70,11 @@ public interface JsonWebToken {
     String getSignature();
 
     /**
-     * Returns the authorization subjects contained in the {@code JsonWebToken} prefixed with {@code SubjectType}.
+     * Returns the subjects which can be used for authorization, e.g. the "sub" claim.
      *
-     * @return the authorization subjects.
+     * @return the subjects.
      */
-    List<AuthorizationSubject> getAuthorizationSubjects();
+    List<String> getSubjects();
 
     /**
      * An enumeration of the known {@link org.eclipse.ditto.json.JsonField}s of a JSON Web Token.
@@ -100,6 +99,10 @@ public interface JsonWebToken {
          */
         public static final JsonFieldDefinition<String> USER_ID =
                 JsonFactory.newStringFieldDefinition("sub", FieldType.REGULAR);
+
+        private JsonFields() {
+            throw new AssertionError();
+        }
 
     }
 

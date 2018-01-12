@@ -27,7 +27,7 @@ import org.openjdk.jmh.annotations.State;
 public class Scenario2Nested5 implements Scenario2Nested {
 
     private static final String EXPECTED_GRANTED_SUBJECT =
-            SubjectId.newInstance(SubjectIssuer.GOOGLE_URL, SUBJECT_ATTRIBUTES_ALL_GRANTED).toString();
+            SubjectId.newInstance(SubjectIssuer.GOOGLE, SUBJECT_ATTRIBUTES_ALL_GRANTED).toString();
 
     private final ScenarioSetup setup;
 

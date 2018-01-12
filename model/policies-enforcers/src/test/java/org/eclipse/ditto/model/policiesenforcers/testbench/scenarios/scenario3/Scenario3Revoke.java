@@ -33,25 +33,25 @@ public interface Scenario3Revoke extends Scenario {
     Policy POLICY = PoliciesModelFactory //
             .newPolicyBuilder("benchmark:" + Scenario3Revoke.class.getSimpleName()) //
             .forLabel("all") //
-            .setSubject(SubjectIssuer.GOOGLE_URL, SUBJECT_ALL_GRANTED_ATTRIBUTES_REVOKED) //
+            .setSubject(SubjectIssuer.GOOGLE, SUBJECT_ALL_GRANTED_ATTRIBUTES_REVOKED) //
             .setGrantedPermissions(PoliciesResourceType.thingResource("/"), "READ", "WRITE") //
             .forLabel("attributes-revoked") //
-            .setSubject(SubjectIssuer.GOOGLE_URL, SUBJECT_ALL_GRANTED_ATTRIBUTES_REVOKED) //
+            .setSubject(SubjectIssuer.GOOGLE, SUBJECT_ALL_GRANTED_ATTRIBUTES_REVOKED) //
             .setRevokedPermissions(PoliciesResourceType.thingResource("/attributes"), "READ",
                     "WRITE") //
             .forLabel("attributes-location-read-allowed") //
-            .setSubject(SubjectIssuer.GOOGLE_URL, SUBJECT_ALL_GRANTED_ATTRIBUTES_REVOKED) //
+            .setSubject(SubjectIssuer.GOOGLE, SUBJECT_ALL_GRANTED_ATTRIBUTES_REVOKED) //
             .setGrantedPermissions(PoliciesResourceType.thingResource("/attributes/location"), "READ") //
             .forLabel("features") //
-            .setSubject(SubjectIssuer.GOOGLE_URL, SUBJECT_FEATURES_READ_GRANTED_FIRMWARE_READ_REVOKED) //
+            .setSubject(SubjectIssuer.GOOGLE, SUBJECT_FEATURES_READ_GRANTED_FIRMWARE_READ_REVOKED) //
             .setGrantedPermissions(PoliciesResourceType.thingResource("/features"), "READ") //
             .setRevokedPermissions(PoliciesResourceType.thingResource("/features/firmware"), "READ") //
             .forLabel("features-foo") //
-            .setSubject(SubjectIssuer.GOOGLE_URL, SUBJECT_FEATURE_FOO_ALL_GRANTED_SPECIAL_PROPERTY_REVOKED) //
+            .setSubject(SubjectIssuer.GOOGLE, SUBJECT_FEATURE_FOO_ALL_GRANTED_SPECIAL_PROPERTY_REVOKED) //
             .setGrantedPermissions(PoliciesResourceType.thingResource("/features/foo"), "READ",
                     "WRITE") //
             .forLabel("features-foo-special-property-revoked") //
-            .setSubject(SubjectIssuer.GOOGLE_URL, SUBJECT_FEATURE_FOO_ALL_GRANTED_SPECIAL_PROPERTY_REVOKED) //
+            .setSubject(SubjectIssuer.GOOGLE, SUBJECT_FEATURE_FOO_ALL_GRANTED_SPECIAL_PROPERTY_REVOKED) //
             .setRevokedPermissions(PoliciesResourceType.thingResource("/features/foo/properties/special"),
                     "READ", "WRITE") //
             .build();

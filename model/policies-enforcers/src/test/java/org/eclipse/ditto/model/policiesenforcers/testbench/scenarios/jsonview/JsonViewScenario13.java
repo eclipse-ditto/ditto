@@ -52,8 +52,8 @@ public final class JsonViewScenario13 implements JsonViewScenario {
     private static final String POLICY_ID = "org.eclipse.ditto:" + JsonViewScenario13.class.getSimpleName();
     private static final String LABEL_OWNER = "owner";
     private static final String LABEL_CLIENT = "client";
-    private static final SubjectId SUBJECT_ID_OWNER = SubjectId.newInstance(SubjectIssuer.GOOGLE_URL, LABEL_OWNER);
-    private static final SubjectId SUBJECT_ID_CLIENT = SubjectId.newInstance(SubjectIssuer.GOOGLE_URL, LABEL_CLIENT);
+    private static final SubjectId SUBJECT_ID_OWNER = SubjectId.newInstance(SubjectIssuer.GOOGLE, LABEL_OWNER);
+    private static final SubjectId SUBJECT_ID_CLIENT = SubjectId.newInstance(SubjectIssuer.GOOGLE, LABEL_CLIENT);
     private static final String TEST_THING_ID = "org.eclipse.ditto:thing1";
     private static final Feature GYROSCOPE_FEATURE = ThingsModelFactory.newFeatureBuilder()
             .properties(ThingsModelFactory.newFeaturePropertiesBuilder()

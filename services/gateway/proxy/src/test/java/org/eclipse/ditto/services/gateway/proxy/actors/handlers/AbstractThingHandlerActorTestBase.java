@@ -40,7 +40,7 @@ import akka.testkit.javadsl.TestKit;
 public abstract class AbstractThingHandlerActorTestBase {
 
     protected static final Subject DEFAULT_SUBJECT =
-            Subject.newInstance(SubjectIssuer.GOOGLE_URL, "testSubject");
+            Subject.newInstance(SubjectIssuer.GOOGLE, "testSubject");
 
     protected static final DittoHeaders DEFAULT_HEADERS = DittoHeaders.newBuilder()
             .authorizationSubjects(DEFAULT_SUBJECT.getId())

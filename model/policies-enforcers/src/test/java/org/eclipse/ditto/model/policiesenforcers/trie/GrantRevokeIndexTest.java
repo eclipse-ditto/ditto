@@ -49,7 +49,7 @@ public final class GrantRevokeIndexTest {
     public static void initTestConstants() {
         subjectId = TestConstants.Policy.SUBJECT_ID.toString();
 
-        final SubjectId johnTitor = PoliciesModelFactory.newSubjectId(SubjectIssuer.GOOGLE_URL, "JohnTitor");
+        final SubjectId johnTitor = PoliciesModelFactory.newSubjectId(SubjectIssuer.GOOGLE, "JohnTitor");
         anotherSubjectId = johnTitor.toString();
 
         permissions = new HashSet<>(2);

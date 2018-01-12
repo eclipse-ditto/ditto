@@ -19,35 +19,20 @@ import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
-import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
-import org.eclipse.ditto.model.policies.PoliciesModelFactory;
-import org.eclipse.ditto.model.policies.SubjectId;
-import org.eclipse.ditto.model.policies.SubjectIssuer;
-
 /**
  * Immutable implementation of {@link JsonWebToken} for standard JSON Web Tokens.
  */
 @Immutable
 public final class ImmutableJsonWebToken extends AbstractJsonWebToken {
 
-    private final List<AuthorizationSubject> authorizationSubjects;
+    private final List<String> authorizationSubjects;
 
     private ImmutableJsonWebToken(final String authorizationString) {
         super(authorizationString);
 
-        final JsonObject body = getBody();
-
-        final String issuerString = body.getValueOrThrow(JsonFields.ISSUER);
-        final SubjectIssuer issuer = PoliciesModelFactory.newSubjectIssuer(issuerString);
-
-        authorizationSubjects = body.getValue(JsonFields.USER_ID)
-                .map(userId -> SubjectId.newInstance(issuer, userId))
-                .map(AuthorizationModelFactory::newAuthSubject)
+        authorizationSubjects = getBody().getValue(JsonFields.USER_ID)
                 .map(Collections::singletonList)
-                .map(Collections::unmodifiableList)
-                .orElseGet(Collections::emptyList);
+                .orElse(Collections.emptyList());
     }
 
     /**
@@ -62,7 +47,7 @@ public final class ImmutableJsonWebToken extends AbstractJsonWebToken {
     }
 
     @Override
-    public List<AuthorizationSubject> getAuthorizationSubjects() {
+    public List<String> getSubjects() {
         return authorizationSubjects;
     }
 

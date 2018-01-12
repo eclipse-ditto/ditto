@@ -48,10 +48,10 @@ public final class ImmutableSubjectTest {
     @Test
     public void testToAndFromJson() {
         final Subject subject =
-                ImmutableSubject.of(SubjectId.newInstance(SubjectIssuer.GOOGLE_URL, "myself"));
+                ImmutableSubject.of(SubjectId.newInstance(SubjectIssuer.GOOGLE, "myself"));
 
         final JsonObject subjectJson = subject.toJson();
-        final Subject subject1 = ImmutableSubject.fromJson(SubjectIssuer.GOOGLE_URL + ":myself", subjectJson);
+        final Subject subject1 = ImmutableSubject.fromJson(SubjectIssuer.GOOGLE + ":myself", subjectJson);
 
         assertThat(subject).isEqualTo(subject1);
     }
@@ -64,7 +64,7 @@ public final class ImmutableSubjectTest {
 
     @Test(expected = NullPointerException.class)
     public void createSubjectWithNullSubject() {
-        Subject.newInstance(SubjectIssuer.GOOGLE_URL, null, SUBJECT_TYPE);
+        Subject.newInstance(SubjectIssuer.GOOGLE, null, SUBJECT_TYPE);
     }
 
     @Test(expected = NullPointerException.class)

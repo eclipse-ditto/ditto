@@ -66,7 +66,7 @@ public final class TestConstants {
         /**
          * A known {@code SubjectIssuer} for a {@code PolicyEntry}.
          */
-        public static final SubjectIssuer SUBJECT_ISSUER = SubjectIssuer.GOOGLE_URL;
+        public static final SubjectIssuer SUBJECT_ISSUER = SubjectIssuer.GOOGLE;
 
         /**
          * A known {@code SubjectId} for a {@code PolicyEntry}.

@@ -55,7 +55,7 @@ public final class TestConstants {
         /**
          * A known Subject Id.
          */
-        public static final SubjectId SUBJECT_ID = SubjectId.newInstance(SubjectIssuer.GOOGLE_URL, SUBJECT_ID_SUBJECT);
+        public static final SubjectId SUBJECT_ID = SubjectId.newInstance(SubjectIssuer.GOOGLE, SUBJECT_ID_SUBJECT);
 
         /**
          * A known resource type.

@@ -280,7 +280,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
             {
                 final Policy policy = createPolicyWithRandomId();
                 final Subject newSubject =
-                        Subject.newInstance(SubjectIssuer.GOOGLE_URL, "anotherOne");
+                        Subject.newInstance(SubjectIssuer.GOOGLE, "anotherOne");
                 final PolicyEntry policyEntryToModify = PoliciesModelFactory.newPolicyEntry(POLICY_LABEL,
                         Subjects.newInstance(POLICY_SUBJECT, newSubject), POLICY_RESOURCES_ALL);
 
@@ -318,7 +318,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
             {
                 final Policy policy = createPolicyWithRandomId();
                 final Subject newSubject =
-                        Subject.newInstance(SubjectIssuer.GOOGLE_URL, "anotherOne");
+                        Subject.newInstance(SubjectIssuer.GOOGLE, "anotherOne");
 
                 final DittoHeaders headersMockWithOtherAuth =
                         createDittoHeadersMock(JsonSchemaVersion.LATEST, AUTH_SUBJECT, UNAUTH_SUBJECT);
@@ -562,7 +562,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
             {
                 final Policy policy = createPolicyWithRandomId();
                 final Subject subjectToAdd =
-                        Subject.newInstance(SubjectIssuer.GOOGLE_URL, "anotherSubjectId");
+                        Subject.newInstance(SubjectIssuer.GOOGLE, "anotherSubjectId");
 
                 final DittoHeaders headersMockWithOtherAuth =
                         createDittoHeadersMock(JsonSchemaVersion.LATEST, AUTH_SUBJECT, UNAUTH_SUBJECT);
@@ -741,7 +741,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                         .isEqualEqualToButModified(policy);
 
                 final Subject newSubject =
-                        Subject.newInstance(SubjectIssuer.GOOGLE_URL, "anotherOne");
+                        Subject.newInstance(SubjectIssuer.GOOGLE, "anotherOne");
                 final Resource newResource =
                         Resource.newInstance(PoliciesResourceType.policyResource("/attributes"), EffectedPermissions
                                 .newInstance(PoliciesModelFactory.noPermissions(),
