@@ -92,8 +92,8 @@ services:
   postgres:
     image: postgres:10.1-alpine
     environment:
-      POSTGRES_PASSWORD: admin
-      POSTGRES_USER: ${POSTGRES_ADMIN_PASSWORD:-admin}
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD:-admin}
     volumes:
       - "/opt/docker-volumes/postgres-data:/var/lib/postgresql/data"
 
