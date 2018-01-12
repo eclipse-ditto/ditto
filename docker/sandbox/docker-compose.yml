@@ -1,10 +1,5 @@
 version: '3.2'
 
-volumes:
-  # create a persistent volume for postgres first via: docker volume create --name postgres-data-volume -d local
-  postgres-data-volume:
-    external: true
-
 services:
   mongodb:
     image: docker.io/mongo:3.4
@@ -88,9 +83,9 @@ services:
       - PUBLIC_HEALTH_PASSWORD=${GATEWAY_DEVOPS_PASSWORD}
 
   graphite:
-    image: hopsoft/graphite-statsd:latest
+    image: hopsoft/graphite-statsd:v0.9.15-phusion0.9.18
     volumes:
-      - "./graphite/storage/whisper:/opt/graphite/storage/whisper"
+      - "/opt/docker-volumes/graphite-data/storage/whisper:/opt/graphite/storage/whisper"
       - "./graphite/storage-schemas.conf:/opt/graphite/conf/storage-schemas.conf"
       - "./statsd/config.js:/opt/statsd/config.js"
 
@@ -100,7 +95,7 @@ services:
       POSTGRES_PASSWORD: admin
       POSTGRES_USER: ${POSTGRES_ADMIN_PASSWORD:-admin}
     volumes:
-      - "postgres-data-volume:/var/lib/postgresql/data"
+      - "/opt/docker-volumes/postgres-data:/var/lib/postgresql/data"
 
   grafana:
     image: grafana/grafana:4.5.2
