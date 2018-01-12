@@ -308,6 +308,10 @@ entries:
           url: /protocol-examples-errorresponses.html
           output: web
 
+  - title: Sandbox
+    url: /sandbox.html
+    output: web
+
   - title: Glossary
     url: /glossary.html
     output: web
