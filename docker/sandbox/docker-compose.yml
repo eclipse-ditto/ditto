@@ -8,7 +8,6 @@ services:
         aliases:
           - mongodb
     command: mongod --storageEngine wiredTiger --noscripting
-    user: mongodb
     volumes:
       - "/opt/docker-volumes/mongo-data:/data/db"
     environment:
@@ -36,7 +35,7 @@ services:
           - ditto-cluster
     depends_on:
       - policies
-    command: sh -c "sleep 10; java -jar /starter.jar"
+    command: sh -c "sleep 30; java -jar /starter.jar"
     environment:
       - TZ=Europe/Berlin
       - INSTANCE_INDEX=1
@@ -53,7 +52,7 @@ services:
           - ditto-cluster
     depends_on:
       - policies
-    command: sh -c "sleep 10; java -jar /starter.jar"
+    command: sh -c "sleep 30; java -jar /starter.jar"
     environment:
       - TZ=Europe/Berlin
       - INSTANCE_INDEX=1
@@ -70,19 +69,35 @@ services:
           - ditto-cluster
     depends_on:
       - policies
-    command: sh -c "sleep 10; java -jar /starter.jar"
+    command: sh -c "sleep 30; java -jar /starter.jar"
     environment:
       - TZ=Europe/Berlin
       - INSTANCE_INDEX=1
       - BIND_HOSTNAME=0.0.0.0
       - ENABLE_DUMMY_AUTH=false
-      - _JAVA_OPTIONS=-Xms256m -Xmx256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError
+      - _JAVA_OPTIONS=-Xms512m -Xmx512m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError
       - STATSD_PORT_8125_UDP_ADDR=graphite
       - STATSD_PORT_8125_UDP_PORT=8125
       - DEVOPS_SECURE_STATUS=false
       - GATEWAY_PUBLIC_HEALTH_SECURE=false
-      - DEVOPS_PASSWORD=${GATEWAY_DEVOPS_PASSWORD}
-      - PUBLIC_HEALTH_PASSWORD=${GATEWAY_DEVOPS_PASSWORD}
+
+  amqp-bridge:
+    image: docker.io/eclipse/ditto-amqp-bridge:${DITTO_VERSION:-latest}
+    networks:
+      default:
+        aliases:
+          - ditto-cluster
+    depends_on:
+      - policies
+      - gateway
+    command: sh -c "sleep 30; java -jar /starter.jar"
+    environment:
+      - TZ=Europe/Berlin
+      - INSTANCE_INDEX=1
+      - BIND_HOSTNAME=0.0.0.0
+      - _JAVA_OPTIONS=-Xms256m -Xmx256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError
+      - STATSD_PORT_8125_UDP_ADDR=graphite
+      - STATSD_PORT_8125_UDP_PORT=8125
 
   graphite:
     image: hopsoft/graphite-statsd:v0.9.15-phusion0.9.18
