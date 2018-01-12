@@ -149,7 +149,7 @@ services:
     volumes:
        - ./nginx.conf:/etc/nginx/nginx.conf:ro
        - ./nginx-devops.htpasswd:/etc/nginx/nginx-devops.htpasswd:ro
-       - ./html:/etc/nginx/html:ro
+       - ./html:/etc/nginx/html
        - ../nginx-cors.conf:/etc/nginx/nginx-cors.conf:ro
        - ../../documentation/src/main/resources/images:/etc/nginx/html/images:ro
        - /opt/letsencrypt/src/production/dh-param/dhparam-2048.pem:/etc/ssl/certs/dhparam-2048.pem
