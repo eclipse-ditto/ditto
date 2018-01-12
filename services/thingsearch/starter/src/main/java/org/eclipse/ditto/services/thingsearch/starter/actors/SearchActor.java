@@ -363,7 +363,7 @@ public final class SearchActor extends AbstractActor {
             try {
                 final Criteria criteria = queryFilterCriteriaFactory.filterCriteria(filter, command.getDittoHeaders());
                 final boolean needToLookupPolicy =
-                        JsonSchemaVersion.V_1 != version || criteria.accept(new IsPolicyLookupNeededVisitor());
+                        JsonSchemaVersion.V_1 != version && criteria.accept(new IsPolicyLookupNeededVisitor());
                 return needToLookupPolicy ? aggregationQueryActor : findQueryActor;
             } catch (final DittoRuntimeException e) {
                 // criteria is invalid, let the query actor deal with it
