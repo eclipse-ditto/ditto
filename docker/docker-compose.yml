@@ -85,7 +85,7 @@ services:
        - ./nginx.conf:/etc/nginx/nginx.conf:ro
        - ./nginx.htpasswd:/etc/nginx/nginx.htpasswd:ro
        - ./nginx-cors.conf:/etc/nginx/nginx-cors.conf:ro
-       - ./html:/etc/nginx/html:ro
+       - ./index.html:/etc/nginx/html/index.html:ro
        - ../documentation/src/main/resources/images:/etc/nginx/html/images:ro
     ports:
       - "8080:80"
