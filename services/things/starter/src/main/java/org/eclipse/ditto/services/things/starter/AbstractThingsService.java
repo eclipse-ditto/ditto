@@ -41,7 +41,7 @@ public abstract class AbstractThingsService extends DittoService {
     /**
      * Name for the Akka Actor System of the Things service.
      */
-    static final String SERVICE_NAME = "things";
+    protected static final String SERVICE_NAME = "things";
 
     private static final BaseConfigKeys CONFIG_KEYS = BaseConfigKeys.getBuilder()
             .put(BaseConfigKey.Cluster.MAJORITY_CHECK_ENABLED, ConfigKeys.Cluster.MAJORITY_CHECK_ENABLED)
@@ -60,7 +60,7 @@ public abstract class AbstractThingsService extends DittoService {
      * @param thingSnapshotterCreate functional interface for the constructor of snapshotter classes.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public AbstractThingsService(final Logger logger, final ThingSnapshotter.Create thingSnapshotterCreate) {
+    protected AbstractThingsService(final Logger logger, final ThingSnapshotter.Create thingSnapshotterCreate) {
         super(logger, SERVICE_NAME, ThingsRootActor.ACTOR_NAME, CONFIG_KEYS);
 
         this.logger = logger;
