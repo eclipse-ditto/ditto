@@ -81,7 +81,7 @@ public final class DittoAuthorizationSubjectsProvider implements AuthorizationSu
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                ", jwtSubjectIssuersConfig=" + jwtSubjectIssuersConfig +
+                "jwtSubjectIssuersConfig=" + jwtSubjectIssuersConfig +
                 "]";
     }
 
