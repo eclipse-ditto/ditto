@@ -1,0 +1,164 @@
+version: '3.2'
+
+services:
+  mongodb:
+    image: docker.io/mongo:3.4
+    networks:
+      default:
+        aliases:
+          - mongodb
+    command: mongod --storageEngine wiredTiger --noscripting
+    volumes:
+      - "/opt/docker-volumes/mongo-data:/data/db"
+    environment:
+       TZ: Europe/Berlin
+
+  policies:
+    image: docker.io/eclipse/ditto-policies:${DITTO_VERSION:-latest}
+    networks:
+      default:
+        aliases:
+          - ditto-cluster
+    environment:
+      - TZ=Europe/Berlin
+      - INSTANCE_INDEX=1
+      - BIND_HOSTNAME=0.0.0.0
+      - _JAVA_OPTIONS=-Xms256m -Xmx256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError -Dditto.cluster.become-leader=true
+      - STATSD_PORT_8125_UDP_ADDR=graphite
+      - STATSD_PORT_8125_UDP_PORT=8125
+
+  things:
+    image: docker.io/eclipse/ditto-things:${DITTO_VERSION:-latest}
+    networks:
+      default:
+        aliases:
+          - ditto-cluster
+    depends_on:
+      - policies
+    command: sh -c "sleep 10; java -jar /starter.jar"
+    environment:
+      - TZ=Europe/Berlin
+      - INSTANCE_INDEX=1
+      - BIND_HOSTNAME=0.0.0.0
+      - _JAVA_OPTIONS=-Xms256m -Xmx256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError
+      - STATSD_PORT_8125_UDP_ADDR=graphite
+      - STATSD_PORT_8125_UDP_PORT=8125
+
+  things-search:
+    image: docker.io/eclipse/ditto-things-search:${DITTO_VERSION:-latest}
+    networks:
+      default:
+        aliases:
+          - ditto-cluster
+    depends_on:
+      - policies
+    command: sh -c "sleep 20; java -jar /starter.jar"
+    environment:
+      - TZ=Europe/Berlin
+      - INSTANCE_INDEX=1
+      - BIND_HOSTNAME=0.0.0.0
+      - _JAVA_OPTIONS=-Xms256m -Xmx256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError
+      - STATSD_PORT_8125_UDP_ADDR=graphite
+      - STATSD_PORT_8125_UDP_PORT=8125
+
+  gateway:
+    image: docker.io/eclipse/ditto-gateway:${DITTO_VERSION:-latest}
+    networks:
+      default:
+        aliases:
+          - ditto-cluster
+    depends_on:
+      - policies
+    command: sh -c "sleep 45; java -jar /starter.jar"
+    environment:
+      - TZ=Europe/Berlin
+      - INSTANCE_INDEX=1
+      - BIND_HOSTNAME=0.0.0.0
+      - ENABLE_DUMMY_AUTH=false
+      - _JAVA_OPTIONS=-Xms512m -Xmx512m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError
+      - STATSD_PORT_8125_UDP_ADDR=graphite
+      - STATSD_PORT_8125_UDP_PORT=8125
+      - DEVOPS_SECURE_STATUS=false
+      - GATEWAY_PUBLIC_HEALTH_SECURE=false
+
+#  amqp-bridge:
+#    image: docker.io/eclipse/ditto-amqp-bridge:${DITTO_VERSION:-latest}
+#    networks:
+#      default:
+#        aliases:
+#          - ditto-cluster
+#    depends_on:
+#      - policies
+#      - gateway
+#    command: sh -c "sleep 30; java -jar /starter.jar"
+#    environment:
+#      - TZ=Europe/Berlin
+#      - INSTANCE_INDEX=1
+#      - BIND_HOSTNAME=0.0.0.0
+#      - _JAVA_OPTIONS=-Xms256m -Xmx256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError
+#      - STATSD_PORT_8125_UDP_ADDR=graphite
+#      - STATSD_PORT_8125_UDP_PORT=8125
+
+  graphite:
+    image: hopsoft/graphite-statsd:v0.9.15-phusion0.9.18
+    volumes:
+      - "/opt/docker-volumes/graphite-data/storage/whisper:/opt/graphite/storage/whisper"
+      - "./graphite/storage-schemas.conf:/opt/graphite/conf/storage-schemas.conf"
+      - "./statsd/config.js:/opt/statsd/config.js"
+
+  postgres:
+    image: postgres:10.1-alpine
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD:-admin}
+    volumes:
+      - "/opt/docker-volumes/postgres-data:/var/lib/postgresql/data"
+
+  grafana:
+    image: grafana/grafana:4.5.2
+    depends_on:
+      - graphite
+      - postgres
+    environment:
+      TZ: Europe/Berlin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_SERVER_ROOT_URL: http://localhost:3000/grafana/
+      GF_DATABASE_TYPE: postgres
+      GF_DATABASE_HOST: postgres:5432
+      GF_DATABASE_USER: admin
+      GF_DATABASE_PASSWORD: ${POSTGRES_ADMIN_PASSWORD:-admin}
+      GF_DATABASE_NAME: postgres
+      GF_USERS_SIGNUP: "false"
+      GF_ALLOW_ORG_CREATE: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      GF_AUTH_BASIC_ENABLED: "true"
+      GF_SMTP_ENABLED: "false"
+
+  swagger-ui:
+    image: docker.io/swaggerapi/swagger-ui:v2.2.9
+    volumes:
+       - ../../documentation/src/main/resources/openapi:/usr/share/nginx/html/openapi:ro
+       - ../../documentation/src/main/resources/images:/usr/share/nginx/html/images:ro
+       - ../swagger-index.html:/usr/share/nginx/html/index.html:ro
+    environment:
+       - API_URL=/apidoc/openapi/ditto-api-1.yml
+
+  nginx:
+    image: docker.io/nginx:1.13-alpine
+    volumes:
+       - ./nginx.conf:/etc/nginx/nginx.conf:ro
+       - ./nginx-devops.htpasswd:/etc/nginx/nginx-devops.htpasswd:ro
+       - ./html:/etc/nginx/html
+       - ../nginx-cors.conf:/etc/nginx/nginx-cors.conf:ro
+       - ../../documentation/src/main/resources/images:/etc/nginx/html/images:ro
+       - /opt/letsencrypt/src/production/dh-param/dhparam-2048.pem:/etc/ssl/certs/dhparam-2048.pem
+       - /opt/docker-volumes/etc/letsencrypt/live/ditto.eclipse.org/fullchain.pem:/etc/letsencrypt/live/ditto.eclipse.org/fullchain.pem
+       - /opt/docker-volumes/etc/letsencrypt/live/ditto.eclipse.org/privkey.pem:/etc/letsencrypt/live/ditto.eclipse.org/privkey.pem
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - gateway
+      - swagger-ui
+      - grafana
