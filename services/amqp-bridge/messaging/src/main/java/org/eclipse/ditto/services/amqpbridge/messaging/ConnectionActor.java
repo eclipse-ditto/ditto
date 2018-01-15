@@ -334,7 +334,8 @@ final class ConnectionActor extends AbstractPersistentActor implements Exception
                     .description(e.getMessage())
                     .build();
             getSender().tell(error, getSelf());
-            log.error(e, "Failed to <{}> Connection <{}> with Error: <{}>.", action, amqpConnection.getId(), e.getMessage());
+            log.error(e, "Failed to <{}> Connection <{}> with Error: <{}>.", action, amqpConnection.getId(),
+                    e.getMessage());
             return false;
         }
     }
@@ -348,7 +349,8 @@ final class ConnectionActor extends AbstractPersistentActor implements Exception
                     .description(e.getMessage())
                     .build();
             getSender().tell(error, getSelf());
-            log.error(e, "Failed to <{}> Connection <{}> with Error: <{}>.", action, amqpConnection.getId(), e.getMessage());
+            log.error(e, "Failed to <{}> Connection <{}> with Error: <{}>.", action, amqpConnection.getId(),
+                    e.getMessage());
             return false;
         }
     }
@@ -430,12 +432,22 @@ final class ConnectionActor extends AbstractPersistentActor implements Exception
 
     private void stopConnection() throws JMSException {
         if (jmsSession != null) {
-            jmsSession.close();
+            try {
+                jmsSession.close();
+                jmsSession = null;
+            } catch (final JMSException e) {
+                log.debug("Session of connection '{}' already closed: {}", amqpConnection.getId(), e.getMessage());
+            }
         }
         if (jmsConnection != null) {
-            jmsConnection.stop();
-            jmsConnection.close();
-            log.info("Connection '{}' closed.", amqpConnection.getId());
+            try {
+                jmsConnection.stop();
+                jmsConnection.close();
+                jmsConnection = null;
+                log.info("Connection '{}' closed.", amqpConnection.getId());
+            } catch (final JMSException e) {
+                log.debug("Connection '{}' already closed: {}", amqpConnection.getId(), e.getMessage());
+            }
         }
     }
 

@@ -67,10 +67,21 @@ public final class AmqpConnectionBasedJmsConnectionFactory implements JmsConnect
         final String protocol = amqpConnection.getProtocol();
         final String hostname = amqpConnection.getHostname();
         final int port = amqpConnection.getPort();
+        final boolean failoverEnabled = amqpConnection.isFailoverEnabled();
 
         final String uri = formatUri(protocol, hostname, port);
-        final String uriWithFailoverEnabled = amqpConnection.isFailoverEnabled() ? wrapWithFailOver(uri) : uri;
-        final String connectionUri = appendParameters("amqps".equals(protocol), uriWithFailoverEnabled, username, password);
+        final String uriWithAmqpParams = appendAmqpParameters(uri);
+        final String uriWithTransportParams = appendTransportParameters(uriWithAmqpParams);
+
+        final String connectionUri;
+        if (failoverEnabled) {
+            final String uriWrappedWithFailover = wrapWithFailOver(uriWithTransportParams);
+            final String uriWithJmsParams = appendJmsParametersOverall(uriWrappedWithFailover, username, password);
+            connectionUri = appendFailoverParameters(uriWithJmsParams);
+        } else {
+            final String uriWithJmsParams = appendJmsParameters(uriWithTransportParams, username, password);
+            connectionUri = appendFailoverParameters(uriWithJmsParams);
+        }
 
         @SuppressWarnings("squid:S1149") final Hashtable<Object, Object> env = new Hashtable<>();
         env.put(Context.INITIAL_CONTEXT_FACTORY, "org.apache.qpid.jms.jndi.JmsInitialContextFactory");
@@ -84,16 +95,39 @@ public final class AmqpConnectionBasedJmsConnectionFactory implements JmsConnect
         return MessageFormat.format(pattern, protocol, hostname, Integer.toString(port));
     }
 
-    private static String appendParameters(final boolean useSsl, final String uri, final String username, final String password) {
-
-        @SuppressWarnings("squid:S2068") final String pattern;
-        if (useSsl) {
-            pattern = "{0}?jms.username={1}&jms.password={2}" +
-                    "&transport.trustAll=true&transport.verifyHost=false&amqp.saslMechanisms=PLAIN";
-        } else {
-            pattern = "{0}?jms.username={1}&jms.password={2}&amqp.saslMechanisms=PLAIN";
-        }
+    @SuppressWarnings("squid:S2068")
+    private static String appendJmsParametersOverall(final String uri, final String username, final String password) {
+        final String pattern = "{0}" +
+                "?jms.username={1}" +
+                "&jms.password={2}";
         return MessageFormat.format(pattern, uri, username, password);
+    }
+
+    @SuppressWarnings("squid:S2068")
+    private static String appendJmsParameters(final String uri, final String username, final String password) {
+        final String pattern = "{0}" +
+                "&jms.username={1}" +
+                "&jms.password={2}";
+        return MessageFormat.format(pattern, uri, username, password);
+    }
+
+    private static String appendAmqpParameters(final String uri) {
+        return uri + "?amqp.saslMechanisms=PLAIN";
+    }
+
+    private static String appendTransportParameters(final String uri) {
+        return uri +
+                "&transport.trustAll=true" +
+                "&transport.verifyHost=false";
+    }
+
+    private static String appendFailoverParameters(final String uri) {
+        return uri +
+                "&initialReconnectDelay=10s" +
+                "&reconnectDelay=1s" +
+                "&maxReconnectDelay=1h" +
+                "&useReconnectBackOff=true" +
+                "&reconnectBackOffMultiplier=1m";
     }
 
     private static String wrapWithFailOver(final String uri) {
