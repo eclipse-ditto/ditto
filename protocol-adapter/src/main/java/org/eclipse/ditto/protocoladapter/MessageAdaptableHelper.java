@@ -175,6 +175,19 @@ final class MessageAdaptableHelper {
      */
     static MessageHeaders messageHeadersFrom(final Adaptable adaptable) {
         return adaptable.getHeaders()
+                .map(headers -> {
+                    final TopicPath topicPath = adaptable.getTopicPath();
+                    final DittoHeadersBuilder dittoHeadersBuilder = headers.toBuilder();
+                    if (!headers.containsKey(MessageHeaderDefinition.THING_ID.getKey())) {
+                        dittoHeadersBuilder.putHeader(MessageHeaderDefinition.THING_ID.getKey(),
+                                topicPath.getNamespace() + ":" + topicPath.getId());
+                    }
+                    if (!headers.containsKey(MessageHeaderDefinition.SUBJECT.getKey())) {
+                        dittoHeadersBuilder.putHeader(MessageHeaderDefinition.SUBJECT.getKey(),
+                                topicPath.getSubject().orElse(""));
+                    }
+                    return dittoHeadersBuilder.build();
+                })
                 .map(MessagesModelFactory::newHeadersBuilder)
                 .map(MessageHeadersBuilder::build)
                 .orElseThrow(() -> new IllegalArgumentException("Adaptable did not have headers at all!"));
