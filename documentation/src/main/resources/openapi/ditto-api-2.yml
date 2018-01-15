@@ -27,10 +27,23 @@ tags:
     description: Find every Thing
   - name: Messages
     description: Talk with your Things
+securityDefinitions:
+  Google:
+    type: oauth2
+    description: Allow Eclipse Ditto to access your Google-ID.
+    authorizationUrl: https://accounts.google.com/o/oauth2/v2/auth
+    tokenUrl: /oauth2/google/token
+    x-tokenName: id_token
+    flow: accessCode
+    scopes:
+      openid: Access your Google-ID
+
 produces:
   - application/json
 consumes:
   - application/json
+security:
+  - Google: [openid]
 
 paths:
 ###

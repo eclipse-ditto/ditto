@@ -8,6 +8,8 @@ topnav:
       url: /intro-overview.html
     - title: HTTP API
       url: /http-api-doc.html
+    - title: Sandbox
+      external_url: https://ditto.eclipse.org
     - title: GitHub
       external_url: https://github.com/eclipse/ditto
     - title: GitHub examples
