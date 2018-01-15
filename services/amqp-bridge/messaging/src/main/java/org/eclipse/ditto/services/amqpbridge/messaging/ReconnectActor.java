@@ -15,10 +15,18 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Consumer;
 
+import org.eclipse.ditto.model.amqpbridge.ConnectionStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.amqpbridge.messaging.persistence.MongoReconnectSnapshotAdapter;
+import org.eclipse.ditto.services.amqpbridge.util.ConfigKeys;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.akka.persistence.SnapshotAdapter;
+import org.eclipse.ditto.signals.commands.amqpbridge.query.RetrieveConnectionStatus;
+import org.eclipse.ditto.signals.commands.amqpbridge.query.RetrieveConnectionStatusResponse;
+import org.eclipse.ditto.signals.events.amqpbridge.ConnectionClosed;
+import org.eclipse.ditto.signals.events.amqpbridge.ConnectionCreated;
+import org.eclipse.ditto.signals.events.amqpbridge.ConnectionDeleted;
+import org.eclipse.ditto.signals.events.amqpbridge.ConnectionOpened;
 import org.eclipse.ditto.signals.events.base.Event;
 
 import com.typesafe.config.Config;
@@ -33,16 +41,6 @@ import akka.japi.pf.ReceiveBuilder;
 import akka.persistence.AbstractPersistentActor;
 import akka.persistence.RecoveryCompleted;
 import akka.persistence.SnapshotOffer;
-
-import org.eclipse.ditto.model.amqpbridge.ConnectionStatus;
-
-import org.eclipse.ditto.services.amqpbridge.util.ConfigKeys;
-import org.eclipse.ditto.signals.commands.amqpbridge.query.RetrieveConnectionStatus;
-import org.eclipse.ditto.signals.commands.amqpbridge.query.RetrieveConnectionStatusResponse;
-import org.eclipse.ditto.signals.events.amqpbridge.ConnectionClosed;
-import org.eclipse.ditto.signals.events.amqpbridge.ConnectionCreated;
-import org.eclipse.ditto.signals.events.amqpbridge.ConnectionDeleted;
-import org.eclipse.ditto.signals.events.amqpbridge.ConnectionOpened;
 
 /**
  * Actor which restarts a {@link ConnectionActor} with status
@@ -83,6 +81,10 @@ public final class ReconnectActor extends AbstractPersistentActor {
         connectionIds = new HashSet<>();
 
         pubSubMediator.tell(new DistributedPubSubMediator.Subscribe(ConnectionCreated.TYPE, ACTOR_NAME, getSelf()),
+                getSelf());
+        pubSubMediator.tell(new DistributedPubSubMediator.Subscribe(ConnectionOpened.TYPE, ACTOR_NAME, getSelf()),
+                getSelf());
+        pubSubMediator.tell(new DistributedPubSubMediator.Subscribe(ConnectionClosed.TYPE, ACTOR_NAME, getSelf()),
                 getSelf());
         pubSubMediator.tell(new DistributedPubSubMediator.Subscribe(ConnectionDeleted.TYPE, ACTOR_NAME, getSelf()),
                 getSelf());
