@@ -43,7 +43,6 @@ import org.eclipse.ditto.signals.commands.amqpbridge.query.RetrieveConnection;
 import org.eclipse.ditto.signals.commands.amqpbridge.query.RetrieveConnectionResponse;
 import org.eclipse.ditto.signals.commands.amqpbridge.query.RetrieveConnectionStatus;
 import org.eclipse.ditto.signals.commands.amqpbridge.query.RetrieveConnectionStatusResponse;
-import org.eclipse.ditto.signals.events.amqpbridge.AmqpBridgeEvent;
 import org.eclipse.ditto.signals.events.amqpbridge.ConnectionClosed;
 import org.eclipse.ditto.signals.events.amqpbridge.ConnectionCreated;
 import org.eclipse.ditto.signals.events.amqpbridge.ConnectionDeleted;
@@ -369,7 +368,7 @@ final class ConnectionActor extends AbstractPersistentActor implements Exception
         persist(event, persistedEvent -> {
             log.debug("Successfully persisted Event '{}'", persistedEvent.getType());
             consumer.accept(persistedEvent);
-            pubSubMediator.tell(new DistributedPubSubMediator.Publish(AmqpBridgeEvent.TYPE_PREFIX, event, true),
+            pubSubMediator.tell(new DistributedPubSubMediator.Publish(event.getType(), event, true),
                     getSelf());
 
             // save a snapshot if there were too many changes since the last snapshot
