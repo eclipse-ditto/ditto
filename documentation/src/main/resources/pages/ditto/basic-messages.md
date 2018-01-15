@@ -1,6 +1,6 @@
 ---
 title: Messages
-keywords: broker, content-type, correlation-id, feature, message, payload, thing
+keywords: router, content-type, correlation-id, feature, message, payload, thing
 tags: [model]
 permalink: basic-messages.html
 ---
@@ -13,20 +13,41 @@ produced by Ditto and no events which are emitted for messages.
     include note.html content="Ditto has no knowledge of the payload of messages but merely routes messages between
     connected devices."
   %}
-  
-  {% include warning.html content="Ditto offers no message retention. If a device isn't connected when a Message
-     should be routed, it will never receive the Message." 
-  %}
 
 Messages provide the possibility to send something **to** or **from** an actual device using an arbitrary subject/topic.
 They contain a custom payload with a custom content-type, so you can choose what content best 
 fits your solution.
 
-Expressed differently, messages
+Expressed differently, Messages
 * **to** devices are operations which should trigger an action on a device (e.g. with a subject `turnOff`),
 * **from** devices are events/alarms which are emitted by devices (e.g. with a subject `smokeDetected`).
 
-{% include image.html file="pages/basic/ditto-messages.png" alt="Ditto Messages" caption="How Ditto acts as broker for Messages" max-width=600 %}
+{% include image.html file="pages/basic/ditto-messages.png" alt="Ditto Messages" caption="How Ditto acts as router for Messages" max-width=600 %}
+
+
+## Characteristics of Messages
+  
+Eclipse Ditto is not a message broker and does not want to offer features a message broker does.
+
+It can be seen as a message router which:
+* accepts messages via 2 APIs ([HTTP](httpapi-messages.html) and 
+  [Ditto Protocol](protocol-specification-things-messages.html), e.g. via [WebSocket binding](protocol-bindings-websocket.html))
+* checks for **currently connected** interested parties whether they may receive a specific Message 
+  (performs [authorization checks](basic-auth.html#authorization))
+* routes the Message and reply Messages in between connected clients 
+  
+  {% include warning.html content="Ditto offers no message retention. If a device isn't connected when a Message should 
+     be routed, it will never receive the Message." 
+  %}
+  
+  {% include warning.html content="Ditto makes no statement about Message QoS. Messages are routed **at most once**." 
+  %}
+  
+  {% include warning.html content="Ditto does deliver messages only in \"fan out\" style,
+     if the same credentials are connected twice, both connections will receive Messages if the credential is authorized
+     to read a Message." 
+  %}
+
 
 ## Elements
 
