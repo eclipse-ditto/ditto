@@ -22,12 +22,12 @@ Right from the project's description:
  The Thing in this case is a smart coffee machine ("SmartCoffee") that has
  some basic functionality. It accepts Messages that allow to start or stop
  the heating of the water tank. Moreover you can request the coffee
- machine to brew coffee, so you don't have to wait for your dose of caffeine :wink:.<br/>
+ machine to brew coffee, so you don't have to wait for your dose of caffeine.<br/>
  But before starting to brew a coffee, SmartCoffee will send a captcha
  that has to be solved.
 
 {% include external_image.html 
-href="https://github.com/eclipse/ditto-examples/tree/master/rest-to-websocket/docs/images/make-coffee.gif" 
+href="https://raw.githubusercontent.com/eclipse/ditto-examples/master/rest-to-websocket/docs/images/make-coffee.gif" 
 alt="Eclipse Ditto REST to WebSocket example gif" 
 max-width=800 
 caption="Source: https://github.com/eclipse/ditto-examples" %}
