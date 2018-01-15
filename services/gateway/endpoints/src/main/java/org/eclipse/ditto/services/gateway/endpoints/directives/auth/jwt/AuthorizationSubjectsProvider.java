@@ -17,7 +17,8 @@ import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.services.gateway.security.jwt.JsonWebToken;
 
 /**
- * A provider for {@link org.eclipse.ditto.model.base.auth.AuthorizationSubject}s contained in a {@link org.eclipse.ditto.services.gateway.security.jwt.JsonWebToken}.
+ * A provider for {@link org.eclipse.ditto.model.base.auth.AuthorizationSubject}s contained in a
+ * {@link org.eclipse.ditto.services.gateway.security.jwt.JsonWebToken}.
  */
 public interface AuthorizationSubjectsProvider {
 
