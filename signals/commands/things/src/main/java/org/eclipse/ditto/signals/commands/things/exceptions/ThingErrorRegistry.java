@@ -22,6 +22,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.things.AclEntryInvalidException;
 import org.eclipse.ditto.model.things.AclInvalidException;
 import org.eclipse.ditto.model.things.AclNotAllowedException;
+import org.eclipse.ditto.model.things.FeatureDefinitionIdentifierInvalidException;
 import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.signals.base.AbstractErrorRegistry;
 import org.eclipse.ditto.signals.base.JsonParsable;
@@ -104,6 +105,8 @@ public final class ThingErrorRegistry extends AbstractErrorRegistry<DittoRuntime
                 FeaturePropertyNotAccessibleException::fromJson);
         parseStrategies.put(FeaturePropertyNotModifiableException.ERROR_CODE,
                 FeaturePropertyNotModifiableException::fromJson);
+        parseStrategies.put(FeatureDefinitionIdentifierInvalidException.ERROR_CODE,
+                FeatureDefinitionIdentifierInvalidException::fromJson);
 
         return new ThingErrorRegistry(parseStrategies);
     }
