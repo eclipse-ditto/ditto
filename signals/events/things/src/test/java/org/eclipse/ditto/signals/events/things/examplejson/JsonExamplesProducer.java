@@ -30,6 +30,7 @@ import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.AclEntry;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Feature;
+import org.eclipse.ditto.model.things.FeatureDefinition;
 import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Permission;
@@ -102,10 +103,7 @@ public class JsonExamplesProducer {
     private static final JsonPointer PROPERTY_POINTER = JsonFactory.newPointer(PROPERTY_X);
     private static final JsonValue PROPERTY_VALUE = JsonFactory.newValue(42);
     private static final FeatureDefinition FEATURE_DEFINITION = ThingsModelFactory.newFeatureDefinitionBuilder()
-            .set("x", 3.141)
-            .set("y", 2.718)
-            .set("z", 1)
-            .set("unit", "g")
+            .set("org.eclipse.ditto:fluxcapacitor:1.0.0")
             .build();
     private static final FeatureProperties FEATURE_PROPERTIES = ThingsModelFactory.newFeaturePropertiesBuilder()
             .set("x", 3.141)

@@ -66,6 +66,7 @@ import org.eclipse.ditto.model.things.AclInvalidException;
 import org.eclipse.ditto.model.things.AclNotAllowedException;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Feature;
+import org.eclipse.ditto.model.things.FeatureDefinition;
 import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Permission;
@@ -148,6 +149,8 @@ import org.eclipse.ditto.signals.commands.things.exceptions.AttributeNotAccessib
 import org.eclipse.ditto.signals.commands.things.exceptions.AttributeNotModifiableException;
 import org.eclipse.ditto.signals.commands.things.exceptions.AttributesNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.exceptions.AttributesNotModifiableException;
+import org.eclipse.ditto.signals.commands.things.exceptions.FeatureDefinitionNotAccessibleException;
+import org.eclipse.ditto.signals.commands.things.exceptions.FeatureDefinitionNotModifiableException;
 import org.eclipse.ditto.signals.commands.things.exceptions.FeatureNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.exceptions.FeatureNotModifiableException;
 import org.eclipse.ditto.signals.commands.things.exceptions.FeaturePropertiesNotAccessibleException;
@@ -175,6 +178,8 @@ import org.eclipse.ditto.signals.commands.things.modify.DeleteAttributeResponse;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAttributes;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAttributesResponse;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeature;
+import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureDefinition;
+import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureDefinitionResponse;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureProperties;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeaturePropertiesResponse;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureProperty;
@@ -191,6 +196,8 @@ import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributeResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributes;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributesResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeature;
+import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureDefinition;
+import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureDefinitionResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperties;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeaturePropertiesResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperty;
@@ -211,6 +218,8 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributeResponse
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributes;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributesResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeature;
+import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureDefinition;
+import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureDefinitionResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureProperties;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeaturePropertiesResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureProperty;
@@ -256,6 +265,9 @@ import org.eclipse.ditto.signals.events.things.AttributesCreated;
 import org.eclipse.ditto.signals.events.things.AttributesDeleted;
 import org.eclipse.ditto.signals.events.things.AttributesModified;
 import org.eclipse.ditto.signals.events.things.FeatureCreated;
+import org.eclipse.ditto.signals.events.things.FeatureDefinitionCreated;
+import org.eclipse.ditto.signals.events.things.FeatureDefinitionDeleted;
+import org.eclipse.ditto.signals.events.things.FeatureDefinitionModified;
 import org.eclipse.ditto.signals.events.things.FeatureDeleted;
 import org.eclipse.ditto.signals.events.things.FeatureModified;
 import org.eclipse.ditto.signals.events.things.FeaturePropertiesCreated;
@@ -336,6 +348,9 @@ class CommandAndEventJsonExamplesProducer {
     public static final String PROPERTY_X = "x";
     private static final JsonPointer PROPERTY_POINTER = JsonFactory.newPointer(PROPERTY_X);
     private static final JsonValue PROPERTY_VALUE = JsonFactory.newValue(42);
+    private static final FeatureDefinition FEATURE_DEFINITION = ThingsModelFactory.newFeatureDefinitionBuilder()
+            .add("org.eclipse.ditto:fluxcapacitor:1.0.0")
+            .build();
     private static final FeatureProperties FEATURE_PROPERTIES = ThingsModelFactory.newFeaturePropertiesBuilder()
             .set("x", 3.141)
             .set("y", 2.718)
@@ -822,6 +837,10 @@ class CommandAndEventJsonExamplesProducer {
         final RetrieveFeature retrieveFeature = RetrieveFeature.of(THING_ID, FEATURE_ID, DITTO_HEADERS);
         writeJson(commandsDir.resolve(Paths.get("retrieveFeature.json")), retrieveFeature);
 
+        final RetrieveFeatureDefinition retrieveFeatureDefinition =
+                RetrieveFeatureDefinition.of(THING_ID, FEATURE_ID, DITTO_HEADERS);
+        writeJson(commandsDir.resolve(Paths.get("retrieveFeatureDefinition.json")), retrieveFeatureDefinition);
+
         final RetrieveFeatureProperties retrieveFeatureProperties =
                 RetrieveFeatureProperties.of(THING_ID, FEATURE_ID, DITTO_HEADERS);
         writeJson(commandsDir.resolve(Paths.get("retrieveFeatureProperties.json")), retrieveFeatureProperties);
@@ -877,6 +896,11 @@ class CommandAndEventJsonExamplesProducer {
         final RetrieveFeatureResponse retrieveFeatureResponse = RetrieveFeatureResponse.of(THING_ID, FLUX_CAPACITOR,
                 DITTO_HEADERS);
         writeJson(commandsDir.resolve(Paths.get("retrieveFeatureResponse.json")), retrieveFeatureResponse);
+
+        final RetrieveFeatureDefinitionResponse retrieveFeatureDefinitionResponse =
+                RetrieveFeatureDefinitionResponse.of(THING_ID, FEATURE_ID, FEATURE_DEFINITION, DITTO_HEADERS);
+        writeJson(commandsDir.resolve(Paths.get("retrieveFeatureDefinitionResponse.json")),
+                retrieveFeatureDefinitionResponse);
 
         final RetrieveFeaturePropertiesResponse retrieveFeaturePropertiesResponse =
                 RetrieveFeaturePropertiesResponse.of(THING_ID, FEATURE_ID, FEATURE_PROPERTIES, DITTO_HEADERS);
@@ -940,6 +964,10 @@ class CommandAndEventJsonExamplesProducer {
         final DeleteFeatures deleteFeatures = DeleteFeatures.of(THING_ID, DITTO_HEADERS);
         writeJson(commandsDir.resolve(Paths.get("deleteFeatures.json")), deleteFeatures);
 
+        final ModifyFeatureDefinition modifyFeatureDefinition = ModifyFeatureDefinition.of(THING_ID, FEATURE_ID,
+                FEATURE_DEFINITION, DITTO_HEADERS);
+        writeJson(commandsDir.resolve(Paths.get("modifyFeatureDefinition.json")), modifyFeatureDefinition);
+
         final ModifyFeatureProperties modifyFeatureProperties = ModifyFeatureProperties.of(THING_ID, FEATURE_ID,
                 FEATURE_PROPERTIES, DITTO_HEADERS);
         writeJson(commandsDir.resolve(Paths.get("modifyFeatureProperties.json")), modifyFeatureProperties);
@@ -947,6 +975,10 @@ class CommandAndEventJsonExamplesProducer {
         final ModifyFeatureProperty modifyFeatureProperty = ModifyFeatureProperty.of(THING_ID, FEATURE_ID,
                 PROPERTY_POINTER, PROPERTY_VALUE, DITTO_HEADERS);
         writeJson(commandsDir.resolve(Paths.get("modifyFeatureProperty.json")), modifyFeatureProperty);
+
+        final DeleteFeatureDefinition deleteFeatureDefinition = DeleteFeatureDefinition.of(THING_ID, FEATURE_ID,
+                DITTO_HEADERS);
+        writeJson(commandsDir.resolve(Paths.get("deleteFeatureDefinition.json")), deleteFeatureDefinition);
 
         final DeleteFeatureProperties deleteFeatureProperties = DeleteFeatureProperties.of(THING_ID, FEATURE_ID,
                 DITTO_HEADERS);
@@ -1034,6 +1066,16 @@ class CommandAndEventJsonExamplesProducer {
                 DeleteFeatureResponse.of(THING_ID, FEATURE_ID, DITTO_HEADERS);
         writeJson(commandsDir.resolve(Paths.get("deleteFeatureResponse.json")), deleteFeatureResponse);
 
+        final ModifyFeatureDefinitionResponse modifyFeatureDefinitionResponse =
+                ModifyFeatureDefinitionResponse.modified(THING_ID, FEATURE_ID, DITTO_HEADERS);
+        writeJson(commandsDir.resolve(Paths.get("modifyFeatureDefinitionResponse.json")),
+                modifyFeatureDefinitionResponse);
+
+        final ModifyFeatureDefinitionResponse modifyFeatureDefinitionResponseCreated =
+                ModifyFeatureDefinitionResponse.created(THING_ID, FEATURE_ID, FEATURE_DEFINITION, DITTO_HEADERS);
+        writeJson(commandsDir.resolve(Paths.get("modifyFeatureDefinitionResponseCreated.json")),
+                modifyFeatureDefinitionResponseCreated);
+
         final ModifyFeaturePropertiesResponse modifyFeaturePropertiesResponse =
                 ModifyFeaturePropertiesResponse.modified(THING_ID, FEATURE_ID, DITTO_HEADERS);
         writeJson(commandsDir.resolve(Paths.get("modifyFeaturePropertiesResponse.json")),
@@ -1043,6 +1085,11 @@ class CommandAndEventJsonExamplesProducer {
                 ModifyFeaturePropertiesResponse.created(THING_ID, FEATURE_ID, FEATURE_PROPERTIES, DITTO_HEADERS);
         writeJson(commandsDir.resolve(Paths.get("modifyFeaturePropertiesResponseCreated.json")),
                 modifyFeaturePropertiesResponseCreated);
+
+        final DeleteFeatureDefinitionResponse deleteFeatureDefinitionResponse =
+                DeleteFeatureDefinitionResponse.of(THING_ID, FEATURE_ID, DITTO_HEADERS);
+        writeJson(commandsDir.resolve(Paths.get("deleteFeatureDefinitionResponse.json")),
+                deleteFeatureDefinitionResponse);
 
         final DeleteFeaturePropertiesResponse deleteFeaturePropertiesResponse =
                 DeleteFeaturePropertiesResponse.of(THING_ID, FEATURE_ID, DITTO_HEADERS);
@@ -1144,6 +1191,14 @@ class CommandAndEventJsonExamplesProducer {
                 DITTO_HEADERS);
         writeJson(eventsDir.resolve(Paths.get("featuresModified.json")), featuresModified);
 
+        final FeatureDefinitionCreated featureDefinitionCreated = FeatureDefinitionCreated.of(THING_ID, FEATURE_ID,
+                FEATURE_DEFINITION, REVISION_NUMBER, DITTO_HEADERS);
+        writeJson(eventsDir.resolve(Paths.get("featureDefinitionCreated.json")), featureDefinitionCreated);
+
+        final FeatureDefinitionModified featureDefinitionModified = FeatureDefinitionModified.of(THING_ID, FEATURE_ID,
+                FEATURE_DEFINITION, REVISION_NUMBER, DITTO_HEADERS);
+        writeJson(eventsDir.resolve(Paths.get("featureDefinitionModified.json")), featureDefinitionModified);
+
         final FeaturePropertiesCreated featurePropertiesCreated = FeaturePropertiesCreated.of(THING_ID, FEATURE_ID,
                 FEATURE_PROPERTIES, REVISION_NUMBER, DITTO_HEADERS);
         writeJson(eventsDir.resolve(Paths.get("featurePropertiesCreated.json")), featurePropertiesCreated);
@@ -1159,6 +1214,10 @@ class CommandAndEventJsonExamplesProducer {
         final FeaturePropertyModified featurePropertyModified = FeaturePropertyModified.of(THING_ID, FEATURE_ID,
                 PROPERTY_POINTER, PROPERTY_VALUE, REVISION_NUMBER, DITTO_HEADERS);
         writeJson(eventsDir.resolve(Paths.get("featurePropertyModified.json")), featurePropertyModified);
+
+        final FeatureDefinitionDeleted featureDefinitionDeleted = FeatureDefinitionDeleted.of(THING_ID, FEATURE_ID,
+                REVISION_NUMBER, DITTO_HEADERS);
+        writeJson(eventsDir.resolve(Paths.get("featureDefinitionDeleted.json")), featureDefinitionDeleted);
 
         final FeaturePropertiesDeleted featurePropertiesDeleted = FeaturePropertiesDeleted.of(THING_ID, FEATURE_ID,
                 REVISION_NUMBER, DITTO_HEADERS);
@@ -1225,6 +1284,18 @@ class CommandAndEventJsonExamplesProducer {
                 .newBuilder(THING_ID, FEATURE_ID).dittoHeaders(DITTO_HEADERS).build();
         writeJson(exceptionsDir.resolve(Paths.get("featureNotModifiableException.json")),
                 featureNotModifiableException);
+
+        final FeatureDefinitionNotAccessibleException featureDefinitionNotAccessibleException =
+                FeatureDefinitionNotAccessibleException.newBuilder(THING_ID, FEATURE_ID)
+                        .dittoHeaders(DITTO_HEADERS).build();
+        writeJson(exceptionsDir.resolve(Paths.get("featureDefinitionNotAccessibleException.json")),
+                featureDefinitionNotAccessibleException);
+
+        final FeatureDefinitionNotModifiableException featureDefinitionNotModifiableException =
+                FeatureDefinitionNotModifiableException.newBuilder(THING_ID, FEATURE_ID)
+                        .dittoHeaders(DITTO_HEADERS).build();
+        writeJson(exceptionsDir.resolve(Paths.get("featureDefinitionNotModifiableException.json")),
+                featureDefinitionNotModifiableException);
 
         final FeaturePropertiesNotAccessibleException featurePropertiesNotAccessibleException =
                 FeaturePropertiesNotAccessibleException.newBuilder(THING_ID, FEATURE_ID)

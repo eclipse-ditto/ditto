@@ -106,6 +106,67 @@ public final class ThingsModelFactory {
     }
 
     /**
+     * Returns a new empty builder for an immutable {@link FeatureDefinition}.
+     *
+     * @return the builder.
+     */
+    public static FeatureDefinitionBuilder newFeatureDefinitionBuilder() {
+        return null; // TODO CR-4907
+    }
+
+    /**
+     * Returns a new builder for an immutable {@link FeatureDefinition} which is initialised with the values of the
+     * given JSON array.
+     *
+     * @param jsonArray provides the initial values of the result.
+     * @return the builder.
+     * @throws NullPointerException if {@code jsonArray} is {@code null}.
+     */
+    public static FeatureDefinitionBuilder newFeatureDefinitionBuilder(final JsonArray jsonArray) {
+        return null; // TODO CR-4907
+    }
+
+    /**
+     * Returns a new immutable {@link FeatureDefinition} which represents {@code null}.
+     *
+     * @return the new {@code null}-like {@code FeatureDefinition}.
+     */
+    public static FeatureDefinition nullFeatureDefinition() {
+        return null; // TODO CR-4907
+    }
+
+    /**
+     * Returns a new immutable {@link FeatureDefinition} which is initialised with the values of the given JSON array.
+     *
+     * @param jsonArray provides the initial values of the result.
+     * @return the new immutable initialised {@code FeatureProperties}.
+     * @throws NullPointerException if {@code jsonArray} is {@code null}.
+     */
+    public static FeatureDefinition newFeatureDefinition(final JsonArray jsonArray) {
+        checkNotNull(jsonArray, "JSON array for initialization");
+
+        if (!jsonArray.isNull()) {
+            return null; // TODO CR-4907
+        } else {
+            return null; // TODO CR-4907
+        }
+    }
+
+    /**
+     * Returns a new immutable {@link FeatureDefinition} which is initialised with the values of the given JSON string.
+     * This string is required to be a valid {@link JsonArray}.
+     *
+     * @param jsonString provides the initial values of the result;
+     * @return the new immutable initialised {@code FeatureDefinition}.
+     * @throws DittoJsonException if {@code jsonString} cannot be parsed to {@code FeatureDefinition}.
+     */
+    public static FeatureDefinition newFeatureDefinition(final String jsonString) {
+        final JsonArray jsonArray =
+                DittoJsonException.wrapJsonRuntimeException(() -> JsonFactory.newArray(jsonString));
+        return newFeatureDefinition(jsonArray);
+    }
+
+    /**
      * Returns a new immutable empty {@link FeatureProperties}.
      *
      * @return the new immutable empty {@code FeatureProperties}.
