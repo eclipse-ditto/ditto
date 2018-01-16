@@ -153,6 +153,20 @@ public final class ThingsModelFactory {
     }
 
     /**
+     * Returns a new immutable {@link FeatureDefinition} which is initialised with the values of the given JSON string.
+     * This string is required to be a valid {@link JsonArray}.
+     *
+     * @param jsonString provides the initial values of the result;
+     * @return the new immutable initialised {@code FeatureDefinition}.
+     * @throws DittoJsonException if {@code jsonString} cannot be parsed to {@code FeatureDefinition}.
+     */
+    public static FeatureDefinition newFeatureDefinition(final String jsonString) {
+        final JsonArray jsonArray =
+                DittoJsonException.wrapJsonRuntimeException(() -> JsonFactory.newArray(jsonString));
+        return newFeatureDefinition(jsonArray);
+    }
+
+    /**
      * Returns a new immutable empty {@link FeatureProperties}.
      *
      * @return the new immutable empty {@code FeatureProperties}.
