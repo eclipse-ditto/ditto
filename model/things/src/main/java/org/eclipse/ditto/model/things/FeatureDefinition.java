@@ -69,6 +69,15 @@ public interface FeatureDefinition extends Iterable<FeatureDefinition.Identifier
          */
         String getVersion();
 
+        /**
+         * Returns the string representation of this identifier with the following structure:
+         * {@code "namespace:name:version"}
+         *
+         * @return the string representation.
+         */
+        @Override
+        String toString();
+
     }
 
 }

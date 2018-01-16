@@ -175,6 +175,36 @@ public final class ThingsModelFactory {
     }
 
     /**
+     * Returns an immutable instance of {@link FeatureDefinition.Identifier}.
+     *
+     * @param namespace the namespace of the returned identifier.
+     * @param name the name of the returned identifier.
+     * @param version the version of the returned identifier.
+     * @return the instance.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if any argument is empty.
+     */
+    public static FeatureDefinition.Identifier newFeatureDefinitionIdentifier(final CharSequence namespace,
+            final CharSequence name, final CharSequence version) {
+
+        return ImmutableFeatureDefinitionIdentifier.getInstance(namespace, name, version);
+    }
+
+    /**
+     * Parses the specified CharSequence and returns an immutable instance of {@link FeatureDefinition.Identifier}.
+     *
+     * @param featureIdentifierAsCharSequence CharSequence-representation of an FeatureDefinition Identifier.
+     * @return the instance.
+     * @throws NullPointerException if {@code featureIdentifierAsCharSequence} is {@code null}.
+     * @throws FeatureDefinitionIdentifierInvalidException if {@code featureIdentifierAsCharSequence} is invalid.
+     */
+    public static FeatureDefinition.Identifier newFeatureDefinitionIdentifier(
+            final CharSequence featureIdentifierAsCharSequence) {
+
+        return ImmutableFeatureDefinitionIdentifier.ofParsed(featureIdentifierAsCharSequence);
+    }
+
+    /**
      * Returns a new immutable {@link Feature} which represents {@code null}.
      *
      * @param featureId the identifier of the new feature.
