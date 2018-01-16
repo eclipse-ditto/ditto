@@ -43,6 +43,7 @@ import org.eclipse.ditto.model.things.AclNotAllowedException;
 import org.eclipse.ditto.model.things.AclValidator;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Feature;
+import org.eclipse.ditto.model.things.FeatureDefinition;
 import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Permission;
@@ -69,6 +70,7 @@ import org.eclipse.ditto.signals.commands.things.exceptions.AclModificationInval
 import org.eclipse.ditto.signals.commands.things.exceptions.AclNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.exceptions.AttributeNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.exceptions.AttributesNotAccessibleException;
+import org.eclipse.ditto.signals.commands.things.exceptions.FeatureDefinitionNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.exceptions.FeatureNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.exceptions.FeaturePropertiesNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.exceptions.FeaturePropertyNotAccessibleException;
@@ -85,6 +87,8 @@ import org.eclipse.ditto.signals.commands.things.modify.DeleteAttributeResponse;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAttributes;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAttributesResponse;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeature;
+import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureDefinition;
+import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureDefinitionResponse;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureProperties;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeaturePropertiesResponse;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureProperty;
@@ -103,6 +107,8 @@ import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributeResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributes;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributesResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeature;
+import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureDefinition;
+import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureDefinitionResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperties;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeaturePropertiesResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperty;
@@ -125,6 +131,8 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributeResponse
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributes;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributesResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeature;
+import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureDefinition;
+import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureDefinitionResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureProperties;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeaturePropertiesResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureProperty;
@@ -147,6 +155,9 @@ import org.eclipse.ditto.signals.events.things.AttributesCreated;
 import org.eclipse.ditto.signals.events.things.AttributesDeleted;
 import org.eclipse.ditto.signals.events.things.AttributesModified;
 import org.eclipse.ditto.signals.events.things.FeatureCreated;
+import org.eclipse.ditto.signals.events.things.FeatureDefinitionCreated;
+import org.eclipse.ditto.signals.events.things.FeatureDefinitionDeleted;
+import org.eclipse.ditto.signals.events.things.FeatureDefinitionModified;
 import org.eclipse.ditto.signals.events.things.FeatureDeleted;
 import org.eclipse.ditto.signals.events.things.FeatureModified;
 import org.eclipse.ditto.signals.events.things.FeaturePropertiesCreated;
@@ -395,6 +406,39 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                         .removeFeature(fd.getFeatureId())
                         .setRevision(getRevisionNumber())
                         .setModified(fd.getTimestamp().orElse(null))
+                        .build())
+
+                // # Feature Definition Creation
+                .match(FeatureDefinitionCreated.class, fdc -> thing = thing.toBuilder()
+                        .setFeature(fdc.getFeatureId(), thing.getFeatures()
+                                .flatMap(features -> features.getFeature(fdc.getFeatureId()))
+                                .map(feature -> feature.setDefinition(fdc.getDefinition()))
+                                .orElseGet(() -> Feature.newBuilder()
+                                        .definition(fdc.getDefinition())
+                                        .withId(fdc.getFeatureId()))
+                        )
+                        .setRevision(getRevisionNumber())
+                        .setModified(fdc.getTimestamp().orElse(null))
+                        .build())
+
+                // # Feature Definition Modification
+                .match(FeatureDefinitionModified.class, fdm -> thing = thing.toBuilder()
+                        .setFeature(fdm.getFeatureId(), thing.getFeatures()
+                                .flatMap(features -> features.getFeature(fdm.getFeatureId()))
+                                .map(feature -> feature.setDefinition(fdm.getDefinition()))
+                                .orElseGet(() -> Feature.newBuilder()
+                                        .definition(fdm.getDefinition())
+                                        .withId(fdm.getFeatureId()))
+                        )
+                        .setRevision(getRevisionNumber())
+                        .setModified(fdm.getTimestamp().orElse(null))
+                        .build())
+
+                // # Feature Definition Deletion
+                .match(FeatureDefinitionDeleted.class, fpd -> thing = thing.toBuilder()
+                        .setFeature(fpd.getFeatureId())
+                        .setRevision(getRevisionNumber())
+                        .setModified(fpd.getTimestamp().orElse(null))
                         .build())
 
                 // # Feature Properties Creation
@@ -687,6 +731,11 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         result.add(new RetrieveFeatureStrategy());
         result.add(new DeleteFeaturesStrategy());
         result.add(new DeleteFeatureStrategy());
+
+        // Feature Definition
+        result.add(new ModifyFeatureDefinitionStrategy());
+        result.add(new RetrieveFeatureDefinitionStrategy());
+        result.add(new DeleteFeatureDefinitionStrategy());
 
         // Feature Properties
         result.add(new ModifyFeaturePropertiesStrategy());
@@ -990,6 +1039,13 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
             final DittoHeaders dittoHeaders) {
         notifySender(getSender(),
                 AclNotAccessibleException.newBuilder(thingId, authorizationSubject)
+                        .dittoHeaders(dittoHeaders)
+                        .build());
+    }
+
+    private void featureDefinitionNotFound(final String featureId, final DittoHeaders dittoHeaders) {
+        notifySender(getSender(),
+                FeatureDefinitionNotAccessibleException.newBuilder(thingId, featureId)
                         .dittoHeaders(dittoHeaders)
                         .build());
     }
@@ -2000,6 +2056,130 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                         .orElseGet(() -> f.toJson(command.getImplementedSchemaVersion()));
                 notifySender(getSender(), RetrieveFeatureResponse.of(thingId,
                         command.getFeatureId(), featureJson, command.getDittoHeaders()));
+            } else {
+                featureNotFound(command.getFeatureId(), command.getDittoHeaders());
+            }
+        }
+    }
+
+    /**
+     * This strategy handles the {@link ModifyFeatureDefinition} command.
+     */
+    @NotThreadSafe
+    private final class ModifyFeatureDefinitionStrategy extends AbstractThingCommandStrategy<ModifyFeatureDefinition> {
+
+        /**
+         * Constructs a new {@code ModifyFeatureDefinitionStrategy} object.
+         */
+        public ModifyFeatureDefinitionStrategy() {
+            super(ModifyFeatureDefinition.class, log);
+        }
+
+        @Override
+        protected void doApply(final ModifyFeatureDefinition command) {
+            final DittoHeaders dittoHeaders = command.getDittoHeaders();
+            final Optional<Features> features = thing.getFeatures();
+
+            if (features.isPresent()) {
+                final Optional<Feature> feature = features.get().getFeature(command.getFeatureId());
+
+                if (feature.isPresent()) {
+                    final ThingModifiedEvent eventToPersist;
+                    final ThingModifyCommandResponse response;
+
+                    if (feature.get().getProperties().isPresent()) {
+                        eventToPersist = FeatureDefinitionModified.of(command.getId(), command.getFeatureId(),
+                                command.getDefinition(), nextRevision(), eventTimestamp(),
+                                dittoHeaders);
+                        response =
+                                ModifyFeatureDefinitionResponse.modified(thingId, command.getFeatureId(), dittoHeaders);
+                    } else {
+                        eventToPersist = FeatureDefinitionCreated.of(command.getId(), command.getFeatureId(),
+                                command.getDefinition(), nextRevision(), eventTimestamp(),
+                                dittoHeaders);
+                        response = ModifyFeatureDefinitionResponse.created(thingId, command.getFeatureId(),
+                                command.getDefinition(), dittoHeaders);
+                    }
+
+                    persistAndApplyEvent(command, eventToPersist, event -> notifySender(response));
+                } else {
+                    featureNotFound(command.getFeatureId(), command.getDittoHeaders());
+                }
+            } else {
+                featureNotFound(command.getFeatureId(), command.getDittoHeaders());
+            }
+        }
+    }
+
+    /**
+     * This strategy handles the {@link DeleteFeatureDefinition} command.
+     */
+    @NotThreadSafe
+    private final class DeleteFeatureDefinitionStrategy extends AbstractThingCommandStrategy<DeleteFeatureDefinition> {
+
+        /**
+         * Constructs a new {@code DeleteFeatureDefinitionStrategy} object.
+         */
+        public DeleteFeatureDefinitionStrategy() {
+            super(DeleteFeatureDefinition.class, log);
+        }
+
+        @Override
+        protected void doApply(final DeleteFeatureDefinition command) {
+            final DittoHeaders dittoHeaders = command.getDittoHeaders();
+            final Optional<Features> features = thing.getFeatures();
+
+            if (features.isPresent()) {
+                final Optional<Feature> feature = features.get().getFeature(command.getFeatureId());
+
+                if (feature.isPresent()) {
+                    if (feature.get().getDefinition().isPresent()) {
+                        final FeatureDefinitionDeleted definitionDeleted =
+                                FeatureDefinitionDeleted.of(command.getThingId(), command.getFeatureId(),
+                                        nextRevision(), eventTimestamp(), dittoHeaders);
+                        persistAndApplyEvent(command, definitionDeleted, event -> notifySender(
+                                DeleteFeatureDefinitionResponse.of(thingId, command.getFeatureId(), dittoHeaders)));
+                    } else {
+                        featureDefinitionNotFound(command.getFeatureId(), dittoHeaders);
+                    }
+                } else {
+                    featureNotFound(command.getFeatureId(), dittoHeaders);
+                }
+            } else {
+                featureNotFound(command.getFeatureId(), dittoHeaders);
+            }
+        }
+    }
+
+    /**
+     * This strategy handles the {@link RetrieveFeatureDefinition} command.
+     */
+    @NotThreadSafe
+    private final class RetrieveFeatureDefinitionStrategy
+            extends AbstractThingCommandStrategy<RetrieveFeatureDefinition> {
+
+        /**
+         * Constructs a new {@code RetrieveFeatureDefinitionStrategy} object.
+         */
+        public RetrieveFeatureDefinitionStrategy() {
+            super(RetrieveFeatureDefinition.class, log);
+        }
+
+        @Override
+        protected void doApply(final RetrieveFeatureDefinition command) {
+            final Optional<Features> optionalFeatures = thing.getFeatures();
+
+            if (optionalFeatures.isPresent()) {
+                final Optional<FeatureDefinition> optionalDefinition = optionalFeatures.flatMap(features -> features
+                        .getFeature(command.getFeatureId()))
+                        .flatMap(Feature::getDefinition);
+                if (optionalDefinition.isPresent()) {
+                    final FeatureDefinition definition = optionalDefinition.get();
+                    notifySender(RetrieveFeatureDefinitionResponse
+                            .of(thingId, command.getFeatureId(), definition, command.getDittoHeaders()));
+                } else {
+                    featureDefinitionNotFound(command.getFeatureId(), command.getDittoHeaders());
+                }
             } else {
                 featureNotFound(command.getFeatureId(), command.getDittoHeaders());
             }
