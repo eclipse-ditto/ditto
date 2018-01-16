@@ -150,6 +150,27 @@ $h3 Feature Deleted
 #parse( "snippet" )
 ```
 
+$h3 Feature Definition Created
+
+#set( $snippetFile = "/target/generated-resources/things/events/featureDefinitionCreated.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Feature Definition Modified
+
+#set( $snippetFile = "/target/generated-resources/things/events/featureDefinitionModified.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Feature Definition Deleted
+
+#set( $snippetFile = "/target/generated-resources/things/events/featureDefinitionDeleted.json" )
+```
+#parse( "snippet" )
+```
+
 $h3 Feature Properties Created
 
 #set( $snippetFile = "/target/generated-resources/things/events/featurePropertiesCreated.json" )

@@ -21,6 +21,7 @@ import org.eclipse.ditto.signals.commands.things.modify.CreateThingResponse;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAclEntryResponse;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAttributeResponse;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAttributesResponse;
+import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureDefinitionResponse;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeaturePropertiesResponse;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeaturePropertyResponse;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureResponse;
@@ -30,6 +31,7 @@ import org.eclipse.ditto.signals.commands.things.modify.ModifyAclEntryResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAclResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributeResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributesResponse;
+import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureDefinitionResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeaturePropertiesResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeaturePropertyResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureResponse;
@@ -120,6 +122,17 @@ final class ThingModifyCommandResponseAdapter extends AbstractAdapter<ThingModif
                         dittoHeadersFrom(adaptable)));
         mappingStrategies.put(DeleteFeatureResponse.TYPE,
                 adaptable -> DeleteFeatureResponse.of(thingIdFrom(adaptable), featureIdFrom(adaptable),
+                        dittoHeadersFrom(adaptable)));
+
+        mappingStrategies.put(ModifyFeatureDefinitionResponse.TYPE,
+                adaptable -> isCreated(adaptable)
+                        ? ModifyFeatureDefinitionResponse.created(thingIdFrom(adaptable), featureIdFrom(adaptable),
+                        featureDefinitionFrom(adaptable),
+                        dittoHeadersFrom(adaptable))
+                        : ModifyFeatureDefinitionResponse.modified(thingIdFrom(adaptable), featureIdFrom(adaptable),
+                        dittoHeadersFrom(adaptable)));
+        mappingStrategies.put(DeleteFeatureDefinitionResponse.TYPE,
+                adaptable -> DeleteFeatureDefinitionResponse.of(thingIdFrom(adaptable), featureIdFrom(adaptable),
                         dittoHeadersFrom(adaptable)));
 
         mappingStrategies.put(ModifyFeaturePropertiesResponse.TYPE,

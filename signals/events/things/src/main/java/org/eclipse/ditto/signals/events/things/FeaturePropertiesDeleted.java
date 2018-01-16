@@ -50,7 +50,7 @@ public final class FeaturePropertiesDeleted extends AbstractThingEvent<FeaturePr
     private final String featureId;
 
     private FeaturePropertiesDeleted(final String thingId, final String featureId, final long revision,
-            final Instant timestamp, final DittoHeaders dittoHeaders) {
+            @Nullable final Instant timestamp, final DittoHeaders dittoHeaders) {
         super(TYPE, thingId, revision, timestamp, dittoHeaders);
         this.featureId = requireNonNull(featureId, "The Feature ID must not be null!");
     }
@@ -82,7 +82,7 @@ public final class FeaturePropertiesDeleted extends AbstractThingEvent<FeaturePr
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static FeaturePropertiesDeleted of(final String thingId, final String featureId, final long revision,
-            final Instant timestamp, final DittoHeaders dittoHeaders) {
+            @Nullable final Instant timestamp, final DittoHeaders dittoHeaders) {
         return new FeaturePropertiesDeleted(thingId, featureId, revision, timestamp, dittoHeaders);
     }
 
@@ -93,7 +93,7 @@ public final class FeaturePropertiesDeleted extends AbstractThingEvent<FeaturePr
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the {@code PropertiesDeleted} which was created from the given JSON string.
      * @throws NullPointerException if {@code jsonString} is {@code null}.
-     * @throws IllegalArgumentException if {@code jsonString} is newInstance.
+     * @throws IllegalArgumentException if {@code jsonString} is empty.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * 'PropertiesDeleted' format.
      */

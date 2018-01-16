@@ -52,6 +52,7 @@ public final class ThingQueryCommandRegistry extends AbstractCommandRegistry<Thi
         parseStrategies.put(RetrieveFeatures.TYPE, RetrieveFeatures::fromJson);
         parseStrategies.put(RetrieveFeature.TYPE, RetrieveFeature::fromJson);
 
+        parseStrategies.put(RetrieveFeatureDefinition.TYPE, RetrieveFeatureDefinition::fromJson);
         parseStrategies.put(RetrieveFeatureProperties.TYPE, RetrieveFeatureProperties::fromJson);
         parseStrategies.put(RetrieveFeatureProperty.TYPE, RetrieveFeatureProperty::fromJson);
 

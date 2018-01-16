@@ -86,6 +86,20 @@ public final class ModifyLiveCommandFactory {
     }
 
     /**
+     * Returns a new immutable instance of {@code DeleteFeatureDefinitionLiveCommand}.
+     *
+     * @param command the command to base the result on.
+     * @return the instance.
+     * @throws NullPointerException if {@code command} is {@code null}.
+     * @throws ClassCastException if {@code command} is not an instance of
+     * {@link org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureDefinition DeleteFeatureDefinition}.
+     */
+    @Nonnull
+    public static DeleteFeatureDefinitionLiveCommand deleteFeatureDefinition(final Command<?> command) {
+        return DeleteFeatureDefinitionLiveCommandImpl.of(command);
+    }
+
+    /**
      * Returns a new immutable instance of {@code DeleteFeaturePropertiesLiveCommand}.
      *
      * @param command the command to base the result on.
@@ -181,6 +195,20 @@ public final class ModifyLiveCommandFactory {
     @Nonnull
     public static ModifyFeatureLiveCommand modifyFeature(final Command<?> command) {
         return ModifyFeatureLiveCommandImpl.of(command);
+    }
+
+    /**
+     * Returns a new immutable instance of {@code ModifyFeatureDefinitionLiveCommand}.
+     *
+     * @param command the command to base the result on.
+     * @return the instance.
+     * @throws NullPointerException if {@code command} is {@code null}.
+     * @throws ClassCastException if {@code command} is not an instance of
+     * {@link org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureDefinition ModifyFeatureDefinition}.
+     */
+    @Nonnull
+    public static ModifyFeatureDefinitionLiveCommand modifyFeatureDefinition(final Command<?> command) {
+        return ModifyFeatureDefinitionLiveCommandImpl.of(command);
     }
 
     /**
