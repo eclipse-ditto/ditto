@@ -114,7 +114,7 @@ public final class FeatureModified extends AbstractThingEvent<FeatureModified>
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the {@code FeatureModified} which was created from the given JSON string.
      * @throws NullPointerException if any argument is {@code null}.
-     * @throws IllegalArgumentException if {@code jsonString} is newInstance.
+     * @throws IllegalArgumentException if {@code jsonString} is empty.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * 'FeatureModified' format.
      */

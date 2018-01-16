@@ -194,6 +194,20 @@ $h3 Feature Not Modifiable
 #parse( "snippet" )
 ```
 
+$h3 Feature Definition Not Accessible
+
+#set( $snippetFile = "/target/generated-resources/things/errors/featureDefinitionNotAccessibleException.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Feature Definition Not Modifiable
+
+#set( $snippetFile = "/target/generated-resources/things/errors/featureDefinitionNotModifiableException.json" )
+```
+#parse( "snippet" )
+```
+
 $h3 Feature Properties Not Accessible
 
 #set( $snippetFile = "/target/generated-resources/things/errors/featurePropertiesNotAccessibleException.json" )

@@ -67,6 +67,10 @@ public final class ThingEventRegistry extends AbstractEventRegistry<ThingEvent> 
         parseStrategies.put(FeatureModified.TYPE, FeatureModified::fromJson);
         parseStrategies.put(FeatureDeleted.TYPE, FeatureDeleted::fromJson);
 
+        parseStrategies.put(FeatureDefinitionCreated.TYPE, FeatureDefinitionCreated::fromJson);
+        parseStrategies.put(FeatureDefinitionModified.TYPE, FeatureDefinitionModified::fromJson);
+        parseStrategies.put(FeatureDefinitionDeleted.TYPE, FeatureDefinitionDeleted::fromJson);
+
         parseStrategies.put(FeaturePropertiesCreated.TYPE, FeaturePropertiesCreated::fromJson);
         parseStrategies.put(FeaturePropertiesModified.TYPE, FeaturePropertiesModified::fromJson);
         parseStrategies.put(FeaturePropertiesDeleted.TYPE, FeaturePropertiesDeleted::fromJson);
