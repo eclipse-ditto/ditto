@@ -11,7 +11,7 @@
  */
 package org.eclipse.ditto.services.things.starter;
 
-import org.eclipse.ditto.services.utils.config.ConfigUtil;
+import org.eclipse.ditto.services.things.persistence.snapshotting.DittoThingSnapshotter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,31 +23,22 @@ import org.slf4j.LoggerFactory;
  * <li>Wires up Akka HTTP Routes</li>
  * </ul>
  */
-public final class ThingsService {
+public final class ThingsService extends AbstractThingsService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ThingsService.class);
 
-    /**
-     * Name for the Cluster of the Things Service.
-     */
-    private static final String CLUSTER_NAME = "ditto-cluster";
-
-    /**
-     * Name for the Akka Actor System of the Things Service.
-     */
-    static final String SERVICE_NAME = "things";
-
     private ThingsService() {
-        // no-op
+        super(LOGGER, DittoThingSnapshotter::getInstance);
     }
 
     /**
-     * Starts the ThingsService.
+     * Starts the Things service.
      *
-     * @param args CommandLine arguments
+     * @param args command line arguments.
      */
-    public static void main(final String... args) {
-        new ThingsApplication(LOGGER, CLUSTER_NAME, SERVICE_NAME, DittoThingsActorsCreator::new)
-                .start(ConfigUtil.determineConfig(SERVICE_NAME));
+    public static void main(final String[] args) {
+        final ThingsService thingsService = new ThingsService();
+        thingsService.start();
     }
+
 }
