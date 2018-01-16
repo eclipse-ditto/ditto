@@ -18,11 +18,11 @@ import java.net.ConnectException;
 import java.time.Duration;
 import java.util.NoSuchElementException;
 import java.util.concurrent.CompletionStage;
+import java.util.function.Function;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
 import org.eclipse.ditto.services.things.persistence.actors.ThingsPersistenceStreamingActorCreator;
-import org.eclipse.ditto.services.things.persistence.actors.ThingsActorsCreator;
 import org.eclipse.ditto.services.things.starter.util.ConfigKeys;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
@@ -130,20 +130,23 @@ final class ThingsRootActor extends AbstractActor {
     private final ActorRef thingsShardRegion;
 
 
-    private ThingsRootActor(final Config config, final ActorRef pubSubMediator,
-            final ActorMaterializer materializer, final ThingsActorsCreator actorsCreator) {
+    private ThingsRootActor(final Config config,
+            final ActorRef pubSubMediator,
+            final ActorMaterializer materializer,
+            final Function<ActorRef, Props> supervisorActorPropsFactory) {
+
         final int numberOfShards = config.getInt(ConfigKeys.Cluster.NUMBER_OF_SHARDS);
 
         final ActorRef thingCacheFacade = startChildActor(CacheFacadeActor.actorNameFor(CacheRole.THING),
                 CacheFacadeActor.props(CacheRole.THING, config));
 
-        final Props thingSupervisorProps = actorsCreator.createSupervisorActor(pubSubMediator, thingCacheFacade);
+        final Props thingSupervisorProps = supervisorActorPropsFactory.apply(thingCacheFacade);
 
         final ClusterShardingSettings shardingSettings =
-                ClusterShardingSettings.create(this.getContext().system())
+                ClusterShardingSettings.create(getContext().system())
                         .withRole(ThingsMessagingConstants.CLUSTER_ROLE);
 
-        thingsShardRegion = ClusterSharding.get(this.getContext().system())
+        thingsShardRegion = ClusterSharding.get(getContext().system())
                 .start(ThingsMessagingConstants.SHARD_REGION,
                         thingSupervisorProps,
                         shardingSettings,
@@ -197,16 +200,20 @@ final class ThingsRootActor extends AbstractActor {
      * @param config the configuration settings of the Things Service.
      * @param pubSubMediator the PubSub mediator Actor.
      * @param materializer the materializer for the akka actor system.
+     * @param supervisorActorPropsFactory factory for creating actor Props of the {@code ThingSupervisorActor}.
      * @return the Akka configuration Props object.
      */
-    static Props props(final Config config, final ActorRef pubSubMediator,
-            final ActorMaterializer materializer, final ThingsActorsCreator actorsCreator) {
+    static Props props(final Config config,
+            final ActorRef pubSubMediator,
+            final ActorMaterializer materializer,
+            final Function<ActorRef, Props> supervisorActorPropsFactory) {
+
         return Props.create(ThingsRootActor.class, new Creator<ThingsRootActor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
             public ThingsRootActor create() throws Exception {
-                return new ThingsRootActor(config, pubSubMediator, materializer, actorsCreator);
+                return new ThingsRootActor(config, pubSubMediator, materializer, supervisorActorPropsFactory);
             }
         });
     }
