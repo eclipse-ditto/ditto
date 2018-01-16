@@ -13,6 +13,7 @@ package org.eclipse.ditto.model.things;
 
 import java.util.stream.Stream;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 /**
@@ -22,46 +23,48 @@ import javax.annotation.concurrent.NotThreadSafe;
 public interface FeatureDefinitionBuilder extends Iterable<FeatureDefinition.Identifier> {
 
     /**
-     * Sets the specified Identifier to this builder. This method has no effect if the same identifier was already set.
+     * Adds the specified Identifier to this builder if it is not already present.
      *
-     * @param identifier the identifier to be set.
+     * @param identifier the identifier to be added.
      * @return this builder instance to allow method chaining.
      * @throws NullPointerException if {@code identifier} is {@code null}.
      */
-    FeatureDefinitionBuilder setIdentifier(FeatureDefinition.Identifier identifier);
+    FeatureDefinitionBuilder add(FeatureDefinition.Identifier identifier);
 
     /**
-     * Sets the specified Identifiers to this builder. This method avoids duplicates.
+     * Adds all of the identifiers in the specified Iterable to this builder if they're not already present.
      *
-     * @param identifiers the identifiers to be set.
+     * @param identifiers the identifiers to be added.
      * @return this builder instance to allow method chaining.
      * @throws NullPointerException if {@code identifiers} is {@code null}.
      */
-    FeatureDefinitionBuilder setAllIdentifiers(Iterable<FeatureDefinition.Identifier> identifiers);
+    FeatureDefinitionBuilder addAll(Iterable<FeatureDefinition.Identifier> identifiers);
 
     /**
-     * Removes the specified Identifier from this builder.
+     * Removes the specified Identifier from this builder if it is present.
      *
      * @param identifier the identifier to be removed.
      * @return this builder instance to allow method chaining.
      * @throws NullPointerException if {@code identifier} is {@code null}.
      */
-    FeatureDefinitionBuilder removeIdentifier(FeatureDefinition.Identifier identifier);
+    FeatureDefinitionBuilder remove(FeatureDefinition.Identifier identifier);
 
     /**
-     * Removes the specified Identifiers from this builder.
+     * Removes from this builder all of its identifiers that are contained in the specified Iterable.
      *
      * @param identifiers the identifiers to be removed.
      * @return this builder instance to allow method chaining.
      * @throws NullPointerException if {@code identifiers} is {@code null}.
      */
-    FeatureDefinitionBuilder removeAllIdentifiers(Iterable<FeatureDefinition.Identifier> identifiers);
+    FeatureDefinitionBuilder removeAll(Iterable<FeatureDefinition.Identifier> identifiers);
 
     /**
-     * Returns the first Identifier of this builder which is guaranteed to exist.
+     * Returns the first Identifier of this builder or {@code null} if an intermediate state of this builder does not
+     * contain any identifiers - however this should be an utterly exception.
      *
-     * @return the Identifier.
+     * @return the Identifier or {@code null}.
      */
+    @Nullable
     FeatureDefinition.Identifier getFirstIdentifier();
 
     /**

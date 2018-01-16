@@ -22,6 +22,7 @@ import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
@@ -202,6 +203,33 @@ public final class ThingsModelFactory {
             final CharSequence featureIdentifierAsCharSequence) {
 
         return ImmutableFeatureDefinitionIdentifier.ofParsed(featureIdentifierAsCharSequence);
+    }
+
+    /**
+     * Parses the specified JsonArray and returns an immutable instance of {@code FeatureDefinition}.
+     *
+     * @param jsonArray JSON array containing the identifiers of the FeatureDefinition to be returned. Non-string values
+     * are ignored.
+     * @return the instance.
+     * @throws NullPointerException if {@code jsonArray} is {@code null}.
+     * @throws IllegalArgumentException if {@code jsonArray} is empty.
+     * @throws FeatureDefinitionIdentifierInvalidException if any identifier string of the array is invalid.
+     */
+    public static FeatureDefinition newFeatureDefinition(final JsonArray jsonArray) {
+        return ImmutableFeatureDefinition.fromJson(jsonArray);
+    }
+
+    /**
+     * Returns a mutable builder with a fluent API for an immutable {@code FeatureDefinition}.
+     *
+     * @param firstIdentifier the first identifier of the returned builder.
+     * @return the builder.
+     * @throws NullPointerException if {@code firstIdentifier} is {@code null}.
+     */
+    public static FeatureDefinitionBuilder newFeatureDefinitionBuilder(
+            final FeatureDefinition.Identifier firstIdentifier) {
+
+        return ImmutableFeatureDefinition.getBuilder(firstIdentifier);
     }
 
     /**
