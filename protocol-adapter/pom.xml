@@ -220,7 +220,7 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-assembly-plugin</artifactId>
                 <configuration>
-                    <descriptor>src/assembly/examples.xml</descriptor>
+                    <descriptors>src/assembly/examples.xml</descriptors>
                 </configuration>
                 <executions>
                     <execution>

@@ -235,9 +235,7 @@
                     <plugin>
                         <artifactId>maven-assembly-plugin</artifactId>
                         <configuration>
-                            <descriptors>
-                                <descriptor>src/main/resources/assembly.xml</descriptor>
-                            </descriptors>
+                            <descriptors>src/main/resources/assembly.xml</descriptors>
                         </configuration>
                         <executions>
                             <execution>
@@ -408,9 +406,7 @@
                     <plugin>
                         <artifactId>maven-assembly-plugin</artifactId>
                         <configuration>
-                            <descriptors>
-                                <descriptor>src/main/resources/assembly.xml</descriptor>
-                            </descriptors>
+                            <descriptors>src/main/resources/assembly.xml</descriptors>
                         </configuration>
                         <executions>
                             <execution>
@@ -482,9 +478,7 @@
                     <plugin>
                         <artifactId>maven-assembly-plugin</artifactId>
                         <configuration>
-                            <descriptors>
-                                <descriptor>src/main/resources/assembly.xml</descriptor>
-                            </descriptors>
+                            <descriptors>src/main/resources/assembly.xml</descriptors>
                         </configuration>
                         <executions>
                             <execution>
