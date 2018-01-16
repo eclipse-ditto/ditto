@@ -72,6 +72,20 @@ public final class QueryLiveCommandFactory {
     }
 
     /**
+     * Returns a new immutable instance of {@code RetrieveFeatureDefinitionLiveCommand}.
+     *
+     * @param command the command to base the result on.
+     * @return the instance.
+     * @throws NullPointerException if {@code command} is {@code null}.
+     * @throws ClassCastException if {@code command} is not an instance of
+     * {@link org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureDefinition RetrieveFeatureDefinition}.
+     */
+    @Nonnull
+    public static RetrieveFeatureDefinitionLiveCommand retrieveFeatureDefinition(final Command<?> command) {
+        return RetrieveFeatureDefinitionLiveCommandImpl.of(command);
+    }
+
+    /**
      * Returns a new immutable instance of {@code RetrieveFeaturePropertiesLiveCommand}.
      *
      * @param command the command to base the result on.
