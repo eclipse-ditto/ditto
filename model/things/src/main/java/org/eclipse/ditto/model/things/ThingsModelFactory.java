@@ -20,6 +20,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonArray;
@@ -263,7 +264,7 @@ public final class ThingsModelFactory {
      * @throws FeatureDefinitionIdentifierInvalidException if {@code firstIdentifier} is invalid.
      */
     public static FeatureDefinitionBuilder newFeatureDefinitionBuilder(final CharSequence firstIdentifier) {
-        return newFeatureDefinitionBuilder(newFeatureDefinitionIdentifier(firstIdentifier));
+        return ImmutableFeatureDefinition.getBuilder(newFeatureDefinitionIdentifier(firstIdentifier));
     }
 
     /**
@@ -294,7 +295,7 @@ public final class ThingsModelFactory {
      * Returns a new immutable {@link Feature} with the given identifier.
      *
      * @param featureId the identifier of the new feature.
-     * @return a new immutable {@code Feature} with the given identifier.
+     * @return the new immutable {@code Feature}.
      * @throws NullPointerException if {@code featureId} is {@code null}.
      */
     public static Feature newFeature(final String featureId) {
@@ -305,12 +306,27 @@ public final class ThingsModelFactory {
      * Returns a new immutable {@link Feature} with the given identifier and properties.
      *
      * @param featureId the identifier of the new feature.
-     * @param featureProperties the properties of the new feature.
-     * @return a new immutable {@code Feature} with the given identifier and properties.
+     * @param featureProperties the properties of the new feature or {@code null}.
+     * @return the new immutable {@code Feature}.
      * @throws NullPointerException if {@code featureId} is {@code null}.
      */
-    public static Feature newFeature(final String featureId, final FeatureProperties featureProperties) {
+    public static Feature newFeature(final String featureId, @Nullable final FeatureProperties featureProperties) {
         return ImmutableFeature.of(featureId, featureProperties);
+    }
+
+    /**
+     * Returns a new immutable {@link Feature} with the given identifier, properties and definition.
+     *
+     * @param featureId the identifier of the new feature.
+     * @param featureProperties the properties of the new feature or {@code null}.
+     * @param featureDefinition the definition of the new feature or {@code null}.
+     * @return the new immutable {@code Feature}.
+     * @throws NullPointerException if {@code featureId} is {@code null}.
+     */
+    public static Feature newFeature(final String featureId, @Nullable final FeatureProperties featureProperties,
+            @Nullable final FeatureDefinition featureDefinition) {
+
+        return ImmutableFeature.of(featureId, featureProperties, featureDefinition);
     }
 
     /**
