@@ -410,12 +410,13 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
                 // # Feature Definition Creation
                 .match(FeatureDefinitionCreated.class, fdc -> thing = thing.toBuilder()
-                        .setFeature(fdc.getFeatureId(), thing.getFeatures()
+                        .setFeature(thing.getFeatures()
                                 .flatMap(features -> features.getFeature(fdc.getFeatureId()))
                                 .map(feature -> feature.setDefinition(fdc.getDefinition()))
                                 .orElseGet(() -> Feature.newBuilder()
                                         .definition(fdc.getDefinition())
-                                        .withId(fdc.getFeatureId()))
+                                        .withId(fdc.getFeatureId())
+                                        .build())
                         )
                         .setRevision(getRevisionNumber())
                         .setModified(fdc.getTimestamp().orElse(null))
@@ -423,12 +424,13 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
                 // # Feature Definition Modification
                 .match(FeatureDefinitionModified.class, fdm -> thing = thing.toBuilder()
-                        .setFeature(fdm.getFeatureId(), thing.getFeatures()
+                        .setFeature(thing.getFeatures()
                                 .flatMap(features -> features.getFeature(fdm.getFeatureId()))
                                 .map(feature -> feature.setDefinition(fdm.getDefinition()))
                                 .orElseGet(() -> Feature.newBuilder()
                                         .definition(fdm.getDefinition())
-                                        .withId(fdm.getFeatureId()))
+                                        .withId(fdm.getFeatureId())
+                                        .build())
                         )
                         .setRevision(getRevisionNumber())
                         .setModified(fdm.getTimestamp().orElse(null))
