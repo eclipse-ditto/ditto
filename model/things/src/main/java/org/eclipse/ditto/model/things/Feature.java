@@ -11,11 +11,11 @@
  */
 package org.eclipse.ditto.model.things;
 
-
 import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
@@ -26,7 +26,6 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
-
 
 /**
  * <p>
@@ -41,12 +40,20 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
  * The <em>data</em> related to Features is managed in form of {@link FeatureProperties}. These properties can
  * be categorized, e. g. to manage the status, the configuration or any fault information.
  * </p>
+ * <p>
+ * For the Things service to be able to work with models/concepts of a Feature (e. g. syntactically validate
+ * properties of Features or provide detailed information about message parameters, etc.) it is possible to attach a
+ * {@link FeatureDefinition}. The definition can be compared to "stereotypes" in UML or "interface" declarations in
+ * programming languages (with the difference that in programming languages the type system is fully known where as in
+ * Things service the semantics of definitions is not fixed but depends on different usage scenarios like validation,
+ * mapping, ...).
+ * </p>
  */
 @Immutable
 public interface Feature extends Jsonifiable.WithFieldSelectorAndPredicate<JsonField> {
 
     /**
-     * Returns a new empty builder for an immutable {@link Feature}.
+     * Returns a new empty builder for an immutable {@code Feature}.
      *
      * @return the builder.
      */
@@ -55,7 +62,7 @@ public interface Feature extends Jsonifiable.WithFieldSelectorAndPredicate<JsonF
     }
 
     /**
-     * Returns a new builder for an immutable {@link Feature} which is initialised with the values of the this
+     * Returns a new builder for an immutable {@code Feature} which is initialised with the values of the this
      * Feature object.
      *
      * @return the new builder.
@@ -217,6 +224,31 @@ public interface Feature extends Jsonifiable.WithFieldSelectorAndPredicate<JsonF
     Feature removeProperty(JsonPointer pointer);
 
     /**
+     * Returns the attached definition of this feature.
+     *
+     * @return the definition or an empty Optional.
+     */
+    Optional<FeatureDefinition> getDefinition();
+
+    /**
+     * Sets the specified definition to a copy of this Feature.
+     *
+     * @param featureDefinition the definition to be attached to a copy of this Feature.
+     * @return a copy of this Feature with the specified definition attached or this Feature instance if the
+     * specified definition was already set.
+     * @throws NullPointerException if {@code featureDefinition} is {@code null}.
+     */
+    Feature setDefinition(FeatureDefinition featureDefinition);
+
+    /**
+     * Removes the definition from a copy of this Feature.
+     *
+     * @return a copy of this Feature without a definition or this Feature instance if this feature was already
+     * without definition.
+     */
+    Feature removeDefinition();
+
+    /**
      * Returns all non hidden marked fields of this Feature.
      *
      * @return a JSON object representation of this Feature including only non hidden marked fields.
@@ -238,17 +270,24 @@ public interface Feature extends Jsonifiable.WithFieldSelectorAndPredicate<JsonF
     final class JsonFields {
 
         /**
-         * JSON field containing the {@link JsonSchemaVersion}.
+         * JSON field definition for the Feature's {@link JsonSchemaVersion} as {@code int}.
          */
         public static final JsonFieldDefinition<Integer> SCHEMA_VERSION =
                 JsonFactory.newIntFieldDefinition(JsonSchemaVersion.getJsonKey(), FieldType.SPECIAL,
                         FieldType.HIDDEN, JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         /**
-         * JSON field containing the Feature's properties.
+         * JSON field definition for the Feature's properties as {@link org.eclipse.ditto.json.JsonObject}.
          */
         public static final JsonFieldDefinition<JsonObject> PROPERTIES =
                 JsonFactory.newJsonObjectFieldDefinition("properties", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field definition for the Feature's definition as {@link org.eclipse.ditto.json.JsonArray}.
+         */
+        public static final JsonFieldDefinition<JsonArray> DEFINITION =
+                JsonFactory.newJsonArrayFieldDefinition("definition", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
         private JsonFields() {

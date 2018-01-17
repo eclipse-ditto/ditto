@@ -14,6 +14,7 @@ package org.eclipse.ditto.model.things;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
@@ -64,20 +65,26 @@ public interface FeatureBuilder {
         /**
          * Sets the properties of the Feature.
          *
-         * @param properties the properties of the Feature to be created.
+         * @param properties the properties of the Feature to be created or {@code null}
          * @return this builder to allow method chaining.
-         * @throws NullPointerException if {@code properties} is {@code null}.
          */
-        FromScratchBuildable properties(FeatureProperties properties);
+        FromScratchBuildable properties(@Nullable FeatureProperties properties);
 
         /**
          * Sets the properties of the Feature.
          *
-         * @param properties the properties of the Feature to be created.
+         * @param properties the properties of the Feature to be created or {@code null}.
          * @return this builder to allow method chaining.
-         * @throws NullPointerException if {@code properties} is {@code null}.
          */
-        FromScratchBuildable properties(JsonObject properties);
+        FromScratchBuildable properties(@Nullable JsonObject properties);
+
+        /**
+         * Sets the specified FeatureDefinition to be Feature to be built.
+         *
+         * @param featureDefinition the definition to be set or {@code null}.
+         * @return this builder to allow method chaining.
+         */
+        FromScratchBuildable definition(@Nullable FeatureDefinition featureDefinition);
 
         /**
          * Sets the provided ID instead of the one which was possibly contained in the Feature's JSON.
@@ -101,20 +108,18 @@ public interface FeatureBuilder {
         /**
          * Sets the properties of the Feature.
          *
-         * @param properties the properties of the Feature to be created.
+         * @param properties the properties of the Feature to be created or {@code null}.
          * @return this builder to allow method chaining.
-         * @throws NullPointerException if {@code properties} is {@code null}.
          */
-        FromCopyBuildable properties(FeatureProperties properties);
+        FromCopyBuildable properties(@Nullable FeatureProperties properties);
 
         /**
          * Sets the properties of the Feature.
          *
-         * @param properties the properties of the Feature to be created.
+         * @param properties the properties of the Feature to be created or {@code null}.
          * @return this builder to allow method chaining.
-         * @throws NullPointerException if {@code properties} is {@code null}.
          */
-        FromCopyBuildable properties(JsonObject properties);
+        FromCopyBuildable properties(@Nullable JsonObject properties);
 
         /**
          * Calls the given {@code transform} function with the currently set properties of this builder. The result of
@@ -126,6 +131,14 @@ public interface FeatureBuilder {
          * @throws NullPointerException if {@code transform} is {@code null}.
          */
         FromCopyBuildable properties(Function<FeatureProperties, FeatureProperties> transform);
+
+        /**
+         * Sets the specified FeatureDefinition to be Feature to be built.
+         *
+         * @param featureDefinition the definition to be set or {@code null}.
+         * @return this builder to allow method chaining.
+         */
+        FromCopyBuildable definition(@Nullable FeatureDefinition featureDefinition);
 
         /**
          * Sets the given Feature identifier to this builder.
