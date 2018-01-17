@@ -40,7 +40,7 @@ public final class ModifyFeatureDefinitionTest {
             .set(ThingCommand.JsonFields.TYPE, ModifyFeatureDefinition.TYPE)
             .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID)
             .set(ModifyFeatureDefinition.JSON_FEATURE_ID, TestConstants.Feature.FLUX_CAPACITOR_ID)
-            .set(ModifyFeatureDefinition.JSON_DEFINITION, TestConstants.Feature.FLUX_CAPACITOR_DEFINITION)
+            .set(ModifyFeatureDefinition.JSON_DEFINITION, TestConstants.Feature.FLUX_CAPACITOR_DEFINITION.toJson())
             .build();
 
 

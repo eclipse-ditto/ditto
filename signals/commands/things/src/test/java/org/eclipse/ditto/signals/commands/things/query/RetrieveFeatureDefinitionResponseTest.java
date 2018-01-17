@@ -41,7 +41,7 @@ public class RetrieveFeatureDefinitionResponseTest {
             .set(ThingCommandResponse.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID)
             .set(RetrieveFeatureDefinitionResponse.JSON_FEATURE_ID, TestConstants.Feature.FLUX_CAPACITOR_ID)
             .set(RetrieveFeatureDefinitionResponse.JSON_DEFINITION,
-                    TestConstants.Feature.FLUX_CAPACITOR_DEFINITION.toJson(KNOWN_SCHEMA_VERSION))
+                    TestConstants.Feature.FLUX_CAPACITOR_DEFINITION.toJson())
             .build();
 
 
