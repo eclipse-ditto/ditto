@@ -16,11 +16,11 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.json.FieldType;
-import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.FeatureDefinition;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
@@ -32,8 +32,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  * Unit test for {@link RetrieveFeatureDefinitionResponse}.
  */
 public class RetrieveFeatureDefinitionResponseTest {
-
-    private static final JsonSchemaVersion KNOWN_SCHEMA_VERSION = JsonSchemaVersion.V_2;
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(ThingCommandResponse.JsonFields.TYPE, RetrieveFeatureDefinitionResponse.TYPE)
@@ -48,7 +46,7 @@ public class RetrieveFeatureDefinitionResponseTest {
     @Test
     public void assertImmutability() {
         assertInstancesOf(RetrieveFeatureDefinitionResponse.class, areImmutable(),
-                provided(FeatureDefinition.class).isAlsoImmutable());
+                provided(JsonArray.class).isAlsoImmutable());
     }
 
 

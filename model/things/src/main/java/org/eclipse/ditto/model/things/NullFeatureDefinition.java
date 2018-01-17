@@ -14,6 +14,7 @@ package org.eclipse.ditto.model.things;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Stream;
 
 import javax.annotation.concurrent.Immutable;
@@ -27,8 +28,10 @@ import org.eclipse.ditto.json.JsonFactory;
 @Immutable
 final class NullFeatureDefinition implements FeatureDefinition {
 
+    private final JsonArray wrapped;
+
     private NullFeatureDefinition() {
-        super();
+        wrapped = JsonFactory.nullArray();
     }
 
     /**
@@ -63,7 +66,30 @@ final class NullFeatureDefinition implements FeatureDefinition {
 
     @Override
     public JsonArray toJson() {
-        return JsonFactory.nullArray();
+        return wrapped;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(wrapped);
+    }
+
+    @SuppressWarnings("squid:MethodCyclomaticComplexity")
+    @Override
+    public boolean equals(final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        final NullFeatureDefinition other = (NullFeatureDefinition) o;
+        return Objects.equals(wrapped, other.wrapped);
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + " [wrapped=" + wrapped + "]";
     }
 
     private static final class NullIdentifier implements FeatureDefinition.Identifier {
@@ -105,6 +131,22 @@ final class NullFeatureDefinition implements FeatureDefinition {
         @Override
         public String toString() {
             return "";
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hashCode(getClass().getName());
+        }
+
+        @Override
+        public boolean equals(final Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (obj == null || getClass() != obj.getClass()) {
+                return false;
+            }
+            return true;
         }
 
     }

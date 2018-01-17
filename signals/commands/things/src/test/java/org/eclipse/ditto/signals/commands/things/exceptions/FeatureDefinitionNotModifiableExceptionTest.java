@@ -51,7 +51,7 @@ public class FeatureDefinitionNotModifiableExceptionTest {
         final DittoRuntimeException actual =
                 ThingErrorRegistry.newInstance().parse(KNOWN_JSON, TestConstants.EMPTY_DITTO_HEADERS);
 
-        assertThat(actual).isEqualTo(TestConstants.Feature.FEATURE_PROPERTIES_NOT_MODIFIABLE_EXCEPTION);
+        assertThat(actual).isEqualTo(TestConstants.Feature.FEATURE_DEFINITION_NOT_MODIFIABLE_EXCEPTION);
     }
 
 }

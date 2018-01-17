@@ -159,7 +159,7 @@ abstract class AbstractAdapter<T extends Jsonifiable> implements Adapter<T> {
     protected static FeatureDefinition featureDefinitionFrom(final Adaptable adaptable) {
         return adaptable.getPayload()
                 .getValue()
-                .map(JsonValue::asObject)
+                .map(JsonValue::asArray)
                 .map(ThingsModelFactory::newFeatureDefinition)
                 .orElseThrow(() -> JsonParseException.newBuilder().build());
     }

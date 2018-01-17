@@ -147,6 +147,49 @@ final class ImmutableFeatures implements Features {
     }
 
     @Override
+    public Features setDefinition(final String featureId, final FeatureDefinition definition) {
+        checkFeatureId(featureId);
+        ConditionChecker.checkNotNull(definition, "definition to be set");
+
+        Features result = this;
+        final Feature feature = features.get(featureId);
+        if (null != feature) {
+            final Optional<FeatureDefinition> existingDefinitionOptional = feature.getDefinition();
+            if (existingDefinitionOptional.isPresent()) {
+                final FeatureDefinition existingDefinition = existingDefinitionOptional.get();
+                if (!existingDefinition.equals(definition)) {
+                    result = createNewFeaturesWithNewFeature(feature.setDefinition(definition));
+                }
+            } else {
+                result = createNewFeaturesWithNewFeature(feature.setDefinition(definition));
+            }
+        } else {
+            result = createNewFeaturesWithNewFeature(ThingsModelFactory.newFeature(featureId, null, definition));
+        }
+
+        return result;
+    }
+
+    @Override
+    public Features removeDefinition(final String featureId) {
+        checkFeatureId(featureId);
+
+        Features result = this;
+
+        final Feature feature = features.get(featureId);
+        if (null != feature) {
+            final Feature featureWithoutDefinition = feature.removeDefinition();
+            if (!featureWithoutDefinition.equals(feature)) {
+                final Map<String, Feature> featuresCopy = copyFeatures();
+                featuresCopy.put(featureId, feature.removeDefinition());
+                result = new ImmutableFeatures(featuresCopy);
+            }
+        }
+
+        return result;
+    }
+
+    @Override
     public Features setProperties(final String featureId, final FeatureProperties properties) {
         checkFeatureId(featureId);
         ConditionChecker.checkNotNull(properties, "properties to be set");
