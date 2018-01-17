@@ -16,8 +16,6 @@ import java.time.Instant;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 
@@ -46,12 +44,6 @@ public final class TestConstants {
          */
         public static final AuthorizationSubject AUTH_SUBJECT_GRIMES =
                 AuthorizationModelFactory.newAuthSubject("FrankGrimes");
-
-        /**
-         * An Authorization Context which contains all known Authorization Subjects.
-         */
-        public static final AuthorizationContext AUTH_CONTEXT =
-                AuthorizationModelFactory.newAuthContext(AUTH_SUBJECT_OLDMAN, AUTH_SUBJECT_GRIMES);
 
         /**
          * The known ACL entry of John Oldman.
@@ -117,7 +109,7 @@ public final class TestConstants {
         /**
          * A known namespace for testing.
          */
-        public static final String NAMEPSACE = "example.com";
+        public static final String NAMESPACE = "example.com";
 
         /**
          * A known Thing ID for testing.
@@ -193,30 +185,6 @@ public final class TestConstants {
                 .setRevision(REVISION_NUMBER)
                 .setModified(MODIFIED)
                 .build();
-
-        /**
-         * A known type for a {@code Resource}.
-         */
-        public static final String RESOURCE_TYPE = "relation";
-
-        /**
-         * A known {@code JsonPointer} for a {@code Resource}.
-         */
-        public static final JsonPointer RESOURCE_PATH = JsonFactory.newPointer("/attributes/foo");
-
-        /**
-         * Known Thing with policy.
-         */
-        public static final org.eclipse.ditto.model.things.Thing THING_V2_WITH_POLICY =
-                ThingsModelFactory.newThingBuilder()
-                        .setAttributes(ATTRIBUTES)
-                        .setFeatures(Feature.FEATURES)
-                        .setLifecycle(LIFECYCLE)
-                        .setPolicyId(POLICY_ID)
-                        .setId(THING_ID)
-                        .setRevision(REVISION_NUMBER)
-                        .setModified(MODIFIED)
-                        .build();
 
         private Thing() {
             throw new AssertionError();
