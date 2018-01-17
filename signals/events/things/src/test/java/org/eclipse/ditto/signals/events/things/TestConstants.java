@@ -224,7 +224,7 @@ final class TestConstants {
          * Properties of a known Feature.
          */
         public static final FeatureDefinition FLUX_CAPACITOR_DEFINITION =
-                ThingsModelFactory.newFeatureDefinitionBuilder("org.eclipse.ditto:fluxcapacitor:1.0.0").build();
+                FeatureDefinition.fromIdentifier("org.eclipse.ditto:fluxcapacitor:1.0.0");
 
         /**
          * Properties of a known Feature.

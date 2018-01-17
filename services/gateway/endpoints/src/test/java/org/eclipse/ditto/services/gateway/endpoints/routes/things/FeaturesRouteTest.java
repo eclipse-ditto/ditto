@@ -142,8 +142,7 @@ public final class FeaturesRouteTest extends EndpointTestBase {
 
     @Test
     public void putFeatureEntryDefinition() {
-        final FeatureDefinition featureDefinition =
-                ThingsModelFactory.newFeatureDefinitionBuilder("org.eclipse.ditto:vorto:0.1.0").build();
+        final FeatureDefinition featureDefinition = FeatureDefinition.fromIdentifier("org.eclipse.ditto:vorto:0.1.0");
         final TestRouteResult result = underTest.run(
                 HttpRequest.PUT(FEATURE_ENTRY_DEFINITION_PATH).withEntity(featureDefinition.toJsonString()));
         result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);

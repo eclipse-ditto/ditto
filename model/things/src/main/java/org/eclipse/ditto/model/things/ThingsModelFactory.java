@@ -234,6 +234,8 @@ public final class ThingsModelFactory {
      * @param jsonString provides the initial values of the result;
      * @return the new immutable initialised {@code FeatureDefinition}.
      * @throws DittoJsonException if {@code jsonString} cannot be parsed to {@code FeatureDefinition}.
+     * @throws IllegalArgumentException if the JSON array is empty.
+     * @throws FeatureDefinitionIdentifierInvalidException if any identifier of the JSON array is invalid.
      */
     public static FeatureDefinition newFeatureDefinition(final String jsonString) {
         final JsonArray jsonArray =
@@ -257,8 +259,8 @@ public final class ThingsModelFactory {
      *
      * @param firstIdentifier CharSequence-representation of the first FeatureDefinition Identifier.
      * @return the instance.
-     * @throws NullPointerException if {@code identifier} is {@code null}.
-     * @throws FeatureDefinitionIdentifierInvalidException if {@code identifier} is invalid.
+     * @throws NullPointerException if {@code firstIdentifier} is {@code null}.
+     * @throws FeatureDefinitionIdentifierInvalidException if {@code firstIdentifier} is invalid.
      */
     public static FeatureDefinitionBuilder newFeatureDefinitionBuilder(final CharSequence firstIdentifier) {
         return newFeatureDefinitionBuilder(newFeatureDefinitionIdentifier(firstIdentifier));
