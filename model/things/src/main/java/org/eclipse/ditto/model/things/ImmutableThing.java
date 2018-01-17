@@ -236,6 +236,19 @@ final class ImmutableThing implements Thing {
     }
 
     @Override
+    public Thing setFeatureDefinition(final String featureId, final FeatureDefinition definition) {
+        final Features newFeatures;
+        if (null == features || features.isNull()) {
+            final Feature newFeature = ThingsModelFactory.newFeature(featureId, null, definition);
+            newFeatures = ThingsModelFactory.newFeatures(newFeature);
+        } else {
+            newFeatures = features.setDefinition(featureId, definition);
+        }
+
+        return setFeatures(newFeatures);
+    }
+
+    @Override
     public Thing setFeatureProperties(final String featureId, final FeatureProperties properties) {
         final Features newFeatures;
         if (null == features || features.isNull()) {

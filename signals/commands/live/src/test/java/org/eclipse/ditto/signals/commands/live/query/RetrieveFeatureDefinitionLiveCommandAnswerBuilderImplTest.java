@@ -87,7 +87,7 @@ public final class RetrieveFeatureDefinitionLiveCommandAnswerBuilderImplTest {
                 .hasThingQueryCommandResponse()
                 .hasType(RetrieveFeatureDefinitionResponse.TYPE)
                 .hasDittoHeaders(DittoHeaders.empty())
-                .hasResourcePath(JsonPointer.of("features/" + TestConstants.Feature.FLUX_CAPACITOR_ID + "/properties"));
+                .hasResourcePath(JsonPointer.of("features/" + TestConstants.Feature.FLUX_CAPACITOR_ID + "/definition"));
     }
 
     /** */

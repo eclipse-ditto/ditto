@@ -94,6 +94,9 @@
                         </file>
                     </newVersion>
                     <parameter>
+                        <excludes>
+                            <exclude>org.eclipse.ditto.model.policies.SubjectIssuer</exclude>
+                        </excludes>
                         <onlyModified>true</onlyModified>
                         <accessModifier>public</accessModifier>
                         <breakBuildOnModifications>false</breakBuildOnModifications>

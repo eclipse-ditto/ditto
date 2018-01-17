@@ -146,6 +146,12 @@ final class ImmutableThingFromScratchBuilder implements ThingBuilder, ThingBuild
     }
 
     @Override
+    public FromScratch setFeature(final String featureId, final FeatureProperties featureProperties,
+            final FeatureDefinition featureDefinition) {
+        return setFeature(ThingsModelFactory.newFeature(featureId, featureProperties, featureDefinition));
+    }
+
+    @Override
     public FromScratch setFeature(final String featureId, final FeatureProperties featureProperties) {
         return setFeature(ThingsModelFactory.newFeature(featureId, featureProperties));
     }

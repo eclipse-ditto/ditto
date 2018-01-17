@@ -51,7 +51,7 @@ public class FeatureDefinitionNotAccessibleExceptionTest {
         final DittoRuntimeException actual =
                 ThingErrorRegistry.newInstance().parse(KNOWN_JSON, TestConstants.EMPTY_DITTO_HEADERS);
 
-        assertThat(actual).isEqualTo(TestConstants.Feature.FEATURE_PROPERTIES_NOT_ACCESSIBLE_EXCEPTION);
+        assertThat(actual).isEqualTo(TestConstants.Feature.FEATURE_DEFINITION_NOT_ACCESSIBLE_EXCEPTION);
     }
 
 }

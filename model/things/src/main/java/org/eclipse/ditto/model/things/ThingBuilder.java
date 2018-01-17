@@ -245,6 +245,20 @@ public interface ThingBuilder {
          *
          * @param featureId the identifier of the Feature to be set.
          * @param featureProperties the properties of the Feature to be set.
+         * @param featureDefinition the Definition of the Feature to be set.
+         * @return this builder to allow method chaining.
+         * @throws NullPointerException if {@code featureId} is {@code null}.
+         */
+        FromScratch setFeature(String featureId, FeatureProperties featureProperties,
+                FeatureDefinition featureDefinition);
+
+        /**
+         * Sets a Feature with the given identifier and properties to this builder. A previously set Feature with the
+         * same
+         * identifier is replaced.
+         *
+         * @param featureId the identifier of the Feature to be set.
+         * @param featureProperties the properties of the Feature to be set.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if {@code featureId} is {@code null}.
          */
@@ -863,6 +877,38 @@ public interface ThingBuilder {
          */
         FromCopy setFeature(Predicate<Features> existingFeaturesPredicate, String featureId,
                 FeatureProperties featureProperties);
+
+        /**
+         * Sets a Feature with the given identifier and properties to this builder. A previously set Feature with the
+         * same
+         * identifier is replaced.
+         *
+         * @param featureId the identifier of the Feature to be set.
+         * @param featureProperties the properties of the Feature to be set.
+         * @param featureDefinition the Definition of the Feature to be set.
+         * @return this builder to allow method chaining.
+         * @throws NullPointerException if {@code featureId} is {@code null}.
+         */
+        default FromCopy setFeature(final String featureId, final FeatureProperties featureProperties,
+                final FeatureDefinition featureDefinition) {
+            return setFeature(existingFeatures -> true, featureId, featureProperties, featureDefinition);
+        }
+
+        /**
+         * Sets a Feature with the given identifier and properties to this builder. A previously set Feature with the
+         * same
+         * identifier is replaced.
+         *
+         * @param existingFeaturesPredicate a predicate to decide whether the given features are set. The predicate
+         * receives the currently set features.
+         * @param featureId the identifier of the Feature to be set.
+         * @param featureProperties the properties of the Feature to be set.
+         * @param featureDefinition the Definition of the Feature to be set.
+         * @return this builder to allow method chaining.
+         * @throws NullPointerException if any argument is {@code null}.
+         */
+        FromCopy setFeature(Predicate<Features> existingFeaturesPredicate, String featureId,
+                FeatureProperties featureProperties, FeatureDefinition featureDefinition);
 
         /**
          * Sets the given property to the Feature with the given identifier on this builder.

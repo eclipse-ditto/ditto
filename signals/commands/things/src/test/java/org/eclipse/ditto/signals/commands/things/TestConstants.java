@@ -39,6 +39,8 @@ import org.eclipse.ditto.signals.commands.things.exceptions.AttributeNotAccessib
 import org.eclipse.ditto.signals.commands.things.exceptions.AttributeNotModifiableException;
 import org.eclipse.ditto.signals.commands.things.exceptions.AttributesNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.exceptions.AttributesNotModifiableException;
+import org.eclipse.ditto.signals.commands.things.exceptions.FeatureDefinitionNotAccessibleException;
+import org.eclipse.ditto.signals.commands.things.exceptions.FeatureDefinitionNotModifiableException;
 import org.eclipse.ditto.signals.commands.things.exceptions.FeatureNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.exceptions.FeatureNotModifiableException;
 import org.eclipse.ditto.signals.commands.things.exceptions.FeaturePropertiesNotAccessibleException;
@@ -385,6 +387,18 @@ public final class TestConstants {
          */
         public static final FeatureNotModifiableException FEATURE_NOT_MODIFIABLE_EXCEPTION =
                 FeatureNotModifiableException.newBuilder(Thing.THING_ID, FLUX_CAPACITOR_ID).build();
+
+        /**
+         * A known {@code FeatureDefinitionNotAccessibleException}.
+         */
+        public static final FeatureDefinitionNotAccessibleException FEATURE_DEFINITION_NOT_ACCESSIBLE_EXCEPTION =
+                FeatureDefinitionNotAccessibleException.newBuilder(Thing.THING_ID, FLUX_CAPACITOR_ID).build();
+
+        /**
+         * A known {@code FeatureDefinitionNotModifiableException}.
+         */
+        public static final FeatureDefinitionNotModifiableException FEATURE_DEFINITION_NOT_MODIFIABLE_EXCEPTION =
+                FeatureDefinitionNotModifiableException.newBuilder(Thing.THING_ID, FLUX_CAPACITOR_ID).build();
 
         /**
          * A known {@code FeaturePropertiesNotAccessibleException}.

@@ -98,7 +98,8 @@ public final class RetrieveFeatureDefinitionResponse extends AbstractCommandResp
     public static RetrieveFeatureDefinitionResponse of(final String thingId, final String featureId,
             @Nullable final JsonArray definitionJsonArray, final DittoHeaders dittoHeaders) {
 
-        return of(thingId, featureId, definitionJsonArray, dittoHeaders);
+        return of(thingId, featureId, FeatureDefinition.fromJson(checkNotNull(definitionJsonArray, "Definition")),
+                dittoHeaders);
     }
 
     /**
