@@ -38,9 +38,9 @@ import org.eclipse.ditto.json.JsonValue;
 @Immutable
 final class ImmutableFeatureDefinition implements FeatureDefinition {
 
-    private final List<FeatureDefinition.Identifier> identifierList;
+    private final List<Identifier> identifierList;
 
-    private ImmutableFeatureDefinition(final Collection<FeatureDefinition.Identifier> identifiers) {
+    private ImmutableFeatureDefinition(final Collection<Identifier> identifiers) {
         identifierList = Collections.unmodifiableList(new ArrayList<>(identifiers));
     }
 
@@ -75,8 +75,8 @@ final class ImmutableFeatureDefinition implements FeatureDefinition {
      * @return the builder.
      * @throws NullPointerException if {@code firstIdentifier} is {@code null}.
      */
-    public static Builder getBuilder(final FeatureDefinition.Identifier firstIdentifier) {
-        return new Builder(firstIdentifier);
+    public static Builder getBuilder(final Identifier firstIdentifier) {
+        return Builder.getInstance().add(checkNotNull(firstIdentifier, "first identifier"));
     }
 
     @Override
@@ -133,45 +133,54 @@ final class ImmutableFeatureDefinition implements FeatureDefinition {
 
     public static final class Builder implements FeatureDefinitionBuilder {
 
-        private final Set<FeatureDefinition.Identifier> identifiers;
+        private final Set<Identifier> identifiers;
 
         /**
          * Constructs a new {@code Builder} object.
-         *
-         * @param firstIdentifier the first identifier of the builder.
-         * @throws NullPointerException if {@code firstIdentifier} is {@code null}.
          */
-        private Builder(final FeatureDefinition.Identifier firstIdentifier) {
+        private Builder() {
             identifiers = new LinkedHashSet<>();
-            identifiers.add(checkNotNull(firstIdentifier, "first identifier"));
+        }
+
+        /**
+         * Returns an empty instance of {@code Builder}.
+         *
+         * @return the instance.
+         */
+        static Builder getInstance() {
+            return new Builder();
         }
 
         @Override
-        public Builder add(final FeatureDefinition.Identifier identifier) {
-            identifiers.add(checkNotNull(identifier, "identifier to be set"));
+        public Builder add(final CharSequence identifier) {
+            identifiers.add(castOrParse(checkNotNull(identifier, "identifier to be added")));
+            return this;
+        }
+
+        private static Identifier castOrParse(final CharSequence identifierAsCharSequence) {
+            return ThingsModelFactory.newFeatureDefinitionIdentifier(identifierAsCharSequence);
+        }
+
+        @Override
+        public <T extends CharSequence> Builder addAll(final Iterable<T> identifiers) {
+            checkNotNull(identifiers, "identifiers to be added").forEach(this::add);
             return this;
         }
 
         @Override
-        public Builder addAll(final Iterable<FeatureDefinition.Identifier> identifiers) {
-            checkNotNull(identifiers, "identifiers to be set").forEach(this.identifiers::add);
+        public Builder remove(final CharSequence identifier) {
+            identifiers.remove(castOrParse(checkNotNull(identifier, "identifier to be removed")));
             return this;
         }
 
         @Override
-        public Builder remove(final FeatureDefinition.Identifier identifier) {
-            identifiers.remove(checkNotNull(identifier, "identifier to be removed"));
+        public <T extends CharSequence> Builder removeAll(final Iterable<T> identifiers) {
+            checkNotNull(identifiers, "identifiers to be removed").forEach(this::remove);
             return this;
         }
 
         @Override
-        public Builder removeAll(final Iterable<FeatureDefinition.Identifier> identifiers) {
-            checkNotNull(identifiers, "identifiers to be removed").forEach(this.identifiers::remove);
-            return this;
-        }
-
-        @Override
-        public FeatureDefinition.Identifier getFirstIdentifier() {
+        public Identifier getFirstIdentifier() {
             return iterator().next();
         }
 
@@ -181,12 +190,12 @@ final class ImmutableFeatureDefinition implements FeatureDefinition {
         }
 
         @Override
-        public Stream<FeatureDefinition.Identifier> stream() {
+        public Stream<Identifier> stream() {
             return identifiers.stream();
         }
 
         @Override
-        public Iterator<FeatureDefinition.Identifier> iterator() {
+        public Iterator<Identifier> iterator() {
             return identifiers.iterator();
         }
 

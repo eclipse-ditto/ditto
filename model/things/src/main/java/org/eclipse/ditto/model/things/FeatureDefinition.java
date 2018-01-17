@@ -46,7 +46,7 @@ public interface FeatureDefinition extends Iterable<FeatureDefinition.Identifier
     /**
      * This interface represents a single fully qualified identifier of a {@code FeatureDefinition}.
      */
-    interface Identifier {
+    interface Identifier extends CharSequence {
 
         /**
          * Returns the namespace of ths identifier.

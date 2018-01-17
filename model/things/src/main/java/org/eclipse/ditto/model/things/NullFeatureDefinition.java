@@ -87,6 +87,26 @@ final class NullFeatureDefinition implements FeatureDefinition {
             return "";
         }
 
+        @Override
+        public int length() {
+            return 0;
+        }
+
+        @Override
+        public char charAt(final int index) {
+            return 0;
+        }
+
+        @Override
+        public CharSequence subSequence(final int start, final int end) {
+            return "";
+        }
+
+        @Override
+        public String toString() {
+            return "";
+        }
+
     }
 
 }
