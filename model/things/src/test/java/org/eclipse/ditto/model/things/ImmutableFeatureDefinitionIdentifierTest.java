@@ -41,6 +41,7 @@ public final class ImmutableFeatureDefinitionIdentifierTest {
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(ImmutableFeatureDefinitionIdentifier.class)
                 .usingGetClass()
+                .withIgnoredFields("stringRepresentation") // as it is only derived from other properties
                 .verify();
     }
 

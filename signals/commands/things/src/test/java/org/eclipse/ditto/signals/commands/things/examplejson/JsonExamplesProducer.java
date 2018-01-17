@@ -172,9 +172,8 @@ public class JsonExamplesProducer {
     private static final String PROPERTY_X = "x";
     private static final JsonPointer PROPERTY_POINTER = JsonFactory.newPointer(PROPERTY_X);
     private static final JsonValue PROPERTY_VALUE = JsonFactory.newValue(42);
-    private static final FeatureDefinition FEATURE_DEFINITION = ThingsModelFactory.newFeatureDefinitionBuilder()
-            .add("org.eclipse.ditto:fluxcapacitor:1.0.0")
-            .build();
+    private static final FeatureDefinition FEATURE_DEFINITION = ThingsModelFactory.newFeatureDefinitionBuilder(
+            ThingsModelFactory.newFeatureDefinitionIdentifier("org.eclipse.ditto:fluxcapacitor:1.0.0")).build();
     private static final FeatureProperties FEATURE_PROPERTIES = ThingsModelFactory.newFeaturePropertiesBuilder()
             .set("x", 3.141)
             .set("y", 2.718)

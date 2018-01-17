@@ -38,6 +38,7 @@ final class ImmutableFeatureDefinitionIdentifier implements FeatureDefinition.Id
     private final String namespace;
     private final String name;
     private final String version;
+    private final String stringRepresentation;
 
     private ImmutableFeatureDefinitionIdentifier(final CharSequence theNamespace, final CharSequence theName,
             final CharSequence theVersion) {
@@ -45,6 +46,7 @@ final class ImmutableFeatureDefinitionIdentifier implements FeatureDefinition.Id
         namespace = argumentNotEmpty(theNamespace, "namespace").toString();
         name = argumentNotEmpty(theName, "name").toString();
         version = argumentNotEmpty(theVersion, "version").toString();
+        stringRepresentation = namespace + COLON + name + COLON + version;
     }
 
     /**
@@ -120,8 +122,23 @@ final class ImmutableFeatureDefinitionIdentifier implements FeatureDefinition.Id
     }
 
     @Override
+    public int length() {
+        return stringRepresentation.length();
+    }
+
+    @Override
+    public char charAt(final int index) {
+        return stringRepresentation.charAt(index);
+    }
+
+    @Override
+    public CharSequence subSequence(final int start, final int end) {
+        return stringRepresentation.subSequence(start, end);
+    }
+
+    @Override
     public String toString() {
-        return namespace + COLON + name + COLON + version;
+        return stringRepresentation;
     }
 
     /**

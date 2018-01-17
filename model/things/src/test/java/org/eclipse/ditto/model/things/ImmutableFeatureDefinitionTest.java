@@ -23,6 +23,7 @@ import java.util.List;
 
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.model.things.FeatureDefinition.Identifier;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -32,13 +33,13 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  */
 public final class ImmutableFeatureDefinitionTest {
 
-    private static final FeatureDefinition.Identifier FIRST_IDENTIFIER =
+    private static final Identifier FIRST_IDENTIFIER =
             ThingsModelFactory.newFeatureDefinitionIdentifier("org.eclipse.ditto:vorto:0.1.0");
 
-    private static final FeatureDefinition.Identifier SECOND_IDENTIFIER =
+    private static final Identifier SECOND_IDENTIFIER =
             ThingsModelFactory.newFeatureDefinitionIdentifier("org.eclipse.ditto:vorto:1.0.0");
 
-    private static final FeatureDefinition.Identifier THIRD_IDENTIFIER =
+    private static final Identifier THIRD_IDENTIFIER =
             ThingsModelFactory.newFeatureDefinitionIdentifier("foo:bar:2.0.0");
 
     private static final JsonArray VALID_JSON = JsonFactory.newArrayBuilder()
@@ -49,7 +50,7 @@ public final class ImmutableFeatureDefinitionTest {
     public void assertImmutability() {
         assertInstancesOf(ImmutableFeatureDefinition.class,
                 areImmutable(),
-                provided(FeatureDefinition.Identifier.class).isAlsoImmutable());
+                provided(Identifier.class).isAlsoImmutable());
     }
 
     @Test
@@ -91,8 +92,7 @@ public final class ImmutableFeatureDefinitionTest {
 
     @Test
     public void addAllToBuilderWorksAsExpected() {
-        final List<FeatureDefinition.Identifier> additionalIdentifiers =
-                Arrays.asList(THIRD_IDENTIFIER, SECOND_IDENTIFIER);
+        final List<Identifier> additionalIdentifiers = Arrays.asList(THIRD_IDENTIFIER, SECOND_IDENTIFIER);
 
         final FeatureDefinitionBuilder underTest = ImmutableFeatureDefinition.getBuilder(FIRST_IDENTIFIER);
         underTest.addAll(additionalIdentifiers);

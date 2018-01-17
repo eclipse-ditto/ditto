@@ -28,8 +28,9 @@ public interface FeatureDefinitionBuilder extends Iterable<FeatureDefinition.Ide
      * @param identifier the identifier to be added.
      * @return this builder instance to allow method chaining.
      * @throws NullPointerException if {@code identifier} is {@code null}.
+     * @throws FeatureDefinitionIdentifierInvalidException if {@code identifier} is invalid.
      */
-    FeatureDefinitionBuilder add(FeatureDefinition.Identifier identifier);
+    FeatureDefinitionBuilder add(CharSequence identifier);
 
     /**
      * Adds all of the identifiers in the specified Iterable to this builder if they're not already present.
@@ -37,8 +38,9 @@ public interface FeatureDefinitionBuilder extends Iterable<FeatureDefinition.Ide
      * @param identifiers the identifiers to be added.
      * @return this builder instance to allow method chaining.
      * @throws NullPointerException if {@code identifiers} is {@code null}.
+     * @throws FeatureDefinitionIdentifierInvalidException if any identifier of {@code identifiers} is invalid.
      */
-    FeatureDefinitionBuilder addAll(Iterable<FeatureDefinition.Identifier> identifiers);
+    <T extends CharSequence> FeatureDefinitionBuilder addAll(Iterable<T> identifiers);
 
     /**
      * Removes the specified Identifier from this builder if it is present.
@@ -46,8 +48,9 @@ public interface FeatureDefinitionBuilder extends Iterable<FeatureDefinition.Ide
      * @param identifier the identifier to be removed.
      * @return this builder instance to allow method chaining.
      * @throws NullPointerException if {@code identifier} is {@code null}.
+     * @throws FeatureDefinitionIdentifierInvalidException if {@code identifier} is invalid.
      */
-    FeatureDefinitionBuilder remove(FeatureDefinition.Identifier identifier);
+    FeatureDefinitionBuilder remove(CharSequence identifier);
 
     /**
      * Removes from this builder all of its identifiers that are contained in the specified Iterable.
@@ -55,8 +58,9 @@ public interface FeatureDefinitionBuilder extends Iterable<FeatureDefinition.Ide
      * @param identifiers the identifiers to be removed.
      * @return this builder instance to allow method chaining.
      * @throws NullPointerException if {@code identifiers} is {@code null}.
+     * @throws FeatureDefinitionIdentifierInvalidException if any identifier of {@code identifiers} is invalid.
      */
-    FeatureDefinitionBuilder removeAll(Iterable<FeatureDefinition.Identifier> identifiers);
+    <T extends CharSequence> FeatureDefinitionBuilder removeAll(Iterable<T> identifiers);
 
     /**
      * Returns the first Identifier of this builder or {@code null} if an intermediate state of this builder does not
