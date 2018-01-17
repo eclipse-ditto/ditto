@@ -2089,7 +2089,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                     final ThingModifiedEvent eventToPersist;
                     final ThingModifyCommandResponse response;
 
-                    if (feature.get().getProperties().isPresent()) {
+                    if (feature.get().getDefinition().isPresent()) {
                         eventToPersist = FeatureDefinitionModified.of(command.getId(), command.getFeatureId(),
                                 command.getDefinition(), nextRevision(), eventTimestamp(),
                                 dittoHeaders);
