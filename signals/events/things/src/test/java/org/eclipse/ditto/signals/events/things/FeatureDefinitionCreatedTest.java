@@ -37,7 +37,7 @@ public final class FeatureDefinitionCreatedTest {
             .set(ThingEvent.JsonFields.THING_ID, TestConstants.Thing.THING_ID)
             .set(ThingEvent.JsonFields.FEATURE_ID, TestConstants.Feature.FLUX_CAPACITOR_ID)
             .set(FeatureDefinitionCreated.JSON_DEFINITION,
-                    TestConstants.Feature.FLUX_CAPACITOR_DEFINITION.toJson(FieldType.regularOrSpecial()))
+                    TestConstants.Feature.FLUX_CAPACITOR_DEFINITION.toJson())
             .build();
 
 

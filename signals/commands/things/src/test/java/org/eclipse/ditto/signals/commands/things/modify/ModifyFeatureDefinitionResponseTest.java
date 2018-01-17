@@ -38,7 +38,7 @@ public class ModifyFeatureDefinitionResponseTest {
             .set(ThingCommandResponse.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID)
             .set(ModifyFeatureDefinitionResponse.JSON_FEATURE_ID, TestConstants.Feature.FLUX_CAPACITOR_ID)
             .set(ModifyFeatureDefinitionResponse.JSON_DEFINITION,
-                    TestConstants.Feature.FLUX_CAPACITOR_DEFINITION.toJson(FieldType.regularOrSpecial()))
+                    TestConstants.Feature.FLUX_CAPACITOR_DEFINITION.toJson())
             .build();
 
     private static final JsonObject KNOWN_JSON_UPDATED = JsonFactory.newObjectBuilder()

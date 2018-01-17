@@ -21,6 +21,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.things.FeatureDefinition;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.junit.Test;
@@ -39,7 +40,7 @@ public final class FeatureDefinitionModifiedTest {
             .set(ThingEvent.JsonFields.THING_ID, TestConstants.Thing.THING_ID)
             .set(ThingEvent.JsonFields.FEATURE_ID, TestConstants.Feature.FLUX_CAPACITOR_ID)
             .set(FeatureDefinitionModified.JSON_DEFINITION,
-                    TestConstants.Feature.FLUX_CAPACITOR_DEFINITION.toJson(FieldType.regularOrSpecial()))
+                    TestConstants.Feature.FLUX_CAPACITOR_DEFINITION.toJson())
             .build();
 
 
