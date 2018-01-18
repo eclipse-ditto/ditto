@@ -99,14 +99,14 @@ public interface Thing extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFie
     }
 
     /**
-     * Returns the identifier of this Thing.
+     * Returns the ID of this Thing.
      *
-     * @return the identifier of this Thing.
+     * @return the ID of this Thing.
      */
     Optional<String> getId();
 
     /**
-     * Returns the namespace this Thing was created in. The namespace is derived from the identifier of this Thing.
+     * Returns the namespace this Thing was created in. The namespace is derived from the ID of this Thing.
      *
      * @return the namespace this Thing was created in.
      */
@@ -248,7 +248,7 @@ public interface Thing extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFie
     /**
      * Sets the given Definition of a Feature on a copy of this Thing.
      *
-     * @param featureId the identifier of the Feature.
+     * @param featureId the ID of the Feature.
      * @param definition the Definition to be set.
      * @return a copy of this Thing with the Feature containing the given Definition.
      * @throws NullPointerException if {@code featureId} is {@code null}.
@@ -258,7 +258,7 @@ public interface Thing extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFie
     /**
      * Sets the given properties of a Feature on a copy of this Thing.
      *
-     * @param featureId the identifier of the Feature.
+     * @param featureId the ID of the Feature.
      * @param properties the properties to be set.
      * @return a copy of this Thing with the Feature containing the given properties.
      * @throws NullPointerException if {@code featureId} is {@code null}.
@@ -266,9 +266,9 @@ public interface Thing extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFie
     Thing setFeatureProperties(String featureId, FeatureProperties properties);
 
     /**
-     * Sets the given property to the Feature with the given identifier on a copy of this Thing.
+     * Sets the given property to the Feature with the given ID on a copy of this Thing.
      *
-     * @param featureId the identifier of the Feature.
+     * @param featureId the ID of the Feature.
      * @param propertyPath the hierarchical path within the Feature to the property to be set.
      * @param propertyValue the property value to be set.
      * @return a copy of this Thing with the Feature containing the given property.
@@ -281,9 +281,9 @@ public interface Thing extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFie
     }
 
     /**
-     * Sets the given property to the Feature with the given identifier on a copy of this Thing.
+     * Sets the given property to the Feature with the given ID on a copy of this Thing.
      *
-     * @param featureId the identifier of the Feature.
+     * @param featureId the ID of the Feature.
      * @param propertyPath the hierarchical path within the Feature to the property to be set.
      * @param propertyValue the property value to be set.
      * @return a copy of this Thing with the Feature containing the given property.
@@ -296,9 +296,9 @@ public interface Thing extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFie
     }
 
     /**
-     * Sets the given property to the Feature with the given identifier on a copy of this Thing.
+     * Sets the given property to the Feature with the given ID on a copy of this Thing.
      *
-     * @param featureId the identifier of the Feature.
+     * @param featureId the ID of the Feature.
      * @param propertyPath the hierarchical path within the Feature to the property to be set.
      * @param propertyValue the property value to be set.
      * @return a copy of this Thing with the Feature containing the given property.
@@ -309,9 +309,9 @@ public interface Thing extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFie
     }
 
     /**
-     * Sets the given property to the Feature with the given identifier on a copy of this Thing.
+     * Sets the given property to the Feature with the given ID on a copy of this Thing.
      *
-     * @param featureId the identifier of the Feature.
+     * @param featureId the ID of the Feature.
      * @param propertyPath the hierarchical path within the Feature to the property to be set.
      * @param propertyValue the property value to be set.
      * @return a copy of this Thing with the Feature containing the given property.
@@ -324,9 +324,9 @@ public interface Thing extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFie
     }
 
     /**
-     * Sets the given property to the Feature with the given identifier on a copy of this Thing.
+     * Sets the given property to the Feature with the given ID on a copy of this Thing.
      *
-     * @param featureId the identifier of the Feature.
+     * @param featureId the ID of the Feature.
      * @param propertyPath the hierarchical path within the Feature to the property to be set.
      * @param propertyValue the property value to be set.
      * @return a copy of this Thing with the Feature containing the given property.
@@ -339,9 +339,9 @@ public interface Thing extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFie
     }
 
     /**
-     * Sets the given property to the Feature with the given identifier on a copy of this Thing.
+     * Sets the given property to the Feature with the given ID on a copy of this Thing.
      *
-     * @param featureId the identifier of the Feature.
+     * @param featureId the ID of the Feature.
      * @param propertyPath the hierarchical path within the Feature to the property to be set.
      * @param propertyValue the property value to be set.
      * @return a copy of this Thing with the Feature containing the given property.
@@ -354,9 +354,9 @@ public interface Thing extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFie
     }
 
     /**
-     * Sets the given property to the Feature with the given identifier on a copy of this Thing.
+     * Sets the given property to the Feature with the given ID on a copy of this Thing.
      *
-     * @param featureId the identifier of the Feature.
+     * @param featureId the ID of the Feature.
      * @param propertyPath the hierarchical path within the Feature to the property to be set.
      * @param propertyValue the property value to be set.
      * @return a copy of this Thing with the Feature containing the given property.
@@ -367,7 +367,7 @@ public interface Thing extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFie
     /**
      * Removes all properties from the given Feature on a copy of this Thing.
      *
-     * @param featureId the identifier of the Feature of which all properties are to be removed.
+     * @param featureId the ID of the Feature of which all properties are to be removed.
      * @return a copy of this Thing with all of the Feature's properties removed.
      * @throws NullPointerException if {@code featureId} is {@code null}.
      */
@@ -376,7 +376,7 @@ public interface Thing extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFie
     /**
      * Removes the given property from a Feature on a copy of this Thing.
      *
-     * @param featureId the identifier of the Feature.
+     * @param featureId the ID of the Feature.
      * @param propertyPath the hierarchical path within the Feature to the property to be removed.
      * @return a copy of this Thing with the given Feature property removed.
      * @throws NullPointerException if any argument is {@code null}.
@@ -388,7 +388,7 @@ public interface Thing extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFie
     /**
      * Removes the given property from a Feature on a copy of this Thing.
      *
-     * @param featureId the identifier of the Feature.
+     * @param featureId the ID of the Feature.
      * @param propertyPath the hierarchical path within the Feature to the property to be removed.
      * @return a copy of this Thing with the given Feature property removed.
      * @throws NullPointerException if any argument is {@code null}.
@@ -474,56 +474,56 @@ public interface Thing extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFie
     Thing removeAllPermissionsOf(AuthorizationSubject authorizationSubject);
 
     /**
-     * Returns the Policy identifier of this Thing.
+     * Returns the Policy ID of this Thing.
      *
-     * @return the Policy identifier of this Thing.
+     * @return the Policy ID of this Thing.
      */
     Optional<String> getPolicyId();
 
     /**
-     * Sets the given Policy identifier on a copy of this Thing.
+     * Sets the given Policy ID on a copy of this Thing.
      *
-     * @param policyId the Policy identifier to set.
-     * @return a copy of this Thing with {@code policyId} as its Policy identifier.
+     * @param policyId the Policy ID to set.
+     * @return a copy of this Thing with {@code policyId} as its Policy ID.
      */
     Thing setPolicyId(@Nullable String policyId);
 
     /**
-     * Returns the features of this Thing.
+     * Returns the Features of this Thing.
      *
-     * @return the features of this Thing.
+     * @return the Features of this Thing.
      */
     Optional<Features> getFeatures();
 
     /**
-     * Sets the given features to a copy of this Thing.
+     * Sets the given Features to a copy of this Thing.
      *
-     * @param features the features to be set.
+     * @param features the Features to be set.
      * @return a copy of this Thing with the features set.
      */
     Thing setFeatures(@Nullable Features features);
 
     /**
-     * Removes all features from a copy of this Thing.
+     * Removes all Features from a copy of this Thing.
      *
-     * @return a copy of this Thing with all of its features removed.
+     * @return a copy of this Thing with all of its Features removed.
      */
     Thing removeFeatures();
 
     /**
-     * Sets the given feature to a copy of this Thing. An already existing feature with the same identifier is replaced.
+     * Sets the given Feature to a copy of this Thing. An already existing Feature with the same ID is replaced.
      *
-     * @param feature the feature to be set.
+     * @param feature the Feature to be set.
      * @return a copy of this Thing with the given feature.
      * @throws NullPointerException if {@code feature} is {@code null}.
      */
     Thing setFeature(Feature feature);
 
     /**
-     * Removes the feature with the specified identifier from a copy of this Thing.
+     * Removes the Feature with the specified ID from a copy of this Thing.
      *
-     * @param featureId the identifier of the feature to be removed.
-     * @return a copy of this Thing without the feature with the given identifier.
+     * @param featureId the ID of the Feature to be removed.
+     * @return a copy of this Thing without the Feature with the given ID.
      */
     Thing removeFeature(String featureId);
 
@@ -584,7 +584,7 @@ public interface Thing extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFie
                         JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         /**
-         * JSON field containing the Thing's identifier.
+         * JSON field containing the Thing's ID.
          */
         public static final JsonFieldDefinition<String> ID =
                 JsonFactory.newStringFieldDefinition("thingId", FieldType.REGULAR, JsonSchemaVersion.V_1,
@@ -597,7 +597,7 @@ public interface Thing extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFie
                 JsonFactory.newJsonObjectFieldDefinition("acl", FieldType.REGULAR, JsonSchemaVersion.V_1);
 
         /**
-         * JSON field containing the Thing's Policy identifier.
+         * JSON field containing the Thing's Policy ID.
          */
         public static final JsonFieldDefinition<String> POLICY_ID =
                 JsonFactory.newStringFieldDefinition("policyId", FieldType.REGULAR, JsonSchemaVersion.V_2);

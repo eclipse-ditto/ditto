@@ -52,9 +52,9 @@ final class ImmutableFeatureDefinitionIdentifier implements FeatureDefinition.Id
     /**
      * Returns an instance of {@code ImmutableFeatureDefinitionIdentifier}.
      *
-     * @param namespace the namespace of the returned identifier.
-     * @param name the name of the returned identifier.
-     * @param version the version of the returned identifier.
+     * @param namespace the namespace of the returned Identifier.
+     * @param name the name of the returned Identifier.
+     * @param version the version of the returned Identifier.
      * @return the instance.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if any argument is empty.
@@ -142,7 +142,7 @@ final class ImmutableFeatureDefinitionIdentifier implements FeatureDefinition.Id
     }
 
     /**
-     * This class provides constants for names of regex pattern capturing group..
+     * This class provides constants for names of regex pattern capturing group.
      */
     @Immutable
     private static final class CapturingGroup {

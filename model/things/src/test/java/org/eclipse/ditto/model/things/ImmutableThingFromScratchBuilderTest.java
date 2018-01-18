@@ -255,8 +255,8 @@ public final class ImmutableThingFromScratchBuilderTest {
 
     @Test
     public void setFeatureWithProperties() {
-        underTest.setFeature(TestConstants.Feature.FLUX_CAPACITOR_ID, TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES,
-                TestConstants.Feature.FLUX_CAPACITOR_DEFINITION);
+        underTest.setFeature(TestConstants.Feature.FLUX_CAPACITOR_ID,
+                TestConstants.Feature.FLUX_CAPACITOR_DEFINITION, TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES);
         final Thing thing = underTest.build();
 
         assertThat(thing).hasFeature(TestConstants.Feature.FLUX_CAPACITOR);

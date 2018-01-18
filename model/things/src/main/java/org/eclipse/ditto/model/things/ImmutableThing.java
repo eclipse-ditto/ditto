@@ -104,7 +104,7 @@ final class ImmutableThing implements Thing {
      * Creates a new Thing object which is based on the given values.
      *
      * @param thingId the ID of the Thing to be created.
-     * @param policyId the Policy identifier for the Thing to be created.
+     * @param policyId the Policy ID for the Thing to be created.
      * @param attributes the attributes of the Thing to be created.
      * @param features the features of the Thing to be created.
      * @param lifecycle the lifecycle of the Thing to be created.
@@ -239,7 +239,7 @@ final class ImmutableThing implements Thing {
     public Thing setFeatureDefinition(final String featureId, final FeatureDefinition definition) {
         final Features newFeatures;
         if (null == features || features.isNull()) {
-            final Feature newFeature = ThingsModelFactory.newFeature(featureId, null, definition);
+            final Feature newFeature = ThingsModelFactory.newFeature(featureId, definition, null);
             newFeatures = ThingsModelFactory.newFeatures(newFeature);
         } else {
             newFeatures = features.setDefinition(featureId, definition);
