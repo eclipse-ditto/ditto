@@ -176,12 +176,12 @@ final class ImmutableFeature implements Feature {
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder()
                 .set(JsonFields.SCHEMA_VERSION, schemaVersion.toInt(), predicate);
 
-        if (null != properties) {
-            jsonObjectBuilder.set(JsonFields.PROPERTIES, properties, predicate);
-        }
-
         if (null != definition) {
             jsonObjectBuilder.set(JsonFields.DEFINITION, definition.toJson(), predicate);
+        }
+
+        if (null != properties) {
+            jsonObjectBuilder.set(JsonFields.PROPERTIES, properties, predicate);
         }
 
         return jsonObjectBuilder.build();

@@ -233,7 +233,8 @@ public final class ImmutableFeaturesTest {
     public void setPropertiesOnEmptyFeaturesCreatesNewFeatureWithProperties() {
         final Features emptyFeatures = ImmutableFeatures.empty();
         final Features withFluxCapacitor = emptyFeatures.setProperties(TestConstants.Feature.FLUX_CAPACITOR_ID,
-                TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES);
+                TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES)
+                .setDefinition(TestConstants.Feature.FLUX_CAPACITOR_ID, TestConstants.Feature.FLUX_CAPACITOR_DEFINITION);
         final Optional<Feature> fluxCapacitorOptional = withFluxCapacitor.getFeature(
                 TestConstants.Feature.FLUX_CAPACITOR_ID);
         final Feature fluxCapacitor = fluxCapacitorOptional.get();

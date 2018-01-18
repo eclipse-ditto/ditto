@@ -50,11 +50,11 @@ final class ImmutableFeatureFromScratchBuilder implements FeatureBuilder, Featur
         if (jsonObject.isNull()) {
             result.isFeatureValueJsonNull = true;
         } else {
-            result.properties(jsonObject.getValue(Feature.JsonFields.PROPERTIES)
-                    .map(ThingsModelFactory::newFeatureProperties)
-                    .orElse(null));
             result.definition(jsonObject.getValue(Feature.JsonFields.DEFINITION)
                     .map(ThingsModelFactory::newFeatureDefinition)
+                    .orElse(null));
+            result.properties(jsonObject.getValue(Feature.JsonFields.PROPERTIES)
+                    .map(ThingsModelFactory::newFeatureProperties)
                     .orElse(null));
         }
 

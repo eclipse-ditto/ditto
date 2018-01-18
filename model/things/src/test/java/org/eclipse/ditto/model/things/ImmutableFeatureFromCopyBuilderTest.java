@@ -55,7 +55,10 @@ public final class ImmutableFeatureFromCopyBuilderTest {
     public void featurePropertiesNullGivesNullFeature() {
         final Feature feature = underTest.properties((FeatureProperties) null).build();
 
-        assertThat(feature).isEqualTo(Feature.newBuilder().withId(TestConstants.Feature.FLUX_CAPACITOR_ID).build());
+        assertThat(feature).isEqualTo(Feature.newBuilder()
+                .definition(TestConstants.Feature.FLUX_CAPACITOR_DEFINITION)
+                .withId(TestConstants.Feature.FLUX_CAPACITOR_ID)
+                .build());
     }
 
 
@@ -63,7 +66,10 @@ public final class ImmutableFeatureFromCopyBuilderTest {
     public void jsonObjectNullGivesNullFeature() {
         final Feature feature = underTest.properties((JsonObject) null).build();
 
-        assertThat(feature).isEqualTo(Feature.newBuilder().withId(TestConstants.Feature.FLUX_CAPACITOR_ID).build());
+        assertThat(feature).isEqualTo(Feature.newBuilder()
+                .definition(TestConstants.Feature.FLUX_CAPACITOR_DEFINITION)
+                .withId(TestConstants.Feature.FLUX_CAPACITOR_ID)
+                .build());
     }
 
 
@@ -77,6 +83,7 @@ public final class ImmutableFeatureFromCopyBuilderTest {
 
         final Feature expected = Feature.newBuilder() //
                 .properties(featureProperties) //
+                .definition(TestConstants.Feature.FLUX_CAPACITOR_DEFINITION)
                 .withId(TestConstants.Feature.FLUX_CAPACITOR_ID) //
                 .build();
 

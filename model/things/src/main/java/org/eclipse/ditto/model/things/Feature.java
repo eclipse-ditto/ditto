@@ -277,17 +277,18 @@ public interface Feature extends Jsonifiable.WithFieldSelectorAndPredicate<JsonF
                         FieldType.HIDDEN, JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         /**
-         * JSON field definition for the Feature's properties as {@link org.eclipse.ditto.json.JsonObject}.
-         */
-        public static final JsonFieldDefinition<JsonObject> PROPERTIES =
-                JsonFactory.newJsonObjectFieldDefinition("properties", FieldType.REGULAR, JsonSchemaVersion.V_1,
-                        JsonSchemaVersion.V_2);
-
-        /**
          * JSON field definition for the Feature's definition as {@link org.eclipse.ditto.json.JsonArray}.
          */
         public static final JsonFieldDefinition<JsonArray> DEFINITION =
                 JsonFactory.newJsonArrayFieldDefinition("definition", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
+
+        /**
+         *
+         * JSON field definition for the Feature's properties as {@link org.eclipse.ditto.json.JsonObject}.
+         */
+        public static final JsonFieldDefinition<JsonObject> PROPERTIES =
+                JsonFactory.newJsonObjectFieldDefinition("properties", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
         private JsonFields() {
