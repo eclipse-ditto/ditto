@@ -72,11 +72,9 @@ final class TestConstants {
     static final FeatureProperties FEATURE_PROPERTIES =
             ThingsModelFactory.newFeatureProperties(FEATURE_PROPERTIES_JSON);
 
-    static final JsonArray FEATURE_DEFINITION_JSON =
-            JsonArray.newBuilder().add("org.eclipse.ditto:foo:1.0.0").build();
+    static final FeatureDefinition FEATURE_DEFINITION = FeatureDefinition.fromIdentifier("org.eclipse.ditto:foo:1.0.0");
 
-    static final FeatureDefinition FEATURE_DEFINITION =
-            ThingsModelFactory.newFeatureDefinition(FEATURE_DEFINITION_JSON);
+    static final JsonArray FEATURE_DEFINITION_JSON = FEATURE_DEFINITION.toJson();
 
     static final Feature FEATURE = Feature.newBuilder().properties(FEATURE_PROPERTIES).withId(FEATURE_ID).build();
 

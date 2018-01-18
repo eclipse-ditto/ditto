@@ -37,6 +37,9 @@ import org.eclipse.ditto.signals.events.things.AttributesCreated;
 import org.eclipse.ditto.signals.events.things.AttributesDeleted;
 import org.eclipse.ditto.signals.events.things.AttributesModified;
 import org.eclipse.ditto.signals.events.things.FeatureCreated;
+import org.eclipse.ditto.signals.events.things.FeatureDefinitionCreated;
+import org.eclipse.ditto.signals.events.things.FeatureDefinitionDeleted;
+import org.eclipse.ditto.signals.events.things.FeatureDefinitionModified;
 import org.eclipse.ditto.signals.events.things.FeatureDeleted;
 import org.eclipse.ditto.signals.events.things.FeatureModified;
 import org.eclipse.ditto.signals.events.things.FeaturePropertiesCreated;
@@ -55,6 +58,7 @@ import org.eclipse.ditto.signals.events.things.ThingDeleted;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.eclipse.ditto.signals.events.things.ThingModified;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 /**
@@ -62,10 +66,38 @@ import org.junit.Test;
  */
 public final class ThingEventAdapterTest {
 
+    private static TopicPath topicPathCreated;
+    private static TopicPath topicPathModified;
+    private static TopicPath topicPathDeleted;
+
     private ThingEventAdapter underTest;
 
+    @BeforeClass
+    public static void initConstants() {
+        topicPathCreated = TopicPath.newBuilder(TestConstants.THING_ID)
+                .things()
+                .twin()
+                .events()
+                .created()
+                .build();
+
+        topicPathModified = TopicPath.newBuilder(TestConstants.THING_ID)
+                .things()
+                .twin()
+                .events()
+                .modified()
+                .build();
+
+        topicPathDeleted = TopicPath.newBuilder(TestConstants.THING_ID)
+                .things()
+                .twin()
+                .events()
+                .deleted()
+                .build();
+    }
+
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         underTest = ThingEventAdapter.newInstance();
     }
 
@@ -79,15 +111,9 @@ public final class ThingEventAdapterTest {
         final ThingCreated expected =
                 ThingCreated.of(TestConstants.THING, TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
 
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
-                .things()
-                .twin()
-                .events()
-                .created()
-                .build();
         final JsonPointer path = JsonPointer.empty();
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathCreated)
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.THING.toJson(FieldType.notHidden()))
                         .withRevision(TestConstants.REVISION)
@@ -101,15 +127,9 @@ public final class ThingEventAdapterTest {
 
     @Test
     public void thingCreatedToAdaptable() {
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
-                .things()
-                .twin()
-                .events()
-                .created()
-                .build();
         final JsonPointer path = JsonPointer.empty();
 
-        final Adaptable expected = Adaptable.newBuilder(topicPath)
+        final Adaptable expected = Adaptable.newBuilder(topicPathCreated)
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.THING.toJson(FieldType.notHidden()))
                         .withRevision(TestConstants.REVISION)
@@ -129,15 +149,9 @@ public final class ThingEventAdapterTest {
         final ThingModified expected =
                 ThingModified.of(TestConstants.THING, TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
 
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
-                .things()
-                .twin()
-                .events()
-                .modified()
-                .build();
         final JsonPointer path = JsonPointer.empty();
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathModified)
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.THING.toJson(FieldType.notHidden()))
                         .withRevision(TestConstants.REVISION)
@@ -151,15 +165,9 @@ public final class ThingEventAdapterTest {
 
     @Test
     public void thingModifiedToAdaptable() {
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
-                .things()
-                .twin()
-                .events()
-                .modified()
-                .build();
         final JsonPointer path = JsonPointer.empty();
 
-        final Adaptable expected = Adaptable.newBuilder(topicPath)
+        final Adaptable expected = Adaptable.newBuilder(topicPathModified)
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.THING.toJson(FieldType.notHidden()))
                         .withRevision(TestConstants.REVISION)
@@ -179,15 +187,9 @@ public final class ThingEventAdapterTest {
         final ThingDeleted expected =
                 ThingDeleted.of(TestConstants.THING_ID, TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
 
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
-                .things()
-                .twin()
-                .events()
-                .deleted()
-                .build();
         final JsonPointer path = JsonPointer.empty();
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathDeleted)
                 .withPayload(Payload.newBuilder(path)
                         .withRevision(TestConstants.REVISION)
                         .build())
@@ -200,15 +202,9 @@ public final class ThingEventAdapterTest {
 
     @Test
     public void thingDeletedToAdaptable() {
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
-                .things()
-                .twin()
-                .events()
-                .deleted()
-                .build();
         final JsonPointer path = JsonPointer.empty();
 
-        final Adaptable expected = Adaptable.newBuilder(topicPath)
+        final Adaptable expected = Adaptable.newBuilder(topicPathDeleted)
                 .withPayload(Payload.newBuilder(path)
                         .withRevision(TestConstants.REVISION)
                         .build())
@@ -227,15 +223,9 @@ public final class ThingEventAdapterTest {
         final AclModified expected = AclModified.of(TestConstants.THING_ID, TestConstants.ACL, TestConstants.REVISION,
                 TestConstants.DITTO_HEADERS_V_1);
 
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
-                .things()
-                .twin()
-                .events()
-                .modified()
-                .build();
         final JsonPointer path = JsonPointer.of("/acl");
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathModified)
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.ACL.toJson(FieldType.notHidden()))
                         .withRevision(TestConstants.REVISION)
@@ -249,15 +239,9 @@ public final class ThingEventAdapterTest {
 
     @Test
     public void aclModifiedToAdaptable() {
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
-                .things()
-                .twin()
-                .events()
-                .modified()
-                .build();
         final JsonPointer path = JsonPointer.of("/acl");
 
-        final Adaptable expected = Adaptable.newBuilder(topicPath)
+        final Adaptable expected = Adaptable.newBuilder(topicPathModified)
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.ACL.toJson(FieldType.notHidden()))
                         .withRevision(TestConstants.REVISION)
@@ -278,15 +262,9 @@ public final class ThingEventAdapterTest {
         final AclEntryCreated expected = AclEntryCreated.of(TestConstants.THING_ID, TestConstants.ACL_ENTRY,
                 TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_1);
 
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
-                .things()
-                .twin()
-                .events()
-                .created()
-                .build();
         final JsonPointer path = JsonPointer.of("/acl/" + TestConstants.AUTHORIZATION_SUBJECT.getId());
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathCreated)
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.ACL_ENTRY.getPermissions().toJson())
                         .withRevision(TestConstants.REVISION)
@@ -300,15 +278,9 @@ public final class ThingEventAdapterTest {
 
     @Test
     public void aclEntryCreatedToAdaptable() {
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
-                .things()
-                .twin()
-                .events()
-                .created()
-                .build();
         final JsonPointer path = JsonPointer.of("/acl/" + TestConstants.AUTHORIZATION_SUBJECT.getId());
 
-        final Adaptable expected = Adaptable.newBuilder(topicPath)
+        final Adaptable expected = Adaptable.newBuilder(topicPathCreated)
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.ACL_ENTRY.toJson())
                         .withRevision(TestConstants.REVISION)
@@ -328,15 +300,9 @@ public final class ThingEventAdapterTest {
         final AclEntryModified expected = AclEntryModified.of(TestConstants.THING_ID, TestConstants.ACL_ENTRY,
                 TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_1);
 
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
-                .things()
-                .twin()
-                .events()
-                .modified()
-                .build();
         final JsonPointer path = JsonPointer.of("/acl/" + TestConstants.AUTHORIZATION_SUBJECT.getId());
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathModified)
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.ACL_ENTRY.getPermissions().toJson())
                         .withRevision(TestConstants.REVISION)
@@ -350,15 +316,9 @@ public final class ThingEventAdapterTest {
 
     @Test
     public void aclEntryModifiedToAdaptable() {
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
-                .things()
-                .twin()
-                .events()
-                .modified()
-                .build();
         final JsonPointer path = JsonPointer.of("/acl/" + TestConstants.AUTHORIZATION_SUBJECT.getId());
 
-        final Adaptable expected = Adaptable.newBuilder(topicPath)
+        final Adaptable expected = Adaptable.newBuilder(topicPathModified)
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.ACL_ENTRY.toJson())
                         .withRevision(TestConstants.REVISION)
@@ -378,15 +338,9 @@ public final class ThingEventAdapterTest {
         final AclEntryDeleted expected = AclEntryDeleted.of(TestConstants.THING_ID, TestConstants.AUTHORIZATION_SUBJECT,
                 TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_1);
 
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
-                .things()
-                .twin()
-                .events()
-                .deleted()
-                .build();
         final JsonPointer path = JsonPointer.of("/acl/" + TestConstants.AUTHORIZATION_SUBJECT.getId());
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathDeleted)
                 .withPayload(Payload.newBuilder(path)
                         .withRevision(TestConstants.REVISION)
                         .build())
@@ -399,15 +353,9 @@ public final class ThingEventAdapterTest {
 
     @Test
     public void aclEntryDeletedToAdaptable() {
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
-                .things()
-                .twin()
-                .events()
-                .deleted()
-                .build();
         final JsonPointer path = JsonPointer.of("/acl/" + TestConstants.AUTHORIZATION_SUBJECT.getId());
 
-        final Adaptable expected = Adaptable.newBuilder(topicPath)
+        final Adaptable expected = Adaptable.newBuilder(topicPathDeleted)
                 .withPayload(Payload.newBuilder(path)
                         .withRevision(TestConstants.REVISION)
                         .build())
@@ -426,15 +374,9 @@ public final class ThingEventAdapterTest {
         final AttributesCreated expected = AttributesCreated.of(TestConstants.THING_ID, TestConstants.ATTRIBUTES,
                 TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
 
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
-                .things()
-                .twin()
-                .events()
-                .created()
-                .build();
         final JsonPointer path = JsonPointer.of("/attributes");
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathCreated)
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.ATTRIBUTES.toJson(FieldType.notHidden()))
                         .withRevision(TestConstants.REVISION)
@@ -448,15 +390,9 @@ public final class ThingEventAdapterTest {
 
     @Test
     public void attributesCreatedToAdaptable() {
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
-                .things()
-                .twin()
-                .events()
-                .created()
-                .build();
         final JsonPointer path = JsonPointer.of("/attributes");
 
-        final Adaptable expected = Adaptable.newBuilder(topicPath)
+        final Adaptable expected = Adaptable.newBuilder(topicPathCreated)
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.ATTRIBUTES.toJson(FieldType.notHidden()))
                         .withRevision(TestConstants.REVISION)
@@ -477,15 +413,9 @@ public final class ThingEventAdapterTest {
         final AttributesModified expected = AttributesModified.of(TestConstants.THING_ID, TestConstants.ATTRIBUTES,
                 TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
 
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
-                .things()
-                .twin()
-                .events()
-                .modified()
-                .build();
         final JsonPointer path = JsonPointer.of("/attributes");
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathModified)
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.ATTRIBUTES.toJson(FieldType.notHidden()))
                         .withRevision(TestConstants.REVISION)
@@ -499,15 +429,9 @@ public final class ThingEventAdapterTest {
 
     @Test
     public void attributesModifiedToAdaptable() {
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
-                .things()
-                .twin()
-                .events()
-                .modified()
-                .build();
         final JsonPointer path = JsonPointer.of("/attributes");
 
-        final Adaptable expected = Adaptable.newBuilder(topicPath)
+        final Adaptable expected = Adaptable.newBuilder(topicPathModified)
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.ATTRIBUTES.toJson(FieldType.notHidden()))
                         .withRevision(TestConstants.REVISION)
@@ -527,15 +451,9 @@ public final class ThingEventAdapterTest {
         final AttributesDeleted expected =
                 AttributesDeleted.of(TestConstants.THING_ID, TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
 
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
-                .things()
-                .twin()
-                .events()
-                .deleted()
-                .build();
         final JsonPointer path = JsonPointer.of("/attributes");
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathDeleted)
                 .withPayload(Payload.newBuilder(path)
                         .withRevision(TestConstants.REVISION)
                         .build())
@@ -548,15 +466,9 @@ public final class ThingEventAdapterTest {
 
     @Test
     public void attributesDeletedToAdaptable() {
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
-                .things()
-                .twin()
-                .events()
-                .deleted()
-                .build();
         final JsonPointer path = JsonPointer.of("/attributes");
 
-        final Adaptable expected = Adaptable.newBuilder(topicPath)
+        final Adaptable expected = Adaptable.newBuilder(topicPathDeleted)
                 .withPayload(Payload.newBuilder(path)
                         .withRevision(TestConstants.REVISION)
                         .build())
@@ -575,15 +487,9 @@ public final class ThingEventAdapterTest {
         final AttributeCreated expected = AttributeCreated.of(TestConstants.THING_ID, TestConstants.ATTRIBUTE_POINTER,
                 TestConstants.ATTRIBUTE_VALUE, TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
 
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
-                .things()
-                .twin()
-                .events()
-                .created()
-                .build();
         final JsonPointer path = JsonPointer.of("/attributes" + TestConstants.ATTRIBUTE_POINTER);
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathCreated)
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.ATTRIBUTE_VALUE)
                         .withRevision(TestConstants.REVISION)
@@ -597,15 +503,9 @@ public final class ThingEventAdapterTest {
 
     @Test
     public void attributeCreatedToAdaptable() {
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
-                .things()
-                .twin()
-                .events()
-                .created()
-                .build();
         final JsonPointer path = JsonPointer.of("/attributes" + TestConstants.ATTRIBUTE_POINTER);
 
-        final Adaptable expected = Adaptable.newBuilder(topicPath)
+        final Adaptable expected = Adaptable.newBuilder(topicPathCreated)
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.ATTRIBUTE_VALUE)
                         .withRevision(TestConstants.REVISION)
@@ -627,15 +527,9 @@ public final class ThingEventAdapterTest {
         final AttributeModified expected = AttributeModified.of(TestConstants.THING_ID, TestConstants.ATTRIBUTE_POINTER,
                 TestConstants.ATTRIBUTE_VALUE, TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
 
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
-                .things()
-                .twin()
-                .events()
-                .modified()
-                .build();
         final JsonPointer path = JsonPointer.of("/attributes" + TestConstants.ATTRIBUTE_POINTER);
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathModified)
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.ATTRIBUTE_VALUE)
                         .withRevision(TestConstants.REVISION)
@@ -649,15 +543,9 @@ public final class ThingEventAdapterTest {
 
     @Test
     public void attributeModifiedToAdaptable() {
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
-                .things()
-                .twin()
-                .events()
-                .modified()
-                .build();
         final JsonPointer path = JsonPointer.of("/attributes" + TestConstants.ATTRIBUTE_POINTER);
 
-        final Adaptable expected = Adaptable.newBuilder(topicPath)
+        final Adaptable expected = Adaptable.newBuilder(topicPathModified)
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.ATTRIBUTE_VALUE)
                         .withRevision(TestConstants.REVISION)
@@ -679,15 +567,9 @@ public final class ThingEventAdapterTest {
         final AttributeDeleted expected = AttributeDeleted.of(TestConstants.THING_ID, TestConstants.ATTRIBUTE_POINTER,
                 TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
 
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
-                .things()
-                .twin()
-                .events()
-                .deleted()
-                .build();
         final JsonPointer path = JsonPointer.of("/attributes" + TestConstants.ATTRIBUTE_POINTER);
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathDeleted)
                 .withPayload(Payload.newBuilder(path)
                         .withRevision(TestConstants.REVISION)
                         .build())
@@ -700,15 +582,9 @@ public final class ThingEventAdapterTest {
 
     @Test
     public void attributeDeletedToAdaptable() {
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
-                .things()
-                .twin()
-                .events()
-                .deleted()
-                .build();
         final JsonPointer path = JsonPointer.of("/attributes" + TestConstants.ATTRIBUTE_POINTER);
 
-        final Adaptable expected = Adaptable.newBuilder(topicPath)
+        final Adaptable expected = Adaptable.newBuilder(topicPathDeleted)
                 .withPayload(Payload.newBuilder(path)
                         .withRevision(TestConstants.REVISION)
                         .build())
@@ -727,15 +603,9 @@ public final class ThingEventAdapterTest {
         final FeaturesCreated expected = FeaturesCreated.of(TestConstants.THING_ID, TestConstants.FEATURES,
                 TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
 
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
-                .things()
-                .twin()
-                .events()
-                .created()
-                .build();
         final JsonPointer path = JsonPointer.of("/features");
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathCreated)
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.FEATURES.toJson(FieldType.notHidden()))
                         .withRevision(TestConstants.REVISION)
@@ -749,15 +619,9 @@ public final class ThingEventAdapterTest {
 
     @Test
     public void featuresCreatedToAdaptable() {
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
-                .things()
-                .twin()
-                .events()
-                .created()
-                .build();
         final JsonPointer path = JsonPointer.of("/features");
 
-        final Adaptable expected = Adaptable.newBuilder(topicPath)
+        final Adaptable expected = Adaptable.newBuilder(topicPathCreated)
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.FEATURES.toJson(FieldType.notHidden()))
                         .withRevision(TestConstants.REVISION)
@@ -777,15 +641,9 @@ public final class ThingEventAdapterTest {
         final FeaturesModified expected = FeaturesModified.of(TestConstants.THING_ID, TestConstants.FEATURES,
                 TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
 
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
-                .things()
-                .twin()
-                .events()
-                .modified()
-                .build();
         final JsonPointer path = JsonPointer.of("/features");
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathModified)
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.FEATURES.toJson(FieldType.notHidden()))
                         .withRevision(TestConstants.REVISION)
@@ -799,15 +657,9 @@ public final class ThingEventAdapterTest {
 
     @Test
     public void featuresModifiedToAdaptable() {
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
-                .things()
-                .twin()
-                .events()
-                .modified()
-                .build();
         final JsonPointer path = JsonPointer.of("/features");
 
-        final Adaptable expected = Adaptable.newBuilder(topicPath)
+        final Adaptable expected = Adaptable.newBuilder(topicPathModified)
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.FEATURES.toJson(FieldType.notHidden()))
                         .withRevision(TestConstants.REVISION)
@@ -827,15 +679,9 @@ public final class ThingEventAdapterTest {
         final FeaturesDeleted expected =
                 FeaturesDeleted.of(TestConstants.THING_ID, TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
 
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
-                .things()
-                .twin()
-                .events()
-                .deleted()
-                .build();
         final JsonPointer path = JsonPointer.of("/features");
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathDeleted)
                 .withPayload(Payload.newBuilder(path)
                         .withRevision(TestConstants.REVISION)
                         .build())
@@ -848,15 +694,9 @@ public final class ThingEventAdapterTest {
 
     @Test
     public void featuresDeletedToAdaptable() {
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
-                .things()
-                .twin()
-                .events()
-                .deleted()
-                .build();
         final JsonPointer path = JsonPointer.of("/features");
 
-        final Adaptable expected = Adaptable.newBuilder(topicPath)
+        final Adaptable expected = Adaptable.newBuilder(topicPathDeleted)
                 .withPayload(Payload.newBuilder(path)
                         .withRevision(TestConstants.REVISION)
                         .build())
@@ -875,15 +715,9 @@ public final class ThingEventAdapterTest {
         final FeatureCreated expected = FeatureCreated.of(TestConstants.THING_ID, TestConstants.FEATURE,
                 TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
 
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
-                .things()
-                .twin()
-                .events()
-                .created()
-                .build();
         final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID);
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathCreated)
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.FEATURE.toJson(FieldType.notHidden()))
                         .withRevision(TestConstants.REVISION)
@@ -897,15 +731,9 @@ public final class ThingEventAdapterTest {
 
     @Test
     public void featureCreatedToAdaptable() {
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
-                .things()
-                .twin()
-                .events()
-                .created()
-                .build();
         final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID);
 
-        final Adaptable expected = Adaptable.newBuilder(topicPath)
+        final Adaptable expected = Adaptable.newBuilder(topicPathCreated)
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.FEATURE.toJson(FieldType.notHidden()))
                         .withRevision(TestConstants.REVISION)
@@ -925,15 +753,9 @@ public final class ThingEventAdapterTest {
         final FeatureModified expected = FeatureModified.of(TestConstants.THING_ID, TestConstants.FEATURE,
                 TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
 
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
-                .things()
-                .twin()
-                .events()
-                .modified()
-                .build();
         final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID);
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathModified)
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.FEATURE.toJson(FieldType.notHidden()))
                         .withRevision(TestConstants.REVISION)
@@ -947,15 +769,9 @@ public final class ThingEventAdapterTest {
 
     @Test
     public void featureModifiedToAdaptable() {
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
-                .things()
-                .twin()
-                .events()
-                .modified()
-                .build();
         final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID);
 
-        final Adaptable expected = Adaptable.newBuilder(topicPath)
+        final Adaptable expected = Adaptable.newBuilder(topicPathModified)
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.FEATURE.toJson(FieldType.notHidden()))
                         .withRevision(TestConstants.REVISION)
@@ -975,15 +791,9 @@ public final class ThingEventAdapterTest {
         final FeatureDeleted expected = FeatureDeleted.of(TestConstants.THING_ID, TestConstants.FEATURE_ID,
                 TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
 
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
-                .things()
-                .twin()
-                .events()
-                .deleted()
-                .build();
         final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID);
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathDeleted)
                 .withPayload(Payload.newBuilder(path)
                         .withRevision(TestConstants.REVISION)
                         .build())
@@ -996,15 +806,9 @@ public final class ThingEventAdapterTest {
 
     @Test
     public void featureDeletedToAdaptable() {
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
-                .things()
-                .twin()
-                .events()
-                .deleted()
-                .build();
         final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID);
 
-        final Adaptable expected = Adaptable.newBuilder(topicPath)
+        final Adaptable expected = Adaptable.newBuilder(topicPathDeleted)
                 .withPayload(Payload.newBuilder(path)
                         .withRevision(TestConstants.REVISION)
                         .build())
@@ -1022,18 +826,11 @@ public final class ThingEventAdapterTest {
     public void featurePropertiesCreatedFromAdaptable() {
         final FeaturePropertiesCreated expected =
                 FeaturePropertiesCreated.of(TestConstants.THING_ID, TestConstants.FEATURE_ID,
-                        TestConstants.FEATURE_PROPERTIES,
-                        TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
+                        TestConstants.FEATURE_PROPERTIES, TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
 
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
-                .things()
-                .twin()
-                .events()
-                .created()
-                .build();
         final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID + "/properties");
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathCreated)
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.FEATURE_PROPERTIES_JSON)
                         .withRevision(TestConstants.REVISION)
@@ -1047,15 +844,9 @@ public final class ThingEventAdapterTest {
 
     @Test
     public void featurePropertiesCreatedToAdaptable() {
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
-                .things()
-                .twin()
-                .events()
-                .created()
-                .build();
         final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID + "/properties");
 
-        final Adaptable expected = Adaptable.newBuilder(topicPath)
+        final Adaptable expected = Adaptable.newBuilder(topicPathCreated)
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.FEATURE_PROPERTIES_JSON)
                         .withRevision(TestConstants.REVISION)
@@ -1078,15 +869,9 @@ public final class ThingEventAdapterTest {
                 FeaturePropertiesModified.of(TestConstants.THING_ID, TestConstants.FEATURE_ID,
                         TestConstants.FEATURE_PROPERTIES, TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
 
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
-                .things()
-                .twin()
-                .events()
-                .modified()
-                .build();
         final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID + "/properties");
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathModified)
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.FEATURE_PROPERTIES_JSON)
                         .withRevision(TestConstants.REVISION)
@@ -1100,15 +885,9 @@ public final class ThingEventAdapterTest {
 
     @Test
     public void featurePropertiesModifiedToAdaptable() {
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
-                .things()
-                .twin()
-                .events()
-                .modified()
-                .build();
         final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID + "/properties");
 
-        final Adaptable expected = Adaptable.newBuilder(topicPath)
+        final Adaptable expected = Adaptable.newBuilder(topicPathModified)
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.FEATURE_PROPERTIES_JSON)
                         .withRevision(TestConstants.REVISION)
@@ -1129,15 +908,9 @@ public final class ThingEventAdapterTest {
         final FeaturePropertiesDeleted expected = FeaturePropertiesDeleted.of(TestConstants.THING_ID,
                 TestConstants.FEATURE_ID, TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
 
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
-                .things()
-                .twin()
-                .events()
-                .deleted()
-                .build();
         final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID + "/properties");
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathDeleted)
                 .withPayload(Payload.newBuilder(path)
                         .withRevision(TestConstants.REVISION)
                         .build())
@@ -1150,15 +923,9 @@ public final class ThingEventAdapterTest {
 
     @Test
     public void featurePropertiesDeletedToAdaptable() {
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
-                .things()
-                .twin()
-                .events()
-                .deleted()
-                .build();
         final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID + "/properties");
 
-        final Adaptable expected = Adaptable.newBuilder(topicPath)
+        final Adaptable expected = Adaptable.newBuilder(topicPathDeleted)
                 .withPayload(Payload.newBuilder(path)
                         .withRevision(TestConstants.REVISION)
                         .build())
@@ -1178,17 +945,10 @@ public final class ThingEventAdapterTest {
                 TestConstants.FEATURE_ID, TestConstants.FEATURE_PROPERTY_POINTER, TestConstants.FEATURE_PROPERTY_VALUE,
                 TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
 
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
-                .things()
-                .twin()
-                .events()
-                .created()
-                .build();
-        final JsonPointer path = JsonPointer
-                .of("/features/" + TestConstants.FEATURE_ID + "/properties" +
-                        TestConstants.FEATURE_PROPERTY_POINTER);
+        final JsonPointer path = JsonPointer.of(
+                "/features/" + TestConstants.FEATURE_ID + "/properties" + TestConstants.FEATURE_PROPERTY_POINTER);
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathCreated)
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.FEATURE_PROPERTY_VALUE)
                         .withRevision(TestConstants.REVISION)
@@ -1202,18 +962,10 @@ public final class ThingEventAdapterTest {
 
     @Test
     public void featurePropertyCreatedToAdaptable() {
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
-                .things()
-                .twin()
-                .twin()
-                .events()
-                .created()
-                .build();
-        final JsonPointer path = JsonPointer
-                .of("/features/" + TestConstants.FEATURE_ID + "/properties" +
-                        TestConstants.FEATURE_PROPERTY_POINTER);
+        final JsonPointer path = JsonPointer.of(
+                "/features/" + TestConstants.FEATURE_ID + "/properties" + TestConstants.FEATURE_PROPERTY_POINTER);
 
-        final Adaptable expected = Adaptable.newBuilder(topicPath)
+        final Adaptable expected = Adaptable.newBuilder(topicPathCreated)
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.FEATURE_PROPERTY_VALUE)
                         .withRevision(TestConstants.REVISION)
@@ -1235,18 +987,10 @@ public final class ThingEventAdapterTest {
                 TestConstants.FEATURE_ID, TestConstants.FEATURE_PROPERTY_POINTER, TestConstants.FEATURE_PROPERTY_VALUE,
                 TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
 
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
-                .things()
-                .twin()
-                .twin()
-                .events()
-                .modified()
-                .build();
-        final JsonPointer path = JsonPointer
-                .of("/features/" + TestConstants.FEATURE_ID + "/properties" +
-                        TestConstants.FEATURE_PROPERTY_POINTER);
+        final JsonPointer path = JsonPointer.of(
+                "/features/" + TestConstants.FEATURE_ID + "/properties" + TestConstants.FEATURE_PROPERTY_POINTER);
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathModified)
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.FEATURE_PROPERTY_VALUE)
                         .withRevision(TestConstants.REVISION)
@@ -1260,17 +1004,10 @@ public final class ThingEventAdapterTest {
 
     @Test
     public void featurePropertyModifiedToAdaptable() {
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
-                .things()
-                .twin()
-                .events()
-                .modified()
-                .build();
-        final JsonPointer path = JsonPointer
-                .of("/features/" + TestConstants.FEATURE_ID + "/properties" +
-                        TestConstants.FEATURE_PROPERTY_POINTER);
+        final JsonPointer path = JsonPointer.of(
+                "/features/" + TestConstants.FEATURE_ID + "/properties" + TestConstants.FEATURE_PROPERTY_POINTER);
 
-        final Adaptable expected = Adaptable.newBuilder(topicPath)
+        final Adaptable expected = Adaptable.newBuilder(topicPathModified)
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.FEATURE_PROPERTY_VALUE)
                         .withRevision(TestConstants.REVISION)
@@ -1293,17 +1030,10 @@ public final class ThingEventAdapterTest {
                         TestConstants.FEATURE_PROPERTY_POINTER, TestConstants.REVISION,
                         TestConstants.DITTO_HEADERS_V_2);
 
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
-                .things()
-                .twin()
-                .events()
-                .deleted()
-                .build();
-        final JsonPointer path = JsonPointer
-                .of("/features/" + TestConstants.FEATURE_ID + "/properties" +
-                        TestConstants.FEATURE_PROPERTY_POINTER);
+        final JsonPointer path = JsonPointer.of(
+                "/features/" + TestConstants.FEATURE_ID + "/properties" + TestConstants.FEATURE_PROPERTY_POINTER);
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathDeleted)
                 .withPayload(Payload.newBuilder(path)
                         .withRevision(TestConstants.REVISION)
                         .build())
@@ -1316,28 +1046,137 @@ public final class ThingEventAdapterTest {
 
     @Test
     public void featurePropertyDeletedToAdaptable() {
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
-                .things()
-                .twin()
-                .events()
-                .deleted()
-                .build();
-        final JsonPointer path = JsonPointer
-                .of("/features/" + TestConstants.FEATURE_ID + "/properties" +
-                        TestConstants.FEATURE_PROPERTY_POINTER);
+        final JsonPointer path = JsonPointer.of(
+                "/features/" + TestConstants.FEATURE_ID + "/properties" + TestConstants.FEATURE_PROPERTY_POINTER);
 
-        final Adaptable expected = Adaptable.newBuilder(topicPath)
+        final Adaptable expected = Adaptable.newBuilder(topicPathDeleted)
                 .withPayload(Payload.newBuilder(path)
                         .withRevision(TestConstants.REVISION)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
 
-        final FeaturePropertyDeleted featurePropertyDeleted =
-                FeaturePropertyDeleted.of(TestConstants.THING_ID, TestConstants.FEATURE_ID,
-                        TestConstants.FEATURE_PROPERTY_POINTER, TestConstants.REVISION,
-                        TestConstants.DITTO_HEADERS_V_2);
+        final FeaturePropertyDeleted featurePropertyDeleted = FeaturePropertyDeleted.of(TestConstants.THING_ID,
+                TestConstants.FEATURE_ID, TestConstants.FEATURE_PROPERTY_POINTER, TestConstants.REVISION,
+                TestConstants.DITTO_HEADERS_V_2);
         final Adaptable actual = underTest.toAdaptable(featurePropertyDeleted);
+
+        assertThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void featureDefinitionCreatedFromAdaptable() {
+        final FeatureDefinitionCreated expected = FeatureDefinitionCreated.of(TestConstants.THING_ID,
+                TestConstants.FEATURE_ID, TestConstants.FEATURE_DEFINITION, TestConstants.REVISION,
+                TestConstants.DITTO_HEADERS_V_2);
+
+        final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID + "/definition");
+
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathCreated)
+                .withPayload(Payload.newBuilder(path)
+                        .withValue(TestConstants.FEATURE_DEFINITION_JSON)
+                        .withRevision(TestConstants.REVISION)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
+                .build();
+        final ThingEvent actual = underTest.fromAdaptable(adaptable);
+
+        assertThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void featureDefinitionCreatedToAdaptable() {
+        final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID + "/definition");
+
+        final Adaptable expected = Adaptable.newBuilder(topicPathCreated)
+                .withPayload(Payload.newBuilder(path)
+                        .withValue(TestConstants.FEATURE_DEFINITION_JSON)
+                        .withRevision(TestConstants.REVISION)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
+                .build();
+
+        final FeatureDefinitionCreated featureDefinitionCreated = FeatureDefinitionCreated.of(TestConstants.THING_ID,
+                TestConstants.FEATURE_ID, TestConstants.FEATURE_DEFINITION, TestConstants.REVISION,
+                TestConstants.DITTO_HEADERS_V_2);
+        final Adaptable actual = underTest.toAdaptable(featureDefinitionCreated);
+
+        assertThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void featureDefinitionModifiedFromAdaptable() {
+        final FeatureDefinitionModified expected = FeatureDefinitionModified.of(TestConstants.THING_ID,
+                TestConstants.FEATURE_ID, TestConstants.FEATURE_DEFINITION, TestConstants.REVISION,
+                TestConstants.DITTO_HEADERS_V_2);
+
+        final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID + "/definition");
+
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathModified)
+                .withPayload(Payload.newBuilder(path)
+                        .withValue(TestConstants.FEATURE_DEFINITION_JSON)
+                        .withRevision(TestConstants.REVISION)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
+                .build();
+        final ThingEvent actual = underTest.fromAdaptable(adaptable);
+
+        assertThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void featureDefinitionModifiedToAdaptable() {
+        final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID + "/definition");
+
+        final Adaptable expected = Adaptable.newBuilder(topicPathModified)
+                .withPayload(Payload.newBuilder(path)
+                        .withValue(TestConstants.FEATURE_DEFINITION_JSON)
+                        .withRevision(TestConstants.REVISION)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
+                .build();
+
+        final FeatureDefinitionModified featureDefinitionModified = FeatureDefinitionModified.of(TestConstants.THING_ID,
+                TestConstants.FEATURE_ID, TestConstants.FEATURE_DEFINITION, TestConstants.REVISION,
+                TestConstants.DITTO_HEADERS_V_2);
+        final Adaptable actual = underTest.toAdaptable(featureDefinitionModified);
+
+        assertThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void featureDefinitionDeletedFromAdaptable() {
+        final FeatureDefinitionDeleted expected = FeatureDefinitionDeleted.of(TestConstants.THING_ID,
+                TestConstants.FEATURE_ID, TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
+
+        final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID + "/definition");
+
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathDeleted)
+                .withPayload(Payload.newBuilder(path)
+                        .withValue(TestConstants.FEATURE_DEFINITION_JSON)
+                        .withRevision(TestConstants.REVISION)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
+                .build();
+        final ThingEvent actual = underTest.fromAdaptable(adaptable);
+
+        assertThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void featureDefinitionDeletedToAdaptable() {
+        final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID + "/definition");
+
+        final Adaptable expected = Adaptable.newBuilder(topicPathDeleted)
+                .withPayload(Payload.newBuilder(path)
+                        .withRevision(TestConstants.REVISION)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
+                .build();
+
+        final FeatureDefinitionDeleted featureDefinitionDeleted = FeatureDefinitionDeleted.of(TestConstants.THING_ID,
+                TestConstants.FEATURE_ID, TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
+        final Adaptable actual = underTest.toAdaptable(featureDefinitionDeleted);
 
         assertThat(actual).isEqualTo(expected);
     }
@@ -1347,15 +1186,9 @@ public final class ThingEventAdapterTest {
         final PolicyIdCreated expected = PolicyIdCreated.of(TestConstants.THING_ID, TestConstants.THING_ID,
                 TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
 
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
-                .things()
-                .twin()
-                .events()
-                .created()
-                .build();
         final JsonPointer path = JsonPointer.of("/policyId");
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathCreated)
                 .withPayload(Payload.newBuilder(path)
                         .withValue(JsonValue.of(TestConstants.THING_ID))
                         .withRevision(TestConstants.REVISION)
@@ -1372,15 +1205,9 @@ public final class ThingEventAdapterTest {
         final PolicyIdModified expected = PolicyIdModified.of(TestConstants.THING_ID, TestConstants.THING_ID,
                 TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
 
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
-                .things()
-                .twin()
-                .events()
-                .modified()
-                .build();
         final JsonPointer path = JsonPointer.of("/policyId");
 
-        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathModified)
                 .withPayload(Payload.newBuilder(path)
                         .withValue(JsonValue.of(TestConstants.THING_ID))
                         .withRevision(TestConstants.REVISION)
@@ -1394,15 +1221,9 @@ public final class ThingEventAdapterTest {
 
     @Test
     public void policyIdModifiedToAdaptable() {
-        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
-                .things()
-                .twin()
-                .events()
-                .modified()
-                .build();
         final JsonPointer path = JsonPointer.of("/policyId");
 
-        final Adaptable expected = Adaptable.newBuilder(topicPath)
+        final Adaptable expected = Adaptable.newBuilder(topicPathModified)
                 .withPayload(Payload.newBuilder(path)
                         .withValue(JsonValue.of(TestConstants.THING_ID))
                         .withRevision(TestConstants.REVISION)
@@ -1417,7 +1238,7 @@ public final class ThingEventAdapterTest {
         assertThat(actual).isEqualTo(expected);
     }
 
-    private static class UnknownThingEvent implements ThingEvent {
+    private static final class UnknownThingEvent implements ThingEvent {
 
         @Override
         public String getThingId() {
