@@ -30,8 +30,8 @@ import org.eclipse.ditto.json.JsonObject;
 final class ImmutableFeatureFromCopyBuilder implements FeatureBuilder, FeatureBuilder.FromCopyBuildable {
 
     private String featureId;
-    @Nullable private FeatureProperties properties;
     @Nullable private FeatureDefinition definition;
+    @Nullable private FeatureProperties properties;
 
     private ImmutableFeatureFromCopyBuilder(final String theFeatureId) {
         featureId = theFeatureId;
@@ -55,6 +55,12 @@ final class ImmutableFeatureFromCopyBuilder implements FeatureBuilder, FeatureBu
         result.definition(feature.getDefinition().orElse(null));
 
         return result;
+    }
+
+    @Override
+    public FromCopyBuildable definition(@Nullable final FeatureDefinition featureDefinition) {
+        definition = featureDefinition;
+        return this;
     }
 
     @Override
@@ -84,12 +90,6 @@ final class ImmutableFeatureFromCopyBuilder implements FeatureBuilder, FeatureBu
     }
 
     @Override
-    public FromCopyBuildable definition(@Nullable final FeatureDefinition featureDefinition) {
-        definition = featureDefinition;
-        return this;
-    }
-
-    @Override
     public FromCopyBuildable setId(final String featureId) {
         this.featureId = argumentNotEmpty(featureId, "Feature ID to be set");
         return this;
@@ -105,7 +105,7 @@ final class ImmutableFeatureFromCopyBuilder implements FeatureBuilder, FeatureBu
 
     @Override
     public Feature build() {
-        return ImmutableFeature.of(featureId, properties, definition);
+        return ImmutableFeature.of(featureId, definition, properties);
     }
 
 }

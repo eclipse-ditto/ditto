@@ -288,8 +288,8 @@ public final class ImmutableThingFromCopyBuilderTest {
 
     @Test
     public void setFeatureWithProperties() {
-        underTestV1.setFeature(TestConstants.Feature.FLUX_CAPACITOR_ID,
-                TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES, TestConstants.Feature.FLUX_CAPACITOR_DEFINITION);
+        underTestV1.setFeature(TestConstants.Feature.FLUX_CAPACITOR_ID, TestConstants.Feature.FLUX_CAPACITOR_DEFINITION,
+                TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES);
         final Thing thing = underTestV1.build();
 
         assertThat(thing).hasFeature(TestConstants.Feature.FLUX_CAPACITOR);

@@ -164,7 +164,7 @@ final class ImmutableFeatures implements Features {
                 result = createNewFeaturesWithNewFeature(feature.setDefinition(definition));
             }
         } else {
-            result = createNewFeaturesWithNewFeature(ThingsModelFactory.newFeature(featureId, null, definition));
+            result = createNewFeaturesWithNewFeature(ThingsModelFactory.newFeature(featureId, definition, null));
         }
 
         return result;

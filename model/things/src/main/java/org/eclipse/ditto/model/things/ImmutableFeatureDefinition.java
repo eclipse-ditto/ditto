@@ -47,12 +47,12 @@ final class ImmutableFeatureDefinition implements FeatureDefinition {
     /**
      * Parses the specified JsonArray and returns an instance of {@code ImmutableFeatureDefinition}.
      *
-     * @param featureDefinitionEntriesAsJsonArray JSON array containing the identifiers of the FeatureDefinition to
+     * @param featureDefinitionEntriesAsJsonArray JSON array containing the Identifiers of the FeatureDefinition to
      * be returned. Non-string values are ignored.
      * @return the instance.
      * @throws NullPointerException if {@code featureDefinitionEntriesAsJsonArray} is {@code null}.
      * @throws IllegalArgumentException if {@code featureDefinitionEntriesAsJsonArray} is empty.
-     * @throws FeatureDefinitionIdentifierInvalidException if any identifier string of the array is invalid.
+     * @throws FeatureDefinitionIdentifierInvalidException if any Identifier string of the array is invalid.
      */
     public static ImmutableFeatureDefinition fromJson(final JsonArray featureDefinitionEntriesAsJsonArray) {
         checkNotNull(featureDefinitionEntriesAsJsonArray, "JSON array containing the FeatureDefinition entries");
@@ -71,7 +71,7 @@ final class ImmutableFeatureDefinition implements FeatureDefinition {
     /**
      * Returns a mutable builder with a fluent API for an {@code ImmutableFeatureDefinition}.
      *
-     * @param firstIdentifier the first identifier of the returned builder.
+     * @param firstIdentifier the first Identifier of the returned builder.
      * @return the builder.
      * @throws NullPointerException if {@code firstIdentifier} is {@code null}.
      */
@@ -153,7 +153,7 @@ final class ImmutableFeatureDefinition implements FeatureDefinition {
 
         @Override
         public Builder add(final CharSequence identifier) {
-            identifiers.add(castOrParse(checkNotNull(identifier, "identifier to be added")));
+            identifiers.add(castOrParse(checkNotNull(identifier, "Identifier to be added")));
             return this;
         }
 
@@ -163,19 +163,19 @@ final class ImmutableFeatureDefinition implements FeatureDefinition {
 
         @Override
         public <T extends CharSequence> Builder addAll(final Iterable<T> identifiers) {
-            checkNotNull(identifiers, "identifiers to be added").forEach(this::add);
+            checkNotNull(identifiers, "Identifiers to be added").forEach(this::add);
             return this;
         }
 
         @Override
         public Builder remove(final CharSequence identifier) {
-            identifiers.remove(castOrParse(checkNotNull(identifier, "identifier to be removed")));
+            identifiers.remove(castOrParse(checkNotNull(identifier, "Identifier to be removed")));
             return this;
         }
 
         @Override
         public <T extends CharSequence> Builder removeAll(final Iterable<T> identifiers) {
-            checkNotNull(identifiers, "identifiers to be removed").forEach(this::remove);
+            checkNotNull(identifiers, "Identifiers to be removed").forEach(this::remove);
             return this;
         }
 

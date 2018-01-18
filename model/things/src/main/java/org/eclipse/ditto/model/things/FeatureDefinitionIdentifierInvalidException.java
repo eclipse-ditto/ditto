@@ -24,7 +24,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 
 /**
- * This exception is thrown if an identifier of a feature definition has an invalid structure.
+ * This exception is thrown if an Identifier of a Feature Definition has an invalid structure.
  */
 public final class FeatureDefinitionIdentifierInvalidException extends DittoRuntimeException implements ThingException {
 
@@ -35,15 +35,15 @@ public final class FeatureDefinitionIdentifierInvalidException extends DittoRunt
 
     private static final String MESSAGE_TEMPLATE = "FeatureDefinition Identifier <{0}> is invalid!";
 
-    private static final String DEFAULT_DESCRIPTION = "An identifier string is expected to have the structure " +
-            "\"namespace:name:version\". Each segment must contain at least one char of [_a-zA-Z0-9\\-.]";
+    private static final String DEFAULT_DESCRIPTION = "An Identifier string is expected to have the structure " +
+            "'namespace:name:version'. Each segment must contain at least one char of [_a-zA-Z0-9\\-.]";
 
     private static final long serialVersionUID = -5652551484675928573L;
 
     /**
      * Constructs a new {@code FeatureDefinitionIdentifierInvalidException} object.
      *
-     * @param identifierAsCharSequence a char sequence representing the invalid FeatureDefinition identifier.
+     * @param identifierAsCharSequence a char sequence representing the invalid FeatureDefinition Identifier.
      */
     public FeatureDefinitionIdentifierInvalidException(final CharSequence identifierAsCharSequence) {
         this(DittoHeaders.empty(), MessageFormat.format(MESSAGE_TEMPLATE, identifierAsCharSequence),
@@ -62,7 +62,7 @@ public final class FeatureDefinitionIdentifierInvalidException extends DittoRunt
     /**
      * Returns a mutable builder with a fluent API for an immutable {@code FeatureDefinitionIdentifierInvalidException}.
      *
-     * @param identifierAsCharSequence a char sequence representing the invalid FeatureDefinition identifier.
+     * @param identifierAsCharSequence a char sequence representing the invalid FeatureDefinition Identifier.
      * @return the builder.
      */
     public static Builder newBuilder(final CharSequence identifierAsCharSequence) {

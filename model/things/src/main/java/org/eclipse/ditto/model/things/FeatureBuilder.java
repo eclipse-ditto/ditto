@@ -63,6 +63,14 @@ public interface FeatureBuilder {
     interface FromScratchBuildable {
 
         /**
+         * Sets the specified Definition to the Feature to be built.
+         *
+         * @param featureDefinition the Definition to be set or {@code null}.
+         * @return this builder to allow method chaining.
+         */
+        FromScratchBuildable definition(@Nullable FeatureDefinition featureDefinition);
+
+        /**
          * Sets the properties of the Feature.
          *
          * @param properties the properties of the Feature to be created or {@code null}
@@ -77,14 +85,6 @@ public interface FeatureBuilder {
          * @return this builder to allow method chaining.
          */
         FromScratchBuildable properties(@Nullable JsonObject properties);
-
-        /**
-         * Sets the specified FeatureDefinition to be Feature to be built.
-         *
-         * @param featureDefinition the definition to be set or {@code null}.
-         * @return this builder to allow method chaining.
-         */
-        FromScratchBuildable definition(@Nullable FeatureDefinition featureDefinition);
 
         /**
          * Sets the provided ID instead of the one which was possibly contained in the Feature's JSON.
@@ -104,6 +104,14 @@ public interface FeatureBuilder {
      */
     @NotThreadSafe
     interface FromCopyBuildable {
+
+        /**
+         * Sets the specified Definition to the Feature to be built.
+         *
+         * @param featureDefinition the Definition to be set or {@code null}.
+         * @return this builder to allow method chaining.
+         */
+        FromCopyBuildable definition(@Nullable FeatureDefinition featureDefinition);
 
         /**
          * Sets the properties of the Feature.
@@ -133,17 +141,9 @@ public interface FeatureBuilder {
         FromCopyBuildable properties(Function<FeatureProperties, FeatureProperties> transform);
 
         /**
-         * Sets the specified FeatureDefinition to be Feature to be built.
+         * Sets the given Feature ID to this builder.
          *
-         * @param featureDefinition the definition to be set or {@code null}.
-         * @return this builder to allow method chaining.
-         */
-        FromCopyBuildable definition(@Nullable FeatureDefinition featureDefinition);
-
-        /**
-         * Sets the given Feature identifier to this builder.
-         *
-         * @param featureId the Feature identifier to be set.
+         * @param featureId the Feature ID to be set.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if {@code featureId} is {@code null}.
          * @throws IllegalArgumentException if {@code featureId} is empty.
@@ -153,11 +153,11 @@ public interface FeatureBuilder {
         }
 
         /**
-         * Sets the given Feature identifier to this builder.
+         * Sets the given Feature ID to this builder.
          *
-         * @param existingIdPredicate a predicate to decide whether the given identifier is set. The predicate receives
-         * the currently set Feature identifier.
-         * @param featureId the Feature identifier to be set.
+         * @param existingIdPredicate a predicate to decide whether the given ID is set. The predicate receives
+         * the currently set Feature ID.
+         * @param featureId the Feature ID to be set.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if any argument is {@code null}.
          * @throws IllegalArgumentException if {@code featureId} is empty.

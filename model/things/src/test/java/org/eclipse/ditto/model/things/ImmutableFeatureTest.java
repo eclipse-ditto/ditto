@@ -221,8 +221,8 @@ public final class ImmutableFeatureTest {
 
     @Test
     public void jsonSerializationWorksAsExpected() {
-        final Feature underTest = ImmutableFeature.of(KNOWN_FEATURE_ID, TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES,
-                TestConstants.Feature.FLUX_CAPACITOR_DEFINITION);
+        final Feature underTest = ImmutableFeature.of(KNOWN_FEATURE_ID, TestConstants.Feature.FLUX_CAPACITOR_DEFINITION,
+                TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
         assertThat(actualJson).isEqualTo(KNOWN_JSON_OBJECT);
@@ -263,7 +263,7 @@ public final class ImmutableFeatureTest {
     @Test
     public void getDefinitionReturnsExpected() {
         final FeatureDefinition definition = TestConstants.Feature.FLUX_CAPACITOR_DEFINITION;
-        final ImmutableFeature underTest = ImmutableFeature.of(KNOWN_FEATURE_ID, null, definition);
+        final ImmutableFeature underTest = ImmutableFeature.of(KNOWN_FEATURE_ID, definition, null);
 
         assertThat(underTest.getDefinition()).contains(definition);
     }
@@ -271,7 +271,7 @@ public final class ImmutableFeatureTest {
     @Test
     public void setDefinitionWorksAsExpected() {
         final FeatureDefinition definition = TestConstants.Feature.FLUX_CAPACITOR_DEFINITION;
-        final ImmutableFeature expected = ImmutableFeature.of(KNOWN_FEATURE_ID, null, definition);
+        final ImmutableFeature expected = ImmutableFeature.of(KNOWN_FEATURE_ID, definition, null);
         final ImmutableFeature underTest = ImmutableFeature.of(KNOWN_FEATURE_ID);
 
         final Feature actual = underTest.setDefinition(definition);
@@ -291,7 +291,7 @@ public final class ImmutableFeatureTest {
     public void removeDefinitionWorksAsExpected() {
         final ImmutableFeature expected = ImmutableFeature.of(KNOWN_FEATURE_ID);
         final FeatureDefinition definition = TestConstants.Feature.FLUX_CAPACITOR_DEFINITION;
-        final ImmutableFeature underTest = ImmutableFeature.of(KNOWN_FEATURE_ID, null, definition);
+        final ImmutableFeature underTest = ImmutableFeature.of(KNOWN_FEATURE_ID, definition, null);
 
         final Feature actual = underTest.removeDefinition();
 

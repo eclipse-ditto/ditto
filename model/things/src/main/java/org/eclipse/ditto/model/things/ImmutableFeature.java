@@ -34,15 +34,15 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 final class ImmutableFeature implements Feature {
 
     private final String featureId;
-    @Nullable private final FeatureProperties properties;
     @Nullable private final FeatureDefinition definition;
+    @Nullable private final FeatureProperties properties;
 
-    private ImmutableFeature(final String featureId, @Nullable final FeatureProperties properties,
-            @Nullable final FeatureDefinition definition) {
+    private ImmutableFeature(final String featureId, @Nullable final FeatureDefinition definition,
+            @Nullable final FeatureProperties properties) {
 
         this.featureId = ConditionChecker.checkNotNull(featureId, "ID of the Feature");
-        this.properties = properties;
         this.definition = definition;
+        this.properties = properties;
     }
 
     /**
@@ -65,27 +65,44 @@ final class ImmutableFeature implements Feature {
      * @throws NullPointerException if {@code featureId} is {@code null}.
      */
     public static ImmutableFeature of(final String featureId, @Nullable final FeatureProperties properties) {
-        return of(featureId, properties, null);
+        return of(featureId, null, properties);
     }
 
     /**
-     * Creates a new Feature with a specified ID and properties.
+     * Creates a new Feature with a specified ID, Definition and properties.
      *
      * @param featureId the ID.
+     * @param definition the Definition or {@code null}.
      * @param properties the properties or {@code null}.
-     * @param definition the definition or {@code null}.
      * @return the new Feature.
      * @throws NullPointerException if {@code featureId} is {@code null}.
      */
-    public static ImmutableFeature of(final String featureId, @Nullable final FeatureProperties properties,
-            @Nullable final FeatureDefinition definition) {
+    public static ImmutableFeature of(final String featureId, @Nullable final FeatureDefinition definition,
+            @Nullable final FeatureProperties properties) {
 
-        return new ImmutableFeature(featureId, properties, definition);
+        return new ImmutableFeature(featureId, definition, properties);
     }
 
     @Override
     public String getId() {
         return featureId;
+    }
+
+    @Override
+    public Feature setDefinition(final FeatureDefinition featureDefinition) {
+        ConditionChecker.checkNotNull(featureDefinition, "definition to be set");
+        if (Objects.equals(definition, featureDefinition)) {
+            return this;
+        }
+        return of(featureId, featureDefinition, properties);
+    }
+
+    @Override
+    public Feature removeDefinition() {
+        if (null == definition) {
+            return this;
+        }
+        return of(featureId, properties);
     }
 
     @Override
@@ -154,23 +171,6 @@ final class ImmutableFeature implements Feature {
     }
 
     @Override
-    public Feature setDefinition(final FeatureDefinition featureDefinition) {
-        ConditionChecker.checkNotNull(featureDefinition, "definition to be set");
-        if (Objects.equals(definition, featureDefinition)) {
-            return this;
-        }
-        return of(featureId, properties, featureDefinition);
-    }
-
-    @Override
-    public Feature removeDefinition() {
-        if (null == definition) {
-            return this;
-        }
-        return of(featureId, properties);
-    }
-
-    @Override
     public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder()
@@ -189,7 +189,7 @@ final class ImmutableFeature implements Feature {
 
     @Override
     public int hashCode() {
-        return Objects.hash(featureId, properties, definition);
+        return Objects.hash(featureId, definition, properties);
     }
 
     @SuppressWarnings("squid:MethodCyclomaticComplexity")
@@ -202,14 +202,14 @@ final class ImmutableFeature implements Feature {
             return false;
         }
         final ImmutableFeature other = (ImmutableFeature) o;
-        return Objects.equals(featureId, other.featureId) && Objects.equals(properties, other.properties) &&
-                Objects.equals(definition, other.definition);
+        return Objects.equals(featureId, other.featureId) && Objects.equals(definition, other.definition) &&
+                Objects.equals(properties, other.properties);
     }
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + " [featureId=" + featureId + ", properties=" + properties + ", " +
-                "definition=" + definition + "]";
+        return getClass().getSimpleName() + " [featureId=" + featureId + ", definition=" + definition + ", " +
+                "properties=" + properties + "]";
     }
 
 }
