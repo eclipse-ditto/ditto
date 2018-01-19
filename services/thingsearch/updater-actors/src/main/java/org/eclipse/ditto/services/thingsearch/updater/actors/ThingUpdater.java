@@ -335,7 +335,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         cancelSyncTimeoutAndResetSessionId();
         super.postStop();
     }
-    
+
     private void cancelActivityCheck() {
         if (activityChecker != null) {
             activityChecker.cancel();
@@ -573,8 +573,10 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         gatheredEvents.add(thingEvent);
     }
 
-    private static boolean needToReloadPolicy(final ThingEvent thingEvent) {
-        return thingEvent instanceof PolicyIdCreated || thingEvent instanceof PolicyIdModified;
+    private boolean needToReloadPolicy(final ThingEvent thingEvent) {
+        return thingEvent instanceof PolicyIdCreated || thingEvent instanceof PolicyIdModified
+                // check if Thing has a policy but the policy enforcer is not instantiated
+                || (schemaVersionHasPolicy(thingEvent.getImplementedSchemaVersion()) && Objects.isNull(policyEnforcer));
     }
 
     /**
@@ -1095,7 +1097,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         private SyncSuccess() {
             // no-op
         }
-        
+
     }
 
     private static final class SyncFailure {
@@ -1105,7 +1107,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         private SyncFailure() {
             // no-op
         }
-        
+
     }
 
     private static class ActorInitializationComplete {
@@ -1115,7 +1117,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         private ActorInitializationComplete() {
             // no-op
         }
-        
+
     }
 
     private static final class SyncMetadata {
@@ -1155,5 +1157,5 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
             return StreamAck.failure(thingIdentifier);
         }
     }
-    
+
 }
