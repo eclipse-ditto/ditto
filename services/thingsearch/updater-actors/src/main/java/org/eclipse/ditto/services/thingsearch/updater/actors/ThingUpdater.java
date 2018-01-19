@@ -991,7 +991,10 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
                     if (null != throwable) {
                         log.error(throwable, "Failed to update policy because of an exception!");
                     } else if (!isPolicyUpdated) {
-                        log.error("Failed to update policy because of an unknown reason!");
+                        log.debug("The update operation for the policy of Thing <{}> did not have an effect, " +
+                                "probably because it does not contain fine-grained policies!", thingId);
+                    } else {
+                        log.debug("Successfully updated policy.");
                     }
                 }));
     }
