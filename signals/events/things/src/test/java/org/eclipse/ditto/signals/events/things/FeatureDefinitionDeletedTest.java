@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.signals.events.things;
 
+import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
@@ -38,13 +39,11 @@ public final class FeatureDefinitionDeletedTest {
             .set(ThingEvent.JsonFields.FEATURE_ID, TestConstants.Feature.FLUX_CAPACITOR_ID)
             .build();
 
-
     @Test
     public void assertImmutability() {
         assertInstancesOf(FeatureDefinitionDeleted.class, areImmutable(),
                 provided(FeatureDefinition.class).isAlsoImmutable());
     }
-
 
     @Test
     public void testHashCodeAndEquals() {
@@ -53,20 +52,23 @@ public final class FeatureDefinitionDeletedTest {
                 .verify();
     }
 
-
-    @Test(expected = NullPointerException.class)
+    @Test
     public void tryToCreateInstanceWithNullThingId() {
-        FeatureDefinitionDeleted.of(null, TestConstants.Feature.FLUX_CAPACITOR_ID, TestConstants.Thing.REVISION_NUMBER,
-                TestConstants.EMPTY_DITTO_HEADERS);
+        assertThatNullPointerException()
+                .isThrownBy(() -> FeatureDefinitionDeleted.of(null, TestConstants.Feature.FLUX_CAPACITOR_ID,
+                        TestConstants.Thing.REVISION_NUMBER, TestConstants.EMPTY_DITTO_HEADERS))
+                .withMessage("The %s must not be null!", "Thing identifier")
+                .withNoCause();
     }
 
-
-    @Test(expected = NullPointerException.class)
+    @Test
     public void tryToCreateInstanceWithNullFeatureId() {
-        FeatureDefinitionDeleted.of(TestConstants.Thing.THING_ID, null, TestConstants.Thing.REVISION_NUMBER,
-                TestConstants.EMPTY_DITTO_HEADERS);
+        assertThatNullPointerException()
+                .isThrownBy(() -> FeatureDefinitionDeleted.of(TestConstants.Thing.THING_ID, null,
+                        TestConstants.Thing.REVISION_NUMBER, TestConstants.EMPTY_DITTO_HEADERS))
+                .withMessage("The %s must not be null!", "Feature ID")
+                .withNoCause();
     }
-
 
     @Test
     public void toJsonReturnsExpected() {
@@ -78,7 +80,6 @@ public final class FeatureDefinitionDeletedTest {
 
         assertThat(actualJson).isEqualTo(KNOWN_JSON);
     }
-
 
     @Test
     public void createInstanceFromValidJson() {

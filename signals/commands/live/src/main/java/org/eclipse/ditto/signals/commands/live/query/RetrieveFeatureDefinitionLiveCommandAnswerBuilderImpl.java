@@ -13,7 +13,6 @@ package org.eclipse.ditto.signals.commands.live.query;
 
 import java.util.function.Function;
 
-import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -25,10 +24,11 @@ import org.eclipse.ditto.signals.commands.live.query.RetrieveFeatureDefinitionLi
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 import org.eclipse.ditto.signals.commands.things.exceptions.FeatureDefinitionNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureDefinitionResponse;
+import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
 /**
- * A mutable builder with a fluent API for creating a {@link LiveCommandAnswer} for a {@link
- * RetrieveFeatureDefinitionLiveCommand}.
+ * A mutable builder with a fluent API for creating a {@link LiveCommandAnswer} for a
+ * {@link RetrieveFeatureDefinitionLiveCommand}.
  */
 @ParametersAreNonnullByDefault
 @NotThreadSafe
@@ -49,35 +49,35 @@ final class RetrieveFeatureDefinitionLiveCommandAnswerBuilderImpl
      */
     public static RetrieveFeatureDefinitionLiveCommandAnswerBuilderImpl newInstance(
             final RetrieveFeatureDefinitionLiveCommand command) {
+
         return new RetrieveFeatureDefinitionLiveCommandAnswerBuilderImpl(command);
     }
 
     @Override
     protected CommandResponse doCreateResponse(
             final Function<ResponseFactory, CommandResponse<?>> createResponseFunction) {
+
         return createResponseFunction.apply(new ResponseFactoryImpl());
     }
 
-    @ParametersAreNonnullByDefault
+    @AllValuesAreNonnullByDefault
     @Immutable
     private final class ResponseFactoryImpl implements ResponseFactory {
 
-        @Nonnull
         @Override
         public RetrieveFeatureDefinitionResponse retrieved(final FeatureDefinition featureProperties) {
             return RetrieveFeatureDefinitionResponse.of(command.getThingId(), command.getFeatureId(), featureProperties,
                     command.getDittoHeaders());
         }
 
-        @Nonnull
         @Override
         public ThingErrorResponse featureDefinitionNotAccessibleError() {
             return errorResponse(command.getThingId(),
-                    FeatureDefinitionNotAccessibleException.newBuilder(command.getThingId(),
-                            command.getFeatureId())
+                    FeatureDefinitionNotAccessibleException.newBuilder(command.getThingId(), command.getFeatureId())
                             .dittoHeaders(command.getDittoHeaders())
                             .build());
         }
+
     }
 
 }

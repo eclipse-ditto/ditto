@@ -12,21 +12,20 @@
 package org.eclipse.ditto.signals.commands.live.modify;
 
 import javax.annotation.Nonnull;
-import javax.annotation.ParametersAreNonnullByDefault;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureDefinition;
+import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
 /**
  * An immutable implementation of {@link DeleteFeatureDefinitionLiveCommand}.
  */
-@ParametersAreNonnullByDefault
+@AllValuesAreNonnullByDefault
 @Immutable
 final class DeleteFeatureDefinitionLiveCommandImpl
-        extends
-        AbstractModifyLiveCommand<DeleteFeatureDefinitionLiveCommand, DeleteFeatureDefinitionLiveCommandAnswerBuilder>
+        extends AbstractModifyLiveCommand<DeleteFeatureDefinitionLiveCommand, DeleteFeatureDefinitionLiveCommandAnswerBuilder>
         implements DeleteFeatureDefinitionLiveCommand {
 
     private final String featureId;

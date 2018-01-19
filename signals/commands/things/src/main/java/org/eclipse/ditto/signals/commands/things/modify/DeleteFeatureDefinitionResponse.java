@@ -29,6 +29,7 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.things.ThingIdValidator;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 
@@ -53,8 +54,10 @@ public final class DeleteFeatureDefinitionResponse extends AbstractCommandRespon
 
     private DeleteFeatureDefinitionResponse(final String thingId, final String featureId,
             final DittoHeaders dittoHeaders) {
+
         super(TYPE, HttpStatusCode.NO_CONTENT, dittoHeaders);
-        this.thingId = checkNotNull(thingId, "Thing ID");
+        ThingIdValidator.getInstance().accept(thingId, dittoHeaders);
+        this.thingId = thingId;
         this.featureId = checkNotNull(featureId, "Feature ID");
     }
 
@@ -65,10 +68,13 @@ public final class DeleteFeatureDefinitionResponse extends AbstractCommandRespon
      * @param featureId the {@code Feature}'s ID whose Definition were deleted.
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
+     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if {@code thingId} did not comply to
+     * {@link org.eclipse.ditto.model.things.Thing#ID_REGEX}.
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static DeleteFeatureDefinitionResponse of(final String thingId, final String featureId,
             final DittoHeaders dittoHeaders) {
+
         return new DeleteFeatureDefinitionResponse(thingId, featureId, dittoHeaders);
     }
 
@@ -82,10 +88,16 @@ public final class DeleteFeatureDefinitionResponse extends AbstractCommandRespon
      * @throws IllegalArgumentException if {@code jsonString} is empty.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if the parsed {@code jsonString} did not contain any of
+     * the required fields
+     * <ul>
+     *     <li>{@link ThingModifyCommandResponse.JsonFields#JSON_THING_ID} or</li>
+     *     <li>{@link #JSON_FEATURE_ID}.</li>
+     * </ul>
+     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to
+     * {@link org.eclipse.ditto.model.things.Thing#ID_REGEX}.
      */
-    public static DeleteFeatureDefinitionResponse fromJson(final String jsonString,
-            final DittoHeaders dittoHeaders) {
-
+    public static DeleteFeatureDefinitionResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
         return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
     }
 
@@ -98,16 +110,25 @@ public final class DeleteFeatureDefinitionResponse extends AbstractCommandRespon
      * @throws NullPointerException any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if {@code jsonObject} did not contain any of the
+     * required fields
+     * <ul>
+     *     <li>{@link ThingModifyCommandResponse.JsonFields#JSON_THING_ID} or</li>
+     *     <li>{@link #JSON_FEATURE_ID}.</li>
+     * </ul>
+     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to
+     * {@link org.eclipse.ditto.model.things.Thing#ID_REGEX}.
      */
     public static DeleteFeatureDefinitionResponse fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<DeleteFeatureDefinitionResponse>(TYPE, jsonObject)
-                .deserialize((statusCode) -> {
-                    final String thingId =
+
+        return new CommandResponseJsonDeserializer<DeleteFeatureDefinitionResponse>(TYPE, jsonObject).deserialize(
+                statusCode -> {
+                    final String extractedThingId =
                             jsonObject.getValueOrThrow(ThingModifyCommandResponse.JsonFields.JSON_THING_ID);
                     final String extractedFeatureId = jsonObject.getValueOrThrow(JSON_FEATURE_ID);
 
-                    return of(thingId, extractedFeatureId, dittoHeaders);
+                    return of(extractedThingId, extractedFeatureId, dittoHeaders);
                 });
     }
 
@@ -133,6 +154,7 @@ public final class DeleteFeatureDefinitionResponse extends AbstractCommandRespon
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(ThingModifyCommandResponse.JsonFields.JSON_THING_ID, thingId, predicate);
         jsonObjectBuilder.set(JSON_FEATURE_ID, featureId, predicate);
@@ -158,7 +180,7 @@ public final class DeleteFeatureDefinitionResponse extends AbstractCommandRespon
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return (other instanceof DeleteFeatureDefinitionResponse);
+        return other instanceof DeleteFeatureDefinitionResponse;
     }
 
     @Override

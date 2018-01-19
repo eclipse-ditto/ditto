@@ -11,10 +11,8 @@
  */
 package org.eclipse.ditto.signals.commands.live.modify;
 
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.eclipse.ditto.signals.commands.live.assertions.LiveCommandAssertions.assertThat;
-
-import java.text.MessageFormat;
 
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -41,7 +39,6 @@ public final class DeleteFeatureDefinitionLiveCommandAnswerBuilderImplTest {
 
     private DeleteFeatureDefinitionLiveCommandAnswerBuilderImpl underTest;
 
-    /** */
     @Before
     public void setUp() {
         Mockito.when(commandMock.getThingId()).thenReturn(TestConstants.Thing.THING_ID);
@@ -51,17 +48,15 @@ public final class DeleteFeatureDefinitionLiveCommandAnswerBuilderImplTest {
         underTest = DeleteFeatureDefinitionLiveCommandAnswerBuilderImpl.newInstance(commandMock);
     }
 
-    /** */
     @SuppressWarnings("ConstantConditions")
     @Test
     public void tryToGetNewInstanceWithNullCommand() {
-        assertThatExceptionOfType(NullPointerException.class)
+        assertThatNullPointerException()
                 .isThrownBy(() -> DeleteFeatureDefinitionLiveCommandAnswerBuilderImpl.newInstance(null))
-                .withMessage(MessageFormat.format("The {0} must not be null!", "command"))
+                .withMessage("The %s must not be null!", "command")
                 .withNoCause();
     }
 
-    /** */
     @Test
     public void buildAnswerWithDeleteFeatureDefinitionResponseOnly() {
         final LiveCommandAnswer liveCommandAnswer =
@@ -74,7 +69,6 @@ public final class DeleteFeatureDefinitionLiveCommandAnswerBuilderImplTest {
                 .hasThingModifyCommandResponse();
     }
 
-    /** */
     @Test
     public void buildAnswerWithFeatureDefinitionNotAccessibleErrorResponseOnly() {
         final LiveCommandAnswer liveCommandAnswer =
@@ -92,7 +86,6 @@ public final class DeleteFeatureDefinitionLiveCommandAnswerBuilderImplTest {
                 .withDittoRuntimeExceptionOfType(FeatureDefinitionNotAccessibleException.class);
     }
 
-    /** */
     @Test
     public void buildAnswerWithFeatureDefinitionNotModifiableErrorResponseOnly() {
         final LiveCommandAnswer liveCommandAnswer =
@@ -110,7 +103,6 @@ public final class DeleteFeatureDefinitionLiveCommandAnswerBuilderImplTest {
                 .withDittoRuntimeExceptionOfType(FeatureDefinitionNotModifiableException.class);
     }
 
-    /** */
     @Test
     public void buildAnswerWithFeatureDefinitionDeletedEventOnly() {
         final LiveCommandAnswer liveCommandAnswer = underTest.withoutResponse()

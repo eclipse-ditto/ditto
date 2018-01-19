@@ -11,7 +11,7 @@
  */
 package org.eclipse.ditto.signals.events.things;
 
-import static java.util.Objects.requireNonNull;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.time.Instant;
 import java.util.Objects;
@@ -41,8 +41,8 @@ import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
  * This event is emitted after a Feature's {@link FeatureDefinition} was created.
  */
 @Immutable
-public final class FeatureDefinitionCreated extends AbstractThingEvent<FeatureDefinitionCreated> implements
-        ThingModifiedEvent<FeatureDefinitionCreated>, WithFeatureId {
+public final class FeatureDefinitionCreated extends AbstractThingEvent<FeatureDefinitionCreated>
+        implements ThingModifiedEvent<FeatureDefinitionCreated>, WithFeatureId {
 
     /**
      * Name of the "Feature Definition Created" event.
@@ -69,8 +69,8 @@ public final class FeatureDefinitionCreated extends AbstractThingEvent<FeatureDe
             final DittoHeaders dittoHeaders) {
 
         super(TYPE, thingId, revision, timestamp, dittoHeaders);
-        this.featureId = requireNonNull(featureId, "The Feature ID must not be null!");
-        this.definition = Objects.requireNonNull(definition, "The Definition must not be null!");
+        this.featureId = checkNotNull(featureId, "Feature ID");
+        this.definition = checkNotNull(definition, "Definition");
     }
 
     /**
@@ -192,6 +192,7 @@ public final class FeatureDefinitionCreated extends AbstractThingEvent<FeatureDe
     @Override
     protected void appendPayloadAndBuild(final JsonObjectBuilder jsonObjectBuilder,
             final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(JsonFields.FEATURE_ID, featureId, predicate);
         jsonObjectBuilder.set(JSON_DEFINITION, definition.toJson(), predicate);
@@ -200,11 +201,7 @@ public final class FeatureDefinitionCreated extends AbstractThingEvent<FeatureDe
     @SuppressWarnings("squid:S109")
     @Override
     public int hashCode() {
-        final int prime = 31;
-        int result = super.hashCode();
-        result = prime * result + Objects.hashCode(featureId);
-        result = prime * result + Objects.hashCode(definition);
-        return result;
+        return Objects.hash(featureId, definition, super.hashCode());
     }
 
     @SuppressWarnings({"squid:MethodCyclomaticComplexity", "squid:S1067", "OverlyComplexMethod"})
@@ -217,8 +214,10 @@ public final class FeatureDefinitionCreated extends AbstractThingEvent<FeatureDe
             return false;
         }
         final FeatureDefinitionCreated that = (FeatureDefinitionCreated) o;
-        return that.canEqual(this) && Objects.equals(featureId, that.featureId) && Objects
-                .equals(definition, that.definition) && super.equals(that);
+        return that.canEqual(this) &&
+                Objects.equals(featureId, that.featureId) &&
+                Objects.equals(definition, that.definition) &&
+                super.equals(that);
     }
 
     @Override

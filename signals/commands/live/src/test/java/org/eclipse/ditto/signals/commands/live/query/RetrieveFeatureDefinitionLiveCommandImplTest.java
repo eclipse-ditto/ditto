@@ -12,6 +12,7 @@
 package org.eclipse.ditto.signals.commands.live.query;
 
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.eclipse.ditto.signals.commands.base.assertions.CommandAssertions.assertThat;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
@@ -28,7 +29,6 @@ import org.mockito.Mockito;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
-
 /**
  * Unit test for {@link RetrieveFeatureDefinitionLiveCommandImpl}.
  */
@@ -37,7 +37,6 @@ public final class RetrieveFeatureDefinitionLiveCommandImplTest {
     private RetrieveFeatureDefinition retrieveFeatureDefinitionTwinCommand;
     private RetrieveFeatureDefinitionLiveCommand underTest;
 
-    /** */
     @Before
     public void setUp() {
         retrieveFeatureDefinitionTwinCommand = RetrieveFeatureDefinition.of(TestConstants.Thing.THING_ID,
@@ -45,13 +44,11 @@ public final class RetrieveFeatureDefinitionLiveCommandImplTest {
         underTest = RetrieveFeatureDefinitionLiveCommandImpl.of(retrieveFeatureDefinitionTwinCommand);
     }
 
-    /** */
     @Test
     public void assertImmutability() {
         assertInstancesOf(RetrieveFeatureDefinitionLiveCommandImpl.class, areImmutable());
     }
 
-    /** */
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(RetrieveFeatureDefinitionLiveCommandImpl.class)
@@ -60,17 +57,15 @@ public final class RetrieveFeatureDefinitionLiveCommandImplTest {
                 .verify();
     }
 
-    /** */
     @SuppressWarnings("ConstantConditions")
     @Test
     public void tryToGetRetrieveFeatureDefinitionLiveCommandForNull() {
-        assertThatExceptionOfType(NullPointerException.class)
+        assertThatNullPointerException()
                 .isThrownBy(() -> RetrieveFeatureDefinitionLiveCommandImpl.of(null))
-                .withMessage(MessageFormat.format("The {0} must not be null!", "command"))
+                .withMessage("The %s must not be null!", "command")
                 .withNoCause();
     }
 
-    /** */
     @Test
     public void tryToGetRetrieveFeatureDefinitionLiveCommandForCreateAttributeCommand() {
         final Command<?> commandMock = Mockito.mock(Command.class);
@@ -82,7 +77,6 @@ public final class RetrieveFeatureDefinitionLiveCommandImplTest {
                 .withNoCause();
     }
 
-    /** */
     @Test
     public void getRetrieveFeatureDefinitionLiveCommandReturnsExpected() {
         assertThat(underTest)
@@ -94,7 +88,6 @@ public final class RetrieveFeatureDefinitionLiveCommandImplTest {
         assertThat(underTest.getFeatureId()).isEqualTo(retrieveFeatureDefinitionTwinCommand.getFeatureId());
     }
 
-    /** */
     @Test
     public void setDittoHeadersReturnsExpected() {
         final DittoHeaders emptyDittoHeaders = DittoHeaders.empty();
@@ -104,13 +97,11 @@ public final class RetrieveFeatureDefinitionLiveCommandImplTest {
         assertThat(newRetrieveFeatureDefinitionLiveCommand).withDittoHeaders(emptyDittoHeaders);
     }
 
-    /** */
     @Test
     public void answerReturnsNotNull() {
         assertThat(underTest.answer()).isNotNull();
     }
 
-    /** */
     @Test
     public void toStringReturnsExpected() {
         assertThat(underTest.toString())

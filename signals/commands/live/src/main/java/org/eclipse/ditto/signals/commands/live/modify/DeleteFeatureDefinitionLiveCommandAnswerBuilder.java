@@ -25,12 +25,12 @@ import org.eclipse.ditto.signals.events.things.FeatureDefinitionDeleted;
  * org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureDefinition} commands.
  */
 public interface DeleteFeatureDefinitionLiveCommandAnswerBuilder
-        extends
-        LiveCommandAnswerBuilder.ModifyCommandResponseStep<DeleteFeatureDefinitionLiveCommandAnswerBuilder.ResponseFactory,
+        extends LiveCommandAnswerBuilder.ModifyCommandResponseStep<DeleteFeatureDefinitionLiveCommandAnswerBuilder.ResponseFactory,
                 DeleteFeatureDefinitionLiveCommandAnswerBuilder.EventFactory> {
 
     /**
-     * Factory for {@code CommandResponse}s to {@link org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureDefinition} command.
+     * Factory for {@code CommandResponse}s to
+     * {@link org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureDefinition} command.
      */
     interface ResponseFactory extends LiveCommandResponseFactory {
 
@@ -61,10 +61,12 @@ public interface DeleteFeatureDefinitionLiveCommandAnswerBuilder
          */
         @Nonnull
         ThingErrorResponse featureDefinitionNotModifiableError();
+
     }
 
     /**
-     * Factory for events triggered by {@link org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureDefinition} command.
+     * Factory for events triggered by {@link org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureDefinition}
+     * command.
      */
     @SuppressWarnings("squid:S1609")
     interface EventFactory extends LiveEventFactory {
@@ -76,6 +78,7 @@ public interface DeleteFeatureDefinitionLiveCommandAnswerBuilder
          */
         @Nonnull
         FeatureDefinitionDeleted deleted();
+
     }
 
 }

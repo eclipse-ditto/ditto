@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.signals.commands.things.query;
 
+import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.eclipse.ditto.signals.commands.things.assertions.ThingCommandAssertions.assertThat;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
@@ -31,7 +32,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 /**
  * Unit test for {@link RetrieveFeatureDefinitionResponse}.
  */
-public class RetrieveFeatureDefinitionResponseTest {
+public final class RetrieveFeatureDefinitionResponseTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(ThingCommandResponse.JsonFields.TYPE, RetrieveFeatureDefinitionResponse.TYPE)
@@ -42,13 +43,11 @@ public class RetrieveFeatureDefinitionResponseTest {
                     TestConstants.Feature.FLUX_CAPACITOR_DEFINITION.toJson())
             .build();
 
-
     @Test
     public void assertImmutability() {
         assertInstancesOf(RetrieveFeatureDefinitionResponse.class, areImmutable(),
                 provided(JsonArray.class).isAlsoImmutable());
     }
-
 
     @Test
     public void testHashCodeAndEquals() {
@@ -57,14 +56,15 @@ public class RetrieveFeatureDefinitionResponseTest {
                 .verify();
     }
 
-
-    @Test(expected = NullPointerException.class)
+    @Test
     public void tryToCreateInstanceWithNullFeatureDefinition() {
-        RetrieveFeatureDefinitionResponse.of(TestConstants.Thing.THING_ID, TestConstants.Feature.FLUX_CAPACITOR_ID,
-                (FeatureDefinition) null,
-                TestConstants.EMPTY_DITTO_HEADERS);
+        assertThatNullPointerException()
+                .isThrownBy(() -> RetrieveFeatureDefinitionResponse.of(TestConstants.Thing.THING_ID,
+                        TestConstants.Feature.FLUX_CAPACITOR_ID, (FeatureDefinition) null,
+                        TestConstants.EMPTY_DITTO_HEADERS))
+                .withMessage("The %s must not be null!", "Definition")
+                .withNoCause();
     }
-
 
     @Test
     public void toJsonReturnsExpected() {
@@ -76,7 +76,6 @@ public class RetrieveFeatureDefinitionResponseTest {
 
         assertThat(actualJsonString).isEqualTo(KNOWN_JSON.toString());
     }
-
 
     @Test
     public void createInstanceFromValidJson() {

@@ -37,8 +37,8 @@ import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
  * This command deletes a {@link org.eclipse.ditto.model.things.Feature}'s Definition.
  */
 @Immutable
-public final class DeleteFeatureDefinition extends AbstractCommand<DeleteFeatureDefinition> implements
-        ThingModifyCommand<DeleteFeatureDefinition>, WithFeatureId {
+public final class DeleteFeatureDefinition extends AbstractCommand<DeleteFeatureDefinition>
+        implements ThingModifyCommand<DeleteFeatureDefinition>, WithFeatureId {
 
     /**
      * Name of the "Delete Feature Definition" command.
@@ -72,8 +72,8 @@ public final class DeleteFeatureDefinition extends AbstractCommand<DeleteFeature
      * @param dittoHeaders the headers of the command.
      * @return a Command for deleting the provided Definition.
      * @throws NullPointerException if any argument but {@code thingId} is {@code null}.
-     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to {@link
-     * org.eclipse.ditto.model.things.Thing#ID_REGEX}.
+     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if {@code thingId} did not comply to
+     * {@link org.eclipse.ditto.model.things.Thing#ID_REGEX}.
      */
     public static DeleteFeatureDefinition of(final String thingId, final String featureId,
             final DittoHeaders dittoHeaders) {
@@ -91,8 +91,8 @@ public final class DeleteFeatureDefinition extends AbstractCommand<DeleteFeature
      * @throws IllegalArgumentException if {@code jsonString} is empty.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
-     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to {@link
-     * org.eclipse.ditto.model.things.Thing#ID_REGEX}.
+     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to
+     * {@link org.eclipse.ditto.model.things.Thing#ID_REGEX}.
      */
     public static DeleteFeatureDefinition fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
         return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
@@ -112,10 +112,10 @@ public final class DeleteFeatureDefinition extends AbstractCommand<DeleteFeature
      */
     public static DeleteFeatureDefinition fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<DeleteFeatureDefinition>(TYPE, jsonObject).deserialize(() -> {
-            final String thingId = jsonObject.getValueOrThrow(ThingModifyCommand.JsonFields.JSON_THING_ID);
+            final String extractedThingId = jsonObject.getValueOrThrow(ThingModifyCommand.JsonFields.JSON_THING_ID);
             final String extractedFeatureId = jsonObject.getValueOrThrow(JSON_FEATURE_ID);
 
-            return of(thingId, extractedFeatureId, dittoHeaders);
+            return of(extractedThingId, extractedFeatureId, dittoHeaders);
         });
     }
 
@@ -138,6 +138,7 @@ public final class DeleteFeatureDefinition extends AbstractCommand<DeleteFeature
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(ThingModifyCommand.JsonFields.JSON_THING_ID, thingId, predicate);
         jsonObjectBuilder.set(JSON_FEATURE_ID, featureId, predicate);
@@ -168,8 +169,10 @@ public final class DeleteFeatureDefinition extends AbstractCommand<DeleteFeature
             return false;
         }
         final DeleteFeatureDefinition that = (DeleteFeatureDefinition) obj;
-        return that.canEqual(this) && Objects.equals(thingId, that.thingId) && Objects.equals(featureId, that.featureId)
-                && super.equals(that);
+        return that.canEqual(this) &&
+                Objects.equals(thingId, that.thingId) &&
+                Objects.equals(featureId, that.featureId) &&
+                super.equals(that);
     }
 
     @Override
