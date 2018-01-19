@@ -11,10 +11,8 @@
  */
 package org.eclipse.ditto.signals.commands.live.modify;
 
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.eclipse.ditto.signals.commands.live.assertions.LiveCommandAssertions.assertThat;
-
-import java.text.MessageFormat;
 
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -41,7 +39,6 @@ public final class ModifyFeatureDefinitionLiveCommandAnswerBuilderImplTest {
 
     private ModifyFeatureDefinitionLiveCommandAnswerBuilderImpl underTest;
 
-    /** */
     @Before
     public void setUp() {
         Mockito.when(commandMock.getThingId()).thenReturn(TestConstants.Thing.THING_ID);
@@ -52,17 +49,15 @@ public final class ModifyFeatureDefinitionLiveCommandAnswerBuilderImplTest {
         underTest = ModifyFeatureDefinitionLiveCommandAnswerBuilderImpl.newInstance(commandMock);
     }
 
-    /** */
     @SuppressWarnings("ConstantConditions")
     @Test
     public void tryToGetNewInstanceWithNullCommand() {
-        assertThatExceptionOfType(NullPointerException.class)
+        assertThatNullPointerException()
                 .isThrownBy(() -> ModifyFeatureDefinitionLiveCommandAnswerBuilderImpl.newInstance(null))
-                .withMessage(MessageFormat.format("The {0} must not be null!", "command"))
+                .withMessage("The %s must not be null!", "command")
                 .withNoCause();
     }
 
-    /** */
     @Test
     public void buildAnswerWithModifyFeatureDefinitionCreatedResponseOnly() {
         final LiveCommandAnswer liveCommandAnswer =
@@ -75,7 +70,6 @@ public final class ModifyFeatureDefinitionLiveCommandAnswerBuilderImplTest {
                 .hasThingModifyCommandResponse();
     }
 
-    /** */
     @Test
     public void buildAnswerWithModifyFeatureDefinitionModifiedResponseOnly() {
         final LiveCommandAnswer liveCommandAnswer =
@@ -88,7 +82,6 @@ public final class ModifyFeatureDefinitionLiveCommandAnswerBuilderImplTest {
                 .hasThingModifyCommandResponse();
     }
 
-    /** */
     @Test
     public void buildAnswerWithFeatureDefinitionNotAccessibleErrorResponseOnly() {
         final LiveCommandAnswer liveCommandAnswer =
@@ -106,7 +99,6 @@ public final class ModifyFeatureDefinitionLiveCommandAnswerBuilderImplTest {
                 .withDittoRuntimeExceptionOfType(FeatureDefinitionNotAccessibleException.class);
     }
 
-    /** */
     @Test
     public void buildAnswerWithFeatureDefinitionNotModifiableErrorResponseOnly() {
         final LiveCommandAnswer liveCommandAnswer =
@@ -124,7 +116,6 @@ public final class ModifyFeatureDefinitionLiveCommandAnswerBuilderImplTest {
                 .withDittoRuntimeExceptionOfType(FeatureDefinitionNotModifiableException.class);
     }
 
-    /** */
     @Test
     public void buildAnswerWithFeatureDefinitionCreatedEventOnly() {
         final LiveCommandAnswer liveCommandAnswer = underTest.withoutResponse()
@@ -136,7 +127,6 @@ public final class ModifyFeatureDefinitionLiveCommandAnswerBuilderImplTest {
                 .hasThingModifiedEvent();
     }
 
-    /** */
     @Test
     public void buildAnswerWithFeatureDefinitionModifiedEventOnly() {
         final LiveCommandAnswer liveCommandAnswer = underTest.withoutResponse()

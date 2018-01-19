@@ -32,6 +32,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.FeatureDefinition;
+import org.eclipse.ditto.model.things.ThingIdValidator;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
@@ -60,10 +61,14 @@ public final class RetrieveFeatureDefinitionResponse extends AbstractCommandResp
     private final String featureId;
     private final JsonArray definition;
 
-    private RetrieveFeatureDefinitionResponse(final String thingId, final String featureId,
-            final JsonArray definition, final DittoHeaders dittoHeaders) {
+    private RetrieveFeatureDefinitionResponse(final String thingId,
+            final String featureId,
+            final JsonArray definition,
+            final DittoHeaders dittoHeaders) {
+
         super(TYPE, HttpStatusCode.OK, dittoHeaders);
-        this.thingId = checkNotNull(thingId, "thing ID");
+        ThingIdValidator.getInstance().accept(thingId, dittoHeaders);
+        this.thingId = thingId;
         this.featureId = checkNotNull(featureId, "Feature ID");
         this.definition = checkNotNull(definition, "Feature Definition");
     }
@@ -76,13 +81,17 @@ public final class RetrieveFeatureDefinitionResponse extends AbstractCommandResp
      * @param definition the retrieved FeatureDefinition.
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
+     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if {@code thingId} did not comply to
+     * {@link org.eclipse.ditto.model.things.Thing#ID_REGEX}.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static RetrieveFeatureDefinitionResponse of(final String thingId, final String featureId,
-            final FeatureDefinition definition, final DittoHeaders dittoHeaders) {
+    public static RetrieveFeatureDefinitionResponse of(final String thingId,
+            final String featureId,
+            final FeatureDefinition definition,
+            final DittoHeaders dittoHeaders) {
 
-        return new RetrieveFeatureDefinitionResponse(thingId, featureId,
-                checkNotNull(definition, "Definition").toJson(), dittoHeaders);
+        checkNotNull(definition, "Definition");
+        return new RetrieveFeatureDefinitionResponse(thingId, featureId, definition.toJson(), dittoHeaders);
     }
 
     /**
@@ -93,13 +102,16 @@ public final class RetrieveFeatureDefinitionResponse extends AbstractCommandResp
      * @param definitionJsonArray the retrieved FeatureDefinition JSON array.
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
+     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if {@code thingId} did not comply to
+     * {@link org.eclipse.ditto.model.things.Thing#ID_REGEX}.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static RetrieveFeatureDefinitionResponse of(final String thingId, final String featureId,
-            @Nullable final JsonArray definitionJsonArray, final DittoHeaders dittoHeaders) {
+    public static RetrieveFeatureDefinitionResponse of(final String thingId,
+            final String featureId,
+            final JsonArray definitionJsonArray,
+            final DittoHeaders dittoHeaders) {
 
-        return of(thingId, featureId, FeatureDefinition.fromJson(checkNotNull(definitionJsonArray, "Definition")),
-                dittoHeaders);
+        return of(thingId, featureId, FeatureDefinition.fromJson(definitionJsonArray), dittoHeaders);
     }
 
     /**
@@ -112,9 +124,17 @@ public final class RetrieveFeatureDefinitionResponse extends AbstractCommandResp
      * @throws IllegalArgumentException if {@code jsonString} is empty.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if the parsed {@code jsonString} did not contain any of
+     * the required fields
+     * <ul>
+     *     <li>{@link ThingQueryCommandResponse.JsonFields#JSON_THING_ID},</li>
+     *     <li>{@link #JSON_FEATURE_ID} or</li>
+     *     <li>{@link #JSON_DEFINITION}.</li>
+     * </ul>
+     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to
+     * {@link org.eclipse.ditto.model.things.Thing#ID_REGEX}.
      */
-    public static RetrieveFeatureDefinitionResponse fromJson(final String jsonString,
-            final DittoHeaders dittoHeaders) {
+    public static RetrieveFeatureDefinitionResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
         return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
     }
 
@@ -127,18 +147,27 @@ public final class RetrieveFeatureDefinitionResponse extends AbstractCommandResp
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if {@code jsonObject} did not contain any of
+     * the required fields
+     * <ul>
+     *     <li>{@link ThingQueryCommandResponse.JsonFields#JSON_THING_ID},</li>
+     *     <li>{@link #JSON_FEATURE_ID} or</li>
+     *     <li>{@link #JSON_DEFINITION}.</li>
+     * </ul>
+     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to
+     * {@link org.eclipse.ditto.model.things.Thing#ID_REGEX}.
      */
     public static RetrieveFeatureDefinitionResponse fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
 
         return new CommandResponseJsonDeserializer<RetrieveFeatureDefinitionResponse>(TYPE, jsonObject)
-                .deserialize((statusCode) -> {
-                    final String thingId =
+                .deserialize(statusCode -> {
+                    final String extractedThingId =
                             jsonObject.getValueOrThrow(ThingQueryCommandResponse.JsonFields.JSON_THING_ID);
                     final String extractedFeatureId = jsonObject.getValueOrThrow(JSON_FEATURE_ID);
                     final JsonArray extractedFeatureDefinition = jsonObject.getValueOrThrow(JSON_DEFINITION);
 
-                    return of(thingId, extractedFeatureId, extractedFeatureDefinition, dittoHeaders);
+                    return of(extractedThingId, extractedFeatureId, extractedFeatureDefinition, dittoHeaders);
                 });
     }
 
@@ -190,15 +219,11 @@ public final class RetrieveFeatureDefinitionResponse extends AbstractCommandResp
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(ThingQueryCommandResponse.JsonFields.JSON_THING_ID, thingId, predicate);
         jsonObjectBuilder.set(JSON_FEATURE_ID, featureId, predicate);
         jsonObjectBuilder.set(JSON_DEFINITION, definition, predicate);
-    }
-
-    @Override
-    protected boolean canEqual(@Nullable final Object other) {
-        return other instanceof RetrieveFeatureDefinitionResponse;
     }
 
     @Override
@@ -213,6 +238,11 @@ public final class RetrieveFeatureDefinitionResponse extends AbstractCommandResp
         return that.canEqual(this) && Objects.equals(thingId, that.thingId)
                 && Objects.equals(featureId, that.featureId)
                 && Objects.equals(definition, that.definition) && super.equals(o);
+    }
+
+    @Override
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof RetrieveFeatureDefinitionResponse;
     }
 
     @Override

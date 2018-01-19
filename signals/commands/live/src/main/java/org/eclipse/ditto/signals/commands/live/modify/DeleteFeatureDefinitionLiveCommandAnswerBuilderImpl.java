@@ -29,14 +29,13 @@ import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.things.FeatureDefinitionDeleted;
 
 /**
- * A mutable builder with a fluent API for creating a {@link LiveCommandAnswer} for a {@link
- * DeleteFeatureDefinitionLiveCommand}.
+ * A mutable builder with a fluent API for creating a {@link LiveCommandAnswer} for a
+ * {@link DeleteFeatureDefinitionLiveCommand}.
  */
 @ParametersAreNonnullByDefault
 @NotThreadSafe
 final class DeleteFeatureDefinitionLiveCommandAnswerBuilderImpl
-        extends
-        AbstractLiveCommandAnswerBuilder<DeleteFeatureDefinitionLiveCommand, DeleteFeatureDefinitionLiveCommandAnswerBuilder.ResponseFactory, DeleteFeatureDefinitionLiveCommandAnswerBuilder.EventFactory>
+        extends AbstractLiveCommandAnswerBuilder<DeleteFeatureDefinitionLiveCommand, DeleteFeatureDefinitionLiveCommandAnswerBuilder.ResponseFactory, DeleteFeatureDefinitionLiveCommandAnswerBuilder.EventFactory>
         implements DeleteFeatureDefinitionLiveCommandAnswerBuilder {
 
     private DeleteFeatureDefinitionLiveCommandAnswerBuilderImpl(final DeleteFeatureDefinitionLiveCommand command) {
@@ -52,12 +51,14 @@ final class DeleteFeatureDefinitionLiveCommandAnswerBuilderImpl
      */
     public static DeleteFeatureDefinitionLiveCommandAnswerBuilderImpl newInstance(
             final DeleteFeatureDefinitionLiveCommand command) {
+
         return new DeleteFeatureDefinitionLiveCommandAnswerBuilderImpl(command);
     }
 
     @Override
     protected CommandResponse doCreateResponse(
             final Function<ResponseFactory, CommandResponse<?>> createResponseFunction) {
+
         return createResponseFunction.apply(new ResponseFactoryImpl());
     }
 
@@ -80,8 +81,7 @@ final class DeleteFeatureDefinitionLiveCommandAnswerBuilderImpl
         @Override
         public ThingErrorResponse featureDefinitionNotAccessibleError() {
             return errorResponse(command.getThingId(),
-                    FeatureDefinitionNotAccessibleException.newBuilder(command.getThingId(),
-                            command.getFeatureId())
+                    FeatureDefinitionNotAccessibleException.newBuilder(command.getThingId(), command.getFeatureId())
                             .dittoHeaders(command.getDittoHeaders())
                             .build());
         }
@@ -90,11 +90,11 @@ final class DeleteFeatureDefinitionLiveCommandAnswerBuilderImpl
         @Override
         public ThingErrorResponse featureDefinitionNotModifiableError() {
             return errorResponse(command.getThingId(),
-                    FeatureDefinitionNotModifiableException.newBuilder(command.getThingId(),
-                            command.getFeatureId())
+                    FeatureDefinitionNotModifiableException.newBuilder(command.getThingId(), command.getFeatureId())
                             .dittoHeaders(command.getDittoHeaders())
                             .build());
         }
+
     }
 
     private final class EventFactoryImpl implements EventFactory {
@@ -105,6 +105,7 @@ final class DeleteFeatureDefinitionLiveCommandAnswerBuilderImpl
             return FeatureDefinitionDeleted.of(command.getThingId(), command.getFeatureId(), -1,
                     Instant.now(), command.getDittoHeaders());
         }
+
     }
 
 }

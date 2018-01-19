@@ -22,11 +22,10 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.junit.Test;
 
-
 /**
  * Unit test for {@link FeatureDefinitionNotAccessibleException}.
  */
-public class FeatureDefinitionNotAccessibleExceptionTest {
+public final class FeatureDefinitionNotAccessibleExceptionTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(DittoRuntimeException.JsonFields.STATUS, HttpStatusCode.NOT_FOUND.toInt())
@@ -39,12 +38,10 @@ public class FeatureDefinitionNotAccessibleExceptionTest {
                     TestConstants.Feature.FEATURE_PROPERTIES_NOT_ACCESSIBLE_EXCEPTION.getHref().toString())
             .build();
 
-
     @Test
     public void assertImmutability() {
         assertInstancesOf(FeatureDefinitionNotAccessibleException.class, areImmutable());
     }
-
 
     @Test
     public void checkFeatureDefinitionErrorCodeWorks() {

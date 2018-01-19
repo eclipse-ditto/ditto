@@ -14,6 +14,7 @@ package org.eclipse.ditto.signals.commands.things.exceptions;
 import java.net.URI;
 import java.text.MessageFormat;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -43,8 +44,12 @@ public final class FeatureDefinitionNotAccessibleException extends DittoRuntimeE
 
     private static final long serialVersionUID = 1348475826485607006L;
 
-    private FeatureDefinitionNotAccessibleException(final DittoHeaders dittoHeaders, final String message,
-            final String description, final Throwable cause, final URI href) {
+    private FeatureDefinitionNotAccessibleException(final DittoHeaders dittoHeaders,
+            @Nullable final String message,
+            @Nullable final String description,
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
+
         super(ERROR_CODE, HttpStatusCode.NOT_FOUND, dittoHeaders, message, description, cause, href);
     }
 
@@ -68,6 +73,7 @@ public final class FeatureDefinitionNotAccessibleException extends DittoRuntimeE
      */
     public static FeatureDefinitionNotAccessibleException fromMessage(final String message,
             final DittoHeaders dittoHeaders) {
+
         return new Builder()
                 .dittoHeaders(dittoHeaders)
                 .message(message)
@@ -81,17 +87,17 @@ public final class FeatureDefinitionNotAccessibleException extends DittoRuntimeE
      * @param jsonObject the JSON to read the {@link JsonFields#MESSAGE} field from.
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new FeatureDefinitionNotAccessibleException.
-     * @throws org.eclipse.ditto.json.JsonMissingFieldException if the {@code jsonObject} does not have the {@link
-     * JsonFields#MESSAGE} field.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if the {@code jsonObject} does not have the
+     * {@link JsonFields#MESSAGE} field.
      */
     public static FeatureDefinitionNotAccessibleException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
+
         return fromMessage(readMessage(jsonObject), dittoHeaders);
     }
 
     /**
      * A mutable builder with a fluent API for a {@link FeatureDefinitionNotAccessibleException}.
-     *
      */
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<FeatureDefinitionNotAccessibleException> {
@@ -107,9 +113,14 @@ public final class FeatureDefinitionNotAccessibleException extends DittoRuntimeE
 
         @Override
         protected FeatureDefinitionNotAccessibleException doBuild(final DittoHeaders dittoHeaders,
-                final String message, final String description, final Throwable cause, final URI href) {
+                @Nullable final String message,
+                @Nullable final String description,
+                @Nullable final Throwable cause,
+                @Nullable final URI href) {
+
             return new FeatureDefinitionNotAccessibleException(dittoHeaders, message, description, cause, href);
         }
+
     }
 
 }

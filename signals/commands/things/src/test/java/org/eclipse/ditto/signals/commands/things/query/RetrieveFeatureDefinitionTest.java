@@ -11,6 +11,8 @@
  */
 package org.eclipse.ditto.signals.commands.things.query;
 
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.eclipse.ditto.signals.commands.things.assertions.ThingCommandAssertions.assertThat;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
@@ -48,14 +50,12 @@ public final class RetrieveFeatureDefinitionTest {
     private static final JsonParseOptions JSON_PARSE_OPTIONS =
             JsonFactory.newParseOptionsBuilder().withoutUrlDecoding().build();
 
-
     @Test
     public void assertImmutability() {
         assertInstancesOf(RetrieveFeatureDefinition.class,
                 areImmutable(),
                 provided(JsonFieldSelector.class).isAlsoImmutable());
     }
-
 
     @Test
     public void testHashCodeAndEquals() {
@@ -64,26 +64,29 @@ public final class RetrieveFeatureDefinitionTest {
                 .verify();
     }
 
-
-    @Test(expected = ThingIdInvalidException.class)
+    @Test
     public void tryToCreateInstanceWithNullThingId() {
-        RetrieveFeatureDefinition.of(null, TestConstants.Feature.FLUX_CAPACITOR_ID,
-                TestConstants.EMPTY_DITTO_HEADERS);
+        assertThatExceptionOfType(ThingIdInvalidException.class)
+                .isThrownBy(() -> RetrieveFeatureDefinition.of(null, TestConstants.Feature.FLUX_CAPACITOR_ID,
+                        TestConstants.EMPTY_DITTO_HEADERS))
+                .withMessage("The ID is not valid because it was 'null'!")
+                .withNoCause();
     }
 
-
-    @Test(expected = NullPointerException.class)
+    @Test
     public void tryToCreateInstanceWithNullFeatureId() {
-        RetrieveFeatureDefinition.of(TestConstants.Thing.THING_ID, null, TestConstants.EMPTY_DITTO_HEADERS);
+        assertThatNullPointerException()
+                .isThrownBy(() -> RetrieveFeatureDefinition.of(TestConstants.Thing.THING_ID, null,
+                        TestConstants.EMPTY_DITTO_HEADERS))
+                .withMessage("The %s must not be null!", "Feature ID")
+                .withNoCause();
     }
-
 
     @Test
     public void tryToCreateInstanceWithValidArguments() {
         RetrieveFeatureDefinition.of(TestConstants.Thing.THING_ID, TestConstants.Feature.FLUX_CAPACITOR_ID,
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
-
 
     @Test
     public void toJsonReturnsExpected() {
@@ -95,7 +98,6 @@ public final class RetrieveFeatureDefinitionTest {
         assertThat(actualJson).isEqualTo(KNOWN_JSON);
     }
 
-
     @Test
     public void jsonSerializationWorksAsExpectedWithSelectedFields() {
         final RetrieveFeatureDefinition underTest =
@@ -106,7 +108,6 @@ public final class RetrieveFeatureDefinitionTest {
         assertThat(actualJson).isEqualTo(KNOWN_JSON_WITH_FIELD_SELECTION);
     }
 
-
     @Test
     public void createInstanceFromValidJson() {
         final RetrieveFeatureDefinition underTest =
@@ -116,7 +117,6 @@ public final class RetrieveFeatureDefinitionTest {
         assertThat(underTest.getId()).isEqualTo(TestConstants.Thing.THING_ID);
         assertThat(underTest.getFeatureId()).isEqualTo(TestConstants.Feature.FLUX_CAPACITOR_ID);
     }
-
 
     @Test
     public void createInstanceFromValidJsonWithSelectedFields() {

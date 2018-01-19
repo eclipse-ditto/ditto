@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.signals.events.things;
 
+import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
@@ -40,58 +41,61 @@ public final class FeatureDefinitionCreatedTest {
                     TestConstants.Feature.FLUX_CAPACITOR_DEFINITION.toJson())
             .build();
 
-
     @Test
     public void assertImmutability() {
-        assertInstancesOf(FeatureDefinitionCreated.class, areImmutable(),
+        assertInstancesOf(FeatureDefinitionCreated.class,
+                areImmutable(),
                 provided(FeatureDefinition.class).isAlsoImmutable());
     }
-
 
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(FeatureDefinitionCreated.class)
                 .withRedefinedSuperclass()
+                .usingGetClass()
                 .verify();
     }
 
-
-    @Test(expected = NullPointerException.class)
+    @Test
     public void tryToCreateInstanceWithNullThingId() {
-        FeatureDefinitionCreated.of(null, TestConstants.Feature.FLUX_CAPACITOR_ID,
-                TestConstants.Feature.FLUX_CAPACITOR_DEFINITION,
-                TestConstants.Thing.REVISION_NUMBER, TestConstants.EMPTY_DITTO_HEADERS);
+        assertThatNullPointerException()
+                .isThrownBy(() -> FeatureDefinitionCreated.of(null, TestConstants.Feature.FLUX_CAPACITOR_ID,
+                        TestConstants.Feature.FLUX_CAPACITOR_DEFINITION, TestConstants.Thing.REVISION_NUMBER,
+                        TestConstants.EMPTY_DITTO_HEADERS))
+                .withMessage("The %s must not be null!", "Thing identifier")
+                .withNoCause();
     }
 
-
-    @Test(expected = NullPointerException.class)
+    @Test
     public void tryToCreateInstanceWithNullFeatureId() {
-        FeatureDefinitionCreated.of(TestConstants.Thing.THING_ID, null, TestConstants.Feature.FLUX_CAPACITOR_DEFINITION,
-                TestConstants.Thing.REVISION_NUMBER,
-                TestConstants.EMPTY_DITTO_HEADERS);
+        assertThatNullPointerException()
+                .isThrownBy(() -> FeatureDefinitionCreated.of(TestConstants.Thing.THING_ID, null,
+                        TestConstants.Feature.FLUX_CAPACITOR_DEFINITION, TestConstants.Thing.REVISION_NUMBER,
+                        TestConstants.EMPTY_DITTO_HEADERS))
+                .withMessage("The %s must not be null!", "Feature ID")
+                .withNoCause();
     }
 
-
-    @Test(expected = NullPointerException.class)
-    public void tryToCreateInstanceWithNullProperties() {
-        FeatureDefinitionCreated.of(TestConstants.Thing.THING_ID, TestConstants.Feature.FLUX_CAPACITOR_ID, null,
-                TestConstants.Thing.REVISION_NUMBER,
-                TestConstants.EMPTY_DITTO_HEADERS);
+    @Test
+    public void tryToCreateInstanceWithNullDefinition() {
+        assertThatNullPointerException()
+                .isThrownBy(() -> FeatureDefinitionCreated.of(TestConstants.Thing.THING_ID,
+                        TestConstants.Feature.FLUX_CAPACITOR_ID, null, TestConstants.Thing.REVISION_NUMBER,
+                        TestConstants.EMPTY_DITTO_HEADERS))
+                .withMessage("The %s must not be null!", "Definition")
+                .withNoCause();
     }
-
 
     @Test
     public void toJsonReturnsExpected() {
         final FeatureDefinitionCreated underTest =
                 FeatureDefinitionCreated.of(TestConstants.Thing.THING_ID, TestConstants.Feature.FLUX_CAPACITOR_ID,
                         TestConstants.Feature.FLUX_CAPACITOR_DEFINITION, TestConstants.Thing.REVISION_NUMBER,
-                        TestConstants.TIMESTAMP,
-                        TestConstants.EMPTY_DITTO_HEADERS);
+                        TestConstants.TIMESTAMP, TestConstants.EMPTY_DITTO_HEADERS);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
         assertThat(actualJson).isEqualTo(KNOWN_JSON);
     }
-
 
     @Test
     public void createInstanceFromValidJson() {

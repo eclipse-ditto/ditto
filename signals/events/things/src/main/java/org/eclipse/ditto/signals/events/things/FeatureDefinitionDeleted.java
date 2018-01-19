@@ -11,7 +11,7 @@
  */
 package org.eclipse.ditto.signals.events.things;
 
-import static java.util.Objects.requireNonNull;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.time.Instant;
 import java.util.Objects;
@@ -34,8 +34,8 @@ import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
  * This event is emitted after a Feature's {@link org.eclipse.ditto.model.things.FeatureDefinition} was deleted.
  */
 @Immutable
-public final class FeatureDefinitionDeleted extends AbstractThingEvent<FeatureDefinitionDeleted> implements
-        ThingModifiedEvent<FeatureDefinitionDeleted>, WithFeatureId {
+public final class FeatureDefinitionDeleted extends AbstractThingEvent<FeatureDefinitionDeleted>
+        implements ThingModifiedEvent<FeatureDefinitionDeleted>, WithFeatureId {
 
     /**
      * Name of the "Feature Definition Deleted" event.
@@ -49,10 +49,14 @@ public final class FeatureDefinitionDeleted extends AbstractThingEvent<FeatureDe
 
     private final String featureId;
 
-    private FeatureDefinitionDeleted(final String thingId, final String featureId, final long revision,
-            @Nullable final Instant timestamp, final DittoHeaders dittoHeaders) {
+    private FeatureDefinitionDeleted(final String thingId,
+            final String featureId,
+            final long revision,
+            @Nullable final Instant timestamp,
+            final DittoHeaders dittoHeaders) {
+
         super(TYPE, thingId, revision, timestamp, dittoHeaders);
-        this.featureId = requireNonNull(featureId, "The Feature ID must not be null!");
+        this.featureId = checkNotNull(featureId, "Feature ID");
     }
 
     /**
@@ -65,8 +69,11 @@ public final class FeatureDefinitionDeleted extends AbstractThingEvent<FeatureDe
      * @return the FeatureFeatureDefinitionDeleted created.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static FeatureDefinitionDeleted of(final String thingId, final String featureId, final long revision,
+    public static FeatureDefinitionDeleted of(final String thingId,
+            final String featureId,
+            final long revision,
             final DittoHeaders dittoHeaders) {
+
         return of(thingId, featureId, revision, null, dittoHeaders);
     }
 
@@ -81,8 +88,12 @@ public final class FeatureDefinitionDeleted extends AbstractThingEvent<FeatureDe
      * @return the FeatureFeatureDefinitionDeleted created.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static FeatureDefinitionDeleted of(final String thingId, final String featureId, final long revision,
-            @Nullable final Instant timestamp, final DittoHeaders dittoHeaders) {
+    public static FeatureDefinitionDeleted of(final String thingId,
+            final String featureId,
+            final long revision,
+            @Nullable final Instant timestamp,
+            final DittoHeaders dittoHeaders) {
+
         return new FeatureDefinitionDeleted(thingId, featureId, revision, timestamp, dittoHeaders);
     }
 
@@ -145,6 +156,7 @@ public final class FeatureDefinitionDeleted extends AbstractThingEvent<FeatureDe
     @Override
     protected void appendPayloadAndBuild(final JsonObjectBuilder jsonObjectBuilder,
             final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(JsonFields.FEATURE_ID, featureId, predicate);
     }
@@ -152,10 +164,7 @@ public final class FeatureDefinitionDeleted extends AbstractThingEvent<FeatureDe
     @SuppressWarnings("squid:S109")
     @Override
     public int hashCode() {
-        final int prime = 31;
-        int result = super.hashCode();
-        result = prime * result + Objects.hashCode(featureId);
-        return result;
+        return Objects.hash(featureId, super.hashCode());
     }
 
     @SuppressWarnings("squid:MethodCyclomaticComplexity")

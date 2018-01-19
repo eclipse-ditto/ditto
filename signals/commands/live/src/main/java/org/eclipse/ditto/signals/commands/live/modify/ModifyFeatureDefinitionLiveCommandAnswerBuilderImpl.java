@@ -30,14 +30,13 @@ import org.eclipse.ditto.signals.events.things.FeatureDefinitionCreated;
 import org.eclipse.ditto.signals.events.things.FeatureDefinitionModified;
 
 /**
- * A mutable builder with a fluent API for creating a {@link LiveCommandAnswer} for a {@link
- * ModifyFeatureDefinitionLiveCommand}.
+ * A mutable builder with a fluent API for creating a {@link LiveCommandAnswer} for a
+ * {@link ModifyFeatureDefinitionLiveCommand}.
  */
 @ParametersAreNonnullByDefault
 @NotThreadSafe
 final class ModifyFeatureDefinitionLiveCommandAnswerBuilderImpl
-        extends
-        AbstractLiveCommandAnswerBuilder<ModifyFeatureDefinitionLiveCommand, ModifyFeatureDefinitionLiveCommandAnswerBuilder.ResponseFactory, ModifyFeatureDefinitionLiveCommandAnswerBuilder.EventFactory>
+        extends AbstractLiveCommandAnswerBuilder<ModifyFeatureDefinitionLiveCommand, ModifyFeatureDefinitionLiveCommandAnswerBuilder.ResponseFactory, ModifyFeatureDefinitionLiveCommandAnswerBuilder.EventFactory>
         implements ModifyFeatureDefinitionLiveCommandAnswerBuilder {
 
     private ModifyFeatureDefinitionLiveCommandAnswerBuilderImpl(final ModifyFeatureDefinitionLiveCommand command) {
@@ -59,6 +58,7 @@ final class ModifyFeatureDefinitionLiveCommandAnswerBuilderImpl
     @Override
     protected CommandResponse doCreateResponse(
             final Function<ResponseFactory, CommandResponse<?>> createResponseFunction) {
+
         return createResponseFunction.apply(new ResponseFactoryImpl());
     }
 
@@ -104,6 +104,7 @@ final class ModifyFeatureDefinitionLiveCommandAnswerBuilderImpl
                             .dittoHeaders(command.getDittoHeaders())
                             .build());
         }
+
     }
 
     @Immutable
@@ -122,6 +123,7 @@ final class ModifyFeatureDefinitionLiveCommandAnswerBuilderImpl
             return FeatureDefinitionModified.of(command.getThingId(), command.getFeatureId(),
                     command.getDefinition(), -1, Instant.now(), command.getDittoHeaders());
         }
+
     }
 
 }

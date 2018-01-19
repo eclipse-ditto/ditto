@@ -37,8 +37,8 @@ import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
  * This command retrieves a {@link org.eclipse.ditto.model.things.Feature}'s Definition.
  */
 @Immutable
-public final class RetrieveFeatureDefinition extends AbstractCommand<RetrieveFeatureDefinition> implements
-        ThingQueryCommand<RetrieveFeatureDefinition>, WithFeatureId {
+public final class RetrieveFeatureDefinition extends AbstractCommand<RetrieveFeatureDefinition>
+        implements ThingQueryCommand<RetrieveFeatureDefinition>, WithFeatureId {
 
     /**
      * Name of the "Retrieve Feature Definition" command.
@@ -75,8 +75,8 @@ public final class RetrieveFeatureDefinition extends AbstractCommand<RetrieveFea
      * @param dittoHeaders the headers of the command.
      * @return a Command for retrieving the Definition of the specified Feature.
      * @throws NullPointerException if any argument but {@code thingId} is {@code null}.
-     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to {@link
-     * org.eclipse.ditto.model.things.Thing#ID_REGEX}.
+     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to
+     * {@link org.eclipse.ditto.model.things.Thing#ID_REGEX}.
      */
     public static RetrieveFeatureDefinition of(final String thingId, final String featureId,
             final DittoHeaders dittoHeaders) {
@@ -94,6 +94,12 @@ public final class RetrieveFeatureDefinition extends AbstractCommand<RetrieveFea
      * @throws IllegalArgumentException if {@code jsonString} is empty.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if the parsed {@code jsonString} did not contain any of
+     * the required fields
+     * <ul>
+     *     <li>{@link ThingQueryCommand.JsonFields#JSON_THING_ID} or</li>
+     *     <li>{@link #JSON_FEATURE_ID}.</li>
+     * </ul>
      * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to {@link
      * org.eclipse.ditto.model.things.Thing#ID_REGEX}.
      */
@@ -110,15 +116,21 @@ public final class RetrieveFeatureDefinition extends AbstractCommand<RetrieveFea
      * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if {@code jsonObject} did not contain any of the
+     * required fields
+     * <ul>
+     *     <li>{@link ThingQueryCommand.JsonFields#JSON_THING_ID} or</li>
+     *     <li>{@link #JSON_FEATURE_ID}.</li>
+     * </ul>
      * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to {@link
      * org.eclipse.ditto.model.things.Thing#ID_REGEX}.
      */
     public static RetrieveFeatureDefinition fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<RetrieveFeatureDefinition>(TYPE, jsonObject).deserialize(() -> {
-            final String thingId = jsonObject.getValueOrThrow(ThingQueryCommand.JsonFields.JSON_THING_ID);
+            final String extractedThingId = jsonObject.getValueOrThrow(ThingQueryCommand.JsonFields.JSON_THING_ID);
             final String extractedFeatureId = jsonObject.getValueOrThrow(JSON_FEATURE_ID);
 
-            return of(thingId, extractedFeatureId, dittoHeaders);
+            return of(extractedThingId, extractedFeatureId, dittoHeaders);
         });
     }
 

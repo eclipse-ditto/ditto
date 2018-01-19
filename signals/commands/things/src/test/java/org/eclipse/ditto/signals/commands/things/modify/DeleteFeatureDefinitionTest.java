@@ -11,6 +11,8 @@
  */
 package org.eclipse.ditto.signals.commands.things.modify;
 
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.eclipse.ditto.signals.commands.things.assertions.ThingCommandAssertions.assertThat;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
@@ -23,7 +25,7 @@ import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
@@ -39,12 +41,10 @@ public final class DeleteFeatureDefinitionTest {
             .set(DeleteFeatureDefinition.JSON_FEATURE_ID, TestConstants.Feature.FLUX_CAPACITOR_ID)
             .build();
 
-
     @Test
     public void assertImmutability() {
         assertInstancesOf(DeleteFeatureDefinition.class, areImmutable());
     }
-
 
     @Test
     public void testHashCodeAndEquals() {
@@ -53,18 +53,23 @@ public final class DeleteFeatureDefinitionTest {
                 .verify();
     }
 
-
-    @Test(expected = ThingIdInvalidException.class)
+    @Test
     public void tryToCreateInstanceWithNullThingId() {
-        DeleteFeatureDefinition.of(null, TestConstants.Feature.FLUX_CAPACITOR_ID, TestConstants.EMPTY_DITTO_HEADERS);
+        assertThatExceptionOfType(ThingIdInvalidException.class)
+                .isThrownBy(() -> DeleteFeatureDefinition.of(null, TestConstants.Feature.FLUX_CAPACITOR_ID,
+                        TestConstants.EMPTY_DITTO_HEADERS))
+                .withMessage("The ID is not valid because it was 'null'!")
+                .withNoCause();
     }
 
-
-    @Test(expected = NullPointerException.class)
+    @Test
     public void tryToCreateInstanceWithNullFeatureId() {
-        DeleteFeatureDefinition.of(TestConstants.Thing.THING_ID, null, TestConstants.EMPTY_DITTO_HEADERS);
+        assertThatNullPointerException()
+                .isThrownBy(() -> DeleteFeatureDefinition.of(TestConstants.Thing.THING_ID, null,
+                        TestConstants.EMPTY_DITTO_HEADERS))
+                .withMessage("The %s must not be null!", "Feature ID")
+                .withNoCause();
     }
-
 
     @Test
     public void createInstanceWithValidArguments() {
@@ -74,7 +79,6 @@ public final class DeleteFeatureDefinitionTest {
         assertThat(underTest).isNotNull();
     }
 
-
     @Test
     public void toJsonReturnsExpected() {
         final DeleteFeatureDefinition underTest = DeleteFeatureDefinition.of(TestConstants.Thing.THING_ID,
@@ -83,7 +87,6 @@ public final class DeleteFeatureDefinitionTest {
 
         assertThat(actualJson).isEqualTo(KNOWN_JSON);
     }
-
 
     @Test
     public void createInstanceFromValidJson() {

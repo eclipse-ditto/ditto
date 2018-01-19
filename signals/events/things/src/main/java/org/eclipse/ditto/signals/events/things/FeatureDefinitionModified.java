@@ -41,8 +41,8 @@ import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
  * This event is emitted after a Feature's {@link FeatureDefinition} was modified.
  */
 @Immutable
-public final class FeatureDefinitionModified extends AbstractThingEvent<FeatureDefinitionModified> implements
-        ThingModifiedEvent<FeatureDefinitionModified>, WithFeatureId {
+public final class FeatureDefinitionModified extends AbstractThingEvent<FeatureDefinitionModified>
+        implements ThingModifiedEvent<FeatureDefinitionModified>, WithFeatureId {
 
     /**
      * Name of the "Feature Definition Modified" event.
@@ -222,7 +222,7 @@ public final class FeatureDefinitionModified extends AbstractThingEvent<FeatureD
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return (other instanceof FeatureDefinitionModified);
+        return other instanceof FeatureDefinitionModified;
     }
 
     @Override

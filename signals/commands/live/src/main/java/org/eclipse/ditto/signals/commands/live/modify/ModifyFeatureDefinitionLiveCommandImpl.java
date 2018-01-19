@@ -12,22 +12,21 @@
 package org.eclipse.ditto.signals.commands.live.modify;
 
 import javax.annotation.Nonnull;
-import javax.annotation.ParametersAreNonnullByDefault;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.FeatureDefinition;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureDefinition;
+import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
 /**
  * An immutable implementation of {@link ModifyFeatureDefinitionLiveCommand}.
  */
-@ParametersAreNonnullByDefault
+@AllValuesAreNonnullByDefault
 @Immutable
 final class ModifyFeatureDefinitionLiveCommandImpl
-        extends
-        AbstractModifyLiveCommand<ModifyFeatureDefinitionLiveCommand, ModifyFeatureDefinitionLiveCommandAnswerBuilder>
+        extends AbstractModifyLiveCommand<ModifyFeatureDefinitionLiveCommand, ModifyFeatureDefinitionLiveCommandAnswerBuilder>
         implements ModifyFeatureDefinitionLiveCommand {
 
     private final String featureId;

@@ -12,6 +12,7 @@
 package org.eclipse.ditto.signals.commands.live.modify;
 
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.eclipse.ditto.signals.commands.base.assertions.CommandAssertions.assertThat;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
@@ -38,7 +39,6 @@ public final class ModifyFeatureDefinitionLiveCommandImplTest {
     private ModifyFeatureDefinition twinCommand;
     private ModifyFeatureDefinitionLiveCommand underTest;
 
-    /** */
     @Before
     public void setUp() {
         twinCommand = ModifyFeatureDefinition.of(TestConstants.Thing.THING_ID, TestConstants.Feature.FLUX_CAPACITOR_ID,
@@ -46,7 +46,6 @@ public final class ModifyFeatureDefinitionLiveCommandImplTest {
         underTest = ModifyFeatureDefinitionLiveCommandImpl.of(twinCommand);
     }
 
-    /** */
     @Test
     public void assertImmutability() {
         assertInstancesOf(ModifyFeatureDefinitionLiveCommandImpl.class,
@@ -54,7 +53,6 @@ public final class ModifyFeatureDefinitionLiveCommandImplTest {
                 provided(FeatureDefinition.class).isAlsoImmutable());
     }
 
-    /** */
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(ModifyFeatureDefinitionLiveCommandImpl.class)
@@ -63,17 +61,15 @@ public final class ModifyFeatureDefinitionLiveCommandImplTest {
                 .verify();
     }
 
-    /** */
     @SuppressWarnings("ConstantConditions")
     @Test
     public void tryToGetModifyFeatureDefinitionLiveCommandForNull() {
-        assertThatExceptionOfType(NullPointerException.class)
+        assertThatNullPointerException()
                 .isThrownBy(() -> ModifyFeatureDefinitionLiveCommandImpl.of(null))
-                .withMessage(MessageFormat.format("The {0} must not be null!", "command"))
+                .withMessage("The %s must not be null!", "command")
                 .withNoCause();
     }
 
-    /** */
     @Test
     public void tryToGetModifyFeatureDefinitionLiveCommandForCreateThingCommand() {
         final Command<?> commandMock = Mockito.mock(Command.class);
@@ -85,7 +81,6 @@ public final class ModifyFeatureDefinitionLiveCommandImplTest {
                 .withNoCause();
     }
 
-    /** */
     @Test
     public void getModifyFeatureDefinitionLiveCommandReturnsExpected() {
         assertThat(underTest)
@@ -98,7 +93,6 @@ public final class ModifyFeatureDefinitionLiveCommandImplTest {
         assertThat(underTest.getFeatureId()).isEqualTo(twinCommand.getFeatureId());
     }
 
-    /** */
     @Test
     public void setDittoHeadersReturnsExpected() {
         final DittoHeaders emptyDittoHeaders = DittoHeaders.empty();
@@ -108,13 +102,11 @@ public final class ModifyFeatureDefinitionLiveCommandImplTest {
         assertThat(newModifyFeatureDefinitionLiveCommand).withDittoHeaders(emptyDittoHeaders);
     }
 
-    /** */
     @Test
     public void answerReturnsNotNull() {
         assertThat(underTest.answer()).isNotNull();
     }
 
-    /** */
     @Test
     public void toStringReturnsExpected() {
         assertThat(underTest.toString())

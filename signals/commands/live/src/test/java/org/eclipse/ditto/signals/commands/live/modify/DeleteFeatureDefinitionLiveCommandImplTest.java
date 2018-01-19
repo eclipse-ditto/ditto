@@ -12,6 +12,7 @@
 package org.eclipse.ditto.signals.commands.live.modify;
 
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.eclipse.ditto.signals.commands.base.assertions.CommandAssertions.assertThat;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
@@ -28,7 +29,6 @@ import org.mockito.Mockito;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
-
 /**
  * Unit test for {@link DeleteFeatureDefinitionLiveCommandImpl}.
  */
@@ -37,7 +37,6 @@ public final class DeleteFeatureDefinitionLiveCommandImplTest {
     private DeleteFeatureDefinition twinCommand;
     private DeleteFeatureDefinitionLiveCommand underTest;
 
-    /** */
     @Before
     public void setUp() {
         twinCommand = DeleteFeatureDefinition.of(TestConstants.Thing.THING_ID,
@@ -45,13 +44,11 @@ public final class DeleteFeatureDefinitionLiveCommandImplTest {
         underTest = DeleteFeatureDefinitionLiveCommandImpl.of(twinCommand);
     }
 
-    /** */
     @Test
     public void assertImmutability() {
         assertInstancesOf(DeleteFeatureDefinitionLiveCommandImpl.class, areImmutable());
     }
 
-    /** */
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(DeleteFeatureDefinitionLiveCommandImpl.class)
@@ -60,17 +57,15 @@ public final class DeleteFeatureDefinitionLiveCommandImplTest {
                 .verify();
     }
 
-    /** */
     @SuppressWarnings("ConstantConditions")
     @Test
     public void tryToGetDeleteFeatureDefinitionLiveCommandForNull() {
-        assertThatExceptionOfType(NullPointerException.class)
+        assertThatNullPointerException()
                 .isThrownBy(() -> DeleteFeatureDefinitionLiveCommandImpl.of(null))
-                .withMessage(MessageFormat.format("The {0} must not be null!", "command"))
+                .withMessage("The %s must not be null!", "command")
                 .withNoCause();
     }
 
-    /** */
     @Test
     public void tryToGetDeleteFeatureDefinitionLiveCommandForCreateFeatureDefinitionCommand() {
         final Command<?> commandMock = Mockito.mock(Command.class);
@@ -82,7 +77,6 @@ public final class DeleteFeatureDefinitionLiveCommandImplTest {
                 .withNoCause();
     }
 
-    /** */
     @Test
     public void getDeleteFeatureDefinitionLiveCommandReturnsExpected() {
         assertThat(underTest)
@@ -94,7 +88,6 @@ public final class DeleteFeatureDefinitionLiveCommandImplTest {
         assertThat(underTest.getFeatureId()).isEqualTo(twinCommand.getFeatureId());
     }
 
-    /** */
     @Test
     public void setDittoHeadersReturnsExpected() {
         final DittoHeaders emptyDittoHeaders = DittoHeaders.empty();
@@ -104,13 +97,11 @@ public final class DeleteFeatureDefinitionLiveCommandImplTest {
         assertThat(newDeleteFeatureDefinitionLiveCommand).withDittoHeaders(emptyDittoHeaders);
     }
 
-    /** */
     @Test
     public void answerReturnsNotNull() {
         assertThat(underTest.answer()).isNotNull();
     }
 
-    /** */
     @Test
     public void toStringReturnsExpected() {
         assertThat(underTest.toString())

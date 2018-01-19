@@ -26,9 +26,8 @@ import org.eclipse.ditto.signals.events.things.FeatureDefinitionModified;
  * LiveCommandAnswer builder for producing {@code CommandResponse}s and {@code Event}s for {@link
  * ModifyFeatureDefinition} commands.
  */
-public interface ModifyFeatureDefinitionLiveCommandAnswerBuilder
-        extends LiveCommandAnswerBuilder.ModifyCommandResponseStep<
-                ModifyFeatureDefinitionLiveCommandAnswerBuilder.ResponseFactory, ModifyFeatureDefinitionLiveCommandAnswerBuilder.EventFactory> {
+public interface ModifyFeatureDefinitionLiveCommandAnswerBuilder extends
+        LiveCommandAnswerBuilder.ModifyCommandResponseStep<ModifyFeatureDefinitionLiveCommandAnswerBuilder.ResponseFactory, ModifyFeatureDefinitionLiveCommandAnswerBuilder.EventFactory> {
 
     /**
      * Factory for {@code CommandResponse}s to {@link ModifyFeatureDefinition} command.
@@ -70,6 +69,7 @@ public interface ModifyFeatureDefinitionLiveCommandAnswerBuilder
          */
         @Nonnull
         ThingErrorResponse featureDefinitionNotModifiableError();
+
     }
 
     /**
@@ -92,6 +92,7 @@ public interface ModifyFeatureDefinitionLiveCommandAnswerBuilder
          */
         @Nonnull
         FeatureDefinitionModified modified();
+
     }
 
 }

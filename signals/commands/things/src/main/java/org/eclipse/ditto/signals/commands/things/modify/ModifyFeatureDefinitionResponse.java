@@ -12,7 +12,6 @@
 package org.eclipse.ditto.signals.commands.things.modify;
 
 import static java.util.Objects.requireNonNull;
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -35,6 +34,7 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.things.FeatureDefinition;
+import org.eclipse.ditto.model.things.ThingIdValidator;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
@@ -63,11 +63,15 @@ public final class ModifyFeatureDefinitionResponse extends AbstractCommandRespon
     private final String featureId;
     @Nullable private final FeatureDefinition definitionCreated;
 
-    private ModifyFeatureDefinitionResponse(final String thingId, final String featureId,
+    private ModifyFeatureDefinitionResponse(final String thingId,
+            final String featureId,
             @Nullable final FeatureDefinition definitionCreated,
-            final HttpStatusCode statusCode, final DittoHeaders dittoHeaders) {
+            final HttpStatusCode statusCode,
+            final DittoHeaders dittoHeaders) {
+
         super(TYPE, statusCode, dittoHeaders);
-        this.thingId = checkNotNull(thingId, "Thing ID");
+        ThingIdValidator.getInstance().accept(thingId, dittoHeaders);
+        this.thingId = thingId;
         this.featureId = requireNonNull(featureId, "The Feature ID must not be null!");
         this.definitionCreated = definitionCreated;
     }
@@ -81,10 +85,15 @@ public final class ModifyFeatureDefinitionResponse extends AbstractCommandRespon
      * @param definitionCreated the created FeatureDefinition.
      * @param dittoHeaders the headers of the ThingCommand which caused the new response.
      * @return a command response for a created FeatureDefinition.
+     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if {@code thingId} did not comply to
+     * {@link org.eclipse.ditto.model.things.Thing#ID_REGEX}.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static ModifyFeatureDefinitionResponse created(final String thingId, final String featureId,
-            final FeatureDefinition definitionCreated, final DittoHeaders dittoHeaders) {
+    public static ModifyFeatureDefinitionResponse created(final String thingId,
+            final String featureId,
+            final FeatureDefinition definitionCreated,
+            final DittoHeaders dittoHeaders) {
+
         return new ModifyFeatureDefinitionResponse(thingId, featureId, definitionCreated, HttpStatusCode.CREATED,
                 dittoHeaders);
     }
@@ -97,10 +106,13 @@ public final class ModifyFeatureDefinitionResponse extends AbstractCommandRespon
      * @param featureId the {@code Feature}'s ID whose Definition were modified.
      * @param dittoHeaders the headers of the ThingCommand which caused the new response.
      * @return a command response for a modified FeatureDefinition.
+     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if {@code thingId} did not comply to
+     * {@link org.eclipse.ditto.model.things.Thing#ID_REGEX}.
      * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
     public static ModifyFeatureDefinitionResponse modified(final String thingId, final String featureId,
             final DittoHeaders dittoHeaders) {
+
         return new ModifyFeatureDefinitionResponse(thingId, featureId, null, HttpStatusCode.NO_CONTENT, dittoHeaders);
     }
 
@@ -114,9 +126,17 @@ public final class ModifyFeatureDefinitionResponse extends AbstractCommandRespon
      * @throws IllegalArgumentException if {@code jsonString} is empty.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if the parsed {@code jsonString} did not contain any of
+     * the required fields
+     * <ul>
+     *     <li>{@link ThingModifyCommandResponse.JsonFields#JSON_THING_ID},</li>
+     *     <li>{@link #JSON_FEATURE_ID} or</li>
+     *     <li>{@link #JSON_DEFINITION}.</li>
+     * </ul>
+     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to
+     * {@link org.eclipse.ditto.model.things.Thing#ID_REGEX}.
      */
-    public static ModifyFeatureDefinitionResponse fromJson(final String jsonString,
-            final DittoHeaders dittoHeaders) {
+    public static ModifyFeatureDefinitionResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
         return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
     }
 
@@ -129,21 +149,30 @@ public final class ModifyFeatureDefinitionResponse extends AbstractCommandRespon
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if {@code jsonObject} did not contain any of the
+     * required fields
+     * <ul>
+     *     <li>{@link ThingModifyCommandResponse.JsonFields#JSON_THING_ID},</li>
+     *     <li>{@link #JSON_FEATURE_ID} or</li>
+     *     <li>{@link #JSON_DEFINITION}.</li>
+     * </ul>
+     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to
+     * {@link org.eclipse.ditto.model.things.Thing#ID_REGEX}.
      */
     public static ModifyFeatureDefinitionResponse fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<ModifyFeatureDefinitionResponse>(TYPE, jsonObject)
-                .deserialize((statusCode) -> {
-                    final String thingId =
-                            jsonObject.getValueOrThrow(ThingModifyCommandResponse.JsonFields.JSON_THING_ID);
 
+        return new CommandResponseJsonDeserializer<ModifyFeatureDefinitionResponse>(TYPE, jsonObject)
+                .deserialize(statusCode -> {
+                    final String extractedThingId =
+                            jsonObject.getValueOrThrow(ThingModifyCommandResponse.JsonFields.JSON_THING_ID);
                     final String extractedFeatureId = jsonObject.getValueOrThrow(JSON_FEATURE_ID);
                     final FeatureDefinition extractedFeatureDefinition = jsonObject.getValue(JSON_DEFINITION)
                             .map(ThingsModelFactory::newFeatureDefinition)
                             .orElse(null);
 
-                    return new ModifyFeatureDefinitionResponse(thingId, extractedFeatureId, extractedFeatureDefinition,
-                            statusCode, dittoHeaders);
+                    return new ModifyFeatureDefinitionResponse(extractedThingId, extractedFeatureId,
+                            extractedFeatureDefinition, statusCode, dittoHeaders);
                 });
     }
 
@@ -184,6 +213,7 @@ public final class ModifyFeatureDefinitionResponse extends AbstractCommandRespon
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(ThingModifyCommandResponse.JsonFields.JSON_THING_ID, thingId, predicate);
         jsonObjectBuilder.set(JSON_FEATURE_ID, featureId, predicate);
@@ -200,11 +230,6 @@ public final class ModifyFeatureDefinitionResponse extends AbstractCommandRespon
     }
 
     @Override
-    protected boolean canEqual(@Nullable final Object other) {
-        return other instanceof ModifyFeatureDefinitionResponse;
-    }
-
-    @Override
     public boolean equals(@Nullable final Object o) {
         if (this == o) {
             return true;
@@ -216,6 +241,11 @@ public final class ModifyFeatureDefinitionResponse extends AbstractCommandRespon
         return that.canEqual(this) && Objects.equals(thingId, that.thingId)
                 && Objects.equals(featureId, that.featureId)
                 && Objects.equals(definitionCreated, that.definitionCreated) && super.equals(o);
+    }
+
+    @Override
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof ModifyFeatureDefinitionResponse;
     }
 
     @Override

@@ -60,7 +60,7 @@ import org.eclipse.ditto.signals.commands.live.query.QueryLiveCommandFactory;
 @Immutable
 public final class LiveCommandFactory {
 
-    private static final int STRATEGIES_NUMBER = 23;
+    private static final int STRATEGIES_NUMBER = 26;
     private static final LiveCommandFactory INSTANCE = new LiveCommandFactory();
 
     private final Map<String, Function<Command, LiveCommand>> mappingStrategies;
