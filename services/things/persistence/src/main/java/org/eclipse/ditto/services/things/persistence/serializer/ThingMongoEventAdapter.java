@@ -12,6 +12,7 @@
 package org.eclipse.ditto.services.things.persistence.serializer;
 
 import java.beans.Introspector;
+import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -19,6 +20,8 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+
+import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
@@ -49,6 +52,8 @@ import org.eclipse.ditto.signals.events.things.FeaturesCreated;
 import org.eclipse.ditto.signals.events.things.FeaturesModified;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.eclipse.ditto.signals.events.things.ThingEventRegistry;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.mongodb.DBObject;
 
@@ -61,7 +66,9 @@ import akka.persistence.journal.Tagged;
  * EventAdapter for {@link Event}s persisted into akka-persistence event-journal. Converts Event to MongoDB
  * BSON objects and vice versa.
  */
-public final class MongoThingEventAdapter implements EventAdapter {
+public final class ThingMongoEventAdapter implements EventAdapter {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(ThingMongoEventAdapter.class);
 
     private static final String THING_ACL_MODIFIED = "thingAclModified";
     private static final String THING_ACL_ENTRY_DELETED = "thingAclEntryDeleted";
@@ -89,7 +96,7 @@ public final class MongoThingEventAdapter implements EventAdapter {
     private final ExtendedActorSystem system;
     private final EventRegistry<ThingEvent> eventRegistry;
 
-    public MongoThingEventAdapter(final ExtendedActorSystem system) {
+    public ThingMongoEventAdapter(@Nullable final ExtendedActorSystem system) {
         this.system = system;
         eventRegistry = ThingEventRegistry.newInstance();
 
@@ -168,14 +175,16 @@ public final class MongoThingEventAdapter implements EventAdapter {
         }
     }
 
+    @Nullable
     private Event tryToCreateEventFrom(final JsonValue json) {
         try {
             return createEventFrom(json);
         } catch (final JsonParseException | DittoRuntimeException e) {
+            final String message = MessageFormat.format("Could not deserialize ThingEvent JSON: ''{0}''", json);
             if (system != null) {
-                system.log().error(e, "Could not deserialize Event JSON: '{}'", json);
+                system.log().error(e, message);
             } else {
-                System.err.println("Could not deserialize Event JSON: '" + json + "': " + e.getMessage());
+                LOGGER.error(message, e);
             }
             return null;
         }

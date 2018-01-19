@@ -9,7 +9,7 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package org.eclipse.ditto.services.things.persistence.serializer.things;
+package org.eclipse.ditto.services.things.persistence.serializer;
 
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.model.things.TestConstants.Authorization.ACL_ENTRY_GRIMES;
@@ -44,12 +44,14 @@ import org.eclipse.ditto.model.things.Permission;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.services.things.persistence.serializer.SnapshotTag;
+import org.eclipse.ditto.services.things.persistence.serializer.ThingWithSnapshotTag;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link ThingWithSnapshotTag}.
+ * Unit test for {@link org.eclipse.ditto.services.things.persistence.serializer.ThingWithSnapshotTag}.
  */
 public final class ThingWithSnapshotTagTest {
 

@@ -18,11 +18,14 @@ import java.net.ConnectException;
 import java.time.Duration;
 import java.util.NoSuchElementException;
 import java.util.concurrent.CompletionStage;
+import java.util.function.Consumer;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.services.models.policies.PoliciesMessagingConstants;
 import org.eclipse.ditto.services.policies.persistence.actors.policies.PoliciesPersistenceStreamingActorCreator;
 import org.eclipse.ditto.services.policies.persistence.actors.policy.PolicySupervisorActor;
+import org.eclipse.ditto.services.policies.persistence.serializer.PolicyMongoSnapshotAdapter;
 import org.eclipse.ditto.services.policies.util.ConfigKeys;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
@@ -65,19 +68,21 @@ import akka.stream.ActorMaterializer;
 /**
  * Parent Actor which takes care of supervision of all other Actors in our system.
  */
-final class PoliciesRootActor extends AbstractActor {
+public final class PoliciesRootActor extends AbstractActor {
 
     /**
      * The name of this Actor in the ActorSystem.
      */
     static final String ACTOR_NAME = "policiesRoot";
 
+    private static final String RESTARTING_CHILD_MESSAGE = "Restarting child...";
+
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
-    private final SupervisorStrategy strategy = new OneForOneStrategy(true, DeciderBuilder //
+    private final SupervisorStrategy strategy = new OneForOneStrategy(true, DeciderBuilder
             .match(NullPointerException.class, e -> {
                 log.error(e, "NullPointer in child actor: {}", e.getMessage());
-                log.info("Restarting child...");
+                log.info(RESTARTING_CHILD_MESSAGE);
                 return SupervisorStrategy.restart();
             }).match(IllegalArgumentException.class, e -> {
                 log.warning("Illegal Argument in child actor: {}", e.getMessage());
@@ -93,14 +98,14 @@ final class PoliciesRootActor extends AbstractActor {
                 return SupervisorStrategy.resume();
             }).match(ConnectException.class, e -> {
                 log.warning("ConnectException in child actor: {}", e.getMessage());
-                log.info("Restarting child...");
+                log.info(RESTARTING_CHILD_MESSAGE);
                 return SupervisorStrategy.restart();
             }).match(InvalidActorNameException.class, e -> {
                 log.warning("InvalidActorNameException in child actor: {}", e.getMessage());
                 return SupervisorStrategy.resume();
             }).match(ActorKilledException.class, e -> {
                 log.error(e, "ActorKilledException in child actor: {}", e.message());
-                log.info("Restarting child...");
+                log.info(RESTARTING_CHILD_MESSAGE);
                 return SupervisorStrategy.restart();
             }).match(DittoRuntimeException.class, e -> {
                 log.error(e,
@@ -117,7 +122,9 @@ final class PoliciesRootActor extends AbstractActor {
 
     private final ActorRef policiesShardRegion;
 
-    private PoliciesRootActor(final Config config, final ActorRef pubSubMediator,
+    private PoliciesRootActor(final Config config,
+            final Consumer<Policy> snapshotSuccessFunction,
+            final ActorRef pubSubMediator,
             final ActorMaterializer materializer) {
         final int numberOfShards = config.getInt(ConfigKeys.Cluster.NUMBER_OF_SHARDS);
 
@@ -130,8 +137,9 @@ final class PoliciesRootActor extends AbstractActor {
         final Duration minBackoff = config.getDuration(ConfigKeys.Policy.SUPERVISOR_EXPONENTIAL_BACKOFF_MIN);
         final Duration maxBackoff = config.getDuration(ConfigKeys.Policy.SUPERVISOR_EXPONENTIAL_BACKOFF_MAX);
         final double randomFactor = config.getDouble(ConfigKeys.Policy.SUPERVISOR_EXPONENTIAL_BACKOFF_RANDOM_FACTOR);
-        final Props policySupervisorProps =
-                PolicySupervisorActor.props(pubSubMediator, minBackoff, maxBackoff, randomFactor, policyCacheFacade);
+        final PolicyMongoSnapshotAdapter snapshotAdapter = new PolicyMongoSnapshotAdapter();
+        final Props policySupervisorProps = PolicySupervisorActor.props(pubSubMediator, minBackoff, maxBackoff,
+                randomFactor, policyCacheFacade, snapshotAdapter, snapshotSuccessFunction);
 
         final int tagsStreamingCacheSize = config.getInt(ConfigKeys.POLICIES_TAGS_STREAMING_CACHE_SIZE);
         final ActorRef persistenceStreamingActor = startChildActor(PoliciesPersistenceStreamingActorCreator.ACTOR_NAME,
@@ -184,18 +192,21 @@ final class PoliciesRootActor extends AbstractActor {
      * Creates Akka configuration object Props for this PoliciesRootActor.
      *
      * @param config the configuration settings of the Things Service.
+     * @param snapshotSuccessFunction a function called when a snapshot was saved.
      * @param pubSubMediator the PubSub mediator Actor.
      * @param materializer the materializer for the akka actor system.
      * @return the Akka configuration Props object.
      */
-    static Props props(final Config config, final ActorRef pubSubMediator,
+    public static Props props(final Config config,
+            final Consumer<Policy> snapshotSuccessFunction,
+            final ActorRef pubSubMediator,
             final ActorMaterializer materializer) {
         return Props.create(PoliciesRootActor.class, new Creator<PoliciesRootActor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
             public PoliciesRootActor create() throws Exception {
-                return new PoliciesRootActor(config, pubSubMediator, materializer);
+                return new PoliciesRootActor(config, snapshotSuccessFunction, pubSubMediator, materializer);
             }
         });
     }

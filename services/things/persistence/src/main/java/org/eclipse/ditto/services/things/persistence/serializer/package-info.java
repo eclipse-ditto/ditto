@@ -11,4 +11,4 @@
  */
 
 @org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault
-package org.eclipse.ditto.services.things.persistence.serializer.things;
+package org.eclipse.ditto.services.things.persistence.serializer;

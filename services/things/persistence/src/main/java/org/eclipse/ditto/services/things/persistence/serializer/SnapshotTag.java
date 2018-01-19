@@ -9,7 +9,7 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package org.eclipse.ditto.services.things.persistence.serializer.things;
+package org.eclipse.ditto.services.things.persistence.serializer;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -33,9 +33,9 @@ public enum SnapshotTag {
     UNPROTECTED;
 
     /**
-     * Returns the SnapshotTag with the specified name. This is basically the same as {@link #valueOf(String)}. The
-     * main difference is that this method does not throw an exception if no value can be found but returns an empty
-     * Optional instead.
+     * Returns the SnapshotTag with the specified name. This is basically the same as {@link String#valueOf(Object)}.
+     * The main difference is that this method does not throw an exception if no value can be found but returns an
+     * empty Optional instead.
      *
      * @param snapshotTagName the name of the SnapshotTag to be returned.
      * @return the snapshot tag with {@code snapshotTagName} as its name or an empty Optional.

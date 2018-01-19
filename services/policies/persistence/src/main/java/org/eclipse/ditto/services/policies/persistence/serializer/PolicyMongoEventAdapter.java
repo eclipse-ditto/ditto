@@ -11,12 +11,15 @@
  */
 package org.eclipse.ditto.services.policies.persistence.serializer;
 
+import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+
+import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
@@ -34,6 +37,8 @@ import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.base.EventRegistry;
 import org.eclipse.ditto.signals.events.policies.PolicyEvent;
 import org.eclipse.ditto.signals.events.policies.PolicyEventRegistry;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.mongodb.DBObject;
 
@@ -46,7 +51,9 @@ import akka.persistence.journal.Tagged;
  * EventAdapter for {@link PolicyEvent}s persisted into akka-persistence event-journal. Converts Event to MongoDB BSON
  * objects and vice versa.
  */
-public final class MongoPolicyEventAdapter implements EventAdapter {
+public final class PolicyMongoEventAdapter implements EventAdapter {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(PolicyMongoEventAdapter.class);
 
     private static final Predicate<JsonField> IS_REVISION = field -> field.getDefinition()
             .map(Event.JsonFields.REVISION::equals)
@@ -58,10 +65,10 @@ public final class MongoPolicyEventAdapter implements EventAdapter {
                     JsonSchemaVersion.V_2);
 
     private final Map<String, Function<JsonObject, JsonObject>> migrationMappings;
-    private final ExtendedActorSystem system;
+    @Nullable private final ExtendedActorSystem system;
     private final EventRegistry<PolicyEvent> eventRegistry;
 
-    public MongoPolicyEventAdapter(final ExtendedActorSystem system) {
+    public PolicyMongoEventAdapter(@Nullable final ExtendedActorSystem system) {
         this.system = system;
         eventRegistry = PolicyEventRegistry.newInstance();
         migrationMappings = new HashMap<>();
@@ -112,14 +119,16 @@ public final class MongoPolicyEventAdapter implements EventAdapter {
         }
     }
 
+    @Nullable
     private PolicyEvent tryToCreateEventFrom(final JsonValue json) {
         try {
             return createEventFrom(json);
         } catch (final JsonParseException | DittoRuntimeException e) {
+            final String message = MessageFormat.format("Could not deserialize PolicyEvent JSON: ''{0}''", json);
             if (system != null) {
-                system.log().error(e, "Could not deserialize PolicyEvent JSON: '{}'", json);
+                system.log().error(e, message);
             } else {
-                System.err.println("Could not deserialize PolicyEvent JSON: '" + json + "': " + e.getMessage());
+                LOGGER.error(message, e);
             }
             return null;
         }
@@ -128,7 +137,6 @@ public final class MongoPolicyEventAdapter implements EventAdapter {
     private PolicyEvent createEventFrom(final JsonValue json) {
         final JsonObject jsonObject = json.asObject()
                 .setValue(Event.JsonFields.REVISION.getPointer(), Event.DEFAULT_REVISION);
-
         return eventRegistry.parse(migrateComplex(migratePayload(jsonObject)), DittoHeaders.empty());
     }
 

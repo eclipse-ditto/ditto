@@ -35,7 +35,7 @@ import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.model.things.assertions.DittoThingsAssertions;
 import org.eclipse.ditto.services.models.things.commands.sudo.TakeSnapshot;
 import org.eclipse.ditto.services.models.things.commands.sudo.TakeSnapshotResponse;
-import org.eclipse.ditto.services.things.persistence.serializer.MongoThingEventAdapter;
+import org.eclipse.ditto.services.things.persistence.serializer.ThingMongoEventAdapter;
 import org.eclipse.ditto.services.things.persistence.testhelper.Assertions;
 import org.eclipse.ditto.services.things.persistence.testhelper.ThingsJournalTestHelper;
 import org.eclipse.ditto.services.things.persistence.testhelper.ThingsSnapshotTestHelper;
@@ -102,7 +102,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                 .withValue(ConfigKeys.Thing.SNAPSHOT_INTERVAL, ConfigValueFactory.fromAnyRef(VERY_LONG_DURATION));
     }
     
-    private MongoThingEventAdapter eventAdapter;
+    private ThingMongoEventAdapter eventAdapter;
     private ThingsJournalTestHelper<ThingEvent> journalTestHelper;
     private ThingsSnapshotTestHelper<Thing> snapshotTestHelper;
     private Map<Class<? extends Command>, BiFunction<Command, Long, ThingEvent>> commandToEventMapperRegistry;
@@ -110,7 +110,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
     @Override
     protected void setup(final Config customConfig) {
         super.setup(customConfig);
-        eventAdapter = new MongoThingEventAdapter((ExtendedActorSystem) actorSystem);
+        eventAdapter = new ThingMongoEventAdapter((ExtendedActorSystem) actorSystem);
 
         journalTestHelper = new ThingsJournalTestHelper<>(actorSystem, this::convertJournalEntryToEvent,
                 ThingPersistenceActorSnapshottingTest::convertDomainIdToPersistenceId);

@@ -9,7 +9,7 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package org.eclipse.ditto.services.utils.akka.persistence;
+package org.eclipse.ditto.services.utils.persistence;
 
 import javax.annotation.Nullable;
 

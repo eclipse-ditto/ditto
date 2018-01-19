@@ -19,6 +19,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.TestConstants;
+import org.eclipse.ditto.services.utils.persistence.mongo.DittoBsonJson;
 import org.eclipse.ditto.signals.events.things.AclEntryCreated;
 import org.eclipse.ditto.signals.events.things.AclEntryDeleted;
 import org.eclipse.ditto.signals.events.things.AclEntryModified;
@@ -42,26 +43,24 @@ import org.eclipse.ditto.signals.events.things.ThingCreated;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.junit.Test;
 
-import org.eclipse.ditto.services.utils.persistence.mongo.DittoBsonJson;
-
 /**
- * Tests for {@link MongoThingEventAdapter}.
+ * Tests for {@link ThingMongoEventAdapter}.
  */
-public final class MongoThingEventAdapterTest {
+public final class ThingMongoEventAdapterTest {
 
-    private final MongoThingEventAdapter underTest;
+    private final ThingMongoEventAdapter underTest;
 
-    public MongoThingEventAdapterTest() {
-        underTest = new MongoThingEventAdapter(null);
+    public ThingMongoEventAdapterTest() {
+        underTest = new ThingMongoEventAdapter(null);
     }
 
     @Test
     public void deserializeThingCreatedV1() {
-        final JsonObject eventJson = JsonFactory.newObjectBuilder() //
-                .set("event", ThingCreated.NAME) //
-                .set("__schemaVersion", 1) //
-                .set("/payload/thingId", TestConstants.Thing.THING_ID) //
-                .set("/payload/thing", TestConstants.Thing.THING_V1.toJson(JsonSchemaVersion.V_1)) //
+        final JsonObject eventJson = JsonFactory.newObjectBuilder()
+                .set("event", ThingCreated.NAME)
+                .set("__schemaVersion", 1)
+                .set("/payload/thingId", TestConstants.Thing.THING_ID)
+                .set("/payload/thing", TestConstants.Thing.THING_V1.toJson(JsonSchemaVersion.V_1))
                 .build();
 
         final Object object = toDbObject(eventJson);
@@ -83,15 +82,15 @@ public final class MongoThingEventAdapterTest {
         final String attributePointer = "test1";
         final JsonValue attributeValue = JsonValue.of(1234);
 
-        final JsonObject eventJson = JsonFactory.newObjectBuilder() //
-                .set("event", "thingAttributeModified") //
-                .set("__schemaVersion", 1) //
-                .set("payload", JsonFactory.newObjectBuilder() //
-                        .set("thingId", TestConstants.Thing.THING_ID) //
-                        .set("attributeJsonPointer", attributePointer) //
-                        .set("attributeValue", attributeValue) //
-                        .set("created", true) //
-                        .build()) //
+        final JsonObject eventJson = JsonFactory.newObjectBuilder()
+                .set("event", "thingAttributeModified")
+                .set("__schemaVersion", 1)
+                .set("payload", JsonFactory.newObjectBuilder()
+                        .set("thingId", TestConstants.Thing.THING_ID)
+                        .set("attributeJsonPointer", attributePointer)
+                        .set("attributeValue", attributeValue)
+                        .set("created", true)
+                        .build())
                 .build();
 
         final Object object = toDbObject(eventJson);
@@ -114,15 +113,15 @@ public final class MongoThingEventAdapterTest {
         final String attributePointer = "test1";
         final JsonValue attributeValue = JsonValue.of(1234);
 
-        final JsonObject eventJson = JsonFactory.newObjectBuilder() //
-                .set("event", "thingAttributeModified") //
-                .set("__schemaVersion", 1) //
-                .set("payload", JsonFactory.newObjectBuilder() //
-                        .set("thingId", TestConstants.Thing.THING_ID) //
-                        .set("attributeJsonPointer", attributePointer) //
-                        .set("attributeValue", attributeValue) //
-                        .set("created", false) //
-                        .build()) //
+        final JsonObject eventJson = JsonFactory.newObjectBuilder()
+                .set("event", "thingAttributeModified")
+                .set("__schemaVersion", 1)
+                .set("payload", JsonFactory.newObjectBuilder()
+                        .set("thingId", TestConstants.Thing.THING_ID)
+                        .set("attributeJsonPointer", attributePointer)
+                        .set("attributeValue", attributeValue)
+                        .set("created", false)
+                        .build())
                 .build();
 
         final Object object = toDbObject(eventJson);
@@ -144,13 +143,13 @@ public final class MongoThingEventAdapterTest {
     public void deserializeAttributeDeletedV1() {
         final String attributePointer = "test1";
 
-        final JsonObject eventJson = JsonFactory.newObjectBuilder() //
-                .set("event", "thingAttributeDeleted") //
-                .set("__schemaVersion", 1) //
-                .set("payload", JsonFactory.newObjectBuilder() //
-                        .set("thingId", TestConstants.Thing.THING_ID) //
-                        .set("attributeJsonPointer", attributePointer) //
-                        .build()) //
+        final JsonObject eventJson = JsonFactory.newObjectBuilder()
+                .set("event", "thingAttributeDeleted")
+                .set("__schemaVersion", 1)
+                .set("payload", JsonFactory.newObjectBuilder()
+                        .set("thingId", TestConstants.Thing.THING_ID)
+                        .set("attributeJsonPointer", attributePointer)
+                        .build())
                 .build();
 
         final Object object = toDbObject(eventJson);
@@ -169,12 +168,12 @@ public final class MongoThingEventAdapterTest {
 
     @Test
     public void deserializeAttributesDeletedV1() {
-        final JsonObject eventJson = JsonFactory.newObjectBuilder() //
-                .set("event", "thingAttributesDeleted") //
-                .set("__schemaVersion", 1) //
-                .set("payload", JsonFactory.newObjectBuilder() //
-                        .set("thingId", TestConstants.Thing.THING_ID) //
-                        .build()) //
+        final JsonObject eventJson = JsonFactory.newObjectBuilder()
+                .set("event", "thingAttributesDeleted")
+                .set("__schemaVersion", 1)
+                .set("payload", JsonFactory.newObjectBuilder()
+                        .set("thingId", TestConstants.Thing.THING_ID)
+                        .build())
                 .build();
 
         final Object object = toDbObject(eventJson);
@@ -351,15 +350,15 @@ public final class MongoThingEventAdapterTest {
 
     @Test
     public void deserializeFeatureCreatedV1() {
-        final JsonObject eventJson = JsonFactory.newObjectBuilder() //
+        final JsonObject eventJson = JsonFactory.newObjectBuilder()
                 .set("event", FeatureModified.NAME) // use modified with created true to simulate old created events
-                .set("__schemaVersion", 1) //
-                .set("payload", JsonFactory.newObjectBuilder() //
-                        .set("thingId", TestConstants.Thing.THING_ID) //
-                        .set("featureId", TestConstants.Feature.FLUX_CAPACITOR_ID) //
-                        .set("feature", TestConstants.Feature.FLUX_CAPACITOR.toJson(JsonSchemaVersion.V_1)) //
-                        .set("created", true) //
-                        .build()) //
+                .set("__schemaVersion", 1)
+                .set("payload", JsonFactory.newObjectBuilder()
+                        .set("thingId", TestConstants.Thing.THING_ID)
+                        .set("featureId", TestConstants.Feature.FLUX_CAPACITOR_ID)
+                        .set("feature", TestConstants.Feature.FLUX_CAPACITOR.toJson(JsonSchemaVersion.V_1))
+                        .set("created", true)
+                        .build())
                 .build();
 
         final Object object = toDbObject(eventJson);
@@ -407,14 +406,14 @@ public final class MongoThingEventAdapterTest {
 
     @Test
     public void deserializeFeaturesCreatedV1() {
-        final JsonObject eventJson = JsonFactory.newObjectBuilder() //
+        final JsonObject eventJson = JsonFactory.newObjectBuilder()
                 .set("event", FeaturesModified.NAME) // use modified with created true to simulate old created events
-                .set("__schemaVersion", 1) //
-                .set("payload", JsonFactory.newObjectBuilder() //
-                        .set("thingId", TestConstants.Thing.THING_ID) //
-                        .set("features", TestConstants.Feature.FEATURES.toJson(JsonSchemaVersion.V_1)) //
-                        .set("created", true) //
-                        .build()) //
+                .set("__schemaVersion", 1)
+                .set("payload", JsonFactory.newObjectBuilder()
+                        .set("thingId", TestConstants.Thing.THING_ID)
+                        .set("features", TestConstants.Feature.FEATURES.toJson(JsonSchemaVersion.V_1))
+                        .set("created", true)
+                        .build())
                 .build();
 
         final Object object = toDbObject(eventJson);
@@ -493,17 +492,17 @@ public final class MongoThingEventAdapterTest {
         final JsonPointer propertyPointer = JsonPointer.of("test");
         final JsonValue propertyValue = JsonValue.of(1234);
 
-        final JsonObject eventJson = JsonFactory.newObjectBuilder() //
+        final JsonObject eventJson = JsonFactory.newObjectBuilder()
                 .set("event",
                         FeaturePropertyModified.NAME) // use modified with created true to simulate old created events
-                .set("__schemaVersion", 1) //
-                .set("payload", JsonFactory.newObjectBuilder() //
-                        .set("thingId", TestConstants.Thing.THING_ID) //
-                        .set("featureId", TestConstants.Feature.FLUX_CAPACITOR_ID) //
-                        .set("propertyJsonPointer", propertyPointer.toString()) //
-                        .set("propertyValue", propertyValue) //
-                        .set("created", true) //
-                        .build()) //
+                .set("__schemaVersion", 1)
+                .set("payload", JsonFactory.newObjectBuilder()
+                        .set("thingId", TestConstants.Thing.THING_ID)
+                        .set("featureId", TestConstants.Feature.FLUX_CAPACITOR_ID)
+                        .set("propertyJsonPointer", propertyPointer.toString())
+                        .set("propertyValue", propertyValue)
+                        .set("created", true)
+                        .build())
                 .build();
 
         final Object object = toDbObject(eventJson);
@@ -557,17 +556,17 @@ public final class MongoThingEventAdapterTest {
 
     @Test
     public void deserializeFeaturePropertiesCreatedV1() {
-        final JsonObject eventJson = JsonFactory.newObjectBuilder() //
+        final JsonObject eventJson = JsonFactory.newObjectBuilder()
                 .set("event",
                         FeaturePropertiesModified.NAME) // use modified with created true to simulate old created events
-                .set("__schemaVersion", 1) //
-                .set("payload", JsonFactory.newObjectBuilder() //
-                        .set("thingId", TestConstants.Thing.THING_ID) //
-                        .set("featureId", TestConstants.Feature.FLUX_CAPACITOR_ID) //
+                .set("__schemaVersion", 1)
+                .set("payload", JsonFactory.newObjectBuilder()
+                        .set("thingId", TestConstants.Thing.THING_ID)
+                        .set("featureId", TestConstants.Feature.FLUX_CAPACITOR_ID)
                         .set("properties",
-                                TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES.toJson(JsonSchemaVersion.V_1)) //
-                        .set("created", true) //
-                        .build()) //
+                                TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES.toJson(JsonSchemaVersion.V_1))
+                        .set("created", true)
+                        .build())
                 .build();
 
         final Object object = toDbObject(eventJson);
@@ -588,17 +587,17 @@ public final class MongoThingEventAdapterTest {
 
     @Test
     public void deserializeFeaturePropertiesModifiedV1() {
-        final JsonObject eventJson = JsonFactory.newObjectBuilder() //
+        final JsonObject eventJson = JsonFactory.newObjectBuilder()
                 .set("event",
                         FeaturePropertiesModified.NAME) // use modified with created true to simulate old created events
-                .set("__schemaVersion", 1) //
-                .set("payload", JsonFactory.newObjectBuilder() //
-                        .set("thingId", TestConstants.Thing.THING_ID) //
-                        .set("featureId", TestConstants.Feature.FLUX_CAPACITOR_ID) //
+                .set("__schemaVersion", 1)
+                .set("payload", JsonFactory.newObjectBuilder()
+                        .set("thingId", TestConstants.Thing.THING_ID)
+                        .set("featureId", TestConstants.Feature.FLUX_CAPACITOR_ID)
                         .set("properties",
-                                TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES.toJson(JsonSchemaVersion.V_1)) //
-                        .set("created", false) //
-                        .build()) //
+                                TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES.toJson(JsonSchemaVersion.V_1))
+                        .set("created", false)
+                        .build())
                 .build();
 
         final Object object = toDbObject(eventJson);

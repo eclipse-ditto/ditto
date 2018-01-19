@@ -9,26 +9,23 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package org.eclipse.ditto.services.things.persistence.serializer.things;
+package org.eclipse.ditto.services.things.persistence.serializer;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import javax.annotation.concurrent.NotThreadSafe;
+import javax.annotation.concurrent.ThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
-
-import akka.actor.ActorSystem;
+import org.eclipse.ditto.services.utils.persistence.mongo.AbstractMongoSnapshotAdapter;
+import org.slf4j.LoggerFactory;
 
 /**
- * This adapter writes a Thing's JSON as snapshot but it extends the Thing's JSON with a tag field first. The key for
- * the field is {@value #TAG_JSON_KEY}. This tag field is used for snapshot management. If a Thing loaded from
- * persistence does not have this JSON field its tag is assumed to be {@link SnapshotTag#UNPROTECTED}.
+ * A {@link org.eclipse.ditto.services.utils.persistence.SnapshotAdapter} for snapshotting a
+ * {@link org.eclipse.ditto.model.things.Thing}.
  */
-@NotThreadSafe
-public final class TaggedThingJsonSnapshotAdapter extends MongoThingSnapshotAdapter<ThingWithSnapshotTag> {
+@ThreadSafe
+public final class ThingMongoSnapshotAdapter extends AbstractMongoSnapshotAdapter<ThingWithSnapshotTag> {
 
     /**
      * JSON key for the snapshot tag.
@@ -36,25 +33,21 @@ public final class TaggedThingJsonSnapshotAdapter extends MongoThingSnapshotAdap
     public static final String TAG_JSON_KEY = "__snapshotTag";
 
     /**
-     * Constructs a new {@code TaggedThingJsonSnapshotAdapter} object.
-     *
-     * @param system if specified, provides the logger which is used if adapting the SnapshotOffer to a Thing failed.
+     * Constructs a new {@code ThingMongoSnapshotAdapter}.
      */
-    public TaggedThingJsonSnapshotAdapter(@Nullable final ActorSystem system) {
-        super(system);
+    public ThingMongoSnapshotAdapter() {
+        super(LoggerFactory.getLogger(ThingMongoSnapshotAdapter.class));
     }
 
-    @Nonnull
     @Override
-    protected JsonObject convertToJson(@Nonnull final ThingWithSnapshotTag snapshotEntity) {
+    protected JsonObject convertToJson(final ThingWithSnapshotTag snapshotEntity) {
         final JsonObject jsonObject = super.convertToJson(snapshotEntity);
         final SnapshotTag snapshotTag = snapshotEntity.getSnapshotTag();
         return jsonObject.setValue(TAG_JSON_KEY, snapshotTag.name());
     }
 
-    @Nullable
     @Override
-    protected ThingWithSnapshotTag createThingFrom(@Nonnull final JsonObject jsonObject) {
+    protected ThingWithSnapshotTag createJsonifiableFrom(final JsonObject jsonObject) {
         final Thing thing = ThingsModelFactory.newThing(jsonObject);
         final SnapshotTag snapshotTag = jsonObject.getValue(TAG_JSON_KEY)
                 .filter(JsonValue::isString)

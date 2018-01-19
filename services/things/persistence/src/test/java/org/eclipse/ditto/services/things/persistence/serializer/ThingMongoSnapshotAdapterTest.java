@@ -9,9 +9,9 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package org.eclipse.ditto.services.things.persistence.serializer.things;
+package org.eclipse.ditto.services.things.persistence.serializer;
 
-import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.bson.BSONObject;
 import org.eclipse.ditto.json.JsonObject;
@@ -27,22 +27,20 @@ import akka.persistence.SnapshotMetadata;
 import akka.persistence.SnapshotOffer;
 
 /**
- * Unit test for {@link TaggedThingJsonSnapshotAdapter}.
+ * Unit test for {@link org.eclipse.ditto.services.things.persistence.serializer.ThingMongoSnapshotAdapter}.
  */
-public final class TaggedThingJsonSnapshotAdapterTest {
+public final class ThingMongoSnapshotAdapterTest {
 
     private static final String PERSISTENCE_ID = "thing:fajofj904q2";
     private static final SnapshotMetadata SNAPSHOT_METADATA = new SnapshotMetadata(PERSISTENCE_ID, 0, 0);
 
-    private TaggedThingJsonSnapshotAdapter underTest = null;
+    private ThingMongoSnapshotAdapter underTest = null;
 
-    /** */
     @Before
     public void setUp() {
-        underTest = new TaggedThingJsonSnapshotAdapter(null);
+        underTest = new ThingMongoSnapshotAdapter();
     }
 
-    /** */
     @Test
     public void toSnapshotStoreReturnsExpected() {
         final SnapshotTag snapshotTag = SnapshotTag.PROTECTED;
@@ -56,10 +54,9 @@ public final class TaggedThingJsonSnapshotAdapterTest {
 
         final BSONObject dbObject = (BSONObject) rawSnapshotEntity;
 
-        assertThat(dbObject.get(TaggedThingJsonSnapshotAdapter.TAG_JSON_KEY)).isEqualTo(snapshotTag.toString());
+        assertThat(dbObject.get(ThingMongoSnapshotAdapter.TAG_JSON_KEY)).isEqualTo(snapshotTag.toString());
     }
 
-    /** */
     @Test
     public void restoreThingFromSnapshotOfferReturnsExpected() {
         final SnapshotTag snapshotTag = SnapshotTag.PROTECTED;
@@ -70,7 +67,7 @@ public final class TaggedThingJsonSnapshotAdapterTest {
                 FieldType.regularOrSpecial());
         final DittoBsonJson dittoBsonJson = DittoBsonJson.getInstance();
         final DBObject snapshotEntity = dittoBsonJson.parse(json);
-        snapshotEntity.put(TaggedThingJsonSnapshotAdapter.TAG_JSON_KEY, snapshotTag.toString());
+        snapshotEntity.put(ThingMongoSnapshotAdapter.TAG_JSON_KEY, snapshotTag.toString());
 
         final SnapshotOffer snapshotOffer = new SnapshotOffer(SNAPSHOT_METADATA, snapshotEntity);
 

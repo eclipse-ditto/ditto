@@ -248,7 +248,8 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         final boolean snapshotDeleteOld = config.getBoolean(ConfigKeys.Thing.SNAPSHOT_DELETE_OLD);
         final boolean eventsDeleteOld = config.getBoolean(ConfigKeys.Thing.EVENTS_DELETE_OLD);
         thingSnapshotter =
-                thingSnapshotterCreate.apply(this, log, snapshotInterval, snapshotDeleteOld, eventsDeleteOld);
+                thingSnapshotterCreate.apply(this, pubSubMediator, snapshotDeleteOld, eventsDeleteOld, log,
+                        snapshotInterval);
 
         handleThingEvents = ReceiveBuilder.create()
                 // # Thing Creation
@@ -568,10 +569,10 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     @Override
     public Receive createReceive() {
-      /*
-       * First no Thing for the ID exists at all. Thus the only command this Actor reacts to is CreateThing.
-       * This behaviour changes as soon as a Thing was created.
-       */
+        /*
+         * First no Thing for the ID exists at all. Thus the only command this Actor reacts to is CreateThing.
+         * This behaviour changes as soon as a Thing was created.
+         */
         return new StrategyAwareReceiveBuilder()
                 .match(new CreateThingStrategy())
                 .matchAny(new MatchAnyDuringInitializeStrategy())
@@ -719,10 +720,10 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         getContext().become(receive, true);
         getContext().getParent().tell(new ThingSupervisorActor.ManualReset(), getSelf());
 
-      /* check in the next X minutes and therefore
-       * - stay in-memory for a short amount of minutes after deletion
-       * - get a Snapshot when removed from memory
-       */
+        /* check in the next X minutes and therefore
+         * - stay in-memory for a short amount of minutes after deletion
+         * - get a Snapshot when removed from memory
+         */
         scheduleCheckForThingActivity(activityCheckDeletedInterval.getSeconds());
         thingSnapshotter.stopMaintenanceSnapshots();
     }
@@ -2174,8 +2175,8 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                     final JsonPointer propertyJsonPointer = command.getPropertyPointer();
                     final Feature feature = featureOptional.get();
                     final boolean containsProperty = feature.getProperties()
-                             .filter(featureProperties -> featureProperties.contains(propertyJsonPointer))
-                             .isPresent();
+                            .filter(featureProperties -> featureProperties.contains(propertyJsonPointer))
+                            .isPresent();
 
                     if (containsProperty) {
                         final FeaturePropertyDeleted propertyDeleted = FeaturePropertyDeleted.of(command.getThingId(),

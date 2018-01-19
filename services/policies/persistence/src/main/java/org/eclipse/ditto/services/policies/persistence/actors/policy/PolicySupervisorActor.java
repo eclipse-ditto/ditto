@@ -20,15 +20,18 @@ import java.util.Collection;
 import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.services.policies.persistence.actors.AbstractReceiveStrategy;
 import org.eclipse.ditto.services.policies.persistence.actors.ReceiveStrategy;
 import org.eclipse.ditto.services.policies.persistence.actors.StrategyAwareReceiveBuilder;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.distributedcache.actors.CacheFacadeActor;
+import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyUnavailableException;
 
 import akka.actor.AbstractActor;
@@ -65,14 +68,21 @@ public class PolicySupervisorActor extends AbstractActor {
     private ActorRef child;
     private long restartCount;
 
-    private PolicySupervisorActor(final ActorRef pubSubMediator, final Duration minBackoff, final Duration maxBackoff,
-            final double randomFactor, final ActorRef policyCacheFacade, final SupervisorStrategy supervisorStrategy) {
+    private PolicySupervisorActor(final ActorRef pubSubMediator,
+            final Duration minBackoff,
+            final Duration maxBackoff,
+            final double randomFactor,
+            final ActorRef policyCacheFacade,
+            final SupervisorStrategy supervisorStrategy,
+            final SnapshotAdapter<Policy> snapshotAdapter,
+            final Consumer<Policy> snapshotSuccessFunction) {
         try {
             this.policyId = URLDecoder.decode(getSelf().path().name(), StandardCharsets.UTF_8.name());
         } catch (final UnsupportedEncodingException e) {
             throw new IllegalStateException("Unsupported encoding", e);
         }
-        this.persistenceActorProps = PolicyPersistenceActor.props(policyId, pubSubMediator, policyCacheFacade);
+        this.persistenceActorProps = PolicyPersistenceActor.props(policyId, snapshotAdapter, snapshotSuccessFunction,
+                pubSubMediator, policyCacheFacade);
         this.minBackoff = minBackoff;
         this.maxBackoff = maxBackoff;
         this.randomFactor = randomFactor;
@@ -93,10 +103,16 @@ public class PolicySupervisorActor extends AbstractActor {
      * is added, e.g. `0.2` adds up to `20%` delay. In order to skip this additional delay pass in `0`.
      * @param policyCacheFacade the {@link CacheFacadeActor}
      * for accessing the policy cache in cluster.
+     * @param snapshotAdapter the adapter to serialize snapshots.
      * @return the {@link Props} to create this actor.
      */
-    public static Props props(final ActorRef pubSubMediator, final Duration minBackoff, final Duration maxBackoff,
-            final double randomFactor, final ActorRef policyCacheFacade) {
+    public static Props props(final ActorRef pubSubMediator,
+            final Duration minBackoff,
+            final Duration maxBackoff,
+            final double randomFactor,
+            final ActorRef policyCacheFacade,
+            final SnapshotAdapter<Policy> snapshotAdapter,
+            final Consumer<Policy> snapshotSuccessFunction) {
         return Props.create(PolicySupervisorActor.class, new Creator<PolicySupervisorActor>() {
             private static final long serialVersionUID = 1L;
 
@@ -108,7 +124,8 @@ public class PolicySupervisorActor extends AbstractActor {
                                 .match(NullPointerException.class, e -> SupervisorStrategy.restart())
                                 .match(ActorKilledException.class, e -> SupervisorStrategy.stop())
                                 .matchAny(e -> SupervisorStrategy.escalate())
-                                .build()));
+                                .build()),
+                        snapshotAdapter, snapshotSuccessFunction);
             }
         });
     }

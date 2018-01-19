@@ -32,10 +32,9 @@ import org.eclipse.ditto.services.things.persistence.actors.AbstractReceiveStrat
 import org.eclipse.ditto.services.things.persistence.actors.ReceiveStrategy;
 import org.eclipse.ditto.services.things.persistence.actors.ThingPersistenceActor;
 import org.eclipse.ditto.services.things.persistence.actors.ThingPersistenceActorInterface;
-import org.eclipse.ditto.services.things.persistence.serializer.things.SnapshotTag;
-import org.eclipse.ditto.services.things.persistence.serializer.things.TaggedThingJsonSnapshotAdapter;
-import org.eclipse.ditto.services.things.persistence.serializer.things.ThingWithSnapshotTag;
-import org.eclipse.ditto.services.utils.akka.persistence.SnapshotAdapter;
+import org.eclipse.ditto.services.things.persistence.serializer.SnapshotTag;
+import org.eclipse.ditto.services.things.persistence.serializer.ThingWithSnapshotTag;
+import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingUnavailableException;
@@ -83,43 +82,49 @@ public abstract class ThingSnapshotter<T extends Command<?>, R extends CommandRe
         }
     }
 
-    private SnapshotterState snapshotterState;
-    private SnapshotterState lastSaneSnapshotterState;
+    protected final ThingPersistenceActorInterface persistenceActor;
 
-    protected final ThingPersistenceActorInterface persistentActor;
-    @Nullable private final DiagnosticLoggingAdapter log;
-    @Nullable private final FiniteDuration snapshotInterval;
+    private final SnapshotAdapter<ThingWithSnapshotTag> snapshotAdapter;
+    private final Consumer<Thing> snapshotSuccessFunction;
     private final boolean snapshotDeleteOld;
     private final boolean eventsDeleteOld;
-
-    private final SnapshotAdapter<ThingWithSnapshotTag> taggedSnapshotAdapter;
-    @Nullable private final ActorRef snapshotPlugin;
-
-    @Nullable private Cancellable scheduledMaintenanceSnapshot;
-    @Nullable private Cancellable scheduledSnapshotTimeout;
-    private boolean shouldTakeMaintenanceSnapshot;
-
+    @Nullable private final DiagnosticLoggingAdapter log;
+    @Nullable private final FiniteDuration snapshotInterval;
     @Nullable private final FiniteDuration saveSnapshotTimeout;
     @Nullable private final FiniteDuration loadSnapshotTimeout;
+    @Nullable private final ActorRef snapshotPlugin;
+
+    private SnapshotterState snapshotterState;
+    private SnapshotterState lastSaneSnapshotterState;
+    private boolean shouldTakeMaintenanceSnapshot;
+    @Nullable private Cancellable scheduledMaintenanceSnapshot;
+    @Nullable private Cancellable scheduledSnapshotTimeout;
 
     /**
      * Internal constructor.
      *
-     * @param persistentActor The {@code ThingPersistenceActor} to whom this snapshotter belongs. Must not be null.
-     * @param log The logger. If null, nothing is logged.
-     * @param taggedSnapshotAdapter Serializer and deserializer of snapshots. Must not be null.
-     * @param snapshotPlugin The actor from whom old snapshots can be retrieved. If null, no snapshot is retrieved.
+     * @param persistenceActor The persistence actor to whom this snapshotter belongs. Must not be null.
+     * @param snapshotAdapter Serializer and deserializer of snapshots. Must not be null.
+     * @param snapshotSuccessFunction a function called when a snapshot is saved successfully.
      * @param snapshotDeleteOld Whether old and unprotected snapshots should be deleted.
      * @param eventsDeleteOld Whether events before a successfully saved snapshot should be deleted.
+     * @param log The logger. If null, nothing is logged.
      * @param snapshotInterval How long to wait between scheduled maintenance snapshots.
      * @param saveSnapshotTimeout How long to wait for the snapshot store before giving up.
      * @param loadSnapshotTimeout How long to wait for {@code snapshotPlugin} before giving up.
+     * @param snapshotPlugin The actor from whom old snapshots can be retrieved. If null, no snapshot is retrieved.
      */
-    ThingSnapshotter(final ThingPersistenceActorInterface persistentActor, final DiagnosticLoggingAdapter log,
-            final SnapshotAdapter<ThingWithSnapshotTag> taggedSnapshotAdapter, final ActorRef snapshotPlugin,
-            final boolean snapshotDeleteOld, final boolean eventsDeleteOld,
-            final FiniteDuration snapshotInterval, final FiniteDuration saveSnapshotTimeout,
-            final FiniteDuration loadSnapshotTimeout) {
+    protected ThingSnapshotter(final ThingPersistenceActorInterface persistenceActor,
+            final SnapshotAdapter<ThingWithSnapshotTag> snapshotAdapter,
+            final Consumer<Thing> snapshotSuccessFunction,
+            final boolean snapshotDeleteOld,
+            final boolean eventsDeleteOld,
+            @Nullable final DiagnosticLoggingAdapter log,
+            @Nullable final FiniteDuration snapshotInterval,
+            @Nullable final FiniteDuration saveSnapshotTimeout,
+            @Nullable final FiniteDuration loadSnapshotTimeout,
+            @Nullable final ActorRef snapshotPlugin) {
+        this.snapshotSuccessFunction = snapshotSuccessFunction;
 
         this.saveSnapshotTimeout = saveSnapshotTimeout;
         this.loadSnapshotTimeout = loadSnapshotTimeout;
@@ -127,13 +132,13 @@ public abstract class ThingSnapshotter<T extends Command<?>, R extends CommandRe
         snapshotterState = new SnapshotterState();
         lastSaneSnapshotterState = new SnapshotterState();
 
-        this.persistentActor = persistentActor;
+        this.persistenceActor = persistenceActor;
         this.log = log;
         this.snapshotInterval = snapshotInterval;
         this.snapshotDeleteOld = snapshotDeleteOld;
         this.eventsDeleteOld = eventsDeleteOld;
 
-        this.taggedSnapshotAdapter = taggedSnapshotAdapter;
+        this.snapshotAdapter = snapshotAdapter;
         this.snapshotPlugin = snapshotPlugin;
 
         scheduledMaintenanceSnapshot = null;
@@ -144,26 +149,28 @@ public abstract class ThingSnapshotter<T extends Command<?>, R extends CommandRe
     /**
      * Creates a {@code AbstractThingSnapshotter} for a {@code ThingPersistenceActor}.
      *
-     * @param thingPersistenceActor The actor in which this snapshotter is run. Must not be null.
-     * @param log The actor's logger. If null, nothing is logged.
-     * @param snapshotDeleteOld Whether old and unprotected snapshots are to be deleted.
-     * @param eventsDeleteOld Whether events before a saved snapshot are to be deleted.
+     * @param persistenceActor The persistence actor to whom this snapshotter belongs. Must not be null.
+     * @param snapshotAdapter Serializer and deserializer of snapshots. Must not be null.
+     * @param snapshotSuccessFunction a function called when a snapshot is saved successfully.
+     * @param snapshotDeleteOld Whether old and unprotected snapshots should be deleted.
+     * @param eventsDeleteOld Whether events before a successfully saved snapshot should be deleted.
+     * @param log The logger. If null, nothing is logged.
+     * @param snapshotInterval How long to wait between scheduled maintenance snapshots.
      */
-    protected ThingSnapshotter(final ThingPersistenceActor thingPersistenceActor,
-            @Nullable final DiagnosticLoggingAdapter log, @Nullable final java.time.Duration snapshotInterval,
-            final boolean snapshotDeleteOld, final boolean eventsDeleteOld) {
+    protected ThingSnapshotter(final ThingPersistenceActor persistenceActor,
+            final SnapshotAdapter<ThingWithSnapshotTag> snapshotAdapter,
+            final Consumer<Thing> snapshotSuccessFunction,
+            final boolean snapshotDeleteOld,
+            final boolean eventsDeleteOld,
+            @Nullable final DiagnosticLoggingAdapter log,
+            @Nullable final java.time.Duration snapshotInterval) {
 
-        this(thingPersistenceActor,
-                log,
-
-                new TaggedThingJsonSnapshotAdapter(thingPersistenceActor.getContext().system()),
-
-                Persistence.get(thingPersistenceActor.getContext().system())
-                        .snapshotStoreFor(thingPersistenceActor.snapshotPluginId()),
-
+        this(persistenceActor,
+                snapshotAdapter,
+                snapshotSuccessFunction,
                 snapshotDeleteOld,
-
                 eventsDeleteOld,
+                log,
 
                 snapshotInterval != null
                         ? Duration.fromNanos(snapshotInterval.toNanos())
@@ -173,7 +180,10 @@ public abstract class ThingSnapshotter<T extends Command<?>, R extends CommandRe
                 Duration.create(500, TimeUnit.MILLISECONDS),
 
                 // load-snapshot timeout
-                Duration.create(3000, TimeUnit.MILLISECONDS));
+                Duration.create(3000, TimeUnit.MILLISECONDS),
+
+                Persistence.get(persistenceActor.getContext().system())
+                        .snapshotStoreFor(persistenceActor.snapshotPluginId()));
     }
 
     /**
@@ -190,23 +200,38 @@ public abstract class ThingSnapshotter<T extends Command<?>, R extends CommandRe
      * @param dittoHeaders Headers of the response.
      * @return The response to {@code message}.
      */
-    protected abstract R createExternalCommandResponse(final long newRevision, final DittoHeaders dittoHeaders);
+    protected abstract R createExternalCommandResponse(final long newRevision,
+            @Nullable final DittoHeaders dittoHeaders);
 
     /**
      * Functional interface for the constructor of snapshotter classes.
      */
     @FunctionalInterface
     public interface Create {
-        ThingSnapshotter apply(final ThingPersistenceActor thingPersistenceActor,
-            @Nullable final DiagnosticLoggingAdapter log, @Nullable final java.time.Duration snapshotInterval,
-            final boolean snapshotDeleteOld, final boolean eventsDeleteOld);
+
+        /**
+         * Creates a new {@code ThingSnapshotter}.
+         *
+         * @param persistenceActor The persistence actor to whom this snapshotter belongs. Must not be null.
+         * @param pubSubMediator the akka distributed pubsub mediator.
+         * @param snapshotDeleteOld Whether old and unprotected snapshots should be deleted.
+         * @param eventsDeleteOld Whether events before a successfully saved snapshot should be deleted.
+         * @param log The logger. If null, nothing is logged.
+         * @param snapshotInterval How long to wait between scheduled maintenance snapshots.
+         */
+        ThingSnapshotter apply(final ThingPersistenceActor persistenceActor,
+                final ActorRef pubSubMediator,
+                final boolean snapshotDeleteOld,
+                final boolean eventsDeleteOld,
+                @Nullable final DiagnosticLoggingAdapter log,
+                @Nullable final java.time.Duration snapshotInterval);
     }
 
     /**
      * Schedules a snapshot such that no reply is given after it is done.
      */
     public void takeSnapshotInternal() {
-        persistentActor.self().tell(new TakeSnapshotInternal(), null);
+        persistenceActor.self().tell(new TakeSnapshotInternal(), null);
     }
 
     /**
@@ -248,7 +273,7 @@ public abstract class ThingSnapshotter<T extends Command<?>, R extends CommandRe
      */
     public boolean lastSnapshotCompletedAndUpToDate() {
         return !snapshotterState.isInProgress() &&
-                snapshotterState.getSequenceNr() == persistentActor.lastSequenceNr();
+                snapshotterState.getSequenceNr() == persistenceActor.lastSequenceNr();
     }
 
     /**
@@ -263,7 +288,7 @@ public abstract class ThingSnapshotter<T extends Command<?>, R extends CommandRe
         if (snapshotPlugin != null && loadSnapshotTimeout != null) {
 
             final SnapshotProtocol.LoadSnapshot loadSnapshot = new SnapshotProtocol.LoadSnapshot(
-                    persistentActor.persistenceId(),
+                    persistenceActor.persistenceId(),
                     SnapshotSelectionCriteria.create(snapshotRevision, Long.MAX_VALUE),
                     snapshotRevision);
 
@@ -275,7 +300,7 @@ public abstract class ThingSnapshotter<T extends Command<?>, R extends CommandRe
                                             (SnapshotProtocol.LoadSnapshotResult) response;
                                     if (result.snapshot().isDefined()) {
                                         return Optional.ofNullable(
-                                                taggedSnapshotAdapter.fromSnapshotStore(result.snapshot().get()));
+                                                snapshotAdapter.fromSnapshotStore(result.snapshot().get()));
                                     }
                                 }
                                 return Optional.empty();
@@ -296,7 +321,7 @@ public abstract class ThingSnapshotter<T extends Command<?>, R extends CommandRe
     @Nullable
     public Thing recoverThingFromSnapshotOffer(@Nonnull final SnapshotOffer snapshotOffer) {
         checkNotNull(snapshotOffer, "snapshot offer");
-        final ThingWithSnapshotTag result = taggedSnapshotAdapter.fromSnapshotStore(snapshotOffer);
+        final ThingWithSnapshotTag result = snapshotAdapter.fromSnapshotStore(snapshotOffer);
         final SnapshotMetadata metadata = snapshotOffer.metadata();
         final SnapshotTag snapshotTag = Optional.ofNullable(result)
                 .map(ThingWithSnapshotTag::getSnapshotTag)
@@ -336,7 +361,7 @@ public abstract class ThingSnapshotter<T extends Command<?>, R extends CommandRe
     // unstashed. Maintenance snapshot schedule is reset.
     private void saveSnapshotFailed() {
         snapshotterState = lastSaneSnapshotterState;
-        persistentActor.unstashAll();
+        persistenceActor.unstashAll();
         cancelSaveSnapshotTimeout();
         resetMaintenanceSnapshotSchedule();
     }
@@ -344,10 +369,11 @@ public abstract class ThingSnapshotter<T extends Command<?>, R extends CommandRe
     // Bookkeeping after snapshotting succeeded. Timeout message is cancelled and pending TakeSnapshot commands are
     // unstashed. Maintenance snapshot schedule is reset.
     private void saveSnapshotSucceeded() {
+        snapshotSuccessFunction.accept(persistenceActor.getThing());
         snapshotterState = new SnapshotterState(false, snapshotterState.getSequenceNr(),
                 snapshotterState.getSnapshotTag(), null, null);
         lastSaneSnapshotterState = snapshotterState;
-        persistentActor.unstashAll();
+        persistenceActor.unstashAll();
         cancelSaveSnapshotTimeout();
         resetMaintenanceSnapshotSchedule();
     }
@@ -371,15 +397,15 @@ public abstract class ThingSnapshotter<T extends Command<?>, R extends CommandRe
             @Nullable DittoHeaders dittoHeaders) {
         checkNotNull(snapshotTag, "snapshot tag");
 
-        final Thing thing = persistentActor.getThing();
-        final long snapshotSequenceNr = persistentActor.snapshotSequenceNr();
+        final Thing thing = persistenceActor.getThing();
+        final long snapshotSequenceNr = persistenceActor.snapshotSequenceNr();
 
         doLog(logger -> logger.debug("Attempting to take snapshot for Thing with ID <{}> and seqNr <{}>",
-                persistentActor.getThingId(), snapshotSequenceNr));
+                persistenceActor.getThingId(), snapshotSequenceNr));
 
         final ThingWithSnapshotTag thingWithSnapshotTag = ThingWithSnapshotTag.newInstance(thing, snapshotTag);
-        final Object snapshotSubject = taggedSnapshotAdapter.toSnapshotStore(thingWithSnapshotTag);
-        persistentActor.saveSnapshot(snapshotSubject);
+        final Object snapshotSubject = snapshotAdapter.toSnapshotStore(thingWithSnapshotTag);
+        persistenceActor.saveSnapshot(snapshotSubject);
 
         saveSnapshotStarted(snapshotSequenceNr, snapshotTag, sender, dittoHeaders);
     }
@@ -395,7 +421,7 @@ public abstract class ThingSnapshotter<T extends Command<?>, R extends CommandRe
     }
 
     private boolean noChangeSinceOngoingSnapshot() {
-        return persistentActor.lastSequenceNr() == snapshotterState.getSequenceNr();
+        return persistenceActor.lastSequenceNr() == snapshotterState.getSequenceNr();
     }
 
     private boolean canReuseProtectedSnapshot() {
@@ -432,10 +458,10 @@ public abstract class ThingSnapshotter<T extends Command<?>, R extends CommandRe
     }
 
     private Cancellable scheduleOnce(final FiniteDuration when, final Object message, final ActorRef sender) {
-        return persistentActor.context()
+        return persistenceActor.context()
                 .system()
                 .scheduler()
-                .scheduleOnce(when, persistentActor.self(), message, persistentActor.context().dispatcher(),
+                .scheduleOnce(when, persistenceActor.self(), message, persistenceActor.context().dispatcher(),
                         sender);
     }
 
@@ -467,15 +493,15 @@ public abstract class ThingSnapshotter<T extends Command<?>, R extends CommandRe
             if (snapshotterState.isInProgress()) {
                 // Never save snapshots in parallel. Once snapshotting starts, external TakeSnapshot requests are
                 // stashed until snapshotting succeeds, fails or times out.
-                persistentActor.stash();
+                persistenceActor.stash();
             } else if (isDryrun || canReuseProtectedSnapshot()) {
                 // Dryrun or unneeded TakeSnapshot commands result in an immediate response without triggering
                 // snapshotting.
                 final R takeSnapshotResponse =
                         createExternalCommandResponse(snapshotterState.getSequenceNr(), message.getDittoHeaders());
-                persistentActor.sender().tell(takeSnapshotResponse, persistentActor.self());
+                persistenceActor.sender().tell(takeSnapshotResponse, persistenceActor.self());
             } else {
-                doSaveSnapshot(SnapshotTag.PROTECTED, persistentActor.sender(), message.getDittoHeaders());
+                doSaveSnapshot(SnapshotTag.PROTECTED, persistenceActor.sender(), message.getDittoHeaders());
             }
         }
 
@@ -500,12 +526,12 @@ public abstract class ThingSnapshotter<T extends Command<?>, R extends CommandRe
                 // Never save snapshots in parallel. Once snapshotting starts, internal TakeSnapshot requests are
                 // stashed.
                 doLog(logger -> logger.debug("Completed internal request for snapshot: Snapshotting is ongoing."));
-                persistentActor.stash();
+                persistenceActor.stash();
             } else if (noChangeSinceOngoingSnapshot()) {
                 // If a snapshot already exists, don't take another one.
                 doLog(logger -> logger.debug(
                         "Completed internal request for snapshot: last snapshot of Thing <{}> is up to date.",
-                        persistentActor.getThingId()));
+                        persistenceActor.getThingId()));
             } else {
                 doSaveSnapshot(SnapshotTag.UNPROTECTED, null, null);
             }
@@ -527,7 +553,7 @@ public abstract class ThingSnapshotter<T extends Command<?>, R extends CommandRe
 
         @Override
         protected void doApply(final SaveSnapshotSuccess message) {
-            final String thingId = persistentActor.getThingId();
+            final String thingId = persistenceActor.getThingId();
             final SnapshotMetadata snapshotMetadata = message.metadata();
             final long newSnapshotSequenceNr = snapshotMetadata.sequenceNr();
 
@@ -548,7 +574,7 @@ public abstract class ThingSnapshotter<T extends Command<?>, R extends CommandRe
                 final DittoHeaders dittoHeaders = snapshotterState.getDittoHeaders();
                 if (sender != null) {
                     final R response = createExternalCommandResponse(newSnapshotSequenceNr, dittoHeaders);
-                    sender.tell(response, persistentActor.self());
+                    sender.tell(response, persistenceActor.self());
                 }
 
                 deleteOldSnapshot(lastSaneSnapshotterState.getSequenceNr(), lastSaneSnapshotterState.getSnapshotTag());
@@ -564,8 +590,8 @@ public abstract class ThingSnapshotter<T extends Command<?>, R extends CommandRe
             // only delete if it's necessary & safe to do so.
             if (snapshotDeleteOld && sequenceNr > 0 && snapshotTag == SnapshotTag.UNPROTECTED) {
                 doLog(logger -> logger.info("Deleting <{}> snapshot <{}> of Thing <{}>", snapshotTag, sequenceNr,
-                        persistentActor.getThingId()));
-                persistentActor.deleteSnapshot(sequenceNr);
+                        persistenceActor.getThingId()));
+                persistenceActor.deleteSnapshot(sequenceNr);
             }
         }
 
@@ -577,8 +603,8 @@ public abstract class ThingSnapshotter<T extends Command<?>, R extends CommandRe
                  */
                 final long upToSequenceNumber = newSnapshotSequenceNumber - 1;
                 doLog(logger -> logger.debug("Delete all event messages for Thing '{}' up to sequence number '{}'.",
-                        persistentActor.getThingId(), upToSequenceNumber));
-                persistentActor.deleteMessages(upToSequenceNumber);
+                        persistenceActor.getThingId(), upToSequenceNumber));
+                persistenceActor.deleteMessages(upToSequenceNumber);
             }
         }
     }
@@ -587,11 +613,11 @@ public abstract class ThingSnapshotter<T extends Command<?>, R extends CommandRe
         final ActorRef sender = snapshotterState.getSender();
         if (sender != null) {
             final DittoRuntimeException exception =
-                    ThingUnavailableException.newBuilder(persistentActor.getThingId())
+                    ThingUnavailableException.newBuilder(persistenceActor.getThingId())
                             .message(errorMessage.get())
                             .dittoHeaders(snapshotterState.getDittoHeaders())
                             .build();
-            sender.tell(exception, persistentActor.self());
+            sender.tell(exception, persistenceActor.self());
         }
     }
 
@@ -608,7 +634,7 @@ public abstract class ThingSnapshotter<T extends Command<?>, R extends CommandRe
         @Override
         protected void doApply(final SaveSnapshotFailure message) {
             final long newSnapshotSequenceNr = message.metadata().sequenceNr();
-            final String thingId = persistentActor.getThingId();
+            final String thingId = persistenceActor.getThingId();
             if (saveSnapshotResponseArrivedOutOfOrder(newSnapshotSequenceNr)) {
                 // this can only happen if timeout happens before snapshot store delivers any response.
                 // we cannot delete the new snapshot because we don't know whether it's protected or not.
@@ -643,7 +669,7 @@ public abstract class ThingSnapshotter<T extends Command<?>, R extends CommandRe
 
         @Override
         protected void doApply(final SaveSnapshotTimeout message) {
-            final String thingId = persistentActor.getThingId();
+            final String thingId = persistenceActor.getThingId();
             final long failedSequenceNr = message.sequenceNr;
             if (saveSnapshotResponseArrivedOutOfOrder(message.sequenceNr)) {
                 doLog(logger -> logger.warning(
@@ -679,7 +705,7 @@ public abstract class ThingSnapshotter<T extends Command<?>, R extends CommandRe
         @Override
         protected void doApply(final DeleteSnapshotSuccess message) {
             doLog(logger -> logger.debug("Deleting snapshot with sequence number '{}' for Thing '{}' was successful",
-                    message.metadata().sequenceNr(), persistentActor.getThingId()));
+                    message.metadata().sequenceNr(), persistenceActor.getThingId()));
         }
     }
 
@@ -701,7 +727,7 @@ public abstract class ThingSnapshotter<T extends Command<?>, R extends CommandRe
             final Throwable cause = message.cause();
             doLog(logger -> logger.error(cause,
                     "Deleting snapshot with sequence number '{}' for Thing '{}' failed. Cause {}: {}",
-                    message.metadata().sequenceNr(), persistentActor.getThingId(),
+                    message.metadata().sequenceNr(), persistenceActor.getThingId(),
                     cause.getClass().getSimpleName(), cause.getMessage()));
         }
     }
@@ -722,7 +748,7 @@ public abstract class ThingSnapshotter<T extends Command<?>, R extends CommandRe
         @Override
         protected void doApply(final DeleteMessagesSuccess message) {
             doLog(logger -> logger.debug("Deleting messages up to seqNr '{}' for Thing '{}' was successful",
-                    message.toSequenceNr(), persistentActor.getThingId()));
+                    message.toSequenceNr(), persistenceActor.getThingId()));
         }
     }
 
@@ -744,7 +770,7 @@ public abstract class ThingSnapshotter<T extends Command<?>, R extends CommandRe
             final Throwable cause = message.cause();
             doLog(logger -> logger.error(cause,
                     "Deleting messages up to seqNo '{}' for Thing '{}' failed. Cause {}: {}",
-                    persistentActor.getThingId(), message.toSequenceNr(), cause.getClass().getSimpleName(),
+                    persistenceActor.getThingId(), message.toSequenceNr(), cause.getClass().getSimpleName(),
                     cause.getMessage()));
         }
     }
