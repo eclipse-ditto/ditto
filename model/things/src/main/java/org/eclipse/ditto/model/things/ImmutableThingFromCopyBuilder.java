@@ -397,17 +397,17 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
 
     @Override
     public FromCopy setFeature(final Predicate<Features> existingFeaturesPredicate, final String featureId,
-            final FeatureProperties featureProperties, final FeatureDefinition featureDefinition) {
+            final FeatureDefinition featureDefinition, final FeatureProperties featureProperties) {
         if (testFeaturesPredicate(existingFeaturesPredicate)) {
-            setFeature(featureId, featureProperties, featureDefinition);
+            setFeature(featureId, featureDefinition, featureProperties);
         }
         return this;
     }
 
     @Override
-    public FromCopy setFeature(final String featureId, final FeatureProperties featureProperties,
-            final FeatureDefinition featureDefinition) {
-        fromScratchBuilder.setFeature(featureId, featureProperties, featureDefinition);
+    public FromCopy setFeature(final String featureId, final FeatureDefinition featureDefinition,
+            final FeatureProperties featureProperties) {
+        fromScratchBuilder.setFeature(featureId, featureDefinition, featureProperties);
         return this;
     }
 

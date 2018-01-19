@@ -133,15 +133,15 @@ public interface ThingBuilder {
         FromScratch removeAllPermissions();
 
         /**
-         * Sets the given Policy identifier to this builder.
+         * Sets the given Policy ID to this builder.
          *
-         * @param policyId the Policy identifier to set.
+         * @param policyId the Policy ID to set.
          * @return this builder to allow method chaining.
          */
         FromScratch setPolicyId(@Nullable String policyId);
 
         /**
-         * Removes the Policy identifier from this builder.
+         * Removes the Policy ID from this builder.
          *
          * @return this builder to allow method chaining.
          */
@@ -220,7 +220,7 @@ public interface ThingBuilder {
         FromScratch removeAttribute(JsonPointer attributePath);
 
         /**
-         * Sets the given Feature to this builder. A previously set Feature with the same identifier is replaced.
+         * Sets the given Feature to this builder. A previously set Feature with the same ID is replaced.
          *
          * @param feature the Feature to be set.
          * @return this builder to allow method chaining.
@@ -229,8 +229,7 @@ public interface ThingBuilder {
         FromScratch setFeature(Feature feature);
 
         /**
-         * Sets a Feature with the given identifier to this builder. A previously set Feature with the same identifier
-         * is replaced.
+         * Sets a Feature with the given ID to this builder. A previously set Feature with the same ID is replaced.
          *
          * @param featureId the identifier of the Feature to be set.
          * @return this builder to allow method chaining.
@@ -239,25 +238,23 @@ public interface ThingBuilder {
         FromScratch setFeature(String featureId);
 
         /**
-         * Sets a Feature with the given identifier and properties to this builder. A previously set Feature with the
-         * same
-         * identifier is replaced.
+         * Sets a Feature with the given ID and properties to this builder. A previously set Feature with the
+         * same ID is replaced.
          *
-         * @param featureId the identifier of the Feature to be set.
-         * @param featureProperties the properties of the Feature to be set.
+         * @param featureId the ID of the Feature to be set.
          * @param featureDefinition the Definition of the Feature to be set.
+         * @param featureProperties the properties of the Feature to be set.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if {@code featureId} is {@code null}.
          */
-        FromScratch setFeature(String featureId, FeatureProperties featureProperties,
-                FeatureDefinition featureDefinition);
+        FromScratch setFeature(String featureId, FeatureDefinition featureDefinition,
+                FeatureProperties featureProperties);
 
         /**
-         * Sets a Feature with the given identifier and properties to this builder. A previously set Feature with the
-         * same
-         * identifier is replaced.
+         * Sets a Feature with the given ID and properties to this builder. A previously set Feature with the
+         * same ID is replaced.
          *
-         * @param featureId the identifier of the Feature to be set.
+         * @param featureId the ID of the Feature to be set.
          * @param featureProperties the properties of the Feature to be set.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if {@code featureId} is {@code null}.
@@ -265,19 +262,19 @@ public interface ThingBuilder {
         FromScratch setFeature(String featureId, FeatureProperties featureProperties);
 
         /**
-         * Removes the Feature with the given identifier from this builder. If this was the last Feature the Thing will
+         * Removes the Feature with the given ID from this builder. If this was the last Feature the Thing will
          * not have features.
          *
-         * @param featureId the identifier of the Feature to be removed.
+         * @param featureId the ID of the Feature to be removed.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if {@code featureId} is {@code null}.
          */
         FromScratch removeFeature(String featureId);
 
         /**
-         * Sets the given property to the Feature with the given identifier on this builder.
+         * Sets the given property to the Feature with the given ID on this builder.
          *
-         * @param featureId the identifier of the Feature.
+         * @param featureId the ID of the Feature.
          * @param propertyPath the hierarchical path within the Feature to the property to be set.
          * @param propertyValue the property value to be set.
          * @return this builder to allow method chaining.
@@ -286,9 +283,9 @@ public interface ThingBuilder {
         FromScratch setFeatureProperty(String featureId, JsonPointer propertyPath, JsonValue propertyValue);
 
         /**
-         * Removes the given property from the Feature with the given identifier on this builder.
+         * Removes the given property from the Feature with the given ID on this builder.
          *
-         * @param featureId the identifier of the Feature.
+         * @param featureId the ID of the Feature.
          * @param propertyPath the hierarchical path to within the Feature to the property to be removed.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if any argument is {@code null}.
@@ -381,16 +378,16 @@ public interface ThingBuilder {
         FromScratch setModified(Instant modified);
 
         /**
-         * Sets the given Thing identifier to this builder. The identifier is required to include the Thing's namespace.
+         * Sets the given Thing ID to this builder. The ID is required to include the Thing's namespace.
          *
-         * @param thingId the Thing identifier to be set.
+         * @param thingId the Thing ID to be set.
          * @return this builder to allow method chaining.
          * @throws ThingIdInvalidException if {@code thingId} does not comply to the required pattern.
          */
         FromScratch setId(@Nullable String thingId);
 
         /**
-         * Sets a generated Thing identifier to this builder.
+         * Sets a generated Thing ID to this builder.
          *
          * @return this builder to allow method chaining.
          */
@@ -618,15 +615,15 @@ public interface ThingBuilder {
         FromCopy removeAllPermissions(Predicate<AccessControlList> existingAclPredicate);
 
         /**
-         * Sets the given Policy identifier to this builder.
+         * Sets the given Policy ID to this builder.
          *
-         * @param policyId the Policy identifier to set.
+         * @param policyId the Policy ID to set.
          * @return this builder to allow method chaining.
          */
         FromCopy setPolicyId(@Nullable String policyId);
 
         /**
-         * Removes the Policy identifier from this builder.
+         * Removes the Policy ID from this builder.
          *
          * @return this builder to allow method chaining.
          */
@@ -739,7 +736,7 @@ public interface ThingBuilder {
          * @param attributeValue the value to be set.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if any argument is {@code null}.
-         * @throws IllegalArgumentException if {@code attributePath} ise empty.
+         * @throws IllegalArgumentException if {@code attributePath} is empty.
          */
         default FromCopy setAttribute(final JsonPointer attributePath, final JsonValue attributeValue) {
             return setAttribute(existingAttributes -> true, attributePath, attributeValue);
@@ -782,7 +779,7 @@ public interface ThingBuilder {
         FromCopy removeAttribute(Predicate<Attributes> existingAttributesPredicate, JsonPointer attributePath);
 
         /**
-         * Sets the given Feature to this builder. A previously set Feature with the same identifier is replaced.
+         * Sets the given Feature to this builder. A previously set Feature with the same ID is replaced.
          *
          * @param feature the Feature to be set.
          * @return this builder to allow method chaining.
@@ -793,7 +790,7 @@ public interface ThingBuilder {
         }
 
         /**
-         * Sets the given Feature to this builder. A previously set Feature with the same identifier is replaced.
+         * Sets the given Feature to this builder. A previously set Feature with the same ID is replaced.
          *
          * @param existingFeaturesPredicate a predicate to decide whether the given features are set. The predicate
          * receives the currently set features.
@@ -804,10 +801,9 @@ public interface ThingBuilder {
         FromCopy setFeature(Predicate<Features> existingFeaturesPredicate, Feature feature);
 
         /**
-         * Sets a Feature with the given identifier to this builder. A previously set Feature with the same identifier
-         * is replaced.
+         * Sets a Feature with the given ID to this builder. A previously set Feature with the same ID is replaced.
          *
-         * @param featureId the identifier of the Feature to be set.
+         * @param featureId the ID of the Feature to be set.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if {@code featureId} is {@code null}.
          */
@@ -816,21 +812,20 @@ public interface ThingBuilder {
         }
 
         /**
-         * Sets a Feature with the given identifier to this builder. A previously set Feature with the same identifier
-         * is replaced.
+         * Sets a Feature with the given ID to this builder. A previously set Feature with the same ID is replaced.
          *
          * @param existingFeaturesPredicate a predicate to decide whether the given features are set. The predicate
          * receives the currently set features.
-         * @param featureId the identifier of the Feature to be set.
+         * @param featureId the ID of the Feature to be set.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if any argument is {@code null}.
          */
         FromCopy setFeature(Predicate<Features> existingFeaturesPredicate, String featureId);
 
         /**
-         * Removes the Feature with the given identifier from this builder.
+         * Removes the Feature with the given ID from this builder.
          *
-         * @param featureId the identifier of the Feature to be removed.
+         * @param featureId the ID of the Feature to be removed.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if {@code featureId} is {@code null}.
          */
@@ -839,22 +834,21 @@ public interface ThingBuilder {
         }
 
         /**
-         * Removes the Feature with the given identifier from this builder.
+         * Removes the Feature with the given ID from this builder.
          *
          * @param existingFeaturesPredicate a predicate to decide whether the given features are set. The predicate
          * receives the currently set features.
-         * @param featureId the identifier of the Feature to be removed.
+         * @param featureId the ID of the Feature to be removed.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if any argument is {@code null}.
          */
         FromCopy removeFeature(Predicate<Features> existingFeaturesPredicate, String featureId);
 
         /**
-         * Sets a Feature with the given identifier and properties to this builder. A previously set Feature with the
-         * same
-         * identifier is replaced.
+         * Sets a Feature with the given ID and properties to this builder. A previously set Feature with the
+         * same ID is replaced.
          *
-         * @param featureId the identifier of the Feature to be set.
+         * @param featureId the ID of the Feature to be set.
          * @param featureProperties the properties of the Feature to be set.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if {@code featureId} is {@code null}.
@@ -864,13 +858,12 @@ public interface ThingBuilder {
         }
 
         /**
-         * Sets a Feature with the given identifier and properties to this builder. A previously set Feature with the
-         * same
-         * identifier is replaced.
+         * Sets a Feature with the given ID and properties to this builder. A previously set Feature with the
+         * same ID is replaced.
          *
          * @param existingFeaturesPredicate a predicate to decide whether the given features are set. The predicate
          * receives the currently set features.
-         * @param featureId the identifier of the Feature to be set.
+         * @param featureId the ID of the Feature to be set.
          * @param featureProperties the properties of the Feature to be set.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if any argument is {@code null}.
@@ -879,41 +872,39 @@ public interface ThingBuilder {
                 FeatureProperties featureProperties);
 
         /**
-         * Sets a Feature with the given identifier and properties to this builder. A previously set Feature with the
-         * same
-         * identifier is replaced.
+         * Sets a Feature with the given ID and properties to this builder. A previously set Feature with the
+         * same ID is replaced.
          *
-         * @param featureId the identifier of the Feature to be set.
-         * @param featureProperties the properties of the Feature to be set.
+         * @param featureId the ID of the Feature to be set.
          * @param featureDefinition the Definition of the Feature to be set.
+         * @param featureProperties the properties of the Feature to be set.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if {@code featureId} is {@code null}.
          */
-        default FromCopy setFeature(final String featureId, final FeatureProperties featureProperties,
-                final FeatureDefinition featureDefinition) {
-            return setFeature(existingFeatures -> true, featureId, featureProperties, featureDefinition);
+        default FromCopy setFeature(final String featureId, final FeatureDefinition featureDefinition,
+                final FeatureProperties featureProperties) {
+            return setFeature(existingFeatures -> true, featureId, featureDefinition, featureProperties);
         }
 
         /**
-         * Sets a Feature with the given identifier and properties to this builder. A previously set Feature with the
-         * same
-         * identifier is replaced.
+         * Sets a Feature with the given ID and properties to this builder. A previously set Feature with the
+         * same ID is replaced.
          *
          * @param existingFeaturesPredicate a predicate to decide whether the given features are set. The predicate
          * receives the currently set features.
-         * @param featureId the identifier of the Feature to be set.
-         * @param featureProperties the properties of the Feature to be set.
+         * @param featureId the ID of the Feature to be set.
          * @param featureDefinition the Definition of the Feature to be set.
+         * @param featureProperties the properties of the Feature to be set.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if any argument is {@code null}.
          */
         FromCopy setFeature(Predicate<Features> existingFeaturesPredicate, String featureId,
-                FeatureProperties featureProperties, FeatureDefinition featureDefinition);
+                FeatureDefinition featureDefinition, FeatureProperties featureProperties);
 
         /**
-         * Sets the given property to the Feature with the given identifier on this builder.
+         * Sets the given property to the Feature with the given ID on this builder.
          *
-         * @param featureId the identifier of the Feature.
+         * @param featureId the ID of the Feature.
          * @param propertyPath the hierarchical path within the Feature to the property to be set.
          * @param propertyValue the property value to be set.
          * @return this builder to allow method chaining.
@@ -925,11 +916,11 @@ public interface ThingBuilder {
         }
 
         /**
-         * Sets the given property to the Feature with the given identifier on this builder.
+         * Sets the given property to the Feature with the given ID on this builder.
          *
          * @param existingFeaturesPredicate a predicate to decide whether the given features are set. The predicate
          * receives the currently set features.
-         * @param featureId the identifier of the Feature.
+         * @param featureId the ID of the Feature.
          * @param propertyPath the hierarchical path within the Feature to the property to be set.
          * @param propertyValue the property value to be set.
          * @return this builder to allow method chaining.
@@ -939,9 +930,9 @@ public interface ThingBuilder {
                 JsonPointer propertyPath, JsonValue propertyValue);
 
         /**
-         * Removes the given property from the Feature with the given identifier on this builder.
+         * Removes the given property from the Feature with the given ID on this builder.
          *
-         * @param featureId the identifier of the Feature.
+         * @param featureId the ID of the Feature.
          * @param propertyPath the hierarchical path to within the Feature to the property to be removed.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if any argument is {@code null}.
@@ -951,11 +942,11 @@ public interface ThingBuilder {
         }
 
         /**
-         * Removes the given property from the Feature with the given identifier on this builder.
+         * Removes the given property from the Feature with the given ID on this builder.
          *
          * @param existingFeaturesPredicate a predicate to decide whether the given features are set. The predicate
          * receives the currently set features.
-         * @param featureId the identifier of the Feature.
+         * @param featureId the ID of the Feature.
          * @param propertyPath the hierarchical path to within the Feature to the property to be removed.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if any argument is {@code null}.
@@ -1151,9 +1142,9 @@ public interface ThingBuilder {
         FromCopy setModified(Predicate<Instant> existingModifiedPredicate, @Nullable Instant modified);
 
         /**
-         * Sets the given Thing identifier to this builder. The identifier is required to include the Thing's namespace.
+         * Sets the given Thing ID to this builder. The ID is required to include the Thing's namespace.
          *
-         * @param thingId the Thing identifier to be set.
+         * @param thingId the Thing ID to be set.
          * @return this builder to allow method chaining.
          * @throws ThingIdInvalidException if {@code thingId} does not comply to
          * the required pattern.
@@ -1163,11 +1154,11 @@ public interface ThingBuilder {
         }
 
         /**
-         * Sets the given Thing identifier to this builder. The identifier is required to include the Thing's namespace.
+         * Sets the given Thing ID to this builder. The ID is required to include the Thing's namespace.
          *
-         * @param existingIdPredicate a predicate to decide whether the given identifier is set. The predicate receives
-         * the currently set Thing identifier.
-         * @param thingId the Thing identifier to be set.
+         * @param existingIdPredicate a predicate to decide whether the given ID is set. The predicate receives
+         * the currently set Thing ID.
+         * @param thingId the Thing ID to be set.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if {@code existingIdPredicate} is {@code null}.
          * @throws ThingIdInvalidException if {@code thingId} does not comply to
@@ -1176,7 +1167,7 @@ public interface ThingBuilder {
         FromCopy setId(Predicate<String> existingIdPredicate, @Nullable String thingId);
 
         /**
-         * Sets a generated Thing identifier to this builder.
+         * Sets a generated Thing ID to this builder.
          *
          * @return this builder to allow method chaining.
          */
@@ -1185,10 +1176,10 @@ public interface ThingBuilder {
         }
 
         /**
-         * Sets a generated Thing identifier to this builder.
+         * Sets a generated Thing ID to this builder.
          *
-         * @param existingIdPredicate a predicate to decide whether the given identifier is set. The predicate receives
-         * the currently set Thing identifier.
+         * @param existingIdPredicate a predicate to decide whether the given ID is set. The predicate receives
+         * the currently set Thing ID.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if {@code existingIdPredicate} is {@code null}.
          */

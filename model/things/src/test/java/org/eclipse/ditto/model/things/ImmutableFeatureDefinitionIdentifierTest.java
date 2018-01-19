@@ -137,7 +137,7 @@ public final class ImmutableFeatureDefinitionIdentifierTest {
     public void tryToParseEmptyIdentifierString() {
         assertThatExceptionOfType(FeatureDefinitionIdentifierInvalidException.class)
                 .isThrownBy(() -> ImmutableFeatureDefinitionIdentifier.ofParsed(""))
-                .withMessage("FeatureDefinition Identifier <> is invalid!")
+                .withMessage("Feature Definition Identifier <> is invalid!")
                 .withNoCause();
     }
 
@@ -147,7 +147,7 @@ public final class ImmutableFeatureDefinitionIdentifierTest {
 
         assertThatExceptionOfType(FeatureDefinitionIdentifierInvalidException.class)
                 .isThrownBy(() -> ImmutableFeatureDefinitionIdentifier.ofParsed(invalidString))
-                .withMessage("FeatureDefinition Identifier <%s> is invalid!", invalidString)
+                .withMessage("Feature Definition Identifier <%s> is invalid!", invalidString)
                 .withNoCause();
     }
 
@@ -157,7 +157,7 @@ public final class ImmutableFeatureDefinitionIdentifierTest {
 
         assertThatExceptionOfType(FeatureDefinitionIdentifierInvalidException.class)
                 .isThrownBy(() -> ImmutableFeatureDefinitionIdentifier.ofParsed(invalidString))
-                .withMessage("FeatureDefinition Identifier <%s> is invalid!", invalidString)
+                .withMessage("Feature Definition Identifier <%s> is invalid!", invalidString)
                 .withNoCause();
     }
 

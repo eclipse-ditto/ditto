@@ -41,12 +41,11 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
  * be categorized, e. g. to manage the status, the configuration or any fault information.
  * </p>
  * <p>
- * For the Things service to be able to work with models/concepts of a Feature (e. g. syntactically validate
+ * For Ditto to be able to work with models/concepts of a Feature (e. g. syntactically validate
  * properties of Features or provide detailed information about message parameters, etc.) it is possible to attach a
- * {@link FeatureDefinition}. The definition can be compared to "stereotypes" in UML or "interface" declarations in
- * programming languages (with the difference that in programming languages the type system is fully known where as in
- * Things service the semantics of definitions is not fixed but depends on different usage scenarios like validation,
- * mapping, ...).
+ * {@link FeatureDefinition}. The Definition can be compared to interface declarations in programming languages
+ * (with the difference that in programming languages the type system is fully known where as in Ditto the semantics of
+ * definitions is not fixed but depends on different usage scenarios like for example validation, mapping, ...).
  * </p>
  */
 @Immutable
@@ -77,6 +76,31 @@ public interface Feature extends Jsonifiable.WithFieldSelectorAndPredicate<JsonF
      * @return the ID of this Feature.
      */
     String getId();
+
+    /**
+     * Returns the attached Definition of this Feature.
+     *
+     * @return the Definition or an empty Optional.
+     */
+    Optional<FeatureDefinition> getDefinition();
+
+    /**
+     * Sets the specified Definition to a copy of this Feature.
+     *
+     * @param featureDefinition the Definition to be attached to a copy of this Feature.
+     * @return a copy of this Feature with the specified Definition attached or this Feature instance if the
+     * specified Definition was already set.
+     * @throws NullPointerException if {@code featureDefinition} is {@code null}.
+     */
+    Feature setDefinition(FeatureDefinition featureDefinition);
+
+    /**
+     * Removes the Definition from a copy of this Feature.
+     *
+     * @return a copy of this Feature without a Definition or this Feature instance if this feature was already
+     * without Definition.
+     */
+    Feature removeDefinition();
 
     /**
      * Returns the properties of this Feature.
@@ -224,31 +248,6 @@ public interface Feature extends Jsonifiable.WithFieldSelectorAndPredicate<JsonF
     Feature removeProperty(JsonPointer pointer);
 
     /**
-     * Returns the attached definition of this feature.
-     *
-     * @return the definition or an empty Optional.
-     */
-    Optional<FeatureDefinition> getDefinition();
-
-    /**
-     * Sets the specified definition to a copy of this Feature.
-     *
-     * @param featureDefinition the definition to be attached to a copy of this Feature.
-     * @return a copy of this Feature with the specified definition attached or this Feature instance if the
-     * specified definition was already set.
-     * @throws NullPointerException if {@code featureDefinition} is {@code null}.
-     */
-    Feature setDefinition(FeatureDefinition featureDefinition);
-
-    /**
-     * Removes the definition from a copy of this Feature.
-     *
-     * @return a copy of this Feature without a definition or this Feature instance if this feature was already
-     * without definition.
-     */
-    Feature removeDefinition();
-
-    /**
      * Returns all non hidden marked fields of this Feature.
      *
      * @return a JSON object representation of this Feature including only non hidden marked fields.
@@ -277,7 +276,7 @@ public interface Feature extends Jsonifiable.WithFieldSelectorAndPredicate<JsonF
                         FieldType.HIDDEN, JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         /**
-         * JSON field definition for the Feature's definition as {@link org.eclipse.ditto.json.JsonArray}.
+         * JSON field definition for the Feature's Definition as {@link org.eclipse.ditto.json.JsonArray}.
          */
         public static final JsonFieldDefinition<JsonArray> DEFINITION =
                 JsonFactory.newJsonArrayFieldDefinition("definition", FieldType.REGULAR, JsonSchemaVersion.V_1,

@@ -20,14 +20,14 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
 
 /**
  * A FeatureDefinition is a list of fully qualified {@link Identifier}s. A FeatureDefinition is guaranteed to contain
- * at least one identifier. Each identifier is unique, i. e. a feature definition does not contain duplicates.
+ * at least one Identifier. Each Identifier is unique, i. e. a Feature Definition does not contain duplicates.
  */
 @Immutable
 public interface FeatureDefinition extends Iterable<FeatureDefinition.Identifier>, Jsonifiable<JsonArray> {
 
     /**
      * Parses the specified CharSequence to an Identifier and returns an immutable {@code FeatureDefinition}
-     * containing that identifier.
+     * containing that Identifier.
      *
      * @param identifier CharSequence-representation of the first Identifier of the returned FeatureDefinition.
      * @return the instance.
@@ -42,13 +42,13 @@ public interface FeatureDefinition extends Iterable<FeatureDefinition.Identifier
      * Returns a new immutable {@code FeatureDefinition} which is initialised with the values of the given JSON string.
      * This string is required to be a valid {@link JsonArray}.
      *
-     * @param jsonArrayAsString provides the initial values of the result;
+     * @param jsonArrayAsString provides the initial values of the result.
      * @return the new immutable initialised {@code FeatureDefinition}.
      * @throws NullPointerException if {@code jsonArrayAsString} is {@code null}.
      * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code jsonArrayAsString} cannot be parsed
      * to {@code FeatureDefinition}.
-     * @throws IllegalArgumentException if the JSON array is empty.
-     * @throws FeatureDefinitionIdentifierInvalidException if any identifier of the JSON array is invalid.
+     * @throws FeatureDefinitionEmptyException if the JSON array is empty.
+     * @throws FeatureDefinitionIdentifierInvalidException if any Identifier of the JSON array is invalid.
      */
     static FeatureDefinition fromJson(final String jsonArrayAsString) {
         return ThingsModelFactory.newFeatureDefinition(jsonArrayAsString);
@@ -57,65 +57,65 @@ public interface FeatureDefinition extends Iterable<FeatureDefinition.Identifier
     /**
      * Returns a new immutable {@code FeatureDefinition} which is initialised with the values of the given JSON array.
      *
-     * @param jsonArray provides the initial values of the result;
+     * @param jsonArray provides the initial values of the result.
      * @return the new immutable initialised {@code FeatureDefinition}.
      * @throws NullPointerException if {@code jsonArray} is {@code null}.
      * @throws IllegalArgumentException if {@code jsonArray} is empty.
-     * @throws FeatureDefinitionIdentifierInvalidException if any identifier of {@code jsonArray} is invalid.
+     * @throws FeatureDefinitionIdentifierInvalidException if any Identifier of {@code jsonArray} is invalid.
      */
     static FeatureDefinition fromJson(final JsonArray jsonArray) {
         return ThingsModelFactory.newFeatureDefinition(jsonArray);
     }
 
     /**
-     * Returns the first Identifier of this feature definition which is guaranteed to exist.
+     * Returns the first Identifier of this Feature Definition which is guaranteed to exist.
      *
      * @return the Identifier.
      */
     Identifier getFirstIdentifier();
 
     /**
-     * Returns the count of identifiers of this feature definition. The size is guaranteed to be at least one.
+     * Returns the count of Identifiers of this Feature Definition. The size is guaranteed to be at least one.
      *
      * @return the size.
      */
     int getSize();
 
     /**
-     * Returns a sequential {@code Stream} with the identifiers of this feature definition as its source.
+     * Returns a sequential {@code Stream} with the Identifiers of this Feature Definition as its source.
      *
-     * @return a sequential stream of the identifiers of this feature definition.
+     * @return a sequential stream of the Identifiers of this Feature Definition.
      */
     Stream<Identifier> stream();
 
     /**
-     * This interface represents a single fully qualified identifier of a {@code FeatureDefinition}.
+     * This interface represents a single fully qualified Identifier of a {@code FeatureDefinition}.
      */
     interface Identifier extends CharSequence {
 
         /**
-         * Returns the namespace of ths identifier.
+         * Returns the namespace of ths Identifier.
          *
          * @return the namespace.
          */
         String getNamespace();
 
         /**
-         * Returns the name of this identifier.
+         * Returns the name of this Identifier.
          *
          * @return the name.
          */
         String getName();
 
         /**
-         * Returns the version of this identifier.
+         * Returns the version of this Identifier.
          *
          * @return the version.
          */
         String getVersion();
 
         /**
-         * Returns the string representation of this identifier with the following structure:
+         * Returns the string representation of this Identifier with the following structure:
          * {@code "namespace:name:version"}
          *
          * @return the string representation.

@@ -30,6 +30,10 @@
 
     <dependencies>
         <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-services-base</artifactId>
+        </dependency>
+        <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>ditto-services-amqpbridge-messaging</artifactId>
             <version>${project.version}</version>
@@ -186,7 +190,7 @@
                                 <transformer
                                         implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                                     <manifestEntries>
-                                        <Main-Class>org.eclipse.ditto.services.amqpbridge.AmqpBridge</Main-Class>
+                                        <Main-Class>org.eclipse.ditto.services.amqpbridge.AmqpBridgeService</Main-Class>
                                     </manifestEntries>
                                 </transformer>
                             </transformers>

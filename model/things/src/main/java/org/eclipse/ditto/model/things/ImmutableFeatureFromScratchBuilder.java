@@ -25,8 +25,8 @@ final class ImmutableFeatureFromScratchBuilder implements FeatureBuilder, Featur
         FeatureBuilder.FromScratchBuildable, FeatureBuilder.FeatureBuildable {
 
     @Nullable private String featureId;
-    @Nullable private FeatureProperties properties;
     @Nullable private FeatureDefinition definition;
+    @Nullable private FeatureProperties properties;
     private boolean isFeatureValueJsonNull;
 
     private ImmutableFeatureFromScratchBuilder() {
@@ -80,6 +80,12 @@ final class ImmutableFeatureFromScratchBuilder implements FeatureBuilder, Featur
     }
 
     @Override
+    public FromScratchBuildable definition(@Nullable final FeatureDefinition featureDefinition) {
+        definition = featureDefinition;
+        return this;
+    }
+
+    @Override
     public FromScratchBuildable properties(@Nullable final FeatureProperties properties) {
         this.properties = properties;
         return this;
@@ -98,12 +104,6 @@ final class ImmutableFeatureFromScratchBuilder implements FeatureBuilder, Featur
     }
 
     @Override
-    public FromScratchBuildable definition(@Nullable final FeatureDefinition featureDefinition) {
-        definition = featureDefinition;
-        return this;
-    }
-
-    @Override
     public FeatureBuildable withId(final String featureId) {
         return useId(featureId);
     }
@@ -113,7 +113,7 @@ final class ImmutableFeatureFromScratchBuilder implements FeatureBuilder, Featur
         if (isFeatureValueJsonNull) {
             return ThingsModelFactory.nullFeature(featureId);
         } else {
-            return ThingsModelFactory.newFeature(featureId, properties, definition);
+            return ThingsModelFactory.newFeature(featureId, definition, properties);
         }
     }
 
