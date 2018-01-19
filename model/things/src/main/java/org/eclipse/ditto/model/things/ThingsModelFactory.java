@@ -147,7 +147,7 @@ public final class ThingsModelFactory {
      * are ignored.
      * @return the instance.
      * @throws NullPointerException if {@code jsonArray} is {@code null}.
-     * @throws IllegalArgumentException if {@code jsonArray} is empty.
+     * @throws FeatureDefinitionEmptyException if {@code jsonArray} is empty.
      * @throws FeatureDefinitionIdentifierInvalidException if any Identifier string of the array is invalid.
      */
     public static FeatureDefinition newFeatureDefinition(final JsonArray jsonArray) {
@@ -165,7 +165,7 @@ public final class ThingsModelFactory {
      * @param jsonString provides the initial values of the result;
      * @return the new immutable initialised {@code FeatureDefinition}.
      * @throws DittoJsonException if {@code jsonString} cannot be parsed to {@code FeatureDefinition}.
-     * @throws IllegalArgumentException if the JSON array is empty.
+     * @throws FeatureDefinitionEmptyException if the JSON array is empty.
      * @throws FeatureDefinitionIdentifierInvalidException if any Identifier of the JSON array is invalid.
      */
     public static FeatureDefinition newFeatureDefinition(final String jsonString) {

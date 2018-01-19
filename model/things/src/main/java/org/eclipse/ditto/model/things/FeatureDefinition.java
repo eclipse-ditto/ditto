@@ -47,7 +47,7 @@ public interface FeatureDefinition extends Iterable<FeatureDefinition.Identifier
      * @throws NullPointerException if {@code jsonArrayAsString} is {@code null}.
      * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code jsonArrayAsString} cannot be parsed
      * to {@code FeatureDefinition}.
-     * @throws IllegalArgumentException if the JSON array is empty.
+     * @throws FeatureDefinitionEmptyException if the JSON array is empty.
      * @throws FeatureDefinitionIdentifierInvalidException if any Identifier of the JSON array is invalid.
      */
     static FeatureDefinition fromJson(final String jsonArrayAsString) {

@@ -736,7 +736,7 @@ public interface ThingBuilder {
          * @param attributeValue the value to be set.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if any argument is {@code null}.
-         * @throws IllegalArgumentException if {@code attributePath} ise empty.
+         * @throws IllegalArgumentException if {@code attributePath} is empty.
          */
         default FromCopy setAttribute(final JsonPointer attributePath, final JsonValue attributeValue) {
             return setAttribute(existingAttributes -> true, attributePath, attributeValue);
