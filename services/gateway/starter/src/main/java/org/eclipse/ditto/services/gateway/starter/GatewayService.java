@@ -11,118 +11,71 @@
  */
 package org.eclipse.ditto.services.gateway.starter;
 
-import java.lang.management.ManagementFactory;
-import java.lang.management.RuntimeMXBean;
-import java.time.Duration;
-import java.util.concurrent.TimeUnit;
-
+import org.eclipse.ditto.services.base.BaseConfigKey;
+import org.eclipse.ditto.services.base.BaseConfigKeys;
+import org.eclipse.ditto.services.base.DittoService;
+import org.eclipse.ditto.services.base.StatsdMongoDbMetricsStarter;
 import org.eclipse.ditto.services.gateway.starter.service.util.ConfigKeys;
-import org.eclipse.ditto.services.utils.cluster.ClusterMemberAwareActor;
-import org.eclipse.ditto.services.utils.cluster.ClusterUtil;
-import org.eclipse.ditto.services.utils.config.ConfigUtil;
-import org.eclipse.ditto.services.utils.health.status.StatusSupplierActor;
+import org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.codahale.metrics.MetricRegistry;
-import com.github.jjagged.metrics.reporting.StatsDReporter;
 import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
-import akka.actor.Cancellable;
-import akka.cluster.Cluster;
-import akka.cluster.pubsub.DistributedPubSub;
-import akka.contrib.persistence.mongodb.MongoPersistenceExtension;
-import akka.contrib.persistence.mongodb.MongoPersistenceExtension$;
+import akka.actor.Props;
 import akka.stream.ActorMaterializer;
-import kamon.Kamon;
-import scala.concurrent.duration.FiniteDuration;
 
 /**
- * A gateway server for Eclipse Ditto.
+ * The Gateway service for Eclipse Ditto.
  */
-public class GatewayService {
+@AllParametersAndReturnValuesAreNonnullByDefault
+public final class GatewayService extends DittoService {
+
+    /**
+     * Name for the Akka actor system of the Gateway service.
+     */
+    static final String SERVICE_NAME = "gateway";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(GatewayService.class);
 
-    private static final String CLUSTER_NAME = "ditto-cluster";
-    static final String SERVICE_NAME = "gateway";
-
-    /**
-     * Starts the gateway server.
-     *
-     * @param args CommandLine arguments
-     */
-    public static void main(final String... args) {
-        runtimeParameters();
-        Kamon.start(ConfigFactory.load("kamon"));
-
-        final Config config = ConfigUtil.determineConfig(SERVICE_NAME);
-        final ActorSystem system = ActorSystem.create(CLUSTER_NAME, config);
-        system.actorOf(StatusSupplierActor.props(GatewayRootActor.ACTOR_NAME), StatusSupplierActor.ACTOR_NAME);
-
-        ClusterUtil.joinCluster(system, config);
-        // important: register Kamon::shutdown after joining the cluster as there is also a "registerOnTermination"
-        // and they are executed in reverse order
-        system.registerOnTermination(Kamon::shutdown);
-
-        final boolean majorityCheckEnabled = config.getBoolean(ConfigKeys.CLUSTER_MAJORITY_CHECK_ENABLED);
-        final Duration majorityCheckDelay = config.getDuration(ConfigKeys.CLUSTER_MAJORITY_CHECK_DELAY);
-        LOGGER.info("Starting actor '{}'", ClusterMemberAwareActor.ACTOR_NAME);
-        system.actorOf(ClusterMemberAwareActor.props(SERVICE_NAME, majorityCheckEnabled, majorityCheckDelay),
-                ClusterMemberAwareActor.ACTOR_NAME);
-
-        final Cancellable shutdownIfJoinFails =
-                system.scheduler().scheduleOnce(FiniteDuration.apply(30, TimeUnit.SECONDS), () ->
-                {
-                    LOGGER.error("Member was not able to join the cluster, going to shutdown system now");
-                    system.terminate();
-                }, system.dispatcher());
-
-        LOGGER.info("Waiting for member to be UP before proceeding with further initialization");
-        Cluster.get(system).registerOnMemberUp(() ->
-        {
-            LOGGER.info("Member successfully joined the cluster, instantiating remaining Actors (Rabbit, HTTP)");
-
-            shutdownIfJoinFails.cancel();
-
-            if (config.hasPath(ConfigKeys.STATSD_HOSTNAME)) {
-                // enable logging of mongo-persistence-plugin statistics to statsD
-                final MetricRegistry registry =
-                        ((MongoPersistenceExtension) MongoPersistenceExtension$.MODULE$.apply(system))
-                                .configured(config)
-                                .registry();
-
-                final String hostnameOverride = ConfigUtil.calculateInstanceUniqueSuffix();
-
-                final StatsDReporter metricsReporter = StatsDReporter.forRegistry(registry)
-                        .convertRatesTo(TimeUnit.SECONDS)
-                        .convertDurationsTo(TimeUnit.MILLISECONDS)
-                        .prefixedWith(SERVICE_NAME + "." + hostnameOverride)
-                        .build(config.getString(ConfigKeys.STATSD_HOSTNAME), config.getInt(ConfigKeys.STATSD_PORT));
-                metricsReporter.start(5, TimeUnit.SECONDS);
-            } else {
-                LOGGER.warn("MongoDB monitoring will be deactivated as '{}' is not configured",
-                        ConfigKeys.STATSD_HOSTNAME);
-            }
-
-            final ActorRef pubSubMediator = DistributedPubSub.get(system).mediator();
-            final ActorMaterializer materializer = ActorMaterializer.create(system);
-
-            system.actorOf(GatewayRootActor.props(config, pubSubMediator, materializer), GatewayRootActor.ACTOR_NAME);
-        });
-    }
-
-    private static void runtimeParameters() {
-        final RuntimeMXBean bean = ManagementFactory.getRuntimeMXBean();
-        LOGGER.info("Running with following runtime parameters: {}", bean.getInputArguments());
-        LOGGER.info("Available processors: {}", Runtime.getRuntime().availableProcessors());
-    }
+    private static final BaseConfigKeys CONFIG_KEYS = BaseConfigKeys.getBuilder()
+            .put(BaseConfigKey.Cluster.MAJORITY_CHECK_ENABLED, ConfigKeys.CLUSTER_MAJORITY_CHECK_ENABLED)
+            .put(BaseConfigKey.Cluster.MAJORITY_CHECK_DELAY, ConfigKeys.CLUSTER_MAJORITY_CHECK_DELAY)
+            .put(BaseConfigKey.StatsD.HOSTNAME, ConfigKeys.STATSD_HOSTNAME)
+            .put(BaseConfigKey.StatsD.PORT, ConfigKeys.STATSD_PORT)
+            .build();
 
     private GatewayService() {
-        // no-op
+        super(LOGGER, SERVICE_NAME, GatewayRootActor.ACTOR_NAME, CONFIG_KEYS);
+    }
+
+    /**
+     * Starts the Gateway service.
+     *
+     * @param args command line arguments.
+     */
+    public static void main(final String[] args) {
+        final GatewayService gatewayService = new GatewayService();
+        gatewayService.start();
+    }
+
+    @Override
+    protected void startDevOpsCommandsActor(final ActorSystem actorSystem, final Config config) {
+        // The DevOpsCommandsActor is started by GatewayRootActor as it uses the ActorRef.
+    }
+
+    @Override
+    protected void startStatsdMetricsReporter(final ActorSystem actorSystem, final Config config) {
+        StatsdMongoDbMetricsStarter.newInstance(config, CONFIG_KEYS, actorSystem, SERVICE_NAME, LOGGER).run();
+    }
+
+    @Override
+    protected Props getMainRootActorProps(final Config config, final ActorRef pubSubMediator,
+            final ActorMaterializer materializer) {
+
+        return GatewayRootActor.props(config, pubSubMediator, materializer);
     }
 
 }

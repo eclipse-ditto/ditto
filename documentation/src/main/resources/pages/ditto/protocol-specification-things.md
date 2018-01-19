@@ -11,7 +11,7 @@ permalink: protocol-specification-things.html
 A valid topic consists of six elements, describing the thing affected by this message and the type of the message:
 
 ```
-/<namespace>/<thingId>/things/<channel>/<criterion>/<action>
+<namespace>/<thingId>/things/<channel>/<criterion>/<action>
 ```
 
 1. `namespace`: the namespace of the Thing.

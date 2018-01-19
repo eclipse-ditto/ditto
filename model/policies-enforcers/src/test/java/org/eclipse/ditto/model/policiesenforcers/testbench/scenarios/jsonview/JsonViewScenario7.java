@@ -40,7 +40,7 @@ public class JsonViewScenario7 implements JsonViewScenario {
                 THING, //
                 THING.toJson(JsonFieldSelector.newInstance("/attributes")), //
                 Stream.of(
-                        SubjectId.newInstance(SubjectIssuer.GOOGLE_URL, SUBJECT_ALL_GRANTED).toString())
+                        SubjectId.newInstance(SubjectIssuer.GOOGLE, SUBJECT_ALL_GRANTED).toString())
                         .collect(Collectors.toSet()),
                 "READ");
     }

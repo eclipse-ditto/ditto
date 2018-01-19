@@ -11,75 +11,24 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.directives.auth.jwt;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.argumentNotNull;
-
-import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
-
-import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
-import org.eclipse.ditto.model.policies.SubjectIssuer;
 import org.eclipse.ditto.services.gateway.security.jwt.JsonWebToken;
 
 /**
- * A provider for {@link AuthorizationSubject}s contained in a {@link JsonWebToken}.
+ * A provider for {@link org.eclipse.ditto.model.base.auth.AuthorizationSubject}s contained in a
+ * {@link org.eclipse.ditto.services.gateway.security.jwt.JsonWebToken}.
  */
-@Immutable
-public final class AuthorizationSubjectsProvider {
-
-    private final List<AuthorizationSubject> authorizationSubjects;
-
-    private AuthorizationSubjectsProvider(final List<AuthorizationSubject> authorizationSubjectsWithPrefixes) {
-        this.authorizationSubjects = Collections.unmodifiableList(authorizationSubjectsWithPrefixes);
-    }
+public interface AuthorizationSubjectsProvider {
 
     /**
-     * Returns a new {@code AuthorizationSubjectsProvider} for the given {@code issuer} and {@code jsonWebToken}.
+     * Returns the {@code AuthorizationSubjects} of the given {@code JsonWebToken}.
      *
-     * @param issuer the issuer.
-     * @param jsonWebToken the token.
-     * @return the AuthorizationSubjectsProvider.
-     * @throws NullPointerException if any argument is {@code null}.
+     * @param jsonWebToken the token containing the authorization subjects.
+     * @return the authorization subjects.
+     * @throws java.lang.NullPointerException if {@code jsonWebToken} is {@code null}.
      */
-    public static AuthorizationSubjectsProvider of(final SubjectIssuer issuer, final JsonWebToken jsonWebToken) {
-        argumentNotNull(issuer);
-        argumentNotNull(jsonWebToken);
-
-        final List<AuthorizationSubject> authorizationSubjects = jsonWebToken.getAuthorizationSubjects();
-        return new AuthorizationSubjectsProvider(authorizationSubjects);
-    }
-
-    /**
-     * Returns the AuthorizationSubjects with prefixes for the SubjectIssuer.
-     *
-     * @return the subjects.
-     */
-    List<AuthorizationSubject> getAuthorizationSubjects() {
-        return authorizationSubjects;
-    }
-
-    @Override
-    public boolean equals(final Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        final AuthorizationSubjectsProvider that = (AuthorizationSubjectsProvider) o;
-        return Objects.equals(authorizationSubjects, that.authorizationSubjects);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(authorizationSubjects);
-    }
-
-    @Override
-    public String toString() {
-        return getClass().getSimpleName() + " [" + "authorizationSubjects=" + authorizationSubjects + ']';
-    }
+    List<AuthorizationSubject> getAuthorizationSubjects(final JsonWebToken jsonWebToken);
 
 }

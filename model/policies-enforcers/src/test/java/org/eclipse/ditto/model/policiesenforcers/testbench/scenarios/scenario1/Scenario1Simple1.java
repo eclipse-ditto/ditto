@@ -28,7 +28,7 @@ public class Scenario1Simple1 implements Scenario1Simple {
     private final ScenarioSetup setup;
 
     public Scenario1Simple1() {
-        final String subjectId = SubjectId.newInstance(SubjectIssuer.GOOGLE_URL, SUBJECT_ALL_GRANTED).toString();
+        final String subjectId = SubjectId.newInstance(SubjectIssuer.GOOGLE, SUBJECT_ALL_GRANTED).toString();
         final String resource = "/";
         setup = Scenario.newScenarioSetup(
                 true,

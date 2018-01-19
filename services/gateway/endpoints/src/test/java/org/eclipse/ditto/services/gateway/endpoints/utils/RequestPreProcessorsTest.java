@@ -28,8 +28,8 @@ public class RequestPreProcessorsTest {
         // GIVEN
         final String stringWithPlaceholder = "${request.subjectId}";
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().authorizationSubjects(
-                SubjectId.newInstance(SubjectIssuer.GOOGLE_URL, "hans").toString(),
-                SubjectId.newInstance(SubjectIssuer.GOOGLE_URL, "lisa").toString(),
+                SubjectId.newInstance(SubjectIssuer.GOOGLE, "hans").toString(),
+                SubjectId.newInstance(SubjectIssuer.GOOGLE, "lisa").toString(),
                 SubjectId.newInstance(SubjectIssuer.GOOGLE, "larry").toString()
         ).build();
 
@@ -38,7 +38,7 @@ public class RequestPreProcessorsTest {
 
         // THEN
         assertThat(replacedString)
-                .isEqualTo(SubjectIssuer.GOOGLE_URL + SubjectId.ISSUER_DELIMITER + "hans");
+                .isEqualTo(SubjectIssuer.GOOGLE + SubjectId.ISSUER_DELIMITER + "hans");
     }
 
     @Test
@@ -46,8 +46,8 @@ public class RequestPreProcessorsTest {
         // GIVEN
         final String stringWithPlaceholder = "First:\n${request.subjectId}\nSecond:\n${request.subjectId}";
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().authorizationSubjects(
-                SubjectId.newInstance(SubjectIssuer.GOOGLE_URL, "hans").toString(),
-                SubjectId.newInstance(SubjectIssuer.GOOGLE_URL, "lisa").toString(),
+                SubjectId.newInstance(SubjectIssuer.GOOGLE, "hans").toString(),
+                SubjectId.newInstance(SubjectIssuer.GOOGLE, "lisa").toString(),
                 SubjectId.newInstance(SubjectIssuer.GOOGLE, "larry").toString()
         ).build();
 
@@ -55,7 +55,7 @@ public class RequestPreProcessorsTest {
         final String replacedString = RequestPreProcessors.replacePlaceholders(stringWithPlaceholder, dittoHeaders);
 
         // THEN
-        final String expectedReplacement = SubjectIssuer.GOOGLE_URL + SubjectId.ISSUER_DELIMITER + "hans";
+        final String expectedReplacement = SubjectIssuer.GOOGLE + SubjectId.ISSUER_DELIMITER + "hans";
         final String expectedReplacedString = "First:\n" + expectedReplacement + "\nSecond:\n" + expectedReplacement;
         assertThat(replacedString).isEqualTo(expectedReplacedString);
     }

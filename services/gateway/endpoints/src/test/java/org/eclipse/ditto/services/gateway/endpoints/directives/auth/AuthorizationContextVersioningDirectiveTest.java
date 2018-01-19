@@ -88,14 +88,8 @@ public class AuthorizationContextVersioningDirectiveTest extends EndpointTestBas
     }
 
     private static List<AuthorizationSubject> createAuthSubjectsWithoutPrefixes() {
-        final List<AuthorizationSubject> expectedAuthorizationSubjects = new ArrayList<>();
-        Stream.of(SubjectIssuer.GOOGLE, SubjectIssuer.GOOGLE_URL)
-                .forEach(subjectIssuer ->
-                        expectedAuthorizationSubjects
-                                .add(AuthorizationSubject.newInstance(
-                                        createTestSubjectIdWithoutIssuerPrefix(subjectIssuer)))
-                );
-        return Collections.unmodifiableList(expectedAuthorizationSubjects);
+        return Collections.singletonList(
+                AuthorizationSubject.newInstance(createTestSubjectIdWithoutIssuerPrefix(SubjectIssuer.GOOGLE)));
     }
 
     private static AuthorizationContext createAuthContextWithPrefixedSubjects() {
@@ -104,7 +98,7 @@ public class AuthorizationContextVersioningDirectiveTest extends EndpointTestBas
     }
 
     private static Iterable<AuthorizationSubject> createPrefixedAuthSubjectsForAllIssuers() {
-        return Stream.of(SubjectIssuer.GOOGLE, SubjectIssuer.GOOGLE_URL)
+        return Stream.of(SubjectIssuer.GOOGLE)
                 .map(issuer -> SubjectId.newInstance(issuer, createTestSubjectIdWithoutIssuerPrefix(issuer)))
                 .map(AuthorizationModelFactory::newAuthSubject)
                 .collect(Collectors.toList());

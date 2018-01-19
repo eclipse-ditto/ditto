@@ -11,37 +11,21 @@
  */
 package org.eclipse.ditto.services.policies.starter;
 
-import java.lang.management.ManagementFactory;
-import java.lang.management.RuntimeMXBean;
-import java.net.UnknownHostException;
-import java.time.Duration;
-import java.util.concurrent.TimeUnit;
-
+import org.eclipse.ditto.services.base.BaseConfigKey;
+import org.eclipse.ditto.services.base.BaseConfigKeys;
+import org.eclipse.ditto.services.base.DittoService;
+import org.eclipse.ditto.services.base.StatsdMongoDbMetricsStarter;
 import org.eclipse.ditto.services.policies.util.ConfigKeys;
-import org.eclipse.ditto.services.utils.cluster.ClusterMemberAwareActor;
-import org.eclipse.ditto.services.utils.cluster.ClusterUtil;
-import org.eclipse.ditto.services.utils.config.ConfigUtil;
-import org.eclipse.ditto.services.utils.devops.DevOpsCommandsActor;
-import org.eclipse.ditto.services.utils.devops.LogbackLoggingFacade;
-import org.eclipse.ditto.services.utils.health.status.StatusSupplierActor;
+import org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.codahale.metrics.MetricRegistry;
-import com.github.jjagged.metrics.reporting.StatsDReporter;
 import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
-import akka.actor.Cancellable;
-import akka.cluster.Cluster;
-import akka.cluster.pubsub.DistributedPubSub;
-import akka.contrib.persistence.mongodb.MongoPersistenceExtension;
-import akka.contrib.persistence.mongodb.MongoPersistenceExtension$;
+import akka.actor.Props;
 import akka.stream.ActorMaterializer;
-import kamon.Kamon;
-import scala.concurrent.duration.FiniteDuration;
 
 /**
  * Entry point of the Policies Service.
@@ -50,91 +34,47 @@ import scala.concurrent.duration.FiniteDuration;
  * <li>Sets up ActorSystem</li>
  * </ul>
  */
-public final class PoliciesService {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(PoliciesService.class);
-
-    /**
-     * Name for the Cluster of the Policies Service.
-     */
-    private static final String CLUSTER_NAME = "ditto-cluster";
+@AllParametersAndReturnValuesAreNonnullByDefault
+public final class PoliciesService extends DittoService {
 
     /**
      * Name for the Akka Actor System of the Policies Service.
      */
     static final String SERVICE_NAME = "policies";
 
-    /**
-     * Starts the PoliciesService.
-     *
-     * @param args CommandLine arguments
-     */
-    public static void main(final String... args) throws UnknownHostException {
-        runtimeParameters();
-        Kamon.start(ConfigFactory.load("kamon"));
+    private static final Logger LOGGER = LoggerFactory.getLogger(PoliciesService.class);
 
-        final Config config = ConfigUtil.determineConfig(SERVICE_NAME);
-        final ActorSystem system = ActorSystem.create(CLUSTER_NAME, config);
-        system.actorOf(StatusSupplierActor.props(PoliciesRootActor.ACTOR_NAME), StatusSupplierActor.ACTOR_NAME);
-        system.actorOf(
-                DevOpsCommandsActor.props(LogbackLoggingFacade.newInstance(), SERVICE_NAME, ConfigUtil.instanceIndex()),
-                DevOpsCommandsActor.ACTOR_NAME);
+    private static final BaseConfigKeys CONFIG_KEYS = BaseConfigKeys.getBuilder()
+            .put(BaseConfigKey.Cluster.MAJORITY_CHECK_ENABLED, ConfigKeys.Cluster.MAJORITY_CHECK_ENABLED)
+            .put(BaseConfigKey.Cluster.MAJORITY_CHECK_DELAY, ConfigKeys.Cluster.MAJORITY_CHECK_DELAY)
+            .put(BaseConfigKey.StatsD.HOSTNAME, ConfigKeys.StatsD.HOSTNAME)
+            .put(BaseConfigKey.StatsD.PORT, ConfigKeys.StatsD.PORT)
+            .build();
 
-        ClusterUtil.joinCluster(system, config);
-        // important: register Kamon::shutdown after joining the cluster as there is also a "registerOnTermination"
-        // and they are executed in reverse order
-        system.registerOnTermination(Kamon::shutdown);
-
-        final boolean majorityCheckEnabled = config.getBoolean(ConfigKeys.Cluster.MAJORITY_CHECK_ENABLED);
-        final Duration majorityCheckDelay = config.getDuration(ConfigKeys.Cluster.MAJORITY_CHECK_DELAY);
-        LOGGER.info("Starting actor '{}'", ClusterMemberAwareActor.ACTOR_NAME);
-        system.actorOf(ClusterMemberAwareActor.props(SERVICE_NAME, majorityCheckEnabled, majorityCheckDelay),
-                ClusterMemberAwareActor.ACTOR_NAME);
-
-        final Cancellable shutdownIfJoinFails =
-                system.scheduler().scheduleOnce(FiniteDuration.apply(30, TimeUnit.SECONDS), () ->
-                {
-                    LOGGER.error("Member was not able to join the cluster, going to shutdown system now");
-                    system.terminate();
-                }, system.dispatcher());
-
-        LOGGER.info("Waiting for member to be UP before proceeding with further initialization");
-        Cluster.get(system).registerOnMemberUp(() ->
-        {
-            LOGGER.info("Member successfully joined the cluster, instantiating remaining Actors");
-
-            shutdownIfJoinFails.cancel();
-
-            if (config.hasPath(ConfigKeys.StatsD.HOSTNAME)) {
-                // enable logging of mongo-persistence-plugin statistics to statsD
-                final MetricRegistry registry =
-                        ((MongoPersistenceExtension) MongoPersistenceExtension$.MODULE$.apply(system))
-                                .configured(config)
-                                .registry();
-
-                final String hostnameOverride = ConfigUtil.calculateInstanceUniqueSuffix();
-
-                final StatsDReporter metricsReporter = StatsDReporter.forRegistry(registry)
-                        .convertRatesTo(TimeUnit.SECONDS)
-                        .convertDurationsTo(TimeUnit.MILLISECONDS)
-                        .prefixedWith(SERVICE_NAME + "." + hostnameOverride)
-                        .build(config.getString(ConfigKeys.StatsD.HOSTNAME), config.getInt(ConfigKeys.StatsD.PORT));
-                metricsReporter.start(5, TimeUnit.SECONDS);
-            } else {
-                LOGGER.warn("MongoDB monitoring will be deactivated as '{}' is not configured",
-                        ConfigKeys.StatsD.HOSTNAME);
-            }
-
-            final ActorRef pubSubMediator = DistributedPubSub.get(system).mediator();
-            final ActorMaterializer materializer = ActorMaterializer.create(system);
-            system.actorOf(PoliciesRootActor.props(config, pubSubMediator, materializer), PoliciesRootActor.ACTOR_NAME);
-        });
+    private PoliciesService() {
+        super(LOGGER, SERVICE_NAME, PoliciesRootActor.ACTOR_NAME, CONFIG_KEYS);
     }
 
-    private static void runtimeParameters() {
-        final RuntimeMXBean bean = ManagementFactory.getRuntimeMXBean();
-        LOGGER.info("Running with following runtime parameters: {}", bean.getInputArguments());
-        LOGGER.info("Available processors: {}", Runtime.getRuntime().availableProcessors());
+    /**
+     * Starts the Policies service.
+     *
+     * @param args command line arguments.
+     */
+    public static void main(final String[] args) {
+        final PoliciesService policiesService = new PoliciesService();
+        policiesService.start();
+    }
+
+    @Override
+    protected void startStatsdMetricsReporter(final ActorSystem actorSystem, final Config config) {
+        StatsdMongoDbMetricsStarter.newInstance(config, CONFIG_KEYS, actorSystem, SERVICE_NAME, LOGGER).run();
+    }
+
+    @Override
+    protected Props getMainRootActorProps(final Config config, final ActorRef pubSubMediator,
+            final ActorMaterializer materializer) {
+
+        return PoliciesRootActor.props(config, pubSubMediator, materializer);
     }
 
 }

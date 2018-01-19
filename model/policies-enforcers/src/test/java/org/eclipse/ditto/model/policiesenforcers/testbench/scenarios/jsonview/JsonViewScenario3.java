@@ -41,7 +41,7 @@ public class JsonViewScenario3 implements JsonViewScenario {
                 THING, //
                 THING.toJson(JsonFieldSelector.newInstance("/attributes/location", "/features")), //
                 Stream.of(
-                        SubjectId.newInstance(SubjectIssuer.GOOGLE_URL, SUBJECT_ALL_GRANTED).toString())
+                        SubjectId.newInstance(SubjectIssuer.GOOGLE, SUBJECT_ALL_GRANTED).toString())
                         .collect(Collectors.toSet()), //
                 "READ");
     }

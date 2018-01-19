@@ -34,7 +34,7 @@ public class Scenario5Simple1 implements Scenario5Simple {
                 getPolicy(), //
                 Scenario.newAuthorizationContext(SUBJECT), //
                 "/policy", //
-                Stream.of(SubjectId.newInstance(SubjectIssuer.GOOGLE_URL, SUBJECT).toString())
+                Stream.of(SubjectId.newInstance(SubjectIssuer.GOOGLE, SUBJECT).toString())
                         .collect(Collectors.toSet()),
                 "READ");
     }

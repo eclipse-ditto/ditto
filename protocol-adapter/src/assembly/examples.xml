@@ -20,10 +20,6 @@
     <includeBaseDirectory>false</includeBaseDirectory>
     <fileSets>
         <fileSet>
-            <directory>${project.build.directory}/generated-resources/dokuwiki/</directory>
-            <outputDirectory>./</outputDirectory>
-        </fileSet>
-        <fileSet>
             <directory>${project.build.directory}/generated-resources/markdown/</directory>
             <outputDirectory>./</outputDirectory>
         </fileSet>

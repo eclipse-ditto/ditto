@@ -64,7 +64,7 @@ public final class PolicyModelJsonExamplesProducer {
 
         final Policy policy = PoliciesModelFactory.newPolicyBuilder(policyId)
                 .forLabel("EndUser")
-                .setSubject(SubjectIssuer.GOOGLE_URL, UUID.randomUUID().toString(),
+                .setSubject(SubjectIssuer.GOOGLE, UUID.randomUUID().toString(),
                         SubjectType.newInstance("yourTypeDescription"))
                 .setGrantedPermissions("thing", "/",
                         TestConstants.Policy.PERMISSION_READ,

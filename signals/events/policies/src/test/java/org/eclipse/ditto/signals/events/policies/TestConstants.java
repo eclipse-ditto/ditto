@@ -100,7 +100,7 @@ final class TestConstants {
          * A known {@code SubjectId} for a {@code PolicyEntry}.
          */
         public static final SubjectId SUBJECT_ID =
-                PoliciesModelFactory.newSubjectId(SubjectIssuer.GOOGLE_URL, "mySubject");
+                PoliciesModelFactory.newSubjectId(SubjectIssuer.GOOGLE, "mySubject");
 
         /**
          * A known {@code Subject} for a {@code PolicyEntry}.

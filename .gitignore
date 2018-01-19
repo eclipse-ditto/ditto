@@ -11,3 +11,6 @@ target/
 /ditto_all_dependencies/
 dependencies.txt
 /docker/.env
+/docker/sandbox/.env
+/docker/sandbox/postgres
+/docker/sandbox/graphite/storage

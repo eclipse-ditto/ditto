@@ -27,7 +27,7 @@ import org.openjdk.jmh.annotations.State;
 @State(Scope.Benchmark)
 public class Scenario3Revoke16 implements Scenario3Revoke {
 
-    private static final String EXPECTED_NONRANTED_SUBJECT = SubjectId.newInstance(SubjectIssuer.GOOGLE_URL,
+    private static final String EXPECTED_NONRANTED_SUBJECT = SubjectId.newInstance(SubjectIssuer.GOOGLE,
             SUBJECT_FEATURE_FOO_ALL_GRANTED_SPECIAL_PROPERTY_REVOKED).toString();
 
     private final ScenarioSetup setup;

@@ -94,12 +94,12 @@ public interface Scenario {
             final String... authorizationSubjects) {
 
         final List<AuthorizationSubject> authorizationSubjectList = Arrays.stream(authorizationSubjects)
-                .map(s -> SubjectId.newInstance(SubjectIssuer.GOOGLE_URL, s).toString())
+                .map(s -> SubjectId.newInstance(SubjectIssuer.GOOGLE, s).toString())
                 .map(AuthorizationSubject::newInstance)
                 .collect(Collectors.toList());
 
         return AuthorizationContext.newInstance(AuthorizationSubject.newInstance(
-                SubjectId.newInstance(SubjectIssuer.GOOGLE_URL, authorizationSubject)),
+                SubjectId.newInstance(SubjectIssuer.GOOGLE, authorizationSubject)),
                 authorizationSubjectList.toArray(new AuthorizationSubject[authorizationSubjects.length]));
     }
 

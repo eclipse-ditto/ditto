@@ -7,13 +7,13 @@ permalink: protocol-specification-topic.html
 
 The Ditto Protocol defines a **Topic** for each Protocol message having following structure:
 
-_/[{namespace}](#namespace)/[{entityId}](#entity-id)/[{group}](#group)/[{channel}](#channel)/[{criterion}](#criterion)/[{action}](#action-optional)_
+_[{namespace}](#namespace)/[{entityId}](#entity-id)/[{group}](#group)/[{channel}](#channel)/[{criterion}](#criterion)/[{action}](#action-optional)_
 
 Examples for valid topic paths are:
-* `/org.eclipse.ditto/fancy-car-1/things/twin/commands/create`
-* `/org.eclipse.ditto/fancy-car-0815/things/live/events/modified`
-* `/org.eclipse.ditto/fancy-car-23/things/twin/search`
-* `/org.eclipse.ditto/fancy-car-42/things/live/messages/hello.world`
+* `org.eclipse.ditto/fancy-car-1/things/twin/commands/create`
+* `org.eclipse.ditto/fancy-car-0815/things/live/events/modified`
+* `org.eclipse.ditto/fancy-car-23/things/twin/search`
+* `org.eclipse.ditto/fancy-car-42/things/live/messages/hello.world`
 
 
 ## Namespace
@@ -102,8 +102,8 @@ They contain a *status integer* which reflects an HTTP status code with the same
 
 ## Action (optional)
 
-For command and event criteria additional actions are available which further distinguish the purpose of a Protocol
-message. 
+For command, event and messages criteria additional actions are available which further distinguish the purpose of a 
+Protocol message. 
 
 ### Command criterion actions
 
@@ -123,3 +123,8 @@ An entity (e.g. a Thing) or an aspect of an entity was
 * `created`,
 * `modified` or
 * `deleted`.
+
+### Messages criterion actions
+
+For the *messages* criterion the *action* segment specifies the message subject and can be freely chosen by the sender 
+provided that it conforms to [RFC-2396](https://tools.ietf.org/html/rfc2396) (URI).
