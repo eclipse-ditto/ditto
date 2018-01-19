@@ -11,7 +11,6 @@
  */
 package org.eclipse.ditto.model.things;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkArgument;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.ArrayList;
@@ -51,13 +50,14 @@ final class ImmutableFeatureDefinition implements FeatureDefinition {
      * be returned. Non-string values are ignored.
      * @return the instance.
      * @throws NullPointerException if {@code featureDefinitionEntriesAsJsonArray} is {@code null}.
-     * @throws IllegalArgumentException if {@code featureDefinitionEntriesAsJsonArray} is empty.
+     * @throws FeatureDefinitionEmptyException if {@code featureDefinitionEntriesAsJsonArray} is empty.
      * @throws FeatureDefinitionIdentifierInvalidException if any Identifier string of the array is invalid.
      */
     public static ImmutableFeatureDefinition fromJson(final JsonArray featureDefinitionEntriesAsJsonArray) {
         checkNotNull(featureDefinitionEntriesAsJsonArray, "JSON array containing the FeatureDefinition entries");
-        checkArgument(featureDefinitionEntriesAsJsonArray, argument -> !featureDefinitionEntriesAsJsonArray.isEmpty(),
-                () -> "The JSON array containing the FeatureDefinition entries must not be empty!");
+        if (featureDefinitionEntriesAsJsonArray.isEmpty()) {
+            throw new FeatureDefinitionEmptyException();
+        }
 
         final List<Identifier> identifiersFromJson = featureDefinitionEntriesAsJsonArray.stream()
                 .filter(JsonValue::isString)

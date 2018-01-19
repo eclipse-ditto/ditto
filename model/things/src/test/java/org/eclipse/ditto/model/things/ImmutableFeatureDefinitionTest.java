@@ -174,4 +174,12 @@ public final class ImmutableFeatureDefinitionTest {
         assertThat(actual).isEqualTo(expected);
     }
 
+    @Test
+    public void fromJsonOfEmptyArrayFailsWithException() {
+        assertThatExceptionOfType(FeatureDefinitionEmptyException.class)
+                .isThrownBy(() -> ImmutableFeatureDefinition.fromJson(JsonFactory.newArray()))
+                .withMessage("Feature Definition must not be empty!")
+                .withNoCause();
+    }
+
 }

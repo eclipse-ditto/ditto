@@ -67,6 +67,8 @@ import org.eclipse.ditto.model.things.AclNotAllowedException;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.FeatureDefinition;
+import org.eclipse.ditto.model.things.FeatureDefinitionEmptyException;
+import org.eclipse.ditto.model.things.FeatureDefinitionIdentifierInvalidException;
 import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Permission;
@@ -1283,6 +1285,17 @@ class CommandAndEventJsonExamplesProducer {
                 .newBuilder(THING_ID, FEATURE_ID).dittoHeaders(DITTO_HEADERS).build();
         writeJson(exceptionsDir.resolve(Paths.get("featureNotModifiableException.json")),
                 featureNotModifiableException);
+
+        final FeatureDefinitionEmptyException featureDefinitionEmptyException =
+                FeatureDefinitionEmptyException.newBuilder().dittoHeaders(DITTO_HEADERS).build();
+        writeJson(exceptionsDir.resolve(Paths.get("featureDefinitionEmptyException.json")),
+                featureDefinitionEmptyException);
+
+        final FeatureDefinitionIdentifierInvalidException definitionIdentifierInvalidException =
+                FeatureDefinitionIdentifierInvalidException.newBuilder("foo:bar")
+                        .dittoHeaders(DITTO_HEADERS).build();
+        writeJson(exceptionsDir.resolve(Paths.get("definitionIdentifierInvalidException.json")),
+                definitionIdentifierInvalidException);
 
         final FeatureDefinitionNotAccessibleException featureDefinitionNotAccessibleException =
                 FeatureDefinitionNotAccessibleException.newBuilder(THING_ID, FEATURE_ID)
