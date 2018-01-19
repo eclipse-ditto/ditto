@@ -133,6 +133,7 @@ services:
       GF_ANALYTICS_REPORTING_ENABLED: "false"
       GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
       GF_AUTH_BASIC_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
       GF_SMTP_ENABLED: "false"
 
   swagger-ui:
