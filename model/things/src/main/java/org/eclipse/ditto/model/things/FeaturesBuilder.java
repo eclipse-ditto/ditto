@@ -11,13 +11,15 @@
  */
 package org.eclipse.ditto.model.things;
 
+import java.util.Optional;
+
 import javax.annotation.concurrent.NotThreadSafe;
 
 /**
  * A mutable builder for a {@link Feature} with a fluent API.
  */
 @NotThreadSafe
-public interface FeaturesBuilder {
+public interface FeaturesBuilder extends Iterable<Feature> {
 
     /**
      * Sets the given Feature to this builder. A previously set Feature with the same ID is replaced.
@@ -27,6 +29,15 @@ public interface FeaturesBuilder {
      * @throws NullPointerException if {@code feature} is {@code null}.
      */
     FeaturesBuilder set(Feature feature);
+
+    /**
+     * Returns the Feature with the specified identifier from this builder or an empty Optional if such a Feature is
+     * unknown to this builder.
+     *
+     * @param featureId the identifier of the Feature to be returned.
+     * @return the Feature with ID {@code featureId} or an empty Optional.
+     */
+    Optional<Feature> get(CharSequence featureId);
 
     /**
      * Sets all given Features to this builder. Each previously set feature with the same ID is replaced.

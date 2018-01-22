@@ -118,7 +118,7 @@ final class ImmutableFeature implements Feature {
             return this;
         }
 
-        return ImmutableFeature.of(featureId, properties);
+        return ImmutableFeature.of(featureId, definition, properties);
     }
 
     @Override
@@ -127,7 +127,7 @@ final class ImmutableFeature implements Feature {
             return this;
         }
 
-        return ImmutableFeature.of(featureId, null);
+        return ImmutableFeature.of(featureId, definition, null);
     }
 
     @Override

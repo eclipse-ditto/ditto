@@ -319,6 +319,18 @@ public final class ThingsModelFactory {
      *
      * @param featureId the ID of the new feature.
      * @param featureDefinition the Definition of the new Feature or {@code null}.
+     * @return the new immutable {@code Feature}.
+     * @throws NullPointerException if {@code featureId} is {@code null}.
+     */
+    public static Feature newFeature(final String featureId, @Nullable final FeatureDefinition featureDefinition) {
+        return ImmutableFeature.of(featureId, featureDefinition, null);
+    }
+
+    /**
+     * Returns a new immutable {@link Feature} with the given ID, properties and Definition.
+     *
+     * @param featureId the ID of the new feature.
+     * @param featureDefinition the Definition of the new Feature or {@code null}.
      * @param featureProperties the properties of the new Feature or {@code null}.
      * @return the new immutable {@code Feature}.
      * @throws NullPointerException if {@code featureId} is {@code null}.

@@ -34,15 +34,23 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
  * A generic entity which can be used as a "handle" for multiple {@link Feature}s belonging to this Thing. A Thing can
  * be for example:
  * <ul>
- * <li>a physical device like a lawn mower, a sensor, a vehicle or a lamp;</li>
- * <li>a virtual device like a room in a house, a virtual power plant spanning multiple power plants, the weather
- * information for a specific location collected by various sensors;</li>
- * <li>a transactional entity like a tour of a vehicle (from start until stop) or a series of measurements of a machine;
- * </li>
- * <li>a master data entity like a supplier of devices or a service provider for devices or an entity representing a
- * city/region;</li>
- * <li>anything else &ndash; if it can be modeled and managed appropriately by the supported concepts/capabilities of
- * Ditto.</li>
+ *    <li>a physical device like a lawn mower, a sensor, a vehicle or a lamp;</li>
+ *    <li>
+ *        a virtual device like a room in a house, a virtual power plant spanning multiple power plants, the weather
+ *        information for a specific location collected by various sensors;
+ *    </li>
+ *    <li>
+ *        a transactional entity like a tour of a vehicle (from start until stop) or a series of measurements of a
+ *        machine;
+ *    </li>
+ *    <li>
+ *        a master data entity like a supplier of devices or a service provider for devices or an entity representing a
+ *        city/region;
+ *    </li>
+ *    <li>
+ *        anything else &ndash; if it can be modeled and managed appropriately by the supported concepts/capabilities of
+ *        Ditto.
+ *    </li>
  * </ul>
  */
 @Immutable
@@ -254,6 +262,15 @@ public interface Thing extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFie
      * @throws NullPointerException if {@code featureId} is {@code null}.
      */
     Thing setFeatureDefinition(String featureId, FeatureDefinition definition);
+
+    /**
+     * Removes the Definition from the Feature of this thing with the specified feature ID.
+     *
+     * @param featureId the identifier of the Feature to delete the Definition from.
+     * @return a copy of this Thing with the Feature without Definition.
+     * @throws NullPointerException if {@code featureId} is {@code null}.
+     */
+    Thing removeFeatureDefinition(String featureId);
 
     /**
      * Sets the given properties of a Feature on a copy of this Thing.

@@ -410,56 +410,42 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
                 // # Feature Definition Creation
                 .match(FeatureDefinitionCreated.class, fdc -> thing = thing.toBuilder()
-                        .setFeature(thing.getFeatures()
-                                .flatMap(features -> features.getFeature(fdc.getFeatureId()))
-                                .map(feature -> feature.setDefinition(fdc.getDefinition()))
-                                .orElseGet(() -> Feature.newBuilder()
-                                        .definition(fdc.getDefinition())
-                                        .withId(fdc.getFeatureId())
-                                        .build())
-                        )
+                        .setFeatureDefinition(fdc.getFeatureId(), fdc.getDefinition())
                         .setRevision(getRevisionNumber())
                         .setModified(fdc.getTimestamp().orElse(null))
                         .build())
 
                 // # Feature Definition Modification
                 .match(FeatureDefinitionModified.class, fdm -> thing = thing.toBuilder()
-                        .setFeature(thing.getFeatures()
-                                .flatMap(features -> features.getFeature(fdm.getFeatureId()))
-                                .map(feature -> feature.setDefinition(fdm.getDefinition()))
-                                .orElseGet(() -> Feature.newBuilder()
-                                        .definition(fdm.getDefinition())
-                                        .withId(fdm.getFeatureId())
-                                        .build())
-                        )
+                        .setFeatureDefinition(fdm.getFeatureId(), fdm.getDefinition())
                         .setRevision(getRevisionNumber())
                         .setModified(fdm.getTimestamp().orElse(null))
                         .build())
 
                 // # Feature Definition Deletion
-                .match(FeatureDefinitionDeleted.class, fpd -> thing = thing.toBuilder()
-                        .setFeature(fpd.getFeatureId())
+                .match(FeatureDefinitionDeleted.class, fdd -> thing = thing.toBuilder()
+                        .removeFeatureDefinition(fdd.getFeatureId())
                         .setRevision(getRevisionNumber())
-                        .setModified(fpd.getTimestamp().orElse(null))
+                        .setModified(fdd.getTimestamp().orElse(null))
                         .build())
 
                 // # Feature Properties Creation
                 .match(FeaturePropertiesCreated.class, fpc -> thing = thing.toBuilder()
-                        .setFeature(fpc.getFeatureId(), fpc.getProperties())
+                        .setFeatureProperties(fpc.getFeatureId(), fpc.getProperties())
                         .setRevision(getRevisionNumber())
                         .setModified(fpc.getTimestamp().orElse(null))
                         .build())
 
                 // # Feature Properties Modification
                 .match(FeaturePropertiesModified.class, fpm -> thing = thing.toBuilder()
-                        .setFeature(fpm.getFeatureId(), fpm.getProperties())
+                        .setFeatureProperties(fpm.getFeatureId(), fpm.getProperties())
                         .setRevision(getRevisionNumber())
                         .setModified(fpm.getTimestamp().orElse(null))
                         .build())
 
                 // # Feature Properties Deletion
                 .match(FeaturePropertiesDeleted.class, fpd -> thing = thing.toBuilder()
-                        .setFeature(fpd.getFeatureId())
+                        .removeFeatureProperties(fpd.getFeatureId())
                         .setRevision(getRevisionNumber())
                         .setModified(fpd.getTimestamp().orElse(null))
                         .build())
