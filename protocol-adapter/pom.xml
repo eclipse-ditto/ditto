@@ -206,7 +206,7 @@
                         <configuration>
                             <classpathScope>test</classpathScope>
                             <mainClass>
-                                org.eclipse.ditto.protocoladapter.examples.PublicCommandAndEventJsonExamplesProducer
+                                org.eclipse.ditto.protocoladapter.examples.PublicJsonExamplesProducer
                             </mainClass>
                             <arguments>
                                 <argument>${project.build.directory}/generated-resources/markdown</argument>

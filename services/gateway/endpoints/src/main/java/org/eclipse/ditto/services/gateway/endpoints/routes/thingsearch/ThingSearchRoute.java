@@ -19,6 +19,9 @@ import static akka.http.javadsl.server.Directives.pathEndOrSingleSlash;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.gateway.endpoints.directives.CustomPathMatchers;
@@ -78,9 +81,12 @@ public final class ThingSearchRoute extends AbstractRoute {
      * @return {@code /search/things/count} route.
      */
     private Route countThings(final RequestContext ctx, final DittoHeaders dittoHeaders) {
-        return get(() -> // GET things/count?filter=<filterString>
+        return get(() -> // GET things/count?filter=<filterString>&namespaces=<namespacesString>
                 parameterOptional(ThingSearchParameter.FILTER.toString(), filterString ->
-                        handlePerRequest(ctx, CountThings.of(calculateFilter(filterString), dittoHeaders))
+                        parameterOptional(ThingSearchParameter.NAMESPACES.toString(), namespacesString ->
+                                handlePerRequest(ctx, CountThings.of(calculateFilter(filterString),
+                                        calculateNamespaces(namespacesString), dittoHeaders))
+                        )
                 )
         );
     }
@@ -91,25 +97,45 @@ public final class ThingSearchRoute extends AbstractRoute {
      * @return {@code /search/things} route.
      */
     private Route searchThings(final RequestContext ctx, final DittoHeaders dittoHeaders) {
-        return get(() -> // GET things?filter=<filterString>&options=<optionsString>&fields=<fieldsString>
-                parameterOptional(ThingSearchParameter.FILTER.toString(), filterString ->
-                        parameterOptional(ThingSearchParameter.OPTION.toString(), optionsString ->
-                                parameterOptional(ThingSearchParameter.FIELDS.toString(),
-                                        fieldsString ->
-                                                handlePerRequest(ctx, QueryThings.of(calculateFilter(filterString),
-                                                        calculateOptions(optionsString),
-                                                        AbstractRoute.calculateSelectedFields(fieldsString)
-                                                                .orElse(null),
-                                                        dittoHeaders))
+        return get(
+                () -> // GET things?filter=<filterString>&options=<optionsString>&fields=<fieldsString>&namespaces=<namespacesString>
+                        parameterOptional(ThingSearchParameter.FILTER.toString(), filterString ->
+                                parameterOptional(ThingSearchParameter.NAMESPACES.toString(), namespacesString ->
+                                        parameterOptional(ThingSearchParameter.OPTION.toString(), optionsString ->
+                                                parameterOptional(ThingSearchParameter.FIELDS.toString(),
+                                                        fieldsString -> handlePerRequest(ctx,
+                                                                QueryThings.of(calculateFilter(filterString),
+                                                                        calculateOptions(optionsString),
+                                                                        AbstractRoute.calculateSelectedFields(
+                                                                                fieldsString)
+                                                                                .orElse(null),
+                                                                        calculateNamespaces(namespacesString),
+                                                                        dittoHeaders))
+                                                )
+                                        )
                                 )
                         )
-                )
         );
     }
 
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     private static String calculateFilter(final Optional<String> filterString) {
         return filterString.orElse(null);
+    }
+
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+    private static Set<String> calculateNamespaces(final Optional<String> namespacesString) {
+
+        final Function<String, Set<String>> splitAndRemoveEmpty =
+                s -> Arrays.stream(s.split(","))
+                        .filter(segment -> !segment.isEmpty())
+                        .collect(Collectors.toSet());
+
+        // if no namespaces are given explicitly via query parameter,
+        // return null to signify the lack of namespace restriction
+        final Set<String> defaultNamespaces = null;
+
+        return namespacesString.map(splitAndRemoveEmpty).orElse(defaultNamespaces);
     }
 
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")

@@ -1602,14 +1602,15 @@ paths:
 
 
 
-         Attention, at the moment we do not support search on array fields.
+        Attention, at the moment we do not support search on array fields.
 
-         The search result is limited to the Things within the namespace (or namespaces) the solution is configured
-         for. Even though this restriction is currently not implemented, it will be subject to revision without
-         advanced notice.
+
+        The search result can be limited to the Things within a namespace (or namespaces)
+        given in the `namespaces` parameter.
 
       parameters:
         - $ref: '#/parameters/searchFilter'
+        - $ref: '#/parameters/namespacesFilter'
         - name: option
           in: query
           description: >-
@@ -1720,13 +1721,15 @@ paths:
 
 
 
-         Attention, at the moment we do not support search on array fields.
+        Attention, at the moment we do not support search on array fields.
 
-         The search result is limited to the Things within the namespace (or namespaces) the solution is configured
-         for. Even though this restriction is currently not implemented, it will be subject to revision without
-         advanced notice.
+
+        The search result can be limited to the Things within a namespace (or namespaces)
+        given in the `namespaces` parameter.
+
       parameters:
         - $ref: '#/parameters/searchFilter'
+        - $ref: '#/parameters/namespacesFilter'
       tags:
         - Search
       responses:
@@ -2093,8 +2096,7 @@ parameters:
 
       * `?fields=EnvironmentScanner/properties(temperature,humidity)`
 
-      *
-      `?fields=EnvironmentScanner/properties(temperature,humidity),Vehicle/properties/configuration`
+      * `?fields=EnvironmentScanner/properties(temperature,humidity),Vehicle/properties/configuration`
     required: false
     type: string
   featureFieldsQueryParam:
@@ -2179,3 +2181,18 @@ parameters:
       * ```or(eq(attributes/location,"kitchen"),eq(attributes/location,"living-room"))```
     required: false
     type: string
+  namespacesFilter:
+    name: namespaces
+    in: query
+    type: string
+    description: >-
+      A comma separated list of namespaces. This list is used to limit the query reach to things in the given
+      namespaces only. When this parameter is omitted, all namespaces will be selected.
+
+      ##### Examples:
+
+      * `?namespaces=com.example.namespace`
+
+      * `?namespaces=com.example.namespace1,com.example.namespace2`
+
+    required: false

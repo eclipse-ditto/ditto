@@ -44,7 +44,7 @@ import com.eclipsesource.json.WriterConfig;
 </pre>
  *
  */
-public final class PublicCommandAndEventJsonExamplesProducer extends CommandAndEventJsonExamplesProducer {
+public final class PublicJsonExamplesProducer extends JsonExamplesProducer {
 
     private static final DittoProtocolAdapter PROTOCOL_ADAPTER = DittoProtocolAdapter.newInstance();
     private static final String TO_ADAPTABLE = "toAdaptable";
@@ -58,7 +58,7 @@ public final class PublicCommandAndEventJsonExamplesProducer extends CommandAndE
 
     private final List<Method> toAdaptableMethods;
 
-    private PublicCommandAndEventJsonExamplesProducer(final String markdownType) {
+    private PublicJsonExamplesProducer(final String markdownType) {
         if (markdownType.equals("markdown")) {
             h2Begin = "## ";
             h2End = "\n";
@@ -79,7 +79,7 @@ public final class PublicCommandAndEventJsonExamplesProducer extends CommandAndE
             System.exit(-1);
         }
         final String[] writePath = args[0].split("/");
-        run(args, new PublicCommandAndEventJsonExamplesProducer(writePath[writePath.length - 1]));
+        run(args, new PublicJsonExamplesProducer(writePath[writePath.length - 1]));
     }
 
     private Optional<Method> findMatchingToAdaptableMethod(final Class parameterClass) {
