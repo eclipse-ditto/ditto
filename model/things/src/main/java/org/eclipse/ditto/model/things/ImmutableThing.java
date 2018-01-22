@@ -228,46 +228,33 @@ final class ImmutableThing implements Thing {
 
     @Override
     public Thing removeFeature(final String featureId) {
-        if (null == features || features.isEmpty() || features.isNull()) {
-            return this;
-        }
-
-        return setFeatures(features.removeFeature(featureId));
+        return (null != features) ? setFeatures(features.removeFeature(featureId)) : this;
     }
 
     @Override
     public Thing setFeatureDefinition(final String featureId, final FeatureDefinition definition) {
-        final Features newFeatures;
         if (null == features || features.isNull()) {
-            final Feature newFeature = ThingsModelFactory.newFeature(featureId, definition, null);
-            newFeatures = ThingsModelFactory.newFeatures(newFeature);
-        } else {
-            newFeatures = features.setDefinition(featureId, definition);
+            return setFeature(ThingsModelFactory.newFeature(featureId, definition, null));
         }
+        return setFeatures(features.setDefinition(featureId, definition));
+    }
 
-        return setFeatures(newFeatures);
+    @Override
+    public Thing removeFeatureDefinition(final String featureId) {
+        return (null != features) ? setFeatures(features.removeDefinition(featureId)) : this;
     }
 
     @Override
     public Thing setFeatureProperties(final String featureId, final FeatureProperties properties) {
-        final Features newFeatures;
         if (null == features || features.isNull()) {
-            final Feature newFeature = ThingsModelFactory.newFeature(featureId, properties);
-            newFeatures = ThingsModelFactory.newFeatures(newFeature);
-        } else {
-            newFeatures = features.setProperties(featureId, properties);
+            return setFeature(ThingsModelFactory.newFeature(featureId, properties));
         }
-
-        return setFeatures(newFeatures);
+        return setFeatures(features.setProperties(featureId, properties));
     }
 
     @Override
     public Thing removeFeatureProperties(final String featureId) {
-        if (null == features || features.isEmpty() || features.isNull()) {
-            return this;
-        }
-
-        return setFeatures(features.removeProperties(featureId));
+        return (null != features) ? setFeatures(features.removeProperties(featureId)) : this;
     }
 
     @Override
@@ -289,11 +276,7 @@ final class ImmutableThing implements Thing {
 
     @Override
     public Thing removeFeatureProperty(final String featureId, final JsonPointer propertyPath) {
-        if (null == features || features.isEmpty() || features.isNull()) {
-            return this;
-        }
-
-        return setFeatures(features.removeProperty(featureId, propertyPath));
+        return (null != features) ? setFeatures(features.removeProperty(featureId, propertyPath)) : this;
     }
 
     @Override

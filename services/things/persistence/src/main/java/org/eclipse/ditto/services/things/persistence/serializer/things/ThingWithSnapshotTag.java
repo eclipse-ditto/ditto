@@ -165,6 +165,11 @@ public final class ThingWithSnapshotTag implements Thing {
     }
 
     @Override
+    public Thing removeFeatureDefinition(final String featureId) {
+        return replaceDelegee(delegee.removeFeatureDefinition(featureId));
+    }
+
+    @Override
     public Thing setFeatureProperties(final String featureId, final FeatureProperties properties) {
         return replaceDelegee(delegee.setFeatureProperties(featureId, properties));
     }
