@@ -73,9 +73,7 @@
             <plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
                 <configuration>
-                    <descriptors>
-                        <descriptor>src/test/assembly/assembly.xml</descriptor>
-                    </descriptors>
+                    <descriptors>src/test/assembly/assembly.xml</descriptors>
                 </configuration>
                 <executions>
                     <execution>
