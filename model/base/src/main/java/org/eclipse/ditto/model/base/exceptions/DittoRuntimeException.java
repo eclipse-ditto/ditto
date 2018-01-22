@@ -55,7 +55,7 @@ public class DittoRuntimeException extends RuntimeException implements
      *
      * @param errorCode a code which uniquely identifies the exception.
      * @param statusCode the HTTP status code.
-     * @param dittoHeaders the command headers with which this Exception should be reported back to the user.
+     * @param dittoHeaders the headers with which this Exception should be reported back to the user.
      * @param message the detail message for later retrieval with {@link #getMessage()}.
      * @param description a description with further information about the exception.
      * @param cause the cause of the exception for later retrieval with {@link #getCause()}.
@@ -73,7 +73,7 @@ public class DittoRuntimeException extends RuntimeException implements
         super(message, cause);
         this.errorCode = checkNotNull(errorCode, "error code");
         this.statusCode = checkNotNull(statusCode, "HTTP status");
-        this.dittoHeaders = checkNotNull(dittoHeaders, "command headers");
+        this.dittoHeaders = checkNotNull(dittoHeaders, "Ditto headers");
         this.description = description;
         this.href = href;
     }
