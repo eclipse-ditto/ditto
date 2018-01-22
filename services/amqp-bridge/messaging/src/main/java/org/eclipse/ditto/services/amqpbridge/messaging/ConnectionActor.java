@@ -116,7 +116,7 @@ final class ConnectionActor extends AbstractPersistentActor implements Exception
             throw new ConfigurationException(String.format("Config setting '%s' must be positive, but is: %d.",
                     ConfigKeys.Connection.SNAPSHOT_THRESHOLD, snapshotThreshold));
         }
-        snapshotAdapter = new ConnectionMongoSnapshotAdapter(getContext().system());
+        snapshotAdapter = new ConnectionMongoSnapshotAdapter();
 
         connectionCreatedBehaviour = createConnectionCreatedBehaviour();
         connectionStatus = ConnectionStatus.CLOSED;
