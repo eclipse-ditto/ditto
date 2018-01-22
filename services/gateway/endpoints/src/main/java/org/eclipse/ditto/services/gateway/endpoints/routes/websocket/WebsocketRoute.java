@@ -54,12 +54,14 @@ import org.eclipse.ditto.signals.events.base.Event;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;
+import akka.event.Logging;
 import akka.http.javadsl.model.HttpResponse;
 import akka.http.javadsl.model.ws.Message;
 import akka.http.javadsl.model.ws.TextMessage;
 import akka.http.javadsl.model.ws.UpgradeToWebSocket;
 import akka.http.javadsl.server.Route;
 import akka.japi.function.Function;
+import akka.stream.Attributes;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
@@ -160,6 +162,9 @@ public final class WebsocketRoute {
                     }
                 })
                 .flatMapConcat(textMsg -> textMsg.fold("", (str1, str2) -> str1 + str2))
+                .log("ws-incoming-msg")
+                .withAttributes(Attributes.createLogLevels(Logging.DebugLevel(), Logging.DebugLevel(),
+                        Logging.WarningLevel()))
                 .filter(strictText -> processProtocolMessage(connectionAuthContext, connectionCorrelationId,
                         strictText))
                 .map(buildSignal(version, connectionCorrelationId, connectionAuthContext, additionalHeaders))
