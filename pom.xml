@@ -236,11 +236,42 @@
                     <groupId>org.codehaus.mojo</groupId>
                     <artifactId>exec-maven-plugin</artifactId>
                     <version>1.6.0</version>
+                    <executions>
+                        <execution>
+                            <id>produce-json-examples</id>
+                            <phase>pre-site</phase>
+                            <goals>
+                                <goal>java</goal>
+                            </goals>
+                            <configuration>
+                                <classpathScope>test</classpathScope>
+                                <!-- <mainClass>define in submodules</mainClass> -->
+                                <arguments>
+                                    <argument>${project.build.directory}/generated-resources</argument>
+                                </arguments>
+                            </configuration>
+                        </execution>
+                    </executions>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-site-plugin</artifactId>
                     <version>3.7</version>
+                    <!-- we use http://verhas.github.io/mdsnippet/usage.html in order to include JSON files -->
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.apache.maven.doxia</groupId>
+                            <artifactId>doxia-module-markdown</artifactId>
+                            <version>${doxia.markdown.version}</version>
+                        </dependency>
+                    </dependencies>
+                    <configuration>
+                        <generateReports>false</generateReports>
+                        <!-- important! this messes things with our proxy really up -->
+                        <!-- if the above is not set, all plugins executed after the site-plugin will fail when -->
+                        <!-- trying to communicate with a server -->
+                        <generateSitemap>true</generateSitemap>
+                    </configuration>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -424,18 +455,6 @@
                     find ./ -type d -name 'dependencies' -exec cp -a {} ditto_all_dependencies \;
                 This will copy all dependencies to the folder ditto_all_dependencies
             -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-site-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>attach-site</id>
-                        <goals>
-                            <goal>attach-descriptor</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
             <plugin>
                 <groupId>com.mycila</groupId>
                 <artifactId>license-maven-plugin</artifactId>

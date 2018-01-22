@@ -20,14 +20,14 @@
         <head><![CDATA[
             <script type="text/javascript">
                 $(document).ready(function () {
-                var jsonStr = $("div.source pre").each(function(index, value) {
+                var jsonStr = $("pre.source").each(function(index, value) {
                 var jsonStr = $(this).text()
                 var jsonObj = JSON.parse(jsonStr);
                 var jsonPretty = JSON.stringify(jsonObj, null, " ");
                 $(this).text(jsonPretty);
                 });
 
-                $("div.source pre").addClass("prettyprint"); //.addClass("linenums");
+                $("pre.source").addClass("prettyprint"); //.addClass("linenums");
                 prettyPrint();
                 }
                 );
