@@ -44,6 +44,9 @@ public final class QueryThingsTest {
                     .add(TestConstants.Search.KNOWN_OPT_2)
                     .build())
             .set(QueryThings.JSON_FIELDS, KNOWN_FIELDS)
+            .set(CountThings.JSON_NAMESPACES, JsonFactory.newArrayBuilder()
+                    .add(TestConstants.Search.KNOWN_NAMESPACE)
+                    .build())
             .build().toString();
 
     private static final String JSON_ALL_FIELDS_V1 = JsonFactory.newObjectBuilder()
@@ -54,6 +57,9 @@ public final class QueryThingsTest {
                     .add(TestConstants.Search.KNOWN_OPT_2)
                     .build())
             .set(QueryThings.JSON_FIELDS, KNOWN_FIELDS)
+            .set(CountThings.JSON_NAMESPACES, JsonFactory.newArrayBuilder()
+                    .add(TestConstants.Search.KNOWN_NAMESPACE)
+                    .build())
             .build().toString();
 
     private static final String JSON_MINIMAL_V2 = JsonFactory.newObjectBuilder()
@@ -88,6 +94,7 @@ public final class QueryThingsTest {
                 .of(TestConstants.Search.KNOWN_FILTER_STR,
                         Arrays.asList(TestConstants.Search.KNOWN_OPT_1, TestConstants.Search.KNOWN_OPT_2),
                         JsonFactory.newFieldSelector(KNOWN_FIELDS, TestConstants.JSON_PARSE_OPTIONS),
+                        TestConstants.Search.KNOWN_NAMESPACES_SET,
                         DittoHeaders.empty());
 
         final String json = command.toJsonString();
@@ -101,6 +108,7 @@ public final class QueryThingsTest {
                 .of(TestConstants.Search.KNOWN_FILTER_STR,
                         Arrays.asList(TestConstants.Search.KNOWN_OPT_1, TestConstants.Search.KNOWN_OPT_2),
                         JsonFactory.newFieldSelector(KNOWN_FIELDS, TestConstants.JSON_PARSE_OPTIONS),
+                        TestConstants.Search.KNOWN_NAMESPACES_SET,
                         DittoHeaders.empty());
 
         final String json = command.toJsonString(JsonSchemaVersion.V_1, FieldType.regularOrSpecial());

@@ -21,9 +21,7 @@ import java.util.Collections;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidFilterException;
-import org.eclipse.ditto.signals.commands.thingsearch.query.CountThings;
-import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThings;
+import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Criteria;
 import org.eclipse.ditto.services.thingsearch.querymodel.criteria.CriteriaFactory;
 import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Predicate;
@@ -33,6 +31,9 @@ import org.eclipse.ditto.services.thingsearch.querymodel.expression.ThingsFieldE
 import org.eclipse.ditto.services.thingsearch.querymodel.query.Query;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.QueryBuilder;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.QueryBuilderFactory;
+import org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidFilterException;
+import org.eclipse.ditto.signals.commands.thingsearch.query.CountThings;
+import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThings;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -57,9 +58,11 @@ public final class QueryActorTest {
     private static final String KNOWN_FILTER = "eq(" + KNOWN_PROPERTY + ",4711)";
     private static final String KNOWN_INVALID_FILTER = "bumlux(" + KNOWN_PROPERTY + ",4711)";
     private static final String KNOWN_OPTION = "limit(10,10)";
+    private static final String KNOWN_NAMESPACES = "com.bosch.test";
     private static final DittoHeaders KNOWN_DITTO_HEADERS = DittoHeaders.newBuilder()
             .correlationId("someCorrelationId")
             .authorizationContext(AuthorizationContext.newInstance(AuthorizationSubject.newInstance("authSubject")))
+            .schemaVersion(JsonSchemaVersion.V_1)
             .build();
 
     private ActorSystem actorSystem;
@@ -111,7 +114,8 @@ public final class QueryActorTest {
             {
                 final ActorRef underTest = createQueryActor();
 
-                underTest.tell(CountThings.of(KNOWN_FILTER, KNOWN_DITTO_HEADERS), getRef());
+                underTest.tell(CountThings.of(KNOWN_FILTER, Collections.singleton(KNOWN_NAMESPACES),
+                        KNOWN_DITTO_HEADERS), getRef());
                 final Query query = expectMsgClass(Query.class);
 
                 assertThat(query.getCriteria()).isEqualTo(criteriaMock);
@@ -140,6 +144,7 @@ public final class QueryActorTest {
                 final ActorRef underTest = createQueryActor();
 
                 underTest.tell(QueryThings.of(KNOWN_FILTER, Collections.singletonList(KNOWN_OPTION),
+                        Collections.singleton(KNOWN_NAMESPACES),
                         KNOWN_DITTO_HEADERS), getRef());
                 final Query query = expectMsgClass(Query.class);
 

@@ -17,6 +17,7 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.Random;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
 import org.eclipse.ditto.json.JsonField;
@@ -56,12 +57,13 @@ public abstract class PersistenceActorTestBase {
 
     protected static final Attributes THING_ATTRIBUTES = ThingsModelFactory.emptyAttributes();
 
+    protected static final Predicate<JsonField> IS_MODIFIED = field -> field.getDefinition()
+            .map(Thing.JsonFields.MODIFIED::equals)
+            .orElse(false);
+
     private static final Features THING_FEATURES = ThingsModelFactory.emptyFeatures();
     private static final ThingLifecycle THING_LIFECYCLE = ThingLifecycle.ACTIVE;
     private static final long THING_REVISION = 1;
-
-    protected static final Predicate<JsonField> IS_MODIFIED =
-            field -> field.getDefinition().map(definition -> definition == Thing.JsonFields.MODIFIED).orElse(false);
 
     protected ActorSystem actorSystem = null;
     protected ActorRef pubSubMediator = null;
@@ -71,6 +73,7 @@ public abstract class PersistenceActorTestBase {
 
     protected static DittoHeaders createDittoHeadersMock(final JsonSchemaVersion schemaVersion,
             final String... authSubjects) {
+
         final DittoHeadersBuilder builder = DittoHeaders.newBuilder();
         builder.authorizationSubjects(Arrays.asList(authSubjects));
         builder.schemaVersion(schemaVersion);
@@ -78,8 +81,7 @@ public abstract class PersistenceActorTestBase {
     }
 
     protected static Thing createThingV2WithRandomId() {
-        final String thingId = THING_ID + UUID.randomUUID();
-        return createThingV2WithId(thingId);
+        return createThingV2WithId(THING_ID + UUID.randomUUID());
     }
 
     protected static Thing createThingV2WithId(final String thingId) {
@@ -94,9 +96,7 @@ public abstract class PersistenceActorTestBase {
     }
 
     protected static Thing createThingV1WithRandomId() {
-        final Random rnd = new Random();
-        final String thingId = THING_ID + rnd.nextInt();
-        return createThingV1WithId(thingId);
+        return createThingV1WithId(THING_ID + new Random().nextInt());
     }
 
     protected static Thing createThingV1WithId(final String thingId) {
@@ -123,7 +123,6 @@ public abstract class PersistenceActorTestBase {
         dittoHeadersV2 = createDittoHeadersMock(JsonSchemaVersion.V_2, AUTH_SUBJECT);
     }
 
-    /** */
     @After
     public void tearDownBase() {
         TestKit.shutdownActorSystem(actorSystem);
@@ -131,17 +130,20 @@ public abstract class PersistenceActorTestBase {
     }
 
     protected ActorRef createPersistenceActorFor(final String thingId) {
-        final Props props = ThingPersistenceActor.props(thingId, pubSubMediator, thingCacheFacade);
-        return actorSystem.actorOf(props);
+        return actorSystem.actorOf(getPropsOfThingPersistenceActor(thingId));
+    }
+
+    private Props getPropsOfThingPersistenceActor(final String thingId) {
+        return ThingPersistenceActor.props(thingId, pubSubMediator, thingCacheFacade);
     }
 
     protected ActorRef createSupervisorActorFor(final String thingId) {
-        final java.time.Duration minBackoff = java.time.Duration.ofSeconds(7);
-        final java.time.Duration maxBackoff = java.time.Duration.ofSeconds(60);
+        final Duration minBackOff = Duration.ofSeconds(7);
+        final Duration maxBackOff = Duration.ofSeconds(60);
         final double randomFactor = 0.2;
 
-        final ThingsActorsCreator actorsCreator = new TestThingsActorsCreator(minBackoff, maxBackoff, randomFactor);
-        final Props props = actorsCreator.createSupervisorActor(pubSubMediator, thingCacheFacade);
+        final Props props = ThingSupervisorActor.props(minBackOff, maxBackOff, randomFactor,
+                this::getPropsOfThingPersistenceActor);
 
         return actorSystem.actorOf(props, thingId);
     }
@@ -152,40 +154,10 @@ public abstract class PersistenceActorTestBase {
 
     protected static void waitMillis(final long millis) {
         try {
-            Thread.sleep(millis);
+            TimeUnit.MILLISECONDS.sleep(millis);
         } catch (final InterruptedException e) {
             throw new IllegalStateException(e);
         }
     }
 
-    protected static final class TestThingsActorsCreator implements ThingsActorsCreator {
-
-        private final java.time.Duration minBackoff;
-        private final java.time.Duration maxBackoff;
-        private final double randomFactor;
-
-        public TestThingsActorsCreator(final Duration minBackoff, final Duration maxBackoff,
-                final double randomFactor) {
-            this.minBackoff = minBackoff;
-            this.maxBackoff = maxBackoff;
-            this.randomFactor = randomFactor;
-        }
-
-        @Override
-        public Props createRootActor() {
-            return null;
-        }
-
-        @Override
-        public Props createSupervisorActor(final ActorRef pubSubMediator, final ActorRef thingCacheFacade) {
-            return ThingSupervisorActor.props(pubSubMediator, minBackoff, maxBackoff, randomFactor, thingCacheFacade,
-                    this);
-        }
-
-        @Override
-        public Props createPersistentActor(final String thingId, final ActorRef pubSubMediator,
-                final ActorRef thingCacheFacade) {
-            return ThingPersistenceActor.props(thingId, pubSubMediator, thingCacheFacade);
-        }
-    }
 }

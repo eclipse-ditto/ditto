@@ -62,6 +62,11 @@ public final class ConfigKeys {
     public static final String HTTP_PORT = HTTP_PREFIX + "port";
 
     /**
+     * Controls whether the Namespace Parameter is mandatory or not.
+     */
+    public static final String HTTP_NAMESPACE_PARAMETER = HTTP_PREFIX + "namespaces-parameter.enabled";
+
+    /**
      * The supported SchemaVersions the API Gateway should support (Array of Integers).
      */
     public static final String SCHEMA_VERSIONS = HTTP_PREFIX + "schema-versions";

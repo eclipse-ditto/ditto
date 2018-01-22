@@ -37,6 +37,16 @@ public final class FieldExpressionUtil {
      */
     public static final String FIELD_NAME_OWNER = "owner";
 
+    /**
+     * namespace field to be saved in field expressions.
+     */
+    public static final String FIELD_NAMESPACE = "_namespace";
+
+    /**
+     * Namespace field name.
+     */
+    public static final String FIELD_NAME_NAMESPACE = "namespace";
+
     private static final String REGEX_FIELD_START = "^";
     private static final String REGEX_FIELD_END = "(/|\\z)";
     private static final String FIELD_NAME_ATTRIBUTES_PREFIX = "attributes/";

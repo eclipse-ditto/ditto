@@ -26,13 +26,14 @@
     <name>Eclipse Ditto :: Services</name>
 
     <modules>
-        <module>models</module>
-        <module>utils</module>
         <module>amqp-bridge</module>
+        <module>base</module>
+        <module>gateway</module>
+        <module>models</module>
         <module>policies</module>
         <module>things</module>
         <module>thingsearch</module>
-        <module>gateway</module>
+        <module>utils</module>
     </modules>
 
     <properties>

@@ -89,6 +89,10 @@
             line-height: 30px;
             padding-left: 1em;
         }
+        
+        .grafana {
+            padding-top: 20px;
+        }
     </style>
 </head>
 <body>
@@ -111,6 +115,9 @@
             order to learn more about the project.
         </p>
     </div>
+    <h2 style="clear: both">Health</h2>
+    <div id="health-content">
+    </div>
     <h2>Statistics</h2>
     <div>
         <div class="stats">
@@ -120,9 +127,9 @@
         <div class="stats">
             <span id="hot-things-count" class="stats-count"></span><span class="stats-count-text"> currently "hot" <i>Things</i> (accessed within the last 2 hours) in the Ditto sandbox</span>
         </div>
-    </div>
-    <h2 style="clear: both">Health</h2>
-    <div id="health-content">
+        <div class="grafana">
+            <iframe src="/grafana/dashboard-solo/db/ditto-gateway-traces?orgId=1&panelId=15&var-Host=All&theme=light" width="450" height="400" frameborder="0"></iframe>
+        </div>
     </div>
 </article>
 

@@ -21,6 +21,8 @@ http://localhost:8080/api/<1|2>/search/things
 If the `filter` parameter is omitted, the result contains all `Things` the authenticated user is 
 [allowed to read](basic-auth.html).
 
+Optionally a `namespaces` parameter can be added to search only in the given namespaces.  
+
 
 ## Query parameters
 
@@ -29,7 +31,13 @@ In order to change the sorting and limit the result (also to do paging), the `op
 
 Complex example:
 ```
-GET .../search/things?filter=eq(attributes/location,"living-room")&option=sort(+thingId),limit(0,5)
+GET .../search/things?filter=eq(attributes/location,"living-room")&option=sort(+thingId),limit(0,5)&namespaces=org
+.eclipse.ditto,foo.bar
+```
+
+Another Complex example with the `namespaces` parameter:
+```
+GET .../search/things?filter=eq(attributes/location,"living-room")&namespaces=org.eclipse.ditto,foo.bar
 ```
 
 The HTTP search API can also profit from the [partial request](httpapi-concepts.html#partial-requests) concept of the API:<br/>
@@ -41,6 +49,12 @@ Example which only returns `thingId` and the `manufacturer` attribute of the fou
 GET .../search/things?filter=eq(attributes/location,"living-room")&fields=thingId,attributes/manufacturer
 ```
 
+With the `namespaces` parameter, the result can be limited to the given namespaces.
+
+Example which only returns Things with the given namespaces prefix:
+```
+GET .../search/things?namespaces=org.eclipse.ditto,foo.bar
+```
 
 ## Search count
 Search counts can be made against this endpoint:

@@ -24,7 +24,7 @@ Examples:
 
 ### Thing ID
 
-Unique identifier of a Thin. For choosing custom Thing IDs when creating a Thing, following rules apply:
+Unique identifier of a Thing. For choosing custom Thing IDs when creating a Thing, following rules apply:
 
 #### Allowed Characters
 
