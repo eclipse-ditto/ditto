@@ -11,9 +11,12 @@
  */
 package org.eclipse.ditto.signals.commands.things.exceptions;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+
 import java.net.URI;
 import java.text.MessageFormat;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -44,9 +47,29 @@ public final class ThingNotAccessibleException extends DittoRuntimeException imp
 
     private static final long serialVersionUID = -623037881914361095L;
 
-    private ThingNotAccessibleException(final DittoHeaders dittoHeaders, final String message,
-            final String description, final Throwable cause, final URI href) {
+    private ThingNotAccessibleException(final DittoHeaders dittoHeaders,
+            @Nullable final String message,
+            @Nullable final String description,
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
+
         super(ERROR_CODE, HttpStatusCode.NOT_FOUND, dittoHeaders, message, description, cause, href);
+    }
+
+    /**
+     * Constructs a new {@code ThingNotAccessibleException} object.
+     *
+     * @param thingId the ID of the Thing which is not accessible.
+     * @param dittoHeaders the headers with which this Exception should be reported back to the user.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public ThingNotAccessibleException(final CharSequence thingId, final DittoHeaders dittoHeaders) {
+        this(dittoHeaders, getMessage(thingId), DEFAULT_DESCRIPTION, null, null);
+    }
+
+    private static String getMessage(final CharSequence thingId) {
+        checkNotNull("ID of the inaccessible Thing");
+        return MessageFormat.format(MESSAGE_TEMPLATE, thingId);
     }
 
     /**
@@ -54,6 +77,7 @@ public final class ThingNotAccessibleException extends DittoRuntimeException imp
      *
      * @param thingId the ID of the thing.
      * @return the builder.
+     * @throws NullPointerException if {@code thingId} is {@code null}.
      */
     public static Builder newBuilder(final String thingId) {
         return new Builder(thingId);
@@ -83,8 +107,7 @@ public final class ThingNotAccessibleException extends DittoRuntimeException imp
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if the {@code jsonObject} does not have the {@link
      * JsonFields#MESSAGE} field.
      */
-    public static ThingNotAccessibleException fromJson(final JsonObject jsonObject,
-            final DittoHeaders dittoHeaders) {
+    public static ThingNotAccessibleException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return fromMessage(readMessage(jsonObject), dittoHeaders);
     }
 
@@ -98,16 +121,21 @@ public final class ThingNotAccessibleException extends DittoRuntimeException imp
             description(DEFAULT_DESCRIPTION);
         }
 
-        private Builder(final String thingId) {
+        private Builder(final CharSequence thingId) {
             this();
-            message(MessageFormat.format(MESSAGE_TEMPLATE, thingId));
+            message(getMessage(thingId));
         }
 
         @Override
-        protected ThingNotAccessibleException doBuild(final DittoHeaders dittoHeaders, final String message,
-                final String description, final Throwable cause, final URI href) {
+        protected ThingNotAccessibleException doBuild(final DittoHeaders dittoHeaders,
+                @Nullable final String message,
+                @Nullable final String description,
+                @Nullable final Throwable cause,
+                @Nullable final URI href) {
+
             return new ThingNotAccessibleException(dittoHeaders, message, description, cause, href);
         }
+
     }
 
 }
