@@ -208,6 +208,45 @@ The event emitted by Ditto after a Feature of a Thing was created.
 [Create a single Feature](protocol-examples-createfeature.html)
 
 
+## Create Definition of a Feature
+
+Create the Definition of a Feature (identified by the Feature ID in the path) of the Thing (identified by the
+`<namespace>` and the `<thingId>` in the topic).
+
+### Command
+
+| Field     | Value                   |
+|-----------|-------------------------|
+| **topic** | `<namespace>/<thingId>/things/<channel>/commands/modify`     |
+| **path**  | `/features/<featureId>/definition`     |
+| **value** | The Definition of the Feature as JSON array, see property `definition` of Things JSON schema at [Ditto protocol payload (JSON).](protocol-specification.html#dittoProtocolPayload) |
+
+### Response
+
+| Field      |        | Value                    |
+|------------|--------|--------------------------|
+| **topic**  |        | `<namespace>/<thingId>/things/<channel>/commands/modify` |
+| **path**   |        | `/features/<featureId>/definition`                      |
+| **value**  |        | The created Definition of the Feature as JSON array, see property `definition` of Things JSON schema at [Ditto protocol payload (JSON).](protocol-specification.html#dittoProtocolPayload) |
+| **status** | *code* |                          | 
+|            | `201`  | Success - the Definition was created successfully.       |
+|            | `403`  | Not Modifiable - the Definition could not be modified.         |
+|            | `404`  | Not Found - the Definition was not found or requester had insufficient permissions.   |
+|            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
+
+### Event
+
+The event emitted by Ditto after the Feature Definition of a Thing was created.
+
+| Field     | Value                   |
+|-----------|-------------------------|
+| **topic** | `<namespace>/<thingId>/things/<channel>/events/created`     |
+| **path**  | `/features/<featureId>/definition`     |
+| **value** | The created Definition of the Feature as JSON array, see property `definition` of the Things JSON schema at [Ditto protocol payload (JSON).](protocol-specification.html#dittoProtocolPayload) |
+
+**Example:** [Create Feature Definition.](protocol-examples-createdefinition.html)
+
+
 ## Create all Properties of a Feature
 
 Create the Properties of a Feature (identified by the Feature ID in the path) of the Thing (identified by the
