@@ -51,10 +51,23 @@ public abstract class AbstractMongoSnapshotAdapter<T extends Jsonifiable.WithFie
         this.logger = logger;
     }
 
+    /**
+     * This method is called exactly once when a snapshot is created. It does nothing by default. Subclasses
+     * may override it to inject code.
+     *
+     * @param snapshotEntity The entity for which the snapshot is created.
+     * @param json The JSON object to store as snapshot.
+     */
+    protected void onSnapshotStoreConversion(final T snapshotEntity, final JsonObject json) {
+        // does nothing by default
+    }
+
     @Override
     public Object toSnapshotStore(final T snapshotEntity) {
         checkNotNull(snapshotEntity, "snapshot entity");
         final JsonObject json = convertToJson(snapshotEntity);
+
+        onSnapshotStoreConversion(snapshotEntity, json);
 
         final DittoBsonJson dittoBsonJson = DittoBsonJson.getInstance();
         return dittoBsonJson.parse(json);
@@ -112,7 +125,8 @@ public abstract class AbstractMongoSnapshotAdapter<T extends Jsonifiable.WithFie
      * @param dbObject the DBObject to be converted.
      * @return a JsonObject whose origin is {@code dbObject}.
      * @throws NullPointerException if {@code dbObject} is {@code null}.
-     * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code dbObject} cannot be serialized to a JsonObject.
+     * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code dbObject} cannot be serialized to a
+     * JsonObject.
      */
     private static JsonObject convertToJson(@Nonnull final DBObject dbObject) {
         checkNotNull(dbObject, "DBObject to be converted");

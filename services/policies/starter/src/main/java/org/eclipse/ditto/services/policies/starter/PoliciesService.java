@@ -11,9 +11,7 @@
  */
 package org.eclipse.ditto.services.policies.starter;
 
-import java.util.function.Consumer;
-
-import org.eclipse.ditto.model.policies.Policy;
+import org.eclipse.ditto.services.policies.persistence.serializer.PolicyMongoSnapshotAdapter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,9 +27,6 @@ import akka.stream.ActorMaterializer;
 public final class PoliciesService extends AbstractPoliciesService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PoliciesService.class);
-
-    private static final Consumer<Policy> SNAPSHOT_SUCCESS_FUNCTION =
-            policy -> LOGGER.debug("Successfully saved snapshot for Policy '{}'", policy.getId());
 
     private PoliciesService() {
         super(LOGGER);
@@ -50,7 +45,7 @@ public final class PoliciesService extends AbstractPoliciesService {
     @Override
     protected Props getMainRootActorProps(final Config config, final ActorRef pubSubMediator,
             final ActorMaterializer materializer) {
-        return PoliciesRootActor.props(config, SNAPSHOT_SUCCESS_FUNCTION, pubSubMediator, materializer);
+        return PoliciesRootActor.props(config, new PolicyMongoSnapshotAdapter(), pubSubMediator, materializer);
     }
 
 }

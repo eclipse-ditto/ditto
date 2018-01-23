@@ -85,7 +85,6 @@ public abstract class ThingSnapshotter<T extends Command<?>, R extends CommandRe
     protected final ThingPersistenceActorInterface persistenceActor;
 
     private final SnapshotAdapter<ThingWithSnapshotTag> snapshotAdapter;
-    private final Consumer<Thing> snapshotSuccessFunction;
     private final boolean snapshotDeleteOld;
     private final boolean eventsDeleteOld;
     @Nullable private final DiagnosticLoggingAdapter log;
@@ -105,7 +104,6 @@ public abstract class ThingSnapshotter<T extends Command<?>, R extends CommandRe
      *
      * @param persistenceActor The persistence actor to whom this snapshotter belongs. Must not be null.
      * @param snapshotAdapter Serializer and deserializer of snapshots. Must not be null.
-     * @param snapshotSuccessFunction a function called when a snapshot is saved successfully.
      * @param snapshotDeleteOld Whether old and unprotected snapshots should be deleted.
      * @param eventsDeleteOld Whether events before a successfully saved snapshot should be deleted.
      * @param log The logger. If null, nothing is logged.
@@ -116,7 +114,6 @@ public abstract class ThingSnapshotter<T extends Command<?>, R extends CommandRe
      */
     protected ThingSnapshotter(final ThingPersistenceActorInterface persistenceActor,
             final SnapshotAdapter<ThingWithSnapshotTag> snapshotAdapter,
-            final Consumer<Thing> snapshotSuccessFunction,
             final boolean snapshotDeleteOld,
             final boolean eventsDeleteOld,
             @Nullable final DiagnosticLoggingAdapter log,
@@ -124,7 +121,6 @@ public abstract class ThingSnapshotter<T extends Command<?>, R extends CommandRe
             @Nullable final FiniteDuration saveSnapshotTimeout,
             @Nullable final FiniteDuration loadSnapshotTimeout,
             @Nullable final ActorRef snapshotPlugin) {
-        this.snapshotSuccessFunction = snapshotSuccessFunction;
 
         this.saveSnapshotTimeout = saveSnapshotTimeout;
         this.loadSnapshotTimeout = loadSnapshotTimeout;
@@ -151,7 +147,6 @@ public abstract class ThingSnapshotter<T extends Command<?>, R extends CommandRe
      *
      * @param persistenceActor The persistence actor to whom this snapshotter belongs. Must not be null.
      * @param snapshotAdapter Serializer and deserializer of snapshots. Must not be null.
-     * @param snapshotSuccessFunction a function called when a snapshot is saved successfully.
      * @param snapshotDeleteOld Whether old and unprotected snapshots should be deleted.
      * @param eventsDeleteOld Whether events before a successfully saved snapshot should be deleted.
      * @param log The logger. If null, nothing is logged.
@@ -159,7 +154,6 @@ public abstract class ThingSnapshotter<T extends Command<?>, R extends CommandRe
      */
     protected ThingSnapshotter(final ThingPersistenceActor persistenceActor,
             final SnapshotAdapter<ThingWithSnapshotTag> snapshotAdapter,
-            final Consumer<Thing> snapshotSuccessFunction,
             final boolean snapshotDeleteOld,
             final boolean eventsDeleteOld,
             @Nullable final DiagnosticLoggingAdapter log,
@@ -167,7 +161,6 @@ public abstract class ThingSnapshotter<T extends Command<?>, R extends CommandRe
 
         this(persistenceActor,
                 snapshotAdapter,
-                snapshotSuccessFunction,
                 snapshotDeleteOld,
                 eventsDeleteOld,
                 log,
@@ -369,7 +362,6 @@ public abstract class ThingSnapshotter<T extends Command<?>, R extends CommandRe
     // Bookkeeping after snapshotting succeeded. Timeout message is cancelled and pending TakeSnapshot commands are
     // unstashed. Maintenance snapshot schedule is reset.
     private void saveSnapshotSucceeded() {
-        snapshotSuccessFunction.accept(persistenceActor.getThing());
         snapshotterState = new SnapshotterState(false, snapshotterState.getSequenceNr(),
                 snapshotterState.getSnapshotTag(), null, null);
         lastSaneSnapshotterState = snapshotterState;

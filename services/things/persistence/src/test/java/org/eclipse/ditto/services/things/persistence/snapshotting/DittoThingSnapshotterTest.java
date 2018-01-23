@@ -47,7 +47,7 @@ public final class DittoThingSnapshotterTest {
     /** */
     @Before
     public void setUp() {
-        underTest = new DittoThingSnapshotter(persistenceActorMock, taggedSnapshotAdapterMock, thing -> {},
+        underTest = new DittoThingSnapshotter(persistenceActorMock, taggedSnapshotAdapterMock,
                 true, true, null, null, null, null, null);
         when(persistenceActorMock.getThing()).thenReturn(THING_V1);
     }

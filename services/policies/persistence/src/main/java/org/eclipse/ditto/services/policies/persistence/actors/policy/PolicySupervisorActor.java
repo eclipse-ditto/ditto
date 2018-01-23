@@ -20,7 +20,6 @@ import java.util.Collection;
 import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -74,15 +73,14 @@ public class PolicySupervisorActor extends AbstractActor {
             final double randomFactor,
             final ActorRef policyCacheFacade,
             final SupervisorStrategy supervisorStrategy,
-            final SnapshotAdapter<Policy> snapshotAdapter,
-            final Consumer<Policy> snapshotSuccessFunction) {
+            final SnapshotAdapter<Policy> snapshotAdapter) {
         try {
             this.policyId = URLDecoder.decode(getSelf().path().name(), StandardCharsets.UTF_8.name());
         } catch (final UnsupportedEncodingException e) {
             throw new IllegalStateException("Unsupported encoding", e);
         }
-        this.persistenceActorProps = PolicyPersistenceActor.props(policyId, snapshotAdapter, snapshotSuccessFunction,
-                pubSubMediator, policyCacheFacade);
+        this.persistenceActorProps =
+                PolicyPersistenceActor.props(policyId, snapshotAdapter, pubSubMediator, policyCacheFacade);
         this.minBackoff = minBackoff;
         this.maxBackoff = maxBackoff;
         this.randomFactor = randomFactor;
@@ -101,8 +99,7 @@ public class PolicySupervisorActor extends AbstractActor {
      * @param maxBackoff the exponential back-off is capped to this duration.
      * @param randomFactor after calculation of the exponential back-off an additional random delay based on this factor
      * is added, e.g. `0.2` adds up to `20%` delay. In order to skip this additional delay pass in `0`.
-     * @param policyCacheFacade the {@link CacheFacadeActor}
-     * for accessing the policy cache in cluster.
+     * @param policyCacheFacade the {@link CacheFacadeActor} for accessing the policy cache in cluster.
      * @param snapshotAdapter the adapter to serialize snapshots.
      * @return the {@link Props} to create this actor.
      */
@@ -111,8 +108,7 @@ public class PolicySupervisorActor extends AbstractActor {
             final Duration maxBackoff,
             final double randomFactor,
             final ActorRef policyCacheFacade,
-            final SnapshotAdapter<Policy> snapshotAdapter,
-            final Consumer<Policy> snapshotSuccessFunction) {
+            final SnapshotAdapter<Policy> snapshotAdapter) {
         return Props.create(PolicySupervisorActor.class, new Creator<PolicySupervisorActor>() {
             private static final long serialVersionUID = 1L;
 
@@ -125,7 +121,7 @@ public class PolicySupervisorActor extends AbstractActor {
                                 .match(ActorKilledException.class, e -> SupervisorStrategy.stop())
                                 .matchAny(e -> SupervisorStrategy.escalate())
                                 .build()),
-                        snapshotAdapter, snapshotSuccessFunction);
+                        snapshotAdapter);
             }
         });
     }

@@ -18,7 +18,6 @@ import java.util.Collection;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -166,7 +165,6 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
     private final String policyId;
     private final SnapshotAdapter<Policy> snapshotAdapter;
-    private final Consumer<Policy> snapshotSuccessFunction;
     private final ActorRef pubSubMediator;
     private final ActorRef policyCacheFacade;
     private final java.time.Duration activityCheckInterval;
@@ -185,11 +183,9 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
     private PolicyPersistenceActor(final String policyId,
             final SnapshotAdapter<Policy> snapshotAdapter,
-            final Consumer<Policy> snapshotSuccessFunction,
             final ActorRef pubSubMediator,
             final ActorRef policyCacheFacade) {
         this.policyId = policyId;
-        this.snapshotSuccessFunction = snapshotSuccessFunction;
         this.pubSubMediator = pubSubMediator;
         this.policyCacheFacade = policyCacheFacade;
         this.snapshotAdapter = snapshotAdapter;
@@ -357,15 +353,12 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
      *
      * @param policyId the ID of the Policy this Actor manages.
      * @param snapshotAdapter the adapter to serialize Policy snapshots.
-     * @param snapshotSuccessFunction a function called when a snapshot is saved successfully.
      * @param pubSubMediator the PubSub mediator actor.
-     * @param policyCacheFacade the {@link CacheFacadeActor} for accessing
-     * the policy cache in cluster.
+     * @param policyCacheFacade the {@link CacheFacadeActor} for accessing the policy cache in cluster.
      * @return the Akka configuration Props object
      */
     public static Props props(final String policyId,
             final SnapshotAdapter<Policy> snapshotAdapter,
-            final Consumer<Policy> snapshotSuccessFunction,
             final ActorRef pubSubMediator,
             final ActorRef policyCacheFacade) {
         return Props.create(PolicyPersistenceActor.class, new Creator<PolicyPersistenceActor>() {
@@ -373,8 +366,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
             @Override
             public PolicyPersistenceActor create() throws Exception {
-                return new PolicyPersistenceActor(policyId, snapshotAdapter, snapshotSuccessFunction, pubSubMediator,
-                        policyCacheFacade);
+                return new PolicyPersistenceActor(policyId, snapshotAdapter, pubSubMediator, policyCacheFacade);
             }
         });
     }
@@ -844,8 +836,9 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             final PoliciesValidator validator = PoliciesValidator.newInstance(newPolicyWithLifecycle);
 
             if (validator.isValid()) {
-                final PolicyCreated policyCreated = PolicyCreated.of(newPolicyWithLifecycle, getNextRevision(), getEventTimestamp(),
-                        dittoHeaders);
+                final PolicyCreated policyCreated =
+                        PolicyCreated.of(newPolicyWithLifecycle, getNextRevision(), getEventTimestamp(),
+                                dittoHeaders);
 
                 processEvent(policyCreated, event -> {
                     notifySender(CreatePolicyResponse.of(policyId, PolicyPersistenceActor.this.policy, dittoHeaders));
@@ -922,8 +915,9 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             final PoliciesValidator validator = PoliciesValidator.newInstance(modifiedPolicy);
 
             if (validator.isValid()) {
-                final PolicyModified policyModified = PolicyModified.of(modifiedPolicy, getNextRevision(), getEventTimestamp(),
-                        dittoHeaders);
+                final PolicyModified policyModified =
+                        PolicyModified.of(modifiedPolicy, getNextRevision(), getEventTimestamp(),
+                                dittoHeaders);
                 processEvent(policyModified,
                         event -> notifySender(ModifyPolicyResponse.modified(policyId, dittoHeaders)));
             } else {
@@ -1666,8 +1660,6 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
                 resetSnapshotInProgress();
             }
-
-            snapshotSuccessFunction.accept(policy);
         }
 
         private void deleteEventsOlderThan(final long newestSequenceNumber) {

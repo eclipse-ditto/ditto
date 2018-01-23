@@ -18,14 +18,12 @@ import java.net.ConnectException;
 import java.time.Duration;
 import java.util.NoSuchElementException;
 import java.util.concurrent.CompletionStage;
-import java.util.function.Consumer;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.services.models.policies.PoliciesMessagingConstants;
 import org.eclipse.ditto.services.policies.persistence.actors.policies.PoliciesPersistenceStreamingActorCreator;
 import org.eclipse.ditto.services.policies.persistence.actors.policy.PolicySupervisorActor;
-import org.eclipse.ditto.services.policies.persistence.serializer.PolicyMongoSnapshotAdapter;
 import org.eclipse.ditto.services.policies.util.ConfigKeys;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
@@ -36,6 +34,7 @@ import org.eclipse.ditto.services.utils.distributedcache.actors.CacheRole;
 import org.eclipse.ditto.services.utils.health.HealthCheckingActor;
 import org.eclipse.ditto.services.utils.health.HealthCheckingActorOptions;
 import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
+import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientActor;
 
 import com.typesafe.config.Config;
@@ -123,7 +122,7 @@ public final class PoliciesRootActor extends AbstractActor {
     private final ActorRef policiesShardRegion;
 
     private PoliciesRootActor(final Config config,
-            final Consumer<Policy> snapshotSuccessFunction,
+            final SnapshotAdapter<Policy> snapshotAdapter,
             final ActorRef pubSubMediator,
             final ActorMaterializer materializer) {
         final int numberOfShards = config.getInt(ConfigKeys.Cluster.NUMBER_OF_SHARDS);
@@ -137,9 +136,8 @@ public final class PoliciesRootActor extends AbstractActor {
         final Duration minBackoff = config.getDuration(ConfigKeys.Policy.SUPERVISOR_EXPONENTIAL_BACKOFF_MIN);
         final Duration maxBackoff = config.getDuration(ConfigKeys.Policy.SUPERVISOR_EXPONENTIAL_BACKOFF_MAX);
         final double randomFactor = config.getDouble(ConfigKeys.Policy.SUPERVISOR_EXPONENTIAL_BACKOFF_RANDOM_FACTOR);
-        final PolicyMongoSnapshotAdapter snapshotAdapter = new PolicyMongoSnapshotAdapter();
         final Props policySupervisorProps = PolicySupervisorActor.props(pubSubMediator, minBackoff, maxBackoff,
-                randomFactor, policyCacheFacade, snapshotAdapter, snapshotSuccessFunction);
+                randomFactor, policyCacheFacade, snapshotAdapter);
 
         final int tagsStreamingCacheSize = config.getInt(ConfigKeys.POLICIES_TAGS_STREAMING_CACHE_SIZE);
         final ActorRef persistenceStreamingActor = startChildActor(PoliciesPersistenceStreamingActorCreator.ACTOR_NAME,
@@ -192,13 +190,13 @@ public final class PoliciesRootActor extends AbstractActor {
      * Creates Akka configuration object Props for this PoliciesRootActor.
      *
      * @param config the configuration settings of the Things Service.
-     * @param snapshotSuccessFunction a function called when a snapshot was saved.
+     * @param snapshotAdapter serializer and deserializer of the Policies snapshot store.
      * @param pubSubMediator the PubSub mediator Actor.
      * @param materializer the materializer for the akka actor system.
      * @return the Akka configuration Props object.
      */
     public static Props props(final Config config,
-            final Consumer<Policy> snapshotSuccessFunction,
+            final SnapshotAdapter<Policy> snapshotAdapter,
             final ActorRef pubSubMediator,
             final ActorMaterializer materializer) {
         return Props.create(PoliciesRootActor.class, new Creator<PoliciesRootActor>() {
@@ -206,7 +204,7 @@ public final class PoliciesRootActor extends AbstractActor {
 
             @Override
             public PoliciesRootActor create() throws Exception {
-                return new PoliciesRootActor(config, snapshotSuccessFunction, pubSubMediator, materializer);
+                return new PoliciesRootActor(config, snapshotAdapter, pubSubMediator, materializer);
             }
         });
     }
