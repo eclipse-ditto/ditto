@@ -207,6 +207,44 @@ The event emitted by Ditto after a Feature of a Thing was modified.
 [Modify a single Feature](protocol-examples-modifyfeature.html)
 
 
+## Modify Definition of a Feature
+
+Create or modify the Definition of a Feature (identified by the Feature ID in the `path`) of the Thing (identified by the `<namespace>` and the `<thingId>` in the `topic`).
+
+### Command
+
+| Field     | Value                   |
+|-----------|-------------------------|
+| **topic** | `<namespace>/<thingId>/things/<channel>/commands/modify`     |
+| **path**  | `/features/<featureId>/definition`     |
+| **value** | The Definition of the Feature as JSON array, see property `definition` of Things JSON schema.<br/>see [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload) |
+
+### Response
+
+| Field      |        | Value                    |
+|------------|--------|--------------------------|
+| **topic**  |        | `<namespace>/<thingId>/things/<channel>/commands/modify` |
+| **path**   |        | `/features/<featureId>/definition`                      |
+| **status** | _code_ |                          | 
+|            | `204`  | Success - the Definition was modified successfully.       |
+|            | `403`  | Not Modifiable - The Definition could not be modified as the requester had insufficient permissions ('WRITE' is required).  |
+|            | `404`  | Not Found - The Definition was not found or requester had insufficient permissions.  |
+|            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
+
+### Event
+
+The event emitted by Ditto after the Feature Definition of a Thing was modified.
+
+| Field     | Value                   |
+|-----------|-------------------------|
+| **topic** | `<namespace>/<thingId>/things/<channel>/events/modified`     |
+| **path**  | `/features/<featureId>/definition`     |
+| **value** | The modified Definition of the Feature as JSON array, see property `properties` of the Things JSON schema.<br/>see [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload) |
+
+**Example:** 
+[Modify Feature Definition](protocol-examples-modifydefinition.html)
+
+
 ## Modify all Properties of a Feature
 
 Create or modify the Properties of a Feature (identified by the Feature ID in the `path`) of the Thing (identified by the `<namespace>` and the `<thingId>` in the `topic`).
