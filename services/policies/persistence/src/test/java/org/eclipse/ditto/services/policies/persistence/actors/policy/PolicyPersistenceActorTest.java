@@ -113,7 +113,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
         final CreatePolicy createPolicyCommand = CreatePolicy.of(policy, dittoHeadersMockV2);
 
         final PolicyMongoSnapshotAdapter snapshotAdapter = new PolicyMongoSnapshotAdapter();
-        final Props props = PolicyPersistenceActor.props(policyIdOfActor, snapshotAdapter, p -> {}, pubSubMediator,
+        final Props props = PolicyPersistenceActor.props(policyIdOfActor, snapshotAdapter, pubSubMediator,
                 policyCacheFacade);
         final TestActorRef<PolicyPersistenceActor> underTest = TestActorRef.create(actorSystem, props);
         final PolicyPersistenceActor policyPersistenceActor = underTest.underlyingActor();
@@ -895,8 +895,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
 
     private ActorRef createPersistenceActorFor(final String policyId) {
         final PolicyMongoSnapshotAdapter snapshotAdapter = new PolicyMongoSnapshotAdapter();
-        final Props props = PolicyPersistenceActor.props(policyId, snapshotAdapter, p -> {}, pubSubMediator,
-                policyCacheFacade);
+        final Props props = PolicyPersistenceActor.props(policyId, snapshotAdapter, pubSubMediator, policyCacheFacade);
         return actorSystem.actorOf(props);
     }
 }
