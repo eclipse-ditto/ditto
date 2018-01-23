@@ -100,13 +100,13 @@ public final class ImmutableThingTest {
                         TestConstants.Thing.REVISION,
                         TestConstants.Thing.MODIFIED);
 
-        assertThat(thing) //
-                .hasId(TestConstants.Thing.THING_ID) //
-                .hasNoAcl() //
-                .hasAttributes(TestConstants.Thing.ATTRIBUTES) //
-                .hasFeatures(TestConstants.Feature.FEATURES) //
-                .hasLifecycle(TestConstants.Thing.LIFECYCLE) //
-                .hasRevision(TestConstants.Thing.REVISION) //
+        assertThat(thing)
+                .hasId(TestConstants.Thing.THING_ID)
+                .hasNoAcl()
+                .hasAttributes(TestConstants.Thing.ATTRIBUTES)
+                .hasFeatures(TestConstants.Feature.FEATURES)
+                .hasLifecycle(TestConstants.Thing.LIFECYCLE)
+                .hasRevision(TestConstants.Thing.REVISION)
                 .hasModified(TestConstants.Thing.MODIFIED);
     }
 
@@ -135,13 +135,13 @@ public final class ImmutableThingTest {
                 TestConstants.Thing.THING_ID, TestConstants.Thing.ACL, null, TestConstants.Feature.FEATURES,
                 TestConstants.Thing.LIFECYCLE, TestConstants.Thing.REVISION, TestConstants.Thing.MODIFIED);
 
-        assertThat(thing) //
-                .hasId(TestConstants.Thing.THING_ID) //
-                .hasAcl(TestConstants.Thing.ACL) //
-                .hasNoAttributes() //
-                .hasFeatures(TestConstants.Feature.FEATURES) //
-                .hasLifecycle(TestConstants.Thing.LIFECYCLE) //
-                .hasRevision(TestConstants.Thing.REVISION) //
+        assertThat(thing)
+                .hasId(TestConstants.Thing.THING_ID)
+                .hasAcl(TestConstants.Thing.ACL)
+                .hasNoAttributes()
+                .hasFeatures(TestConstants.Feature.FEATURES)
+                .hasLifecycle(TestConstants.Thing.LIFECYCLE)
+                .hasRevision(TestConstants.Thing.REVISION)
                 .hasModified(TestConstants.Thing.MODIFIED);
     }
 
@@ -152,13 +152,13 @@ public final class ImmutableThingTest {
                 TestConstants.Thing.THING_ID, TestConstants.Thing.ACL, TestConstants.Thing.ATTRIBUTES, null,
                 TestConstants.Thing.LIFECYCLE, TestConstants.Thing.REVISION, TestConstants.Thing.MODIFIED);
 
-        assertThat(thing) //
-                .hasId(TestConstants.Thing.THING_ID) //
-                .hasAcl(TestConstants.Thing.ACL) //
-                .hasAttributes(TestConstants.Thing.ATTRIBUTES) //
-                .hasNoFeatures() //
-                .hasLifecycle(TestConstants.Thing.LIFECYCLE) //
-                .hasRevision(TestConstants.Thing.REVISION) //
+        assertThat(thing)
+                .hasId(TestConstants.Thing.THING_ID)
+                .hasAcl(TestConstants.Thing.ACL)
+                .hasAttributes(TestConstants.Thing.ATTRIBUTES)
+                .hasNoFeatures()
+                .hasLifecycle(TestConstants.Thing.LIFECYCLE)
+                .hasRevision(TestConstants.Thing.REVISION)
                 .hasModified(TestConstants.Thing.MODIFIED);
     }
 
@@ -169,13 +169,13 @@ public final class ImmutableThingTest {
                 TestConstants.Thing.THING_ID, TestConstants.Thing.ACL, TestConstants.Thing.ATTRIBUTES,
                 TestConstants.Feature.FEATURES, null, TestConstants.Thing.REVISION, TestConstants.Thing.MODIFIED);
 
-        assertThat(thing) //
-                .hasId(TestConstants.Thing.THING_ID) //
-                .hasAcl(TestConstants.Thing.ACL) //
-                .hasAttributes(TestConstants.Thing.ATTRIBUTES) //
-                .hasFeatures(TestConstants.Feature.FEATURES) //
-                .hasNoLifecycle() //
-                .hasRevision(TestConstants.Thing.REVISION) //
+        assertThat(thing)
+                .hasId(TestConstants.Thing.THING_ID)
+                .hasAcl(TestConstants.Thing.ACL)
+                .hasAttributes(TestConstants.Thing.ATTRIBUTES)
+                .hasFeatures(TestConstants.Feature.FEATURES)
+                .hasNoLifecycle()
+                .hasRevision(TestConstants.Thing.REVISION)
                 .hasModified(TestConstants.Thing.MODIFIED);
     }
 
@@ -186,13 +186,13 @@ public final class ImmutableThingTest {
                 TestConstants.Thing.THING_ID, TestConstants.Thing.ACL, TestConstants.Thing.ATTRIBUTES,
                 TestConstants.Feature.FEATURES, TestConstants.Thing.LIFECYCLE, null, TestConstants.Thing.MODIFIED);
 
-        assertThat(thing) //
-                .hasId(TestConstants.Thing.THING_ID) //
-                .hasAcl(TestConstants.Thing.ACL) //
-                .hasAttributes(TestConstants.Thing.ATTRIBUTES) //
-                .hasFeatures(TestConstants.Feature.FEATURES) //
-                .hasLifecycle(TestConstants.Thing.LIFECYCLE) //
-                .hasNoRevision() //
+        assertThat(thing)
+                .hasId(TestConstants.Thing.THING_ID)
+                .hasAcl(TestConstants.Thing.ACL)
+                .hasAttributes(TestConstants.Thing.ATTRIBUTES)
+                .hasFeatures(TestConstants.Feature.FEATURES)
+                .hasLifecycle(TestConstants.Thing.LIFECYCLE)
+                .hasNoRevision()
                 .hasModified(TestConstants.Thing.MODIFIED);
     }
 
@@ -203,33 +203,33 @@ public final class ImmutableThingTest {
                 TestConstants.Thing.THING_ID, TestConstants.Thing.ACL, TestConstants.Thing.ATTRIBUTES,
                 TestConstants.Feature.FEATURES, TestConstants.Thing.LIFECYCLE, TestConstants.Thing.REVISION, null);
 
-        assertThat(thing) //
-                .hasId(TestConstants.Thing.THING_ID) //
-                .hasAcl(TestConstants.Thing.ACL) //
-                .hasAttributes(TestConstants.Thing.ATTRIBUTES) //
-                .hasFeatures(TestConstants.Feature.FEATURES) //
-                .hasLifecycle(TestConstants.Thing.LIFECYCLE) //
-                .hasRevision(TestConstants.Thing.REVISION) //
+        assertThat(thing)
+                .hasId(TestConstants.Thing.THING_ID)
+                .hasAcl(TestConstants.Thing.ACL)
+                .hasAttributes(TestConstants.Thing.ATTRIBUTES)
+                .hasFeatures(TestConstants.Feature.FEATURES)
+                .hasLifecycle(TestConstants.Thing.LIFECYCLE)
+                .hasRevision(TestConstants.Thing.REVISION)
                 .hasNoModified();
     }
 
 
     @Test
     public void setAclWorksAsExpected() {
-        final AccessControlList newAcl = ThingsModelFactory.newAclBuilder(TestConstants.Thing.ACL) //
+        final AccessControlList newAcl = ThingsModelFactory.newAclBuilder(TestConstants.Thing.ACL)
                 .set(ThingsModelFactory.newAclEntry(TestConstants.Authorization.AUTH_SUBJECT_GRIMES,
-                        Permission.WRITE)) //
+                        Permission.WRITE))
                 .build();
 
         final Thing changedThing = KNOWN_THING_V1.setAccessControlList(newAcl);
 
-        assertThat(changedThing) //
-                .isNotSameAs(KNOWN_THING_V1) //
-                .hasId(TestConstants.Thing.THING_ID) //
-                .hasAcl(newAcl) //
-                .hasAttributes(TestConstants.Thing.ATTRIBUTES) //
-                .hasFeatures(TestConstants.Feature.FEATURES) //
-                .hasLifecycle(TestConstants.Thing.LIFECYCLE) //
+        assertThat(changedThing)
+                .isNotSameAs(KNOWN_THING_V1)
+                .hasId(TestConstants.Thing.THING_ID)
+                .hasAcl(newAcl)
+                .hasAttributes(TestConstants.Thing.ATTRIBUTES)
+                .hasFeatures(TestConstants.Feature.FEATURES)
+                .hasLifecycle(TestConstants.Thing.LIFECYCLE)
                 .hasRevision(TestConstants.Thing.REVISION);
     }
 
@@ -238,39 +238,39 @@ public final class ImmutableThingTest {
     public void setAclEntryWorksAsExpected() {
         final AclEntry newAclEntry =
                 ThingsModelFactory.newAclEntry(TestConstants.Authorization.AUTH_SUBJECT_GRIMES, Permission.WRITE);
-        final AccessControlList newAcl = ThingsModelFactory.newAclBuilder(TestConstants.Thing.ACL) //
-                .set(newAclEntry) //
+        final AccessControlList newAcl = ThingsModelFactory.newAclBuilder(TestConstants.Thing.ACL)
+                .set(newAclEntry)
                 .build();
 
         final Thing changedThing = KNOWN_THING_V1.setAclEntry(newAclEntry);
 
-        assertThat(changedThing) //
-                .isNotSameAs(KNOWN_THING_V1) //
-                .hasId(TestConstants.Thing.THING_ID) //
-                .hasAcl(newAcl) //
-                .hasAttributes(TestConstants.Thing.ATTRIBUTES) //
-                .hasFeatures(TestConstants.Feature.FEATURES) //
-                .hasLifecycle(TestConstants.Thing.LIFECYCLE) //
+        assertThat(changedThing)
+                .isNotSameAs(KNOWN_THING_V1)
+                .hasId(TestConstants.Thing.THING_ID)
+                .hasAcl(newAcl)
+                .hasAttributes(TestConstants.Thing.ATTRIBUTES)
+                .hasFeatures(TestConstants.Feature.FEATURES)
+                .hasLifecycle(TestConstants.Thing.LIFECYCLE)
                 .hasRevision(TestConstants.Thing.REVISION);
     }
 
 
     @Test
     public void removeAllPermissionsWorksAsExpected() {
-        final AccessControlList newAcl = ThingsModelFactory.newAclBuilder(TestConstants.Thing.ACL) //
-                .remove(TestConstants.Authorization.AUTH_SUBJECT_GRIMES) //
+        final AccessControlList newAcl = ThingsModelFactory.newAclBuilder(TestConstants.Thing.ACL)
+                .remove(TestConstants.Authorization.AUTH_SUBJECT_GRIMES)
                 .build();
 
         final Thing changedThing =
                 KNOWN_THING_V1.removeAllPermissionsOf(TestConstants.Authorization.AUTH_SUBJECT_GRIMES);
 
-        assertThat(changedThing) //
-                .isNotSameAs(KNOWN_THING_V1) //
-                .hasId(TestConstants.Thing.THING_ID) //
-                .hasAcl(newAcl) //
-                .hasAttributes(TestConstants.Thing.ATTRIBUTES) //
-                .hasFeatures(TestConstants.Feature.FEATURES) //
-                .hasLifecycle(TestConstants.Thing.LIFECYCLE) //
+        assertThat(changedThing)
+                .isNotSameAs(KNOWN_THING_V1)
+                .hasId(TestConstants.Thing.THING_ID)
+                .hasAcl(newAcl)
+                .hasAttributes(TestConstants.Thing.ATTRIBUTES)
+                .hasFeatures(TestConstants.Feature.FEATURES)
+                .hasLifecycle(TestConstants.Thing.LIFECYCLE)
                 .hasRevision(TestConstants.Thing.REVISION);
     }
 
@@ -296,13 +296,13 @@ public final class ImmutableThingTest {
     public void setFeaturesWorksAsExpected() {
         final Thing changedThing = KNOWN_THING_V1.setFeatures(EMPTY_FEATURES);
 
-        assertThat(changedThing) //
-                .isNotSameAs(KNOWN_THING_V1) //
-                .hasId(TestConstants.Thing.THING_ID) //
-                .hasAcl(TestConstants.Thing.ACL) //
-                .hasAttributes(TestConstants.Thing.ATTRIBUTES) //
-                .hasFeatures(EMPTY_FEATURES) //
-                .hasLifecycle(TestConstants.Thing.LIFECYCLE) //
+        assertThat(changedThing)
+                .isNotSameAs(KNOWN_THING_V1)
+                .hasId(TestConstants.Thing.THING_ID)
+                .hasAcl(TestConstants.Thing.ACL)
+                .hasAttributes(TestConstants.Thing.ATTRIBUTES)
+                .hasFeatures(EMPTY_FEATURES)
+                .hasLifecycle(TestConstants.Thing.LIFECYCLE)
                 .hasRevision(TestConstants.Thing.REVISION);
     }
 
@@ -311,13 +311,13 @@ public final class ImmutableThingTest {
     public void removeFeaturesWorksAsExpected() {
         final Thing changedThing = KNOWN_THING_V1.removeFeatures();
 
-        assertThat(changedThing) //
-                .isNotSameAs(KNOWN_THING_V1) //
-                .hasId(TestConstants.Thing.THING_ID) //
-                .hasAcl(TestConstants.Thing.ACL) //
-                .hasAttributes(TestConstants.Thing.ATTRIBUTES) //
-                .hasNoFeatures() //
-                .hasLifecycle(TestConstants.Thing.LIFECYCLE) //
+        assertThat(changedThing)
+                .isNotSameAs(KNOWN_THING_V1)
+                .hasId(TestConstants.Thing.THING_ID)
+                .hasAcl(TestConstants.Thing.ACL)
+                .hasAttributes(TestConstants.Thing.ATTRIBUTES)
+                .hasNoFeatures()
+                .hasLifecycle(TestConstants.Thing.LIFECYCLE)
                 .hasRevision(TestConstants.Thing.REVISION);
     }
 
@@ -325,20 +325,20 @@ public final class ImmutableThingTest {
     @Test
     public void setFeaturePropertiesWorksAsExpected() {
         final FeatureProperties newFeatureProperties =
-                ThingsModelFactory.newFeaturePropertiesBuilder(TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES) //
-                        .set("target_year_4", 1337) //
+                ThingsModelFactory.newFeaturePropertiesBuilder(TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES)
+                        .set("target_year_4", 1337)
                         .build();
 
         final Thing changedThing =
                 KNOWN_THING_V1.setFeatureProperties(TestConstants.Feature.FLUX_CAPACITOR_ID, newFeatureProperties);
 
-        assertThat(changedThing) //
-                .isNotSameAs(KNOWN_THING_V1) //
-                .hasId(TestConstants.Thing.THING_ID) //
-                .hasAcl(TestConstants.Thing.ACL) //
-                .hasAttributes(TestConstants.Thing.ATTRIBUTES) //
-                .hasFeatureProperties(TestConstants.Feature.FLUX_CAPACITOR_ID, newFeatureProperties) //
-                .hasLifecycle(TestConstants.Thing.LIFECYCLE) //
+        assertThat(changedThing)
+                .isNotSameAs(KNOWN_THING_V1)
+                .hasId(TestConstants.Thing.THING_ID)
+                .hasAcl(TestConstants.Thing.ACL)
+                .hasAttributes(TestConstants.Thing.ATTRIBUTES)
+                .hasFeatureProperties(TestConstants.Feature.FLUX_CAPACITOR_ID, newFeatureProperties)
+                .hasLifecycle(TestConstants.Thing.LIFECYCLE)
                 .hasRevision(TestConstants.Thing.REVISION);
     }
 
@@ -347,13 +347,13 @@ public final class ImmutableThingTest {
     public void removeFeaturePropertiesWorksAsExpected() {
         final Thing changedThing = KNOWN_THING_V1.removeFeatureProperties(TestConstants.Feature.FLUX_CAPACITOR_ID);
 
-        assertThat(changedThing) //
-                .isNotSameAs(KNOWN_THING_V1) //
-                .hasId(TestConstants.Thing.THING_ID) //
-                .hasAcl(TestConstants.Thing.ACL) //
-                .hasAttributes(TestConstants.Thing.ATTRIBUTES) //
-                .featureHasNoProperties(TestConstants.Feature.FLUX_CAPACITOR_ID) //
-                .hasLifecycle(TestConstants.Thing.LIFECYCLE) //
+        assertThat(changedThing)
+                .isNotSameAs(KNOWN_THING_V1)
+                .hasId(TestConstants.Thing.THING_ID)
+                .hasAcl(TestConstants.Thing.ACL)
+                .hasAttributes(TestConstants.Thing.ATTRIBUTES)
+                .featureHasNoProperties(TestConstants.Feature.FLUX_CAPACITOR_ID)
+                .hasLifecycle(TestConstants.Thing.LIFECYCLE)
                 .hasRevision(TestConstants.Thing.REVISION);
     }
 
@@ -362,32 +362,32 @@ public final class ImmutableThingTest {
     public void setLifecycleWorksAsExpected() {
         final Thing changedThing = KNOWN_THING_V1.setLifecycle(ThingLifecycle.DELETED);
 
-        assertThat(changedThing) //
-                .isNotSameAs(KNOWN_THING_V1) //
-                .hasId(TestConstants.Thing.THING_ID) //
-                .hasAcl(TestConstants.Thing.ACL) //
-                .hasAttributes(TestConstants.Thing.ATTRIBUTES) //
-                .hasFeatures(TestConstants.Feature.FEATURES) //
-                .hasLifecycle(ThingLifecycle.DELETED) //
+        assertThat(changedThing)
+                .isNotSameAs(KNOWN_THING_V1)
+                .hasId(TestConstants.Thing.THING_ID)
+                .hasAcl(TestConstants.Thing.ACL)
+                .hasAttributes(TestConstants.Thing.ATTRIBUTES)
+                .hasFeatures(TestConstants.Feature.FEATURES)
+                .hasLifecycle(ThingLifecycle.DELETED)
                 .hasRevision(TestConstants.Thing.REVISION);
     }
 
 
     @Test
     public void setAttributesWorksAsExpected() {
-        final Attributes newAttributes = ThingsModelFactory.newAttributesBuilder() //
-                .set("manufacturer", "Bosch SI") //
+        final Attributes newAttributes = ThingsModelFactory.newAttributesBuilder()
+                .set("manufacturer", "Bosch SI")
                 .build();
 
         final Thing changedThing = KNOWN_THING_V1.setAttributes(newAttributes);
 
-        assertThat(changedThing) //
-                .isNotSameAs(KNOWN_THING_V1) //
-                .hasId(TestConstants.Thing.THING_ID) //
-                .hasAcl(TestConstants.Thing.ACL) //
-                .hasAttributes(newAttributes) //
-                .hasFeatures(TestConstants.Feature.FEATURES) //
-                .hasLifecycle(TestConstants.Thing.LIFECYCLE) //
+        assertThat(changedThing)
+                .isNotSameAs(KNOWN_THING_V1)
+                .hasId(TestConstants.Thing.THING_ID)
+                .hasAcl(TestConstants.Thing.ACL)
+                .hasAttributes(newAttributes)
+                .hasFeatures(TestConstants.Feature.FEATURES)
+                .hasLifecycle(TestConstants.Thing.LIFECYCLE)
                 .hasRevision(TestConstants.Thing.REVISION);
     }
 
@@ -399,13 +399,13 @@ public final class ImmutableThingTest {
 
         final Thing changedThing = KNOWN_THING_V1.setAttribute(attributePath, newAttributeValue);
 
-        assertThat(changedThing) //
-                .isNotSameAs(KNOWN_THING_V1) //
-                .hasId(TestConstants.Thing.THING_ID) //
-                .hasAcl(TestConstants.Thing.ACL) //
-                .hasAttribute(attributePath, newAttributeValue) //
-                .hasFeatures(TestConstants.Feature.FEATURES) //
-                .hasLifecycle(TestConstants.Thing.LIFECYCLE) //
+        assertThat(changedThing)
+                .isNotSameAs(KNOWN_THING_V1)
+                .hasId(TestConstants.Thing.THING_ID)
+                .hasAcl(TestConstants.Thing.ACL)
+                .hasAttribute(attributePath, newAttributeValue)
+                .hasFeatures(TestConstants.Feature.FEATURES)
+                .hasLifecycle(TestConstants.Thing.LIFECYCLE)
                 .hasRevision(TestConstants.Thing.REVISION);
     }
 
@@ -414,13 +414,13 @@ public final class ImmutableThingTest {
     public void removeAttributesWorksAsExpected() {
         final Thing changedThing = KNOWN_THING_V1.removeAttributes();
 
-        assertThat(changedThing) //
-                .isNotSameAs(KNOWN_THING_V1) //
-                .hasId(TestConstants.Thing.THING_ID) //
-                .hasAcl(TestConstants.Thing.ACL) //
-                .hasNoAttributes() //
-                .hasFeatures(TestConstants.Feature.FEATURES) //
-                .hasLifecycle(TestConstants.Thing.LIFECYCLE) //
+        assertThat(changedThing)
+                .isNotSameAs(KNOWN_THING_V1)
+                .hasId(TestConstants.Thing.THING_ID)
+                .hasAcl(TestConstants.Thing.ACL)
+                .hasNoAttributes()
+                .hasFeatures(TestConstants.Feature.FEATURES)
+                .hasLifecycle(TestConstants.Thing.LIFECYCLE)
                 .hasRevision(TestConstants.Thing.REVISION);
     }
 
@@ -431,13 +431,13 @@ public final class ImmutableThingTest {
 
         final Thing changedThing = KNOWN_THING_V1.removeAttribute(attributePath);
 
-        assertThat(changedThing) //
-                .isNotSameAs(KNOWN_THING_V1) //
-                .hasId(TestConstants.Thing.THING_ID) //
-                .hasAcl(TestConstants.Thing.ACL) //
-                .hasNotAttribute(attributePath) //
-                .hasFeatures(TestConstants.Feature.FEATURES) //
-                .hasLifecycle(TestConstants.Thing.LIFECYCLE) //
+        assertThat(changedThing)
+                .isNotSameAs(KNOWN_THING_V1)
+                .hasId(TestConstants.Thing.THING_ID)
+                .hasAcl(TestConstants.Thing.ACL)
+                .hasNotAttribute(attributePath)
+                .hasFeatures(TestConstants.Feature.FEATURES)
+                .hasLifecycle(TestConstants.Thing.LIFECYCLE)
                 .hasRevision(TestConstants.Thing.REVISION);
     }
 
@@ -447,19 +447,19 @@ public final class ImmutableThingTest {
         final String newFeatureId = "lamp";
         final Feature newFeature = ThingsModelFactory.newFeature(newFeatureId);
 
-        final Features newFeatures = ThingsModelFactory.newFeaturesBuilder(TestConstants.Feature.FEATURES) //
-                .set(newFeature) //
+        final Features newFeatures = ThingsModelFactory.newFeaturesBuilder(TestConstants.Feature.FEATURES)
+                .set(newFeature)
                 .build();
 
         final Thing changedThing = KNOWN_THING_V1.setFeature(newFeature);
 
-        assertThat(changedThing) //
-                .isNotSameAs(KNOWN_THING_V1) //
-                .hasId(TestConstants.Thing.THING_ID) //
-                .hasAcl(TestConstants.Thing.ACL) //
-                .hasAttributes(TestConstants.Thing.ATTRIBUTES) //
-                .hasFeatures(newFeatures) //
-                .hasLifecycle(TestConstants.Thing.LIFECYCLE) //
+        assertThat(changedThing)
+                .isNotSameAs(KNOWN_THING_V1)
+                .hasId(TestConstants.Thing.THING_ID)
+                .hasAcl(TestConstants.Thing.ACL)
+                .hasAttributes(TestConstants.Thing.ATTRIBUTES)
+                .hasFeatures(newFeatures)
+                .hasLifecycle(TestConstants.Thing.LIFECYCLE)
                 .hasRevision(TestConstants.Thing.REVISION);
     }
 
@@ -468,13 +468,13 @@ public final class ImmutableThingTest {
     public void removeFeatureWorksAsExpected() {
         final Thing changedThing = KNOWN_THING_V1.removeFeature(TestConstants.Feature.FLUX_CAPACITOR_ID);
 
-        assertThat(changedThing) //
-                .isNotSameAs(KNOWN_THING_V1) //
-                .hasId(TestConstants.Thing.THING_ID) //
-                .hasAcl(TestConstants.Thing.ACL) //
-                .hasAttributes(TestConstants.Thing.ATTRIBUTES) //
-                .hasFeatures(EMPTY_FEATURES) //
-                .hasLifecycle(TestConstants.Thing.LIFECYCLE) //
+        assertThat(changedThing)
+                .isNotSameAs(KNOWN_THING_V1)
+                .hasId(TestConstants.Thing.THING_ID)
+                .hasAcl(TestConstants.Thing.ACL)
+                .hasAttributes(TestConstants.Thing.ATTRIBUTES)
+                .hasFeatures(EMPTY_FEATURES)
+                .hasLifecycle(TestConstants.Thing.LIFECYCLE)
                 .hasRevision(TestConstants.Thing.REVISION);
     }
 
@@ -488,13 +488,13 @@ public final class ImmutableThingTest {
                 KNOWN_THING_V1.setFeatureProperty(TestConstants.Feature.FLUX_CAPACITOR_ID, propertyPath,
                         newPropertyValue);
 
-        assertThat(changedThing) //
-                .isNotSameAs(KNOWN_THING_V1) //
-                .hasId(TestConstants.Thing.THING_ID) //
-                .hasAcl(TestConstants.Thing.ACL) //
-                .hasAttributes(TestConstants.Thing.ATTRIBUTES) //
-                .hasFeatureProperty(TestConstants.Feature.FLUX_CAPACITOR_ID, propertyPath, newPropertyValue) //
-                .hasLifecycle(TestConstants.Thing.LIFECYCLE) //
+        assertThat(changedThing)
+                .isNotSameAs(KNOWN_THING_V1)
+                .hasId(TestConstants.Thing.THING_ID)
+                .hasAcl(TestConstants.Thing.ACL)
+                .hasAttributes(TestConstants.Thing.ATTRIBUTES)
+                .hasFeatureProperty(TestConstants.Feature.FLUX_CAPACITOR_ID, propertyPath, newPropertyValue)
+                .hasLifecycle(TestConstants.Thing.LIFECYCLE)
                 .hasRevision(TestConstants.Thing.REVISION);
     }
 
@@ -506,13 +506,13 @@ public final class ImmutableThingTest {
         final Thing changedThing =
                 KNOWN_THING_V1.removeFeatureProperty(TestConstants.Feature.FLUX_CAPACITOR_ID, propertyPath);
 
-        assertThat(changedThing) //
-                .isNotSameAs(KNOWN_THING_V1) //
-                .hasId(TestConstants.Thing.THING_ID) //
-                .hasAcl(TestConstants.Thing.ACL) //
-                .hasAttributes(TestConstants.Thing.ATTRIBUTES) //
-                .hasNotFeatureProperty(TestConstants.Feature.FLUX_CAPACITOR_ID, propertyPath) //
-                .hasLifecycle(TestConstants.Thing.LIFECYCLE) //
+        assertThat(changedThing)
+                .isNotSameAs(KNOWN_THING_V1)
+                .hasId(TestConstants.Thing.THING_ID)
+                .hasAcl(TestConstants.Thing.ACL)
+                .hasAttributes(TestConstants.Thing.ATTRIBUTES)
+                .hasNotFeatureProperty(TestConstants.Feature.FLUX_CAPACITOR_ID, propertyPath)
+                .hasLifecycle(TestConstants.Thing.LIFECYCLE)
                 .hasRevision(TestConstants.Thing.REVISION);
     }
 
@@ -585,13 +585,13 @@ public final class ImmutableThingTest {
 
     @Test
     public void removeAllPermissionsOfAuthSubjectWhichIsNotInAcl() {
-        final Thing thing = ThingsModelFactory.newThingBuilder() //
-                .setId(TestConstants.Thing.THING_ID) //
-                .setAttributes(TestConstants.Thing.ATTRIBUTES) //
-                .setFeatures(TestConstants.Feature.FEATURES) //
-                .setPermissions(TestConstants.Authorization.ACL_ENTRY_OLDMAN) //
-                .setLifecycle(TestConstants.Thing.LIFECYCLE) //
-                .setRevision(TestConstants.Thing.REVISION) //
+        final Thing thing = ThingsModelFactory.newThingBuilder()
+                .setId(TestConstants.Thing.THING_ID)
+                .setAttributes(TestConstants.Thing.ATTRIBUTES)
+                .setFeatures(TestConstants.Feature.FEATURES)
+                .setPermissions(TestConstants.Authorization.ACL_ENTRY_OLDMAN)
+                .setLifecycle(TestConstants.Thing.LIFECYCLE)
+                .setRevision(TestConstants.Thing.REVISION)
                 .build();
 
         assertThat(thing.removeAllPermissionsOf(TestConstants.Authorization.AUTH_SUBJECT_GRIMES)).isSameAs(thing);
@@ -808,17 +808,17 @@ public final class ImmutableThingTest {
 
     @Test
     public void removeFeaturePropertiesFromFeatureWithoutProperties() {
-        final Thing thing = ThingsModelFactory.newThingBuilder() //
-                .setId(TestConstants.Thing.THING_ID) //
-                .setAttributes(TestConstants.Thing.ATTRIBUTES) //
-                .setFeature(TestConstants.Feature.FLUX_CAPACITOR_ID) //
-                .setPermissions(TestConstants.Thing.ACL) //
-                .setLifecycle(TestConstants.Thing.LIFECYCLE) //
-                .setRevision(TestConstants.Thing.REVISION) //
+        final Thing thing = ThingsModelFactory.newThingBuilder()
+                .setId(TestConstants.Thing.THING_ID)
+                .setAttributes(TestConstants.Thing.ATTRIBUTES)
+                .setFeature(TestConstants.Feature.FLUX_CAPACITOR_ID)
+                .setPermissions(TestConstants.Thing.ACL)
+                .setLifecycle(TestConstants.Thing.LIFECYCLE)
+                .setRevision(TestConstants.Thing.REVISION)
                 .build();
 
-        assertThat(thing) //
-                .hasFeatureWithId(TestConstants.Feature.FLUX_CAPACITOR_ID) //
+        assertThat(thing)
+                .hasFeatureWithId(TestConstants.Feature.FLUX_CAPACITOR_ID)
                 .featureHasNoProperties(TestConstants.Feature.FLUX_CAPACITOR_ID);
 
         assertThat(thing.removeFeatureProperties(TestConstants.Feature.FLUX_CAPACITOR_ID)).isSameAs(thing);
@@ -843,13 +843,13 @@ public final class ImmutableThingTest {
 
     @Test
     public void setFeaturePropertyToThingWithFeatureWithoutProperties() {
-        final Thing thing = ThingsModelFactory.newThingBuilder() //
-                .setId(TestConstants.Thing.THING_ID) //
-                .setAttributes(TestConstants.Thing.ATTRIBUTES) //
-                .setFeature(TestConstants.Feature.FLUX_CAPACITOR_ID) //
-                .setPermissions(TestConstants.Thing.ACL) //
-                .setLifecycle(TestConstants.Thing.LIFECYCLE) //
-                .setRevision(TestConstants.Thing.REVISION) //
+        final Thing thing = ThingsModelFactory.newThingBuilder()
+                .setId(TestConstants.Thing.THING_ID)
+                .setAttributes(TestConstants.Thing.ATTRIBUTES)
+                .setFeature(TestConstants.Feature.FLUX_CAPACITOR_ID)
+                .setPermissions(TestConstants.Thing.ACL)
+                .setLifecycle(TestConstants.Thing.LIFECYCLE)
+                .setRevision(TestConstants.Thing.REVISION)
                 .build();
 
         final Thing withFeatureProperty =
@@ -891,13 +891,13 @@ public final class ImmutableThingTest {
 
     @Test
     public void removeFeaturePropertyFromFeatureWithoutThisProperty() {
-        final Thing thing = ThingsModelFactory.newThingBuilder() //
-                .setId(TestConstants.Thing.THING_ID) //
-                .setAttributes(TestConstants.Thing.ATTRIBUTES) //
-                .setFeature(TestConstants.Feature.FLUX_CAPACITOR_ID) //
-                .setPermissions(TestConstants.Thing.ACL) //
-                .setLifecycle(TestConstants.Thing.LIFECYCLE) //
-                .setRevision(TestConstants.Thing.REVISION) //
+        final Thing thing = ThingsModelFactory.newThingBuilder()
+                .setId(TestConstants.Thing.THING_ID)
+                .setAttributes(TestConstants.Thing.ATTRIBUTES)
+                .setFeature(TestConstants.Feature.FLUX_CAPACITOR_ID)
+                .setPermissions(TestConstants.Thing.ACL)
+                .setLifecycle(TestConstants.Thing.LIFECYCLE)
+                .setRevision(TestConstants.Thing.REVISION)
                 .build();
 
         assertThat(thing.removeFeatureProperty(TestConstants.Feature.FLUX_CAPACITOR_ID,
@@ -921,15 +921,15 @@ public final class ImmutableThingTest {
 
 
     @Test
-    public void ensureThingsNewBuilderWorks() {
-        final Thing thing = Thing.newBuilder() //
-                .setId(TestConstants.Thing.THING_ID) //
-                .setPermissions(TestConstants.Thing.ACL) //
-                .setAttributes(TestConstants.Thing.ATTRIBUTES) //
-                .setFeatures(TestConstants.Feature.FEATURES) //
-                .setLifecycle(TestConstants.Thing.LIFECYCLE) //
-                .setRevision(TestConstants.Thing.REVISION) //
-                .setModified(TestConstants.Thing.MODIFIED) //
+    public void ensureThingsNewBuilderWorksV1() {
+        final Thing thing = Thing.newBuilder()
+                .setId(TestConstants.Thing.THING_ID)
+                .setPermissions(TestConstants.Thing.ACL)
+                .setAttributes(TestConstants.Thing.ATTRIBUTES)
+                .setFeatures(TestConstants.Feature.FEATURES)
+                .setLifecycle(TestConstants.Thing.LIFECYCLE)
+                .setRevision(TestConstants.Thing.REVISION)
+                .setModified(TestConstants.Thing.MODIFIED)
                 .build();
 
         assertThat(thing).isEqualTo(TestConstants.Thing.THING_V1);
@@ -953,7 +953,7 @@ public final class ImmutableThingTest {
 
 
     @Test
-    public void ensureThingsToBuilderWorks() {
+    public void ensureThingsToBuilderWorksV1() {
         DittoJsonAssertions.assertThat(TestConstants.Thing.THING_V1)
                 .isEqualTo(TestConstants.Thing.THING_V1.toBuilder().build());
     }
@@ -967,7 +967,7 @@ public final class ImmutableThingTest {
 
 
     @Test
-    public void ensureThingToJsonContainsNonHiddenFields() {
+    public void ensureThingToJsonContainsNonHiddenFieldsV1() {
         final JsonObject jsonObject = TestConstants.Thing.THING_V1.toJson(JsonSchemaVersion.V_1);
         DittoJsonAssertions.assertThat(jsonObject).contains(Thing.JsonFields.ID, TestConstants.Thing.THING_ID);
         DittoJsonAssertions.assertThat(jsonObject)
@@ -985,7 +985,7 @@ public final class ImmutableThingTest {
 
 
     @Test
-    public void ensureThingToJsonWithSpecialContainsAllFields() {
+    public void ensureThingToJsonWithSpecialContainsAllFieldsV1() {
         final JsonObject jsonObject =
                 TestConstants.Thing.THING_V1.toJson(JsonSchemaVersion.V_1, FieldType.regularOrSpecial());
         DittoJsonAssertions.assertThat(jsonObject)
@@ -1001,7 +1001,7 @@ public final class ImmutableThingTest {
         DittoJsonAssertions.assertThat(jsonObject)
                 .contains(Thing.JsonFields.LIFECYCLE, JsonValue.of(TestConstants.Thing.LIFECYCLE.name()));
         DittoJsonAssertions.assertThat(jsonObject).contains(Thing.JsonFields.NAMESPACE, JsonValue.of(
-                TestConstants.Thing.NAMEPSACE));
+                TestConstants.Thing.NAMESPACE));
         DittoJsonAssertions.assertThat(jsonObject)
                 .contains(Thing.JsonFields.MODIFIED, JsonValue.of(TestConstants.Thing.MODIFIED.toString()));
     }
@@ -1009,7 +1009,7 @@ public final class ImmutableThingTest {
 
     @Test
     public void ensureThingToJsonContainsNonHiddenFieldsV2() {
-        final JsonObject jsonObject = TestConstants.Thing.THING_V2_WITH_POLICY.toJson(JsonSchemaVersion.V_2);
+        final JsonObject jsonObject = TestConstants.Thing.THING_V2.toJson(JsonSchemaVersion.V_2);
         DittoJsonAssertions.assertThat(jsonObject).contains(Thing.JsonFields.ID, TestConstants.Thing.THING_ID);
         DittoJsonAssertions.assertThat(jsonObject).contains(Thing.JsonFields.POLICY_ID, TestConstants.Thing.POLICY_ID);
         DittoJsonAssertions.assertThat(jsonObject)
@@ -1028,7 +1028,7 @@ public final class ImmutableThingTest {
     @Test
     public void ensureThingToJsonWithSpecialContainsAllFieldsV2() {
         final JsonObject jsonObject =
-                TestConstants.Thing.THING_V2_WITH_POLICY.toJson(JsonSchemaVersion.V_2, FieldType.regularOrSpecial());
+                TestConstants.Thing.THING_V2.toJson(JsonSchemaVersion.V_2, FieldType.regularOrSpecial());
         DittoJsonAssertions.assertThat(jsonObject)
                 .contains(Thing.JsonFields.SCHEMA_VERSION, JsonValue.of(JsonSchemaVersion.V_2.toInt()));
         DittoJsonAssertions.assertThat(jsonObject).contains(Thing.JsonFields.ID, TestConstants.Thing.THING_ID);
@@ -1042,7 +1042,7 @@ public final class ImmutableThingTest {
         DittoJsonAssertions.assertThat(jsonObject)
                 .contains(Thing.JsonFields.LIFECYCLE, JsonValue.of(TestConstants.Thing.LIFECYCLE.name()));
         DittoJsonAssertions.assertThat(jsonObject).contains(Thing.JsonFields.NAMESPACE, JsonValue.of(
-                TestConstants.Thing.NAMEPSACE));
+                TestConstants.Thing.NAMESPACE));
         DittoJsonAssertions.assertThat(jsonObject)
                 .contains(Thing.JsonFields.MODIFIED, JsonValue.of(TestConstants.Thing.MODIFIED.toString()));
     }
