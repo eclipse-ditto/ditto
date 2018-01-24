@@ -79,21 +79,21 @@ public interface Features extends Iterable<Feature>, Jsonifiable.WithFieldSelect
     Features removeFeature(String featureId);
 
     /**
-     * Sets the given Definition for the Feature with the given ID on a copy of this Features. The
-     * previous Definition of a Feature with the same ID is overwritten.
+     * Sets the given definition for the Feature with the given ID on a copy of this Features. The
+     * previous definition of a Feature with the same ID is overwritten.
      *
-     * @param featureId the ID of the Feature for which the Definition are set.
+     * @param featureId the ID of the Feature for which the definition is set.
      * @param definition the definition to be set.
-     * @return a copy of this Features with the Definition set.
+     * @return a copy of this Features with the definition set.
      * @throws NullPointerException if any argument is {@code null}.
      */
     Features setDefinition(String featureId, FeatureDefinition definition);
 
     /**
-     * Removes the Definition of the Feature with the given ID from a copy of this Features.
+     * Removes the definition from the Feature with the given ID from a copy of this Features.
      *
-     * @param featureId the ID of the Feature from which the Definition is removed.
-     * @return a copy of this Features with the Definition of the Feature with {@code featureId} removed.
+     * @param featureId the ID of the Feature from which the definition is removed.
+     * @return a copy of this Features with the definition of the Feature with {@code featureId} removed.
      * @throws NullPointerException if {@code featureId} is {@code null}.
      */
     Features removeDefinition(String featureId);
