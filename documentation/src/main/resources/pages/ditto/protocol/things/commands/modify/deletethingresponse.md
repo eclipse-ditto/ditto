@@ -3,9 +3,7 @@
 ```json
 {
   "topic": "com.acme/xdk_53/things/twin/commands/delete",
-  "headers": {
-    
-  },
+  "headers": {},
   "path": "/",
   "status": 204
 }
