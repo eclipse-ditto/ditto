@@ -3,9 +3,7 @@
 ```json
 {
   "topic": "com.acme/xdk_53/things/twin/commands/modify",
-  "headers": {
-    
-  },
+  "headers": {},
   "path": "/policyId",
   "value": "com.acme:the_policy_id"
 }

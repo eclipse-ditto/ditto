@@ -3,9 +3,7 @@
 ```json
 {
   "topic": "com.acme/xdk_53/things/twin/commands/modify",
-  "headers": {
-    
-  },
+  "headers": {},
   "path": "/acl/the_auth_subject",
   "value": {
     "__schemaVersion": 1,

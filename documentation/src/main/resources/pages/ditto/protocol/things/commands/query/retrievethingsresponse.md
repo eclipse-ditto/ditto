@@ -3,12 +3,9 @@
 ```json
 {
   "topic": "com.acme/_/things/twin/commands/retrieve",
-  "headers": {
-    
-  },
+  "headers": {},
   "path": "/",
-  "value": [
-    {
+  "value": [{
       "thingId": "com.acme:xdk_53",
       "policyId": "com.acme:the_policy_id",
       "attributes": {
@@ -27,8 +24,7 @@
           }
         }
       }
-    }
-  ],
+    }],
   "status": 200
 }
 ```
