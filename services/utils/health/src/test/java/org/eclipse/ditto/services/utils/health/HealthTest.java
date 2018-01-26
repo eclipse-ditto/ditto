@@ -12,81 +12,80 @@
 package org.eclipse.ditto.services.utils.health;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.eclipse.ditto.services.utils.health.PersistenceClusterHealth.CLUSTER;
+import static org.eclipse.ditto.services.utils.health.PersistenceClusterHealth.PERSISTENCE;
+import static org.eclipse.ditto.services.utils.health.Health.JSON_FIELD_STATUS;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.HashSet;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonKey;
-import org.eclipse.ditto.json.JsonPointer;
 import org.junit.Test;
 import org.mutabilitydetector.unittesting.MutabilityAssert;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link ClusterPersistenceHealth}.
+ * Unit test for {@link Health}.
  */
 public final class HealthTest {
 
 
     @Test
     public void assertImmutability() {
-        MutabilityAssert.assertInstancesOf(ClusterPersistenceHealth.class, areImmutable());
+        MutabilityAssert.assertInstancesOf(Health.class, areImmutable());
     }
 
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(ClusterPersistenceHealth.class).usingGetClass().verify();
+        EqualsVerifier.forClass(Health.class).usingGetClass().verify();
+    }
+
+
+    @Test
+    public void jsonSerializationFromNewInstance() {
+        final Health health = PersistenceClusterHealth.newInstance();
+        assertHealthContainsExactly(health, JSON_FIELD_STATUS);
     }
 
 
     @Test
     public void jsonSerializationWithEmptyHealth() {
-        final ClusterPersistenceHealth health = ClusterPersistenceHealth.of(null, null);
-
-        assertHealthContainsExactly(health, HealthStatus.JSON_KEY_STATUS);
+        final Health health = PersistenceClusterHealth.of(null, null);
+        assertHealthContainsExactly(health, JSON_FIELD_STATUS);
     }
 
 
     @Test
     public void jsonSerializationWithOnlyPersistence() {
-        final ClusterPersistenceHealth
-                health = ClusterPersistenceHealth.of(HealthStatus.of(HealthStatus.Status.UP), null);
-
-        assertHealthContainsExactly(health, HealthStatus.JSON_KEY_STATUS, ClusterPersistenceHealth.JSON_KEY_PERSISTENCE);
+        final Health health = PersistenceClusterHealth.of(HealthStatus.of(HealthStatus.Status.UP), null);
+        assertHealthContainsExactly(health, JSON_FIELD_STATUS, PERSISTENCE);
     }
 
 
     @Test
     public void jsonSerializationWithOnlyCluster() {
-        final ClusterPersistenceHealth health = ClusterPersistenceHealth.of(null, HealthStatus.of(HealthStatus.Status.UP));
-
-        assertHealthContainsExactly(health, HealthStatus.JSON_KEY_STATUS, ClusterPersistenceHealth.JSON_KEY_CLUSTER);
-
+        final Health health = PersistenceClusterHealth.of(null, HealthStatus.of(HealthStatus.Status.UP));
+        assertHealthContainsExactly(health, JSON_FIELD_STATUS, CLUSTER);
     }
 
 
     @Test
     public void jsonSerializationWithAll() {
-        final ClusterPersistenceHealth health = ClusterPersistenceHealth.of(HealthStatus.of(HealthStatus.Status.UP),
+        final Health health = PersistenceClusterHealth.of(HealthStatus.of(HealthStatus.Status.UP),
                 HealthStatus.of(HealthStatus.Status.UP));
 
-        assertHealthContainsExactly(health, HealthStatus.JSON_KEY_STATUS,
-                ClusterPersistenceHealth.JSON_KEY_PERSISTENCE, ClusterPersistenceHealth.JSON_KEY_CLUSTER);
+        assertHealthContainsExactly(health, JSON_FIELD_STATUS, PERSISTENCE, CLUSTER);
     }
 
-    private void assertHealthContainsExactly(final ClusterPersistenceHealth health, final JsonFieldDefinition... fieldDefinitions) {
+    private void assertHealthContainsExactly(final Health health, final String... fieldDefinitions) {
         final Set<JsonKey> actualJsonPointers = new HashSet<>(health.toJson().asObject().getKeys());
         final Set<JsonKey> expectedJsonKeys = Stream.of(fieldDefinitions)
-                .map(JsonFieldDefinition::getPointer)
-                .map(JsonPointer::getRoot)
-                .map(Optional::get)
+                .map(JsonKey::of)
                 .collect(Collectors.toSet());
         assertThat(actualJsonPointers).isEqualTo(expectedJsonKeys);
     }

@@ -11,18 +11,132 @@
  */
 package org.eclipse.ditto.services.utils.health;
 
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Objects;
+
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
+
+import jdk.nashorn.internal.ir.annotations.Immutable;
 
 /**
- * Interface of all representations of the health of underlying systems.
+ * Extensible representation of the health of all systems.
  */
-public interface Health extends Jsonifiable<JsonObject> {
+@Immutable
+@AllValuesAreNonnullByDefault
+public final class Health implements Jsonifiable<JsonObject> {
+
+    /**
+     * JSON field of the overall status.
+     */
+    static final String JSON_FIELD_STATUS = "status";
+
+    private final HealthStatus overallStatus;
+    private final Map<String, HealthStatus> componentStatuses;
+
+    private Health(final Builder builder) {
+        overallStatus = builder.overallStatus;
+        componentStatuses = Collections.unmodifiableMap(new LinkedHashMap<>(builder.componentStatuses));
+    }
 
     /**
      * Returns a concise summary of the health of an underlying system.
      *
      * @return the health summary.
      */
-    HealthStatus getHealthStatus();
+    public HealthStatus getOverallStatus() {
+        return overallStatus;
+    }
+
+    public static Builder newBuilder() {
+        return new Builder();
+    }
+
+    /**
+     * Creates a new {@code Health} from a JSON object.
+     *
+     * @param jsonObject the JSON object of which a new Health is to be created.
+     * @return the Health which was created from the given JSON object.
+     */
+    public static Health fromJson(final JsonObject jsonObject) {
+        final Builder builder = newBuilder();
+        jsonObject.stream()
+                .filter(jsonField -> jsonField.getValue().isObject())
+                .forEach(jsonField -> {
+                    final String fieldName = jsonField.getKeyName();
+                    final HealthStatus healthStatus = HealthStatus.fromJson(jsonField.getValue().asObject());
+                    if (Objects.equals(fieldName, JSON_FIELD_STATUS)) {
+                        builder.setOverallStatus(healthStatus);
+                    } else {
+                        builder.setComponentStatus(fieldName, healthStatus);
+                    }
+                });
+        return builder.build();
+    }
+
+    public Builder toBuilder() {
+        return new Builder(overallStatus, componentStatuses);
+    }
+
+    @Override
+    public JsonObject toJson() {
+        final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
+        componentStatuses.forEach((name, status) -> jsonObjectBuilder.set(name, status.toJson()));
+        jsonObjectBuilder.set(JSON_FIELD_STATUS, overallStatus.toJson());
+        return jsonObjectBuilder.build();
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(overallStatus, componentStatuses);
+    }
+
+    @Override
+    public boolean equals(final Object obj) {
+        if (this == obj) {
+            return true;
+        } else if (obj == null || getClass() != obj.getClass()) {
+            return false;
+        } else {
+            final Health that = (Health) obj;
+            return Objects.equals(overallStatus, that.overallStatus) &&
+                    Objects.equals(componentStatuses, that.componentStatuses);
+        }
+    }
+
+    public static final class Builder {
+
+        private HealthStatus overallStatus;
+        private Map<String, HealthStatus> componentStatuses;
+
+        private Builder() {
+            overallStatus = HealthStatus.of(HealthStatus.Status.UNKNOWN);
+            componentStatuses = new LinkedHashMap<>();
+        }
+
+        private Builder(final HealthStatus overallStatus, final Map<String, HealthStatus> componentStatuses) {
+            this.overallStatus = overallStatus;
+            this.componentStatuses = new LinkedHashMap<>(componentStatuses);
+        }
+
+        public Builder setOverallStatus(final HealthStatus overallStatus) {
+            this.overallStatus = overallStatus;
+            return this;
+        }
+
+        public Builder setComponentStatus(final String componentName, final HealthStatus componentStatus) {
+            componentStatuses.put(componentName, componentStatus);
+            return this;
+        }
+
+        public Health build() {
+            return new Health(this);
+        }
+    }
+
 }

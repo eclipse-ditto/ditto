@@ -63,7 +63,7 @@ public class HealthRouteSupplier implements Supplier<Route> {
         final HttpResponse response;
 
         if (null == failure) {
-            final HealthStatus healthStatus = health.getHealthStatus();
+            final HealthStatus healthStatus = health.getOverallStatus();
             final int httpStatusCode =
                     healthStatus.getStatus() == HealthStatus.Status.DOWN ? HTTP_STATUS_SERVICE_UNAVAILABLE :
                             HTTP_STATUS_OK;

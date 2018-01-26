@@ -40,7 +40,7 @@ public final class HealthCheckingActor extends AbstractActor {
     private final HealthCheckingActorOptions options;
     private final ActorRef mongoClientActor;
 
-    private ClusterPersistenceHealth health;
+    private Health health;
 
     /**
      * Constructs a {@code HealthCheckingActor}.
@@ -49,9 +49,10 @@ public final class HealthCheckingActor extends AbstractActor {
         this.options = options;
         this.mongoClientActor = mongoClientActor;
 
-        health = ClusterPersistenceHealth.newInstance();
+        health = PersistenceClusterHealth.newInstance();
         if (options.isPersistenceCheckEnabled()) {
-            health = health.setHealthStatusPersistence(HealthStatus.of(HealthStatus.Status.UNKNOWN));
+            health = PersistenceClusterHealth.setHealthStatusPersistence(health,
+                    HealthStatus.of(HealthStatus.Status.UNKNOWN));
         }
 
         if (options.isHealthCheckEnabled()) {
@@ -101,7 +102,7 @@ public final class HealthCheckingActor extends AbstractActor {
         final HealthStatus status = HealthStatus
                 .of(statusResponse.isAlive() ? HealthStatus.Status.UP : HealthStatus.Status.DOWN,
                         statusResponse.getDescription().orElse(null));
-        health = health.setHealthStatusPersistence(status);
+        health = PersistenceClusterHealth.setHealthStatusPersistence(health, status);
     }
 
     private void pollHealth() {
