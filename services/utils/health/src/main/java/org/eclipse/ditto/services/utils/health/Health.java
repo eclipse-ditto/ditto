@@ -15,6 +15,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
@@ -51,6 +52,16 @@ public final class Health implements Jsonifiable<JsonObject> {
      */
     public HealthStatus getOverallStatus() {
         return overallStatus;
+    }
+
+    /**
+     * Returns the health status of a component if it exists.
+     *
+     * @param componentName name of the component.
+     * @return status of the component if it exists, or an empty optional otherwise.
+     */
+    public Optional<HealthStatus> getComponentStatus(final String componentName) {
+        return Optional.ofNullable(componentStatuses.get(componentName));
     }
 
     /**
