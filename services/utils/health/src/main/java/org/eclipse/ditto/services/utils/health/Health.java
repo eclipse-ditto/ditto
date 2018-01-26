@@ -53,8 +53,22 @@ public final class Health implements Jsonifiable<JsonObject> {
         return overallStatus;
     }
 
+    /**
+     * Returns an empty builder.
+     *
+     * @return A builder.
+     */
     public static Builder newBuilder() {
         return new Builder();
+    }
+
+    /**
+     * Returns a mutable builder of this object.
+     *
+     * @return A mutable builder containing exactly the statuses in this object.
+     */
+    public Builder toBuilder() {
+        return new Builder(overallStatus, componentStatuses);
     }
 
     /**
@@ -77,10 +91,6 @@ public final class Health implements Jsonifiable<JsonObject> {
                     }
                 });
         return builder.build();
-    }
-
-    public Builder toBuilder() {
-        return new Builder(overallStatus, componentStatuses);
     }
 
     @Override
@@ -109,6 +119,9 @@ public final class Health implements Jsonifiable<JsonObject> {
         }
     }
 
+    /**
+     * Builder of {@code Health} objects.
+     */
     public static final class Builder {
 
         private HealthStatus overallStatus;
@@ -124,16 +137,34 @@ public final class Health implements Jsonifiable<JsonObject> {
             this.componentStatuses = new LinkedHashMap<>(componentStatuses);
         }
 
+        /**
+         * Set the overall status.
+         *
+         * @param overallStatus The overall status.
+         * @return This object.
+         */
         public Builder setOverallStatus(final HealthStatus overallStatus) {
             this.overallStatus = overallStatus;
             return this;
         }
 
+        /**
+         * Set the status of a component.
+         *
+         * @param componentName Name of the component, "persistence" or "messaging" for example.
+         * @param componentStatus Status of the component.
+         * @return This object.
+         */
         public Builder setComponentStatus(final String componentName, final HealthStatus componentStatus) {
             componentStatuses.put(componentName, componentStatus);
             return this;
         }
 
+        /**
+         * Creates an immutable {@code Health} object from the builder.
+         *
+         * @return {@code Health} object containing all statuses of this builder.
+         */
         public Health build() {
             return new Health(this);
         }
