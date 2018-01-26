@@ -55,11 +55,11 @@ public class HealthRouteSupplier implements Supplier<Route> {
         return completeWithFuture( //
                 PatternsCS //
                         .ask(healthCheckingActor, RetrieveHealth.newInstance(), TIMEOUT) //
-                        .handle((health, throwable) -> completeHealthRequest((HealthRepresentation) health, throwable))
+                        .handle((health, throwable) -> completeHealthRequest((Health) health, throwable))
         );
     }
 
-    private HttpResponse completeHealthRequest(final HealthRepresentation health, final Throwable failure) {
+    private HttpResponse completeHealthRequest(final Health health, final Throwable failure) {
         final HttpResponse response;
 
         if (null == failure) {

@@ -29,26 +29,26 @@ import org.mutabilitydetector.unittesting.MutabilityAssert;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link Health}.
+ * Unit test for {@link ClusterPersistenceHealth}.
  */
 public final class HealthTest {
 
 
     @Test
     public void assertImmutability() {
-        MutabilityAssert.assertInstancesOf(Health.class, areImmutable());
+        MutabilityAssert.assertInstancesOf(ClusterPersistenceHealth.class, areImmutable());
     }
 
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(Health.class).usingGetClass().verify();
+        EqualsVerifier.forClass(ClusterPersistenceHealth.class).usingGetClass().verify();
     }
 
 
     @Test
     public void jsonSerializationWithEmptyHealth() {
-        final Health health = Health.of(null, null);
+        final ClusterPersistenceHealth health = ClusterPersistenceHealth.of(null, null);
 
         assertHealthContainsExactly(health, HealthStatus.JSON_KEY_STATUS);
     }
@@ -56,31 +56,32 @@ public final class HealthTest {
 
     @Test
     public void jsonSerializationWithOnlyPersistence() {
-        final Health health = Health.of(HealthStatus.of(HealthStatus.Status.UP), null);
+        final ClusterPersistenceHealth
+                health = ClusterPersistenceHealth.of(HealthStatus.of(HealthStatus.Status.UP), null);
 
-        assertHealthContainsExactly(health, HealthStatus.JSON_KEY_STATUS, Health.JSON_KEY_PERSISTENCE);
+        assertHealthContainsExactly(health, HealthStatus.JSON_KEY_STATUS, ClusterPersistenceHealth.JSON_KEY_PERSISTENCE);
     }
 
 
     @Test
     public void jsonSerializationWithOnlyCluster() {
-        final Health health = Health.of(null, HealthStatus.of(HealthStatus.Status.UP));
+        final ClusterPersistenceHealth health = ClusterPersistenceHealth.of(null, HealthStatus.of(HealthStatus.Status.UP));
 
-        assertHealthContainsExactly(health, HealthStatus.JSON_KEY_STATUS, Health.JSON_KEY_CLUSTER);
+        assertHealthContainsExactly(health, HealthStatus.JSON_KEY_STATUS, ClusterPersistenceHealth.JSON_KEY_CLUSTER);
 
     }
 
 
     @Test
     public void jsonSerializationWithAll() {
-        final Health health = Health.of(HealthStatus.of(HealthStatus.Status.UP),
+        final ClusterPersistenceHealth health = ClusterPersistenceHealth.of(HealthStatus.of(HealthStatus.Status.UP),
                 HealthStatus.of(HealthStatus.Status.UP));
 
         assertHealthContainsExactly(health, HealthStatus.JSON_KEY_STATUS,
-                Health.JSON_KEY_PERSISTENCE, Health.JSON_KEY_CLUSTER);
+                ClusterPersistenceHealth.JSON_KEY_PERSISTENCE, ClusterPersistenceHealth.JSON_KEY_CLUSTER);
     }
 
-    private void assertHealthContainsExactly(final Health health, final JsonFieldDefinition... fieldDefinitions) {
+    private void assertHealthContainsExactly(final ClusterPersistenceHealth health, final JsonFieldDefinition... fieldDefinitions) {
         final Set<JsonKey> actualJsonPointers = new HashSet<>(health.toJson().asObject().getKeys());
         final Set<JsonKey> expectedJsonKeys = Stream.of(fieldDefinitions)
                 .map(JsonFieldDefinition::getPointer)

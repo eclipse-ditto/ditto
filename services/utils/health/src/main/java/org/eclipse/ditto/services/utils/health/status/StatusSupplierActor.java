@@ -16,7 +16,7 @@ import java.util.concurrent.TimeUnit;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.akka.SimpleCommand;
 import org.eclipse.ditto.services.utils.akka.SimpleCommandResponse;
-import org.eclipse.ditto.services.utils.health.Health;
+import org.eclipse.ditto.services.utils.health.ClusterPersistenceHealth;
 import org.eclipse.ditto.services.utils.health.HealthCheckingActor;
 import org.eclipse.ditto.services.utils.health.HealthStatus;
 import org.eclipse.ditto.services.utils.health.RetrieveHealth;
@@ -47,7 +47,7 @@ public final class StatusSupplierActor extends AbstractActor {
     public static final String SIMPLE_COMMAND_RETRIEVE_STATUS = "retrieveStatus";
 
     /**
-     * Command name for retrieving the static {@link Health} of this instance.
+     * Command name for retrieving the static {@link ClusterPersistenceHealth} of this instance.
      */
     public static final String SIMPLE_COMMAND_RETRIEVE_HEALTH = "retrieveHealth";
 
