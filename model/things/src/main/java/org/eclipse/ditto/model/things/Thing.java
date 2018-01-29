@@ -254,20 +254,20 @@ public interface Thing extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFie
     Thing removeAttribute(JsonPointer attributePath);
 
     /**
-     * Sets the given Definition of a Feature on a copy of this Thing.
+     * Sets the given definition of a Feature on a copy of this Thing.
      *
      * @param featureId the ID of the Feature.
-     * @param definition the Definition to be set.
-     * @return a copy of this Thing with the Feature containing the given Definition.
+     * @param definition the definition to be set.
+     * @return a copy of this Thing with the Feature containing the given definition.
      * @throws NullPointerException if {@code featureId} is {@code null}.
      */
     Thing setFeatureDefinition(String featureId, FeatureDefinition definition);
 
     /**
-     * Removes the Definition from the Feature of this thing with the specified feature ID.
+     * Removes the definition from the Feature of this thing with the specified feature ID.
      *
-     * @param featureId the identifier of the Feature to delete the Definition from.
-     * @return a copy of this Thing with the Feature without Definition.
+     * @param featureId the identifier of the Feature to delete the definition from.
+     * @return a copy of this Thing with the Feature without definition.
      * @throws NullPointerException if {@code featureId} is {@code null}.
      */
     Thing removeFeatureDefinition(String featureId);

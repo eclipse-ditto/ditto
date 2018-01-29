@@ -11,6 +11,8 @@
  */
 package org.eclipse.ditto.model.things;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+
 import java.util.stream.Stream;
 
 import javax.annotation.concurrent.Immutable;
@@ -30,12 +32,17 @@ public interface FeatureDefinition extends Iterable<FeatureDefinition.Identifier
      * containing that Identifier.
      *
      * @param identifier CharSequence-representation of the first Identifier of the returned FeatureDefinition.
+     * @param furtherIdentifiers optional further Identifiers of the returned FeatureDefinition.
      * @return the instance.
-     * @throws NullPointerException if {@code identifier} is {@code null}.
-     * @throws FeatureDefinitionIdentifierInvalidException if {@code identifier} is invalid.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws FeatureDefinitionIdentifierInvalidException if any argument is invalid.
      */
-    static FeatureDefinition fromIdentifier(final CharSequence identifier) {
-        return ThingsModelFactory.newFeatureDefinitionBuilder(identifier).build();
+    static FeatureDefinition fromIdentifier(final CharSequence identifier, final CharSequence ... furtherIdentifiers) {
+        final FeatureDefinitionBuilder builder = ThingsModelFactory.newFeatureDefinitionBuilder(identifier);
+        for (final CharSequence furtherIdentifier : checkNotNull(furtherIdentifiers, "further identifiers")) {
+            builder.add(furtherIdentifier);
+        }
+        return builder.build();
     }
 
     /**
