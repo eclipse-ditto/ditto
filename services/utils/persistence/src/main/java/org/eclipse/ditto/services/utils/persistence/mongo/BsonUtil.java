@@ -15,6 +15,7 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -99,10 +100,41 @@ public final class BsonUtil {
      * @see Document#get(Object)
      */
     public static <T> T getRequiredDocumentValueAt(final Document document, final String key, final Class<T> clazz) {
-        @SuppressWarnings("unchecked")
-        final T value = document.get(key, clazz);
+        final T value = getDocumentValueOrNullAt(document, key, clazz);
         if (value == null) {
             throw new NullPointerException("Key not found: " + key);
+        }
+        return value;
+    }
+
+    /**
+     * Returns the value to which the specified key is mapped or the specified {@code defaultValue}.
+     * The value is cast to type {@code <T>}.
+     *
+     * <p>
+     *     <strong>NOTE:</strong> Method {@link Document#get(Object, Object)} does the same, but throws a
+     *     {@link ClassCastException} if the {@code defaultValue} is not exactly the same type as {@code <T>}, which
+     *     happens quite often: E.g., you want to define {@code <T>} as {@link Collection} and {@code defaultValue}
+     *     as {@link Collections#emptyList()}, which is a subtype of {@link Collection}.
+     * </p>
+     *
+     * @param document the document whose value is requested
+     * @param key the key which holds the value
+     * @param clazz the class to cast the value to
+     * @param defaultValue the default value
+     * @param <T> the type to which the value will be cast.
+     * @param <S> the type of the default value, must be a subtype of {@code <T>}.
+     * @return the value.
+     * @throws ClassCastException if the value has not the expected type
+     * @throws NullPointerException if this document contains no mapping for the key
+     *
+     * @see Document#get(Object)
+     */
+    public static <T, S extends T> T getDocumentWithDefaultAt(final Document document, final String key, final Class<T>
+            clazz, final S defaultValue) {
+        final T value = getDocumentValueOrNullAt(document, key, clazz);
+        if (value == null) {
+            return defaultValue;
         }
         return value;
     }
@@ -175,5 +207,8 @@ public final class BsonUtil {
         return toBsonDocument(bson).toJson();
     }
 
+    private static @Nullable <T> T getDocumentValueOrNullAt(final Document document, final String key, final Class<T> clazz) {
+        return document.get(key, clazz);
+    }
 
 }
