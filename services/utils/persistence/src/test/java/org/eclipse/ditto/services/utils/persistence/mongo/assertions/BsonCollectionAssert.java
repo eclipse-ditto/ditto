@@ -9,7 +9,7 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package org.eclipse.ditto.services.thingsearch.persistence;
+package org.eclipse.ditto.services.utils.persistence.mongo.assertions;
 
 import java.util.Collection;
 import java.util.Comparator;

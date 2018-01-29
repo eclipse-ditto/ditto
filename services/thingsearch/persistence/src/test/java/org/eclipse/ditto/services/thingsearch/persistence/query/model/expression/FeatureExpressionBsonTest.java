@@ -13,14 +13,13 @@ package org.eclipse.ditto.services.thingsearch.persistence.query.model.expressio
 
 import org.assertj.core.api.Assertions;
 import org.bson.conversions.Bson;
-import org.eclipse.ditto.services.thingsearch.persistence.BsonAssertions;
 import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
 import org.eclipse.ditto.services.thingsearch.persistence.read.expression.visitors.GetExistsBsonVisitor;
+import org.eclipse.ditto.services.thingsearch.querymodel.expression.FeatureExpressionImpl;
+import org.eclipse.ditto.services.utils.persistence.mongo.assertions.BsonAssertions;
 import org.junit.Test;
 
 import com.mongodb.client.model.Filters;
-
-import org.eclipse.ditto.services.thingsearch.querymodel.expression.FeatureExpressionImpl;
 
 /**
  * Tests Bson generators of {@link FeatureExpressionImpl}.
@@ -28,7 +27,6 @@ import org.eclipse.ditto.services.thingsearch.querymodel.expression.FeatureExpre
 public final class FeatureExpressionBsonTest {
 
     private static final String KNOWN_FEATURE_ID = "feature1";
-    private static final String KNOWN_VALUE = "knownValue";
 
     /** */
     @Test(expected = NullPointerException.class)

@@ -9,12 +9,13 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package org.eclipse.ditto.services.thingsearch.persistence;
+package org.eclipse.ditto.services.utils.persistence.mongo.assertions;
 
 import org.assertj.core.api.AbstractAssert;
 import org.assertj.core.api.Assertions;
 import org.bson.BsonDocument;
 import org.bson.conversions.Bson;
+import org.eclipse.ditto.services.utils.persistence.mongo.BsonUtil;
 
 /**
  * Assertion methods for {@link Bson}.

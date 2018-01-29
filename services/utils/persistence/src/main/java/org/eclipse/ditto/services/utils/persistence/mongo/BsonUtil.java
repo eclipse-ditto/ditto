@@ -9,13 +9,14 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package org.eclipse.ditto.services.thingsearch.persistence;
+package org.eclipse.ditto.services.utils.persistence.mongo;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
@@ -35,7 +36,9 @@ import com.mongodb.async.client.MongoClientSettings;
 @Immutable
 public final class BsonUtil {
 
-    static final CodecRegistry CODEC_REGISTRY = MongoClientSettings.builder().build().getCodecRegistry();
+    private static final String NULL_STRING = Objects.toString(null);
+
+    private static final CodecRegistry CODEC_REGISTRY = MongoClientSettings.builder().build().getCodecRegistry();
 
     private BsonUtil() {
         throw new AssertionError();
@@ -51,6 +54,21 @@ public final class BsonUtil {
     public static BsonDocument toBsonDocument(final Bson bsonObj) {
         checkNotNull(bsonObj, "BSON object to be converted");
         return bsonObj.toBsonDocument(BsonDocument.class, CODEC_REGISTRY);
+    }
+
+    /**
+     * Converts the given {@link Bson} object to a {@link BsonDocument}, if it is not {@code null}. Returns {@code
+     * null} otherwise.
+     *
+     * @param bsonObj the Bson object or {@code null}.
+     * @return the Bson document or {@code null}.
+     */
+    public static @Nullable BsonDocument toBsonDocumentOrNull(@Nullable final Bson bsonObj) {
+        if (bsonObj == null) {
+            return null;
+        }
+
+        return toBsonDocument(bsonObj);
     }
 
     /**
@@ -126,13 +144,32 @@ public final class BsonUtil {
     /**
      * Pretty-prints Bson objects.
      *
-     * @param bsons Bson objects to be printed.
-     * @return String representation of the Bson.
+     * @param bsons Bson objects to be printed, may be {@code null}.
+     * @return String representation of the Bson objects.
      */
-    public static String prettyPrintPipeline(final Collection<Bson> bsons) {
+    public static String prettyPrint(@Nullable final Collection<Bson> bsons) {
+        if (bsons == null) {
+            return NULL_STRING;
+        }
+
         return "[" + bsons.stream()
-                .map(bson -> BsonUtil.toBsonDocument(bson).toJson())
+                .map(BsonUtil::prettyPrint)
                 .collect(Collectors.joining(",\n")) + "]";
     }
+
+    /**
+     * Pretty-prints a Bson object.
+     *
+     * @param bson Bson object to be printed, may be {@code null}.
+     * @return String representation of the Bson.
+     */
+    public static String prettyPrint(@Nullable final Bson bson) {
+        if (bson == null) {
+            return NULL_STRING;
+        }
+
+        return toBsonDocument(bson).toJson();
+    }
+
 
 }
