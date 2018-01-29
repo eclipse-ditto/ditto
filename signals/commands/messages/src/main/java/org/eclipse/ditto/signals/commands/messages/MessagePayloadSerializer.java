@@ -64,17 +64,17 @@ public class MessagePayloadSerializer {
         }
     }
 
-    static <T> void deserialize(final Optional<JsonValue> messagePayloadOptional,
-            final MessageBuilder<T> messageBuilder, final String contentType) {
+    static void deserialize(final Optional<JsonValue> messagePayloadOptional,
+            final MessageBuilder messageBuilder, final String contentType) {
         if (messagePayloadOptional.isPresent()) {
             final JsonValue payload = messagePayloadOptional.get();
-            final String payloadStr = payload.isString()
-                    ? payload.asString()
-                    : payload.toString();
-            final byte[] payloadBytes = payloadStr.getBytes(StandardCharsets.UTF_8);
             if (shouldBeInterpretedAsText(contentType)) {
-                messageBuilder.rawPayload(ByteBuffer.wrap(payloadBytes));
+                messageBuilder.payload(payload.isString() ? payload.asString() : payload);
             } else {
+                final String payloadStr = payload.isString()
+                        ? payload.asString()
+                        : payload.toString();
+                final byte[] payloadBytes = payloadStr.getBytes(StandardCharsets.UTF_8);
                 messageBuilder.rawPayload(ByteBuffer.wrap(BASE64_DECODER.decode(payloadBytes)));
             }
         }
