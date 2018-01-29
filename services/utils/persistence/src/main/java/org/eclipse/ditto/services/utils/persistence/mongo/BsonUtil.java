@@ -86,20 +86,24 @@ public final class BsonUtil {
     }
 
     /**
-     * Returns the value to which the specified key is mapped, or {@code null} if this map contains no mapping for
-     * the key. The value is cast to type {@code <T>}.
+     * Returns the value to which the specified key is mapped. The value is cast to type {@code <T>}.
      *
-     * @param document the document whose value is requested.
-     * @param key the key which holds the value.
+     * @param document the document whose value is requested
+     * @param key the key which holds the value
+     * @param clazz the class to cast the value to
      * @param <T> the type to which the value will be cast.
-     * @return the value or {@code null}.
-     * @throws ClassCastException if the value has not the expected type.
+     * @return the value.
+     * @throws ClassCastException if the value has not the expected type
+     * @throws NullPointerException if this document contains no mapping for the key
      *
      * @see Document#get(Object)
      */
-    public static <T> T getDocumentValueAt(final Document document, final String key) {
+    public static <T> T getRequiredDocumentValueAt(final Document document, final String key, final Class<T> clazz) {
         @SuppressWarnings("unchecked")
-        final T value = (T) document.get(key);
+        final T value = document.get(key, clazz);
+        if (value == null) {
+            throw new NullPointerException("Key not found: " + key);
+        }
         return value;
     }
 
