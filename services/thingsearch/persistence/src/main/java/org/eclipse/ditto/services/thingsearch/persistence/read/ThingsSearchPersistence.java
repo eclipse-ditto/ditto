@@ -31,7 +31,7 @@ public interface ThingsSearchPersistence {
      *
      * @return a {@link CompletionStage} which can be either used for blocking or non-blocking initialization.
      */
-    CompletionStage<Void> initIndices();
+    CompletionStage<Void> initializeIndices();
 
     /**
      * Returns the count of documents found by the given {@code policyRestrictedSearchAggregation}.

@@ -114,7 +114,7 @@ public abstract class AbstractThingSearchPersistenceITBase {
                 new MongoThingsSearchPersistence(provideClientWrapper(), actorSystem);
         try {
             // explicitly trigger CompletableFuture to make sure that indices are created before test runs
-            mongoThingsSearchPersistence.initIndices().toCompletableFuture().get();
+            mongoThingsSearchPersistence.initializeIndices().toCompletableFuture().get();
         } catch (final InterruptedException | ExecutionException e) {
             throw new IllegalStateException(e);
         }

@@ -142,7 +142,10 @@ public final class SearchRootActor extends AbstractActor {
         final ThingsSearchPersistence searchPersistence =
                 new MongoThingsSearchPersistence(mongoClientWrapper, getContext().system());
 
-        searchPersistence.initIndices();
+        final boolean indexInitializationEnabled = config.getBoolean(ConfigKeys.INDEX_INITIALIZATION_ENABLED);
+        if (indexInitializationEnabled) {
+            searchPersistence.initializeIndices();
+        }
 
         final CriteriaFactory criteriaFactory = new CriteriaFactoryImpl();
         final ThingsFieldExpressionFactory fieldExpressionFactory = new ThingsFieldExpressionFactoryImpl();
