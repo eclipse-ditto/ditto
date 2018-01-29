@@ -210,7 +210,7 @@ Delete the Definition of a Feature (identified by the `<featureId>` in the `path
 | **status** | _code_ |                          | 
 |            | `204`  | Success - the Definition was deleted successfully.       |
 |            | `403`  | Not Modifiable - The Definition could not be deleted as the requester had insufficient permissions ('WRITE' is required).  |
-|            | `404`  | Not Found - The Definition was not found or requester had insufficient permissions.  |
+|            | `404`  | Not Found - The Thing, Feature or Definition was not found or requester had insufficient permissions.  |
 |            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
 
 ### Event
