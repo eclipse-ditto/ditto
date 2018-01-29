@@ -123,15 +123,14 @@ public final class BsonUtil {
      * @param clazz the class to cast the value to
      * @param defaultValue the default value
      * @param <T> the type to which the value will be cast.
-     * @param <S> the type of the default value, must be a subtype of {@code <T>}.
      * @return the value.
      * @throws ClassCastException if the value has not the expected type
      * @throws NullPointerException if this document contains no mapping for the key
      *
      * @see Document#get(Object)
      */
-    public static <T, S extends T> T getDocumentWithDefaultAt(final Document document, final String key, final Class<T>
-            clazz, final S defaultValue) {
+    public static <T> T getDocumentWithDefaultAt(final Document document, final String key, final Class<T>
+            clazz, final T defaultValue) {
         final T value = getDocumentValueOrNullAt(document, key, clazz);
         if (value == null) {
             return defaultValue;
