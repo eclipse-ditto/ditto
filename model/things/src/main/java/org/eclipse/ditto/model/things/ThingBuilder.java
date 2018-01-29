@@ -242,7 +242,7 @@ public interface ThingBuilder {
          * same ID is replaced.
          *
          * @param featureId the ID of the Feature to be set.
-         * @param featureDefinition the Definition of the Feature to be set.
+         * @param featureDefinition the definition of the Feature to be set.
          * @param featureProperties the properties of the Feature to be set.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if {@code featureId} is {@code null}.
@@ -272,20 +272,20 @@ public interface ThingBuilder {
         FromScratch removeFeature(String featureId);
 
         /**
-         * Sets the given Definition to the Feature with the given ID on this builder. If this builder does not yet
+         * Sets the given definition to the Feature with the given ID on this builder. If this builder does not yet
          * know a Feature with the given ID it creates one.
          *
          * @param featureId the ID of the Feature to be set.
-         * @param featureDefinition the Definition of the Feature to be set.
+         * @param featureDefinition the definition of the Feature to be set.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if any argument is {@code null}.
          */
         FromScratch setFeatureDefinition(String featureId, FeatureDefinition featureDefinition);
 
         /**
-         * Removes the Definition from Feature with the given identifier on this builder.
+         * Removes the definition from Feature with the given identifier on this builder.
          *
-         * @param featureId the ID of the Feature from which the Definition is to be deleted.
+         * @param featureId the ID of the Feature from which the definition is to be deleted.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if {@code featureId} is {@code null}.
          */
@@ -916,7 +916,7 @@ public interface ThingBuilder {
          * same ID is replaced.
          *
          * @param featureId the ID of the Feature to be set.
-         * @param featureDefinition the Definition of the Feature to be set.
+         * @param featureDefinition the definition of the Feature to be set.
          * @param featureProperties the properties of the Feature to be set.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if {@code featureId} is {@code null}.
@@ -934,19 +934,21 @@ public interface ThingBuilder {
          * @param existingFeaturesPredicate a predicate to decide whether the given features are set. The predicate
          * receives the currently set features.
          * @param featureId the ID of the Feature to be set.
-         * @param featureDefinition the Definition of the Feature to be set.
+         * @param featureDefinition the definition of the Feature to be set.
          * @param featureProperties the properties of the Feature to be set.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if any argument is {@code null}.
          */
-        FromCopy setFeature(Predicate<Features> existingFeaturesPredicate, String featureId,
-                FeatureDefinition featureDefinition, FeatureProperties featureProperties);
+        FromCopy setFeature(Predicate<Features> existingFeaturesPredicate,
+                String featureId,
+                FeatureDefinition featureDefinition,
+                FeatureProperties featureProperties);
 
         /**
-         * Sets the given Definition to the Feature with the given ID on this builder.
+         * Sets the given definition to the Feature with the given ID on this builder.
          *
          * @param featureId the ID of the Feature to be set.
-         * @param featureDefinition the Definition of the Feature to be set.
+         * @param featureDefinition the definition of the Feature to be set.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if any argument is {@code null}.
          */
@@ -955,12 +957,12 @@ public interface ThingBuilder {
         }
 
         /**
-         * Sets the given Definition to the Feature with the given ID on this builder.
+         * Sets the given definition to the Feature with the given ID on this builder.
          *
-         * @param existingFeaturesPredicate a predicate to decide whether the given Definition is set. The predicate
+         * @param existingFeaturesPredicate a predicate to decide whether the given definition is set. The predicate
          * receives the currently set features.
          * @param featureId the ID of the Feature to be set.
-         * @param featureDefinition the Definition of the Feature to be set.
+         * @param featureDefinition the definition of the Feature to be set.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if any argument is {@code null}.
          */
@@ -968,9 +970,9 @@ public interface ThingBuilder {
                 FeatureDefinition featureDefinition);
 
         /**
-         * Removes the Definition from Feature with the given identifier on this builder.
+         * Removes the definition from Feature with the given identifier on this builder.
          *
-         * @param featureId the ID of the Feature from which the Definition is to be deleted.
+         * @param featureId the ID of the Feature from which the definition is to be deleted.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if {@code featureId} is {@code null}.
          */
