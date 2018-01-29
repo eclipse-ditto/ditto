@@ -1,3 +1,4 @@
+
 # Copyright (c) 2017 Bosch Software Innovations GmbH.
 #
 # All rights reserved. This program and the accompanying materials
@@ -931,7 +932,7 @@ paths:
       parameters:
         - $ref: '#/parameters/thingIdPathParam'
         - $ref: '#/parameters/featureIdPathPathParam'
-        - name: definitionArray
+        - name: definition
           in: body
           description: >-
             JSON array of the complete Definition to be updated. Consider that
@@ -967,9 +968,8 @@ paths:
             $ref: '#/definitions/AdvancedError'
         '403':
           description: |-
-            The request could not be completed. Either
-              * as the caller had insufficient permissions.
-                For modifying the Definition of an existing Feature `WRITE` permission is required.
+            The request could not be completed as the caller had insufficient permissions.
+            For modifying the Definition of an existing Feature `WRITE` permission is required.
           schema:
             $ref: '#/definitions/AdvancedError'
         '404':
@@ -1005,9 +1005,8 @@ paths:
             $ref: '#/definitions/AdvancedError'
         '403':
           description: |-
-            The request could not be completed. Either
-              * as the caller had insufficient permissions.
-                For deleting the Definition of an existing Feature `WRITE` permission is required.
+            The request could not be completed as the caller had insufficient permissions.
+            For deleting the Definition of an existing Feature `WRITE` permission is required.
           schema:
             $ref: '#/definitions/AdvancedError'
         '404':
