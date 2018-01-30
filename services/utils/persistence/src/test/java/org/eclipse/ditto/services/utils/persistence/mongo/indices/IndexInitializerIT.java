@@ -151,6 +151,16 @@ public final class IndexInitializerIT {
     }
 
     @Test
+    public void initializeSucceedsWhenNoIndicesAreDefined() {
+        final String collectionName = "noIndicesAreDefined";
+        final List<Index> noIndices = Collections.emptyList();
+
+        initialize(collectionName, noIndices);
+
+        assertIndices(collectionName, noIndices);
+    }
+
+    @Test
     public void initializeSucceedsWhenIndexWithDifferentIndexOrderIsCreated() {
         final String collectionName = "differentIndexOrder";
         final List<Index> indices = Collections.singletonList(INDEX_FOO);

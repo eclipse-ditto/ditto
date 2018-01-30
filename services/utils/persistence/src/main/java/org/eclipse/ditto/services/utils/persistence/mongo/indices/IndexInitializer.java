@@ -16,6 +16,7 @@ import static java.util.Objects.requireNonNull;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 
@@ -73,6 +74,9 @@ public final class IndexInitializer {
      * exception.
      */
     public CompletionStage<Void> initialize(final String collectionName, final List<Index> indices) {
+        requireNonNull(collectionName);
+        requireNonNull(indices);
+
         LOGGER.info("Starting index-initialization with defined indices: {}", indices);
         return createNonExistingIndices(collectionName, indices)
                 .thenCompose(done -> dropUndefinedIndices(collectionName, indices))
@@ -84,6 +88,10 @@ public final class IndexInitializer {
 
     private CompletionStage<Done> createNonExistingIndices(final String collectionName,
             final List<Index> indices) {
+        if (indices.isEmpty()) {
+            LOGGER.warn("No indices are defined, thus no indices are created.");
+            return CompletableFuture.completedFuture(Done.getInstance());
+        }
         return indexOperations.getIndicesExceptDefaultIndex(collectionName)
                 .flatMapConcat(
                         existingIndices -> {
