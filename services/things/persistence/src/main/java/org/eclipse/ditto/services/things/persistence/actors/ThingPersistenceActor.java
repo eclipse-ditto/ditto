@@ -182,8 +182,6 @@ import akka.japi.Creator;
 import akka.japi.pf.FI;
 import akka.japi.pf.ReceiveBuilder;
 import akka.persistence.AbstractPersistentActor;
-import akka.persistence.DeleteMessagesFailure;
-import akka.persistence.DeleteMessagesSuccess;
 import akka.persistence.RecoveryCompleted;
 import akka.persistence.SnapshotOffer;
 import scala.concurrent.duration.Duration;
@@ -208,6 +206,9 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
      * The ID of the snapshot plugin this persistence actor uses.
      */
     public static final String SNAPSHOT_PLUGIN_ID = "akka-contrib-mongodb-persistence-things-snapshots";
+
+    private static final String UNHANDLED_MESSAGE_TEMPLATE =
+            "This Thing Actor did not handle the requested Thing with ID ''{0}''!";
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
@@ -569,10 +570,10 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     @Override
     public Receive createReceive() {
-      /*
-       * First no Thing for the ID exists at all. Thus the only command this Actor reacts to is CreateThing.
-       * This behaviour changes as soon as a Thing was created.
-       */
+        /*
+         * First no Thing for the ID exists at all. Thus the only command this Actor reacts to is CreateThing.
+         * This behaviour changes as soon as a Thing was created.
+         */
         return new StrategyAwareReceiveBuilder()
                 .match(new CreateThingStrategy())
                 .matchAny(new MatchAnyDuringInitializeStrategy())
@@ -720,10 +721,10 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         getContext().become(receive, true);
         getContext().getParent().tell(new ThingSupervisorActor.ManualReset(), getSelf());
 
-      /* check in the next X minutes and therefore
-       * - stay in-memory for a short amount of minutes after deletion
-       * - get a Snapshot when removed from memory
-       */
+        /* check in the next X minutes and therefore
+         * - stay in-memory for a short amount of minutes after deletion
+         * - get a Snapshot when removed from memory
+         */
         scheduleCheckForThingActivity(activityCheckDeletedInterval.getSeconds());
         thingSnapshotter.stopMaintenanceSnapshots();
     }
@@ -827,9 +828,9 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
     }
 
     private void loadSnapshot(final RetrieveThing command, final long snapshotRevision, final ActorRef sender) {
-        thingSnapshotter.loadSnapshot(snapshotRevision).thenAccept(thing -> {
-            if (thing.isPresent()) {
-                respondWithLoadSnapshotResult(command, sender, thing.get());
+        thingSnapshotter.loadSnapshot(snapshotRevision).thenAccept(snapshotThing -> {
+            if (snapshotThing.isPresent()) {
+                respondWithLoadSnapshotResult(command, sender, snapshotThing.get());
             } else {
                 respondWithNotAccessibleException(command, sender);
             }
@@ -847,9 +848,9 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
     }
 
     private void respondWithNotAccessibleException(final RetrieveThing command, final ActorRef sender) {
-        final String thingId = command.getThingId();
+        final String commandThingId = command.getThingId();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
-        final ThingNotAccessibleException exception = ThingNotAccessibleException.newBuilder(thingId).build();
+        final ThingNotAccessibleException exception = ThingNotAccessibleException.newBuilder(commandThingId).build();
 
         // reset command headers so that correlationId etc. are preserved
         final DittoRuntimeException withDittoHeaders = exception.setDittoHeaders(dittoHeaders);
@@ -1158,8 +1159,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         @Override
         public FI.UnitApply<CreateThing> getUnhandledFunction() {
             return command -> {
-                final String msgTemplate = "This Thing Actor did not handle the requested Thing with ID ''{0}''!";
-                throw new IllegalArgumentException(MessageFormat.format(msgTemplate, command.getId()));
+                throw new IllegalArgumentException(MessageFormat.format(UNHANDLED_MESSAGE_TEMPLATE, command.getId()));
             };
         }
     }
@@ -1193,8 +1193,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         @Override
         public FI.UnitApply<CreateThing> getUnhandledFunction() {
             return command -> {
-                final String msgTemplate = "This Thing Actor did not handle the requested Thing with ID ''{0}''!";
-                throw new IllegalArgumentException(MessageFormat.format(msgTemplate, command.getId()));
+                throw new IllegalArgumentException(MessageFormat.format(UNHANDLED_MESSAGE_TEMPLATE, command.getId()));
             };
         }
     }
@@ -2241,8 +2240,8 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                     final JsonPointer propertyJsonPointer = command.getPropertyPointer();
                     final Feature feature = featureOptional.get();
                     final boolean containsProperty = feature.getProperties()
-                             .filter(featureProperties -> featureProperties.contains(propertyJsonPointer))
-                             .isPresent();
+                            .filter(featureProperties -> featureProperties.contains(propertyJsonPointer))
+                            .isPresent();
 
                     if (containsProperty) {
                         final FeaturePropertyDeleted propertyDeleted = FeaturePropertyDeleted.of(command.getThingId(),
@@ -2339,48 +2338,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
             } else {
                 featureNotFound(command.getFeatureId(), command.getDittoHeaders());
             }
-        }
-    }
-
-    /**
-     * This strategy handles the success of deleting messages by logging an info.
-     */
-    @NotThreadSafe
-    private final class DeleteMessagesSuccessStrategy extends AbstractReceiveStrategy<DeleteMessagesSuccess> {
-
-        /**
-         * Constructs a new {@code DeleteMessagesSuccessStrategy} object.
-         */
-        public DeleteMessagesSuccessStrategy() {
-            super(DeleteMessagesSuccess.class, log);
-        }
-
-        @Override
-        protected void doApply(final DeleteMessagesSuccess message) {
-            log.debug("Deleting messages up to seqNr '{}' for Thing '{}' was successful. " +
-                            "The current seqNr is '{}'.",
-                    message.toSequenceNr(), thingId, getRevisionNumber());
-        }
-    }
-
-    /**
-     * This strategy handles the failure of deleting messages by logging an error.
-     */
-    @NotThreadSafe
-    private final class DeleteMessagesFailureStrategy extends AbstractReceiveStrategy<DeleteMessagesFailure> {
-
-        /**
-         * Constructs a new {@code DeleteMessagesFailureStrategy} object.
-         */
-        public DeleteMessagesFailureStrategy() {
-            super(DeleteMessagesFailure.class, log);
-        }
-
-        @Override
-        protected void doApply(final DeleteMessagesFailure message) {
-            final Throwable cause = message.cause();
-            log.error(cause, "Deleting messages up to seqNo '{}' for Thing '{}' failed. Cause {}: {}", thingId,
-                    message.toSequenceNr(), cause.getClass().getSimpleName(), cause.getMessage());
         }
     }
 
@@ -2505,9 +2462,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
     @NotThreadSafe
     abstract class AbstractThingCommandStrategy<T extends Command> extends AbstractReceiveStrategy<T> {
 
-        private static final String UNHANDLED_MESSAGE_TEMPLATE =
-                "This Thing Actor did not handle the requested Thing with ID ''{0}''!";
-
         /**
          * Constructs a new {@code AbstractThingCommandStrategy} object.
          *
@@ -2523,7 +2477,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         @Override
         public FI.TypedPredicate<T> getPredicate() {
             return command -> null != thing && thing.getId()
-                    .filter(thingId -> Objects.equals(thingId, command.getId()))
+                    .filter(id -> Objects.equals(id, command.getId()))
                     .isPresent();
         }
 
