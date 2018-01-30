@@ -46,6 +46,7 @@ import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Permission;
+import org.eclipse.ditto.model.things.PolicyIdMissingException;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
 import org.eclipse.ditto.model.things.ThingLifecycle;
@@ -1215,10 +1216,10 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         public FI.UnitApply<ModifyThing> getApplyFunction() {
             return command -> {
                 if (JsonSchemaVersion.V_1.equals(command.getImplementedSchemaVersion())) {
-                    handleModifyExistingV1(command);
+                    handleModifyExistingWithV1Command(command);
                 } else {
                     // from V2 upwards, use this logic:
-                    handleModifyExistingV2(command);
+                    handleModifyExistingWithV2Command(command);
                 }
             };
         }
@@ -1232,7 +1233,15 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                     event -> notifySender(ModifyThingResponse.modified(thingId, dittoHeaders)));
         }
 
-        private void handleModifyExistingV1(final ModifyThing command) {
+        private void handleModifyExistingWithV1Command(final ModifyThing command) {
+            if (JsonSchemaVersion.V_1.equals(thing.getImplementedSchemaVersion())) {
+                handleModifyExistingV1WithV1Command(command);
+            } else {
+                handleModifyExistingV2WithV1Command(command);
+            }
+        }
+
+        private void handleModifyExistingV1WithV1Command(final ModifyThing command) {
             // if the ACL was modified together with the Thing, an additional check is necessary
             final boolean isCommandAclEmpty = command.getThing()
                     .getAccessControlList()
@@ -1250,31 +1259,89 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                                     .setPermissions(existingAccessControlList.get())
                                     .build();
                     final ThingModified thingModified =
-                            ThingModified.of(modifiedThingWithOldAcl, nextRevision(), eventTimestamp(),
-                                    dittoHeaders);
+                            ThingModified.of(modifiedThingWithOldAcl, nextRevision(), eventTimestamp(), dittoHeaders);
                     persistAndApplyEvent(command, thingModified,
                             event -> notifySender(ModifyThingResponse.modified(thingId, dittoHeaders)));
                 } else {
-                    // Thing was created in >= V2 and thus has no ACL
+                    log.error("Thing <{}> has no ACL entries even though it is of schema version 1. " +
+                            "Persisting the event nevertheless to not block the user because of an " +
+                            "unknown internal state.", thingId);
                     final ThingModified thingModified =
-                            ThingModified.of(command.getThing(), nextRevision(), eventTimestamp(),
-                                    dittoHeaders);
+                            ThingModified.of(command.getThing(), nextRevision(), eventTimestamp(), dittoHeaders);
                     persistAndApplyEvent(command, thingModified,
                             event -> notifySender(ModifyThingResponse.modified(thingId, dittoHeaders)));
                 }
             }
         }
 
-        private void handleModifyExistingV2(final ModifyThing command) {
-            final Thing commandThing = command.getThing();
-            final DittoHeaders dittoHeaders = command.getDittoHeaders();
+        private void handleModifyExistingV2WithV1Command(final ModifyThing command) {
+            // remove any acl information from command and add the current policy Id
+            final Thing thingWithoutAcl = removeACL(copyPolicyId(thing, command.getThing()));
+            final ThingModified thingModified =
+                    ThingModified.of(thingWithoutAcl, nextRevision(), eventTimestamp(), command.getDittoHeaders());
+            persistAndApplyEvent(command, thingModified,
+                    event -> notifySender(ModifyThingResponse.modified(thingId, command.getDittoHeaders())));
+        }
 
-            if (commandThing.getAccessControlList().isPresent()) {
-                notifySender(getSender(),
-                        AclNotAllowedException.newBuilder(thingId).dittoHeaders(dittoHeaders).build());
+        private void handleModifyExistingWithV2Command(final ModifyThing command) {
+            if (JsonSchemaVersion.V_1.equals(thing.getImplementedSchemaVersion())) {
+                handleModifyExistingV1WithV2Command(command);
             } else {
-                doApply(command);
+                handleModifyExistingV2WithV2Command(command);
             }
+        }
+
+        /**
+         * Handles a {@link org.eclipse.ditto.signals.commands.things.modify.ModifyThing} command that was sent
+         * via API v2 and targets a Thing with API version V1.
+         */
+        private void handleModifyExistingV1WithV2Command(final ModifyThing command) {
+            if (containsPolicy(command)) {
+                doApply(command);
+            } else {
+                notifySender(getSender(), PolicyIdMissingException.fromThingId(thingId, command.getDittoHeaders()));
+            }
+        }
+
+        /**
+         * Handles a {@link org.eclipse.ditto.signals.commands.things.modify.ModifyThing} command that was sent
+         * via API v2 and targets a Thing with API version V2.
+         */
+        private void handleModifyExistingV2WithV2Command(final ModifyThing command) {
+            // ensure the Thing contains a policy
+            final Thing thingWithPolicyId =
+                    containsPolicyId(command) ? command.getThing() : copyPolicyId(thing, command.getThing());
+            doApply(ModifyThing.of(command.getThingId(),
+                    thingWithPolicyId,
+                    null,
+                    command.getDittoHeaders()));
+        }
+
+        private boolean containsPolicy(final ModifyThing command) {
+            return containsInitialPolicy(command) || containsPolicyId(command);
+        }
+
+        private boolean containsInitialPolicy(final ModifyThing command) {
+            return command.getInitialPolicy().isPresent();
+        }
+
+        private boolean containsPolicyId(final ModifyThing command) {
+            return command.getThing().getPolicyId().isPresent();
+        }
+
+        private Thing copyPolicyId(final Thing from, final Thing to) {
+            return to.toBuilder()
+                    .setPolicyId(from.getPolicyId().orElseGet(() -> {
+                        log.error("Thing <{}> is schema version 2 and should therefore contain a policyId", thingId);
+                        return null;
+                    }))
+                    .build();
+        }
+
+        private Thing removeACL(final Thing thing) {
+            return thing.toBuilder()
+                    .removeAllPermissions()
+                    .build();
         }
 
         @Override
