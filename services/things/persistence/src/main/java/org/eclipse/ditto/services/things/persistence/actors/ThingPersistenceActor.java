@@ -115,7 +115,6 @@ import org.eclipse.ditto.signals.commands.things.modify.ModifyPolicyId;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyPolicyIdResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThingResponse;
-import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommandResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAcl;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAclEntry;
@@ -742,14 +741,13 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         return result;
     }
 
-    private <A extends ThingModifiedEvent> void persistAndApplyEvent(final ThingModifyCommand<?> sourceCommand,
-            final A event, final Consumer<A> handler) {
+    private <A extends ThingModifiedEvent> void persistAndApplyEvent(final A event, final Consumer<A> handler) {
         if (event.getDittoHeaders().isDryRun()) {
             handler.accept(event);
         } else {
             persistEvent(event, persistedEvent -> {
                 // after the event was persisted, apply the event on the current actor state
-                applyEvent(sourceCommand, persistedEvent);
+                applyEvent(persistedEvent);
 
                 handler.accept(persistedEvent);
             });
@@ -786,14 +784,13 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         }
     }
 
-    private <A extends ThingModifiedEvent> void applyEvent(final ThingModifyCommand<?> sourceCommand, final A event) {
+    private <A extends ThingModifiedEvent> void applyEvent(final A event) {
         handleThingEvents.onMessage().apply(event);
-        modifyCacheEntry(sourceCommand, event);
+        modifyCacheEntry(event);
         notifySubscribers(event);
     }
 
-    private <A extends ThingModifiedEvent> void modifyCacheEntry(final ThingModifyCommand<?> sourceCommand,
-            final A event) {
+    private <A extends ThingModifiedEvent> void modifyCacheEntry(final A event) {
         // don't modify cache entry for "ThingDeleted" event as in gateway we still need to dispatch the event on the
         // ACL of the deleted Thing
         if (event instanceof ThingDeleted) {
@@ -1143,7 +1140,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                                 commandHeaders);
             }
 
-            persistAndApplyEvent(command, thingCreated, event -> {
+            persistAndApplyEvent(thingCreated, event -> {
                 notifySender(CreateThingResponse.of(thing, thingCreated.getDittoHeaders()));
                 log.debug("Created new Thing with ID '{}'.", thingId);
                 becomeThingCreatedHandler();
@@ -1228,7 +1225,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
             final DittoHeaders dittoHeaders = command.getDittoHeaders();
             final ThingModified thingModified = ThingModified.of(command.getThing(), nextRevision(), eventTimestamp(),
                     dittoHeaders);
-            persistAndApplyEvent(command, thingModified,
+            persistAndApplyEvent(thingModified,
                     event -> notifySender(ModifyThingResponse.modified(thingId, dittoHeaders)));
         }
 
@@ -1259,7 +1256,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                                     .build();
                     final ThingModified thingModified =
                             ThingModified.of(modifiedThingWithOldAcl, nextRevision(), eventTimestamp(), dittoHeaders);
-                    persistAndApplyEvent(command, thingModified,
+                    persistAndApplyEvent(thingModified,
                             event -> notifySender(ModifyThingResponse.modified(thingId, dittoHeaders)));
                 } else {
                     log.error("Thing <{}> has no ACL entries even though it is of schema version 1. " +
@@ -1267,7 +1264,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                             "unknown internal state.", thingId);
                     final ThingModified thingModified =
                             ThingModified.of(command.getThing(), nextRevision(), eventTimestamp(), dittoHeaders);
-                    persistAndApplyEvent(command, thingModified,
+                    persistAndApplyEvent(thingModified,
                             event -> notifySender(ModifyThingResponse.modified(thingId, dittoHeaders)));
                 }
             }
@@ -1278,7 +1275,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
             final Thing thingWithoutAcl = removeACL(copyPolicyId(thing, command.getThing()));
             final ThingModified thingModified =
                     ThingModified.of(thingWithoutAcl, nextRevision(), eventTimestamp(), command.getDittoHeaders());
-            persistAndApplyEvent(command, thingModified,
+            persistAndApplyEvent(thingModified,
                     event -> notifySender(ModifyThingResponse.modified(thingId, command.getDittoHeaders())));
         }
 
@@ -1456,7 +1453,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                     ThingDeleted.of(thingId, nextRevision(), eventTimestamp(),
                             dittoHeaders);
 
-            persistAndApplyEvent(command, thingDeleted, event -> {
+            persistAndApplyEvent(thingDeleted, event -> {
                 notifySender(DeleteThingResponse.of(thingId, dittoHeaders));
                 log.info("Deleted Thing with ID '{}'.", thingId);
                 becomeThingDeletedHandler();
@@ -1518,7 +1515,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                 response = ModifyPolicyIdResponse.created(thingId, command.getPolicyId(), command.getDittoHeaders());
             }
 
-            persistAndApplyEvent(command, eventToPersist, event -> notifySender(response));
+            persistAndApplyEvent(eventToPersist, event -> notifySender(response));
         }
     }
 
@@ -1545,7 +1542,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                 final AclModified aclModified = AclModified.of(thingId, newAccessControlList, nextRevision(),
                         eventTimestamp(), dittoHeaders);
 
-                persistAndApplyEvent(command, aclModified, event -> notifySender(
+                persistAndApplyEvent(aclModified, event -> notifySender(
                         ModifyAclResponse.modified(thingId, newAccessControlList, command.getDittoHeaders())));
             } else {
                 aclInvalid(aclValidator.getReason(), dittoHeaders.getAuthorizationContext(), dittoHeaders);
@@ -1587,7 +1584,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                     response = ModifyAclEntryResponse.created(thingId, modifiedAclEntry, dittoHeaders);
                 }
 
-                persistAndApplyEvent(command, eventToPersist, event -> notifySender(response));
+                persistAndApplyEvent(eventToPersist, event -> notifySender(response));
             } else {
                 aclInvalid(aclValidator.getReason(), dittoHeaders.getAuthorizationContext(), dittoHeaders);
             }
@@ -1618,7 +1615,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                         AclValidator.newInstance(acl.removeAllPermissionsOf(authorizationSubject),
                                 Thing.MIN_REQUIRED_PERMISSIONS);
                 if (aclValidator.isValid()) {
-                    deleteAclEntry(command, authorizationSubject, dittoHeaders);
+                    deleteAclEntry(authorizationSubject, dittoHeaders);
                 } else {
                     aclInvalid(aclValidator.getReason(), dittoHeaders.getAuthorizationContext(), dittoHeaders);
                 }
@@ -1627,13 +1624,13 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
             }
         }
 
-        private void deleteAclEntry(final DeleteAclEntry command, final AuthorizationSubject authorizationSubject,
+        private void deleteAclEntry(final AuthorizationSubject authorizationSubject,
                 final DittoHeaders dittoHeaders) {
             final AclEntryDeleted aclEntryDeleted = AclEntryDeleted
                     .of(thingId, authorizationSubject, nextRevision(), eventTimestamp(),
                             dittoHeaders);
 
-            persistAndApplyEvent(command, aclEntryDeleted,
+            persistAndApplyEvent(aclEntryDeleted,
                     event -> notifySender(DeleteAclEntryResponse.of(thingId, authorizationSubject, dittoHeaders)));
         }
     }
@@ -1717,7 +1714,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                 response = ModifyAttributesResponse.created(thingId, command.getAttributes(), dittoHeaders);
             }
 
-            persistAndApplyEvent(command, eventToPersist, event -> notifySender(response));
+            persistAndApplyEvent(eventToPersist, event -> notifySender(response));
         }
     }
 
@@ -1754,7 +1751,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                 response = ModifyAttributeResponse.created(thingId, attributeJsonPointer, attributeValue, dittoHeaders);
             }
 
-            persistAndApplyEvent(command, eventToPersist, event -> notifySender(response));
+            persistAndApplyEvent(eventToPersist, event -> notifySender(response));
         }
     }
 
@@ -1778,7 +1775,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
             if (thing.getAttributes().isPresent()) {
                 final AttributesDeleted attributesDeleted = AttributesDeleted.of(command.getThingId(), nextRevision(),
                         eventTimestamp(), dittoHeaders);
-                persistAndApplyEvent(command, attributesDeleted,
+                persistAndApplyEvent(attributesDeleted,
                         event -> notifySender(DeleteAttributesResponse.of(thingId, dittoHeaders)));
             } else {
                 attributesNotFound(dittoHeaders);
@@ -1811,7 +1808,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                             attributeJsonPointer, nextRevision(), eventTimestamp(),
                             dittoHeaders);
 
-                    persistAndApplyEvent(command, attributeDeleted, event -> notifySender(
+                    persistAndApplyEvent(attributeDeleted, event -> notifySender(
                             DeleteAttributeResponse.of(thingId, attributeJsonPointer, dittoHeaders)));
                 } else {
                     attributeNotFound(attributeJsonPointer, command.getDittoHeaders());
@@ -1915,7 +1912,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                 response = ModifyFeaturesResponse.created(thingId, command.getFeatures(), dittoHeaders);
             }
 
-            persistAndApplyEvent(command, eventToPersist, event -> notifySender(response));
+            persistAndApplyEvent(eventToPersist, event -> notifySender(response));
         }
     }
 
@@ -1949,7 +1946,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                 response = ModifyFeatureResponse.created(thingId, command.getFeature(), dittoHeaders);
             }
 
-            persistAndApplyEvent(command, eventToPersist, event -> notifySender(response));
+            persistAndApplyEvent(eventToPersist, event -> notifySender(response));
         }
     }
 
@@ -1973,7 +1970,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                 final FeaturesDeleted featuresDeleted = FeaturesDeleted.of(thingId, nextRevision(),
                         eventTimestamp(), dittoHeaders);
 
-                persistAndApplyEvent(command, featuresDeleted,
+                persistAndApplyEvent(featuresDeleted,
                         event -> notifySender(DeleteFeaturesResponse.of(thingId, dittoHeaders)));
             } else {
                 featuresNotFound(command.getDittoHeaders());
@@ -2004,7 +2001,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
             if (featureIdOptional.isPresent()) {
                 final FeatureDeleted featureDeleted = FeatureDeleted.of(thingId, featureIdOptional.get(),
                         nextRevision(), eventTimestamp(), dittoHeaders);
-                persistAndApplyEvent(command, featureDeleted,
+                persistAndApplyEvent(featureDeleted,
                         event -> notifySender(DeleteFeatureResponse.of(thingId, command.getFeatureId(), dittoHeaders)));
             } else {
                 featureNotFound(command.getFeatureId(), dittoHeaders);
@@ -2111,7 +2108,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                                 command.getProperties(), dittoHeaders);
                     }
 
-                    persistAndApplyEvent(command, eventToPersist, event -> notifySender(response));
+                    persistAndApplyEvent(eventToPersist, event -> notifySender(response));
                 } else {
                     featureNotFound(command.getFeatureId(), command.getDittoHeaders());
                 }
@@ -2164,7 +2161,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                                 propertyValue, dittoHeaders);
                     }
 
-                    persistAndApplyEvent(command, eventToPersist, event -> notifySender(response));
+                    persistAndApplyEvent(eventToPersist, event -> notifySender(response));
                 } else {
                     featureNotFound(command.getFeatureId(), command.getDittoHeaders());
                 }
@@ -2200,7 +2197,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                         final FeaturePropertiesDeleted propertiesDeleted =
                                 FeaturePropertiesDeleted.of(command.getThingId(), command.getFeatureId(),
                                         nextRevision(), eventTimestamp(), dittoHeaders);
-                        persistAndApplyEvent(command, propertiesDeleted, event -> notifySender(
+                        persistAndApplyEvent(propertiesDeleted, event -> notifySender(
                                 DeleteFeaturePropertiesResponse.of(thingId, command.getFeatureId(), dittoHeaders)));
                     } else {
                         featurePropertiesNotFound(command.getFeatureId(), dittoHeaders);
@@ -2248,7 +2245,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                                 command.getFeatureId(), propertyJsonPointer, nextRevision(), eventTimestamp(),
                                 dittoHeaders);
 
-                        persistAndApplyEvent(command, propertyDeleted, event -> notifySender(
+                        persistAndApplyEvent(propertyDeleted, event -> notifySender(
                                 DeleteFeaturePropertyResponse.of(thingId, command.getFeatureId(), propertyJsonPointer,
                                         dittoHeaders)));
                     } else {
