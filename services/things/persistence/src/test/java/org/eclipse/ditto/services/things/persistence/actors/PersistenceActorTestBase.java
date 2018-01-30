@@ -130,10 +130,16 @@ public abstract class PersistenceActorTestBase {
     }
 
     protected ActorRef createPersistenceActorFor(final String thingId) {
-        return actorSystem.actorOf(getPropsOfThingPersistenceActor(thingId));
+        return createPersistenceActorWithPubSubFor(thingId, pubSubMediator);
+    }
+    protected ActorRef createPersistenceActorWithPubSubFor(final String thingId, final ActorRef pubSubMediator) {
+        return actorSystem.actorOf(getPropsOfThingPersistenceActor(thingId, pubSubMediator));
     }
 
     private Props getPropsOfThingPersistenceActor(final String thingId) {
+        return getPropsOfThingPersistenceActor(thingId, pubSubMediator);
+    }
+    private Props getPropsOfThingPersistenceActor(final String thingId, final ActorRef pubSubMediator) {
         return ThingPersistenceActor.props(thingId, pubSubMediator, thingCacheFacade);
     }
 
