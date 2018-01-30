@@ -28,10 +28,13 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.things.AccessControlList;
+import org.eclipse.ditto.model.things.AclNotAllowedException;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.signals.commands.things.exceptions.PolicyIdNotAllowedException;
 
 /**
  * This command modifies an existing Thing. It contains the full {@link Thing} including the Thing ID which should be
@@ -86,6 +89,8 @@ public final class ModifyThing extends AbstractCommand<ModifyThing> implements T
             final DittoHeaders dittoHeaders) {
         Objects.requireNonNull(thingId, "The Thing identifier must not be null!");
         Objects.requireNonNull(thing, "The modified Thing must not be null!");
+        ensureAuthorizationMatchesSchemaVersion(thingId, thing, initialPolicy,
+                dittoHeaders.getSchemaVersion().orElse(JsonSchemaVersion.LATEST));
         return new ModifyThing(thingId, thing, initialPolicy, dittoHeaders);
     }
 
@@ -129,6 +134,40 @@ public final class ModifyThing extends AbstractCommand<ModifyThing> implements T
 
             return of(thingId, extractedThing, initialPolicyObject, dittoHeaders);
         });
+    }
+
+    /**
+     * Ensures that the command will not contain inconsistent authorization information.
+     * <p>
+     * <ul>
+     * <li>{@link org.eclipse.ditto.model.base.json.JsonSchemaVersion#V_1} commands may not contain policy information.</li>
+     * <li>{@link org.eclipse.ditto.model.base.json.JsonSchemaVersion#LATEST} commands may not contain ACL information.</li>
+     * </ul>
+     */
+    private static void ensureAuthorizationMatchesSchemaVersion(final String thingId,
+            final Thing thing,
+            @Nullable final JsonObject initialPolicy,
+            final JsonSchemaVersion version) {
+        if (JsonSchemaVersion.V_1.equals(version)) {
+            // v1 commands may not contain policy information
+            final boolean containsPolicy = null != initialPolicy || thing.getPolicyId().isPresent();
+            if (containsPolicy) {
+                throw PolicyIdNotAllowedException
+                        .newBuilder(thingId)
+                        .build();
+            }
+        } else {
+            // v2 commands may not contain ACL information
+            final boolean isCommandAclEmpty = thing
+                    .getAccessControlList()
+                    .map(AccessControlList::isEmpty)
+                    .orElse(true);
+            if (!isCommandAclEmpty) {
+                throw AclNotAllowedException
+                        .newBuilder(thingId)
+                        .build();
+            }
+        }
     }
 
     /**
