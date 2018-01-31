@@ -26,6 +26,7 @@
 
     <modules>
         <module>util</module>
+        <module>mapping</module>
         <module>messaging</module>
         <module>starter</module>
     </modules>
