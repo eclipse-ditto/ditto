@@ -117,7 +117,7 @@
         }
 
         .footer {
-            font-size: 10px !Important;
+            font-size: 12px !Important;
             font-family: "News Cycle", Impact, sans-serif;
             color: #687175;
             position: absolute;
@@ -209,10 +209,10 @@
                 <!--<h3 style="text-align: left;">for IoT devices we need</h3>-->
                 <ul>
                     <li class="fragment"><b>APIs</b> optimized for the web</li>
-                    <li class="fragment">to <b>control</b> who has <b>access</b> to which aspects</li>
-                    <li class="fragment">to be able to <b>directly</b> communicate to devices <b>and</b> access <b>last known</b> state, set <b>desired</b> state</li>
-                    <li class="fragment">to be <b>notified</b> about changes/events</li>
-                    <li class="fragment">to be able to <b>enhance</b> their APIs with further functionality</li>
+                    <li class="fragment" style="margin-top: 0.5em;"><b>control</b> who has <b>access</b> to which aspects</li>
+                    <li class="fragment" style="margin-top: 0.5em;"><b>directly</b> communicate to devices <b>and</b> access <b>last known</b> state, set <b>desired</b> state</li>
+                    <li class="fragment" style="margin-top: 0.5em;">get <b>notified</b> about changes/events</li>
+                    <li class="fragment" style="margin-top: 0.5em;"><b>enhance</b> APIs with further functionality</li>
                 </ul>
             </section>
             <section id="motivation-2" style="clear: both;">
@@ -250,10 +250,7 @@
                 <br/>
                 <ul style="float:left; width: 52%;">
                     <li class="fragment" style="margin-top: 1em;">asset administration shell ("Verwaltungsschale")</li>
-                    <!--<br/>-->
-                    <!--<h4 class="fragment">meta modeling of assets</h4>-->
-                    <br/>
-                    <li class="fragment" style="margin-top: 1em;">holistic view of all capabilities (services) and aspects of an asset</li>
+                    <li class="fragment" style="margin-top: 2em;">holistic view of all capabilities (services) and aspects of an asset</li>
                 </ul>
                 <div style="float:right; width: 40%;">
                     <img src="asset-admin-shell.png" />
@@ -278,51 +275,49 @@
                 <img src="ditto-class-diagram-v1.png"/>
             </section>
             <section id="ditto-3">
-                <h2>features at a glance</h2>
+                <h2>functionals</h2>
                 <br/>
-                <ul>
+                <ul style="font-size: 90%">
                     <li class="fragment">resource-based <b>HTTP JSON API</b> representing devices</li>
-                    <li class="fragment" style="margin-top: 0.5em;">definition of a simple "Ditto <b>Protocol</b>"
-                        using <b>JSON</b> for command- and events-based interaction with devices
+                    <li class="fragment" style="margin-top: 0.5em;">definition of a "Ditto <b>Protocol</b>"
+                        using <b>JSON</b> for interaction with devices
                     </li>
-                    <li class="fragment" style="margin-top: 0.5em;"><b>Websocket API</b> based on this protocol in addition to the resource-based HTTP API
+                    <li class="fragment" style="margin-top: 0.5em;"><b>WebSocket API</b> based on this protocol</li>
+                    <li class="fragment" style="margin-top: 0.5em;">authorization/<b>access control</b> at APIs enforcing that only allowed individuals may read/write
                     </li>
+                    <li class="fragment" style="margin-top: 0.5em;">accessing and modifying <b>different perspectives</b> (live, twin)</li>
                 </ul>
             </section>
             <section id="ditto-4">
-                <h2>features at a glance</h2>
+                <h2>functionals ctd.</h2>
                 <br/>
-                <ul>
-                    <li class="fragment">optionally configure and enforce a <b>schema for devices</b> (via <b>Eclipse Vorto</b>)<b>*</b>
+                <ul style="font-size: 90%">
+                    <li class="fragment">optionally configure and enforce a <b>schema for devices</b><br/>(via <b>Eclipse Vorto</b>)
                     </li>
-                    <li class="fragment" style="margin-top: 0.5em;">accessing and modifying <b>different state perspectives</b> (live, twin)
+                    <li class="fragment" style="margin-top: 0.5em;"><b>notification about changes</b> of device resources via HTTP Server-sent events (SSE) and WebSocket
                     </li>
-                    <li class="fragment" style="margin-top: 0.5em;"><b>notification about changes</b> of device resources via HTTP Server-sent events (SSE) and Websocket
+                    <li class="fragment" style="margin-top: 0.5em;"><b>search</b> API accepting predicate-based query language</li>
+                    <li class="fragment" style="margin-top: 0.5em;"><b>message routing</b> between connected WebSockets</li>
+                    <li class="fragment" style="margin-top: 0.5em;">integration with <b>Eclipse Hono</b> for consuming telemetry
                     </li>
                 </ul>
-                <br/>
-                <br/>
-                <small style="float: right;"><b>*</b> concept + generator done, implementation not yet started</small>
             </section>
-            <section id="ditto-5">
-                <h2>features at a glance</h2>
-                <br/>
-                <ul>
-                    <li class="fragment">authorization/<b>access control</b> at APIs enforcing that only allowed individuals may read/write
-                    </li>
-                    <li class="fragment" style="margin-top: 0.5em;"><b>search</b> HTTP API accepting predicate-based query language
-                    </li>
-                    <li class="fragment" style="margin-top: 0.5em;">out-of-box integration with <b>Eclipse Hono</b> for communication with devices
-                    </li>
-                    <li class="fragment" style="margin-top: 0.5em;">TODO: message routing between connected WebSockets</li>
-                </ul>
-                <br/>
-                <br/>
-            </section>
-            <section id="ditto-6" style="clear: both;">
+            <section id="ditto-5" style="clear: both;">
                 <h2>context</h2>
                 <br/>
                 <img src="ditto-in-action.png" style="width: 75%"/>
+            </section>
+            <section id="ditto-6">
+                <h2>non functionals</h2>
+                <br/>
+                <ul>
+                    <li class="fragment">modular architecture of Ditto services</li>
+                    <li class="fragment" style="margin-top: 0.5em;">horizontal scalability of each Ditto service</li>
+                    <li class="fragment" style="margin-top: 0.5em;">runtime dependency to only one other system (MongoDB)</li>
+                    <li class="fragment" style="margin-top: 0.5em;">included monitoring (JVM metrics, roundtrips, MongoDB metrics)</li>
+                    <li class="fragment" style="margin-top: 0.5em;">prepared for operations (e.g. via devops commands)</li>
+                </ul>
+                <br/>
             </section>
         </section>
 
@@ -332,6 +327,8 @@
                      data-state="chapter-background">
                 <!-- img background: https://unsplash.com/photos/FO7bKvgETgQ -->
                 <h1>A framework for Digital Twins</h1>
+                <br/>
+                <h2>acting as a Twin orchestrator</h2>
             </section>
 
             <section id="framework-1" style="clear: both;">
@@ -360,11 +357,11 @@
                      data-state="chapter-background">
                 <h1>Wrap up</h1>
                 <br/>
-                <h3>Questions?</h3>
-                <br/>
-                <h4>visit us at our Bosch Software Innovations booth @eclipsecon or engage via:</h4>
-                <a href="https://projects.eclipse.org/projects/iot.ditto">https://projects.eclipse.org/projects/iot.ditto</a>
-                <a href="https://github.com/eclipse/ditto">https://github.com/eclipse/ditto</a>
+                <ul>
+                    <li class="fragment">Digital Twins as pattern for simplifying IoT back-end development</li>
+                    <li class="fragment" style="margin-top: 1em;">Device-as-a-Service</li>
+                    <li class="fragment" style="margin-top: 1em;">Eclipse Ditto can ease IoT development</li>
+                </ul>
             </section>
 
             <section id="wrap-up-1" style="clear: both;">
@@ -372,7 +369,8 @@
                 <br/>
                 <ul>
                     <li class="fragment">release (non-milestone)</li>
-                    <li class="fragment" style="margin-top: 1em;">optional integration of <b>Eclipse Vorto</b> for validation</li>
+                    <li class="fragment" style="margin-top: 1em;">using <b>Eclipse Vorto</b> generator for validation</li>
+                    <li class="fragment" style="margin-top: 1em;">mapping raw payloads to/from Ditto Protocol</li>
                     <li class="fragment" style="margin-top: 1em;">attracting developers in using Ditto</li>
                     <li class="fragment" style="margin-top: 1em;">integration with other OSS projects</li>
                 </ul>
