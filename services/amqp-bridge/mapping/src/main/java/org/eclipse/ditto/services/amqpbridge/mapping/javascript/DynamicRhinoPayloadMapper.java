@@ -13,6 +13,7 @@ package org.eclipse.ditto.services.amqpbridge.mapping.javascript;
 
 import java.io.IOException;
 import java.io.Reader;
+import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.Map;
 
@@ -27,6 +28,7 @@ import org.eclipse.ditto.services.amqpbridge.mapping.PayloadMapperMessage;
 import org.mozilla.javascript.Callable;
 import org.mozilla.javascript.Context;
 import org.mozilla.javascript.ContextFactory;
+import org.mozilla.javascript.NativeArray;
 import org.mozilla.javascript.NativeJSON;
 import org.mozilla.javascript.NativeObject;
 import org.mozilla.javascript.Scriptable;
@@ -70,7 +72,16 @@ final class DynamicRhinoPayloadMapper extends AbstractJavaScriptPayloadMapper {
         message.getHeaders().forEach((key, value) -> headersObj.put(key, headersObj, value));
         ScriptableObject.putProperty(scope, MAPPING_HEADERS_VAR, headersObj);
 
-        ScriptableObject.putProperty(scope, MAPPING_BYTEARRAY_VAR, message.getRawData().orElse(null));
+        if (message.getRawData().isPresent()) {
+            final ByteBuffer byteBuffer = message.getRawData().get();
+            final byte[] array = byteBuffer.array();
+            final NativeArray newArray = new NativeArray(array.length);
+            for (int a=0; a < array.length; a++) {
+                ScriptableObject.putProperty(newArray, a, array[a]);
+            }
+            ScriptableObject.putProperty(scope, MAPPING_BYTEARRAY_VAR, newArray);
+        }
+
         ScriptableObject.putProperty(scope, MAPPING_STRING_VAR, message.getStringData().orElse(null));
 
         ScriptableObject.putProperty(scope, DITTO_PROTOCOL_JSON_VAR, new NativeObject());

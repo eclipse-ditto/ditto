@@ -13,17 +13,21 @@ package org.eclipse.ditto.services.amqpbridge.mapping;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 /**
  * TODO doc
  */
-//@RunWith(Parameterized.class)
+@RunWith(Parameterized.class)
 public class ProtocolToRawMapperSimpleTest {
 
     private static final ImmutableMappingTemplate TEMPLATE = new ImmutableMappingTemplate("" +
@@ -34,16 +38,16 @@ public class ProtocolToRawMapperSimpleTest {
             "dittoProtocolJson.value = mappingString;"
     );
 
-    private static final String HUHU = "huhu!";
+    private static final String PAYLOAD_STRING = "hello!";
 
     private static PayloadMapper javaScriptNashornMapper;
     private static PayloadMapper javaScriptNashornSandboxMapper;
     private static PayloadMapper javaScriptRhinoMapper;
 
-//    @Parameterized.Parameters
-//    public static List<Object[]> data() {
-//        return Arrays.asList(new Object[20][0]);
-//    }
+    @Parameterized.Parameters
+    public static List<Object[]> data() {
+        return Arrays.asList(new Object[20][0]);
+    }
 
     @BeforeClass
     public static void setup() {
@@ -72,7 +76,7 @@ public class ProtocolToRawMapperSimpleTest {
 
         final Map<String, String> headers = new HashMap<>();
         headers.put("correlation-id", "4711-foobar");
-        final PayloadMapperMessage message = new ImmutablePayloadMapperMessage(null, HUHU, headers);
+        final PayloadMapperMessage message = new ImmutablePayloadMapperMessage(null, PAYLOAD_STRING, headers);
 
         final long startTs = System.nanoTime();
         final Adaptable

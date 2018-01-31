@@ -88,7 +88,12 @@ final class DynamicNashornSandboxPayloadMapper extends AbstractJavaScriptPayload
     public Adaptable mapIncomingMessageToDittoAdaptable(final MappingTemplate template, final PayloadMapperMessage message) {
 
         nashornSandbox.inject(MAPPING_HEADERS_VAR, message.getHeaders());
-        nashornSandbox.inject(MAPPING_BYTEARRAY_VAR, message.getRawData().orElse(null));
+        final String bytesString = convertToJsonArrayString(message.getRawData().orElse(null));
+        try {
+            nashornSandbox.eval(MAPPING_BYTEARRAY_VAR + " = " + bytesString + ";");
+        } catch (ScriptException e) {
+            e.printStackTrace();
+        }
         nashornSandbox.inject(MAPPING_STRING_VAR, message.getStringData().orElse(null));
 
         try {

@@ -87,7 +87,13 @@ final class DynamicNashornPayloadMapper extends AbstractJavaScriptPayloadMapper 
             final PayloadMapperMessage message) {
 
         engine.put(MAPPING_HEADERS_VAR, message.getHeaders());
-        engine.put(MAPPING_BYTEARRAY_VAR, message.getRawData().orElse(null));
+
+        final String bytesString = convertToJsonArrayString(message.getRawData().orElse(null));
+        try {
+            engine.eval(MAPPING_BYTEARRAY_VAR + " = " + bytesString + ";");
+        } catch (ScriptException e) {
+            e.printStackTrace();
+        }
         engine.put(MAPPING_STRING_VAR, message.getStringData().orElse(null));
 
         try {

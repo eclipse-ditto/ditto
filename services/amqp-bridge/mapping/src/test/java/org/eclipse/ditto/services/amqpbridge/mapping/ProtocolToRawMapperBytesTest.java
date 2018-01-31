@@ -13,35 +13,42 @@ package org.eclipse.ditto.services.amqpbridge.mapping;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 /**
  * TODO doc
  */
-//@RunWith(Parameterized.class)
+@RunWith(Parameterized.class)
 public class ProtocolToRawMapperBytesTest {
 
-    private static final ImmutableMappingTemplate TEMPLATE = new ImmutableMappingTemplate("" +
+    private static final ImmutableMappingTemplate TEMPLATE = new ImmutableMappingTemplate(
             "dittoProtocolJson.topic = 'org.eclipse.ditto/foo-bar/things/twin/commands/create';" +
             "dittoProtocolJson.path = '/';" +
             "dittoProtocolJson.headers = {};" +
             "dittoProtocolJson.headers['correlation-id'] = mappingHeaders['correlation-id'];" +
-            "dittoProtocolJson.value = {};"
+            "dittoProtocolJson.value = String.fromCharCode.apply(String, mappingByteArray);"
     );
+
+    private static final ByteBuffer PAYLOAD_BYTEBUFFER = ByteBuffer.wrap("hello binary!".getBytes(StandardCharsets.UTF_8));
 
     private static PayloadMapper javaScriptNashornMapper;
     private static PayloadMapper javaScriptNashornSandboxMapper;
     private static PayloadMapper javaScriptRhinoMapper;
 
-//    @Parameterized.Parameters
-//    public static List<Object[]> data() {
-//        return Arrays.asList(new Object[20][0]);
-//    }
+    @Parameterized.Parameters
+    public static List<Object[]> data() {
+        return Arrays.asList(new Object[20][0]);
+    }
 
     @BeforeClass
     public static void setup() {
@@ -70,7 +77,7 @@ public class ProtocolToRawMapperBytesTest {
 
         final Map<String, String> headers = new HashMap<>();
         headers.put("correlation-id", "4711-foobar");
-        final PayloadMapperMessage message = new ImmutablePayloadMapperMessage(null, "huhu!", headers);
+        final PayloadMapperMessage message = new ImmutablePayloadMapperMessage(PAYLOAD_BYTEBUFFER, null, headers);
 
         final long startTs = System.nanoTime();
         final Adaptable
@@ -100,7 +107,7 @@ public class ProtocolToRawMapperBytesTest {
 
         final Map<String, String> headers = new HashMap<>();
         headers.put("correlation-id", "4711-foobar");
-        final PayloadMapperMessage message = new ImmutablePayloadMapperMessage(null, "huhu!", headers);
+        final PayloadMapperMessage message = new ImmutablePayloadMapperMessage(PAYLOAD_BYTEBUFFER, null, headers);
 
         final long startTs = System.nanoTime();
         final Adaptable
@@ -115,7 +122,7 @@ public class ProtocolToRawMapperBytesTest {
 
         final Map<String, String> headers = new HashMap<>();
         headers.put("correlation-id", "4711-foobar");
-        final PayloadMapperMessage message = new ImmutablePayloadMapperMessage(null, "huhu!", headers);
+        final PayloadMapperMessage message = new ImmutablePayloadMapperMessage(PAYLOAD_BYTEBUFFER, null, headers);
 
         final long startTs = System.nanoTime();
         final Adaptable

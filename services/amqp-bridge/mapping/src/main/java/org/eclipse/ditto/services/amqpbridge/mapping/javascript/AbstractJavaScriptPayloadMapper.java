@@ -19,6 +19,7 @@ import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 import javax.script.Bindings;
 
@@ -97,6 +98,21 @@ abstract class AbstractJavaScriptPayloadMapper implements PayloadMapper {
             final ByteArrayOutputStream baos = new ByteArrayOutputStream();
             list.forEach(e -> baos.write(((Number) e).intValue()));
             return ByteBuffer.wrap(baos.toByteArray());
+        }
+        return null;
+    }
+
+    static String convertToJsonArrayString(final ByteBuffer byteBuffer) {
+        final byte[] bytes = Optional.ofNullable(byteBuffer).map(ByteBuffer::array).orElse(null);
+        if (bytes != null) {
+            final StringBuilder sb = new StringBuilder("[");
+            for (final byte aByte : bytes) {
+                sb.append(aByte);
+                sb.append(",");
+            }
+            sb.deleteCharAt(sb.length()-1);
+            sb.append("]");
+            return sb.toString();
         }
         return null;
     }
