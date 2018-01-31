@@ -115,7 +115,7 @@ which gets us following JSON structure of a Ditto Feature:
     "feature-id": {
         "definition": [ "namespace:name:version" ],
         "properties": {
-            "config": {
+            "configuration": {
             },
             "status": {
             },
@@ -126,8 +126,8 @@ which gets us following JSON structure of a Ditto Feature:
 }
 ```
 
-The structure below `config, status, fault` is defined by the custom types of the Vorto Function Block. As these can be
-simple types as well as complex types, the JSON structure follows the structure of the types.
+The structure below `configuration, status, fault` is defined by the custom types of the Vorto Function Block. As these 
+can be simple types as well as complex types, the JSON structure follows the structure of the types.
 
 #### Function Block capabilities
 
