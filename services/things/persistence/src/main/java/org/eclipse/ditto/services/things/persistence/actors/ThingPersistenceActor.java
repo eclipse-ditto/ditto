@@ -1273,8 +1273,12 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         private void handleModifyExistingV2WithV1Command(final ModifyThing command) {
             // remove any acl information from command and add the current policy Id
             final Thing thingWithoutAcl = removeACL(copyPolicyId(thing, command.getThing()));
+            // set version of ThingModified event to the version of the thing
+            final DittoHeaders newHeaders = command.getDittoHeaders().toBuilder()
+                    .schemaVersion(thing.getImplementedSchemaVersion())
+                    .build();
             final ThingModified thingModified =
-                    ThingModified.of(thingWithoutAcl, nextRevision(), eventTimestamp(), command.getDittoHeaders());
+                    ThingModified.of(thingWithoutAcl, nextRevision(), eventTimestamp(), newHeaders);
             persistAndApplyEvent(thingModified,
                     event -> notifySender(ModifyThingResponse.modified(thingId, command.getDittoHeaders())));
         }

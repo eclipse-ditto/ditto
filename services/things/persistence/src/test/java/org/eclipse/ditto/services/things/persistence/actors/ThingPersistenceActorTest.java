@@ -1270,7 +1270,8 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                             JsonSchemaVersion.V_1,
                             this,
                             modifyThing -> ModifyThingResponse.modified(thingId, modifyThing.getDittoHeaders()));
-            assertPublishEvent(this, ThingModified.of(expected, 2L, headersUsed));
+            final DittoHeaders headersV2 = headersUsed.toBuilder().schemaVersion(JsonSchemaVersion.V_2).build();
+            assertPublishEvent(this, ThingModified.of(expected, 2L, headersV2));
         }};
     }
 
@@ -1294,7 +1295,8 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                             JsonSchemaVersion.V_1,
                             this,
                             modifyThing -> ModifyThingResponse.modified(thingId, modifyThing.getDittoHeaders()));
-            assertPublishEvent(this, ThingModified.of(expected, 2L, headersUsed));
+            final DittoHeaders headersV2 = headersUsed.toBuilder().schemaVersion(JsonSchemaVersion.V_2).build();
+            assertPublishEvent(this, ThingModified.of(expected, 2L, headersV2));
         }};
     }
 
@@ -1349,6 +1351,8 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         final ThingEvent msg = (ThingEvent) result.msg();
         Assertions.assertThat(msg.toJson())
                 .isEqualTo(event.toJson().set(msg.toJson().getField(Event.JsonFields.TIMESTAMP.getPointer()).get()));
+        Assertions.assertThat(msg.getDittoHeaders().getSchemaVersion())
+                .isEqualTo(event.getDittoHeaders().getSchemaVersion());
     }
 
     private Thing buildThing(final String thingId, final JsonSchemaVersion schemaVersion) {
