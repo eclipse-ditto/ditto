@@ -16,6 +16,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -23,6 +24,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.amqpbridge.AmqpBridgeModelFactory;
 import org.eclipse.ditto.model.amqpbridge.AmqpConnection;
+import org.eclipse.ditto.model.amqpbridge.MappingScript;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -73,7 +75,22 @@ public class JsonExamplesProducer {
         final AmqpConnection amqpConnection = AmqpBridgeModelFactory.newConnection(ID, URI, AUTHORIZATION_SUBJECT, SOURCES, FAILOVER_ENABLED);
         final DittoHeaders headers = DittoHeaders.empty();
 
-        final ConnectionCreated connectionCreated = ConnectionCreated.of(amqpConnection, headers);
+        final MappingScript mappingScript = AmqpBridgeModelFactory.newMappingScript(
+                "text/plain",
+                "JavaScript",
+                "ditto_protocolJson.topic = 'org.eclipse.ditto/foo-bar/things/twin/commands/modify';" +
+                        "ditto_protocolJson.path = '/attributes/foo';" +
+                        "ditto_protocolJson.headers = {};" +
+                        "ditto_protocolJson.headers['correlation-id'] = mappingHeaders['correlation-id'];" +
+                        "ditto_protocolJson.value = mappingString;",
+                "mappingString = " +
+                        "\"Topic was: \" + dittoProtocolJson.topic + \"\\n\" +\n" +
+                        "\"Header correlation-id was: \" + dittoProtocolJson.headers['correlation-id'];",
+                Collections.singletonMap("loadMustacheJS", "TRUE")
+        );
+
+        final ConnectionCreated connectionCreated = ConnectionCreated.of(amqpConnection,
+                Collections.singletonList(mappingScript), headers);
         writeJson(eventsDir.resolve(Paths.get("connectionCreated.json")), connectionCreated);
 
         final ConnectionOpened connectionOpened = ConnectionOpened.of(ID, headers);

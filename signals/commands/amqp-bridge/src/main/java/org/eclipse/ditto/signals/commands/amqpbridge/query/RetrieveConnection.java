@@ -123,6 +123,11 @@ public final class RetrieveConnection extends AbstractCommand<RetrieveConnection
     }
 
     @Override
+    protected boolean canEqual(@Nullable final Object other) {
+        return (other instanceof RetrieveConnection);
+    }
+
+    @Override
     public boolean equals(@Nullable final Object o) {
         if (this == o) {return true;}
         if (o == null || getClass() != o.getClass()) {return false;}

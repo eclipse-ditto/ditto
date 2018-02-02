@@ -119,6 +119,11 @@ public final class DeleteConnectionResponse extends AbstractCommandResponse<Dele
     }
 
     @Override
+    protected boolean canEqual(@Nullable final Object other) {
+        return (other instanceof DeleteConnectionResponse);
+    }
+
+    @Override
     public boolean equals(@Nullable final Object o) {
         if (this == o) {return true;}
         if (o == null || getClass() != o.getClass()) {return false;}

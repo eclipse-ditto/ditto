@@ -9,12 +9,14 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package org.eclipse.ditto.services.amqpbridge.mapping.javascript;
+package org.eclipse.ditto.services.amqpbridge.mapping.mapper.javascript;
+
+import org.eclipse.ditto.services.amqpbridge.mapping.mapper.PayloadMapperOptions;
 
 /**
  * TODO doc
  */
-public interface JavaScriptPayloadMapperOptions {
+public interface JavaScriptPayloadMapperOptions extends PayloadMapperOptions {
 
     boolean isLoadBytebufferJS();
 
@@ -25,7 +27,7 @@ public interface JavaScriptPayloadMapperOptions {
     /**
      *
      */
-    interface Builder {
+    interface Builder extends PayloadMapperOptions.Builder<JavaScriptPayloadMapperOptions> {
 
         Builder loadBytebufferJS(boolean load);
 
@@ -33,6 +35,5 @@ public interface JavaScriptPayloadMapperOptions {
 
         Builder loadMustacheJS(boolean load);
 
-        JavaScriptPayloadMapperOptions build();
     }
 }

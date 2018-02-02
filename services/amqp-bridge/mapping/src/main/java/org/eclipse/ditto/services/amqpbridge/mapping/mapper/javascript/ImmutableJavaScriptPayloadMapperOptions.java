@@ -9,9 +9,13 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package org.eclipse.ditto.services.amqpbridge.mapping.javascript;
+package org.eclipse.ditto.services.amqpbridge.mapping.mapper.javascript;
 
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * TODO doc
@@ -46,6 +50,15 @@ final class ImmutableJavaScriptPayloadMapperOptions implements JavaScriptPayload
     }
 
     @Override
+    public Map<String, String> getAsMap() {
+        final Map<String, String> optionsMap = new HashMap<>();
+        optionsMap.put("loadBytebufferJS", Boolean.valueOf(loadBytebufferJS).toString());
+        optionsMap.put("loadLongJS", Boolean.valueOf(loadLongJS).toString());
+        optionsMap.put("loadMustacheJS", Boolean.valueOf(loadMustacheJS).toString());
+        return Collections.unmodifiableMap(optionsMap);
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) return true;
         if (!(o instanceof ImmutableJavaScriptPayloadMapperOptions)) return false;
@@ -74,9 +87,21 @@ final class ImmutableJavaScriptPayloadMapperOptions implements JavaScriptPayload
      */
     static final class Builder implements JavaScriptPayloadMapperOptions.Builder {
 
-        private boolean loadBytebufferJS = false;
-        private boolean loadLongJS = false;
-        private boolean loadMustacheJS = false;
+        private boolean loadBytebufferJS;
+        private boolean loadLongJS;
+        private boolean loadMustacheJS;
+
+        Builder(final Map<String, String> options) {
+            loadBytebufferJS = Optional.ofNullable(options.get("loadBytebufferJS"))
+                    .map(Boolean::parseBoolean)
+                    .orElse(false);
+            loadLongJS = Optional.ofNullable(options.get("loadLongJS"))
+                    .map(Boolean::parseBoolean)
+                    .orElse(false);
+            loadMustacheJS = Optional.ofNullable(options.get("loadMustacheJS"))
+                    .map(Boolean::parseBoolean)
+                    .orElse(false);
+        }
 
         @Override
         public JavaScriptPayloadMapperOptions.Builder loadBytebufferJS(final boolean load) {

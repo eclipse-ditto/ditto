@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.model.amqpbridge;
 
+import java.util.Map;
 import java.util.Set;
 
 import javax.annotation.concurrent.Immutable;
@@ -54,6 +55,29 @@ public final class AmqpBridgeModelFactory {
      */
     public static AmqpConnection connectionFromJson(final JsonObject jsonObject) {
         return ImmutableAmqpConnection.fromJson(jsonObject);
+    }
+
+    /**
+     * Returns a new {@code MappingScript}.
+     *
+     * @return
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public static MappingScript newMappingScript(final String contentType, final String mappingEngine,
+            final String incomingMappingScript, final String outgoingMappingScript, final Map<String, String> options) {
+        return ImmutableMappingScript.of(contentType, mappingEngine, incomingMappingScript, outgoingMappingScript, options);
+    }
+
+    /**
+     * Creates a new {@code MappingScript} object from the specified JSON object.
+     *
+     * @param jsonObject a JSON object which provides the data for the MappingScript to be created.
+     * @return a new MappingScript which is initialised with the extracted data from {@code jsonObject}.
+     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} is not an appropriate JSON object.
+     */
+    public static MappingScript mappingScriptFromJson(final JsonObject jsonObject) {
+        return ImmutableMappingScript.fromJson(jsonObject);
     }
 
 }

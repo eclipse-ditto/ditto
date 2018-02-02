@@ -123,6 +123,11 @@ public final class DeleteConnection extends AbstractCommand<DeleteConnection>
     }
 
     @Override
+    protected boolean canEqual(@Nullable final Object other) {
+        return (other instanceof DeleteConnection);
+    }
+
+    @Override
     public boolean equals(@Nullable final Object o) {
         if (this == o) {return true;}
         if (o == null || getClass() != o.getClass()) {return false;}

@@ -9,20 +9,12 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package org.eclipse.ditto.services.amqpbridge.mapping;
-
-import java.nio.ByteBuffer;
-import java.util.Map;
-import java.util.Optional;
+package org.eclipse.ditto.services.amqpbridge.mapping.mapper;
 
 /**
  * TODO doc
  */
-public interface PayloadMapperMessage {
+public interface MappingTemplate {
 
-    Optional<ByteBuffer> getRawData();
-
-    Optional<String> getStringData();
-
-    Map<String, String> getHeaders();
+    String getMappingTemplate();
 }

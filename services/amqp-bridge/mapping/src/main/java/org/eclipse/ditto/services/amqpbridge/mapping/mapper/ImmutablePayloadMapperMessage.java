@@ -9,7 +9,7 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package org.eclipse.ditto.services.amqpbridge.mapping;
+package org.eclipse.ditto.services.amqpbridge.mapping.mapper;
 
 import java.nio.ByteBuffer;
 import java.util.Map;
@@ -23,16 +23,23 @@ import javax.annotation.Nullable;
  */
 public final class ImmutablePayloadMapperMessage implements PayloadMapperMessage {
 
-
+    private final String contentType;
     private final ByteBuffer rawData;
     private final String stringData;
     private final Map<String, String> headers;
 
-    public ImmutablePayloadMapperMessage(@Nullable final ByteBuffer rawData, @Nullable final String stringData,
+    public ImmutablePayloadMapperMessage(final String contentType, @Nullable final ByteBuffer rawData,
+            @Nullable final String stringData,
             final Map<String, String> headers) {
+        this.contentType = contentType;
         this.rawData = rawData;
         this.stringData = stringData;
         this.headers = headers;
+    }
+
+    @Override
+    public String getContentType() {
+        return contentType;
     }
 
     @Override
@@ -52,23 +59,29 @@ public final class ImmutablePayloadMapperMessage implements PayloadMapperMessage
 
     @Override
     public boolean equals(final Object o) {
-        if (this == o) return true;
-        if (!(o instanceof ImmutablePayloadMapperMessage)) return false;
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof ImmutablePayloadMapperMessage)) {
+            return false;
+        }
         final ImmutablePayloadMapperMessage that = (ImmutablePayloadMapperMessage) o;
-        return Objects.equals(rawData, that.rawData) &&
+        return Objects.equals(contentType, that.contentType) &&
+                Objects.equals(rawData, that.rawData) &&
                 Objects.equals(stringData, that.stringData) &&
                 Objects.equals(headers, that.headers);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(rawData, stringData, headers);
+        return Objects.hash(contentType, rawData, stringData, headers);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "rawData=" + rawData +
+                "contentType=" + contentType +
+                ", rawData=" + rawData +
                 ", stringData=" + stringData +
                 ", headers=" + headers +
                 "]";

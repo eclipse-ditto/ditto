@@ -9,16 +9,22 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package org.eclipse.ditto.services.amqpbridge.mapping;
+package org.eclipse.ditto.services.amqpbridge.mapping.mapper;
 
-import org.eclipse.ditto.protocoladapter.Adaptable;
+import java.util.Map;
 
 /**
  * TODO doc
  */
-public interface PayloadMapper {
+public interface PayloadMapperOptions {
 
-    Adaptable mapIncomingMessageToDittoAdaptable(MappingTemplate template, PayloadMapperMessage message);
+    Map<String, String> getAsMap();
 
-    PayloadMapperMessage mapOutgoingMessageFromDittoAdaptable(MappingTemplate template, Adaptable dittoProtocolAdaptable);
+    /**
+     *
+     */
+    interface Builder<T extends PayloadMapperOptions> {
+
+        T build();
+    }
 }
