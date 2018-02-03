@@ -17,7 +17,6 @@ import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.akka.SimpleCommand;
 import org.eclipse.ditto.services.utils.akka.SimpleCommandResponse;
 import org.eclipse.ditto.services.utils.health.HealthCheckingActor;
-import org.eclipse.ditto.services.utils.health.PersistenceClusterHealth;
 import org.eclipse.ditto.services.utils.health.RetrieveHealth;
 import org.eclipse.ditto.services.utils.health.StatusInfo;
 
@@ -42,12 +41,12 @@ public final class StatusSupplierActor extends AbstractActor {
     public static final String ACTOR_NAME = "statusSupplier";
 
     /**
-     * Command name for retrieving the static {@link Status} of this instance.
+     * Command name for retrieving the "status" of this instance.
      */
     public static final String SIMPLE_COMMAND_RETRIEVE_STATUS = "retrieveStatus";
 
     /**
-     * Command name for retrieving the static {@link PersistenceClusterHealth} of this instance.
+     * Command name for retrieving the "health" of this instance.
      */
     public static final String SIMPLE_COMMAND_RETRIEVE_HEALTH = "retrieveHealth";
 

@@ -40,7 +40,7 @@ public final class HealthCheckingActor extends AbstractActor {
     private final HealthCheckingActorOptions options;
     private final ActorRef mongoClientActor;
 
-    private Health health;
+    private StatusInfo status = StatusInfo.unknown();
 
     /**
      * Constructs a {@code HealthCheckingActor}.
@@ -48,12 +48,6 @@ public final class HealthCheckingActor extends AbstractActor {
     private HealthCheckingActor(final HealthCheckingActorOptions options, final ActorRef mongoClientActor) {
         this.options = options;
         this.mongoClientActor = mongoClientActor;
-
-        health = PersistenceClusterHealth.newInstance();
-        if (options.isPersistenceCheckEnabled()) {
-            health = PersistenceClusterHealth.setHealthStatusPersistence(health,
-                    StatusInfo.fromStatus(StatusInfo.Status.UNKNOWN));
-        }
 
         if (options.isHealthCheckEnabled()) {
             final FiniteDuration initialDelay = FiniteDuration.Zero();
@@ -89,7 +83,8 @@ public final class HealthCheckingActor extends AbstractActor {
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
-                .match(RetrieveHealth.class, retrieveHealth -> getSender().tell(health, getSelf()))
+                .match(RetrieveHealth.class, retrieveHealth ->
+                        getSender().tell(status, getSelf()))
                 .match(CheckHealth.class, checkHealth -> pollHealth())
                 .match(RetrieveMongoStatusResponse.class, this::applyMongoStatus)
                 .matchAny(m -> {
@@ -99,10 +94,9 @@ public final class HealthCheckingActor extends AbstractActor {
     }
 
     private void applyMongoStatus(final RetrieveMongoStatusResponse statusResponse) {
-        final StatusInfo status = StatusInfo
+        this.status = StatusInfo
                 .fromStatus(statusResponse.isAlive() ? StatusInfo.Status.UP : StatusInfo.Status.DOWN,
                         statusResponse.getDescription().orElse(null));
-        health = PersistenceClusterHealth.setHealthStatusPersistence(health, status);
     }
 
     private void pollHealth() {

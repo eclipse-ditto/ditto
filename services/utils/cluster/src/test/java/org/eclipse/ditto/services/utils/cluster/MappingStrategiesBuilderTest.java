@@ -25,7 +25,6 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.services.utils.akka.SimpleCommand;
 import org.eclipse.ditto.services.utils.akka.SimpleCommandResponse;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamAck;
-import org.eclipse.ditto.services.utils.health.Health;
 import org.eclipse.ditto.services.utils.health.StatusInfo;
 import org.eclipse.ditto.signals.base.JsonParsableRegistry;
 import org.junit.Test;
@@ -126,7 +125,6 @@ public class MappingStrategiesBuilderTest {
                         ShardedMessageEnvelope.class.getSimpleName(),
                         SimpleCommand.class.getSimpleName(),
                         SimpleCommandResponse.class.getSimpleName(),
-                        Health.class.getSimpleName(),
                         StatusInfo.class.getSimpleName(),
                         StreamAck.class.getSimpleName());
     }

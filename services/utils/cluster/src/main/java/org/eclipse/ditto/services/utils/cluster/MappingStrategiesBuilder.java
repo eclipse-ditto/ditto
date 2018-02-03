@@ -28,7 +28,6 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.services.utils.akka.SimpleCommand;
 import org.eclipse.ditto.services.utils.akka.SimpleCommandResponse;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamAck;
-import org.eclipse.ditto.services.utils.health.Health;
 import org.eclipse.ditto.services.utils.health.StatusInfo;
 import org.eclipse.ditto.signals.base.JsonParsableRegistry;
 
@@ -65,8 +64,6 @@ public final class MappingStrategiesBuilder {
                 jsonObject -> SimpleCommand.fromJson(jsonObject)); // do not replace with lambda!
         builder.add(SimpleCommandResponse.class,
                 jsonObject -> SimpleCommandResponse.fromJson(jsonObject)); // do not replace with lambda!
-        builder.add(Health.class,
-                jsonObject -> Health.fromJson(jsonObject)); // do not replace with lambda!
         builder.add(StatusInfo.class,
                 jsonObject -> StatusInfo.fromJson(jsonObject)); // do not replace with lambda!
         builder.add(StreamAck.class, StreamAck::fromJson);

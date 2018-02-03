@@ -52,32 +52,31 @@ public class HealthRouteSupplier implements Supplier<Route> {
 
     @Override
     public Route get() {
-        return completeWithFuture( //
-                PatternsCS //
-                        .ask(healthCheckingActor, RetrieveHealth.newInstance(), TIMEOUT) //
-                        .handle((health, throwable) -> completeHealthRequest((Health) health, throwable))
+        return completeWithFuture(
+                PatternsCS
+                        .ask(healthCheckingActor, RetrieveHealth.newInstance(), TIMEOUT)
+                        .handle((statusInfo, throwable) -> completeHealthRequest((StatusInfo) statusInfo, throwable))
         );
     }
 
-    private HttpResponse completeHealthRequest(final Health health, final Throwable failure) {
+    private HttpResponse completeHealthRequest(final StatusInfo statusInfo, final Throwable failure) {
         final HttpResponse response;
 
         if (null == failure) {
-            final StatusInfo healthStatus = health.getOverallStatus();
             final int httpStatusCode =
-                    healthStatus.getStatus() == StatusInfo.Status.DOWN ? HTTP_STATUS_SERVICE_UNAVAILABLE :
+                    statusInfo.getStatus() == StatusInfo.Status.DOWN ? HTTP_STATUS_SERVICE_UNAVAILABLE :
                             HTTP_STATUS_OK;
 
-            if (healthStatus.getStatus() == StatusInfo.Status.DOWN) {
-                log.warning("Own health check returned DOWN: {}", healthStatus);
+            if (statusInfo.getStatus() == StatusInfo.Status.DOWN) {
+                log.warning("Own health check returned DOWN: {}", statusInfo);
             }
 
-            response = HttpResponse.create() //
-                    .withEntity(ContentTypes.APPLICATION_JSON, health.toJsonString()) //
+            response = HttpResponse.create()
+                    .withEntity(ContentTypes.APPLICATION_JSON, statusInfo.toJsonString())
                     .withStatus(httpStatusCode);
         } else {
             log.error(failure, "Health check resulted in failure: '{}'", failure.getMessage());
-            response = HttpResponse.create() //
+            response = HttpResponse.create()
                     .withStatus(HTTP_STATUS_SERVICE_UNAVAILABLE);
         }
 
