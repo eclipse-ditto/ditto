@@ -21,7 +21,7 @@ import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.services.gateway.health.StatusHealthHelper;
-import org.eclipse.ditto.services.utils.health.HealthStatus;
+import org.eclipse.ditto.services.utils.health.StatusInfo;
 
 import akka.http.javadsl.model.ContentTypes;
 import akka.http.javadsl.model.HttpResponse;
@@ -76,8 +76,8 @@ public final class CachingHealthRoute {
         if (cachedHealth == null || isCacheTimedOut()) {
             cachedHealth = statusHealthHelper.calculateOverallHealthJson()
                     .thenApply(overallHealth -> JsonObject.newBuilder()
-                            .set(HealthStatus.JSON_KEY_STATUS, overallHealth.getValue(HealthStatus.JSON_KEY_STATUS)
-                                    .orElse(HealthStatus.Status.DOWN.toString()))
+                            .set(StatusInfo.JSON_KEY_STATUS, overallHealth.getValue(StatusInfo.JSON_KEY_STATUS)
+                                    .orElse(StatusInfo.Status.DOWN.toString()))
                             .build()
                     );
             lastCheckInstant = Instant.now();

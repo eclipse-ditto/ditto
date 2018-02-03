@@ -16,10 +16,10 @@ import java.util.concurrent.TimeUnit;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.akka.SimpleCommand;
 import org.eclipse.ditto.services.utils.akka.SimpleCommandResponse;
-import org.eclipse.ditto.services.utils.health.PersistenceClusterHealth;
 import org.eclipse.ditto.services.utils.health.HealthCheckingActor;
-import org.eclipse.ditto.services.utils.health.HealthStatus;
+import org.eclipse.ditto.services.utils.health.PersistenceClusterHealth;
 import org.eclipse.ditto.services.utils.health.RetrieveHealth;
+import org.eclipse.ditto.services.utils.health.StatusInfo;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -104,7 +104,8 @@ public final class StatusSupplierActor extends AbstractActor {
                                         sender.tell(health, self);
                                     })
                                     .exceptionally(throwable -> {
-                                        sender.tell(HealthStatus.of(HealthStatus.Status.DOWN, throwable.getMessage()),
+                                        sender.tell(
+                                                StatusInfo.fromStatus(StatusInfo.Status.DOWN, throwable.getMessage()),
                                                 self);
                                         return null;
                                     });

@@ -42,8 +42,8 @@ public final class PersistenceClusterHealth {
      * @param statusCluster the cluster's status.
      * @return the Health instance.
      */
-    public static Health of(@Nullable final HealthStatus statusPersistence,
-            @Nullable final HealthStatus statusCluster) {
+    public static Health of(@Nullable final StatusInfo statusPersistence,
+            @Nullable final StatusInfo statusCluster) {
         final Health.Builder builder = Health.newBuilder()
                 .setOverallStatus(getOverallStatus(statusPersistence, statusCluster));
         if (statusPersistence != null) {
@@ -62,14 +62,14 @@ public final class PersistenceClusterHealth {
      * @param healthStatus the healthStatus.
      * @return a copy of the given health object with the new healthStatus set.
      */
-    public static Health setHealthStatusPersistence(final Health health, final HealthStatus healthStatus) {
+    public static Health setHealthStatusPersistence(final Health health, final StatusInfo healthStatus) {
         return health.toBuilder()
                 .setComponentStatus(PERSISTENCE, healthStatus)
                 .build();
     }
 
-    private static HealthStatus getOverallStatus(@Nullable final HealthStatus statusPersistence,
-            @Nullable final HealthStatus statusCluster) {
+    private static StatusInfo getOverallStatus(@Nullable final StatusInfo statusPersistence,
+            @Nullable final StatusInfo statusCluster) {
 
         final boolean allUp;
 
@@ -93,7 +93,7 @@ public final class PersistenceClusterHealth {
             allUp = false;
         }
 
-        final HealthStatus.Status status = allUp ? HealthStatus.Status.UP : HealthStatus.Status.DOWN;
-        return HealthStatus.of(status);
+        final StatusInfo.Status status = allUp ? StatusInfo.Status.UP : StatusInfo.Status.DOWN;
+        return StatusInfo.fromStatus(status);
     }
 }

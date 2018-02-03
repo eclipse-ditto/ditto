@@ -37,8 +37,8 @@ public final class Health implements Jsonifiable<JsonObject> {
      */
     static final String JSON_FIELD_STATUS = "status";
 
-    private final HealthStatus.Status overallStatus;
-    private final Map<String, HealthStatus> componentStatuses;
+    private final StatusInfo.Status overallStatus;
+    private final Map<String, StatusInfo> componentStatuses;
 
     private Health(final Builder builder) {
         overallStatus = builder.overallStatus;
@@ -50,8 +50,8 @@ public final class Health implements Jsonifiable<JsonObject> {
      *
      * @return the health summary.
      */
-    public HealthStatus getOverallStatus() {
-        return HealthStatus.of(overallStatus);
+    public StatusInfo getOverallStatus() {
+        return StatusInfo.fromStatus(overallStatus);
     }
 
     /**
@@ -60,7 +60,7 @@ public final class Health implements Jsonifiable<JsonObject> {
      * @param componentName name of the component.
      * @return status of the component if it exists, or an empty optional otherwise.
      */
-    public Optional<HealthStatus> getComponentStatus(final String componentName) {
+    public Optional<StatusInfo> getComponentStatus(final String componentName) {
         return Optional.ofNullable(componentStatuses.get(componentName));
     }
 
@@ -96,10 +96,10 @@ public final class Health implements Jsonifiable<JsonObject> {
                     final String fieldName = jsonField.getKeyName();
                     if (Objects.equals(fieldName, JSON_FIELD_STATUS)) {
                         final String statusName = jsonField.getValue().asString();
-                        final HealthStatus.Status overallStatus = HealthStatus.Status.valueOf(statusName);
+                        final StatusInfo.Status overallStatus = StatusInfo.Status.valueOf(statusName);
                         builder.setOverallStatus(overallStatus);
                     } else {
-                        final HealthStatus healthStatus = HealthStatus.fromJson(jsonField.getValue().asObject());
+                        final StatusInfo healthStatus = StatusInfo.fromJson(jsonField.getValue().asObject());
                         builder.setComponentStatus(fieldName, healthStatus);
                     }
                 });
@@ -110,7 +110,7 @@ public final class Health implements Jsonifiable<JsonObject> {
     public JsonObject toJson() {
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
         componentStatuses.forEach((name, status) -> jsonObjectBuilder.set(name, status.toJson()));
-        jsonObjectBuilder.set(HealthStatus.JSON_KEY_STATUS, overallStatus.name());
+        jsonObjectBuilder.set(StatusInfo.JSON_KEY_STATUS, overallStatus.name());
         return jsonObjectBuilder.build();
     }
 
@@ -137,15 +137,15 @@ public final class Health implements Jsonifiable<JsonObject> {
      */
     public static final class Builder {
 
-        private HealthStatus.Status overallStatus;
-        private Map<String, HealthStatus> componentStatuses;
+        private StatusInfo.Status overallStatus;
+        private Map<String, StatusInfo> componentStatuses;
 
         private Builder() {
-            overallStatus = HealthStatus.Status.UNKNOWN;
+            overallStatus = StatusInfo.Status.UNKNOWN;
             componentStatuses = new LinkedHashMap<>();
         }
 
-        private Builder(final HealthStatus.Status overallStatus, final Map<String, HealthStatus> componentStatuses) {
+        private Builder(final StatusInfo.Status overallStatus, final Map<String, StatusInfo> componentStatuses) {
             this.overallStatus = overallStatus;
             this.componentStatuses = new LinkedHashMap<>(componentStatuses);
         }
@@ -156,7 +156,7 @@ public final class Health implements Jsonifiable<JsonObject> {
          * @param overallStatus The overall status.
          * @return This object.
          */
-        public Builder setOverallStatus(final HealthStatus overallStatus) {
+        public Builder setOverallStatus(final StatusInfo overallStatus) {
             return setOverallStatus(overallStatus.getStatus());
         }
 
@@ -166,7 +166,7 @@ public final class Health implements Jsonifiable<JsonObject> {
          * @param overallStatus The overall status.
          * @return This object.
          */
-        public Builder setOverallStatus(final HealthStatus.Status overallStatus) {
+        public Builder setOverallStatus(final StatusInfo.Status overallStatus) {
             this.overallStatus = overallStatus;
             return this;
         }
@@ -178,7 +178,7 @@ public final class Health implements Jsonifiable<JsonObject> {
          * @param componentStatus Status of the component.
          * @return This object.
          */
-        public Builder setComponentStatus(final String componentName, final HealthStatus componentStatus) {
+        public Builder setComponentStatus(final String componentName, final StatusInfo componentStatus) {
             componentStatuses.put(componentName, componentStatus);
             return this;
         }

@@ -12,9 +12,10 @@
 package org.eclipse.ditto.services.utils.health;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.eclipse.ditto.services.utils.health.Health.JSON_FIELD_STATUS;
 import static org.eclipse.ditto.services.utils.health.PersistenceClusterHealth.CLUSTER;
 import static org.eclipse.ditto.services.utils.health.PersistenceClusterHealth.PERSISTENCE;
-import static org.eclipse.ditto.services.utils.health.Health.JSON_FIELD_STATUS;
+import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.HashSet;
@@ -36,13 +37,19 @@ public final class HealthTest {
 
     @Test
     public void assertImmutability() {
-        MutabilityAssert.assertInstancesOf(Health.class, areImmutable());
+        MutabilityAssert.assertInstancesOf(Health.class, areImmutable(),
+                assumingFields("componentStatuses").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements()
+        );
     }
 
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(Health.class).usingGetClass().verify();
+        EqualsVerifier.forClass(Health.class)
+                .withPrefabValues(StatusInfo.class,
+                        StatusInfo.fromStatus(StatusInfo.Status.DOWN),
+                        StatusInfo.fromStatus(StatusInfo.Status.UP))
+                .verify();
     }
 
 
@@ -51,7 +58,6 @@ public final class HealthTest {
         final Health health = PersistenceClusterHealth.newInstance();
         assertHealthContainsExactly(health, JSON_FIELD_STATUS);
     }
-
 
     @Test
     public void jsonSerializationWithEmptyHealth() {
@@ -62,22 +68,22 @@ public final class HealthTest {
 
     @Test
     public void jsonSerializationWithOnlyPersistence() {
-        final Health health = PersistenceClusterHealth.of(HealthStatus.of(HealthStatus.Status.UP), null);
+        final Health health = PersistenceClusterHealth.of(StatusInfo.fromStatus(StatusInfo.Status.UP), null);
         assertHealthContainsExactly(health, JSON_FIELD_STATUS, PERSISTENCE);
     }
 
 
     @Test
     public void jsonSerializationWithOnlyCluster() {
-        final Health health = PersistenceClusterHealth.of(null, HealthStatus.of(HealthStatus.Status.UP));
+        final Health health = PersistenceClusterHealth.of(null, StatusInfo.fromStatus(StatusInfo.Status.UP));
         assertHealthContainsExactly(health, JSON_FIELD_STATUS, CLUSTER);
     }
 
 
     @Test
     public void jsonSerializationWithAll() {
-        final Health health = PersistenceClusterHealth.of(HealthStatus.of(HealthStatus.Status.UP),
-                HealthStatus.of(HealthStatus.Status.UP));
+        final Health health = PersistenceClusterHealth.of(StatusInfo.fromStatus(StatusInfo.Status.UP),
+                StatusInfo.fromStatus(StatusInfo.Status.UP));
 
         assertHealthContainsExactly(health, JSON_FIELD_STATUS, PERSISTENCE, CLUSTER);
     }

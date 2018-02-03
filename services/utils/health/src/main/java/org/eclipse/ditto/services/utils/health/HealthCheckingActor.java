@@ -52,7 +52,7 @@ public final class HealthCheckingActor extends AbstractActor {
         health = PersistenceClusterHealth.newInstance();
         if (options.isPersistenceCheckEnabled()) {
             health = PersistenceClusterHealth.setHealthStatusPersistence(health,
-                    HealthStatus.of(HealthStatus.Status.UNKNOWN));
+                    StatusInfo.fromStatus(StatusInfo.Status.UNKNOWN));
         }
 
         if (options.isHealthCheckEnabled()) {
@@ -99,8 +99,8 @@ public final class HealthCheckingActor extends AbstractActor {
     }
 
     private void applyMongoStatus(final RetrieveMongoStatusResponse statusResponse) {
-        final HealthStatus status = HealthStatus
-                .of(statusResponse.isAlive() ? HealthStatus.Status.UP : HealthStatus.Status.DOWN,
+        final StatusInfo status = StatusInfo
+                .fromStatus(statusResponse.isAlive() ? StatusInfo.Status.UP : StatusInfo.Status.DOWN,
                         statusResponse.getDescription().orElse(null));
         health = PersistenceClusterHealth.setHealthStatusPersistence(health, status);
     }

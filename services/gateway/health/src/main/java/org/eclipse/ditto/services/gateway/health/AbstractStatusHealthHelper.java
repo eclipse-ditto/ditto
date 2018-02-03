@@ -33,7 +33,7 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.services.gateway.starter.service.util.ConfigKeys;
 import org.eclipse.ditto.services.utils.akka.SimpleCommand;
 import org.eclipse.ditto.services.utils.akka.SimpleCommandResponse;
-import org.eclipse.ditto.services.utils.health.HealthStatus;
+import org.eclipse.ditto.services.utils.health.StatusInfo;
 import org.eclipse.ditto.services.utils.health.cluster.ClusterRoleStatus;
 import org.eclipse.ditto.services.utils.health.cluster.ClusterStatus;
 import org.eclipse.ditto.services.utils.health.status.StatusSupplierActor;
@@ -100,9 +100,9 @@ public abstract class AbstractStatusHealthHelper implements StatusHealthHelper {
                 .map(JsonField::getValue)
                 .filter(JsonValue::isObject)
                 .map(JsonValue::asObject)
-                .allMatch(statusObject -> statusObject.getValue(HealthStatus.JSON_KEY_STATUS)
-                        .map(statusStr -> statusStr.equalsIgnoreCase(HealthStatus.Status.UP.toString()) || statusStr
-                                .equalsIgnoreCase(HealthStatus.Status.UNKNOWN.toString()))
+                .allMatch(statusObject -> statusObject.getValue(StatusInfo.JSON_KEY_STATUS)
+                        .map(statusStr -> statusStr.equalsIgnoreCase(StatusInfo.Status.UP.toString()) || statusStr
+                                .equalsIgnoreCase(StatusInfo.Status.UNKNOWN.toString()))
                         .orElse(false));
     }
 
@@ -136,8 +136,8 @@ public abstract class AbstractStatusHealthHelper implements StatusHealthHelper {
                 healthClusterRolesExpected.removeAll(existingClusterRoles);
                 final boolean expectedRolesStatus = healthClusterRolesExpected.isEmpty();
                 final JsonObject expectedRolesStatusJson = JsonObject.newBuilder()
-                        .set(HealthStatus.JSON_KEY_STATUS, expectedRolesStatus ?
-                                HealthStatus.Status.UP.toString() : HealthStatus.Status.DOWN.toString())
+                        .set(StatusInfo.JSON_KEY_STATUS, expectedRolesStatus ?
+                                StatusInfo.Status.UP.toString() : StatusInfo.Status.DOWN.toString())
                         .set(JSON_KEY_MISSING_ROLES, healthClusterRolesExpected.stream()
                                 .map(JsonValue::of)
                                 .collect(JsonCollectors.valuesToArray())
@@ -164,11 +164,11 @@ public abstract class AbstractStatusHealthHelper implements StatusHealthHelper {
                                         final JsonObject roleStatus = roleStatusBuilder.build();
                                         final String roleHealth =
                                                 !reachable.isEmpty() && checkIfAllSubStatusAreUp(roleStatus) ?
-                                                        HealthStatus.Status.UP.toString() :
-                                                        HealthStatus.Status.DOWN.toString();
+                                                        StatusInfo.Status.UP.toString() :
+                                                        StatusInfo.Status.DOWN.toString();
 
                                         return JsonObject.newBuilder()
-                                                .set(HealthStatus.JSON_KEY_STATUS, roleHealth)
+                                                .set(StatusInfo.JSON_KEY_STATUS, roleHealth)
                                                 .setAll(roleStatus)
                                                 .build();
                                     });
@@ -189,9 +189,9 @@ public abstract class AbstractStatusHealthHelper implements StatusHealthHelper {
         final boolean allServicesUp = checkIfAllSubStatusAreUp(allHealth);
         return JsonObject.newBuilder()
                 .set(JSON_KEY_ROLES, JsonFactory.newObjectBuilder()
-                        .set(HealthStatus.JSON_KEY_STATUS,
-                                allServicesUp ? HealthStatus.Status.UP.toString() :
-                                        HealthStatus.Status.DOWN.toString())
+                        .set(StatusInfo.JSON_KEY_STATUS,
+                                allServicesUp ? StatusInfo.Status.UP.toString() :
+                                        StatusInfo.Status.DOWN.toString())
                         .setAll(allHealth).build()
                 ).build();
     }
@@ -201,15 +201,15 @@ public abstract class AbstractStatusHealthHelper implements StatusHealthHelper {
                 .map(field -> Optional.of(field.getValue())
                         .filter(JsonValue::isObject)
                         .map(JsonValue::asObject)
-                        .flatMap(obj -> obj.getValue(HealthStatus.JSON_KEY_STATUS))
+                        .flatMap(obj -> obj.getValue(StatusInfo.JSON_KEY_STATUS))
                 )
                 .allMatch(statusValue -> statusValue.filter(
-                        status -> HealthStatus.Status.UP.toString().equals(status) ||
-                                HealthStatus.Status.UNKNOWN.toString().equals(status))
+                        status -> StatusInfo.Status.UP.toString().equals(status) ||
+                                StatusInfo.Status.UNKNOWN.toString().equals(status))
                         .isPresent());
         return JsonObject.newBuilder()
-                .set(HealthStatus.JSON_KEY_STATUS,
-                        allUp ? HealthStatus.Status.UP.toString() : HealthStatus.Status.DOWN.toString())
+                .set(StatusInfo.JSON_KEY_STATUS,
+                        allUp ? StatusInfo.Status.UP.toString() : StatusInfo.Status.DOWN.toString())
                 .setAll(combinedHealth)
                 .build();
     }
