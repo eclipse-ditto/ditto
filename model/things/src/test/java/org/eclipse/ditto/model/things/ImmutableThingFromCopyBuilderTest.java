@@ -94,9 +94,8 @@ public final class ImmutableThingFromCopyBuilderTest {
 
     @Test(expected = JsonParseException.class)
     public void builderOfJsonObjectThrowsCorrectExceptionForDateTimeParseException() {
-        underTestV1 =
-                ImmutableThingFromCopyBuilder.of(
-                        TestConstants.Thing.THING_V1.toJson(JsonSchemaVersion.V_1, FieldType.regularOrSpecial())
+        underTestV1 = ImmutableThingFromCopyBuilder.of(
+                TestConstants.Thing.THING_V1.toJson(JsonSchemaVersion.V_1, FieldType.regularOrSpecial())
                         .toBuilder()
                         .set(Thing.JsonFields.MODIFIED, "10.10.2016 13:37")
                         .build());

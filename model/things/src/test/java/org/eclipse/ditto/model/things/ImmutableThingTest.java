@@ -828,7 +828,7 @@ public final class ImmutableThingTest {
     }
 
     @Test
-    public void ensureThingsToBuilderWorksV1() {
+    public void ensureThingsToBuilderWorks() {
         DittoJsonAssertions.assertThat(TestConstants.Thing.THING_V1)
                 .isEqualTo(TestConstants.Thing.THING_V1.toBuilder().build());
     }
@@ -840,7 +840,7 @@ public final class ImmutableThingTest {
     }
 
     @Test
-    public void ensureThingToJsonContainsNonHiddenFieldsV1() {
+    public void ensureThingToJsonContainsNonHiddenFields() {
         final JsonObject jsonObject = TestConstants.Thing.THING_V1.toJson(JsonSchemaVersion.V_1);
         DittoJsonAssertions.assertThat(jsonObject).contains(Thing.JsonFields.ID, THING_ID);
         DittoJsonAssertions.assertThat(jsonObject).contains(Thing.JsonFields.ATTRIBUTES, ATTRIBUTES);
@@ -855,7 +855,7 @@ public final class ImmutableThingTest {
     }
 
     @Test
-    public void ensureThingToJsonWithSpecialContainsAllFieldsV1() {
+    public void ensureThingToJsonWithSpecialContainsAllFields() {
         final JsonObject jsonObject =
                 TestConstants.Thing.THING_V1.toJson(JsonSchemaVersion.V_1, FieldType.regularOrSpecial());
         DittoJsonAssertions.assertThat(jsonObject)
