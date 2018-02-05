@@ -20,11 +20,27 @@ import java.util.Optional;
  */
 public interface PayloadMapperMessage {
 
+    /**
+     *
+     * @return
+     */
     String getContentType();
 
+    /**
+     *
+     * @return
+     */
     Optional<ByteBuffer> getRawData();
 
+    /**
+     *
+     * @return
+     */
     Optional<String> getStringData();
 
+    /**
+     *
+     * @return
+     */
     Map<String, String> getHeaders();
 }

@@ -11,9 +11,6 @@
  */
 package org.eclipse.ditto.services.amqpbridge.mapping.mapper;
 
-import java.util.Arrays;
-import java.util.List;
-
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Thing;
@@ -22,31 +19,32 @@ import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 
 /**
  * TODO doc
+ *
+ * Sorry, not really a test yet - class was used in order to manually test mapping functionality.
  */
-@RunWith(Parameterized.class)
+//@RunWith(Parameterized.class)
 public class PayloadMapperSimpleTest {
 
-    private static final ImmutableMappingTemplate TEMPLATE = new ImmutableMappingTemplate("ditto_mappingString = " +
+    private static final String MAPPING_TEMPLATE = "ditto_mappingString = " +
             "\"Topic was: \" + ditto_protocolJson.topic + \"\\n\" +\n" +
-            "\"Header correlation-id was: \" + ditto_protocolJson.headers['correlation-id'];");
+            "\"Header correlation-id was: \" + ditto_protocolJson.headers['correlation-id'];";
 
     private static PayloadMapper javaScriptRhinoMapper;
 
-    @Parameterized.Parameters
-    public static List<Object[]> data() {
-        return Arrays.asList(new Object[20][0]);
-    }
+//    @Parameterized.Parameters
+//    public static List<Object[]> data() {
+//        return Arrays.asList(new Object[20][0]);
+//    }
 
     @BeforeClass
     public static void setup() {
-        javaScriptRhinoMapper = PayloadMappers.createJavaScriptRhino(
+        javaScriptRhinoMapper = PayloadMappers.createJavaScriptRhinoMapper(
                 PayloadMappers
-                        .createJavaScriptOptionsBuilder()
+                        .createJavaScriptMapperOptionsBuilder()
+                        .outgoingMappingScript(MAPPING_TEMPLATE)
                         .build());
     }
 
@@ -64,7 +62,7 @@ public class PayloadMapperSimpleTest {
         final long startTs = System.nanoTime();
 
         final PayloadMapperMessage
-                rawMessage = javaScriptRhinoMapper.mapOutgoingMessageFromDittoAdaptable(TEMPLATE, adaptable);
+                rawMessage = javaScriptRhinoMapper.mapOutgoing(adaptable);
         System.out.println(rawMessage);
         System.out.println("Duration: " + (System.nanoTime() - startTs) / 1000000.0 + "ms");
     }

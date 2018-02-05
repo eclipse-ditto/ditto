@@ -22,7 +22,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import javax.script.Bindings;
 
@@ -31,10 +30,10 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
-import org.eclipse.ditto.services.amqpbridge.mapping.mapper.ImmutablePayloadMapperMessage;
-import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MappingTemplate;
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.PayloadMapper;
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.PayloadMapperMessage;
+import org.eclipse.ditto.services.amqpbridge.mapping.mapper.PayloadMapperOptions;
+import org.eclipse.ditto.services.amqpbridge.mapping.mapper.PayloadMappers;
 import org.mozilla.javascript.Callable;
 import org.mozilla.javascript.Context;
 import org.mozilla.javascript.ContextFactory;
@@ -75,8 +74,9 @@ final class RhinoJavaScriptPayloadMapper implements PayloadMapper {
     private final Scriptable scope;
 
 
-    RhinoJavaScriptPayloadMapper(final JavaScriptPayloadMapperOptions options) {
-        this.options = options;
+    RhinoJavaScriptPayloadMapper(final PayloadMapperOptions options) {
+
+        this.options = new ImmutableJavaScriptPayloadMapperOptions.Builder(options.getAsMap()).build();
 
         contextFactory = new RhinoContextFactory();
 
@@ -90,8 +90,7 @@ final class RhinoJavaScriptPayloadMapper implements PayloadMapper {
     }
 
     @Override
-    public Adaptable mapIncomingMessageToDittoAdaptable(final MappingTemplate template,
-            final PayloadMapperMessage message) {
+    public Adaptable mapIncoming(final PayloadMapperMessage message) {
 
         return (Adaptable) contextFactory.call(cx -> {
             final NativeObject headersObj = new NativeObject();
@@ -112,9 +111,7 @@ final class RhinoJavaScriptPayloadMapper implements PayloadMapper {
             ScriptableObject.putProperty(scope, MAPPING_STRING_VAR, message.getStringData().orElse(null));
             ScriptableObject.putProperty(scope, DITTO_PROTOCOL_JSON_VAR, new NativeObject());
 
-            template.getMappingTemplate().ifPresent(mappingTemplate ->
-                cx.evaluateString(scope, mappingTemplate, "template", 1, null)
-            );
+            cx.evaluateString(scope, options.getIncomingMappingScript(), "template", 1, null);
 
             final Object dittoProtocolJson = ScriptableObject.getProperty(scope, DITTO_PROTOCOL_JSON_VAR);
             final String dittoProtocolJsonStr =
@@ -126,8 +123,7 @@ final class RhinoJavaScriptPayloadMapper implements PayloadMapper {
     }
 
     @Override
-    public PayloadMapperMessage mapOutgoingMessageFromDittoAdaptable(final MappingTemplate template,
-            final Adaptable dittoProtocolAdaptable) {
+    public PayloadMapperMessage mapOutgoing(final Adaptable dittoProtocolAdaptable) {
 
         final JsonifiableAdaptable jsonifiableAdaptable =
                 ProtocolFactory.wrapAsJsonifiableAdaptable(dittoProtocolAdaptable);
@@ -137,9 +133,7 @@ final class RhinoJavaScriptPayloadMapper implements PayloadMapper {
                         NativeJSON.parse(cx, scope, jsonifiableAdaptable.toJsonString(), new NullCallable());
             ScriptableObject.putProperty(scope, DITTO_PROTOCOL_JSON_VAR, nativeJsonObject);
 
-            template.getMappingTemplate().ifPresent(mappingTemplate ->
-                    cx.evaluateString(scope, mappingTemplate, "template", 1, null)
-            );
+            cx.evaluateString(scope, options.getOutgoingMappingScript(), "template", 1, null);
 
             final String contentType = ScriptableObject.getTypedProperty(scope, MAPPING_CONTENT_TYPE_VAR, String.class);
             final String mappingString = ScriptableObject.getTypedProperty(scope, MAPPING_STRING_VAR, String.class);
@@ -147,7 +141,8 @@ final class RhinoJavaScriptPayloadMapper implements PayloadMapper {
             final Object mappingHeaders = ScriptableObject.getProperty(scope, MAPPING_HEADERS_VAR);
 
             final Map<String, String> headers = !(mappingHeaders instanceof Undefined) ? null : Collections.emptyMap();
-            return new ImmutablePayloadMapperMessage(contentType, convertToByteBuffer(mappingByteArray), mappingString, headers);
+            return PayloadMappers.createPayloadMapperMessage(contentType, convertToByteBuffer(mappingByteArray),
+                    mappingString, headers);
         });
     }
 
@@ -175,7 +170,7 @@ final class RhinoJavaScriptPayloadMapper implements PayloadMapper {
         }
     }
 
-    static ByteBuffer convertToByteBuffer(final Object obj) {
+    private static ByteBuffer convertToByteBuffer(final Object obj) {
         if (obj instanceof Bindings) {
             try {
                 final Class<?> cls = Class.forName("jdk.nashorn.api.scripting.ScriptObjectMirror");
@@ -203,21 +198,6 @@ final class RhinoJavaScriptPayloadMapper implements PayloadMapper {
             final ByteArrayOutputStream baos = new ByteArrayOutputStream();
             list.forEach(e -> baos.write(((Number) e).intValue()));
             return ByteBuffer.wrap(baos.toByteArray());
-        }
-        return null;
-    }
-
-    static String convertToJsonArrayString(final ByteBuffer byteBuffer) {
-        final byte[] bytes = Optional.ofNullable(byteBuffer).map(ByteBuffer::array).orElse(null);
-        if (bytes != null) {
-            final StringBuilder sb = new StringBuilder("[");
-            for (final byte aByte : bytes) {
-                sb.append(aByte);
-                sb.append(",");
-            }
-            sb.deleteCharAt(sb.length()-1);
-            sb.append("]");
-            return sb.toString();
         }
         return null;
     }

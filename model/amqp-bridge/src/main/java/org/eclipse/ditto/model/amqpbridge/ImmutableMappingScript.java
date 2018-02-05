@@ -38,18 +38,14 @@ final class ImmutableMappingScript implements MappingScript {
 
     private final String contentType;
     private final String mappingEngine;
-    private final String incomingMappingScript;
-    private final String outgoingMappingScript;
     private final Map<String, String> options;
 
 
     private ImmutableMappingScript(final String contentType, final String mappingEngine,
-            final String incomingMappingScript, final String outgoingMappingScript, final Map<String, String> options) {
+            final Map<String, String> options) {
 
         this.contentType = contentType;
         this.mappingEngine = mappingEngine;
-        this.incomingMappingScript = incomingMappingScript;
-        this.outgoingMappingScript = outgoingMappingScript;
         this.options = Collections.unmodifiableMap(new HashMap<>(options));
     }
 
@@ -58,21 +54,16 @@ final class ImmutableMappingScript implements MappingScript {
      *
      * @param contentType
      * @param mappingEngine
-     * @param incomingMappingScript
-     * @param outgoingMappingScript
      * @param options
      * @return
      */
     public static ImmutableMappingScript of(final String contentType, final String mappingEngine,
-            final String incomingMappingScript, final String outgoingMappingScript, final Map<String, String> options) {
+            final Map<String, String> options) {
         checkNotNull(contentType, "content-type");
         checkNotNull(mappingEngine, "mapping Engine");
-        checkNotNull(incomingMappingScript, "incoming MappingScript");
-        checkNotNull(outgoingMappingScript, "outgoing MappingScript");
         checkNotNull(options, "options");
 
-        return new ImmutableMappingScript(contentType, mappingEngine, incomingMappingScript, outgoingMappingScript,
-                options);
+        return new ImmutableMappingScript(contentType, mappingEngine, options);
     }
 
     /**
@@ -86,12 +77,10 @@ final class ImmutableMappingScript implements MappingScript {
     public static MappingScript fromJson(final JsonObject jsonObject) {
         final String contentType = jsonObject.getValueOrThrow(JsonFields.CONTENT_TYPE);
         final String mappingEngine = jsonObject.getValueOrThrow(JsonFields.MAPPING_ENGINE);
-        final String incomingMappingScript = jsonObject.getValueOrThrow(JsonFields.INCOMING_MAPPING_SCRIPT);
-        final String outgoingMappingScript = jsonObject.getValueOrThrow(JsonFields.OUTGOING_MAPPING_SCRIPT);
         final Map<String, String> options = jsonObject.getValueOrThrow(JsonFields.OPTIONS).stream()
                 .collect(Collectors.toMap(e -> e.getKey().toString(), e -> e.getValue().toString()));
 
-        return of(contentType, mappingEngine, incomingMappingScript, outgoingMappingScript, options);
+        return of(contentType, mappingEngine, options);
     }
 
     @Override
@@ -101,8 +90,6 @@ final class ImmutableMappingScript implements MappingScript {
 
         jsonObjectBuilder.set(JsonFields.CONTENT_TYPE, contentType, predicate);
         jsonObjectBuilder.set(JsonFields.MAPPING_ENGINE, mappingEngine, predicate);
-        jsonObjectBuilder.set(JsonFields.INCOMING_MAPPING_SCRIPT, incomingMappingScript, predicate);
-        jsonObjectBuilder.set(JsonFields.OUTGOING_MAPPING_SCRIPT, outgoingMappingScript, predicate);
         jsonObjectBuilder.set(JsonFields.OPTIONS, options.entrySet().stream()
                 .map(e -> JsonField.newInstance(e.getKey(), JsonValue.of(e.getValue())))
                 .collect(JsonCollectors.fieldsToObject()), predicate);
@@ -121,16 +108,6 @@ final class ImmutableMappingScript implements MappingScript {
     }
 
     @Override
-    public String getIncomingMappingScript() {
-        return incomingMappingScript;
-    }
-
-    @Override
-    public String getOutgoingMappingScript() {
-        return outgoingMappingScript;
-    }
-
-    @Override
     public Map<String, String> getOptions() {
         return options;
     }
@@ -146,14 +123,12 @@ final class ImmutableMappingScript implements MappingScript {
         final ImmutableMappingScript that = (ImmutableMappingScript) o;
         return Objects.equals(contentType, that.contentType) &&
                 Objects.equals(mappingEngine, that.mappingEngine) &&
-                Objects.equals(incomingMappingScript, that.incomingMappingScript) &&
-                Objects.equals(outgoingMappingScript, that.outgoingMappingScript) &&
                 Objects.equals(options, that.options);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(contentType, mappingEngine, incomingMappingScript, outgoingMappingScript, options);
+        return Objects.hash(contentType, mappingEngine, options);
     }
 
     @Override
@@ -161,8 +136,6 @@ final class ImmutableMappingScript implements MappingScript {
         return getClass().getSimpleName() + " [" +
                 "contentType=" + contentType +
                 ", mappingEngine=" + mappingEngine +
-                ", incomingMappingScript=" + incomingMappingScript +
-                ", outgoingMappingScript=" + outgoingMappingScript +
                 ", options=" + options +
                 "]";
     }

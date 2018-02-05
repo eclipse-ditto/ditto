@@ -18,6 +18,10 @@ import org.eclipse.ditto.services.amqpbridge.mapping.mapper.PayloadMapperOptions
  */
 public interface JavaScriptPayloadMapperOptions extends PayloadMapperOptions {
 
+    String getIncomingMappingScript();
+
+    String getOutgoingMappingScript();
+
     boolean isLoadBytebufferJS();
 
     boolean isLoadLongJS();
@@ -28,6 +32,10 @@ public interface JavaScriptPayloadMapperOptions extends PayloadMapperOptions {
      *
      */
     interface Builder extends PayloadMapperOptions.Builder<JavaScriptPayloadMapperOptions> {
+
+        Builder incomingMappingScript(String mappingScript);
+
+        Builder outgoingMappingScript(String mappingScript);
 
         Builder loadBytebufferJS(boolean load);
 

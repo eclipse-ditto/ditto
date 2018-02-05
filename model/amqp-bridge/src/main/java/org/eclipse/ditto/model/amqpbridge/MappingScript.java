@@ -45,18 +45,6 @@ public interface MappingScript extends Jsonifiable.WithFieldSelectorAndPredicate
      *
      * @return
      */
-    String getIncomingMappingScript();
-
-    /**
-     *
-     * @return
-     */
-    String getOutgoingMappingScript();
-
-    /**
-     *
-     * @return
-     */
     Map<String, String> getOptions();
 
     /**
@@ -93,20 +81,6 @@ public interface MappingScript extends Jsonifiable.WithFieldSelectorAndPredicate
         public static final JsonFieldDefinition<String> MAPPING_ENGINE =
                 JsonFactory.newStringFieldDefinition("mappingEngine", FieldType.REGULAR,
                         JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
-
-        /**
-         * JSON field containing the identifier for the script for incoming messages.
-         */
-        public static final JsonFieldDefinition<String> INCOMING_MAPPING_SCRIPT =
-                JsonFactory.newStringFieldDefinition("incomingMappingScript", FieldType.REGULAR, JsonSchemaVersion.V_1,
-                        JsonSchemaVersion.V_2);
-
-        /**
-         * JSON field containing the identifier for the script for outgoing messages.
-         */
-        public static final JsonFieldDefinition<String> OUTGOING_MAPPING_SCRIPT =
-                JsonFactory.newStringFieldDefinition("outgoingMappingScript", FieldType.REGULAR, JsonSchemaVersion.V_1,
-                        JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the options for the mapping.

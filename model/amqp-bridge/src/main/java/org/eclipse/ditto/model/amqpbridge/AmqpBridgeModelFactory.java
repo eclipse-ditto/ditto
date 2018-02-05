@@ -64,8 +64,8 @@ public final class AmqpBridgeModelFactory {
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static MappingScript newMappingScript(final String contentType, final String mappingEngine,
-            final String incomingMappingScript, final String outgoingMappingScript, final Map<String, String> options) {
-        return ImmutableMappingScript.of(contentType, mappingEngine, incomingMappingScript, outgoingMappingScript, options);
+            final Map<String, String> options) {
+        return ImmutableMappingScript.of(contentType, mappingEngine, options);
     }
 
     /**

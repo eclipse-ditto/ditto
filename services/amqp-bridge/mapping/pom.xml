@@ -58,10 +58,12 @@
         <dependency>
             <groupId>org.webjars.npm</groupId>
             <artifactId>mustache</artifactId>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.webjars.npm</groupId>
             <artifactId>bytebuffer</artifactId>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
 

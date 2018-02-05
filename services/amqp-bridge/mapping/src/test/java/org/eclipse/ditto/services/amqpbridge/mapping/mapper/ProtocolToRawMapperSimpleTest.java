@@ -11,47 +11,46 @@
  */
 package org.eclipse.ditto.services.amqpbridge.mapping.mapper;
 
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 
 /**
  * TODO doc
+ *
+ * Sorry, not really a test yet - class was used in order to manually test mapping functionality.
  */
-@RunWith(Parameterized.class)
+//@RunWith(Parameterized.class)
 public class ProtocolToRawMapperSimpleTest {
 
     private static final String CONTENT_TYPE = "text/plain";
 
-    private static final ImmutableMappingTemplate TEMPLATE = new ImmutableMappingTemplate("" +
+    private static final String MAPPING_TEMPLATE =
             "ditto_protocolJson.topic = 'org.eclipse.ditto/foo-bar/things/twin/commands/create';" +
             "ditto_protocolJson.path = '/';" +
             "ditto_protocolJson.headers = {};" +
             "ditto_protocolJson.headers['correlation-id'] = ditto_mappingHeaders['correlation-id'];" +
             "ditto_protocolJson.value = ditto_mappingString;"
-    );
+    ;
 
     private static final String PAYLOAD_STRING = "hello!";
 
     private static PayloadMapper javaScriptRhinoMapper;
 
-    @Parameterized.Parameters
-    public static List<Object[]> data() {
-        return Arrays.asList(new Object[20][0]);
-    }
+//    @Parameterized.Parameters
+//    public static List<Object[]> data() {
+//        return Arrays.asList(new Object[20][0]);
+//    }
 
     @BeforeClass
     public static void setup() {
-        javaScriptRhinoMapper = PayloadMappers.createJavaScriptRhino(
+        javaScriptRhinoMapper = PayloadMappers.createJavaScriptRhinoMapper(
                 PayloadMappers
-                        .createJavaScriptOptionsBuilder()
+                        .createJavaScriptMapperOptionsBuilder()
+                        .incomingMappingScript(MAPPING_TEMPLATE)
                         .build());
     }
 
@@ -64,8 +63,7 @@ public class ProtocolToRawMapperSimpleTest {
         final PayloadMapperMessage message = new ImmutablePayloadMapperMessage(CONTENT_TYPE, null, "huhu!", headers);
 
         final long startTs = System.nanoTime();
-        final Adaptable
-                adaptable = javaScriptRhinoMapper.mapIncomingMessageToDittoAdaptable(TEMPLATE, message);
+        final Adaptable adaptable = javaScriptRhinoMapper.mapIncoming(message);
         System.out.println(adaptable);
         System.out.println("Duration: " + (System.nanoTime() - startTs) / 1000000.0 + "ms");
     }

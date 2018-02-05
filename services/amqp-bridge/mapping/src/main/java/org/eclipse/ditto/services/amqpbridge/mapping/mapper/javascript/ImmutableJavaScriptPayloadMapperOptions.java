@@ -22,16 +22,30 @@ import java.util.Optional;
  */
 final class ImmutableJavaScriptPayloadMapperOptions implements JavaScriptPayloadMapperOptions {
 
+    private final String incomingMappingScript;
+    private final String outgoingMappingScript;
     private final boolean loadBytebufferJS;
     private final boolean loadLongJS;
     private final boolean loadMustacheJS;
 
-    ImmutableJavaScriptPayloadMapperOptions(final boolean loadBytebufferJS, final boolean loadLongJS,
+    ImmutableJavaScriptPayloadMapperOptions(final String incomingMappingScript,
+            final String outgoingMappingScript, final boolean loadBytebufferJS, final boolean loadLongJS,
             final boolean loadMustacheJS) {
-
+        this.incomingMappingScript = incomingMappingScript;
+        this.outgoingMappingScript = outgoingMappingScript;
         this.loadBytebufferJS = loadBytebufferJS;
         this.loadLongJS = loadLongJS;
         this.loadMustacheJS = loadMustacheJS;
+    }
+
+    @Override
+    public String getIncomingMappingScript() {
+        return incomingMappingScript;
+    }
+
+    @Override
+    public String getOutgoingMappingScript() {
+        return outgoingMappingScript;
     }
 
     @Override
@@ -52,6 +66,8 @@ final class ImmutableJavaScriptPayloadMapperOptions implements JavaScriptPayload
     @Override
     public Map<String, String> getAsMap() {
         final Map<String, String> optionsMap = new HashMap<>();
+        optionsMap.put("incomingMappingScript", incomingMappingScript);
+        optionsMap.put("outgoingMappingScript", outgoingMappingScript);
         optionsMap.put("loadBytebufferJS", Boolean.valueOf(loadBytebufferJS).toString());
         optionsMap.put("loadLongJS", Boolean.valueOf(loadLongJS).toString());
         optionsMap.put("loadMustacheJS", Boolean.valueOf(loadMustacheJS).toString());
@@ -60,23 +76,31 @@ final class ImmutableJavaScriptPayloadMapperOptions implements JavaScriptPayload
 
     @Override
     public boolean equals(final Object o) {
-        if (this == o) return true;
-        if (!(o instanceof ImmutableJavaScriptPayloadMapperOptions)) return false;
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof ImmutableJavaScriptPayloadMapperOptions)) {
+            return false;
+        }
         final ImmutableJavaScriptPayloadMapperOptions that = (ImmutableJavaScriptPayloadMapperOptions) o;
         return loadBytebufferJS == that.loadBytebufferJS &&
                 loadLongJS == that.loadLongJS &&
-                loadMustacheJS == that.loadMustacheJS;
+                loadMustacheJS == that.loadMustacheJS &&
+                Objects.equals(incomingMappingScript, that.incomingMappingScript) &&
+                Objects.equals(outgoingMappingScript, that.outgoingMappingScript);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(loadBytebufferJS, loadLongJS, loadMustacheJS);
+        return Objects.hash(incomingMappingScript, outgoingMappingScript, loadBytebufferJS, loadLongJS, loadMustacheJS);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "loadBytebufferJS=" + loadBytebufferJS +
+                "incomingMappingScript=" + incomingMappingScript +
+                ", outgoingMappingScript=" + outgoingMappingScript +
+                ", loadBytebufferJS=" + loadBytebufferJS +
                 ", loadLongJS=" + loadLongJS +
                 ", loadMustacheJS=" + loadMustacheJS +
                 "]";
@@ -87,11 +111,17 @@ final class ImmutableJavaScriptPayloadMapperOptions implements JavaScriptPayload
      */
     static final class Builder implements JavaScriptPayloadMapperOptions.Builder {
 
+        private String incomingMappingScript;
+        private String outgoingMappingScript;
         private boolean loadBytebufferJS;
         private boolean loadLongJS;
         private boolean loadMustacheJS;
 
         Builder(final Map<String, String> options) {
+            incomingMappingScript = Optional.ofNullable(options.get("incomingMappingScript"))
+                    .orElse(null);
+            outgoingMappingScript = Optional.ofNullable(options.get("outgoingMappingScript"))
+                    .orElse(null);
             loadBytebufferJS = Optional.ofNullable(options.get("loadBytebufferJS"))
                     .map(Boolean::parseBoolean)
                     .orElse(false);
@@ -101,6 +131,18 @@ final class ImmutableJavaScriptPayloadMapperOptions implements JavaScriptPayload
             loadMustacheJS = Optional.ofNullable(options.get("loadMustacheJS"))
                     .map(Boolean::parseBoolean)
                     .orElse(false);
+        }
+
+        @Override
+        public JavaScriptPayloadMapperOptions.Builder incomingMappingScript(final String mappingScript) {
+            incomingMappingScript = mappingScript;
+            return this;
+        }
+
+        @Override
+        public JavaScriptPayloadMapperOptions.Builder outgoingMappingScript(final String mappingScript) {
+            outgoingMappingScript = mappingScript;
+            return this;
         }
 
         @Override
@@ -123,7 +165,8 @@ final class ImmutableJavaScriptPayloadMapperOptions implements JavaScriptPayload
 
         @Override
         public JavaScriptPayloadMapperOptions build() {
-            return new ImmutableJavaScriptPayloadMapperOptions(loadBytebufferJS, loadLongJS, loadMustacheJS);
+            return new ImmutableJavaScriptPayloadMapperOptions(incomingMappingScript, outgoingMappingScript,
+                    loadBytebufferJS, loadLongJS, loadMustacheJS);
         }
     }
 }

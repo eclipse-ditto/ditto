@@ -48,13 +48,10 @@ import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
-import org.eclipse.ditto.services.amqpbridge.mapping.mapper.ImmutableMappingTemplate;
-import org.eclipse.ditto.services.amqpbridge.mapping.mapper.ImmutablePayloadMapperMessage;
-import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MappingTemplate;
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.PayloadMapper;
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.PayloadMapperMessage;
+import org.eclipse.ditto.services.amqpbridge.mapping.mapper.PayloadMapperOptions;
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.PayloadMappers;
-import org.eclipse.ditto.services.amqpbridge.mapping.mapper.javascript.JavaScriptPayloadMapperOptions;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
@@ -62,6 +59,8 @@ import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
+import akka.actor.ExtendedActorSystem;
 import akka.actor.Props;
 import akka.actor.Status;
 import akka.cluster.pubsub.DistributedPubSubMediator;
@@ -72,6 +71,10 @@ import kamon.Kamon;
 import kamon.trace.Segment;
 import kamon.trace.TraceContext;
 import scala.Option;
+import scala.Tuple2;
+import scala.collection.JavaConversions;
+import scala.reflect.ClassTag;
+import scala.util.Try;
 
 /**
  * This Actor processes incoming {@link Command}s and dispatches them via {@link DistributedPubSubMediator} to a
@@ -94,24 +97,24 @@ final class CommandProcessorActor extends AbstractActor {
     private final AuthorizationSubject authorizationSubject;
     private final Map<String, TraceContext> traces;
 
-    private final List<MappingScript> mappingScripts;
-    private final Map<String,PayloadMapper> payloadMappers;
+    private final Map<String, PayloadMapper> payloadMappers;
 
     private CommandProcessorActor(final ActorRef pubSubMediator, final String pubSubTargetActorPath,
             final AuthorizationSubject authorizationSubject, final List<MappingScript> mappingScripts) {
         this.pubSubMediator = pubSubMediator;
         this.pubSubTargetActorPath = pubSubTargetActorPath;
         this.authorizationSubject = authorizationSubject;
-        this.mappingScripts = Collections.unmodifiableList(new ArrayList<>(mappingScripts));
         traces = new HashMap<>();
 
-        payloadMappers = this.mappingScripts.stream()
+        final ActorSystem actorSystem = getContext().getSystem();
+
+        payloadMappers = mappingScripts.stream()
                 .collect(Collectors.toMap(MappingScript::getContentType, ms -> {
 
                     final Map<String, String> optionsMap = ms.getOptions();
-                    final JavaScriptPayloadMapperOptions.Builder optionsBuilder =
-                            PayloadMappers.createJavaScriptOptionsBuilder(optionsMap);
-                    final JavaScriptPayloadMapperOptions options = optionsBuilder.build();
+                    final PayloadMapperOptions.Builder optionsBuilder =
+                            PayloadMappers.createMapperOptionsBuilder(optionsMap);
+                    final PayloadMapperOptions options = optionsBuilder.build();
 
                     // dynamically lookup static method for instantiating the payloadMapper:
                     return Arrays.stream(PayloadMappers.class.getDeclaredMethods())
@@ -127,8 +130,25 @@ final class CommandProcessorActor extends AbstractActor {
                                     return null;
                                 }
                             })
-                            // as fallback, use the JavaScriptRhinoMapper:
-                            .orElse(PayloadMappers.createJavaScriptRhino(options));
+                            // as fallback, try loading the configured "mappingEngine" as implementation of PayloadMapper class:
+                            .orElseGet(() -> {
+                                final String mappingEngineClass = ms.getMappingEngine();
+                                final ClassTag<PayloadMapper> tag =
+                                        scala.reflect.ClassTag$.MODULE$.apply(PayloadMapper.class);
+                                final List<Tuple2<Class<?>, Object>> constructorArgs = new ArrayList<>();
+                                constructorArgs.add(Tuple2.apply(PayloadMapperOptions.class, options));
+                                final Try<PayloadMapper> payloadMapperImpl = ((ExtendedActorSystem) actorSystem)
+                                        .dynamicAccess()
+                                        .createInstanceFor(mappingEngineClass,
+                                                JavaConversions.asScalaBuffer(constructorArgs).toList(), tag);
+
+                                if (payloadMapperImpl.isSuccess()) {
+                                    return payloadMapperImpl.get();
+                                } else {
+                                    log.error("Could not initialize mappingEngine <{}>", ms.getMappingEngine());
+                                    return null;
+                                }
+                            });
                 }));
     }
 
@@ -138,7 +158,6 @@ final class CommandProcessorActor extends AbstractActor {
      * @param pubSubMediator the akka pubsub mediator actor.
      * @param pubSubTargetActorPath the path of the command consuming actor (via pubsub).
      * @param authorizationSubject the authorized subject that are set in command headers.
-     * @param mappingScripts
      * @return the Akka configuration Props object
      */
     static Props props(final ActorRef pubSubMediator, final String pubSubTargetActorPath,
@@ -185,7 +204,7 @@ final class CommandProcessorActor extends AbstractActor {
     private void handleCommandResponse(final CommandResponse response) {
         LogUtil.enhanceLogWithCorrelationId(log, response);
 
-        // TODO TJ map back
+        // TODO map back
 
         if (response.getStatusCodeValue() < HttpStatusCode.BAD_REQUEST.toInt()) {
             log.debug("Received response: {}", response);
@@ -248,16 +267,10 @@ final class CommandProcessorActor extends AbstractActor {
 
             final Segment mappingSegment = traceContext
                     .startSegment("mapping", "payload-mapping", "commandProcessor");
-            // map first
-            final Optional<MappingScript> optMappingScript = mappingScripts.stream()
-                    .filter(ms -> ms.getContentType().equalsIgnoreCase(contentType))
-                    .findFirst();
 
-            if (optMappingScript.isPresent()) {
-                final MappingScript mappingScript = optMappingScript.get();
-                final String incomingMappingScript = mappingScript.getIncomingMappingScript();
-
-                final MappingTemplate mappingTemplate = new ImmutableMappingTemplate(incomingMappingScript);
+            final Optional<PayloadMapper> payloadMapperOptional = Optional.ofNullable(payloadMappers.get(contentType));
+            if (payloadMapperOptional.isPresent()) {
+                final PayloadMapper payloadMapper = payloadMapperOptional.get();
 
                 final ByteBuffer rawMessage;
                 final String stringMessage;
@@ -279,12 +292,10 @@ final class CommandProcessorActor extends AbstractActor {
                 } else {
                     throw new IllegalArgumentException("Only messages of type TEXT or BYTE are supported.");
                 }
-                final PayloadMapperMessage payloadMapperMessage =
-                        new ImmutablePayloadMapperMessage(contentType, rawMessage, stringMessage, headers);
+                final PayloadMapperMessage payloadMapperMessage = PayloadMappers.createPayloadMapperMessage(
+                        contentType, rawMessage, stringMessage, headers);
 
-                final PayloadMapper payloadMapper = payloadMappers.get(contentType);
-                final Adaptable adaptable = payloadMapper
-                        .mapIncomingMessageToDittoAdaptable(mappingTemplate, payloadMapperMessage);
+                final Adaptable adaptable = payloadMapper.mapIncoming(payloadMapperMessage);
 
                 mappingSegment.finish();
 
@@ -300,8 +311,8 @@ final class CommandProcessorActor extends AbstractActor {
         } else if (DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE.equalsIgnoreCase(contentType)) {
             log.info("Received message had DittoProtocol content-type <{}>", contentType);
         } else {
-           log.info("Received message had unknown content-type <{}>, trying to interpret as DittoProtocol message..",
-                   contentType);
+            log.info("Received message had unknown content-type <{}>, trying to interpret as DittoProtocol message..",
+                    contentType);
         }
 
         try {

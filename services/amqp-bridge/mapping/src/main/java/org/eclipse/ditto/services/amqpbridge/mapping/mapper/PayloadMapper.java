@@ -18,7 +18,7 @@ import org.eclipse.ditto.protocoladapter.Adaptable;
  */
 public interface PayloadMapper {
 
-    Adaptable mapIncomingMessageToDittoAdaptable(MappingTemplate template, PayloadMapperMessage message);
+    Adaptable mapIncoming(PayloadMapperMessage message);
 
-    PayloadMapperMessage mapOutgoingMessageFromDittoAdaptable(MappingTemplate template, Adaptable dittoProtocolAdaptable);
+    PayloadMapperMessage mapOutgoing(Adaptable dittoProtocolAdaptable);
 }

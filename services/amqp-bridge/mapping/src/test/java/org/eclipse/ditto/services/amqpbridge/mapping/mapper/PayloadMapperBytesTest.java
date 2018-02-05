@@ -14,8 +14,6 @@ package org.eclipse.ditto.services.amqpbridge.mapping.mapper;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.List;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Attributes;
@@ -25,32 +23,33 @@ import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 
 /**
  * TODO doc
+ *
+ * Sorry, not really a test yet - class was used in order to manually test mapping functionality.
  */
-@RunWith(Parameterized.class)
+//@RunWith(Parameterized.class)
 public class PayloadMapperBytesTest {
 
-    private static final ImmutableMappingTemplate TEMPLATE = new ImmutableMappingTemplate("ditto_mappingByteArray = [];" +
+    private static final String MAPPING_TEMPLATE = "ditto_mappingByteArray = [];" +
             "for (var i = 0; i < ditto_protocolJson.topic.length; i++){  \n" +
-            "    mappingByteArray.push(ditto_protocolJson.topic.charCodeAt(i));\n" +
-            "}");
+            "    ditto_mappingByteArray.push(ditto_protocolJson.topic.charCodeAt(i));\n" +
+            "}";
 
     private static PayloadMapper javaScriptRhinoMapper;
 
-    @Parameterized.Parameters
-    public static List<Object[]> data() {
-        return Arrays.asList(new Object[20][0]);
-    }
+//    @Parameterized.Parameters
+//    public static List<Object[]> data() {
+//        return Arrays.asList(new Object[20][0]);
+//    }
 
     @BeforeClass
     public static void setup() {
-        javaScriptRhinoMapper = PayloadMappers.createJavaScriptRhino(
+        javaScriptRhinoMapper = PayloadMappers.createJavaScriptRhinoMapper(
                 PayloadMappers
-                        .createJavaScriptOptionsBuilder()
+                        .createJavaScriptMapperOptionsBuilder()
+                        .outgoingMappingScript(MAPPING_TEMPLATE)
                         .build());
     }
 
@@ -81,8 +80,7 @@ public class PayloadMapperBytesTest {
         final Adaptable adaptable = DittoProtocolAdapter.newInstance().toAdaptable(createThing);
 
         final long startTs = System.nanoTime();
-        final PayloadMapperMessage
-                rawMessage = javaScriptRhinoMapper.mapOutgoingMessageFromDittoAdaptable(TEMPLATE, adaptable);
+        final PayloadMapperMessage rawMessage = javaScriptRhinoMapper.mapOutgoing(adaptable);
         System.out.println(rawMessage);
         System.out.println(byteBuffer2String(rawMessage.getRawData().orElse(null), StandardCharsets.UTF_8));
         System.out.println("Duration: " + (System.nanoTime() - startTs) / 1000000.0 + "ms");

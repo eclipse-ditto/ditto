@@ -11,8 +11,11 @@
  */
 package org.eclipse.ditto.services.amqpbridge.mapping.mapper;
 
+import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.Map;
+
+import javax.annotation.Nullable;
 
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.javascript.JavaScriptPayloadMapperFactory;
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.javascript.JavaScriptPayloadMapperOptions;
@@ -24,22 +27,57 @@ public class PayloadMappers {
 
     /**
      *
+     * @param contentType
+     * @param rawData
+     * @param stringData
+     * @param headers
      * @return
      */
-    public static JavaScriptPayloadMapperOptions.Builder createJavaScriptOptionsBuilder() {
-        return createJavaScriptOptionsBuilder(Collections.emptyMap());
+    public static PayloadMapperMessage createPayloadMapperMessage(final String contentType,
+            @Nullable final ByteBuffer rawData,
+            @Nullable final String stringData,
+            final Map<String, String> headers) {
+
+        return new ImmutablePayloadMapperMessage(contentType, rawData, stringData, headers);
     }
 
     /**
      *
      * @return
      */
-    public static JavaScriptPayloadMapperOptions.Builder createJavaScriptOptionsBuilder(
+    public static JavaScriptPayloadMapperOptions.Builder createJavaScriptMapperOptionsBuilder() {
+
+        return createJavaScriptMapperOptionsBuilder(Collections.emptyMap());
+    }
+
+    /**
+     *
+     * @param options
+     * @return
+     */
+    public static JavaScriptPayloadMapperOptions.Builder createJavaScriptMapperOptionsBuilder(
             final Map<String, String> options) {
+
         return JavaScriptPayloadMapperFactory.createJavaScriptOptionsBuilder(options);
     }
 
-    public static PayloadMapper createJavaScriptRhino(final JavaScriptPayloadMapperOptions options) {
+    /**
+     *
+     * @param options
+     * @return
+     */
+    public static PayloadMapperOptions.Builder createMapperOptionsBuilder(final Map<String, String> options) {
+
+        return new ImmutablePayloadMapperOptions.Builder(options);
+    }
+
+    /**
+     *
+     * @param options
+     * @return
+     */
+    public static PayloadMapper createJavaScriptRhinoMapper(final PayloadMapperOptions options) {
+
         return JavaScriptPayloadMapperFactory.createRhino(options);
     }
 }

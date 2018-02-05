@@ -21,14 +21,21 @@ import javax.annotation.Nullable;
 /**
  * TODO doc
  */
-public final class ImmutablePayloadMapperMessage implements PayloadMapperMessage {
+final class ImmutablePayloadMapperMessage implements PayloadMapperMessage {
 
     private final String contentType;
     private final ByteBuffer rawData;
     private final String stringData;
     private final Map<String, String> headers;
 
-    public ImmutablePayloadMapperMessage(final String contentType, @Nullable final ByteBuffer rawData,
+    /**
+     *
+     * @param contentType
+     * @param rawData
+     * @param stringData
+     * @param headers
+     */
+    ImmutablePayloadMapperMessage(final String contentType, @Nullable final ByteBuffer rawData,
             @Nullable final String stringData,
             final Map<String, String> headers) {
         this.contentType = contentType;
