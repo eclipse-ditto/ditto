@@ -32,6 +32,7 @@ import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 
 import com.eclipsesource.json.Json;
+import com.eclipsesource.json.PrettyPrintEmptyElementsWriter;
 import com.eclipsesource.json.WriterConfig;
 
 /**
@@ -48,6 +49,7 @@ public final class PublicJsonExamplesProducer extends JsonExamplesProducer {
 
     private static final DittoProtocolAdapter PROTOCOL_ADAPTER = DittoProtocolAdapter.newInstance();
     private static final String TO_ADAPTABLE = "toAdaptable";
+    private static final WriterConfig CUSTOM_PRETTY_PRINT = PrettyPrintEmptyElementsWriter.indentWithSpaces(2);
 
     private final String h2Begin;
     private final String h2End;
@@ -89,8 +91,9 @@ public final class PublicJsonExamplesProducer extends JsonExamplesProducer {
                 .findFirst();
     }
 
-    private Jsonifiable.WithPredicate<JsonObject, JsonField> wrapExceptionInThingErrorResponse(final Jsonifiable
-            .WithPredicate<JsonObject, JsonField> jsonifiable) {
+    private static Jsonifiable.WithPredicate<JsonObject, JsonField> wrapExceptionInThingErrorResponse(
+            final Jsonifiable.WithPredicate<JsonObject, JsonField> jsonifiable) {
+
         if (jsonifiable instanceof DittoRuntimeException) {
             return ThingErrorResponse.of((DittoRuntimeException) jsonifiable);
         } else {
@@ -103,8 +106,9 @@ public final class PublicJsonExamplesProducer extends JsonExamplesProducer {
         return findMatchingToAdaptableMethod(source.getClass()).flatMap(m -> invokeToAdaptable(m, source));
     }
 
-    private Optional<Adaptable> invokeToAdaptable(final Method toAdaptable,
+    private static Optional<Adaptable> invokeToAdaptable(final Method toAdaptable,
             final Jsonifiable.WithPredicate<JsonObject, JsonField> jsonifiable) {
+
         try {
             return Optional.ofNullable((Adaptable) toAdaptable.invoke(PROTOCOL_ADAPTER, jsonifiable));
         } catch (IllegalAccessException | InvocationTargetException e) {
@@ -125,7 +129,7 @@ public final class PublicJsonExamplesProducer extends JsonExamplesProducer {
             try {
                 final String markdown = wrapCodeSnippet(title, jsonString);
                 Files.write(path, markdown.getBytes());
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 throw new RuntimeException(e);
             }
         } else {
@@ -140,13 +144,13 @@ public final class PublicJsonExamplesProducer extends JsonExamplesProducer {
         // <code javascript>
         markdown.append(codeJsonBegin).append(newLine);
         // { ... }
-        markdown.append(Json.parse(jsonString).toString(WriterConfig.PRETTY_PRINT)).append(newLine);
+        markdown.append(Json.parse(jsonString).toString(CUSTOM_PRETTY_PRINT)).append(newLine);
         // </code>
         markdown.append(codeEnd).append(newLine);
         return markdown.toString();
     }
 
-    private String resolveTitle(final Jsonifiable.WithPredicate<JsonObject, JsonField> jsonifiable) {
+    private static String resolveTitle(final Jsonifiable.WithPredicate<JsonObject, JsonField> jsonifiable) {
         if (jsonifiable instanceof DittoRuntimeException) {
             // use the error code for exception
             return ((DittoRuntimeException) jsonifiable).getErrorCode();
@@ -160,7 +164,8 @@ public final class PublicJsonExamplesProducer extends JsonExamplesProducer {
             jsonifiable) {
         if (jsonifiable instanceof DittoRuntimeException) {
             // use the error code for exception
-            String filename = ((DittoRuntimeException) jsonifiable).getErrorCode().replace(':', '_').replace('.', '_');
+            final String filename =
+                    ((DittoRuntimeException) jsonifiable).getErrorCode().replace(':', '_').replace('.', '_');
             return path.resolveSibling(filename + fileExtension);
         } else {
             // by default just lowercase and replace .json with .txt
@@ -168,16 +173,20 @@ public final class PublicJsonExamplesProducer extends JsonExamplesProducer {
         }
     }
 
+    @Override
     protected void writeJson(final Path path, final Jsonifiable.WithPredicate<JsonObject, JsonField> jsonifiable) {
         final Path dowikPath = resolveFileName(path, jsonifiable);
         final String dowikTitle = resolveTitle(jsonifiable);
         writeJson(dowikPath, dowikTitle, toAdaptable(jsonifiable), jsonifiable.getClass());
     }
 
+    @Override
     protected void writeJson(final Path path, final Jsonifiable.WithPredicate<JsonObject, JsonField> jsonifiable,
             final JsonSchemaVersion schemaVersion) throws IOException {
+
         final Path dowikPath = resolveFileName(path, jsonifiable);
         final String dowikTitle = resolveTitle(jsonifiable);
         writeJson(dowikPath, dowikTitle, toAdaptable(jsonifiable), jsonifiable.getClass());
     }
+
 }

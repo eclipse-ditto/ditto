@@ -34,10 +34,14 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 final class ImmutableFeature implements Feature {
 
     private final String featureId;
+    @Nullable private final FeatureDefinition definition;
     @Nullable private final FeatureProperties properties;
 
-    private ImmutableFeature(final String featureId, @Nullable final FeatureProperties properties) {
-        this.featureId = featureId;
+    private ImmutableFeature(final String featureId, @Nullable final FeatureDefinition definition,
+            @Nullable final FeatureProperties properties) {
+
+        this.featureId = ConditionChecker.checkNotNull(featureId, "ID of the Feature");
+        this.definition = definition;
         this.properties = properties;
     }
 
@@ -48,8 +52,8 @@ final class ImmutableFeature implements Feature {
      * @return the new Feature.
      * @throws NullPointerException if {@code featureId} is {@code null}.
      */
-    public static Feature of(final String featureId) {
-        return of(featureId, null);
+    public static ImmutableFeature of(final String featureId) {
+        return of(featureId, null, null);
     }
 
     /**
@@ -60,15 +64,45 @@ final class ImmutableFeature implements Feature {
      * @return the new Feature.
      * @throws NullPointerException if {@code featureId} is {@code null}.
      */
-    public static Feature of(final String featureId, @Nullable final FeatureProperties properties) {
-        ConditionChecker.checkNotNull(featureId, "ID of the Feature");
+    public static ImmutableFeature of(final String featureId, @Nullable final FeatureProperties properties) {
+        return of(featureId, null, properties);
+    }
 
-        return new ImmutableFeature(featureId, properties);
+    /**
+     * Creates a new Feature with a specified ID, Definition and properties.
+     *
+     * @param featureId the ID.
+     * @param definition the Definition or {@code null}.
+     * @param properties the properties or {@code null}.
+     * @return the new Feature.
+     * @throws NullPointerException if {@code featureId} is {@code null}.
+     */
+    public static ImmutableFeature of(final String featureId, @Nullable final FeatureDefinition definition,
+            @Nullable final FeatureProperties properties) {
+
+        return new ImmutableFeature(featureId, definition, properties);
     }
 
     @Override
     public String getId() {
         return featureId;
+    }
+
+    @Override
+    public Feature setDefinition(final FeatureDefinition featureDefinition) {
+        ConditionChecker.checkNotNull(featureDefinition, "definition to be set");
+        if (Objects.equals(definition, featureDefinition)) {
+            return this;
+        }
+        return of(featureId, featureDefinition, properties);
+    }
+
+    @Override
+    public Feature removeDefinition() {
+        if (null == definition) {
+            return this;
+        }
+        return of(featureId, properties);
     }
 
     @Override
@@ -84,7 +118,7 @@ final class ImmutableFeature implements Feature {
             return this;
         }
 
-        return ImmutableFeature.of(featureId, properties);
+        return ImmutableFeature.of(featureId, definition, properties);
     }
 
     @Override
@@ -93,7 +127,7 @@ final class ImmutableFeature implements Feature {
             return this;
         }
 
-        return ImmutableFeature.of(featureId, null);
+        return ImmutableFeature.of(featureId, definition, null);
     }
 
     @Override
@@ -110,8 +144,8 @@ final class ImmutableFeature implements Feature {
 
         final FeatureProperties newFeatureProperties;
         if (null == properties || properties.isEmpty()) {
-            newFeatureProperties = ThingsModelFactory.newFeaturePropertiesBuilder() //
-                    .set(propertyPath, propertyValue) //
+            newFeatureProperties = ThingsModelFactory.newFeaturePropertiesBuilder()
+                    .set(propertyPath, propertyValue)
                     .build();
         } else {
             newFeatureProperties = properties.setValue(propertyPath, propertyValue);
@@ -132,10 +166,19 @@ final class ImmutableFeature implements Feature {
     }
 
     @Override
+    public Optional<FeatureDefinition> getDefinition() {
+        return Optional.ofNullable(definition);
+    }
+
+    @Override
     public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder() //
+        final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder()
                 .set(JsonFields.SCHEMA_VERSION, schemaVersion.toInt(), predicate);
+
+        if (null != definition) {
+            jsonObjectBuilder.set(JsonFields.DEFINITION, definition.toJson(), predicate);
+        }
 
         if (null != properties) {
             jsonObjectBuilder.set(JsonFields.PROPERTIES, properties, predicate);
@@ -146,7 +189,7 @@ final class ImmutableFeature implements Feature {
 
     @Override
     public int hashCode() {
-        return Objects.hash(featureId, properties);
+        return Objects.hash(featureId, definition, properties);
     }
 
     @SuppressWarnings("squid:MethodCyclomaticComplexity")
@@ -159,12 +202,14 @@ final class ImmutableFeature implements Feature {
             return false;
         }
         final ImmutableFeature other = (ImmutableFeature) o;
-        return Objects.equals(featureId, other.featureId) && Objects.equals(properties, other.properties);
+        return Objects.equals(featureId, other.featureId) && Objects.equals(definition, other.definition) &&
+                Objects.equals(properties, other.properties);
     }
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + " [featureId=" + featureId + ", properties=" + properties + "]";
+        return getClass().getSimpleName() + " [featureId=" + featureId + ", definition=" + definition + ", " +
+                "properties=" + properties + "]";
     }
 
 }

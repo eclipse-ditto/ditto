@@ -3,9 +3,7 @@
 ```json
 {
   "topic": "com.acme/xdk_53/things/twin/events/created",
-  "headers": {
-    
-  },
+  "headers": {},
   "path": "/acl/the_auth_subject",
   "value": {
     "the_auth_subject": {

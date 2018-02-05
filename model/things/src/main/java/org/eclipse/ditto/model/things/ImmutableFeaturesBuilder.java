@@ -11,12 +11,14 @@
  */
 package org.eclipse.ditto.model.things;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.Optional;
 
 import javax.annotation.concurrent.NotThreadSafe;
-
-import org.eclipse.ditto.model.base.common.ConditionChecker;
 
 /**
  * A mutable builder for an {@link ImmutableFeatures} with a fluent API.
@@ -36,7 +38,7 @@ final class ImmutableFeaturesBuilder implements FeaturesBuilder {
 
     @Override
     public FeaturesBuilder set(final Feature feature) {
-        ConditionChecker.checkNotNull(feature, "feature to be set");
+        checkNotNull(feature, "feature to be set");
 
         features.put(feature.getId(), feature);
 
@@ -44,8 +46,14 @@ final class ImmutableFeaturesBuilder implements FeaturesBuilder {
     }
 
     @Override
+    public Optional<Feature> get(final CharSequence featureId) {
+        checkNotNull(featureId, "ID of the Feature to be returned");
+        return Optional.ofNullable(features.get(featureId.toString()));
+    }
+
+    @Override
     public FeaturesBuilder setAll(final Iterable<Feature> features) {
-        ConditionChecker.checkNotNull(features, "features to be set");
+        checkNotNull(features, "features to be set");
 
         features.forEach(f -> this.features.put(f.getId(), f));
 
@@ -54,7 +62,7 @@ final class ImmutableFeaturesBuilder implements FeaturesBuilder {
 
     @Override
     public FeaturesBuilder remove(final Feature feature) {
-        ConditionChecker.checkNotNull(feature, "feature to be removed");
+        checkNotNull(feature, "feature to be removed");
 
         features.remove(feature.getId());
 
@@ -63,7 +71,7 @@ final class ImmutableFeaturesBuilder implements FeaturesBuilder {
 
     @Override
     public FeaturesBuilder remove(final String featureId) {
-        ConditionChecker.checkNotNull(featureId, "identifier of the feature to be removed");
+        checkNotNull(featureId, "identifier of the feature to be removed");
 
         features.remove(featureId);
 
@@ -79,6 +87,11 @@ final class ImmutableFeaturesBuilder implements FeaturesBuilder {
     @Override
     public Features build() {
         return ImmutableFeatures.of(features.values());
+    }
+
+    @Override
+    public Iterator<Feature> iterator() {
+        return features.values().iterator();
     }
 
 }

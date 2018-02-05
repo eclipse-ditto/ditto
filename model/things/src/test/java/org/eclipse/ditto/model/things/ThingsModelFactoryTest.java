@@ -12,6 +12,7 @@
 package org.eclipse.ditto.model.things;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
@@ -81,6 +82,14 @@ public final class ThingsModelFactoryTest {
                 .build();
 
         ThingsModelFactory.newFeatures(jsonObject);
+    }
+
+    @Test
+    public void fromJsonOfEmptyArrayStringFailsWithException() {
+        assertThatExceptionOfType(FeatureDefinitionEmptyException.class)
+                .isThrownBy(() -> ThingsModelFactory.newFeatureDefinition("[]"))
+                .withMessage("Feature Definition must not be empty!")
+                .withNoCause();
     }
 
 }

@@ -146,6 +146,13 @@ final class ImmutableThingFromScratchBuilder implements ThingBuilder, ThingBuild
     }
 
     @Override
+    public FromScratch setFeature(final String featureId, final FeatureDefinition featureDefinition,
+            final FeatureProperties featureProperties) {
+
+        return setFeature(ThingsModelFactory.newFeature(featureId, featureDefinition, featureProperties));
+    }
+
+    @Override
     public FromScratch setFeature(final String featureId, final FeatureProperties featureProperties) {
         return setFeature(ThingsModelFactory.newFeature(featureId, featureProperties));
     }
@@ -156,6 +163,25 @@ final class ImmutableThingFromScratchBuilder implements ThingBuilder, ThingBuild
         final Features fs = getFeatures();
         if (null == fs || fs.isEmpty()) {
             featuresBuilder = null;
+        }
+        return this;
+    }
+
+    @Override
+    public FromScratch setFeatureDefinition(final String featureId, final FeatureDefinition featureDefinition) {
+        checkNotNull(featureDefinition, "Feature Definition to be set");
+        invokeOnFeaturesBuilder(fb -> fb.set(fb.get(featureId)
+                .map(feature -> feature.setDefinition(featureDefinition))
+                .orElseGet(() -> ThingsModelFactory.newFeature(featureId, featureDefinition))));
+        return this;
+    }
+
+    @Override
+    public FromScratch removeFeatureDefinition(final String featureId) {
+        if (null != featuresBuilder) {
+            featuresBuilder.get(featureId)
+                    .map(Feature::removeDefinition)
+                    .ifPresent(featuresBuilder::set);
         }
         return this;
     }
@@ -187,6 +213,28 @@ final class ImmutableThingFromScratchBuilder implements ThingBuilder, ThingBuild
             if (null != existingFeatures) {
                 return setFeatures(existingFeatures.removeProperty(featureId, propertyPath));
             }
+        }
+        return this;
+    }
+
+    @Override
+    public FromScratch setFeatureProperties(final String featureId, final FeatureProperties featureProperties) {
+        checkNotNull(featureId, "ID of the Feature to set the properties for");
+        checkNotNull(featureProperties, "FeatureProperties to be set");
+
+        invokeOnFeaturesBuilder(fb -> fb.set(fb.get(featureId)
+                .map(feature -> feature.setProperties(featureProperties))
+                .orElseGet(() -> ThingsModelFactory.newFeature(featureId, featureProperties))));
+        return this;
+    }
+
+    @Override
+    public FromScratch removeFeatureProperties(final String featureId) {
+        checkNotNull(featureId, "ID of the Feature to set the properties for");
+        if (null != featuresBuilder) {
+            featuresBuilder.get(featureId)
+                    .map(Feature::removeProperties)
+                    .ifPresent(featuresBuilder::set);
         }
         return this;
     }
@@ -308,8 +356,7 @@ final class ImmutableThingFromScratchBuilder implements ThingBuilder, ThingBuild
 
     @Override
     public FromScratch removePermissionsOf(final AuthorizationSubject authorizationSubject) {
-        checkNotNull(authorizationSubject,
-                "authorization subject of which all permissions are to be removed");
+        checkNotNull(authorizationSubject, "authorization subject of which all permissions are to be removed");
 
         if (null != aclBuilder) {
             invokeOnAclBuilder(ab -> ab.remove(authorizationSubject));

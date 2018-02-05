@@ -55,6 +55,21 @@ final class NullFeature implements Feature {
     }
 
     @Override
+    public Optional<FeatureDefinition> getDefinition() {
+        return Optional.empty();
+    }
+
+    @Override
+    public Feature setDefinition(final FeatureDefinition featureDefinition) {
+        return this;
+    }
+
+    @Override
+    public Feature removeDefinition() {
+        return this;
+    }
+
+    @Override
     public Optional<FeatureProperties> getProperties() {
         return Optional.empty();
     }

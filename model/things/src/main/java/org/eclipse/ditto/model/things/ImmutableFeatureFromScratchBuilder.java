@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.model.things;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
@@ -23,13 +24,15 @@ import org.eclipse.ditto.model.base.common.ConditionChecker;
 final class ImmutableFeatureFromScratchBuilder implements FeatureBuilder, FeatureBuilder.FromJsonBuildable,
         FeatureBuilder.FromScratchBuildable, FeatureBuilder.FeatureBuildable {
 
-    private String featureId;
-    private FeatureProperties properties;
+    @Nullable private String featureId;
+    @Nullable private FeatureDefinition definition;
+    @Nullable private FeatureProperties properties;
     private boolean isFeatureValueJsonNull;
 
     private ImmutableFeatureFromScratchBuilder() {
         featureId = null;
         properties = null;
+        definition = null;
         isFeatureValueJsonNull = false;
     }
 
@@ -41,8 +44,21 @@ final class ImmutableFeatureFromScratchBuilder implements FeatureBuilder, Featur
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      */
     public static FromJsonBuildable newFeatureFromJson(final JsonObject jsonObject) {
-        final ImmutableFeatureFromScratchBuilder featureBuilder = new ImmutableFeatureFromScratchBuilder();
-        return featureBuilder.read(jsonObject);
+        ConditionChecker.checkNotNull(jsonObject, "Feature JSON object");
+
+        final ImmutableFeatureFromScratchBuilder result = new ImmutableFeatureFromScratchBuilder();
+        if (jsonObject.isNull()) {
+            result.isFeatureValueJsonNull = true;
+        } else {
+            result.definition(jsonObject.getValue(Feature.JsonFields.DEFINITION)
+                    .map(ThingsModelFactory::newFeatureDefinition)
+                    .orElse(null));
+            result.properties(jsonObject.getValue(Feature.JsonFields.PROPERTIES)
+                    .map(ThingsModelFactory::newFeatureProperties)
+                    .orElse(null));
+        }
+
+        return result;
     }
 
     /**
@@ -64,25 +80,32 @@ final class ImmutableFeatureFromScratchBuilder implements FeatureBuilder, Featur
     }
 
     @Override
-    public FromScratchBuildable properties(final FeatureProperties properties) {
+    public FromScratchBuildable definition(@Nullable final FeatureDefinition featureDefinition) {
+        definition = featureDefinition;
+        return this;
+    }
+
+    @Override
+    public FromScratchBuildable properties(@Nullable final FeatureProperties properties) {
         this.properties = properties;
         return this;
     }
 
     @Override
-    public FromScratchBuildable properties(final JsonObject properties) {
-        this.properties = properties instanceof FeatureProperties ? (FeatureProperties) properties
-                : ThingsModelFactory.newFeatureProperties(properties);
+    public FromScratchBuildable properties(@Nullable final JsonObject properties) {
+        if (null == properties) {
+            this.properties = null;
+        } else {
+            this.properties = properties instanceof FeatureProperties
+                    ? (FeatureProperties) properties
+                    : ThingsModelFactory.newFeatureProperties(properties);
+        }
         return this;
     }
 
     @Override
     public FeatureBuildable withId(final String featureId) {
-        ConditionChecker.checkNotNull(featureId, "Feature ID");
-        ConditionChecker.checkArgument(featureId, s -> !s.isEmpty(), () -> "The Feature ID must not be empty!");
-
-        this.featureId = featureId;
-        return this;
+        return useId(featureId);
     }
 
     @Override
@@ -90,22 +113,8 @@ final class ImmutableFeatureFromScratchBuilder implements FeatureBuilder, Featur
         if (isFeatureValueJsonNull) {
             return ThingsModelFactory.nullFeature(featureId);
         } else {
-            return ThingsModelFactory.newFeature(featureId, properties);
+            return ThingsModelFactory.newFeature(featureId, definition, properties);
         }
-    }
-
-    private FromJsonBuildable read(final JsonObject jsonObject) {
-        ConditionChecker.checkNotNull(jsonObject, "Feature JSON object");
-
-        if (jsonObject.isNull()) {
-            isFeatureValueJsonNull = true;
-        } else {
-            jsonObject.getValue(Feature.JsonFields.PROPERTIES)
-                    .ifPresent(propertiesJsonObject -> properties =
-                            ThingsModelFactory.newFeatureProperties(propertiesJsonObject));
-        }
-
-        return this;
     }
 
 }

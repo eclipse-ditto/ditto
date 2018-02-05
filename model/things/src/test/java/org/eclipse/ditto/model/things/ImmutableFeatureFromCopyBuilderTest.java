@@ -30,18 +30,15 @@ public final class ImmutableFeatureFromCopyBuilderTest {
 
     private ImmutableFeatureFromCopyBuilder underTest = null;
 
-
     @Before
     public void setUp() {
         underTest = ImmutableFeatureFromCopyBuilder.of(TestConstants.Feature.FLUX_CAPACITOR);
     }
 
-
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceOfNullFeature() {
         ImmutableFeatureFromCopyBuilder.of(null);
     }
-
 
     @Test
     public void builderOfFeatureIsCorrectlyInitialised() {
@@ -50,34 +47,38 @@ public final class ImmutableFeatureFromCopyBuilderTest {
         assertThat(feature).isEqualTo(TestConstants.Feature.FLUX_CAPACITOR);
     }
 
-
     @Test
     public void featurePropertiesNullGivesNullFeature() {
         final Feature feature = underTest.properties((FeatureProperties) null).build();
 
-        assertThat(feature).isEqualTo(Feature.newBuilder().withId(TestConstants.Feature.FLUX_CAPACITOR_ID).build());
+        assertThat(feature).isEqualTo(Feature.newBuilder()
+                .definition(TestConstants.Feature.FLUX_CAPACITOR_DEFINITION)
+                .withId(TestConstants.Feature.FLUX_CAPACITOR_ID)
+                .build());
     }
-
 
     @Test
     public void jsonObjectNullGivesNullFeature() {
         final Feature feature = underTest.properties((JsonObject) null).build();
 
-        assertThat(feature).isEqualTo(Feature.newBuilder().withId(TestConstants.Feature.FLUX_CAPACITOR_ID).build());
+        assertThat(feature).isEqualTo(Feature.newBuilder()
+                .definition(TestConstants.Feature.FLUX_CAPACITOR_DEFINITION)
+                .withId(TestConstants.Feature.FLUX_CAPACITOR_ID)
+                .build());
     }
-
 
     @Test
     public void copyFeatureAndModifyProperties() {
-        final FeatureProperties featureProperties = FeatureProperties.newBuilder() //
-                .set(PROPERTY_PATH, PROPERTY_VALUE) //
-                .set("target_year_2", 2015) //
-                .set("target_year_3", 1885) //
+        final FeatureProperties featureProperties = FeatureProperties.newBuilder()
+                .set(PROPERTY_PATH, PROPERTY_VALUE)
+                .set("target_year_2", 2015)
+                .set("target_year_3", 1885)
                 .build();
 
-        final Feature expected = Feature.newBuilder() //
-                .properties(featureProperties) //
-                .withId(TestConstants.Feature.FLUX_CAPACITOR_ID) //
+        final Feature expected = Feature.newBuilder()
+                .properties(featureProperties)
+                .definition(TestConstants.Feature.FLUX_CAPACITOR_DEFINITION)
+                .withId(TestConstants.Feature.FLUX_CAPACITOR_ID)
                 .build();
 
         final Feature actual = underTest.properties(props -> props.setValue(PROPERTY_PATH, PROPERTY_VALUE)).build();

@@ -14,7 +14,6 @@ package org.eclipse.ditto.signals.commands.messages;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 
-import java.nio.ByteBuffer;
 import java.util.UUID;
 
 import org.eclipse.ditto.json.JsonFactory;
@@ -63,7 +62,7 @@ public final class SendFeatureMessageTest {
                     .contentType(CONTENT_TYPE)
                     .featureId(FEATURE_ID)
                     .build())
-            .rawPayload(ByteBuffer.wrap(KNOWN_RAW_PAYLOAD_STR.getBytes()))
+            .payload(JsonFactory.newObject(KNOWN_RAW_PAYLOAD_STR))
             .build();
 
     private static final JsonObject KNOWN_MESSAGE_AS_JSON = JsonFactory.newObjectBuilder()

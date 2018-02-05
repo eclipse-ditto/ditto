@@ -29,6 +29,7 @@ import org.eclipse.ditto.signals.commands.things.modify.CreateThingResponse;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAclEntryResponse;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAttributeResponse;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAttributesResponse;
+import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureDefinitionResponse;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeaturePropertiesResponse;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeaturePropertyResponse;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureResponse;
@@ -38,6 +39,7 @@ import org.eclipse.ditto.signals.commands.things.modify.ModifyAclEntryResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAclResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributeResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributesResponse;
+import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureDefinitionResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeaturePropertiesResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeaturePropertyResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureResponse;
@@ -976,6 +978,136 @@ public final class ThingModifyCommandResponseAdapterTest {
                 DeleteFeatureResponse.of(TestConstants.THING_ID, TestConstants.FEATURE_ID,
                         TestConstants.DITTO_HEADERS_V_2);
         final Adaptable actual = underTest.toAdaptable(deleteFeatureResponse);
+
+        assertThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void modifyFeatureDefinitionResponseFromAdaptable() {
+        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
+                .things()
+                .twin()
+                .commands()
+                .modify()
+                .build();
+        final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID + "/definition");
+
+        final ModifyFeatureDefinitionResponse expectedCreated = ModifyFeatureDefinitionResponse
+                .created(TestConstants.THING_ID, TestConstants.FEATURE_ID, TestConstants.FEATURE_DEFINITION,
+                        TestConstants.DITTO_HEADERS_V_2);
+
+        final Adaptable adaptableCreated = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.CREATED)
+                        .withValue(TestConstants.FEATURE_DEFINITION_JSON)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
+                .build();
+        final ThingModifyCommandResponse actualCreated = underTest.fromAdaptable(adaptableCreated);
+
+        assertThat(actualCreated).isEqualTo(expectedCreated);
+
+        final ModifyFeatureDefinitionResponse expectedModified =
+                ModifyFeatureDefinitionResponse.modified(TestConstants.THING_ID, TestConstants.FEATURE_ID,
+                        TestConstants.DITTO_HEADERS_V_2);
+
+        final Adaptable adaptableModified = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
+                .build();
+        final ThingModifyCommandResponse actualModified = underTest.fromAdaptable(adaptableModified);
+
+        assertThat(actualModified).isEqualTo(expectedModified);
+    }
+
+    @Test
+    public void modifyFeatureDefinitionResponseToAdaptable() {
+        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
+                .things()
+                .twin()
+                .commands()
+                .modify()
+                .build();
+        final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID + "/definition");
+
+        final Adaptable expectedCreated = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.CREATED)
+                        .withValue(TestConstants.FEATURE_DEFINITION_JSON)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
+                .build();
+
+        final ModifyFeatureDefinitionResponse modifyFeatureDefinitionResponseCreated = ModifyFeatureDefinitionResponse
+                .created(TestConstants.THING_ID, TestConstants.FEATURE_ID, TestConstants.FEATURE_DEFINITION,
+                        TestConstants.DITTO_HEADERS_V_2);
+        final Adaptable actualCreated = underTest.toAdaptable(modifyFeatureDefinitionResponseCreated);
+
+        assertThat(actualCreated).isEqualTo(expectedCreated);
+
+        final Adaptable expectedModified = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
+                .build();
+
+        final ModifyFeatureDefinitionResponse modifyFeatureDefinitionResponseModified =
+                ModifyFeatureDefinitionResponse.modified(TestConstants.THING_ID, TestConstants.FEATURE_ID,
+                        TestConstants.DITTO_HEADERS_V_2);
+        final Adaptable actualModified = underTest.toAdaptable(modifyFeatureDefinitionResponseModified);
+
+        assertThat(actualModified).isEqualTo(expectedModified);
+    }
+
+    @Test
+    public void deleteFeatureDefinitionResponseFromAdaptable() {
+        final DeleteFeatureDefinitionResponse expected =
+                DeleteFeatureDefinitionResponse.of(TestConstants.THING_ID, TestConstants.FEATURE_ID,
+                        TestConstants.DITTO_HEADERS_V_2);
+
+        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
+                .things()
+                .twin()
+                .commands()
+                .delete()
+                .build();
+        final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID + "/definition");
+
+        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
+                .build();
+        final ThingModifyCommandResponse actual = underTest.fromAdaptable(adaptable);
+
+        assertThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void deleteFeatureDefinitionResponseToAdaptable() {
+        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
+                .things()
+                .twin()
+                .commands()
+                .delete()
+                .build();
+        final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID + "/definition");
+
+        final Adaptable expected = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
+                .build();
+
+        final DeleteFeatureDefinitionResponse deleteFeatureDefinitionResponse =
+                DeleteFeatureDefinitionResponse.of(TestConstants.THING_ID, TestConstants.FEATURE_ID,
+                        TestConstants.DITTO_HEADERS_V_2);
+        final Adaptable actual = underTest.toAdaptable(deleteFeatureDefinitionResponse);
 
         assertThat(actual).isEqualTo(expected);
     }

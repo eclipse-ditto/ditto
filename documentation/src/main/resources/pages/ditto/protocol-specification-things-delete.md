@@ -188,6 +188,44 @@ The event emitted by Ditto after a Feature of a Thing was deleted.
 [Delete a single Feature](protocol-examples-deletefeature.html)
 
 
+## Delete Definition of a Feature
+
+Delete the Definition of a Feature (identified by the `<featureId>` in the `path`) of the Thing 
+(identified by the `<namespace>` and the `<thingId>` in the `topic`).
+
+
+### Command
+
+| Field     | Value                   |
+|-----------|-------------------------|
+| **topic** | `<namespace>/<thingId>/things/<channel>/commands/delete`     |
+| **path**  | `/features/<featureId>/definition`     |
+
+### Response
+
+| Field      |        | Value                    |
+|------------|--------|--------------------------|
+| **topic**  |        | `<namespace>/<thingId>/things/<channel>/commands/delete` |
+| **path**   |        | `/features/<featureId>/definition`                      |
+| **status** | _code_ |                          | 
+|            | `204`  | Success - the Definition was deleted successfully.       |
+|            | `403`  | Not Modifiable - The Definition could not be deleted as the requester had insufficient permissions ('WRITE' is required).  |
+|            | `404`  | Not Found - The Thing, Feature or Definition was not found or requester had insufficient permissions.  |
+|            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
+
+### Event
+
+The event emitted by Ditto after the Feature Definition of a Thing was deleted.
+
+| Field     | Value                   |
+|-----------|-------------------------|
+| **topic** | `<namespace>/<thingId>/things/<channel>/events/deleted`     |
+| **path**  | `/features/<featureId>/definition`     |
+
+**Example:** 
+[Delete Feature Definition](protocol-examples-deletedefinition.html)
+
+
 ## Delete all Properties of a Feature
 
 Delete all Properties of a Feature (identified by the `<featureId>` in the `path`) of the Thing 
