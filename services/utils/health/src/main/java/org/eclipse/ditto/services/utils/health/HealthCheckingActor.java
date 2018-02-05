@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.services.utils.health;
 
+import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -35,12 +36,14 @@ public final class HealthCheckingActor extends AbstractActor {
      */
     public static final String ACTOR_NAME = "healthCheckingActor";
 
+    private static final String PERSISTENCE_LABEL = "persistence";
+
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
     private final HealthCheckingActorOptions options;
     private final ActorRef mongoClientActor;
 
-    private StatusInfo status = StatusInfo.unknown();
+    private StatusInfo persistenceStatus = StatusInfo.unknown().label(PERSISTENCE_LABEL);
 
     /**
      * Constructs a {@code HealthCheckingActor}.
@@ -84,7 +87,7 @@ public final class HealthCheckingActor extends AbstractActor {
     public Receive createReceive() {
         return ReceiveBuilder.create()
                 .match(RetrieveHealth.class, retrieveHealth ->
-                        getSender().tell(status, getSelf()))
+                        getSender().tell(getAggregatedStatus(), getSelf()))
                 .match(CheckHealth.class, checkHealth -> pollHealth())
                 .match(RetrieveMongoStatusResponse.class, this::applyMongoStatus)
                 .matchAny(m -> {
@@ -93,10 +96,18 @@ public final class HealthCheckingActor extends AbstractActor {
                 }).build();
     }
 
+    private StatusInfo getAggregatedStatus() {
+        if (!options.isPersistenceCheckEnabled()) {
+            return StatusInfo.fromStatus(StatusInfo.Status.UP);
+        } else {
+            return StatusInfo.composite(Collections.singletonList(persistenceStatus));
+        }
+    }
+
     private void applyMongoStatus(final RetrieveMongoStatusResponse statusResponse) {
-        this.status = StatusInfo
+        this.persistenceStatus = StatusInfo
                 .fromStatus(statusResponse.isAlive() ? StatusInfo.Status.UP : StatusInfo.Status.DOWN,
-                        statusResponse.getDescription().orElse(null));
+                        statusResponse.getDescription().orElse(null)).label(PERSISTENCE_LABEL);
     }
 
     private void pollHealth() {

@@ -23,12 +23,9 @@ import static org.eclipse.ditto.services.gateway.endpoints.directives.CustomPath
 import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
 
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.services.gateway.health.StatusHealthHelper;
+import org.eclipse.ditto.services.gateway.health.StatusAndHealthProvider;
 import org.eclipse.ditto.services.utils.health.cluster.ClusterStatus;
 import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
-import org.eclipse.ditto.services.utils.health.status.Status;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -52,7 +49,7 @@ public final class OverallStatusRoute {
     static final String PATH_OWN = "own";
 
     private final Supplier<ClusterStatus> clusterStateSupplier;
-    private final StatusHealthHelper statusHealthHelper;
+    private final StatusAndHealthProvider statusHealthProvider;
 
     private final StatusRoute ownStatusRoute;
 
@@ -62,12 +59,12 @@ public final class OverallStatusRoute {
      * @param actorSystem the Actor System.
      * @param clusterStateSupplier the supplier to get the cluster state.
      * @param healthCheckingActor the actor for checking the gateways own health.
-     * @param statusHealthHelper the helper for retrieving health status of the cluster.
+     * @param statusHealthProvider the provider for retrieving health status of the cluster.
      */
     public OverallStatusRoute(final ActorSystem actorSystem, final Supplier<ClusterStatus> clusterStateSupplier,
-            final ActorRef healthCheckingActor, final StatusHealthHelper statusHealthHelper) {
+            final ActorRef healthCheckingActor, final StatusAndHealthProvider statusHealthProvider) {
         this.clusterStateSupplier = clusterStateSupplier;
-        this.statusHealthHelper = statusHealthHelper;
+        this.statusHealthProvider = statusHealthProvider;
 
         ownStatusRoute = new StatusRoute(clusterStateSupplier, healthCheckingActor, actorSystem);
     }
@@ -104,31 +101,23 @@ public final class OverallStatusRoute {
     }
 
     private CompletionStage<HttpResponse> createOverallStatusResponse() {
-        final JsonObjectBuilder overallStatusBuilder = JsonFactory.newObjectBuilder();
-        overallStatusBuilder.setAll(Status.provideStaticStatus());
-
-        // aggregate completion of all completable futures:
-        return statusHealthHelper.retrieveOverallRolesStatus()
-                .thenApply(statusObjects -> {
-                    final JsonObjectBuilder rolesStatusBuilder = JsonFactory.newObjectBuilder();
-                    statusObjects.forEach(subStatusObj -> subStatusObj.forEach(rolesStatusBuilder::set));
-                    overallStatusBuilder.set(StatusHealthHelper.JSON_KEY_ROLES, rolesStatusBuilder.build());
-                    return HttpResponse.create().withStatus(StatusCodes.OK).withEntity(ContentTypes.APPLICATION_JSON,
-                            overallStatusBuilder.build().toString());
-                });
+        return statusHealthProvider.retrieveStatus()
+                .thenApply(status -> HttpResponse.create()
+                        .withStatus(StatusCodes.OK)
+                        .withEntity(ContentTypes.APPLICATION_JSON, status.toString()));
     }
 
     private CompletionStage<HttpResponse> createOverallHealthResponse() {
-        return statusHealthHelper.calculateOverallHealthJson()
+        return statusHealthProvider.retrieveHealth()
                 .thenApply(overallHealth -> {
-                    if (statusHealthHelper.checkIfAllSubStatusAreUp(overallHealth)) {
+                    if (overallHealth.isHealthy()) {
                         return HttpResponse.create()
                                 .withStatus(StatusCodes.OK)
-                                .withEntity(ContentTypes.APPLICATION_JSON, overallHealth.toString());
+                                .withEntity(ContentTypes.APPLICATION_JSON, overallHealth.toJsonString());
                     } else {
                         return HttpResponse.create()
                                 .withStatus(StatusCodes.SERVICE_UNAVAILABLE)
-                                .withEntity(ContentTypes.APPLICATION_JSON, overallHealth.toString());
+                                .withEntity(ContentTypes.APPLICATION_JSON, overallHealth.toJsonString());
                     }
                 });
     }

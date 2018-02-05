@@ -69,8 +69,8 @@ import org.eclipse.ditto.services.gateway.endpoints.routes.status.OverallStatusR
 import org.eclipse.ditto.services.gateway.endpoints.routes.things.ThingsRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.thingsearch.ThingSearchRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.websocket.WebsocketRoute;
-import org.eclipse.ditto.services.gateway.health.DittoStatusHealthHelper;
-import org.eclipse.ditto.services.gateway.health.StatusHealthHelper;
+import org.eclipse.ditto.services.gateway.health.DittoStatusAndHealthProviderFactory;
+import org.eclipse.ditto.services.gateway.health.StatusAndHealthProvider;
 import org.eclipse.ditto.services.gateway.starter.service.util.ConfigKeys;
 import org.eclipse.ditto.services.gateway.starter.service.util.HttpClientFacade;
 import org.eclipse.ditto.services.utils.health.cluster.ClusterStatus;
@@ -156,12 +156,13 @@ public final class RootRoute {
         checkNotNull(proxyActor, "proxyActor");
 
         final MessageDispatcher blockingDispatcher = actorSystem.dispatchers().lookup(BLOCKING_DISPATCHER_NAME);
-        final StatusHealthHelper statusHealthHelper = DittoStatusHealthHelper.of(actorSystem, clusterStateSupplier);
+        final StatusAndHealthProvider
+                statusHealthProvider = DittoStatusAndHealthProviderFactory.of(actorSystem, clusterStateSupplier);
 
         statsRoute = new StatsRoute(proxyActor, actorSystem);
         overallStatusRoute = new OverallStatusRoute(actorSystem, clusterStateSupplier, healthCheckingActor,
-                statusHealthHelper);
-        cachingHealthRoute = new CachingHealthRoute(statusHealthHelper,
+                statusHealthProvider);
+        cachingHealthRoute = new CachingHealthRoute(statusHealthProvider,
                 config.getDuration(ConfigKeys.STATUS_HEALTH_EXTERNAL_CACHE_TIMEOUT));
         devopsRoute = new DevOpsRoute(proxyActor, actorSystem);
 

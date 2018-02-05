@@ -67,7 +67,37 @@ public final class StatusInfo implements Jsonifiable<JsonObject> {
         /**
          * Signals the application is down.
          */
-        DOWN
+        DOWN;
+
+        /**
+         * Merges this status with another status.
+         *
+         * @param otherStatus the other status to merge this status with.
+         * @return the merged status.
+         */
+        public Status mergeWith(final Status otherStatus) {
+            return mergeStatuses(this, otherStatus);
+        }
+
+        private static Status mergeStatuses(final Status firstStatus, final Status secondStatus) {
+            requireNonNull(firstStatus);
+            requireNonNull(secondStatus);
+
+            if (firstStatus == Status.UP && secondStatus == Status.UP) {
+                return Status.UP;
+            }
+
+            if (firstStatus == Status.UNKNOWN && secondStatus == Status.UNKNOWN) {
+                return Status.UNKNOWN;
+            }
+
+            if ((firstStatus == Status.UP && secondStatus == Status.UNKNOWN) ||
+                    (secondStatus == Status.UP && firstStatus == Status.UNKNOWN)) {
+                return Status.UP;
+            }
+
+            return Status.DOWN;
+        }
     }
 
     /**
@@ -97,6 +127,11 @@ public final class StatusInfo implements Jsonifiable<JsonObject> {
     private static final Set<StatusDetailMessage.Level> COMPOSITE_DETAILS_INCLUDE_LEVELS =
             Collections.unmodifiableSet(new HashSet<>(Arrays.asList(StatusDetailMessage.Level.ERROR,
                     StatusDetailMessage.Level.WARN)));
+
+    /**
+     * The default empty status: This defines the state of a composite without children.
+     */
+    private static final Status DEFAULT_EMPTY_STATUS = Status.UP;
 
     private static final StatusInfo UNKNOWN_INSTANCE = fromStatus(Status.UNKNOWN);
 
@@ -200,7 +235,7 @@ public final class StatusInfo implements Jsonifiable<JsonObject> {
      * @param children the children.
      * @return the StatusInfo instance.
      */
-    private static StatusInfo composite(final List<StatusInfo> children) {
+    public static StatusInfo composite(final List<StatusInfo> children) {
         requireNonNull(children, "The Children must not be null!");
 
         return createCompositeStatusInfo(children);
@@ -318,6 +353,34 @@ public final class StatusInfo implements Jsonifiable<JsonObject> {
      */
     public boolean isComposite() {
         return !children.isEmpty();
+    }
+
+    /**
+     * Creates a new {@link StatusInfo} from this {@code StatusInfo}, extended with the specified {@code detail}. Note
+     * that adding an error detail might change the {@link StatusInfo}'s status.
+     *
+     * @param detail the detail.
+     * @return the StatusInfo instance.
+     */
+    public StatusInfo addDetail(final StatusDetailMessage detail) {
+        requireNonNull(detail, "The Detail must not be null!");
+
+        final List<StatusDetailMessage> newDetails = new ArrayList<>(details.size() + 1);
+        newDetails.addAll(details);
+        newDetails.add(detail);
+
+        final Status newStatus = mapToStatusInfo(newDetails);
+
+        return of(newStatus, newDetails, children, label);
+    }
+
+    /**
+     * Returns whether this status is considered as healthy.
+     *
+     * @return {@code true}, when healthy; {@code false}, otherwise.
+     */
+    public boolean isHealthy() {
+        return status != Status.DOWN;
     }
 
     @Override
@@ -447,32 +510,10 @@ public final class StatusInfo implements Jsonifiable<JsonObject> {
 
         for (final StatusDetailMessage detail : details) {
             final Status currentStatus = mapToStatusInfo(detail);
-            resultingStatus = mergeStatuses(resultingStatus, currentStatus);
-
-            // shortcut
-            if (resultingStatus == Status.DOWN) {
-                return Status.DOWN;
-            }
+            resultingStatus = resultingStatus.mergeWith(currentStatus);
         }
 
         return resultingStatus;
-    }
-
-    private static Status mergeStatuses(final Status firstStatus, final Status secondStatus) {
-        if (firstStatus == Status.UP && secondStatus == Status.UP) {
-            return Status.UP;
-        }
-
-        if (firstStatus == Status.UNKNOWN && secondStatus == Status.UNKNOWN) {
-            return Status.UNKNOWN;
-        }
-
-        if ((firstStatus == Status.UP && secondStatus == Status.UNKNOWN) ||
-                (secondStatus == Status.UP && firstStatus == Status.UNKNOWN)) {
-            return Status.UP;
-        }
-
-        return Status.DOWN;
     }
 
     private static List<StatusInfo> labelStatuses(final Map<String, StatusInfo> statuses) {
@@ -482,24 +523,31 @@ public final class StatusInfo implements Jsonifiable<JsonObject> {
     }
 
     private static StatusInfo createCompositeStatusInfo(final List<StatusInfo> children) {
-        Status resultingStatus = Status.UNKNOWN;
+        Status resultingStatus = DEFAULT_EMPTY_STATUS;
         final Map<StatusDetailMessage.Level, List<String>> pathsPerLevel = new EnumMap<>
                 (StatusDetailMessage.Level.class);
 
         final Iterator<StatusInfo> childrenIterator = children.iterator();
-        final int childrenSize = children.size();
-        for (int i = 0; i < childrenSize; i++) {
-            final StatusInfo child = childrenIterator.next();
+        if (childrenIterator.hasNext()) {
+            final int childrenSize = children.size();
+            for (int i = 0; i < childrenSize; i++) {
+                final StatusInfo child = childrenIterator.next();
 
-            resultingStatus = mergeStatuses(resultingStatus, child.status);
+                if (i == 0) {
+                    // for the first child we do not have a valid status to merge with
+                    resultingStatus = child.status;
+                } else {
+                    resultingStatus = resultingStatus.mergeWith(child.status);
+                }
 
-            for (StatusDetailMessage detail : child.details) {
-                if (COMPOSITE_DETAILS_INCLUDE_LEVELS.contains(detail.getLevel())) {
-                    final String path = child.getLabelOrIndexInfo(i);
+                for (StatusDetailMessage detail : child.details) {
+                    if (COMPOSITE_DETAILS_INCLUDE_LEVELS.contains(detail.getLevel())) {
+                        final String path = child.getLabelOrIndexInfo(i);
 
-                    final List<String> pathsForLevel = pathsPerLevel.computeIfAbsent(detail.getLevel(),
-                            unused -> new ArrayList<>());
-                    pathsForLevel.add(path);
+                        final List<String> pathsForLevel = pathsPerLevel.computeIfAbsent(detail.getLevel(),
+                                unused -> new ArrayList<>());
+                        pathsForLevel.add(path);
+                    }
                 }
             }
         }

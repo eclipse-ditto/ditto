@@ -252,9 +252,42 @@ public final class StatusInfoTest {
     }
 
     @Test
-    public void compositeReturnsStatusUpWhenNoChildIsDown() {
+    public void compositeReturnsStatusUpWhenAllChildrenAreUp() {
         final Map<String, StatusInfo> childrenMap = new LinkedHashMap<>();
-        final String upChildLabel = "up-child-label";
+        final String upChild1Label = "up-child-1-label";
+        childrenMap.put(upChild1Label, KNOWN_UP_STATUS_INFO_WITH_WARN_MSG);
+        final String upChild2Label = "up-child-2-label";
+        childrenMap.put(upChild2Label, KNOWN_UP_STATUS_INFO_WITH_WARN_MSG);
+
+        final StatusInfo actual = StatusInfo.composite(childrenMap);
+
+        final List<StatusDetailMessage> expectedDetails = Collections.singletonList(
+                (createExpectedCompositeDetailMessage(KNOWN_MESSAGE_WARN.getLevel(),
+                        Arrays.asList(upChild1Label, upChild2Label))));
+        final List<StatusInfo> expectedLabeledChildren =
+                Arrays.asList(KNOWN_UP_STATUS_INFO_WITH_WARN_MSG.label(upChild1Label),
+                        KNOWN_UP_STATUS_INFO_WITH_WARN_MSG.label(upChild2Label));
+        final StatusInfo expected =
+                StatusInfo.of(StatusInfo.Status.UP, expectedDetails, expectedLabeledChildren, null);
+        assertThat(actual).isEqualTo(expected);
+        assertThat(actual.isComposite()).isTrue();
+    }
+
+    @Test
+    public void compositeReturnsStatusUpWhenChildrenAreEmpty() {
+        final StatusInfo actual = StatusInfo.composite(Collections.emptyMap());
+
+        final StatusInfo expected =
+                StatusInfo.of(StatusInfo.Status.UP, Collections.emptyList(), Collections.emptyList(), null);
+        assertThat(actual).isEqualTo(expected);
+        // a composite without children is not really a composite:
+        assertThat(actual.isComposite()).isFalse();
+    }
+
+    @Test
+    public void compositeReturnsStatusUpWhenAllChildrenAreUpAndOneIsUnknown() {
+        final Map<String, StatusInfo> childrenMap = new LinkedHashMap<>();
+        final String upChildLabel = "up-child-label1";
         childrenMap.put(upChildLabel, KNOWN_UP_STATUS_INFO_WITH_WARN_MSG);
         final String unknownChildLabel = "unknown-child-label";
         childrenMap.put(unknownChildLabel, KNOWN_UNKNOWN_STATUS_INFO);
@@ -271,13 +304,6 @@ public final class StatusInfoTest {
                 StatusInfo.of(StatusInfo.Status.UP, expectedDetails, expectedLabeledChildren, null);
         assertThat(actual).isEqualTo(expected);
         assertThat(actual.isComposite()).isTrue();
-    }
-
-    private static StatusDetailMessage createExpectedCompositeDetailMessage(
-            final StatusDetailMessage.Level level,
-            final Collection<String> locations) {
-        return StatusDetailMessage.of(level, "See detailed messages for: " +
-                String.join(", ", locations) + "" + ".");
     }
 
     @Test
@@ -306,6 +332,33 @@ public final class StatusInfoTest {
                 StatusInfo.of(StatusInfo.Status.DOWN, expectedDetails, expectedLabeledChildren, null);
         assertThat(actual).isEqualTo(expected);
         assertThat(actual.isComposite()).isTrue();
+    }
+
+    @Test
+    public void mergeStatus() {
+        assertMergeStatuses(StatusInfo.Status.UP, StatusInfo.Status.UP, StatusInfo.Status.UP);
+        assertMergeStatuses(StatusInfo.Status.UP, StatusInfo.Status.UNKNOWN, StatusInfo.Status.UP);
+        assertMergeStatuses(StatusInfo.Status.UP, StatusInfo.Status.DOWN, StatusInfo.Status.DOWN);
+
+        assertMergeStatuses(StatusInfo.Status.UNKNOWN, StatusInfo.Status.UP, StatusInfo.Status.UP);
+        assertMergeStatuses(StatusInfo.Status.UNKNOWN, StatusInfo.Status.UNKNOWN, StatusInfo.Status.UNKNOWN);
+        assertMergeStatuses(StatusInfo.Status.UNKNOWN, StatusInfo.Status.DOWN, StatusInfo.Status.DOWN);
+
+        assertMergeStatuses(StatusInfo.Status.DOWN, StatusInfo.Status.UP, StatusInfo.Status.DOWN);
+        assertMergeStatuses(StatusInfo.Status.DOWN, StatusInfo.Status.UNKNOWN, StatusInfo.Status.DOWN);
+        assertMergeStatuses(StatusInfo.Status.DOWN, StatusInfo.Status.DOWN, StatusInfo.Status.DOWN);
+    }
+
+    private void assertMergeStatuses(final StatusInfo.Status status1, final StatusInfo.Status status2,
+            final StatusInfo.Status expectedMergedStatus) {
+        assertThat(status1.mergeWith(status2)).isEqualTo(expectedMergedStatus);
+    }
+
+    private static StatusDetailMessage createExpectedCompositeDetailMessage(
+            final StatusDetailMessage.Level level,
+            final Collection<String> locations) {
+        return StatusDetailMessage.of(level, "See detailed messages for: " +
+                String.join(", ", locations) + "" + ".");
     }
 
     private static <T> JsonArray toJsonArray(final List<T> list, final Function<T, JsonValue> objectMapper) {
