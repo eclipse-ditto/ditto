@@ -13,9 +13,11 @@ package org.eclipse.ditto.signals.commands.thingsearch.query;
 
 
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -65,12 +67,18 @@ public final class QueryThings extends AbstractCommand<QueryThings> implements T
             JsonFactory.newStringFieldDefinition("fields", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
+    static final JsonFieldDefinition<JsonArray> JSON_NAMESPACES =
+            JsonFactory.newJsonArrayFieldDefinition("namespaces", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
+
     @Nullable private final String filter;
     @Nullable private final List<String> options;
     @Nullable private final JsonFieldSelector fields;
+    @Nullable private final Set<String> namespaces;
 
     private QueryThings(final DittoHeaders dittoHeaders, @Nullable final String filter,
-            @Nullable final List<String> options, @Nullable final JsonFieldSelector fields) {
+            @Nullable final List<String> options, @Nullable final JsonFieldSelector fields,
+            @Nullable final Set<String> namespaces) {
         super(TYPE, dittoHeaders);
         this.filter = filter;
         if (options != null) {
@@ -79,6 +87,11 @@ public final class QueryThings extends AbstractCommand<QueryThings> implements T
             this.options = null;
         }
         this.fields = fields;
+        if (namespaces != null) {
+            this.namespaces = Collections.unmodifiableSet(new HashSet<>(namespaces));
+        } else {
+            this.namespaces = null;
+        }
     }
 
     /**
@@ -92,8 +105,9 @@ public final class QueryThings extends AbstractCommand<QueryThings> implements T
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static QueryThings of(@Nullable final String filter, @Nullable final List<String> options,
-            @Nullable final JsonFieldSelector fields, final DittoHeaders dittoHeaders) {
-        return new QueryThings(dittoHeaders, filter, options, fields);
+            @Nullable final JsonFieldSelector fields, @Nullable final Set<String> namespaces,
+            final DittoHeaders dittoHeaders) {
+        return new QueryThings(dittoHeaders, filter, options, fields, namespaces);
     }
 
     /**
@@ -105,8 +119,9 @@ public final class QueryThings extends AbstractCommand<QueryThings> implements T
      * @return a new command for searching Things.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static QueryThings of(final String filter, final List<String> options, final DittoHeaders dittoHeaders) {
-        return new QueryThings(dittoHeaders, filter, options, null);
+    public static QueryThings of(final String filter, final List<String> options, final Set<String> namespaces,
+            final DittoHeaders dittoHeaders) {
+        return new QueryThings(dittoHeaders, filter, options, null, namespaces);
     }
 
     /**
@@ -118,9 +133,9 @@ public final class QueryThings extends AbstractCommand<QueryThings> implements T
      * @return a new command for searching Things.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static QueryThings of(final String filter, final JsonFieldSelector fields,
+    public static QueryThings of(final String filter, final JsonFieldSelector fields, final Set<String> namespaces,
             final DittoHeaders dittoHeaders) {
-        return new QueryThings(dittoHeaders, filter, null, fields);
+        return new QueryThings(dittoHeaders, filter, null, fields, namespaces);
     }
 
     /**
@@ -132,7 +147,7 @@ public final class QueryThings extends AbstractCommand<QueryThings> implements T
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static QueryThings of(final String filter, final DittoHeaders dittoHeaders) {
-        return new QueryThings(dittoHeaders, filter, null, null);
+        return new QueryThings(dittoHeaders, filter, null, null, null);
     }
 
     /**
@@ -145,8 +160,8 @@ public final class QueryThings extends AbstractCommand<QueryThings> implements T
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static QueryThings of(final List<String> options, final JsonFieldSelector fields,
-            final DittoHeaders dittoHeaders) {
-        return new QueryThings(dittoHeaders, null, options, fields);
+            final Set<String> namespaces, final DittoHeaders dittoHeaders) {
+        return new QueryThings(dittoHeaders, null, options, fields, namespaces);
     }
 
     /**
@@ -158,7 +173,7 @@ public final class QueryThings extends AbstractCommand<QueryThings> implements T
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static QueryThings of(final JsonFieldSelector fields, final DittoHeaders dittoHeaders) {
-        return new QueryThings(dittoHeaders, null, null, fields);
+        return new QueryThings(dittoHeaders, null, null, fields, null);
     }
 
     /**
@@ -170,7 +185,19 @@ public final class QueryThings extends AbstractCommand<QueryThings> implements T
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static QueryThings of(final List<String> options, final DittoHeaders dittoHeaders) {
-        return new QueryThings(dittoHeaders, null, options, null);
+        return new QueryThings(dittoHeaders, null, options, null, null);
+    }
+
+    /**
+     * Returns a new instance of {@code QueryThings}.
+     *
+     * @param namespaces the namespaces for the query
+     * @param dittoHeaders the headers of the command.
+     * @return a new command for searching Things.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public static QueryThings of(final Set<String> namespaces, final DittoHeaders dittoHeaders) {
+        return new QueryThings(dittoHeaders, null, null, null, namespaces);
     }
 
     /**
@@ -181,7 +208,7 @@ public final class QueryThings extends AbstractCommand<QueryThings> implements T
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static QueryThings of(final DittoHeaders dittoHeaders) {
-        return new QueryThings(dittoHeaders, null, null, null);
+        return new QueryThings(dittoHeaders, null, null, null, null);
     }
 
     /**
@@ -224,15 +251,18 @@ public final class QueryThings extends AbstractCommand<QueryThings> implements T
                     .map(fields -> JsonFactory.newFieldSelector(fields, JsonFactory.newParseOptionsBuilder().build()))
                     .orElse(null);
 
-            return new QueryThings(dittoHeaders, extractedFilter, extractedOptions, extractedFieldSelector);
+            final Set<String> extractedNamespaces = jsonObject.getValue(JSON_NAMESPACES)
+                    .map(jsonValues -> jsonValues.stream()
+                            .filter(JsonValue::isString)
+                            .map(JsonValue::asString)
+                            .collect(Collectors.toSet()))
+                    .orElse(null);
+
+            return new QueryThings(dittoHeaders, extractedFilter, extractedOptions, extractedFieldSelector, extractedNamespaces);
         });
     }
 
-    /**
-     * Get the optional filter string.
-     *
-     * @return the optional filter string.
-     */
+    @Override
     public Optional<String> getFilter() {
         return Optional.ofNullable(filter);
     }
@@ -256,20 +286,27 @@ public final class QueryThings extends AbstractCommand<QueryThings> implements T
     }
 
     @Override
+    public Optional<Set<String>> getNamespaces() {
+        return Optional.ofNullable(namespaces);
+    }
+
+    @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         getFilter().ifPresent(presentFilter -> jsonObjectBuilder.set(JSON_FILTER, presentFilter, predicate));
         getOptions().ifPresent(presentOptions -> jsonObjectBuilder.set(JSON_OPTIONS, presentOptions.stream()
                         .map(JsonValue::of)
-                        .collect(JsonCollectors.valuesToArray()),
-                predicate));
+                        .collect(JsonCollectors.valuesToArray()), predicate));
         getFields().ifPresent(presentFields -> jsonObjectBuilder.set(JSON_FIELDS, presentFields.toString(), predicate));
+        getNamespaces().ifPresent(presentOptions -> jsonObjectBuilder.set(JSON_NAMESPACES, presentOptions.stream()
+                        .map(JsonValue::of)
+                        .collect(JsonCollectors.valuesToArray()), predicate));
     }
 
     @Override
     public QueryThings setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(filter, options, fields, dittoHeaders);
+        return of(filter, options, fields, namespaces, dittoHeaders);
     }
 
     @Override
@@ -283,17 +320,18 @@ public final class QueryThings extends AbstractCommand<QueryThings> implements T
         final QueryThings that = (QueryThings) o;
         return Objects.equals(filter, that.filter) &&
                 Objects.equals(options, that.options) &&
-                Objects.equals(fields, that.fields);
+                Objects.equals(fields, that.fields) &&
+                Objects.equals(namespaces, that.namespaces);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), filter, options, fields);
+        return Objects.hash(super.hashCode(), filter, options, fields, namespaces);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + "[" + "filter='" + filter + "', options=" + options + ", fields=" + fields
-                + ']';
+                + ", namespaces=" + namespaces + ']';
     }
 }

@@ -138,6 +138,7 @@ public final class MongoThingsSearchUpdaterPersistence extends AbstractThingsSea
      */
     @Override
     protected final Source<Boolean, NotUsed> save(final Thing thing, final long revision, final long policyRevision) {
+        log.debug("Saving Thing with revision <{}> and policy revision <{}>: <{}>", revision, policyRevision, thing);
         final Bson filter = filterWithLowerThingRevisionOrLowerPolicyRevision(getThingId(thing), revision, policyRevision);
         final Document document = toUpdate(ThingDocumentMapper.toDocument(thing), revision, policyRevision);
         return Source.fromPublisher(collection.updateOne(filter, document, new UpdateOptions().upsert(true)))
@@ -172,6 +173,7 @@ public final class MongoThingsSearchUpdaterPersistence extends AbstractThingsSea
      */
     @Override
     public final Source<Boolean, NotUsed> delete(final String thingId) {
+        log.debug("Deleting Thing with ThingId <{}>", thingId);
         final Bson filter = eq(FIELD_ID, thingId);
         final Bson document = new Document(SET, new Document(FIELD_DELETED, new Date()));
         return delete(thingId, filter, document);
@@ -182,6 +184,7 @@ public final class MongoThingsSearchUpdaterPersistence extends AbstractThingsSea
      */
     @Override
     public final Source<Boolean, NotUsed> delete(final String thingId, final long revision) {
+        log.debug("Deleting Thing with ThingId <{}> and revision <{}>", thingId, revision);
         final Bson filter = filterWithLowerRevision(thingId, revision);
         final Document delete = new Document()
                 .append(FIELD_DELETED, new Date())
@@ -217,6 +220,8 @@ public final class MongoThingsSearchUpdaterPersistence extends AbstractThingsSea
     public Source<Boolean, NotUsed> executeCombinedWrites(final String thingId,
             final List<ThingEvent> thingEvents,
             final PolicyEnforcer policyEnforcer, final long targetRevision) {
+        log.debug("Executing <{}> combined writes for Thing <{}> with target revision <{}>",
+                thingEvents.size(), thingId, targetRevision);
         if (!thingEvents.isEmpty()) {
             final BulkWriteOptions writeOrdered = new BulkWriteOptions();
             writeOrdered.ordered(true);
@@ -304,12 +309,7 @@ public final class MongoThingsSearchUpdaterPersistence extends AbstractThingsSea
      */
     @Override
     public final Source<Boolean, NotUsed> updatePolicy(final Thing thing, final PolicyEnforcer policyEnforcer) {
-        if (thing == null || policyEnforcer == null) {
-            log.error("Thing or policyEnforcer was null when trying to update policy search index. Thing: <{}>, " +
-                    "PolicyEnforcer: <{}>", thing, policyEnforcer);
-            return Source.single(Boolean.FALSE);
-        }
-
+        log.debug("Updating policy for Thing: <{}>", thing);
         final PolicyUpdate policyUpdate = PolicyUpdateFactory.createPolicyIndexUpdate(thing, policyEnforcer);
         return Source.fromPublisher(updatePolicy(thing, policyUpdate))
                 .flatMapConcat(mapPolicyUpdateResult(policyUpdate))
@@ -343,6 +343,7 @@ public final class MongoThingsSearchUpdaterPersistence extends AbstractThingsSea
 
     @Override
     public final Source<Set<String>, NotUsed> getThingIdsForPolicy(final String policyId) {
+        log.debug("Retrieving Thing ids for policy: <{}>", policyId);
         final Bson filter = eq(FIELD_POLICY_ID, policyId);
         return Source.fromPublisher(collection.find(filter)
                 .projection(new BsonDocument(FIELD_ID, new BsonInt32(1))))
@@ -355,6 +356,7 @@ public final class MongoThingsSearchUpdaterPersistence extends AbstractThingsSea
 
     @Override
     public Source<String, NotUsed> getOutdatedThingIds(final PolicyTag policyTag) {
+        log.debug("Retrieving outdated Thing ids with policy tag: <{}>", policyTag);
         final String policyId = policyTag.getId();
         final Bson filter = and(eq(FIELD_POLICY_ID, policyId), lt(FIELD_POLICY_REVISION, policyTag.getRevision()));
         final Publisher<Document> publisher =
@@ -368,6 +370,7 @@ public final class MongoThingsSearchUpdaterPersistence extends AbstractThingsSea
      */
     @Override
     public final Source<ThingMetadata, NotUsed> getThingMetadata(final String thingId) {
+        log.debug("Retrieving Thing Metadata for Thing: <{}>", thingId);
         final Bson filter = eq(FIELD_ID, thingId);
         return Source.fromPublisher(collection.find(filter)
                 .projection(Projections.include(FIELD_REVISION, FIELD_POLICY_ID, FIELD_POLICY_REVISION)))

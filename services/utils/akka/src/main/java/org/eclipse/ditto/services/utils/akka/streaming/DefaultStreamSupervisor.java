@@ -353,6 +353,7 @@ public final class DefaultStreamSupervisor<E> extends AbstractActor {
     }
 
     private void scheduleStream(final Duration duration) {
+        log.info("Schedule Stream in: {}", duration);
         if (activityCheck != null) {
             activityCheck.cancel();
         }

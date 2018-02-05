@@ -28,8 +28,13 @@ import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SudoCountThin
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SudoRetrieveNamespaceReport;
 import org.eclipse.ditto.services.thingsearch.common.model.ResultList;
 import org.eclipse.ditto.services.thingsearch.persistence.read.ThingsSearchPersistence;
+import org.eclipse.ditto.services.thingsearch.persistence.read.criteria.visitors.IsPolicyLookupNeededVisitor;
 import org.eclipse.ditto.services.thingsearch.query.actors.AggregationQueryActor;
 import org.eclipse.ditto.services.thingsearch.query.actors.QueryActor;
+import org.eclipse.ditto.services.thingsearch.query.actors.QueryFilterCriteriaFactory;
+import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Criteria;
+import org.eclipse.ditto.services.thingsearch.querymodel.criteria.CriteriaFactoryImpl;
+import org.eclipse.ditto.services.thingsearch.querymodel.expression.ThingsFieldExpressionFactoryImpl;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.PolicyRestrictedSearchAggregation;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.Query;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -43,6 +48,7 @@ import org.eclipse.ditto.signals.commands.thingsearch.query.CountThings;
 import org.eclipse.ditto.signals.commands.thingsearch.query.CountThingsResponse;
 import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThings;
 import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThingsResponse;
+import org.eclipse.ditto.signals.commands.thingsearch.query.ThingSearchQueryCommand;
 
 import akka.NotUsed;
 import akka.actor.AbstractActor;
@@ -104,22 +110,24 @@ public final class SearchActor extends AbstractActor {
     private static final String THINGS_SERVICE_ACCESS = "Things_Service_access";
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+    private final QueryFilterCriteriaFactory queryFilterCriteriaFactory =
+            new QueryFilterCriteriaFactory(new CriteriaFactoryImpl(), new ThingsFieldExpressionFactoryImpl());
 
     private final ActorRef pubSubMediator;
     private final ActorRef aggregationQueryActor;
-    private final ActorRef apiV1QueryActor;
+    private final ActorRef findQueryActor;
     private final ThingsSearchPersistence searchPersistence;
     private final ActorMaterializer materializer;
     private final ExecutionContextExecutor dispatcher;
 
     private SearchActor(final ActorRef pubSubMediator,
             final ActorRef aggregationQueryActor,
-            final ActorRef apiV1QueryActor,
+            final ActorRef findQueryActor,
             final ThingsSearchPersistence searchPersistence) {
 
         this.pubSubMediator = pubSubMediator;
         this.aggregationQueryActor = aggregationQueryActor;
-        this.apiV1QueryActor = apiV1QueryActor;
+        this.findQueryActor = findQueryActor;
         this.searchPersistence = searchPersistence;
         materializer = ActorMaterializer.create(getContext().system());
 
@@ -133,14 +141,14 @@ public final class SearchActor extends AbstractActor {
      * Things.
      * @param aggregationQueryActor ActorRef for the {@link AggregationQueryActor} to use in order to create {@link
      * PolicyRestrictedSearchAggregation}s from {@link ThingSearchCommand}s.
-     * @param apiV1QueryActor ActorRef for the {@link QueryActor} to serve API version 1.
+     * @param findQueryActor ActorRef for the {@link QueryActor} to construct find queries.
      * @param searchPersistence the {@link ThingsSearchPersistence} to use in order to execute {@link
      * PolicyRestrictedSearchAggregation}s.
      * @return the Akka configuration Props object.
      */
     static Props props(final ActorRef pubSubMediator,
             final ActorRef aggregationQueryActor,
-            final ActorRef apiV1QueryActor,
+            final ActorRef findQueryActor,
             final ThingsSearchPersistence searchPersistence) {
 
         return Props.create(SearchActor.class, new Creator<SearchActor>() {
@@ -148,7 +156,7 @@ public final class SearchActor extends AbstractActor {
 
             @Override
             public SearchActor create() throws Exception {
-                return new SearchActor(pubSubMediator, aggregationQueryActor, apiV1QueryActor, searchPersistence);
+                return new SearchActor(pubSubMediator, aggregationQueryActor, findQueryActor, searchPersistence);
             }
         });
     }
@@ -180,9 +188,10 @@ public final class SearchActor extends AbstractActor {
         log.info("Processing CountThings command: {}", countThings);
         final JsonSchemaVersion version = countThings.getImplementedSchemaVersion();
 
+
         final Option<String> token = dittoHeaders.getCorrelationId()
-                .map(cId -> (Option<String>) Some.apply(cId))
-                .orElseGet(Option::empty);
+                .<Option<String>>map(Some::apply)
+                .orElse(Option.empty());
         final TraceContext traceContext = Kamon.tracer()
                 .newContext(prefixJsonSchemaVersion(TRACE_SEARCH_COUNT_PREFIX, version), token);
         final Segment querySegment =
@@ -191,7 +200,7 @@ public final class SearchActor extends AbstractActor {
         final ActorRef sender = getSender();
 
         // choose a query actor based on the API version in command headers
-        final ActorRef chosenQueryActor = chooseQueryActor(version);
+        final ActorRef chosenQueryActor = chooseQueryActor(version, countThings);
 
         PatternsCS.pipe(
                 Source.fromCompletionStage(PatternsCS.ask(chosenQueryActor, countThings, QUERY_ASK_TIMEOUT))
@@ -235,8 +244,9 @@ public final class SearchActor extends AbstractActor {
         log.info("Processing QueryThings command: {}", queryThings);
         final JsonSchemaVersion version = queryThings.getImplementedSchemaVersion();
 
-        final Option<String> token = dittoHeaders.getCorrelationId().map(cId -> (Option<String>) Some.apply(cId))
-                .orElse(Option.<String>empty());
+        final Option<String> token = dittoHeaders.getCorrelationId()
+                .<Option<String>>map(Some::apply)
+                .orElse(Option.empty());
         final TraceContext traceContext = Kamon.tracer()
                 .newContext(prefixJsonSchemaVersion(TRACE_SEARCH_QUERY_PREFIX, version), token);
         final Segment querySegment = traceContext.startSegment(QUERY_PARSING, THINGS_SEARCH,
@@ -245,7 +255,7 @@ public final class SearchActor extends AbstractActor {
         final ActorRef sender = getSender();
 
         // choose a query actor based on the API version in command headers
-        final ActorRef chosenQueryActor = chooseQueryActor(version);
+        final ActorRef chosenQueryActor = chooseQueryActor(version, queryThings);
 
         PatternsCS.pipe(
                 Source.fromCompletionStage(PatternsCS.ask(chosenQueryActor, queryThings, QUERY_ASK_TIMEOUT))
@@ -346,8 +356,23 @@ public final class SearchActor extends AbstractActor {
         return result;
     }
 
-    private ActorRef chooseQueryActor(final JsonSchemaVersion version) {
-        return JsonSchemaVersion.V_1.equals(version) ? apiV1QueryActor : aggregationQueryActor;
+    private ActorRef chooseQueryActor(final JsonSchemaVersion version, final Command<?> command) {
+        if (command instanceof ThingSearchQueryCommand<?>) {
+            final String filter = ((ThingSearchQueryCommand<?>) command).getFilter().orElse(null);
+            // useless parsing of command just to choose another actor to "parse" the filter string
+            try {
+                final Criteria criteria = queryFilterCriteriaFactory.filterCriteria(filter, command.getDittoHeaders());
+                final boolean needToLookupPolicy =
+                        JsonSchemaVersion.V_1 != version && criteria.accept(new IsPolicyLookupNeededVisitor());
+                return needToLookupPolicy ? aggregationQueryActor : findQueryActor;
+            } catch (final DittoRuntimeException e) {
+                // criteria is invalid, let the query actor deal with it
+                return findQueryActor;
+            }
+        } else {
+            // don't bother with aggregation for sudo commands
+            return findQueryActor;
+        }
     }
 
     private Graph<SourceShape<QueryThingsResponse>, NotUsed> retrieveFromThings(final ResultList<String> thingIds,

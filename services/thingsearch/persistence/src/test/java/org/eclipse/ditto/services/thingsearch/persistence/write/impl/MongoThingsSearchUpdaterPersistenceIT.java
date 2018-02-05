@@ -1447,21 +1447,6 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
         }
 
         @Test
-        public void updatePolicyForThingIllegalArguments() {
-            final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
-
-            insertBlockingAndResetMocks(isV2, thing, 1L, -1L, policyEnforcer);
-            final Policy policy = createPolicy1();
-
-            Assertions.assertThat(runBlockingWithReturn(
-                    writePersistence.updatePolicy(null, PolicyEnforcers.defaultEvaluator(policy)))).isFalse();
-            Assertions.assertThat(runBlockingWithReturn(
-                    writePersistence.updatePolicy(thing, null)))
-                    .isFalse();
-        }
-
-
-        @Test
         public void getThingIdsForPolicy() {
             final String policyId = "any-ns:testPolicyId";
             final Thing thing1 = createThing("test:id1", "val1", isV2).setPolicyId(policyId);
