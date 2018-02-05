@@ -11,17 +11,10 @@
  */
 package org.eclipse.ditto.services.amqpbridge.messaging;
 
-import java.time.Duration;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import org.eclipse.ditto.model.amqpbridge.AmqpBridgeModelFactory;
 import org.eclipse.ditto.model.amqpbridge.AmqpConnection;
 import org.eclipse.ditto.model.amqpbridge.ConnectionStatus;
-import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.signals.commands.amqpbridge.exceptions.ConnectionNotAccessibleException;
 import org.eclipse.ditto.signals.commands.amqpbridge.modify.CloseConnection;
@@ -36,13 +29,8 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
-
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
-import akka.actor.InvalidActorNameException;
-import akka.actor.Props;
 import akka.cluster.pubsub.DistributedPubSub;
 import akka.testkit.javadsl.TestKit;
 
@@ -51,22 +39,12 @@ import akka.testkit.javadsl.TestKit;
  */
 public class ConnectionActorTest {
 
-    private static final Config CONFIG = ConfigFactory.load("test");
-    private static final String PROXY_ACTOR_PATH = "/user/gatewayRoot/proxy";
-
-    private static final String URI = "amqps://username:password@my.endpoint:443";
-    private static final String SUBJECT_ID = "mySolutionId:mySubject";
-    private static final AuthorizationSubject AUTHORIZATION_SUBJECT = AuthorizationSubject.newInstance(SUBJECT_ID);
-    private static final Set<String> SOURCES = new HashSet<>(Arrays.asList("amqp/source1", "amqp/source2"));
-    private static final boolean FAILOVER = false;
-    private static final JmsConnectionFactory CONNECTION_FACTORY = new MockJmsConnectionFactory();
-
     private static ActorSystem actorSystem;
     private static ActorRef pubSubMediator;
 
     @BeforeClass
     public static void setUp() {
-        actorSystem = ActorSystem.create("AkkaTestSystem", CONFIG);
+        actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
         pubSubMediator = DistributedPubSub.get(actorSystem).mediator();
     }
 
@@ -81,8 +59,9 @@ public class ConnectionActorTest {
     @Test
     public void tryToSendOtherCommandThanCreateDuringInitialization() {
         new TestKit(actorSystem) {{
-            final String connectionId = createRandomConnectionId();
-            final ActorRef underTest = createAmqpConnectionActor(connectionId);
+            final String connectionId = TestConstants.createRandomConnectionId();
+            final ActorRef underTest = TestConstants.createAmqpConnectionActor(connectionId, actorSystem,
+                    cId -> MockConnectionActor.props(cId, pubSubMediator, TestConstants.PROXY_ACTOR_PATH));
 
             final DeleteConnection deleteConnection = DeleteConnection.of(connectionId, DittoHeaders.empty());
             underTest.tell(deleteConnection, getRef());
@@ -96,9 +75,10 @@ public class ConnectionActorTest {
     @Test
     public void manageConnection() {
         new TestKit(actorSystem) {{
-            final String connectionId = createRandomConnectionId();
-            final AmqpConnection amqpConnection = createConnection(connectionId);
-            final ActorRef underTest = createAmqpConnectionActor(connectionId);
+            final String connectionId = TestConstants.createRandomConnectionId();
+            final AmqpConnection amqpConnection = TestConstants.createConnection(connectionId);
+            final ActorRef underTest = TestConstants.createAmqpConnectionActor(connectionId, actorSystem,
+                    cId -> MockConnectionActor.props(cId, pubSubMediator, TestConstants.PROXY_ACTOR_PATH));
             watch(underTest);
 
             // create connection
@@ -128,9 +108,10 @@ public class ConnectionActorTest {
     @Test
     public void recoverOpenConnection() {
         new TestKit(actorSystem) {{
-            final String connectionId = createRandomConnectionId();
-            final AmqpConnection amqpConnection = createConnection(connectionId);
-            ActorRef underTest = createAmqpConnectionActor(connectionId);
+            final String connectionId = TestConstants.createRandomConnectionId();
+            final AmqpConnection amqpConnection = TestConstants.createConnection(connectionId);
+            ActorRef underTest = TestConstants.createAmqpConnectionActor(connectionId, actorSystem,
+                    cId -> MockConnectionActor.props(cId, pubSubMediator, TestConstants.PROXY_ACTOR_PATH));
             watch(underTest);
 
             // create connection
@@ -145,7 +126,8 @@ public class ConnectionActorTest {
             expectTerminated(underTest);
 
             // recover actor
-            underTest = createAmqpConnectionActor(connectionId);
+            underTest = TestConstants.createAmqpConnectionActor(connectionId, actorSystem,
+                    cId -> MockConnectionActor.props(cId, pubSubMediator, TestConstants.PROXY_ACTOR_PATH));
 
             // retrieve connection status
             final RetrieveConnectionStatus retrieveConnectionStatus =
@@ -160,9 +142,10 @@ public class ConnectionActorTest {
     @Test
     public void recoverClosedConnection() {
         new TestKit(actorSystem) {{
-            final String connectionId = createRandomConnectionId();
-            final AmqpConnection amqpConnection = createConnection(connectionId);
-            ActorRef underTest = createAmqpConnectionActor(connectionId);
+            final String connectionId = TestConstants.createRandomConnectionId();
+            final AmqpConnection amqpConnection = TestConstants.createConnection(connectionId);
+            ActorRef underTest = TestConstants.createAmqpConnectionActor(connectionId, actorSystem,
+                    cId -> MockConnectionActor.props(cId, pubSubMediator, TestConstants.PROXY_ACTOR_PATH));
             watch(underTest);
 
             // create connection
@@ -184,7 +167,8 @@ public class ConnectionActorTest {
             expectTerminated(underTest);
 
             // recover actor
-            underTest = createAmqpConnectionActor(connectionId);
+            underTest = TestConstants.createAmqpConnectionActor(connectionId, actorSystem,
+                    cId -> MockConnectionActor.props(cId, pubSubMediator, TestConstants.PROXY_ACTOR_PATH));
 
             // retrieve connection status
             final RetrieveConnectionStatus retrieveConnectionStatus =
@@ -199,9 +183,10 @@ public class ConnectionActorTest {
     @Test
     public void recoverDeletedConnection() {
         new TestKit(actorSystem) {{
-            final String connectionId = createRandomConnectionId();
-            final AmqpConnection amqpConnection = createConnection(connectionId);
-            ActorRef underTest = createAmqpConnectionActor(connectionId);
+            final String connectionId = TestConstants.createRandomConnectionId();
+            final AmqpConnection amqpConnection = TestConstants.createConnection(connectionId);
+            ActorRef underTest = TestConstants.createAmqpConnectionActor(connectionId, actorSystem,
+                    cId -> MockConnectionActor.props(cId, pubSubMediator, TestConstants.PROXY_ACTOR_PATH));
             watch(underTest);
 
             // create connection
@@ -220,7 +205,8 @@ public class ConnectionActorTest {
             expectTerminated(underTest);
 
             // recover actor
-            underTest = createAmqpConnectionActor(connectionId);
+            underTest = TestConstants.createAmqpConnectionActor(connectionId, actorSystem,
+                    cId -> MockConnectionActor.props(cId, pubSubMediator, TestConstants.PROXY_ACTOR_PATH));
 
             // retrieve connection status
             final RetrieveConnectionStatus retrieveConnectionStatus =
@@ -230,47 +216,6 @@ public class ConnectionActorTest {
                     ConnectionNotAccessibleException.newBuilder(connectionId).build();
             expectMsg(connectionNotAccessibleException);
         }};
-    }
-
-    private static ActorRef createAmqpConnectionActor(final String connectionId) {
-        final Duration minBackoff = Duration.ofSeconds(1);
-        final Duration maxBackoff = Duration.ofSeconds(5);
-        final Double randomFactor = 1.0;
-        final Props props = ConnectionSupervisorActor.props(minBackoff, maxBackoff, randomFactor,
-                pubSubMediator,
-                PROXY_ACTOR_PATH,
-                CONNECTION_FACTORY);
-
-        final int maxAttemps = 5;
-        final long backoffMs = 1000L;
-
-        for (int attempt = 1; ; ++attempt) {
-            try {
-                return actorSystem.actorOf(props, connectionId);
-            } catch (final InvalidActorNameException invalidActorNameException) {
-                if (attempt >= maxAttemps) {
-                    throw invalidActorNameException;
-                } else {
-                    backOff(backoffMs);
-                }
-            }
-        }
-    }
-
-    private static void backOff(final long ms) {
-        try {
-            Thread.sleep(ms);
-        } catch (final InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    private static String createRandomConnectionId() {
-        return "connection-" + UUID.randomUUID();
-    }
-
-    private static AmqpConnection createConnection(final String connectionId) {
-        return AmqpBridgeModelFactory.newConnection(connectionId, URI, AUTHORIZATION_SUBJECT, SOURCES, FAILOVER);
     }
 
 }

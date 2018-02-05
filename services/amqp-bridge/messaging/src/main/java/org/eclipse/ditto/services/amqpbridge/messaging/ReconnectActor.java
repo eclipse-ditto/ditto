@@ -17,7 +17,6 @@ import java.util.function.Consumer;
 
 import org.eclipse.ditto.model.amqpbridge.ConnectionStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.services.amqpbridge.messaging.persistence.MongoReconnectSnapshotAdapter;
 import org.eclipse.ditto.services.amqpbridge.util.ConfigKeys;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.akka.persistence.SnapshotAdapter;

@@ -5,11 +5,11 @@
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
- *
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
+ *
  */
-package org.eclipse.ditto.services.amqpbridge.messaging;
+package org.eclipse.ditto.services.amqpbridge.messaging.amqp;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
@@ -26,12 +26,16 @@ import javax.naming.InitialContext;
 import javax.naming.NamingException;
 
 import org.eclipse.ditto.model.amqpbridge.AmqpConnection;
+import org.slf4j.LoggerFactory;
 
 /**
  * Factory for creating a {@link javax.jms.Connection} based on a {@link AmqpConnection}.
  */
 @NotThreadSafe
 public final class AmqpConnectionBasedJmsConnectionFactory implements JmsConnectionFactory {
+
+    private static final org.slf4j.Logger LOGGER =
+            LoggerFactory.getLogger(AmqpConnectionBasedJmsConnectionFactory.class);
 
     private AmqpConnectionBasedJmsConnectionFactory() {
         // no-op
@@ -70,18 +74,27 @@ public final class AmqpConnectionBasedJmsConnectionFactory implements JmsConnect
         final boolean failoverEnabled = amqpConnection.isFailoverEnabled();
 
         final String uri = formatUri(protocol, hostname, port);
-        final String uriWithAmqpParams = appendAmqpParameters(uri);
-        final String uriWithTransportParams = appendTransportParameters(uriWithAmqpParams);
+
+        final String uriWithTransportParams;
+        if (!amqpConnection.isValidateCertificates()) {
+            uriWithTransportParams = appendTransportParameters(uri);
+        } else {
+            uriWithTransportParams = uri;
+        }
 
         final String connectionUri;
         if (failoverEnabled) {
             final String uriWrappedWithFailover = wrapWithFailOver(uriWithTransportParams);
             final String uriWithJmsParams = appendJmsParametersOverall(uriWrappedWithFailover, username, password);
-            connectionUri = appendFailoverParameters(uriWithJmsParams);
+            final String uriWithAmqpParams = appendAmqpParameters(uriWithJmsParams, true);
+            connectionUri = appendFailoverParameters(uriWithAmqpParams);
         } else {
             final String uriWithJmsParams = appendJmsParameters(uriWithTransportParams, username, password);
-            connectionUri = appendFailoverParameters(uriWithJmsParams);
+            final String uriWithAmqpParams = appendAmqpParameters(uriWithJmsParams, false);
+            connectionUri = appendFailoverParameters(uriWithAmqpParams);
         }
+
+        LOGGER.info("Final AMQP URI: {}", connectionUri);
 
         @SuppressWarnings("squid:S1149") final Hashtable<Object, Object> env = new Hashtable<>();
         env.put(Context.INITIAL_CONTEXT_FACTORY, "org.apache.qpid.jms.jndi.JmsInitialContextFactory");
@@ -111,8 +124,8 @@ public final class AmqpConnectionBasedJmsConnectionFactory implements JmsConnect
         return MessageFormat.format(pattern, uri, username, password);
     }
 
-    private static String appendAmqpParameters(final String uri) {
-        return uri + "?amqp.saslMechanisms=PLAIN";
+    private static String appendAmqpParameters(final String uri, final boolean nested) {
+        return uri + "?" + (nested ? "failover.nested." : "") + "amqp.saslMechanisms=ANONYMOUS,PLAIN";
     }
 
     private static String appendTransportParameters(final String uri) {
@@ -131,7 +144,7 @@ public final class AmqpConnectionBasedJmsConnectionFactory implements JmsConnect
     }
 
     private static String wrapWithFailOver(final String uri) {
-        return MessageFormat.format("failover:({0})", uri);
+        return MessageFormat.format("failover://({0})", uri);
     }
 
 }

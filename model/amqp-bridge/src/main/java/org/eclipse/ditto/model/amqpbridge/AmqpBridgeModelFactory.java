@@ -32,6 +32,7 @@ public final class AmqpBridgeModelFactory {
      * Returns a new {@code Connection}.
      *
      * @param id the connection identifier.
+     * @param connectionType the connection type
      * @param uri the connection uri.
      * @param authorizationSubject the connection authorization subject.
      * @param sources the connection sources.
@@ -39,9 +40,12 @@ public final class AmqpBridgeModelFactory {
      * @return the ImmutableConnection.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static AmqpConnection newConnection(final String id, final String uri,
-            final AuthorizationSubject authorizationSubject, final Set<String> sources, final boolean failoverEnabled) {
-        return ImmutableAmqpConnection.of(id, uri, authorizationSubject, sources, failoverEnabled);
+    public static AmqpConnection newConnection(final String id,
+            final ConnectionType connectionType, final String uri,
+            final AuthorizationSubject authorizationSubject, final Set<String> sources, final boolean failoverEnabled,
+            final boolean validateCertificates, final int throttle) {
+        return ImmutableAmqpConnection.of(id, connectionType, uri, authorizationSubject, sources, failoverEnabled,
+                validateCertificates, throttle);
     }
 
     /**

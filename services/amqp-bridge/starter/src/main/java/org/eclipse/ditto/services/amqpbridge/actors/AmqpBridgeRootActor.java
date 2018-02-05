@@ -25,6 +25,12 @@ import javax.jms.JMSRuntimeException;
 import javax.naming.NamingException;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.services.amqpbridge.messaging.ConnectionActorPropsFactory;
+import org.eclipse.ditto.services.amqpbridge.messaging.ConnectionSupervisorActor;
+import org.eclipse.ditto.services.amqpbridge.messaging.DefaultConnectionActorPropsFactory;
+import org.eclipse.ditto.services.amqpbridge.messaging.ReconnectActor;
+import org.eclipse.ditto.services.amqpbridge.util.ConfigKeys;
+import org.eclipse.ditto.services.models.amqpbridge.AmqpBridgeMessagingConstants;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
 import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
@@ -61,12 +67,6 @@ import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.AskTimeoutException;
 import akka.stream.ActorMaterializer;
-
-import org.eclipse.ditto.services.amqpbridge.messaging.AmqpConnectionBasedJmsConnectionFactory;
-import org.eclipse.ditto.services.amqpbridge.messaging.ConnectionSupervisorActor;
-import org.eclipse.ditto.services.amqpbridge.messaging.ReconnectActor;
-import org.eclipse.ditto.services.amqpbridge.util.ConfigKeys;
-import org.eclipse.ditto.services.models.amqpbridge.AmqpBridgeMessagingConstants;
 
 /**
  * Parent Actor which takes care of supervision of all other Actors in our system.
@@ -158,9 +158,11 @@ public final class AmqpBridgeRootActor extends AbstractActor {
         final Duration maxBackoff = config.getDuration(ConfigKeys.Connection.SUPERVISOR_EXPONENTIAL_BACKOFF_MAX);
         final double randomFactor =
                 config.getDouble(ConfigKeys.Connection.SUPERVISOR_EXPONENTIAL_BACKOFF_RANDOM_FACTOR);
+
+        final ConnectionActorPropsFactory connectionActorPropsFactory
+                = DefaultConnectionActorPropsFactory.getInstance(pubSubMediator, PROXY_ACTOR_PATH);
         final Props amqpConnectionSupervisorProps =
-                ConnectionSupervisorActor.props(minBackoff, maxBackoff, randomFactor, pubSubMediator,
-                        PROXY_ACTOR_PATH, AmqpConnectionBasedJmsConnectionFactory.getInstance());
+                ConnectionSupervisorActor.props(minBackoff, maxBackoff, randomFactor, connectionActorPropsFactory);
 
         final int numberOfShards = config.getInt(ConfigKeys.Cluster.NUMBER_OF_SHARDS);
         final ClusterShardingSettings shardingSettings =

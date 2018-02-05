@@ -40,6 +40,13 @@ public interface AmqpConnection extends Jsonifiable.WithFieldSelectorAndPredicat
     String getId();
 
     /**
+     * Returns the connection type of this {@code Connection}.
+     *
+     * @return the connection type
+     */
+    ConnectionType getConnectionType();
+
+    /**
      * Returns the Authorization Subject of this {@code Connection}.
      *
      * @return the Authorization Subject.
@@ -103,6 +110,20 @@ public interface AmqpConnection extends Jsonifiable.WithFieldSelectorAndPredicat
     int getPort();
 
     /**
+     * Maximum number of messages per second processed by the bridge. 0 (default) means no limit.
+     *
+     * @return number of messages that are processed per second at most.
+     */
+    int getThrottle();
+
+    /**
+     * Whether to validate server certificates on connection establishment,
+     *
+     * @return {@code true} (default) if server certificates must be valid
+     */
+    boolean isValidateCertificates();
+
+    /**
      * Returns all non hidden marked fields of this {@code AmqpConnection}.
      *
      * @return a JSON object representation of this AmqpConnection including only non hidden marked fields.
@@ -138,6 +159,13 @@ public interface AmqpConnection extends Jsonifiable.WithFieldSelectorAndPredicat
                         JsonSchemaVersion.V_2);
 
         /**
+         * JSON field containing the {@code AmqpConnection} type.
+         */
+        public static final JsonFieldDefinition<String> TYPE =
+                JsonFactory.newStringFieldDefinition("type", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
+
+        /**
          * JSON field containing the {@code AmqpConnection} uri.
          */
         public static final JsonFieldDefinition<String> URI =
@@ -163,6 +191,20 @@ public interface AmqpConnection extends Jsonifiable.WithFieldSelectorAndPredicat
          */
         public static final JsonFieldDefinition<Boolean> FAILOVER_ENABLED =
                 JsonFactory.newBooleanFieldDefinition("failoverEnabled", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing the {@code AmqpConnection} trust all certificates.
+         */
+        public static final JsonFieldDefinition<Boolean> VALIDATE_CERTIFICATES =
+                JsonFactory.newBooleanFieldDefinition("validateCertificates", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing the {@code AmqpConnection} throttle.
+         */
+        public static final JsonFieldDefinition<Integer> THROTTLE =
+                JsonFactory.newIntFieldDefinition("throttle", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
         private JsonFields() {
