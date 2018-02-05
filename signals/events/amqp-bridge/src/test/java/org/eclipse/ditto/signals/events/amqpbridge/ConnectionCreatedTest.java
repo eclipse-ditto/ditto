@@ -17,14 +17,15 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import java.util.Collections;
+
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.amqpbridge.AmqpConnection;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
-
-import org.eclipse.ditto.model.amqpbridge.AmqpConnection;
 
 /**
  * Unit test for {@link ConnectionCreated}.
@@ -53,7 +54,7 @@ public final class ConnectionCreatedTest {
     @Test
     public void createInstanceWithNullConnection() {
         assertThatExceptionOfType(NullPointerException.class)
-                .isThrownBy(() -> ConnectionCreated.of(null, DittoHeaders.empty()))
+                .isThrownBy(() -> ConnectionCreated.of(null, Collections.emptyList(), DittoHeaders.empty()))
                 .withMessage("The %s must not be null!", "Connection")
                 .withNoCause();
     }
@@ -61,7 +62,7 @@ public final class ConnectionCreatedTest {
     @Test
     public void fromJsonReturnsExpected() {
         final ConnectionCreated expected =
-                ConnectionCreated.of(TestConstants.CONNECTION, DittoHeaders.empty());
+                ConnectionCreated.of(TestConstants.CONNECTION, Collections.emptyList(), DittoHeaders.empty());
 
         final ConnectionCreated actual =
                 ConnectionCreated.fromJson(KNOWN_JSON, DittoHeaders.empty());
@@ -72,7 +73,7 @@ public final class ConnectionCreatedTest {
     @Test
     public void toJsonReturnsExpected() {
         final JsonObject actual =
-                ConnectionCreated.of(TestConstants.CONNECTION, DittoHeaders.empty()).toJson();
+                ConnectionCreated.of(TestConstants.CONNECTION, Collections.emptyList(), DittoHeaders.empty()).toJson();
 
         assertThat(actual).isEqualTo(KNOWN_JSON);
     }

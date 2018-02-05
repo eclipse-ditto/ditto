@@ -15,14 +15,14 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collections;
 
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.amqpbridge.ConnectionStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
-
-import org.eclipse.ditto.model.amqpbridge.ConnectionStatus;
 import org.eclipse.ditto.signals.commands.amqpbridge.TestConstants;
 import org.eclipse.ditto.signals.commands.amqpbridge.exceptions.ConnectionFailedException;
 import org.eclipse.ditto.signals.commands.amqpbridge.exceptions.ConnectionNotAccessibleException;
@@ -95,7 +95,7 @@ public class JsonExamplesProducer {
         Files.createDirectories(commandsDir);
 
         final CreateConnectionResponse createConnectionResponse =
-                CreateConnectionResponse.of(TestConstants.CONNECTION, DittoHeaders.empty());
+                CreateConnectionResponse.of(TestConstants.CONNECTION, Collections.emptyList(), DittoHeaders.empty());
         writeJson(commandsDir.resolve(Paths.get("createConnection.json")), createConnectionResponse);
 
         final DeleteConnectionResponse deleteConnectionResponse =

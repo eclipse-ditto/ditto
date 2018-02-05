@@ -62,6 +62,9 @@
         <metrics-statsd.version>1.0.0</metrics-statsd.version>
         <jsr302.version>3.0.1</jsr302.version>
 
+        <rhino.version>1.7.8</rhino.version>
+        <js.mustache.version>2.3.0</js.mustache.version>
+        <js.bytebuffer.version>5.0.0</js.bytebuffer.version>
 
         <!-- ### Testing dependencies versions -->
         <junit.version>4.12</junit.version>
@@ -540,6 +543,23 @@
                 <groupId>com.google.code.findbugs</groupId>
                 <artifactId>jsr305</artifactId>
                 <version>${jsr302.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.mozilla</groupId>
+                <artifactId>rhino</artifactId>
+                <version>${rhino.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.webjars.npm</groupId>
+                <artifactId>mustache</artifactId>
+                <version>${js.mustache.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.webjars.npm</groupId>
+                <artifactId>bytebuffer</artifactId>
+                <version>${js.bytebuffer.version}</version>
             </dependency>
 
             <!-- ### Provided - own artifacts ### -->

@@ -29,6 +29,11 @@
             <artifactId>ditto-services-amqpbridge-util</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>ditto-services-amqpbridge-mapping</artifactId>
+            <version>${project.version}</version>
+        </dependency>
 
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
