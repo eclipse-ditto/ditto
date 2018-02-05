@@ -24,6 +24,7 @@ import org.eclipse.ditto.signals.commands.things.modify.DeleteAclEntry;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAttribute;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAttributes;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeature;
+import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureDefinition;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureProperties;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureProperty;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatures;
@@ -33,6 +34,7 @@ import org.eclipse.ditto.signals.commands.things.modify.ModifyAclEntry;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttribute;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributes;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeature;
+import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureDefinition;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperties;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperty;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatures;
@@ -113,6 +115,11 @@ public final class ThingCommandToModifyExceptionRegistry
                 command -> FeaturesNotModifiableException.newBuilder(command.getThingId())
                         .dittoHeaders(command.getDittoHeaders())
                         .build());
+        mappingStrategies.put(ModifyFeatureDefinition.TYPE,
+                command -> FeatureDefinitionNotModifiableException.newBuilder(command.getThingId(),
+                        ((WithFeatureId) command).getFeatureId())
+                        .dittoHeaders(command.getDittoHeaders())
+                        .build());
         mappingStrategies.put(ModifyFeatureProperties.TYPE,
                 command -> FeaturePropertiesNotModifiableException.newBuilder(command.getThingId(),
                         ((WithFeatureId) command).getFeatureId())
@@ -121,6 +128,11 @@ public final class ThingCommandToModifyExceptionRegistry
         mappingStrategies.put(ModifyFeatureProperty.TYPE,
                 command -> FeaturePropertyNotModifiableException.newBuilder(command.getThingId(),
                         ((WithFeatureId) command).getFeatureId(), command.getResourcePath())
+                        .dittoHeaders(command.getDittoHeaders())
+                        .build());
+        mappingStrategies.put(DeleteFeatureDefinition.TYPE,
+                command -> FeatureDefinitionNotModifiableException.newBuilder(command.getThingId(),
+                        ((WithFeatureId) command).getFeatureId())
                         .dittoHeaders(command.getDittoHeaders())
                         .build());
         mappingStrategies.put(DeleteFeatureProperties.TYPE,

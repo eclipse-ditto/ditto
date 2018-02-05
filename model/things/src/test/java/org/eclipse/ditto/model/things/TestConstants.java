@@ -83,11 +83,18 @@ public final class TestConstants {
                 .build();
 
         /**
+         * a known FeatureDefinition for a Flux Capacitor.
+         */
+        public static final FeatureDefinition FLUX_CAPACITOR_DEFINITION =
+                FeatureDefinition.fromIdentifier("com.example:fluxcapacitor:42.0.0");
+
+        /**
          * A known Feature which is required for time travel.
          */
         public static final org.eclipse.ditto.model.things.Feature FLUX_CAPACITOR =
                 org.eclipse.ditto.model.things.Feature.newBuilder()
                         .properties(FLUX_CAPACITOR_PROPERTIES)
+                        .definition(FLUX_CAPACITOR_DEFINITION)
                         .withId(FLUX_CAPACITOR_ID)
                         .build();
 

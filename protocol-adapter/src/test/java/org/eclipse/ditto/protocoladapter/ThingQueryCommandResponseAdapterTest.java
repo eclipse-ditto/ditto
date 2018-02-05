@@ -34,6 +34,7 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveAclEntryResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAclResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributeResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributesResponse;
+import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureDefinitionResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeaturePropertiesResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeaturePropertyResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureResponse;
@@ -514,6 +515,59 @@ public final class ThingQueryCommandResponseAdapterTest {
         final RetrieveFeatureResponse retrieveFeature =
                 RetrieveFeatureResponse.of(THING_ID, FEATURE_ID, TestConstants.FEATURE.toJson(), DITTO_HEADERS_V_1);
         final Adaptable actual = underTest.toAdaptable(retrieveFeature);
+
+        assertThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void retrieveFeatureDefinitionResponseFromAdaptable() {
+        final RetrieveFeatureDefinitionResponse expected =
+                RetrieveFeatureDefinitionResponse.of(THING_ID, FEATURE_ID, TestConstants.FEATURE_DEFINITION,
+                        DITTO_HEADERS_V_1);
+
+        final TopicPath topicPath = TopicPath.newBuilder(THING_ID)
+                .things()
+                .twin()
+                .commands()
+                .retrieve()
+                .build();
+        final JsonPointer path = JsonPointer.of("/features/" + FEATURE_ID + "/definition");
+
+        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.OK)
+                        .withValue(TestConstants.FEATURE_DEFINITION_JSON)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_1)
+                .build();
+        final ThingQueryCommandResponse actual = underTest.fromAdaptable(adaptable);
+
+        assertThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void retrieveFeatureDefinitionResponseToAdaptable() {
+        final JsonPointer path = JsonPointer.of("/features/" + FEATURE_ID + "/definition");
+
+        final TopicPath topicPath = TopicPath.newBuilder(THING_ID)
+                .things()
+                .twin()
+                .commands()
+                .retrieve()
+                .build();
+
+        final Adaptable expected = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.OK)
+                        .withValue(TestConstants.FEATURE_DEFINITION_JSON)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_1)
+                .build();
+
+        final RetrieveFeatureDefinitionResponse retrieveFeatureDefinition =
+                RetrieveFeatureDefinitionResponse.of(THING_ID, FEATURE_ID, TestConstants.FEATURE_DEFINITION,
+                        DITTO_HEADERS_V_1);
+        final Adaptable actual = underTest.toAdaptable(retrieveFeatureDefinition);
 
         assertThat(actual).isEqualTo(expected);
     }

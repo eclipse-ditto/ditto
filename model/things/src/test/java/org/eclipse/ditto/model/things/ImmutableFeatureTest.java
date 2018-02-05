@@ -11,6 +11,9 @@
  */
 package org.eclipse.ditto.model.things;
 
+import static org.assertj.core.api.Assertions.assertThatNullPointerException;
+import static org.eclipse.ditto.model.things.TestConstants.Feature.FLUX_CAPACITOR_DEFINITION;
+import static org.eclipse.ditto.model.things.TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES;
 import static org.eclipse.ditto.model.things.assertions.DittoThingsAssertions.assertThat;
 import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
@@ -39,37 +42,41 @@ public final class ImmutableFeatureTest {
 
     private static final String KNOWN_FEATURE_ID = "myFeature";
 
-    private static final JsonObject KNOWN_JSON_OBJECT = JsonFactory.newObjectBuilder() //
-            .set(Feature.JsonFields.SCHEMA_VERSION, KNOWN_SCHEMA_VERSION.toInt()) //
-            .set(Feature.JsonFields.PROPERTIES, TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES) //
+    private static final JsonObject KNOWN_JSON_OBJECT = JsonFactory.newObjectBuilder()
+            .set(Feature.JsonFields.SCHEMA_VERSION, KNOWN_SCHEMA_VERSION.toInt())
+            .set(Feature.JsonFields.PROPERTIES, FLUX_CAPACITOR_PROPERTIES)
+            .set(Feature.JsonFields.DEFINITION, FLUX_CAPACITOR_DEFINITION.toJson())
             .build();
-
 
     @Test
     public void testHashCodeAndEquals() {
         final SoftReference<JsonObject> red = new SoftReference<>(JsonFactory.newObject("{\"foo\": 1}"));
         final SoftReference<JsonObject> black = new SoftReference<>(JsonFactory.newObject("{\"foo\": 2}"));
 
-        EqualsVerifier.forClass(ImmutableFeature.class) //
-                .withPrefabValues(SoftReference.class, red, black) //
+        EqualsVerifier.forClass(ImmutableFeature.class)
+                .withPrefabValues(SoftReference.class, red, black)
                 .verify();
     }
 
-
     @Test
     public void assertImmutability() {
-        assertInstancesOf(ImmutableFeature.class, //
-                areImmutable(), //
-                provided(JsonObject.class, FeatureProperties.class, JsonSchemaVersion.class).areAlsoImmutable(), //
+        final Class<?>[] knownImmutableTypes = new Class[]{
+                JsonObject.class,
+                FeatureProperties.class,
+                FeatureDefinition.class,
+                JsonSchemaVersion.class
+        };
+
+        assertInstancesOf(ImmutableFeature.class,
+                areImmutable(),
+                provided(knownImmutableTypes).areAlsoImmutable(),
                 assumingFields("cachedJsonObject").areModifiedAsPartOfAnUnobservableCachingStrategy());
     }
 
-
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullFeatureId() {
-        ImmutableFeature.of(null, TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES);
+        ImmutableFeature.of(null, FLUX_CAPACITOR_PROPERTIES);
     }
-
 
     @Test
     public void createInstanceWithNullProperties() {
@@ -78,14 +85,12 @@ public final class ImmutableFeatureTest {
         assertThat(actual.toJsonString()).isEqualTo("{}");
     }
 
-
     @Test
     public void getIdReturnsExpected() {
         final Feature underTest = ImmutableFeature.of(KNOWN_FEATURE_ID);
 
         assertThat(underTest.getId()).isEqualTo(KNOWN_FEATURE_ID);
     }
-
 
     @Test
     public void getPropertiesOnFeatureWithoutPropertiesReturnsEmptyOptional() {
@@ -94,36 +99,33 @@ public final class ImmutableFeatureTest {
         assertThat(underTest.getProperties()).isEmpty();
     }
 
-
     @Test
     public void getPropertiesReturnsExpected() {
-        final Feature underTest =
-                ImmutableFeature.of(KNOWN_FEATURE_ID, TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES);
+        final Feature underTest = ImmutableFeature.of(KNOWN_FEATURE_ID, FLUX_CAPACITOR_PROPERTIES);
 
-        assertThat(underTest.getProperties()).contains(TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES);
+        assertThat(underTest.getProperties()).contains(FLUX_CAPACITOR_PROPERTIES);
     }
-
 
     @Test
     public void setPropertiesWorksAsExpected() {
-        final Feature withoutProperties = ImmutableFeature.of(KNOWN_FEATURE_ID);
-        final Feature withProperties = withoutProperties.setProperties(TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES);
+        final Feature withoutProperties = ImmutableFeature.of(KNOWN_FEATURE_ID, FLUX_CAPACITOR_DEFINITION, null);
+        final Feature withProperties = withoutProperties.setProperties(FLUX_CAPACITOR_PROPERTIES);
 
         assertThat(withoutProperties).isNotSameAs(withProperties);
-        assertThat(withProperties.getProperties()).contains(TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES);
+        assertThat(withProperties.getProperties()).contains(FLUX_CAPACITOR_PROPERTIES);
+        assertThat(withProperties.getDefinition()).contains(FLUX_CAPACITOR_DEFINITION);
     }
-
 
     @Test
     public void removePropertiesWorksAsExpected() {
         final Feature withProperties =
-                ImmutableFeature.of(KNOWN_FEATURE_ID, TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES);
+                ImmutableFeature.of(KNOWN_FEATURE_ID, FLUX_CAPACITOR_DEFINITION, FLUX_CAPACITOR_PROPERTIES);
         final Feature withoutProperties = withProperties.removeProperties();
 
         assertThat(withProperties).isNotSameAs(withoutProperties);
         assertThat(withoutProperties.getProperties()).isEmpty();
+        assertThat(withoutProperties.getDefinition()).contains(FLUX_CAPACITOR_DEFINITION);
     }
-
 
     @Test
     public void getPropertyFromFeatureWithoutProperties() {
@@ -132,42 +134,39 @@ public final class ImmutableFeatureTest {
         assertThat(withoutProperties.getProperty(JsonFactory.newPointer("target_year_1"))).isEmpty();
     }
 
-
     @Test
     public void tryToGetNonExistingProperty() {
         final JsonPointer pointer = JsonFactory.newPointer("target_year_4");
-        final Feature underTest =
-                ImmutableFeature.of(KNOWN_FEATURE_ID, TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES);
+        final Feature underTest = ImmutableFeature.of(KNOWN_FEATURE_ID, FLUX_CAPACITOR_PROPERTIES);
 
         assertThat(underTest.getProperty(pointer)).isEmpty();
     }
-
 
     @Test
     public void getExistingProperty() {
         final JsonPointer pointer = JsonFactory.newPointer("target_year_1");
         final JsonValue expectedPropertyValue = JsonFactory.newValue(1955);
-        final Feature underTest =
-                ImmutableFeature.of(KNOWN_FEATURE_ID, TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES);
+        final Feature underTest = ImmutableFeature.of(KNOWN_FEATURE_ID, FLUX_CAPACITOR_PROPERTIES);
 
         assertThat(underTest.getProperty(pointer)).contains(expectedPropertyValue);
     }
 
-
     @Test(expected = NullPointerException.class)
     public void tryToSetPropertyValueWithNullJsonPointer() {
         final Feature underTest = ImmutableFeature.of(KNOWN_FEATURE_ID);
-        underTest.setProperty((JsonPointer) null, JsonFactory.newValue(1337));
+        underTest.setProperty(null, JsonFactory.newValue(1337));
     }
 
-
-    @Test(expected = NullPointerException.class)
+    @Test
     public void tryToSetPropertyWithNullValue() {
-        final Feature underTest = ImmutableFeature.of(KNOWN_FEATURE_ID);
+        final ImmutableFeature underTest = ImmutableFeature.of(KNOWN_FEATURE_ID);
         final JsonPointer pointer = JsonFactory.newPointer("target_year_1");
-        underTest.setProperty(pointer, (JsonValue) null);
-    }
 
+        assertThatNullPointerException()
+                .isThrownBy(() -> underTest.setProperty(pointer, (JsonValue) null))
+                .withMessage("The %s must not be null!", "property value to be set")
+                .withNoCause();
+    }
 
     @Test
     public void setPropertyValueOnFeatureWithoutProperties() {
@@ -180,11 +179,9 @@ public final class ImmutableFeatureTest {
         assertThat(withProperties.getProperty(pointer)).contains(value);
     }
 
-
     @Test
-    public void setPropertyValueOnFeatureWithExistingProperies() {
-        final Feature underTest =
-                ImmutableFeature.of(KNOWN_FEATURE_ID, TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES);
+    public void setPropertyValueOnFeatureWithExistingProperties() {
+        final Feature underTest = ImmutableFeature.of(KNOWN_FEATURE_ID, FLUX_CAPACITOR_PROPERTIES);
         final JsonPointer pointer = JsonFactory.newPointer("target_year_1");
         final JsonValue value = JsonFactory.newValue(1337);
         final Feature featureWithChangedProperty = underTest.setProperty(pointer, value);
@@ -192,7 +189,6 @@ public final class ImmutableFeatureTest {
         assertThat(featureWithChangedProperty).isNotSameAs(underTest);
         assertThat(featureWithChangedProperty.getProperty(pointer)).contains(value);
     }
-
 
     @Test
     public void tryToRemoveNonExistingProperty() {
@@ -203,7 +199,6 @@ public final class ImmutableFeatureTest {
         assertThat(afterRemoval).isSameAs(underTest);
     }
 
-
     @Test
     public void tryToRemovePropertyFromFeatureWithEmptyProperties() {
         final Feature underTest = ImmutableFeature.of(KNOWN_FEATURE_ID, ThingsModelFactory.emptyFeatureProperties());
@@ -213,11 +208,9 @@ public final class ImmutableFeatureTest {
         assertThat(afterRemoval).isSameAs(underTest);
     }
 
-
     @Test
     public void removeExistingProperty() {
-        final Feature underTest =
-                ImmutableFeature.of(KNOWN_FEATURE_ID, TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES);
+        final Feature underTest = ImmutableFeature.of(KNOWN_FEATURE_ID, FLUX_CAPACITOR_PROPERTIES);
         final JsonPointer pointer = JsonFactory.newPointer("target_year_1");
         final Feature afterRemoval = underTest.removeProperty(pointer);
 
@@ -225,41 +218,82 @@ public final class ImmutableFeatureTest {
         assertThat(afterRemoval.getProperty(pointer)).isEmpty();
     }
 
-
     @Test
     public void jsonSerializationWorksAsExpected() {
-        final Feature underTest =
-                ImmutableFeature.of(KNOWN_FEATURE_ID, TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES);
+        final Feature underTest = ImmutableFeature.of(KNOWN_FEATURE_ID, FLUX_CAPACITOR_DEFINITION,
+                FLUX_CAPACITOR_PROPERTIES);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
         assertThat(actualJson).isEqualTo(KNOWN_JSON_OBJECT);
     }
 
-
     @Test
     public void toStringContainsExpectedKeywords() {
-        final Feature underTest =
-                ImmutableFeature.of(KNOWN_FEATURE_ID, TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES);
+        final Feature underTest = ImmutableFeature.of(KNOWN_FEATURE_ID, FLUX_CAPACITOR_PROPERTIES);
 
-        assertThat(underTest.toString()).contains("featureId").contains("properties");
+        assertThat(underTest.toString()).contains("featureId").contains("properties").contains("definition");
     }
-
 
     @Test
     public void ensureFeatureNewBuilderWorks() {
-        final Feature feature = Feature.newBuilder() //
-                .properties(TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES) //
-                .withId(TestConstants.Feature.FLUX_CAPACITOR_ID) //
+        final Feature feature = Feature.newBuilder()
+                .properties(FLUX_CAPACITOR_PROPERTIES)
+                .definition(FLUX_CAPACITOR_DEFINITION)
+                .withId(TestConstants.Feature.FLUX_CAPACITOR_ID)
                 .build();
 
         assertThat(feature).isEqualTo(TestConstants.Feature.FLUX_CAPACITOR);
     }
 
-
     @Test
     public void ensureFeatureToBuilderWorks() {
         DittoJsonAssertions.assertThat(TestConstants.Feature.FLUX_CAPACITOR).isEqualTo(
                 TestConstants.Feature.FLUX_CAPACITOR.toBuilder().build());
+    }
+
+    @Test
+    public void getDefinitionFromFeatureWithoutDefinitionReturnsEmptyOptional() {
+        final ImmutableFeature underTest = ImmutableFeature.of(KNOWN_FEATURE_ID);
+
+        assertThat(underTest.getDefinition()).isEmpty();
+    }
+
+    @Test
+    public void getDefinitionReturnsExpected() {
+        final FeatureDefinition definition = FLUX_CAPACITOR_DEFINITION;
+        final ImmutableFeature underTest = ImmutableFeature.of(KNOWN_FEATURE_ID, definition, null);
+
+        assertThat(underTest.getDefinition()).contains(definition);
+    }
+
+    @Test
+    public void setDefinitionWorksAsExpected() {
+        final FeatureDefinition definition = FLUX_CAPACITOR_DEFINITION;
+        final ImmutableFeature expected = ImmutableFeature.of(KNOWN_FEATURE_ID, definition, null);
+        final ImmutableFeature underTest = ImmutableFeature.of(KNOWN_FEATURE_ID);
+
+        final Feature actual = underTest.setDefinition(definition);
+
+        assertThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void removeDefinitionFromFeatureWithoutDefinitionReturnsSameFeature() {
+        final ImmutableFeature expected = ImmutableFeature.of(KNOWN_FEATURE_ID);
+        final Feature actual = expected.removeDefinition();
+
+        assertThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void removeDefinitionWorksAsExpected() {
+        final ImmutableFeature expected = ImmutableFeature.of(KNOWN_FEATURE_ID);
+        final FeatureDefinition definition = FLUX_CAPACITOR_DEFINITION;
+        final ImmutableFeature underTest = ImmutableFeature.of(KNOWN_FEATURE_ID, definition, null);
+
+        final Feature actual = underTest.removeDefinition();
+
+        assertThat(actual).isEqualTo(expected);
     }
 
 }

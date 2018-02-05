@@ -1,6 +1,6 @@
 ---
-title: Modify properties
-keywords: examples, modify properties
+title: Modify Feature Properties
+keywords: examples, modify feature properties
 search: exclude
 permalink: protocol-examples-modifyproperties.html
 ---

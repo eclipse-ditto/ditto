@@ -11,9 +11,8 @@
  */
 package org.eclipse.ditto.model.things;
 
-import static java.util.Objects.requireNonNull;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -24,17 +23,16 @@ import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
-import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.ConditionChecker;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
@@ -51,8 +49,7 @@ final class ImmutableFeatures implements Features {
     private final Map<String, Feature> features;
 
     private ImmutableFeatures(final Map<String, Feature> features) {
-        requireNonNull(features, "The Features must not be null!");
-        this.features = Collections.unmodifiableMap(new HashMap<>(features));
+        this.features = Collections.unmodifiableMap(new HashMap<>(checkNotNull(features, "features")));
     }
 
     /**
@@ -60,7 +57,7 @@ final class ImmutableFeatures implements Features {
      *
      * @return a new empty {@code ImmutableFeatures} instance.
      */
-    public static Features empty() {
+    public static ImmutableFeatures empty() {
         return new ImmutableFeatures(new HashMap<>());
     }
 
@@ -71,8 +68,8 @@ final class ImmutableFeatures implements Features {
      * @return a new {@code ImmutableFeatures} object.
      * @throws NullPointerException if {@code features} is {@code null}.
      */
-    public static Features of(final Iterable<Feature> features) {
-        ConditionChecker.checkNotNull(features, "initial features");
+    public static ImmutableFeatures of(final Iterable<Feature> features) {
+        checkNotNull(features, "initial features");
 
         final Map<String, Feature> featureMap = new HashMap<>();
         features.forEach(feature -> featureMap.put(feature.getId(), feature));
@@ -88,22 +85,17 @@ final class ImmutableFeatures implements Features {
      * @return a new {@code ImmutableFeatures} object.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static Features of(final Feature feature, final Feature... additionalFeatures) {
-        ConditionChecker.checkNotNull(feature, "initial Feature");
-        ConditionChecker.checkNotNull(additionalFeatures, "additional initial Features");
+    public static ImmutableFeatures of(final Feature feature, final Feature... additionalFeatures) {
+        checkNotNull(feature, "initial Feature");
+        checkNotNull(additionalFeatures, "additional initial Features");
 
-        final Map<String, Feature> features = new HashMap<>();
+        final Map<String, Feature> features = new HashMap<>(1 + additionalFeatures.length);
         features.put(feature.getId(), feature);
-
-        if (0 < additionalFeatures.length) {
-            Arrays.stream(additionalFeatures).forEach(f -> features.put(f.getId(), f));
+        for (final Feature additionalFeature : additionalFeatures) {
+            features.put(additionalFeature.getId(), additionalFeature);
         }
 
         return new ImmutableFeatures(features);
-    }
-
-    private static void checkFeatureId(final String featureId) {
-        ConditionChecker.checkNotNull(featureId, "Feature ID");
     }
 
     @Override
@@ -113,30 +105,35 @@ final class ImmutableFeatures implements Features {
         return Optional.ofNullable(features.get(featureId));
     }
 
+    private static String checkFeatureId(final String featureId) {
+        return checkNotNull(featureId, "Feature ID");
+    }
+
     @Override
     public Features setFeature(final Feature feature) {
-        ConditionChecker.checkNotNull(feature, "Feature to be set");
+        checkNotNull(feature, "Feature to be set");
 
-        final Feature existingFeature = features.get(feature.getId());
-
-        Features result = this;
-
-        if (null != existingFeature) {
-            if (!existingFeature.equals(feature)) {
-                result = createNewFeaturesWithNewFeature(feature);
-            }
-        } else {
-            result = createNewFeaturesWithNewFeature(feature);
+        final Feature existingFeature = getFeatureOrNull(feature.getId());
+        if (!Objects.equals(existingFeature, feature)) {
+            return createNewFeaturesWithNewFeature(feature);
         }
+        return this;
+    }
 
-        return result;
+    @Nullable
+    private Feature getFeatureOrNull(final String featureId) {
+        return features.get(checkFeatureId(featureId));
+    }
+
+    private Features createNewFeaturesWithNewFeature(final Feature newFeature) {
+        final Map<String, Feature> featuresCopy = copyFeatures();
+        featuresCopy.put(newFeature.getId(), newFeature);
+        return new ImmutableFeatures(featuresCopy);
     }
 
     @Override
     public Features removeFeature(final String featureId) {
-        checkFeatureId(featureId);
-
-        if (!features.containsKey(featureId)) {
+        if (!features.containsKey(checkFeatureId(featureId))) {
             return this;
         }
 
@@ -146,96 +143,75 @@ final class ImmutableFeatures implements Features {
         return new ImmutableFeatures(featuresCopy);
     }
 
+    private Map<String, Feature> copyFeatures() {
+        return new HashMap<>(features);
+    }
+
+    @Override
+    public Features setDefinition(final String featureId, final FeatureDefinition definition) {
+        checkNotNull(definition, "definition to be set");
+
+        Feature feature = getFeatureOrNull(featureId);
+        if (null != feature) {
+            feature = feature.setDefinition(definition);
+        } else {
+            feature = ThingsModelFactory.newFeature(featureId, definition);
+        }
+        return setFeature(feature);
+    }
+
+    @Override
+    public Features removeDefinition(final String featureId) {
+        final Feature feature = getFeatureOrNull(featureId);
+        if (null != feature) {
+            return setFeature(feature.removeDefinition());
+        }
+        return this;
+    }
+
     @Override
     public Features setProperties(final String featureId, final FeatureProperties properties) {
-        checkFeatureId(featureId);
-        ConditionChecker.checkNotNull(properties, "properties to be set");
+        checkNotNull(properties, "properties to be set");
 
-        Features result = this;
-
-        final Feature feature = features.get(featureId);
+        Feature feature = getFeatureOrNull(featureId);
         if (null != feature) {
-            final Optional<FeatureProperties> existingPropertiesOptional = feature.getProperties();
-            if (existingPropertiesOptional.isPresent()) {
-                final FeatureProperties existingProperties = existingPropertiesOptional.get();
-                if (!existingProperties.equals(properties)) {
-                    result = createNewFeaturesWithNewFeature(feature.setProperties(properties));
-                }
-            } else {
-                result = createNewFeaturesWithNewFeature(feature.setProperties(properties));
-            }
+            feature = feature.setProperties(properties);
         } else {
-            result = createNewFeaturesWithNewFeature(ThingsModelFactory.newFeature(featureId, properties));
+            feature = ThingsModelFactory.newFeature(featureId, properties);
         }
-
-        return result;
+        return setFeature(feature);
     }
 
     @Override
     public Features removeProperties(final String featureId) {
-        checkFeatureId(featureId);
-
-        Features result = this;
-
-        final Feature feature = features.get(featureId);
+        final Feature feature = getFeatureOrNull(featureId);
         if (null != feature) {
-            final Feature featureWithoutProperties = feature.removeProperties();
-            if (!featureWithoutProperties.equals(feature)) {
-                final Map<String, Feature> featuresCopy = copyFeatures();
-                featuresCopy.put(featureId, feature.removeProperties());
-                result = new ImmutableFeatures(featuresCopy);
-            }
+            return setFeature(feature.removeProperties());
         }
 
-        return result;
+        return this;
     }
 
     @Override
     public Features setProperty(final String featureId, final JsonPointer propertyPath, final JsonValue propertyValue) {
-        checkFeatureId(featureId);
-        ConditionChecker.checkNotNull(propertyPath, "JSON pointer to the property to be set");
-        ConditionChecker.checkNotNull(propertyValue, "value of the property to be set");
-
-        Features result = this;
-
-        final Feature feature = features.get(featureId);
+        Feature feature = getFeatureOrNull(featureId);
         if (null != feature) {
-            final Optional<JsonValue> propertyValueOptional = feature.getProperty(propertyPath);
-            if (propertyValueOptional.isPresent()) {
-                final JsonValue existingPropertyValue = propertyValueOptional.get();
-                if (!existingPropertyValue.equals(propertyValue)) {
-                    result = createNewFeaturesWithNewFeature(feature.setProperty(propertyPath, propertyValue));
-                }
-            } else {
-                result = createNewFeaturesWithNewFeature(feature.setProperty(propertyPath, propertyValue));
-            }
+            feature = feature.setProperty(propertyPath, propertyValue);
         } else {
-            final Feature newFeature = ThingsModelFactory.newFeature(featureId,
-                    ThingsModelFactory.newFeaturePropertiesBuilder() //
-                            .set(propertyPath, propertyValue) //
-                            .build());
-            result = createNewFeaturesWithNewFeature(newFeature);
+            feature = ThingsModelFactory.newFeature(featureId, ThingsModelFactory.newFeaturePropertiesBuilder()
+                    .set(propertyPath, propertyValue)
+                    .build());
         }
-
-        return result;
+        return setFeature(feature);
     }
 
     @Override
     public Features removeProperty(final String featureId, final JsonPointer propertyPath) {
-        checkFeatureId(featureId);
-        ConditionChecker.checkNotNull(propertyPath, "JSON pointer to the property to be removed");
-
-        Features result = this;
-
-        final Feature feature = features.get(featureId);
+        final Feature feature = getFeatureOrNull(featureId);
         if (null != feature) {
-            final Optional<JsonValue> propertyOptional = feature.getProperty(propertyPath);
-            if (propertyOptional.isPresent()) {
-                result = createNewFeaturesWithNewFeature(feature.removeProperty(propertyPath));
-            }
+            return setFeature(feature.removeProperty(propertyPath));
         }
-
-        return result;
+        return this;
     }
 
     @Override
@@ -265,17 +241,9 @@ final class ImmutableFeatures implements Features {
 
         jsonObjectBuilder.set(JSON_SCHEMA_VERSION, schemaVersion.toInt(), predicate);
 
-        features.values()
-                .forEach(feature -> {
-                    final JsonKey key = JsonFactory.newKey(feature.getId());
-                    final JsonValue value = feature.toJson(schemaVersion, thePredicate);
-                    final JsonFieldDefinition<JsonObject> fieldDefinition =
-                            JsonFactory.newJsonObjectFieldDefinition(key, FieldType.REGULAR, JsonSchemaVersion.V_1,
-                                    JsonSchemaVersion.V_2);
-                    final JsonField field = JsonFactory.newField(key, value, fieldDefinition);
-
-                    jsonObjectBuilder.set(field, predicate);
-                });
+        features.forEach((featureId, feature) -> jsonObjectBuilder.set(
+                JsonFactory.newJsonObjectFieldDefinition(featureId, FieldType.REGULAR,
+                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2), feature.toJson(schemaVersion, thePredicate)));
 
         return jsonObjectBuilder.build();
     }
@@ -300,16 +268,6 @@ final class ImmutableFeatures implements Features {
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" + "features=" + features.values() + "]";
-    }
-
-    private Map<String, Feature> copyFeatures() {
-        return new HashMap<>(features);
-    }
-
-    private Features createNewFeaturesWithNewFeature(final Feature newFeature) {
-        final Map<String, Feature> featuresCopy = copyFeatures();
-        featuresCopy.put(newFeature.getId(), newFeature);
-        return new ImmutableFeatures(featuresCopy);
     }
 
 }

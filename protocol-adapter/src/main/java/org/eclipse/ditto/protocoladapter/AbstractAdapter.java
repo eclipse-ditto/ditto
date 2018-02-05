@@ -35,6 +35,7 @@ import org.eclipse.ditto.model.things.AccessControlListModelFactory;
 import org.eclipse.ditto.model.things.AclEntry;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Feature;
+import org.eclipse.ditto.model.things.FeatureDefinition;
 import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Thing;
@@ -155,6 +156,14 @@ abstract class AbstractAdapter<T extends Jsonifiable> implements Adapter<T> {
                 .orElseThrow(() -> JsonParseException.newBuilder().build());
     }
 
+    protected static FeatureDefinition featureDefinitionFrom(final Adaptable adaptable) {
+        return adaptable.getPayload()
+                .getValue()
+                .map(JsonValue::asArray)
+                .map(ThingsModelFactory::newFeatureDefinition)
+                .orElseThrow(() -> JsonParseException.newBuilder().build());
+    }
+
     protected static FeatureProperties featurePropertiesFrom(final Adaptable adaptable) {
         return adaptable.getPayload()
                 .getValue()
@@ -264,6 +273,7 @@ abstract class AbstractAdapter<T extends Jsonifiable> implements Adapter<T> {
             PATTERNS.put("attribute", Pattern.compile("^/attributes/.*$"));
             PATTERNS.put("features", Pattern.compile("^/features$"));
             PATTERNS.put("feature", Pattern.compile("^/features/[^/]*$"));
+            PATTERNS.put("featureDefinition", Pattern.compile("^/features/[^/]*/definition$"));
             PATTERNS.put("featureProperties", Pattern.compile("^/features/[^/]*/properties$"));
             PATTERNS.put("featureProperty", Pattern.compile("^/features/[^/]*/properties/.*$"));
         }

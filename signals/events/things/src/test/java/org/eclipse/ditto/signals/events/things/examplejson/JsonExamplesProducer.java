@@ -30,6 +30,7 @@ import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.AclEntry;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Feature;
+import org.eclipse.ditto.model.things.FeatureDefinition;
 import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Permission;
@@ -48,6 +49,9 @@ import org.eclipse.ditto.signals.events.things.AttributesCreated;
 import org.eclipse.ditto.signals.events.things.AttributesDeleted;
 import org.eclipse.ditto.signals.events.things.AttributesModified;
 import org.eclipse.ditto.signals.events.things.FeatureCreated;
+import org.eclipse.ditto.signals.events.things.FeatureDefinitionCreated;
+import org.eclipse.ditto.signals.events.things.FeatureDefinitionDeleted;
+import org.eclipse.ditto.signals.events.things.FeatureDefinitionModified;
 import org.eclipse.ditto.signals.events.things.FeatureDeleted;
 import org.eclipse.ditto.signals.events.things.FeatureModified;
 import org.eclipse.ditto.signals.events.things.FeaturePropertiesCreated;
@@ -98,6 +102,8 @@ public class JsonExamplesProducer {
     private static final String PROPERTY_X = "x";
     private static final JsonPointer PROPERTY_POINTER = JsonFactory.newPointer(PROPERTY_X);
     private static final JsonValue PROPERTY_VALUE = JsonFactory.newValue(42);
+    private static final FeatureDefinition FEATURE_DEFINITION =
+            FeatureDefinition.fromIdentifier("org.eclipse.ditto:fluxcapacitor:1.0.0");
     private static final FeatureProperties FEATURE_PROPERTIES = ThingsModelFactory.newFeaturePropertiesBuilder()
             .set("x", 3.141)
             .set("y", 2.718)
@@ -218,6 +224,14 @@ public class JsonExamplesProducer {
                 DITTO_HEADERS);
         writeJson(eventsDir.resolve(Paths.get("featuresModified.json")), featuresModified);
 
+        final FeatureDefinitionCreated featureDefinitionCreated = FeatureDefinitionCreated.of(THING_ID, FEATURE_ID,
+                FEATURE_DEFINITION, REVISION_NUMBER, DITTO_HEADERS);
+        writeJson(eventsDir.resolve(Paths.get("featureDefinitionCreated.json")), featureDefinitionCreated);
+
+        final FeatureDefinitionModified featureDefinitionModified = FeatureDefinitionModified.of(THING_ID, FEATURE_ID,
+                FEATURE_DEFINITION, REVISION_NUMBER, DITTO_HEADERS);
+        writeJson(eventsDir.resolve(Paths.get("featureDefinitionModified.json")), featureDefinitionModified);
+
         final FeaturePropertiesCreated featurePropertiesCreated = FeaturePropertiesCreated.of(THING_ID, FEATURE_ID,
                 FEATURE_PROPERTIES, REVISION_NUMBER, DITTO_HEADERS);
         writeJson(eventsDir.resolve(Paths.get("featurePropertiesCreated.json")), featurePropertiesCreated);
@@ -233,6 +247,10 @@ public class JsonExamplesProducer {
         final FeaturePropertyModified featurePropertyModified = FeaturePropertyModified.of(THING_ID, FEATURE_ID,
                 PROPERTY_POINTER, PROPERTY_VALUE, REVISION_NUMBER, DITTO_HEADERS);
         writeJson(eventsDir.resolve(Paths.get("featurePropertyModified.json")), featurePropertyModified);
+
+        final FeatureDefinitionDeleted featureDefinitionDeleted = FeatureDefinitionDeleted.of(THING_ID, FEATURE_ID,
+                REVISION_NUMBER, DITTO_HEADERS);
+        writeJson(eventsDir.resolve(Paths.get("featureDefinitionDeleted.json")), featureDefinitionDeleted);
 
         final FeaturePropertiesDeleted featurePropertiesDeleted = FeaturePropertiesDeleted.of(THING_ID, FEATURE_ID,
                 REVISION_NUMBER, DITTO_HEADERS);

@@ -1,6 +1,6 @@
 ---
-title: Create properties
-keywords: examples, create properties
+title: Create Feature Properties
+keywords: examples, create feature properties
 search: exclude
 permalink: protocol-examples-createproperties.html
 ---

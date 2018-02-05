@@ -3,9 +3,7 @@
 ```json
 {
   "topic": "unknown/unknown/things/twin/errors",
-  "headers": {
-    
-  },
+  "headers": {},
   "path": "/",
   "value": {
     "status": 429,
