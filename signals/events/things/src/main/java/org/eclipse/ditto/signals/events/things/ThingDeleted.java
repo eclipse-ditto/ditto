@@ -14,6 +14,7 @@ package org.eclipse.ditto.signals.events.things;
 import java.time.Instant;
 import java.util.function.Predicate;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFactory;
@@ -41,7 +42,7 @@ public final class ThingDeleted extends AbstractThingEvent<ThingDeleted> impleme
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    private ThingDeleted(final String thingId, final long revision, final Instant timestamp,
+    private ThingDeleted(final String thingId, final long revision, @Nullable final Instant timestamp,
             final DittoHeaders dittoHeaders) {
         super(TYPE, thingId, revision, timestamp, dittoHeaders);
     }
@@ -69,7 +70,7 @@ public final class ThingDeleted extends AbstractThingEvent<ThingDeleted> impleme
      * @return the ThingDeleted created.
      * @throws NullPointerException if {@code thing} is {@code null}.
      */
-    public static ThingDeleted of(final String thingId, final long revision, final Instant timestamp,
+    public static ThingDeleted of(final String thingId, final long revision, @Nullable final Instant timestamp,
             final DittoHeaders dittoHeaders) {
         return new ThingDeleted(thingId, revision, timestamp, dittoHeaders);
     }
@@ -113,12 +114,12 @@ public final class ThingDeleted extends AbstractThingEvent<ThingDeleted> impleme
 
     @Override
     public ThingDeleted setRevision(final long revision) {
-        return of(getThingId(), revision, getDittoHeaders());
+        return of(getThingId(), revision, getTimestamp().orElse(null), getDittoHeaders());
     }
 
     @Override
     public ThingDeleted setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getThingId(), getRevision(), dittoHeaders);
+        return of(getThingId(), getRevision(), getTimestamp().orElse(null), dittoHeaders);
     }
 
     @Override
@@ -129,7 +130,7 @@ public final class ThingDeleted extends AbstractThingEvent<ThingDeleted> impleme
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
+    protected boolean canEqual(@Nullable final Object other) {
         return (other instanceof ThingDeleted);
     }
 

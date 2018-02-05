@@ -40,6 +40,7 @@ import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Permission;
+import org.eclipse.ditto.model.things.PolicyIdMissingException;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.model.things.ThingLifecycle;
@@ -524,6 +525,10 @@ public class JsonExamplesProducer {
                 .dittoHeaders(DITTO_HEADERS)
                 .build();
         writeJson(exceptionsDir.resolve(Paths.get("thingIdInvalidException.json")), thingIdInvalidException);
+
+        final PolicyIdMissingException policyIdMissingException = PolicyIdMissingException
+                .fromThingId(THING_ID, DITTO_HEADERS);
+        writeJson(exceptionsDir.resolve(Paths.get("policyIdMissingException.json")), policyIdMissingException);
 
         final AttributesNotAccessibleException attributesNotAccessibleException =
                 AttributesNotAccessibleException.newBuilder(THING_ID)

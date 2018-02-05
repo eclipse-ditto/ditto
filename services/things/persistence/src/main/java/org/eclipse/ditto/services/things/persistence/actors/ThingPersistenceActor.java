@@ -272,12 +272,12 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                 })
 
                 // # Thing Deletion
-                .match(ThingDeleted.class, tc -> {
+                .match(ThingDeleted.class, td -> {
                     if (thing != null) {
                         thing = thing.toBuilder()
                                 .setLifecycle(ThingLifecycle.DELETED)
                                 .setRevision(getRevisionNumber())
-                                .setModified(tc.getTimestamp().orElse(null))
+                                .setModified(td.getTimestamp().orElse(null))
                                 .build();
                     } else {
                         log.warning("Thing was null when 'ThingDeleted' event should have been applied on recovery.");
@@ -742,10 +742,22 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
     }
 
     private <A extends ThingModifiedEvent> void persistAndApplyEvent(final A event, final Consumer<A> handler) {
-        if (event.getDittoHeaders().isDryRun()) {
-            handler.accept(event);
+
+        final A modifiedEvent;
+        if (thing != null) {
+            // set version of event to the version of the thing
+            final DittoHeaders newHeaders = event.getDittoHeaders().toBuilder()
+                    .schemaVersion(thing.getImplementedSchemaVersion())
+                    .build();
+            modifiedEvent = (A) event.setDittoHeaders(newHeaders);
         } else {
-            persistEvent(event, persistedEvent -> {
+            modifiedEvent = event;
+        }
+
+        if (modifiedEvent.getDittoHeaders().isDryRun()) {
+            handler.accept(modifiedEvent);
+        } else {
+            persistEvent(modifiedEvent, persistedEvent -> {
                 // after the event was persisted, apply the event on the current actor state
                 applyEvent(persistedEvent);
 
@@ -1273,12 +1285,8 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         private void handleModifyExistingV2WithV1Command(final ModifyThing command) {
             // remove any acl information from command and add the current policy Id
             final Thing thingWithoutAcl = removeACL(copyPolicyId(thing, command.getThing()));
-            // set version of ThingModified event to the version of the thing
-            final DittoHeaders newHeaders = command.getDittoHeaders().toBuilder()
-                    .schemaVersion(thing.getImplementedSchemaVersion())
-                    .build();
             final ThingModified thingModified =
-                    ThingModified.of(thingWithoutAcl, nextRevision(), eventTimestamp(), newHeaders);
+                    ThingModified.of(thingWithoutAcl, nextRevision(), eventTimestamp(), command.getDittoHeaders());
             persistAndApplyEvent(thingModified,
                     event -> notifySender(ModifyThingResponse.modified(thingId, command.getDittoHeaders())));
         }
@@ -1308,7 +1316,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
          * via API v2 and targets a Thing with API version V2.
          */
         private void handleModifyExistingV2WithV2Command(final ModifyThing command) {
-            // ensure the Thing contains a policy
+            // ensure the Thing contains a policy ID
             final Thing thingWithPolicyId =
                     containsPolicyId(command) ? command.getThing() : copyPolicyId(thing, command.getThing());
             doApply(ModifyThing.of(command.getThingId(),

@@ -14,6 +14,7 @@ package org.eclipse.ditto.model.things;
 import java.net.URI;
 import java.text.MessageFormat;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -25,8 +26,8 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
 /**
- * This exception indicates that a {@link org.eclipse.ditto.model.things.Thing}'s {@link org.eclipse.ditto.model.base.json.JsonSchemaVersion} requires a
- * policyId.
+ * This exception indicates that a {@link org.eclipse.ditto.model.things.Thing}'s
+ * {@link org.eclipse.ditto.model.base.json.JsonSchemaVersion} requires a policyId.
  */
 @Immutable
 public final class PolicyIdMissingException extends DittoRuntimeException implements ThingException {
@@ -34,7 +35,7 @@ public final class PolicyIdMissingException extends DittoRuntimeException implem
     /**
      * Error code of this exception.
      */
-    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "policy.missing";
+    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "policy.id.missing";
 
 
     private static final String MESSAGE_TEMPLATE =
@@ -48,8 +49,8 @@ public final class PolicyIdMissingException extends DittoRuntimeException implem
 
     private static final long serialVersionUID = -2640894758584381867L;
 
-    private PolicyIdMissingException(final DittoHeaders dittoHeaders, final String message, final String description,
-            final Throwable cause, final URI href) {
+    private PolicyIdMissingException(final DittoHeaders dittoHeaders, @Nullable final String message,
+            @Nullable final String description, @Nullable final Throwable cause, @Nullable final URI href) {
         super(ERROR_CODE, HttpStatusCode.BAD_REQUEST, dittoHeaders, message, description, cause, href);
     }
 
@@ -61,23 +62,23 @@ public final class PolicyIdMissingException extends DittoRuntimeException implem
      * @return the new PolicyIdMissingException.
      */
     public static PolicyIdMissingException fromMessage(final String message, final DittoHeaders dittoHeaders) {
-        return new Builder() //
-                .dittoHeaders(dittoHeaders) //
-                .message(message) //
+        return new Builder()
+                .dittoHeaders(dittoHeaders)
+                .message(message)
                 .build();
     }
 
     /**
      * Constructs a new {@code PolicyIdMissingException} object with the given exception message.
      *
-     * @param thingId the identifier of the Thing.
+     * @param thingId the ID of the Thing.
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new PolicyIdMissingException.
      */
     public static PolicyIdMissingException fromThingId(final String thingId, final DittoHeaders dittoHeaders) {
         final JsonSchemaVersion schemaVersion = dittoHeaders.getSchemaVersion().orElse(JsonSchemaVersion.LATEST);
-        return new Builder(thingId, schemaVersion) //
-                .dittoHeaders(dittoHeaders) //
+        return new Builder(thingId, schemaVersion)
+                .dittoHeaders(dittoHeaders)
                 .build();
     }
 
@@ -85,10 +86,12 @@ public final class PolicyIdMissingException extends DittoRuntimeException implem
      * Constructs a new {@code PolicyIdMissingException} object with the exception message extracted from the given JSON
      * object.
      *
-     * @param jsonObject the JSON to read the {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException.JsonFields#MESSAGE} field from.
+     * @param jsonObject the JSON to read the
+     * {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException.JsonFields#MESSAGE} field from.
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new PolicyIdMissingException.
-     * @throws org.eclipse.ditto.json.JsonMissingFieldException if the {@code jsonObject} does not have the {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException.JsonFields#MESSAGE} field.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if the {@code jsonObject} does not have the
+     * {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException.JsonFields#MESSAGE} field.
      */
     public static PolicyIdMissingException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return fromMessage(readMessage(jsonObject), dittoHeaders);
@@ -115,8 +118,8 @@ public final class PolicyIdMissingException extends DittoRuntimeException implem
         }
 
         @Override
-        protected PolicyIdMissingException doBuild(final DittoHeaders dittoHeaders, final String message,
-                final String description, final Throwable cause, final URI href) {
+        protected PolicyIdMissingException doBuild(final DittoHeaders dittoHeaders, @Nullable final String message,
+                @Nullable final String description, @Nullable final Throwable cause, @Nullable final URI href) {
             return new PolicyIdMissingException(dittoHeaders, message, description, cause, href);
         }
     }

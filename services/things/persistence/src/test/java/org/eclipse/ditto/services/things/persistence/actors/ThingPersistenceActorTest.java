@@ -1244,7 +1244,8 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                             JsonSchemaVersion.V_2,
                             this,
                             modifyThing -> ModifyThingResponse.modified(thingId, modifyThing.getDittoHeaders()));
-            assertPublishEvent(this, ThingModified.of(thingV2, 2L, headersUsed));
+            assertPublishEvent(this, ThingModified.of(thingV2, 2L,
+                    headersUsed.toBuilder().schemaVersion(JsonSchemaVersion.V_1).build()));
         }};
     }
 
