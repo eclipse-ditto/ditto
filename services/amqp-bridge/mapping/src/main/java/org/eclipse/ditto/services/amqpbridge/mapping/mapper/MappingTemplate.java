@@ -11,10 +11,12 @@
  */
 package org.eclipse.ditto.services.amqpbridge.mapping.mapper;
 
+import java.util.Optional;
+
 /**
  * TODO doc
  */
 public interface MappingTemplate {
 
-    String getMappingTemplate();
+    Optional<String> getMappingTemplate();
 }

@@ -12,25 +12,28 @@
 package org.eclipse.ditto.services.amqpbridge.mapping.mapper;
 
 import java.util.Objects;
+import java.util.Optional;
+
+import javax.annotation.Nullable;
 
 /**
  * TODO doc
  */
 public final class ImmutableMappingTemplate implements MappingTemplate {
 
-    private final String mappingTemplate;
+    @Nullable private final String mappingTemplate;
 
     /**
      *
      * @param mappingTemplate
      */
-    public ImmutableMappingTemplate(final String mappingTemplate) {
+    public ImmutableMappingTemplate(@Nullable final String mappingTemplate) {
         this.mappingTemplate = mappingTemplate;
     }
 
     @Override
-    public String getMappingTemplate() {
-        return mappingTemplate;
+    public Optional<String> getMappingTemplate() {
+        return Optional.ofNullable(mappingTemplate);
     }
 
     @Override
