@@ -95,10 +95,10 @@ public final class ImmutableThingFromCopyBuilderTest {
     @Test
     public void builderOfJsonObjectIsCorrectlyInitialisedV2WithPolicy() {
         underTestV2 = ImmutableThingFromCopyBuilder.of(
-                TestConstants.Thing.THING_V2_WITH_POLICY.toJson(JsonSchemaVersion.V_2, FieldType.regularOrSpecial()));
+                TestConstants.Thing.THING_V2.toJson(JsonSchemaVersion.V_2, FieldType.regularOrSpecial()));
         final Thing thing = underTestV2.build();
 
-        assertThat(thing).isEqualTo(TestConstants.Thing.THING_V2_WITH_POLICY);
+        assertThat(thing).isEqualTo(TestConstants.Thing.THING_V2);
     }
 
     @Test(expected = JsonParseException.class)
