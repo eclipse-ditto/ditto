@@ -110,9 +110,7 @@ public class CreateUnwoundBsonFieldVisitor implements FieldExpressionVisitor<Opt
     @Override
     public Optional<Bson> visitSimple(final String fieldName) {
         // simple expressions (e. g., thingId, policyId) play no role unwound.
-        return withOrWithoutPredicate(
-                predicate -> Optional.of(CreateBsonPredicateVisitor.apply(predicate, fieldName)),
-                Optional::empty);
+        return Optional.empty();
     }
 
     @Override

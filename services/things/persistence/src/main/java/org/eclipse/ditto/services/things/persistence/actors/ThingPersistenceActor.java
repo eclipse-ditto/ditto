@@ -47,6 +47,7 @@ import org.eclipse.ditto.model.things.FeatureDefinition;
 import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Permission;
+import org.eclipse.ditto.model.things.PolicyIdMissingException;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
 import org.eclipse.ditto.model.things.ThingLifecycle;
@@ -216,6 +217,9 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
      */
     public static final String SNAPSHOT_PLUGIN_ID = "akka-contrib-mongodb-persistence-things-snapshots";
 
+    private static final String UNHANDLED_MESSAGE_TEMPLATE =
+            "This Thing Actor did not handle the requested Thing with ID ''{0}''!";
+
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
     private final String thingId;
@@ -281,12 +285,12 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                 })
 
                 // # Thing Deletion
-                .match(ThingDeleted.class, tc -> {
+                .match(ThingDeleted.class, td -> {
                     if (thing != null) {
                         thing = thing.toBuilder()
                                 .setLifecycle(ThingLifecycle.DELETED)
                                 .setRevision(getRevisionNumber())
-                                .setModified(tc.getTimestamp().orElse(null))
+                                .setModified(td.getTimestamp().orElse(null))
                                 .build();
                     } else {
                         log.warning("Thing was null when 'ThingDeleted' event should have been applied on recovery.");
@@ -603,10 +607,10 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     @Override
     public Receive createReceive() {
-      /*
-       * First no Thing for the ID exists at all. Thus the only command this Actor reacts to is CreateThing.
-       * This behaviour changes as soon as a Thing was created.
-       */
+        /*
+         * First no Thing for the ID exists at all. Thus the only command this Actor reacts to is CreateThing.
+         * This behaviour changes as soon as a Thing was created.
+         */
         return new StrategyAwareReceiveBuilder()
                 .match(new CreateThingStrategy())
                 .matchAny(new MatchAnyDuringInitializeStrategy())
@@ -759,10 +763,10 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         getContext().become(receive, true);
         getContext().getParent().tell(new ThingSupervisorActor.ManualReset(), getSelf());
 
-      /* check in the next X minutes and therefore
-       * - stay in-memory for a short amount of minutes after deletion
-       * - get a Snapshot when removed from memory
-       */
+        /* check in the next X minutes and therefore
+         * - stay in-memory for a short amount of minutes after deletion
+         * - get a Snapshot when removed from memory
+         */
         scheduleCheckForThingActivity(activityCheckDeletedInterval.getSeconds());
         thingSnapshotter.stopMaintenanceSnapshots();
     }
@@ -781,10 +785,22 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
     }
 
     private <A extends ThingModifiedEvent> void persistAndApplyEvent(final A event, final Consumer<A> handler) {
-        if (event.getDittoHeaders().isDryRun()) {
-            handler.accept(event);
+
+        final A modifiedEvent;
+        if (thing != null) {
+            // set version of event to the version of the thing
+            final DittoHeaders newHeaders = event.getDittoHeaders().toBuilder()
+                    .schemaVersion(thing.getImplementedSchemaVersion())
+                    .build();
+            modifiedEvent = (A) event.setDittoHeaders(newHeaders);
         } else {
-            persistEvent(event, persistedEvent -> {
+            modifiedEvent = event;
+        }
+
+        if (modifiedEvent.getDittoHeaders().isDryRun()) {
+            handler.accept(modifiedEvent);
+        } else {
+            persistEvent(modifiedEvent, persistedEvent -> {
                 // after the event was persisted, apply the event on the current actor state
                 applyEvent(persistedEvent);
 
@@ -1162,8 +1178,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         @Override
         public FI.UnitApply<CreateThing> getUnhandledFunction() {
             return command -> {
-                final String msgTemplate = "This Thing Actor did not handle the requested Thing with ID <{0}>!";
-                throw new IllegalArgumentException(MessageFormat.format(msgTemplate, command.getId()));
+                throw new IllegalArgumentException(MessageFormat.format(UNHANDLED_MESSAGE_TEMPLATE, command.getId()));
             };
         }
 
@@ -1197,8 +1212,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         @Override
         public FI.UnitApply<CreateThing> getUnhandledFunction() {
             return command -> {
-                final String msgTemplate = "This Thing Actor did not handle the requested Thing with ID <{0}>!";
-                throw new IllegalArgumentException(MessageFormat.format(msgTemplate, command.getId()));
+                throw new IllegalArgumentException(MessageFormat.format(UNHANDLED_MESSAGE_TEMPLATE, command.getId()));
             };
         }
 
@@ -1221,10 +1235,10 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         public FI.UnitApply<ModifyThing> getApplyFunction() {
             return command -> {
                 if (JsonSchemaVersion.V_1.equals(command.getImplementedSchemaVersion())) {
-                    handleModifyExistingV1(command);
+                    handleModifyExistingWithV1Command(command);
                 } else {
                     // from V2 upwards, use this logic:
-                    handleModifyExistingV2(command);
+                    handleModifyExistingWithV2Command(command);
                 }
             };
         }
@@ -1238,7 +1252,15 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                     event -> notifySender(ModifyThingResponse.modified(thingId, dittoHeaders)));
         }
 
-        private void handleModifyExistingV1(final ModifyThing command) {
+        private void handleModifyExistingWithV1Command(final ModifyThing command) {
+            if (JsonSchemaVersion.V_1.equals(thing.getImplementedSchemaVersion())) {
+                handleModifyExistingV1WithV1Command(command);
+            } else {
+                handleModifyExistingV2WithV1Command(command);
+            }
+        }
+
+        private void handleModifyExistingV1WithV1Command(final ModifyThing command) {
             // if the ACL was modified together with the Thing, an additional check is necessary
             final boolean isCommandAclEmpty = command.getThing()
                     .getAccessControlList()
@@ -1260,7 +1282,9 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                     persistAndApplyEvent(thingModified,
                             event -> notifySender(ModifyThingResponse.modified(thingId, dittoHeaders)));
                 } else {
-                    // Thing was created in >= V2 and thus has no ACL
+                    log.error("Thing <{}> has no ACL entries even though it is of schema version 1. " +
+                            "Persisting the event nevertheless to not block the user because of an " +
+                            "unknown internal state.", thingId);
                     final ThingModified thingModified =
                             ThingModified.of(command.getThing(), nextRevision(), eventTimestamp(), dittoHeaders);
                     persistAndApplyEvent(thingModified,
@@ -1269,16 +1293,74 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
             }
         }
 
-        private void handleModifyExistingV2(final ModifyThing command) {
-            final Thing commandThing = command.getThing();
-            final DittoHeaders dittoHeaders = command.getDittoHeaders();
+        private void handleModifyExistingV2WithV1Command(final ModifyThing command) {
+            // remove any acl information from command and add the current policy Id
+            final Thing thingWithoutAcl = removeACL(copyPolicyId(thing, command.getThing()));
+            final ThingModified thingModified =
+                    ThingModified.of(thingWithoutAcl, nextRevision(), eventTimestamp(), command.getDittoHeaders());
+            persistAndApplyEvent(thingModified,
+                    event -> notifySender(ModifyThingResponse.modified(thingId, command.getDittoHeaders())));
+        }
 
-            if (commandThing.getAccessControlList().isPresent()) {
-                notifySender(getSender(),
-                        AclNotAllowedException.newBuilder(thingId).dittoHeaders(dittoHeaders).build());
+        private void handleModifyExistingWithV2Command(final ModifyThing command) {
+            if (JsonSchemaVersion.V_1.equals(thing.getImplementedSchemaVersion())) {
+                handleModifyExistingV1WithV2Command(command);
             } else {
-                doApply(command);
+                handleModifyExistingV2WithV2Command(command);
             }
+        }
+
+        /**
+         * Handles a {@link org.eclipse.ditto.signals.commands.things.modify.ModifyThing} command that was sent
+         * via API v2 and targets a Thing with API version V1.
+         */
+        private void handleModifyExistingV1WithV2Command(final ModifyThing command) {
+            if (containsPolicy(command)) {
+                doApply(command);
+            } else {
+                notifySender(getSender(), PolicyIdMissingException.fromThingId(thingId, command.getDittoHeaders()));
+            }
+        }
+
+        /**
+         * Handles a {@link org.eclipse.ditto.signals.commands.things.modify.ModifyThing} command that was sent
+         * via API v2 and targets a Thing with API version V2.
+         */
+        private void handleModifyExistingV2WithV2Command(final ModifyThing command) {
+            // ensure the Thing contains a policy ID
+            final Thing thingWithPolicyId =
+                    containsPolicyId(command) ? command.getThing() : copyPolicyId(thing, command.getThing());
+            doApply(ModifyThing.of(command.getThingId(),
+                    thingWithPolicyId,
+                    null,
+                    command.getDittoHeaders()));
+        }
+
+        private boolean containsPolicy(final ModifyThing command) {
+            return containsInitialPolicy(command) || containsPolicyId(command);
+        }
+
+        private boolean containsInitialPolicy(final ModifyThing command) {
+            return command.getInitialPolicy().isPresent();
+        }
+
+        private boolean containsPolicyId(final ModifyThing command) {
+            return command.getThing().getPolicyId().isPresent();
+        }
+
+        private Thing copyPolicyId(final Thing from, final Thing to) {
+            return to.toBuilder()
+                    .setPolicyId(from.getPolicyId().orElseGet(() -> {
+                        log.error("Thing <{}> is schema version 2 and should therefore contain a policyId", thingId);
+                        return null;
+                    }))
+                    .build();
+        }
+
+        private Thing removeACL(final Thing thing) {
+            return thing.toBuilder()
+                    .removeAllPermissions()
+                    .build();
         }
 
         @Override
@@ -2339,8 +2421,8 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                     final JsonPointer propertyJsonPointer = command.getPropertyPointer();
                     final Feature feature = featureOptional.get();
                     final boolean containsProperty = feature.getProperties()
-                             .filter(featureProperties -> featureProperties.contains(propertyJsonPointer))
-                             .isPresent();
+                            .filter(featureProperties -> featureProperties.contains(propertyJsonPointer))
+                            .isPresent();
 
                     if (containsProperty) {
                         final FeaturePropertyDeleted propertyDeleted = FeaturePropertyDeleted.of(command.getThingId(),
@@ -2573,9 +2655,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
      */
     @NotThreadSafe
     abstract class AbstractThingCommandStrategy<T extends Command> extends AbstractReceiveStrategy<T> {
-
-        private static final String UNHANDLED_MESSAGE_TEMPLATE =
-                "This Thing Actor did not handle the requested Thing with ID <{0}>!";
 
         /**
          * Constructs a new {@code AbstractThingCommandStrategy} object.

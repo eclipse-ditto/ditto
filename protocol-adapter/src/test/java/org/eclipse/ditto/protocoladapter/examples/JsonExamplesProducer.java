@@ -20,6 +20,7 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Set;
 
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
@@ -72,6 +73,7 @@ import org.eclipse.ditto.model.things.FeatureDefinitionIdentifierInvalidExceptio
 import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Permission;
+import org.eclipse.ditto.model.things.PolicyIdMissingException;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.model.things.ThingLifecycle;
@@ -287,7 +289,7 @@ import org.eclipse.ditto.signals.events.things.ThingCreated;
 import org.eclipse.ditto.signals.events.things.ThingDeleted;
 import org.eclipse.ditto.signals.events.things.ThingModified;
 
-class CommandAndEventJsonExamplesProducer {
+class JsonExamplesProducer {
 
     public static final String FEATURE_ID = "accelerometer";
     public static final String NAMESPACE = "com.acme";
@@ -389,10 +391,10 @@ class CommandAndEventJsonExamplesProducer {
     private static final DittoHeaders DITTO_HEADERS = DittoHeaders.empty();
 
     public static void main(final String... args) throws IOException {
-        run(args, new CommandAndEventJsonExamplesProducer());
+        run(args, new JsonExamplesProducer());
     }
 
-    protected static void run(final String[] args, final CommandAndEventJsonExamplesProducer producer) throws
+    protected static void run(final String[] args, final JsonExamplesProducer producer) throws
             IOException {
         if (args.length != 1) {
             System.err.println("Exactly 1 argument required: the target folder in which to generate the JSON files");
@@ -471,12 +473,12 @@ class CommandAndEventJsonExamplesProducer {
 
         final RetrievePolicyEntryResponse retrievePolicyEntryResponse =
                 RetrievePolicyEntryResponse.of(POLICY_ID, POLICY_ENTRY,
-                DITTO_HEADERS);
+                        DITTO_HEADERS);
         writeJson(commandsDir.resolve(Paths.get("retrievePolicyEntryResponse.json")), retrievePolicyEntryResponse);
 
         final RetrieveSubjectsResponse retrieveSubjectsResponse =
                 RetrieveSubjectsResponse.of(POLICY_ID, LABEL, SUBJECTS,
-                DITTO_HEADERS);
+                        DITTO_HEADERS);
         writeJson(commandsDir.resolve(Paths.get("retrieveSubjectsResponse.json")), retrieveSubjectsResponse);
 
         final RetrieveSubjectResponse retrieveSubjectResponse = RetrieveSubjectResponse.of(POLICY_ID, LABEL, SUBJECT,
@@ -485,12 +487,12 @@ class CommandAndEventJsonExamplesProducer {
 
         final RetrieveResourcesResponse retrieveResourcesResponse =
                 RetrieveResourcesResponse.of(POLICY_ID, LABEL, RESOURCES,
-                DITTO_HEADERS);
+                        DITTO_HEADERS);
         writeJson(commandsDir.resolve(Paths.get("retrieveResourcesResponse.json")), retrieveResourcesResponse);
 
         final RetrieveResourceResponse retrieveResourceResponse =
                 RetrieveResourceResponse.of(POLICY_ID, LABEL, RESOURCE,
-                DITTO_HEADERS);
+                        DITTO_HEADERS);
         writeJson(commandsDir.resolve(Paths.get("retrieveResourceResponse.json")), retrieveResourceResponse);
     }
 
@@ -580,7 +582,7 @@ class CommandAndEventJsonExamplesProducer {
 
         final ModifySubjectResponse modifySubjectResponseCreated =
                 ModifySubjectResponse.created(POLICY_ID, LABEL, SUBJECT,
-                DITTO_HEADERS);
+                        DITTO_HEADERS);
         writeJson(commandsDir.resolve(Paths.get("modifySubjectResponseCreated.json")), modifySubjectResponseCreated);
 
         final DeleteSubjectResponse deleteSubjectResponse = DeleteSubjectResponse.of(POLICY_ID, LABEL, SUBJECT_ID,
@@ -597,7 +599,7 @@ class CommandAndEventJsonExamplesProducer {
 
         final ModifyResourceResponse modifyResourceResponseCreated =
                 ModifyResourceResponse.created(POLICY_ID, LABEL, RESOURCE,
-                DITTO_HEADERS);
+                        DITTO_HEADERS);
         writeJson(commandsDir.resolve(Paths.get("modifyResourceResponseCreated.json")), modifyResourceResponseCreated);
 
         final DeleteResourceResponse deleteResourceResponse = DeleteResourceResponse.of(POLICY_ID, LABEL, RESOURCE_KEY,
@@ -862,7 +864,7 @@ class CommandAndEventJsonExamplesProducer {
 
         final RetrieveThingsResponse retrieveThingsResponse =
                 RetrieveThingsResponse.of(Collections.singletonList(THING), FieldType.notHidden(),
-                        CommandAndEventJsonExamplesProducer.NAMESPACE, DITTO_HEADERS);
+                        JsonExamplesProducer.NAMESPACE, DITTO_HEADERS);
         writeJson(commandsDir.resolve(Paths.get("retrieveThingsResponse.json")), retrieveThingsResponse);
 
         final RetrieveThingResponse retrieveThingResponse = RetrieveThingResponse.of(THING_ID, THING, DITTO_HEADERS);
@@ -870,7 +872,7 @@ class CommandAndEventJsonExamplesProducer {
 
         final RetrieveAttributesResponse retrieveAttributesResponse =
                 RetrieveAttributesResponse.of(THING_ID, ATTRIBUTES,
-                DITTO_HEADERS);
+                        DITTO_HEADERS);
         writeJson(commandsDir.resolve(Paths.get("retrieveAttributesResponse.json")), retrieveAttributesResponse);
 
         final RetrieveAttributeResponse retrieveAttributeResponse =
@@ -1021,7 +1023,7 @@ class CommandAndEventJsonExamplesProducer {
 
         final ModifyAttributesResponse modifyAttributesResponseCreated =
                 ModifyAttributesResponse.created(THING_ID, ATTRIBUTES,
-                DITTO_HEADERS);
+                        DITTO_HEADERS);
         writeJson(commandsDir.resolve(Paths.get("modifyAttributesResponseCreated.json")),
                 modifyAttributesResponseCreated);
 
@@ -1031,7 +1033,7 @@ class CommandAndEventJsonExamplesProducer {
 
         final ModifyAttributeResponse modifyAttributeResponse =
                 ModifyAttributeResponse.modified(THING_ID, ATTRIBUTE_POINTER,
-                DITTO_HEADERS);
+                        DITTO_HEADERS);
         writeJson(commandsDir.resolve(Paths.get("modifyAttributeResponse.json")), modifyAttributeResponse);
 
         final ModifyAttributeResponse modifyAttributeResponseCreated =
@@ -1060,7 +1062,7 @@ class CommandAndEventJsonExamplesProducer {
 
         final ModifyFeatureResponse modifyFeatureResponseCreated =
                 ModifyFeatureResponse.created(THING_ID, FLUX_CAPACITOR,
-                DITTO_HEADERS);
+                        DITTO_HEADERS);
         writeJson(commandsDir.resolve(Paths.get("modifyFeatureResponseCreated.json")), modifyFeatureResponseCreated);
 
         final DeleteFeatureResponse deleteFeatureResponse =
@@ -1237,6 +1239,10 @@ class CommandAndEventJsonExamplesProducer {
                 .dittoHeaders(DITTO_HEADERS)
                 .build();
         writeJson(exceptionsDir.resolve(Paths.get("thingIdInvalidException.json")), thingIdInvalidException);
+
+        final PolicyIdMissingException policyIdMissingException = PolicyIdMissingException
+                .fromThingId(THING_ID, DITTO_HEADERS);
+        writeJson(exceptionsDir.resolve(Paths.get("policyIdMissingException.json")), policyIdMissingException);
 
         final AttributesNotAccessibleException attributesNotAccessibleException =
                 AttributesNotAccessibleException.newBuilder(THING_ID)
@@ -1445,6 +1451,8 @@ class CommandAndEventJsonExamplesProducer {
         final Path commandsDir = rootPath.resolve(Paths.get("commands"));
         Files.createDirectories(commandsDir);
 
+        final Set<String> knownNamespaces = new HashSet<>(Collections.singletonList("org.eclipse.ditto"));
+
         final SearchQuery searchQuery =
                 SearchModelFactory.newSearchQueryBuilder(SearchModelFactory.property("attributes/temperature").eq(32))
                         .limit(0, 10).build();
@@ -1454,11 +1462,12 @@ class CommandAndEventJsonExamplesProducer {
                 JsonFactory.newFieldSelector("attributes", JsonFactory.newParseOptionsBuilder()
                         .withoutUrlDecoding()
                         .build()),
+                knownNamespaces,
                 DittoHeaders.empty());
 
         writeJson(commandsDir.resolve(Paths.get("query-things-command.json")), queryThingsCommand);
 
-        final CountThings countThingsCommand = CountThings.of(searchQuery.getFilterAsString(),
+        final CountThings countThingsCommand = CountThings.of(searchQuery.getFilterAsString(), knownNamespaces,
                 DittoHeaders.empty());
 
         writeJson(commandsDir.resolve(Paths.get("count-things-command.json")), countThingsCommand);

@@ -11,30 +11,26 @@
  */
 package org.eclipse.ditto.services.thingsearch.query.actors;
 
-import java.util.Collection;
-import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
-import org.eclipse.ditto.model.base.auth.AuthorizationContext;
-import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import java.util.Set;
+import java.util.function.Consumer;
+
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.thingsearchparser.ParserException;
 import org.eclipse.ditto.model.thingsearchparser.options.rql.RqlOptionParser;
-import org.eclipse.ditto.model.thingsearchparser.predicates.ast.RootNode;
-import org.eclipse.ditto.model.thingsearchparser.predicates.rql.RqlPredicateParser;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SudoCountThings;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.signals.commands.base.Command;
-import org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidFilterException;
-import org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidOptionException;
-import org.eclipse.ditto.signals.commands.thingsearch.query.CountThings;
-import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThings;
 import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Criteria;
 import org.eclipse.ditto.services.thingsearch.querymodel.criteria.CriteriaFactory;
 import org.eclipse.ditto.services.thingsearch.querymodel.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.AggregationBuilder;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.AggregationBuilderFactory;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.PolicyRestrictedSearchAggregation;
+import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.signals.commands.base.Command;
+import org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidFilterException;
+import org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidOptionException;
+import org.eclipse.ditto.signals.commands.thingsearch.query.CountThings;
+import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThings;
 
 import akka.actor.AbstractActor;
 import akka.actor.Props;
@@ -57,19 +53,18 @@ public final class AggregationQueryActor extends AbstractActor {
 
     private final DiagnosticLoggingAdapter logger = LogUtil.obtain(this);
 
-    private final CriteriaFactory criteriaFactory;
     private final ThingsFieldExpressionFactory fieldExpressionFactory;
+    private final QueryFilterCriteriaFactory queryFilterCriteriaFactory;
     private final AggregationBuilderFactory aggregationBuilderFactory;
     private final RqlOptionParser rqlOptionParser;
-    private final RqlPredicateParser rqlPredicateParser;
 
-    private AggregationQueryActor(final CriteriaFactory criteriaFactory, final ThingsFieldExpressionFactory fieldExpressionFactory,
+    private AggregationQueryActor(final CriteriaFactory criteriaFactory,
+            final ThingsFieldExpressionFactory fieldExpressionFactory,
             final AggregationBuilderFactory aggregationBuilderFactory) {
-        this.criteriaFactory = criteriaFactory;
         this.fieldExpressionFactory = fieldExpressionFactory;
         this.aggregationBuilderFactory = aggregationBuilderFactory;
+        this.queryFilterCriteriaFactory = new QueryFilterCriteriaFactory(criteriaFactory, fieldExpressionFactory);
         rqlOptionParser = new RqlOptionParser();
-        rqlPredicateParser = new RqlPredicateParser();
     }
 
     /**
@@ -81,12 +76,13 @@ public final class AggregationQueryActor extends AbstractActor {
      * @return the Akka configuration Props object.
      */
     public static Props props(final CriteriaFactory criteriaFactory,
-            final ThingsFieldExpressionFactory fieldExpressionFactory, final AggregationBuilderFactory aggregationBuilderFactory) {
+            final ThingsFieldExpressionFactory fieldExpressionFactory,
+            final AggregationBuilderFactory aggregationBuilderFactory) {
         return Props.create(AggregationQueryActor.class, new Creator<AggregationQueryActor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
-            public AggregationQueryActor create() throws Exception {
+            public AggregationQueryActor create() {
                 return new AggregationQueryActor(criteriaFactory, fieldExpressionFactory, aggregationBuilderFactory);
             }
         });
@@ -114,80 +110,70 @@ public final class AggregationQueryActor extends AbstractActor {
     }
 
     private void handleCountThings(final CountThings command) {
-        final Criteria criteria = command.getFilter()
-                .map(filterString -> mapCriteria(filterString, command.getDittoHeaders()))
-                .orElse(criteriaFactory.any());
-        final AggregationBuilder aggregationBuilder = aggregationBuilderFactory.newCountBuilder(criteria)
-                .authorizationSubjects(extractSidsAsStrings(command.getDittoHeaders().getAuthorizationContext()));
+        final Criteria filterCriteria;
+        final DittoHeaders dittoHeaders = command.getDittoHeaders();
+        final Set<String> namespaces = command.getNamespaces().orElse(null);
+
+        if (namespaces == null) {
+            filterCriteria = queryFilterCriteriaFactory.filterCriteria(
+                    command.getFilter().orElse(null), dittoHeaders);
+        } else {
+            filterCriteria = queryFilterCriteriaFactory.filterCriteriaRestrictedByNamespaces(
+                    command.getFilter().orElse(null),
+                    dittoHeaders, namespaces);
+        }
+
+        EnsureMonotonicityVisitor.apply(filterCriteria, dittoHeaders);
+
+        final AggregationBuilder aggregationBuilder = aggregationBuilderFactory.newCountBuilder(filterCriteria)
+                .authorizationSubjects(dittoHeaders.getAuthorizationContext().getAuthorizationSubjectIds());
 
         getSender().tell(aggregationBuilder.build(), getSelf());
     }
 
     private void handleQueryThings(final QueryThings command) {
-        final Criteria criteria = command.getFilter()
-                .map(filterString -> mapCriteria(filterString, command.getDittoHeaders()))
-                .orElse(criteriaFactory.any());
+        final Criteria filterCriteria;
+        final DittoHeaders dittoHeaders = command.getDittoHeaders();
+        final Set<String> namespaces = command.getNamespaces().orElse(null);
 
-        EnsureMonotonicityVisitor.apply(criteria, command.getDittoHeaders());
+        if (namespaces == null) {
+            filterCriteria = queryFilterCriteriaFactory.filterCriteria(
+                    command.getFilter().orElse(null), dittoHeaders);
+        } else {
+            filterCriteria = queryFilterCriteriaFactory.filterCriteriaRestrictedByNamespaces(
+                    command.getFilter().orElse(null),
+                    dittoHeaders, namespaces);
+        }
 
-        final AggregationBuilder aggregationBuilder = aggregationBuilderFactory.newBuilder(criteria)
-                .authorizationSubjects(extractSidsAsStrings(command.getDittoHeaders().getAuthorizationContext()));
+        EnsureMonotonicityVisitor.apply(filterCriteria, dittoHeaders);
+
+        final AggregationBuilder aggregationBuilder = aggregationBuilderFactory.newBuilder(filterCriteria)
+                .authorizationSubjects(dittoHeaders.getAuthorizationContext().getAuthorizationSubjectIds());
 
         command.getOptions()
                 .map(optionStrings -> String.join(",", optionStrings))
-                .ifPresent(options -> setOptions(options, aggregationBuilder, command.getDittoHeaders()));
+                .ifPresent(options -> setOptions(options, aggregationBuilder, dittoHeaders));
 
         getSender().tell(aggregationBuilder.build(), getSelf());
     }
 
     private void handleSudoCountThings(final SudoCountThings command) {
-        final Criteria criteria = command.getFilter()
-                .map(filterString -> mapCriteria(filterString, command.getDittoHeaders()))
-                .orElse(criteriaFactory.any());
+        final Criteria criteria = queryFilterCriteriaFactory.filterCriteria(
+                command.getFilter().orElse(null),
+                command.getDittoHeaders());
+
         final AggregationBuilder aggregationBuilder = aggregationBuilderFactory.newCountBuilder(criteria);
         aggregationBuilder.sudo(true);
 
         getSender().tell(aggregationBuilder.build(), getSelf());
     }
 
-    private static Collection<String> extractSidsAsStrings(final AuthorizationContext authorizationContext) {
-        return authorizationContext.getAuthorizationSubjects()
-                .stream()
-                .map(AuthorizationSubject::getId)
-                .collect(Collectors.toList());
-    }
-
-    private Criteria mapCriteria(final String filter, final DittoHeaders dittoHeaders) {
-        try {
-            final RootNode rootNode = rqlPredicateParser.parse(filter);
-            final ParameterPredicateVisitor visitor =
-                    new ParameterPredicateVisitor(criteriaFactory, fieldExpressionFactory);
-
-            visitor.visit(rootNode);
-
-            final Criteria criteria;
-            if (visitor.getCriteria().size() > 1) {
-                criteria = criteriaFactory.and(visitor.getCriteria());
-            } else if (visitor.getCriteria().size() == 1) {
-                criteria = visitor.getCriteria().get(0);
-            } else {
-                criteria = criteriaFactory.any();
-            }
-            return criteria;
-        } catch (final ParserException | IllegalArgumentException e) {
-            throw InvalidFilterException.newBuilder()
-                    .message(e.getMessage())
-                    .cause(e)
-                    .dittoHeaders(dittoHeaders)
-                    .build();
-        }
-    }
-
     private void setOptions(final String options, final AggregationBuilder aggregationBuilder,
             final DittoHeaders dittoHeaders) {
         try {
-            final AggregationParameterOptionVisitor visitor = new AggregationParameterOptionVisitor(fieldExpressionFactory,
-                    aggregationBuilder);
+            final AggregationParameterOptionVisitor visitor =
+                    new AggregationParameterOptionVisitor(fieldExpressionFactory,
+                            aggregationBuilder);
             visitor.visitAll(rqlOptionParser.parse(options));
         } catch (final ParserException | IllegalArgumentException e) {
             throw InvalidOptionException.newBuilder()

@@ -14,6 +14,7 @@ package org.eclipse.ditto.signals.commands.things.exceptions;
 import java.net.URI;
 import java.text.MessageFormat;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
@@ -31,7 +32,7 @@ public final class PolicyIdNotAllowedException extends DittoRuntimeException imp
     /**
      * Error code of this exception.
      */
-    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "policyId.notallowed";
+    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "policy.id.notallowed";
 
     private static final String MESSAGE_TEMPLATE =
             "The Thing with ID ''{0}'' could not be modified as it contained an inline Policy with an ID or a Policy " +
@@ -43,8 +44,8 @@ public final class PolicyIdNotAllowedException extends DittoRuntimeException imp
 
     private static final long serialVersionUID = 4511420390758955872L;
 
-    private PolicyIdNotAllowedException(final DittoHeaders dittoHeaders, final String message,
-            final String description, final Throwable cause, final URI href) {
+    private PolicyIdNotAllowedException(final DittoHeaders dittoHeaders, @Nullable final String message,
+            @Nullable final String description, @Nullable final Throwable cause, @Nullable final URI href) {
         super(ERROR_CODE, HttpStatusCode.BAD_REQUEST, dittoHeaders, message, description, cause, href);
     }
 
@@ -103,8 +104,8 @@ public final class PolicyIdNotAllowedException extends DittoRuntimeException imp
         }
 
         @Override
-        protected PolicyIdNotAllowedException doBuild(final DittoHeaders dittoHeaders, final String message,
-                final String description, final Throwable cause, final URI href) {
+        protected PolicyIdNotAllowedException doBuild(final DittoHeaders dittoHeaders, @Nullable final String message,
+                @Nullable final String description, @Nullable final Throwable cause, @Nullable final URI href) {
             return new PolicyIdNotAllowedException(dittoHeaders, message, description, cause, href);
         }
     }

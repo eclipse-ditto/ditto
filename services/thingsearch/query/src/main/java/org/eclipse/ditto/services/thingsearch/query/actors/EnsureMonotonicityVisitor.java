@@ -56,6 +56,8 @@ final class EnsureMonotonicityVisitor implements CriteriaVisitor<Void> {
 
     @Override
     public Void visitAnd(final Stream<Void> conjuncts) {
+        // force the stream to evaluate criteria on children
+        conjuncts.count();
         return null;
     }
 
@@ -81,12 +83,16 @@ final class EnsureMonotonicityVisitor implements CriteriaVisitor<Void> {
                     "Please rephrase your search query without using 'not'.", getForbiddenSchemaVersion());
             throw InvalidFilterException.fromMessage(message, dittoHeaders);
         } else {
+            // force the stream to evaluate criteria on children
+            negativeDisjoints.count();
             return null;
         }
     }
 
     @Override
     public Void visitOr(final Stream<Void> disjoints) {
+        // force the stream to evaluate criteria on children
+        disjoints.count();
         return null;
     }
 

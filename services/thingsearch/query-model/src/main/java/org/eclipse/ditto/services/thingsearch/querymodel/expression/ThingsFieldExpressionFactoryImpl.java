@@ -27,6 +27,7 @@ public class ThingsFieldExpressionFactoryImpl implements ThingsFieldExpressionFa
 
     static {
         simpleFieldMappings.put(FieldExpressionUtil.FIELD_NAME_THING_ID, FieldExpressionUtil.FIELD_ID);
+        simpleFieldMappings.put(FieldExpressionUtil.FIELD_NAME_NAMESPACE, FieldExpressionUtil.FIELD_NAMESPACE);
     }
 
     @Override
@@ -169,4 +170,8 @@ public class ThingsFieldExpressionFactoryImpl implements ThingsFieldExpressionFa
         return new SimpleFieldExpressionImpl(FieldExpressionUtil.FIELD_ID);
     }
 
+    @Override
+    public FilterFieldExpression filterByNamespace() {
+        return new SimpleFieldExpressionImpl(FieldExpressionUtil.FIELD_NAMESPACE);
+    }
 }

@@ -39,11 +39,13 @@ import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceCons
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_INTERNAL_GLOBAL_READS;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_INTERNAL_KEY_VARIABLE;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_INTERNAL_VARIABLE;
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_NAMESPACE;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_REVISION;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_REVISION_VARIABLE;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIRST_PROJECTION;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.ID_VARIABLE;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.IF_NULL_CONDITION;
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.NAMESPACE_VARIABLE;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.POLICIES_BASED_SEARCH_INDEX_COLLECTION_NAME;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.POLICY_INDEX_ID;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.PUSH_PROJECTION;
@@ -185,6 +187,7 @@ final class PolicyRestrictedMongoSearchAggregation implements PolicyRestrictedSe
 
     private static Bson createGroupStage() {
         return group(new BsonDocument(FIELD_ID, new BsonString(ID_VARIABLE)),
+                new BsonField(FIELD_NAMESPACE, createProjectionDocument(FIRST_PROJECTION, NAMESPACE_VARIABLE)),
                 new BsonField(FIELD_ATTRIBUTES, createProjectionDocument(FIRST_PROJECTION, FIELD_ATTRIBUTES_VARIABLE)),
                 new BsonField(FIELD_FEATURES, createProjectionDocument(FIRST_PROJECTION, FIELD_FEATURES_VARIABLE)),
                 new BsonField(FIELD_INTERNAL, createProjectionDocument(PUSH_PROJECTION, FIELD_INTERNAL_VARIABLE)),
@@ -199,6 +202,7 @@ final class PolicyRestrictedMongoSearchAggregation implements PolicyRestrictedSe
     private static Bson createGroupedIdProjectStage() {
         return project(new BsonDocument()
                 .append(FIELD_ID, new BsonString(ID_VARIABLE + "." + FIELD_ID))
+                .append(FIELD_NAMESPACE, BsonBoolean.TRUE)
                 .append(FIELD_ATTRIBUTES, BsonBoolean.TRUE)
                 .append(FIELD_FEATURES, BsonBoolean.TRUE)
                 .append(FIELD_INTERNAL, BsonBoolean.TRUE)
@@ -289,6 +293,7 @@ final class PolicyRestrictedMongoSearchAggregation implements PolicyRestrictedSe
                                         ))
                         ))
                 ))
+                .append(FIELD_NAMESPACE, BsonBoolean.TRUE)
                 .append(FIELD_ATTRIBUTES, BsonBoolean.TRUE)
                 .append(FIELD_FEATURES, BsonBoolean.TRUE)
                 .append(FIELD_INTERNAL, BsonBoolean.TRUE)

@@ -74,7 +74,7 @@ services:
       - TZ=Europe/Berlin
       - INSTANCE_INDEX=1
       - BIND_HOSTNAME=0.0.0.0
-      - ENABLE_DUMMY_AUTH=false
+      - ENABLE_DUMMY_AUTH=true
       - _JAVA_OPTIONS=-Xms512m -Xmx512m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError
       - STATSD_PORT_8125_UDP_ADDR=graphite
       - STATSD_PORT_8125_UDP_PORT=8125
@@ -133,6 +133,7 @@ services:
       GF_ANALYTICS_REPORTING_ENABLED: "false"
       GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
       GF_AUTH_BASIC_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
       GF_SMTP_ENABLED: "false"
 
   swagger-ui:
@@ -148,6 +149,7 @@ services:
     image: docker.io/nginx:1.13-alpine
     volumes:
        - ./nginx.conf:/etc/nginx/nginx.conf:ro
+       - ./nginx.htpasswd:/etc/nginx/nginx.htpasswd:ro
        - ./nginx-devops.htpasswd:/etc/nginx/nginx-devops.htpasswd:ro
        - ./html:/etc/nginx/html
        - ../nginx-cors.conf:/etc/nginx/nginx-cors.conf:ro

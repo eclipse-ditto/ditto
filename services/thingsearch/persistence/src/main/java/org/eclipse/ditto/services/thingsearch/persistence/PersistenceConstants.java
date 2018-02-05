@@ -290,6 +290,11 @@ public final class PersistenceConstants {
     public static final String ID_VARIABLE = "$" + FIELD_ID;
 
     /**
+     * Namespace variable used in mongo aggregations.
+     */
+    public static final String NAMESPACE_VARIABLE = "$" + FIELD_NAMESPACE;
+
+    /**
      * Condition used in mongo aggregation.
      */
     public static final String IF_NULL_CONDITION = "$ifNull";

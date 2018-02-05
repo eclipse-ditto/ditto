@@ -92,19 +92,11 @@ public final class ImmutableThingFromCopyBuilderTest {
         assertThat(thing).isEqualTo(TestConstants.Thing.THING_V2);
     }
 
-    @Test
-    public void builderOfJsonObjectIsCorrectlyInitialisedV2WithPolicy() {
-        underTestV2 = ImmutableThingFromCopyBuilder.of(
-                TestConstants.Thing.THING_V2_WITH_POLICY.toJson(JsonSchemaVersion.V_2, FieldType.regularOrSpecial()));
-        final Thing thing = underTestV2.build();
-
-        assertThat(thing).isEqualTo(TestConstants.Thing.THING_V2_WITH_POLICY);
-    }
-
     @Test(expected = JsonParseException.class)
     public void builderOfJsonObjectThrowsCorrectExceptionForDateTimeParseException() {
-        underTestV1 = ImmutableThingFromCopyBuilder.of(
-                TestConstants.Thing.THING_V1.toJson(JsonSchemaVersion.V_1, FieldType.regularOrSpecial())
+        underTestV1 =
+                ImmutableThingFromCopyBuilder.of(
+                        TestConstants.Thing.THING_V1.toJson(JsonSchemaVersion.V_1, FieldType.regularOrSpecial())
                         .toBuilder()
                         .set(Thing.JsonFields.MODIFIED, "10.10.2016 13:37")
                         .build());
@@ -802,46 +794,22 @@ public final class ImmutableThingFromCopyBuilderTest {
 
     @Test
     public void setIdWithEmptyNamespace() {
-        final String thingId = ":foobar2000";
-        underTestV1.setId(thingId);
-        final Thing thing = underTestV1.build();
-
-        assertThat(thing)
-                .hasId(thingId)
-                .hasNamespace("");
+        assertSetIdWithValidNamespace("");
     }
 
     @Test
-    public void setIdWithNamespace() {
-        final String thingId = "foo.a42:foobar2000";
-        underTestV1.setId(thingId);
-        final Thing thing = underTestV1.build();
-
-        assertThat(thing)
-                .hasId(thingId)
-                .hasNamespace("foo.a42");
+    public void setIdWithTopLevelNamespace() {
+        assertSetIdWithValidNamespace("ad");
     }
 
     @Test
-    public void setIdWithNamespace2() {
-        final String thingId = "ad:foobar2000";
-        underTestV1.setId(thingId);
-        final Thing thing = underTestV1.build();
-
-        assertThat(thing)
-                .hasId(thingId)
-                .hasNamespace("ad");
+    public void setIdWithTwoLevelNamespace() {
+        assertSetIdWithValidNamespace("foo.a42");
     }
 
     @Test
-    public void setIdWithNamespace3() {
-        final String thingId = "da23:foobar2000";
-        underTestV1.setId(thingId);
-        final Thing thing = underTestV1.build();
-
-        assertThat(thing)
-                .hasId(thingId)
-                .hasNamespace("da23");
+    public void setIdWithNamespaceContainingNumber() {
+        assertSetIdWithValidNamespace("da23");
     }
 
     @Test
@@ -907,6 +875,16 @@ public final class ImmutableThingFromCopyBuilderTest {
         final Thing thing = underTestV1.build();
 
         assertThat(thing).hasFeature(expected);
+    }
+
+    private void assertSetIdWithValidNamespace(final String namespace) {
+        final String thingId = namespace + ":" + "foobar2000";
+        underTestV1.setId(thingId);
+        final Thing thing = underTestV1.build();
+
+        assertThat(thing)
+                .hasId(thingId)
+                .hasNamespace(namespace);
     }
 
 }

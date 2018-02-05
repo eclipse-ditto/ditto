@@ -16,6 +16,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
@@ -78,6 +80,8 @@ public final class JsonExamplesProducer {
         final Path commandsDir = rootPath.resolve(Paths.get("commands"));
         Files.createDirectories(commandsDir);
 
+        final Set<String> knownNamespaces = new HashSet<>(Collections.singletonList("org.eclipse.ditto"));
+
         final SearchQuery searchQuery =
                 SearchModelFactory.newSearchQueryBuilder(SearchModelFactory.property("attributes/temperature").eq(32))
                         .limit(0, 10).build();
@@ -87,11 +91,12 @@ public final class JsonExamplesProducer {
                 JsonFactory.newFieldSelector("attributes", JsonFactory.newParseOptionsBuilder()
                         .withoutUrlDecoding()
                         .build()),
+                knownNamespaces,
                 DittoHeaders.empty());
 
         writeJson(commandsDir.resolve(Paths.get("query-things-command.json")), queryThingsCommand);
 
-        final CountThings countThingsCommand = CountThings.of(searchQuery.getFilterAsString(),
+        final CountThings countThingsCommand = CountThings.of(searchQuery.getFilterAsString(), knownNamespaces,
                 DittoHeaders.empty());
 
         writeJson(commandsDir.resolve(Paths.get("count-things-command.json")), countThingsCommand);
@@ -124,7 +129,7 @@ public final class JsonExamplesProducer {
 
         final DittoRuntimeException e =
                 DittoRuntimeException.newBuilder("search.filter.invalid", HttpStatusCode.BAD_REQUEST)
-                .build();
+                        .build();
         final SearchErrorResponse errorResponse = SearchErrorResponse.of(e, DittoHeaders.empty());
         writeJson(commandsDir.resolve(Paths.get("query-things-error-response.json")), errorResponse);
     }

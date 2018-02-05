@@ -11,6 +11,9 @@
  */
 package org.eclipse.ditto.signals.commands.thingsearch.query;
 
+import java.util.Optional;
+import java.util.Set;
+
 import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
 
 /**
@@ -19,4 +22,18 @@ import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
  * @param <T> the type of the implementing class.
  */
 public interface ThingSearchQueryCommand<T extends ThingSearchQueryCommand> extends ThingSearchCommand<T> {
+
+    /**
+     * Get the optional set of namespaces.
+     *
+     * @return the optional set of namespaces.
+     */
+    Optional<Set<String>> getNamespaces();
+
+    /**
+     * Get the optional filter string.
+     *
+     * @return the optional filter string.
+     */
+    Optional<String> getFilter();
 }

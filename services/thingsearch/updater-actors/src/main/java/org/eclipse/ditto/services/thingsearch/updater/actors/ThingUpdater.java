@@ -335,7 +335,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         cancelSyncTimeoutAndResetSessionId();
         super.postStop();
     }
-    
+
     private void cancelActivityCheck() {
         if (activityChecker != null) {
             activityChecker.cancel();
@@ -573,8 +573,10 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         gatheredEvents.add(thingEvent);
     }
 
-    private static boolean needToReloadPolicy(final ThingEvent thingEvent) {
-        return thingEvent instanceof PolicyIdCreated || thingEvent instanceof PolicyIdModified;
+    private boolean needToReloadPolicy(final ThingEvent thingEvent) {
+        return thingEvent instanceof PolicyIdCreated || thingEvent instanceof PolicyIdModified
+                // check if Thing has a policy but the policy enforcer is not instantiated
+                || (schemaVersionHasPolicy(thingEvent.getImplementedSchemaVersion()) && Objects.isNull(policyEnforcer));
     }
 
     /**
@@ -989,7 +991,10 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
                     if (null != throwable) {
                         log.error(throwable, "Failed to update policy because of an exception!");
                     } else if (!isPolicyUpdated) {
-                        log.error("Failed to update policy because of an unknown reason!");
+                        log.debug("The update operation for the policy of Thing <{}> did not have an effect, " +
+                                "probably because it does not contain fine-grained policies!", thingId);
+                    } else {
+                        log.debug("Successfully updated policy.");
                     }
                 }));
     }
@@ -1095,7 +1100,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         private SyncSuccess() {
             // no-op
         }
-        
+
     }
 
     private static final class SyncFailure {
@@ -1105,7 +1110,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         private SyncFailure() {
             // no-op
         }
-        
+
     }
 
     private static class ActorInitializationComplete {
@@ -1115,7 +1120,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         private ActorInitializationComplete() {
             // no-op
         }
-        
+
     }
 
     private static final class SyncMetadata {
@@ -1155,5 +1160,5 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
             return StreamAck.failure(thingIdentifier);
         }
     }
-    
+
 }

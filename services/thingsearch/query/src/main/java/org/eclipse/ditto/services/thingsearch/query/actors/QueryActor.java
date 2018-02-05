@@ -11,40 +11,37 @@
  */
 package org.eclipse.ditto.services.thingsearch.query.actors;
 
+import static org.eclipse.ditto.model.base.json.JsonSchemaVersion.V_1;
+
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
-import org.eclipse.ditto.model.base.auth.AuthorizationContext;
-import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.thingsearchparser.ParserException;
 import org.eclipse.ditto.model.thingsearchparser.options.rql.RqlOptionParser;
-import org.eclipse.ditto.model.thingsearchparser.predicates.ast.RootNode;
-import org.eclipse.ditto.model.thingsearchparser.predicates.rql.RqlPredicateParser;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SudoCountThings;
+import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Criteria;
+import org.eclipse.ditto.services.thingsearch.querymodel.criteria.CriteriaFactory;
+import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Predicate;
+import org.eclipse.ditto.services.thingsearch.querymodel.expression.ThingsFieldExpressionFactory;
+import org.eclipse.ditto.services.thingsearch.querymodel.query.Query;
+import org.eclipse.ditto.services.thingsearch.querymodel.query.QueryBuilder;
+import org.eclipse.ditto.services.thingsearch.querymodel.query.QueryBuilderFactory;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidFilterException;
 import org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidOptionException;
 import org.eclipse.ditto.signals.commands.thingsearch.query.CountThings;
 import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThings;
+import org.eclipse.ditto.signals.commands.thingsearch.query.ThingSearchQueryCommand;
 
 import akka.actor.AbstractActor;
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
-
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Criteria;
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.CriteriaFactory;
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Predicate;
-import org.eclipse.ditto.services.thingsearch.querymodel.expression.FilterFieldExpression;
-import org.eclipse.ditto.services.thingsearch.querymodel.expression.ThingsFieldExpressionFactory;
-import org.eclipse.ditto.services.thingsearch.querymodel.query.Query;
-import org.eclipse.ditto.services.thingsearch.querymodel.query.QueryBuilder;
-import org.eclipse.ditto.services.thingsearch.querymodel.query.QueryBuilderFactory;
 
 /**
  * Actor handling the parsing of search queries. It accepts {@link CountThings} and {@link QueryThings} commands and
@@ -61,20 +58,18 @@ public final class QueryActor extends AbstractActor {
 
     private final DiagnosticLoggingAdapter logger = LogUtil.obtain(this);
 
-    private final CriteriaFactory criteriaFactory;
+    private final QueryFilterCriteriaFactory queryFilterCriteriaFactory;
     private final ThingsFieldExpressionFactory fieldExpressionFactory;
     private final QueryBuilderFactory queryBuilderFactory;
     private final RqlOptionParser rqlOptionParser;
-    private final RqlPredicateParser rqlPredicateParser;
 
     private QueryActor(final CriteriaFactory criteriaFactory, final ThingsFieldExpressionFactory fieldExpressionFactory,
             final QueryBuilderFactory queryBuilderFactory) {
 
-        this.criteriaFactory = criteriaFactory;
+        this.queryFilterCriteriaFactory = new QueryFilterCriteriaFactory(criteriaFactory, fieldExpressionFactory);
         this.fieldExpressionFactory = fieldExpressionFactory;
         this.queryBuilderFactory = queryBuilderFactory;
         rqlOptionParser = new RqlOptionParser();
-        rqlPredicateParser = new RqlPredicateParser();
     }
 
     /**
@@ -92,7 +87,7 @@ public final class QueryActor extends AbstractActor {
             private static final long serialVersionUID = 1L;
 
             @Override
-            public QueryActor create() throws Exception {
+            public QueryActor create() {
                 return new QueryActor(criteriaFactory, fieldExpressionFactory, queryBuilderFactory);
             }
         });
@@ -121,74 +116,63 @@ public final class QueryActor extends AbstractActor {
     }
 
     private void handleCountThings(final CountThings command) {
-        final Criteria criteria = command.getFilter()
-                .map(filterString -> mapCriteria(filterString, command.getDittoHeaders()))
-                .orElse(criteriaFactory.any());
-        final Criteria filteredCriteria =
-                addAclFilter(criteria, command.getDittoHeaders().getAuthorizationContext());
-        final QueryBuilder queryBuilder = queryBuilderFactory.newUnlimitedBuilder(filteredCriteria);
-
+        final Criteria criteria = parseCriteriaWithAuthorization(command);
+        final QueryBuilder queryBuilder = queryBuilderFactory.newUnlimitedBuilder(criteria);
         getSender().tell(queryBuilder.build(), getSelf());
     }
 
+    private Criteria parseCriteriaWithAuthorization(final ThingSearchQueryCommand<?> command) {
+        final Criteria criteria;
+        final DittoHeaders dittoHeaders = command.getDittoHeaders();
+        final Set<String> namespaces = command.getNamespaces().orElse(null);
+        final String filter = command.getFilter().orElse(null);
+        final List<String> subjectIds = dittoHeaders.getAuthorizationContext().getAuthorizationSubjectIds();
+
+        if (V_1 == command.getImplementedSchemaVersion()) {
+            if (namespaces == null) {
+                criteria =
+                        queryFilterCriteriaFactory.filterCriteriaRestrictedByAcl(filter, dittoHeaders, subjectIds);
+            } else {
+                criteria = queryFilterCriteriaFactory.filterCriteriaRestrictedByAclAndNamespaces(
+                        filter, dittoHeaders, subjectIds, namespaces);
+            }
+        } else {
+            final CriteriaFactory cf = queryFilterCriteriaFactory.getCriteriaFactory();
+            final Predicate subjectPredicate = cf.in(subjectIds);
+            final Criteria globalReadsCriteria =
+                    cf.fieldCriteria(fieldExpressionFactory.filterByGlobalRead(), subjectPredicate);
+            final Criteria aclCriteria =
+                    cf.fieldCriteria(fieldExpressionFactory.filterByAcl(), subjectPredicate);
+            final Criteria authorizationCriteria = cf.or(Arrays.asList(globalReadsCriteria, aclCriteria));
+            final Criteria filterCriteria = namespaces == null
+                    ? queryFilterCriteriaFactory.filterCriteria(filter, dittoHeaders)
+                    : queryFilterCriteriaFactory.filterCriteriaRestrictedByNamespaces(filter, dittoHeaders, namespaces);
+            criteria = cf.and(Arrays.asList(authorizationCriteria, filterCriteria));
+        }
+
+        return criteria;
+    }
+
     private void handleQueryThings(final QueryThings command) {
-        final Criteria criteria = command.getFilter()
-                .map(filterString -> mapCriteria(filterString, command.getDittoHeaders()))
-                .orElse(criteriaFactory.any());
-        final Criteria filteredCriteria = addAclFilter(criteria, command.getDittoHeaders().getAuthorizationContext());
-        final QueryBuilder queryBuilder = queryBuilderFactory.newBuilder(filteredCriteria);
+        final Criteria criteria = parseCriteriaWithAuthorization(command);
+        final DittoHeaders dittoHeaders = command.getDittoHeaders();
+
+        final QueryBuilder queryBuilder = queryBuilderFactory.newBuilder(criteria);
 
         command.getOptions()
                 .map(optionStrings -> String.join(",", optionStrings))
-                .ifPresent(options -> setOptions(options, queryBuilder, command.getDittoHeaders()));
+                .ifPresent(options -> setOptions(options, queryBuilder, dittoHeaders));
 
         getSender().tell(queryBuilder.build(), getSelf());
     }
 
     private void handleSudoCountThings(final SudoCountThings command) {
-        final Criteria criteria = command.getFilter()
-                .map(filterString -> mapCriteria(filterString, command.getDittoHeaders()))
-                .orElse(criteriaFactory.any());
-        final QueryBuilder queryBuilder = queryBuilderFactory.newUnlimitedBuilder(criteria);
+        final Criteria filterCriteria = queryFilterCriteriaFactory.filterCriteria(
+                command.getFilter().orElse(null), command.getDittoHeaders());
+
+        final QueryBuilder queryBuilder = queryBuilderFactory.newUnlimitedBuilder(filterCriteria);
 
         getSender().tell(queryBuilder.build(), getSelf());
-    }
-
-    private Criteria addAclFilter(final Criteria criteria, final AuthorizationContext authorizationContext) {
-        final List<Object> sids = authorizationContext.getAuthorizationSubjects().stream()
-                .map(AuthorizationSubject::getId)
-                .collect(Collectors.toList());
-        final FilterFieldExpression aclFieldExpression = fieldExpressionFactory.filterByAcl();
-        final Predicate sidPredicate = criteriaFactory.in(sids);
-        final Criteria aclFieldCriteria = criteriaFactory.fieldCriteria(aclFieldExpression, sidPredicate);
-
-        return criteriaFactory.and(Arrays.asList(criteria, aclFieldCriteria));
-    }
-
-    private Criteria mapCriteria(final String filter, final DittoHeaders dittoHeaders) {
-        try {
-            final ParameterPredicateVisitor visitor =
-                    new ParameterPredicateVisitor(criteriaFactory, fieldExpressionFactory);
-
-            final RootNode rootNode = rqlPredicateParser.parse(filter);
-            visitor.visit(rootNode);
-
-            final Criteria criteria;
-            if (visitor.getCriteria().size() > 1) {
-                criteria = criteriaFactory.and(visitor.getCriteria());
-            } else if (visitor.getCriteria().size() == 1) {
-                criteria = visitor.getCriteria().get(0);
-            } else {
-                criteria = criteriaFactory.any();
-            }
-            return criteria;
-        } catch (final ParserException | IllegalArgumentException e) {
-            throw InvalidFilterException.newBuilder()
-                    .message(e.getMessage())
-                    .cause(e)
-                    .dittoHeaders(dittoHeaders)
-                    .build();
-        }
     }
 
     private void setOptions(final String options, final QueryBuilder queryBuilder,

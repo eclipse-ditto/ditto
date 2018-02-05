@@ -22,6 +22,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.things.AclEntryInvalidException;
 import org.eclipse.ditto.model.things.AclInvalidException;
 import org.eclipse.ditto.model.things.AclNotAllowedException;
+import org.eclipse.ditto.model.things.PolicyIdMissingException;
 import org.eclipse.ditto.model.things.FeatureDefinitionEmptyException;
 import org.eclipse.ditto.model.things.FeatureDefinitionIdentifierInvalidException;
 import org.eclipse.ditto.model.things.ThingIdInvalidException;
@@ -83,6 +84,7 @@ public final class ThingErrorRegistry extends AbstractErrorRegistry<DittoRuntime
         parseStrategies.put(PolicyIdNotModifiableException.ERROR_CODE, PolicyIdNotModifiableException::fromJson);
         parseStrategies.put(PolicyIdNotAllowedException.ERROR_CODE, PolicyIdNotAllowedException::fromJson);
         parseStrategies.put(PolicyNotAllowedException.ERROR_CODE, PolicyNotAllowedException::fromJson);
+        parseStrategies.put(PolicyIdMissingException.ERROR_CODE, PolicyIdMissingException::fromJson);
         parseStrategies.put(ThingUnavailableException.ERROR_CODE, ThingUnavailableException::fromJson);
         parseStrategies.put(ThingTooManyModifyingRequestsException.ERROR_CODE,
                 ThingTooManyModifyingRequestsException::fromJson);
@@ -112,4 +114,5 @@ public final class ThingErrorRegistry extends AbstractErrorRegistry<DittoRuntime
 
         return new ThingErrorRegistry(parseStrategies);
     }
+
 }

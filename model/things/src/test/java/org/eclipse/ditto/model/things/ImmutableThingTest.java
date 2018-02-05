@@ -798,7 +798,7 @@ public final class ImmutableThingTest {
     }
 
     @Test
-    public void ensureThingsNewBuilderWorks() {
+    public void ensureThingsNewBuilderWorksV1() {
         final Thing thing = Thing.newBuilder()
                 .setId(THING_ID)
                 .setPermissions(ACL)
@@ -828,7 +828,7 @@ public final class ImmutableThingTest {
     }
 
     @Test
-    public void ensureThingsToBuilderWorks() {
+    public void ensureThingsToBuilderWorksV1() {
         DittoJsonAssertions.assertThat(TestConstants.Thing.THING_V1)
                 .isEqualTo(TestConstants.Thing.THING_V1.toBuilder().build());
     }
@@ -840,7 +840,7 @@ public final class ImmutableThingTest {
     }
 
     @Test
-    public void ensureThingToJsonContainsNonHiddenFields() {
+    public void ensureThingToJsonContainsNonHiddenFieldsV1() {
         final JsonObject jsonObject = TestConstants.Thing.THING_V1.toJson(JsonSchemaVersion.V_1);
         DittoJsonAssertions.assertThat(jsonObject).contains(Thing.JsonFields.ID, THING_ID);
         DittoJsonAssertions.assertThat(jsonObject).contains(Thing.JsonFields.ATTRIBUTES, ATTRIBUTES);
@@ -855,7 +855,7 @@ public final class ImmutableThingTest {
     }
 
     @Test
-    public void ensureThingToJsonWithSpecialContainsAllFields() {
+    public void ensureThingToJsonWithSpecialContainsAllFieldsV1() {
         final JsonObject jsonObject =
                 TestConstants.Thing.THING_V1.toJson(JsonSchemaVersion.V_1, FieldType.regularOrSpecial());
         DittoJsonAssertions.assertThat(jsonObject)
@@ -868,14 +868,14 @@ public final class ImmutableThingTest {
                 .contains(Thing.JsonFields.REVISION, JsonValue.of(TestConstants.Thing.REVISION_NUMBER));
         DittoJsonAssertions.assertThat(jsonObject).contains(Thing.JsonFields.LIFECYCLE, JsonValue.of(LIFECYCLE.name()));
         DittoJsonAssertions.assertThat(jsonObject)
-                .contains(Thing.JsonFields.NAMESPACE, JsonValue.of(TestConstants.Thing.NAMEPSACE));
+                .contains(Thing.JsonFields.NAMESPACE, JsonValue.of(TestConstants.Thing.NAMESPACE));
         DittoJsonAssertions.assertThat(jsonObject)
                 .contains(Thing.JsonFields.MODIFIED, JsonValue.of(MODIFIED.toString()));
     }
 
     @Test
     public void ensureThingToJsonContainsNonHiddenFieldsV2() {
-        final JsonObject jsonObject = TestConstants.Thing.THING_V2_WITH_POLICY.toJson(JsonSchemaVersion.V_2);
+        final JsonObject jsonObject = TestConstants.Thing.THING_V2.toJson(JsonSchemaVersion.V_2);
         DittoJsonAssertions.assertThat(jsonObject).contains(Thing.JsonFields.ID, THING_ID);
         DittoJsonAssertions.assertThat(jsonObject).contains(Thing.JsonFields.POLICY_ID, TestConstants.Thing.POLICY_ID);
         DittoJsonAssertions.assertThat(jsonObject)
@@ -893,7 +893,7 @@ public final class ImmutableThingTest {
     @Test
     public void ensureThingToJsonWithSpecialContainsAllFieldsV2() {
         final JsonObject jsonObject =
-                TestConstants.Thing.THING_V2_WITH_POLICY.toJson(JsonSchemaVersion.V_2, FieldType.regularOrSpecial());
+                TestConstants.Thing.THING_V2.toJson(JsonSchemaVersion.V_2, FieldType.regularOrSpecial());
         DittoJsonAssertions.assertThat(jsonObject)
                 .contains(Thing.JsonFields.SCHEMA_VERSION, JsonValue.of(JsonSchemaVersion.V_2.toInt()));
         DittoJsonAssertions.assertThat(jsonObject).contains(Thing.JsonFields.ID, THING_ID);
@@ -904,7 +904,7 @@ public final class ImmutableThingTest {
                 .contains(Thing.JsonFields.REVISION, JsonValue.of(TestConstants.Thing.REVISION_NUMBER));
         DittoJsonAssertions.assertThat(jsonObject).contains(Thing.JsonFields.LIFECYCLE, JsonValue.of(LIFECYCLE.name()));
         DittoJsonAssertions.assertThat(jsonObject).contains(Thing.JsonFields.NAMESPACE, JsonValue.of(
-                TestConstants.Thing.NAMEPSACE));
+                TestConstants.Thing.NAMESPACE));
         DittoJsonAssertions.assertThat(jsonObject)
                 .contains(Thing.JsonFields.MODIFIED, JsonValue.of(MODIFIED.toString()));
     }
