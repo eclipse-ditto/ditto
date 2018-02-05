@@ -24,8 +24,8 @@ import javax.annotation.Nullable;
 final class ImmutablePayloadMapperMessage implements PayloadMapperMessage {
 
     private final String contentType;
-    private final ByteBuffer rawData;
-    private final String stringData;
+    @Nullable private final ByteBuffer rawData;
+    @Nullable private final String stringData;
     private final Map<String, String> headers;
 
     /**
@@ -36,8 +36,7 @@ final class ImmutablePayloadMapperMessage implements PayloadMapperMessage {
      * @param headers
      */
     ImmutablePayloadMapperMessage(final String contentType, @Nullable final ByteBuffer rawData,
-            @Nullable final String stringData,
-            final Map<String, String> headers) {
+            @Nullable final String stringData, final Map<String, String> headers) {
         this.contentType = contentType;
         this.rawData = rawData;
         this.stringData = stringData;
@@ -65,7 +64,7 @@ final class ImmutablePayloadMapperMessage implements PayloadMapperMessage {
     }
 
     @Override
-    public boolean equals(final Object o) {
+    public boolean equals(@Nullable final Object o) {
         if (this == o) {
             return true;
         }

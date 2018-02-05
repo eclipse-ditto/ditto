@@ -111,7 +111,7 @@ final class RhinoJavaScriptPayloadMapper implements PayloadMapper {
             ScriptableObject.putProperty(scope, MAPPING_STRING_VAR, message.getStringData().orElse(null));
             ScriptableObject.putProperty(scope, DITTO_PROTOCOL_JSON_VAR, new NativeObject());
 
-            cx.evaluateString(scope, options.getIncomingMappingScript(), "template", 1, null);
+            cx.evaluateString(scope, options.getIncomingMappingScript().orElse(""), "template", 1, null);
 
             final Object dittoProtocolJson = ScriptableObject.getProperty(scope, DITTO_PROTOCOL_JSON_VAR);
             final String dittoProtocolJsonStr =
@@ -133,7 +133,7 @@ final class RhinoJavaScriptPayloadMapper implements PayloadMapper {
                         NativeJSON.parse(cx, scope, jsonifiableAdaptable.toJsonString(), new NullCallable());
             ScriptableObject.putProperty(scope, DITTO_PROTOCOL_JSON_VAR, nativeJsonObject);
 
-            cx.evaluateString(scope, options.getOutgoingMappingScript(), "template", 1, null);
+            cx.evaluateString(scope, options.getOutgoingMappingScript().orElse(""), "template", 1, null);
 
             final String contentType = ScriptableObject.getTypedProperty(scope, MAPPING_CONTENT_TYPE_VAR, String.class);
             final String mappingString = ScriptableObject.getTypedProperty(scope, MAPPING_STRING_VAR, String.class);

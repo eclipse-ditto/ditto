@@ -31,17 +31,17 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
 /**
- * Immutable implementation of {@link MappingScript}.
+ * Immutable implementation of {@link MappingContext}.
  */
 @Immutable
-final class ImmutableMappingScript implements MappingScript {
+final class ImmutableMappingContext implements MappingContext {
 
     private final String contentType;
     private final String mappingEngine;
     private final Map<String, String> options;
 
 
-    private ImmutableMappingScript(final String contentType, final String mappingEngine,
+    private ImmutableMappingContext(final String contentType, final String mappingEngine,
             final Map<String, String> options) {
 
         this.contentType = contentType;
@@ -50,31 +50,31 @@ final class ImmutableMappingScript implements MappingScript {
     }
 
     /**
-     * Returns a new {@code ImmutableMappingScript}.
+     * Returns a new {@code ImmutableMappingContext}.
      *
      * @param contentType
      * @param mappingEngine
      * @param options
      * @return
      */
-    public static ImmutableMappingScript of(final String contentType, final String mappingEngine,
+    public static ImmutableMappingContext of(final String contentType, final String mappingEngine,
             final Map<String, String> options) {
         checkNotNull(contentType, "content-type");
         checkNotNull(mappingEngine, "mapping Engine");
         checkNotNull(options, "options");
 
-        return new ImmutableMappingScript(contentType, mappingEngine, options);
+        return new ImmutableMappingContext(contentType, mappingEngine, options);
     }
 
     /**
-     * Creates a new {@code MappingScript} object from the specified JSON object.
+     * Creates a new {@code MappingContext} object from the specified JSON object.
      *
-     * @param jsonObject a JSON object which provides the data for the MappingScript to be created.
-     * @return a new MappingScript which is initialised with the extracted data from {@code jsonObject}.
+     * @param jsonObject a JSON object which provides the data for the MappingContext to be created.
+     * @return a new MappingContext which is initialised with the extracted data from {@code jsonObject}.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} is not an appropriate JSON object.
      */
-    public static MappingScript fromJson(final JsonObject jsonObject) {
+    public static MappingContext fromJson(final JsonObject jsonObject) {
         final String contentType = jsonObject.getValueOrThrow(JsonFields.CONTENT_TYPE);
         final String mappingEngine = jsonObject.getValueOrThrow(JsonFields.MAPPING_ENGINE);
         final Map<String, String> options = jsonObject.getValueOrThrow(JsonFields.OPTIONS).stream()
@@ -117,10 +117,10 @@ final class ImmutableMappingScript implements MappingScript {
         if (this == o) {
             return true;
         }
-        if (!(o instanceof ImmutableMappingScript)) {
+        if (!(o instanceof ImmutableMappingContext)) {
             return false;
         }
-        final ImmutableMappingScript that = (ImmutableMappingScript) o;
+        final ImmutableMappingContext that = (ImmutableMappingContext) o;
         return Objects.equals(contentType, that.contentType) &&
                 Objects.equals(mappingEngine, that.mappingEngine) &&
                 Objects.equals(options, that.options);

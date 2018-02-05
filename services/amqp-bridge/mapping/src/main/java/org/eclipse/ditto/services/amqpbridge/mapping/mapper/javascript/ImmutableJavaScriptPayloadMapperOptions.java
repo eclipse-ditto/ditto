@@ -17,19 +17,21 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
+import javax.annotation.Nullable;
+
 /**
  * TODO doc
  */
 final class ImmutableJavaScriptPayloadMapperOptions implements JavaScriptPayloadMapperOptions {
 
-    private final String incomingMappingScript;
-    private final String outgoingMappingScript;
+    @Nullable private final String incomingMappingScript;
+    @Nullable private final String outgoingMappingScript;
     private final boolean loadBytebufferJS;
     private final boolean loadLongJS;
     private final boolean loadMustacheJS;
 
-    ImmutableJavaScriptPayloadMapperOptions(final String incomingMappingScript,
-            final String outgoingMappingScript, final boolean loadBytebufferJS, final boolean loadLongJS,
+    ImmutableJavaScriptPayloadMapperOptions(@Nullable final String incomingMappingScript,
+            @Nullable final String outgoingMappingScript, final boolean loadBytebufferJS, final boolean loadLongJS,
             final boolean loadMustacheJS) {
         this.incomingMappingScript = incomingMappingScript;
         this.outgoingMappingScript = outgoingMappingScript;
@@ -39,13 +41,13 @@ final class ImmutableJavaScriptPayloadMapperOptions implements JavaScriptPayload
     }
 
     @Override
-    public String getIncomingMappingScript() {
-        return incomingMappingScript;
+    public Optional<String> getIncomingMappingScript() {
+        return Optional.ofNullable(incomingMappingScript);
     }
 
     @Override
-    public String getOutgoingMappingScript() {
-        return outgoingMappingScript;
+    public Optional<String> getOutgoingMappingScript() {
+        return Optional.ofNullable(outgoingMappingScript);
     }
 
     @Override
@@ -75,7 +77,7 @@ final class ImmutableJavaScriptPayloadMapperOptions implements JavaScriptPayload
     }
 
     @Override
-    public boolean equals(final Object o) {
+    public boolean equals(@Nullable final Object o) {
         if (this == o) {
             return true;
         }
@@ -111,8 +113,8 @@ final class ImmutableJavaScriptPayloadMapperOptions implements JavaScriptPayload
      */
     static final class Builder implements JavaScriptPayloadMapperOptions.Builder {
 
-        private String incomingMappingScript;
-        private String outgoingMappingScript;
+        @Nullable private String incomingMappingScript;
+        @Nullable private String outgoingMappingScript;
         private boolean loadBytebufferJS;
         private boolean loadLongJS;
         private boolean loadMustacheJS;
@@ -134,13 +136,13 @@ final class ImmutableJavaScriptPayloadMapperOptions implements JavaScriptPayload
         }
 
         @Override
-        public JavaScriptPayloadMapperOptions.Builder incomingMappingScript(final String mappingScript) {
+        public JavaScriptPayloadMapperOptions.Builder incomingMappingScript(@Nullable final String mappingScript) {
             incomingMappingScript = mappingScript;
             return this;
         }
 
         @Override
-        public JavaScriptPayloadMapperOptions.Builder outgoingMappingScript(final String mappingScript) {
+        public JavaScriptPayloadMapperOptions.Builder outgoingMappingScript(@Nullable final String mappingScript) {
             outgoingMappingScript = mappingScript;
             return this;
         }

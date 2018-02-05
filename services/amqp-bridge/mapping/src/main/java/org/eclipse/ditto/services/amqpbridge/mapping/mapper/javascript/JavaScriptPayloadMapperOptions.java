@@ -11,6 +11,10 @@
  */
 package org.eclipse.ditto.services.amqpbridge.mapping.mapper.javascript;
 
+import java.util.Optional;
+
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.PayloadMapperOptions;
 
 /**
@@ -18,9 +22,9 @@ import org.eclipse.ditto.services.amqpbridge.mapping.mapper.PayloadMapperOptions
  */
 public interface JavaScriptPayloadMapperOptions extends PayloadMapperOptions {
 
-    String getIncomingMappingScript();
+    Optional<String> getIncomingMappingScript();
 
-    String getOutgoingMappingScript();
+    Optional<String> getOutgoingMappingScript();
 
     boolean isLoadBytebufferJS();
 
@@ -33,9 +37,9 @@ public interface JavaScriptPayloadMapperOptions extends PayloadMapperOptions {
      */
     interface Builder extends PayloadMapperOptions.Builder<JavaScriptPayloadMapperOptions> {
 
-        Builder incomingMappingScript(String mappingScript);
+        Builder incomingMappingScript(@Nullable String mappingScript);
 
-        Builder outgoingMappingScript(String mappingScript);
+        Builder outgoingMappingScript(@Nullable String mappingScript);
 
         Builder loadBytebufferJS(boolean load);
 

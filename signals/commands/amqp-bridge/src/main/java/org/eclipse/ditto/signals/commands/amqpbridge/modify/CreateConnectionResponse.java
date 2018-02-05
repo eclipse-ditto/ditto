@@ -33,7 +33,7 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.amqpbridge.AmqpBridgeModelFactory;
 import org.eclipse.ditto.model.amqpbridge.AmqpConnection;
-import org.eclipse.ditto.model.amqpbridge.MappingScript;
+import org.eclipse.ditto.model.amqpbridge.MappingContext;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
@@ -57,33 +57,33 @@ public final class CreateConnectionResponse extends AbstractCommandResponse<Crea
             JsonFactory.newJsonObjectFieldDefinition("connection", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
-    static final JsonFieldDefinition<JsonArray> JSON_MAPPING_SCRIPTS =
-            JsonFactory.newJsonArrayFieldDefinition("mappingScripts", FieldType.REGULAR, JsonSchemaVersion.V_1,
+    static final JsonFieldDefinition<JsonArray> JSON_MAPPING_CONTEXTS =
+            JsonFactory.newJsonArrayFieldDefinition("mappingContexts", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
     private final AmqpConnection amqpConnection;
-    private final List<MappingScript> mappingScripts;
+    private final List<MappingContext> mappingContexts;
 
-    private CreateConnectionResponse(final AmqpConnection amqpConnection, final List<MappingScript> mappingScripts,
+    private CreateConnectionResponse(final AmqpConnection amqpConnection, final List<MappingContext> mappingContexts,
             final DittoHeaders dittoHeaders) {
         super(TYPE, HttpStatusCode.CREATED, dittoHeaders);
         this.amqpConnection = amqpConnection;
-        this.mappingScripts = Collections.unmodifiableList(new ArrayList<>(mappingScripts));
+        this.mappingContexts = Collections.unmodifiableList(new ArrayList<>(mappingContexts));
     }
 
     /**
      * Returns a new instance of {@code CreateConnectionResponse}.
      *
      * @param amqpConnection the connection to be created.
-     * @param mappingScripts
+     * @param mappingContexts
      * @param dittoHeaders the headers of the request.
      * @return a new CreateConnectionResponse.
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static CreateConnectionResponse of(final AmqpConnection amqpConnection,
-            final List<MappingScript> mappingScripts, final DittoHeaders dittoHeaders) {
+            final List<MappingContext> mappingContexts, final DittoHeaders dittoHeaders) {
         checkNotNull(amqpConnection, "Connection");
-        return new CreateConnectionResponse(amqpConnection, mappingScripts, dittoHeaders);
+        return new CreateConnectionResponse(amqpConnection, mappingContexts, dittoHeaders);
     }
 
     /**
@@ -117,14 +117,14 @@ public final class CreateConnectionResponse extends AbstractCommandResponse<Crea
                     final JsonObject jsonConnection = jsonObject.getValueOrThrow(JSON_CONNECTION);
                     final AmqpConnection readAmqpConnection = AmqpBridgeModelFactory.connectionFromJson(jsonConnection);
 
-                    final JsonArray mappingScripts = jsonObject.getValueOrThrow(JSON_MAPPING_SCRIPTS);
-                    final List<MappingScript> readMappingScripts = mappingScripts.stream()
+                    final JsonArray mappingContexts = jsonObject.getValueOrThrow(JSON_MAPPING_CONTEXTS);
+                    final List<MappingContext> readMappingContexts = mappingContexts.stream()
                             .filter(JsonValue::isObject)
                             .map(JsonValue::asObject)
-                            .map(AmqpBridgeModelFactory::mappingScriptFromJson)
+                            .map(AmqpBridgeModelFactory::mappingContextFromJson)
                             .collect(Collectors.toList());
 
-                    return of(readAmqpConnection, readMappingScripts, dittoHeaders);
+                    return of(readAmqpConnection, readMappingContexts, dittoHeaders);
                 });
     }
 
@@ -140,8 +140,8 @@ public final class CreateConnectionResponse extends AbstractCommandResponse<Crea
     /**
      * @return
      */
-    public List<MappingScript> getMappingScripts() {
-        return mappingScripts;
+    public List<MappingContext> getMappingContexts() {
+        return mappingContexts;
     }
 
     @Override
@@ -149,7 +149,7 @@ public final class CreateConnectionResponse extends AbstractCommandResponse<Crea
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(JSON_CONNECTION, amqpConnection.toJson(schemaVersion, thePredicate), predicate);
-        jsonObjectBuilder.set(JSON_MAPPING_SCRIPTS, mappingScripts.stream()
+        jsonObjectBuilder.set(JSON_MAPPING_CONTEXTS, mappingContexts.stream()
                 .map(ms -> ms.toJson(schemaVersion, thePredicate))
                 .collect(JsonCollectors.valuesToArray()), predicate);
     }
@@ -161,7 +161,7 @@ public final class CreateConnectionResponse extends AbstractCommandResponse<Crea
 
     @Override
     public CreateConnectionResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(amqpConnection, mappingScripts, dittoHeaders);
+        return of(amqpConnection, mappingContexts, dittoHeaders);
     }
 
     @Override
@@ -182,12 +182,12 @@ public final class CreateConnectionResponse extends AbstractCommandResponse<Crea
         }
         final CreateConnectionResponse that = (CreateConnectionResponse) o;
         return Objects.equals(amqpConnection, that.amqpConnection) &&
-                Objects.equals(mappingScripts, that.mappingScripts);
+                Objects.equals(mappingContexts, that.mappingContexts);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), amqpConnection, mappingScripts);
+        return Objects.hash(super.hashCode(), amqpConnection, mappingContexts);
     }
 
     @Override
@@ -195,7 +195,7 @@ public final class CreateConnectionResponse extends AbstractCommandResponse<Crea
         return getClass().getSimpleName() + " [" +
                 super.toString() +
                 ", amqpConnection=" + amqpConnection +
-                ", mappingScripts=" + mappingScripts +
+                ", mappingContexts=" + mappingContexts +
                 "]";
     }
 }

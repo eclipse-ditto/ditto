@@ -31,7 +31,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.amqpbridge.AmqpBridgeModelFactory;
 import org.eclipse.ditto.model.amqpbridge.AmqpConnection;
 import org.eclipse.ditto.model.amqpbridge.ConnectionStatus;
-import org.eclipse.ditto.model.amqpbridge.MappingScript;
+import org.eclipse.ditto.model.amqpbridge.MappingContext;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
@@ -49,27 +49,27 @@ public final class ConnectionData implements Jsonifiable.WithFieldSelectorAndPre
             JsonFactory.newStringFieldDefinition("connectionStatus", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
-    private static final JsonFieldDefinition<JsonArray> MAPPING_SCRIPTS =
-            JsonFactory.newJsonArrayFieldDefinition("mappingScripts", FieldType.REGULAR, JsonSchemaVersion.V_1,
+    private static final JsonFieldDefinition<JsonArray> MAPPING_CONTEXTS =
+            JsonFactory.newJsonArrayFieldDefinition("mappingContexts", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
 
     private final AmqpConnection amqpConnection;
     private final ConnectionStatus connectionStatus;
-    private final List<MappingScript> mappingScripts;
+    private final List<MappingContext> mappingContexts;
 
     /**
      * Constructs a new connection data instance.
      * @param amqpConnection AmqpConnection information of the connection data.
      * @param connectionStatus ConnectionStatus information of the connection data.
-     * @param mappingScripts
+     * @param mappingContexts
      */
     public ConnectionData(final AmqpConnection amqpConnection, final ConnectionStatus connectionStatus,
-            final List<MappingScript> mappingScripts) {
+            final List<MappingContext> mappingContexts) {
 
         this.amqpConnection = amqpConnection;
         this.connectionStatus = connectionStatus;
-        this.mappingScripts = Collections.unmodifiableList(new ArrayList<>(mappingScripts));
+        this.mappingContexts = Collections.unmodifiableList(new ArrayList<>(mappingContexts));
     }
 
     /**
@@ -89,8 +89,8 @@ public final class ConnectionData implements Jsonifiable.WithFieldSelectorAndPre
     /**
      * @return
      */
-    public List<MappingScript> getMappingScripts() {
-        return mappingScripts;
+    public List<MappingContext> getMappingContexts() {
+        return mappingContexts;
     }
 
     /**
@@ -112,14 +112,14 @@ public final class ConnectionData implements Jsonifiable.WithFieldSelectorAndPre
                         .message("Could not create ConnectionStatus from: " + jsonObject)
                         .build());
 
-        final JsonArray readMappingScripts = jsonObject.getValueOrThrow(MAPPING_SCRIPTS);
-        final List<MappingScript> mappingScripts = readMappingScripts.stream()
+        final JsonArray readMappingContexts = jsonObject.getValueOrThrow(MAPPING_CONTEXTS);
+        final List<MappingContext> mappingContexts = readMappingContexts.stream()
                 .filter(JsonValue::isObject)
                 .map(JsonValue::asObject)
-                .map(AmqpBridgeModelFactory::mappingScriptFromJson)
+                .map(AmqpBridgeModelFactory::mappingContextFromJson)
                 .collect(Collectors.toList());
 
-        return new ConnectionData(amqpConnection, connectionStatus, mappingScripts);
+        return new ConnectionData(amqpConnection, connectionStatus, mappingContexts);
     }
 
     @Override
@@ -135,7 +135,7 @@ public final class ConnectionData implements Jsonifiable.WithFieldSelectorAndPre
 
         jsonObjectBuilder.set(AMQP_CONNECTION, amqpConnection.toJson(schemaVersion, thePredicate), predicate);
         jsonObjectBuilder.set(CONNECTION_STATUS, connectionStatus.getName(), predicate);
-        jsonObjectBuilder.set(MAPPING_SCRIPTS, mappingScripts.stream()
+        jsonObjectBuilder.set(MAPPING_CONTEXTS, mappingContexts.stream()
                 .map(ms -> ms.toJson(schemaVersion, thePredicate))
                 .collect(JsonCollectors.valuesToArray()), predicate);
 
@@ -158,12 +158,12 @@ public final class ConnectionData implements Jsonifiable.WithFieldSelectorAndPre
         final ConnectionData that = (ConnectionData) o;
         return Objects.equals(amqpConnection, that.amqpConnection) &&
                 connectionStatus == that.connectionStatus &&
-                Objects.equals(mappingScripts, that.mappingScripts);
+                Objects.equals(mappingContexts, that.mappingContexts);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(amqpConnection, connectionStatus, mappingScripts);
+        return Objects.hash(amqpConnection, connectionStatus, mappingContexts);
     }
 
     @Override
@@ -171,7 +171,7 @@ public final class ConnectionData implements Jsonifiable.WithFieldSelectorAndPre
         return getClass().getSimpleName() + " [" +
                 "amqpConnection=" + amqpConnection +
                 ", connectionStatus=" + connectionStatus +
-                ", mappingScripts=" + mappingScripts +
+                ", mappingContexts=" + mappingContexts +
                 "]";
     }
 }

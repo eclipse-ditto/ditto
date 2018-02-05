@@ -37,7 +37,7 @@ import org.apache.qpid.jms.message.JmsMessage;
 import org.apache.qpid.jms.provider.amqp.message.AmqpJmsMessageFacade;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.amqpbridge.MappingScript;
+import org.eclipse.ditto.model.amqpbridge.MappingContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
@@ -100,7 +100,7 @@ final class CommandProcessorActor extends AbstractActor {
     private final Map<String, PayloadMapper> payloadMappers;
 
     private CommandProcessorActor(final ActorRef pubSubMediator, final String pubSubTargetActorPath,
-            final AuthorizationSubject authorizationSubject, final List<MappingScript> mappingScripts) {
+            final AuthorizationSubject authorizationSubject, final List<MappingContext> mappingContexts) {
         this.pubSubMediator = pubSubMediator;
         this.pubSubTargetActorPath = pubSubTargetActorPath;
         this.authorizationSubject = authorizationSubject;
@@ -108,10 +108,10 @@ final class CommandProcessorActor extends AbstractActor {
 
         final ActorSystem actorSystem = getContext().getSystem();
 
-        payloadMappers = mappingScripts.stream()
-                .collect(Collectors.toMap(MappingScript::getContentType, ms -> {
+        payloadMappers = mappingContexts.stream()
+                .collect(Collectors.toMap(MappingContext::getContentType, mappingContext -> {
 
-                    final Map<String, String> optionsMap = ms.getOptions();
+                    final Map<String, String> optionsMap = mappingContext.getOptions();
                     final PayloadMapperOptions.Builder optionsBuilder =
                             PayloadMappers.createMapperOptionsBuilder(optionsMap);
                     final PayloadMapperOptions options = optionsBuilder.build();
@@ -119,7 +119,9 @@ final class CommandProcessorActor extends AbstractActor {
                     // dynamically lookup static method for instantiating the payloadMapper:
                     return Arrays.stream(PayloadMappers.class.getDeclaredMethods())
                             .filter(m -> m.getReturnType().equals(PayloadMapper.class))
-                            .filter(m -> m.getName().toLowerCase().contains(ms.getMappingEngine().toLowerCase()))
+                            .filter(m -> m.getName()
+                                    .toLowerCase()
+                                    .contains(mappingContext.getMappingEngine().toLowerCase()))
                             .findFirst()
                             .map(m -> {
                                 try {
@@ -132,7 +134,7 @@ final class CommandProcessorActor extends AbstractActor {
                             })
                             // as fallback, try loading the configured "mappingEngine" as implementation of PayloadMapper class:
                             .orElseGet(() -> {
-                                final String mappingEngineClass = ms.getMappingEngine();
+                                final String mappingEngineClass = mappingContext.getMappingEngine();
                                 final ClassTag<PayloadMapper> tag =
                                         scala.reflect.ClassTag$.MODULE$.apply(PayloadMapper.class);
                                 final List<Tuple2<Class<?>, Object>> constructorArgs = new ArrayList<>();
@@ -145,7 +147,8 @@ final class CommandProcessorActor extends AbstractActor {
                                 if (payloadMapperImpl.isSuccess()) {
                                     return payloadMapperImpl.get();
                                 } else {
-                                    log.error("Could not initialize mappingEngine <{}>", ms.getMappingEngine());
+                                    log.error("Could not initialize mappingEngine <{}>",
+                                            mappingContext.getMappingEngine());
                                     return null;
                                 }
                             });
@@ -161,7 +164,7 @@ final class CommandProcessorActor extends AbstractActor {
      * @return the Akka configuration Props object
      */
     static Props props(final ActorRef pubSubMediator, final String pubSubTargetActorPath,
-            final AuthorizationSubject authorizationSubject, final List<MappingScript> mappingScripts) {
+            final AuthorizationSubject authorizationSubject, final List<MappingContext> mappingContexts) {
 
         return Props.create(CommandProcessorActor.class, new Creator<CommandProcessorActor>() {
             private static final long serialVersionUID = 1L;
@@ -169,7 +172,7 @@ final class CommandProcessorActor extends AbstractActor {
             @Override
             public CommandProcessorActor create() {
                 return new CommandProcessorActor(pubSubMediator, pubSubTargetActorPath, authorizationSubject,
-                        mappingScripts);
+                        mappingContexts);
             }
         });
     }
@@ -304,9 +307,9 @@ final class CommandProcessorActor extends AbstractActor {
                 log.debug("Successfully mapped message with content-type <{}> and PayloadMapper <{}> to: <{}>",
                         contentType, payloadMapper.getClass().getSimpleName(), jsonifiableAdaptable);
             } else {
-                log.warning("No mappingScript found for content-type <{}>, trying to interpret as DittoProtocol " +
+                log.warning("No PayloadMapper found for content-type <{}>, trying to interpret as DittoProtocol " +
                         "message..", contentType);
-                mappingSegment.finishWithError(new IllegalStateException("No mappingScript found"));
+                mappingSegment.finishWithError(new IllegalStateException("No PayloadMapper found"));
             }
         } else if (DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE.equalsIgnoreCase(contentType)) {
             log.info("Received message had DittoProtocol content-type <{}>", contentType);

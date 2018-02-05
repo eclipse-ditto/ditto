@@ -25,7 +25,7 @@ import javax.naming.NamingException;
 
 import org.eclipse.ditto.model.amqpbridge.AmqpConnection;
 import org.eclipse.ditto.model.amqpbridge.ConnectionStatus;
-import org.eclipse.ditto.model.amqpbridge.MappingScript;
+import org.eclipse.ditto.model.amqpbridge.MappingContext;
 import org.eclipse.ditto.services.amqpbridge.messaging.persistence.ConnectionData;
 import org.eclipse.ditto.services.amqpbridge.messaging.persistence.MongoConnectionSnapshotAdapter;
 import org.eclipse.ditto.services.amqpbridge.util.ConfigKeys;
@@ -101,7 +101,7 @@ final class ConnectionActor extends AbstractPersistentActor implements Exception
 
     private AmqpConnection amqpConnection;
     private ConnectionStatus connectionStatus;
-    private List<MappingScript> mappingScripts;
+    private List<MappingContext> mappingContexts;
 
     private Cancellable shutdownCancellable;
 
@@ -128,7 +128,7 @@ final class ConnectionActor extends AbstractPersistentActor implements Exception
 
         connectionCreatedBehaviour = createConnectionCreatedBehaviour();
         connectionStatus = ConnectionStatus.CLOSED;
-        mappingScripts = Collections.emptyList();
+        mappingContexts = Collections.emptyList();
     }
 
     /**
@@ -190,21 +190,21 @@ final class ConnectionActor extends AbstractPersistentActor implements Exception
                     if (fromSnapshotStore != null) {
                         amqpConnection = fromSnapshotStore.getAmqpConnection();
                         connectionStatus = fromSnapshotStore.getConnectionStatus();
-                        mappingScripts = fromSnapshotStore.getMappingScripts();
+                        mappingContexts = fromSnapshotStore.getMappingContexts();
                     }
                     lastSnapshotSequenceNr = ss.metadata().sequenceNr();
                 })
                 .match(ConnectionCreated.class, event -> {
                     amqpConnection = event.getAmqpConnection();
                     connectionStatus = ConnectionStatus.OPEN;
-                    mappingScripts = event.getMappingScripts();
+                    mappingContexts = event.getMappingContexts();
                 })
                 .match(ConnectionOpened.class, event -> connectionStatus = ConnectionStatus.OPEN)
                 .match(ConnectionClosed.class, event -> connectionStatus = ConnectionStatus.CLOSED)
                 .match(ConnectionDeleted.class, event -> {
                     amqpConnection = null;
                     connectionStatus = ConnectionStatus.CLOSED;
-                    mappingScripts = Collections.emptyList();
+                    mappingContexts = Collections.emptyList();
                 })
                 .match(RecoveryCompleted.class, rc -> {
                     if (amqpConnection != null) {
@@ -255,7 +255,7 @@ final class ConnectionActor extends AbstractPersistentActor implements Exception
 
     private void createConnection(final CreateConnection command) {
         amqpConnection = command.getAmqpConnection();
-        mappingScripts = command.getMappingScripts();
+        mappingContexts = command.getMappingContexts();
 
         try {
             jmsConnection = jmsConnectionFactory.createConnection(amqpConnection, this);
@@ -269,7 +269,7 @@ final class ConnectionActor extends AbstractPersistentActor implements Exception
             return;
         }
 
-        final ConnectionCreated connectionCreated = ConnectionCreated.of(amqpConnection, mappingScripts,
+        final ConnectionCreated connectionCreated = ConnectionCreated.of(amqpConnection, mappingContexts,
                 command.getDittoHeaders());
         persistEvent(connectionCreated, persistedEvent -> {
             final boolean success = startCommandConsumersWithErrorHandling("create");
@@ -277,7 +277,7 @@ final class ConnectionActor extends AbstractPersistentActor implements Exception
                 return;
             }
 
-            getSender().tell(CreateConnectionResponse.of(amqpConnection, mappingScripts, command.getDittoHeaders()),
+            getSender().tell(CreateConnectionResponse.of(amqpConnection, mappingContexts, command.getDittoHeaders()),
                     getSelf());
             getContext().become(connectionCreatedBehaviour);
             getContext().getParent().tell(ConnectionSupervisorActor.ManualReset.getInstance(), getSelf());
@@ -331,7 +331,7 @@ final class ConnectionActor extends AbstractPersistentActor implements Exception
     }
 
     private void retrieveConnection(final RetrieveConnection command) {
-        getSender().tell(RetrieveConnectionResponse.of(amqpConnection, mappingScripts, command.getDittoHeaders()),
+        getSender().tell(RetrieveConnectionResponse.of(amqpConnection, mappingContexts, command.getDittoHeaders()),
                 getSelf());
     }
 
@@ -399,7 +399,7 @@ final class ConnectionActor extends AbstractPersistentActor implements Exception
 
         final Props amqpCommandProcessorProps =
                 CommandProcessorActor.props(pubSubMediator, pubSubTargetActorPath,
-                        amqpConnection.getAuthorizationSubject(), mappingScripts);
+                        amqpConnection.getAuthorizationSubject(), mappingContexts);
         final String amqpCommandProcessorName = CommandProcessorActor.ACTOR_NAME_PREFIX + amqpConnection.getId();
 
         final DefaultResizer resizer = new DefaultResizer(1, 5); // TODO configurable
@@ -476,7 +476,7 @@ final class ConnectionActor extends AbstractPersistentActor implements Exception
             log.debug("Already requested taking a Snapshot - not doing it again");
         } else {
             snapshotInProgress = true;
-            final ConnectionData connectionData = new ConnectionData(amqpConnection, connectionStatus, mappingScripts);
+            final ConnectionData connectionData = new ConnectionData(amqpConnection, connectionStatus, mappingContexts);
             log.info("Attempting to save Snapshot for '{}' ..", connectionData);
             // save a snapshot
             final Object snapshotToStore = snapshotAdapter.toSnapshotStore(connectionData);

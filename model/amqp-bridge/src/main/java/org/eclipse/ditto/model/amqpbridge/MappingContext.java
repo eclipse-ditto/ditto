@@ -28,10 +28,10 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
  * TODO doc
  */
 @Immutable
-public interface MappingScript extends Jsonifiable.WithFieldSelectorAndPredicate<JsonField> {
+public interface MappingContext extends Jsonifiable.WithFieldSelectorAndPredicate<JsonField> {
 
     /**
-     * @return the content-type of the payloads to map with this MappingScript.
+     * @return the content-type of the payloads to map with this MappingContext.
      */
     String getContentType();
 
@@ -48,9 +48,9 @@ public interface MappingScript extends Jsonifiable.WithFieldSelectorAndPredicate
     Map<String, String> getOptions();
 
     /**
-     * Returns all non hidden marked fields of this {@code AmqpConnection}.
+     * Returns all non hidden marked fields of this {@code MappingContext}.
      *
-     * @return a JSON object representation of this AmqpConnection including only non hidden marked fields.
+     * @return a JSON object representation of this MappingContext including only non hidden marked fields.
      */
     @Override
     default JsonObject toJson() {
@@ -63,7 +63,7 @@ public interface MappingScript extends Jsonifiable.WithFieldSelectorAndPredicate
     }
 
     /**
-     * An enumeration of the known {@code JsonField}s of a {@code MappingScript}.
+     * An enumeration of the known {@code JsonField}s of a {@code MappingContext}.
      */
     @Immutable
     final class JsonFields {

@@ -23,7 +23,7 @@ import org.apache.qpid.jms.provider.amqp.message.AmqpJmsTextMessageFacade;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.amqpbridge.AmqpBridgeModelFactory;
-import org.eclipse.ditto.model.amqpbridge.MappingScript;
+import org.eclipse.ditto.model.amqpbridge.MappingContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.PayloadMappers;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -74,8 +74,8 @@ public class CommandProcessorActorTest {
             final String targetActorPath = getTestActor().path().toStringWithoutAddress();
             pubSubMediator.tell(new DistributedPubSubMediator.Put(getTestActor()), null);
 
-            final List<MappingScript> mappingScripts = new ArrayList<>();
-            mappingScripts.add(AmqpBridgeModelFactory.newMappingScript(
+            final List<MappingContext> mappingContexts = new ArrayList<>();
+            mappingContexts.add(AmqpBridgeModelFactory.newMappingContext(
                     "text/plain",
                     "JavaScript",
                     PayloadMappers.createJavaScriptMapperOptionsBuilder()
@@ -93,7 +93,7 @@ public class CommandProcessorActorTest {
 
             final Props amqpCommandProcessorProps =
                     CommandProcessorActor.props(pubSubMediator, targetActorPath,
-                            AuthorizationSubject.newInstance("foo:bar"), mappingScripts);
+                            AuthorizationSubject.newInstance("foo:bar"), mappingContexts);
             final String amqpCommandProcessorName = CommandProcessorActor.ACTOR_NAME_PREFIX + "foo";
 
             final DefaultResizer resizer = new DefaultResizer(1, 5);

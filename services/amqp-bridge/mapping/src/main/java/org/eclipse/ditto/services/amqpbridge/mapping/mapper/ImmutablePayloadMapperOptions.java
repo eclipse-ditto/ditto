@@ -16,6 +16,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
+import javax.annotation.Nullable;
+
 /**
  * TODO doc
  */
@@ -37,7 +39,7 @@ final class ImmutablePayloadMapperOptions implements PayloadMapperOptions {
     }
 
     @Override
-    public boolean equals(final Object o) {
+    public boolean equals(@Nullable final Object o) {
         if (this == o) {
             return true;
         }

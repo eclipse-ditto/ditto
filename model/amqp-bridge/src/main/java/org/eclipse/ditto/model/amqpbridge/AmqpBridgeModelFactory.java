@@ -58,26 +58,26 @@ public final class AmqpBridgeModelFactory {
     }
 
     /**
-     * Returns a new {@code MappingScript}.
+     * Returns a new {@code MappingContext}.
      *
      * @return
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static MappingScript newMappingScript(final String contentType, final String mappingEngine,
+    public static MappingContext newMappingContext(final String contentType, final String mappingEngine,
             final Map<String, String> options) {
-        return ImmutableMappingScript.of(contentType, mappingEngine, options);
+        return ImmutableMappingContext.of(contentType, mappingEngine, options);
     }
 
     /**
-     * Creates a new {@code MappingScript} object from the specified JSON object.
+     * Creates a new {@code MappingContext} object from the specified JSON object.
      *
-     * @param jsonObject a JSON object which provides the data for the MappingScript to be created.
-     * @return a new MappingScript which is initialised with the extracted data from {@code jsonObject}.
+     * @param jsonObject a JSON object which provides the data for the MappingContext to be created.
+     * @return a new MappingContext which is initialised with the extracted data from {@code jsonObject}.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} is not an appropriate JSON object.
      */
-    public static MappingScript mappingScriptFromJson(final JsonObject jsonObject) {
-        return ImmutableMappingScript.fromJson(jsonObject);
+    public static MappingContext mappingContextFromJson(final JsonObject jsonObject) {
+        return ImmutableMappingContext.fromJson(jsonObject);
     }
 
 }
