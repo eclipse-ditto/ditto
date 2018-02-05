@@ -28,7 +28,7 @@ Optionally you can use field selectors (see `fields`) to only get the specified 
 |------------|--------|--------------------------|
 | **topic**  |        | `<namespace>/<thingId>/things/<channel>/commands/retrieve` |
 | **path**   |        | `/`                      |
-| **value**  |        | The found complete Thing as JSON object <br/>see [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload) |
+| **value**  |        | The found complete Thing as JSON object. See [Ditto protocol payload (JSON).](protocol-specification.html#dittoProtocolPayload) |
 | **status** | _code_ |                          | 
 |            | `200`  | Success.       |
 |            | `404`  | Not Found - the requested Thing does not exist or the requesting user does not have enough permission to retrieve it. |
@@ -55,7 +55,7 @@ Retrieve the Attributes of a Thing identified by the `<namespace>` and `<thingId
 |------------|--------|--------------------------|
 | **topic**  |        | `<namespace>/<thingId>/things/<channel>/commands/retrieve` |
 | **path**   |        | `/attributes`                      |
-| **value**  |        | The Attributes of the Thing as JSON, see property attributes of Things JSON schema.<br/>see [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload) |
+| **value**  |        | The Attributes of the Thing as JSON, see property attributes of Things JSON schema. See [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload) |
 | **status** | _code_ |                          | 
 |            | `200`  | Success.       |
 |            | `404`  | Not Found - the requested Attributes do not exist or the requesting user does not have enough permission to retrieve it. |
@@ -110,7 +110,7 @@ Retrieve the Features of a Thing identified by identified by the `<namespace>` a
 |------------|--------|--------------------------|
 | **topic**  |        | `<namespace>/<thingId>/things/<channel>/commands/retrieve` |
 | **path**   |        | `/features`                      |
-| **value**  |        | All Features of the Thing as JSON, see property features of Things JSON schema.<br/>see [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload) |
+| **value**  |        | All Features of the Thing as JSON, see property features of Things JSON schema. See [Ditto protocol payload (JSON).](protocol-specification.html#dittoProtocolPayload) |
 | **status** | _code_ |                          | 
 |            | `200`  | Success.       |
 |            | `404`  | Not Found - the requested Features do not exist or the requesting user does not have enough permission to retrieve it. |
@@ -138,7 +138,7 @@ Retrieve a specific Feature (identified by the `<featureId>` in the `path`) of t
 |------------|--------|--------------------------|
 | **topic**  |        | `<namespace>/<thingId>/things/<channel>/commands/retrieve` |
 | **path**   |        | `/features/<featureId>`                      |
-| **value**  |        | The specific Feature of the Thing as JSON.<br/>see [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload) |
+| **value**  |        | The specific Feature of the Thing as JSON. See [Ditto protocol payload (JSON).](protocol-specification.html#dittoProtocolPayload) |
 | **status** | _code_ |                          | 
 |            | `200`  | Success.       |
 |            | `404`  | Not Found - the requested Feature does not exist or the requesting user does not have enough permission to retrieve it. |
@@ -146,6 +146,34 @@ Retrieve a specific Feature (identified by the `<featureId>` in the `path`) of t
 
 **Example:** 
 [Retrieve a single Feature](protocol-examples-retrievefeature.html)
+
+
+## Retrieve Definition of a Feature
+
+Retrieve the Definition of a Feature (identified by the `<featureId>` in the `path`) of the Thing 
+(identified by the `<namespace>` and the `<thingId>` in the `topic`).
+
+### Command
+
+| Field     | Value                   |
+|-----------|-------------------------|
+| **topic** | `<namespace>/<thingId>/things/<channel>/commands/retrieve`     |
+| **path**  | `/features/<featureId>/definition`     |
+
+### Response
+
+| Field      |        | Value                    |
+|------------|--------|--------------------------|
+| **topic**  |        | `<namespace>/<thingId>/things/<channel>/commands/retrieve` |
+| **path**   |        | `/features/<featureId>/definition`                      |
+| **value**  |        | The Definition of the Feature as JSON array, see property properties of Things JSON schema. See [Ditto protocol payload (JSON).](protocol-specification.html#dittoProtocolPayload) |
+| **status** | _code_ |                          | 
+|            | `200`  | Success.       |
+|            | `404`  | Not Found - the requested Definition does not exist or requester has insufficient permissions to retrieve it. |
+|            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
+
+**Example:** 
+[Retrieve Feature Definition](protocol-examples-retrievedefinition.html)
 
 
 ## Retrieve all Properties of a Feature
@@ -166,7 +194,7 @@ Retrieve all Properties of a Feature (identified by the `<featureId>` in the `pa
 |------------|--------|--------------------------|
 | **topic**  |        | `<namespace>/<thingId>/things/<channel>/commands/retrieve` |
 | **path**   |        | `/features/<featureId>/properties`                      |
-| **value**  |        | The Properties of the Feature as JSON, see property properties of Things JSON schema.<br/>see [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload) |
+| **value**  |        | The Properties of the Feature as JSON, see property properties of Things JSON schema. See [Ditto protocol payload (JSON).](protocol-specification.html#dittoProtocolPayload) |
 | **status** | _code_ |                          | 
 |            | `200`  | Success.       |
 |            | `404`  | Not Found - the requested Properties do not exist or the requesting user does not have enough permission to retrieve it. |

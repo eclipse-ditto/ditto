@@ -154,6 +154,9 @@ entries:
     - title: Server sent events
       url: /httpapi-sse.html
       output: web
+    - title: Run in Postman
+      url: /httpapi-postman.html
+      output: web
 
   - title: Ditto Protocol
     output: web
@@ -283,16 +286,28 @@ entries:
         - title: Retrieve a single Feature
           url: /protocol-examples-retrievefeature.html
           output: web
-        - title: Create Properties
+        - title: Create Feature Definition
+          url: /protocol-examples-createdefinition.html
+          output: web
+        - title: Delete Feature Definition
+          url: /protocol-examples-deletedefinition.html
+          output: web
+        - title: Modify Feature Definition
+          url: /protocol-examples-modifydefinition.html
+          output: web
+        - title: Retrieve Feature Definition
+          url: /protocol-examples-retrievedefinition.html
+          output: web
+        - title: Create Feature Properties
           url: /protocol-examples-createproperties.html
           output: web
-        - title: Delete Properties
+        - title: Delete Feature Properties
           url: /protocol-examples-deleteproperties.html
           output: web
-        - title: Modify Properties
+        - title: Modify Feature Properties
           url: /protocol-examples-modifyproperties.html
           output: web
-        - title: Retrieve Properties
+        - title: Retrieve Feature Properties
           url: /protocol-examples-retrieveproperties.html
           output: web
         - title: Create a single Property

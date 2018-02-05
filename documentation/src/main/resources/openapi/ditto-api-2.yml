@@ -1,3 +1,4 @@
+
 # Copyright (c) 2017 Bosch Software Innovations GmbH.
 #
 # All rights reserved. This program and the accompanying materials
@@ -378,6 +379,8 @@ paths:
       responses:
         '200':
           description: The Attributes of the specific Thing were successfully retrieved.
+          schema:
+            $ref: '#/definitions/Attributes'
         '400':
           description: |-
             The request could not be completed. The `thingId` either
@@ -406,7 +409,7 @@ paths:
         - Things
       parameters:
         - $ref: '#/parameters/thingIdPathParam'
-        - name: attributesObject
+        - name: attributes
           in: body
           description: |-
             JSON object of all Attributes to be modified at once.
@@ -416,10 +419,16 @@ paths:
               * an empty object: `{}`
           required: true
           schema:
-            type: object
+            $ref: '#/definitions/Attributes'
       responses:
         '201':
           description: The Attributes were successfully created.
+          schema:
+            $ref: '#/definitions/Attributes'
+          headers:
+            Location:
+              description: The location of the created Attributes resource
+              type: string
         '204':
           description: The Attributes were successfully updated.
         '400':
@@ -502,7 +511,7 @@ paths:
         - $ref: '#/parameters/attributePathPathParam'
       responses:
         '200':
-          description: The Attribute was successfully modified.
+          description: The Attribute was successfully retrieved.
         '400':
           description: |-
             The request could not be completed. The `thingId` either
@@ -662,7 +671,7 @@ paths:
         - Features
       parameters:
         - $ref: '#/parameters/thingIdPathParam'
-        - name: featuresObject
+        - name: features
           in: body
           description: >-
             JSON object of the Features to be modified at once. It can be also
@@ -792,7 +801,7 @@ paths:
       parameters:
         - $ref: '#/parameters/thingIdPathParam'
         - $ref: '#/parameters/featureIdPathPathParam'
-        - name: featureObject
+        - name: feature
           in: body
           description: >-
             JSON representation of the Feature to be created/modified. It can
@@ -876,6 +885,138 @@ paths:
             the Feature at the specified path was not found.
           schema:
             $ref: '#/definitions/AdvancedError'
+  '/things/{thingId}/features/{featureId}/definition':
+    get:
+      summary: List the Definition of a Feature
+      description: >-
+        Returns the complete Definition of the Feature identified by the `thingId` and
+        `featureId` path parameter.
+      tags:
+        - Features
+      parameters:
+        - $ref: '#/parameters/thingIdPathParam'
+        - $ref: '#/parameters/featureIdPathPathParam'
+      responses:
+        '200':
+          description: The Definition was successfully retrieved.
+          schema:
+            $ref: '#/definitions/FeatureDefinition'
+        '400':
+          description: |-
+            The request could not be completed. The `thingId` either
+
+              * does not contain the mandatory namespace prefix (java package notation + `:` colon)
+              * does not conform to RFC-2396 (URI)
+
+            Or at least one of the defined query parameters was invalid.
+          schema:
+            $ref: '#/definitions/AdvancedError'
+        '401':
+          description: The request could not be completed due to missing authentication.
+          schema:
+            $ref: '#/definitions/AdvancedError'
+        '404':
+          description: >-
+            The request could not be completed. The specified Feature has no
+            Definition or the Thing with the specified `thingId` or the Feature
+            with `featureId` was not found.
+          schema:
+            $ref: '#/definitions/AdvancedError'
+    put:
+      summary: Create or update the Definition of a Feature
+      description: >-
+        Create or update the complete Definition of a Feature identified by the `thingId`
+        and `featureId` path parameter at once. The Definition will be replaced
+        by the request body's JSON array.
+      tags:
+        - Features
+      parameters:
+        - $ref: '#/parameters/thingIdPathParam'
+        - $ref: '#/parameters/featureIdPathPathParam'
+        - name: definition
+          in: body
+          description: >-
+            JSON array of the complete Definition to be updated. Consider that
+            the value has to be a JSON array or `null`. The content of the JSON array
+            are strings in the format `"namespace:name:version"` which is enforced.
+          required: true
+          schema:
+            $ref: '#/definitions/FeatureDefinition'
+      responses:
+        '201':
+          description: The Definition was successfully created.
+          schema:
+            $ref: '#/definitions/FeatureDefinition'
+          headers:
+            Location:
+              description: The location of the created Definition resource
+              type: string
+        '204':
+          description: The Definition was successfully updated.
+        '400':
+          description: |-
+            The request could not be completed. The `thingId` either
+
+              * does not contain the mandatory namespace prefix (java package notation + `:` colon)
+              * does not conform to RFC-2396 (URI)
+
+            Or the JSON was invalid.
+          schema:
+            $ref: '#/definitions/AdvancedError'
+        '401':
+          description: The request could not be completed due to missing authentication.
+          schema:
+            $ref: '#/definitions/AdvancedError'
+        '403':
+          description: |-
+            The request could not be completed as the caller had insufficient permissions.
+            For modifying the Definition of an existing Feature `WRITE` permission is required.
+          schema:
+            $ref: '#/definitions/AdvancedError'
+        '404':
+          description: >-
+            The request could not be completed. The Thing or the Feature with
+            the given ID was not found.
+          schema:
+            $ref: '#/definitions/AdvancedError'
+    delete:
+      summary: Delete the Definition of a Feature
+      description: >-
+        Deletes the complete Definition of the Feature identified by the `thingId` and
+        `featureId` path parameter.
+      tags:
+        - Features
+      parameters:
+        - $ref: '#/parameters/thingIdPathParam'
+        - $ref: '#/parameters/featureIdPathPathParam'
+      responses:
+        '204':
+          description: The Definition was successfully deleted.
+        '400':
+          description: |-
+            The request could not be completed. The `thingId` either
+
+              * does not contain the mandatory namespace prefix (java package notation + `:` colon)
+              * does not conform to RFC-2396 (URI)
+          schema:
+            $ref: '#/definitions/AdvancedError'
+        '401':
+          description: The request could not be completed due to missing authentication.
+          schema:
+            $ref: '#/definitions/AdvancedError'
+        '403':
+          description: |-
+            The request could not be completed as the caller had insufficient permissions.
+            For deleting the Definition of an existing Feature `WRITE` permission is required.
+          schema:
+            $ref: '#/definitions/AdvancedError'
+        '404':
+          description: >-
+            The request could not be completed. The specified Feature has no
+            Definition or the Thing with the specified `thingId` or the Feature
+            with `featureId` was not found.
+          schema:
+            $ref: '#/definitions/AdvancedError'
   '/things/{thingId}/features/{featureId}/properties':
     get:
       summary: List all Properties of a Feature
@@ -923,7 +1064,7 @@ paths:
       parameters:
         - $ref: '#/parameters/thingIdPathParam'
         - $ref: '#/parameters/featureIdPathPathParam'
-        - name: propertiesObject
+        - name: properties
           in: body
           description: >-
             JSON object of all Properties to be updated at once. Consider that
@@ -933,7 +1074,7 @@ paths:
             [_a-zA-Z][_a-zA-Z0-9\-]*
           required: true
           schema:
-            type: object
+            $ref: '#/definitions/FeatureProperties'
       responses:
         '201':
           description: The Properties were successfully created.
@@ -2469,12 +2610,29 @@ definitions:
       - status
       - error
       - message
+  Attributes:
+    type: object
+    description: An arbitrary JSON object.
+  FeatureDefinition:
+    type: array
+    minItems: 1
+    uniqueItems: true
+    items:
+      type: string
+      description: "A single fully qualified identifier of a Feature Definition in the form 'namespace:name:version'"
+      pattern: (?<namespace>[_a-zA-Z0-9\-.]+):(?<name>[_a-zA-Z0-9\-.]+):(?<version>[_a-zA-Z0-9\-.]+)
+  FeatureProperties:
+    type: object
+    description: An arbitrary JSON object.
   Feature:
     type: object
     properties:
+      definition:
+        $ref: '#/definitions/FeatureDefinition'
+        description: The Definition of this Feature
       properties:
-        type: object
-        description: The properties of this feature
+        $ref: '#/definitions/FeatureProperties'
+        description: The Properties of this Feature
   SearchResultThings:
     properties:
       items:
@@ -2501,7 +2659,7 @@ definitions:
           The Policy ID used for controlling access to this Thing. Managed by
           resource `/policies/{policyId}`.
       attributes:
-        type: object
+        $ref: '#/definitions/Attributes'
         description: The attributes of this Thing
       features:
         $ref: '#/definitions/Features'
@@ -2521,7 +2679,7 @@ definitions:
         type: string
         description: The policy ID used for controlling access to this thing, managed by resource `/policies/{policyId}`
       attributes:
-        type: object
+        $ref: '#/definitions/Attributes'
         description: The attributes of this thing
       features:
         $ref: '#/definitions/Features'

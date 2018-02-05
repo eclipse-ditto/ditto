@@ -108,6 +108,13 @@ $h3 Delete Features
 #parse( "snippet" )
 ```
 
+$h3 Modify Feature Definition
+
+#set( $snippetFile = "/target/generated-resources/things/commands/modify/modifyFeatureDefinition.json" )
+```
+#parse( "snippet" )
+```
+
 $h3 Modify Feature Properties
 
 #set( $snippetFile = "/target/generated-resources/things/commands/modify/modifyFeatureProperties.json" )
@@ -118,6 +125,13 @@ $h3 Modify Feature Properties
 $h3 Modify Feature Property
 
 #set( $snippetFile = "/target/generated-resources/things/commands/modify/modifyFeatureProperty.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Delete Feature Definition
+
+#set( $snippetFile = "/target/generated-resources/things/commands/modify/deleteFeatureDefinition.json" )
 ```
 #parse( "snippet" )
 ```

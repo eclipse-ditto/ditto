@@ -66,6 +66,13 @@ $h3 Retrieve Feature
 #parse( "snippet" )
 ```
 
+$h3 Retrieve Feature Definition
+
+#set( $snippetFile = "/target/generated-resources/things/commands/query/retrieveFeatureDefinitionResponse.json" )
+```
+#parse( "snippet" )
+```
+
 $h3 Retrieve Feature Properties
 
 #set( $snippetFile = "/target/generated-resources/things/commands/query/retrieveFeaturePropertiesResponse.json" )

@@ -58,6 +58,9 @@ public final class ThingModifyCommandRegistry extends AbstractCommandRegistry<Th
         parseStrategies.put(ModifyFeature.TYPE, ModifyFeature::fromJson);
         parseStrategies.put(DeleteFeature.TYPE, DeleteFeature::fromJson);
 
+        parseStrategies.put(ModifyFeatureDefinition.TYPE, ModifyFeatureDefinition::fromJson);
+        parseStrategies.put(DeleteFeatureDefinition.TYPE, DeleteFeatureDefinition::fromJson);
+
         parseStrategies.put(ModifyFeatureProperties.TYPE, ModifyFeatureProperties::fromJson);
         parseStrategies.put(DeleteFeatureProperties.TYPE, DeleteFeatureProperties::fromJson);
         parseStrategies.put(ModifyFeatureProperty.TYPE, ModifyFeatureProperty::fromJson);

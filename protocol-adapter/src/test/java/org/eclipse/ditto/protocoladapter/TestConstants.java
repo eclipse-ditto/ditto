@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.protocoladapter;
 
+import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
@@ -22,6 +23,7 @@ import org.eclipse.ditto.model.things.AccessControlListModelFactory;
 import org.eclipse.ditto.model.things.AclEntry;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Feature;
+import org.eclipse.ditto.model.things.FeatureDefinition;
 import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Thing;
@@ -69,6 +71,10 @@ final class TestConstants {
 
     static final FeatureProperties FEATURE_PROPERTIES =
             ThingsModelFactory.newFeatureProperties(FEATURE_PROPERTIES_JSON);
+
+    static final FeatureDefinition FEATURE_DEFINITION = FeatureDefinition.fromIdentifier("org.eclipse.ditto:foo:1.0.0");
+
+    static final JsonArray FEATURE_DEFINITION_JSON = FEATURE_DEFINITION.toJson();
 
     static final Feature FEATURE = Feature.newBuilder().properties(FEATURE_PROPERTIES).withId(FEATURE_ID).build();
 

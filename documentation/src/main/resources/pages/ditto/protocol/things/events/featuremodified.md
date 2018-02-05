@@ -3,9 +3,7 @@
 ```json
 {
   "topic": "com.acme/xdk_53/things/twin/events/modified",
-  "headers": {
-    
-  },
+  "headers": {},
   "path": "/features/accelerometer",
   "value": {
     "properties": {

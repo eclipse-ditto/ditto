@@ -73,7 +73,7 @@ The attributes will be set to the JSON in the value.
 | **status** | *code* |                          | 
 |            | `201`  | Success - Attributes were created successfully.       |
 |            | `403`  | Not Modifiable - Attributes could not be modified.        |
-|            | `404`  | Not Found - Attributes not found or requester had insufficient permissions.  |
+|            | `404`  | Not Found - Thing not found or requester had insufficient permissions.  |
 |            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
 
 ### Event
@@ -113,7 +113,7 @@ The attribute (JSON) can be referenced hierarchically by applying [JSON Pointer 
 | **status** | _code_ |                          | 
 |            | `201`  | Success - Attribute was created successfully.       |
 |            | `403`  | Not Modifiable - Attribute could not be modified.        |
-|            | `404`  | Not Found - Attribute not found or requester had insufficient permissions.  |
+|            | `404`  | Not Found - Thing not found or requester had insufficient permissions.  |
 |            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
 
 ### Event
@@ -152,7 +152,7 @@ The list of Features will be replaced by the JSON in the value.
 | **status** | *code* |                          | 
 |            | `201`  | Success - the Features were created successfully.       |
 |            | `403`  | Not Modifiable - the Features could not be modified.         |
-|            | `404`  | Not Found - the Features were not found or requester had insufficient permissions.   |
+|            | `404`  | Not Found - the Thing was not found or requester had insufficient permissions.   |
 |            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
 
 ### Event
@@ -191,7 +191,7 @@ the `<thingId>` in the topic).
 | **status** | *code* |                          | 
 |            | `201`  | Success - the Feature was created successfully.       |
 |            | `403`  | Not Modifiable - the Feature could not be modified.         |
-|            | `404`  | Not Found - the Feature was not found or requester had insufficient permissions.   |
+|            | `404`  | Not Found - the Thing or Feature was not found or requester had insufficient permissions.   |
 |            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
 
 ### Event
@@ -206,6 +206,45 @@ The event emitted by Ditto after a Feature of a Thing was created.
 
 **Example:** 
 [Create a single Feature](protocol-examples-createfeature.html)
+
+
+## Create Definition of a Feature
+
+Create the Definition of a Feature (identified by the Feature ID in the path) of the Thing (identified by the
+`<namespace>` and the `<thingId>` in the topic).
+
+### Command
+
+| Field     | Value                   |
+|-----------|-------------------------|
+| **topic** | `<namespace>/<thingId>/things/<channel>/commands/modify`     |
+| **path**  | `/features/<featureId>/definition`     |
+| **value** | The Definition of the Feature as JSON array, see property `definition` of Things JSON schema at [Ditto protocol payload (JSON).](protocol-specification.html#dittoProtocolPayload) |
+
+### Response
+
+| Field      |        | Value                    |
+|------------|--------|--------------------------|
+| **topic**  |        | `<namespace>/<thingId>/things/<channel>/commands/modify` |
+| **path**   |        | `/features/<featureId>/definition`                      |
+| **value**  |        | The created Definition of the Feature as JSON array, see property `definition` of Things JSON schema at [Ditto protocol payload (JSON).](protocol-specification.html#dittoProtocolPayload) |
+| **status** | *code* |                          | 
+|            | `201`  | Success - the Definition was created successfully.       |
+|            | `403`  | Not Modifiable - the Definition could not be modified.         |
+|            | `404`  | Not Found - the Thing or Feature was not found or requester had insufficient permissions.   |
+|            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
+
+### Event
+
+The event emitted by Ditto after the Feature Definition of a Thing was created.
+
+| Field     | Value                   |
+|-----------|-------------------------|
+| **topic** | `<namespace>/<thingId>/things/<channel>/events/created`     |
+| **path**  | `/features/<featureId>/definition`     |
+| **value** | The created Definition of the Feature as JSON array, see property `definition` of the Things JSON schema at [Ditto protocol payload (JSON).](protocol-specification.html#dittoProtocolPayload) |
+
+**Example:** [Create Feature Definition.](protocol-examples-createdefinition.html)
 
 
 ## Create all Properties of a Feature
@@ -231,7 +270,7 @@ Create the Properties of a Feature (identified by the Feature ID in the path) of
 | **status** | *code* |                          | 
 |            | `201`  | Success - the Properties were created successfully.       |
 |            | `403`  | Not Modifiable - the Properties could not be modified.         |
-|            | `404`  | Not Found - the Properties were not found or requester had insufficient permissions.   |
+|            | `404`  | Not Found - the Thing or Feature was not found or requester had insufficient permissions.   |
 |            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
 
 ### Event

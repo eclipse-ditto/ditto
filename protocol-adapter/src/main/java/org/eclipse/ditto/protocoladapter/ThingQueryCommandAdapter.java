@@ -28,6 +28,7 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveAclEntry;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttribute;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributes;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeature;
+import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureDefinition;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureProperties;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureProperty;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatures;
@@ -79,6 +80,10 @@ final class ThingQueryCommandAdapter extends AbstractAdapter<ThingQueryCommand> 
 
         mappingStrategies.put(RetrieveFeature.TYPE, adaptable -> RetrieveFeature.of(thingIdFrom(adaptable),
                 featureIdFrom(adaptable), selectedFieldsFrom(adaptable), dittoHeadersFrom(adaptable)));
+
+        mappingStrategies.put(RetrieveFeatureDefinition.TYPE, adaptable ->
+                RetrieveFeatureDefinition.of(thingIdFrom(adaptable), featureIdFrom(adaptable),
+                        dittoHeadersFrom(adaptable)));
 
         mappingStrategies.put(RetrieveFeatureProperties.TYPE, adaptable ->
                 RetrieveFeatureProperties.of(thingIdFrom(adaptable), featureIdFrom(adaptable),

@@ -11,6 +11,11 @@
  */
 package org.eclipse.ditto.model.things;
 
+import static org.assertj.core.api.Assertions.assertThatNullPointerException;
+import static org.eclipse.ditto.model.things.TestConstants.Feature.FLUX_CAPACITOR;
+import static org.eclipse.ditto.model.things.TestConstants.Feature.FLUX_CAPACITOR_ID;
+import static org.eclipse.ditto.model.things.TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES;
+import static org.eclipse.ditto.model.things.TestConstants.Thing.ATTRIBUTES;
 import static org.eclipse.ditto.model.things.assertions.DittoThingsAssertions.assertThat;
 
 import java.util.Collections;
@@ -35,59 +40,52 @@ public final class ImmutableThingFromScratchBuilderTest {
 
     private ImmutableThingFromScratchBuilder underTest = null;
 
-
     @Before
     public void setUp() {
         underTest = ImmutableThingFromScratchBuilder.newInstance();
     }
 
-
     @Test
     public void createEmptyThing() {
         final Thing thing = underTest.build();
 
-        assertThat(thing) //
-                .hasNoId() //
-                .hasNoNamespace() //
-                .hasNoAcl() //
-                .hasNoAttributes() //
-                .hasNoFeatures() //
-                .hasNoRevision() //
-                .hasNoLifecycle() //
+        assertThat(thing)
+                .hasNoId()
+                .hasNoNamespace()
+                .hasNoAcl()
+                .hasNoAttributes()
+                .hasNoFeatures()
+                .hasNoRevision()
+                .hasNoLifecycle()
                 .hasNoModified();
     }
-
 
     @Test(expected = NullPointerException.class)
     public void tryToSetNullAttributes() {
         underTest.setAttributes((Attributes) null);
     }
 
-
     @Test
     public void setAttributes() {
-        underTest.setAttributes(TestConstants.Thing.ATTRIBUTES);
+        underTest.setAttributes(ATTRIBUTES);
         final Thing thing = underTest.build();
 
-        assertThat(thing).hasAttributes(TestConstants.Thing.ATTRIBUTES);
+        assertThat(thing).hasAttributes(ATTRIBUTES);
     }
-
 
     @Test(expected = NullPointerException.class)
     public void tryToSetAttributesFromNullJsonObject() {
         underTest.setAttributes((JsonObject) null);
     }
 
-
     @Test
     public void setAttributesFromJsonObject() {
-        final JsonObject attributesJsonObject = TestConstants.Thing.ATTRIBUTES.toJson();
+        final JsonObject attributesJsonObject = ATTRIBUTES.toJson();
         underTest.setAttributes(attributesJsonObject);
         final Thing thing = underTest.build();
 
-        assertThat(thing).hasAttributes(TestConstants.Thing.ATTRIBUTES);
+        assertThat(thing).hasAttributes(ATTRIBUTES);
     }
-
 
     @Test
     public void setAttributesFromSemanticNullJsonObject() {
@@ -97,7 +95,6 @@ public final class ImmutableThingFromScratchBuilderTest {
         assertThat(thing).hasAttributes(ThingsModelFactory.nullAttributes());
     }
 
-
     @Test
     public void setAttributesFromSemanticNullJsonString() {
         underTest.setAttributes("null");
@@ -105,7 +102,6 @@ public final class ImmutableThingFromScratchBuilderTest {
 
         assertThat(thing).hasAttributes(ThingsModelFactory.nullAttributes());
     }
-
 
     @Test
     public void setEmptyAttributes() {
@@ -115,7 +111,6 @@ public final class ImmutableThingFromScratchBuilderTest {
         assertThat(thing).hasAttributes(ThingsModelFactory.emptyAttributes());
     }
 
-
     @Test
     public void setAttributesWithEmptyAttributes() {
         underTest.setAttributes(ThingsModelFactory.emptyAttributes());
@@ -123,7 +118,6 @@ public final class ImmutableThingFromScratchBuilderTest {
 
         assertThat(thing).hasAttributes(ThingsModelFactory.emptyAttributes());
     }
-
 
     @Test
     public void setNullAttributes() {
@@ -133,50 +127,43 @@ public final class ImmutableThingFromScratchBuilderTest {
         assertThat(thing).hasAttributes(ThingsModelFactory.nullAttributes());
     }
 
-
     @Test(expected = DittoJsonException.class)
     public void tryToSetAttributesFromNullJsonString() {
         underTest.setAttributes((String) null);
     }
-
 
     @Test(expected = DittoJsonException.class)
     public void tryToSetAttributesFromEmptyJsonString() {
         underTest.setAttributes("");
     }
 
-
     @Test
     public void setAttributesFromJsonString() {
-        final String attributesJsonString = TestConstants.Thing.ATTRIBUTES.toJsonString();
+        final String attributesJsonString = ATTRIBUTES.toJsonString();
         underTest.setAttributes(attributesJsonString);
         final Thing thing = underTest.build();
 
-        assertThat(thing).hasAttributes(TestConstants.Thing.ATTRIBUTES);
+        assertThat(thing).hasAttributes(ATTRIBUTES);
     }
-
 
     @Test
     public void removeAllAttributes() {
-        underTest.setAttributes(TestConstants.Thing.ATTRIBUTES);
+        underTest.setAttributes(ATTRIBUTES);
         underTest.removeAllAttributes();
         final Thing thing = underTest.build();
 
         assertThat(thing).hasNoAttributes();
     }
 
-
     @Test(expected = NullPointerException.class)
     public void tryToSetAttributeWithNullPath() {
         underTest.setAttribute(null, ATTRIBUTE_VALUE);
     }
 
-
     @Test(expected = NullPointerException.class)
     public void tryToSetAttributeWithNullValue() {
         underTest.setAttribute(ATTRIBUTE_PATH, null);
     }
-
 
     @Test
     public void setAttribute() {
@@ -186,165 +173,154 @@ public final class ImmutableThingFromScratchBuilderTest {
         assertThat(thing).hasAttribute(ATTRIBUTE_PATH, ATTRIBUTE_VALUE);
     }
 
-
     @Test(expected = NullPointerException.class)
     public void tryToRemoveAttributeWithNullPath() {
-        underTest.setAttributes(TestConstants.Thing.ATTRIBUTES);
+        underTest.setAttributes(ATTRIBUTES);
         underTest.removeAttribute(null);
     }
 
-
     @Test
     public void removeAttribute() {
-        underTest.setAttributes(TestConstants.Thing.ATTRIBUTES);
+        underTest.setAttributes(ATTRIBUTES);
         underTest.removeAttribute(ATTRIBUTE_PATH);
         final Thing thing = underTest.build();
 
         assertThat(thing).hasNotAttribute(ATTRIBUTE_PATH);
     }
 
-
     @Test(expected = NullPointerException.class)
     public void tryToSetNullFeature() {
         underTest.setFeature((Feature) null);
     }
 
-
     @Test
     public void setFeature() {
-        underTest.setFeature(TestConstants.Feature.FLUX_CAPACITOR);
+        underTest.setFeature(FLUX_CAPACITOR);
         final Thing thing = underTest.build();
 
-        assertThat(thing).hasFeature(TestConstants.Feature.FLUX_CAPACITOR);
+        assertThat(thing).hasFeature(FLUX_CAPACITOR);
     }
-
 
     @Test
     public void setNullFeature() {
         final String nullFeatureId = "schroedinger";
-        underTest.setFeature(TestConstants.Feature.FLUX_CAPACITOR);
+        underTest.setFeature(FLUX_CAPACITOR);
         underTest.setFeature(ThingsModelFactory.nullFeature(nullFeatureId));
         final Thing thing = underTest.build();
 
-        assertThat(thing) //
-                .hasFeature(TestConstants.Feature.FLUX_CAPACITOR) //
+        assertThat(thing)
+                .hasFeature(FLUX_CAPACITOR)
                 .hasFeatureWithId(nullFeatureId);
     }
 
-
-    @Test(expected = NullPointerException.class)
+    @Test
     public void tryToSetFeatureWithNullId() {
-        underTest.setFeature((String) null);
+        assertThatNullPointerException()
+                .isThrownBy(() -> underTest.setFeature((String) null))
+                .withMessage("The %s must not be null!", "ID of the Feature")
+                .withNoCause();
     }
-
 
     @Test
     public void setFeatureById() {
-        underTest.setFeature(TestConstants.Feature.FLUX_CAPACITOR_ID);
+        underTest.setFeature(FLUX_CAPACITOR_ID);
         final Thing thing = underTest.build();
 
-        assertThat(thing).hasFeatureWithId(TestConstants.Feature.FLUX_CAPACITOR_ID);
+        assertThat(thing).hasFeatureWithId(FLUX_CAPACITOR_ID);
     }
 
-
-    @Test(expected = NullPointerException.class)
+    @Test
     public void tryToSetFeatureWithPropertiesWithNullId() {
-        underTest.setFeature(null, TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES);
+        assertThatNullPointerException()
+                .isThrownBy(() -> underTest.setFeature(null, TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES))
+                .withMessage("The %s must not be null!", "ID of the Feature")
+                .withNoCause();
     }
-
 
     @Test
     public void setFeatureWithProperties() {
-        underTest.setFeature(TestConstants.Feature.FLUX_CAPACITOR_ID, TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES);
+        underTest.setFeature(FLUX_CAPACITOR_ID,
+                TestConstants.Feature.FLUX_CAPACITOR_DEFINITION, TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES);
         final Thing thing = underTest.build();
 
-        assertThat(thing).hasFeature(TestConstants.Feature.FLUX_CAPACITOR);
+        assertThat(thing).hasFeature(FLUX_CAPACITOR);
     }
 
-
-    @Test(expected = NullPointerException.class)
+    @Test
     public void tryToRemoveFeatureWithNullId() {
-        underTest.removeFeature(null);
+        assertThatNullPointerException()
+                .isThrownBy(() -> underTest.removeFeature(null))
+                .withMessage("The %s must not be null!", "identifier of the feature to be removed")
+                .withNoCause();
     }
-
 
     @Test
     public void removeFeature() {
-        underTest.setFeature(TestConstants.Feature.FLUX_CAPACITOR);
-        underTest.removeFeature(TestConstants.Feature.FLUX_CAPACITOR_ID);
+        underTest.setFeature(FLUX_CAPACITOR);
+        underTest.removeFeature(FLUX_CAPACITOR_ID);
         final Thing thing = underTest.build();
 
         assertThat(thing).hasNoFeatures();
     }
 
-
-    @Test(expected = NullPointerException.class)
+    @Test
     public void tryToSetFetFeaturePropertyForNullFeatureId() {
-        underTest.setFeatureProperty(null, PROPERTY_PATH, PROPERTY_VALUE);
+        assertThatNullPointerException()
+                .isThrownBy(() -> underTest.setFeatureProperty(null, PROPERTY_PATH, PROPERTY_VALUE))
+                .withMessage("The %s must not be null!", "ID of the Feature")
+                .withNoCause();
     }
-
 
     @Test(expected = NullPointerException.class)
     public void tryToSetFeaturePropertyWithNullPath() {
-        underTest.setFeatureProperty(TestConstants.Feature.FLUX_CAPACITOR_ID, null, PROPERTY_VALUE);
+        underTest.setFeatureProperty(FLUX_CAPACITOR_ID, null, PROPERTY_VALUE);
     }
-
 
     @Test(expected = NullPointerException.class)
     public void tryToSetFeaturePropertyWithNullValue() {
-        underTest.setFeatureProperty(TestConstants.Feature.FLUX_CAPACITOR_ID, PROPERTY_PATH, null);
+        underTest.setFeatureProperty(FLUX_CAPACITOR_ID, PROPERTY_PATH, null);
     }
-
 
     @Test
     public void setFeaturePropertyOnEmptyBuilder() {
-        underTest.setFeatureProperty(TestConstants.Feature.FLUX_CAPACITOR_ID, PROPERTY_PATH, PROPERTY_VALUE);
+        underTest.setFeatureProperty(FLUX_CAPACITOR_ID, PROPERTY_PATH, PROPERTY_VALUE);
         final Thing thing = underTest.build();
 
-        assertThat(thing)
-                .hasFeatureProperty(TestConstants.Feature.FLUX_CAPACITOR_ID, PROPERTY_PATH, PROPERTY_VALUE);
+        assertThat(thing).hasFeatureProperty(FLUX_CAPACITOR_ID, PROPERTY_PATH, PROPERTY_VALUE);
     }
-
 
     @Test
     public void setFeaturePropertyOnBuilderWithFeatures() {
         underTest.setFeatures(TestConstants.Feature.FEATURES);
-        underTest.setFeatureProperty(TestConstants.Feature.FLUX_CAPACITOR_ID, PROPERTY_PATH, PROPERTY_VALUE);
+        underTest.setFeatureProperty(FLUX_CAPACITOR_ID, PROPERTY_PATH, PROPERTY_VALUE);
         final Thing thing = underTest.build();
 
-        assertThat(thing)
-                .hasFeatureProperty(TestConstants.Feature.FLUX_CAPACITOR_ID, PROPERTY_PATH, PROPERTY_VALUE);
+        assertThat(thing).hasFeatureProperty(FLUX_CAPACITOR_ID, PROPERTY_PATH, PROPERTY_VALUE);
     }
-
 
     @Test(expected = NullPointerException.class)
     public void tryToRemoveFeaturePropertyForNullFeatureId() {
         underTest.removeFeatureProperty(null, PROPERTY_PATH);
     }
 
-
     @Test(expected = NullPointerException.class)
     public void tryToRemoveFeaturePropertyWithNullPath() {
-        underTest.removeFeatureProperty(TestConstants.Feature.FLUX_CAPACITOR_ID, null);
+        underTest.removeFeatureProperty(FLUX_CAPACITOR_ID, null);
     }
-
 
     @Test
     public void removeFeatureProperty() {
-        underTest.setFeature(TestConstants.Feature.FLUX_CAPACITOR);
-        underTest.removeFeatureProperty(TestConstants.Feature.FLUX_CAPACITOR_ID, PROPERTY_PATH);
+        underTest.setFeature(FLUX_CAPACITOR);
+        underTest.removeFeatureProperty(FLUX_CAPACITOR_ID, PROPERTY_PATH);
         final Thing thing = underTest.build();
 
-        assertThat(thing)
-                .hasNotFeatureProperty(TestConstants.Feature.FLUX_CAPACITOR_ID, PROPERTY_PATH);
+        assertThat(thing).hasNotFeatureProperty(FLUX_CAPACITOR_ID, PROPERTY_PATH);
     }
-
 
     @Test(expected = NullPointerException.class)
     public void tryToSetFeaturesWithNullIterable() {
         underTest.setFeatures((Iterable<Feature>) null);
     }
-
 
     @Test
     public void setFeatures() {
@@ -354,12 +330,10 @@ public final class ImmutableThingFromScratchBuilderTest {
         assertThat(thing).hasFeatures(TestConstants.Feature.FEATURES);
     }
 
-
     @Test(expected = NullPointerException.class)
     public void tryToSetFeaturesFromNullJsonObject() {
         underTest.setFeatures((JsonObject) null);
     }
-
 
     @Test
     public void setFeaturesFromSemanticNullJsonObject() {
@@ -369,7 +343,6 @@ public final class ImmutableThingFromScratchBuilderTest {
         assertThat(thing).hasFeatures(ThingsModelFactory.nullFeatures());
     }
 
-
     @Test
     public void setEmptyFeatures() {
         underTest.setEmptyFeatures();
@@ -377,7 +350,6 @@ public final class ImmutableThingFromScratchBuilderTest {
 
         assertThat(thing).hasFeatures(ThingsModelFactory.emptyFeatures());
     }
-
 
     @Test
     public void setNullFeatures() {
@@ -387,7 +359,6 @@ public final class ImmutableThingFromScratchBuilderTest {
         assertThat(thing).hasFeatures(ThingsModelFactory.nullFeatures());
     }
 
-
     @Test
     public void setFeaturesWithEmptyFeatures() {
         underTest.setFeatures(ThingsModelFactory.emptyFeatures());
@@ -396,18 +367,15 @@ public final class ImmutableThingFromScratchBuilderTest {
         assertThat(thing).hasFeatures(ThingsModelFactory.emptyFeatures());
     }
 
-
     @Test(expected = DittoJsonException.class)
     public void tryToSetFeaturesFromNullJsonString() {
         underTest.setFeatures((String) null);
     }
 
-
     @Test(expected = DittoJsonException.class)
     public void tryToSetFeaturesFromEmptyJsonString() {
         underTest.setFeatures("");
     }
-
 
     @Test
     public void setFeaturesFromJsonString() {
@@ -417,7 +385,6 @@ public final class ImmutableThingFromScratchBuilderTest {
 
         assertThat(thing).hasFeatures(TestConstants.Feature.FEATURES);
     }
-
 
     @Test
     public void setFeaturesFromSemanticNullJsonString() {
@@ -429,7 +396,6 @@ public final class ImmutableThingFromScratchBuilderTest {
         assertThat(thing).hasFeatures(nullFeatures);
     }
 
-
     @Test
     public void removeAllFeatures() {
         underTest.setFeatures(TestConstants.Feature.FEATURES);
@@ -439,7 +405,6 @@ public final class ImmutableThingFromScratchBuilderTest {
         assertThat(thing).hasNoFeatures();
     }
 
-
     @Test
     public void setLifecycle() {
         underTest.setLifecycle(TestConstants.Thing.LIFECYCLE);
@@ -447,7 +412,6 @@ public final class ImmutableThingFromScratchBuilderTest {
 
         assertThat(thing).hasLifecycle(TestConstants.Thing.LIFECYCLE);
     }
-
 
     @Test
     public void setNullLifecycle() {
@@ -458,7 +422,6 @@ public final class ImmutableThingFromScratchBuilderTest {
         assertThat(thing).hasNoLifecycle();
     }
 
-
     @Test
     public void setRevision() {
         underTest.setRevision(TestConstants.Thing.REVISION);
@@ -466,7 +429,6 @@ public final class ImmutableThingFromScratchBuilderTest {
 
         assertThat(thing).hasRevision(TestConstants.Thing.REVISION);
     }
-
 
     @Test
     public void setNullRevision() {
@@ -477,7 +439,6 @@ public final class ImmutableThingFromScratchBuilderTest {
         assertThat(thing).hasNoRevision();
     }
 
-
     @Test
     public void setRevisionByNumber() {
         underTest.setRevision(TestConstants.Thing.REVISION_NUMBER);
@@ -486,18 +447,16 @@ public final class ImmutableThingFromScratchBuilderTest {
         assertThat(thing).hasRevision(TestConstants.Thing.REVISION);
     }
 
-
     @Test
-    public void setmodified() {
+    public void setModified() {
         underTest.setModified(TestConstants.Thing.MODIFIED);
         final Thing thing = underTest.build();
 
         assertThat(thing).hasModified(TestConstants.Thing.MODIFIED);
     }
 
-
     @Test
-    public void setNullmodified() {
+    public void setNullModified() {
         underTest.setModified(TestConstants.Thing.MODIFIED);
         underTest.setModified(null);
         final Thing thing = underTest.build();
@@ -505,12 +464,10 @@ public final class ImmutableThingFromScratchBuilderTest {
         assertThat(thing).hasNoModified();
     }
 
-
     @Test(expected = NullPointerException.class)
     public void tryToSetPermissionsWithNullJsonObject() {
         underTest.setPermissions((JsonObject) null);
     }
-
 
     @Test
     public void setPermissionsWithSemanticNullJsonObjectOnEmptyBuilder() {
@@ -519,7 +476,6 @@ public final class ImmutableThingFromScratchBuilderTest {
 
         assertThat(thing).hasAcl(ThingsModelFactory.emptyAcl());
     }
-
 
     @Test
     public void setPermissionsWithSemanticNullJsonObjectOnBuilderWithAcl() {
@@ -530,36 +486,30 @@ public final class ImmutableThingFromScratchBuilderTest {
         assertThat(thing).hasAcl(TestConstants.Thing.ACL);
     }
 
-
     @Test(expected = DittoJsonException.class)
     public void tryToSetPermissionsWithNullJsonString() {
         underTest.setPermissions((String) null);
     }
-
 
     @Test(expected = DittoJsonException.class)
     public void tryToSetPermissionsWithEmptyJsonString() {
         underTest.setPermissions("");
     }
 
-
     @Test(expected = DittoJsonException.class)
     public void tryToSetPermissionsWithArrayJsonString() {
         underTest.setPermissions("[\"a\",\"b\"]");
     }
-
 
     @Test(expected = NullPointerException.class)
     public void tryToSetSinglePermissionsWithNullAuthorizationSubject() {
         underTest.setPermissions(null, Permission.READ, Permission.WRITE);
     }
 
-
     @Test(expected = NullPointerException.class)
     public void tryToSetSinglePermissionsWithNullPermission() {
         underTest.setPermissions(TestConstants.Authorization.AUTH_SUBJECT_GRIMES, null);
     }
-
 
     @Test
     public void setSinglePermissions() {
@@ -570,18 +520,15 @@ public final class ImmutableThingFromScratchBuilderTest {
                 .hasAclEntry(TestConstants.Authorization.AUTH_SUBJECT_GRIMES, Permission.READ, Permission.WRITE);
     }
 
-
     @Test(expected = NullPointerException.class)
     public void tryToSetMultiplePermissionsWithNullAuthorizationSubject() {
         underTest.setPermissions(null, ThingsModelFactory.allPermissions());
     }
 
-
     @Test(expected = NullPointerException.class)
     public void tryToSetMultiplePermissionsWithNullPermissions() {
         underTest.setPermissions(TestConstants.Authorization.AUTH_SUBJECT_GRIMES, null);
     }
-
 
     @Test
     public void setMultiplePermissions() {
@@ -591,7 +538,6 @@ public final class ImmutableThingFromScratchBuilderTest {
         assertThat(thing)
                 .hasAclEntry(TestConstants.Authorization.AUTH_SUBJECT_GRIMES, ThingsModelFactory.allPermissions());
     }
-
 
     @Test(expected = NullPointerException.class)
     public void tryToSetPermissionsWithNullAclEntry() {
@@ -604,24 +550,21 @@ public final class ImmutableThingFromScratchBuilderTest {
         underTest.setPermissions(TestConstants.Authorization.ACL_ENTRY_GRIMES, null);
     }
 
-
     @Test
     public void setPermissionsBySingleAclEntries() {
         underTest.setPermissions(
                 TestConstants.Authorization.ACL_ENTRY_GRIMES, TestConstants.Authorization.ACL_ENTRY_OLDMAN);
         final Thing thing = underTest.build();
 
-        assertThat(thing) //
-                .hasAclEntry(TestConstants.Authorization.ACL_ENTRY_GRIMES) //
+        assertThat(thing)
+                .hasAclEntry(TestConstants.Authorization.ACL_ENTRY_GRIMES)
                 .hasAclEntry(TestConstants.Authorization.ACL_ENTRY_OLDMAN);
     }
-
 
     @Test(expected = NullPointerException.class)
     public void tryToSetPermissionsWithNullAclEntryIterable() {
         underTest.setPermissions((Iterable<AclEntry>) null);
     }
-
 
     @Test
     public void setPermissionsWithEmptyAclEntryIterable() {
@@ -631,7 +574,6 @@ public final class ImmutableThingFromScratchBuilderTest {
         assertThat(thing).hasAcl(ThingsModelFactory.emptyAcl());
     }
 
-
     @Test
     public void setPermissionsFromExistingAcl() {
         underTest.setPermissions(TestConstants.Thing.ACL);
@@ -640,12 +582,10 @@ public final class ImmutableThingFromScratchBuilderTest {
         assertThat(thing).hasAcl(TestConstants.Thing.ACL);
     }
 
-
     @Test(expected = NullPointerException.class)
     public void tryToRemovePermissionsOfNullAuthorizationSubject() {
         underTest.removePermissionsOf(null);
     }
-
 
     @Test
     public void removePermissionsOfAuthorizationSubjectFromEmptyBuilder() {
@@ -654,7 +594,6 @@ public final class ImmutableThingFromScratchBuilderTest {
 
         assertThat(thing).hasNoAcl();
     }
-
 
     @Test
     public void removePermissionsOfAuthorizationSubjectFromExistingAcl() {
@@ -666,7 +605,6 @@ public final class ImmutableThingFromScratchBuilderTest {
                 TestConstants.Thing.ACL.removeAllPermissionsOf(TestConstants.Authorization.AUTH_SUBJECT_OLDMAN));
     }
 
-
     @Test
     public void removeAllPermissions() {
         underTest.setPermissions(TestConstants.Thing.ACL);
@@ -676,54 +614,45 @@ public final class ImmutableThingFromScratchBuilderTest {
         assertThat(thing).hasNoAcl();
     }
 
-
     @Test(expected = ThingIdInvalidException.class)
     public void tryToSetEmptyThingId() {
         underTest.setId("");
     }
-
 
     @Test(expected = ThingIdInvalidException.class)
     public void tryToSetIdWithMissingNamespace() {
         underTest.setId("foobar2000");
     }
 
-
     @Test(expected = ThingIdInvalidException.class)
     public void tryToSetIdWithInvalidCharactersInNamespace() {
         underTest.setId("foo-bar:foobar2000");
     }
-
 
     @Test(expected = ThingIdInvalidException.class)
     public void tryToSetIdWithInvalidCharactersInNamespace2() {
         underTest.setId("foo.bar%bum:foobar2000");
     }
 
-
     @Test(expected = ThingIdInvalidException.class)
     public void tryToSetIdWithNamespaceStartingWithPeriod() {
         underTest.setId(".namespace:foobar2000");
     }
-
 
     @Test(expected = ThingIdInvalidException.class)
     public void tryToSetIdWithNamespaceEndingWithPeriod() {
         underTest.setId("namespace.:foobar2000");
     }
 
-
     @Test(expected = ThingIdInvalidException.class)
     public void tryToSetIdWithTwoSubsequentPeriodsInNamespace() {
         underTest.setId("namespace..invalid:foobar2000");
     }
 
-
     @Test(expected = ThingIdInvalidException.class)
     public void tryToSetIdWithNamespaceWithNumberAfterPeriod() {
         underTest.setId("namespace.42:foobar2000");
     }
-
 
     @Test
     public void setIdWithEmptyNamespace() {
@@ -731,11 +660,10 @@ public final class ImmutableThingFromScratchBuilderTest {
         underTest.setId(thingId);
         final Thing thing = underTest.build();
 
-        assertThat(thing) //
-                .hasId(thingId) //
+        assertThat(thing)
+                .hasId(thingId)
                 .hasNamespace("");
     }
-
 
     @Test
     public void setIdWithNamespace() {
@@ -743,11 +671,10 @@ public final class ImmutableThingFromScratchBuilderTest {
         underTest.setId(thingId);
         final Thing thing = underTest.build();
 
-        assertThat(thing) //
-                .hasId(thingId) //
+        assertThat(thing)
+                .hasId(thingId)
                 .hasNamespace("foo.a42");
     }
-
 
     @Test
     public void setIdWithNamespace2() {
@@ -755,11 +682,10 @@ public final class ImmutableThingFromScratchBuilderTest {
         underTest.setId(thingId);
         final Thing thing = underTest.build();
 
-        assertThat(thing) //
-                .hasId(thingId) //
+        assertThat(thing)
+                .hasId(thingId)
                 .hasNamespace("ad");
     }
-
 
     @Test
     public void setIdWithNamespace3() {
@@ -767,11 +693,10 @@ public final class ImmutableThingFromScratchBuilderTest {
         underTest.setId(thingId);
         final Thing thing = underTest.build();
 
-        assertThat(thing) //
-                .hasId(thingId) //
+        assertThat(thing)
+                .hasId(thingId)
                 .hasNamespace("da23");
     }
-
 
     @Test
     public void setGeneratedId() {
@@ -779,6 +704,61 @@ public final class ImmutableThingFromScratchBuilderTest {
         final Thing thing = underTest.build();
 
         assertThat(thing.getId()).isPresent();
+    }
+
+    @Test
+    public void tryToSetNullFeatureDefinition() {
+        assertThatNullPointerException()
+                .isThrownBy(() -> underTest.setFeatureDefinition(FLUX_CAPACITOR_ID, null))
+                .withMessage("The %s must not be null!", "Feature Definition to be set")
+                .withNoCause();
+    }
+
+    @Test
+    public void setFeatureDefinitionCreatesFeatureIfNecessary() {
+        final FeatureDefinition definition = TestConstants.Feature.FLUX_CAPACITOR_DEFINITION;
+        final Feature expected = ThingsModelFactory.newFeature(FLUX_CAPACITOR_ID, definition);
+        underTest.setFeatureDefinition(FLUX_CAPACITOR_ID, definition);
+        final Thing thing = underTest.build();
+
+        assertThat(thing).hasFeature(expected);
+    }
+
+    @Test
+    public void setFeatureDefinitionExtendsAlreadySetFeature() {
+        final String featureId = FLUX_CAPACITOR_ID;
+        final FeatureDefinition featureDefinition = TestConstants.Feature.FLUX_CAPACITOR_DEFINITION;
+        final FeatureProperties featureProperties = FLUX_CAPACITOR_PROPERTIES;
+        final Feature featureWithoutDefinition = ThingsModelFactory.newFeature(featureId, featureProperties);
+        final Feature expected = ThingsModelFactory.newFeature(featureId, featureDefinition, featureProperties);
+
+        underTest.setFeature(featureWithoutDefinition);
+        underTest.setFeatureDefinition(featureId, featureDefinition);
+        final Thing thing = underTest.build();
+
+        assertThat(thing).hasFeature(expected);
+    }
+
+    @Test
+    public void removeFeatureDefinitionFromUnknownFeatureIdDoesNothing() {
+        underTest.removeFeatureDefinition(FLUX_CAPACITOR_ID);
+        final Thing thing = underTest.build();
+
+        assertThat(thing).hasNoFeatures();
+    }
+
+    @Test
+    public void removeFeatureDefinitionWorksAsExpected() {
+        final String featureId = FLUX_CAPACITOR_ID;
+        final FeatureDefinition featureDefinition = TestConstants.Feature.FLUX_CAPACITOR_DEFINITION;
+        final FeatureProperties featureProperties = FLUX_CAPACITOR_PROPERTIES;
+        final Feature expected = ThingsModelFactory.newFeature(featureId, featureProperties);
+
+        underTest.setFeature(ThingsModelFactory.newFeature(featureId, featureDefinition, featureProperties));
+        underTest.removeFeatureDefinition(featureId);
+        final Thing thing = underTest.build();
+
+        assertThat(thing).hasFeature(expected);
     }
 
 }

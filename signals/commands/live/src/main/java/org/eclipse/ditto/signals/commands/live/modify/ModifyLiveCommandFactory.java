@@ -86,13 +86,27 @@ public final class ModifyLiveCommandFactory {
     }
 
     /**
+     * Returns a new immutable instance of {@code DeleteFeatureDefinitionLiveCommand}.
+     *
+     * @param command the command to base the result on.
+     * @return the instance.
+     * @throws NullPointerException if {@code command} is {@code null}.
+     * @throws ClassCastException if {@code command} is not an instance of
+     * {@link org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureDefinition DeleteFeatureDefinition}.
+     */
+    @Nonnull
+    public static DeleteFeatureDefinitionLiveCommand deleteFeatureDefinition(final Command<?> command) {
+        return DeleteFeatureDefinitionLiveCommandImpl.of(command);
+    }
+
+    /**
      * Returns a new immutable instance of {@code DeleteFeaturePropertiesLiveCommand}.
      *
      * @param command the command to base the result on.
      * @return the instance.
      * @throws NullPointerException if {@code command} is {@code null}.
-     * @throws ClassCastException if {@code command} is not an instance of {@link org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureProperties
-     * DeleteFeatureProperties}.
+     * @throws ClassCastException if {@code command} is not an instance of
+     * {@link org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureProperties DeleteFeatureProperties}.
      */
     @Nonnull
     public static DeleteFeaturePropertiesLiveCommand deleteFeatureProperties(final Command<?> command) {
@@ -105,8 +119,8 @@ public final class ModifyLiveCommandFactory {
      * @param command the command to base the result on.
      * @return the instance.
      * @throws NullPointerException if {@code command} is {@code null}.
-     * @throws ClassCastException if {@code command} is not an instance of {@link org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureProperty
-     * DeleteFeatureProperty}.
+     * @throws ClassCastException if {@code command} is not an instance of
+     * {@link org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureProperty DeleteFeatureProperty}.
      */
     @Nonnull
     public static DeleteFeaturePropertyLiveCommand deleteFeatureProperty(final Command<?> command) {
@@ -119,8 +133,8 @@ public final class ModifyLiveCommandFactory {
      * @param command the command to base the result on.
      * @return the instance.
      * @throws NullPointerException if {@code command} is {@code null}.
-     * @throws ClassCastException if {@code command} is not an instance of {@link org.eclipse.ditto.signals.commands.things.modify.DeleteFeatures
-     * DeleteFeatures}.
+     * @throws ClassCastException if {@code command} is not an instance of
+     * {@link org.eclipse.ditto.signals.commands.things.modify.DeleteFeatures DeleteFeatures}.
      */
     @Nonnull
     public static DeleteFeaturesLiveCommand deleteFeatures(final Command<?> command) {
@@ -133,8 +147,8 @@ public final class ModifyLiveCommandFactory {
      * @param command the command to base the result on.
      * @return the instance.
      * @throws NullPointerException if {@code command} is {@code null}.
-     * @throws ClassCastException if {@code command} is not an instance of {@link org.eclipse.ditto.signals.commands.things.modify.DeleteThing
-     * DeleteThing}.
+     * @throws ClassCastException if {@code command} is not an instance of
+     * {@link org.eclipse.ditto.signals.commands.things.modify.DeleteThing DeleteThing}.
      */
     @Nonnull
     public static DeleteThingLiveCommand deleteThing(final Command<?> command) {
@@ -147,8 +161,8 @@ public final class ModifyLiveCommandFactory {
      * @param command the command to base the result on.
      * @return the instance.
      * @throws NullPointerException if {@code command} is {@code null}.
-     * @throws ClassCastException if {@code command} is not an instance of {@link org.eclipse.ditto.signals.commands.things.modify.ModifyAttribute
-     * ModifyAttribute}.
+     * @throws ClassCastException if {@code command} is not an instance of
+     * {@link org.eclipse.ditto.signals.commands.things.modify.ModifyAttribute ModifyAttribute}.
      */
     @Nonnull
     public static ModifyAttributeLiveCommand modifyAttribute(final Command<?> command) {
@@ -161,8 +175,8 @@ public final class ModifyLiveCommandFactory {
      * @param command the command to base the result on.
      * @return the instance.
      * @throws NullPointerException if {@code command} is {@code null}.
-     * @throws ClassCastException if {@code command} is not an instance of {@link org.eclipse.ditto.signals.commands.things.modify.ModifyAttributes
-     * ModifyAttributes}.
+     * @throws ClassCastException if {@code command} is not an instance of
+     * {@link org.eclipse.ditto.signals.commands.things.modify.ModifyAttributes ModifyAttributes}.
      */
     @Nonnull
     public static ModifyAttributesLiveCommand modifyAttributes(final Command<?> command) {
@@ -175,12 +189,26 @@ public final class ModifyLiveCommandFactory {
      * @param command the command to base the result on.
      * @return the instance.
      * @throws NullPointerException if {@code command} is {@code null}.
-     * @throws ClassCastException if {@code command} is not an instance of {@link org.eclipse.ditto.signals.commands.things.modify.ModifyFeature
-     * ModifyFeature}.
+     * @throws ClassCastException if {@code command} is not an instance of
+     * {@link org.eclipse.ditto.signals.commands.things.modify.ModifyFeature ModifyFeature}.
      */
     @Nonnull
     public static ModifyFeatureLiveCommand modifyFeature(final Command<?> command) {
         return ModifyFeatureLiveCommandImpl.of(command);
+    }
+
+    /**
+     * Returns a new immutable instance of {@code ModifyFeatureDefinitionLiveCommand}.
+     *
+     * @param command the command to base the result on.
+     * @return the instance.
+     * @throws NullPointerException if {@code command} is {@code null}.
+     * @throws ClassCastException if {@code command} is not an instance of
+     * {@link org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureDefinition ModifyFeatureDefinition}.
+     */
+    @Nonnull
+    public static ModifyFeatureDefinitionLiveCommand modifyFeatureDefinition(final Command<?> command) {
+        return ModifyFeatureDefinitionLiveCommandImpl.of(command);
     }
 
     /**
@@ -189,8 +217,8 @@ public final class ModifyLiveCommandFactory {
      * @param command the command to base the result on.
      * @return the instance.
      * @throws NullPointerException if {@code command} is {@code null}.
-     * @throws ClassCastException if {@code command} is not an instance of {@link org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperties
-     * ModifyFeatureProperties}.
+     * @throws ClassCastException if {@code command} is not an instance of
+     * {@link org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperties ModifyFeatureProperties}.
      */
     @Nonnull
     public static ModifyFeaturePropertiesLiveCommand modifyFeatureProperties(final Command<?> command) {
@@ -203,8 +231,8 @@ public final class ModifyLiveCommandFactory {
      * @param command the command to base the result on.
      * @return the instance.
      * @throws NullPointerException if {@code command} is {@code null}.
-     * @throws ClassCastException if {@code command} is not an instance of {@link org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperty
-     * ModifyFeatureProperty}.
+     * @throws ClassCastException if {@code command} is not an instance of
+     * {@link org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperty ModifyFeatureProperty}.
      */
     @Nonnull
     public static ModifyFeaturePropertyLiveCommand modifyFeatureProperty(final Command<?> command) {
@@ -217,8 +245,8 @@ public final class ModifyLiveCommandFactory {
      * @param command the command to base the result on.
      * @return the instance.
      * @throws NullPointerException if {@code command} is {@code null}.
-     * @throws ClassCastException if {@code command} is not an instance of {@link org.eclipse.ditto.signals.commands.things.modify.ModifyFeatures
-     * ModifyFeatures}.
+     * @throws ClassCastException if {@code command} is not an instance of
+     * {@link org.eclipse.ditto.signals.commands.things.modify.ModifyFeatures ModifyFeatures}.
      */
     @Nonnull
     public static ModifyFeaturesLiveCommand modifyFeatures(final Command<?> command) {
@@ -231,8 +259,8 @@ public final class ModifyLiveCommandFactory {
      * @param command the command to base the result on.
      * @return the instance.
      * @throws NullPointerException if {@code command} is {@code null}.
-     * @throws ClassCastException if {@code command} is not an instance of {@link org.eclipse.ditto.signals.commands.things.modify.ModifyThing
-     * ModifyThing}.
+     * @throws ClassCastException if {@code command} is not an instance of
+     * {@link org.eclipse.ditto.signals.commands.things.modify.ModifyThing ModifyThing}.
      */
     @Nonnull
     public static ModifyThingLiveCommand modifyThing(final Command<?> command) {

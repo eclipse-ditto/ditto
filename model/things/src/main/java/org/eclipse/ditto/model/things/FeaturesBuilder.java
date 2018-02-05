@@ -11,52 +11,63 @@
  */
 package org.eclipse.ditto.model.things;
 
+import java.util.Optional;
+
 import javax.annotation.concurrent.NotThreadSafe;
 
 /**
  * A mutable builder for a {@link Feature} with a fluent API.
  */
 @NotThreadSafe
-public interface FeaturesBuilder {
+public interface FeaturesBuilder extends Iterable<Feature> {
 
     /**
-     * Sets the given feature to this builder. A previously set feature with the same identifier is replaced.
+     * Sets the given Feature to this builder. A previously set Feature with the same ID is replaced.
      *
-     * @param feature the feature to be set.
+     * @param feature the Feature to be set.
      * @return this builder to allow method chaining.
      * @throws NullPointerException if {@code feature} is {@code null}.
      */
     FeaturesBuilder set(Feature feature);
 
     /**
-     * Sets all given features to this builder. Each previously set feature with the same identifier is replaced.
+     * Returns the Feature with the specified identifier from this builder or an empty Optional if such a Feature is
+     * unknown to this builder.
      *
-     * @param features the features to be set.
+     * @param featureId the identifier of the Feature to be returned.
+     * @return the Feature with ID {@code featureId} or an empty Optional.
+     */
+    Optional<Feature> get(CharSequence featureId);
+
+    /**
+     * Sets all given Features to this builder. Each previously set feature with the same ID is replaced.
+     *
+     * @param features the Features to be set.
      * @return this builder to allow method chaining.
      * @throws NullPointerException if {@code features} is {@code null}.
      */
     FeaturesBuilder setAll(Iterable<Feature> features);
 
     /**
-     * Removes the given feature from this builder. Same like {@link #remove(String)}.
+     * Removes the given Feature from this builder. Same like {@link #remove(String)}.
      *
-     * @param feature the feature to be removed.
+     * @param feature the Feature to be removed.
      * @return this builder to allow method chaining.
      * @throws NullPointerException if {@code feature} is {@code null}.
      */
     FeaturesBuilder remove(Feature feature);
 
     /**
-     * Removes the feature with the given identifier from this builder.
+     * Removes the Feature with the given ID from this builder.
      *
-     * @param featureId the identifier of the feature to be removed.
+     * @param featureId the ID of the Feature to be removed.
      * @return this builder to allow method chaining.
      * @throws NullPointerException if {@code featureId} is {@code null}.
      */
     FeaturesBuilder remove(String featureId);
 
     /**
-     * Removes all previously set features.
+     * Removes all previously set Features.
      *
      * @return this builder to allow method chaining.
      */

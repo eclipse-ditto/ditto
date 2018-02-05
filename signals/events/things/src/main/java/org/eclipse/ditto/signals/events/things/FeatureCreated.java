@@ -115,7 +115,7 @@ public final class FeatureCreated extends AbstractThingEvent<FeatureCreated> imp
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the {@code FeatureCreated} which was created from the given JSON string.
      * @throws NullPointerException if {@code jsonString} is {@code null}.
-     * @throws IllegalArgumentException if {@code jsonString} is newInstance.
+     * @throws IllegalArgumentException if {@code jsonString} is empty.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * 'FeatureCreated' format.
      */

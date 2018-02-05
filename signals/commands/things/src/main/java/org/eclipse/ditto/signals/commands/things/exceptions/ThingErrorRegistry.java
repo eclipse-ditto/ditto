@@ -23,6 +23,8 @@ import org.eclipse.ditto.model.things.AclEntryInvalidException;
 import org.eclipse.ditto.model.things.AclInvalidException;
 import org.eclipse.ditto.model.things.AclNotAllowedException;
 import org.eclipse.ditto.model.things.PolicyIdMissingException;
+import org.eclipse.ditto.model.things.FeatureDefinitionEmptyException;
+import org.eclipse.ditto.model.things.FeatureDefinitionIdentifierInvalidException;
 import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.signals.base.AbstractErrorRegistry;
 import org.eclipse.ditto.signals.base.JsonParsable;
@@ -94,6 +96,10 @@ public final class ThingErrorRegistry extends AbstractErrorRegistry<DittoRuntime
         parseStrategies.put(FeaturesNotModifiableException.ERROR_CODE, FeaturesNotModifiableException::fromJson);
         parseStrategies.put(FeatureNotAccessibleException.ERROR_CODE, FeatureNotAccessibleException::fromJson);
         parseStrategies.put(FeatureNotModifiableException.ERROR_CODE, FeatureNotModifiableException::fromJson);
+        parseStrategies.put(FeatureDefinitionNotAccessibleException.ERROR_CODE,
+                FeatureDefinitionNotAccessibleException::fromJson);
+        parseStrategies.put(FeatureDefinitionNotModifiableException.ERROR_CODE,
+                FeatureDefinitionNotModifiableException::fromJson);
         parseStrategies.put(FeaturePropertiesNotAccessibleException.ERROR_CODE,
                 FeaturePropertiesNotAccessibleException::fromJson);
         parseStrategies.put(FeaturePropertiesNotModifiableException.ERROR_CODE,
@@ -102,7 +108,11 @@ public final class ThingErrorRegistry extends AbstractErrorRegistry<DittoRuntime
                 FeaturePropertyNotAccessibleException::fromJson);
         parseStrategies.put(FeaturePropertyNotModifiableException.ERROR_CODE,
                 FeaturePropertyNotModifiableException::fromJson);
+        parseStrategies.put(FeatureDefinitionEmptyException.ERROR_CODE, FeatureDefinitionEmptyException::fromJson);
+        parseStrategies.put(FeatureDefinitionIdentifierInvalidException.ERROR_CODE,
+                FeatureDefinitionIdentifierInvalidException::fromJson);
 
         return new ThingErrorRegistry(parseStrategies);
     }
+
 }
