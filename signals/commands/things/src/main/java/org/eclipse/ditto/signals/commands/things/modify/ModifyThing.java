@@ -84,13 +84,16 @@ public final class ModifyThing extends AbstractCommand<ModifyThing> implements T
      * @param dittoHeaders the headers of the command.
      * @return the command.
      * @throws NullPointerException if any argument is {@code null}.
+     * @throws AclNotAllowedException if the passed {@code thing} contained a Policy or Policy ID but the command was
+     * created via API version {@link JsonSchemaVersion#V_1}.
+     * @throws PolicyIdNotAllowedException if the passed {@code thing} contained an ACL but the command was created via
+     * an API version greater than {@link JsonSchemaVersion#V_1}.
      */
     public static ModifyThing of(final String thingId, final Thing thing, @Nullable final JsonObject initialPolicy,
             final DittoHeaders dittoHeaders) {
         Objects.requireNonNull(thingId, "The Thing identifier must not be null!");
         Objects.requireNonNull(thing, "The modified Thing must not be null!");
-        ensureAuthorizationMatchesSchemaVersion(thingId, thing, initialPolicy,
-                dittoHeaders.getSchemaVersion().orElse(JsonSchemaVersion.LATEST));
+        ensureAuthorizationMatchesSchemaVersion(thingId, thing, initialPolicy, dittoHeaders);
         return new ModifyThing(thingId, thing, initialPolicy, dittoHeaders);
     }
 
@@ -138,7 +141,6 @@ public final class ModifyThing extends AbstractCommand<ModifyThing> implements T
 
     /**
      * Ensures that the command will not contain inconsistent authorization information.
-     * <p>
      * <ul>
      * <li>{@link org.eclipse.ditto.model.base.json.JsonSchemaVersion#V_1} commands may not contain policy information.</li>
      * <li>{@link org.eclipse.ditto.model.base.json.JsonSchemaVersion#LATEST} commands may not contain ACL information.</li>
@@ -147,13 +149,16 @@ public final class ModifyThing extends AbstractCommand<ModifyThing> implements T
     private static void ensureAuthorizationMatchesSchemaVersion(final String thingId,
             final Thing thing,
             @Nullable final JsonObject initialPolicy,
-            final JsonSchemaVersion version) {
+            final DittoHeaders dittoHeaders) {
+
+        final JsonSchemaVersion version = dittoHeaders.getSchemaVersion().orElse(JsonSchemaVersion.LATEST);
         if (JsonSchemaVersion.V_1.equals(version)) {
             // v1 commands may not contain policy information
             final boolean containsPolicy = null != initialPolicy || thing.getPolicyId().isPresent();
             if (containsPolicy) {
                 throw PolicyIdNotAllowedException
                         .newBuilder(thingId)
+                        .dittoHeaders(dittoHeaders)
                         .build();
             }
         } else {
@@ -165,6 +170,7 @@ public final class ModifyThing extends AbstractCommand<ModifyThing> implements T
             if (!isCommandAclEmpty) {
                 throw AclNotAllowedException
                         .newBuilder(thingId)
+                        .dittoHeaders(dittoHeaders)
                         .build();
             }
         }
