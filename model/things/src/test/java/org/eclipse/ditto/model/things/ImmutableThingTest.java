@@ -868,7 +868,7 @@ public final class ImmutableThingTest {
                 .contains(Thing.JsonFields.REVISION, JsonValue.of(TestConstants.Thing.REVISION_NUMBER));
         DittoJsonAssertions.assertThat(jsonObject).contains(Thing.JsonFields.LIFECYCLE, JsonValue.of(LIFECYCLE.name()));
         DittoJsonAssertions.assertThat(jsonObject)
-                .contains(Thing.JsonFields.NAMESPACE, JsonValue.of(TestConstants.Thing.NAMEPSACE));
+                .contains(Thing.JsonFields.NAMESPACE, JsonValue.of(TestConstants.Thing.NAMESPACE));
         DittoJsonAssertions.assertThat(jsonObject)
                 .contains(Thing.JsonFields.MODIFIED, JsonValue.of(MODIFIED.toString()));
     }
@@ -876,7 +876,7 @@ public final class ImmutableThingTest {
     @Test
     public void ensureThingToJsonContainsNonHiddenFieldsV2() {
         final JsonObject jsonObject = TestConstants.Thing.THING_V2.toJson(JsonSchemaVersion.V_2);
-        DittoJsonAssertions.assertThat(jsonObject).contains(Thing.JsonFields.ID, Thing.THING_ID);
+        DittoJsonAssertions.assertThat(jsonObject).contains(Thing.JsonFields.ID, THING_ID);
         DittoJsonAssertions.assertThat(jsonObject).contains(Thing.JsonFields.POLICY_ID, TestConstants.Thing.POLICY_ID);
         DittoJsonAssertions.assertThat(jsonObject)
                 .contains(Thing.JsonFields.ATTRIBUTES, ATTRIBUTES);
@@ -903,8 +903,8 @@ public final class ImmutableThingTest {
         DittoJsonAssertions.assertThat(jsonObject)
                 .contains(Thing.JsonFields.REVISION, JsonValue.of(TestConstants.Thing.REVISION_NUMBER));
         DittoJsonAssertions.assertThat(jsonObject).contains(Thing.JsonFields.LIFECYCLE, JsonValue.of(LIFECYCLE.name()));
-        DittoJsonAssertions.assertThat(jsonObject).contains(Thing.JsonFields.NAMESPACE, JsonValue.of(
-                TestConstants.Thing.NAMESPACE));
+        DittoJsonAssertions.assertThat(jsonObject)
+                .contains(Thing.JsonFields.NAMESPACE, JsonValue.of(TestConstants.Thing.NAMESPACE));
         DittoJsonAssertions.assertThat(jsonObject)
                 .contains(Thing.JsonFields.MODIFIED, JsonValue.of(MODIFIED.toString()));
     }
