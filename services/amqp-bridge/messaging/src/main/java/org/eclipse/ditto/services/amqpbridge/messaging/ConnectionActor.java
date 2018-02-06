@@ -18,8 +18,8 @@ import java.util.function.Consumer;
 
 import org.eclipse.ditto.model.amqpbridge.AmqpConnection;
 import org.eclipse.ditto.model.amqpbridge.ConnectionStatus;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.amqpbridge.MappingContext;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.amqpbridge.messaging.persistence.ConnectionData;
 import org.eclipse.ditto.services.amqpbridge.messaging.persistence.MongoConnectionSnapshotAdapter;
 import org.eclipse.ditto.services.amqpbridge.util.ConfigKeys;
@@ -346,15 +346,11 @@ public abstract class ConnectionActor extends AbstractPersistentActor {
                             amqpConnection.getAuthorizationSubject(), mappingContexts);
             final String amqpCommandProcessorName = CommandProcessorActor.ACTOR_NAME_PREFIX + connectionId;
 
-
             final DefaultResizer resizer = new DefaultResizer(1, 5); // TODO configurable
             commandProcessor = getContext().actorOf(new RoundRobinPool(1)
                     .withDispatcher("command-processor-dispatcher")
                     .withResizer(resizer)
                     .props(amqpCommandProcessorProps), amqpCommandProcessorName);
-
-
-            commandProcessor = startChildActor(amqpCommandProcessorName, amqpCommandProcessorProps);
         }
     }
 

@@ -191,7 +191,8 @@ public final class DevOpsCommandsActor extends AbstractActor {
                 piggybackCommand = serviceMappingStrategy.get(piggybackCommandType)
                         .apply(piggybackCommandJson, command.getDittoHeaders());
             } catch (final DittoRuntimeException e) {
-                log.warning("Got DittoRuntimeException while parsing piggybackCommand <{}>: {}", e.getMessage());
+                log.warning("Got DittoRuntimeException while parsing piggybackCommand <{}>: {}", piggybackCommandType,
+                        e.getMessage());
                 getSender().tell(e, getSelf());
                 return;
             }
