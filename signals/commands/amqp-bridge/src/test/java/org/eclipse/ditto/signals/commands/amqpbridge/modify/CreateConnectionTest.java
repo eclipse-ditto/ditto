@@ -17,7 +17,9 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.amqpbridge.MappingContext;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.signals.commands.amqpbridge.TestConstants;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -35,6 +37,7 @@ public final class CreateConnectionTest {
     private static final JsonObject KNOWN_JSON = JsonObject.newBuilder()
             .set(Command.JsonFields.TYPE, CreateConnection.TYPE)
             .set(CreateConnection.JSON_CONNECTION, TestConstants.CONNECTION.toJson())
+            .set(CreateConnection.JSON_MAPPING_CONTEXTS, JsonArray.newBuilder().build())
             .build();
 
     @Test
@@ -46,7 +49,9 @@ public final class CreateConnectionTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(CreateConnection.class, areImmutable(), provided(AmqpConnection.class).isAlsoImmutable());
+        assertInstancesOf(CreateConnection.class, areImmutable(), provided(AmqpConnection.class, MappingContext.class)
+                .isAlsoImmutable
+                ());
     }
 
     @Test

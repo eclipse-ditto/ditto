@@ -19,8 +19,11 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import java.util.Collections;
 
+import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.amqpbridge.AmqpConnection;
+import org.eclipse.ditto.model.amqpbridge.ConnectionStatus;
+import org.eclipse.ditto.model.amqpbridge.MappingContext;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.junit.Test;
@@ -36,6 +39,7 @@ public final class ConnectionCreatedTest {
             .set(Event.JsonFields.TYPE, ConnectionCreated.TYPE)
             .set(AmqpBridgeEvent.JsonFields.CONNECTION_ID, TestConstants.ID)
             .set(ConnectionCreated.JSON_CONNECTION, TestConstants.CONNECTION.toJson())
+            .set(ConnectionCreated.JSON_MAPPING_CONTEXTS, JsonArray.newBuilder().build())
             .build();
 
     @Test
@@ -48,7 +52,7 @@ public final class ConnectionCreatedTest {
     @Test
     public void assertImmutability() {
         assertInstancesOf(ConnectionCreated.class, areImmutable(),
-                provided(AmqpConnection.class).isAlsoImmutable());
+                provided(AmqpConnection.class, MappingContext.class).isAlsoImmutable());
     }
 
     @Test

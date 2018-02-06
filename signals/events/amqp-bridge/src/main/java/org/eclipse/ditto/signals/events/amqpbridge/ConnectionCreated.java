@@ -14,6 +14,8 @@ package org.eclipse.ditto.signals.events.amqpbridge;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -72,7 +74,7 @@ public final class ConnectionCreated extends AbstractAmqpBridgeEvent<ConnectionC
             @Nullable final Instant timestamp, final DittoHeaders dittoHeaders) {
         super(TYPE, amqpConnection.getId(), timestamp, dittoHeaders);
         this.amqpConnection = amqpConnection;
-        this.mappingContexts = mappingContexts;
+        this.mappingContexts = Collections.unmodifiableList(new ArrayList<>(mappingContexts));
     }
 
     /**
