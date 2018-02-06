@@ -14,9 +14,9 @@
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
-    <!--<link rel="icon" type="image/png" href="../../images/favicon-16x16.png" sizes="16x16">-->
-    <!--<link rel="icon" type="image/png" href="../../images/favicon-32x32.png" sizes="32x32">-->
-    <!--<link rel="icon" type="image/png" href="../../images/favicon-96x96.png" sizes="96x96">-->
+    <link rel="icon" type="image/png" href="../../images/favicon-16x16.png" sizes="16x16">
+    <link rel="icon" type="image/png" href="../../images/favicon-32x32.png" sizes="32x32">
+    <link rel="icon" type="image/png" href="../../images/favicon-96x96.png" sizes="96x96">
 
     <link  rel="stylesheet" href="https://fonts.googleapis.com/css?family=News+Cycle">
 
@@ -155,8 +155,8 @@
     <!-- 2. Create hidden header/footer <div> -->
     <div id="hidden" style="display:none;">
         <div id="header">
-            <div id="header-left"><img src="../../images/ditto.svg" style="width: 80px; padding-top: 10px; padding-left: 10px"></div>
-            <div id="header-right"><img src="eclipse_iot_logo.png" style="width: 150px; padding-top: 10px; padding-right: 10px"></div>
+            <div id="header-left"><img src="../../images/ditto.svg" style="width: 80px; padding-top: 10px; padding-left: 10px" alt="Ditto logo"></div>
+            <div id="header-right"><img src="eclipse_iot_logo.png" style="width: 150px; padding-top: 10px; padding-right: 10px" alt="Eclipse IoT logo"></div>
         </div>
     </div>
 
@@ -174,7 +174,7 @@
                 <!--<h2>new project introduction</h2>-->
                 <br style="clear: both"/>
                 <hr />
-                <small class="introlink">Created by <a
+                <small class="introlink">by <a
                         href="mailto:thomas.jaeckle@bosch-si.com">Thomas Jäckle</a> (<a
                         href="http://twitter.com/thjaeckle">@thjaeckle</a>)
                 </small>
@@ -204,13 +204,13 @@
                 <h2>turn physical devices into services</h2>
             </section>
             <section id="motivation-1" style="clear: both;">
-                <h2>a big part of IoT development happens in the back-end</h2>
+                <h2>IoT development needs in the back-end</h2>
                 <br/>
                 <!--<h3 style="text-align: left;">for IoT devices we need</h3>-->
-                <ul>
+                <ul style="font-size: 0.9em;">
                     <li class="fragment"><b>APIs</b> optimized for the web</li>
                     <li class="fragment" style="margin-top: 0.5em;"><b>control</b> who has <b>access</b> to which aspects</li>
-                    <li class="fragment" style="margin-top: 0.5em;"><b>directly</b> communicate to devices <b>and</b> access <b>last known</b> state, set <b>desired</b> state</li>
+                    <li class="fragment" style="margin-top: 0.5em;"><b>directly</b> communicate to devices <b>and</b> access <b>last known</b> state</li>
                     <li class="fragment" style="margin-top: 0.5em;">get <b>notified</b> about changes/events</li>
                     <li class="fragment" style="margin-top: 0.5em;"><b>enhance</b> APIs with further functionality</li>
                 </ul>
@@ -241,7 +241,7 @@
                     <li class="fragment" style="margin-top: 1em;">mirrors physical devices</li>
                     <li class="fragment" style="margin-top: 1em;">provider of aspects+services around devices</li>
                     <li class="fragment" style="margin-top: 1em;">keep real and digital worlds in sync</li>
-                    <li class="fragment" style="margin-top: 1em;">industrial and consumer-centric IoT scenarios</li>
+                    <li class="fragment" style="margin-top: 1em;">applicable for both industrial and consumer-centric IoT scenarios</li>
                 </ul>
             </section>
             <section id="twin-2" style="clear: both;">
@@ -249,11 +249,11 @@
                 <h2>in IIoT / Industry 4.0</h2>
                 <br/>
                 <ul style="float:left; width: 52%;">
-                    <li class="fragment" style="margin-top: 1em;">asset administration shell ("Verwaltungsschale")</li>
-                    <li class="fragment" style="margin-top: 2em;">holistic view of all capabilities (services) and aspects of an asset</li>
+                    <li style="margin-top: 1em;">asset administration shell ("Verwaltungsschale")</li>
+                    <li style="margin-top: 2em;">holistic view of all capabilities (services) and aspects of an asset</li>
                 </ul>
                 <div style="float:right; width: 40%;">
-                    <img src="asset-admin-shell.png" style="width: 80%" />
+                    <img src="asset-admin-shell.png" style="width: 80%" alt="Asset admin shell" />
                     <div style="font-size: 0.4em;"><a href="http://acplt.github.io/openAAS/AssetAdministrationShell.html">Source</a></div>
                 </div>
                 <!-- img source: http://acplt.github.io/openAAS/AssetAdministrationShell.html -->
@@ -271,21 +271,25 @@
             </section>
             <section id="ditto-1" style="clear: both;">
                 <h2>in context</h2>
-                <br/>
-                <img src="ditto-in-action.png" style="width: 75%"/>
+                <img src="ditto-in-action.png" style="width: 75%" alt="Ditto in action"/>
             </section>
             <section id="ditto-2" style="clear: both;">
                 <h2>domain model</h2>
+                <ul style="font-size: 0.8em;">
+                    <li>how does the model of Eclipse Ditto look like?</li>
+                    <li>KISS</li>
+                </ul>
                 <br />
                 <br />
-                <img src="../../images/pages/basic/ditto-class-diagram-v1.svg"/>
+                <img src="../../images/pages/basic/ditto-class-diagram-v1.svg" alt="Ditto class diagram v1" class="fragment"/>
                 <a href="https://www.eclipse.org/ditto/basic-overview.html#domain-model">→ docs</a>
             </section>
             <section id="ditto-3" style="clear: both;">
                 <h2>turn device data into API</h2>
                 <div style="text-align: left; float: left; width: 38%">
-                <pre style="width: 100%; font-size: 0.5em;"><code class="hljs json">{
+                <pre style="width: 100%; font-size: 0.48em;"><code class="hljs json">{
   "thingId": "namespace:car-1",
+  "acl": { ... },
   "attributes": {
     "manufacturer": "ACME corp",
     "productionData": {
@@ -302,8 +306,9 @@
 }</code></pre>
                 </div>
                 <div style="text-align: left; float: right; width: 60%" class="fragment">
-                    <pre style="width: 105%; font-size: 0.5em;"><code class="hljs">GET/PUT/DELETE
- /api/1/things/namespace:car-1
+                    <pre style="width: 105%; font-size: 0.48em;"><code class="hljs">GET/PUT/DELETE /api/1/things/namespace:car-1
+ /api/1/things/namespace:car-1/thingId
+ /api/1/things/namespace:car-1/acl
  /api/1/things/namespace:car-1/attributes
  /api/1/things/namespace:car-1/attributes/manufacturer
  /api/1/things/namespace:car-1/attributes/productionData
@@ -394,7 +399,7 @@
                 <h2>twin vs. live</h2>
                 <br/>
                 <div style="text-align: left; float: left; width: 48%">
-                    <img src="../../images/pages/protocol/ditto-twin-channel.png" />
+                    <img src="../../images/pages/protocol/ditto-twin-channel.png" alt="Ditto twin channel" />
                     <ul style="font-size: 0.7em">
                         <li>uses Ditto as persistence</li>
                         <li>Ditto enforces access control</li>
@@ -407,7 +412,7 @@
                         <li>Ditto enforces access control</li>
                         <li>endpoints process commands, emit events</li>
                     </ul>
-                    <img src="../../images/pages/protocol/ditto-live-channel.png" />
+                    <img src="../../images/pages/protocol/ditto-live-channel.png" alt="Ditto live channel" />
                     <a href="https://www.eclipse.org/ditto/protocol-twinlive.html" style="float: right;">→ docs</a>
                 </div>
             </section>
@@ -446,7 +451,7 @@ source.onmessage = function(msg) {
                 <h2>search</h2>
                 <br/>
                 <div style="text-align: left; float: left; width: 40%">
-                    <img src="meme-dino.jpg" style="width: 80%;" />
+                    <img src="meme-dino.jpg" style="width: 80%;" alt="Meme Dino" />
                     <ul style="font-size: 0.7em">
                         <li>you must not</li>
                         <li>Ditto has you covered</li>
@@ -466,7 +471,7 @@ source.onmessage = function(msg) {
                 </div>
                 <div class="fragment">
                     <ul style="font-size: 0.7em">
-                        <li>search for arbitrary data</li>
+                        <li>search for arbitrary data with RQL query</li>
                         <li>Ditto enforces access control</li>
                         <li>apply field projection over the results</li>
                         <li>don't worry about indexing</li>
@@ -475,10 +480,10 @@ source.onmessage = function(msg) {
                 </div>
             </section>
             <section id="ditto-9" style="clear: both;">
-                <h2>non functionals</h2>
+                <h2>non functional</h2>
                 <br/>
                 <div style="text-align: left; float: left; width: 48%">
-                    <img src="../../images/pages/architecture/context-overview.png" />
+                    <img src="../../images/pages/architecture/context-overview.png" alt="Ditto context overview" />
                 </div>
                 <div style="text-align: left; float: right; width: 52%">
                     <ul style="font-size: 0.8em">
@@ -509,16 +514,28 @@ source.onmessage = function(msg) {
                     <ul style="font-size: 0.7em">
                         <li>Ditto as router of messages (via "live" channel)</li>
                         <li>enforcement of access control</li>
-                        <li>correlation of command/response</li>
+                        <li>correlation of command/response (e.g. for HTTP)</li>
                         <!--<li>device-to-cloud,cloud-to-device,device-to-device,cloud-to-cloud</li>-->
                     </ul>
                 </div>
                 <div style="text-align: left; float: right; width: 58%">
-                    <img src="../../images/pages/basic/ditto-messages.png" />
+                    <img src="../../images/pages/basic/ditto-messages.png" alt="Ditto messages" />
                 </div>
                 <ul>
                     <li>enhance the API of a Digital Twin by a custom WebSocket consumer</li>
                 </ul>
+            </section>
+
+            <section id="framework-2" style="clear: both;">
+                <h2>examples for orchestrations</h2>
+                <br/>
+                <ul style="font-size: 0.9em;">
+                    <li>enhance a location-aware Twin with the current weather</li>
+                    <li>enhance a Twin with an API for its known spare parts</li>
+                </ul>
+                <br/>
+                <br/>
+                <img src="ditto-orchestration-examples.png" style="width: 60%" alt="Ditto orchestration example" />
             </section>
         </section>
 
@@ -527,24 +544,17 @@ source.onmessage = function(msg) {
             <section id="demo" class="new-chapter" data-background="../bg-images/background-demo-small.jpg" data-state="chapter-background">
                 <h1>Demo time!</h1>
             </section>
-
-            <section id="demo-1" style="clear: both;">
-                <h2>Demo overview</h2>
-                <br/>
-                <h4>TODO image about what we'll show</h4>
-            </section>
         </section>
 
         <!-- Section: Wrap up + Roadmap -->
         <section style="clear: both;">
-            <section id="wrap-up" class="new-chapter" data-background="../bg-images/background-conclusion-small.jpg"
-                     data-state="chapter-background">
+            <section id="wrap-up">
                 <h1>Wrap up</h1>
                 <br/>
                 <ul>
                     <li class="fragment">Digital Twins as pattern for simplifying IoT back-end development</li>
-                    <li class="fragment" style="margin-top: 1em;">Device-as-a-Service</li>
-                    <li class="fragment" style="margin-top: 1em;">Eclipse Ditto can ease IoT development</li>
+                    <li class="fragment" style="margin-top: 1em;">Mission: provide Device-as-a-Service</li>
+                    <li class="fragment" style="margin-top: 1em;">Eclipse Ditto as framework for Digital Twins</li>
                 </ul>
             </section>
 
@@ -552,12 +562,25 @@ source.onmessage = function(msg) {
                 <h2>Roadmap 2018</h2>
                 <br/>
                 <ul>
-                    <li class="fragment">release (non-milestone)</li>
-                    <li class="fragment" style="margin-top: 1em;">using <b>Eclipse Vorto</b> generator for validation</li>
-                    <li class="fragment" style="margin-top: 1em;">mapping raw payloads to/from Ditto Protocol</li>
-                    <li class="fragment" style="margin-top: 1em;">attracting developers in using Ditto</li>
-                    <li class="fragment" style="margin-top: 1em;">integration with other OSS projects</li>
+                    <li>release (non-milestone)</li>
+                    <li style="margin-top: 1em;">using <b>Eclipse Vorto</b> generator for validation</li>
+                    <li style="margin-top: 1em;">mapping raw payloads to/from Ditto Protocol</li>
+                    <li style="margin-top: 1em;">attracting IoT developers in using Ditto</li>
+                    <li style="margin-top: 1em;">integration with other OSS projects</li>
                 </ul>
+            </section>
+        </section>
+
+        <!-- Section: Questions and Answers -->
+        <section style="clear: both;">
+            <section id="q-a" class="new-chapter" data-background="../bg-images/background-conclusion-small.jpg"
+                     data-state="chapter-background">
+                <h1>Q & A</h1>
+                <br/>
+                <h3>thanks for attending</h3>
+                <br/>
+                <br/>
+                <a href="https://www.eclipse.org/ditto/feedback.html">reach out to the Ditto team</a>
             </section>
         </section>
     </div>
@@ -587,7 +610,7 @@ source.onmessage = function(msg) {
                           // fragments: false, // for publishing after presentation
                           slideNumber: 'h.v',
 
-                          transition: 'slide', // none/fade/slide/convex/concave/zoom
+                          transition: 'convex', // none/fade/cube/slide/convex/concave/zoom
 
                           // More info https://github.com/hakimel/reveal.js#dependencies
                           dependencies: [
