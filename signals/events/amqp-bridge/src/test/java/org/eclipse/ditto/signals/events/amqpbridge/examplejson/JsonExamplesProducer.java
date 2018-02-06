@@ -16,6 +16,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -73,7 +74,8 @@ public class JsonExamplesProducer {
         final AmqpConnection amqpConnection = AmqpBridgeModelFactory.newConnection(ID, URI, AUTHORIZATION_SUBJECT, SOURCES, FAILOVER_ENABLED);
         final DittoHeaders headers = DittoHeaders.empty();
 
-        final ConnectionCreated connectionCreated = ConnectionCreated.of(amqpConnection, headers);
+        final ConnectionCreated connectionCreated = ConnectionCreated.of(amqpConnection,
+                Collections.emptyList(), headers);
         writeJson(eventsDir.resolve(Paths.get("connectionCreated.json")), connectionCreated);
 
         final ConnectionOpened connectionOpened = ConnectionOpened.of(ID, headers);

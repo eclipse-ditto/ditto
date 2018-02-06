@@ -54,6 +54,8 @@ final class CommandConsumerActor extends AbstractActor {
      * Creates Akka configuration object {@link Props} for this {@code CommandConsumerActor}.
      *
      * @param session the jms session.
+     * @param source
+     * @param commandProcessor
      * @return the Akka configuration Props object.
      */
     static Props props(final Session session, final String source, final ActorRef commandProcessor) {

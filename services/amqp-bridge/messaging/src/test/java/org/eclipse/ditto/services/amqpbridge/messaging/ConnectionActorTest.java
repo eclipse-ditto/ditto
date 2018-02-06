@@ -13,6 +13,7 @@ package org.eclipse.ditto.services.amqpbridge.messaging;
 
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -105,7 +106,7 @@ public class ConnectionActorTest {
             final CreateConnection createConnection = CreateConnection.of(amqpConnection, DittoHeaders.empty());
             underTest.tell(createConnection, getRef());
             final CreateConnectionResponse createConnectionResponse =
-                    CreateConnectionResponse.of(amqpConnection, DittoHeaders.empty());
+                    CreateConnectionResponse.of(amqpConnection, Collections.emptyList(), DittoHeaders.empty());
             expectMsg(createConnectionResponse);
 
             // close connection
@@ -137,7 +138,7 @@ public class ConnectionActorTest {
             final CreateConnection createConnection = CreateConnection.of(amqpConnection, DittoHeaders.empty());
             underTest.tell(createConnection, getRef());
             final CreateConnectionResponse createConnectionResponse =
-                    CreateConnectionResponse.of(amqpConnection, DittoHeaders.empty());
+                    CreateConnectionResponse.of(amqpConnection, Collections.emptyList(), DittoHeaders.empty());
             expectMsg(createConnectionResponse);
 
             // stop actor
@@ -169,7 +170,7 @@ public class ConnectionActorTest {
             final CreateConnection createConnection = CreateConnection.of(amqpConnection, DittoHeaders.empty());
             underTest.tell(createConnection, getRef());
             final CreateConnectionResponse createConnectionResponse =
-                    CreateConnectionResponse.of(amqpConnection, DittoHeaders.empty());
+                    CreateConnectionResponse.of(amqpConnection, Collections.emptyList(), DittoHeaders.empty());
             expectMsg(createConnectionResponse);
 
             // close connection
@@ -208,7 +209,7 @@ public class ConnectionActorTest {
             final CreateConnection createConnection = CreateConnection.of(amqpConnection, DittoHeaders.empty());
             underTest.tell(createConnection, getRef());
             final CreateConnectionResponse createConnectionResponse =
-                    CreateConnectionResponse.of(amqpConnection, DittoHeaders.empty());
+                    CreateConnectionResponse.of(amqpConnection, Collections.emptyList(), DittoHeaders.empty());
             expectMsg(createConnectionResponse);
 
             // delete connection

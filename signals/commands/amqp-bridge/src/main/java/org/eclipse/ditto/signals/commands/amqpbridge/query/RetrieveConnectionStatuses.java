@@ -13,6 +13,7 @@ package org.eclipse.ditto.signals.commands.amqpbridge.query;
 
 import java.util.function.Predicate;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFactory;
@@ -108,6 +109,11 @@ public final class RetrieveConnectionStatuses extends AbstractCommand<RetrieveCo
     @Override
     public RetrieveConnectionStatuses setDittoHeaders(final DittoHeaders dittoHeaders) {
         return of(dittoHeaders);
+    }
+
+    @Override
+    protected boolean canEqual(@Nullable final Object other) {
+        return (other instanceof RetrieveConnectionStatuses);
     }
 
 }

@@ -162,6 +162,11 @@ public final class RetrieveConnectionStatusesResponse
     }
 
     @Override
+    protected boolean canEqual(@Nullable final Object other) {
+        return (other instanceof RetrieveConnectionStatusesResponse);
+    }
+
+    @Override
     public boolean equals(@Nullable final Object o) {
         if (this == o) {return true;}
         if (o == null || getClass() != o.getClass()) {return false;}

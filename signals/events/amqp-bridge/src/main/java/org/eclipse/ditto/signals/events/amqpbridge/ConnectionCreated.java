@@ -14,13 +14,17 @@ package org.eclipse.ditto.signals.events.amqpbridge;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
@@ -28,13 +32,13 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.amqpbridge.AmqpBridgeModelFactory;
+import org.eclipse.ditto.model.amqpbridge.AmqpConnection;
+import org.eclipse.ditto.model.amqpbridge.MappingContext;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
-
-import org.eclipse.ditto.model.amqpbridge.AmqpBridgeModelFactory;
-import org.eclipse.ditto.model.amqpbridge.AmqpConnection;
 
 /**
  * This event is emitted after a {@link AmqpConnection} was created.
@@ -57,39 +61,49 @@ public final class ConnectionCreated extends AbstractAmqpBridgeEvent<ConnectionC
             JsonFactory.newJsonObjectFieldDefinition("connection", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
-    private final AmqpConnection amqpConnection;
+    static final JsonFieldDefinition<JsonArray> JSON_MAPPING_CONTEXTS =
+            JsonFactory.newJsonArrayFieldDefinition("mappingContexts", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
 
-    private ConnectionCreated(final AmqpConnection amqpConnection, @Nullable final Instant timestamp,
-            final DittoHeaders dittoHeaders) {
+    private final AmqpConnection amqpConnection;
+    private final List<MappingContext> mappingContexts;
+
+    private ConnectionCreated(final AmqpConnection amqpConnection, final List<MappingContext> mappingContexts,
+            @Nullable final Instant timestamp, final DittoHeaders dittoHeaders) {
         super(TYPE, amqpConnection.getId(), timestamp, dittoHeaders);
         this.amqpConnection = amqpConnection;
+        this.mappingContexts = mappingContexts;
     }
 
     /**
      * Returns a new {@code ConnectionCreated} event.
      *
      * @param amqpConnection the created Connection.
+     * @param mappingContexts
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the event.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static ConnectionCreated of(final AmqpConnection amqpConnection, final DittoHeaders dittoHeaders) {
-        return of(amqpConnection, null, dittoHeaders);
+    public static ConnectionCreated of(final AmqpConnection amqpConnection, final List<MappingContext> mappingContexts,
+            final DittoHeaders dittoHeaders) {
+        return of(amqpConnection, mappingContexts,null, dittoHeaders);
     }
 
     /**
      * Returns a new {@code ConnectionCreated} event.
      *
      * @param amqpConnection the created Connection.
+     * @param mappingContexts
      * @param timestamp the timestamp of this event.
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the event.
      * @throws NullPointerException if {@code connection} or {@code dittoHeaders} are {@code null}.
      */
-    public static ConnectionCreated of(final AmqpConnection amqpConnection, @Nullable final Instant timestamp,
-            final DittoHeaders dittoHeaders) {
+    public static ConnectionCreated of(final AmqpConnection amqpConnection, final List<MappingContext> mappingContexts,
+            @Nullable final Instant timestamp, final DittoHeaders dittoHeaders) {
         checkNotNull(amqpConnection, "Connection");
-        return new ConnectionCreated(amqpConnection, timestamp, dittoHeaders);
+        checkNotNull(mappingContexts, "mapping Contexts");
+        return new ConnectionCreated(amqpConnection, mappingContexts, timestamp, dittoHeaders);
     }
 
     /**
@@ -121,7 +135,14 @@ public final class ConnectionCreated extends AbstractAmqpBridgeEvent<ConnectionC
                 .deserialize((revision, timestamp) -> {
                     final JsonObject connectionJsonObject = jsonObject.getValueOrThrow(JSON_CONNECTION);
                     final AmqpConnection readAmqpConnection = AmqpBridgeModelFactory.connectionFromJson(connectionJsonObject);
-                    return of(readAmqpConnection, timestamp, dittoHeaders);
+                    final JsonArray mappingContexts = jsonObject.getValueOrThrow(JSON_MAPPING_CONTEXTS);
+                    final List<MappingContext> readMappingContexts = mappingContexts.stream()
+                            .filter(JsonValue::isObject)
+                            .map(JsonValue::asObject)
+                            .map(AmqpBridgeModelFactory::mappingContextFromJson)
+                            .collect(Collectors.toList());
+
+                    return of(readAmqpConnection, readMappingContexts, timestamp, dittoHeaders);
                 });
     }
 
@@ -132,6 +153,13 @@ public final class ConnectionCreated extends AbstractAmqpBridgeEvent<ConnectionC
      */
     public AmqpConnection getAmqpConnection() {
         return amqpConnection;
+    }
+
+    /**
+     * @return
+     */
+    public List<MappingContext> getMappingContexts() {
+        return mappingContexts;
     }
 
     @Override
@@ -146,7 +174,7 @@ public final class ConnectionCreated extends AbstractAmqpBridgeEvent<ConnectionC
 
     @Override
     public ConnectionCreated setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(amqpConnection, getTimestamp().orElse(null), dittoHeaders);
+        return of(amqpConnection, mappingContexts, getTimestamp().orElse(null), dittoHeaders);
     }
 
     @Override
@@ -154,6 +182,9 @@ public final class ConnectionCreated extends AbstractAmqpBridgeEvent<ConnectionC
             final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(JSON_CONNECTION, amqpConnection.toJson(schemaVersion, thePredicate), predicate);
+        jsonObjectBuilder.set(JSON_MAPPING_CONTEXTS, mappingContexts.stream()
+                .map(ms -> ms.toJson(schemaVersion, thePredicate))
+                .collect(JsonCollectors.valuesToArray()), predicate);
     }
 
     @Override
@@ -162,31 +193,31 @@ public final class ConnectionCreated extends AbstractAmqpBridgeEvent<ConnectionC
     }
 
     @Override
-    public boolean equals(@Nullable final Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
-        if (o == null || getClass() != o.getClass()) {
+        if (!(o instanceof ConnectionCreated)) {
             return false;
         }
         if (!super.equals(o)) {
             return false;
         }
         final ConnectionCreated that = (ConnectionCreated) o;
-        return Objects.equals(amqpConnection, that.amqpConnection);
+        return Objects.equals(amqpConnection, that.amqpConnection) &&
+                Objects.equals(mappingContexts, that.mappingContexts);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), amqpConnection);
+        return Objects.hash(super.hashCode(), amqpConnection, mappingContexts);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                super.toString() +
-                ", connection=" + amqpConnection +
+                "amqpConnection=" + amqpConnection +
+                ", mappingContexts=" + mappingContexts +
                 "]";
     }
-
 }
