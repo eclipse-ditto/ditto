@@ -1380,7 +1380,7 @@ paths:
           schema:
             type: string
       responses:
-        '204':
+        '202':
           description: >-
             The message was sent but not necessarly received by the Thing (fire
             and forget).
@@ -1438,7 +1438,7 @@ paths:
           schema:
             type: string
       responses:
-        '204':
+        '202':
           description: The message was sent (fire and forget).
         '400':
           description: |-
@@ -1496,7 +1496,7 @@ paths:
           schema:
             type: string
       responses:
-        '204':
+        '202':
           description: >-
             The message was sent but not necessarly received by the Feature
             (fire and forget).
@@ -1555,7 +1555,7 @@ paths:
           schema:
             type: string
       responses:
-        '204':
+        '202':
           description: The message was sent (fire and forget).
         '400':
           description: |-
