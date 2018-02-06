@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import javax.jms.BytesMessage;
@@ -57,6 +58,10 @@ import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.RemovalListener;
+
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -80,14 +85,13 @@ import scala.util.Try;
  * This Actor processes incoming {@link Command}s and dispatches them via {@link DistributedPubSubMediator} to a
  * consumer actor.
  */
-final class CommandProcessorActor extends AbstractActor {
+public final class CommandProcessorActor extends AbstractActor {
 
     /**
      * The name of this Actor in the ActorSystem.
      */
     static final String ACTOR_NAME_PREFIX = "amqpCommandProcessor-";
 
-    private static final String REPLY_TO_HEADER = "replyTo";
     private static final DittoProtocolAdapter PROTOCOL_ADAPTER = DittoProtocolAdapter.newInstance();
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
@@ -95,7 +99,7 @@ final class CommandProcessorActor extends AbstractActor {
     private final ActorRef pubSubMediator;
     private final String pubSubTargetActorPath;
     private final AuthorizationSubject authorizationSubject;
-    private final Map<String, TraceContext> traces;
+    private final Cache<String, TraceContext> traces;
 
     private final Map<String, PayloadMapper> payloadMappers;
 
@@ -104,7 +108,11 @@ final class CommandProcessorActor extends AbstractActor {
         this.pubSubMediator = pubSubMediator;
         this.pubSubTargetActorPath = pubSubTargetActorPath;
         this.authorizationSubject = authorizationSubject;
-        traces = new HashMap<>();
+        traces = CacheBuilder.newBuilder()
+                .expireAfterWrite(5, TimeUnit.MINUTES)
+                .removalListener((RemovalListener<String, TraceContext>) notification
+                        -> log.info("Trace for {} expired.", notification.getKey()))
+                .build();
 
         final ActorSystem actorSystem = getContext().getSystem();
 
@@ -180,7 +188,7 @@ final class CommandProcessorActor extends AbstractActor {
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
-                .match(Message.class, this::handleMessage)
+                .match(InternalMessage.class, this::handle)
                 .match(CommandResponse.class, this::handleCommandResponse)
                 .match(DittoRuntimeException.class, this::handleDittoRuntimeException)
                 .match(Status.Failure.class, f -> log.error(f.cause(), "Got an unexpected failure."))
@@ -188,6 +196,25 @@ final class CommandProcessorActor extends AbstractActor {
                     log.debug("Unknown message: {}", m);
                     unhandled(m);
                 }).build();
+    }
+
+    private void handle(final InternalMessage m) {
+        try {
+
+            final TraceContext traceContext = Kamon.tracer().newContext("commandProcessor",
+                    Option.apply(m.getDittoHeaders().getCorrelationId().orElse("no-correlation-id")));
+            final Command<?> command = buildCommandFromPublicProtocol(m, traceContext);
+            traceContext.finish();
+
+            if (command != null) {
+                traceCommand(command);
+                log.info("Publishing '{}' to '{}'", command.getType(), pubSubTargetActorPath);
+                pubSubMediator.tell(new DistributedPubSubMediator.Send(pubSubTargetActorPath, command, true),
+                        getSelf());
+            }
+        } finally {
+            getSender().tell(m.getAckMessage(), self());
+        }
     }
 
     private void handleDittoRuntimeException(final DittoRuntimeException exception) {
@@ -215,28 +242,15 @@ final class CommandProcessorActor extends AbstractActor {
             log.info("Received error response: {}", response);
         }
 
-        final Optional<TraceContext> traceContext = response.getDittoHeaders().getCorrelationId().map(traces::remove);
-        if (traceContext.isPresent()) {
-            traceContext.get().finish();
-        } else {
-            log.warning("Trace missing for response: '{}'", response);
-        }
-    }
-
-    private void handleMessage(final Message message) throws JMSException {
-        LogUtil.enhanceLogWithCorrelationId(log, message.getJMSCorrelationID());
-        log.debug("Received Message: {}", message);
-
-        final TraceContext traceContext = Kamon.tracer().newContext("commandProcessor",
-                Option.apply(message.getJMSCorrelationID()));
-        final Command<?> command = buildCommandFromPublicProtocol(message, traceContext);
-        traceContext.finish();
-        if (command != null) {
-            traceCommand(command);
-
-            log.info("Publishing '{}' from AMQP Message '{}'", command.getType(), message.getJMSMessageID());
-            pubSubMediator.tell(new DistributedPubSubMediator.Send(pubSubTargetActorPath, command, true), getSelf());
-        }
+        response.getDittoHeaders().getCorrelationId().ifPresent(cid -> {
+            final TraceContext traceContext = traces.getIfPresent(cid);
+            traces.invalidate(cid);
+            if (traceContext != null) {
+                traceContext.finish();
+            } else {
+                log.info("Trace missing for response: '{}'", response);
+            }
+        });
     }
 
     private void traceCommand(final Command<?> command) {
@@ -248,92 +262,79 @@ final class CommandProcessorActor extends AbstractActor {
         });
     }
 
-    private Command<?> buildCommandFromPublicProtocol(final Message message,
-            final TraceContext traceContext) throws JMSException {
-
-        final Map<String, String> headers = extractHeadersMapFromJmsMessage(message);
-        final DittoHeadersBuilder dittoHeadersBuilder = DittoHeaders.newBuilder(headers);
-
-        final String replyTo = message.getJMSReplyTo() != null ? String.valueOf(message.getJMSReplyTo()) : null;
-        if (replyTo != null) {
-            dittoHeadersBuilder.putHeader(REPLY_TO_HEADER, replyTo);
-        }
-
-        final String jmsCorrelationId = message.getJMSCorrelationID() != null ? message.getJMSCorrelationID() :
-                message.getJMSMessageID();
-
-        dittoHeadersBuilder.authorizationSubjects(authorizationSubject.getId());
-
-        final String contentType = ((AmqpJmsMessageFacade) ((JmsMessage) message).getFacade()).getContentType();
-        JsonifiableAdaptable jsonifiableAdaptable = null;
-        if (!DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE.equalsIgnoreCase(contentType)) {
-
-            final Segment mappingSegment = traceContext
-                    .startSegment("mapping", "payload-mapping", "commandProcessor");
-
-            final Optional<PayloadMapper> payloadMapperOptional = Optional.ofNullable(payloadMappers.get(contentType));
-            if (payloadMapperOptional.isPresent()) {
-                final PayloadMapper payloadMapper = payloadMapperOptional.get();
-
-                final ByteBuffer rawMessage;
-                final String stringMessage;
-                if (message instanceof TextMessage) {
-                    rawMessage = null;
-                    stringMessage = ((TextMessage) message).getText();
-                } else if (message instanceof BytesMessage) {
-                    final BytesMessage bytesMessage = (BytesMessage) message;
-                    final long bodyLength = bytesMessage.getBodyLength();
-                    if (bodyLength >= Integer.MIN_VALUE && bodyLength <= Integer.MAX_VALUE) {
-                        final int length = (int) bodyLength;
-                        final ByteBuffer byteBuffer = ByteBuffer.allocate(length);
-                        bytesMessage.readBytes(byteBuffer.array());
-                        rawMessage = byteBuffer;
-                        stringMessage = null;
-                    } else {
-                        throw new IllegalArgumentException("Message too large...");
-                    }
-                } else {
-                    throw new IllegalArgumentException("Only messages of type TEXT or BYTE are supported.");
-                }
-                final PayloadMapperMessage payloadMapperMessage = PayloadMappers.createPayloadMapperMessage(
-                        contentType, rawMessage, stringMessage, headers);
-
-                final Adaptable adaptable = payloadMapper.mapIncoming(payloadMapperMessage);
-
-                mappingSegment.finish();
-
-                jsonifiableAdaptable = ProtocolFactory.wrapAsJsonifiableAdaptable(adaptable);
-
-                log.debug("Successfully mapped message with content-type <{}> and PayloadMapper <{}> to: <{}>",
-                        contentType, payloadMapper.getClass().getSimpleName(), jsonifiableAdaptable);
-            } else {
-                log.warning("No PayloadMapper found for content-type <{}>, trying to interpret as DittoProtocol " +
-                        "message..", contentType);
-                mappingSegment.finishWithError(new IllegalStateException("No PayloadMapper found"));
-            }
-        } else if (DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE.equalsIgnoreCase(contentType)) {
-            log.info("Received message had DittoProtocol content-type <{}>", contentType);
-        } else {
-            log.info("Received message had unknown content-type <{}>, trying to interpret as DittoProtocol message..",
-                    contentType);
-        }
-
+    private Command<?> buildCommandFromPublicProtocol(final InternalMessage message,
+            final TraceContext traceContext) {
         try {
+            final DittoHeaders dittoHeaders = message.getDittoHeaders();
+            final String contentType = message.getDittoHeaders().get("content-type");
+
+            JsonifiableAdaptable jsonifiableAdaptable = null;
+            if (!DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE.equalsIgnoreCase(contentType)) {
+
+                final Segment mappingSegment = traceContext
+                        .startSegment("mapping", "payload-mapping", "commandProcessor");
+
+                final Optional<PayloadMapper> payloadMapperOptional = Optional.ofNullable(payloadMappers.get(contentType));
+                if (payloadMapperOptional.isPresent()) {
+                    final PayloadMapper payloadMapper = payloadMapperOptional.get();
+
+                    final ByteBuffer rawMessage;
+                    final String stringMessage;
+                    if (message instanceof TextMessage) {
+                        rawMessage = null;
+                        stringMessage = ((TextMessage) message).getText();
+                    } else if (message instanceof BytesMessage) {
+                        final BytesMessage bytesMessage = (BytesMessage) message;
+                        final long bodyLength = bytesMessage.getBodyLength();
+                        if (bodyLength >= Integer.MIN_VALUE && bodyLength <= Integer.MAX_VALUE) {
+                            final int length = (int) bodyLength;
+                            final ByteBuffer byteBuffer = ByteBuffer.allocate(length);
+                            bytesMessage.readBytes(byteBuffer.array());
+                            rawMessage = byteBuffer;
+                            stringMessage = null;
+                        } else {
+                            throw new IllegalArgumentException("Message too large...");
+                        }
+                    } else {
+                        throw new IllegalArgumentException("Only messages of type TEXT or BYTE are supported.");
+                    }
+                    final PayloadMapperMessage payloadMapperMessage = PayloadMappers.createPayloadMapperMessage(
+                            contentType, rawMessage, stringMessage, dittoHeaders);
+
+                    final Adaptable adaptable = payloadMapper.mapIncoming(payloadMapperMessage);
+
+                    mappingSegment.finish();
+
+                    jsonifiableAdaptable = ProtocolFactory.wrapAsJsonifiableAdaptable(adaptable);
+
+                    log.debug("Successfully mapped message with content-type <{}> and PayloadMapper <{}> to: <{}>",
+                            contentType, payloadMapper.getClass().getSimpleName(), jsonifiableAdaptable);
+                } else {
+                    log.warning("No PayloadMapper found for content-type <{}>, trying to interpret as DittoProtocol " +
+                            "message..", contentType);
+                    mappingSegment.finishWithError(new IllegalStateException("No PayloadMapper found"));
+                }
+            } else if (DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE.equalsIgnoreCase(contentType)) {
+                log.info("Received message had DittoProtocol content-type <{}>", contentType);
+            } else {
+                log.info("Received message had unknown content-type <{}>, trying to interpret as DittoProtocol message..",
+                        contentType);
+            }
+
             if (jsonifiableAdaptable == null) {
                 // fall back trying to interpret as DittoProtocol
-                final String commandJsonString = extractCommandStringFromMessage(message);
-                final JsonObject publicCommandJsonObject = JsonFactory.newObject(commandJsonString);
+                final JsonObject publicCommandJsonObject = JsonFactory.newObject(message.getCommandJsonString());
 
+
+                // use correlationId from json payload if present
+                // TODO DG rly required??
+//                jsonifiableAdaptable.getHeaders()
+//                        .flatMap(DittoHeaders::getCorrelationId)
+//                        .ifPresent(dittoHeadersBuilder::correlationId);
+                LogUtil.enhanceLogWithCorrelationId(log, dittoHeaders.getCorrelationId());
                 jsonifiableAdaptable = ProtocolFactory.jsonifiableAdaptableFromJson(publicCommandJsonObject);
             }
 
-            // use correlationId from json headers if present
-            final String correlationId = jsonifiableAdaptable.getHeaders()
-                    .flatMap(DittoHeaders::getCorrelationId)
-                    .orElse(jmsCorrelationId);
-
-            dittoHeadersBuilder.correlationId(correlationId);
-            LogUtil.enhanceLogWithCorrelationId(log, correlationId);
             log.debug("received public command: {}", jsonifiableAdaptable.toJsonString());
 
             final Segment protocolAdapterSegment = traceContext
@@ -341,7 +342,6 @@ final class CommandProcessorActor extends AbstractActor {
             // convert to internal command with DittoProtocolAdapter
             final Command<?> command = (Command<?>) PROTOCOL_ADAPTER.fromAdaptable(jsonifiableAdaptable);
             protocolAdapterSegment.finish();
-            final DittoHeaders dittoHeaders = dittoHeadersBuilder.build();
             return command.setDittoHeaders(dittoHeaders);
         } catch (final DittoRuntimeException e) {
             log.info("Got DittoRuntimeException '{}' when command was parsed: {}", e.getErrorCode(), e.getMessage());
@@ -351,41 +351,4 @@ final class CommandProcessorActor extends AbstractActor {
             return null;
         }
     }
-
-    private String extractCommandStringFromMessage(final Message message) throws JMSException {
-        if (message instanceof TextMessage) {
-            return ((TextMessage) message).getText();
-        } else if (message instanceof BytesMessage) {
-            final BytesMessage bytesMessage = (BytesMessage) message;
-            final long bodyLength = bytesMessage.getBodyLength();
-            if (bodyLength >= Integer.MIN_VALUE && bodyLength <= Integer.MAX_VALUE) {
-                final int length = (int) bodyLength;
-                final ByteBuffer byteBuffer = ByteBuffer.allocate(length);
-                bytesMessage.readBytes(byteBuffer.array());
-                return new String(byteBuffer.array(), StandardCharsets.UTF_8);
-            } else {
-                throw new IllegalArgumentException("Message too large...");
-            }
-        } else {
-            throw new IllegalArgumentException("Only messages of type TEXT or BYTE are supported.");
-        }
-    }
-
-    private Map<String, String> extractHeadersMapFromJmsMessage(final Message message) throws JMSException {
-        @SuppressWarnings("unchecked") final List<String> names = Collections.list(message.getPropertyNames());
-        return names.stream()
-                .map(key -> getPropertyAsEntry(message, key))
-                .filter(Objects::nonNull)
-                .collect(toMap(Entry::getKey, Entry::getValue));
-    }
-
-    private Entry<String, String> getPropertyAsEntry(final Message message, final String key) {
-        try {
-            return new AbstractMap.SimpleImmutableEntry<>(key, message.getObjectProperty(key).toString());
-        } catch (final JMSException e) {
-            log.debug("Property '{}' could not be read, dropping...", key);
-            return null;
-        }
-    }
-
 }

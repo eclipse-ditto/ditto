@@ -24,6 +24,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.amqpbridge.AmqpBridgeModelFactory;
 import org.eclipse.ditto.model.amqpbridge.AmqpConnection;
+import org.eclipse.ditto.model.amqpbridge.ConnectionType;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -37,6 +38,8 @@ public class JsonExamplesProducer {
 
     private static final String ID = "myConnection";
 
+    private static final ConnectionType TYPE = ConnectionType.AMQP_10;
+
     private static final String URI = "amqps://foo:bar@example.com:443";
 
     private static final AuthorizationSubject AUTHORIZATION_SUBJECT =
@@ -45,6 +48,10 @@ public class JsonExamplesProducer {
     private static final Set<String> SOURCES = new HashSet<>(Arrays.asList("amqp/source1", "amqp/source2"));
 
     private static final boolean FAILOVER_ENABLED = true;
+
+    private static final boolean VALIDATE_CERTIFICATES = true;
+
+    private static final int THROTTLE = 250;
 
     public static void main(final String... args) throws IOException {
         run(args, new JsonExamplesProducer());
@@ -71,7 +78,9 @@ public class JsonExamplesProducer {
         final Path eventsDir = rootPath.resolve(Paths.get("events"));
         Files.createDirectories(eventsDir);
 
-        final AmqpConnection amqpConnection = AmqpBridgeModelFactory.newConnection(ID, URI, AUTHORIZATION_SUBJECT, SOURCES, FAILOVER_ENABLED);
+        final AmqpConnection amqpConnection =
+                AmqpBridgeModelFactory.newConnection(ID, TYPE, URI, AUTHORIZATION_SUBJECT, SOURCES, FAILOVER_ENABLED,
+                        VALIDATE_CERTIFICATES, THROTTLE);
         final DittoHeaders headers = DittoHeaders.empty();
 
         final ConnectionCreated connectionCreated = ConnectionCreated.of(amqpConnection,
