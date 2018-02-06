@@ -41,7 +41,7 @@ import org.eclipse.ditto.services.utils.devops.DevOpsCommandsActor;
 import org.eclipse.ditto.services.utils.devops.LogbackLoggingFacade;
 import org.eclipse.ditto.services.utils.distributedcache.actors.CacheFacadeActor;
 import org.eclipse.ditto.services.utils.distributedcache.actors.CacheRole;
-import org.eclipse.ditto.services.utils.health.HealthCheckingActor;
+import org.eclipse.ditto.services.utils.health.DefaultHealthCheckingActorFactory;
 import org.eclipse.ditto.services.utils.health.HealthCheckingActorOptions;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientActor;
 
@@ -296,8 +296,8 @@ final class GatewayRootActor extends AbstractActor {
                         config.getDuration(ConfigKeys.HEALTH_CHECK_PERSISTENCE_TIMEOUT)));
 
         final HealthCheckingActorOptions healthCheckingActorOptions = hcBuilder.build();
-        return startChildActor(HealthCheckingActor.ACTOR_NAME,
-                HealthCheckingActor.props(healthCheckingActorOptions, mongoClient));
+        return startChildActor(DefaultHealthCheckingActorFactory.ACTOR_NAME,
+                DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions, mongoClient));
     }
 
     private FiniteDuration toFiniteDuration(final Duration duration) {

@@ -337,11 +337,11 @@ public final class StatusInfo implements Jsonifiable<JsonObject> {
 
     /**
      * Creates a copy of this instance with the given {@code label} as label.
-     * @param label the label.
+     * @param label the label, may be {@code null}.
      *
      * @return the labeled copy.
      */
-    public StatusInfo label(final String label) {
+    public StatusInfo label(@Nullable final String label) {
         return of(status, details, children, label);
     }
 
@@ -534,7 +534,7 @@ public final class StatusInfo implements Jsonifiable<JsonObject> {
                 final StatusInfo child = childrenIterator.next();
 
                 if (i == 0) {
-                    // for the first child we do not have a valid status to merge with
+                    // for the first child we do not yet have a valid status to merge with
                     resultingStatus = child.status;
                 } else {
                     resultingStatus = resultingStatus.mergeWith(child.status);

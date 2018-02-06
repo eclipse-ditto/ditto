@@ -45,7 +45,7 @@ public class HealthRouteSupplier implements Supplier<Route> {
     /**
      * Constructs a new {@code HealthRouteFunction}.
      *
-     * @param healthCheckingActor the Actor selection to the {@link HealthCheckingActor} to use.
+     * @param healthCheckingActor the Actor selection to the health-checking actor to use.
      */
     public HealthRouteSupplier(final ActorRef healthCheckingActor, final LoggingAdapter log) {
         this.healthCheckingActor = healthCheckingActor;

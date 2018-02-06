@@ -31,7 +31,7 @@ import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
 import org.eclipse.ditto.services.utils.distributedcache.actors.CacheFacadeActor;
 import org.eclipse.ditto.services.utils.distributedcache.actors.CacheRole;
-import org.eclipse.ditto.services.utils.health.HealthCheckingActor;
+import org.eclipse.ditto.services.utils.health.DefaultHealthCheckingActorFactory;
 import org.eclipse.ditto.services.utils.health.HealthCheckingActorOptions;
 import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
@@ -164,8 +164,8 @@ public final class PoliciesRootActor extends AbstractActor {
         }
 
         final HealthCheckingActorOptions healthCheckingActorOptions = hcBuilder.build();
-        final Props healthCheckingActorProps = HealthCheckingActor.props(healthCheckingActorOptions, mongoClient);
-        final ActorRef healthCheckingActor = startChildActor(HealthCheckingActor.ACTOR_NAME, healthCheckingActorProps);
+        final Props healthCheckingActorProps = DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions, mongoClient);
+        final ActorRef healthCheckingActor = startChildActor(DefaultHealthCheckingActorFactory.ACTOR_NAME, healthCheckingActorProps);
 
         String hostname = config.getString(ConfigKeys.HTTP_HOSTNAME);
         if (hostname.isEmpty()) {

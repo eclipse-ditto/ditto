@@ -16,7 +16,7 @@ import java.util.concurrent.TimeUnit;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.akka.SimpleCommand;
 import org.eclipse.ditto.services.utils.akka.SimpleCommandResponse;
-import org.eclipse.ditto.services.utils.health.HealthCheckingActor;
+import org.eclipse.ditto.services.utils.health.DefaultHealthCheckingActorFactory;
 import org.eclipse.ditto.services.utils.health.RetrieveHealth;
 import org.eclipse.ditto.services.utils.health.StatusInfo;
 
@@ -54,11 +54,6 @@ public final class StatusSupplierActor extends AbstractActor {
 
     private final String rootActorName;
 
-    /**
-     * Constructs a {@link StatusSupplierActor}.
-     *
-     * @param rootActorName the name of the root actor to use for ActorSelection of the {@link HealthCheckingActor}
-     */
     private StatusSupplierActor(final String rootActorName) {
         this.rootActorName = rootActorName;
     }
@@ -66,8 +61,8 @@ public final class StatusSupplierActor extends AbstractActor {
     /**
      * Creates Akka configuration object Props for this StatusSupplierActor.
      *
-     * @param rootActorName sets the name of the root actor (e.g. "thingsRoot") which is used as the parent of the
-     * {@link HealthCheckingActor}.
+     * @param rootActorName sets the name of the root actor (e.g. "thingsRoot") which is used as the parent of
+     * {@link DefaultHealthCheckingActorFactory#ACTOR_NAME}.
      * @return the Akka configuration Props object
      */
     public static Props props(final String rootActorName) {
@@ -96,7 +91,7 @@ public final class StatusSupplierActor extends AbstractActor {
                             final ActorRef sender = getSender();
                             final ActorRef self = getSelf();
                             PatternsCS.ask(getContext().system().actorSelection("/user/" + rootActorName + "/" +
-                                            HealthCheckingActor.ACTOR_NAME),
+                                            DefaultHealthCheckingActorFactory.ACTOR_NAME),
                                     RetrieveHealth.newInstance(), Timeout.apply(2, TimeUnit.SECONDS))
                                     .thenAccept(health -> {
                                         log.info("Sending the health of this system as requested: {}", health);

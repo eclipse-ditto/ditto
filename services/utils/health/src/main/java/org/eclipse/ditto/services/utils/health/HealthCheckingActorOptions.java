@@ -17,7 +17,7 @@ import java.util.Objects;
 import javax.annotation.concurrent.Immutable;
 
 /**
- * Configuration options for the {@link HealthCheckingActor}.
+ * Configuration options for the {@link DefaultHealthCheckingActorFactory}.
  */
 @Immutable
 public final class HealthCheckingActorOptions {

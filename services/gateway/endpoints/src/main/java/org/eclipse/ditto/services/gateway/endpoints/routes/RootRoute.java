@@ -142,7 +142,7 @@ public final class RootRoute {
      * @param config the configuration of the service.
      * @param proxyActor the proxy actor delegating commands.
      * @param streamingActor the {@link org.eclipse.ditto.services.gateway.streaming.actors.StreamingActor} reference.
-     * @param healthCheckingActor the {@link org.eclipse.ditto.services.utils.health.HealthCheckingActor} to use.
+     * @param healthCheckingActor the health-checking actor to use.
      * @param clusterStateSupplier the supplier to get the cluster state.
      * @param httpClient the Http Client to use.
      */

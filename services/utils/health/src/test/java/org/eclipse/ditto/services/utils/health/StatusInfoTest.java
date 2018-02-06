@@ -146,6 +146,19 @@ public final class StatusInfoTest {
     }
 
     @Test
+    public void labelMayBeSetToNull() {
+        final String knownLabel = "knownLabel";
+        final StatusInfo withLabel = StatusInfo.fromStatus(StatusInfo.Status.DOWN).label(knownLabel);
+        assertThat(withLabel.getLabel()).hasValue(knownLabel);
+
+        final StatusInfo actual = withLabel.label(null);
+
+        final StatusInfo expected = StatusInfo.of(withLabel.getStatus(), withLabel.getDetails(),
+                withLabel.getChildren(), null);
+        assertThat(actual).isEqualTo(expected);
+    }
+
+    @Test
     public void fromDetailReturnsStatusDownWhenItIsAnErrorDetail() {
         final StatusInfo actual = StatusInfo.fromDetail(KNOWN_MESSAGE_ERROR);
 
