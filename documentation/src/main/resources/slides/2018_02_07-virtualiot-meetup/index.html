@@ -253,7 +253,8 @@
                     <li class="fragment" style="margin-top: 2em;">holistic view of all capabilities (services) and aspects of an asset</li>
                 </ul>
                 <div style="float:right; width: 40%;">
-                    <img src="asset-admin-shell.png" />
+                    <img src="asset-admin-shell.png" style="width: 80%" />
+                    <div style="font-size: 0.4em;"><a href="http://acplt.github.io/openAAS/AssetAdministrationShell.html">Source</a></div>
                 </div>
                 <!-- img source: http://acplt.github.io/openAAS/AssetAdministrationShell.html -->
             </section>
@@ -268,56 +269,226 @@
                 <br/>
                 <h2>… where IoT devices and their digital twins get together</h2>
             </section>
-            <section id="ditto-2">
-                <h2>domain model</h2>
-                <br />
-                <br />
-                <img src="ditto-class-diagram-v1.png"/>
-            </section>
-            <section id="ditto-3">
-                <h2>functionals</h2>
-                <br/>
-                <ul style="font-size: 90%">
-                    <li class="fragment">resource-based <b>HTTP JSON API</b> representing devices</li>
-                    <li class="fragment" style="margin-top: 0.5em;">definition of a "Ditto <b>Protocol</b>"
-                        using <b>JSON</b> for interaction with devices
-                    </li>
-                    <li class="fragment" style="margin-top: 0.5em;"><b>WebSocket API</b> based on this protocol</li>
-                    <li class="fragment" style="margin-top: 0.5em;">authorization/<b>access control</b> at APIs enforcing that only allowed individuals may read/write
-                    </li>
-                    <li class="fragment" style="margin-top: 0.5em;">accessing and modifying <b>different perspectives</b> (live, twin)</li>
-                </ul>
-            </section>
-            <section id="ditto-4">
-                <h2>functionals ctd.</h2>
-                <br/>
-                <ul style="font-size: 90%">
-                    <li class="fragment">optionally configure and enforce a <b>schema for devices</b><br/>(via <b>Eclipse Vorto</b>)
-                    </li>
-                    <li class="fragment" style="margin-top: 0.5em;"><b>notification about changes</b> of device resources via HTTP Server-sent events (SSE) and WebSocket
-                    </li>
-                    <li class="fragment" style="margin-top: 0.5em;"><b>search</b> API accepting predicate-based query language</li>
-                    <li class="fragment" style="margin-top: 0.5em;"><b>message routing</b> between connected WebSockets</li>
-                    <li class="fragment" style="margin-top: 0.5em;">integration with <b>Eclipse Hono</b> for consuming telemetry
-                    </li>
-                </ul>
-            </section>
-            <section id="ditto-5" style="clear: both;">
-                <h2>context</h2>
+            <section id="ditto-1" style="clear: both;">
+                <h2>in context</h2>
                 <br/>
                 <img src="ditto-in-action.png" style="width: 75%"/>
             </section>
-            <section id="ditto-6">
+            <section id="ditto-2" style="clear: both;">
+                <h2>domain model</h2>
+                <br />
+                <br />
+                <img src="../../images/pages/basic/ditto-class-diagram-v1.svg"/>
+                <a href="https://www.eclipse.org/ditto/basic-overview.html#domain-model">→ docs</a>
+            </section>
+            <section id="ditto-3" style="clear: both;">
+                <h2>turn device data into API</h2>
+                <div style="text-align: left; float: left; width: 38%">
+                <pre style="width: 100%; font-size: 0.5em;"><code class="hljs json">{
+  "thingId": "namespace:car-1",
+  "attributes": {
+    "manufacturer": "ACME corp",
+    "productionData": {
+      "serialNo": 4711
+    }
+  },
+  "features": {
+    "headlights": {
+      "properties": {
+        "on": false
+      }
+    }
+  }
+}</code></pre>
+                </div>
+                <div style="text-align: left; float: right; width: 60%" class="fragment">
+                    <pre style="width: 105%; font-size: 0.5em;"><code class="hljs">GET/PUT/DELETE
+ /api/1/things/namespace:car-1
+ /api/1/things/namespace:car-1/attributes
+ /api/1/things/namespace:car-1/attributes/manufacturer
+ /api/1/things/namespace:car-1/attributes/productionData
+ /api/1/things/namespace:car-1/attributes/productionData/serialNo
+
+
+ /api/1/things/namespace:car-1/features
+ /api/1/things/namespace:car-1/features/headlights
+ /api/1/things/namespace:car-1/features/headlights/properties
+ /api/1/things/namespace:car-1/features/headlights/properties/on
+
+
+
+
+</code></pre>
+                    <a href="https://www.eclipse.org/ditto/httpapi-concepts.html#endpoints" style="float: right;">→ docs</a>
+                </div>
+            </section>
+            <section id="ditto-4" style="clear: both">
+                <h2>Ditto Protocol API</h2>
+                <ul>
+                    <li>JSON based text protocol for communicating with Digital Twins bidirectionally (commands/events)</li>
+                    <li>via: WebSocket, AMQP 1.0 (e.g. Hono), AMQP 0.9.1</li>
+                </ul>
+                <pre style="width: 100%; font-size: 0.5em;"><code class="hljs json">{
+  "topic": "namespace/car-1/things/twin/events/modified",
+  "headers": { ... },
+  "path": "/features/headlights/properties",
+  "value": {
+    "on": true
+  },
+  "revision": 42
+}</code></pre>
+                <a href="https://www.eclipse.org/ditto/protocol-overview.html" style="float: right;">→ docs</a>
+            </section>
+            <section id="ditto-5" style="clear: both">
+                <h2>access control</h2>
+                <div style="text-align: left; float: left; width: 48%">
+                    <h3>API v1: ACL</h3>
+                <pre style="width: 100%; font-size: 0.5em;"><code class="hljs json">"acl": {
+  "ditto": {
+    "READ": true,
+    "WRITE": false,
+    "ADMINISTRATE": false
+  },
+  "adam": {
+    "READ": true,
+    "WRITE": true,
+    "ADMINISTRATE": true
+  }
+}</code></pre>
+                    <ul>
+                        <li>inlined in Thing</li>
+                    </ul>
+                </div>
+                <div style="text-align: left; float: right; width: 48%" class="fragment">
+                    <h3>API v2: Policy</h3>
+                    <pre style="width: 110%; font-size: 0.3em;"><code class="hljs">{
+  "policyId": "namespace:car-1-policy",
+  "entries": {
+    "owner": {
+      "subjects": {
+        "nginx:admin": {
+          "type": "nginx basic auth user"
+        }
+      },
+      "resources": {
+        "thing:/": {
+          "grant": ["READ","WRITE"],
+          "revoke": []
+        },
+        "thing:/features/firmware": {
+          "grant": [],
+          "revoke": ["WRITE"]
+        },
+        "policy:/": {
+          "grant": ["READ","WRITE"],
+          "revoke": []
+        }
+      }
+    }
+  }
+}</code></pre>
+                    <a href="https://www.eclipse.org/ditto/basic-auth.html#authorization" style="float: right;">→ docs</a>
+                </div>
+            </section>
+            <section id="ditto-6" style="clear: both;">
+                <h2>twin vs. live</h2>
+                <br/>
+                <div style="text-align: left; float: left; width: 48%">
+                    <img src="../../images/pages/protocol/ditto-twin-channel.png" />
+                    <ul style="font-size: 0.7em">
+                        <li>uses Ditto as persistence</li>
+                        <li>Ditto enforces access control</li>
+                        <li>Ditto processes commands, emits events</li>
+                    </ul>
+                </div>
+                <div style="text-align: left; float: right; width: 48%" class="fragment">
+                    <ul style="font-size: 0.7em">
+                        <li>uses Ditto as router</li>
+                        <li>Ditto enforces access control</li>
+                        <li>endpoints process commands, emit events</li>
+                    </ul>
+                    <img src="../../images/pages/protocol/ditto-live-channel.png" />
+                    <a href="https://www.eclipse.org/ditto/protocol-twinlive.html" style="float: right;">→ docs</a>
+                </div>
+            </section>
+            <section id="ditto-7" style="clear: both;">
+                <h2>get notified about changes</h2>
+                <br/>
+                <div style="text-align: left; float: left; width: 48%">
+                    <h3>via WebSocket</h3>
+                    <pre style="width: 100%; font-size: 0.5em;"><code class="hljs javascript">var ws = new WebSocket(
+  "ws://u:p@ditto.eclipse.org/ws/1");
+ws.onopen = function(w) {
+  w.send('START-SEND-EVENTS');
+};
+ws.onmessage = function(msg) {
+  console.log('received: ' + msg.data);
+};</code></pre>
+                    <ul style="font-size: 0.7em">
+                        <li>bidirectionally send/receive Ditto Protocol messages</li>
+                    </ul>
+                    <a href="https://www.eclipse.org/ditto/protocol-bindings-websocket.html" style="float: right;">→ docs</a>
+                </div>
+                <div style="text-align: left; float: right; width: 48%" class="fragment">
+                    <h3>via SSEs</h3>
+                    <pre style="width: 100%; font-size: 0.5em;"><code class="hljs">var source = new EventSource(
+  "/api/1/things?ids=namespace:car-1");
+source.onmessage = function(msg) {
+  console.log('received: ' + msg.data);
+};</code></pre>
+                    <ul style="font-size: 0.7em">
+                        <li>unidirectionally receive changes in Thing JSON form</li>
+                    </ul>
+                    <a href="https://www.eclipse.org/ditto/httpapi-sse.html" style="float: right;">→ docs</a>
+                </div>
+            </section>
+            <section id="ditto-8" style="clear: both;">
+                <h2>search</h2>
+                <br/>
+                <div style="text-align: left; float: left; width: 40%">
+                    <img src="meme-dino.jpg" style="width: 80%;" />
+                    <ul style="font-size: 0.7em">
+                        <li>you must not</li>
+                        <li>Ditto has you covered</li>
+                    </ul>
+                </div>
+                <div style="text-align: left; float: right; width: 60%" class="fragment">
+                    <pre style="width: 100%; font-size: 0.5em;"><code class="hljs javascript">GET /api/1/search/things
+  ?filter=like(attributes/manufacturer,"ACME*")</code></pre>
+                    <pre style="width: 100%; font-size: 0.5em;" class="fragment"><code class="hljs javascript">GET /api/1/search/things
+  ?filter=and(
+    exists(attributes/manufacturer),
+    eq(features/headlights/properties/on,true)
+  )
+  &namespaces=org.eclipse.ditto
+  &option=sort(-attributes/manufacturer)
+  &fields=thingId,attributes/manufacturer,_modified</code></pre>
+                </div>
+                <div class="fragment">
+                    <ul style="font-size: 0.7em">
+                        <li>search for arbitrary data</li>
+                        <li>Ditto enforces access control</li>
+                        <li>apply field projection over the results</li>
+                        <li>don't worry about indexing</li>
+                    </ul>
+                    <a href="https://www.eclipse.org/ditto/basic-search.html" style="float: right;">→ docs</a>
+                </div>
+            </section>
+            <section id="ditto-9" style="clear: both;">
                 <h2>non functionals</h2>
                 <br/>
-                <ul>
-                    <li class="fragment">modular architecture of Ditto services</li>
-                    <li class="fragment" style="margin-top: 0.5em;">horizontal scalability of each Ditto service</li>
-                    <li class="fragment" style="margin-top: 0.5em;">runtime dependency to only one other system (MongoDB)</li>
-                    <li class="fragment" style="margin-top: 0.5em;">included monitoring (JVM metrics, roundtrips, MongoDB metrics)</li>
-                    <li class="fragment" style="margin-top: 0.5em;">prepared for operations (e.g. via devops commands)</li>
-                </ul>
-                <br/>
+                <div style="text-align: left; float: left; width: 48%">
+                    <img src="../../images/pages/architecture/context-overview.png" />
+                </div>
+                <div style="text-align: left; float: right; width: 52%">
+                    <ul style="font-size: 0.8em">
+                        <li >modular architecture of Ditto services</li>
+                        <li style="margin-top: 0.5em;">horizontal scalability of each Ditto service</li>
+                        <li style="margin-top: 0.5em;">runtime dependency to only MongoDB</li>
+                        <li style="margin-top: 0.5em;">included monitoring (JVM metrics, roundtrips, MongoDB)</li>
+                        <li style="margin-top: 0.5em;">prepared for operations (e.g. via devops commands)</li>
+                    </ul>
+                </div>
             </section>
         </section>
 
@@ -332,9 +503,22 @@
             </section>
 
             <section id="framework-1" style="clear: both;">
-                <h2>what do we mean by "framework"?</h2>
+                <h2>orchestration via messages</h2>
                 <br/>
-                <h4>TODO</h4>
+                <div style="text-align: left; float: left; width: 38%">
+                    <ul style="font-size: 0.7em">
+                        <li>Ditto as router of messages (via "live" channel)</li>
+                        <li>enforcement of access control</li>
+                        <li>correlation of command/response</li>
+                        <!--<li>device-to-cloud,cloud-to-device,device-to-device,cloud-to-cloud</li>-->
+                    </ul>
+                </div>
+                <div style="text-align: left; float: right; width: 58%">
+                    <img src="../../images/pages/basic/ditto-messages.png" />
+                </div>
+                <ul>
+                    <li>enhance the API of a Digital Twin by a custom WebSocket consumer</li>
+                </ul>
             </section>
         </section>
 
@@ -400,7 +584,8 @@
                           progress: true,
                           history: true,
                           center: true,
-                          slideNumber: 'c/t',
+                          // fragments: false, // for publishing after presentation
+                          slideNumber: 'h.v',
 
                           transition: 'slide', // none/fade/slide/convex/concave/zoom
 
