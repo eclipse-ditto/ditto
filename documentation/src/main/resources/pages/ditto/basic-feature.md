@@ -194,7 +194,7 @@ A feature containing a definition pointing to such a Vorto function block would 
     "lamp": {
         "definition": [ "com.mycompany.fb:Lamp:1.0.0" ],
         "properties": {
-            "config": {
+            "configuration": {
                 "on": true,
                 "location": {
                     "longitude": 34.052235,
