@@ -600,6 +600,15 @@ source.onmessage = function(msg) {
 <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/3.6.0/js/reveal.min.js"></script>
 
 <script>
+    function getParameterByName(name, url) {
+        if (!url) url = window.location.href;
+        name = name.replace(/[\[\]]/g, "\\$&");
+        var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
+            results = regex.exec(url);
+        if (!results) return null;
+        if (!results[2]) return '';
+        return decodeURIComponent(results[2].replace(/\+/g, " "));
+    }
 
     // More info https://github.com/hakimel/reveal.js#configuration
     Reveal.initialize({
@@ -607,7 +616,7 @@ source.onmessage = function(msg) {
                           progress: true,
                           history: true,
                           center: true,
-                          // fragments: false, // for publishing after presentation
+                          fragments: getParameterByName('fragments') === '', // only use "fragments" feature if queryParam 'fragments' is present
                           slideNumber: 'h.v',
 
                           transition: 'convex', // none/fade/cube/slide/convex/concave/zoom

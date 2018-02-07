@@ -1,9 +1,9 @@
 ---
-title: Release notes 0.1.0-M4
+title: Release notes 0.2.0-M1
 tags: [release_notes, search]
 keywords: release notes, announcements, changelog
-summary: "Version 0.1.0-M4 of Eclipse Ditto, released on xx.xx.2018"
-permalink: release_notes_010-M4.html
+summary: "Version 0.2.0-M1 of Eclipse Ditto, released on 07.02.2018"
+permalink: release_notes_020-M1.html
 ---
 
 Since the last milestone of Eclipse Ditto [0.1.0-M3](release_notes_010-M3.html), the following new features and
@@ -45,9 +45,9 @@ Using `"failover": true` when creating a new AMQP 1.0 connection caused that the
 
 ### Various smaller bugfixes
 
-This is a complete list of the [merged pull requests](https://github.com/eclipse/ditto/pulls?q=is%3Apr+milestone%3A0.1.0-M4+).
+This is a complete list of the [merged pull requests](https://github.com/eclipse/ditto/pulls?q=is%3Apr+milestone%3A0.2.0-M1+).
 
 
 ## Documentation
 
-TODO
+Continuously improve and enhance the existing documentation.
