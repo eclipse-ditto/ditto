@@ -44,7 +44,7 @@ described in the `lamp` type of namespace `org.eclipse.ditto` semantically versi
    Tooling for editing such structures and type descriptors is provided by [Eclipse Vorto](#the-link-to-eclipse-vorto)." %}
 
 Ditto aims to support contract-based development - by using feature definitions  - to ensure validity and 
-integrity of **Digital Dwins**.
+integrity of **Digital Twins**.
 
 {% include warning.html content="Currently Ditto **does not** ensure that the properties of a feature or its supported
    messages follow the type defined in the definition." %}
