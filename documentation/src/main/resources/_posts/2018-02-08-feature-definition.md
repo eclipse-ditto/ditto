@@ -39,7 +39,7 @@ A fully-fledged JSON representation of a feature with a definition is shown belo
     "lamp": {
         "definition": [ "com.mycompany.fb:Lamp:1.0.0" ],
         "properties": {
-            "config": {
+            "configuration": {
                 "on": true,
                 "location": {
                     "longitude": 34.052235,
