@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.amqpbridge.mapping.mapper;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
+import org.eclipse.ditto.services.amqpbridge.mapping.mapper.test.Mappers;
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.test.MappingContexts;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -45,7 +46,7 @@ public class PayloadMapperFactoryTest {
 
     @Before
     public void setUp() {
-        factory = new PayloadMapperFactory((ExtendedActorSystem) system, PayloadMappers.class);
+        factory = new PayloadMapperFactory((ExtendedActorSystem) system, Mappers.class);
     }
 
     @After
@@ -56,12 +57,12 @@ public class PayloadMapperFactoryTest {
 
     @Test
     public void createMapperInstanceFromFactoryMethod() throws Exception {
-        assertThat(factory.findAndCreateInstanceFor(MappingContexts.RHINO)).isPresent();
+        assertThat(factory.findAndCreateInstanceFor(MappingContexts.NOOP_FUNCTION)).isPresent();
     }
 
     @Test
     public void createMapperInstanceFromClass() throws Exception {
-        assertThat(factory.findAndCreateInstanceFor(MappingContexts.NOOP_MAPPER)).isPresent();
+        assertThat(factory.findAndCreateInstanceFor(MappingContexts.NOOP_CLASS)).isPresent();
     }
 
     @Test
@@ -77,22 +78,22 @@ public class PayloadMapperFactoryTest {
 
     @Test
     public void createWithFactoryMethod() throws Exception {
-        assertThat(factory.findFactoryMethodAndCreateInstanceFor(MappingContexts.RHINO)).isPresent();
+        assertThat(factory.findFactoryMethodAndCreateInstanceFor(MappingContexts.NOOP_FUNCTION)).isPresent();
     }
 
     @Test
     public void createWithFactoryMethodFindsNoMethod() throws Exception {
-        assertThat(factory.findFactoryMethodAndCreateInstanceFor(MappingContexts.NOOP_MAPPER)).isEmpty();
+        assertThat(factory.findFactoryMethodAndCreateInstanceFor(MappingContexts.NOOP_CLASS)).isEmpty();
     }
 
     @Test
     public void createWithClassName() throws Exception {
-        assertThat(factory.findClassAndCreateInstanceFor(MappingContexts.NOOP_MAPPER)).isPresent();
+        assertThat(factory.findClassAndCreateInstanceFor(MappingContexts.NOOP_CLASS)).isPresent();
     }
 
     @Test
     public void createWithClassNameFindsNoClass() throws Exception {
-        assertThat(factory.findClassAndCreateInstanceFor(MappingContexts.RHINO)).isEmpty();
+        assertThat(factory.findClassAndCreateInstanceFor(MappingContexts.NOOP_FUNCTION)).isEmpty();
     }
 
     @Test
