@@ -25,7 +25,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 
 /**
- * TODO doc
+ *
  */
 @Immutable
 public interface MappingContext extends Jsonifiable.WithFieldSelectorAndPredicate<JsonField> {

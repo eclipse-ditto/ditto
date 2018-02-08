@@ -69,15 +69,17 @@ final class RhinoJavaScriptPayloadMapper implements PayloadMapper {
             DITTO_PROTOCOL_JSON_VAR + "={}" +
             ";";
 
-    private final JavaScriptPayloadMapperOptions options;
+    private JavaScriptPayloadMapperOptions options;
     private final ContextFactory contextFactory;
     private final Scriptable scope;
 
 
+    RhinoJavaScriptPayloadMapper() {
+        this(PayloadMappers.createMapperOptionsBuilder(Collections.emptyMap()).build());
+    }
+
     RhinoJavaScriptPayloadMapper(final PayloadMapperOptions options) {
-
-        this.options = new ImmutableJavaScriptPayloadMapperOptions.Builder(options.getAsMap()).build();
-
+        configure(options);
         contextFactory = new RhinoContextFactory();
 
         // create scope once and load the required libraries in order to get best performance:
@@ -87,6 +89,11 @@ final class RhinoJavaScriptPayloadMapper implements PayloadMapper {
             initLibraries(cx, scope);
             return scope;
         });
+    }
+
+    @Override
+    public void configure(final PayloadMapperOptions options) {
+        this.options = new ImmutableJavaScriptPayloadMapperOptions.Builder(options.getAsMap()).build();
     }
 
     @Override

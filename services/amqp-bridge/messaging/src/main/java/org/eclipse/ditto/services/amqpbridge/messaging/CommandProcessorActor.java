@@ -11,31 +11,18 @@
  */
 package org.eclipse.ditto.services.amqpbridge.messaging;
 
-import static java.util.stream.Collectors.toMap;
 
 import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
-import java.util.AbstractMap;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import javax.jms.BytesMessage;
-import javax.jms.JMSException;
-import javax.jms.Message;
 import javax.jms.TextMessage;
 
-import org.apache.qpid.jms.message.JmsMessage;
-import org.apache.qpid.jms.provider.amqp.message.AmqpJmsMessageFacade;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.amqpbridge.MappingContext;
@@ -44,14 +31,13 @@ import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.PayloadMapper;
+import org.eclipse.ditto.services.amqpbridge.mapping.mapper.PayloadMapperFactory;
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.PayloadMapperMessage;
-import org.eclipse.ditto.services.amqpbridge.mapping.mapper.PayloadMapperOptions;
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.PayloadMappers;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -64,7 +50,6 @@ import com.google.common.cache.RemovalListener;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
 import akka.actor.ExtendedActorSystem;
 import akka.actor.Props;
 import akka.actor.Status;
@@ -76,10 +61,6 @@ import kamon.Kamon;
 import kamon.trace.Segment;
 import kamon.trace.TraceContext;
 import scala.Option;
-import scala.Tuple2;
-import scala.collection.JavaConversions;
-import scala.reflect.ClassTag;
-import scala.util.Try;
 
 /**
  * This Actor processes incoming {@link Command}s and dispatches them via {@link DistributedPubSubMediator} to a
@@ -114,53 +95,10 @@ public final class CommandProcessorActor extends AbstractActor {
                         -> log.info("Trace for {} expired.", notification.getKey()))
                 .build();
 
-        final ActorSystem actorSystem = getContext().getSystem();
+        final PayloadMapperFactory mapperFactory = new PayloadMapperFactory(
+                (ExtendedActorSystem) getContext().getSystem(), PayloadMappers.class);
 
-        payloadMappers = mappingContexts.stream()
-                .collect(Collectors.toMap(MappingContext::getContentType, mappingContext -> {
-
-                    final Map<String, String> optionsMap = mappingContext.getOptions();
-                    final PayloadMapperOptions.Builder optionsBuilder =
-                            PayloadMappers.createMapperOptionsBuilder(optionsMap);
-                    final PayloadMapperOptions options = optionsBuilder.build();
-
-                    // dynamically lookup static method for instantiating the payloadMapper:
-                    return Arrays.stream(PayloadMappers.class.getDeclaredMethods())
-                            .filter(m -> m.getReturnType().equals(PayloadMapper.class))
-                            .filter(m -> m.getName()
-                                    .toLowerCase()
-                                    .contains(mappingContext.getMappingEngine().toLowerCase()))
-                            .findFirst()
-                            .map(m -> {
-                                try {
-                                    return (PayloadMapper) m.invoke(null, options);
-                                } catch (final ClassCastException | IllegalAccessException |
-                                        InvocationTargetException e) {
-                                    log.error(e, "Could not initialize PayloadMapper: <{}>", e.getMessage());
-                                    return null;
-                                }
-                            })
-                            // as fallback, try loading the configured "mappingEngine" as implementation of PayloadMapper class:
-                            .orElseGet(() -> {
-                                final String mappingEngineClass = mappingContext.getMappingEngine();
-                                final ClassTag<PayloadMapper> tag =
-                                        scala.reflect.ClassTag$.MODULE$.apply(PayloadMapper.class);
-                                final List<Tuple2<Class<?>, Object>> constructorArgs = new ArrayList<>();
-                                constructorArgs.add(Tuple2.apply(PayloadMapperOptions.class, options));
-                                final Try<PayloadMapper> payloadMapperImpl = ((ExtendedActorSystem) actorSystem)
-                                        .dynamicAccess()
-                                        .createInstanceFor(mappingEngineClass,
-                                                JavaConversions.asScalaBuffer(constructorArgs).toList(), tag);
-
-                                if (payloadMapperImpl.isSuccess()) {
-                                    return payloadMapperImpl.get();
-                                } else {
-                                    log.error("Could not initialize mappingEngine <{}>",
-                                            mappingContext.getMappingEngine());
-                                    return null;
-                                }
-                            });
-                }));
+        payloadMappers = loadPayloadMappers(mapperFactory, mappingContexts);
     }
 
     /**
@@ -274,7 +212,8 @@ public final class CommandProcessorActor extends AbstractActor {
                 final Segment mappingSegment = traceContext
                         .startSegment("mapping", "payload-mapping", "commandProcessor");
 
-                final Optional<PayloadMapper> payloadMapperOptional = Optional.ofNullable(payloadMappers.get(contentType));
+                final Optional<PayloadMapper> payloadMapperOptional =
+                        Optional.ofNullable(payloadMappers.get(contentType));
                 if (payloadMapperOptional.isPresent()) {
                     final PayloadMapper payloadMapper = payloadMapperOptional.get();
 
@@ -317,7 +256,8 @@ public final class CommandProcessorActor extends AbstractActor {
             } else if (DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE.equalsIgnoreCase(contentType)) {
                 log.info("Received message had DittoProtocol content-type <{}>", contentType);
             } else {
-                log.info("Received message had unknown content-type <{}>, trying to interpret as DittoProtocol message..",
+                log.info(
+                        "Received message had unknown content-type <{}>, trying to interpret as DittoProtocol message..",
                         contentType);
             }
 
@@ -350,5 +290,22 @@ public final class CommandProcessorActor extends AbstractActor {
             log.info("Unexpected Exception: {}", e.getMessage(), e);
             return null;
         }
+    }
+
+    private Map<String, PayloadMapper> loadPayloadMappers(final PayloadMapperFactory factory,
+            final List<MappingContext> mappingContexts) {
+        return mappingContexts.stream().collect(Collectors.toMap(MappingContext::getContentType, mappingContext -> {
+            try {
+                final Optional<PayloadMapper> mapper = factory.findAndCreateInstanceFor(mappingContext);
+                if (!mapper.isPresent()) {
+                    log.debug("No PayloadMapper found for context: <{}>", mappingContext);
+                    return null;
+                }
+                return mapper.get();
+            } catch (InvocationTargetException | IllegalAccessException | ClassCastException | InstantiationException e) {
+                log.error(e, "Could not initialize PayloadMapper: <{}>", e.getMessage());
+                return null;
+            }
+        }));
     }
 }
