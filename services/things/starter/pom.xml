@@ -262,7 +262,6 @@
                                         <arg>java</arg>
                                         <arg>-jar</arg>
                                         <arg>/starter.jar</arg>
-                                        <arg>$_JAVA_OPTIONS</arg>
                                     </exec>
                                 </cmd>
                                 <assembly>
