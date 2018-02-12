@@ -57,7 +57,6 @@ public final class ImmutableConnectionTest {
 
     private static final JsonObject KNOWN_JSON = JsonObject.newBuilder()
             .set(AmqpConnection.JsonFields.ID, ID)
-            .set(AmqpConnection.JsonFields.TYPE, TYPE.getName())
             .set(AmqpConnection.JsonFields.URI, URI)
             .set(AmqpConnection.JsonFields.AUTHORIZATION_SUBJECT, AUTHORIZATION_SUBJECT.getId())
             .set(AmqpConnection.JsonFields.SOURCES, SOURCES.stream()

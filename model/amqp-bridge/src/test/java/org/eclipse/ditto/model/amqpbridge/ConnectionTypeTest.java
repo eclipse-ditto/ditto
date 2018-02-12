@@ -11,8 +11,11 @@
  */
 package org.eclipse.ditto.model.amqpbridge;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
+
+import java.util.Optional;
 
 import org.junit.Test;
 
@@ -32,4 +35,15 @@ public class ConnectionTypeTest {
         assertInstancesOf(ConnectionType.class, areImmutable());
     }
 
+    @Test
+    public void testFromConnectionId() {
+        final Optional<ConnectionType> actual = ConnectionType.fromConnectionId(ConnectionType.AMQP_10 + ":123");
+        assertThat(actual).containsSame(ConnectionType.AMQP_10);
+    }
+
+    @Test
+    public void testFromInvalidConnectionId() {
+        final Optional<ConnectionType> actual = ConnectionType.fromConnectionId("amqp-010:123");
+        assertThat(actual).isEmpty();
+    }
 }

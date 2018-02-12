@@ -105,6 +105,7 @@ final class ImmutableAmqpConnection implements AmqpConnection {
             final AuthorizationSubject authorizationSubject, final Set<String> sources, final boolean failoverEnabled,
             final boolean validateCertificates, final int throttle) {
         checkNotNull(id, "ID");
+        checkNotNull(connectionType, "Connection Type");
         checkNotNull(uri, "URI");
         checkNotNull(authorizationSubject, "Authorization Subject");
         checkNotNull(sources, "Sources");
@@ -124,7 +125,7 @@ final class ImmutableAmqpConnection implements AmqpConnection {
      */
     public static ImmutableAmqpConnection fromJson(final JsonObject jsonObject) {
         final String readId = jsonObject.getValueOrThrow(JsonFields.ID);
-        final ConnectionType readConnectionType = ConnectionType.forName(jsonObject.getValueOrThrow(JsonFields.TYPE))
+        final ConnectionType readConnectionType = ConnectionType.forName(readId.substring(0, readId.indexOf(':')))
                 .orElseThrow(() -> JsonParseException.newBuilder().message("Invalid connection type.").build());
         final String readUri = jsonObject.getValueOrThrow(JsonFields.URI);
         final AuthorizationSubject readAuthorizationSubject =
@@ -212,7 +213,6 @@ final class ImmutableAmqpConnection implements AmqpConnection {
 
         jsonObjectBuilder.set(JsonFields.SCHEMA_VERSION, schemaVersion.toInt(), predicate);
         jsonObjectBuilder.set(JsonFields.ID, id, predicate);
-        jsonObjectBuilder.set(JsonFields.TYPE, connectionType.getName(), predicate);
         jsonObjectBuilder.set(JsonFields.URI, uri, predicate);
         jsonObjectBuilder.set(JsonFields.AUTHORIZATION_SUBJECT, authorizationSubject.getId(), predicate);
         jsonObjectBuilder.set(JsonFields.SOURCES, sources.stream()

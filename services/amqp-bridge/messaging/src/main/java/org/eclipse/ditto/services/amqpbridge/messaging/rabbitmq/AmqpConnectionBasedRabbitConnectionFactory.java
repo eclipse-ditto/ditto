@@ -40,7 +40,7 @@ public class AmqpConnectionBasedRabbitConnectionFactory {
         try {
             final ConnectionFactory connectionFactory = new ConnectionFactory();
 
-            if (SECURE_AMQP_SCHEME.equals(amqpConnection.getProtocol().toLowerCase())) {
+            if (SECURE_AMQP_SCHEME.equalsIgnoreCase(amqpConnection.getProtocol())) {
                 if (amqpConnection.isValidateCertificates()) {
                     connectionFactory.useSslProtocol(SSLContext.getDefault());
                 } else {

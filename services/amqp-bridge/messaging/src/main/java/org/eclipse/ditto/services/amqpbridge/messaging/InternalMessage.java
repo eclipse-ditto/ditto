@@ -15,53 +15,71 @@ import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Optional;
 
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.PayloadMapperMessage;
 
 
 /**
- * Simple wrapper around {@link DittoHeaders} and the command as a JSON String received from external AMQP source.
+ * Simple wrapper around the headers and the payload received from external AMQP source.
  * An instance of this message can be forwarded to the {@link CommandProcessorActor} for further processing.
  */
 public class InternalMessage {
 
-    private final Ack<?> ackMessage;
     private final Map<String, String> headers;
-    private final ByteBuffer payload;
+    private final String textPayload;
+    private final ByteBuffer bytePayload;
 
-    public InternalMessage(final Ack<?> ackMessage, final Map<String, String> headers, final ByteBuffer payload) {
-        this.ackMessage = ackMessage;
-        this.headers = Collections.unmodifiableMap(new LinkedHashMap<>(headers));
-        this.payload = payload;
-    }
-
-    public Map<String, String> getHeaders() {
-        return headers;
-    }
-
-    public ByteBuffer getPayload() {
-        return payload;
-    }
-
-    public Ack<?> getAckMessage() {
-        return ackMessage;
+    public InternalMessage(final Builder builder) {
+        this.headers = Collections.unmodifiableMap(new LinkedHashMap<>(builder.headers));
+        this.textPayload = builder.textPayload;
+        this.bytePayload = builder.bytePayload;
     }
 
     private PayloadMapperMessage toPayloadMapperMessage() {
         throw new UnsupportedOperationException("not implemented");
     }
 
-    public static final class Ack<T> {
+    public Map<String, String> getHeaders() {
+        return headers;
+    }
 
-        private T message;
+    public Optional<String> getTextPayload() {
+        return Optional.ofNullable(textPayload);
+    }
 
-        public Ack(T message) {
-            this.message = message;
+    public Optional<ByteBuffer> getBytePayload() {
+        return Optional.ofNullable(bytePayload);
+    }
+
+    public static class Builder {
+
+        private Map<String, String> headers;
+        private String textPayload;
+        private ByteBuffer bytePayload;
+
+        public Builder(final Map<String, String> headers) {
+            this.headers = headers;
         }
 
-        public T getMessage() {
-            return message;
+        public Builder withText(final String text) {
+            this.textPayload = text;
+            return this;
         }
+
+        public Builder withBytes(final byte[] bytes) {
+            this.bytePayload = ByteBuffer.wrap(bytes);
+            return this;
+        }
+
+        public Builder withBytes(final ByteBuffer bytes) {
+            this.bytePayload = bytes;
+            return this;
+        }
+
+        public InternalMessage build() {
+            return new InternalMessage(this);
+        }
+
     }
 }

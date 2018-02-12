@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.amqpbridge.messaging;
 
 import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -21,7 +22,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import javax.jms.BytesMessage;
-import javax.jms.JMSException;
 import javax.jms.TextMessage;
 
 import org.eclipse.ditto.json.JsonFactory;
@@ -138,21 +138,17 @@ public final class CommandProcessorActor extends AbstractActor {
     }
 
     private void handle(final InternalMessage m) {
-        try {
 
-            final TraceContext traceContext = Kamon.tracer().newContext("commandProcessor",
-                    Option.apply(DittoHeaders.of(m.getHeaders()).getCorrelationId().orElse("no-correlation-id")));
-            final Command<?> command = buildCommandFromPublicProtocol(m, traceContext);
-            traceContext.finish();
+        final TraceContext traceContext = Kamon.tracer().newContext("commandProcessor",
+                Option.apply(DittoHeaders.of(m.getHeaders()).getCorrelationId().orElse("no-correlation-id")));
+        final Command<?> command = buildCommandFromPublicProtocol(m, traceContext);
+        traceContext.finish();
 
-            if (command != null) {
-                traceCommand(command);
-                log.info("Publishing '{}' to '{}'", command.getType(), pubSubTargetActorPath);
-                pubSubMediator.tell(new DistributedPubSubMediator.Send(pubSubTargetActorPath, command, true),
-                        getSelf());
-            }
-        } finally {
-            getSender().tell(m.getAckMessage(), self());
+        if (command != null) {
+            traceCommand(command);
+            log.info("Publishing '{}' to '{}'", command.getType(), pubSubTargetActorPath);
+            pubSubMediator.tell(new DistributedPubSubMediator.Send(pubSubTargetActorPath, command, true),
+                    getSelf());
         }
     }
 
@@ -202,8 +198,7 @@ public final class CommandProcessorActor extends AbstractActor {
     }
 
     private Command<?> buildCommandFromPublicProtocol(final InternalMessage message,
-            final TraceContext traceContext)
-    {
+            final TraceContext traceContext) {
         try {
             final DittoHeaders dittoHeaders = DittoHeaders.of(message.getHeaders());
             final String contentType = dittoHeaders.get("content-type");
@@ -264,9 +259,18 @@ public final class CommandProcessorActor extends AbstractActor {
             }
 
             if (jsonifiableAdaptable == null) {
-                // fall back trying to interpret as DittoProtocol
-                final JsonObject publicCommandJsonObject = JsonFactory.newObject(message.getPayload().toString());
 
+                // best-effort approach, try to read (utf8) string from payload TODO check if this makes sense
+                // may be null, which means there was neither a text nor a byte payload
+                final String stringPayload = message.getTextPayload()
+                        .orElseGet(() -> message.getBytePayload()
+                                .map(ByteBuffer::array)
+                                .map(ba -> new String(ba, StandardCharsets.UTF_8))
+                                .orElseThrow(() -> new IllegalArgumentException("The received message payload " +
+                                        "was null, which is not a valid json command.")));
+
+                // fall back trying to interpret as DittoProtocol
+                final JsonObject publicCommandJsonObject = JsonFactory.newObject(stringPayload);
 
                 // use correlationId from json payload if present
                 // TODO DG rly required??
@@ -293,7 +297,6 @@ public final class CommandProcessorActor extends AbstractActor {
             return null;
         }
     }
-
 
 
     private Map<String, PayloadMapper> loadPayloadMappers(final PayloadMapperFactory factory,

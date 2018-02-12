@@ -159,13 +159,6 @@ public interface AmqpConnection extends Jsonifiable.WithFieldSelectorAndPredicat
                         JsonSchemaVersion.V_2);
 
         /**
-         * JSON field containing the {@code AmqpConnection} type.
-         */
-        public static final JsonFieldDefinition<String> TYPE =
-                JsonFactory.newStringFieldDefinition("type", FieldType.REGULAR, JsonSchemaVersion.V_1,
-                        JsonSchemaVersion.V_2);
-
-        /**
          * JSON field containing the {@code AmqpConnection} uri.
          */
         public static final JsonFieldDefinition<String> URI =

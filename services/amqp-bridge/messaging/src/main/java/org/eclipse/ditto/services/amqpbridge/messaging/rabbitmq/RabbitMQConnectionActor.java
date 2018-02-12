@@ -16,8 +16,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.eclipse.ditto.model.amqpbridge.AmqpConnection;
-import org.eclipse.ditto.services.amqpbridge.messaging.ConnectionActor;
-import org.eclipse.ditto.services.amqpbridge.messaging.InternalMessage;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.amqpbridge.modify.CloseConnection;
 import org.eclipse.ditto.signals.commands.amqpbridge.modify.CreateConnection;
@@ -35,8 +33,10 @@ import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Delivery;
 import com.rabbitmq.client.Envelope;
 
+import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.actor.Status;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
 import scala.Option;
@@ -44,16 +44,17 @@ import scala.Option;
 /**
  * Actor which handles connection to AMQP 0.9.1 server.
  */
-public class RabbitMQConnectionActor extends ConnectionActor {
+public class RabbitMQConnectionActor extends AbstractActor {
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+    private final ActorRef commandProcessor;
     private AmqpConnection amqpConnection;
     private ActorRef connectionActor;
     private ActorRef channelActor;
 
-    private RabbitMQConnectionActor(final String connectionId, final ActorRef pubSubMediator,
-            final String pubSubTargetActorPath) {
-        super(connectionId, pubSubMediator, pubSubTargetActorPath);
+    private RabbitMQConnectionActor(final AmqpConnection amqpConnection, final ActorRef commandProcessor) {
+        this.amqpConnection = amqpConnection;
+        this.commandProcessor = commandProcessor;
     }
 
     /**
@@ -61,57 +62,37 @@ public class RabbitMQConnectionActor extends ConnectionActor {
      *
      * @return the Akka configuration Props object
      */
-    public static Props props(final String connectionId, final ActorRef pubSubMediator,
-            final String pubSubTargetActorPath) {
+    public static Props props(final AmqpConnection amqpConnection, final ActorRef commandProcessor) {
         return Props.create(RabbitMQConnectionActor.class, new Creator<RabbitMQConnectionActor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
             public RabbitMQConnectionActor create() {
-                return new RabbitMQConnectionActor(connectionId, pubSubMediator, pubSubTargetActorPath);
+                return new RabbitMQConnectionActor(amqpConnection, commandProcessor);
             }
         });
     }
 
     @Override
-    protected Receive createConnectionCreatedBehaviour() {
+    public Receive createReceive() {
         return receiveBuilder()
+                .match(CreateConnection.class, cc -> {
+                    amqpConnection = cc.getAmqpConnection();
+                    connect();
+                })
+                .match(OpenConnection.class, oc -> connect())
+                .match(CloseConnection.class, cc -> disconnect())
+                .match(DeleteConnection.class, dc -> {
+                    disconnect();
+                    stopSelf();
+                })
                 .match(ChannelCreated.class, this::handleChannelCreated)
-                .match(InternalMessage.Ack.class, ack -> ack.getMessage() instanceof Long, this::handleAck)
-                .build()
-                .orElse(super.createConnectionCreatedBehaviour());
+                .build();
     }
 
     private void handleChannelCreated(final ChannelCreated channelCreated) {
         this.channelActor = channelCreated.channel();
         setupConsumers(this.channelActor);
-    }
-
-    @Override
-    protected void doCreateConnection(final CreateConnection createConnection) {
-        amqpConnection = createConnection.getAmqpConnection();
-        connect();
-    }
-
-    @Override
-    protected void doOpenConnection(final OpenConnection openConnection) {
-        connect();
-    }
-
-    @Override
-    protected void doCloseConnection(final CloseConnection closeConnection) {
-        disconnect();
-    }
-
-    @Override
-    protected void doDeleteConnection(final DeleteConnection deleteConnection) {
-        disconnect();
-        stopSelf();
-    }
-
-    @Override
-    protected void doUpdateConnection(final AmqpConnection amqpConnection) {
-        this.amqpConnection = amqpConnection;
     }
 
     private void connect() {
@@ -132,6 +113,7 @@ public class RabbitMQConnectionActor extends ConnectionActor {
         } else {
             log.debug("Connection '{}' is already open.", amqpConnection.getId());
         }
+        getSender().tell(new Status.Success("connected"), self());
     }
 
     private void disconnect() {
@@ -144,6 +126,7 @@ public class RabbitMQConnectionActor extends ConnectionActor {
             stopChildActor(connectionActor);
             connectionActor = null;
         }
+        getSender().tell(new Status.Success("disconnected"), self());
     }
 
     private void setupConsumers(final ActorRef channelActor) {
@@ -185,17 +168,34 @@ public class RabbitMQConnectionActor extends ConnectionActor {
         }
     }
 
-    private void handleAck(final InternalMessage.Ack<Long> ack) {
-        channelActor.tell(ChannelMessage.apply(channel -> {
-            try {
-                channel.basicAck(ack.getMessage(), false);
-            } catch (IOException e) {
-                log.info("ACKing {} failed: ", e.getMessage());
-            }
-            return null;
-        }, false), self());
+// TODO DG how to do acking
+//    private void handleAck(final InternalMessage.Ack<Long> ack) {
+//        channelActor.tell(ChannelMessage.apply(channel -> {
+//            try {
+//                channel.basicAck(ack.getMessage(), false);
+//            } catch (IOException e) {
+//                log.info("ACKing {} failed: ", e.getMessage());
+//            }
+//            return null;
+//        }, false), self());
+//    }
+
+    private ActorRef startChildActor(final String name, final Props props) {
+        log.debug("Starting child actor '{}'", name);
+        final String nameEscaped = name.replace('/', '_');
+        return getContext().actorOf(props, nameEscaped);
     }
 
+    private void stopChildActor(final String name) {
+        log.debug("Stopping child actor '{}'", name);
+        final String nameEscaped = name.replace('/', '_');
+        getContext().findChild(nameEscaped).ifPresent(getContext()::stop);
+    }
+
+    private void stopChildActor(final ActorRef actor) {
+        log.debug("Stopping child actor '{}'", actor.path());
+        getContext().stop(actor);
+    }
 
     private void stopSelf() {
         log.debug("Shutting down");

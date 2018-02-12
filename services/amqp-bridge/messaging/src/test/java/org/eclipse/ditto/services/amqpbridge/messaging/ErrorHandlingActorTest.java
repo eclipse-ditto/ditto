@@ -11,7 +11,7 @@
  */
 package org.eclipse.ditto.services.amqpbridge.messaging;
 
-import static org.eclipse.ditto.services.amqpbridge.messaging.TestConstants.createAmqpConnectionActor;
+import static org.eclipse.ditto.services.amqpbridge.messaging.FaultyConnectionActor.faultyConnectionActorPropsFactory;
 import static org.eclipse.ditto.services.amqpbridge.messaging.TestConstants.createConnection;
 import static org.eclipse.ditto.services.amqpbridge.messaging.TestConstants.createRandomConnectionId;
 
@@ -63,8 +63,8 @@ public class ErrorHandlingActorTest {
         new TestKit(actorSystem) {{
             final String connectionId = createRandomConnectionId();
             final AmqpConnection amqpConnection = createConnection(connectionId);
-            final ActorRef underTest = createAmqpConnectionActor(connectionId, actorSystem,
-                    cId -> FaultyConnectionActor.props(cId, pubSubMediator, TestConstants.PROXY_ACTOR_PATH, false));
+            final ActorRef underTest = TestConstants.createConnectionSupervisorActor(connectionId, actorSystem,
+                    pubSubMediator, (a, c) -> FaultyConnectionActor.props(a, c, false));
             watch(underTest);
 
             // create connection
@@ -96,8 +96,9 @@ public class ErrorHandlingActorTest {
         new TestKit(actorSystem) {{
             final String connectionId = createRandomConnectionId();
             final AmqpConnection amqpConnection = createConnection(connectionId);
-            final ActorRef underTest = createAmqpConnectionActor(connectionId, actorSystem,
-                    cId -> FaultyConnectionActor.props(cId, pubSubMediator, TestConstants.PROXY_ACTOR_PATH, true));
+            final ActorRef underTest =
+                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
+                            faultyConnectionActorPropsFactory);
             watch(underTest);
 
             // create connection

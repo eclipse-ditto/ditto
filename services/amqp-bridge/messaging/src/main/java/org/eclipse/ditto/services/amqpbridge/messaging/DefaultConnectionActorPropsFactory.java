@@ -11,10 +11,9 @@
  */
 package org.eclipse.ditto.services.amqpbridge.messaging;
 
-import java.util.Arrays;
-
-import org.eclipse.ditto.model.amqpbridge.ConnectionType;
+import org.eclipse.ditto.model.amqpbridge.AmqpConnection;
 import org.eclipse.ditto.services.amqpbridge.messaging.amqp.AmqpConnectionActor;
+import org.eclipse.ditto.services.amqpbridge.messaging.amqp.AmqpConnectionBasedJmsConnectionFactory;
 import org.eclipse.ditto.services.amqpbridge.messaging.rabbitmq.RabbitMQConnectionActor;
 
 import akka.actor.ActorRef;
@@ -22,42 +21,26 @@ import akka.actor.Props;
 
 public class DefaultConnectionActorPropsFactory implements ConnectionActorPropsFactory {
 
-    private final ActorRef pubSubMediator;
-    private final String pubSubTargetActorPath;
+    private static final AmqpConnectionBasedJmsConnectionFactory JMS_CONNECTION_FACTORY =
+            AmqpConnectionBasedJmsConnectionFactory.getInstance();
 
-    private DefaultConnectionActorPropsFactory(final ActorRef pubSubMediator,
-            final String pubSubTargetActorPath) {
-        this.pubSubMediator = pubSubMediator;
-        this.pubSubTargetActorPath = pubSubTargetActorPath;
+    private DefaultConnectionActorPropsFactory() {
     }
 
-    public static ConnectionActorPropsFactory getInstance(final ActorRef pubSubMediator,
-            final String pubSubTargetActorPath) {
-        return new DefaultConnectionActorPropsFactory(pubSubMediator, pubSubTargetActorPath);
+    public static ConnectionActorPropsFactory getInstance() {
+        return new DefaultConnectionActorPropsFactory();
     }
 
     @Override
-    public Props getActorPropsForType(final String connectionId) {
-        final ConnectionType connectionType = extractConnectionTypeAndId(connectionId);
-        switch (connectionType) {
+    public Props getActorPropsForType(final AmqpConnection amqpConnection, final ActorRef commandProcessor) {
+        switch (amqpConnection.getConnectionType()) {
             case AMQP_091:
-                return RabbitMQConnectionActor.props(connectionId, pubSubMediator, pubSubTargetActorPath);
+                return RabbitMQConnectionActor.props(amqpConnection, commandProcessor);
             case AMQP_10:
-                return AmqpConnectionActor.props(connectionId, pubSubMediator, pubSubTargetActorPath);
+                return AmqpConnectionActor.props(amqpConnection, commandProcessor, JMS_CONNECTION_FACTORY);
             default:
-                throw new IllegalArgumentException("ConnectionType <" + connectionType + "> is not supported.");
+                throw new IllegalArgumentException(
+                        "ConnectionType <" + amqpConnection.getConnectionType() + "> is not supported.");
         }
-    }
-
-    private ConnectionType extractConnectionTypeAndId(final String actorName) {
-        int idx = actorName.indexOf(':');
-        if (idx <= 0) {
-            throw new IllegalArgumentException("Missing connection type prefix in " + actorName);
-        }
-        final String type = actorName.substring(0, idx);
-        return ConnectionType.forName(type)
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "<" + type + "> is not one of the valid ConnectionTypes " +
-                                Arrays.toString(ConnectionType.values()) + "."));
     }
 }

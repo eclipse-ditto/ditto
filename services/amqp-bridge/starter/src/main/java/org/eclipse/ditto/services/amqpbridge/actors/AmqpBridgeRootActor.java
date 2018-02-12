@@ -158,11 +158,10 @@ public final class AmqpBridgeRootActor extends AbstractActor {
         final Duration maxBackoff = config.getDuration(ConfigKeys.Connection.SUPERVISOR_EXPONENTIAL_BACKOFF_MAX);
         final double randomFactor =
                 config.getDouble(ConfigKeys.Connection.SUPERVISOR_EXPONENTIAL_BACKOFF_RANDOM_FACTOR);
-
-        final ConnectionActorPropsFactory connectionActorPropsFactory
-                = DefaultConnectionActorPropsFactory.getInstance(pubSubMediator, PROXY_ACTOR_PATH);
+        final ConnectionActorPropsFactory propsFactory = DefaultConnectionActorPropsFactory.getInstance();
         final Props amqpConnectionSupervisorProps =
-                ConnectionSupervisorActor.props(minBackoff, maxBackoff, randomFactor, connectionActorPropsFactory);
+                ConnectionSupervisorActor.props(minBackoff, maxBackoff, randomFactor, pubSubMediator, PROXY_ACTOR_PATH,
+                        propsFactory);
 
         final int numberOfShards = config.getInt(ConfigKeys.Cluster.NUMBER_OF_SHARDS);
         final ClusterShardingSettings shardingSettings =

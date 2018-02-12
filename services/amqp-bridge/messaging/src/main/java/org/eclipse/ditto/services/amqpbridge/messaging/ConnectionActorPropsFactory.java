@@ -11,10 +11,13 @@
  */
 package org.eclipse.ditto.services.amqpbridge.messaging;
 
+import org.eclipse.ditto.model.amqpbridge.AmqpConnection;
+
+import akka.actor.ActorRef;
 import akka.actor.Props;
 
 public interface ConnectionActorPropsFactory {
 
-    Props getActorPropsForType(final String connectionId);
+    Props getActorPropsForType(final AmqpConnection amqpConnection, final ActorRef commandProcessor);
 
 }

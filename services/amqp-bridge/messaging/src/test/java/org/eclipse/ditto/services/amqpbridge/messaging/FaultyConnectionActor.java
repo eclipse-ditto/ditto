@@ -18,60 +18,63 @@ import org.eclipse.ditto.signals.commands.amqpbridge.modify.CreateConnection;
 import org.eclipse.ditto.signals.commands.amqpbridge.modify.DeleteConnection;
 import org.eclipse.ditto.signals.commands.amqpbridge.modify.OpenConnection;
 
+import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.actor.Status;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
 
-public class FaultyConnectionActor extends ConnectionActor {
+public class FaultyConnectionActor extends AbstractActor {
+
+    static final ConnectionActorPropsFactory faultyConnectionActorPropsFactory =
+            (amqpConnection, commandProcessor) -> FaultyConnectionActor.props(amqpConnection, commandProcessor, true);
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+    private final AmqpConnection amqpConnection;
+    private final ActorRef commandProcessor;
     private final boolean allowCreate;
 
-    private FaultyConnectionActor(final String connectionId, final ActorRef pubSubMediator,
-            final String pubSubTargetActorPath, final boolean allowCreate) {
-        super(connectionId, pubSubMediator, pubSubTargetActorPath);
+    private FaultyConnectionActor(final AmqpConnection amqpConnection, final ActorRef commandProcessor,
+            final boolean allowCreate) {
+        this.amqpConnection = amqpConnection;
+        this.commandProcessor = commandProcessor;
         this.allowCreate = allowCreate;
     }
 
-    public static Props props(final String connectionId, final ActorRef pubSubMediator,
-            final String pubSubTargetActorPath, final boolean allowCreate) {
+    public static Props props(final AmqpConnection amqpConnection, final ActorRef commandProcessor,
+            final boolean allowCreate) {
         return Props.create(FaultyConnectionActor.class, new Creator<FaultyConnectionActor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
             public FaultyConnectionActor create() {
-                return new FaultyConnectionActor(connectionId, pubSubMediator, pubSubTargetActorPath, allowCreate);
+                return new FaultyConnectionActor(amqpConnection, commandProcessor, allowCreate);
             }
         });
     }
 
     @Override
-    protected void doCreateConnection(final CreateConnection createConnection) {
-        if (allowCreate) {
-            log.info("connection created");
-        } else {
-            throw new IllegalStateException("cannot create connection");
-        }
-    }
-
-    @Override
-    protected void doOpenConnection(final OpenConnection openConnection) {
-        throw new IllegalStateException("cannot open connection");
-    }
-
-    @Override
-    protected void doCloseConnection(final CloseConnection closeConnection) {
-        throw new IllegalStateException("cannot close connection");
-    }
-
-    @Override
-    protected void doDeleteConnection(final DeleteConnection deleteConnection) {
-        throw new IllegalStateException("cannot delete connection");
-    }
-
-    @Override
-    protected void doUpdateConnection(final AmqpConnection amqpConnection) {
-        throw new IllegalStateException("cannot update connection");
+    public Receive createReceive() {
+        return receiveBuilder()
+                .match(CreateConnection.class, cc -> {
+                    if (allowCreate) {
+                        log.info("connection created");
+                        sender().tell("success", self());
+                    } else {
+                        sender().tell(new Status.Failure(new IllegalStateException("cannot create connection")),
+                                self());
+                    }
+                })
+                .match(OpenConnection.class,
+                        oc -> sender().tell(new Status.Failure(new IllegalStateException("cannot open connection")),
+                                self()))
+                .match(CloseConnection.class,
+                        cc -> sender().tell(new Status.Failure(new IllegalStateException("cannot close connection")),
+                                self()))
+                .match(DeleteConnection.class,
+                        dc -> sender().tell(new Status.Failure(new IllegalStateException("cannot delete connection")),
+                                self()))
+                .build();
     }
 }

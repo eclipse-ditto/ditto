@@ -14,7 +14,6 @@ package org.eclipse.ditto.services.amqpbridge.messaging.amqp;
 import static java.util.stream.Collectors.toMap;
 
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.util.AbstractMap;
 import java.util.Collections;
 import java.util.List;
@@ -32,8 +31,6 @@ import javax.jms.TextMessage;
 
 import org.apache.qpid.jms.JmsQueue;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.services.amqpbridge.messaging.InternalMessage;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
@@ -54,6 +51,7 @@ final class CommandConsumerActor extends AbstractActor implements MessageListene
      */
     static final String ACTOR_NAME_PREFIX = "amqpConsumerActor-";
     private static final String REPLY_TO_HEADER = "replyTo";
+    private static final String CORRELATION_ID_HEADER = "correlation-id";
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
     private final Session session;
@@ -88,7 +86,6 @@ final class CommandConsumerActor extends AbstractActor implements MessageListene
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
-                .match(InternalMessage.Ack.class, this::handleAck)
                 .matchAny(m -> {
                     log.debug("Unknown message: {}", m);
                     unhandled(m);
@@ -98,7 +95,7 @@ final class CommandConsumerActor extends AbstractActor implements MessageListene
     @Override
     public void preStart() throws JMSException {
         final Destination destination = new JmsQueue(source);
-        log.info("Creating AMQP Consumer for '{}'", source);
+        log.debug("Creating AMQP Consumer for '{}'", source);
         if (session != null) {
             consumer = session.createConsumer(destination);
             consumer.setMessageListener(this);
@@ -108,7 +105,7 @@ final class CommandConsumerActor extends AbstractActor implements MessageListene
     @Override
     public void postStop() throws Exception {
         super.postStop();
-        log.info("Closing AMQP Consumer for '{}'", source);
+        log.debug("Closing AMQP Consumer for '{}'", source);
         if (consumer != null) {
             consumer.close();
         }
@@ -117,21 +114,11 @@ final class CommandConsumerActor extends AbstractActor implements MessageListene
     @Override
     public void onMessage(final Message message) {
         try {
-            final String commandJsonString = extractCommandStringFromMessage(message);
             final Map<String, String> headers = extractHeadersMapFromJmsMessage(message);
-            final DittoHeadersBuilder dittoHeadersBuilder = DittoHeaders.newBuilder(headers);
-
-            final String replyTo = message.getJMSReplyTo() != null ? String.valueOf(message.getJMSReplyTo()) : null;
-            if (replyTo != null) {
-                dittoHeadersBuilder.putHeader(REPLY_TO_HEADER, replyTo);
-            }
-
-//            final String jmsCorrelationId = message.getJMSCorrelationID() != null ? message.getJMSCorrelationID() :
-//                    message.getJMSMessageID();
-
-            final InternalMessage.Ack<?> ack = new InternalMessage.Ack<>(message);
-            final InternalMessage internal = new InternalMessage(ack, dittoHeadersBuilder.build(), commandJsonString);
-            commandProcessor.tell(internal, self());
+            final InternalMessage.Builder builder = new InternalMessage.Builder(headers);
+            extractPayloadFromMessage(message, builder);
+            final InternalMessage internalMessage = builder.build();
+            commandProcessor.tell(internalMessage, self());
         } catch (final DittoRuntimeException e) {
             log.info("Got DittoRuntimeException '{}' when command was parsed: {}", e.getErrorCode(), e.getMessage());
         } catch (final Exception e) {
@@ -139,9 +126,11 @@ final class CommandConsumerActor extends AbstractActor implements MessageListene
         }
     }
 
-    private String extractCommandStringFromMessage(final Message message) throws JMSException {
+    private void extractPayloadFromMessage(final Message message,
+            final InternalMessage.Builder builder) throws JMSException {
         if (message instanceof TextMessage) {
-            return ((TextMessage) message).getText();
+            final String payload = ((TextMessage) message).getText();
+            builder.withText(payload);
         } else if (message instanceof BytesMessage) {
             final BytesMessage bytesMessage = (BytesMessage) message;
             final long bodyLength = bytesMessage.getBodyLength();
@@ -149,7 +138,7 @@ final class CommandConsumerActor extends AbstractActor implements MessageListene
                 final int length = (int) bodyLength;
                 final ByteBuffer byteBuffer = ByteBuffer.allocate(length);
                 bytesMessage.readBytes(byteBuffer.array());
-                return new String(byteBuffer.array(), StandardCharsets.UTF_8);
+                builder.withBytes(byteBuffer);
             } else {
                 throw new IllegalArgumentException("Message too large...");
             }
@@ -160,10 +149,22 @@ final class CommandConsumerActor extends AbstractActor implements MessageListene
 
     private Map<String, String> extractHeadersMapFromJmsMessage(final Message message) throws JMSException {
         @SuppressWarnings("unchecked") final List<String> names = Collections.list(message.getPropertyNames());
-        return names.stream()
+        Map<String, String> headersFromJmsProperties = names.stream()
                 .map(key -> getPropertyAsEntry(message, key))
                 .filter(Objects::nonNull)
                 .collect(toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+        final String replyTo = message.getJMSReplyTo() != null ? String.valueOf(message.getJMSReplyTo()) : null;
+        if (replyTo != null) {
+            headersFromJmsProperties.put(REPLY_TO_HEADER, replyTo);
+        }
+
+        final String jmsCorrelationId = message.getJMSCorrelationID() != null ? message.getJMSCorrelationID() :
+                message.getJMSMessageID();
+        if (jmsCorrelationId != null) {
+            headersFromJmsProperties.put(CORRELATION_ID_HEADER, jmsCorrelationId);
+        }
+        return headersFromJmsProperties;
     }
 
     private Map.Entry<String, String> getPropertyAsEntry(final Message message, final String key) {
@@ -174,10 +175,4 @@ final class CommandConsumerActor extends AbstractActor implements MessageListene
             return null;
         }
     }
-
-    private void handleAck(final InternalMessage.Ack<?> ack) {
-        // no need to manually ack the messages
-        log.info("Ack for {} received.", ack.getMessage());
-    }
-
 }

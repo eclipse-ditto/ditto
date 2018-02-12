@@ -11,7 +11,7 @@
  */
 package org.eclipse.ditto.services.amqpbridge.messaging.rabbitmq;
 
-import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -19,8 +19,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.model.base.common.ConditionChecker;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.services.amqpbridge.messaging.InternalMessage;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
@@ -76,42 +74,36 @@ public class CommandConsumerActor extends AbstractActor {
     }
 
     private void handleDelivery(final Delivery delivery) {
-
         final BasicProperties properties = delivery.getProperties();
         final Envelope envelope = delivery.getEnvelope();
         final byte[] body = delivery.getBody();
-
         try {
             final String correlationId = properties.getCorrelationId();
-
             LogUtil.enhanceLogWithCorrelationId(log, correlationId);
-
-            final DittoHeadersBuilder dittoHeadersBuilder = Optional.ofNullable(properties.getHeaders())
-                    .map(Map::entrySet)
-                    .map(this::setToStringStringMap)
-                    .map(DittoHeaders::newBuilder)
-                    .orElseGet(DittoHeaders::newBuilder);
-
-            // set headers specific to rmq messages
-            if (envelope.getExchange() != null) {
-                dittoHeadersBuilder.putHeader(EXCHANGE_HEADER, envelope.getExchange());
-            }
-            if (properties.getReplyTo() != null) {
-                dittoHeadersBuilder.putHeader(REPLY_TO_HEADER, properties.getReplyTo());
-            }
-            dittoHeadersBuilder.putHeader(MESSAGE_ID_HEADER, Long.toString(envelope.getDeliveryTag()));
-
-            final String commandJsonString = new String(body, StandardCharsets.UTF_8);
-            log.debug("Received Thing Protocol Command from RabbitMQ ({}//{}): {}", envelope, properties,
-                    commandJsonString);
-
-            final InternalMessage.Ack ackMessage = new InternalMessage.Ack<>(envelope.getDeliveryTag());
-            commandProcessor.forward(
-                    new InternalMessage(ackMessage, dittoHeadersBuilder.build(), commandJsonString),
-                    context());
+            final Map<String, String> headers = extractHeadersFromMessage(properties, envelope);
+            final InternalMessage internalMessage = new InternalMessage.Builder(headers).withBytes(body).build();
+            log.debug("Received message from RabbitMQ ({}//{}): {}", envelope, properties);
+            commandProcessor.forward(internalMessage, context());
         } catch (Exception e) {
             log.warning("Processing delivery {} failed: {}", envelope.getDeliveryTag(), e.getMessage(), e);
         }
+    }
+
+    private Map<String, String> extractHeadersFromMessage(final BasicProperties properties, final Envelope envelope) {
+        final Map<String, String> headersFromProperties =
+                Optional.ofNullable(properties.getHeaders())
+                        .map(Map::entrySet)
+                        .map(this::setToStringStringMap).orElseGet(HashMap::new);
+
+        // set headers specific to rmq messages
+        if (envelope.getExchange() != null) {
+            headersFromProperties.put(EXCHANGE_HEADER, envelope.getExchange());
+        }
+        if (properties.getReplyTo() != null) {
+            headersFromProperties.put(REPLY_TO_HEADER, properties.getReplyTo());
+        }
+        headersFromProperties.put(MESSAGE_ID_HEADER, Long.toString(envelope.getDeliveryTag()));
+        return headersFromProperties;
     }
 
     private Map<String, String> setToStringStringMap(final Set<Map.Entry<String, Object>> entries) {

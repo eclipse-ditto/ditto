@@ -22,14 +22,13 @@ import org.apache.qpid.jms.message.JmsMessage;
 import org.apache.qpid.jms.provider.amqp.message.AmqpJmsTextMessageFacade;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.amqpbridge.AmqpBridgeModelFactory;
 import org.eclipse.ditto.model.amqpbridge.MappingContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
-import org.eclipse.ditto.services.amqpbridge.mapping.mapper.PayloadMappers;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttribute;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.typesafe.config.Config;
@@ -69,6 +68,7 @@ public class CommandProcessorActorTest {
     }
 
     @Test
+    @Ignore
     public void plainStringMappingTest() throws IdConversionException {
         new TestKit(actorSystem) {{
             final String targetActorPath = getTestActor().path().toStringWithoutAddress();

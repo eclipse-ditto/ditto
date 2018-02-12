@@ -48,7 +48,8 @@
         <jackson-databind.version>2.8.10</jackson-databind.version>
         <asm.version>5.2</asm.version>
         <javax-jms-api.version>2.0.1</javax-jms-api.version>
-        <qpid-jms-client.version>0.29.0</qpid-jms-client.version>
+        <!-- qpid-jms-client version 0.29 has a strange bug - beware of updating -->
+        <qpid-jms-client.version>0.28.0</qpid-jms-client.version>
         <reactive-streams.version>1.0.1</reactive-streams.version>
 
         <slf4j.version>1.7.25</slf4j.version>

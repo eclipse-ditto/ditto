@@ -11,8 +11,6 @@
  */
 package org.eclipse.ditto.services.amqpbridge.messaging;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkArgument;
-
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
@@ -61,8 +59,8 @@ public final class ConnectionSupervisorActor extends AbstractActor {
     private final Duration maxBackoff;
     private final double randomFactor;
     private final SupervisorStrategy supervisorStrategy;
+    private final Props persistenceActorProps;
 
-    private Props persistenceActorProps;
     private ActorRef child;
     private long restartCount;
 
@@ -70,12 +68,11 @@ public final class ConnectionSupervisorActor extends AbstractActor {
             final Duration minBackoff,
             final Duration maxBackoff,
             final double randomFactor,
-            final ConnectionActorPropsFactory connectionActorPropsFactory) {
+            final ActorRef pubSubMediator,
+            final String pubSubTargetActorPath,
+            final ConnectionActorPropsFactory propsFactory) {
         try {
-            this.connectionId = checkArgument(
-                    URLDecoder.decode(getSelf().path().name(), StandardCharsets.UTF_8.name()),
-                    arg -> arg.indexOf(':') > 0,
-                    () -> "ConnectionId must contain a type prefix.");
+            this.connectionId = URLDecoder.decode(getSelf().path().name(), StandardCharsets.UTF_8.name());
         } catch (final UnsupportedEncodingException e) {
             throw new IllegalStateException("Unsupported encoding", e);
         }
@@ -83,7 +80,8 @@ public final class ConnectionSupervisorActor extends AbstractActor {
         this.minBackoff = minBackoff;
         this.maxBackoff = maxBackoff;
         this.randomFactor = randomFactor;
-        this.persistenceActorProps = connectionActorPropsFactory.getActorPropsForType(connectionId);
+        this.persistenceActorProps =
+                ConnectionActor.props(connectionId, pubSubMediator, pubSubTargetActorPath, propsFactory);
     }
 
     /**
@@ -98,13 +96,16 @@ public final class ConnectionSupervisorActor extends AbstractActor {
      * @param randomFactor after calculation of the exponential back-off an additional random delay based on this factor
      * is added, e.g. `0.2` adds up to `20%` delay. In order to skip this additional delay pass in `0`.
      * for accessing the connection cache in cluster.
-     * @param connectionActorPropsFactory factory to create actor props for given connection type
+     * @param pubSubMediator the PubSub mediator actor.
+     * @param pubSubTargetActorPath the path of the command consuming actor (via pubsub).
      * @return the {@link Props} to create this actor.
      */
     public static Props props(final Duration minBackoff,
             final Duration maxBackoff,
             final double randomFactor,
-            final ConnectionActorPropsFactory connectionActorPropsFactory) {
+            final ActorRef pubSubMediator,
+            final String pubSubTargetActorPath,
+            final ConnectionActorPropsFactory propsFactory) {
 
         return Props.create(ConnectionSupervisorActor.class, new Creator<ConnectionSupervisorActor>() {
             private static final long serialVersionUID = 1L;
@@ -118,7 +119,8 @@ public final class ConnectionSupervisorActor extends AbstractActor {
                         .match(NamingException.class, e -> SupervisorStrategy.stop())
                         .match(ActorKilledException.class, e -> SupervisorStrategy.stop())
                         .matchAny(e -> SupervisorStrategy.escalate())
-                        .build()), minBackoff, maxBackoff, randomFactor, connectionActorPropsFactory);
+                        .build()), minBackoff, maxBackoff, randomFactor, pubSubMediator, pubSubTargetActorPath,
+                        propsFactory);
             }
         });
     }
@@ -155,6 +157,8 @@ public final class ConnectionSupervisorActor extends AbstractActor {
                             log.warning("Received unhandled message from child actor '{}': {}", connectionId, message);
                             unhandled(message);
                         } else {
+                            log.debug("Forwarding <{}> message to child {}.", message.getClass().getSimpleName(),
+                                    child.path());
                             child.forward(message, getContext());
                         }
                     } else {

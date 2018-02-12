@@ -18,6 +18,7 @@ import org.eclipse.ditto.signals.commands.amqpbridge.modify.CreateConnection;
 import org.eclipse.ditto.signals.commands.amqpbridge.modify.DeleteConnection;
 import org.eclipse.ditto.signals.commands.amqpbridge.modify.OpenConnection;
 
+import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
@@ -26,49 +27,49 @@ import akka.japi.Creator;
 /**
  * Mocks a {@link ConnectionActor} and provides abstraction for a real connection.
  */
-public class MockConnectionActor extends ConnectionActor {
+public class MockConnectionActor extends AbstractActor {
+
+    static final ConnectionActorPropsFactory mockConnectionActorPropsFactory = MockConnectionActor::props;
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+    private final AmqpConnection amqpConnection;
+    private final ActorRef commandProcessor;
 
-    private MockConnectionActor(final String connectionId, final ActorRef pubSubMediator,
-            final String pubSubTargetActorPath) {
-        super(connectionId, pubSubMediator, pubSubTargetActorPath);
+    private MockConnectionActor(final AmqpConnection amqpConnection, final ActorRef commandProcessor) {
+        this.amqpConnection = amqpConnection;
+        this.commandProcessor = commandProcessor;
     }
 
-    public static Props props(final String connectionId, final ActorRef pubSubMediator,
-            final String pubSubTargetActorPath) {
+    public static Props props(final AmqpConnection amqpConnection, final ActorRef commandProcessor) {
         return Props.create(MockConnectionActor.class, new Creator<MockConnectionActor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
             public MockConnectionActor create() {
-                return new MockConnectionActor(connectionId, pubSubMediator, pubSubTargetActorPath);
+                return new MockConnectionActor(amqpConnection, commandProcessor);
             }
         });
     }
 
     @Override
-    protected void doCreateConnection(final CreateConnection createConnection) {
-        log.info("creating....");
-    }
-
-    @Override
-    protected void doOpenConnection(final OpenConnection openConnection) {
-        log.info("opening....");
-    }
-
-    @Override
-    protected void doCloseConnection(final CloseConnection closeConnection) {
-        log.info("closing....");
-    }
-
-    @Override
-    protected void doDeleteConnection(final DeleteConnection deleteConnection) {
-        log.info("deleting....");
-    }
-
-    @Override
-    protected void doUpdateConnection(final AmqpConnection amqpConnection) {
-        log.info("updating....");
+    public Receive createReceive() {
+        return receiveBuilder()
+                .match(CreateConnection.class, cc -> {
+                    log.info("Creating connection...");
+                    sender().tell("success", self());
+                })
+                .match(OpenConnection.class, oc -> {
+                    log.info("Opening connection...");
+                    sender().tell("success", self());
+                })
+                .match(CloseConnection.class, cc -> {
+                    log.info("Closing connection...");
+                    sender().tell("success", self());
+                })
+                .match(DeleteConnection.class, dc -> {
+                    log.info("Deleting connection...");
+                    sender().tell("success", self());
+                })
+                .build();
     }
 }

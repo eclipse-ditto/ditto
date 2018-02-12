@@ -11,6 +11,8 @@
  */
 package org.eclipse.ditto.services.amqpbridge.messaging;
 
+import static org.eclipse.ditto.services.amqpbridge.messaging.MockConnectionActor.mockConnectionActorPropsFactory;
+
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -41,24 +43,30 @@ public class TestConstants {
     private static final boolean FAILOVER = false;
     private static final boolean VALIDATE_CERT = true;
     private static final int THROTTLE = 250;
-    static final Config CONFIG = ConfigFactory.load("test");
+    public static final Config CONFIG = ConfigFactory.load("test");
 
-    static String createRandomConnectionId() {
+    public static String createRandomConnectionId() {
         return ConnectionType.AMQP_10.getName() + ":connection-" + UUID.randomUUID();
     }
 
-    static AmqpConnection createConnection(final String connectionId) {
+    public static AmqpConnection createConnection(final String connectionId) {
         return AmqpBridgeModelFactory.newConnection(connectionId, TYPE, URI, AUTHORIZATION_SUBJECT, SOURCES, FAILOVER,
                 VALIDATE_CERT, THROTTLE);
     }
 
-    static ActorRef createAmqpConnectionActor(final String connectionId, final ActorSystem actorSystem,
-            final ConnectionActorPropsFactory connectionActorPropsFactory) {
+    static ActorRef createConnectionSupervisorActor(final String connectionId, final ActorSystem actorSystem,
+            final ActorRef pubSubMediator) {
+        return createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
+                mockConnectionActorPropsFactory);
+    }
+
+    static ActorRef createConnectionSupervisorActor(final String connectionId, final ActorSystem actorSystem,
+            final ActorRef pubSubMediator, final ConnectionActorPropsFactory connectionActorPropsFactory) {
         final Duration minBackoff = Duration.ofSeconds(1);
         final Duration maxBackoff = Duration.ofSeconds(5);
         final Double randomFactor = 1.0;
-        final Props props = ConnectionSupervisorActor.props(minBackoff, maxBackoff, randomFactor,
-                connectionActorPropsFactory);
+        final Props props = ConnectionSupervisorActor.props(minBackoff, maxBackoff, randomFactor, pubSubMediator,
+                PROXY_ACTOR_PATH, connectionActorPropsFactory);
 
         final int maxAttemps = 5;
         final long backoffMs = 1000L;
