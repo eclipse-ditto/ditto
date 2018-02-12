@@ -18,10 +18,16 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.things.AccessControlListModelFactory;
+import org.eclipse.ditto.model.things.AclNotAllowedException;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
+import org.eclipse.ditto.signals.commands.things.exceptions.PolicyIdNotAllowedException;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -77,6 +83,40 @@ public final class ModifyThingTest {
 
         assertThat(underTest).isNotNull();
         assertThat(underTest.getThing()).isEqualTo(TestConstants.Thing.THING);
+    }
+
+    @Test(expected = AclNotAllowedException.class)
+    public void ensuresNoACLInV2Command() {
+        final DittoHeaders v2Headers = DittoHeaders.newBuilder().schemaVersion(JsonSchemaVersion.LATEST).build();
+        final Thing thingWithAcl = TestConstants.Thing.THING.toBuilder()
+                .setPermissions(AuthorizationModelFactory.newAuthSubject("any"),
+                        AccessControlListModelFactory.allPermissions())
+                .removePolicyId()
+                .build();
+        ModifyThing.of(TestConstants.Thing.THING_ID, thingWithAcl, null, v2Headers);
+    }
+
+    @Test(expected = PolicyIdNotAllowedException.class)
+    public void ensuresNoPolicyInV1Command() {
+        final DittoHeaders v1Headers = DittoHeaders.newBuilder().schemaVersion(JsonSchemaVersion.V_1).build();
+        final Thing thingWithoutAclAndPolicy = TestConstants.Thing.THING.toBuilder()
+                .removeAllPermissions()
+                .removePolicyId()
+                .build();
+        final JsonObject initialPolicy = JsonObject.newBuilder().build();
+        ModifyThing.of(TestConstants.Thing.THING_ID, thingWithoutAclAndPolicy, initialPolicy, v1Headers);
+
+    }
+
+    @Test(expected = PolicyIdNotAllowedException.class)
+    public void ensuresNoPolicyIdInV1Command() {
+        final DittoHeaders v1Headers = DittoHeaders.newBuilder().schemaVersion(JsonSchemaVersion.V_1).build();
+        final Thing thingWithPolicyId = TestConstants.Thing.THING.toBuilder()
+                .removeAllPermissions()
+                .setPolicyId("any:policyId")
+                .build();
+        ModifyThing.of(TestConstants.Thing.THING_ID, thingWithPolicyId, null, v1Headers);
+
     }
 
 }

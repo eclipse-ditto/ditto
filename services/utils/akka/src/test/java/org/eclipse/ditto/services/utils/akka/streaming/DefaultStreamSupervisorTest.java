@@ -40,6 +40,7 @@ import org.mockito.verification.VerificationWithTimeout;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
+import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
 import akka.actor.ActorSystem;
@@ -89,7 +90,7 @@ public class DefaultStreamSupervisorTest {
         when(searchSyncPersistence.retrieveLastSuccessfulStreamEnd(any(Instant.class)))
                 .thenAnswer(unused -> KNOWN_LAST_SYNC);
         when(searchSyncPersistence.updateLastSuccessfulStreamEnd(any(Instant.class)))
-                .thenReturn(Source.empty());
+                .thenReturn(Source.single(NotUsed.getInstance()));
     }
 
     /** */

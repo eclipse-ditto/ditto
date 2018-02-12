@@ -1,0 +1,2235 @@
+{
+	"info": {
+		"name": "Ditto",
+		"_postman_id": "73c48b7b-9636-ea39-a575-67bc00d8781d",
+		"description": "",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "messages",
+			"item": [
+				{
+					"name": "Send a message TO a Thing",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "some random body"
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/1/things/{{namespace}}:fancy-car/inbox/messages/randomMessageSubject",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"1",
+								"things",
+								"{{namespace}}:fancy-car",
+								"inbox",
+								"messages",
+								"randomMessageSubject"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Send a message TO a Feature",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\"some\":\"json\"}"
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/1/things/{{namespace}}:fancy-car/features/someFeature/inbox/messages/someMessageSubject",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"1",
+								"things",
+								"{{namespace}}:fancy-car",
+								"features",
+								"someFeature",
+								"inbox",
+								"messages",
+								"someMessageSubject"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Send a message FROM a Thing",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "some random body"
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/1/things/{{namespace}}:fancy-car/outbox/messages/randomMessageSubject",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"1",
+								"things",
+								"{{namespace}}:fancy-car",
+								"outbox",
+								"messages",
+								"randomMessageSubject"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Send a message FROM a Feature",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\"some\":\"json\"}"
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/1/things/{{namespace}}:fancy-car/features/someFeature/outbox/messages/someMessageSubject",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"1",
+								"things",
+								"{{namespace}}:fancy-car",
+								"features",
+								"someFeature",
+								"outbox",
+								"messages",
+								"someMessageSubject"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Claim a Thing",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "text/plain"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "you shall be mine!"
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/1/things/{{namespace}}:fancy-car/inbox/claim",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"1",
+								"things",
+								"{{namespace}}:fancy-car",
+								"inbox",
+								"claim"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Claim a Thing with timeout",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "text/plain"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "you shall be mine!"
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/1/things/{{namespace}}:fancy-car/inbox/claim?timeout=10",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"1",
+								"things",
+								"{{namespace}}:fancy-car",
+								"inbox",
+								"claim"
+							],
+							"query": [
+								{
+									"key": "timeout",
+									"value": "10"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "policies",
+			"item": [
+				{
+					"name": "Create or update a Policy",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"entries\": {\r\n    \"ALL\": {\r\n      \"subjects\": {\r\n        \"iot-permissions:test\": {\r\n          \"type\": \"iot-permissions-sid\"\r\n        }\r\n      },\r\n      \"resources\": {\r\n        \"policy:/\": {\r\n          \"grant\": [\r\n            \"READ\",\r\n            \"WRITE\"\r\n          ],\r\n          \"revoke\": []\r\n        },\r\n        \"thing:/\": {\r\n          \"grant\": [\r\n            \"READ\",\r\n            \"WRITE\"\r\n          ],\r\n          \"revoke\": []\r\n        },\r\n        \"message:/\": {\r\n          \"grant\": [\r\n            \"READ\",\r\n            \"WRITE\"\r\n          ],\r\n          \"revoke\": []\r\n        }\r\n      }\r\n    }\r\n  }\r\n}"
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/2/policies/{{namespace}}:myPolicy",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"2",
+								"policies",
+								"{{namespace}}:myPolicy"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Modify the entries of a specific Policy",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n\t\"ALL\": {\r\n\t  \"subjects\": {\r\n\t    \"iot-permissions:test\": {\r\n\t      \"type\": \"iot-permissions-sid\"\r\n\t    }\r\n\t  },\r\n\t  \"resources\": {\r\n\t    \"policy:/\": {\r\n\t      \"grant\": [\r\n\t        \"READ\",\r\n\t        \"WRITE\"\r\n\t      ],\r\n\t      \"revoke\": []\r\n\t    },\r\n\t    \"thing:/\": {\r\n\t      \"grant\": [\r\n\t        \"READ\",\r\n\t        \"WRITE\"\r\n\t      ],\r\n\t      \"revoke\": []\r\n\t    },\r\n\t    \"message:/\": {\r\n\t      \"grant\": [\r\n\t        \"READ\",\r\n\t        \"WRITE\"\r\n\t      ],\r\n\t      \"revoke\": []\r\n\t    }\r\n\t  }\r\n\t}\r\n}"
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/2/policies/{{namespace}}:myPolicy/entries",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"2",
+								"policies",
+								"{{namespace}}:myPolicy",
+								"entries"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create or modify one Policy entry of a Policy for a specific label",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"subjects\": {\r\n    \"iot-permissions:restricted\": {\r\n      \"type\": \"iot-permissions-sid\"\r\n    }\r\n  },\r\n  \"resources\": {\r\n    \"policy:/\": {\r\n      \"grant\": [],\r\n      \"revoke\": []\r\n    },\r\n    \"thing:/\": {\r\n      \"grant\": [\r\n        \"READ\"\r\n      ],\r\n      \"revoke\": []\r\n    },\r\n    \"thing:/attributes\": {\r\n      \"grant\": [\r\n        \"READ\"\r\n      ],\r\n      \"revoke\": []\r\n    },\r\n    \"thing:/attributes/VIN\": {\r\n      \"grant\": [],\r\n      \"revoke\": [\r\n      \t\"WRITE\"\r\n      ]\r\n    },\r\n    \"thing:/features/EnvironmentScanner/properties/temperature\": {\r\n      \"grant\": [\r\n        \"WRITE\"\r\n      ],\r\n      \"revoke\": []\r\n    },\r\n    \"message:/\": {\r\n      \"grant\": [],\r\n      \"revoke\": []\r\n    }\r\n  }\r\n}"
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/2/policies/{{namespace}}:myPolicy/entries/RESTRICTED",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"2",
+								"policies",
+								"{{namespace}}:myPolicy",
+								"entries",
+								"RESTRICTED"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create or modify all Subjects of a Policy Entry",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n\t\"iot-permissions:restricted\": {\r\n\t  \"type\": \"iot-permissions-sid\"\r\n\t}\r\n}"
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/2/policies/{{namespace}}:myPolicy/entries/RESTRICTED/subjects",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"2",
+								"policies",
+								"{{namespace}}:myPolicy",
+								"entries",
+								"RESTRICTED",
+								"subjects"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create or modify one specific Subject of a Policy entry",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n\t\"type\": \"iot-permissions-sid\"\r\n}"
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/2/policies/{{namespace}}:myPolicy/entries/RESTRICTED/subjects/iot-permissions:restricted",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"2",
+								"policies",
+								"{{namespace}}:myPolicy",
+								"entries",
+								"RESTRICTED",
+								"subjects",
+								"iot-permissions:restricted"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create or modify all Resources of a Policy Entry",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n\t\"policy:/\": {\r\n\t  \"grant\": [],\r\n\t  \"revoke\": []\r\n\t},\r\n\t\"thing:/\": {\r\n\t  \"grant\": [\r\n\t    \"READ\"\r\n\t  ],\r\n\t  \"revoke\": []\r\n\t},\r\n\t\"thing:/attributes\": {\r\n\t  \"grant\": [\r\n\t    \"READ\"\r\n\t  ],\r\n\t  \"revoke\": []\r\n\t},\r\n\t\"thing:/attributes/VIN\": {\r\n\t  \"grant\": [],\r\n\t  \"revoke\": [\r\n\t  \t\"WRITE\"\r\n\t  ]\r\n\t},\r\n\t\"thing:/features/EnvironmentScanner/properties/temperature\": {\r\n\t  \"grant\": [\r\n\t    \"WRITE\"\r\n\t  ],\r\n\t  \"revoke\": []\r\n\t},\r\n\t\"message:/\": {\r\n\t  \"grant\": [],\r\n\t  \"revoke\": []\r\n\t}\r\n}"
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/2/policies/{{namespace}}:myPolicy/entries/RESTRICTED/resources",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"2",
+								"policies",
+								"{{namespace}}:myPolicy",
+								"entries",
+								"RESTRICTED",
+								"resources"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create or modify one specific Resource of a Policy entry",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n\t\"grant\": [\r\n\t\t\"READ\"\r\n\t],\r\n\t\"revoke\": []\r\n}"
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/2/policies/{{namespace}}:myPolicy/entries/RESTRICTED/resources/thing:/attributes",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"2",
+								"policies",
+								"{{namespace}}:myPolicy",
+								"entries",
+								"RESTRICTED",
+								"resources",
+								"thing:",
+								"attributes"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Retrieve a specific Policy",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/2/policies/{{namespace}}:myPolicy",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"2",
+								"policies",
+								"{{namespace}}:myPolicy"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Retrieve the entries of a specific Policy",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/2/policies/{{namespace}}:myPolicy/entries",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"2",
+								"policies",
+								"{{namespace}}:myPolicy",
+								"entries"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Retrieve one Policy entry of a Policy for a specific label",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/2/policies/{{namespace}}:myPolicy/entries/RESTRICTED",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"2",
+								"policies",
+								"{{namespace}}:myPolicy",
+								"entries",
+								"RESTRICTED"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Retrieve all Subjects of a Policy entry",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/2/policies/{{namespace}}:myPolicy/entries/RESTRICTED/subjects",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"2",
+								"policies",
+								"{{namespace}}:myPolicy",
+								"entries",
+								"RESTRICTED",
+								"subjects"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Retrieve one specific Subject of a Policy entry",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/2/policies/{{namespace}}:myPolicy/entries/RESTRICTED/subjects/iot-permissions:restricted",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"2",
+								"policies",
+								"{{namespace}}:myPolicy",
+								"entries",
+								"RESTRICTED",
+								"subjects",
+								"iot-permissions:restricted"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Retrieve all Resources of a Policy entry",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/2/policies/{{namespace}}:myPolicy/entries/RESTRICTED/resources",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"2",
+								"policies",
+								"{{namespace}}:myPolicy",
+								"entries",
+								"RESTRICTED",
+								"resources"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Retrieve one specific Resource of a Policy entry",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/2/policies/{{namespace}}:myPolicy/entries/RESTRICTED/resources/thing:/attributes",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"2",
+								"policies",
+								"{{namespace}}:myPolicy",
+								"entries",
+								"RESTRICTED",
+								"resources",
+								"thing:",
+								"attributes"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete a specific Policy",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/2/policies/{{namespace}}:myPolicy",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"2",
+								"policies",
+								"{{namespace}}:myPolicy"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete one Policy entry of a Policy for a specific label",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/2/policies/{{namespace}}:myPolicy/entries/RESTRICTED",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"2",
+								"policies",
+								"{{namespace}}:myPolicy",
+								"entries",
+								"RESTRICTED"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete one specific Subject of a Policy entry",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/2/policies/{{namespace}}:myPolicy/entries/RESTRICTED/subjects/iot-permissions:restricted",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"2",
+								"policies",
+								"{{namespace}}:myPolicy",
+								"entries",
+								"RESTRICTED",
+								"subjects",
+								"iot-permissions:restricted"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete one Resource of a Policy entry",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/2/policies/{{namespace}}:myPolicy/entries/RESTRICTED/resources/thing:/attributes",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"2",
+								"policies",
+								"{{namespace}}:myPolicy",
+								"entries",
+								"RESTRICTED",
+								"resources",
+								"thing:",
+								"attributes"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "things",
+			"item": [
+				{
+					"name": "Create: A Thing",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"attributes\": {\n    \"manufacturer\": \"ACME\",\n    \"make\": \"Fancy Fab Car\",\n    \"model\": \"Environmental FourWheeler 4711\",\n    \"VIN\": \"0815666337\"\n  },\n  \"features\": {\n    \"Vehicle\": {\n      \"properties\": {\n        \"configuration\": {\n          \"transmission\": {\n            \"type\": \"manual\",\n            \"gears\": 7\n          }\n        },\n        \"status\": {\n          \"running\": true,\n          \"speed\": 90,\n          \"gear\": 5\n        },\n        \"fault\": {\n          \"flatTyre\": false\n        }\n      }\n    },\n    \"EnvironmentScanner\": {\n      \"definition\": [\n\t    \"{{namespace}}:Car:1.0.0\"\n\t  ],\n      \"properties\": {\n          \"temperature\": 20.8,\n          \"humidity\": 73,\n          \"barometricPressure\": 970.7,\n          \"location\": {\n            \"longitude\": 47.682170,\n            \"latitude\": 9.386372\n          },\n          \"altitude\": 399\n      }\n    }\n  }\n}\n"
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/1/things",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"1",
+								"things"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create: An empty Thing",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{}"
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/1/things",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"1",
+								"things"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create: A Thing with complex attributes",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"attributes\": {\n    \"simpleString\": \"simple\",\n    \"simpleInt\": 42,\n    \"nested\": {\n      \"nestedString\": \"nested\",\n      \"nestedBoolean\": false,\n      \"subnested\" : {\n        \"list\": [\n          1,2,3,5,8\n        ],\n        \"some\": \"value\"\n      }\n    },\n    \"toplist\": [\n      \"IOT\",\"BUM\",\"FOO\"\n    ],\n    \"toplistWithObjects\": [\n      {\n        \"thevalue\": 1,\n        \"nested\": {\n          \"bum\": \"lux\",\n          \"foo\": 3\n        }\n      },\n      {\n        \"thevalue\": 2,\n        \"nested\": {\n          \"bum\": \"ta\",\n          \"foo\": 6\n        }\n      }\n    ]\n  },\n  \"features\": {\n  }\n}\n"
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/1/things",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"1",
+								"things"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create: A Thing with given ID",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"attributes\": {\n    \"manufacturer\": \"ACME\",\n    \"make\": \"Fancy Fab Car\",\n    \"model\": \"Environmental FourWheeler 4711\",\n    \"VIN\": \"0815666337\"\n  },\n  \"features\": {\n    \"Vehicle\": {\n      \"properties\": {\n        \"configuration\": {\n          \"transmission\": {\n            \"type\": \"manual\",\n            \"gears\": 7\n          }\n        },\n        \"status\": {\n          \"running\": true,\n          \"speed\": 90,\n          \"gear\": 5\n        },\n        \"fault\": {\n          \"flatTyre\": false\n        }\n      }\n    },\n    \"EnvironmentScanner\": {\n      \"definition\": [\n\t    \"{{namespace}}:Car:1.0.0\"\n\t  ],\n      \"properties\": {\n          \"temperature\": 20.8,\n          \"humidity\": 73,\n          \"barometricPressure\": 970.7,\n          \"location\": {\n            \"longitude\": 47.682170,\n            \"latitude\": 9.386372\n          },\n          \"altitude\": 399\n      }\n    }\n  }\n}\n"
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/1/things/{{namespace}}:fancy-car",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"1",
+								"things",
+								"{{namespace}}:fancy-car"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create: A new Attribute at an existing Thing",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "\"someValue\"\n"
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/1/things/{{namespace}}:fancy-car/attributes/new",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"1",
+								"things",
+								"{{namespace}}:fancy-car",
+								"attributes",
+								"new"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create: A new Property of a Thing's Feature",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "1400"
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/1/things/{{namespace}}:fancy-car/features/EnvironmentScanner/properties/brightness",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"1",
+								"things",
+								"{{namespace}}:fancy-car",
+								"features",
+								"EnvironmentScanner",
+								"properties",
+								"brightness"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update: A Thing",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"attributes\": {\n    \"foo\":\"bar\",\n    \"baz\": 42\n  }\n}\n"
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/1/things/{{namespace}}:fancy-car",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"1",
+								"things",
+								"{{namespace}}:fancy-car"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update: An existing Attribute at an existing Thing",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "23"
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/1/things/{{namespace}}:fancy-car/attributes/new",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"1",
+								"things",
+								"{{namespace}}:fancy-car",
+								"attributes",
+								"new"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update: ACL of a Thing",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"ed420ff0-b1c96661e4-9070-3863bbc77d82\": {\n    \"READ\": true,\n    \"WRITE\": true,\n    \"ADMINISTRATE\": true\n  },\n  \"edca04a0-b1c96661e4-9070-3863bbc77d82\": {\n    \"READ\": true,\n    \"WRITE\": false,\n    \"ADMINISTRATE\": false\n  }\n}\n"
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/1/things/{{namespace}}:fancy-car/acl",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"1",
+								"things",
+								"{{namespace}}:fancy-car",
+								"acl"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update: All  Features of a Thing",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"abc\":{\n        \"properties\":{\n            \"foo\":\"bar\"\n        }\n    },\n  \"test\":{\n        \"properties\":{\n            \"foo2\":\"bar2\"\n        }\n    }\n}"
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/1/things/{{namespace}}:fancy-car/features",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"1",
+								"things",
+								"{{namespace}}:fancy-car",
+								"features"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update: Feature of a Thing",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"definition\": [\n\t    \"{{namespace}}:ABC:1.0.0\"\n\t],\n    \"properties\":{\n        \"foo\":\"bar\"\n    }\n}"
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/1/things/{{namespace}}:fancy-car/features/abc",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"1",
+								"things",
+								"{{namespace}}:fancy-car",
+								"features",
+								"abc"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update: Definition of a Thing's Feature",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "[\n\t\"{{namespace}}:Car:1.0.0\"\t\n]"
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/1/things/{{namespace}}:fancy-car/features/EnvironmentScanner/definition",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"1",
+								"things",
+								"{{namespace}}:fancy-car",
+								"features",
+								"EnvironmentScanner",
+								"definition"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update: All Properties of a Thing's Feature copy",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"temperature\": 20.8,\n  \"humidity\": 73,\n  \"barometricPressure\": 970.7,\n  \"location\": {\n    \"longitude\": 47.682170,\n    \"latitude\": 9.386372\n  },\n  \"altitude\": 399\n}"
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/1/things/{{namespace}}:fancy-car/features/EnvironmentScanner/properties",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"1",
+								"things",
+								"{{namespace}}:fancy-car",
+								"features",
+								"EnvironmentScanner",
+								"properties"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update: One Property of a Thing's Feature",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"longitude\": 49.008085,\n  \"latitude\": 8.403756\n}"
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/1/things/{{namespace}}:fancy-car/features/EnvironmentScanner/properties/location",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"1",
+								"things",
+								"{{namespace}}:fancy-car",
+								"features",
+								"EnvironmentScanner",
+								"properties",
+								"location"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Query: A List of Things",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/1/things?ids={{namespace}}:fancy-car,{{namespace}}:fancy-car1,{{namespace}}:fancy-car2",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"1",
+								"things"
+							],
+							"query": [
+								{
+									"key": "ids",
+									"value": "{{namespace}}:fancy-car,{{namespace}}:fancy-car1,{{namespace}}:fancy-car2"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Query: A List of Things (thingId,acl)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/1/things?ids={{namespace}}:fancy-car,{{namespace}}:fancy-car1,{{namespace}}:fancy-car2&fields=thingId,acl",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"1",
+								"things"
+							],
+							"query": [
+								{
+									"key": "ids",
+									"value": "{{namespace}}:fancy-car,{{namespace}}:fancy-car1,{{namespace}}:fancy-car2"
+								},
+								{
+									"key": "fields",
+									"value": "thingId,acl"
+								}
+							]
+						},
+						"description": "Queries a list of Things with the \"thingId\" and \"acl\" field selector"
+					},
+					"response": []
+				},
+				{
+					"name": "Query: One Thing",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/1/things/{{namespace}}:fancy-car",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"1",
+								"things",
+								"{{namespace}}:fancy-car"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Query: One Thing (thingId,acl)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/1/things/{{namespace}}:fancy-car?fields=thingId,acl",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"1",
+								"things",
+								"{{namespace}}:fancy-car"
+							],
+							"query": [
+								{
+									"key": "fields",
+									"value": "thingId,acl"
+								}
+							]
+						},
+						"description": "Queries a Thing with the \"thingId\" and \"acl\" field selector."
+					},
+					"response": []
+				},
+				{
+					"name": "Query: Attributes of one Thing",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/1/things/{{namespace}}:fancy-car/attributes",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"1",
+								"things",
+								"{{namespace}}:fancy-car",
+								"attributes"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Query: Attributes of one Thing: single attribute object",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/1/things/{{namespace}}:fancy-car/attributes/nested",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"1",
+								"things",
+								"{{namespace}}:fancy-car",
+								"attributes",
+								"nested"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Query: Attributes of one Thing with field selector: only partial structures",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/1/things/{{namespace}}:fancy-car?fields=attributes(nested(nestedString,nestedBoolean))",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"1",
+								"things",
+								"{{namespace}}:fancy-car"
+							],
+							"query": [
+								{
+									"key": "fields",
+									"value": "attributes(nested(nestedString,nestedBoolean))"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Query: Attributes of one Thing with field selector: only partial structures of a list of objects",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/1/things/{{namespace}}:fancy-car?fields=attributes(toplistWithObjects(nested/foo))",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"1",
+								"things",
+								"{{namespace}}:fancy-car"
+							],
+							"query": [
+								{
+									"key": "fields",
+									"value": "attributes(toplistWithObjects(nested/foo))"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Query: ACL of a Thing",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/1/things/{{namespace}}:fancy-car/acl",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"1",
+								"things",
+								"{{namespace}}:fancy-car",
+								"acl"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Query: ACL Entry of a Thing",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/1/things/{{namespace}}:fancy-car/features",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"1",
+								"things",
+								"{{namespace}}:fancy-car",
+								"features"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Query: All Features of a Thing",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/1/things/{{namespace}}:fancy-car/features",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"1",
+								"things",
+								"{{namespace}}:fancy-car",
+								"features"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Query: Feature of a Thing ",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/1/things/{{namespace}}:fancy-car/features/Vehicle",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"1",
+								"things",
+								"{{namespace}}:fancy-car",
+								"features",
+								"Vehicle"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Query: Definition of a Thing's Feature",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/1/things/{{namespace}}:fancy-car/features/EnvironmentScanner/definition",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"1",
+								"things",
+								"{{namespace}}:fancy-car",
+								"features",
+								"EnvironmentScanner",
+								"definition"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Query: All Properties of a Thing's Feature copy",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/1/things/{{namespace}}:fancy-car/features/EnvironmentScanner/properties",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"1",
+								"things",
+								"{{namespace}}:fancy-car",
+								"features",
+								"EnvironmentScanner",
+								"properties"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Query: One Property of a Thing's Feature",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/1/things/{{namespace}}:fancy-car/features/EnvironmentScanner/properties/location",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"1",
+								"things",
+								"{{namespace}}:fancy-car",
+								"features",
+								"EnvironmentScanner",
+								"properties",
+								"location"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete: One Thing",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/1/things/{{namespace}}:fancy-car",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"1",
+								"things",
+								"{{namespace}}:fancy-car"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete: Attribute of a Thing",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/1/things/{{namespace}}:fancy-car/attributes/new",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"1",
+								"things",
+								"{{namespace}}:fancy-car",
+								"attributes",
+								"new"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete: ACL Entry of a Thing",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/1/things/{{namespace}}:fancy-car/acl/ed420ff0-b1c96661e4-9070-3863bbc77d82",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"1",
+								"things",
+								"{{namespace}}:fancy-car",
+								"acl",
+								"ed420ff0-b1c96661e4-9070-3863bbc77d82"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete: Features of a Thing",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/1/things/{{namespace}}:fancy-car/features",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"1",
+								"things",
+								"{{namespace}}:fancy-car",
+								"features"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete: Feature of a Thing",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/1/things/{{namespace}}:fancy-car/features/Vehicle",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"1",
+								"things",
+								"{{namespace}}:fancy-car",
+								"features",
+								"Vehicle"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete: Definition of a Thing's Feature",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/1/things/{{namespace}}:fancy-car/features/EnvironmentScanner/definition",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"1",
+								"things",
+								"{{namespace}}:fancy-car",
+								"features",
+								"EnvironmentScanner",
+								"definition"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete: All Properties of a Thing's Feature copy",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/1/things/{{namespace}}:fancy-car/features/EnvironmentScanner/properties",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"1",
+								"things",
+								"{{namespace}}:fancy-car",
+								"features",
+								"EnvironmentScanner",
+								"properties"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete: One Property of a Thing's Feature",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/1/things/{{namespace}}:fancy-car/features/EnvironmentScanner/properties/brightness",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"1",
+								"things",
+								"{{namespace}}:fancy-car",
+								"features",
+								"EnvironmentScanner",
+								"properties",
+								"brightness"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "search-things",
+			"item": [
+				{
+					"name": "(equals): A Thing with a given thingId",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/1/search/things?filter=eq(thingId,\"<thingId>\")",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"1",
+								"search",
+								"things"
+							],
+							"query": [
+								{
+									"key": "filter",
+									"value": "eq(thingId,\"<thingId>\")"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "(not equals): All Things with not the given Attribute Value",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/1/search/things?filter=ne(attributes/<attribute>,<attributeValue>)",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"1",
+								"search",
+								"things"
+							],
+							"query": [
+								{
+									"key": "filter",
+									"value": "ne(attributes/<attribute>,<attributeValue>)"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "(greater than): All Things greater than the given Attribute Value",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/1/search/things?filter=gt(attributes/<attribute>,<attributeValue>)",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"1",
+								"search",
+								"things"
+							],
+							"query": [
+								{
+									"key": "filter",
+									"value": "gt(attributes/<attribute>,<attributeValue>)"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "(greater equals): All Things greater equals the given Attribute Value",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/1/search/things?filter=ge(attributes/<attribute>,<attributeValue>)",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"1",
+								"search",
+								"things"
+							],
+							"query": [
+								{
+									"key": "filter",
+									"value": "ge(attributes/<attribute>,<attributeValue>)"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "(less then): All Things less then the given Attribute Value",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/1/search/things?filter=lt(attributes/<attribute>,<attributeValue>)",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"1",
+								"search",
+								"things"
+							],
+							"query": [
+								{
+									"key": "filter",
+									"value": "lt(attributes/<attribute>,<attributeValue>)"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "(less equals): All Things less equals the given Attribute Value",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/1/search/things?filter=le(attributes/<attribute>,<attributeValue>)",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"1",
+								"search",
+								"things"
+							],
+							"query": [
+								{
+									"key": "filter",
+									"value": "le(attributes/<attribute>,<attributeValue>)"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "(in): List of Things with a List of  given thingIds",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/1/search/things?filter=in(thingId,\"<thingId>,<thingId2>,<thingId3>\")",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"1",
+								"search",
+								"things"
+							],
+							"query": [
+								{
+									"key": "filter",
+									"value": "in(thingId,\"<thingId>,<thingId2>,<thingId3>\")"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "(like): A Thing with a partial given thingId",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/1/search/things?filter=like(thingId,\"<thingId>\")",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"1",
+								"search",
+								"things"
+							],
+							"query": [
+								{
+									"key": "filter",
+									"value": "like(thingId,\"<thingId>\")"
+								}
+							]
+						},
+						"description": "Starts with = \\*, \nEnds with = \\*, \nWildcard for one Char = ?,\nWildcard for many Chars = \\*"
+					},
+					"response": []
+				},
+				{
+					"name": "(and): All Things with two given Attribute Values",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/1/search/things?filter=and(eq(attributes/<attribute>,<attributeValue>),eq(attributes/<attribute>,<attributeValue>))",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"1",
+								"search",
+								"things"
+							],
+							"query": [
+								{
+									"key": "filter",
+									"value": "and(eq(attributes/<attribute>,<attributeValue>),eq(attributes/<attribute>,<attributeValue>))"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "(or): All Things with one of the two given Attributes Values or both",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/1/search/things?filter=or(eq(attributes/<attribute>,<attributeValue>),eq(attributes/<attribute>,<attributeValue>))",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"1",
+								"search",
+								"things"
+							],
+							"query": [
+								{
+									"key": "filter",
+									"value": "or(eq(attributes/<attribute>,<attributeValue>),eq(attributes/<attribute>,<attributeValue>))"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "(not): All Things not greater than a given Attribute Values",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/1/search/things?filter=not(gt(attributes/<attribute>,<attributeValue>))",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"1",
+								"search",
+								"things"
+							],
+							"query": [
+								{
+									"key": "filter",
+									"value": "not(gt(attributes/<attribute>,<attributeValue>))"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "(sort): All Things with a higher or equal Attribute Value than the given  sorted descending",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/1/search/things?filter=ge(attributes/<sortAtt>,<attributeValue>)&option=sort(-attributes/<sortAtt>)",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"1",
+								"search",
+								"things"
+							],
+							"query": [
+								{
+									"key": "filter",
+									"value": "ge(attributes/<sortAtt>,<attributeValue>)"
+								},
+								{
+									"key": "option",
+									"value": "sort(-attributes/<sortAtt>)"
+								}
+							]
+						},
+						"description": "Sort ascending = +,\nSort descending = -,\nSort with two criterias: \nsort(+attributes/att1,-attributes/att2)"
+					},
+					"response": []
+				},
+				{
+					"name": "(limit): All Things with a higher or equal Attribute Value than the given  and among these the second ten elements",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/1/search/things?filter=ge(attributes/<sortAtt>,<attributeValue>)&option=limit(10,10)",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"1",
+								"search",
+								"things"
+							],
+							"query": [
+								{
+									"key": "filter",
+									"value": "ge(attributes/<sortAtt>,<attributeValue>)"
+								},
+								{
+									"key": "option",
+									"value": "limit(10,10)"
+								}
+							]
+						},
+						"description": "maximum allowed count is 200"
+					},
+					"response": []
+				},
+				{
+					"name": "(sort&limit): All Things with a higher or equal Attribute Value than the given  sorted descending  and among these the second ten elements",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{base.protocol}}{{base.url}}/api/1/search/things?filter=ge(attributes/<sortAtt>,<attributeValue>)&option=sort(-attributes/<sortAtt>),limit(10,10)",
+							"host": [
+								"{{base.protocol}}{{base.url}}"
+							],
+							"path": [
+								"api",
+								"1",
+								"search",
+								"things"
+							],
+							"query": [
+								{
+									"key": "filter",
+									"value": "ge(attributes/<sortAtt>,<attributeValue>)"
+								},
+								{
+									"key": "option",
+									"value": "sort(-attributes/<sortAtt>),limit(10,10)"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}

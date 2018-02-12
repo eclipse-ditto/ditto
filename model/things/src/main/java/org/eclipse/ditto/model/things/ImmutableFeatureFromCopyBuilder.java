@@ -11,14 +11,16 @@
  */
 package org.eclipse.ditto.model.things;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.argumentNotEmpty;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+
 import java.util.function.Function;
 import java.util.function.Predicate;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.common.ConditionChecker;
-
 
 /**
  * A mutable builder with a fluent API for an immutable {@link Feature}. This builder is initialised with the
@@ -28,11 +30,13 @@ import org.eclipse.ditto.model.base.common.ConditionChecker;
 final class ImmutableFeatureFromCopyBuilder implements FeatureBuilder, FeatureBuilder.FromCopyBuildable {
 
     private String featureId;
-    private FeatureProperties properties;
+    @Nullable private FeatureDefinition definition;
+    @Nullable private FeatureProperties properties;
 
-    private ImmutableFeatureFromCopyBuilder() {
-        featureId = null;
+    private ImmutableFeatureFromCopyBuilder(final String theFeatureId) {
+        featureId = theFeatureId;
         properties = null;
+        definition = null;
     }
 
     /**
@@ -44,35 +48,42 @@ final class ImmutableFeatureFromCopyBuilder implements FeatureBuilder, FeatureBu
      * @throws NullPointerException if {@code feature} is {@code null}.
      */
     public static ImmutableFeatureFromCopyBuilder of(final Feature feature) {
-        ConditionChecker.checkNotNull(feature, "Feature");
+        checkNotNull(feature, "Feature");
 
-        final ImmutableFeatureFromCopyBuilder result = new ImmutableFeatureFromCopyBuilder();
-        result.setId(feature.getId());
-        feature.getProperties().ifPresent(result::properties);
+        final ImmutableFeatureFromCopyBuilder result = new ImmutableFeatureFromCopyBuilder(feature.getId());
+        result.properties(feature.getProperties().orElse(null));
+        result.definition(feature.getDefinition().orElse(null));
 
         return result;
     }
 
     @Override
-    public FromCopyBuildable properties(final FeatureProperties properties) {
+    public FromCopyBuildable definition(@Nullable final FeatureDefinition featureDefinition) {
+        definition = featureDefinition;
+        return this;
+    }
+
+    @Override
+    public FromCopyBuildable properties(@Nullable final FeatureProperties properties) {
         this.properties = properties;
         return this;
     }
 
     @Override
-    public FromCopyBuildable properties(final JsonObject properties) {
-        if (properties == null) {
+    public FromCopyBuildable properties(@Nullable final JsonObject properties) {
+        if (null == properties) {
             this.properties = null;
         } else {
-            this.properties = properties instanceof FeatureProperties ? (FeatureProperties) properties :
-                    ThingsModelFactory.newFeatureProperties(properties);
+            this.properties = properties instanceof FeatureProperties
+                    ? (FeatureProperties) properties
+                    : ThingsModelFactory.newFeatureProperties(properties);
         }
         return this;
     }
 
     @Override
     public FromCopyBuildable properties(final Function<FeatureProperties, FeatureProperties> transform) {
-        ConditionChecker.checkNotNull(transform, "transform function");
+        checkNotNull(transform, "transform function");
 
         properties = transform.apply(properties == null ? ThingsModelFactory.emptyFeatureProperties() : properties);
         return this;
@@ -80,7 +91,7 @@ final class ImmutableFeatureFromCopyBuilder implements FeatureBuilder, FeatureBu
 
     @Override
     public FromCopyBuildable setId(final String featureId) {
-        this.featureId = featureId;
+        this.featureId = argumentNotEmpty(featureId, "Feature ID to be set");
         return this;
     }
 
@@ -94,6 +105,7 @@ final class ImmutableFeatureFromCopyBuilder implements FeatureBuilder, FeatureBu
 
     @Override
     public Feature build() {
-        return ImmutableFeature.of(featureId, properties);
+        return ImmutableFeature.of(featureId, definition, properties);
     }
+
 }

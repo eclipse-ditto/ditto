@@ -153,6 +153,22 @@ Example response for a command that deleted a feature.
 #parse( "snippet" )
 ```
 
+$h3 Modify Feature Definition
+
+Example response for a command that created feature Definition.
+
+#set( $snippetFile = "/target/generated-resources/things/commands/modify/modifyFeatureDefinitionResponseCreated.json" )
+```
+#parse( "snippet" )
+```
+
+Example response for a command that updated feature Definition.
+
+#set( $snippetFile = "/target/generated-resources/things/commands/modify/modifyFeatureDefinitionResponse.json" )
+```
+#parse( "snippet" )
+```
+
 $h3 Modify FeatureProperties
 
 Example response for a command that created feature properties.

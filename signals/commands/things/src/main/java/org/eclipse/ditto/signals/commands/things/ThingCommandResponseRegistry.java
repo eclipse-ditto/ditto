@@ -22,6 +22,7 @@ import org.eclipse.ditto.signals.commands.things.modify.CreateThingResponse;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAclEntryResponse;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAttributeResponse;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAttributesResponse;
+import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureDefinitionResponse;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeaturePropertiesResponse;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeaturePropertyResponse;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureResponse;
@@ -31,6 +32,7 @@ import org.eclipse.ditto.signals.commands.things.modify.ModifyAclEntryResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAclResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributeResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributesResponse;
+import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureDefinitionResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeaturePropertiesResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeaturePropertyResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureResponse;
@@ -41,6 +43,7 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveAclEntryResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAclResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributeResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributesResponse;
+import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureDefinitionResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeaturePropertiesResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeaturePropertyResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureResponse;
@@ -80,6 +83,9 @@ public final class ThingCommandResponseRegistry extends AbstractCommandResponseR
         parseStrategies.put(ModifyFeatureResponse.TYPE, ModifyFeatureResponse::fromJson);
         parseStrategies.put(DeleteFeatureResponse.TYPE, DeleteFeatureResponse::fromJson);
 
+        parseStrategies.put(ModifyFeatureDefinitionResponse.TYPE, ModifyFeatureDefinitionResponse::fromJson);
+        parseStrategies.put(DeleteFeatureDefinitionResponse.TYPE, DeleteFeatureDefinitionResponse::fromJson);
+
         parseStrategies.put(ModifyFeaturePropertiesResponse.TYPE, ModifyFeaturePropertiesResponse::fromJson);
         parseStrategies.put(DeleteFeaturePropertiesResponse.TYPE, DeleteFeaturePropertiesResponse::fromJson);
         parseStrategies.put(ModifyFeaturePropertyResponse.TYPE, ModifyFeaturePropertyResponse::fromJson);
@@ -99,6 +105,8 @@ public final class ThingCommandResponseRegistry extends AbstractCommandResponseR
 
         parseStrategies.put(RetrieveFeaturesResponse.TYPE, RetrieveFeaturesResponse::fromJson);
         parseStrategies.put(RetrieveFeatureResponse.TYPE, RetrieveFeatureResponse::fromJson);
+
+        parseStrategies.put(RetrieveFeatureDefinitionResponse.TYPE, RetrieveFeatureDefinitionResponse::fromJson);
 
         parseStrategies.put(RetrieveFeaturePropertiesResponse.TYPE, RetrieveFeaturePropertiesResponse::fromJson);
         parseStrategies.put(RetrieveFeaturePropertyResponse.TYPE, RetrieveFeaturePropertyResponse::fromJson);

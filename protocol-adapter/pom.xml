@@ -198,37 +198,15 @@
                 <artifactId>exec-maven-plugin</artifactId>
                 <executions>
                     <execution>
-                        <id>generate-markdown</id>
-                        <phase>process-test-classes</phase>
-                        <goals>
-                            <goal>java</goal>
-                        </goals>
+                        <id>produce-json-examples</id>
                         <configuration>
-                            <classpathScope>test</classpathScope>
                             <mainClass>
-                                org.eclipse.ditto.protocoladapter.examples.PublicCommandAndEventJsonExamplesProducer
+                                org.eclipse.ditto.protocoladapter.examples.PublicJsonExamplesProducer
                             </mainClass>
                             <arguments>
                                 <argument>${project.build.directory}/generated-resources/markdown</argument>
                             </arguments>
                         </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-assembly-plugin</artifactId>
-                <configuration>
-                    <descriptor>src/assembly/examples.xml</descriptor>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>make-assembly</id> <!-- this is used for inheritance merges -->
-                        <phase>package</phase> <!-- bind to the packaging phase -->
-                        <goals>
-                            <goal>single</goal>
-                        </goals>
                     </execution>
                 </executions>
             </plugin>

@@ -17,7 +17,9 @@ import static org.eclipse.ditto.model.things.assertions.DittoThingsAssertions.as
 
 import java.time.Instant;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
+import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
@@ -40,7 +42,9 @@ import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Permissions;
+import org.eclipse.ditto.model.things.PolicyIdMissingException;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingBuilder;
 import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
@@ -80,6 +84,10 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommandResponse;
+import org.eclipse.ditto.signals.events.base.Event;
+import org.eclipse.ditto.signals.events.things.ThingCreated;
+import org.eclipse.ditto.signals.events.things.ThingEvent;
+import org.eclipse.ditto.signals.events.things.ThingModified;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -89,7 +97,7 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
 import akka.actor.PoisonPill;
 import akka.actor.Props;
-import akka.testkit.JavaTestKit;
+import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.testkit.TestActorRef;
 import akka.testkit.javadsl.TestKit;
 import scala.PartialFunction;
@@ -120,7 +128,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
     /** */
     @Test
     public void unavailableExpectedIfPersistenceActorTerminates() throws Exception {
-        new JavaTestKit(actorSystem) {
+        new TestKit(actorSystem) {
             {
                 final Thing thing = createThingV2WithRandomId();
                 final String thingId = thing.getId().orElse(null);
@@ -178,7 +186,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                         .dittoHeaders(dittoHeadersV1)
                         .build();
 
-        new JavaTestKit(actorSystem) {
+        new TestKit(actorSystem) {
             {
                 final ActorRef underTest = createPersistenceActorFor(thingId);
 
@@ -200,7 +208,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         final String thingId = "test.ns:23420815";
         final ThingCommand retrieveThingCommand = RetrieveThing.of(thingId, dittoHeadersV2);
 
-        new JavaTestKit(actorSystem) {
+        new TestKit(actorSystem) {
             {
                 final ActorRef thingPersistenceActor = createPersistenceActorFor(thingId);
                 thingPersistenceActor.tell(retrieveThingCommand, getRef());
@@ -235,7 +243,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
     /** */
     @Test
     public void createThingV2() {
-        new JavaTestKit(actorSystem) {
+        new TestKit(actorSystem) {
             {
                 final Thing thing = createThingV2WithRandomId();
                 final ActorRef underTest = createPersistenceActorFor(thing);
@@ -251,6 +259,32 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
     /** */
     @Test
+    public void modifyThingV1() {
+        final Thing thing = createThingV1WithRandomId();
+
+        final Thing modifiedThing = thing.setAttribute(JsonFactory.newPointer("foo/bar"), JsonFactory.newValue("baz"));
+        final ModifyThing modifyThingCommand =
+                ModifyThing.of(thing.getId().orElse(null), modifiedThing, null, dittoHeadersV1);
+
+        new TestKit(actorSystem) {
+            {
+                final ActorRef underTest = createPersistenceActorFor(thing);
+
+                final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV1);
+                underTest.tell(createThing, getRef());
+
+                final CreateThingResponse createThingResponse = expectMsgClass(CreateThingResponse.class);
+                assertThingInResponse(createThingResponse.getThingCreated().orElse(null), thing);
+
+                underTest.tell(modifyThingCommand, getRef());
+
+                expectMsgEquals(ModifyThingResponse.modified(thing.getId().orElse(null), dittoHeadersV1));
+            }
+        };
+    }
+
+    /** */
+    @Test
     public void modifyThingV2() {
         final Thing thing = createThingV2WithRandomId();
 
@@ -258,7 +292,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         final ModifyThing modifyThingCommand =
                 ModifyThing.of(thing.getId().orElse(null), modifiedThing, null, dittoHeadersV2);
 
-        new JavaTestKit(actorSystem) {
+        new TestKit(actorSystem) {
             {
                 final ActorRef underTest = createPersistenceActorFor(thing);
 
@@ -284,7 +318,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 RetrieveThingResponse.of(thing.getId().orElse(null), thing.toJson(),
                         retrieveThingCommand.getDittoHeaders());
 
-        new JavaTestKit(actorSystem) {
+        new TestKit(actorSystem) {
             {
                 final ActorRef underTest = createPersistenceActorFor(thing);
 
@@ -307,7 +341,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
         final RetrieveThings retrieveThingsCommand = RetrieveThings.getBuilder("foo", "bar").build();
 
-        new JavaTestKit(actorSystem) {
+        new TestKit(actorSystem) {
             {
                 final ActorRef underTest = createPersistenceActorFor(thing);
 
@@ -326,7 +360,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
     /** */
     @Test
     public void deleteThingV1() {
-        new JavaTestKit(actorSystem) {
+        new TestKit(actorSystem) {
             {
                 final Thing thing = createThingV1WithRandomId();
                 final ActorRef thingPersistenceActor = createPersistenceActorFor(thing);
@@ -346,7 +380,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
     /** */
     @Test
     public void deleteThingV2() {
-        new JavaTestKit(actorSystem) {
+        new TestKit(actorSystem) {
             {
                 final Thing thing = createThingV2WithRandomId();
                 final ActorRef underTest = createPersistenceActorFor(thing);
@@ -367,7 +401,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
     /** */
     @Test
     public void modifyFeatures() {
-        new JavaTestKit(actorSystem) {
+        new TestKit(actorSystem) {
             {
                 final DittoHeaders headersMockWithOtherAuth =
                         createDittoHeadersMock(JsonSchemaVersion.V_2, AUTH_SUBJECT);
@@ -407,7 +441,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
     /** */
     @Test
     public void modifyAttributes() {
-        new JavaTestKit(actorSystem) {
+        new TestKit(actorSystem) {
             {
                 final DittoHeaders headersMockWithOtherAuth =
                         createDittoHeadersMock(JsonSchemaVersion.V_2, AUTH_SUBJECT);
@@ -467,7 +501,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
         final String thingId = thing.getId().orElse(null);
 
-        new JavaTestKit(actorSystem) {
+        new TestKit(actorSystem) {
             {
                 final ActorRef underTest = createPersistenceActorFor(thing);
 
@@ -503,7 +537,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
         final String thingId = thing.getId().orElse(null);
 
-        new JavaTestKit(actorSystem) {
+        new TestKit(actorSystem) {
             {
                 final ActorRef underTest = createPersistenceActorFor(thing);
 
@@ -538,7 +572,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
         final String thingId = thing.getId().orElse(null);
 
-        new JavaTestKit(actorSystem) {
+        new TestKit(actorSystem) {
             {
                 final ActorRef underTest = createPersistenceActorFor(thing);
 
@@ -563,7 +597,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         final DeleteThing deleteThingCommand = DeleteThing.of(thing.getId().orElse(null), dittoHeadersV2);
         final RetrieveThing retrieveThingCommand = RetrieveThing.of(thing.getId().orElse(null), dittoHeadersV2);
 
-        new JavaTestKit(actorSystem) {
+        new TestKit(actorSystem) {
             {
                 final ActorRef underTest = createPersistenceActorFor(thing);
 
@@ -585,7 +619,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
     /** */
     @Test
     public void recoverThingCreated() {
-        new JavaTestKit(actorSystem) {
+        new TestKit(actorSystem) {
             {
                 final Thing thing = createThingV2WithRandomId();
                 final String thingId = thing.getId().orElse(null);
@@ -619,7 +653,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
     /** */
     @Test
     public void recoverThingDeleted() {
-        new JavaTestKit(actorSystem) {
+        new TestKit(actorSystem) {
             {
                 final Thing thing = createThingV2WithRandomId();
                 final String thingId = thing.getId().orElse(null);
@@ -654,7 +688,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
     /** */
     @Test
     public void recoverAclModified() {
-        new JavaTestKit(actorSystem) {
+        new TestKit(actorSystem) {
             {
                 final Thing thingV1 = createThingV1WithRandomId();
                 final ActorRef thingPersistenceActor = createPersistenceActorFor(thingV1);
@@ -691,7 +725,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
     /** */
     @Test
     public void recoverAclEntryModified() {
-        new JavaTestKit(actorSystem) {
+        new TestKit(actorSystem) {
             {
                 final Thing thingV1 = createThingV1WithRandomId();
                 final ActorRef thingPersistenceActor = createPersistenceActorFor(thingV1);
@@ -729,7 +763,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
     /** */
     @Test
     public void recoverAclEntryDeleted() {
-        new JavaTestKit(actorSystem) {
+        new TestKit(actorSystem) {
             {
                 final Thing thingV1 = createThingV1WithRandomId();
                 final AclEntry aclEntry = newAclEntry(AUTHORIZATION_SUBJECT, PERMISSIONS);
@@ -769,7 +803,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
     /** */
     @Test
     public void ensureSequenceNumberCorrectness() {
-        new JavaTestKit(actorSystem) {
+        new TestKit(actorSystem) {
             {
                 final Thing thing = createThingV2WithRandomId();
                 final String thingId = thing.getId().orElse(null);
@@ -810,7 +844,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
     /** */
     @Test
     public void ensureSequenceNumberCorrectnessAfterRecovery() {
-        new JavaTestKit(actorSystem) {
+        new TestKit(actorSystem) {
             {
                 final Thing thing = createThingV2WithRandomId();
                 final String thingId = thing.getId().orElse(null);
@@ -877,7 +911,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         final RetrieveThingResponse retrieveThingResponseV1 =
                 RetrieveThingResponse.of(thingIdOfActor, thingV1, dittoHeadersV1);
 
-        new JavaTestKit(actorSystem) {
+        new TestKit(actorSystem) {
             {
                 final ActorRef underTest = createPersistenceActorFor(thingV1);
                 underTest.tell(createThingV1, getRef());
@@ -918,7 +952,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         final RetrieveThingResponse retrieveThingResponseV2 =
                 RetrieveThingResponse.of(thingIdOfActor, thingV1, dittoHeadersV2);
 
-        new JavaTestKit(actorSystem) {
+        new TestKit(actorSystem) {
             {
                 final ActorRef underTest = createPersistenceActorFor(thingV1);
                 underTest.tell(createThingV1, getRef());
@@ -966,7 +1000,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         final RetrieveThingResponse retrieveThingResponseV2 = RetrieveThingResponse.of(thingId, thingV2WithPolicy,
                 dittoHeadersV2);
 
-        new JavaTestKit(actorSystem) {
+        new TestKit(actorSystem) {
             {
                 final ActorRef underTest = createPersistenceActorFor(thingV1);
 
@@ -986,7 +1020,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
     /** */
     @Test
     public void responsesDuringInitializationAreSentWithDittoHeaders() {
-        new JavaTestKit(actorSystem) {
+        new TestKit(actorSystem) {
             {
                 final String thingId = "org.eclipse.ditto:myThing";
                 final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
@@ -1013,7 +1047,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
     /** */
     @Test
     public void ensureModifiedCorrectnessAfterCreation() {
-        new JavaTestKit(actorSystem) {
+        new TestKit(actorSystem) {
             {
                 final Thing thing = createThingV1WithRandomId();
                 final ActorRef thingPersistenceActor = createPersistenceActorFor(thing);
@@ -1045,7 +1079,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
     /** */
     @Test
     public void ensureModifiedCorrectnessAfterModification() {
-        new JavaTestKit(actorSystem) {
+        new TestKit(actorSystem) {
             {
                 final Thing thing = createThingV1WithRandomId();
                 final ActorRef thingPersistenceActor = createPersistenceActorFor(thing);
@@ -1094,7 +1128,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
     /** */
     @Test
     public void ensureModifiedCorrectnessAfterRecovery() {
-        new JavaTestKit(actorSystem) {
+        new TestKit(actorSystem) {
             {
                 final Thing thing = createThingV1WithRandomId();
                 final ActorRef thingPersistenceActor = createPersistenceActorFor(thing);
@@ -1169,6 +1203,195 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         }};
     }
 
+
+    /**
+     */
+    @Test
+    public void createThingInV1AndUpdateWithV2WithoutPolicyId() {
+        final String thingId = "test.ns.v1:createThingInV1AndUpdateWithV2WithoutPolicyId";
+        final Thing thingV1 = buildThing(thingId, JsonSchemaVersion.V_1);
+        final Thing thingV2WithoutPolicyId = buildThing(thingId, JsonSchemaVersion.V_2)
+                .toBuilder()
+                .removePolicyId()
+                .build();
+        new TestKit(actorSystem) {{
+            final DittoHeaders headersUsed =
+                    testCreateAndModify(thingV1,
+                            JsonSchemaVersion.V_1,
+                            thingV2WithoutPolicyId,
+                            JsonSchemaVersion.V_2,
+                            this,
+                            modifyThing -> PolicyIdMissingException.fromThingId(thingId, modifyThing.getDittoHeaders()));
+            expectNoMsg();
+        }};
+    }
+
+    /**
+     */
+    @Test
+    public void createThingInV1AndUpdateWithV2WithPolicyId() {
+        final String thingId = "test.ns.v1:createThingInV1AndUpdateWithV2WithPolicyId";
+        final Thing thingV1 = buildThing(thingId, JsonSchemaVersion.V_1);
+        final Thing thingV2 = buildThing(thingId, JsonSchemaVersion.V_2)
+                .toBuilder()
+                .setPolicyId("test.ns.v1:createThingInV1AndUpdateWithV2WithPolicyId.OTHER.POLICY.ID")
+                .build();
+        new TestKit(actorSystem) {{
+            final DittoHeaders headersUsed =
+                    testCreateAndModify(thingV1,
+                            JsonSchemaVersion.V_1,
+                            thingV2,
+                            JsonSchemaVersion.V_2,
+                            this,
+                            modifyThing -> ModifyThingResponse.modified(thingId, modifyThing.getDittoHeaders()));
+            assertPublishEvent(this, ThingModified.of(thingV2, 2L,
+                    headersUsed.toBuilder().schemaVersion(JsonSchemaVersion.V_1).build()));
+        }};
+    }
+
+    /**
+     */
+    @Test
+    public void createThingInV2AndUpdateWithV1() {
+        final String thingId = "test.ns.v1:createThingInV2AndUpdateWithV1";
+        final Thing thingV2 = buildThing(thingId, JsonSchemaVersion.V_2);
+        final Thing thingV1WithoutACL = buildThing(thingId, JsonSchemaVersion.V_1)
+                .toBuilder()
+                .removeAllPermissions()
+                .build();
+        final Thing expected = thingV1WithoutACL.toBuilder()
+                .setPolicyId(thingV2.getPolicyId().get())
+                .build();
+
+        new TestKit(actorSystem) {{
+            final DittoHeaders headersUsed =
+                    testCreateAndModify(thingV2,
+                            JsonSchemaVersion.V_2,
+                            thingV1WithoutACL,
+                            JsonSchemaVersion.V_1,
+                            this,
+                            modifyThing -> ModifyThingResponse.modified(thingId, modifyThing.getDittoHeaders()));
+            final DittoHeaders headersV2 = headersUsed.toBuilder().schemaVersion(JsonSchemaVersion.V_2).build();
+            assertPublishEvent(this, ThingModified.of(expected, 2L, headersV2));
+        }};
+    }
+
+    /**
+     */
+    @Test
+    public void createThingInV2AndUpdateWithV1WithACL() {
+        final String thingId = "test.ns.v1:createThingInV2AndUpdateWithV1WithACL";
+        final Thing thingV2 = buildThing(thingId, JsonSchemaVersion.V_2);
+        final Thing thingV1 = buildThing(thingId, JsonSchemaVersion.V_1);
+        final Thing expected = thingV1.toBuilder()
+                .setPolicyId(thingV2.getPolicyId().get())
+                .removeAllPermissions()
+                .build();
+
+        new TestKit(actorSystem) {{
+            final DittoHeaders headersUsed =
+                    testCreateAndModify(thingV2,
+                            JsonSchemaVersion.V_2,
+                            thingV1,
+                            JsonSchemaVersion.V_1,
+                            this,
+                            modifyThing -> ModifyThingResponse.modified(thingId, modifyThing.getDittoHeaders()));
+            final DittoHeaders headersV2 = headersUsed.toBuilder().schemaVersion(JsonSchemaVersion.V_2).build();
+            assertPublishEvent(this, ThingModified.of(expected, 2L, headersV2));
+        }};
+    }
+
+    /**
+     */
+    @Test
+    public void createThingInV2AndUpdateWithV2AndChangedPolicyId() {
+        final String thingId = "test.ns.v1:createThingInV2AndUpdateWithV2AndChangedPolicyId";
+        final Thing thingV2 = buildThing(thingId, JsonSchemaVersion.V_2);
+        final Thing thingV2_2 =
+                buildThing(thingId, JsonSchemaVersion.V_2).setPolicyId(thingId + ".ANY.OTHER.NAMESPACE");
+
+        new TestKit(actorSystem) {{
+            final DittoHeaders headersUsed =
+                    testCreateAndModify(thingV2,
+                            JsonSchemaVersion.V_2,
+                            thingV2_2,
+                            JsonSchemaVersion.V_2,
+                            this,
+                            modifyThing -> ModifyThingResponse.modified(thingId, modifyThing.getDittoHeaders()));
+            assertPublishEvent(this, ThingModified.of(thingV2_2, 2L, headersUsed));
+        }};
+    }
+
+    private DittoHeaders testCreateAndModify(final Thing toCreate,
+            final JsonSchemaVersion createVersion,
+            final Thing toModify,
+            final JsonSchemaVersion modifyVersion,
+            final TestKit pubSubMediator,
+            final Function<ModifyThing, Object> expectedMessage) {
+        final CreateThing createThing = createThing(toCreate, createVersion);
+        final ModifyThing modifyThing = modifyThing(toModify, modifyVersion);
+
+        new TestKit(actorSystem) {{
+            final ActorRef underTest =
+                    createPersistenceActorWithPubSubFor(createThing.getThing(), pubSubMediator.getRef());
+
+            underTest.tell(createThing, getRef());
+            final CreateThingResponse createThingResponse = expectMsgClass(CreateThingResponse.class);
+            assertThingInResponse(createThingResponse.getThingCreated().orElse(null), createThing.getThing());
+            assertPublishEvent(pubSubMediator, ThingCreated.of(toCreate, 1L, createThing.getDittoHeaders()));
+
+            underTest.tell(modifyThing, getRef());
+            expectMsgEquals(expectedMessage.apply(modifyThing));
+        }};
+        return modifyThing.getDittoHeaders();
+    }
+
+    private void assertPublishEvent(final TestKit pubSubMediator, final ThingEvent event) {
+        final DistributedPubSubMediator.Publish result =
+                pubSubMediator.expectMsgClass(DistributedPubSubMediator.Publish.class);
+        final ThingEvent msg = (ThingEvent) result.msg();
+        Assertions.assertThat(msg.toJson())
+                .isEqualTo(event.toJson().set(msg.toJson().getField(Event.JsonFields.TIMESTAMP.getPointer()).get()));
+        Assertions.assertThat(msg.getDittoHeaders().getSchemaVersion())
+                .isEqualTo(event.getDittoHeaders().getSchemaVersion());
+    }
+
+    private Thing buildThing(final String thingId, final JsonSchemaVersion schemaVersion) {
+        final ThingBuilder.FromScratch builder = ThingsModelFactory.newThingBuilder()
+                .setLifecycle(ThingLifecycle.ACTIVE)
+                .setAttributes(THING_ATTRIBUTES)
+                .setRevision(1)
+                .setId(thingId);
+        if (JsonSchemaVersion.V_1.equals(schemaVersion)) {
+            return builder.setPermissions(AUTHORIZED_SUBJECT, AccessControlListModelFactory.allPermissions())
+                    .build();
+        } else {
+            return builder.setPolicyId(thingId)
+                    .build();
+        }
+    }
+
+
+    private CreateThing createThing(final Thing thing, final JsonSchemaVersion version) {
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                .schemaVersion(version)
+                .authorizationSubjects(AUTH_SUBJECT)
+                .build();
+
+        return CreateThing.of(thing, null, dittoHeaders);
+    }
+
+    private ModifyThing modifyThing(final Thing thing, final JsonSchemaVersion version) {
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                .schemaVersion(version)
+                .authorizationSubjects(AUTH_SUBJECT)
+                .build();
+        return ModifyThing.of(thing.getId().orElseThrow(() -> new IllegalStateException("[test]")),
+                thing,
+                null,
+                dittoHeaders);
+    }
+
     private static void assertThingInResponse(final Thing actualThing, final Thing expectedThing) {
         // Policy entries are ignored by things-persistence.
         assertThat(actualThing).hasEqualJson(expectedThing, FieldType.notHidden()
@@ -1188,6 +1411,10 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
     private ActorRef createPersistenceActorFor(final Thing thing) {
         return createPersistenceActorFor(thing.getId().orElse(null));
+    }
+
+    private ActorRef createPersistenceActorWithPubSubFor(final Thing thing, final ActorRef pubSubMediator) {
+        return createPersistenceActorWithPubSubFor(thing.getId().orElse(null), pubSubMediator);
     }
 
 }

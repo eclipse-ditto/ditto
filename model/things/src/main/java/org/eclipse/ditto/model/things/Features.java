@@ -52,17 +52,16 @@ public interface Features extends Iterable<Feature>, Jsonifiable.WithFieldSelect
     }
 
     /**
-     * Returns the Feature with the given identifier or an empty optional.
+     * Returns the Feature with the given ID or an empty optional.
      *
-     * @param featureId the identifier of the Feature to be retrieved.
+     * @param featureId the ID of the Feature to be retrieved.
      * @return the Feature with the given ID or an empty optional.
      * @throws NullPointerException if {@code featureId} is {@code null}.
      */
     Optional<Feature> getFeature(String featureId);
 
     /**
-     * Sets the given Feature to a copy of this Features. A previous Feature with the same identifier will be
-     * overwritten.
+     * Sets the given Feature to a copy of this Features. A previous Feature with the same ID will be overwritten.
      *
      * @param feature the Feature to be set.
      * @return a copy of this Features with {@code feature} set.
@@ -71,19 +70,39 @@ public interface Features extends Iterable<Feature>, Jsonifiable.WithFieldSelect
     Features setFeature(Feature feature);
 
     /**
-     * Removes the Feature with the given identifier from a copy of this Features.
+     * Removes the Feature with the given ID from a copy of this Features.
      *
-     * @param featureId the identifier of the Feature to be removed.
+     * @param featureId the ID of the Feature to be removed.
      * @return a copy of this Features with {@code feature} removed.
      * @throws NullPointerException if {@code featureId} is {@code null}.
      */
     Features removeFeature(String featureId);
 
     /**
-     * Sets the given properties for the Feature with the given identifier on a copy of this Features. The
-     * previous properties of a Feature with the same identifier are overwritten.
+     * Sets the given definition for the Feature with the given ID on a copy of this Features. The
+     * previous definition of a Feature with the same ID is overwritten.
      *
-     * @param featureId the identifier of the Feature for which the properties are set.
+     * @param featureId the ID of the Feature for which the definition is set.
+     * @param definition the definition to be set.
+     * @return a copy of this Features with the definition set.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    Features setDefinition(String featureId, FeatureDefinition definition);
+
+    /**
+     * Removes the definition from the Feature with the given ID from a copy of this Features.
+     *
+     * @param featureId the ID of the Feature from which the definition is removed.
+     * @return a copy of this Features with the definition of the Feature with {@code featureId} removed.
+     * @throws NullPointerException if {@code featureId} is {@code null}.
+     */
+    Features removeDefinition(String featureId);
+
+    /**
+     * Sets the given properties for the Feature with the given ID on a copy of this Features. The
+     * previous properties of a Feature with the same ID are overwritten.
+     *
+     * @param featureId the ID of the Feature for which the properties are set.
      * @param properties the properties to be set.
      * @return a copy of this Features with the property set.
      * @throws NullPointerException if any argument is {@code null}.
@@ -91,9 +110,9 @@ public interface Features extends Iterable<Feature>, Jsonifiable.WithFieldSelect
     Features setProperties(String featureId, FeatureProperties properties);
 
     /**
-     * Removes all properties of the Feature with the given identifier from a copy of this Features.
+     * Removes all properties of the Feature with the given ID from a copy of this Features.
      *
-     * @param featureId the identifier of the Feature from which all properties are removed.
+     * @param featureId the ID of the Feature from which all properties are removed.
      * @return a copy of this Features with all properties of the Feature with {@code featureId} removed.
      * @throws NullPointerException if {@code featureId} is {@code null}.
      */
@@ -101,9 +120,9 @@ public interface Features extends Iterable<Feature>, Jsonifiable.WithFieldSelect
 
     /**
      * Sets the value of the property which is referred by the given JSON Pointer of the Feature with the given
-     * identifier on a copy of this Features. The value of a previous property at the pointed position is overwritten.
+     * ID on a copy of this Features. The value of a previous property at the pointed position is overwritten.
      *
-     * @param featureId the identifier of the Feature of which the property is set.
+     * @param featureId the ID of the Feature of which the property is set.
      * @param propertyPath defines the hierarchical path within the Feature to the property to be set.
      * @param propertyValue the property value to be set.
      * @return a copy of this Features with the property set.
@@ -112,10 +131,10 @@ public interface Features extends Iterable<Feature>, Jsonifiable.WithFieldSelect
     Features setProperty(String featureId, JsonPointer propertyPath, JsonValue propertyValue);
 
     /**
-     * Removes the property which is referred by the given JSON Pointer from the Feature with the given identifier on
+     * Removes the property which is referred by the given JSON Pointer from the Feature with the given ID on
      * a copy of this Features..
      *
-     * @param featureId the identifier of the Feature from which the property is removed.
+     * @param featureId the ID of the Feature from which the property is removed.
      * @param propertyPath defines the hierarchical path within the Feature to the property to be removed.
      * @return a copy of this Features with the given property removed.
      * @throws NullPointerException if any argument is {@code null}.

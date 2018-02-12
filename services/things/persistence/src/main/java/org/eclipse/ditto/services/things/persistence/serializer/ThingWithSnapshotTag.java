@@ -32,6 +32,7 @@ import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.AclEntry;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Feature;
+import org.eclipse.ditto.model.things.FeatureDefinition;
 import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Thing;
@@ -156,6 +157,16 @@ public final class ThingWithSnapshotTag implements Thing {
     @Override
     public Thing removeFeature(final String featureId) {
         return replaceDelegee(delegee.removeFeature(featureId));
+    }
+
+    @Override
+    public Thing setFeatureDefinition(final String featureId, final FeatureDefinition definition) {
+        return replaceDelegee(delegee.setFeatureDefinition(featureId, definition));
+    }
+
+    @Override
+    public Thing removeFeatureDefinition(final String featureId) {
+        return replaceDelegee(delegee.removeFeatureDefinition(featureId));
     }
 
     @Override

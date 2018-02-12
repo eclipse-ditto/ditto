@@ -3,9 +3,7 @@
 ```json
 {
   "topic": "com.acme/xdk_53/things/twin/commands/create",
-  "headers": {
-    
-  },
+  "headers": {},
   "path": "/",
   "value": {
     "thingId": "com.acme:xdk_53",

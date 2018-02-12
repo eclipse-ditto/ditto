@@ -76,10 +76,6 @@ public abstract class AbstractThingPolicyEnforcerActor extends AbstractPolicyEnf
 
                 /* MessageCommands */
                 .match(SendClaimMessage.class, this::publishMessageCommand)
-                .match(MessageCommand.class, this::isEnforcerNull, command -> {
-                    doStash();
-                    synchronizePolicy();
-                })
                 .match(MessageCommand.class, this::isAuthorized, this::publishMessageCommand)
                 .match(MessageCommand.class, this::unauthorized)
 

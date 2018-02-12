@@ -29,6 +29,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.AclEntry;
 import org.eclipse.ditto.model.things.Attributes;
+import org.eclipse.ditto.model.things.FeatureDefinition;
 import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Permission;
@@ -218,6 +219,12 @@ final class TestConstants {
          * Value of a known Feature Property.
          */
         public static final JsonValue FLUX_CAPACITOR_PROPERTY_VALUE = JsonFactory.newValue(1955);
+
+        /**
+         * Properties of a known Feature.
+         */
+        public static final FeatureDefinition FLUX_CAPACITOR_DEFINITION =
+                FeatureDefinition.fromIdentifier("org.eclipse.ditto:fluxcapacitor:1.0.0");
 
         /**
          * Properties of a known Feature.

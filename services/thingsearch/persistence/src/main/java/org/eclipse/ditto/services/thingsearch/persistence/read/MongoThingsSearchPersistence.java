@@ -63,7 +63,6 @@ public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
     private final MongoCollection<Document> collection;
     private final LoggingAdapter log;
 
-    private final ActorSystem actorSystem;
     private final ActorMaterializer materializer;
     private final IndexInitializer indexInitializer;
     private final Duration maxQueryTime;
@@ -79,7 +78,6 @@ public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
         log = Logging.getLogger(actorSystem, getClass());
         materializer = ActorMaterializer.create(actorSystem);
         indexInitializer = IndexInitializer.of(clientWrapper.getDatabase(), materializer);
-        this.actorSystem = actorSystem;
         maxQueryTime = MongoConfig.getMaxQueryTime(actorSystem.settings().config());
     }
 

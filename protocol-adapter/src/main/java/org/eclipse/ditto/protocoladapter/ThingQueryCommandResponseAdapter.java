@@ -20,6 +20,7 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveAclEntryResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAclResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributeResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributesResponse;
+import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureDefinitionResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeaturePropertiesResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeaturePropertyResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureResponse;
@@ -82,6 +83,10 @@ final class ThingQueryCommandResponseAdapter extends AbstractAdapter<ThingQueryC
 
         mappingStrategies.put(RetrieveFeatureResponse.TYPE, adaptable -> RetrieveFeatureResponse
                 .of(thingIdFrom(adaptable), featureIdFrom(adaptable), featurePropertiesFrom(adaptable),
+                        dittoHeadersFrom(adaptable)));
+
+        mappingStrategies.put(RetrieveFeatureDefinitionResponse.TYPE, adaptable -> RetrieveFeatureDefinitionResponse
+                .of(thingIdFrom(adaptable), featureIdFrom(adaptable), featureDefinitionFrom(adaptable),
                         dittoHeadersFrom(adaptable)));
 
         mappingStrategies.put(RetrieveFeaturePropertiesResponse.TYPE, adaptable -> RetrieveFeaturePropertiesResponse
