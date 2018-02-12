@@ -11,7 +11,14 @@
  */
 package org.eclipse.ditto.services.amqpbridge.messaging;
 
+import java.nio.ByteBuffer;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.services.amqpbridge.mapping.mapper.PayloadMapperMessage;
+
 
 /**
  * Simple wrapper around {@link DittoHeaders} and the command as a JSON String received from external AMQP source.
@@ -19,26 +26,30 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
  */
 public class InternalMessage {
 
-    private Ack<?> ackMessage;
-    private DittoHeaders dittoHeaders;
-    private String commandJsonString;
+    private final Ack<?> ackMessage;
+    private final Map<String, String> headers;
+    private final ByteBuffer payload;
 
-    public InternalMessage(final Ack<?> ackMessage, final DittoHeaders dittoHeaders, final String commandJsonString) {
+    public InternalMessage(final Ack<?> ackMessage, final Map<String, String> headers, final ByteBuffer payload) {
         this.ackMessage = ackMessage;
-        this.dittoHeaders = dittoHeaders;
-        this.commandJsonString = commandJsonString;
+        this.headers = Collections.unmodifiableMap(new LinkedHashMap<>(headers));
+        this.payload = payload;
     }
 
-    public DittoHeaders getDittoHeaders() {
-        return dittoHeaders;
+    public Map<String, String> getHeaders() {
+        return headers;
     }
 
-    public String getCommandJsonString() {
-        return commandJsonString;
+    public ByteBuffer getPayload() {
+        return payload;
     }
 
     public Ack<?> getAckMessage() {
         return ackMessage;
+    }
+
+    private PayloadMapperMessage toPayloadMapperMessage() {
+        throw new UnsupportedOperationException("not implemented");
     }
 
     public static final class Ack<T> {

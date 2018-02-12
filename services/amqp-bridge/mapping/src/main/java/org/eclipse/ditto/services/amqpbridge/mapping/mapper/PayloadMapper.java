@@ -12,12 +12,21 @@
 package org.eclipse.ditto.services.amqpbridge.mapping.mapper;
 
 
+import java.util.List;
+
 import org.eclipse.ditto.protocoladapter.Adaptable;
 
 /**
  * Payload mapper interface. Defines functions for configuration an payload transformation.
  */
 public interface PayloadMapper {
+
+    /**
+     * Get all content types supported by this mapper.
+     *
+     * @return all supported content types
+     */
+    List<String> getSupportedContentTypes();
 
     /**
      * Configures the payload mapper with the given options.
@@ -31,6 +40,7 @@ public interface PayloadMapper {
      *
      * @param message the message
      * @return the adaptible
+     * @throws UnsupportedOperationException if this mapper does not support mapping of incoming messages
      */
     Adaptable mapIncoming(PayloadMapperMessage message);
 
@@ -39,6 +49,7 @@ public interface PayloadMapper {
      *
      * @param dittoProtocolAdaptable the adaptible
      * @return the payload
+     * @throws UnsupportedOperationException if this mapper does not support mapping of outgoing messages
      */
     PayloadMapperMessage mapOutgoing(Adaptable dittoProtocolAdaptable);
 }

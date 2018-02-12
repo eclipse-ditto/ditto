@@ -21,6 +21,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import javax.jms.BytesMessage;
+import javax.jms.JMSException;
 import javax.jms.TextMessage;
 
 import org.eclipse.ditto.json.JsonFactory;
@@ -140,7 +141,7 @@ public final class CommandProcessorActor extends AbstractActor {
         try {
 
             final TraceContext traceContext = Kamon.tracer().newContext("commandProcessor",
-                    Option.apply(m.getDittoHeaders().getCorrelationId().orElse("no-correlation-id")));
+                    Option.apply(DittoHeaders.of(m.getHeaders()).getCorrelationId().orElse("no-correlation-id")));
             final Command<?> command = buildCommandFromPublicProtocol(m, traceContext);
             traceContext.finish();
 
@@ -201,10 +202,11 @@ public final class CommandProcessorActor extends AbstractActor {
     }
 
     private Command<?> buildCommandFromPublicProtocol(final InternalMessage message,
-            final TraceContext traceContext) {
+            final TraceContext traceContext)
+    {
         try {
-            final DittoHeaders dittoHeaders = message.getDittoHeaders();
-            final String contentType = message.getDittoHeaders().get("content-type");
+            final DittoHeaders dittoHeaders = DittoHeaders.of(message.getHeaders());
+            final String contentType = dittoHeaders.get("content-type");
 
             JsonifiableAdaptable jsonifiableAdaptable = null;
             if (!DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE.equalsIgnoreCase(contentType)) {
@@ -263,7 +265,7 @@ public final class CommandProcessorActor extends AbstractActor {
 
             if (jsonifiableAdaptable == null) {
                 // fall back trying to interpret as DittoProtocol
-                final JsonObject publicCommandJsonObject = JsonFactory.newObject(message.getCommandJsonString());
+                final JsonObject publicCommandJsonObject = JsonFactory.newObject(message.getPayload().toString());
 
 
                 // use correlationId from json payload if present
@@ -291,6 +293,8 @@ public final class CommandProcessorActor extends AbstractActor {
             return null;
         }
     }
+
+
 
     private Map<String, PayloadMapper> loadPayloadMappers(final PayloadMapperFactory factory,
             final List<MappingContext> mappingContexts) {

@@ -25,25 +25,26 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 
 /**
- *
+ * Defines all information necessary to instantiate a mapper.
  */
 @Immutable
 public interface MappingContext extends Jsonifiable.WithFieldSelectorAndPredicate<JsonField> {
 
     /**
-     * @return the content-type of the payloads to map with this MappingContext.
+     * @return the content-type of the payloads to map with an instantiated mapping engine.
      */
     String getContentType();
 
     /**
+     * The name of a mapping engine which can map messages of the contexts content-type.
      * E.g. "JavaScript", "Rhino"
-     * @return
+     * @return the mapping engine name
      */
     String getMappingEngine();
 
     /**
-     *
-     * @return
+     * All configuration options for mapping engine instantiation.
+     * @return the options
      */
     Map<String, String> getOptions();
 
