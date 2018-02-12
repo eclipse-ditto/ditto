@@ -1,0 +1,12 @@
+{
+  "name": "node-red-ditto-sandbox",
+  "description": "A Node-RED Project for the Eclipse Ditto sandbox",
+  "version": "0.0.1",
+  "dependencies": {
+    "node-red-node-base64": "*",
+    "node-red-node-random": "*",
+    "node-red-contrib-amqp": "0.4.*",
+    "node-red-contrib-crypto-js": "0.1.*",
+    "node-red-contrib-rhea": "*"
+  }
+}

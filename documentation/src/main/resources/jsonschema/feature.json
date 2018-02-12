@@ -1,0 +1,27 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Feature",
+  "type": "object",
+  "description": "A Feature is used to manage all data and functionality of a Thing that can be clustered in an outlined technical context.",
+  "properties": {
+    "definition": {
+      "title": "Definition",
+      "type": "array",
+      "description": "The Definition of the Feature, a list of Identifiers containing at least 1 Identifier in the form 'namespace:name:version'.",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "description": "A single fully qualified Identifier of a Feature Definition in the form 'namespace:name:version'.",
+        "pattern": "(?<namespace>[_a-zA-Z0-9\\-.]+):(?<name>[_a-zA-Z0-9\\-.]+):(?<version>[_a-zA-Z0-9\\-.]+)"
+      }
+    },
+    "properties": {
+      "title": "Properties",
+      "type": "object",
+      "description": "The data related to a Feature is managed in form of a list of properties. Each property itself can be either a simple/scalar value or a complex object. Allowed is any JSON object."
+    }
+  },
+  "required": [
+  ]
+}

@@ -20,8 +20,10 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
@@ -105,6 +107,110 @@ public final class ThingsModelFactory {
     }
 
     /**
+     * Returns an immutable instance of {@link FeatureDefinition.Identifier}.
+     *
+     * @param namespace the namespace of the returned Identifier.
+     * @param name the name of the returned Identifier.
+     * @param version the version of the returned Identifier.
+     * @return the instance.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if any argument is empty.
+     */
+    public static FeatureDefinition.Identifier newFeatureDefinitionIdentifier(final CharSequence namespace,
+            final CharSequence name, final CharSequence version) {
+
+        return ImmutableFeatureDefinitionIdentifier.getInstance(namespace, name, version);
+    }
+
+    /**
+     * Parses the specified CharSequence and returns an immutable instance of {@link FeatureDefinition.Identifier}.
+     *
+     * @param featureIdentifierAsCharSequence CharSequence-representation of a FeatureDefinition Identifier.
+     * @return the instance.
+     * @throws NullPointerException if {@code featureIdentifierAsCharSequence} is {@code null}.
+     * @throws FeatureDefinitionIdentifierInvalidException if {@code featureIdentifierAsCharSequence} is invalid.
+     */
+    public static FeatureDefinition.Identifier newFeatureDefinitionIdentifier(
+            final CharSequence featureIdentifierAsCharSequence) {
+
+        if (featureIdentifierAsCharSequence instanceof FeatureDefinition.Identifier) {
+            return (FeatureDefinition.Identifier) featureIdentifierAsCharSequence;
+        }
+        return ImmutableFeatureDefinitionIdentifier.ofParsed(featureIdentifierAsCharSequence);
+    }
+
+    /**
+     * Parses the specified JsonArray and returns an immutable instance of {@code FeatureDefinition} which is
+     * initialised with the values of the given JSON array.
+     *
+     * @param jsonArray JSON array containing the identifiers of the FeatureDefinition to be returned. Non-string values
+     * are ignored.
+     * @return the instance.
+     * @throws NullPointerException if {@code jsonArray} is {@code null}.
+     * @throws FeatureDefinitionEmptyException if {@code jsonArray} is empty.
+     * @throws FeatureDefinitionIdentifierInvalidException if any Identifier string of the array is invalid.
+     */
+    public static FeatureDefinition newFeatureDefinition(final JsonArray jsonArray) {
+        checkNotNull(jsonArray, "JSON array");
+        if (!jsonArray.isNull()) {
+            return ImmutableFeatureDefinition.fromJson(jsonArray);
+        }
+        return nullFeatureDefinition();
+    }
+
+    /**
+     * Returns a new immutable {@link FeatureDefinition} which is initialised with the values of the given JSON string.
+     * This string is required to be a valid {@link JsonArray}.
+     *
+     * @param jsonString provides the initial values of the result;
+     * @return the new immutable initialised {@code FeatureDefinition}.
+     * @throws DittoJsonException if {@code jsonString} cannot be parsed to {@code FeatureDefinition}.
+     * @throws FeatureDefinitionEmptyException if the JSON array is empty.
+     * @throws FeatureDefinitionIdentifierInvalidException if any Identifier of the JSON array is invalid.
+     */
+    public static FeatureDefinition newFeatureDefinition(final String jsonString) {
+        final JsonArray jsonArray =
+                DittoJsonException.wrapJsonRuntimeException(() -> JsonFactory.newArray(jsonString));
+
+        return newFeatureDefinition(jsonArray);
+    }
+
+    /**
+     * Returns a new immutable {@link FeatureDefinition} which represents {@code null}.
+     *
+     * @return the new {@code null}-like {@code FeatureDefinition}.
+     */
+    public static FeatureDefinition nullFeatureDefinition() {
+        return NullFeatureDefinition.getInstance();
+    }
+
+    /**
+     * Parses the specified CharSequence and returns a mutable builder with a fluent API for an immutable {@code
+     * FeatureDefinition}. The returned builder is initialised with the parsed Identifier as its first one.
+     *
+     * @param firstIdentifier CharSequence-representation of the first FeatureDefinition Identifier.
+     * @return the instance.
+     * @throws NullPointerException if {@code firstIdentifier} is {@code null}.
+     * @throws FeatureDefinitionIdentifierInvalidException if {@code firstIdentifier} is invalid.
+     */
+    public static FeatureDefinitionBuilder newFeatureDefinitionBuilder(final CharSequence firstIdentifier) {
+        return ImmutableFeatureDefinition.getBuilder(newFeatureDefinitionIdentifier(firstIdentifier));
+    }
+
+    /**
+     * Returns a new builder for an immutable {@link FeatureDefinition} which is initialised with the values of the
+     * given JSON array.
+     *
+     * @param jsonArray provides the initial values of the result.
+     * @return the builder.
+     * @throws NullPointerException if {@code jsonArray} is {@code null}.
+     * @throws FeatureDefinitionIdentifierInvalidException if any Identifier of the array is invalid.
+     */
+    public static FeatureDefinitionBuilder newFeatureDefinitionBuilder(final JsonArray jsonArray) {
+        return ImmutableFeatureDefinition.Builder.getInstance().addAll(newFeatureDefinition(jsonArray));
+    }
+
+    /**
      * Returns a new immutable empty {@link FeatureProperties}.
      *
      * @return the new immutable empty {@code FeatureProperties}.
@@ -177,7 +283,7 @@ public final class ThingsModelFactory {
     /**
      * Returns a new immutable {@link Feature} which represents {@code null}.
      *
-     * @param featureId the identifier of the new feature.
+     * @param featureId the ID of the new Feature.
      * @return the new {@code null}-like {@code Feature}.
      * @throws NullPointerException if {@code featureId} is {@code null}.
      */
@@ -186,10 +292,10 @@ public final class ThingsModelFactory {
     }
 
     /**
-     * Returns a new immutable {@link Feature} with the given identifier.
+     * Returns a new immutable {@link Feature} with the given ID.
      *
-     * @param featureId the identifier of the new feature.
-     * @return a new immutable {@code Feature} with the given identifier.
+     * @param featureId the ID of the new Feature.
+     * @return the new immutable {@code Feature}.
      * @throws NullPointerException if {@code featureId} is {@code null}.
      */
     public static Feature newFeature(final String featureId) {
@@ -197,15 +303,42 @@ public final class ThingsModelFactory {
     }
 
     /**
-     * Returns a new immutable {@link Feature} with the given identifier and properties.
+     * Returns a new immutable {@link Feature} with the given ID and properties.
      *
-     * @param featureId the identifier of the new feature.
-     * @param featureProperties the properties of the new feature.
-     * @return a new immutable {@code Feature} with the given identifier and properties.
+     * @param featureId the ID of the new feature.
+     * @param featureProperties the properties of the new Feature or {@code null}.
+     * @return the new immutable {@code Feature}.
      * @throws NullPointerException if {@code featureId} is {@code null}.
      */
-    public static Feature newFeature(final String featureId, final FeatureProperties featureProperties) {
+    public static Feature newFeature(final String featureId, @Nullable final FeatureProperties featureProperties) {
         return ImmutableFeature.of(featureId, featureProperties);
+    }
+
+    /**
+     * Returns a new immutable {@link Feature} with the given ID, properties and Definition.
+     *
+     * @param featureId the ID of the new feature.
+     * @param featureDefinition the Definition of the new Feature or {@code null}.
+     * @return the new immutable {@code Feature}.
+     * @throws NullPointerException if {@code featureId} is {@code null}.
+     */
+    public static Feature newFeature(final String featureId, @Nullable final FeatureDefinition featureDefinition) {
+        return ImmutableFeature.of(featureId, featureDefinition, null);
+    }
+
+    /**
+     * Returns a new immutable {@link Feature} with the given ID, properties and Definition.
+     *
+     * @param featureId the ID of the new feature.
+     * @param featureDefinition the Definition of the new Feature or {@code null}.
+     * @param featureProperties the properties of the new Feature or {@code null}.
+     * @return the new immutable {@code Feature}.
+     * @throws NullPointerException if {@code featureId} is {@code null}.
+     */
+    public static Feature newFeature(final String featureId, @Nullable final FeatureDefinition featureDefinition,
+            @Nullable final FeatureProperties featureProperties) {
+
+        return ImmutableFeature.of(featureId, featureDefinition, featureProperties);
     }
 
     /**
@@ -477,10 +610,10 @@ public final class ThingsModelFactory {
     }
 
     /**
-     * Returns a new immutable {@link AclEntry} with the given authorization subject identifier and the given JSON value
+     * Returns a new immutable {@link AclEntry} with the given authorization subject ID and the given JSON value
      * which provides the permissions.
      *
-     * @param authorizationSubjectId the identifier of the authorization subject of the new ACL entry.
+     * @param authorizationSubjectId the ID of the authorization subject of the new ACL entry.
      * @param permissionsValue a JSON value which represents the permissions of the authorization subject of the new ACL
      * entry. This value is supposed to be a JSON object.
      * @return the new ACL entry.

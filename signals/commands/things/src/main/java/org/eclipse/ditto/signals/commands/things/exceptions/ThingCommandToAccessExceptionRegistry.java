@@ -43,6 +43,7 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveAclEntry;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttribute;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributes;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeature;
+import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureDefinition;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureProperties;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureProperty;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatures;
@@ -127,6 +128,8 @@ public final class ThingCommandToAccessExceptionRegistry extends AbstractCommand
                 ThingCommandToAccessExceptionRegistry::commandToAttributesException);
         mappingStrategies.put(RetrieveFeature.TYPE, ThingCommandToAccessExceptionRegistry::commandToFeatureException);
         mappingStrategies.put(RetrieveFeatures.TYPE, ThingCommandToAccessExceptionRegistry::commandToFeaturesException);
+        mappingStrategies.put(RetrieveFeatureDefinition.TYPE,
+                ThingCommandToAccessExceptionRegistry::commandToFeatureDefinitionException);
         mappingStrategies.put(RetrieveFeatureProperties.TYPE,
                 ThingCommandToAccessExceptionRegistry::commandToFeaturePropertiesException);
         mappingStrategies.put(RetrieveFeatureProperty.TYPE,
@@ -161,6 +164,14 @@ public final class ThingCommandToAccessExceptionRegistry extends AbstractCommand
 
     private static FeatureNotAccessibleException commandToFeatureException(final ThingCommand command) {
         return FeatureNotAccessibleException.newBuilder(command.getThingId(), ((WithFeatureId) command).getFeatureId())
+                .dittoHeaders(command.getDittoHeaders())
+                .build();
+    }
+
+    private static FeatureDefinitionNotAccessibleException commandToFeatureDefinitionException(
+            final ThingCommand command) {
+        return FeatureDefinitionNotAccessibleException.newBuilder(command.getThingId(),
+                ((WithFeatureId) command).getFeatureId())
                 .dittoHeaders(command.getDittoHeaders())
                 .build();
     }

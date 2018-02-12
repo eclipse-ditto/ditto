@@ -3,9 +3,7 @@
 ```json
 {
   "topic": "com.acme/xdk_53/things/twin/commands/modify",
-  "headers": {
-    
-  },
+  "headers": {},
   "path": "/attributes/location",
   "value": {
     "latitude": 44.673856,

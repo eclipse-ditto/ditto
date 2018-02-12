@@ -110,4 +110,10 @@ public interface ThingsFieldExpressionFactory extends FieldExpressionFactory {
      * @return a filter expression for global read field.
      */
     FilterFieldExpression filterByGlobalRead();
+
+    /**
+     *
+     * @return a filter expression for the given namespace
+     */
+    FilterFieldExpression filterByNamespace();
 }

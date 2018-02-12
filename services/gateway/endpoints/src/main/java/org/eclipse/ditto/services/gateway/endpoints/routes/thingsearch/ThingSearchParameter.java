@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.gateway.endpoints.routes.thingsearch;
 /**
  * An enumeration of the query parameters for the thing-search HTTP API.
  */
-enum ThingSearchParameter {
+public enum ThingSearchParameter {
 
     /**
      * Request parameter for the RQL search filter to apply.
@@ -29,11 +29,16 @@ enum ThingSearchParameter {
     /**
      * Request parameter for including only the selected fields in the Thing JSON document(s).
      */
-    FIELDS("fields");
+    FIELDS("fields"),
+
+    /**
+     * Request parameter for namespaces to apply.
+     */
+    NAMESPACES("namespaces");
 
     private final String parameterValue;
 
-    private ThingSearchParameter(final String parameterValue) {
+    ThingSearchParameter(final String parameterValue) {
         this.parameterValue = parameterValue;
     }
 

@@ -97,6 +97,15 @@ A specific Feature:
 #parse( "snippet" )
 ```
 
+$h3 Retrieve Feature Definition
+
+All Feature properties:
+
+#set( $snippetFile = "/target/generated-resources/things/commands/query/retrieveFeatureDefinition.json" )
+```
+#parse( "snippet" )
+```
+
 $h3 Retrieve Feature Properties
 
 All Feature properties:

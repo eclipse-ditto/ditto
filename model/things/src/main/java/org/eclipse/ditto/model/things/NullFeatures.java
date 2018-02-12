@@ -72,6 +72,21 @@ final class NullFeatures implements Features {
     }
 
     @Override
+    public Features setDefinition(final String featureId, final FeatureDefinition definition) {
+        checkFeatureId(featureId);
+        ConditionChecker.checkNotNull(definition, "definition to be set");
+
+        return this;
+    }
+
+    @Override
+    public Features removeDefinition(final String featureId) {
+        checkFeatureId(featureId);
+
+        return this;
+    }
+
+    @Override
     public Features setProperties(final String featureId, final FeatureProperties properties) {
         checkFeatureId(featureId);
         ConditionChecker.checkNotNull(properties, "properties to be set");

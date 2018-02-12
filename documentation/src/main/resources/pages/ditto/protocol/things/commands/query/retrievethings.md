@@ -3,9 +3,7 @@
 ```json
 {
   "topic": "_/_/things/twin/commands/retrieve",
-  "headers": {
-    
-  },
+  "headers": {},
   "path": "/",
   "value": {
     "thingIds": [

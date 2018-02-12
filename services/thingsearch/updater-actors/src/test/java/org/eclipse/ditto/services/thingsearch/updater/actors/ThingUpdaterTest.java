@@ -20,10 +20,12 @@ import static org.eclipse.ditto.model.base.json.JsonSchemaVersion.V_1;
 import static org.eclipse.ditto.model.base.json.JsonSchemaVersion.V_2;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -94,7 +96,6 @@ import akka.cluster.Cluster;
 import akka.cluster.ddata.LWWRegister;
 import akka.cluster.ddata.LWWRegisterKey;
 import akka.cluster.ddata.Replicator;
-import akka.pattern.AskTimeoutException;
 import akka.pattern.CircuitBreaker;
 import akka.stream.javadsl.Source;
 import akka.testkit.TestProbe;
@@ -771,11 +772,12 @@ public final class ThingUpdaterTest {
 
             // WHEN: updater receives ThingEvent not containing a Thing
             final Feature feature = Feature.newBuilder().withId("thingEventWithoutThingTriggersSyncDuringInit").build();
-            final Object message = FeatureModified.of(THING_ID, feature, 1L, DittoHeaders.empty());
+            final Object message = FeatureModified.of(THING_ID, feature, 0L, DittoHeaders.empty());
             underTest.tell(message, null);
 
             // THEN: sync is triggered
             expectShardedSudoRetrieveThing(thingsProbe, THING_ID);
+            verify(persistenceMock, never()).executeCombinedWrites(anyString(), anyList(), eq(null), anyLong());
         }};
     }
 
@@ -793,7 +795,7 @@ public final class ThingUpdaterTest {
             final Object message = ThingModified.of(thingWithAcl, 1L, DittoHeaders.empty());
             underTest.tell(message, null);
 
-            // THEN: wirte-operation is requested from the persistence
+            // THEN: write-operation is requested from the persistence
             waitUntil().insertOrUpdate(eq(thingWithAcl), eq(1L), anyLong());
         }};
 
@@ -1279,9 +1281,10 @@ public final class ThingUpdaterTest {
     }
 
     private static ThingEvent<?> createInvalidThingEvent() {
+        final DittoHeaders headers = DittoHeaders.newBuilder().schemaVersion(JsonSchemaVersion.V_1).build();
         final ThingEvent<?> invalidThingEvent = mock(ThingEvent.class);
         when(invalidThingEvent.getRevision()).thenReturn(1L);
-        when(invalidThingEvent.getDittoHeaders()).thenReturn(DittoHeaders.empty());
+        when(invalidThingEvent.getDittoHeaders()).thenReturn(headers);
         // null type makes the event invalid!!
         when(invalidThingEvent.getType()).thenReturn(null);
         return invalidThingEvent;

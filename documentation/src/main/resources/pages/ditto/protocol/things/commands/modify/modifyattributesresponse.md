@@ -3,9 +3,7 @@
 ```json
 {
   "topic": "com.acme/xdk_53/things/twin/commands/modify",
-  "headers": {
-    
-  },
+  "headers": {},
   "path": "/attributes",
   "value": null,
   "status": 204

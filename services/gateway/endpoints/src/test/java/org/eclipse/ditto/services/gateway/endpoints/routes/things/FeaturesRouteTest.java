@@ -21,6 +21,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Feature;
+import org.eclipse.ditto.model.things.FeatureDefinition;
 import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
@@ -42,6 +43,8 @@ public final class FeaturesRouteTest extends EndpointTestBase {
 
     private static final String FEATURES_PATH = "/" + FeaturesRoute.PATH_PREFIX;
     private static final String FEATURE_ENTRY_PATH = FEATURES_PATH + "/" + EndpointTestConstants.KNOWN_FEATURE_ID;
+    private static final String FEATURE_ENTRY_DEFINITION_PATH =
+            FEATURE_ENTRY_PATH + "/" + FeaturesRoute.PATH_DEFINITION;
     private static final String FEATURE_ENTRY_PROPERTIES_PATH =
             FEATURE_ENTRY_PATH + "/" + FeaturesRoute.PATH_PROPERTIES;
     private static final String FEATURE_ENTRY_PROPERTIES_ENTRY_PATH = FEATURE_ENTRY_PROPERTIES_PATH + "/" +
@@ -128,6 +131,32 @@ public final class FeaturesRouteTest extends EndpointTestBase {
     @Test
     public void postFeatureEntryReturnsMethodNotAllowed() {
         final TestRouteResult result = underTest.run(HttpRequest.POST(FEATURE_ENTRY_PATH));
+        result.assertStatusCode(StatusCodes.METHOD_NOT_ALLOWED);
+    }
+
+    @Test
+    public void getFeatureEntryDefinition() {
+        final TestRouteResult result = underTest.run(HttpRequest.GET(FEATURE_ENTRY_DEFINITION_PATH));
+        result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
+    }
+
+    @Test
+    public void putFeatureEntryDefinition() {
+        final FeatureDefinition featureDefinition = FeatureDefinition.fromIdentifier("org.eclipse.ditto:vorto:0.1.0");
+        final TestRouteResult result = underTest.run(
+                HttpRequest.PUT(FEATURE_ENTRY_DEFINITION_PATH).withEntity(featureDefinition.toJsonString()));
+        result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
+    }
+
+    @Test
+    public void deleteFeatureEntryDefinition() {
+        final TestRouteResult result = underTest.run(HttpRequest.DELETE(FEATURE_ENTRY_DEFINITION_PATH));
+        result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
+    }
+
+    @Test
+    public void postFeatureEntryDefinitionReturnsMethodNotAllowed() {
+        final TestRouteResult result = underTest.run(HttpRequest.POST(FEATURE_ENTRY_DEFINITION_PATH));
         result.assertStatusCode(StatusCodes.METHOD_NOT_ALLOWED);
     }
 

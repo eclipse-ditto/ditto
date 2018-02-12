@@ -30,14 +30,17 @@ import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.gateway.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.services.gateway.endpoints.utils.UriEncoding;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeature;
+import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureDefinition;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureProperties;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureProperty;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatures;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeature;
+import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureDefinition;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperties;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperty;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatures;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeature;
+import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureDefinition;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureProperties;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureProperty;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatures;
@@ -56,6 +59,7 @@ final class FeaturesRoute extends AbstractRoute {
 
     static final String PATH_PREFIX = "features";
     static final String PATH_PROPERTIES = "properties";
+    static final String PATH_DEFINITION = "definition";
 
     private final MessagesRoute messagesRoute;
 
@@ -95,6 +99,7 @@ final class FeaturesRoute extends AbstractRoute {
                 Directives.route(
                         features(ctx, dittoHeaders, thingId),
                         featuresEntry(ctx, dittoHeaders, thingId),
+                        featuresEntryDefinition(ctx, dittoHeaders, thingId),
                         featuresEntryProperties(ctx, dittoHeaders, thingId),
                         featuresEntryPropertiesEntry(ctx, dittoHeaders, thingId),
                         featuresEntryInboxOutbox(ctx, dittoHeaders, thingId)
@@ -168,6 +173,42 @@ final class FeaturesRoute extends AbstractRoute {
                                 delete(() -> // DELETE /features/<featureId>
                                         handlePerRequest(ctx,
                                                 DeleteFeature.of(thingId, featureId, dittoHeaders))
+                                )
+                        )
+                )
+        );
+    }
+
+    /*
+     * Describes {@code /features/<featureId>/definition} route.
+     *
+     * @return {@code /features/<featureId>/definition} route.
+     */
+    private Route featuresEntryDefinition(final RequestContext ctx, final DittoHeaders dittoHeaders,
+            final String thingId) {
+        return rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment()), featureId ->
+                rawPathPrefix(mergeDoubleSlashes().concat(PATH_DEFINITION), () ->
+                        pathEndOrSingleSlash(() ->
+                                route(
+                                        get(() -> // GET /features/{featureId}/definition
+                                                handlePerRequest(ctx,
+                                                        RetrieveFeatureDefinition.of(thingId, featureId, dittoHeaders))
+                                        ),
+                                        put(() -> // PUT /features/{featureId}/definition
+                                                extractDataBytes(payloadSource ->
+                                                        handlePerRequest(ctx, dittoHeaders,
+                                                                payloadSource, definitionJson ->
+                                                                        ModifyFeatureDefinition.of(thingId, featureId,
+                                                                                ThingsModelFactory.
+                                                                                        newFeatureDefinition(
+                                                                                                definitionJson),
+                                                                                dittoHeaders))
+                                                )
+                                        ),
+                                        delete(() -> // DELETE /features/{featureId}/definition
+                                                handlePerRequest(ctx,
+                                                        DeleteFeatureDefinition.of(thingId, featureId, dittoHeaders))
+                                        )
                                 )
                         )
                 )
