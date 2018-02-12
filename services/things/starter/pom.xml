@@ -260,6 +260,7 @@
                                 <cmd>
                                     <exec>
                                         <arg>java</arg>
+                                        <arg>-Xtune:virtualized</arg>
                                         <arg>-jar</arg>
                                         <arg>/starter.jar</arg>
                                     </exec>
