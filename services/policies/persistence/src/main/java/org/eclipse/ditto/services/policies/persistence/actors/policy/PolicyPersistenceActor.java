@@ -1897,14 +1897,13 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
                 // no more activity during initialization, shutting down.
                 shutdown("Uninitialized policy '{}' was not accessed in a while. Shutting Actor down..", policyId);
             } else {
-                boolean isSnapshotSavedForDeletedThing = false;
-                // if there was any modifying activity since the last CheckForActivity message:
-                if (lastSequenceNr() > (message.getCurrentSequenceNr())) {
-                    isSnapshotSavedForDeletedThing = isPolicyDeleted();
+                boolean isSnapshotSavedForDeletedPolicy = false;
+                final boolean policyDeleted = isPolicyDeleted();
+                // make a snapshot if there is any activity since last check or if the policy was deleted
+                if (lastSequenceNr() > (message.getCurrentSequenceNr()) || policyDeleted) {
+                    isSnapshotSavedForDeletedPolicy = policyDeleted;
                     doSaveSnapshot(() -> {
-                        /* don't use isSnapshotSavedForDeletedThing variable here, because thing state might have
-                           changed in the meantime */
-                        if (isPolicyDeleted()) {
+                        if (policyDeleted) {
                             shutdown("Thing '{}' was deleted recently. Shutting Actor down..", policyId);
                         }
                     });
@@ -1912,7 +1911,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
                 if (isPolicyActive()) {
                     shutdown("Thing '{}' was not accessed in a while. Shutting Actor down..", policyId);
-                } else if (!isSnapshotSavedForDeletedThing) {
+                } else if (!isSnapshotSavedForDeletedPolicy) {
                     shutdown("Thing '{}' was deleted recently. Shutting Actor down..", policyId);
                 }
             }
