@@ -15,6 +15,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -56,13 +57,15 @@ public class DittoProtocolMapper implements PayloadMapper {
 
     @Override
     public void configure(final PayloadMapperOptions options) {
-        final Map<String,String> map = options.getAsMap();
-        isContentTypeCheckDisabled = Boolean.parseBoolean(map.get(OPTION_DISABLE_CONTENT_TYPE_CHECK)); // null becomes false
+        final Map<String, String> map = options.getAsMap();
+        isContentTypeCheckDisabled =
+                Boolean.parseBoolean(map.get(OPTION_DISABLE_CONTENT_TYPE_CHECK)); // null becomes false
     }
 
     @Override
     public Adaptable mapIncoming(final PayloadMapperMessage message) throws PayloadMappingException {
-        if (!isContentTypeCheckDisabled && !CONTENT_TYPES.contains(message.getContentType())) {
+        if (!isContentTypeCheckDisabled &&
+                !message.getContentType().map(CONTENT_TYPES::contains).filter(Boolean.TRUE::equals).isPresent()) {
             throw new PayloadMappingException("Unsupported content type: " + message.getContentType());
         }
 
@@ -87,18 +90,17 @@ public class DittoProtocolMapper implements PayloadMapper {
         try {
             final JsonObject json = JsonFactory.newObject(data.get());
             return ProtocolFactory.jsonifiableAdaptableFromJson(json);
-        } catch (Exception e ){
-            throw new PayloadMappingException("Mapping failed",e);
+        } catch (Exception e) {
+            throw new PayloadMappingException("Mapping failed", e);
         }
 
     }
 
     @Override
     public PayloadMapperMessage mapOutgoing(final Adaptable dittoProtocolAdaptable) throws PayloadMappingException {
-        final String payload = ProtocolFactory.wrapAsJsonifiableAdaptable(dittoProtocolAdaptable)
-                .toJson(dittoProtocolAdaptable.getHeaders().orElse(DittoHeaders.empty())).toString();
-
-        return PayloadMappers.createPayloadMapperMessage(DITTO_PROTOCOL_CONTENT_TYPE, null, payload,
-                dittoProtocolAdaptable.getHeaders().map(h -> (Map<String, String>)h).orElse(Collections.emptyMap()));
+        final String payload = ProtocolFactory.wrapAsJsonifiableAdaptable(dittoProtocolAdaptable).toJson().toString();
+        final Map<String, String> headers = new LinkedHashMap<>(dittoProtocolAdaptable.getHeaders().orElse(DittoHeaders
+                .empty()));
+        return PayloadMappers.createPayloadMapperMessage(DITTO_PROTOCOL_CONTENT_TYPE, null, payload, headers);
     }
 }
