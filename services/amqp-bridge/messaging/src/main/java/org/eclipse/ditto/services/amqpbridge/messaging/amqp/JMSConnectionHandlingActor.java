@@ -56,13 +56,13 @@ public class JMSConnectionHandlingActor extends AbstractActor {
     @Override
     public Receive createReceive() {
         return receiveBuilder()
-                .match(AmqpConnectionActor.Create.class, this::createConnection)
-                .match(AmqpConnectionActor.Connect.class, this::startConnection)
-                .match(AmqpConnectionActor.Disconnect.class, this::stopConnection)
+                .match(AmqpClientActor.Create.class, this::createConnection)
+                .match(AmqpClientActor.Connect.class, this::startConnection)
+                .match(AmqpClientActor.Disconnect.class, this::stopConnection)
                 .build();
     }
 
-    private void createConnection(AmqpConnectionActor.Create createConnection) {
+    private void createConnection(AmqpClientActor.Create createConnection) {
         final AmqpConnection amqpConnection = createConnection.getAmqpConnection();
         final ExceptionListener exceptionListener = createConnection.getExceptionListener();
         final JmsConnectionFactory jmsConnectionFactory = createConnection.getJmsConnectionFactory();
@@ -77,7 +77,7 @@ public class JMSConnectionHandlingActor extends AbstractActor {
         context().stop(self());
     }
 
-    private void startConnection(AmqpConnectionActor.Connect connect) {
+    private void startConnection(AmqpClientActor.Connect connect) {
         try {
             final Connection jmsConnection = connect.getConnection();
             log.debug("Starting connection.");
@@ -85,15 +85,15 @@ public class JMSConnectionHandlingActor extends AbstractActor {
             log.debug("Connection started successfully, creating session.");
             final Session jmsSession = jmsConnection.createSession(false, Session.AUTO_ACKNOWLEDGE);
             log.debug("Session created.");
-            sender().tell(new AmqpConnectionActor.Connected(connect.getOrigin(), jmsSession), sender());
+            sender().tell(new AmqpClientActor.Connected(connect.getOrigin(), jmsSession), sender());
             log.debug("Connection <{}> established successfully, stopping myself.", connectionId);
         } catch (Exception e) {
-            sender().tell(new AmqpConnectionActor.Failure(connect.getOrigin(), e), sender());
+            sender().tell(new AmqpClientActor.Failure(connect.getOrigin(), e), sender());
         }
         context().stop(self());
     }
 
-    private void stopConnection(AmqpConnectionActor.Disconnect disconnect) {
+    private void stopConnection(AmqpClientActor.Disconnect disconnect) {
         try {
             final Connection connection = disconnect.getConnection();
             if (connection != null) {
@@ -106,9 +106,9 @@ public class JMSConnectionHandlingActor extends AbstractActor {
                     log.debug("Connection '{}' already closed: {}", connectionId, e.getMessage());
                 }
             }
-            sender().tell(new AmqpConnectionActor.Disconnected(disconnect.getOrigin()), sender());
+            sender().tell(new AmqpClientActor.Disconnected(disconnect.getOrigin()), sender());
         } catch (Exception e) {
-            sender().tell(new AmqpConnectionActor.Failure(disconnect.getOrigin(), e), sender());
+            sender().tell(new AmqpClientActor.Failure(disconnect.getOrigin(), e), sender());
         }
         context().stop(self());
     }

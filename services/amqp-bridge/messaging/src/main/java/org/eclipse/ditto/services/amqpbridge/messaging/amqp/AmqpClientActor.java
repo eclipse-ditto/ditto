@@ -11,7 +11,7 @@
  */
 package org.eclipse.ditto.services.amqpbridge.messaging.amqp;
 
-import static org.eclipse.ditto.services.amqpbridge.messaging.amqp.AmqpConnectionActor.State.INITIALIZING;
+import static org.eclipse.ditto.services.amqpbridge.messaging.amqp.AmqpClientActor.State.INITIALIZING;
 
 import java.text.MessageFormat;
 import java.util.Optional;
@@ -44,7 +44,7 @@ import akka.japi.pf.ReceiveBuilder;
  * This actor delegates interaction with the JMS client to a child actor because the JMS client blocks in most cases
  * which does not work well with actors.
  */
-public class AmqpConnectionActor extends AbstractActorWithStash implements ExceptionListener {
+public class AmqpClientActor extends AbstractActorWithStash implements ExceptionListener {
 
     private static final Status.Success CONNECTED_SUCCESS = new Status.Success(State.CONNECTED);
     private static final Status.Success DISCONNECTED_SUCCESS = new Status.Success(State.DISCONNECTED);
@@ -63,7 +63,7 @@ public class AmqpConnectionActor extends AbstractActorWithStash implements Excep
     private AbstractActor.Receive disconnecting;
     private AbstractActor.Receive disconnected;
 
-    private AmqpConnectionActor(final AmqpConnection amqpConnection, final ActorRef commandProcessor,
+    private AmqpClientActor(final AmqpConnection amqpConnection, final ActorRef commandProcessor,
             final JmsConnectionFactory jmsConnectionFactory) {
         this.amqpConnection = amqpConnection;
         this.commandProcessor = commandProcessor;
@@ -125,12 +125,12 @@ public class AmqpConnectionActor extends AbstractActorWithStash implements Excep
      */
     public static Props props(final AmqpConnection amqpConnection, final ActorRef commandProcessor,
             final JmsConnectionFactory jmsConnectionFactory) {
-        return Props.create(AmqpConnectionActor.class, new Creator<AmqpConnectionActor>() {
+        return Props.create(AmqpClientActor.class, new Creator<AmqpClientActor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
-            public AmqpConnectionActor create() {
-                return new AmqpConnectionActor(amqpConnection, commandProcessor, jmsConnectionFactory);
+            public AmqpClientActor create() {
+                return new AmqpClientActor(amqpConnection, commandProcessor, jmsConnectionFactory);
             }
         });
     }

@@ -44,7 +44,7 @@ import scala.Option;
 /**
  * Actor which handles connection to AMQP 0.9.1 server.
  */
-public class RabbitMQConnectionActor extends AbstractActor {
+public class RabbitMQClientActor extends AbstractActor {
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
     private final ActorRef commandProcessor;
@@ -52,7 +52,7 @@ public class RabbitMQConnectionActor extends AbstractActor {
     private ActorRef connectionActor;
     private ActorRef channelActor;
 
-    private RabbitMQConnectionActor(final AmqpConnection amqpConnection, final ActorRef commandProcessor) {
+    private RabbitMQClientActor(final AmqpConnection amqpConnection, final ActorRef commandProcessor) {
         this.amqpConnection = amqpConnection;
         this.commandProcessor = commandProcessor;
     }
@@ -63,12 +63,12 @@ public class RabbitMQConnectionActor extends AbstractActor {
      * @return the Akka configuration Props object
      */
     public static Props props(final AmqpConnection amqpConnection, final ActorRef commandProcessor) {
-        return Props.create(RabbitMQConnectionActor.class, new Creator<RabbitMQConnectionActor>() {
+        return Props.create(RabbitMQClientActor.class, new Creator<RabbitMQClientActor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
-            public RabbitMQConnectionActor create() {
-                return new RabbitMQConnectionActor(amqpConnection, commandProcessor);
+            public RabbitMQClientActor create() {
+                return new RabbitMQClientActor(amqpConnection, commandProcessor);
             }
         });
     }
@@ -219,7 +219,7 @@ public class RabbitMQConnectionActor extends AbstractActor {
         @Override
         public void handleDelivery(final String consumerTag, final Envelope envelope,
                 final AMQP.BasicProperties properties, final byte[] body) {
-            commandConsumer.tell(new Delivery(envelope, properties, body), RabbitMQConnectionActor.this.self());
+            commandConsumer.tell(new Delivery(envelope, properties, body), RabbitMQClientActor.this.self());
         }
 
     }

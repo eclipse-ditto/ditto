@@ -44,11 +44,11 @@ import akka.actor.Status;
 import akka.testkit.javadsl.TestKit;
 
 @RunWith(MockitoJUnitRunner.class)
-public class AmqpConnectionActorTest {
+public class AmqpClientActorTest {
 
-    private static final Status.Success CONNECTED_SUCCESS = new Status.Success(AmqpConnectionActor.State.CONNECTED);
+    private static final Status.Success CONNECTED_SUCCESS = new Status.Success(AmqpClientActor.State.CONNECTED);
     private static final Status.Success DISCONNECTED_SUCCESS =
-            new Status.Success(AmqpConnectionActor.State.DISCONNECTED);
+            new Status.Success(AmqpClientActor.State.DISCONNECTED);
     private static final JMSException JMS_EXCEPTION = new JMSException("FAIL");
 
     private static ActorSystem actorSystem;
@@ -75,7 +75,7 @@ public class AmqpConnectionActorTest {
     @Test
     public void testExceptionDuringJMSConnectionCreation() {
         new TestKit(actorSystem) {{
-            final Props props = AmqpConnectionActor.props(amqpConnection, getRef(),
+            final Props props = AmqpClientActor.props(amqpConnection, getRef(),
                     (amqpConnection1, exceptionListener) -> { throw JMS_EXCEPTION; });
             final ActorRef amqpConnectionActor = actorSystem.actorOf(props);
             watch(amqpConnectionActor);
@@ -89,7 +89,7 @@ public class AmqpConnectionActorTest {
     public void testConnectionHandling() {
         new TestKit(actorSystem) {{
 
-            final Props props = AmqpConnectionActor.props(amqpConnection, getRef(),
+            final Props props = AmqpClientActor.props(amqpConnection, getRef(),
                     (amqpConnection1, exceptionListener) -> mockConnection);
             final ActorRef amqpConnectionActor = actorSystem.actorOf(props);
             watch(amqpConnectionActor);
@@ -112,7 +112,7 @@ public class AmqpConnectionActorTest {
     public void sendCommandDuringInit() {
         new TestKit(actorSystem) {{
             final CountDownLatch latch = new CountDownLatch(1);
-            final Props props = AmqpConnectionActor.props(amqpConnection, getRef(),
+            final Props props = AmqpClientActor.props(amqpConnection, getRef(),
                     (ac, el) -> waitForLatchAndReturn(latch, mockConnection));
             final ActorRef amqpConnectionActor = actorSystem.actorOf(props);
             watch(amqpConnectionActor);
@@ -128,7 +128,7 @@ public class AmqpConnectionActorTest {
     @Test
     public void sendConnectCommandWhenAlreadyConnected() throws JMSException {
         new TestKit(actorSystem) {{
-            final Props props = AmqpConnectionActor.props(amqpConnection, getRef(), (ac, el) -> mockConnection);
+            final Props props = AmqpClientActor.props(amqpConnection, getRef(), (ac, el) -> mockConnection);
             final ActorRef amqpConnectionActor = actorSystem.actorOf(props);
 
             amqpConnectionActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
@@ -143,7 +143,7 @@ public class AmqpConnectionActorTest {
     @Test
     public void sendDisconnectWhenAlreadyDisconnected() {
         new TestKit(actorSystem) {{
-            final Props props = AmqpConnectionActor.props(amqpConnection, getRef(), (ac, el) -> mockConnection);
+            final Props props = AmqpClientActor.props(amqpConnection, getRef(), (ac, el) -> mockConnection);
             final ActorRef amqpConnectionActor = actorSystem.actorOf(props);
 
             amqpConnectionActor.tell(CloseConnection.of(connectionId, DittoHeaders.empty()), getRef());
@@ -156,7 +156,7 @@ public class AmqpConnectionActorTest {
     public void testConnectFails() throws JMSException {
         new TestKit(actorSystem) {{
             doThrow(JMS_EXCEPTION).when(mockConnection).start();
-            final Props props = AmqpConnectionActor.props(amqpConnection, getRef(), (ac, el) -> mockConnection);
+            final Props props = AmqpClientActor.props(amqpConnection, getRef(), (ac, el) -> mockConnection);
             final ActorRef amqpConnectionActor = actorSystem.actorOf(props);
 
             amqpConnectionActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
@@ -168,7 +168,7 @@ public class AmqpConnectionActorTest {
     public void testDisconnectFails() throws JMSException {
         new TestKit(actorSystem) {{
             doThrow(JMS_EXCEPTION).when(mockConnection).close();
-            final Props props = AmqpConnectionActor.props(amqpConnection, getRef(), (ac, el) -> mockConnection);
+            final Props props = AmqpClientActor.props(amqpConnection, getRef(), (ac, el) -> mockConnection);
             final ActorRef amqpConnectionActor = actorSystem.actorOf(props);
 
             amqpConnectionActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());

@@ -71,8 +71,8 @@ import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
 
 /**
- * Handles {@code *Connection} commands and manages the persistence of connection. The connection handling to the remote
- * server is done in the implementation of this class.
+ * Handles {@code *Connection} commands and manages the persistence of connection. The actual connection handling to the
+ * remote server is delegated to a child actor that uses a specific client (AMQP 1.0 or 0.9.1).
  */
 class ConnectionActor extends AbstractPersistentActor {
 
@@ -83,7 +83,7 @@ class ConnectionActor extends AbstractPersistentActor {
 
     private static final int SHUTDOWN_DELAY_SECONDS = 10;
     private static final FiniteDuration SHUTDOWN_DELAY = Duration.apply(SHUTDOWN_DELAY_SECONDS, TimeUnit.SECONDS);
-    private static final long DEFAULT_TIMEOUT = 5000;
+    private static final long DEFAULT_TIMEOUT_MS = 5000;
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
@@ -96,7 +96,7 @@ class ConnectionActor extends AbstractPersistentActor {
     private final Receive connectionCreatedBehaviour;
 
     private ActorRef commandProcessor;
-    private ActorRef connectionActor;
+    private ActorRef clientActor;
 
     private AmqpConnection amqpConnection;
     private ConnectionStatus connectionStatus;
@@ -315,8 +315,8 @@ class ConnectionActor extends AbstractPersistentActor {
         long timeout = Optional.ofNullable(cmd.getDittoHeaders()
                 .get("timeout"))
                 .map(Long::parseLong)
-                .orElse(DEFAULT_TIMEOUT);
-        PatternsCS.ask(connectionActor, cmd, timeout)
+                .orElse(DEFAULT_TIMEOUT_MS);
+        PatternsCS.ask(clientActor, cmd, timeout)
                 .whenComplete((response, exception) -> {
                     log.debug("Got response to {}: {}", cmd.getType(), exception == null ? response : exception);
                     if (exception != null) {
@@ -406,10 +406,10 @@ class ConnectionActor extends AbstractPersistentActor {
     }
 
     private void startConnectionActor() {
-        if (connectionActor == null) {
+        if (clientActor == null) {
             final Props props = propsFactory.getActorPropsForType(amqpConnection, commandProcessor);
             final String name = amqpConnection.getConnectionType() + "-" + amqpConnection.getId();
-            connectionActor = startChildActor(name, props);
+            clientActor = startChildActor(name, props);
         }
     }
 
@@ -421,9 +421,9 @@ class ConnectionActor extends AbstractPersistentActor {
     }
 
     private void stopConnectionActor() {
-        if (connectionActor != null) {
-            stopChildActor(connectionActor);
-            connectionActor = null;
+        if (clientActor != null) {
+            stopChildActor(clientActor);
+            clientActor = null;
         }
     }
 

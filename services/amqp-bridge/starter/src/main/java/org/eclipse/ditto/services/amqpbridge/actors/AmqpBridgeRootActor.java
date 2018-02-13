@@ -159,7 +159,7 @@ public final class AmqpBridgeRootActor extends AbstractActor {
         final double randomFactor =
                 config.getDouble(ConfigKeys.Connection.SUPERVISOR_EXPONENTIAL_BACKOFF_RANDOM_FACTOR);
         final ConnectionActorPropsFactory propsFactory = DefaultConnectionActorPropsFactory.getInstance();
-        final Props amqpConnectionSupervisorProps =
+        final Props connectionSupervisorProps =
                 ConnectionSupervisorActor.props(minBackoff, maxBackoff, randomFactor, pubSubMediator, PROXY_ACTOR_PATH,
                         propsFactory);
 
@@ -170,7 +170,7 @@ public final class AmqpBridgeRootActor extends AbstractActor {
 
         final ActorRef connectionShardRegion = ClusterSharding.get(this.getContext().system())
                 .start(AmqpBridgeMessagingConstants.SHARD_REGION,
-                        amqpConnectionSupervisorProps,
+                        connectionSupervisorProps,
                         shardingSettings,
                         ShardRegionExtractor.of(numberOfShards, getContext().getSystem()));
 

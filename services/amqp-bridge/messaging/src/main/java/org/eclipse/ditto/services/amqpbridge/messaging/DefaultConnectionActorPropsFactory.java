@@ -12,9 +12,9 @@
 package org.eclipse.ditto.services.amqpbridge.messaging;
 
 import org.eclipse.ditto.model.amqpbridge.AmqpConnection;
-import org.eclipse.ditto.services.amqpbridge.messaging.amqp.AmqpConnectionActor;
+import org.eclipse.ditto.services.amqpbridge.messaging.amqp.AmqpClientActor;
 import org.eclipse.ditto.services.amqpbridge.messaging.amqp.AmqpConnectionBasedJmsConnectionFactory;
-import org.eclipse.ditto.services.amqpbridge.messaging.rabbitmq.RabbitMQConnectionActor;
+import org.eclipse.ditto.services.amqpbridge.messaging.rabbitmq.RabbitMQClientActor;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -42,9 +42,9 @@ public class DefaultConnectionActorPropsFactory implements ConnectionActorPropsF
     public Props getActorPropsForType(final AmqpConnection amqpConnection, final ActorRef commandProcessor) {
         switch (amqpConnection.getConnectionType()) {
             case AMQP_091:
-                return RabbitMQConnectionActor.props(amqpConnection, commandProcessor);
+                return RabbitMQClientActor.props(amqpConnection, commandProcessor);
             case AMQP_10:
-                return AmqpConnectionActor.props(amqpConnection, commandProcessor, JMS_CONNECTION_FACTORY);
+                return AmqpClientActor.props(amqpConnection, commandProcessor, JMS_CONNECTION_FACTORY);
             default:
                 throw new IllegalArgumentException(
                         "ConnectionType <" + amqpConnection.getConnectionType() + "> is not supported.");
