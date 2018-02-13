@@ -94,7 +94,7 @@ public final class AmqpConnectionBasedJmsConnectionFactory implements JmsConnect
             connectionUri = appendFailoverParameters(uriWithAmqpParams);
         }
 
-        LOGGER.debug("{} connection uri: {}", id, connectionUri);
+        LOGGER.debug("[{}] URI: {}", id, connectionUri);
 
         @SuppressWarnings("squid:S1149") final Hashtable<Object, Object> env = new Hashtable<>();
         env.put(Context.INITIAL_CONTEXT_FACTORY, "org.apache.qpid.jms.jndi.JmsInitialContextFactory");
