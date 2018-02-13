@@ -11,7 +11,6 @@
  */
 package org.eclipse.ditto.services.amqpbridge.messaging;
 
-import org.eclipse.ditto.model.amqpbridge.AmqpConnection;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.amqpbridge.modify.CloseConnection;
 import org.eclipse.ditto.signals.commands.amqpbridge.modify.CreateConnection;
@@ -19,7 +18,6 @@ import org.eclipse.ditto.signals.commands.amqpbridge.modify.DeleteConnection;
 import org.eclipse.ditto.signals.commands.amqpbridge.modify.OpenConnection;
 
 import akka.actor.AbstractActor;
-import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
@@ -29,26 +27,16 @@ import akka.japi.Creator;
  */
 public class MockConnectionActor extends AbstractActor {
 
-    static final ConnectionActorPropsFactory mockConnectionActorPropsFactory = MockConnectionActor::props;
+    static final ConnectionActorPropsFactory mockConnectionActorPropsFactory =
+            (amqpConnection, commandProcessor) -> MockConnectionActor.props();
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
-    private final AmqpConnection amqpConnection;
-    private final ActorRef commandProcessor;
 
-    private MockConnectionActor(final AmqpConnection amqpConnection, final ActorRef commandProcessor) {
-        this.amqpConnection = amqpConnection;
-        this.commandProcessor = commandProcessor;
+    private MockConnectionActor() {
     }
 
-    public static Props props(final AmqpConnection amqpConnection, final ActorRef commandProcessor) {
-        return Props.create(MockConnectionActor.class, new Creator<MockConnectionActor>() {
-            private static final long serialVersionUID = 1L;
-
-            @Override
-            public MockConnectionActor create() {
-                return new MockConnectionActor(amqpConnection, commandProcessor);
-            }
-        });
+    public static Props props() {
+        return Props.create(MockConnectionActor.class, (Creator<MockConnectionActor>) MockConnectionActor::new);
     }
 
     @Override

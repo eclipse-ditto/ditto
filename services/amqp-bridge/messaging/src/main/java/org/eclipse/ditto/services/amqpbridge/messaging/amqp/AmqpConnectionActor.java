@@ -40,12 +40,14 @@ import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
 
 /**
- * Actor which manages a connection to an AMQP 1.0 server.
+ * Actor which manages a connection to an AMQP 1.0 server using the Qpid JMS client.
+ * This actor delegates interaction with the JMS client to a child actor because the JMS client blocks in most cases
+ * which does not work well with actors.
  */
 public class AmqpConnectionActor extends AbstractActorWithStash implements ExceptionListener {
 
-    private static final Status.Success CONNECTED = new Status.Success(State.CONNECTED);
-    private static final Status.Success DISCONNECTED = new Status.Success(State.DISCONNECTED);
+    private static final Status.Success CONNECTED_SUCCESS = new Status.Success(State.CONNECTED);
+    private static final Status.Success DISCONNECTED_SUCCESS = new Status.Success(State.DISCONNECTED);
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
     private final AmqpConnection amqpConnection;
     private final ActorRef commandProcessor;
@@ -111,13 +113,14 @@ public class AmqpConnectionActor extends AbstractActorWithStash implements Excep
                 .match(CreateConnection.class, cc -> connect())
                 .match(OpenConnection.class, oc -> connect())
                 .build().orElse(defaultBehaviour);
-
-
     }
 
     /**
      * Creates Akka configuration object for this actor.
      *
+     * @param amqpConnection amqp connection parameters
+     * @param commandProcessor the command processor which receives the incoming messages
+     * @param jmsConnectionFactory the JMS connection factory
      * @return the Akka configuration Props object
      */
     public static Props props(final AmqpConnection amqpConnection, final ActorRef commandProcessor,
@@ -159,13 +162,13 @@ public class AmqpConnectionActor extends AbstractActorWithStash implements Excep
         this.jmsSession = c.getSession();
         startCommandConsumers();
         changeBehaviour(State.CONNECTED);
-        c.getOrigin().tell(CONNECTED, sender());
+        c.getOrigin().tell(CONNECTED_SUCCESS, sender());
     }
 
     private void handleDisconnected(final Disconnected d) {
         this.jmsSession = null;
         changeBehaviour(State.DISCONNECTED);
-        d.getOrigin().tell(DISCONNECTED, sender());
+        d.getOrigin().tell(DISCONNECTED_SUCCESS, sender());
     }
 
     private void startCommandConsumers() {
@@ -222,7 +225,7 @@ public class AmqpConnectionActor extends AbstractActorWithStash implements Excep
     }
 
     private void handleConnectionCreated(final Connection connection) {
-        log.info("JMS connection created successfully, ready to connect.");
+        log.debug("JMS connection created successfully, ready to connect.");
         this.jmsConnection = connection;
         unstashAll();
         changeBehaviour(State.DISCONNECTED);
@@ -256,7 +259,7 @@ public class AmqpConnectionActor extends AbstractActorWithStash implements Excep
     }
 
     private void noop(final Command<?> command) {
-        log.info("Nothing to do for command <{}> in current state <{}>", command.getType(), state);
+        log.debug("Nothing to do for command <{}> in current state <{}>", command.getType(), state);
         getSender().tell(success(), self());
     }
 
@@ -274,7 +277,7 @@ public class AmqpConnectionActor extends AbstractActorWithStash implements Excep
     }
 
     private void ignoreMessage(final Object msg) {
-        log.info("Ignoring <{}> message: {}", msg.getClass().getSimpleName(), msg);
+        log.debug("Ignoring <{}> message: {}", msg.getClass().getSimpleName(), msg);
         unhandled(msg);
     }
 
@@ -385,7 +388,7 @@ public class AmqpConnectionActor extends AbstractActorWithStash implements Excep
         }
     }
 
-    static abstract class WithOrigin {
+    abstract static class WithOrigin {
 
         private final ActorRef origin;
 

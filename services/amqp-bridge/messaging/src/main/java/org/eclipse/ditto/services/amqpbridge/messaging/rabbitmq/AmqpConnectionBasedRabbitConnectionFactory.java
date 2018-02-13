@@ -25,6 +25,9 @@ import org.slf4j.LoggerFactory;
 
 import com.rabbitmq.client.ConnectionFactory;
 
+/**
+ * Factory for creating a RabbitMQ {@link ConnectionFactory} based on a {@link AmqpConnection}.
+ */
 public class AmqpConnectionBasedRabbitConnectionFactory {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AmqpConnectionBasedRabbitConnectionFactory.class);
@@ -34,6 +37,11 @@ public class AmqpConnectionBasedRabbitConnectionFactory {
         // no-op
     }
 
+    /**
+     * Returns an instance of {@code AmqpConnectionBasedRabbitConnectionFactory}.
+     *
+     * @return the instance.
+     */
     public static ConnectionFactory createConnection(final AmqpConnection amqpConnection) {
         checkNotNull(amqpConnection, "Connection");
 

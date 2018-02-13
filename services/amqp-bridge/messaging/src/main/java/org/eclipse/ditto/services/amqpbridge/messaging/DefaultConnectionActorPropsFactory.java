@@ -19,16 +19,23 @@ import org.eclipse.ditto.services.amqpbridge.messaging.rabbitmq.RabbitMQConnecti
 import akka.actor.ActorRef;
 import akka.actor.Props;
 
+/**
+ * The default implementation of {@link ConnectionActorPropsFactory}.
+ */
 public class DefaultConnectionActorPropsFactory implements ConnectionActorPropsFactory {
 
     private static final AmqpConnectionBasedJmsConnectionFactory JMS_CONNECTION_FACTORY =
             AmqpConnectionBasedJmsConnectionFactory.getInstance();
+    private static final DefaultConnectionActorPropsFactory INSTANCE = new DefaultConnectionActorPropsFactory();
 
     private DefaultConnectionActorPropsFactory() {
     }
 
+    /**
+     * @return factory instance
+     */
     public static ConnectionActorPropsFactory getInstance() {
-        return new DefaultConnectionActorPropsFactory();
+        return INSTANCE;
     }
 
     @Override

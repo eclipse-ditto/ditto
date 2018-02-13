@@ -13,6 +13,7 @@ package org.eclipse.ditto.services.amqpbridge.messaging;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -82,6 +83,7 @@ class ConnectionActor extends AbstractPersistentActor {
 
     private static final int SHUTDOWN_DELAY_SECONDS = 10;
     private static final FiniteDuration SHUTDOWN_DELAY = Duration.apply(SHUTDOWN_DELAY_SECONDS, TimeUnit.SECONDS);
+    private static final long DEFAULT_TIMEOUT = 5000;
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
@@ -310,12 +312,13 @@ class ConnectionActor extends AbstractPersistentActor {
     private void askConnectionActor(final String action, final Command<?> cmd,
             final BiConsumer<ActorRef, Object> onSuccess) {
         final ActorRef origin = getSender();
-        log.info("Asking {} to {} with origin {}", cmd.getType(), connectionActor, origin);
-        log.info("Ditto headers: {}", cmd.getDittoHeaders());
-        PatternsCS
-                .ask(connectionActor, cmd, 5000) // TODO dg read timeout form headers
+        long timeout = Optional.ofNullable(cmd.getDittoHeaders()
+                .get("timeout"))
+                .map(Long::parseLong)
+                .orElse(DEFAULT_TIMEOUT);
+        PatternsCS.ask(connectionActor, cmd, timeout)
                 .whenComplete((response, exception) -> {
-                    log.info("Got response to {}: {}", cmd.getType(), exception == null ? response : exception);
+                    log.debug("Got response to {}: {}", cmd.getType(), exception == null ? response : exception);
                     if (exception != null) {
                         handleException(action, origin, exception);
                     } else if (response instanceof Status.Failure) {

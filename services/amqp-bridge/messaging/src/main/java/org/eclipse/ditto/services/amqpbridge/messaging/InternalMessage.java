@@ -31,7 +31,7 @@ public class InternalMessage {
     private final String textPayload;
     private final ByteBuffer bytePayload;
 
-    public InternalMessage(final Builder builder) {
+    private InternalMessage(final Builder builder) {
         this.headers = Collections.unmodifiableMap(new LinkedHashMap<>(builder.headers));
         this.textPayload = builder.textPayload;
         this.bytePayload = builder.bytePayload;

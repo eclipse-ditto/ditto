@@ -16,8 +16,17 @@ import org.eclipse.ditto.model.amqpbridge.AmqpConnection;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 
+/**
+ * Creates actor {@link Props} based on the given {@link AmqpConnection}.
+ */
 public interface ConnectionActorPropsFactory {
 
+    /**
+     * Create actor {@link Props} for a type of AMQP connection.
+     *
+     * @param amqpConnection the amqp connection
+     * @param commandProcessor the command processor that receives incoming messages
+     * @return the actor props
+     */
     Props getActorPropsForType(final AmqpConnection amqpConnection, final ActorRef commandProcessor);
-
 }
