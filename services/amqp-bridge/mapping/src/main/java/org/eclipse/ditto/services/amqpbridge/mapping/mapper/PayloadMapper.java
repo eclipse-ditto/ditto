@@ -42,7 +42,7 @@ public interface PayloadMapper {
      * @return the adaptible
      * @throws UnsupportedOperationException if this mapper does not support mapping of incoming messages
      */
-    Adaptable mapIncoming(PayloadMapperMessage message);
+    Adaptable mapIncoming(PayloadMapperMessage message) throws PayloadMappingException;
 
     /**
      * Maps an outgoing message.
@@ -51,5 +51,5 @@ public interface PayloadMapper {
      * @return the payload
      * @throws UnsupportedOperationException if this mapper does not support mapping of outgoing messages
      */
-    PayloadMapperMessage mapOutgoing(Adaptable dittoProtocolAdaptable);
+    PayloadMapperMessage mapOutgoing(Adaptable dittoProtocolAdaptable) throws PayloadMappingException;
 }

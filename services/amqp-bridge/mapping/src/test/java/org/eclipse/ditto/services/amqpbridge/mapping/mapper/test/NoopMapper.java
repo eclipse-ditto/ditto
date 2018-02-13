@@ -11,12 +11,19 @@
  */
 package org.eclipse.ditto.services.amqpbridge.mapping.mapper.test;
 
+import java.util.List;
+
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.PayloadMapper;
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.PayloadMapperMessage;
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.PayloadMapperOptions;
 
 public class NoopMapper implements PayloadMapper {
+
+    @Override
+    public List<String> getSupportedContentTypes() {
+        return null;
+    }
 
     @Override
     public void configure(final PayloadMapperOptions options) {
