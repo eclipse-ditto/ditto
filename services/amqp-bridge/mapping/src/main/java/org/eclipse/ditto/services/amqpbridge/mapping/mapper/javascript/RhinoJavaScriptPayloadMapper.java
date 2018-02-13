@@ -18,6 +18,7 @@ import java.io.Reader;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -89,6 +90,11 @@ final class RhinoJavaScriptPayloadMapper implements PayloadMapper {
             initLibraries(cx, scope);
             return scope;
         });
+    }
+
+    @Override
+    public List<String> getSupportedContentTypes() {
+        return Arrays.asList("application/javascript");
     }
 
     @Override

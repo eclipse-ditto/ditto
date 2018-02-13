@@ -24,7 +24,7 @@ public interface PayloadMapperMessage {
      *
      * @return
      */
-    String getContentType();
+    Optional<String> getContentType();
 
     /**
      *

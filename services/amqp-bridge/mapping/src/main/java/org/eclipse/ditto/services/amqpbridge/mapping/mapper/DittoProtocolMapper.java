@@ -11,6 +11,8 @@
  */
 package org.eclipse.ditto.services.amqpbridge.mapping.mapper;
 
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -67,8 +69,21 @@ public class DittoProtocolMapper implements PayloadMapper {
         final Optional<String> data = message.getStringData();
         if (!data.isPresent()) {
             throw new PayloadMappingException("Message is empty");
+
+//            final String stringPayload = message.getTextPayload()
+//                    .orElseGet(() -> message.getBytePayload()
+//                            .map(ByteBuffer::array)
+//                            .map(ba -> new String(ba, StandardCharsets.UTF_8))
+//                            .orElseThrow(() -> new IllegalArgumentException("The received message payload " +
+//                                    "was null, which is not a valid json command.")));
         }
 
+
+        // use correlationId from json payload if present
+        // TODO DG rly required??
+//                jsonifiableAdaptable.getHeaders()
+//                        .flatMap(DittoHeaders::getCorrelationId)
+//                        .ifPresent(dittoHeadersBuilder::correlationId);
         try {
             final JsonObject json = JsonFactory.newObject(data.get());
             return ProtocolFactory.jsonifiableAdaptableFromJson(json);

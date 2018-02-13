@@ -11,7 +11,7 @@
  */
 package org.eclipse.ditto.services.amqpbridge.mapping.mapper;
 
-public class PayloadMappingException extends Exception {
+public class PayloadMappingException extends RuntimeException {
 
     public PayloadMappingException() {
         super();

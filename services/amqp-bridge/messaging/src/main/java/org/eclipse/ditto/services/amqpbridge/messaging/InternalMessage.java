@@ -18,6 +18,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.PayloadMapperMessage;
+import org.eclipse.ditto.services.amqpbridge.mapping.mapper.PayloadMappers;
 
 
 /**
@@ -36,8 +37,9 @@ public class InternalMessage {
         this.bytePayload = builder.bytePayload;
     }
 
-    private PayloadMapperMessage toPayloadMapperMessage() {
-        throw new UnsupportedOperationException("not implemented");
+    public PayloadMapperMessage toPayloadMapperMessage() {
+        final String contentType = headers.get("content-type");
+        return PayloadMappers.createPayloadMapperMessage(contentType, bytePayload, textPayload, headers);
     }
 
     public Map<String, String> getHeaders() {
