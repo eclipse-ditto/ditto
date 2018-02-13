@@ -91,9 +91,9 @@ public final class FeaturePropertiesModifiedTest {
                         TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES,
                         TestConstants.Thing.REVISION_NUMBER, TestConstants.TIMESTAMP,
                         TestConstants.EMPTY_DITTO_HEADERS);
-        final String actualJsonString = underTest.toJson(FieldType.regularOrSpecial()).toString();
+        final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
-        assertThat(actualJsonString).isEqualTo(KNOWN_JSON.toString());
+        assertThat(actualJson).isEqualToIgnoringFieldDefinitions(KNOWN_JSON);
     }
 
 
