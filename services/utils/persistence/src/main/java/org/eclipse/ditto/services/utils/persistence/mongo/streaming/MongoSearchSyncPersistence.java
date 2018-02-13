@@ -104,7 +104,7 @@ public final class MongoSearchSyncPersistence implements StreamMetadataPersisten
 
         return Source.fromPublisher(lastSuccessfulSearchSyncCollection.insertOne(toStore))
                 .map(success -> {
-                    LOGGER.debug("Successfully inserted timestamp for search synchronization: <{}>", timestamp);
+                    LOGGER.debug("Successfully inserted timestamp for search synchronization: <{}>.", timestamp);
                     return NotUsed.getInstance();
                 });
     }
@@ -126,7 +126,7 @@ public final class MongoSearchSyncPersistence implements StreamMetadataPersisten
                 .flatMapConcat(doc -> {
                     final Date date = doc.getDate(FIELD_TIMESTAMP);
                     final Instant timestamp = date.toInstant();
-                    LOGGER.debug("Returning last timestamp of search synchronization: <{}>", timestamp);
+                    LOGGER.debug("Returning last timestamp of search synchronization: <{}>.", timestamp);
                     return Source.single(timestamp);
                 })
                 .orElse(Source.single(defaultTimestamp));
@@ -172,12 +172,12 @@ public final class MongoSearchSyncPersistence implements StreamMetadataPersisten
             final Source<Success, NotUsed> source = Source.fromPublisher(publisher);
             final CompletionStage<Success> done = source.runWith(Sink.head(), materializer);
             done.toCompletableFuture().get(createTimeoutSeconds, TimeUnit.SECONDS);
-            LOGGER.debug("Successfully created collection: {}");
+            LOGGER.debug("Successfully created collection: <{}>.", collectionName);
         } catch (final InterruptedException | TimeoutException e) {
             throw new IllegalStateException(e);
         } catch (final ExecutionException e) {
             if (isCollectionAlreadyExistsError(e.getCause())) {
-                LOGGER.debug("Collection already exists: {}");
+                LOGGER.debug("Collection already exists: <{}>.", collectionName);
             } else {
                 throw new IllegalStateException(e);
             }
