@@ -97,9 +97,10 @@ public abstract class AbstractAmqpBridgeEvent<T extends AbstractAmqpBridgeEvent>
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
 
+        // TYPE is included unconditionally
+        jsonObjectBuilder.set(Event.JsonFields.TYPE, type);
         getTimestamp().ifPresent(timestampPresent ->
                 jsonObjectBuilder.set(Event.JsonFields.TIMESTAMP, timestampPresent.toString(), predicate));
-        jsonObjectBuilder.set(Event.JsonFields.TYPE, type, predicate);
         jsonObjectBuilder.set(JsonFields.CONNECTION_ID, connectionId);
 
         appendPayloadAndBuild(jsonObjectBuilder, schemaVersion, thePredicate);

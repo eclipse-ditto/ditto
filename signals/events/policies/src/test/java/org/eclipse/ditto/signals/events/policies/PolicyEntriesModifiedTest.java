@@ -11,7 +11,7 @@
  */
 package org.eclipse.ditto.signals.events.policies;
 
-import static org.eclipse.ditto.model.base.assertions.DittoBaseAssertions.assertThat;
+import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
@@ -83,7 +83,7 @@ public final class PolicyEntriesModifiedTest {
                 TestConstants.EMPTY_DITTO_HEADERS);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
-        assertThat(actualJson.toString()).isEqualTo(KNOWN_JSON.toString());
+        assertThat(actualJson).isEqualToIgnoringFieldDefinitions(KNOWN_JSON);
     }
 
 

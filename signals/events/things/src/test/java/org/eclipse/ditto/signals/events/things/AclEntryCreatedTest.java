@@ -76,10 +76,12 @@ public final class AclEntryCreatedTest {
     public void toJsonReturnsExpected() {
         final AclEntryCreated underTest =
                 AclEntryCreated.of(TestConstants.Thing.THING_ID, TestConstants.Authorization.ACL_ENTRY_OLDMAN,
-                1, TestConstants.TIMESTAMP, TestConstants.EMPTY_DITTO_HEADERS);
+                        1, TestConstants.TIMESTAMP, TestConstants.EMPTY_DITTO_HEADERS);
         final JsonObject actualJson = underTest.toJson(JsonSchemaVersion.V_1, FieldType.regularOrSpecial());
 
-        assertThat(actualJson).isEqualTo(KNOWN_JSON);
+        assertThat(actualJson).isEqualToIgnoringFieldDefinitions(KNOWN_JSON
+                .remove(Event.JsonFields.ID.getPointer())
+                .set(Event.JsonFields.TYPE, AclEntryCreated.TYPE));
     }
 
     @Test

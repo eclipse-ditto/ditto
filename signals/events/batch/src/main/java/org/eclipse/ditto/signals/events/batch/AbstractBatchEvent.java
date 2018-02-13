@@ -49,8 +49,8 @@ public abstract class AbstractBatchEvent<T extends AbstractBatchEvent> implement
      * @param type the type of this event.
      * @param batchId the identifier of the batch.
      * @param timestamp the timestamp of the event.
-     * @param dittoHeaders the headers of the command which was the cause of this event.   @throws
-     * NullPointerException if any argument is {@code null}.
+     * @param dittoHeaders the headers of the command which was the cause of this event.   @throws NullPointerException
+     * if any argument is {@code null}.
      */
     protected AbstractBatchEvent(final String type,
             final String batchId,
@@ -93,8 +93,9 @@ public abstract class AbstractBatchEvent<T extends AbstractBatchEvent> implement
     public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder()
-                .set(Event.JsonFields.TIMESTAMP, getTimestamp().map(Instant::toString).orElse(null), predicate)
-                .set(Event.JsonFields.TYPE, type, predicate);
+                // TYPE is included unconditionally
+                .set(Event.JsonFields.TYPE, type)
+                .set(Event.JsonFields.TIMESTAMP, getTimestamp().map(Instant::toString).orElse(null), predicate);
 
         appendPayloadAndBuild(jsonObjectBuilder, schemaVersion, thePredicate);
 
