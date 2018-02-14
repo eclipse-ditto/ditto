@@ -63,10 +63,10 @@ public class DittoProtocolMapper implements PayloadMapper {
     }
 
     @Override
-    public Adaptable mapIncoming(final PayloadMapperMessage message) throws PayloadMappingException {
+    public Adaptable mapIncoming(final PayloadMapperMessage message) {
         if (!isContentTypeCheckDisabled &&
                 !message.getContentType().map(CONTENT_TYPES::contains).filter(Boolean.TRUE::equals).isPresent()) {
-            throw new PayloadMappingException("Unsupported content type: " + message.getContentType());
+            throw new IllegalArgumentException("Unsupported content type: " + message.getContentType());
         }
 
         final Optional<String> data = message.getStringData();
