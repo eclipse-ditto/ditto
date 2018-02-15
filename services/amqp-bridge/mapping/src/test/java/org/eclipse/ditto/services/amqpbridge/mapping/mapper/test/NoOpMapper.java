@@ -11,32 +11,32 @@
  */
 package org.eclipse.ditto.services.amqpbridge.mapping.mapper.test;
 
-import java.util.List;
 
+import javax.annotation.Nonnull;
+
+import org.eclipse.ditto.model.amqpbridge.InternalMessage;
 import org.eclipse.ditto.protocoladapter.Adaptable;
-import org.eclipse.ditto.services.amqpbridge.mapping.mapper.PayloadMapper;
-import org.eclipse.ditto.services.amqpbridge.mapping.mapper.PayloadMapperMessage;
-import org.eclipse.ditto.services.amqpbridge.mapping.mapper.PayloadMapperOptions;
+import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMapper;
+import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMapperConfiguration;
 
-public class NoopMapper implements PayloadMapper {
+public class NoOpMapper extends MessageMapper {
+
+    NoOpMapper() {
+        super("contentType", true);
+    }
 
     @Override
-    public List<String> getSupportedContentTypes() {
+    public void configure(@Nonnull final MessageMapperConfiguration configuration) {
+
+    }
+
+    @Override
+    protected Adaptable doForward(final InternalMessage message) {
         return null;
     }
 
     @Override
-    public void configure(final PayloadMapperOptions options) {
-
-    }
-
-    @Override
-    public Adaptable mapIncoming(final PayloadMapperMessage message) {
-        return null;
-    }
-
-    @Override
-    public PayloadMapperMessage mapOutgoing(final Adaptable dittoProtocolAdaptable) {
+    protected InternalMessage doBackward(final Adaptable adaptable) {
         return null;
     }
 }

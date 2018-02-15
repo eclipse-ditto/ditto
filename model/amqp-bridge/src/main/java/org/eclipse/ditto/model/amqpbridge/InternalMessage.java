@@ -9,7 +9,7 @@
  *    Bosch Software Innovations GmbH - initial contribution
  *
  */
-package org.eclipse.ditto.services.amqpbridge.messaging;
+package org.eclipse.ditto.model.amqpbridge;
 
 import java.nio.ByteBuffer;
 import java.util.Collections;
@@ -20,13 +20,9 @@ import java.util.Optional;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.services.amqpbridge.mapping.mapper.PayloadMapperMessage;
-import org.eclipse.ditto.services.amqpbridge.mapping.mapper.PayloadMappers;
-
 
 /**
  * Simple wrapper around the headers and the payload received from external AMQP source.
- * An instance of this message can be forwarded to the {@link CommandProcessorActor} for further processing.
  */
 public class InternalMessage {
 
@@ -47,13 +43,12 @@ public class InternalMessage {
         this.type = builder.type;
     }
 
-    public PayloadMapperMessage toPayloadMapperMessage() {
-        final String contentType = headers.get("content-type");
-        return PayloadMappers.createPayloadMapperMessage(contentType, bytePayload, textPayload, headers);
-    }
-
     public Map<String, String> getHeaders() {
         return headers;
+    }
+
+    public Optional<String> findHeader(final String key) {
+        return Optional.ofNullable(headers.get(key)).filter(s -> !s.isEmpty());
     }
 
     public boolean isTextMessage() {

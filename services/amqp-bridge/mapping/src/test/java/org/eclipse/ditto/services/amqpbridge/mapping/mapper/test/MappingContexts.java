@@ -19,10 +19,10 @@ import org.eclipse.ditto.model.amqpbridge.MappingContext;
 public class MappingContexts {
 
     public final static MappingContext NOOP_FUNCTION =
-            AmqpBridgeModelFactory.newMappingContext("NoopMapper", "NoopMapper", Collections.emptyMap());
+            AmqpBridgeModelFactory.newMappingContext("NoOpMapper", "NoOpMapper", Collections.emptyMap());
 
-    public final static MappingContext NOOP_CLASS = AmqpBridgeModelFactory.newMappingContext("NoopMapper",
-            NoopMapper.class.getCanonicalName(), Collections.emptyMap());
+    public final static MappingContext NOOP_CLASS = AmqpBridgeModelFactory.newMappingContext("NoOpMapper",
+            NoOpMapper.class.getCanonicalName(), Collections.emptyMap());
 
     public final static MappingContext MISSING_MAPPER = AmqpBridgeModelFactory.newMappingContext("MissingMapper",
             "MissingMapper", Collections.emptyMap());

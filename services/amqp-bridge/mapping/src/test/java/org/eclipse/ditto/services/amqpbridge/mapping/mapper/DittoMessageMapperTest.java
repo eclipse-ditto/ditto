@@ -13,33 +13,33 @@ import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.model.amqpbridge.InternalMessage;
 import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 
-public class DittoProtocolMapperTest extends AbstractPayloadMapperTest {
+public class DittoMessageMapperTest extends MessageMapperTest {
 
     @Override
-    protected PayloadMapper createMapper() {
-        return new DittoProtocolMapper();
+    protected MessageMapper createMapper() {
+        return new DittoMessageMapper();
     }
 
     @Override
-    protected List<String> createSupportedContentTypes() {
-        return Arrays.asList(DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
+    protected String createSupportedContentType() {
+        return DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE;
     }
 
     @Override
-    protected List<PayloadMapperOptions> createValidOptions() {
-        List<PayloadMapperOptions> options = new LinkedList<>();
-        options.add(new ImmutablePayloadMapperOptions.Builder(Collections.emptyMap()).build());
+    protected List<MessageMapperConfiguration> createValidConfig() {
+        List<MessageMapperConfiguration> options = new LinkedList<>();
+        options.add(MessageMapperConfiguration.from(Collections.emptyMap()));
 
         Arrays.asList("true", "false", null, "asdfjökla", "").forEach(s -> {
-                    Map<String, String> map = Collections.singletonMap(DittoProtocolMapper
-                            .OPTION_DISABLE_CONTENT_TYPE_CHECK, s);
-                    options.add(new ImmutablePayloadMapperOptions.Builder(map).build());
+                    Map<String, String> map = Collections.singletonMap(MessageMapper.OPT_CONTENT_TYPE_REQUIRED, s);
+                    options.add(MessageMapperConfiguration.from(map));
                 }
         );
 
@@ -47,21 +47,23 @@ public class DittoProtocolMapperTest extends AbstractPayloadMapperTest {
     }
 
     @Override
-    protected Map<PayloadMapperOptions, Throwable> createInvalidOptions() {
+    protected Map<MessageMapperConfiguration, Throwable> createInvalidConfig() {
         // there are none
         return Collections.emptyMap();
     }
 
     @Override
-    protected PayloadMapperOptions createIncomingOptions() {
-        return new ImmutablePayloadMapperOptions.Builder(Collections.emptyMap()).build();
+    protected MessageMapperConfiguration createIncomingConfig() {
+        return MessageMapperConfiguration.from(Collections.emptyMap());
     }
 
     @Override
-    protected Map<PayloadMapperMessage, Adaptable> createValidIncomingMappings() {
-        Map<PayloadMapperMessage, Adaptable> mappings = new HashMap<>();
+    protected Map<InternalMessage, Adaptable> createValidIncomingMappings() {
+        Map<InternalMessage, Adaptable> mappings = new HashMap<>();
 
-        Map<String, String> headers = Collections.singletonMap("header-key", "header-value");
+        Map<String, String> headers = new HashMap<>();
+        headers.put("header-key", "header-value");
+        headers.put(MessageMapper.CONTENT_TYPE_KEY, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
 
         JsonifiableAdaptable adaptable = ProtocolFactory.wrapAsJsonifiableAdaptable(ProtocolFactory.newAdaptableBuilder
                 (ProtocolFactory.newTopicPathBuilder("asd" +
@@ -72,59 +74,58 @@ public class DittoProtocolMapperTest extends AbstractPayloadMapperTest {
                         .withValue(JsonFactory.nullLiteral())
                         .build())
                 .build());
-        PayloadMapperMessage message = PayloadMappers.createPayloadMapperMessage(
-            DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE, null, adaptable.toJsonString(), headers);
+
+        InternalMessage message = new InternalMessage.Builder(headers).withText(adaptable.toJsonString()).build();
         mappings.put(message, adaptable);
 
         JsonObject json = JsonFactory.newObjectBuilder()
                 .set("path","/some/path")
                 .build();
-        message = PayloadMappers.createPayloadMapperMessage(
-                DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE, null, json.toString(), headers);
+        message = new InternalMessage.Builder(headers).withText(json.toString()).build();
         mappings.put(message, ProtocolFactory.jsonifiableAdaptableFromJson(json));
 
         return mappings;
     }
 
     @Override
-    protected Map<PayloadMapperMessage, Throwable> createInvalidIncomingMappings() {
-        Map<PayloadMapperMessage, Throwable> mappings = new HashMap<>();
+    protected Map<InternalMessage, Throwable> createInvalidIncomingMappings() {
+        Map<InternalMessage, Throwable> mappings = new HashMap<>();
 
-        Map<String, String> headers = Collections.singletonMap("header-key", "header-value");
+        Map<String, String> headers = new HashMap<>();
+        headers.put("header-key", "header-value");
+        headers.put(MessageMapper.CONTENT_TYPE_KEY, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
 
-        PayloadMapperMessage message;
-        message = PayloadMappers.createPayloadMapperMessage(
-                DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE, null, "", headers);
-        mappings.put(message, new PayloadMappingException("Mapping failed",
-                new IllegalArgumentException("The JSON string to create a JSON object from must not be empty!")));
+        InternalMessage message;
+        message = new InternalMessage.Builder(headers).withText("").build();
+        mappings.put(message, new IllegalArgumentException("Message contains no payload"));
 
         // --
 
-        message = PayloadMappers.createPayloadMapperMessage(
-                DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE, null, "{}", headers);
-        mappings.put(message, new PayloadMappingException("Mapping failed",
+        message = new InternalMessage.Builder(headers).withText("{}").build();
+        mappings.put(message, new IllegalArgumentException("Failed to map '{}'",
                 new JsonMissingFieldException("/path")));
 
         // --
 
-        message = PayloadMappers.createPayloadMapperMessage(
-                DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE, null, "no json", headers);
-        mappings.put(message, new PayloadMappingException("Mapping failed",
+        message = new InternalMessage.Builder(headers).withText("no json").build();
+        mappings.put(message, new IllegalArgumentException("Failed to map 'no json'",
                 new JsonParseException("Failed to create JSON object from string!")));
 
         return mappings;
     }
 
     @Override
-    protected PayloadMapperOptions createOutgoingOptions() {
-        return new ImmutablePayloadMapperOptions.Builder(Collections.emptyMap()).build();
+    protected MessageMapperConfiguration createOutgoingConfig() {
+        return MessageMapperConfiguration.from(Collections.emptyMap());
     }
 
     @Override
-    protected Map<Adaptable, PayloadMapperMessage> createValidOutgoingMappings() {
-        Map<Adaptable, PayloadMapperMessage> mappings = new HashMap<>();
+    protected Map<Adaptable, InternalMessage> createValidOutgoingMappings() {
+        Map<Adaptable, InternalMessage> mappings = new HashMap<>();
 
-        Map<String, String> headers = Collections.singletonMap("header-key", "header-value");
+        Map<String, String> headers = new HashMap<>();
+        headers.put("header-key", "header-value");
+        headers.put(MessageMapper.CONTENT_TYPE_KEY, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
 
         JsonifiableAdaptable adaptable = ProtocolFactory.wrapAsJsonifiableAdaptable(ProtocolFactory.newAdaptableBuilder
                 (ProtocolFactory.newTopicPathBuilder("asd" +
@@ -135,8 +136,8 @@ public class DittoProtocolMapperTest extends AbstractPayloadMapperTest {
                         .withValue(JsonFactory.nullLiteral())
                         .build())
                 .build());
-        PayloadMapperMessage message = PayloadMappers.createPayloadMapperMessage(
-                DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE, null, adaptable.toJsonString(), headers);
+
+        InternalMessage message = new InternalMessage.Builder(headers).withText(adaptable.toJsonString()).build();
         mappings.put(adaptable, message);
 
         JsonObject json = JsonFactory.newObjectBuilder()
@@ -146,8 +147,7 @@ public class DittoProtocolMapperTest extends AbstractPayloadMapperTest {
         adaptable = ProtocolFactory.wrapAsJsonifiableAdaptable(ProtocolFactory.newAdaptableBuilder(adaptable)
                 .withHeaders(DittoHeaders.of(headers)).build());
 
-        message = PayloadMappers.createPayloadMapperMessage(
-                DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE, null, adaptable.toJsonString(), headers);
+        message = new InternalMessage.Builder(headers).withText(adaptable.toJsonString()).build();
         mappings.put(adaptable, message);
 
         return mappings;

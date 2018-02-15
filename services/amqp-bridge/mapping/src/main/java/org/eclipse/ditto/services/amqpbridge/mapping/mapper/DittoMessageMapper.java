@@ -14,20 +14,30 @@ package org.eclipse.ditto.services.amqpbridge.mapping.mapper;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import javax.annotation.Nonnull;
+
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.model.amqpbridge.InternalMessage;
 import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
-import org.eclipse.ditto.services.amqpbridge.messaging.InternalMessage;
 
 import com.google.common.base.Converter;
 
+/**
+ * A message mapper implementation for the ditto protocol.
+ * Expects messages to contain a JSON serialized ditto protocol message.
+ */
 public class DittoMessageMapper extends MessageMapper {
 
+    /**
+     * A static converter to map adaptables to JSON strings and vice versa;
+     */
     private static final Converter<String, Adaptable> STRING_ADAPTABLE_CONVERTER = Converter.from(
             s -> {
                 try {
+                    //noinspection ConstantConditions (converter guarantees nonnull value)
                     return ProtocolFactory.jsonifiableAdaptableFromJson(JsonFactory.newObject(s));
                 } catch (Exception e) {
                     throw new IllegalArgumentException(String.format("Failed to map '%s'", s), e);
@@ -42,18 +52,25 @@ public class DittoMessageMapper extends MessageMapper {
             }
     );
 
+    /**
+     * Creates a new mapper with enabled content type check.
+     */
+    @SuppressWarnings("WeakerAccess")
     public DittoMessageMapper() {
         this(true);
     }
 
+    /**
+     * Creates a new mapper.
+     * @param isContentTypeRequired if content type check should be performed prior mapping
+     */
     public DittoMessageMapper(final boolean isContentTypeRequired) {
         super(DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE, isContentTypeRequired);
     }
 
     @Override
-    public void configure(final Map<String, String> options) {
-        findOption(options, OPT_CONTENT_TYPE_REQUIRED)
-                .map(Boolean::valueOf)
+    public void configure(@Nonnull final MessageMapperConfiguration configuration) {
+        configuration.findProperty(OPT_CONTENT_TYPE_REQUIRED).map(Boolean::valueOf)
                 .ifPresent(this::setContentTypeRequired);
     }
 
@@ -72,6 +89,7 @@ public class DittoMessageMapper extends MessageMapper {
     @Override
     protected InternalMessage doBackward(final Adaptable adaptable) {
         final Map<String, String> headers = new LinkedHashMap<>(adaptable.getHeaders().orElse(DittoHeaders.empty()));
+        headers.put(MessageMapper.CONTENT_TYPE_KEY, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
         return new InternalMessage.Builder(headers)
                 .withText(STRING_ADAPTABLE_CONVERTER.reverse().convert(adaptable))
                 .build();

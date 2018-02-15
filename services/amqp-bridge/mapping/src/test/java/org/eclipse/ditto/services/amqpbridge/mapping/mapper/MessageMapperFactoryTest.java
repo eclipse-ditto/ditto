@@ -27,11 +27,11 @@ import akka.actor.ActorSystem;
 import akka.actor.ExtendedActorSystem;
 import akka.testkit.javadsl.TestKit;
 
-public class PayloadMapperFactoryTest {
+public class MessageMapperFactoryTest {
 
     private static ActorSystem system;
 
-    private PayloadMapperFactory factory;
+    private MessageMapperFactory factory;
 
     @BeforeClass
     public static void setup() {
@@ -46,7 +46,7 @@ public class PayloadMapperFactoryTest {
 
     @Before
     public void setUp() {
-        factory = new PayloadMapperFactory((ExtendedActorSystem) system, Mappers.class);
+        factory = new MessageMapperFactory((ExtendedActorSystem) system, Mappers.class);
     }
 
     @After

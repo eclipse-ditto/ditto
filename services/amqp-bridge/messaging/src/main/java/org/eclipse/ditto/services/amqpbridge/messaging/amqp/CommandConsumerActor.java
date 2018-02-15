@@ -31,7 +31,7 @@ import javax.jms.TextMessage;
 
 import org.apache.qpid.jms.JmsQueue;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.services.amqpbridge.messaging.InternalMessage;
+import org.eclipse.ditto.model.amqpbridge.InternalMessage;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
 import akka.actor.AbstractActor;

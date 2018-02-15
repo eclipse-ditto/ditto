@@ -16,7 +16,6 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 import org.eclipse.ditto.model.amqpbridge.MappingContext;
@@ -28,9 +27,9 @@ import scala.reflect.ClassTag;
 import scala.util.Try;
 
 /**
- * Encapsulates responsibility for instantiating {@link PayloadMapper} objects.
+ * Encapsulates responsibility for instantiating {@link MessageMapper} objects.
  */
-public class PayloadMapperFactory {
+public class MessageMapperFactory {
 
     /**
      * The actor system used for dynamic class instantiation.
@@ -38,7 +37,7 @@ public class PayloadMapperFactory {
     private final ExtendedActorSystem actorSystem;
 
     /**
-     * The class scanned for static {@link PayloadMapper} factory functions.
+     * The class scanned for static {@link MessageMapper} factory functions.
      * Might be useful to accept an array of those in future.
      */
     private final Class<?> factoryClass;
@@ -49,7 +48,7 @@ public class PayloadMapperFactory {
      * @param actorSystem the actor system used for dynamic class instantiation
      * @param factoryClass the factory class scanned for factory functions
      */
-    public PayloadMapperFactory(final ExtendedActorSystem actorSystem, final Class<?> factoryClass) {
+    public MessageMapperFactory(final ExtendedActorSystem actorSystem, final Class<?> factoryClass) {
         this.actorSystem = actorSystem;
         this.factoryClass = factoryClass;
     }
@@ -65,11 +64,11 @@ public class PayloadMapperFactory {
      * @throws InvocationTargetException if a factory function matched, but could not be invoked.
      * @throws IllegalAccessException if a factory function matched, but is not accessible.
      * @throws InstantiationException if a class matched, but mapper instantiation failed.
-     * @throws ClassCastException if a class matched but does not conform to the {@link PayloadMapper} interface.
+     * @throws ClassCastException if a class matched but does not conform to the {@link MessageMapper} interface.
      */
-    public Optional<PayloadMapper> findAndCreateInstanceFor(final MappingContext mappingContext)
+    public Optional<MessageMapper> findAndCreateInstanceFor(final MappingContext mappingContext)
             throws InvocationTargetException, IllegalAccessException, InstantiationException {
-        Optional<PayloadMapper> mapper = findFactoryMethodAndCreateInstanceFor(mappingContext);
+        Optional<MessageMapper> mapper = findFactoryMethodAndCreateInstanceFor(mappingContext);
         if (!mapper.isPresent()) {
             mapper = findClassAndCreateInstanceFor(mappingContext);
         }
@@ -85,15 +84,15 @@ public class PayloadMapperFactory {
      * @throws InvocationTargetException if a factory function matched, but could not be invoked.
      * @throws IllegalAccessException if a factory function matched, but is not accessible.
      */
-    public Optional<PayloadMapper> findFactoryMethodAndCreateInstanceFor(final MappingContext mappingContext)
+    public Optional<MessageMapper> findFactoryMethodAndCreateInstanceFor(final MappingContext mappingContext)
             throws IllegalAccessException, InvocationTargetException {
-        final Optional<Method> factoryMethod = findPayloadMapperFactoryMethod(factoryClass, mappingContext);
+        final Optional<Method> factoryMethod = findMessageMapperFactoryMethod(factoryClass, mappingContext);
         if (!factoryMethod.isPresent()) {
             return Optional.empty();
         }
 
-        final PayloadMapperOptions options = createOptions(mappingContext);
-        final PayloadMapper mapper = (PayloadMapper) factoryMethod.get().invoke(null, options);
+        final MessageMapperConfiguration options = MessageMapperConfiguration.from(mappingContext.getOptions());
+        final MessageMapper mapper = (MessageMapper) factoryMethod.get().invoke(null, options);
         return Optional.of(mapper);
     }
 
@@ -104,12 +103,12 @@ public class PayloadMapperFactory {
      * @param mappingContext the mapping context
      * @return the instantiated mapper, if a class matched.
      * @throws InstantiationException if a class matched, but mapper instantiation failed.
-     * @throws ClassCastException if a class matched but does not conform to the {@link PayloadMapper} interface.
+     * @throws ClassCastException if a class matched but does not conform to the {@link MessageMapper} interface.
      */
-    public Optional<PayloadMapper> findClassAndCreateInstanceFor(final MappingContext mappingContext)
+    public Optional<MessageMapper> findClassAndCreateInstanceFor(final MappingContext mappingContext)
             throws InstantiationException
     {
-        final PayloadMapperOptions options = createOptions(mappingContext);
+        final MessageMapperConfiguration options = MessageMapperConfiguration.from(mappingContext.getOptions());
         try {
             return Optional.of(createConfiguredInstanceFor(mappingContext.getMappingEngine(), options));
         } catch (ClassNotFoundException e) {
@@ -119,26 +118,26 @@ public class PayloadMapperFactory {
     }
 
 
-    private PayloadMapper createConfiguredInstanceFor(final String className, final PayloadMapperOptions options)
+    private MessageMapper createConfiguredInstanceFor(final String className, final MessageMapperConfiguration options)
             throws ClassNotFoundException, InstantiationException
     {
-        final PayloadMapper instance = createInstanceFor(className);
+        final MessageMapper instance = createInstanceFor(className);
         instance.configure(options);
         return instance;
     }
 
 
-    private PayloadMapper createInstanceFor(final String className) throws ClassNotFoundException,
+    private MessageMapper createInstanceFor(final String className) throws ClassNotFoundException,
             InstantiationException
     {
-        final ClassTag<PayloadMapper> tag = scala.reflect.ClassTag$.MODULE$.apply(PayloadMapper.class);
+        final ClassTag<MessageMapper> tag = scala.reflect.ClassTag$.MODULE$.apply(MessageMapper.class);
         final List<Tuple2<Class<?>, Object>> constructorArgs = new ArrayList<>();
 
-        final Try<PayloadMapper> payloadMapperImpl = this.actorSystem.dynamicAccess()
+        final Try<MessageMapper> mapperTry = this.actorSystem.dynamicAccess()
                 .createInstanceFor(className, JavaConversions.asScalaBuffer(constructorArgs).toList(), tag);
 
-        if (payloadMapperImpl.isFailure()) {
-            final Throwable error = payloadMapperImpl.failed().get();
+        if (mapperTry.isFailure()) {
+            final Throwable error = mapperTry.failed().get();
             if (error.getClass().isAssignableFrom(ClassNotFoundException.class)) {
                 throw (ClassNotFoundException) error;
             } else if (error.getClass().isAssignableFrom(InstantiationException.class)) {
@@ -151,29 +150,22 @@ public class PayloadMapperFactory {
             }
         }
 
-        return payloadMapperImpl.get();
+        return mapperTry.get();
     }
 
 
-    private static Optional<Method> findPayloadMapperFactoryMethod(final Class<?> factory, final MappingContext ctx) {
+    private static Optional<Method> findMessageMapperFactoryMethod(final Class<?> factory, final MappingContext ctx) {
         return Arrays.stream(factory.getDeclaredMethods())
-                .filter(PayloadMapperFactory::isFactoryMethod)
+                .filter(MessageMapperFactory::isFactoryMethod)
                 .filter(m -> m.getName().toLowerCase().contains(ctx.getMappingEngine().toLowerCase()))
                 .findFirst();
     }
 
 
     private static boolean isFactoryMethod(final Method m) {
-        return m.getReturnType().equals(PayloadMapper.class)
+        return m.getReturnType().equals(MessageMapper.class)
                 && m.getParameterTypes().length == 1
-                && m.getParameterTypes()[0].isAssignableFrom(PayloadMapperOptions.class);
+                && m.getParameterTypes()[0].isAssignableFrom(MessageMapperConfiguration.class);
     }
 
-
-    private static PayloadMapperOptions createOptions(final MappingContext ctx) {
-        final Map<String, String> optionsMap = ctx.getOptions();
-        final PayloadMapperOptions.Builder optionsBuilder =
-                PayloadMappers.createMapperOptionsBuilder(optionsMap);
-        return optionsBuilder.build();
-    }
 }

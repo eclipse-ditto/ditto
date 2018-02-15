@@ -19,7 +19,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.model.base.common.ConditionChecker;
-import org.eclipse.ditto.services.amqpbridge.messaging.InternalMessage;
+import org.eclipse.ditto.model.amqpbridge.InternalMessage;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
 import com.rabbitmq.client.BasicProperties;
