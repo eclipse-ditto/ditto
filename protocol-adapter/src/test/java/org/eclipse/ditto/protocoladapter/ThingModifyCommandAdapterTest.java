@@ -22,6 +22,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAclEntry;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAttribute;
@@ -1049,6 +1050,11 @@ public final class ThingModifyCommandAdapterTest {
         @Override
         public String getThingId() {
             return TestConstants.THING_ID;
+        }
+
+        @Override
+        public Category getCategory() {
+            return Category.MODIFY;
         }
 
         @Override

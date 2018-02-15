@@ -118,6 +118,11 @@ public final class OpenConnection extends AbstractCommand<OpenConnection>
     }
 
     @Override
+    public Category getCategory() {
+        return Category.MODIFY;
+    }
+
+    @Override
     public OpenConnection setDittoHeaders(final DittoHeaders dittoHeaders) {
         return of(connectionId, dittoHeaders);
     }

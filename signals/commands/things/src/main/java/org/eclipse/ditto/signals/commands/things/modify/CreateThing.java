@@ -178,6 +178,11 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
     }
 
     @Override
+    public Category getCategory() {
+        return Category.MODIFY;
+    }
+
+    @Override
     public CreateThing setDittoHeaders(final DittoHeaders dittoHeaders) {
         return of(thing, initialPolicy, dittoHeaders);
     }

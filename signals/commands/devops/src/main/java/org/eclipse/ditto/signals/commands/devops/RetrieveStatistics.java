@@ -95,7 +95,8 @@ public final class RetrieveStatistics extends AbstractDevOpsCommand<RetrieveStat
     public static RetrieveStatistics fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<RetrieveStatistics>(TYPE, jsonObject)
                 .deserialize(() -> {
-                    final String serviceName = jsonObject.getValue(DevOpsCommand.JsonFields.JSON_SERVICE_NAME).orElse(null);
+                    final String serviceName =
+                            jsonObject.getValue(DevOpsCommand.JsonFields.JSON_SERVICE_NAME).orElse(null);
                     final Integer instance = jsonObject.getValue(DevOpsCommand.JsonFields.JSON_INSTANCE).orElse(null);
                     return RetrieveStatistics.of(serviceName, instance, dittoHeaders);
                 });
@@ -108,6 +109,11 @@ public final class RetrieveStatistics extends AbstractDevOpsCommand<RetrieveStat
         super.appendPayload(jsonObjectBuilder, schemaVersion, thePredicate);
 
         jsonObjectBuilder.build();
+    }
+
+    @Override
+    public Category getCategory() {
+        return Category.QUERY;
     }
 
     @Override

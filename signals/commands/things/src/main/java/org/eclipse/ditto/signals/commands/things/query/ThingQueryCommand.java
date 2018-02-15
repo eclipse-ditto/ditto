@@ -35,4 +35,9 @@ public interface ThingQueryCommand<T extends ThingQueryCommand> extends ThingCom
 
     @Override
     T setDittoHeaders(DittoHeaders dittoHeaders);
+
+    @Override
+    default Category getCategory() {
+        return Category.QUERY;
+    }
 }

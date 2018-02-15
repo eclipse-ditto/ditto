@@ -175,6 +175,11 @@ public final class ModifyAttribute extends AbstractCommand<ModifyAttribute>
     }
 
     @Override
+    public Category getCategory() {
+        return Category.MODIFY;
+    }
+
+    @Override
     public ModifyAttribute setDittoHeaders(final DittoHeaders dittoHeaders) {
         return of(thingId, attributePointer, attributeValue, dittoHeaders);
     }

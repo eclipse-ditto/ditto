@@ -101,8 +101,8 @@ public final class ModifyPolicy extends AbstractCommand<ModifyPolicy> implements
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
-     * @throws org.eclipse.ditto.json.JsonMissingFieldException if {@code jsonObject} did not contain a field for
-     * {@link PolicyModifyCommand.JsonFields#JSON_POLICY_ID} or {@link #JSON_POLICY}.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if {@code jsonObject} did not contain a field for {@link
+     * PolicyModifyCommand.JsonFields#JSON_POLICY_ID} or {@link #JSON_POLICY}.
      */
     public static ModifyPolicy fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<ModifyPolicy>(TYPE, jsonObject).deserialize(() -> {
@@ -149,6 +149,11 @@ public final class ModifyPolicy extends AbstractCommand<ModifyPolicy> implements
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(PolicyModifyCommand.JsonFields.JSON_POLICY_ID, policyId, predicate);
         jsonObjectBuilder.set(JSON_POLICY, policy.toJson(schemaVersion, thePredicate), predicate);
+    }
+
+    @Override
+    public Category getCategory() {
+        return Category.MODIFY;
     }
 
     @Override

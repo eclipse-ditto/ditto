@@ -179,6 +179,11 @@ public final class ModifyResources extends AbstractCommand<ModifyResources>
     }
 
     @Override
+    public Category getCategory() {
+        return Category.MODIFY;
+    }
+
+    @Override
     public ModifyResources setDittoHeaders(final DittoHeaders dittoHeaders) {
         return of(policyId, label, resources, dittoHeaders);
     }

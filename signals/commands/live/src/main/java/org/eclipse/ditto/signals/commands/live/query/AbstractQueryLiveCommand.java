@@ -17,11 +17,10 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.signals.commands.live.base.LiveCommand;
-import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommand;
-
 import org.eclipse.ditto.signals.commands.live.base.AbstractLiveCommand;
+import org.eclipse.ditto.signals.commands.live.base.LiveCommand;
 import org.eclipse.ditto.signals.commands.live.base.LiveCommandAnswerBuilder;
+import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommand;
 
 /**
  * Abstract base implementation for LiveCommands wrapping {@link ThingQueryCommand}s.
@@ -44,6 +43,11 @@ abstract class AbstractQueryLiveCommand<T extends LiveCommand<T, B> & ThingQuery
     protected AbstractQueryLiveCommand(final ThingQueryCommand<?> thingQueryCommand) {
         super(thingQueryCommand);
         this.thingQueryCommand = thingQueryCommand;
+    }
+
+    @Override
+    public Category getCategory() {
+        return Category.QUERY;
     }
 
     @Override
