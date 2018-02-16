@@ -36,20 +36,20 @@ public interface PayloadMapper {
     void configure(final PayloadMapperOptions options);
 
     /**
-     * Maps an incomming payload.
+     * Returns a representation of {@link PayloadMapperMessage} as an instance of type {@link Adaptable}. If {@link PayloadMapperMessage} cannot be
+     * converted, an unchecked exception (such as IllegalArgumentException) should be thrown.
      *
      * @param message the message
      * @return the adaptible
-     * @throws UnsupportedOperationException if this mapper does not support mapping of incoming messages
      */
     Adaptable mapIncoming(PayloadMapperMessage message);
 
     /**
-     * Maps an outgoing message.
+     * Returns a representation of {@link Adaptable} as an instance of type {@link PayloadMapperMessage}. If {@link Adaptable} cannot be
+     * converted, an unchecked exception (such as IllegalArgumentException) should be thrown.
      *
      * @param dittoProtocolAdaptable the adaptible
      * @return the payload
-     * @throws UnsupportedOperationException if this mapper does not support mapping of outgoing messages
      */
     PayloadMapperMessage mapOutgoing(Adaptable dittoProtocolAdaptable);
 }
