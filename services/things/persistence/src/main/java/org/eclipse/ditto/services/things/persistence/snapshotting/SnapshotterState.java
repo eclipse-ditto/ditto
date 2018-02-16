@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.things.persistence.snapshotting;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.services.things.persistence.serializer.things.SnapshotTag;
+import org.eclipse.ditto.services.things.persistence.serializer.SnapshotTag;
 
 import akka.actor.ActorRef;
 

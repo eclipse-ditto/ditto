@@ -58,6 +58,11 @@ public final class ConfigKeys {
     private static final String ENABLED_SUFFIX = "enabled";
 
     /**
+     * Key of the index-initialization enabled configuration.
+     */
+    public static final String INDEX_INITIALIZATION_ENABLED = SEARCH_PREFIX + "index-initialization." + ENABLED_SUFFIX;
+
+    /**
      * Controls whether thing and policy event processing should be active or not.
      */
     public static final String EVENT_PROCESSING_ACTIVE = SEARCH_UPDATER_PREFIX + "event-processing.active";

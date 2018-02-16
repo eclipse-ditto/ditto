@@ -11,14 +11,15 @@
  */
 package org.eclipse.ditto.services.thingsearch.persistence.read;
 
+import java.util.concurrent.CompletionStage;
+
 import org.eclipse.ditto.services.models.thingsearch.SearchNamespaceReportResult;
-
-import akka.NotUsed;
-import akka.stream.javadsl.Source;
-
 import org.eclipse.ditto.services.thingsearch.common.model.ResultList;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.PolicyRestrictedSearchAggregation;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.Query;
+
+import akka.NotUsed;
+import akka.stream.javadsl.Source;
 
 /**
  * Interface for thing operations on the persistence used within the search service.
@@ -27,8 +28,10 @@ public interface ThingsSearchPersistence {
 
     /**
      * Initializes the search index if necessary.
+     *
+     * @return a {@link CompletionStage} which can be either used for blocking or non-blocking initialization.
      */
-    void initIndexes();
+    CompletionStage<Void> initializeIndices();
 
     /**
      * Returns the count of documents found by the given {@code policyRestrictedSearchAggregation}.

@@ -19,9 +19,9 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.CompletionStage;
 
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.services.gateway.health.StatusHealthHelper;
-import org.eclipse.ditto.services.utils.health.HealthStatus;
+import org.eclipse.ditto.services.gateway.health.StatusAndHealthProvider;
+import org.eclipse.ditto.services.utils.health.StatusDetailMessage;
+import org.eclipse.ditto.services.utils.health.StatusInfo;
 
 import akka.http.javadsl.model.ContentTypes;
 import akka.http.javadsl.model.HttpResponse;
@@ -38,10 +38,10 @@ public final class CachingHealthRoute {
      */
     public static final String PATH_HEALTH = "health";
 
-    private final StatusHealthHelper statusHealthHelper;
+    private final StatusAndHealthProvider statusHealthHelper;
     private final Duration refreshInterval;
 
-    private CompletionStage<JsonObject> cachedHealth;
+    private CompletionStage<StatusInfo> cachedHealth;
     private Instant lastCheckInstant;
 
     /**
@@ -50,7 +50,7 @@ public final class CachingHealthRoute {
      * @param statusHealthHelper the helper for retrieving health status of the cluster.
      * @param refreshInterval the interval for refreshing the health status.
      */
-    public CachingHealthRoute(final StatusHealthHelper statusHealthHelper, final Duration refreshInterval) {
+    public CachingHealthRoute(final StatusAndHealthProvider statusHealthHelper, final Duration refreshInterval) {
         this.statusHealthHelper = statusHealthHelper;
         this.refreshInterval = refreshInterval;
     }
@@ -74,17 +74,14 @@ public final class CachingHealthRoute {
 
     private CompletionStage<HttpResponse> createOverallHealthResponse() {
         if (cachedHealth == null || isCacheTimedOut()) {
-            cachedHealth = statusHealthHelper.calculateOverallHealthJson()
-                    .thenApply(overallHealth -> JsonObject.newBuilder()
-                            .set(HealthStatus.JSON_KEY_STATUS, overallHealth.getValue(HealthStatus.JSON_KEY_STATUS)
-                                    .orElse(HealthStatus.Status.DOWN.toString()))
-                            .build()
-                    );
+            cachedHealth = statusHealthHelper.retrieveHealth()
+                    .exceptionally(t -> StatusInfo.fromDetail(StatusDetailMessage.of(StatusDetailMessage.Level.ERROR,
+                            "Exception: " + t.getMessage())));
             lastCheckInstant = Instant.now();
         }
 
         return cachedHealth.thenApply(overallHealth -> {
-            if (statusHealthHelper.checkIfAllSubStatusAreUp(overallHealth)) {
+            if (overallHealth.isHealthy()) {
                 return HttpResponse.create()
                         .withStatus(StatusCodes.OK)
                         .withEntity(ContentTypes.APPLICATION_JSON, overallHealth.toString());

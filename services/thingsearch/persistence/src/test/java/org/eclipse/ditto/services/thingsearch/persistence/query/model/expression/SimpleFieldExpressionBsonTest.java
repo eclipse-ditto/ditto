@@ -18,20 +18,17 @@ import java.util.List;
 import org.assertj.core.api.Assertions;
 import org.bson.BsonDocument;
 import org.bson.conversions.Bson;
-import org.eclipse.ditto.services.thingsearch.persistence.BsonAssertions;
 import org.eclipse.ditto.services.thingsearch.persistence.read.criteria.visitors.CreateBsonPredicateVisitor;
-import org.eclipse.ditto.services.thingsearch.persistence.BsonUtil;
-import org.eclipse.ditto.services.thingsearch.persistence.read.expression.visitors.GetSortBsonVisitor;
-import org.junit.Test;
-
-import com.mongodb.client.model.Sorts;
-
 import org.eclipse.ditto.services.thingsearch.persistence.read.expression.visitors.GetFilterBsonVisitor;
-
+import org.eclipse.ditto.services.thingsearch.persistence.read.expression.visitors.GetSortBsonVisitor;
 import org.eclipse.ditto.services.thingsearch.querymodel.criteria.EqPredicateImpl;
 import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Predicate;
 import org.eclipse.ditto.services.thingsearch.querymodel.expression.SimpleFieldExpressionImpl;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.SortDirection;
+import org.eclipse.ditto.services.utils.persistence.mongo.assertions.BsonAssertions;
+import org.junit.Test;
+
+import com.mongodb.client.model.Sorts;
 
 /**
  * Tests Bson generators of {@link SimpleFieldExpressionImpl}.
@@ -73,11 +70,13 @@ public final class SimpleFieldExpressionBsonTest {
     @Test
     public void getSortBson() {
         final List<BsonDocument> expectedSortBsonDocs =
-                BsonUtil.toBsonDocuments(Collections.singletonList(Sorts.descending(KNOWN_FIELD_NAME)));
+                org.eclipse.ditto.services.utils.persistence.mongo.BsonUtil.toBsonDocuments(
+                        Collections.singletonList(Sorts.descending(KNOWN_FIELD_NAME)));
 
         final SimpleFieldExpressionImpl expression = new SimpleFieldExpressionImpl(KNOWN_FIELD_NAME);
         final List<Bson> actualSorts = GetSortBsonVisitor.apply(expression, SortDirection.DESC);
-        final Collection<BsonDocument> actualSortBsonDocs = BsonUtil.toBsonDocuments(actualSorts);
+        final Collection<BsonDocument> actualSortBsonDocs =
+                org.eclipse.ditto.services.utils.persistence.mongo.BsonUtil.toBsonDocuments(actualSorts);
 
         BsonAssertions.assertThat(actualSortBsonDocs).isEqualTo(expectedSortBsonDocs);
     }
