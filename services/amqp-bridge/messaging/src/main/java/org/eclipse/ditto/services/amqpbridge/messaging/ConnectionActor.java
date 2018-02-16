@@ -11,6 +11,9 @@
  */
 package org.eclipse.ditto.services.amqpbridge.messaging;
 
+import static java.util.Collections.singleton;
+import static org.eclipse.ditto.services.models.amqpbridge.AmqpBridgeMessagingConstants.CLUSTER_ROLE;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -21,6 +24,7 @@ import java.util.function.Consumer;
 import org.eclipse.ditto.model.amqpbridge.AmqpConnection;
 import org.eclipse.ditto.model.amqpbridge.ConnectionStatus;
 import org.eclipse.ditto.model.amqpbridge.MappingContext;
+import org.eclipse.ditto.model.base.common.ConditionChecker;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.amqpbridge.messaging.persistence.ConnectionData;
 import org.eclipse.ditto.services.amqpbridge.messaging.persistence.MongoConnectionSnapshotAdapter;
@@ -58,6 +62,8 @@ import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.actor.Status;
 import akka.cluster.pubsub.DistributedPubSubMediator;
+import akka.cluster.routing.ClusterRouterPool;
+import akka.cluster.routing.ClusterRouterPoolSettings;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
@@ -65,8 +71,7 @@ import akka.pattern.PatternsCS;
 import akka.persistence.AbstractPersistentActor;
 import akka.persistence.RecoveryCompleted;
 import akka.persistence.SnapshotOffer;
-import akka.routing.DefaultResizer;
-import akka.routing.RoundRobinPool;
+import akka.routing.BroadcastPool;
 import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
 
@@ -87,7 +92,6 @@ class ConnectionActor extends AbstractPersistentActor {
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
-    private final String pubSubTargetActorPath;
     private final String connectionId;
     private final ActorRef pubSubMediator;
     private final long snapshotThreshold;
@@ -95,7 +99,7 @@ class ConnectionActor extends AbstractPersistentActor {
     private final ConnectionActorPropsFactory propsFactory;
     private final Receive connectionCreatedBehaviour;
 
-    private ActorRef commandProcessor;
+    //    private ActorRef commandProcessor;
     private ActorRef clientActor;
 
     private AmqpConnection amqpConnection;
@@ -107,11 +111,9 @@ class ConnectionActor extends AbstractPersistentActor {
     private boolean snapshotInProgress = false;
 
     private ConnectionActor(final String connectionId, final ActorRef pubSubMediator,
-            final String pubSubTargetActorPath,
             final ConnectionActorPropsFactory propsFactory) {
         this.connectionId = connectionId;
         this.pubSubMediator = pubSubMediator;
-        this.pubSubTargetActorPath = pubSubTargetActorPath;
         this.propsFactory = propsFactory;
 
         final Config config = getContext().system().settings().config();
@@ -134,14 +136,13 @@ class ConnectionActor extends AbstractPersistentActor {
      * @return the Akka configuration Props object
      */
     public static Props props(final String connectionId, final ActorRef pubSubMediator,
-            final String pubSubTargetActorPath,
             final ConnectionActorPropsFactory propsFactory) {
         return Props.create(ConnectionActor.class, new Creator<ConnectionActor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
             public ConnectionActor create() {
-                return new ConnectionActor(connectionId, pubSubMediator, pubSubTargetActorPath, propsFactory);
+                return new ConnectionActor(connectionId, pubSubMediator, propsFactory);
             }
         });
     }
@@ -200,11 +201,9 @@ class ConnectionActor extends AbstractPersistentActor {
                         log.info("Connection '{}' was recovered.", amqpConnection.getId());
                         if (ConnectionStatus.OPEN.equals(connectionStatus)) {
                             log.debug("Opening connection {} after recovery.", amqpConnection.getId());
-                            connect();
-                            final OpenConnection openConnection =
-                                    OpenConnection.of(amqpConnection.getId(), DittoHeaders.empty());
-                            askConnectionActor("open", openConnection,
-                                    (origin, response) -> log.info("Open connection result: {}", response));
+                            final CreateConnection connect = CreateConnection.of(amqpConnection, DittoHeaders.empty());
+                            askClientActor("recovery-connect", connect,
+                                    (origin, response) -> log.info("CreateConnection result: {}", response));
                         }
                         getContext().become(connectionCreatedBehaviour);
                     }
@@ -256,8 +255,7 @@ class ConnectionActor extends AbstractPersistentActor {
                 ConnectionCreated.of(amqpConnection, mappingContexts, command.getDittoHeaders());
         persistEvent(connectionCreated,
                 persistedEvent -> {
-                    connect();
-                    askConnectionActor("create", command, (origin, response) -> {
+                    askClientActor("connect", command, (origin, response) -> {
                         origin.tell(
                                 CreateConnectionResponse.of(amqpConnection, mappingContexts, command.getDittoHeaders()),
                                 getSelf());
@@ -272,12 +270,9 @@ class ConnectionActor extends AbstractPersistentActor {
                 ConnectionOpened.of(amqpConnection.getId(), command.getDittoHeaders());
         persistEvent(connectionOpened,
                 persistedEvent -> {
-                    connect();
-                    askConnectionActor("open", command, (origin, response) -> {
-                        origin.tell(
-                                OpenConnectionResponse.of(amqpConnection.getId(), command.getDittoHeaders()),
-                                self());
-                    });
+                    final CreateConnection connect = CreateConnection.of(amqpConnection, command.getDittoHeaders());
+                    askClientActor("connect", connect, (origin, response) -> origin.tell(
+                            OpenConnectionResponse.of(amqpConnection.getId(), command.getDittoHeaders()), self()));
                 });
     }
 
@@ -286,8 +281,7 @@ class ConnectionActor extends AbstractPersistentActor {
                 ConnectionClosed.of(amqpConnection.getId(), command.getDittoHeaders());
         persistEvent(connectionClosed,
                 persistedEvent -> {
-                    askConnectionActor("close", command, (origin, response) -> {
-                        stopCommandProcessorActor();
+                    askClientActor("disconnect", command, (origin, response) -> {
                         origin.tell(CloseConnectionResponse.of(amqpConnection.getId(), command.getDittoHeaders()),
                                 self());
                     });
@@ -299,9 +293,8 @@ class ConnectionActor extends AbstractPersistentActor {
                 ConnectionDeleted.of(amqpConnection.getId(), command.getDittoHeaders());
         persistEvent(connectionDeleted,
                 persistedEvent -> {
-                    askConnectionActor("delete", command, (origin, response) -> {
-                        stopCommandProcessorActor();
-                        stopConnectionActor();
+                    askClientActor("disconnect", command, (origin, response) -> {
+                        stopClientActor();
                         origin.tell(DeleteConnectionResponse.of(amqpConnection.getId(), command.getDittoHeaders()),
                                 self());
                         stopSelf();
@@ -309,8 +302,11 @@ class ConnectionActor extends AbstractPersistentActor {
                 });
     }
 
-    private void askConnectionActor(final String action, final Command<?> cmd,
+    private void askClientActor(final String action, final Command<?> cmd,
             final BiConsumer<ActorRef, Object> onSuccess) {
+
+        startClientActorIfRequired();
+
         final ActorRef origin = getSender();
         long timeout = Optional.ofNullable(cmd.getDittoHeaders()
                 .get("timeout"))
@@ -385,43 +381,27 @@ class ConnectionActor extends AbstractPersistentActor {
         }
     }
 
-    private void connect() {
-        startCommandProcessorActor();
-        startConnectionActor();
-    }
-
-    private void startCommandProcessorActor() {
-        if (commandProcessor == null) {
-            final Props amqpCommandProcessorProps =
-                    CommandProcessorActor.props(pubSubMediator, pubSubTargetActorPath,
-                            amqpConnection.getAuthorizationSubject(), mappingContexts);
-            final String amqpCommandProcessorName = CommandProcessorActor.ACTOR_NAME_PREFIX + connectionId;
-
-            final DefaultResizer resizer = new DefaultResizer(1, 5); // TODO configurable
-            commandProcessor = getContext().actorOf(new RoundRobinPool(1)
-                    .withDispatcher("command-processor-dispatcher")
-                    .withResizer(resizer)
-                    .props(amqpCommandProcessorProps), amqpCommandProcessorName);
-        }
-    }
-
-    private void startConnectionActor() {
+    private void startClientActorIfRequired() {
+        ConditionChecker.checkNotNull(connectionId, "connectionId");
+        ConditionChecker.checkNotNull(amqpConnection, "amqpConnection");
         if (clientActor == null) {
-            final Props props = propsFactory.getActorPropsForType(amqpConnection, commandProcessor);
-            final String name = amqpConnection.getConnectionType() + "-" + amqpConnection.getId();
-            clientActor = startChildActor(name, props);
+            final int consumerCount = amqpConnection.getConsumerCount();
+            log.info("Starting ClientActor for connection <{}> with {} consumers.", connectionId, consumerCount);
+            final Props props = propsFactory.getActorPropsForType(self(), connectionId);
+            final ClusterRouterPoolSettings clusterRouterPoolSettings =
+                    new ClusterRouterPoolSettings(consumerCount, 1, true, singleton(CLUSTER_ROLE));
+            final BroadcastPool broadcastPool = new BroadcastPool(consumerCount);
+            final Props clusterRouterPoolProps =
+                    new ClusterRouterPool(broadcastPool, clusterRouterPoolSettings).props(props);
+            clientActor = getContext().actorOf(clusterRouterPoolProps, "rtr-" + connectionId);
+        } else {
+            log.debug("ClientActor already started.");
         }
     }
 
-    private void stopCommandProcessorActor() {
-        if (commandProcessor != null) {
-            stopChildActor(commandProcessor);
-            commandProcessor = null;
-        }
-    }
-
-    private void stopConnectionActor() {
+    private void stopClientActor() {
         if (clientActor != null) {
+            log.debug("Stopping the client actor.");
             stopChildActor(clientActor);
             clientActor = null;
         }
@@ -459,7 +439,7 @@ class ConnectionActor extends AbstractPersistentActor {
             // no-op
         }
 
-        static Shutdown getInstance() {
+        private static Shutdown getInstance() {
             return new Shutdown();
         }
 

@@ -93,8 +93,8 @@ public class CommandProcessorActorTest {
 //            ));
 
             final Props amqpCommandProcessorProps =
-                    CommandProcessorActor.props(pubSubMediator, targetActorPath,
-                            AuthorizationSubject.newInstance("foo:bar"), mappingContexts);
+                    CommandProcessorActor.props(pubSubMediator, AuthorizationSubject.newInstance("foo:bar"),
+                            mappingContexts);
             final String amqpCommandProcessorName = CommandProcessorActor.ACTOR_NAME_PREFIX + "foo";
 
             final DefaultResizer resizer = new DefaultResizer(1, 5);

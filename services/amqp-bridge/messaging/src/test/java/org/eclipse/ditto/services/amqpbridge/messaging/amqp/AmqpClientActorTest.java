@@ -23,12 +23,17 @@ import javax.jms.Connection;
 import javax.jms.JMSException;
 
 import org.eclipse.ditto.model.amqpbridge.AmqpConnection;
+import org.eclipse.ditto.model.amqpbridge.ConnectionStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.amqpbridge.messaging.TestConstants;
 import org.eclipse.ditto.signals.commands.amqpbridge.modify.CloseConnection;
 import org.eclipse.ditto.signals.commands.amqpbridge.modify.CreateConnection;
 import org.eclipse.ditto.signals.commands.amqpbridge.modify.DeleteConnection;
 import org.eclipse.ditto.signals.commands.amqpbridge.modify.OpenConnection;
+import org.eclipse.ditto.signals.commands.amqpbridge.query.RetrieveConnection;
+import org.eclipse.ditto.signals.commands.amqpbridge.query.RetrieveConnectionResponse;
+import org.eclipse.ditto.signals.commands.amqpbridge.query.RetrieveConnectionStatus;
+import org.eclipse.ditto.signals.commands.amqpbridge.query.RetrieveConnectionStatusResponse;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -36,6 +41,8 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -45,6 +52,8 @@ import akka.testkit.javadsl.TestKit;
 
 @RunWith(MockitoJUnitRunner.class)
 public class AmqpClientActorTest {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(AmqpClientActorTest.class);
 
     private static final Status.Success CONNECTED_SUCCESS = new Status.Success(AmqpClientActor.State.CONNECTED);
     private static final Status.Success DISCONNECTED_SUCCESS =
@@ -75,35 +84,34 @@ public class AmqpClientActorTest {
     @Test
     public void testExceptionDuringJMSConnectionCreation() {
         new TestKit(actorSystem) {{
-            final Props props = AmqpClientActor.props(amqpConnection, getRef(),
-                    (amqpConnection1, exceptionListener) -> { throw JMS_EXCEPTION; });
+            final Props props = AmqpClientActor.props(connectionId, getRef(), amqpConnection, getRef(),
+                    (ac, el) -> { throw JMS_EXCEPTION; });
             final ActorRef amqpConnectionActor = actorSystem.actorOf(props);
-            watch(amqpConnectionActor);
 
-            //expectMsg(new Status.Failure(exception));
-            expectTerminated(amqpConnectionActor);
+            amqpConnectionActor.tell(CreateConnection.of(amqpConnection, DittoHeaders.empty()), getRef());
+
+            expectMsg(new Status.Failure(JMS_EXCEPTION));
         }};
     }
 
     @Test
     public void testConnectionHandling() {
         new TestKit(actorSystem) {{
-
-            final Props props = AmqpClientActor.props(amqpConnection, getRef(),
+            final Props props = AmqpClientActor.props(connectionId, null, amqpConnection, null,
                     (amqpConnection1, exceptionListener) -> mockConnection);
-            final ActorRef amqpConnectionActor = actorSystem.actorOf(props);
-            watch(amqpConnectionActor);
+            final ActorRef amqpClientActor = actorSystem.actorOf(props);
+            watch(amqpClientActor);
 
-            amqpConnectionActor.tell(CreateConnection.of(amqpConnection, DittoHeaders.empty()), getRef());
+            LOGGER.info("----------> CREATE");
+            amqpClientActor.tell(CreateConnection.of(amqpConnection, DittoHeaders.empty()), getRef());
             expectMsg(CONNECTED_SUCCESS);
 
-            amqpConnectionActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
-            expectMsg(CONNECTED_SUCCESS);
-
-            amqpConnectionActor.tell(CloseConnection.of(connectionId, DittoHeaders.empty()), getRef());
+            LOGGER.info("----------> CLOSE");
+            amqpClientActor.tell(CloseConnection.of(connectionId, DittoHeaders.empty()), getRef());
             expectMsg(DISCONNECTED_SUCCESS);
 
-            amqpConnectionActor.tell(DeleteConnection.of(connectionId, DittoHeaders.empty()), getRef());
+            LOGGER.info("----------> DELETE");
+            amqpClientActor.tell(DeleteConnection.of(connectionId, DittoHeaders.empty()), getRef());
             expectMsg(DISCONNECTED_SUCCESS);
         }};
     }
@@ -112,12 +120,12 @@ public class AmqpClientActorTest {
     public void sendCommandDuringInit() {
         new TestKit(actorSystem) {{
             final CountDownLatch latch = new CountDownLatch(1);
-            final Props props = AmqpClientActor.props(amqpConnection, getRef(),
+            final Props props = AmqpClientActor.props(connectionId, getRef(), amqpConnection, getRef(),
                     (ac, el) -> waitForLatchAndReturn(latch, mockConnection));
-            final ActorRef amqpConnectionActor = actorSystem.actorOf(props);
-            watch(amqpConnectionActor);
+            final ActorRef amqpClientActor = actorSystem.actorOf(props);
+            watch(amqpClientActor);
 
-            amqpConnectionActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
+            amqpClientActor.tell(CreateConnection.of(amqpConnection, DittoHeaders.empty()), getRef());
 
             latch.countDown();
 
@@ -128,13 +136,14 @@ public class AmqpClientActorTest {
     @Test
     public void sendConnectCommandWhenAlreadyConnected() throws JMSException {
         new TestKit(actorSystem) {{
-            final Props props = AmqpClientActor.props(amqpConnection, getRef(), (ac, el) -> mockConnection);
-            final ActorRef amqpConnectionActor = actorSystem.actorOf(props);
+            final Props props =
+                    AmqpClientActor.props(connectionId, getRef(), amqpConnection, getRef(), (ac, el) -> mockConnection);
+            final ActorRef amqpClientActor = actorSystem.actorOf(props);
 
-            amqpConnectionActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
+            amqpClientActor.tell(CreateConnection.of(amqpConnection, DittoHeaders.empty()), getRef());
             expectMsg(CONNECTED_SUCCESS);
 
-            amqpConnectionActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
+            amqpClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
             expectMsg(CONNECTED_SUCCESS);
             Mockito.verify(mockConnection, Mockito.times(1)).start();
         }};
@@ -143,10 +152,11 @@ public class AmqpClientActorTest {
     @Test
     public void sendDisconnectWhenAlreadyDisconnected() {
         new TestKit(actorSystem) {{
-            final Props props = AmqpClientActor.props(amqpConnection, getRef(), (ac, el) -> mockConnection);
-            final ActorRef amqpConnectionActor = actorSystem.actorOf(props);
+            final Props props =
+                    AmqpClientActor.props(connectionId, getRef(), amqpConnection, getRef(), (ac, el) -> mockConnection);
+            final ActorRef amqpClientActor = actorSystem.actorOf(props);
 
-            amqpConnectionActor.tell(CloseConnection.of(connectionId, DittoHeaders.empty()), getRef());
+            amqpClientActor.tell(CloseConnection.of(connectionId, DittoHeaders.empty()), getRef());
             expectMsg(DISCONNECTED_SUCCESS);
             Mockito.verifyZeroInteractions(mockConnection);
         }};
@@ -156,10 +166,11 @@ public class AmqpClientActorTest {
     public void testConnectFails() throws JMSException {
         new TestKit(actorSystem) {{
             doThrow(JMS_EXCEPTION).when(mockConnection).start();
-            final Props props = AmqpClientActor.props(amqpConnection, getRef(), (ac, el) -> mockConnection);
-            final ActorRef amqpConnectionActor = actorSystem.actorOf(props);
+            final Props props =
+                    AmqpClientActor.props(connectionId, getRef(), amqpConnection, getRef(), (ac, el) -> mockConnection);
+            final ActorRef amqpClientActor = actorSystem.actorOf(props);
 
-            amqpConnectionActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
+            amqpClientActor.tell(CreateConnection.of(amqpConnection, DittoHeaders.empty()), getRef());
             expectMsg(new Status.Failure(JMS_EXCEPTION));
         }};
     }
@@ -168,14 +179,35 @@ public class AmqpClientActorTest {
     public void testDisconnectFails() throws JMSException {
         new TestKit(actorSystem) {{
             doThrow(JMS_EXCEPTION).when(mockConnection).close();
-            final Props props = AmqpClientActor.props(amqpConnection, getRef(), (ac, el) -> mockConnection);
-            final ActorRef amqpConnectionActor = actorSystem.actorOf(props);
+            final Props props =
+                    AmqpClientActor.props(connectionId, null, amqpConnection, null, (ac, el) -> mockConnection);
+            final ActorRef amqpClientActor = actorSystem.actorOf(props);
 
-            amqpConnectionActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
+            amqpClientActor.tell(CreateConnection.of(amqpConnection, DittoHeaders.empty()), getRef());
             expectMsg(CONNECTED_SUCCESS);
 
-            amqpConnectionActor.tell(CloseConnection.of(connectionId, DittoHeaders.empty()), getRef());
+            amqpClientActor.tell(DeleteConnection.of(connectionId, DittoHeaders.empty()), getRef());
             expectMsg(DISCONNECTED_SUCCESS);
+        }};
+    }
+
+    @Test
+    public void testInitAfterTimeout() {
+        new TestKit(actorSystem) {{
+            final Props props =
+                    AmqpClientActor.props(connectionId, getRef(), amqpConnection, null, (ac, el) -> mockConnection);
+            actorSystem.actorOf(props);
+
+            // expect retrieve commands after configured timeout
+            expectMsg(RetrieveConnection.of(connectionId, DittoHeaders.empty()));
+            expectMsg(RetrieveConnectionStatus.of(connectionId, DittoHeaders.empty()));
+
+            getLastSender().tell(RetrieveConnectionResponse.of(amqpConnection, DittoHeaders.empty()), getRef());
+            getLastSender().tell(
+                    RetrieveConnectionStatusResponse.of(connectionId, ConnectionStatus.OPEN, DittoHeaders.empty()),
+                    getRef());
+
+            expectMsg(CONNECTED_SUCCESS);
         }};
     }
 

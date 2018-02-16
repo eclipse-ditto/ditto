@@ -80,9 +80,6 @@ public final class AmqpBridgeRootActor extends AbstractActor {
 
     private static final String AMQP_BRIDGE_CLUSTER_ROLE = "amqp-bridge";
 
-    @SuppressWarnings("squid:S1075")
-    private static final String PROXY_ACTOR_PATH = "/user/gatewayRoot/proxy";
-
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
     private final SupervisorStrategy strategy = new OneForOneStrategy(true, DeciderBuilder
@@ -160,8 +157,7 @@ public final class AmqpBridgeRootActor extends AbstractActor {
                 config.getDouble(ConfigKeys.Connection.SUPERVISOR_EXPONENTIAL_BACKOFF_RANDOM_FACTOR);
         final ConnectionActorPropsFactory propsFactory = DefaultConnectionActorPropsFactory.getInstance();
         final Props connectionSupervisorProps =
-                ConnectionSupervisorActor.props(minBackoff, maxBackoff, randomFactor, pubSubMediator, PROXY_ACTOR_PATH,
-                        propsFactory);
+                ConnectionSupervisorActor.props(minBackoff, maxBackoff, randomFactor, pubSubMediator, propsFactory);
 
         final int numberOfShards = config.getInt(ConfigKeys.Cluster.NUMBER_OF_SHARDS);
         final ClusterShardingSettings shardingSettings =

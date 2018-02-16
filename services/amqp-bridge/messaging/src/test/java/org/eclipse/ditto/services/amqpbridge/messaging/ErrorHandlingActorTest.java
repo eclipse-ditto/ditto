@@ -64,7 +64,7 @@ public class ErrorHandlingActorTest {
             final String connectionId = createRandomConnectionId();
             final AmqpConnection amqpConnection = createConnection(connectionId);
             final ActorRef underTest = TestConstants.createConnectionSupervisorActor(connectionId, actorSystem,
-                    pubSubMediator, (a, c) -> FaultyConnectionActor.props(a, c, false));
+                    pubSubMediator, (ca, id) -> FaultyConnectionActor.props(false));
             watch(underTest);
 
             // create connection
@@ -72,7 +72,7 @@ public class ErrorHandlingActorTest {
             underTest.tell(command, getRef());
             expectMsg(ConnectionFailedException
                     .newBuilder(connectionId)
-                    .description("cannot create connection")
+                    .description("error message")
                     .build());
         }};
     }
@@ -126,7 +126,7 @@ public class ErrorHandlingActorTest {
             underTest.tell(command, getRef());
             expectMsg(ConnectionFailedException
                     .newBuilder(connectionId)
-                    .description("cannot " + action + " connection")
+                    .description("error message")
                     .build());
         }};
     }

@@ -201,6 +201,24 @@ public final class ConfigKeys {
         }
     }
 
+    /**
+     * Configuration keys for Client.
+     */
+    @Immutable
+    public static final class Client {
+
+        private static final String PREFIX = AMQP_BRIDGE_PREFIX + "client.";
+
+        /**
+         * Duration after the init process is triggered (in case no connect command was received by the client actor).
+         */
+        public static final String INIT_TIMEOUT = PREFIX + "init-timeout";
+
+        private Client() {
+            throw new AssertionError();
+        }
+    }
+
     /*
      * This class is not designed for instantiation.
      */

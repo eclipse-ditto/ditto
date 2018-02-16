@@ -11,11 +11,10 @@
  */
 package org.eclipse.ditto.model.amqpbridge;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
-
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
@@ -56,20 +55,20 @@ final class ImmutableAmqpConnection implements AmqpConnection {
     private final String password;
     private final String hostname;
     private final int port;
+    private final int consumerCount;
+    private final int processorPoolSize;
 
-    private ImmutableAmqpConnection(final String id,
-            final ConnectionType connectionType, final String uri,
-            final AuthorizationSubject authorizationSubject,
-            final Set<String> sources, final boolean failoverEnabled, final boolean validateCertificates,
-            final int throttle) {
-        this.id = id;
-        this.connectionType = connectionType;
-        this.uri = uri;
-        this.authorizationSubject = authorizationSubject;
-        this.sources = Collections.unmodifiableSet(new HashSet<>(sources));
-        this.failoverEnabled = failoverEnabled;
-        this.validateCertificate = validateCertificates;
-        this.throttle = throttle;
+    ImmutableAmqpConnection(final ImmutableAmqpConnectionBuilder builder) {
+        this.id = builder.id;
+        this.connectionType = builder.connectionType;
+        this.uri = builder.uri;
+        this.authorizationSubject = builder.authorizationSubject;
+        this.sources = Collections.unmodifiableSet(new HashSet<>(builder.sources));
+        this.failoverEnabled = builder.failoverEnabled;
+        this.validateCertificate = builder.validateCertificate;
+        this.throttle = builder.throttle;
+        this.consumerCount = builder.consumerCount;
+        this.processorPoolSize = builder.processorPoolSize;
 
         final Matcher matcher = URI_REGEX_PATTERN.matcher(uri);
 
@@ -92,27 +91,14 @@ final class ImmutableAmqpConnection implements AmqpConnection {
      * @param uri the connection uri.
      * @param authorizationSubject the connection authorization subject.
      * @param sources the connection sources.
-     * @param failoverEnabled whether failover is enabled for the connection or not.
-     * @param validateCertificates whether to validate server certificates
-     * @param throttle limit of processed messages
      * @return the ImmutableConnection.
      * @throws NullPointerException if any argument is {@code null}.
-     * @throws ConnectionUriInvalidException if {@code uri} does not conform to {@link
-     * AmqpConnection.UriRegex#REGEX}.
+     * @throws ConnectionUriInvalidException if {@code uri} does not conform to {@link AmqpConnection.UriRegex#REGEX}.
      */
     public static ImmutableAmqpConnection of(final String id,
             final ConnectionType connectionType, final String uri,
-            final AuthorizationSubject authorizationSubject, final Set<String> sources, final boolean failoverEnabled,
-            final boolean validateCertificates, final int throttle) {
-        checkNotNull(id, "ID");
-        checkNotNull(connectionType, "Connection Type");
-        checkNotNull(uri, "URI");
-        checkNotNull(authorizationSubject, "Authorization Subject");
-        checkNotNull(sources, "Sources");
-        checkNotNull(failoverEnabled, "Failover Enabled");
-
-        return new ImmutableAmqpConnection(id, connectionType, uri, authorizationSubject, sources, failoverEnabled,
-                validateCertificates, throttle);
+            final AuthorizationSubject authorizationSubject, final Set<String> sources) {
+        return ImmutableAmqpConnectionBuilder.of(id, connectionType, uri, authorizationSubject, sources).build();
     }
 
     /**
@@ -133,12 +119,21 @@ final class ImmutableAmqpConnection implements AmqpConnection {
         final Set<String> readSources = jsonObject.getValueOrThrow(JsonFields.SOURCES).stream()
                 .map(JsonValue::asString)
                 .collect(Collectors.toSet());
-        final Boolean readFailoverEnabled = jsonObject.getValueOrThrow(JsonFields.FAILOVER_ENABLED);
-        final Boolean readValidateCertificates = jsonObject.getValue(JsonFields.VALIDATE_CERTIFICATES).orElse(true);
-        final Integer readThrottle = jsonObject.getValue(JsonFields.THROTTLE).orElse(0);
+        final Optional<Boolean> readFailoverEnabled = jsonObject.getValue(JsonFields.FAILOVER_ENABLED);
+        final Optional<Boolean> readValidateCertificates = jsonObject.getValue(JsonFields.VALIDATE_CERTIFICATES);
+        final Optional<Integer> readThrottle = jsonObject.getValue(JsonFields.THROTTLE);
+        final Optional<Integer> readConsumerCount = jsonObject.getValue(JsonFields.CONSUMER_COUNT);
+        final Optional<Integer> readProcessorPoolSize = jsonObject.getValue(JsonFields.PROCESSOR_POOL_SIZE);
 
-        return of(readId, readConnectionType, readUri, readAuthorizationSubject, readSources, readFailoverEnabled,
-                readValidateCertificates, readThrottle);
+        final ImmutableAmqpConnectionBuilder builder =
+                ImmutableAmqpConnectionBuilder.of(readId, readConnectionType, readUri, readAuthorizationSubject,
+                        readSources);
+        readThrottle.ifPresent(builder::throttle);
+        readFailoverEnabled.ifPresent(builder::failoverEnabled);
+        readValidateCertificates.ifPresent(builder::validateCertificate);
+        readConsumerCount.ifPresent(builder::consumerCount);
+        readProcessorPoolSize.ifPresent(builder::processorPoolSize);
+        return builder.build();
     }
 
     @Override
@@ -207,6 +202,16 @@ final class ImmutableAmqpConnection implements AmqpConnection {
     }
 
     @Override
+    public int getConsumerCount() {
+        return consumerCount;
+    }
+
+    @Override
+    public int getProcessorPoolSize() {
+        return processorPoolSize;
+    }
+
+    @Override
     public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
@@ -221,7 +226,8 @@ final class ImmutableAmqpConnection implements AmqpConnection {
         jsonObjectBuilder.set(JsonFields.FAILOVER_ENABLED, failoverEnabled, predicate);
         jsonObjectBuilder.set(JsonFields.VALIDATE_CERTIFICATES, validateCertificate, predicate);
         jsonObjectBuilder.set(JsonFields.THROTTLE, throttle, predicate);
-
+        jsonObjectBuilder.set(JsonFields.CONSUMER_COUNT, consumerCount, predicate);
+        jsonObjectBuilder.set(JsonFields.PROCESSOR_POOL_SIZE, processorPoolSize, predicate);
         return jsonObjectBuilder.build();
     }
 
@@ -243,13 +249,15 @@ final class ImmutableAmqpConnection implements AmqpConnection {
                 Objects.equals(password, that.password) &&
                 Objects.equals(hostname, that.hostname) &&
                 Objects.equals(throttle, that.throttle) &&
+                Objects.equals(consumerCount, that.consumerCount) &&
+                Objects.equals(processorPoolSize, that.processorPoolSize) &&
                 Objects.equals(validateCertificate, that.validateCertificate);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(id, connectionType, authorizationSubject, sources, failoverEnabled, uri, protocol, username,
-                password, hostname, port, validateCertificate, throttle);
+                password, hostname, port, validateCertificate, throttle, consumerCount, processorPoolSize);
     }
 
     @Override
@@ -268,6 +276,8 @@ final class ImmutableAmqpConnection implements AmqpConnection {
                 ", port=" + port +
                 ", validateCertificate=" + validateCertificate +
                 ", throttle=" + throttle +
+                ", consumerCount=" + consumerCount +
+                ", processorPoolSize=" + processorPoolSize +
                 "]";
     }
 

@@ -105,9 +105,14 @@ final class CommandConsumerActor extends AbstractActor implements MessageListene
     @Override
     public void postStop() throws Exception {
         super.postStop();
-        log.debug("Closing AMQP Consumer for '{}'", source);
-        if (consumer != null) {
-            consumer.close();
+        try {
+            log.debug("Closing AMQP Consumer for '{}'", source);
+            if (consumer != null) {
+                consumer.close();
+            }
+        } catch (JMSException jmsException) {
+            log.debug("Closing consumer failed (can be ignored if connection was closed already): {}",
+                    jmsException.getMessage());
         }
     }
 
@@ -122,7 +127,7 @@ final class CommandConsumerActor extends AbstractActor implements MessageListene
         } catch (final DittoRuntimeException e) {
             log.info("Got DittoRuntimeException '{}' when command was parsed: {}", e.getErrorCode(), e.getMessage());
         } catch (final Exception e) {
-            log.info("Unexpected Exception: {}", e.getMessage(), e);
+            log.info("Unexpected Exception: {}", e.getMessage());
         }
     }
 
