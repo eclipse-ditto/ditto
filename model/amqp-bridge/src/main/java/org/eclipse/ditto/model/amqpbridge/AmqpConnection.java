@@ -124,6 +124,20 @@ public interface AmqpConnection extends Jsonifiable.WithFieldSelectorAndPredicat
     boolean isValidateCertificates();
 
     /**
+     * The number of consumers (connections) that will be opened to the remote server.
+     *
+     * @return number of connections that will be opened, default is {@code 1}
+     */
+    int getConsumerCount();
+
+    /**
+     * The size of the command processor pool i.e. how many processor actors.
+     *
+     * @return size of the command processor actor pool
+     */
+    int getProcessorPoolSize();
+
+    /**
      * Returns all non hidden marked fields of this {@code AmqpConnection}.
      *
      * @return a JSON object representation of this AmqpConnection including only non hidden marked fields.
@@ -198,6 +212,20 @@ public interface AmqpConnection extends Jsonifiable.WithFieldSelectorAndPredicat
          */
         public static final JsonFieldDefinition<Integer> THROTTLE =
                 JsonFactory.newIntFieldDefinition("throttle", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing the {@code AmqpConnection} consumer count.
+         */
+        public static final JsonFieldDefinition<Integer> CONSUMER_COUNT =
+                JsonFactory.newIntFieldDefinition("consumerCount", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing the {@code AmqpConnection} processor pool size.
+         */
+        public static final JsonFieldDefinition<Integer> PROCESSOR_POOL_SIZE =
+                JsonFactory.newIntFieldDefinition("processorPoolSize", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
         private JsonFields() {

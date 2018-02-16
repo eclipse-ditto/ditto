@@ -30,23 +30,37 @@ public final class AmqpBridgeModelFactory {
     }
 
     /**
-     * Returns a new {@code Connection}.
+     * Returns a new {@code AmqpConnection} with all required fields set, optional fields are set to defaults.
      *
      * @param id the connection identifier.
      * @param connectionType the connection type
      * @param uri the connection uri.
      * @param authorizationSubject the connection authorization subject.
      * @param sources the connection sources.
-     * @param failoverEnabled whether failover is enabled for the connection or not.
      * @return the ImmutableConnection.
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static AmqpConnection newConnection(final String id,
             final ConnectionType connectionType, final String uri,
-            final AuthorizationSubject authorizationSubject, final Set<String> sources, final boolean failoverEnabled,
-            final boolean validateCertificates, final int throttle) {
-        return ImmutableAmqpConnection.of(id, connectionType, uri, authorizationSubject, sources, failoverEnabled,
-                validateCertificates, throttle);
+            final AuthorizationSubject authorizationSubject, final Set<String> sources) {
+        return ImmutableAmqpConnection.of(id, connectionType, uri, authorizationSubject, sources);
+    }
+
+    /**
+     * Returns a new {@code AmqpConnectionBuilder} with the required fields set.
+     *
+     * @param id the connection identifier.
+     * @param connectionType the connection type
+     * @param uri the connection uri.
+     * @param authorizationSubject the connection authorization subject.
+     * @param sources the connection sources.
+     * @return the AmqpConnectionBuilder.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public static AmqpConnectionBuilder newConnectionBuilder(final String id,
+            final ConnectionType connectionType, final String uri,
+            final AuthorizationSubject authorizationSubject, final Set<String> sources) {
+        return ImmutableAmqpConnectionBuilder.of(id, connectionType, uri, authorizationSubject, sources);
     }
 
     /**

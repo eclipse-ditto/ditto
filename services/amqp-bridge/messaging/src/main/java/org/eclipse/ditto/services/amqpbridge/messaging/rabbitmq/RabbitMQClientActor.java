@@ -15,12 +15,12 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.eclipse.ditto.model.amqpbridge.AmqpConnection;
+import org.eclipse.ditto.services.amqpbridge.messaging.BaseClientActor;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.signals.commands.amqpbridge.modify.AmqpBridgeModifyCommand;
 import org.eclipse.ditto.signals.commands.amqpbridge.modify.CloseConnection;
 import org.eclipse.ditto.signals.commands.amqpbridge.modify.CreateConnection;
 import org.eclipse.ditto.signals.commands.amqpbridge.modify.DeleteConnection;
-import org.eclipse.ditto.signals.commands.amqpbridge.modify.OpenConnection;
 
 import com.newmotion.akka.rabbitmq.ChannelActor;
 import com.newmotion.akka.rabbitmq.ChannelCreated;
@@ -33,7 +33,6 @@ import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Delivery;
 import com.rabbitmq.client.Envelope;
 
-import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.Status;
@@ -44,31 +43,29 @@ import scala.Option;
 /**
  * Actor which handles connection to AMQP 0.9.1 server.
  */
-public class RabbitMQConnectionActor extends AbstractActor {
+public class RabbitMQClientActor extends BaseClientActor {
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
-    private final ActorRef commandProcessor;
-    private AmqpConnection amqpConnection;
     private ActorRef connectionActor;
     private ActorRef channelActor;
 
-    private RabbitMQConnectionActor(final AmqpConnection amqpConnection, final ActorRef commandProcessor) {
-        this.amqpConnection = amqpConnection;
-        this.commandProcessor = commandProcessor;
+    private RabbitMQClientActor(final String connectionId, final ActorRef connectionActor) {
+        super(connectionId, connectionActor);
     }
 
     /**
      * Creates Akka configuration object for this actor.
      *
      * @return the Akka configuration Props object
+     * @param connectionActor the corresponding {@code ConnectionActor}
      */
-    public static Props props(final AmqpConnection amqpConnection, final ActorRef commandProcessor) {
-        return Props.create(RabbitMQConnectionActor.class, new Creator<RabbitMQConnectionActor>() {
+    public static Props props(final String connectionId, final ActorRef connectionActor) {
+        return Props.create(RabbitMQClientActor.class, new Creator<RabbitMQClientActor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
-            public RabbitMQConnectionActor create() {
-                return new RabbitMQConnectionActor(amqpConnection, commandProcessor);
+            public RabbitMQClientActor create() {
+                return new RabbitMQClientActor(connectionId, connectionActor);
             }
         });
     }
@@ -76,23 +73,24 @@ public class RabbitMQConnectionActor extends AbstractActor {
     @Override
     public Receive createReceive() {
         return receiveBuilder()
-                .match(CreateConnection.class, cc -> {
-                    amqpConnection = cc.getAmqpConnection();
-                    connect();
-                })
-                .match(OpenConnection.class, oc -> connect())
-                .match(CloseConnection.class, cc -> disconnect())
-                .match(DeleteConnection.class, dc -> {
-                    disconnect();
-                    stopSelf();
-                })
+                .match(CreateConnection.class, this::handleConnect)
+                .match(CloseConnection.class, this::handleDisconnect)
+                .match(DeleteConnection.class, this::handleDisconnect)
                 .match(ChannelCreated.class, this::handleChannelCreated)
-                .build();
+                .build()
+                .orElse(initHandling);
+    }
+
+    private void handleConnect(final CreateConnection connect) {
+        amqpConnection = connect.getAmqpConnection();
+        mappingContexts = connect.getMappingContexts();
+        connect();
     }
 
     private void handleChannelCreated(final ChannelCreated channelCreated) {
         this.channelActor = channelCreated.channel();
-        setupConsumers(this.channelActor);
+        startCommandProcessor();
+        startCommandConsumers();
     }
 
     private void connect() {
@@ -116,8 +114,9 @@ public class RabbitMQConnectionActor extends AbstractActor {
         getSender().tell(new Status.Success("connected"), self());
     }
 
-    private void disconnect() {
-        amqpConnection.getSources().forEach(source -> stopChildActor("consumer-" + source));
+    private void handleDisconnect(final AmqpBridgeModifyCommand<?> cmd) {
+        stopCommandConsumers();
+        stopCommandProcessor();
         if (channelActor != null) {
             stopChildActor(channelActor);
             channelActor = null;
@@ -129,7 +128,11 @@ public class RabbitMQConnectionActor extends AbstractActor {
         getSender().tell(new Status.Success("disconnected"), self());
     }
 
-    private void setupConsumers(final ActorRef channelActor) {
+    private void stopCommandConsumers() {
+        amqpConnection.getSources().forEach(source -> stopChildActor("consumer-" + source));
+    }
+
+    private void startCommandConsumers() {
         log.info("Channel created, start to consume queues...");
         final ChannelMessage channelMessage = ChannelMessage.apply(channel -> {
             ensureQueuesExist(channel);
@@ -168,41 +171,7 @@ public class RabbitMQConnectionActor extends AbstractActor {
         }
     }
 
-// TODO DG how to do acking
-//    private void handleAck(final InternalMessage.Ack<Long> ack) {
-//        channelActor.tell(ChannelMessage.apply(channel -> {
-//            try {
-//                channel.basicAck(ack.getMessage(), false);
-//            } catch (IOException e) {
-//                log.info("ACKing {} failed: ", e.getMessage());
-//            }
-//            return null;
-//        }, false), self());
-//    }
-
-    private ActorRef startChildActor(final String name, final Props props) {
-        log.debug("Starting child actor '{}'", name);
-        final String nameEscaped = name.replace('/', '_');
-        return getContext().actorOf(props, nameEscaped);
-    }
-
-    private void stopChildActor(final String name) {
-        log.debug("Stopping child actor '{}'", name);
-        final String nameEscaped = name.replace('/', '_');
-        getContext().findChild(nameEscaped).ifPresent(getContext()::stop);
-    }
-
-    private void stopChildActor(final ActorRef actor) {
-        log.debug("Stopping child actor '{}'", actor.path());
-        getContext().stop(actor);
-    }
-
-    private void stopSelf() {
-        log.debug("Shutting down");
-        getContext().stop(self());
-    }
-
-    class RabbitMQMessageConsumer extends DefaultConsumer {
+    private class RabbitMQMessageConsumer extends DefaultConsumer {
 
         private final ActorRef commandConsumer;
 
@@ -211,7 +180,7 @@ public class RabbitMQConnectionActor extends AbstractActor {
          *
          * @param channel the channel to which this consumer is attached
          */
-        RabbitMQMessageConsumer(final ActorRef commandConsumer, final Channel channel) {
+        private RabbitMQMessageConsumer(final ActorRef commandConsumer, final Channel channel) {
             super(channel);
             this.commandConsumer = commandConsumer;
         }
@@ -219,7 +188,17 @@ public class RabbitMQConnectionActor extends AbstractActor {
         @Override
         public void handleDelivery(final String consumerTag, final Envelope envelope,
                 final AMQP.BasicProperties properties, final byte[] body) {
-            commandConsumer.tell(new Delivery(envelope, properties, body), RabbitMQConnectionActor.this.self());
+            try {
+                commandConsumer.tell(new Delivery(envelope, properties, body), RabbitMQClientActor.this.self());
+            } catch (Exception e) {
+                log.info("Failed to process delivery {}: {}", envelope.getDeliveryTag(), e.getMessage());
+            } finally {
+                try {
+                    getChannel().basicAck(envelope.getDeliveryTag(), false);
+                } catch (IOException e) {
+                    log.info("Failed to ack delivery {}: {}", envelope.getDeliveryTag(), e.getMessage());
+                }
+            }
         }
 
     }

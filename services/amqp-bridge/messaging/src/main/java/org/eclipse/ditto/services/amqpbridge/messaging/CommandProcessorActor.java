@@ -12,6 +12,9 @@
 package org.eclipse.ditto.services.amqpbridge.messaging;
 
 
+import static org.eclipse.ditto.services.models.amqpbridge.AmqpBridgeMessagingConstants.GATEWAY_PROXY_ACTOR_PATH;
+
+import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -63,24 +66,21 @@ public final class CommandProcessorActor extends AbstractActor {
     /**
      * The name of this Actor in the ActorSystem.
      */
-    static final String ACTOR_NAME_PREFIX = "amqpCommandProcessor-";
+    public static final String ACTOR_NAME_PREFIX = "amqpCommandProcessor-";
 
     private static final DittoProtocolAdapter PROTOCOL_ADAPTER = DittoProtocolAdapter.newInstance();
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
     private final ActorRef pubSubMediator;
-    private final String pubSubTargetActorPath;
     private final AuthorizationSubject authorizationSubject;
     private final Cache<String, TraceContext> traces;
 
     private final MessageMapperRegistry registry;
 
-
-    private CommandProcessorActor(final ActorRef pubSubMediator, final String pubSubTargetActorPath,
-            final AuthorizationSubject authorizationSubject, final List<MappingContext> mappingContexts) {
+    private CommandProcessorActor(final ActorRef pubSubMediator, final AuthorizationSubject authorizationSubject,
+            final List<MappingContext> mappingContexts) {
         this.pubSubMediator = pubSubMediator;
-        this.pubSubTargetActorPath = pubSubTargetActorPath;
         this.authorizationSubject = authorizationSubject;
         traces = CacheBuilder.newBuilder()
                 .expireAfterWrite(5, TimeUnit.MINUTES)
@@ -102,20 +102,18 @@ public final class CommandProcessorActor extends AbstractActor {
      * Creates Akka configuration object for this actor.
      *
      * @param pubSubMediator the akka pubsub mediator actor.
-     * @param pubSubTargetActorPath the path of the command consuming actor (via pubsub).
      * @param authorizationSubject the authorized subject that are set in command headers.
      * @return the Akka configuration Props object
      */
-    static Props props(final ActorRef pubSubMediator, final String pubSubTargetActorPath,
-            final AuthorizationSubject authorizationSubject, final List<MappingContext> mappingContexts) {
+    static Props props(final ActorRef pubSubMediator, final AuthorizationSubject authorizationSubject,
+            final List<MappingContext> mappingContexts) {
 
         return Props.create(CommandProcessorActor.class, new Creator<CommandProcessorActor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
             public CommandProcessorActor create() {
-                return new CommandProcessorActor(pubSubMediator, pubSubTargetActorPath, authorizationSubject,
-                        mappingContexts);
+                return new CommandProcessorActor(pubSubMediator, authorizationSubject, mappingContexts);
             }
         });
     }
@@ -135,21 +133,22 @@ public final class CommandProcessorActor extends AbstractActor {
 
     private void handle(final InternalMessage m) {
 
-        final TraceContext traceContext = Kamon.tracer().newContext("commandProcessor",
-                Option.apply(DittoHeaders.of(m.getHeaders()).getCorrelationId().orElse("no-correlation-id")));
+        final String correlationId = DittoHeaders.of(m.getHeaders()).getCorrelationId().orElse("no-correlation-id");
+        LogUtil.enhanceLogWithCorrelationId(log, correlationId);
+        final TraceContext traceContext = Kamon.tracer().newContext("commandProcessor", Option.apply(correlationId));
+
         try {
             final Command<?> command = parseMessage(m, traceContext);
             traceContext.finish();
             traceCommand(command);
-            log.info("Publishing '{}' to '{}'", command.getType(), pubSubTargetActorPath);
-            pubSubMediator.tell(new DistributedPubSubMediator.Send(pubSubTargetActorPath, command, true),
+            log.info("Publishing '{}' to '{}'", command.getType(), GATEWAY_PROXY_ACTOR_PATH);
+            pubSubMediator.tell(new DistributedPubSubMediator.Send(GATEWAY_PROXY_ACTOR_PATH, command, true),
                     getSelf());
         } catch (Exception e) {
             traceContext.finishWithError(e);
             log.info("Parsing message failed: " + e.getMessage());
         }
     }
-
 
     private void handleDittoRuntimeException(final DittoRuntimeException exception) {
         final ThingErrorResponse errorResponse = ThingErrorResponse.of(exception);

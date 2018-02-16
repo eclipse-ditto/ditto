@@ -50,8 +50,7 @@ public class TestConstants {
     }
 
     public static AmqpConnection createConnection(final String connectionId) {
-        return AmqpBridgeModelFactory.newConnection(connectionId, TYPE, URI, AUTHORIZATION_SUBJECT, SOURCES, FAILOVER,
-                VALIDATE_CERT, THROTTLE);
+        return AmqpBridgeModelFactory.newConnection(connectionId, TYPE, URI, AUTHORIZATION_SUBJECT, SOURCES);
     }
 
     static ActorRef createConnectionSupervisorActor(final String connectionId, final ActorSystem actorSystem,
@@ -66,7 +65,7 @@ public class TestConstants {
         final Duration maxBackoff = Duration.ofSeconds(5);
         final Double randomFactor = 1.0;
         final Props props = ConnectionSupervisorActor.props(minBackoff, maxBackoff, randomFactor, pubSubMediator,
-                PROXY_ACTOR_PATH, connectionActorPropsFactory);
+                connectionActorPropsFactory);
 
         final int maxAttemps = 5;
         final long backoffMs = 1000L;

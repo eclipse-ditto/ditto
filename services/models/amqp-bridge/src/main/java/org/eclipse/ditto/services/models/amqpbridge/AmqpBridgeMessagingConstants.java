@@ -29,6 +29,11 @@ public final class AmqpBridgeMessagingConstants {
      */
     public static final String CLUSTER_ROLE = "amqp-bridge";
 
+    /**
+     * Target actor path where incoming messages are forwarded to.
+     */
+    public static final String GATEWAY_PROXY_ACTOR_PATH = "/user/gatewayRoot/proxy";
+
     /*
      * Inhibit instantiation of this utility class.
      */

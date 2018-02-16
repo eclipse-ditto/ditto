@@ -28,7 +28,8 @@ import akka.japi.Creator;
 public class MockConnectionActor extends AbstractActor {
 
     static final ConnectionActorPropsFactory mockConnectionActorPropsFactory =
-            (amqpConnection, commandProcessor) -> MockConnectionActor.props();
+            (connectionActor, connectionId) -> MockConnectionActor.props();
+
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 

@@ -15,40 +15,55 @@ import javax.jms.Connection;
 import javax.jms.ExceptionListener;
 import javax.jms.JMSException;
 import javax.jms.Session;
-import javax.naming.NamingException;
 
 import org.eclipse.ditto.model.amqpbridge.AmqpConnection;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
 import akka.actor.AbstractActor;
 import akka.actor.Props;
-import akka.actor.Status;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
 
+/**
+ * The type Jms connection handling actor.
+ */
 public class JMSConnectionHandlingActor extends AbstractActor {
 
-    static final String ACTOR_NAME_PREFIX = "connectionHandling-";
+    /**
+     * The Actor name prefix.
+     */
+    static final String ACTOR_NAME_PREFIX = "jmsConnectionHandling-";
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
-    private final String connectionId;
 
-    private JMSConnectionHandlingActor(final String connectionId) {
-        this.connectionId = connectionId;
+    private final AmqpConnection amqpConnection;
+    private final ExceptionListener exceptionListener;
+    private JmsConnectionFactory jmsConnectionFactory;
+
+
+    private JMSConnectionHandlingActor(
+            final AmqpConnection amqpConnection, final ExceptionListener exceptionListener,
+            final JmsConnectionFactory jmsConnectionFactory) {
+        this.amqpConnection = amqpConnection;
+        this.exceptionListener = exceptionListener;
+        this.jmsConnectionFactory = jmsConnectionFactory;
     }
 
     /**
      * Creates Akka configuration object {@link Props} for this {@code JMSConnectionHandlingActor}.
      *
-     * @param connectionId the connection id.
+     * @param amqpConnection the amqp connection
+     * @param exceptionListener the exception listener
+     * @param jmsConnectionFactory the jms connection factory
      * @return the Akka configuration Props object.
      */
-    static Props props(final String connectionId) {
+    static Props props(final AmqpConnection amqpConnection, final ExceptionListener exceptionListener,
+            final JmsConnectionFactory jmsConnectionFactory) {
         return Props.create(JMSConnectionHandlingActor.class, new Creator<JMSConnectionHandlingActor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
             public JMSConnectionHandlingActor create() {
-                return new JMSConnectionHandlingActor(connectionId);
+                return new JMSConnectionHandlingActor(amqpConnection, exceptionListener, jmsConnectionFactory);
             }
         });
     }
@@ -56,60 +71,45 @@ public class JMSConnectionHandlingActor extends AbstractActor {
     @Override
     public Receive createReceive() {
         return receiveBuilder()
-                .match(AmqpConnectionActor.Create.class, this::createConnection)
-                .match(AmqpConnectionActor.Connect.class, this::startConnection)
-                .match(AmqpConnectionActor.Disconnect.class, this::stopConnection)
+                .match(AmqpClientActor.JmsConnect.class, this::handleConnect)
+                .match(AmqpClientActor.JmsDisconnect.class, this::handleDisconnect)
                 .build();
     }
 
-    private void createConnection(AmqpConnectionActor.Create createConnection) {
-        final AmqpConnection amqpConnection = createConnection.getAmqpConnection();
-        final ExceptionListener exceptionListener = createConnection.getExceptionListener();
-        final JmsConnectionFactory jmsConnectionFactory = createConnection.getJmsConnectionFactory();
+    private void handleConnect(AmqpClientActor.JmsConnect connect) {
         try {
-            log.debug("Creating jms connection for <{}>.", connectionId);
-            final Connection connection = jmsConnectionFactory.createConnection(amqpConnection, exceptionListener);
-            getSender().tell(connection, self());
-        } catch (JMSException | NamingException e) {
-            log.warning("Failed to create JMS connection: {}", e.getMessage());
-            getSender().tell(new Status.Failure(e), self());
-        }
-        context().stop(self());
-    }
-
-    private void startConnection(AmqpConnectionActor.Connect connect) {
-        try {
-            final Connection jmsConnection = connect.getConnection();
+            final Connection jmsConnection = jmsConnectionFactory.createConnection(amqpConnection, exceptionListener);
             log.debug("Starting connection.");
             jmsConnection.start();
             log.debug("Connection started successfully, creating session.");
             final Session jmsSession = jmsConnection.createSession(false, Session.AUTO_ACKNOWLEDGE);
             log.debug("Session created.");
-            sender().tell(new AmqpConnectionActor.Connected(connect.getOrigin(), jmsSession), sender());
-            log.debug("Connection <{}> established successfully, stopping myself.", connectionId);
+            sender().tell(new AmqpClientActor.JmsConnected(connect.getOrigin(), jmsConnection, jmsSession), sender());
+            log.debug("Connection <{}> established successfully, stopping myself.", amqpConnection.getId());
         } catch (Exception e) {
-            sender().tell(new AmqpConnectionActor.Failure(connect.getOrigin(), e), sender());
+            sender().tell(new AmqpClientActor.JmsFailure(connect.getOrigin(), e), sender());
         }
         context().stop(self());
     }
 
-    private void stopConnection(AmqpConnectionActor.Disconnect disconnect) {
+    private void handleDisconnect(AmqpClientActor.JmsDisconnect disconnect) {
         try {
             final Connection connection = disconnect.getConnection();
             if (connection != null) {
                 try {
-                    log.debug("Closing JMS connection {}", connectionId);
+                    log.debug("Closing JMS connection {}", amqpConnection.getId());
                     connection.stop();
                     connection.close();
-                    log.info("Connection '{}' closed.", connectionId);
+                    log.info("Connection '{}' closed.", amqpConnection.getId());
                 } catch (final JMSException e) {
-                    log.debug("Connection '{}' already closed: {}", connectionId, e.getMessage());
+                    log.debug("Connection '{}' already closed: {}", amqpConnection.getId(), e.getMessage());
                 }
             }
-            sender().tell(new AmqpConnectionActor.Disconnected(disconnect.getOrigin()), sender());
+            sender().tell(new AmqpClientActor.JmsDisconnected(disconnect.getOrigin()), sender());
         } catch (Exception e) {
-            sender().tell(new AmqpConnectionActor.Failure(disconnect.getOrigin(), e), sender());
+            sender().tell(new AmqpClientActor.JmsFailure(disconnect.getOrigin(), e), sender());
         }
+        log.info("Stop myself {}", self());
         context().stop(self());
     }
 }

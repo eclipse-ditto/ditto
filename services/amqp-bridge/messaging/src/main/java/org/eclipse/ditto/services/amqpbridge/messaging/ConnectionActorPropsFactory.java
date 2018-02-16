@@ -24,9 +24,10 @@ public interface ConnectionActorPropsFactory {
     /**
      * Create actor {@link Props} for a type of AMQP connection.
      *
-     * @param amqpConnection the amqp connection
-     * @param commandProcessor the command processor that receives incoming messages
+     * @param connectionActor the connection actor
+     * @param connectionId the connection id
      * @return the actor props
      */
-    Props getActorPropsForType(final AmqpConnection amqpConnection, final ActorRef commandProcessor);
+    Props getActorPropsForType(ActorRef connectionActor, String connectionId);
+
 }

@@ -40,7 +40,7 @@ public final class TestConstants {
     public static Set<String> SOURCES = new HashSet<>(Arrays.asList("amqp/source1", "amqp/source2"));
 
     public static AmqpConnection CONNECTION =
-            AmqpBridgeModelFactory.newConnection(ID, TYPE, URI, AUTHORIZATION_SUBJECT, SOURCES, true, true, 250);
+            AmqpBridgeModelFactory.newConnection(ID, TYPE, URI, AUTHORIZATION_SUBJECT, SOURCES);
 
     public static Map<String, ConnectionStatus> CONNECTION_STATUSES;
 

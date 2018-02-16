@@ -69,7 +69,6 @@ public final class ConnectionSupervisorActor extends AbstractActor {
             final Duration maxBackoff,
             final double randomFactor,
             final ActorRef pubSubMediator,
-            final String pubSubTargetActorPath,
             final ConnectionActorPropsFactory propsFactory) {
         try {
             this.connectionId = URLDecoder.decode(getSelf().path().name(), StandardCharsets.UTF_8.name());
@@ -81,7 +80,7 @@ public final class ConnectionSupervisorActor extends AbstractActor {
         this.maxBackoff = maxBackoff;
         this.randomFactor = randomFactor;
         this.persistenceActorProps =
-                ConnectionActor.props(connectionId, pubSubMediator, pubSubTargetActorPath, propsFactory);
+                ConnectionActor.props(connectionId, pubSubMediator, propsFactory);
     }
 
     /**
@@ -97,14 +96,12 @@ public final class ConnectionSupervisorActor extends AbstractActor {
      * is added, e.g. `0.2` adds up to `20%` delay. In order to skip this additional delay pass in `0`.
      * for accessing the connection cache in cluster.
      * @param pubSubMediator the PubSub mediator actor.
-     * @param pubSubTargetActorPath the path of the command consuming actor (via pubsub).
      * @return the {@link Props} to create this actor.
      */
     public static Props props(final Duration minBackoff,
             final Duration maxBackoff,
             final double randomFactor,
             final ActorRef pubSubMediator,
-            final String pubSubTargetActorPath,
             final ConnectionActorPropsFactory propsFactory) {
 
         return Props.create(ConnectionSupervisorActor.class, new Creator<ConnectionSupervisorActor>() {
@@ -119,8 +116,7 @@ public final class ConnectionSupervisorActor extends AbstractActor {
                         .match(NamingException.class, e -> SupervisorStrategy.stop())
                         .match(ActorKilledException.class, e -> SupervisorStrategy.stop())
                         .matchAny(e -> SupervisorStrategy.escalate())
-                        .build()), minBackoff, maxBackoff, randomFactor, pubSubMediator, pubSubTargetActorPath,
-                        propsFactory);
+                        .build()), minBackoff, maxBackoff, randomFactor, pubSubMediator, propsFactory);
             }
         });
     }

@@ -79,8 +79,7 @@ public class JsonExamplesProducer {
         Files.createDirectories(eventsDir);
 
         final AmqpConnection amqpConnection =
-                AmqpBridgeModelFactory.newConnection(ID, TYPE, URI, AUTHORIZATION_SUBJECT, SOURCES, FAILOVER_ENABLED,
-                        VALIDATE_CERTIFICATES, THROTTLE);
+                AmqpBridgeModelFactory.newConnection(ID, TYPE, URI, AUTHORIZATION_SUBJECT, SOURCES);
         final DittoHeaders headers = DittoHeaders.empty();
 
         final ConnectionCreated connectionCreated = ConnectionCreated.of(amqpConnection,
