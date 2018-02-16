@@ -16,21 +16,19 @@ import java.util.Collections;
 
 import org.assertj.core.api.Assertions;
 import org.bson.conversions.Bson;
-import org.eclipse.ditto.services.thingsearch.persistence.BsonAssertions;
-import org.eclipse.ditto.services.thingsearch.persistence.read.criteria.visitors.CreateBsonPredicateVisitor;
-import org.eclipse.ditto.services.thingsearch.persistence.read.expression.visitors.GetSortBsonVisitor;
 import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
-import org.junit.Test;
-
-import com.mongodb.client.model.Filters;
-import com.mongodb.client.model.Sorts;
-
+import org.eclipse.ditto.services.thingsearch.persistence.read.criteria.visitors.CreateBsonPredicateVisitor;
 import org.eclipse.ditto.services.thingsearch.persistence.read.expression.visitors.GetFilterBsonVisitor;
-
+import org.eclipse.ditto.services.thingsearch.persistence.read.expression.visitors.GetSortBsonVisitor;
 import org.eclipse.ditto.services.thingsearch.querymodel.criteria.EqPredicateImpl;
 import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Predicate;
 import org.eclipse.ditto.services.thingsearch.querymodel.expression.AttributeExpressionImpl;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.SortDirection;
+import org.eclipse.ditto.services.utils.persistence.mongo.assertions.BsonAssertions;
+import org.junit.Test;
+
+import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.Sorts;
 
 /**
  * Tests Bson generators of {@link AttributeExpressionImpl}.

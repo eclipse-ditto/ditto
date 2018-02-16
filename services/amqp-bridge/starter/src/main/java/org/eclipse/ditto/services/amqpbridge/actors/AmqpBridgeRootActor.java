@@ -25,11 +25,16 @@ import javax.jms.JMSRuntimeException;
 import javax.naming.NamingException;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.services.amqpbridge.messaging.AmqpConnectionBasedJmsConnectionFactory;
+import org.eclipse.ditto.services.amqpbridge.messaging.ConnectionSupervisorActor;
+import org.eclipse.ditto.services.amqpbridge.messaging.ReconnectActor;
+import org.eclipse.ditto.services.amqpbridge.util.ConfigKeys;
+import org.eclipse.ditto.services.models.amqpbridge.AmqpBridgeMessagingConstants;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
 import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
-import org.eclipse.ditto.services.utils.health.HealthCheckingActor;
+import org.eclipse.ditto.services.utils.health.DefaultHealthCheckingActorFactory;
 import org.eclipse.ditto.services.utils.health.HealthCheckingActorOptions;
 import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientActor;
@@ -61,12 +66,6 @@ import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.AskTimeoutException;
 import akka.stream.ActorMaterializer;
-
-import org.eclipse.ditto.services.amqpbridge.messaging.AmqpConnectionBasedJmsConnectionFactory;
-import org.eclipse.ditto.services.amqpbridge.messaging.ConnectionSupervisorActor;
-import org.eclipse.ditto.services.amqpbridge.messaging.ReconnectActor;
-import org.eclipse.ditto.services.amqpbridge.util.ConfigKeys;
-import org.eclipse.ditto.services.models.amqpbridge.AmqpBridgeMessagingConstants;
 
 /**
  * Parent Actor which takes care of supervision of all other Actors in our system.
@@ -151,8 +150,8 @@ public final class AmqpBridgeRootActor extends AbstractActor {
                         config.getDuration(ConfigKeys.HealthCheck.PERSISTENCE_TIMEOUT)));
 
         final HealthCheckingActorOptions healthCheckingActorOptions = hcBuilder.build();
-        final ActorRef healthCheckingActor = startChildActor(HealthCheckingActor.ACTOR_NAME,
-                HealthCheckingActor.props(healthCheckingActorOptions, mongoClient));
+        final ActorRef healthCheckingActor = startChildActor(DefaultHealthCheckingActorFactory.ACTOR_NAME,
+                DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions, mongoClient));
 
         final Duration minBackoff = config.getDuration(ConfigKeys.Connection.SUPERVISOR_EXPONENTIAL_BACKOFF_MIN);
         final Duration maxBackoff = config.getDuration(ConfigKeys.Connection.SUPERVISOR_EXPONENTIAL_BACKOFF_MAX);

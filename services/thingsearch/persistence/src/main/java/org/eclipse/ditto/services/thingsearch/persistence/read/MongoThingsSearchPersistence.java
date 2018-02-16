@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 
 import org.bson.BsonDocument;
@@ -29,8 +30,7 @@ import org.eclipse.ditto.services.models.thingsearch.SearchNamespaceReportResult
 import org.eclipse.ditto.services.models.thingsearch.SearchNamespaceResultEntry;
 import org.eclipse.ditto.services.thingsearch.common.model.ResultList;
 import org.eclipse.ditto.services.thingsearch.common.model.ResultListImpl;
-import org.eclipse.ditto.services.thingsearch.persistence.BsonUtil;
-import org.eclipse.ditto.services.thingsearch.persistence.IndexInitializer;
+import org.eclipse.ditto.services.thingsearch.persistence.Indices;
 import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
 import org.eclipse.ditto.services.thingsearch.persistence.read.criteria.visitors.CreateBsonVisitor;
 import org.eclipse.ditto.services.thingsearch.persistence.read.query.MongoQuery;
@@ -38,6 +38,7 @@ import org.eclipse.ditto.services.thingsearch.querymodel.query.PolicyRestrictedS
 import org.eclipse.ditto.services.thingsearch.querymodel.query.Query;
 import org.eclipse.ditto.services.utils.config.MongoConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
+import org.eclipse.ditto.services.utils.persistence.mongo.indices.IndexInitializer;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayQueryTimeExceededException;
 
 import com.mongodb.MongoExecutionTimeoutException;
@@ -62,8 +63,8 @@ public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
     private final MongoCollection<Document> collection;
     private final LoggingAdapter log;
 
-    private final ActorSystem actorSystem;
     private final ActorMaterializer materializer;
+    private final IndexInitializer indexInitializer;
     private final Duration maxQueryTime;
 
     /**
@@ -76,14 +77,13 @@ public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
         collection = clientWrapper.getDatabase().getCollection(PersistenceConstants.THINGS_COLLECTION_NAME);
         log = Logging.getLogger(actorSystem, getClass());
         materializer = ActorMaterializer.create(actorSystem);
-        this.actorSystem = actorSystem;
+        indexInitializer = IndexInitializer.of(clientWrapper.getDatabase(), materializer);
         maxQueryTime = MongoConfig.getMaxQueryTime(actorSystem.settings().config());
     }
 
     @Override
-    public void initIndexes() {
-        IndexInitializer.initializeIndices(collection, PersistenceConstants.THINGS_COLLECTION_NAME,
-                actorSystem.settings().config(), materializer);
+    public CompletionStage<Void> initializeIndices() {
+        return indexInitializer.initialize(PersistenceConstants.THINGS_COLLECTION_NAME, Indices.Things.all());
     }
 
     @Override
@@ -213,7 +213,8 @@ public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
     }
 
     private static BsonDocument getMongoFilter(final Query query) {
-        return BsonUtil.toBsonDocument(CreateBsonVisitor.apply(query.getCriteria()));
+        return org.eclipse.ditto.services.utils.persistence.mongo.BsonUtil.toBsonDocument(
+                CreateBsonVisitor.apply(query.getCriteria()));
     }
 
     private static Bson getMongoSort(final Query query) {

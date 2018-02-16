@@ -262,7 +262,8 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         final boolean snapshotDeleteOld = config.getBoolean(ConfigKeys.Thing.SNAPSHOT_DELETE_OLD);
         final boolean eventsDeleteOld = config.getBoolean(ConfigKeys.Thing.EVENTS_DELETE_OLD);
         thingSnapshotter =
-                thingSnapshotterCreate.apply(this, log, snapshotInterval, snapshotDeleteOld, eventsDeleteOld);
+                thingSnapshotterCreate.apply(this, pubSubMediator, snapshotDeleteOld, eventsDeleteOld, log,
+                        snapshotInterval);
 
         handleThingEvents = ReceiveBuilder.create()
                 // # Thing Creation

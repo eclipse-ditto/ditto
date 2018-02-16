@@ -44,15 +44,14 @@ import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePoli
 import org.eclipse.ditto.services.policies.persistence.actors.AbstractReceiveStrategy;
 import org.eclipse.ditto.services.policies.persistence.actors.ReceiveStrategy;
 import org.eclipse.ditto.services.policies.persistence.actors.StrategyAwareReceiveBuilder;
-import org.eclipse.ditto.services.policies.persistence.serializer.policies.MongoPolicySnapshotAdapter;
 import org.eclipse.ditto.services.policies.util.ConfigKeys;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.services.utils.akka.persistence.SnapshotAdapter;
 import org.eclipse.ditto.services.utils.distributedcache.actors.CacheFacadeActor;
 import org.eclipse.ditto.services.utils.distributedcache.actors.DeleteCacheEntry;
 import org.eclipse.ditto.services.utils.distributedcache.actors.ModifyCacheEntry;
 import org.eclipse.ditto.services.utils.distributedcache.actors.WriteConsistency;
 import org.eclipse.ditto.services.utils.distributedcache.model.CacheEntry;
+import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.signals.base.WithId;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyConflictException;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyEntryModificationInvalidException;
@@ -162,6 +161,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
      * The ID of the snapshot plugin this persistence actor uses.
      */
     private static final String SNAPSHOT_PLUGIN_ID = "akka-contrib-mongodb-persistence-policies-snapshots";
+
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
     private final String policyId;
     private final SnapshotAdapter<Policy> snapshotAdapter;
@@ -181,12 +181,14 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
     private Runnable invokeAfterSnapshotRunnable;
     private boolean snapshotInProgress;
 
-    private PolicyPersistenceActor(final String policyId, final ActorRef pubSubMediator,
+    private PolicyPersistenceActor(final String policyId,
+            final SnapshotAdapter<Policy> snapshotAdapter,
+            final ActorRef pubSubMediator,
             final ActorRef policyCacheFacade) {
         this.policyId = policyId;
         this.pubSubMediator = pubSubMediator;
         this.policyCacheFacade = policyCacheFacade;
-        this.snapshotAdapter = new MongoPolicySnapshotAdapter(getContext().system());
+        this.snapshotAdapter = snapshotAdapter;
 
         final Config config = getContext().system().settings().config();
         activityCheckInterval = config.getDuration(ConfigKeys.Policy.ACTIVITY_CHECK_INTERVAL);
@@ -350,19 +352,21 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
      * Creates Akka configuration object {@link Props} for this PolicyPersistenceActor.
      *
      * @param policyId the ID of the Policy this Actor manages.
+     * @param snapshotAdapter the adapter to serialize Policy snapshots.
      * @param pubSubMediator the PubSub mediator actor.
-     * @param policyCacheFacade the {@link CacheFacadeActor} for accessing
-     * the policy cache in cluster.
+     * @param policyCacheFacade the {@link CacheFacadeActor} for accessing the policy cache in cluster.
      * @return the Akka configuration Props object
      */
-    public static Props props(final String policyId, final ActorRef pubSubMediator,
+    public static Props props(final String policyId,
+            final SnapshotAdapter<Policy> snapshotAdapter,
+            final ActorRef pubSubMediator,
             final ActorRef policyCacheFacade) {
         return Props.create(PolicyPersistenceActor.class, new Creator<PolicyPersistenceActor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
             public PolicyPersistenceActor create() throws Exception {
-                return new PolicyPersistenceActor(policyId, pubSubMediator, policyCacheFacade);
+                return new PolicyPersistenceActor(policyId, snapshotAdapter, pubSubMediator, policyCacheFacade);
             }
         });
     }
@@ -425,10 +429,10 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
     @Override
     public Receive createReceive() {
-      /*
-       * First no Policy for the ID exists at all. Thus the only command this Actor reacts to is CreatePolicy.
-       * This behaviour changes as soon as a Policy was created.
-       */
+        /*
+         * First no Policy for the ID exists at all. Thus the only command this Actor reacts to is CreatePolicy.
+         * This behaviour changes as soon as a Policy was created.
+         */
         final StrategyAwareReceiveBuilder initialReceiveCommandBuilder = new StrategyAwareReceiveBuilder();
         initialReceiveCommandBuilder.match(new CreatePolicyStrategy());
         initialReceiveCommandBuilder.match(new CheckForActivityStrategy());
@@ -556,10 +560,10 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
         if (snapshotter != null) {
             snapshotter.cancel();
         }
-      /* check in the next X minutes and therefore
-       * - stay in-memory for a short amount of minutes after deletion
-       * - get a Snapshot when removed from memory
-       */
+        /* check in the next X minutes and therefore
+         * - stay in-memory for a short amount of minutes after deletion
+         * - get a Snapshot when removed from memory
+         */
         scheduleCheckForPolicyActivity(300);
     }
 
@@ -783,7 +787,6 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
     /**
      * This strategy handles the {@link RetrievePolicy} command.
-     *
      */
     @NotThreadSafe
     private abstract class WithIdReceiveStrategy<T extends WithId> extends AbstractReceiveStrategy<T> {
@@ -807,7 +810,6 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
     /**
      * This strategy handles the {@link CreatePolicy} command for a new Policy.
-     *
      */
     @NotThreadSafe
     private final class CreatePolicyStrategy extends WithIdReceiveStrategy<CreatePolicy> {
@@ -830,12 +832,13 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
                 newPolicyBuilder.setLifecycle(PolicyLifecycle.ACTIVE);
             }
 
-            final Policy policy = newPolicyBuilder.build();
-            final PoliciesValidator validator = PoliciesValidator.newInstance(policy);
+            final Policy newPolicyWithLifecycle = newPolicyBuilder.build();
+            final PoliciesValidator validator = PoliciesValidator.newInstance(newPolicyWithLifecycle);
 
             if (validator.isValid()) {
-                final PolicyCreated policyCreated = PolicyCreated.of(policy, getNextRevision(), getEventTimestamp(),
-                        dittoHeaders);
+                final PolicyCreated policyCreated =
+                        PolicyCreated.of(newPolicyWithLifecycle, getNextRevision(), getEventTimestamp(),
+                                dittoHeaders);
 
                 processEvent(policyCreated, event -> {
                     notifySender(CreatePolicyResponse.of(policyId, PolicyPersistenceActor.this.policy, dittoHeaders));
@@ -858,7 +861,6 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
     /**
      * This strategy handles the {@link CreatePolicy} command for an already existing Policy.
-     *
      */
     @NotThreadSafe
     private final class PolicyConflictStrategy extends AbstractReceiveStrategy<CreatePolicy> {
@@ -894,7 +896,6 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
     /**
      * This strategy handles the {@link ModifyPolicy} command for an already existing Policy.
-     *
      */
     @NotThreadSafe
     private final class ModifyPolicyStrategy extends WithIdReceiveStrategy<ModifyPolicy> {
@@ -908,14 +909,15 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
         @Override
         protected void doApply(final ModifyPolicy command) {
-            final Policy policy = command.getPolicy();
+            final Policy modifiedPolicy = command.getPolicy();
             final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-            final PoliciesValidator validator = PoliciesValidator.newInstance(policy);
+            final PoliciesValidator validator = PoliciesValidator.newInstance(modifiedPolicy);
 
             if (validator.isValid()) {
-                final PolicyModified policyModified = PolicyModified.of(policy, getNextRevision(), getEventTimestamp(),
-                        dittoHeaders);
+                final PolicyModified policyModified =
+                        PolicyModified.of(modifiedPolicy, getNextRevision(), getEventTimestamp(),
+                                dittoHeaders);
                 processEvent(policyModified,
                         event -> notifySender(ModifyPolicyResponse.modified(policyId, dittoHeaders)));
             } else {
@@ -931,7 +933,6 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
     /**
      * This strategy handles the {@link RetrievePolicy} command.
-     *
      */
     @NotThreadSafe
     private final class RetrievePolicyStrategy extends WithIdReceiveStrategy<RetrievePolicy> {
@@ -956,7 +957,6 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
     /**
      * This strategy handles the {@link DeletePolicy} command.
-     *
      */
     @NotThreadSafe
     private final class DeletePolicyStrategy extends WithIdReceiveStrategy<DeletePolicy> {
@@ -1020,7 +1020,6 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
     /**
      * This strategy handles the {@link ModifyPolicyEntry} command.
-     *
      */
     @NotThreadSafe
     private final class ModifyPolicyEntryStrategy extends WithIdReceiveStrategy<ModifyPolicyEntry> {
@@ -1071,7 +1070,6 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
     /**
      * This strategy handles the {@link DeletePolicyEntry} command.
-     *
      */
     @NotThreadSafe
     private final class DeletePolicyEntryStrategy extends WithIdReceiveStrategy<DeletePolicyEntry> {
@@ -1118,7 +1116,6 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
     /**
      * This strategy handles the {@link RetrievePolicyEntries} command.
-     *
      */
     @NotThreadSafe
     private final class RetrievePolicyEntriesStrategy extends WithIdReceiveStrategy<RetrievePolicyEntries> {
@@ -1143,7 +1140,6 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
     /**
      * This strategy handles the {@link RetrievePolicyEntry} command.
-     *
      */
     @NotThreadSafe
     private final class RetrievePolicyEntryStrategy extends WithIdReceiveStrategy<RetrievePolicyEntry> {
@@ -1173,7 +1169,6 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
     /**
      * This strategy handles the {@link ModifySubjects} command.
-     *
      */
     @NotThreadSafe
     private final class ModifySubjectsStrategy extends WithIdReceiveStrategy<ModifySubjects> {
@@ -1217,7 +1212,6 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
     /**
      * This strategy handles the {@link RetrieveSubjects} command.
-     *
      */
     @NotThreadSafe
     private final class RetrieveSubjectsStrategy extends WithIdReceiveStrategy<RetrieveSubjects> {
@@ -1235,7 +1229,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             if (optionalEntry.isPresent()) {
                 notifySender(
                         RetrieveSubjectsResponse.of(policyId, command.getLabel(), optionalEntry.get().getSubjects(),
-                        command.getDittoHeaders()));
+                                command.getDittoHeaders()));
             } else {
                 policyEntryNotFound(command.getLabel(), command.getDittoHeaders());
             }
@@ -1249,7 +1243,6 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
     /**
      * This strategy handles the {@link ModifySubject} command.
-     *
      */
     @NotThreadSafe
     private final class ModifySubjectStrategy extends WithIdReceiveStrategy<ModifySubject> {
@@ -1305,7 +1298,6 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
     /**
      * This strategy handles the {@link DeleteSubject} command.
-     *
      */
     @NotThreadSafe
     private final class DeleteSubjectStrategy extends WithIdReceiveStrategy<DeleteSubject> {
@@ -1337,7 +1329,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
                         processEvent(subjectDeleted,
                                 event -> notifySender(DeleteSubjectResponse.of(policyId, label, subjectId,
-                                dittoHeaders)));
+                                        dittoHeaders)));
                     } else {
                         policyEntryInvalid(label, validator.getReason().orElse(null), dittoHeaders);
                     }
@@ -1357,7 +1349,6 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
     /**
      * This strategy handles the {@link RetrieveSubject} command.
-     *
      */
     @NotThreadSafe
     private final class RetrieveSubjectStrategy extends WithIdReceiveStrategy<RetrieveSubject> {
@@ -1394,7 +1385,6 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
     /**
      * This strategy handles the {@link ModifyResources} command.
-     *
      */
     @NotThreadSafe
     private final class ModifyResourcesStrategy extends WithIdReceiveStrategy<ModifyResources> {
@@ -1439,7 +1429,6 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
     /**
      * This strategy handles the {@link RetrieveResources} command.
-     *
      */
     @NotThreadSafe
     private final class RetrieveResourcesStrategy extends WithIdReceiveStrategy<RetrieveResources> {
@@ -1470,7 +1459,6 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
     /**
      * This strategy handles the {@link ModifyResource} command.
-     *
      */
     @NotThreadSafe
     private final class ModifyResourceStrategy extends WithIdReceiveStrategy<ModifyResource> {
@@ -1527,7 +1515,6 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
     /**
      * This strategy handles the {@link DeleteResource} command.
-     *
      */
     @NotThreadSafe
     private final class DeleteResourceStrategy extends WithIdReceiveStrategy<DeleteResource> {
@@ -1580,7 +1567,6 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
     /**
      * This strategy handles the {@link RetrieveResource} command.
-     *
      */
     @NotThreadSafe
     private final class RetrieveResourceStrategy extends WithIdReceiveStrategy<RetrieveResource> {
@@ -1619,7 +1605,6 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
     /**
      * This strategy handles the {@link SudoRetrievePolicy} command w/o valid authorization context.
-     *
      */
     @NotThreadSafe
     private final class SudoRetrievePolicyStrategy extends WithIdReceiveStrategy<SudoRetrievePolicy> {
@@ -1644,7 +1629,6 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
     /**
      * This strategy handles the success of saving a snapshot by logging the Policy's ID.
-     *
      */
     @NotThreadSafe
     private final class SaveSnapshotSuccessStrategy extends AbstractReceiveStrategy<SaveSnapshotSuccess> {
@@ -1706,7 +1690,6 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
     /**
      * This strategy handles the failure of saving a snapshot by logging an error.
-     *
      */
     @NotThreadSafe
     private final class SaveSnapshotFailureStrategy extends AbstractReceiveStrategy<SaveSnapshotFailure> {
@@ -1734,7 +1717,6 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
     /**
      * This strategy handles the success of deleting a snapshot by logging an info.
-     *
      */
     @NotThreadSafe
     private final class DeleteSnapshotSuccessStrategy extends AbstractReceiveStrategy<DeleteSnapshotSuccess> {
@@ -1755,7 +1737,6 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
     /**
      * This strategy handles the failure of deleting a snapshot by logging an error.
-     *
      */
     @NotThreadSafe
     private final class DeleteSnapshotFailureStrategy extends AbstractReceiveStrategy<DeleteSnapshotFailure> {
@@ -1777,7 +1758,6 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
     /**
      * This strategy handles the success of deleting messages by logging an info.
-     *
      */
     @NotThreadSafe
     private final class DeleteMessagesSuccessStrategy extends AbstractReceiveStrategy<DeleteMessagesSuccess> {
@@ -1797,7 +1777,6 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
     /**
      * This strategy handles the failure of deleting messages by logging an error.
-     *
      */
     @NotThreadSafe
     private final class DeleteMessagesFailureStrategy extends AbstractReceiveStrategy<DeleteMessagesFailure> {
@@ -1820,7 +1799,6 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
     /**
      * This strategy handles all commands which were not explicitly handled beforehand. Those commands are logged as
      * unknown messages and are marked as unhandled.
-     *
      */
     @NotThreadSafe
     private final class MatchAnyAfterInitializeStrategy extends AbstractReceiveStrategy<Object> {
@@ -1843,7 +1821,6 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
      * This strategy handles all messages which were received before the Policy was initialized. Those messages are
      * logged
      * as unexpected messages and cause the actor to be stopped.
-     *
      */
     @NotThreadSafe
     private final class MatchAnyDuringInitializeStrategy extends AbstractReceiveStrategy<Object> {
@@ -1875,7 +1852,6 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
     /**
      * This strategy handles any messages for a previous deleted Policy.
-     *
      */
     @NotThreadSafe
     private final class PolicyNotFoundStrategy extends AbstractReceiveStrategy<Object> {
@@ -1901,7 +1877,6 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
      * This strategy handles the {@link CheckForActivity} message which checks for activity of the Actor and
      * terminates
      * itself if there was no activity since the last check.
-     *
      */
     @NotThreadSafe
     private final class CheckForActivityStrategy extends AbstractReceiveStrategy<CheckForActivity> {
@@ -1922,14 +1897,13 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
                 // no more activity during initialization, shutting down.
                 shutdown("Uninitialized policy '{}' was not accessed in a while. Shutting Actor down..", policyId);
             } else {
-                boolean isSnapshotSavedForDeletedThing = false;
-                // if there was any modifying activity since the last CheckForActivity message:
-                if (lastSequenceNr() > (message.getCurrentSequenceNr())) {
-                    isSnapshotSavedForDeletedThing = isPolicyDeleted();
+                boolean isSnapshotSavedForDeletedPolicy = false;
+                final boolean policyDeleted = isPolicyDeleted();
+                // make a snapshot if there is any activity since last check or if the policy was deleted
+                if (lastSequenceNr() > (message.getCurrentSequenceNr()) || policyDeleted) {
+                    isSnapshotSavedForDeletedPolicy = policyDeleted;
                     doSaveSnapshot(() -> {
-                        /* don't use isSnapshotSavedForDeletedThing variable here, because thing state might have
-                           changed in the meantime */
-                        if (isPolicyDeleted()) {
+                        if (policyDeleted) {
                             shutdown("Thing '{}' was deleted recently. Shutting Actor down..", policyId);
                         }
                     });
@@ -1937,7 +1911,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
                 if (isPolicyActive()) {
                     shutdown("Thing '{}' was not accessed in a while. Shutting Actor down..", policyId);
-                } else if (!isSnapshotSavedForDeletedThing) {
+                } else if (!isSnapshotSavedForDeletedPolicy) {
                     shutdown("Thing '{}' was deleted recently. Shutting Actor down..", policyId);
                 }
             }

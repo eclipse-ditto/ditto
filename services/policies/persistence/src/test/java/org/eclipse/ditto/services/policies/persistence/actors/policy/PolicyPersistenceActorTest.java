@@ -33,6 +33,7 @@ import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePoli
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicyResponse;
 import org.eclipse.ditto.services.policies.persistence.TestConstants;
 import org.eclipse.ditto.services.policies.persistence.actors.PersistenceActorTestBase;
+import org.eclipse.ditto.services.policies.persistence.serializer.PolicyMongoSnapshotAdapter;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyEntryModificationInvalidException;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyEntryNotAccessibleException;
@@ -111,7 +112,9 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
         final Policy policy = createPolicyWithRandomId();
         final CreatePolicy createPolicyCommand = CreatePolicy.of(policy, dittoHeadersMockV2);
 
-        final Props props = PolicyPersistenceActor.props(policyIdOfActor, pubSubMediator, policyCacheFacade);
+        final PolicyMongoSnapshotAdapter snapshotAdapter = new PolicyMongoSnapshotAdapter();
+        final Props props = PolicyPersistenceActor.props(policyIdOfActor, snapshotAdapter, pubSubMediator,
+                policyCacheFacade);
         final TestActorRef<PolicyPersistenceActor> underTest = TestActorRef.create(actorSystem, props);
         final PolicyPersistenceActor policyPersistenceActor = underTest.underlyingActor();
         final PartialFunction<Object, BoxedUnit> receiveCommand = policyPersistenceActor.receiveCommand();
@@ -891,7 +894,8 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     }
 
     private ActorRef createPersistenceActorFor(final String policyId) {
-        final Props props = PolicyPersistenceActor.props(policyId, pubSubMediator, policyCacheFacade);
+        final PolicyMongoSnapshotAdapter snapshotAdapter = new PolicyMongoSnapshotAdapter();
+        final Props props = PolicyPersistenceActor.props(policyId, snapshotAdapter, pubSubMediator, policyCacheFacade);
         return actorSystem.actorOf(props);
     }
 }

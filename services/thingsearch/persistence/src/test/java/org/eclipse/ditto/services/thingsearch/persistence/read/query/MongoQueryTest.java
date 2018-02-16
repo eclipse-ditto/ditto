@@ -23,7 +23,6 @@ import java.util.List;
 
 import org.bson.BsonDocument;
 import org.bson.conversions.Bson;
-import org.eclipse.ditto.services.thingsearch.persistence.BsonUtil;
 import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Criteria;
 import org.eclipse.ditto.services.thingsearch.querymodel.expression.SimpleFieldExpressionImpl;
 import org.eclipse.ditto.services.thingsearch.querymodel.expression.SortFieldExpression;
@@ -97,8 +96,10 @@ public final class MongoQueryTest {
     }
 
     private static void assertBson(final Bson expected, final Bson actual) {
-        final BsonDocument expectedDoc = BsonUtil.toBsonDocument(expected);
-        final BsonDocument actualDoc = BsonUtil.toBsonDocument(actual);
+        final BsonDocument expectedDoc =
+                org.eclipse.ditto.services.utils.persistence.mongo.BsonUtil.toBsonDocument(expected);
+        final BsonDocument actualDoc =
+                org.eclipse.ditto.services.utils.persistence.mongo.BsonUtil.toBsonDocument(actual);
         assertThat(actualDoc).isEqualTo(expectedDoc);
     }
 

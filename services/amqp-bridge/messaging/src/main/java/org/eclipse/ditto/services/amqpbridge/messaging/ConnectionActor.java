@@ -24,10 +24,10 @@ import javax.naming.NamingException;
 import org.eclipse.ditto.model.amqpbridge.AmqpConnection;
 import org.eclipse.ditto.model.amqpbridge.ConnectionStatus;
 import org.eclipse.ditto.services.amqpbridge.messaging.persistence.ConnectionData;
-import org.eclipse.ditto.services.amqpbridge.messaging.persistence.MongoConnectionSnapshotAdapter;
+import org.eclipse.ditto.services.amqpbridge.messaging.persistence.ConnectionMongoSnapshotAdapter;
 import org.eclipse.ditto.services.amqpbridge.util.ConfigKeys;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.services.utils.akka.persistence.SnapshotAdapter;
+import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.signals.commands.amqpbridge.AmqpBridgeCommand;
 import org.eclipse.ditto.signals.commands.amqpbridge.exceptions.ConnectionFailedException;
 import org.eclipse.ditto.signals.commands.amqpbridge.exceptions.ConnectionNotAccessibleException;
@@ -116,7 +116,7 @@ final class ConnectionActor extends AbstractPersistentActor implements Exception
             throw new ConfigurationException(String.format("Config setting '%s' must be positive, but is: %d.",
                     ConfigKeys.Connection.SNAPSHOT_THRESHOLD, snapshotThreshold));
         }
-        snapshotAdapter = new MongoConnectionSnapshotAdapter(getContext().system());
+        snapshotAdapter = new ConnectionMongoSnapshotAdapter();
 
         connectionCreatedBehaviour = createConnectionCreatedBehaviour();
         connectionStatus = ConnectionStatus.CLOSED;

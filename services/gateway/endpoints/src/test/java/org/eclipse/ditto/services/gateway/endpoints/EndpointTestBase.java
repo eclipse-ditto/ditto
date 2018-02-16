@@ -29,7 +29,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.services.utils.health.Health;
+import org.eclipse.ditto.services.utils.health.StatusInfo;
 import org.eclipse.ditto.services.utils.health.cluster.ClusterStatus;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.WithEntity;
@@ -115,7 +115,7 @@ public abstract class EndpointTestBase extends JUnitRouteTest {
     }
 
     protected ActorRef createHealthCheckingActorMock() {
-        return createDummyResponseActor(message -> Optional.of(Health.newInstance()));
+        return createDummyResponseActor(message -> Optional.of(StatusInfo.fromStatus(StatusInfo.Status.UP)));
     }
 
     protected HttpRequest withDevopsCredentials(final HttpRequest httpRequest) {

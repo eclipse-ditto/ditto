@@ -54,6 +54,7 @@ import akka.NotUsed;
 import akka.actor.ActorSystem;
 import akka.event.LoggingAdapter;
 import akka.stream.ActorMaterializer;
+import akka.stream.Materializer;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 import akka.testkit.javadsl.TestKit;
@@ -111,7 +112,12 @@ public abstract class AbstractThingSearchPersistenceITBase {
     private MongoThingsSearchPersistence provideReadPersistence() {
         final MongoThingsSearchPersistence mongoThingsSearchPersistence =
                 new MongoThingsSearchPersistence(provideClientWrapper(), actorSystem);
-        mongoThingsSearchPersistence.initIndexes();
+        try {
+            // explicitly trigger CompletableFuture to make sure that indices are created before test runs
+            mongoThingsSearchPersistence.initializeIndices().toCompletableFuture().get();
+        } catch (final InterruptedException | ExecutionException e) {
+            throw new IllegalStateException(e);
+        }
         return mongoThingsSearchPersistence;
     }
 
@@ -268,8 +274,12 @@ public abstract class AbstractThingSearchPersistenceITBase {
         runBlocking(writePersistence.delete(thingId, revision));
     }
 
-    protected MongoClientWrapper getClient() {
+    protected final MongoClientWrapper getClient() {
         return mongoClient;
+    }
+
+    protected final Materializer getMaterializer() {
+        return actorMaterializer;
     }
 
     private <T> List<T> waitFor(final Source<T, ?> source) {

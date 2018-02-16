@@ -69,7 +69,6 @@ import org.bson.BsonNull;
 import org.bson.BsonString;
 import org.bson.Document;
 import org.bson.conversions.Bson;
-import org.eclipse.ditto.services.thingsearch.persistence.BsonUtil;
 import org.eclipse.ditto.services.thingsearch.persistence.read.criteria.visitors.CreateBsonVisitor;
 import org.eclipse.ditto.services.thingsearch.persistence.read.criteria.visitors.CreatePolicyRestrictionBsonVisitor;
 import org.eclipse.ditto.services.thingsearch.persistence.read.criteria.visitors.CreateUnwoundBsonVisitor;
@@ -389,7 +388,7 @@ final class PolicyRestrictedMongoSearchAggregation implements PolicyRestrictedSe
      */
     public String prettyPrintPipeline() {
         return "[" + aggregationPipeline.stream()
-                .map(BsonUtil::toBsonDocument)
+                .map(bsonObj -> org.eclipse.ditto.services.utils.persistence.mongo.BsonUtil.toBsonDocument(bsonObj))
                 .map(BsonDocument::toJson)
                 .collect(Collectors.joining(",\n")) + "]";
     }
