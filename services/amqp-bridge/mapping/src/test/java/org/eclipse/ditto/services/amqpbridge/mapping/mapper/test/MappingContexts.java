@@ -11,22 +11,36 @@
  */
 package org.eclipse.ditto.services.amqpbridge.mapping.mapper.test;
 
-import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.eclipse.ditto.model.amqpbridge.AmqpBridgeModelFactory;
 import org.eclipse.ditto.model.amqpbridge.MappingContext;
+import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMapper;
 
 public class MappingContexts {
 
-    public final static MappingContext NOOP_FUNCTION =
-            AmqpBridgeModelFactory.newMappingContext("NoOpMapper", "NoOpMapper", Collections.emptyMap());
+    public static MappingContext mock(final String contentType, final boolean
+            isContentTypeRequired, final String engine, Map<String, String> options)
+    {
+        Map<String, String> opts = new HashMap<>(options);
+        opts.put(MessageMapper.OPT_CONTENT_TYPE, contentType);
+        opts.put(MessageMapper.OPT_CONTENT_TYPE_REQUIRED, String.valueOf(isContentTypeRequired));
 
-    public final static MappingContext NOOP_CLASS = AmqpBridgeModelFactory.newMappingContext("NoOpMapper",
-            NoOpMapper.class.getCanonicalName(), Collections.emptyMap());
+        return AmqpBridgeModelFactory.newMappingContext(contentType, engine, opts);
+    }
 
-    public final static MappingContext MISSING_MAPPER = AmqpBridgeModelFactory.newMappingContext("MissingMapper",
-            "MissingMapper", Collections.emptyMap());
+    public static MappingContext mock(final String contentType, final boolean
+            isContentTypeRequired, final Class<? extends MessageMapper> messageMapperClass, Map<String, String> opts)
+    {
+        return mock(contentType, isContentTypeRequired, messageMapperClass.getCanonicalName(), opts);
+    }
 
-    public final static MappingContext ILLEGAL_MAPPER = AmqpBridgeModelFactory.newMappingContext("IllegalMapper",
-            MappingContext.class.getCanonicalName(), Collections.emptyMap());
+    public static MappingContext mock(final String contentType, final boolean isContentTypeRequired,
+            final boolean isValid)
+    {
+        Map<String, String> opts = new HashMap<>();
+        opts.put(MockMapper.OPT_IS_VALID, String.valueOf(isValid));
+        return mock(contentType, isContentTypeRequired, MockMapper.class, opts);
+    }
 }

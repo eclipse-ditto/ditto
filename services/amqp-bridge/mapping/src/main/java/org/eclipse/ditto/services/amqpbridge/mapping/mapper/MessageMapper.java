@@ -32,6 +32,7 @@ import com.google.common.base.Converter;
 public abstract class MessageMapper extends Converter<InternalMessage, Adaptable> {
 
     public static final String OPT_CONTENT_TYPE_REQUIRED = "contentTypeRequired";
+    public static final String OPT_CONTENT_TYPE = "contentType";
 
     public static final String CONTENT_TYPE_KEY = "Content-Type";
 
@@ -47,11 +48,6 @@ public abstract class MessageMapper extends Converter<InternalMessage, Adaptable
      * Not final as it might be set via dynamic configuration.
      */
     private boolean isContentTypeRequired;
-
-    protected MessageMapper(@Nonnull final String contentType, final boolean isContentTypeRequired) {
-        setContentType(contentType);
-        setContentTypeRequired(isContentTypeRequired);
-    }
 
     public final String getContentType() {
         return contentType;
@@ -85,7 +81,6 @@ public abstract class MessageMapper extends Converter<InternalMessage, Adaptable
     protected final void setContentTypeRequired(final boolean contentTypeRequired) {
         isContentTypeRequired = contentTypeRequired;
     }
-
 
 
     @SuppressWarnings("WeakerAccess")
@@ -128,9 +123,37 @@ public abstract class MessageMapper extends Converter<InternalMessage, Adaptable
      * @param configuration the configuration
      * @throws IllegalArgumentException if the configuration is invalid.
      */
-    public abstract void configure(@Nonnull final MessageMapperConfiguration configuration);
+    public final void configure(@Nonnull final MessageMapperConfiguration configuration){
+        checkNotNull(configuration);
+        doConfigure(configuration);
 
+        final boolean isContentTypeRequiredValue = configuration.findProperty(OPT_CONTENT_TYPE_REQUIRED).map
+                (Boolean::valueOf).orElse(true);
+        final String contentTypeValue = configuration.findProperty(OPT_CONTENT_TYPE).orElseThrow(() ->
+                new IllegalArgumentException(String.format("Missing option <%s>", OPT_CONTENT_TYPE)));
 
+        setContentTypeRequired(isContentTypeRequiredValue);
+        setContentType(contentTypeValue);
+    }
+
+    protected abstract void doConfigure(@Nonnull final MessageMapperConfiguration configuration);
+
+    protected abstract Adaptable doForwardMap(final InternalMessage internalMessage);
+
+    protected abstract InternalMessage doBackwardMap(final Adaptable adaptable);
+
+    @Override
+    protected final Adaptable doForward(final InternalMessage internalMessage) {
+        requireMatchingContentType(internalMessage);
+        return doForwardMap(internalMessage);
+    }
+
+    @Override
+    protected final InternalMessage doBackward(final Adaptable adaptable) {
+        return doBackwardMap(adaptable);
+    }
+
+    @SuppressWarnings("NullableProblems")
     @Override
     public boolean equals(final Object o) {
         if (this == o) return true;

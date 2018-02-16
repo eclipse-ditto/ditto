@@ -12,10 +12,7 @@
 package org.eclipse.ditto.services.amqpbridge.messaging;
 
 
-import java.lang.reflect.InvocationTargetException;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -32,6 +29,7 @@ import org.eclipse.ditto.services.amqpbridge.mapping.mapper.DittoMessageMapper;
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMapper;
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMapperFactory;
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMapperRegistry;
+import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMappers;
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.PayloadMappers;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -90,11 +88,14 @@ public final class CommandProcessorActor extends AbstractActor {
                         -> log.info("Trace for {} expired.", notification.getKey()))
                 .build();
 
-        registry = new MessageMapperRegistry(new DittoMessageMapper(false));
         final MessageMapperFactory mapperFactory = new MessageMapperFactory(
-                (ExtendedActorSystem) getContext().getSystem(), PayloadMappers.class);
-        registry.addAll(loadMappers(mapperFactory, mappingContexts).values());
+                (ExtendedActorSystem) getContext().getSystem(), MessageMappers.class, log);
+        registry = mapperFactory.loadRegistry(new DittoMessageMapper(false), mappingContexts);
 
+        log.info("Configured for processing messages with the following content types: {}",
+                registry.stream().map(MessageMapper::getContentType).collect(Collectors.toList()));
+        log.info("Interpreting messages with missing content type as '{}'",
+                registry.getDefaultMapper().getContentType());
     }
 
     /**
@@ -204,32 +205,14 @@ public final class CommandProcessorActor extends AbstractActor {
             headers.getCorrelationId().ifPresent(s -> LogUtil.enhanceLogWithCorrelationId(log, s));
             return getTracedAdaptableCommandConverter(traceContext).convert(adaptable).setDittoHeaders(headers);
         } catch (Exception e) {
-            throw new IllegalArgumentException("Parsing message failed", e);
+            throw new IllegalArgumentException("Parsing message failed: " + e.getMessage(), e);
         }
     }
 
     private Converter<InternalMessage, Adaptable> getMapper(final InternalMessage message,
             final TraceContext traceContext) {
-        return ConverterTraceWrapper.wrap(registry.getOrDefault(message),
+        return ConverterTraceWrapper.wrap(registry.selectMapper(message).get(),
                 () -> traceContext.startSegment("mapping", "payload-mapping", "commandProcessor"));
-    }
-
-
-    private Map<String, MessageMapper> loadMappers(final MessageMapperFactory factory,
-            final List<MappingContext> mappingContexts) {
-        return mappingContexts.stream().collect(Collectors.toMap(MappingContext::getContentType, mappingContext -> {
-            try {
-                final Optional<MessageMapper> mapper = factory.findAndCreateInstanceFor(mappingContext);
-                if (!mapper.isPresent()) {
-                    log.debug("No PayloadMapper found for context: <{}>", mappingContext);
-                    return null;
-                }
-                return mapper.get();
-            } catch (InvocationTargetException | IllegalAccessException | ClassCastException | InstantiationException e) {
-                log.error(e, "Could not initialize PayloadMapper: <{}>", e.getMessage());
-                return null;
-            }
-        }));
     }
 
 

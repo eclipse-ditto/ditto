@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.amqpbridge.messaging;
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -22,6 +23,7 @@ import org.apache.qpid.jms.message.JmsMessage;
 import org.apache.qpid.jms.provider.amqp.message.AmqpJmsTextMessageFacade;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.amqpbridge.InternalMessage;
 import org.eclipse.ditto.model.amqpbridge.MappingContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -119,5 +121,34 @@ public class CommandProcessorActorTest {
             assertThat(((ModifyAttribute) command).getAttributePointer()).isEqualTo(JsonPointer.of("/foo"));
             assertThat(((ModifyAttribute) command).getAttributeValue()).isEqualTo(JsonValue.of(plainPayload));
         }};
+    }
+
+    @Test
+    public void onInternalMessageWithoutContentType() throws IdConversionException {
+        new TestKit(actorSystem) {{
+            ActorRef underTest = setupActor(getTestActor(), new ArrayList<>());
+
+            InternalMessage in = new InternalMessage.Builder(Collections.emptyMap()).withText("").build();
+            underTest.tell(in,null);
+            expectNoMsg();
+        }};
+    }
+
+
+    private ActorRef setupActor(final ActorRef testActor, final List<MappingContext> mappingContexts) {
+        final String targetActorPath = testActor.path().toStringWithoutAddress();
+        pubSubMediator.tell(new DistributedPubSubMediator.Put(testActor), null);
+
+        final Props amqpCommandProcessorProps =
+                CommandProcessorActor.props(pubSubMediator, targetActorPath,
+                        AuthorizationSubject.newInstance("foo:bar"), mappingContexts);
+        final String amqpCommandProcessorName = CommandProcessorActor.ACTOR_NAME_PREFIX + "foo";
+
+        final DefaultResizer resizer = new DefaultResizer(1, 5);
+
+        return actorSystem.actorOf(new RoundRobinPool(2)
+                .withDispatcher("command-processor-dispatcher")
+                .withResizer(resizer)
+                .props(amqpCommandProcessorProps), amqpCommandProcessorName);
     }
 }

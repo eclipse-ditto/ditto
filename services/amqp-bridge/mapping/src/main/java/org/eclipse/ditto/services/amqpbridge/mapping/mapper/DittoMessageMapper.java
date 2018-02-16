@@ -65,17 +65,16 @@ public class DittoMessageMapper extends MessageMapper {
      * @param isContentTypeRequired if content type check should be performed prior mapping
      */
     public DittoMessageMapper(final boolean isContentTypeRequired) {
-        super(DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE, isContentTypeRequired);
+        setContentTypeRequired(isContentTypeRequired);
     }
 
     @Override
-    public void configure(@Nonnull final MessageMapperConfiguration configuration) {
-        configuration.findProperty(OPT_CONTENT_TYPE_REQUIRED).map(Boolean::valueOf)
-                .ifPresent(this::setContentTypeRequired);
+    public void doConfigure(@Nonnull final MessageMapperConfiguration configuration) {
+
     }
 
     @Override
-    protected Adaptable doForward(final InternalMessage message) {
+    protected Adaptable doForwardMap(@Nonnull final InternalMessage message) {
         requireMatchingContentType(message);
 
         if (!message.isTextMessage()) {
@@ -87,7 +86,7 @@ public class DittoMessageMapper extends MessageMapper {
     }
 
     @Override
-    protected InternalMessage doBackward(final Adaptable adaptable) {
+    protected InternalMessage doBackwardMap(@Nonnull final Adaptable adaptable) {
         final Map<String, String> headers = new LinkedHashMap<>(adaptable.getHeaders().orElse(DittoHeaders.empty()));
         headers.put(MessageMapper.CONTENT_TYPE_KEY, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
         return new InternalMessage.Builder(headers)
