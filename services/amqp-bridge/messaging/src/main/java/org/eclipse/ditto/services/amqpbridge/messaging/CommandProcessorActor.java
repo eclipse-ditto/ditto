@@ -12,10 +12,12 @@
 package org.eclipse.ditto.services.amqpbridge.messaging;
 
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.services.models.amqpbridge.AmqpBridgeMessagingConstants.GATEWAY_PROXY_ACTOR_PATH;
 
-import java.lang.reflect.InvocationTargetException;
+import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -30,10 +32,10 @@ import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.ConverterTraceWrapper;
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.DittoMessageMapper;
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMapper;
+import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMapperConfiguration;
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMapperFactory;
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMapperRegistry;
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMappers;
-import org.eclipse.ditto.services.amqpbridge.mapping.mapper.PayloadMappers;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
@@ -90,12 +92,18 @@ public final class CommandProcessorActor extends AbstractActor {
 
         final MessageMapperFactory mapperFactory = new MessageMapperFactory(
                 (ExtendedActorSystem) getContext().getSystem(), MessageMappers.class, log);
-        registry = mapperFactory.loadRegistry(new DittoMessageMapper(false), mappingContexts);
+        registry = mapperFactory.loadRegistry(createDefaultMapper(), mappingContexts);
 
         log.info("Configured for processing messages with the following content types: {}",
                 registry.stream().map(MessageMapper::getContentType).collect(Collectors.toList()));
-        log.info("Interpreting messages with missing content type as '{}'",
-                registry.getDefaultMapper().getContentType());
+
+        final MessageMapper defaultMapper = registry.getDefaultMapper();
+        if (Objects.nonNull(defaultMapper)) {
+            log.info("Interpreting messages with missing content type as '{}'",
+                    defaultMapper.getContentType());
+        } else {
+            log.warning("No default mapper configured!");
+        }
     }
 
     /**
@@ -146,7 +154,7 @@ public final class CommandProcessorActor extends AbstractActor {
                     getSelf());
         } catch (Exception e) {
             traceContext.finishWithError(e);
-            log.info("Parsing message failed: " + e.getMessage());
+            log.info(e.getMessage());
         }
     }
 
@@ -195,7 +203,11 @@ public final class CommandProcessorActor extends AbstractActor {
         });
     }
 
+    @SuppressWarnings("ConstantConditions") // when message is non null, a converter always returns a non null value
     private Command<?> parseMessage(final InternalMessage message, final TraceContext traceContext) {
+        checkNotNull(message);
+        checkNotNull(traceContext);
+
         DittoHeaders headers = DittoHeaders.of(message.getHeaders());
 
         try {
@@ -210,7 +222,9 @@ public final class CommandProcessorActor extends AbstractActor {
 
     private Converter<InternalMessage, Adaptable> getMapper(final InternalMessage message,
             final TraceContext traceContext) {
-        return ConverterTraceWrapper.wrap(registry.selectMapper(message).get(),
+        final MessageMapper mapper = registry.selectMapper(message)
+                .orElseThrow(() -> new IllegalArgumentException("No mapper found for message: " + message));
+        return ConverterTraceWrapper.wrap(mapper,
                 () -> traceContext.startSegment("mapping", "payload-mapping", "commandProcessor"));
     }
 
@@ -225,5 +239,11 @@ public final class CommandProcessorActor extends AbstractActor {
         return ConverterTraceWrapper.wrap(ADAPTABLE_COMMAND_CONVERTER,
                 () -> traceContext.startSegment("protocoladapter", "payload-mapping", "commandProcessor")
         );
+    }
+
+    private static MessageMapper createDefaultMapper() {
+        MessageMapperConfiguration cfg = MessageMapperConfiguration.from(
+                Collections.singletonMap(MessageMapper.OPT_CONTENT_TYPE_REQUIRED, String.valueOf(false)));
+        return new DittoMessageMapper(cfg);
     }
 }

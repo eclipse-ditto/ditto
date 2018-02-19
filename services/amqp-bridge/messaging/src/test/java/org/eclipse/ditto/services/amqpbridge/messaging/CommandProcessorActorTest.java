@@ -15,17 +15,26 @@ import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.qpid.jms.exceptions.IdConversionException;
 import org.apache.qpid.jms.message.JmsMessage;
 import org.apache.qpid.jms.provider.amqp.message.AmqpJmsTextMessageFacade;
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.amqpbridge.InternalMessage;
 import org.eclipse.ditto.model.amqpbridge.MappingContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.common.DittoConstants;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
+import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
+import org.eclipse.ditto.protocoladapter.ProtocolFactory;
+import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMapper;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttribute;
 import org.junit.AfterClass;
@@ -124,12 +133,34 @@ public class CommandProcessorActorTest {
     }
 
     @Test
-    public void onInternalMessageWithoutContentType() throws IdConversionException {
+    public void onInternalMessageWithoutContentTypeAndInvalidText() throws IdConversionException {
+
         new TestKit(actorSystem) {{
             ActorRef underTest = setupActor(getTestActor(), new ArrayList<>());
-
             InternalMessage in = new InternalMessage.Builder(Collections.emptyMap()).withText("").build();
-            underTest.tell(in,null);
+            underTest.tell(in, null);
+            expectNoMsg();
+        }};
+    }
+
+    @Test
+    public void onInternalMessageWithoutContentType() throws IdConversionException {
+        // building a json ditto protocol message
+        Map<String, String> headers = new HashMap<>();
+        headers.put(MessageMapper.CONTENT_TYPE_KEY, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
+        JsonifiableAdaptable adaptable = ProtocolFactory.wrapAsJsonifiableAdaptable(ProtocolFactory.newAdaptableBuilder
+                (ProtocolFactory.newTopicPathBuilder("asd:jkl").things().twin().commands().modify().build())
+                .withHeaders(DittoHeaders.of(headers))
+                .withPayload(ProtocolFactory
+                        .newPayloadBuilder(JsonPointer.of("/features"))
+                        .withValue(JsonFactory.nullLiteral())
+                        .build())
+                .build());
+
+        new TestKit(actorSystem) {{
+            ActorRef underTest = setupActor(getTestActor(), new ArrayList<>());
+            InternalMessage in = new InternalMessage.Builder(Collections.emptyMap()).withText(adaptable.toJsonString()).build();
+            underTest.tell(in, null);
             expectNoMsg();
         }};
     }
@@ -140,8 +171,8 @@ public class CommandProcessorActorTest {
         pubSubMediator.tell(new DistributedPubSubMediator.Put(testActor), null);
 
         final Props amqpCommandProcessorProps =
-                CommandProcessorActor.props(pubSubMediator, targetActorPath,
-                        AuthorizationSubject.newInstance("foo:bar"), mappingContexts);
+                CommandProcessorActor.props(pubSubMediator, AuthorizationSubject.newInstance("foo:bar"),
+                        mappingContexts);
         final String amqpCommandProcessorName = CommandProcessorActor.ACTOR_NAME_PREFIX + "foo";
 
         final DefaultResizer resizer = new DefaultResizer(1, 5);
