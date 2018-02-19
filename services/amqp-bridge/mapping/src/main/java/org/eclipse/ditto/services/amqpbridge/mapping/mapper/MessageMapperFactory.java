@@ -17,6 +17,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -27,7 +28,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.amqpbridge.MappingContext;
 
-import akka.actor.ExtendedActorSystem;
+import akka.actor.DynamicAccess;
 import akka.event.DiagnosticLoggingAdapter;
 import scala.Tuple2;
 import scala.collection.JavaConversions;
@@ -48,7 +49,7 @@ public class MessageMapperFactory {
     /**
      * The actor system used for dynamic class instantiation.
      */
-    private final ExtendedActorSystem actorSystem;
+    private final DynamicAccess dynamicAccess;
 
 
     /**
@@ -63,15 +64,20 @@ public class MessageMapperFactory {
     /**
      * Constructor
      *
-     * @param actorSystem the actor system used for dynamic class instantiation
+     * @param dynamicAccess the actor systems dynamic access used for dynamic class instantiation
      * @param factoryClass the factory class scanned for factory functions
      */
-    public MessageMapperFactory(final ExtendedActorSystem actorSystem, final Class<?> factoryClass, final
+    private MessageMapperFactory(final DynamicAccess dynamicAccess, final Class<?> factoryClass, final
     @Nullable DiagnosticLoggingAdapter log) {
-        this.actorSystem = actorSystem;
+        this.dynamicAccess = dynamicAccess;
         this.factoryClass = factoryClass;
         //noinspection ConstantConditions
         this.log = log;
+    }
+
+    public static MessageMapperFactory from(final DynamicAccess dynamicAccess, final Class<?> factoryClass, final
+    @Nullable DiagnosticLoggingAdapter log) {
+        return new MessageMapperFactory(dynamicAccess, factoryClass, log);
     }
 
 
@@ -175,6 +181,13 @@ public class MessageMapperFactory {
 
 //    --
 
+    public MessageMapperRegistry loadRegistry(final List<MappingContext> contexts) {
+        final MessageMapperConfiguration cfg = MessageMapperConfiguration.from(
+                Collections.singletonMap(MessageMapper.OPT_CONTENT_TYPE_REQUIRED, String.valueOf(false)));
+        final List<MessageMapper> mappers = loadMappers(contexts);
+        return new MessageMapperRegistry(new DittoMessageMapper(cfg), mappers);
+    }
+
     public MessageMapperRegistry loadRegistry(final MessageMapper defaultMapper,
             final List<MappingContext> contexts) {
         final List<MessageMapper> mappers = loadMappers(contexts);
@@ -205,7 +218,7 @@ public class MessageMapperFactory {
         final ClassTag<MessageMapper> tag = scala.reflect.ClassTag$.MODULE$.apply(MessageMapper.class);
         final List<Tuple2<Class<?>, Object>> constructorArgs = new ArrayList<>();
 
-        final Try<MessageMapper> mapperTry = this.actorSystem.dynamicAccess()
+        final Try<MessageMapper> mapperTry = this.dynamicAccess
                 .createInstanceFor(className, JavaConversions.asScalaBuffer(constructorArgs).toList(), tag);
 
         if (mapperTry.isFailure()) {

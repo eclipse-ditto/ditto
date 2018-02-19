@@ -58,7 +58,7 @@ public class MessageMapperFactoryTest {
 
     @Before
     public void setUp() {
-        factory = new MessageMapperFactory((ExtendedActorSystem) system, Mappers.class, null);
+        factory = MessageMapperFactory.from(((ExtendedActorSystem) system).dynamicAccess(), Mappers.class, null);
     }
 
     @After

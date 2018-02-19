@@ -15,11 +15,14 @@ package org.eclipse.ditto.services.amqpbridge.messaging;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.services.models.amqpbridge.AmqpBridgeMessagingConstants.GATEWAY_PROXY_ACTOR_PATH;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
+
+import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.amqpbridge.InternalMessage;
 import org.eclipse.ditto.model.amqpbridge.MappingContext;
@@ -29,10 +32,8 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
-import org.eclipse.ditto.services.amqpbridge.mapping.mapper.ConverterTraceWrapper;
-import org.eclipse.ditto.services.amqpbridge.mapping.mapper.DittoMessageMapper;
+import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMapper;
-import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMapperConfiguration;
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMapperFactory;
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMapperRegistry;
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMappers;
@@ -48,6 +49,7 @@ import com.google.common.cache.RemovalListener;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
+import akka.actor.DynamicAccess;
 import akka.actor.ExtendedActorSystem;
 import akka.actor.Props;
 import akka.actor.Status;
@@ -56,6 +58,7 @@ import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
 import kamon.Kamon;
+import kamon.trace.Segment;
 import kamon.trace.TraceContext;
 import scala.Option;
 
@@ -71,6 +74,11 @@ public final class CommandProcessorActor extends AbstractActor {
     public static final String ACTOR_NAME_PREFIX = "amqpCommandProcessor-";
 
     private static final DittoProtocolAdapter PROTOCOL_ADAPTER = DittoProtocolAdapter.newInstance();
+
+    private static final Converter<Adaptable, Command<?>> ADAPTABLE_COMMAND_CONVERTER = Converter.from(
+            a -> (Command<?>) PROTOCOL_ADAPTER.fromAdaptable(a),
+            PROTOCOL_ADAPTER::toAdaptable
+    );
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
@@ -90,9 +98,8 @@ public final class CommandProcessorActor extends AbstractActor {
                         -> log.info("Trace for {} expired.", notification.getKey()))
                 .build();
 
-        final MessageMapperFactory mapperFactory = new MessageMapperFactory(
-                (ExtendedActorSystem) getContext().getSystem(), MessageMappers.class, log);
-        registry = mapperFactory.loadRegistry(createDefaultMapper(), mappingContexts);
+        this.registry = MessageMapperFactory.from(getDynamicAccess(), MessageMappers.class, log)
+                .loadRegistry(mappingContexts);
 
         log.info("Configured for processing messages with the following content types: {}",
                 registry.stream().map(MessageMapper::getContentType).collect(Collectors.toList()));
@@ -140,22 +147,22 @@ public final class CommandProcessorActor extends AbstractActor {
     }
 
     private void handle(final InternalMessage m) {
-
         final String correlationId = DittoHeaders.of(m.getHeaders()).getCorrelationId().orElse("no-correlation-id");
         LogUtil.enhanceLogWithCorrelationId(log, correlationId);
-        final TraceContext traceContext = Kamon.tracer().newContext("commandProcessor", Option.apply(correlationId));
 
         try {
-            final Command<?> command = parseMessage(m, traceContext);
-            traceContext.finish();
-            traceCommand(command);
+            final Command<?> command =
+                    doApplyTraced(() -> createProcessingContext(correlationId), (ctx -> convertMessage(m, ctx)));
+
+            startTrace(command);
             log.info("Publishing '{}' to '{}'", command.getType(), GATEWAY_PROXY_ACTOR_PATH);
             pubSubMediator.tell(new DistributedPubSubMediator.Send(GATEWAY_PROXY_ACTOR_PATH, command, true),
                     getSelf());
         } catch (Exception e) {
-            traceContext.finishWithError(e);
             log.info(e.getMessage());
         }
+
+
     }
 
     private void handleDittoRuntimeException(final DittoRuntimeException exception) {
@@ -175,75 +182,157 @@ public final class CommandProcessorActor extends AbstractActor {
     private void handleCommandResponse(final CommandResponse response) {
         LogUtil.enhanceLogWithCorrelationId(log, response);
 
-        // TODO map back
-
         if (response.getStatusCodeValue() < HttpStatusCode.BAD_REQUEST.toInt()) {
             log.debug("Received response: {}", response);
         } else {
             log.info("Received error response: {}", response);
         }
 
-        response.getDittoHeaders().getCorrelationId().ifPresent(cid -> {
-            final TraceContext traceContext = traces.getIfPresent(cid);
-            traces.invalidate(cid);
-            if (traceContext != null) {
-                traceContext.finish();
-            } else {
+        try {
+            final InternalMessage message = convertResponse(response);
+            //TODO send message back to command consumer actor
+            finishTrace(response);
+        } catch (Exception e) {
+            log.info(e.getMessage());
+            finishTrace(response, e);
+        }
+    }
+
+    private void startTrace(final Command<?> command) {
+        command.getDittoHeaders().getCorrelationId().ifPresent(correlationId ->
+            traces.put(correlationId, createRoundtripContext(correlationId, command.getType()))
+        );
+    }
+
+    private void finishTrace(final CommandResponse response) {
+        finishTrace(response, null);
+    }
+
+    private void finishTrace(final CommandResponse response, @Nullable Throwable cause) {
+        response.getDittoHeaders().getCorrelationId().ifPresent(correlationId -> {
+            try {
+                finishTrace(correlationId, cause);
+            } catch (IllegalArgumentException e) {
                 log.info("Trace missing for response: '{}'", response);
             }
         });
     }
 
-    private void traceCommand(final Command<?> command) {
-        command.getDittoHeaders().getCorrelationId().ifPresent(correlationId -> {
-            final Option<String> token = Option.apply(correlationId);
-            final TraceContext traceContext = Kamon.tracer().newContext("roundtrip.amqp_" + command.getType(), token);
-            traceContext.addMetadata("command", command.getType());
-            traces.put(correlationId, traceContext);
-        });
+    private void finishTrace(String correlationId, @Nullable Throwable cause) {
+        final TraceContext ctx = traces.getIfPresent(correlationId);
+        if (Objects.isNull(ctx)) {
+            throw new IllegalArgumentException("No trace found for correlationId: " + correlationId);
+        }
+        traces.invalidate(ctx);
+        if (Objects.isNull(cause)) {
+            ctx.finish();
+        } else {
+            ctx.finishWithError(cause);
+        }
     }
 
-    @SuppressWarnings("ConstantConditions") // when message is non null, a converter always returns a non null value
-    private Command<?> parseMessage(final InternalMessage message, final TraceContext traceContext) {
+    private Command<?> convertMessage(final InternalMessage message, final TraceContext ctx) {
         checkNotNull(message);
-        checkNotNull(traceContext);
+        checkNotNull(ctx);
 
         DittoHeaders headers = DittoHeaders.of(message.getHeaders());
 
         try {
-            final Adaptable adaptable = getMapper(message, traceContext).convert(message);
+            final Adaptable adaptable = doApplyTracedSegment(
+                    () -> createMessageInSegment(ctx),
+                    () -> getConverter(message).convert(message)
+            );
+
+            // use headers from adaptable if present
             headers = adaptable.getHeaders().orElse(headers);
             headers.getCorrelationId().ifPresent(s -> LogUtil.enhanceLogWithCorrelationId(log, s));
-            return getTracedAdaptableCommandConverter(traceContext).convert(adaptable).setDittoHeaders(headers);
+
+            return doApplyTracedSegment(
+                    () -> createProtocolInSegment(ctx),
+                    () -> ADAPTABLE_COMMAND_CONVERTER.convert(adaptable)
+            );
         } catch (Exception e) {
-            throw new IllegalArgumentException("Parsing message failed: " + e.getMessage(), e);
+            throw new IllegalArgumentException("Converting message failed: " + e.getMessage(), e);
         }
     }
 
-    private Converter<InternalMessage, Adaptable> getMapper(final InternalMessage message,
-            final TraceContext traceContext) {
-        final MessageMapper mapper = registry.selectMapper(message)
-                .orElseThrow(() -> new IllegalArgumentException("No mapper found for message: " + message));
-        return ConverterTraceWrapper.wrap(mapper,
-                () -> traceContext.startSegment("mapping", "payload-mapping", "commandProcessor"));
+    private InternalMessage convertResponse(final CommandResponse response) {
+        try {
+            final Adaptable adaptable = ProtocolFactory.jsonifiableAdaptableFromJson(response.toJson());
+            return getConverter(adaptable).convert(adaptable);
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Converting adaptable failed: " + e.getMessage(), e);
+        }
     }
 
-
-    private static final Converter<Adaptable, Command<?>> ADAPTABLE_COMMAND_CONVERTER = Converter.from(
-            a -> (Command<?>) PROTOCOL_ADAPTER.fromAdaptable(a),
-            PROTOCOL_ADAPTER::toAdaptable
-    );
-
-    private static Converter<Adaptable, Command<?>> getTracedAdaptableCommandConverter(
-            final TraceContext traceContext) {
-        return ConverterTraceWrapper.wrap(ADAPTABLE_COMMAND_CONVERTER,
-                () -> traceContext.startSegment("protocoladapter", "payload-mapping", "commandProcessor")
+    private Converter<InternalMessage, Adaptable> getConverter(final InternalMessage message) {
+        return registry.selectMapper(message).orElseThrow(
+                () -> new IllegalArgumentException("No mapper found for message: " + message)
         );
     }
 
-    private static MessageMapper createDefaultMapper() {
-        MessageMapperConfiguration cfg = MessageMapperConfiguration.from(
-                Collections.singletonMap(MessageMapper.OPT_CONTENT_TYPE_REQUIRED, String.valueOf(false)));
-        return new DittoMessageMapper(cfg);
+    private Converter<Adaptable, InternalMessage> getConverter(final Adaptable adaptable) {
+        return registry.selectMapper(adaptable).orElseThrow(
+                () -> new IllegalArgumentException("No mapper found for adaptable: " + adaptable)
+        );
+    }
+
+    /**
+     * Shortcut to the dynamic access object
+     *
+     * @return the dynamic access object
+     */
+    private DynamicAccess getDynamicAccess() {
+        return ((ExtendedActorSystem) getContext().getSystem()).dynamicAccess();
+    }
+
+    private static TraceContext createRoundtripContext(final String correlationId, final String type) {
+        final Option<String> token = Option.apply(correlationId);
+        final TraceContext ctx = Kamon.tracer().newContext("roundtrip.amqp_" + type, token);
+        ctx.addMetadata("command", type);
+        return ctx;
+    }
+
+    private static TraceContext createProcessingContext(@Nullable final String correlationId) {
+        return Objects.isNull(correlationId) || correlationId.isEmpty() ?
+                Kamon.tracer().newContext("commandProcessor") :
+                Kamon.tracer().newContext("commandProcessor", Option.apply(correlationId));
+    }
+
+    private static Segment createMessageInSegment(final TraceContext ctx) {
+        return ctx.startSegment("mapping", "payload-mapping", "commandProcessor");
+    }
+
+    private static Segment createProtocolInSegment(final TraceContext ctx) {
+        return ctx.startSegment("protocoladapter", "payload-mapping", "commandProcessor");
+    }
+
+
+//    kamon helpers
+
+    private static <T> T doApplyTraced(Supplier<TraceContext> traceContextSupplier,
+            Function<TraceContext, T> function) {
+        TraceContext ctx = traceContextSupplier.get();
+        try {
+            T t = function.apply(ctx);
+            ctx.finish();
+            return t;
+        } catch (Exception e) {
+            ctx.finishWithError(e);
+            throw e;
+        }
+    }
+
+    private static <T> T doApplyTracedSegment(Supplier<Segment> segmentSupplier,
+            Supplier<T> supplier) {
+        Segment segment = segmentSupplier.get();
+        try {
+            T t = supplier.get();
+            segment.finish();
+            return t;
+        } catch (Exception e) {
+            segment.finishWithError(e);
+            throw e;
+        }
     }
 }

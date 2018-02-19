@@ -25,6 +25,8 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.model.amqpbridge.InternalMessage;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 
+import com.google.common.base.Converter;
+
 /**
  * A registry for instatiated mappers.
  */
@@ -59,19 +61,21 @@ public class MessageMapperRegistry implements Collection<MessageMapper> {
         return MessageMapper.findContentType(message).map(registry::get);
     }
 
-    public Optional<MessageMapper> findMapper(final Adaptable adaptable) {
-        return MessageMapper.findContentType(adaptable).map(registry::get);
-    }
-
-    public Optional<MessageMapper> selectMapper(final Adaptable adaptable) {
-        Optional<MessageMapper> mapper = findMapper(adaptable);
-        return mapper.isPresent() ? mapper : Optional.ofNullable(getDefaultMapper());
-    }
-
     public Optional<MessageMapper> selectMapper(final InternalMessage message) {
         Optional<MessageMapper> mapper = findMapper(message);
         return mapper.isPresent() ? mapper : Optional.ofNullable(getDefaultMapper());
     }
+
+    public Optional<Converter<Adaptable, InternalMessage>> findMapper(final Adaptable adaptable) {
+        return MessageMapper.findContentType(adaptable).map(registry::get).map(MessageMapper::reverse);
+    }
+
+    public Optional<Converter<Adaptable, InternalMessage>> selectMapper(final Adaptable adaptable) {
+        Optional<Converter<Adaptable, InternalMessage>> mapper = findMapper(adaptable);
+        return mapper.isPresent() ? mapper : Optional.ofNullable(getDefaultMapper()).map(MessageMapper::reverse);
+    }
+
+
 
     @Override
     public int size() {

@@ -30,7 +30,7 @@ import com.google.common.base.Converter;
  * A message mapper implementation for the ditto protocol.
  * Expects messages to contain a JSON serialized ditto protocol message.
  */
-public class DittoMessageMapper extends MessageMapper {
+public final class DittoMessageMapper extends MessageMapper {
 
     /**
      * A static converter to map adaptables to JSON strings and vice versa;
@@ -71,13 +71,11 @@ public class DittoMessageMapper extends MessageMapper {
 
     @Override
     public void doConfigure(@Nonnull final MessageMapperConfiguration configuration) {
-
+        // no op
     }
 
     @Override
     protected Adaptable doForwardMap(@Nonnull final InternalMessage message) {
-        requireMatchingContentType(message);
-
         if (!message.isTextMessage()) {
             throw new IllegalArgumentException("Message is not a text message");
         }
