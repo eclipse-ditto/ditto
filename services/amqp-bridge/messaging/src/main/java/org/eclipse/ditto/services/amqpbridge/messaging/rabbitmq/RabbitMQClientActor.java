@@ -15,12 +15,15 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.services.amqpbridge.messaging.BaseClientActor;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.amqpbridge.modify.AmqpBridgeModifyCommand;
 import org.eclipse.ditto.signals.commands.amqpbridge.modify.CloseConnection;
 import org.eclipse.ditto.signals.commands.amqpbridge.modify.CreateConnection;
 import org.eclipse.ditto.signals.commands.amqpbridge.modify.DeleteConnection;
+import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 import com.newmotion.akka.rabbitmq.ChannelActor;
 import com.newmotion.akka.rabbitmq.ChannelCreated;
@@ -39,33 +42,40 @@ import akka.actor.Status;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
 import scala.Option;
+import scala.concurrent.duration.Duration;
 
 /**
  * Actor which handles connection to AMQP 0.9.1 server.
  */
 public class RabbitMQClientActor extends BaseClientActor {
 
+    private static final String RMQ_CONNECTION_PREFIX = "rmq-connection-";
+    private static final String RMQ_PUBLISHER_PREFIX = "rmq-publisher-";
+    private static final String CONSUMER_CHANNEL = "consumer-channel";
+    private static final String PUBLISHER_CHANNEL = "publisher-channel";
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
-    private ActorRef connectionActor;
-    private ActorRef channelActor;
 
-    private RabbitMQClientActor(final String connectionId, final ActorRef connectionActor) {
-        super(connectionId, connectionActor);
+    @Nullable private ActorRef rmqConnectionActor;
+    @Nullable private ActorRef consumerChannelActor;
+    @Nullable private ActorRef publisherActor;
+
+    private RabbitMQClientActor(final String connectionId, final ActorRef rmqConnectionActor) {
+        super(connectionId, rmqConnectionActor);
     }
 
     /**
      * Creates Akka configuration object for this actor.
      *
+     * @param rmqConnectionActor the corresponding {@code ConnectionActor}
      * @return the Akka configuration Props object
-     * @param connectionActor the corresponding {@code ConnectionActor}
      */
-    public static Props props(final String connectionId, final ActorRef connectionActor) {
+    public static Props props(final String connectionId, final ActorRef rmqConnectionActor) {
         return Props.create(RabbitMQClientActor.class, new Creator<RabbitMQClientActor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
             public RabbitMQClientActor create() {
-                return new RabbitMQClientActor(connectionId, connectionActor);
+                return new RabbitMQClientActor(connectionId, rmqConnectionActor);
             }
         });
     }
@@ -77,78 +87,113 @@ public class RabbitMQClientActor extends BaseClientActor {
                 .match(CloseConnection.class, this::handleDisconnect)
                 .match(DeleteConnection.class, this::handleDisconnect)
                 .match(ChannelCreated.class, this::handleChannelCreated)
+                .match(ThingEvent.class, this::handleThingEvent)
                 .build()
                 .orElse(initHandling);
+    }
+
+    private void handleThingEvent(final ThingEvent<?> thingEvent) {
+        if (publisherActor != null) {
+            publisherActor.tell(thingEvent, self());
+        }
     }
 
     private void handleConnect(final CreateConnection connect) {
         amqpConnection = connect.getAmqpConnection();
         mappingContexts = connect.getMappingContexts();
+
+        // reset receive timeout when CreateConnection is received
+        getContext().setReceiveTimeout(Duration.Undefined());
+
         connect();
     }
 
     private void handleChannelCreated(final ChannelCreated channelCreated) {
-        this.channelActor = channelCreated.channel();
-        startCommandProcessor();
+        this.consumerChannelActor = channelCreated.channel();
         startCommandConsumers();
     }
 
     private void connect() {
-        if (connectionActor == null) {
-            log.debug("Connecting to {}", amqpConnection.getUri());
+        if (rmqConnectionActor == null) {
             final ConnectionFactory connectionFactory =
                     AmqpConnectionBasedRabbitConnectionFactory.createConnection(amqpConnection);
 
             final Props props = com.newmotion.akka.rabbitmq.ConnectionActor.props(connectionFactory,
                     com.newmotion.akka.rabbitmq.ConnectionActor.props$default$2(),
                     com.newmotion.akka.rabbitmq.ConnectionActor.props$default$3());
-            connectionActor = startChildActor("rmq-connection-" + amqpConnection.getId(), props);
-            connectionActor.tell(
+            rmqConnectionActor = startChildActor(RMQ_CONNECTION_PREFIX + connectionId, props);
+
+            final Props publisherProps = RabbitMQPublisherActor.props(amqpConnection);
+            publisherActor = startChildActor(RabbitMQPublisherActor.ACTOR_NAME_PREFIX + connectionId, publisherProps);
+
+            startCommandProcessor(publisherActor);
+
+            // create publisher channel
+            rmqConnectionActor.tell(
                     CreateChannel.apply(
                             ChannelActor.props((channel, s) -> null),
-                            Option.apply("consumer-channel")), self());
-            log.debug("Connection '{}' opened.", amqpConnection.getId());
+                            Option.apply(PUBLISHER_CHANNEL)), publisherActor);
+
+            // create a consumer channel - if source is configured
+            if (isConsumingCommands()) {
+                rmqConnectionActor.tell(
+                        CreateChannel.apply(
+                                ChannelActor.props((channel, s) -> null),
+                                Option.apply(CONSUMER_CHANNEL)), self());
+            }
+            log.debug("Connection '{}' opened.", connectionId);
         } else {
-            log.debug("Connection '{}' is already open.", amqpConnection.getId());
+            log.debug("Connection '{}' is already open.", connectionId);
         }
         getSender().tell(new Status.Success("connected"), self());
     }
 
     private void handleDisconnect(final AmqpBridgeModifyCommand<?> cmd) {
+        log.debug("Handling <{}> command: {}", cmd.getType(), cmd);
         stopCommandConsumers();
         stopCommandProcessor();
-        if (channelActor != null) {
-            stopChildActor(channelActor);
-            channelActor = null;
+        stopCommandPublisher();
+        if (consumerChannelActor != null) {
+            stopChildActor(consumerChannelActor);
+            consumerChannelActor = null;
         }
-        if (connectionActor != null) {
-            stopChildActor(connectionActor);
-            connectionActor = null;
+        if (rmqConnectionActor != null) {
+            stopChildActor(rmqConnectionActor);
+            rmqConnectionActor = null;
         }
         getSender().tell(new Status.Success("disconnected"), self());
     }
 
+    private void stopCommandPublisher() {
+        stopChildActor(RMQ_PUBLISHER_PREFIX + connectionId);
+    }
+
     private void stopCommandConsumers() {
-        amqpConnection.getSources().forEach(source -> stopChildActor("consumer-" + source));
+        getSourcesOrEmptySet().forEach(source -> stopChildActor("consumer-" + source));
     }
 
     private void startCommandConsumers() {
         log.info("Channel created, start to consume queues...");
-        final ChannelMessage channelMessage = ChannelMessage.apply(channel -> {
-            ensureQueuesExist(channel);
-            startConsumers(channel);
-            return null;
-        }, false);
-        channelActor.tell(channelMessage, self());
+        if (consumerChannelActor == null) {
+            log.info("No consumerChannelActor, cannot consume queues without a channel.");
+        } else {
+            final ChannelMessage channelMessage = ChannelMessage.apply(channel -> {
+                ensureQueuesExist(channel);
+                startConsumers(channel);
+                return null;
+            }, false);
+            consumerChannelActor.tell(channelMessage, self());
+        }
     }
 
     private void startConsumers(final Channel channel) {
-        amqpConnection.getSources().forEach(source -> {
+        getSourcesOrEmptySet().forEach(source -> {
             final ActorRef commandConsumer =
                     startChildActor("consumer-" + source, CommandConsumerActor.props(commandProcessor));
             try {
                 final String consumerTag =
-                        channel.basicConsume(source, false, new RabbitMQMessageConsumer(commandConsumer, channel));
+                        channel.basicConsume(source, false,
+                                new RabbitMQMessageConsumer(commandConsumer, channel));
                 log.debug("Consuming queue {}, consumer tag is {}", source, consumerTag);
             } catch (IOException e) {
                 log.warning("Failed to consume queue '{}': {}", source, e.getMessage());
@@ -158,7 +203,7 @@ public class RabbitMQClientActor extends BaseClientActor {
 
     private void ensureQueuesExist(final Channel channel) {
         final List<String> missingQueues = new ArrayList<>();
-        amqpConnection.getSources().forEach(source -> {
+        getSourcesOrEmptySet().forEach(source -> {
             try {
                 channel.queueDeclarePassive(source);
             } catch (IOException e) {

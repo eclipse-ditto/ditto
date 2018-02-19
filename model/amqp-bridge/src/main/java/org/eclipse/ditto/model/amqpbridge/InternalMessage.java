@@ -12,8 +12,6 @@
 package org.eclipse.ditto.model.amqpbridge;
 
 import java.nio.ByteBuffer;
-import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -37,7 +35,7 @@ public class InternalMessage {
     private final Type type;
 
     private InternalMessage(final Builder builder) {
-        this.headers = Collections.unmodifiableMap(new LinkedHashMap<>(builder.headers));
+        this.headers = builder.headers;
         this.textPayload = builder.textPayload;
         this.bytePayload = builder.bytePayload;
         this.type = builder.type;
@@ -84,8 +82,6 @@ public class InternalMessage {
         return Objects.hash(headers, textPayload, bytePayload, type);
     }
 
-
-
     public static class Builder {
 
         private Map<String, String> headers;
@@ -120,5 +116,16 @@ public class InternalMessage {
             return new InternalMessage(this);
         }
 
+    }
+
+    @Override
+    public String toString() {
+        return "InternalMessage{" +
+                "headers=" + headers +
+                ", textPayload='" + textPayload + '\'' +
+                ", bytePayload='" +
+                (bytePayload == null ? "null" : ("'<binary> (size :" + bytePayload.position() + ")")) + "'" +
+                ", type=" + type +
+                '}';
     }
 }

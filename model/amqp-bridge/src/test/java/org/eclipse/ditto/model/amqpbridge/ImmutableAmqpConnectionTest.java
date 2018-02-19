@@ -48,6 +48,7 @@ public final class ImmutableAmqpConnectionTest {
             AuthorizationSubject.newInstance("mySolutionId:mySubject");
 
     private static final Set<String> SOURCES = new HashSet<>(Arrays.asList("amqp/source1", "amqp/source2"));
+    private static final String TARGET = "eventQueue";
 
     private static final JsonObject KNOWN_JSON = JsonObject.newBuilder()
             .set(AmqpConnection.JsonFields.ID, ID)
@@ -56,6 +57,7 @@ public final class ImmutableAmqpConnectionTest {
             .set(AmqpConnection.JsonFields.SOURCES, SOURCES.stream()
                     .map(JsonFactory::newValue)
                     .collect(JsonCollectors.valuesToArray()))
+            .set(AmqpConnection.JsonFields.EVENT_TARGET, TARGET)
             .set(AmqpConnection.JsonFields.FAILOVER_ENABLED, true)
             .set(AmqpConnection.JsonFields.VALIDATE_CERTIFICATES, true)
             .set(AmqpConnection.JsonFields.THROTTLE, -1)
@@ -79,7 +81,7 @@ public final class ImmutableAmqpConnectionTest {
     @Test
     public void createInstanceWithNullId() {
         assertThatExceptionOfType(NullPointerException.class)
-                .isThrownBy(() -> ImmutableAmqpConnection.of(null, TYPE, URI, AUTHORIZATION_SUBJECT, SOURCES))
+                .isThrownBy(() -> ImmutableAmqpConnection.of(null, TYPE, URI, AUTHORIZATION_SUBJECT))
                 .withMessage("The %s must not be null!", "ID")
                 .withNoCause();
     }
@@ -87,7 +89,7 @@ public final class ImmutableAmqpConnectionTest {
     @Test
     public void createInstanceWithNullUri() {
         assertThatExceptionOfType(NullPointerException.class)
-                .isThrownBy(() -> ImmutableAmqpConnection.of(ID, TYPE, null, AUTHORIZATION_SUBJECT, SOURCES))
+                .isThrownBy(() -> ImmutableAmqpConnection.of(ID, TYPE, null, AUTHORIZATION_SUBJECT))
                 .withMessage("The %s must not be null!", "URI")
                 .withNoCause();
     }
@@ -95,7 +97,7 @@ public final class ImmutableAmqpConnectionTest {
     @Test
     public void createInstanceWithNullAuthorizationSubject() {
         assertThatExceptionOfType(NullPointerException.class)
-                .isThrownBy(() -> ImmutableAmqpConnection.of(ID, TYPE, URI, null, SOURCES))
+                .isThrownBy(() -> ImmutableAmqpConnection.of(ID, TYPE, URI, null))
                 .withMessage("The %s must not be null!", "Authorization Subject")
                 .withNoCause();
     }
@@ -104,17 +106,30 @@ public final class ImmutableAmqpConnectionTest {
     public void createInstanceWithNullSources() {
         assertThatExceptionOfType(NullPointerException.class)
                 .isThrownBy(
-                        () -> ImmutableAmqpConnectionBuilder.of(ID, TYPE, URI, AUTHORIZATION_SUBJECT, null))
+                        () -> ImmutableAmqpConnectionBuilder.of(ID, TYPE, URI, AUTHORIZATION_SUBJECT)
+                                .sources((Set) null))
                 .withMessage("The %s must not be null!", "Sources")
                 .withNoCause();
     }
 
     @Test
-    public void fromJsonReturnsExpected() {
-        final ImmutableAmqpConnection expected =
-                ImmutableAmqpConnection.of(ID, TYPE, URI, AUTHORIZATION_SUBJECT, SOURCES);
+    public void createInstanceWithNullTarget() {
+        assertThatExceptionOfType(NullPointerException.class)
+                .isThrownBy(
+                        () -> ImmutableAmqpConnectionBuilder.of(ID, TYPE, URI, AUTHORIZATION_SUBJECT).eventTarget(null))
+                .withMessage("The %s must not be null!", "Target")
+                .withNoCause();
+    }
 
-        final ImmutableAmqpConnection actual = ImmutableAmqpConnection.fromJson(KNOWN_JSON);
+    @Test
+    public void fromJsonReturnsExpected() {
+        final AmqpConnection expected =
+                AmqpBridgeModelFactory.newConnectionBuilder(ID, TYPE, URI, AUTHORIZATION_SUBJECT)
+                        .sources(SOURCES)
+                        .eventTarget(TARGET)
+                        .build();
+
+        final AmqpConnection actual = ImmutableAmqpConnection.fromJson(KNOWN_JSON);
 
         assertThat(actual).isEqualTo(expected);
     }
@@ -122,7 +137,11 @@ public final class ImmutableAmqpConnectionTest {
     @Test
     public void toJsonReturnsExpected() {
         final JsonObject actual =
-                ImmutableAmqpConnection.of(ID, TYPE, URI, AUTHORIZATION_SUBJECT, SOURCES).toJson();
+                AmqpBridgeModelFactory.newConnectionBuilder(ID, TYPE, URI, AUTHORIZATION_SUBJECT)
+                        .sources(SOURCES)
+                        .eventTarget(TARGET)
+                        .build()
+                        .toJson();
 
         assertThat(actual).isEqualTo(KNOWN_JSON);
     }

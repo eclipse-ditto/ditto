@@ -21,11 +21,13 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.model.amqpbridge.InternalMessage;
 import org.eclipse.ditto.model.amqpbridge.MappingContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
@@ -74,19 +76,22 @@ public final class CommandProcessorActor extends AbstractActor {
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
     private final ActorRef pubSubMediator;
+    private final ActorRef commandProducer;
     private final AuthorizationSubject authorizationSubject;
     private final Cache<String, TraceContext> traces;
 
     private final MessageMapperRegistry registry;
 
-    private CommandProcessorActor(final ActorRef pubSubMediator, final AuthorizationSubject authorizationSubject,
+    private CommandProcessorActor(final ActorRef pubSubMediator, final ActorRef commandProducer,
+            final AuthorizationSubject authorizationSubject,
             final List<MappingContext> mappingContexts) {
         this.pubSubMediator = pubSubMediator;
+        this.commandProducer = commandProducer;
         this.authorizationSubject = authorizationSubject;
         traces = CacheBuilder.newBuilder()
                 .expireAfterWrite(5, TimeUnit.MINUTES)
                 .removalListener((RemovalListener<String, TraceContext>) notification
-                        -> log.info("Trace for {} expired.", notification.getKey()))
+                        -> log.debug("Trace for {} removed.", notification.getKey()))
                 .build();
 
         registry = new MessageMapperRegistry(new DittoMessageMapper(false));
@@ -100,10 +105,12 @@ public final class CommandProcessorActor extends AbstractActor {
      * Creates Akka configuration object for this actor.
      *
      * @param pubSubMediator the akka pubsub mediator actor.
+     * @param commandProducer actor that handles outgoing messages
      * @param authorizationSubject the authorized subject that are set in command headers.
      * @return the Akka configuration Props object
      */
-    static Props props(final ActorRef pubSubMediator, final AuthorizationSubject authorizationSubject,
+    static Props props(final ActorRef pubSubMediator, final ActorRef commandProducer,
+            final AuthorizationSubject authorizationSubject,
             final List<MappingContext> mappingContexts) {
 
         return Props.create(CommandProcessorActor.class, new Creator<CommandProcessorActor>() {
@@ -111,7 +118,8 @@ public final class CommandProcessorActor extends AbstractActor {
 
             @Override
             public CommandProcessorActor create() {
-                return new CommandProcessorActor(pubSubMediator, authorizationSubject, mappingContexts);
+                return new CommandProcessorActor(pubSubMediator, commandProducer, authorizationSubject,
+                        mappingContexts);
             }
         });
     }
@@ -135,16 +143,22 @@ public final class CommandProcessorActor extends AbstractActor {
         LogUtil.enhanceLogWithCorrelationId(log, correlationId);
         final TraceContext traceContext = Kamon.tracer().newContext("commandProcessor", Option.apply(correlationId));
 
+        log.debug("Processing: {}", m);
+
+        // TODO dg find better way to inject header fields
+        final String subjectsArray = JsonFactory.newArray().add(authorizationSubject.getId()).toString();
+        m.getHeaders().put(DittoHeaderDefinition.AUTHORIZATION_SUBJECTS.getKey(), subjectsArray);
+
         try {
             final Command<?> command = parseMessage(m, traceContext);
             traceContext.finish();
             traceCommand(command);
-            log.info("Publishing '{}' to '{}'", command.getType(), GATEWAY_PROXY_ACTOR_PATH);
-            pubSubMediator.tell(new DistributedPubSubMediator.Send(GATEWAY_PROXY_ACTOR_PATH, command, true),
-                    getSelf());
+            log.info("Publishing '{}' to '{}' with headers {}: {}", command.getType(), GATEWAY_PROXY_ACTOR_PATH,
+                    command.getDittoHeaders(), command.toJsonString());
+            pubSubMediator.tell(new DistributedPubSubMediator.Send(GATEWAY_PROXY_ACTOR_PATH, command, true), getSelf());
         } catch (Exception e) {
             traceContext.finishWithError(e);
-            log.info("Parsing message failed: " + e.getMessage());
+            log.info("Parsing message failed: " + e.getMessage() + " // " + e.getCause().getMessage());
         }
     }
 
@@ -165,8 +179,6 @@ public final class CommandProcessorActor extends AbstractActor {
     private void handleCommandResponse(final CommandResponse response) {
         LogUtil.enhanceLogWithCorrelationId(log, response);
 
-        // TODO map back
-
         if (response.getStatusCodeValue() < HttpStatusCode.BAD_REQUEST.toInt()) {
             log.debug("Received response: {}", response);
         } else {
@@ -179,9 +191,11 @@ public final class CommandProcessorActor extends AbstractActor {
             if (traceContext != null) {
                 traceContext.finish();
             } else {
-                log.info("Trace missing for response: '{}'", response);
+                log.debug("Trace missing for response: '{}'", response);
             }
         });
+
+        commandProducer.forward(response, context());
     }
 
     private void traceCommand(final Command<?> command) {
@@ -198,8 +212,15 @@ public final class CommandProcessorActor extends AbstractActor {
 
         try {
             final Adaptable adaptable = getMapper(message, traceContext).convert(message);
-            headers = adaptable.getHeaders().orElse(headers);
+
+            // headers = adaptable.getHeaders().orElse(headers);
+            // merge headers
+            final Optional<DittoHeaders> headersFromAdaptable = adaptable.getHeaders();
+            if (headersFromAdaptable.isPresent() && !headersFromAdaptable.get().isEmpty()) {
+                headers = headers.toBuilder().putHeaders(headersFromAdaptable.get()).build();
+            }
             headers.getCorrelationId().ifPresent(s -> LogUtil.enhanceLogWithCorrelationId(log, s));
+
             return getTracedAdaptableCommandConverter(traceContext).convert(adaptable).setDittoHeaders(headers);
         } catch (Exception e) {
             throw new IllegalArgumentException("Parsing message failed", e);
@@ -215,6 +236,7 @@ public final class CommandProcessorActor extends AbstractActor {
 
     private Map<String, MessageMapper> loadMappers(final MessageMapperFactory factory,
             final List<MappingContext> mappingContexts) {
+        log.info("Loading mappers from mapping contexts: {}", mappingContexts);
         return mappingContexts.stream().collect(Collectors.toMap(MappingContext::getContentType, mappingContext -> {
             try {
                 final Optional<MessageMapper> mapper = factory.findAndCreateInstanceFor(mappingContext);

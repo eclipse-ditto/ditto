@@ -11,6 +11,9 @@
  */
 package org.eclipse.ditto.services.amqpbridge.messaging.amqp;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+
+import javax.annotation.Nullable;
 import javax.jms.Connection;
 import javax.jms.ExceptionListener;
 import javax.jms.JMSException;
@@ -25,7 +28,9 @@ import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
 
 /**
- * The type Jms connection handling actor.
+ * This actor executes single operation (connect/disconnect) on JMS Connection/Session. It is separated into an actor
+ * because the JMS Client is blocking which makes it impossible to e.g. cancel a pending connection attempts with
+ * another actor message when done in the same actor.
  */
 public class JMSConnectionHandlingActor extends AbstractActor {
 
@@ -41,9 +46,9 @@ public class JMSConnectionHandlingActor extends AbstractActor {
 
 
     private JMSConnectionHandlingActor(
-            final AmqpConnection amqpConnection, final ExceptionListener exceptionListener,
+            final @Nullable AmqpConnection amqpConnection, final ExceptionListener exceptionListener,
             final JmsConnectionFactory jmsConnectionFactory) {
-        this.amqpConnection = amqpConnection;
+        this.amqpConnection = checkNotNull(amqpConnection, "amqpConnection");
         this.exceptionListener = exceptionListener;
         this.jmsConnectionFactory = jmsConnectionFactory;
     }
@@ -56,7 +61,7 @@ public class JMSConnectionHandlingActor extends AbstractActor {
      * @param jmsConnectionFactory the jms connection factory
      * @return the Akka configuration Props object.
      */
-    static Props props(final AmqpConnection amqpConnection, final ExceptionListener exceptionListener,
+    static Props props(@Nullable final AmqpConnection amqpConnection, final ExceptionListener exceptionListener,
             final JmsConnectionFactory jmsConnectionFactory) {
         return Props.create(JMSConnectionHandlingActor.class, new Creator<JMSConnectionHandlingActor>() {
             private static final long serialVersionUID = 1L;
@@ -76,6 +81,7 @@ public class JMSConnectionHandlingActor extends AbstractActor {
                 .build();
     }
 
+    @SuppressWarnings("squid:S2095") // cannot use try-with-resources, connection has longer lifetime
     private void handleConnect(AmqpClientActor.JmsConnect connect) {
         try {
             final Connection jmsConnection = jmsConnectionFactory.createConnection(amqpConnection, exceptionListener);
@@ -93,22 +99,16 @@ public class JMSConnectionHandlingActor extends AbstractActor {
     }
 
     private void handleDisconnect(AmqpClientActor.JmsDisconnect disconnect) {
+        final Connection connection = disconnect.getConnection();
         try {
-            final Connection connection = disconnect.getConnection();
-            if (connection != null) {
-                try {
-                    log.debug("Closing JMS connection {}", amqpConnection.getId());
-                    connection.stop();
-                    connection.close();
-                    log.info("Connection '{}' closed.", amqpConnection.getId());
-                } catch (final JMSException e) {
-                    log.debug("Connection '{}' already closed: {}", amqpConnection.getId(), e.getMessage());
-                }
-            }
-            sender().tell(new AmqpClientActor.JmsDisconnected(disconnect.getOrigin()), sender());
-        } catch (Exception e) {
-            sender().tell(new AmqpClientActor.JmsFailure(disconnect.getOrigin(), e), sender());
+            log.debug("Closing JMS connection {}", amqpConnection.getId());
+            connection.stop();
+            connection.close();
+            log.info("Connection '{}' closed.", amqpConnection.getId());
+        } catch (final JMSException e) {
+            log.debug("Connection '{}' already closed: {}", amqpConnection.getId(), e.getMessage());
         }
+        sender().tell(new AmqpClientActor.JmsDisconnected(disconnect.getOrigin()), sender());
         log.info("Stop myself {}", self());
         context().stop(self());
     }

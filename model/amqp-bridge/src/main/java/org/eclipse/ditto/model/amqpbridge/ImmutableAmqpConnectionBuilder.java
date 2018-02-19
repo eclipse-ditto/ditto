@@ -14,7 +14,11 @@ package org.eclipse.ditto.model.amqpbridge;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkArgument;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Set;
+
+import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 
@@ -26,8 +30,10 @@ class ImmutableAmqpConnectionBuilder implements AmqpConnectionBuilder {
     final String id;
     final ConnectionType connectionType;
     final AuthorizationSubject authorizationSubject;
-    final Set<String> sources;
     final String uri;
+    @Nullable Set<String> sources;
+    @Nullable String eventTarget;
+    @Nullable String replyTarget;
     boolean failoverEnabled = true;
     boolean validateCertificate = true;
     int throttle = -1;
@@ -35,12 +41,11 @@ class ImmutableAmqpConnectionBuilder implements AmqpConnectionBuilder {
     int processorPoolSize = 5;
 
     private ImmutableAmqpConnectionBuilder(final String id, final ConnectionType connectionType,
-            final String uri, final AuthorizationSubject authorizationSubject, final Set<String> sources) {
+            final String uri, final AuthorizationSubject authorizationSubject) {
         this.id = checkNotNull(id, "ID");
         this.connectionType = checkNotNull(connectionType, "Connection Type");
         this.uri = checkNotNull(uri, "URI");
         this.authorizationSubject = checkNotNull(authorizationSubject, "Authorization Subject");
-        this.sources = checkNotNull(sources, "Sources");
     }
 
     /**
@@ -50,47 +55,73 @@ class ImmutableAmqpConnectionBuilder implements AmqpConnectionBuilder {
      * @param connectionType the connection type
      * @param uri the uri
      * @param authorizationSubject the authorization subject
-     * @param sources the sources
      * @return new instance of {@code ImmutableAmqpConnectionBuilder}
      */
-    static ImmutableAmqpConnectionBuilder of(final String id, final ConnectionType connectionType,
-            final String uri, final AuthorizationSubject authorizationSubject, final Set<String> sources) {
-        return new ImmutableAmqpConnectionBuilder(id, connectionType, uri, authorizationSubject, sources);
+    static AmqpConnectionBuilder of(final String id, final ConnectionType connectionType,
+            final String uri, final AuthorizationSubject authorizationSubject) {
+        return new ImmutableAmqpConnectionBuilder(id, connectionType, uri, authorizationSubject);
     }
 
     @Override
-    public ImmutableAmqpConnectionBuilder failoverEnabled(boolean failoverEnabled) {
+    public AmqpConnectionBuilder failoverEnabled(final boolean failoverEnabled) {
         this.failoverEnabled = failoverEnabled;
         return this;
     }
 
     @Override
-    public ImmutableAmqpConnectionBuilder validateCertificate(boolean validateCertificate) {
+    public AmqpConnectionBuilder validateCertificate(final boolean validateCertificate) {
         this.validateCertificate = validateCertificate;
         return this;
     }
 
     @Override
-    public ImmutableAmqpConnectionBuilder throttle(int throttle) {
+    public AmqpConnectionBuilder throttle(final int throttle) {
         this.throttle = throttle;
         return this;
     }
 
     @Override
-    public ImmutableAmqpConnectionBuilder consumerCount(int consumerCount) {
-        this.consumerCount = checkArgument(consumerCount, c -> c > 0, () -> "consumerCount must be positiv");
+    public AmqpConnectionBuilder consumerCount(final int consumerCount) {
+        this.consumerCount = checkArgument(consumerCount, c -> c > 0, () -> "consumerCount must be positive");
         return this;
     }
 
     @Override
-    public ImmutableAmqpConnectionBuilder processorPoolSize(int processorPoolSize) {
-        this.processorPoolSize = checkArgument(processorPoolSize, ps -> ps > 0, () -> "consumerCount must be positiv");
-        ;
+    public AmqpConnectionBuilder processorPoolSize(final int processorPoolSize) {
+        this.processorPoolSize = checkArgument(processorPoolSize, ps -> ps > 0, () -> "consumerCount must be positive");
         return this;
     }
 
     @Override
-    public ImmutableAmqpConnection build() {
+    public AmqpConnectionBuilder sources(final String... sources) {
+        checkNotNull(sources, "Sources");
+        this.sources = new HashSet<>(Arrays.asList(sources));
+        return this;
+    }
+
+    @Override
+    public AmqpConnectionBuilder sources(final Set<String> sources) {
+        checkNotNull(sources, "Sources");
+        this.sources = new HashSet<>(sources);
+        return this;
+    }
+
+    @Override
+    public AmqpConnectionBuilder eventTarget(final String eventTarget) {
+        checkNotNull(eventTarget, "eventTarget");
+        this.eventTarget = eventTarget;
+        return this;
+    }
+
+    @Override
+    public AmqpConnectionBuilder replyTarget(final String replyTarget) {
+        checkNotNull(replyTarget, "replyTarget");
+        this.replyTarget = replyTarget;
+        return this;
+    }
+
+    @Override
+    public AmqpConnection build() {
         return new ImmutableAmqpConnection(this);
     }
 }

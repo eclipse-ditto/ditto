@@ -39,8 +39,14 @@ public final class TestConstants {
 
     public static Set<String> SOURCES = new HashSet<>(Arrays.asList("amqp/source1", "amqp/source2"));
 
+    public static String TARGET = "eventQueue";
+
     public static AmqpConnection CONNECTION =
-            AmqpBridgeModelFactory.newConnection(ID, TYPE, URI, AUTHORIZATION_SUBJECT, SOURCES);
+
+            AmqpBridgeModelFactory.newConnectionBuilder(ID, TYPE, URI, AUTHORIZATION_SUBJECT)
+                    .sources(SOURCES)
+                    .eventTarget(TARGET)
+                    .build();
 
     public static Map<String, ConnectionStatus> CONNECTION_STATUSES;
 

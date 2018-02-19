@@ -14,13 +14,16 @@ package org.eclipse.ditto.services.amqpbridge.messaging.amqp;
 
 import static org.eclipse.ditto.services.amqpbridge.messaging.TestConstants.createConnection;
 import static org.eclipse.ditto.services.amqpbridge.messaging.TestConstants.createRandomConnectionId;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.when;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import javax.jms.Connection;
 import javax.jms.JMSException;
+import javax.jms.Session;
 
 import org.eclipse.ditto.model.amqpbridge.AmqpConnection;
 import org.eclipse.ditto.model.amqpbridge.ConnectionStatus;
@@ -67,6 +70,8 @@ public class AmqpClientActorTest {
 
     @Mock
     private Connection mockConnection = Mockito.mock(Connection.class);
+    @Mock
+    private Session mockSession = Mockito.mock(Session.class);
 
     @BeforeClass
     public static void setUp() {
@@ -95,9 +100,12 @@ public class AmqpClientActorTest {
     }
 
     @Test
-    public void testConnectionHandling() {
+    public void testConnectionHandling() throws JMSException {
         new TestKit(actorSystem) {{
-            final Props props = AmqpClientActor.props(connectionId, null, amqpConnection, null,
+
+            when(mockConnection.createSession(false, Session.AUTO_ACKNOWLEDGE)).thenReturn(mockSession);
+
+            final Props props = AmqpClientActor.props(connectionId, getRef(), amqpConnection, null,
                     (amqpConnection1, exceptionListener) -> mockConnection);
             final ActorRef amqpClientActor = actorSystem.actorOf(props);
             watch(amqpClientActor);
@@ -163,7 +171,7 @@ public class AmqpClientActorTest {
     }
 
     @Test
-    public void testConnectFails() throws JMSException {
+    public void testStartConnectionFails() throws JMSException {
         new TestKit(actorSystem) {{
             doThrow(JMS_EXCEPTION).when(mockConnection).start();
             final Props props =
@@ -176,11 +184,38 @@ public class AmqpClientActorTest {
     }
 
     @Test
-    public void testDisconnectFails() throws JMSException {
+    public void testCreateSessionFails() throws JMSException {
+        new TestKit(actorSystem) {{
+            doThrow(JMS_EXCEPTION).when(mockConnection).createSession(false, Session.AUTO_ACKNOWLEDGE);
+            final Props props =
+                    AmqpClientActor.props(connectionId, getRef(), amqpConnection, getRef(), (ac, el) -> mockConnection);
+            final ActorRef amqpClientActor = actorSystem.actorOf(props);
+
+            amqpClientActor.tell(CreateConnection.of(amqpConnection, DittoHeaders.empty()), getRef());
+            expectMsg(new Status.Failure(JMS_EXCEPTION));
+        }};
+    }
+
+    @Test
+    public void testConsumeFails() throws JMSException {
+        new TestKit(actorSystem) {{
+            when(mockConnection.createSession(false, Session.AUTO_ACKNOWLEDGE)).thenReturn(mockSession);
+            doThrow(JMS_EXCEPTION).when(mockSession).createConsumer(any());
+            final Props props =
+                    AmqpClientActor.props(connectionId, getRef(), amqpConnection, getRef(), (ac, el) -> mockConnection);
+            final ActorRef amqpClientActor = actorSystem.actorOf(props);
+
+            amqpClientActor.tell(CreateConnection.of(amqpConnection, DittoHeaders.empty()), getRef());
+            expectMsg(new Status.Failure(JMS_EXCEPTION));
+        }};
+    }
+
+    @Test
+    public void testCloseConnectionFails() throws JMSException {
         new TestKit(actorSystem) {{
             doThrow(JMS_EXCEPTION).when(mockConnection).close();
             final Props props =
-                    AmqpClientActor.props(connectionId, null, amqpConnection, null, (ac, el) -> mockConnection);
+                    AmqpClientActor.props(connectionId, getRef(), amqpConnection, null, (ac, el) -> mockConnection);
             final ActorRef amqpClientActor = actorSystem.actorOf(props);
 
             amqpClientActor.tell(CreateConnection.of(amqpConnection, DittoHeaders.empty()), getRef());

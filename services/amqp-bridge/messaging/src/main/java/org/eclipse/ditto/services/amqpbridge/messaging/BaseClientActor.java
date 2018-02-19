@@ -11,13 +11,18 @@
  */
 package org.eclipse.ditto.services.amqpbridge.messaging;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+
+import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.amqpbridge.AmqpConnection;
 import org.eclipse.ditto.model.amqpbridge.ConnectionStatus;
 import org.eclipse.ditto.model.amqpbridge.MappingContext;
-import org.eclipse.ditto.model.base.common.ConditionChecker;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.amqpbridge.util.ConfigKeys;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -42,25 +47,30 @@ import scala.concurrent.duration.Duration;
 
 /**
  * Base class for *ClientActors which implement the connection handling for AMQP 0.9.1 or 1.0.
+ * <p/>
+ * The actor expects to receive a {@link CreateConnection} command after it was started. If this command is not received
+ * within timeout (can be the case when this actor is remotely deployed after the command was sent) the actor requests
+ * the required information from ConnectionActor.
  */
 public abstract class BaseClientActor extends AbstractActor {
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
     protected final ActorRef pubSubMediator;
-    private final java.time.Duration initTimeout;
-    private final String connectionId;
-    private final ActorRef connectionActor;
-
-    protected ActorRef commandProcessor;
-    protected AmqpConnection amqpConnection;
-    private ConnectionStatus connectionStatus;
-    protected List<MappingContext> mappingContexts;
     protected final Receive initHandling;
+    protected final String connectionId;
+
+    private final ActorRef connectionActor;
+    private final java.time.Duration initTimeout;
+
+    @Nullable protected AmqpConnection amqpConnection;
+    @Nullable protected List<MappingContext> mappingContexts;
+    @Nullable protected ActorRef commandProcessor;
+    @Nullable private ConnectionStatus connectionStatus;
 
     protected BaseClientActor(final String connectionId, final ActorRef connectionActor) {
-        this.connectionId = connectionId;
-        this.connectionActor = connectionActor;
+        this.connectionId = checkNotNull(connectionId, "connectionId");
+        this.connectionActor = checkNotNull(connectionActor, "connectionActor");
         this.pubSubMediator = DistributedPubSub.get(getContext().getSystem()).mediator();
         final Config config = getContext().getSystem().settings().config();
         initTimeout = config.getDuration(ConfigKeys.Client.INIT_TIMEOUT);
@@ -79,14 +89,15 @@ public abstract class BaseClientActor extends AbstractActor {
         getContext().setReceiveTimeout(Duration.fromNanos(initTimeout.toNanos()));
     }
 
-    protected void startCommandProcessor() {
-        ConditionChecker.checkNotNull(amqpConnection, "AmqpConnection");
-        ConditionChecker.checkNotNull(mappingContexts, "MappingContexts");
+    protected void startCommandProcessor(final ActorRef commandProducer) {
+        checkNotNull(amqpConnection, "AmqpConnection");
+        checkNotNull(mappingContexts, "MappingContexts");
         if (commandProcessor == null) {
 
             log.debug("Starting CommandProcessorActor with pool size of {}.", amqpConnection.getProcessorPoolSize());
             final Props commandProcessorProps =
-                    CommandProcessorActor.props(pubSubMediator, amqpConnection.getAuthorizationSubject(),
+                    CommandProcessorActor.props(pubSubMediator, commandProducer,
+                            amqpConnection.getAuthorizationSubject(),
                             mappingContexts);
             final String amqpCommandProcessorName = getCommandProcessorActorName(amqpConnection.getId());
 
@@ -136,7 +147,7 @@ public abstract class BaseClientActor extends AbstractActor {
         getContext().stop(actor);
     }
 
-    protected void handleReceiveTimeout() {
+    private void handleReceiveTimeout() {
         log.info(
                 "Did not receive connect command within {}, requesting information from connection actor for connection <{}>.",
                 initTimeout, connectionId);
@@ -144,16 +155,20 @@ public abstract class BaseClientActor extends AbstractActor {
         connectionActor.tell(RetrieveConnectionStatus.of(connectionId, DittoHeaders.empty()), self());
     }
 
-    protected void handleStatusResponse(final RetrieveConnectionStatusResponse rcr) {
-        this.connectionStatus = rcr.getConnectionStatus();
-        log.debug("Received ConnectionStatus: {}", connectionStatus);
-        connectIfStatusIsOpen();
+    private void handleStatusResponse(final RetrieveConnectionStatusResponse rcr) {
+        if (connectionStatus == null) {
+            connectionStatus = rcr.getConnectionStatus();
+            log.debug("Received ConnectionStatus: {}", connectionStatus);
+            connectIfStatusIsOpen();
+        }
     }
 
-    protected void handleConnectionResponse(final RetrieveConnectionResponse rcr) {
-        this.amqpConnection = rcr.getAmqpConnection();
-        log.debug("Received AmqpConnection: {}", amqpConnection);
-        connectIfStatusIsOpen();
+    private void handleConnectionResponse(final RetrieveConnectionResponse rcr) {
+        if (amqpConnection == null) {
+            amqpConnection = rcr.getAmqpConnection();
+            log.debug("Received AmqpConnection: {}", amqpConnection);
+            connectIfStatusIsOpen();
+        }
     }
 
     private void connectIfStatusIsOpen() {
@@ -162,5 +177,20 @@ public abstract class BaseClientActor extends AbstractActor {
             log.info("Sending CreateConnection to myself: {}", connect);
             self().tell(connect, sender());
         }
+    }
+
+    protected boolean isConsumingCommands() {
+        return amqpConnection.getSources().isPresent() && !amqpConnection.getSources().get().isEmpty();
+    }
+
+    protected boolean isPublishingEvents() {
+        return amqpConnection.getEventTarget().isPresent() && !amqpConnection.getEventTarget().get().isEmpty();
+    }
+
+    /**
+     * @return the sources configured for this connection or an empty set if no sources were configured.
+     */
+    protected Set<String> getSourcesOrEmptySet() {
+        return amqpConnection.getSources().orElse(Collections.emptySet());
     }
 }

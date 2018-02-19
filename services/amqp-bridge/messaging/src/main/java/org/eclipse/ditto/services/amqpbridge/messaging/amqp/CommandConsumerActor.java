@@ -12,6 +12,7 @@
 package org.eclipse.ditto.services.amqpbridge.messaging.amqp;
 
 import static java.util.stream.Collectors.toMap;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.nio.ByteBuffer;
 import java.util.AbstractMap;
@@ -20,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import javax.annotation.Nullable;
 import javax.jms.BytesMessage;
 import javax.jms.Destination;
 import javax.jms.JMSException;
@@ -30,8 +32,8 @@ import javax.jms.Session;
 import javax.jms.TextMessage;
 
 import org.apache.qpid.jms.JmsQueue;
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.amqpbridge.InternalMessage;
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
 import akka.actor.AbstractActor;
@@ -50,7 +52,7 @@ final class CommandConsumerActor extends AbstractActor implements MessageListene
      * The name of this Actor in the ActorSystem.
      */
     static final String ACTOR_NAME_PREFIX = "amqpConsumerActor-";
-    private static final String REPLY_TO_HEADER = "replyTo";
+
     private static final String CORRELATION_ID_HEADER = "correlation-id";
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
@@ -58,12 +60,13 @@ final class CommandConsumerActor extends AbstractActor implements MessageListene
     private final String source;
     private final ActorRef commandProcessor;
 
-    private MessageConsumer consumer;
+    @Nullable private MessageConsumer consumer = null;
 
-    private CommandConsumerActor(final Session session, final String source, final ActorRef commandProcessor) {
-        this.session = session;
-        this.source = source;
-        this.commandProcessor = commandProcessor;
+    private CommandConsumerActor(@Nullable final Session session, @Nullable final String source,
+            @Nullable final ActorRef commandProcessor) {
+        this.session = checkNotNull(session, "session");
+        this.source = checkNotNull(source, "source");
+        this.commandProcessor = checkNotNull(commandProcessor, "commandProcessor");
     }
 
     /**
@@ -72,7 +75,8 @@ final class CommandConsumerActor extends AbstractActor implements MessageListene
      * @param session the jms session.
      * @return the Akka configuration Props object.
      */
-    static Props props(final Session session, final String source, final ActorRef commandProcessor) {
+    static Props props(@Nullable final Session session, @Nullable final String source,
+            @Nullable final ActorRef commandProcessor) {
         return Props.create(CommandConsumerActor.class, new Creator<CommandConsumerActor>() {
             private static final long serialVersionUID = 1L;
 
@@ -96,10 +100,8 @@ final class CommandConsumerActor extends AbstractActor implements MessageListene
     public void preStart() throws JMSException {
         final Destination destination = new JmsQueue(source);
         log.debug("Creating AMQP Consumer for '{}'", source);
-        if (session != null) {
-            consumer = session.createConsumer(destination);
-            consumer.setMessageListener(this);
-        }
+        consumer = session.createConsumer(destination);
+        consumer.setMessageListener(this);
     }
 
     @Override
@@ -123,6 +125,8 @@ final class CommandConsumerActor extends AbstractActor implements MessageListene
             final InternalMessage.Builder builder = new InternalMessage.Builder(headers);
             extractPayloadFromMessage(message, builder);
             final InternalMessage internalMessage = builder.build();
+            log.debug("Forwarding to processor: {}, {}", internalMessage.getHeaders(),
+                    internalMessage.getTextPayload().orElse("binary"));
             commandProcessor.tell(internalMessage, self());
         } catch (final DittoRuntimeException e) {
             log.info("Got DittoRuntimeException '{}' when command was parsed: {}", e.getErrorCode(), e.getMessage());
@@ -161,7 +165,7 @@ final class CommandConsumerActor extends AbstractActor implements MessageListene
 
         final String replyTo = message.getJMSReplyTo() != null ? String.valueOf(message.getJMSReplyTo()) : null;
         if (replyTo != null) {
-            headersFromJmsProperties.put(REPLY_TO_HEADER, replyTo);
+            headersFromJmsProperties.put("reply-to", replyTo);
         }
 
         final String jmsCorrelationId = message.getJMSCorrelationID() != null ? message.getJMSCorrelationID() :
@@ -172,6 +176,7 @@ final class CommandConsumerActor extends AbstractActor implements MessageListene
         return headersFromJmsProperties;
     }
 
+    @Nullable
     private Map.Entry<String, String> getPropertyAsEntry(final Message message, final String key) {
         try {
             return new AbstractMap.SimpleImmutableEntry<>(key, message.getObjectProperty(key).toString());

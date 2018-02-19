@@ -15,10 +15,10 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
+import javax.annotation.Nullable;
 import javax.jms.JMSException;
 import javax.jms.JMSRuntimeException;
 import javax.naming.NamingException;
@@ -61,7 +61,7 @@ public final class ConnectionSupervisorActor extends AbstractActor {
     private final SupervisorStrategy supervisorStrategy;
     private final Props persistenceActorProps;
 
-    private ActorRef child;
+    @Nullable private ActorRef child;
     private long restartCount;
 
     private ConnectionSupervisorActor(final SupervisorStrategy supervisorStrategy,
@@ -148,7 +148,7 @@ public final class ConnectionSupervisorActor extends AbstractActor {
                     restartCount += 1;
                 })
                 .matchAny(message -> {
-                    if (getChild().isPresent()) {
+                    if (child != null) {
                         if (child.equals(getSender())) {
                             log.warning("Received unhandled message from child actor '{}': {}", connectionId, message);
                             unhandled(message);
@@ -171,12 +171,8 @@ public final class ConnectionSupervisorActor extends AbstractActor {
                 .build();
     }
 
-    private Optional<ActorRef> getChild() {
-        return Optional.ofNullable(child);
-    }
-
     private void startChild() {
-        if (!getChild().isPresent()) {
+        if (child == null) {
             log.debug("Starting persistence actor for Connection with ID '{}'", connectionId);
             final ActorRef childRef = getContext().actorOf(persistenceActorProps, "pa");
             child = getContext().watch(childRef);

@@ -34,15 +34,12 @@ import akka.actor.Props;
 
 public class TestConstants {
 
-    static final String PROXY_ACTOR_PATH = "/user/gatewayRoot/proxy";
     private static final ConnectionType TYPE = ConnectionType.AMQP_10;
     private static final String URI = "amqps://username:password@my.endpoint:443";
     private static final String SUBJECT_ID = "mySolutionId:mySubject";
     private static final AuthorizationSubject AUTHORIZATION_SUBJECT = AuthorizationSubject.newInstance(SUBJECT_ID);
     private static final Set<String> SOURCES = new HashSet<>(Arrays.asList("amqp/source1", "amqp/source2"));
-    private static final boolean FAILOVER = false;
-    private static final boolean VALIDATE_CERT = true;
-    private static final int THROTTLE = 250;
+    private static final String TARGET = "eventQueue";
     public static final Config CONFIG = ConfigFactory.load("test");
 
     public static String createRandomConnectionId() {
@@ -50,7 +47,10 @@ public class TestConstants {
     }
 
     public static AmqpConnection createConnection(final String connectionId) {
-        return AmqpBridgeModelFactory.newConnection(connectionId, TYPE, URI, AUTHORIZATION_SUBJECT, SOURCES);
+        return AmqpBridgeModelFactory.newConnectionBuilder(connectionId, TYPE, URI, AUTHORIZATION_SUBJECT)
+                .sources(SOURCES)
+                .eventTarget(TARGET)
+                .build();
     }
 
     static ActorRef createConnectionSupervisorActor(final String connectionId, final ActorSystem actorSystem,

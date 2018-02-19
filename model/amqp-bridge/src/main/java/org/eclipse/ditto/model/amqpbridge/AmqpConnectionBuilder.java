@@ -11,6 +11,8 @@
  */
 package org.eclipse.ditto.model.amqpbridge;
 
+import java.util.Set;
+
 /**
  * A mutable builder for a {@link AmqpConnection} with a fluent API.
  */
@@ -22,7 +24,7 @@ public interface AmqpConnectionBuilder {
      * @param failoverEnabled if failover is enabled for this connection (default {@code true})
      * @return this builder to allow method chaining.
      */
-    ImmutableAmqpConnectionBuilder failoverEnabled(boolean failoverEnabled);
+    AmqpConnectionBuilder failoverEnabled(boolean failoverEnabled);
 
     /**
      * Enable/disable validtion of certificates for the {@link AmqpConnection}.
@@ -30,7 +32,7 @@ public interface AmqpConnectionBuilder {
      * @param validateCertificate if server certificates are validated (default {@code true})
      * @return this builder to allow method chaining.
      */
-    ImmutableAmqpConnectionBuilder validateCertificate(boolean validateCertificate);
+    AmqpConnectionBuilder validateCertificate(boolean validateCertificate);
 
     /**
      * Set the throttling rate for the {@link AmqpConnection}.
@@ -38,7 +40,7 @@ public interface AmqpConnectionBuilder {
      * @param throttle the throttling rate per second (default {@code 0}, disabled)
      * @return this builder to allow method chaining.
      */
-    ImmutableAmqpConnectionBuilder throttle(int throttle);
+    AmqpConnectionBuilder throttle(int throttle);
 
     /**
      * Set the consumer count for the {@link AmqpConnection}.
@@ -46,7 +48,7 @@ public interface AmqpConnectionBuilder {
      * @param consumerCount the number of consumers that will be started in the cluster (default {@code 1})
      * @return this builder to allow method chaining.
      */
-    ImmutableAmqpConnectionBuilder consumerCount(int consumerCount);
+    AmqpConnectionBuilder consumerCount(int consumerCount);
 
     /**
      * Set the command processor pool size for the {@link AmqpConnection}.
@@ -54,7 +56,15 @@ public interface AmqpConnectionBuilder {
      * @param processorPoolSize number of command processor actors that will be used at max (default {@code 5})
      * @return this builder to allow method chaining.
      */
-    ImmutableAmqpConnectionBuilder processorPoolSize(int processorPoolSize);
+    AmqpConnectionBuilder processorPoolSize(int processorPoolSize);
+
+    AmqpConnectionBuilder sources(String... sources);
+
+    AmqpConnectionBuilder sources(Set<String> sources);
+
+    AmqpConnectionBuilder eventTarget(String eventTarget);
+
+    AmqpConnectionBuilder replyTarget(String replyTarget);
 
     /**
      * Builds a new {@link AmqpConnection}.
