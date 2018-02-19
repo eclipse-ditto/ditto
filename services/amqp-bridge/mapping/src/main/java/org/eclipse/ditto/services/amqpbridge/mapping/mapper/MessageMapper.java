@@ -118,6 +118,19 @@ public abstract class MessageMapper extends Converter<InternalMessage, Adaptable
     }
 
     /**
+     * Identifies and gets a configured content type from a protocol adaptable.
+     * @param adaptable the message
+     * @return the content type if found
+     */
+    public static Optional<String> findContentType(final Adaptable adaptable) {
+        checkNotNull(adaptable);
+        return adaptable.getHeaders().map(h -> h.entrySet().stream()
+                .filter(e -> CONTENT_TYPE_KEY.equalsIgnoreCase(e.getKey()))
+                .findFirst()
+                .map(Map.Entry::getValue).orElse(null));
+    }
+
+    /**
      * Applies a configuration to the mapper. Has to apply the configuration as a whole, so check validity before
      * changing anything!
      * @param configuration the configuration

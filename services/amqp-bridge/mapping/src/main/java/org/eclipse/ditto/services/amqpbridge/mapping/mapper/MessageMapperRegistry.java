@@ -23,6 +23,7 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.amqpbridge.InternalMessage;
+import org.eclipse.ditto.protocoladapter.Adaptable;
 
 /**
  * A registry for instatiated mappers.
@@ -56,6 +57,15 @@ public class MessageMapperRegistry implements Collection<MessageMapper> {
 
     public Optional<MessageMapper> findMapper(final InternalMessage message) {
         return MessageMapper.findContentType(message).map(registry::get);
+    }
+
+    public Optional<MessageMapper> findMapper(final Adaptable adaptable) {
+        return MessageMapper.findContentType(adaptable).map(registry::get);
+    }
+
+    public Optional<MessageMapper> selectMapper(final Adaptable adaptable) {
+        Optional<MessageMapper> mapper = findMapper(adaptable);
+        return mapper.isPresent() ? mapper : Optional.ofNullable(getDefaultMapper());
     }
 
     public Optional<MessageMapper> selectMapper(final InternalMessage message) {

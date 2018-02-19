@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.services.amqpbridge.mapping.mapper;
 
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -53,19 +54,19 @@ public class DittoMessageMapper extends MessageMapper {
     );
 
     /**
-     * Creates a new mapper with enabled content type check.
+     * A convenience constructor to init without a mapping context
      */
-    @SuppressWarnings("WeakerAccess")
-    public DittoMessageMapper() {
-        this(true);
-    }
+    public DittoMessageMapper(final MessageMapperConfiguration configuration) {
+        Map<String, String> map = new HashMap<>(configuration);
+        if (!map.containsKey(MessageMapper.OPT_CONTENT_TYPE)) {
+            map.put(MessageMapper.OPT_CONTENT_TYPE, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
+        }
 
-    /**
-     * Creates a new mapper.
-     * @param isContentTypeRequired if content type check should be performed prior mapping
-     */
-    public DittoMessageMapper(final boolean isContentTypeRequired) {
-        setContentTypeRequired(isContentTypeRequired);
+        if (!map.containsKey(MessageMapper.OPT_CONTENT_TYPE_REQUIRED)) {
+            map.put(MessageMapper.OPT_CONTENT_TYPE_REQUIRED, String.valueOf(true));
+        }
+
+        configure(MessageMapperConfiguration.from(map));
     }
 
     @Override

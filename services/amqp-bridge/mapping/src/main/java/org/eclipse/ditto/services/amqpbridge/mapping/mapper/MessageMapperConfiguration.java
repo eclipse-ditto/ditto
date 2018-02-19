@@ -12,6 +12,7 @@
 package org.eclipse.ditto.services.amqpbridge.mapping.mapper;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -27,6 +28,10 @@ public class MessageMapperConfiguration implements Map<String, String> {
 
     private MessageMapperConfiguration(final Map<String, String> configuration) {
         this.configuration = new LinkedHashMap<>(configuration);
+    }
+
+    public static MessageMapperConfiguration empty() {
+        return from(Collections.emptyMap());
     }
 
     /**
