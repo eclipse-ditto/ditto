@@ -21,10 +21,11 @@ import org.mozilla.javascript.Scriptable;
  */
 final class RhinoContextFactory extends ContextFactory {
 
-    private static final int INSTRUCTION_OBSERVER_THRESHOLD = 10000;
+    private static final int INSTRUCTION_OBSERVER_THRESHOLD = 1000;
     private static final int OPTIMIZATION_LEVEL = -1;
 
-    private static final int MAX_SCRIPT_EXEC_TIME_MS = 10 * 1000;
+    private static final int MAX_SCRIPT_EXEC_TIME_MS = 1000;
+    private static final int MAXIMUM_INTERPRETER_STACK_DEPTH = 10;
 
     static {
         // Initialize GlobalFactory with custom factory
@@ -39,11 +40,13 @@ final class RhinoContextFactory extends ContextFactory {
         // Make Rhino runtime to call observeInstructionCount each 10000 bytecode instructions
         cx.setInstructionObserverThreshold(INSTRUCTION_OBSERVER_THRESHOLD);
         cx.setLanguageVersion(Context.VERSION_1_8);
+        cx.setMaximumInterpreterStackDepth(MAXIMUM_INTERPRETER_STACK_DEPTH);
+        cx.initSafeStandardObjects();
         return cx;
     }
 
     @Override
-    public boolean hasFeature(Context cx, int featureIndex) {
+    public boolean hasFeature(final Context cx, final int featureIndex) {
         switch (featureIndex) {
             case Context.FEATURE_MEMBER_EXPR_AS_FUNCTION_NAME:
                 return true;
