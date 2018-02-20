@@ -2619,10 +2619,16 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
         @Override
         protected void doApply(final CheckForActivity message) {
-            if (accessCounter > message.getCurrentAccessCounter()) {
+            if (isThingDeleted() && !thingSnapshotter.lastSnapshotCompletedAndUpToDate()) {
+                // take a snapshot after a period of inactivity if:
+                // - thing is deleted,
+                // - the latest snapshot is out of date or is still ongoing.
+                thingSnapshotter.takeSnapshotInternal();
+                scheduleCheckForThingActivity(activityCheckDeletedInterval.getSeconds());
+            } else if (accessCounter > message.getCurrentAccessCounter()) {
                 // if the Thing was accessed in any way since the last check
                 scheduleCheckForThingActivity(activityCheckInterval.getSeconds());
-            } else if (isThingActive() || thingSnapshotter.lastSnapshotCompletedAndUpToDate()) {
+            } else {
                 // safe to shutdown after a period of inactivity if:
                 // - thing is active (and taking regular snapshots of itself), or
                 // - thing is deleted and the latest snapshot is up to date
@@ -2631,13 +2637,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                 } else {
                     shutdown("Thing <{}> was deleted recently. Shutting Actor down ...", thingId);
                 }
-            } else {
-                // take a snapshot after a period of inactivity if:
-                // - thing hasn't been accessed for a while,
-                // - thing is deleted,
-                // - the latest snapshot is out of date or is still ongoing.
-                thingSnapshotter.takeSnapshotInternal();
-                scheduleCheckForThingActivity(activityCheckDeletedInterval.getSeconds());
             }
         }
 
