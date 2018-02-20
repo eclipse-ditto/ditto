@@ -1891,6 +1891,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
                 // - the latest snapshot is out of date or is still ongoing.
                 final Object snapshotToStore = snapshotAdapter.toSnapshotStore(policy);
                 saveSnapshot(snapshotToStore);
+                scheduleCheckForPolicyActivity(activityCheckDeletedInterval.getSeconds());
             } else if (accessCounter > message.getCurrentAccessCounter()) {
                 // if the Thing was accessed in any way since the last check
                 scheduleCheckForPolicyActivity(activityCheckInterval.getSeconds());
