@@ -14,6 +14,8 @@ package org.eclipse.ditto.services.gateway.proxy.actors;
 import java.util.Optional;
 import java.util.UUID;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.json.JsonRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
@@ -98,80 +100,8 @@ public final class EnforcerLookupActor extends AbstractActor {
     public Receive createReceive() {
         return ReceiveBuilder.create()
                 .match(LookupEnforcer.class, this::handleLookupEnforcer)
-                .match(RetrieveCacheEntryResponse.class, EnforcerLookupActor::hasLookupContext, entryResponse -> {
-                    final String id = entryResponse.getId();
-                    final LookupContext<?> lookupContext = entryResponse.getContext()
-                            .map(LookupContext.class::cast)
-                            .get();
-
-                    final Optional<CacheEntry> cacheEntryOpt = entryResponse.getCacheEntry();
-                    if (cacheEntryOpt.isPresent() && !cacheEntryOpt.get().isDeleted()) {
-                        final CacheEntry cacheEntry = cacheEntryOpt.get();
-                        log.debug("CacheEntry found for ID <{}>: {}", id, cacheEntry);
-                        final boolean hasJsonSchemaVersion1 = cacheEntry.getJsonSchemaVersion()
-                                .filter(JsonSchemaVersion.V_1::equals)
-                                .isPresent();
-                        final LookupEnforcerResponse response;
-                        if (hasJsonSchemaVersion1) {
-                            // ACL-based in schema version 1:
-                            response =
-                                    new LookupEnforcerResponse(aclEnforcerShardRegion, id, lookupContext, cacheEntry);
-                        } else {
-                            response = cacheEntry.getPolicyId()
-                                    .map(policyId -> new LookupEnforcerResponse(policyEnforcerShardRegion, policyId,
-                                            lookupContext, cacheEntry))
-                                    .orElseGet(() -> new LookupEnforcerResponse(null, id, lookupContext, cacheEntry));
-                        }
-
-                        final ActorRef lookupRecipient = lookupContext.getLookupRecipient();
-                        lookupRecipient.tell(response, getSelf());
-                    } else {
-                        // cache entry not found or was deleted
-                        log.debug("No CacheEntry found for ID <{}>.", id);
-                        final Signal<?> signal = lookupContext.getInitialCommandOrEvent();
-                        final String correlationId = signal.getDittoHeaders()
-                                .getCorrelationId()
-                                .orElse(UUID.randomUUID().toString());
-
-                        final ActorRef self = getSelf();
-
-                        // cache entry does not exist. retrieves the actual data from relevant microservices and
-                        // save the result in the cache. no data changes, so WriteConsistency.LOCAL is sufficient.
-                        enforcerLookupFunction.lookup(id, correlationId)
-                                .whenComplete((result, throwable) -> {
-                                    if (throwable != null) {
-                                        log.error(throwable, "Got Throwable while looking up enforcer: {}",
-                                                throwable.getMessage());
-                                    } else if (result.getError().isPresent()) {
-                                        final LookupEnforcerResponse response = new LookupEnforcerResponse(null, null,
-                                                lookupContext, cacheEntryOpt.orElse(null), result.getError().get());
-
-                                        final ActorRef lookupRecipient = lookupContext.getLookupRecipient();
-                                        lookupRecipient.tell(response, self);
-                                    } else {
-                                        result.getCacheEntry()
-                                                .map(cacheEntry ->
-                                                        new ModifyCacheEntry(id, cacheEntry, WriteConsistency.LOCAL))
-                                                .ifPresent(modifyCacheEntry ->
-                                                        cacheFacade.tell(modifyCacheEntry, ActorRef.noSender()));
-
-                                        final LookupEnforcerResponse response = new LookupEnforcerResponse(
-                                                result.getActorRef().orElse(null),
-                                                result.getShardId().orElse(null),
-                                                lookupContext,
-                                                cacheEntryOpt.orElse(null));
-
-                                        final ActorRef lookupRecipient = lookupContext.getLookupRecipient();
-                                        lookupRecipient.tell(response, self);
-                                    }
-                                })
-                                .exceptionally(error -> {
-                                    log.error(error, "Exception thrown while processing lookup enforcer result: {}",
-                                            error.getMessage());
-                                    return null;
-                                });
-                    }
-                })
+                .match(RetrieveCacheEntryResponse.class, EnforcerLookupActor::hasLookupContext,
+                        this::handleValidRetrieveCacheEntryResponse)
                 .match(RetrieveCacheEntryResponse.class,
                         entryResponse -> log.error("Context is not of type 'LookupContext': {}",
                                 entryResponse.getContext().orElse(null)))
@@ -199,6 +129,94 @@ public final class EnforcerLookupActor extends AbstractActor {
                 lookupEnforcer.getReadConsistency());
         cacheFacade.tell(new RetrieveCacheEntry(lookupEnforcer.getId(), lookupEnforcer.getContext(),
                 lookupEnforcer.getReadConsistency()), getSelf());
+    }
+
+    private void handleValidRetrieveCacheEntryResponse(final RetrieveCacheEntryResponse entryResponse) {
+        final String id = entryResponse.getId();
+        final LookupContext<?> lookupContext = entryResponse.getContext()
+                .map(LookupContext.class::cast)
+                .orElseThrow(IllegalStateException::new);
+
+        final Optional<CacheEntry> cacheEntryOpt = entryResponse.getCacheEntry();
+        if (cacheEntryOpt.isPresent() && !cacheEntryOpt.get().isDeleted()) {
+            final CacheEntry cacheEntry = cacheEntryOpt.get();
+            log.debug("CacheEntry found for ID <{}>: {}", id, cacheEntry);
+            handleCacheEntryFoundResponse(id, lookupContext, cacheEntry);
+        } else {
+            // cache entry not found or was deleted
+            log.debug("No CacheEntry found for ID <{}>.", id);
+            final CacheEntry cacheEntry = cacheEntryOpt.orElse(null);
+            handleNoCacheEntryFoundResponse(id, lookupContext, cacheEntry);
+        }
+    }
+
+    private void handleNoCacheEntryFoundResponse(final String id, final LookupContext<?> lookupContext,
+            @Nullable final CacheEntry cacheEntry) {
+        final Signal<?> signal = lookupContext.getInitialCommandOrEvent();
+        final String correlationId = signal.getDittoHeaders()
+                .getCorrelationId()
+                .orElse(UUID.randomUUID().toString());
+
+        final ActorRef self = getSelf();
+
+        // cache entry does not exist. retrieves the actual data from relevant microservices and
+        // save the result in the cache. no data changes, so WriteConsistency.LOCAL is sufficient.
+        enforcerLookupFunction.lookup(id, correlationId)
+                .whenComplete((result, throwable) -> {
+                    if (throwable != null) {
+                        log.error(throwable, "Got Throwable while looking up enforcer: {}",
+                                throwable.getMessage());
+                    } else {
+                        if (result.getError().isPresent()) {
+                            final LookupEnforcerResponse response = new LookupEnforcerResponse(null, null,
+                                    lookupContext, cacheEntry, result.getError().get());
+
+                            final ActorRef lookupRecipient = lookupContext.getLookupRecipient();
+                            lookupRecipient.tell(response, self);
+                        } else {
+                            result.getCacheEntry()
+                                    .map(resultCacheEntry ->
+                                            new ModifyCacheEntry(id, resultCacheEntry, WriteConsistency.LOCAL))
+                                    .ifPresent(modifyCacheEntry ->
+                                            cacheFacade.tell(modifyCacheEntry, ActorRef.noSender()));
+
+                            final LookupEnforcerResponse response = new LookupEnforcerResponse(
+                                    result.getActorRef().orElse(null),
+                                    result.getShardId().orElse(null),
+                                    lookupContext,
+                                    cacheEntry);
+
+                            final ActorRef lookupRecipient = lookupContext.getLookupRecipient();
+                            lookupRecipient.tell(response, self);
+                        }
+                    }
+                })
+                .exceptionally(error -> {
+                    log.error(error, "Exception thrown while processing lookup enforcer result: {}",
+                            error.getMessage());
+                    return null;
+                });
+    }
+
+    private void handleCacheEntryFoundResponse(final String id, final LookupContext<?> lookupContext,
+            final CacheEntry cacheEntry) {
+        final boolean hasJsonSchemaVersion1 = cacheEntry.getJsonSchemaVersion()
+                .filter(JsonSchemaVersion.V_1::equals)
+                .isPresent();
+        final LookupEnforcerResponse response;
+        if (hasJsonSchemaVersion1) {
+            // ACL-based in schema version 1:
+            response =
+                    new LookupEnforcerResponse(aclEnforcerShardRegion, id, lookupContext, cacheEntry);
+        } else {
+            response = cacheEntry.getPolicyId()
+                    .map(policyId -> new LookupEnforcerResponse(policyEnforcerShardRegion, policyId,
+                            lookupContext, cacheEntry))
+                    .orElseGet(() -> new LookupEnforcerResponse(null, id, lookupContext, cacheEntry));
+        }
+
+        final ActorRef lookupRecipient = lookupContext.getLookupRecipient();
+        lookupRecipient.tell(response, getSelf());
     }
 
 }

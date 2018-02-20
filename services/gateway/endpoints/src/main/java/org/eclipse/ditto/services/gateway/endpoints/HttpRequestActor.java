@@ -249,34 +249,19 @@ public final class HttpRequestActor extends AbstractActor {
     private static HttpResponse createCommandResponse(final HttpRequest request, final CommandResponse commandResponse,
             final WithOptionalEntity withOptionalEntity) {
 
-        final Function<HttpResponse, HttpResponse> addModifiedLocationHeaderForCreatedResponse = response -> {
-            if (HttpStatusCode.CREATED == commandResponse.getStatusCode()) {
-                Uri newUri = request.getUri();
-                if (!request.method().isIdempotent()) {
-                    // only for not idempotent requests (e.g.: POST), add the "createdId" to the path:
-                    final String uriStr = newUri.toString();
-                    String createdLocation;
-                    if (uriStr.indexOf(commandResponse.getId()) > 0) {
-                        createdLocation =
-                                uriStr.substring(0, uriStr.indexOf(commandResponse.getId())) + commandResponse.getId() +
-                                        commandResponse.getResourcePath().toString();
-                    } else {
-                        createdLocation = uriStr + "/" + commandResponse.getId() + commandResponse.getResourcePath()
-                                .toString();
-                    }
+        final Function<HttpResponse, HttpResponse> addModifiedLocationHeaderForCreatedResponse =
+                createModifiedLocationHeaderAddingResponseMapper(request, commandResponse);
 
-                    if (createdLocation.endsWith("/")) {
-                        createdLocation = createdLocation.substring(0, createdLocation.length() - 1);
-                    }
-                    newUri = Uri.create(createdLocation);
-                }
-                return response.addHeader(Location.create(newUri));
-            } else {
-                return response;
-            }
-        };
+        final Function<HttpResponse, HttpResponse> addBodyIfEntityExists =
+                createBodyAddingResponseMapper(commandResponse, withOptionalEntity);
 
-        final Function<HttpResponse, HttpResponse> addBodyIfEntityExists = response -> {
+        return createHttpResponseWithHeadersAndBody(commandResponse,
+                addModifiedLocationHeaderForCreatedResponse, addBodyIfEntityExists);
+    }
+
+    private static Function<HttpResponse, HttpResponse> createBodyAddingResponseMapper(
+            final CommandResponse commandResponse, final WithOptionalEntity withOptionalEntity) {
+        return response -> {
             if (StatusCodes.NO_CONTENT.equals(response.status())) {
                 return response;
             } else {
@@ -286,15 +271,44 @@ public final class HttpRequestActor extends AbstractActor {
                         .orElse(response);
             }
         };
-
-        return createHttpResponseWithHeadersAndBody(request, commandResponse,
-                addModifiedLocationHeaderForCreatedResponse, addBodyIfEntityExists);
     }
 
-    private static HttpResponse createHttpResponseWithHeadersAndBody(final HttpRequest request,
+    private static Function<HttpResponse, HttpResponse> createModifiedLocationHeaderAddingResponseMapper(
+            final HttpRequest request, final CommandResponse commandResponse) {
+        return response -> {
+                if (HttpStatusCode.CREATED == commandResponse.getStatusCode()) {
+                    Uri newUri = request.getUri();
+                    if (!request.method().isIdempotent()) {
+                        // only for not idempotent requests (e.g.: POST), add the "createdId" to the path:
+                        final String uriStr = newUri.toString();
+                        String createdLocation;
+                        final int uriIdIndex = uriStr.indexOf(commandResponse.getId());
+
+                        // if the uri contains the id, but *not* at the beginning
+                        if (uriIdIndex > 0) {
+                            createdLocation =
+                                    uriStr.substring(0, uriIdIndex) + commandResponse.getId() +
+                                            commandResponse.getResourcePath().toString();
+                        } else {
+                            createdLocation = uriStr + "/" + commandResponse.getId() + commandResponse.getResourcePath()
+                                    .toString();
+                        }
+
+                        if (createdLocation.endsWith("/")) {
+                            createdLocation = createdLocation.substring(0, createdLocation.length() - 1);
+                        }
+                        newUri = Uri.create(createdLocation);
+                    }
+                    return response.addHeader(Location.create(newUri));
+                } else {
+                    return response;
+                }
+            };
+    }
+
+    private static HttpResponse createHttpResponseWithHeadersAndBody(
             final CommandResponse commandResponse, final Function<HttpResponse, HttpResponse> addHeaders,
             final Function<HttpResponse, HttpResponse> addBody) {
-
         HttpResponse response = HttpResponse.create().withStatus(commandResponse.getStatusCodeValue());
 
         return addBody.apply(addHeaders.apply(response));

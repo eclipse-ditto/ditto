@@ -63,6 +63,62 @@ final class ThingModifyCommandResponseAdapter extends AbstractAdapter<ThingModif
     private static Map<String, JsonifiableMapper<ThingModifyCommandResponse>> mappingStrategies() {
         final Map<String, JsonifiableMapper<ThingModifyCommandResponse>> mappingStrategies = new HashMap<>();
 
+        addTopLevelResponses(mappingStrategies);
+
+        addAclResponses(mappingStrategies);
+
+        addAttributeResponses(mappingStrategies);
+
+        addFeatureResponses(mappingStrategies);
+
+        return mappingStrategies;
+    }
+
+    @Override
+    protected String getType(final Adaptable adaptable) {
+        final TopicPath topicPath = adaptable.getTopicPath();
+        final JsonPointer path = adaptable.getPayload().getPath();
+        final String commandName = getAction(topicPath) + upperCaseFirst(PathMatcher.match(path));
+        return topicPath.getGroup() + ".responses:" + commandName;
+    }
+
+    @Override
+    public Adaptable toAdaptable(final ThingModifyCommandResponse commandResponse, final TopicPath.Channel channel) {
+        final String responseName = commandResponse.getClass().getSimpleName().toLowerCase();
+        if (!responseName.endsWith("response")) {
+            throw UnknownCommandResponseException.newBuilder(responseName).build();
+        }
+
+        final TopicPathBuilder topicPathBuilder = ProtocolFactory.newTopicPathBuilder(commandResponse.getId());
+
+        final CommandsTopicPathBuilder commandsTopicPathBuilder =
+                fromTopicPathBuilderWithChannel(topicPathBuilder, channel);
+
+        final String commandName = commandResponse.getClass().getSimpleName().toLowerCase();
+        if (commandName.startsWith(TopicPath.Action.CREATE.toString())) {
+            commandsTopicPathBuilder.create();
+        } else if (commandName.startsWith(TopicPath.Action.MODIFY.toString())) {
+            commandsTopicPathBuilder.modify();
+        } else if (commandName.startsWith(TopicPath.Action.DELETE.toString())) {
+            commandsTopicPathBuilder.delete();
+        } else {
+            throw UnknownCommandException.newBuilder(commandName).build();
+        }
+
+        final PayloadBuilder payloadBuilder = Payload.newBuilder(commandResponse.getResourcePath()) //
+                .withStatus(commandResponse.getStatusCode());
+
+        final Optional<JsonValue> value = commandResponse.getEntity(commandResponse.getImplementedSchemaVersion());
+        value.ifPresent(payloadBuilder::withValue);
+
+        return Adaptable.newBuilder(commandsTopicPathBuilder.build()) //
+                .withPayload(payloadBuilder.build()) //
+                .withHeaders(ProtocolFactory.newHeaders(commandResponse.getDittoHeaders())) //
+                .build();
+    }
+
+    private static void addTopLevelResponses(
+            final Map<String, JsonifiableMapper<ThingModifyCommandResponse>> mappingStrategies) {
         mappingStrategies.put(CreateThingResponse.TYPE,
                 adaptable -> CreateThingResponse.of(thingFrom(adaptable), dittoHeadersFrom(adaptable)));
         mappingStrategies.put(ModifyThingResponse.TYPE,
@@ -71,7 +127,10 @@ final class ThingModifyCommandResponseAdapter extends AbstractAdapter<ThingModif
                         : ModifyThingResponse.modified(thingIdFrom(adaptable), dittoHeadersFrom(adaptable)));
         mappingStrategies.put(DeleteThingResponse.TYPE,
                 adaptable -> DeleteThingResponse.of(thingIdFrom(adaptable), dittoHeadersFrom(adaptable)));
+    }
 
+    private static void addAclResponses(
+            final Map<String, JsonifiableMapper<ThingModifyCommandResponse>> mappingStrategies) {
         mappingStrategies.put(ModifyAclResponse.TYPE,
                 adaptable -> ModifyAclResponse.modified(thingIdFrom(adaptable), aclFrom(adaptable),
                         dittoHeadersFrom(adaptable)));
@@ -85,7 +144,10 @@ final class ThingModifyCommandResponseAdapter extends AbstractAdapter<ThingModif
         mappingStrategies.put(DeleteAclEntryResponse.TYPE,
                 adaptable -> DeleteAclEntryResponse.of(thingIdFrom(adaptable), authorizationSubjectFrom(adaptable),
                         dittoHeadersFrom(adaptable)));
+    }
 
+    private static void addAttributeResponses(
+            final Map<String, JsonifiableMapper<ThingModifyCommandResponse>> mappingStrategies) {
         mappingStrategies.put(ModifyAttributesResponse.TYPE,
                 adaptable -> isCreated(adaptable)
                         ? ModifyAttributesResponse.created(thingIdFrom(adaptable), attributesFrom(adaptable),
@@ -105,7 +167,10 @@ final class ThingModifyCommandResponseAdapter extends AbstractAdapter<ThingModif
         mappingStrategies.put(DeleteAttributeResponse.TYPE,
                 adaptable -> DeleteAttributeResponse.of(thingIdFrom(adaptable), attributePointerFrom(adaptable),
                         dittoHeadersFrom(adaptable)));
+    }
 
+    private static void addFeatureResponses(
+            final Map<String, JsonifiableMapper<ThingModifyCommandResponse>> mappingStrategies) {
         mappingStrategies.put(ModifyFeaturesResponse.TYPE,
                 adaptable -> isCreated(adaptable)
                         ? ModifyFeaturesResponse.created(thingIdFrom(adaptable), featuresFrom(adaptable),
@@ -157,50 +222,5 @@ final class ThingModifyCommandResponseAdapter extends AbstractAdapter<ThingModif
         mappingStrategies.put(DeleteFeaturePropertyResponse.TYPE, adaptable -> DeleteFeaturePropertyResponse
                 .of(thingIdFrom(adaptable), featureIdFrom(adaptable), featurePropertyPointerFrom(adaptable),
                         dittoHeadersFrom(adaptable)));
-
-        return mappingStrategies;
-    }
-
-    @Override
-    protected String getType(final Adaptable adaptable) {
-        final TopicPath topicPath = adaptable.getTopicPath();
-        final JsonPointer path = adaptable.getPayload().getPath();
-        final String commandName = getAction(topicPath) + upperCaseFirst(PathMatcher.match(path));
-        return topicPath.getGroup() + ".responses:" + commandName;
-    }
-
-    @Override
-    public Adaptable toAdaptable(final ThingModifyCommandResponse commandResponse, final TopicPath.Channel channel) {
-        final String responseName = commandResponse.getClass().getSimpleName().toLowerCase();
-        if (!responseName.endsWith("response")) {
-            throw UnknownCommandResponseException.newBuilder(responseName).build();
-        }
-
-        final TopicPathBuilder topicPathBuilder = ProtocolFactory.newTopicPathBuilder(commandResponse.getId());
-
-        final CommandsTopicPathBuilder commandsTopicPathBuilder =
-                fromTopicPathBuilderWithChannel(topicPathBuilder, channel);
-
-        final String commandName = commandResponse.getClass().getSimpleName().toLowerCase();
-        if (commandName.startsWith(TopicPath.Action.CREATE.toString())) {
-            commandsTopicPathBuilder.create();
-        } else if (commandName.startsWith(TopicPath.Action.MODIFY.toString())) {
-            commandsTopicPathBuilder.modify();
-        } else if (commandName.startsWith(TopicPath.Action.DELETE.toString())) {
-            commandsTopicPathBuilder.delete();
-        } else {
-            throw UnknownCommandException.newBuilder(commandName).build();
-        }
-
-        final PayloadBuilder payloadBuilder = Payload.newBuilder(commandResponse.getResourcePath()) //
-                .withStatus(commandResponse.getStatusCode());
-
-        final Optional<JsonValue> value = commandResponse.getEntity(commandResponse.getImplementedSchemaVersion());
-        value.ifPresent(payloadBuilder::withValue);
-
-        return Adaptable.newBuilder(commandsTopicPathBuilder.build()) //
-                .withPayload(payloadBuilder.build()) //
-                .withHeaders(ProtocolFactory.newHeaders(commandResponse.getDittoHeaders())) //
-                .build();
     }
 }

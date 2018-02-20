@@ -44,6 +44,7 @@ public final class ConfigKeys {
      * Key of the port number value of a HTTP service.
      */
     public static final String HTTP_PORT = HTTP_PREFIX + "port";
+    private static final String ENABLED_SUFFIX = "enabled";
 
     public static final class Cluster {
 
@@ -59,7 +60,7 @@ public final class ConfigKeys {
         /**
          * Key of the majority check enabled configuration.
          */
-        public static final String MAJORITY_CHECK_ENABLED = MAJORITY_CHECK_PREFIX + "enabled";
+        public static final String MAJORITY_CHECK_ENABLED = MAJORITY_CHECK_PREFIX + ENABLED_SUFFIX;
 
         /**
          * Key of the how many shards should be used in the cluster.
@@ -87,7 +88,7 @@ public final class ConfigKeys {
         /**
          * Whether the health check for persistence should be enabled or not.
          */
-        public static final String PERSISTENCE_ENABLED = PERSISTENCE_PREFIX + "enabled";
+        public static final String PERSISTENCE_ENABLED = PERSISTENCE_PREFIX + ENABLED_SUFFIX;
 
         /**
          * The interval of the health check.
@@ -97,7 +98,7 @@ public final class ConfigKeys {
         /**
          * Whether the health check should be enabled (globally) or not.
          */
-        public static final String ENABLED = PREFIX + "enabled";
+        public static final String ENABLED = PREFIX + ENABLED_SUFFIX;
 
         private HealthCheck() {
             throw new AssertionError();
@@ -172,12 +173,6 @@ public final class ConfigKeys {
          * The interval when to do snapshot for a Policy which had changes to it.
          */
         public static final String SNAPSHOT_INTERVAL = POLICY_SNAPSHOT_PREFIX + "interval";
-
-        /**
-         * Every interval of this duration (configured by this key), this Actor checks if there were modifications and sends
-         * out an event with the complete thing if there were any.
-         */
-        public static final String MODIFICATION_CHECK_INTERVAL = PREFIX + "modification.check.interval";
 
         /**
          * Every interval of this duration (configured by this key), this Actor checks if there was activity "with it" (e.g.

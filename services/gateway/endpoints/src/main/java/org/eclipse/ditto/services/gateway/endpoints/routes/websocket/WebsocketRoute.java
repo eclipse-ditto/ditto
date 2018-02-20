@@ -281,30 +281,13 @@ public final class WebsocketRoute {
 
     private String jsonifiableToString(final String connectionCorrelationId,
             final Jsonifiable.WithPredicate<JsonObject, JsonField> jsonifiable) {
+        if (jsonifiable instanceof StreamingAck) {
+            return streamingAckToString((StreamingAck) jsonifiable);
+        }
+
         final Adaptable adaptable;
         if (jsonifiable instanceof Signal && isLiveSignal((Signal<?>) jsonifiable)) {
             adaptable = jsonifiableToAdaptable(jsonifiable, TopicPath.Channel.LIVE);
-        } else if (jsonifiable instanceof StreamingAck) {
-            final StreamingType streamingType = ((StreamingAck) jsonifiable).getStreamingType();
-            final boolean subscribed = ((StreamingAck) jsonifiable).isSubscribed();
-            final String protocolMessage;
-            switch (streamingType) {
-                case EVENTS:
-                    protocolMessage = subscribed ? START_SEND_EVENTS : STOP_SEND_EVENTS;
-                    break;
-                case MESSAGES:
-                    protocolMessage = subscribed ? START_SEND_MESSAGES : STOP_SEND_MESSAGES;
-                    break;
-                case LIVE_COMMANDS:
-                    protocolMessage = subscribed ? START_SEND_LIVE_COMMANDS : STOP_SEND_LIVE_COMMANDS;
-                    break;
-                case LIVE_EVENTS:
-                    protocolMessage = subscribed ? START_SEND_LIVE_EVENTS : STOP_SEND_LIVE_EVENTS;
-                    break;
-                default:
-                    throw new IllegalArgumentException("Unknown streamingType: " + streamingType);
-            }
-            return protocolMessage + PROTOCOL_CMD_ACK_SUFFIX;
         } else {
             adaptable = jsonifiableToAdaptable(jsonifiable, TopicPath.Channel.TWIN);
         }
@@ -330,6 +313,29 @@ public final class WebsocketRoute {
         final JsonifiableAdaptable jsonifiableAdaptable = ProtocolFactory.wrapAsJsonifiableAdaptable(adaptable);
         final JsonObject jsonObject = jsonifiableAdaptable.toJson(ProtocolFactory.newHeaders(allHeaders));
         return jsonObject.toString();
+    }
+
+    private static String streamingAckToString(final StreamingAck streamingAck) {
+        final StreamingType streamingType = streamingAck.getStreamingType();
+        final boolean subscribed = streamingAck.isSubscribed();
+        final String protocolMessage;
+        switch (streamingType) {
+            case EVENTS:
+                protocolMessage = subscribed ? START_SEND_EVENTS : STOP_SEND_EVENTS;
+                break;
+            case MESSAGES:
+                protocolMessage = subscribed ? START_SEND_MESSAGES : STOP_SEND_MESSAGES;
+                break;
+            case LIVE_COMMANDS:
+                protocolMessage = subscribed ? START_SEND_LIVE_COMMANDS : STOP_SEND_LIVE_COMMANDS;
+                break;
+            case LIVE_EVENTS:
+                protocolMessage = subscribed ? START_SEND_LIVE_EVENTS : STOP_SEND_LIVE_EVENTS;
+                break;
+            default:
+                throw new IllegalArgumentException("Unknown streamingType: " + streamingType);
+        }
+        return protocolMessage + PROTOCOL_CMD_ACK_SUFFIX;
     }
 
     private static boolean isLiveSignal(final Signal<?> signal) {

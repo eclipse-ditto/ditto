@@ -53,6 +53,7 @@ public final class PolicyCreated extends AbstractPolicyEvent<PolicyCreated> impl
 
     static final JsonFieldDefinition<JsonObject> JSON_POLICY =
             JsonFactory.newJsonObjectFieldDefinition("policy", FieldType.REGULAR, JsonSchemaVersion.V_2);
+    private static final String PROPERTY_NAME_POLICY = "Policy";
 
     private final Policy policy;
 
@@ -61,7 +62,7 @@ public final class PolicyCreated extends AbstractPolicyEvent<PolicyCreated> impl
             @Nullable final Instant timestamp,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, checkNotNull(policy, "Policy").getId().orElse(null), revision, timestamp, dittoHeaders);
+        super(TYPE, checkNotNull(policy, PROPERTY_NAME_POLICY).getId().orElse(null), revision, timestamp, dittoHeaders);
         this.policy = policy;
     }
 
@@ -75,7 +76,7 @@ public final class PolicyCreated extends AbstractPolicyEvent<PolicyCreated> impl
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static PolicyCreated of(final Policy policy, final long revision, final DittoHeaders dittoHeaders) {
-        return of(checkNotNull(policy, "Policy"), revision, null, dittoHeaders);
+        return of(checkNotNull(policy, PROPERTY_NAME_POLICY), revision, null, dittoHeaders);
     }
 
     /**
@@ -93,7 +94,7 @@ public final class PolicyCreated extends AbstractPolicyEvent<PolicyCreated> impl
             @Nullable final Instant timestamp,
             final DittoHeaders dittoHeaders) {
 
-        return new PolicyCreated(checkNotNull(policy, "Policy"), revision, timestamp, dittoHeaders);
+        return new PolicyCreated(checkNotNull(policy, PROPERTY_NAME_POLICY), revision, timestamp, dittoHeaders);
     }
 
     /**

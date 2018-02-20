@@ -44,13 +44,13 @@ final class ParameterPredicateVisitor implements PredicateVisitor {
 
     static {
         SINGLE_COMPARISON_NODE_MAPPING = new EnumMap<>(SingleComparisonNode.Type.class);
-        SINGLE_COMPARISON_NODE_MAPPING.put(SingleComparisonNode.Type.eq, CriteriaFactory::eq);
-        SINGLE_COMPARISON_NODE_MAPPING.put(SingleComparisonNode.Type.ne, CriteriaFactory::ne);
-        SINGLE_COMPARISON_NODE_MAPPING.put(SingleComparisonNode.Type.gt, CriteriaFactory::gt);
-        SINGLE_COMPARISON_NODE_MAPPING.put(SingleComparisonNode.Type.ge, CriteriaFactory::ge);
-        SINGLE_COMPARISON_NODE_MAPPING.put(SingleComparisonNode.Type.lt, CriteriaFactory::lt);
-        SINGLE_COMPARISON_NODE_MAPPING.put(SingleComparisonNode.Type.le, CriteriaFactory::le);
-        SINGLE_COMPARISON_NODE_MAPPING.put(SingleComparisonNode.Type.like, CriteriaFactory::like);
+        SINGLE_COMPARISON_NODE_MAPPING.put(SingleComparisonNode.Type.EQ, CriteriaFactory::eq);
+        SINGLE_COMPARISON_NODE_MAPPING.put(SingleComparisonNode.Type.NE, CriteriaFactory::ne);
+        SINGLE_COMPARISON_NODE_MAPPING.put(SingleComparisonNode.Type.GT, CriteriaFactory::gt);
+        SINGLE_COMPARISON_NODE_MAPPING.put(SingleComparisonNode.Type.GE, CriteriaFactory::ge);
+        SINGLE_COMPARISON_NODE_MAPPING.put(SingleComparisonNode.Type.LT, CriteriaFactory::lt);
+        SINGLE_COMPARISON_NODE_MAPPING.put(SingleComparisonNode.Type.LE, CriteriaFactory::le);
+        SINGLE_COMPARISON_NODE_MAPPING.put(SingleComparisonNode.Type.LIKE, CriteriaFactory::like);
     }
 
     private final List<Criteria> criteria = new ArrayList<>();
@@ -91,13 +91,13 @@ final class ParameterPredicateVisitor implements PredicateVisitor {
         node.getChildren().forEach(child -> child.accept(childVisitor));
 
         switch (type) {
-            case and:
+            case AND:
                 criteria.add(criteriaFactory.and(childVisitor.getCriteria()));
                 break;
-            case or:
+            case OR:
                 criteria.add(criteriaFactory.or(childVisitor.getCriteria()));
                 break;
-            case not:
+            case NOT:
                 criteria.add(criteriaFactory.nor(childVisitor.getCriteria()));
                 break;
             default:
@@ -132,7 +132,7 @@ final class ParameterPredicateVisitor implements PredicateVisitor {
         final MultiComparisonNode.Type type = node.getComparisonType();
         final List<Object> values = node.getComparisonValue();
 
-        if (type == MultiComparisonNode.Type.in) {
+        if (type == MultiComparisonNode.Type.IN) {
             criteria.add(criteriaFactory.fieldCriteria(field, criteriaFactory.in(values)));
         } else {
             throwUnknownType(type);

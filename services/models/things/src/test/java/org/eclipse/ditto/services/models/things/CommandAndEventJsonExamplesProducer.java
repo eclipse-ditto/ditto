@@ -85,13 +85,14 @@ public final class CommandAndEventJsonExamplesProducer {
         final Thing exampleThingJson = createExampleThing("org.eclipse.ditto:the_thingId_1");
         final Thing exampleThing2Json = createExampleThing("org.eclipse.ditto:the_thingId_2");
 
+        final JsonObject exampleThingJsonRestrictedByPredicate = exampleThingJson.toJson(FieldType.notHidden());
         final SudoRetrieveThingResponse sudoRetrieveThingResponse =
-                SudoRetrieveThingResponse.of(exampleThingJson, FieldType.notHidden(), TestConstants.EMPTY_HEADERS);
+                SudoRetrieveThingResponse.of(exampleThingJsonRestrictedByPredicate, TestConstants.EMPTY_HEADERS);
         writeJson(sudoCommandsDir.resolve(Paths.get("sudoRetrieveThingResponse.json")), sudoRetrieveThingResponse);
 
+        final JsonObject exampleThingJsonRestrictedByFieldSelector = exampleThingJson.toJson(sudoFieldSelector);
         final SudoRetrieveThingResponse sudoRetrieveThingResponseWithFieldSelector =
-                SudoRetrieveThingResponse.of(exampleThingJson, //
-                        sudoFieldSelector, FieldType.regularOrSpecial(), TestConstants.EMPTY_HEADERS);
+                SudoRetrieveThingResponse.of(exampleThingJsonRestrictedByFieldSelector, TestConstants.EMPTY_HEADERS);
         writeJson(sudoCommandsDir.resolve(Paths.get("sudoRetrieveThingResponse-withFieldSelector.json")),
                 sudoRetrieveThingResponseWithFieldSelector);
 
