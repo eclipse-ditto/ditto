@@ -42,13 +42,7 @@ public final class ConfigKeys {
     public static final String REDIRECT_TO_HTTPS_BLACKLIST_PATTERN =
             GATEWAY_PREFIX + "redirect-to-https-blacklist-pattern";
 
-    /**
-     * Key of the "checkApiToken" config entry. Whether to check for existence and validate HTTP header
-     * "x-cr-api-token".
-     */
-    public static final String CHECK_API_TOKEN = GATEWAY_PREFIX + "checkApiToken";
-
-    private static final String ENABLED = "enabled";
+    private static final String ENABLED_SUFFIX = "enabled";
     private static final String HOSTNAME = "hostname";
 
     private static final String HTTP_PREFIX = GATEWAY_PREFIX + "http.";
@@ -60,12 +54,6 @@ public final class ConfigKeys {
      * Key of the port number value of a HTTP service.
      */
     public static final String HTTP_PORT = HTTP_PREFIX + "port";
-
-    /**
-     * Controls whether the Namespace Parameter is mandatory or not.
-     */
-    public static final String HTTP_NAMESPACE_PARAMETER = HTTP_PREFIX + "namespaces-parameter.enabled";
-
     /**
      * The supported SchemaVersions the API Gateway should support (Array of Integers).
      */
@@ -118,31 +106,26 @@ public final class ConfigKeys {
     /**
      * Key of the majority check enabled configuration.
      */
-    public static final String CLUSTER_MAJORITY_CHECK_ENABLED = CLUSTER_MAJORITY_CHECK_PREFIX + "enabled";
+    public static final String CLUSTER_MAJORITY_CHECK_ENABLED = CLUSTER_MAJORITY_CHECK_PREFIX + ENABLED_SUFFIX;
     /**
      * Key of the majority check delay.
      */
     public static final String CLUSTER_MAJORITY_CHECK_DELAY = CLUSTER_MAJORITY_CHECK_PREFIX + "delay";
 
     private static final String AUTHENTICATION_PREFIX = GATEWAY_PREFIX + "authentication.";
-    private static final String AUTHENTICATION_CLIENT_PREFIX = AUTHENTICATION_PREFIX + "client.";
-    /**
-     * Whether asymmetrical client authentication should be enabled or not.
-     */
-    public static final String AUTHENTICATION_CLIENT_ENABLED = AUTHENTICATION_CLIENT_PREFIX + "enabled";
     private static final String AUTHENTICATION_DUMMY_PREFIX = AUTHENTICATION_PREFIX + "dummy.";
     /**
      * Whether dummy authentication should be enabled or not.
      *
      * <p><strong>Note: </strong>Don't use in production!</p>
      */
-    public static final String AUTHENTICATION_DUMMY_ENABLED = AUTHENTICATION_DUMMY_PREFIX + "enabled";
+    public static final String AUTHENTICATION_DUMMY_ENABLED = AUTHENTICATION_DUMMY_PREFIX + ENABLED_SUFFIX;
     private static final String AUTHENTICATION_HTTP_PREFIX = AUTHENTICATION_PREFIX + "http.";
     private static final String AUTHENTICATION_HTTP_PROXY_PREFIX = AUTHENTICATION_HTTP_PREFIX + "proxy.";
     /**
      * Key of the Authentication "HTTP proxy enabled" config entry.
      */
-    public static final String AUTHENTICATION_HTTP_PROXY_ENABLED = AUTHENTICATION_HTTP_PROXY_PREFIX + "enabled";
+    public static final String AUTHENTICATION_HTTP_PROXY_ENABLED = AUTHENTICATION_HTTP_PROXY_PREFIX + ENABLED_SUFFIX;
     /**
      * Key of the Authentication "HTTP proxy host" config entry.
      */
@@ -160,41 +143,12 @@ public final class ConfigKeys {
      */
     public static final String AUTHENTICATION_HTTP_PROXY_PASSWORD = AUTHENTICATION_HTTP_PROXY_PREFIX + "password";
 
-
-    private static final String IM_PREFIX = GATEWAY_PREFIX + "im.";
-
-    /**
-     * The server URL of the IM service to connect to.
-     */
-    public static final String IM_SERVER_URL = IM_PREFIX + "serverUrl";
-
-    /**
-     * The Tenant ID of the IM Instance to connect to.
-     */
-    public static final String IM_TENANT_ID = IM_PREFIX + "tenantId";
-
-    /**
-     * The Tenant Name of the IM Instance to connect to (as alternative to the tenantId).
-     */
-    public static final String IM_TENANT_NAME = IM_PREFIX + "tenantName";
-
-    /**
-     * The Client ID of the IM Instance to connect to.
-     */
-    public static final String IM_CLIENT_ID = IM_PREFIX + "clientId";
-
-    /**
-     * The Client Secret of the IM Instance to connect to.
-     */
-    public static final String IM_CLIENT_SECRET = IM_PREFIX + "clientSecret";
-
-
     private static final String HEALTH_CHECK_PREFIX = GATEWAY_PREFIX + "health-check.";
 
     /**
      * Whether the health check should be enabled (globally) or not.
      */
-    public static final String HEALTH_CHECK_ENABLED = HEALTH_CHECK_PREFIX + ENABLED;
+    public static final String HEALTH_CHECK_ENABLED = HEALTH_CHECK_PREFIX + ENABLED_SUFFIX;
     /**
      * The interval of the health check.
      */
@@ -203,18 +157,13 @@ public final class ConfigKeys {
      * The timeout used by the health check for determining the health of a single service.
      */
     public static final String HEALTH_CHECK_SERVICE_TIMEOUT = HEALTH_CHECK_PREFIX + "service.timeout";
-    private static final String HEALTH_CHECK_IM = HEALTH_CHECK_PREFIX + "im.";
-    /**
-     * Whether the IM health check should be enabled or not.
-     */
-    public static final String HEALTH_CHECK_IM_ENABLED = HEALTH_CHECK_IM + ENABLED;
 
     private static final String HEALTH_CHECK_PERSISTENCE_PREFIX = HEALTH_CHECK_PREFIX + "persistence.";
 
     /**
      * Whether the health check for persistence should be enabled or not.
      */
-    public static final String HEALTH_CHECK_PERSISTENCE_ENABLED = HEALTH_CHECK_PERSISTENCE_PREFIX + "enabled";
+    public static final String HEALTH_CHECK_PERSISTENCE_ENABLED = HEALTH_CHECK_PERSISTENCE_PREFIX + ENABLED_SUFFIX;
     /**
      * The timeout of the health check for persistence. If the persistence takes longer than that to respond, it is
      * considered "DOWN".
@@ -226,7 +175,7 @@ public final class ConfigKeys {
     /**
      * Whether the health check for presence of all cluster roles should be enabled or not.
      */
-    public static final String HEALTH_CHECK_CLUSTER_ROLES_ENABLED = HEALTH_CHECK_CLUSTER_ROLES_PREFIX + "enabled";
+    public static final String HEALTH_CHECK_CLUSTER_ROLES_ENABLED = HEALTH_CHECK_CLUSTER_ROLES_PREFIX + ENABLED_SUFFIX;
 
     /**
      * Whether the health check for presence of all cluster roles should be enabled or not.
@@ -268,31 +217,6 @@ public final class ConfigKeys {
     private static final String CACHE_PREFIX = GATEWAY_PREFIX + "cache.";
 
     /**
-     * The maximum entries of IM contexts to be cached.
-     */
-    public static final String CACHE_IM_MAX = CACHE_PREFIX + "im.maxentries";
-
-    /**
-     * The maximum entries of Solutions to be cached.
-     */
-    public static final String CACHE_SOLUTIONS_MAX = CACHE_PREFIX + "solutions.maxentries";
-
-    /**
-     * The expiry of cached entries of solutions.
-     */
-    public static final String CACHE_SOLUTIONS_EXPIRY = CACHE_PREFIX + "solutions.expiry";
-
-    /**
-     * The maximum entries of Keys to be cached.
-     */
-    public static final String CACHE_KEYS_MAX = CACHE_PREFIX + "keys.maxentries";
-
-    /**
-     * The expiry of cached entries of keys.
-     */
-    public static final String CACHE_KEYS_EXPIRY = CACHE_PREFIX + "keys.expiry";
-
-    /**
      * The maximum entries of PublicKeys to be cached.
      */
     public static final String CACHE_PUBLIC_KEYS_MAX = CACHE_PREFIX + "publickeys.maxentries";
@@ -308,10 +232,7 @@ public final class ConfigKeys {
      * Key of the PolicyEnforcer cache interval.
      */
     public static final String ENFORCER_CACHE_INTERVAL = ENFORCER_PREFIX + "cache.interval";
-    /**
-     * Key of the PolicyEnforcer sync interval.
-     */
-    public static final String ENFORCER_SYNC_INTERVAL = ENFORCER_PREFIX + "sync.interval";
+
     /**
      * Key of the PolicyEnforcer internal ask timeout.
      */
@@ -327,10 +248,6 @@ public final class ConfigKeys {
      * Key of the public health password.
      */
     public static final String SECRETS_PUBLIC_HEALTH_PASSWORD = SECRETS_PREFIX + "public_health_password";
-    /**
-     * Key of the im api key.
-     */
-    public static final String SECRETS_IM_API_KEY = SECRETS_PREFIX + "im_api_key";
 
     private static final String AKKA_PREFIX = "akka.";
     private static final String AKKA_HTTP_PREFIX = AKKA_PREFIX + "http.";

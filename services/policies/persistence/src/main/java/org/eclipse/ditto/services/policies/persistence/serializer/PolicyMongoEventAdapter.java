@@ -151,6 +151,7 @@ public final class PolicyMongoEventAdapter implements EventAdapter {
                 .orElse(jsonObject);
     }
 
+    @SuppressWarnings("squid:CallToDeprecatedMethod")
     private JsonObject migrateComplex(final JsonObject jsonObject) {
         return jsonObject.getValue(Event.JsonFields.ID)
                 .map(migrationMappings::get)

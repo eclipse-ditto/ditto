@@ -63,9 +63,9 @@ public final class ParameterPredicateVisitorTest {
         final RootNode rootNode = new RootNode();
 
         final SingleComparisonNode filterNode1 =
-                new SingleComparisonNode(SingleComparisonNode.Type.eq, KNOWN_FIELD_NAME, KNOWN_FIELD_VALUE_1);
+                new SingleComparisonNode(SingleComparisonNode.Type.EQ, KNOWN_FIELD_NAME, KNOWN_FIELD_VALUE_1);
         final SingleComparisonNode filterNode2 =
-                new SingleComparisonNode(SingleComparisonNode.Type.eq, KNOWN_FIELD_NAME, KNOWN_FIELD_VALUE_2);
+                new SingleComparisonNode(SingleComparisonNode.Type.EQ, KNOWN_FIELD_NAME, KNOWN_FIELD_VALUE_2);
 
         rootNode.getChildren().add(filterNode1);
         rootNode.getChildren().add(filterNode2);
@@ -80,12 +80,12 @@ public final class ParameterPredicateVisitorTest {
     /** */
     @Test
     public void visitChildrenOfLogicalNode() {
-        final LogicalNode logicalNode = new LogicalNode(LogicalNode.Type.and);
+        final LogicalNode logicalNode = new LogicalNode(LogicalNode.Type.AND);
 
         final SingleComparisonNode filterNode1 =
-                new SingleComparisonNode(SingleComparisonNode.Type.eq, KNOWN_FIELD_NAME, KNOWN_FIELD_VALUE_1);
+                new SingleComparisonNode(SingleComparisonNode.Type.EQ, KNOWN_FIELD_NAME, KNOWN_FIELD_VALUE_1);
         final SingleComparisonNode filterNode2 =
-                new SingleComparisonNode(SingleComparisonNode.Type.eq, KNOWN_FIELD_NAME, KNOWN_FIELD_VALUE_2);
+                new SingleComparisonNode(SingleComparisonNode.Type.EQ, KNOWN_FIELD_NAME, KNOWN_FIELD_VALUE_2);
 
         logicalNode.getChildren().add(filterNode1);
         logicalNode.getChildren().add(filterNode2);
@@ -103,7 +103,7 @@ public final class ParameterPredicateVisitorTest {
     /** */
     @Test
     public void logicalNodeAnd() {
-        final LogicalNode logicalNode = new LogicalNode(LogicalNode.Type.and);
+        final LogicalNode logicalNode = new LogicalNode(LogicalNode.Type.AND);
 
         visitorUnderTest.visit(logicalNode);
 
@@ -113,7 +113,7 @@ public final class ParameterPredicateVisitorTest {
     /** */
     @Test
     public void logicalNodeOr() {
-        final LogicalNode logicalNode = new LogicalNode(LogicalNode.Type.or);
+        final LogicalNode logicalNode = new LogicalNode(LogicalNode.Type.OR);
 
         visitorUnderTest.visit(logicalNode);
 
@@ -123,7 +123,7 @@ public final class ParameterPredicateVisitorTest {
     /** */
     @Test
     public void logicalNodeNot() {
-        final LogicalNode logicalNode = new LogicalNode(LogicalNode.Type.not);
+        final LogicalNode logicalNode = new LogicalNode(LogicalNode.Type.NOT);
         visitorUnderTest.visit(logicalNode);
 
         assertThat(visitorUnderTest.getCriteria()).containsExactly(cf.nor(Collections.emptyList()));
@@ -133,7 +133,7 @@ public final class ParameterPredicateVisitorTest {
     @Test
     public void filterNodeEq() {
         final SingleComparisonNode filterNode =
-                new SingleComparisonNode(SingleComparisonNode.Type.eq, KNOWN_FIELD_NAME, KNOWN_FIELD_VALUE_1);
+                new SingleComparisonNode(SingleComparisonNode.Type.EQ, KNOWN_FIELD_NAME, KNOWN_FIELD_VALUE_1);
 
         visitorUnderTest.visit(filterNode);
 
@@ -145,7 +145,7 @@ public final class ParameterPredicateVisitorTest {
     @Test
     public void filterNodeNe() {
         final SingleComparisonNode filterNode =
-                new SingleComparisonNode(SingleComparisonNode.Type.ne, KNOWN_FIELD_NAME, KNOWN_FIELD_VALUE_1);
+                new SingleComparisonNode(SingleComparisonNode.Type.NE, KNOWN_FIELD_NAME, KNOWN_FIELD_VALUE_1);
 
         visitorUnderTest.visit(filterNode);
 
@@ -157,7 +157,7 @@ public final class ParameterPredicateVisitorTest {
     @Test
     public void filterNodeGt() {
         final SingleComparisonNode filterNode =
-                new SingleComparisonNode(SingleComparisonNode.Type.gt, KNOWN_FIELD_NAME, KNOWN_FIELD_VALUE_1);
+                new SingleComparisonNode(SingleComparisonNode.Type.GT, KNOWN_FIELD_NAME, KNOWN_FIELD_VALUE_1);
 
         visitorUnderTest.visit(filterNode);
 
@@ -169,7 +169,7 @@ public final class ParameterPredicateVisitorTest {
     @Test
     public void filterNodeGe() {
         final SingleComparisonNode filterNode =
-                new SingleComparisonNode(SingleComparisonNode.Type.ge, KNOWN_FIELD_NAME, KNOWN_FIELD_VALUE_1);
+                new SingleComparisonNode(SingleComparisonNode.Type.GE, KNOWN_FIELD_NAME, KNOWN_FIELD_VALUE_1);
 
         visitorUnderTest.visit(filterNode);
 
@@ -181,7 +181,7 @@ public final class ParameterPredicateVisitorTest {
     @Test
     public void filterNodeLt() {
         final SingleComparisonNode filterNode =
-                new SingleComparisonNode(SingleComparisonNode.Type.lt, KNOWN_FIELD_NAME, KNOWN_FIELD_VALUE_1);
+                new SingleComparisonNode(SingleComparisonNode.Type.LT, KNOWN_FIELD_NAME, KNOWN_FIELD_VALUE_1);
 
         visitorUnderTest.visit(filterNode);
 
@@ -193,7 +193,7 @@ public final class ParameterPredicateVisitorTest {
     @Test
     public void filterNodeLe() {
         final SingleComparisonNode filterNode =
-                new SingleComparisonNode(SingleComparisonNode.Type.le, KNOWN_FIELD_NAME, KNOWN_FIELD_VALUE_1);
+                new SingleComparisonNode(SingleComparisonNode.Type.LE, KNOWN_FIELD_NAME, KNOWN_FIELD_VALUE_1);
 
         visitorUnderTest.visit(filterNode);
 

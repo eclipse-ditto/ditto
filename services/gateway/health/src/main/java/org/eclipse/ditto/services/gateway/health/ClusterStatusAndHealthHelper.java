@@ -226,7 +226,7 @@ final class ClusterStatusAndHealthHelper {
                 .map(actorSystem::actorSelection)
                 .map(selection -> {
                     final String addressString = selection.toSerializationFormat()
-                            .substring(selection.toSerializationFormat().indexOf("@") + 1)
+                            .substring(selection.toSerializationFormat().indexOf('@') + 1)
                             .replace(STATUS_SUPPLIER_PATH, "");
                     return PatternsCS.ask(selection, command,
                             Timeout.apply(healthCheckServiceTimeout.getSeconds(), TimeUnit.SECONDS))

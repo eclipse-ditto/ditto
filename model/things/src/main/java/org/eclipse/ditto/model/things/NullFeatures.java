@@ -65,6 +65,7 @@ final class NullFeatures implements Features {
     }
 
     @Override
+    @SuppressWarnings("squid:S4144")
     public Features removeFeature(final String featureId) {
         checkFeatureId(featureId);
 
@@ -80,6 +81,7 @@ final class NullFeatures implements Features {
     }
 
     @Override
+    @SuppressWarnings("squid:S4144")
     public Features removeDefinition(final String featureId) {
         checkFeatureId(featureId);
 
@@ -95,6 +97,7 @@ final class NullFeatures implements Features {
     }
 
     @Override
+    @SuppressWarnings("squid:S4144")
     public Features removeProperties(final String featureId) {
         checkFeatureId(featureId);
 
@@ -158,10 +161,7 @@ final class NullFeatures implements Features {
         if (this == obj) {
             return true;
         }
-        if (obj == null || getClass() != obj.getClass()) {
-            return false;
-        }
-        return true;
+        return obj != null && getClass() == obj.getClass();
     }
 
     @Override

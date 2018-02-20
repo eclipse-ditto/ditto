@@ -28,26 +28,25 @@ public class MultiComparisonNodeTest {
     /** */
     @Test
     public void hashcodeAndEquals() {
-        EqualsVerifier.forClass(MultiComparisonNode.class) //
-                .usingGetClass() //
-                .suppress(Warning.REFERENCE_EQUALITY) //
+        EqualsVerifier.forClass(MultiComparisonNode.class)
+                .usingGetClass()
+                .suppress(Warning.REFERENCE_EQUALITY)
                 .verify();
     }
 
     /** */
     @Test(expected = NullPointerException.class)
     public void typeConstructorWithNullAsFilterProperty() {
-        new MultiComparisonNode(org.eclipse.ditto.model.thingsearchparser.predicates.ast.MultiComparisonNode.Type.in,
-                null);
+        new MultiComparisonNode(MultiComparisonNode.Type.IN, null);
     }
 
     /** */
     @Test
     public void typeConstructorSuccess() {
         final MultiComparisonNode filterNode = new MultiComparisonNode(
-                org.eclipse.ditto.model.thingsearchparser.predicates.ast.MultiComparisonNode.Type.in, "propertyName");
+                MultiComparisonNode.Type.IN, "propertyName");
         assertThat(filterNode.getComparisonType()).isEqualTo(
-                org.eclipse.ditto.model.thingsearchparser.predicates.ast.MultiComparisonNode.Type.in);
+                MultiComparisonNode.Type.IN);
         assertThat(filterNode.getComparisonProperty()).isEqualTo("propertyName");
         assertThat(filterNode.getComparisonValue()).isEmpty();
 
@@ -59,7 +58,7 @@ public class MultiComparisonNodeTest {
     @Test
     public void addNullValues() {
         final MultiComparisonNode filterNode = new MultiComparisonNode(
-                org.eclipse.ditto.model.thingsearchparser.predicates.ast.MultiComparisonNode.Type.in, "propertyName");
+                MultiComparisonNode.Type.IN, "propertyName");
 
         filterNode.addValue("test1");
         filterNode.addValue(null);
@@ -78,10 +77,10 @@ public class MultiComparisonNodeTest {
     @Test
     public void visitorGetsVisited() {
         final PredicateVisitor visitorMock = mock(PredicateVisitor.class);
-        final MultiComparisonNode MultiComparisonNode = new MultiComparisonNode(
-                org.eclipse.ditto.model.thingsearchparser.predicates.ast.MultiComparisonNode.Type.in, "propertyName");
-        MultiComparisonNode.accept(visitorMock);
-        verify(visitorMock).visit(MultiComparisonNode);
+        final MultiComparisonNode multiComparisonNode = new MultiComparisonNode(
+                MultiComparisonNode.Type.IN, "propertyName");
+        multiComparisonNode.accept(visitorMock);
+        verify(visitorMock).visit(multiComparisonNode);
     }
 
 }

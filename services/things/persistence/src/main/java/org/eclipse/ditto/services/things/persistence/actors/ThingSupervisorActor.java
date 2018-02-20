@@ -161,7 +161,10 @@ public final class ThingSupervisorActor extends AbstractActor {
      * mechanism.
      */
     static final class ManualReset {
+        static final ManualReset INSTANCE = new ManualReset();
 
+        private ManualReset(){
+        }
     }
 
     /**
@@ -182,7 +185,7 @@ public final class ThingSupervisorActor extends AbstractActor {
             getContext().system()
                     .scheduler()
                     .scheduleOnce(new FiniteDuration(restartDelay.toNanos(), TimeUnit.NANOSECONDS), getSelf(),
-                            new StartChild(), getContext().dispatcher(), null);
+                            StartChild.INSTANCE, getContext().dispatcher(), null);
             restartCount += 1;
         }
 
@@ -203,7 +206,10 @@ public final class ThingSupervisorActor extends AbstractActor {
      * Message that is sent to the actor by itself to restart the child.
      */
     private static final class StartChild {
+        private static final StartChild INSTANCE = new StartChild();
 
+        private StartChild(){
+        }
     }
 
     /**
