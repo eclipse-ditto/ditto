@@ -15,12 +15,14 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nonnull;
@@ -29,7 +31,6 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.model.amqpbridge.MappingContext;
 
 import akka.actor.DynamicAccess;
-import akka.event.DiagnosticLoggingAdapter;
 import scala.Tuple2;
 import scala.collection.JavaConversions;
 import scala.reflect.ClassTag;
@@ -58,7 +59,10 @@ public class MessageMapperFactory {
      */
     private final Class<?> factoryClass;
 
-    private final DiagnosticLoggingAdapter log;
+    @Nullable
+    private final Consumer<String> logDebug;
+    @Nullable
+    private final Consumer<String> logWarning;
 
 
     /**
@@ -68,16 +72,17 @@ public class MessageMapperFactory {
      * @param factoryClass the factory class scanned for factory functions
      */
     private MessageMapperFactory(final DynamicAccess dynamicAccess, final Class<?> factoryClass, final
-    @Nullable DiagnosticLoggingAdapter log) {
+    @Nullable Consumer<String> logDebug, @Nullable Consumer<String> logWarning) {
         this.dynamicAccess = dynamicAccess;
         this.factoryClass = factoryClass;
         //noinspection ConstantConditions
-        this.log = log;
+        this.logDebug = logDebug;
+        this.logWarning = logWarning;
     }
 
     public static MessageMapperFactory from(final DynamicAccess dynamicAccess, final Class<?> factoryClass, final
-    @Nullable DiagnosticLoggingAdapter log) {
-        return new MessageMapperFactory(dynamicAccess, factoryClass, log);
+    @Nullable Consumer<String> logDebug, @Nullable Consumer<String> logWarning) {
+        return new MessageMapperFactory(dynamicAccess, factoryClass, logDebug, logWarning);
     }
 
 
@@ -253,13 +258,13 @@ public class MessageMapperFactory {
     @SuppressWarnings("ConstantConditions")
     private void tryLogWarning(String template, Object... args) {
         //noinspection ConstantConditions
-        if (Objects.isNull(log)) return;
-        log.warning(template, args);
+        if (Objects.isNull(logDebug)) return;
+        logDebug.accept(MessageFormat.format(template, args));
     }
 
     private void tryLogDebug(String template, Object... args) {
         //noinspection ConstantConditions
-        if (Objects.isNull(log)) return;
-        log.debug(template, args);
+        if (Objects.isNull(logWarning)) return;
+        logWarning.accept(MessageFormat.format(template, args));
     }
 }

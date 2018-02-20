@@ -147,7 +147,8 @@ public class CommandProcessorActorTest {
     public void createWithDefaultMapperOnly() throws IdConversionException {
         new TestKit(actorSystem) {{
             ActorRef underTest = setupActor(getTestActor(), new ArrayList<>());
-
+            InternalMessage in = new InternalMessage.Builder(Collections.emptyMap()).withText("").build();
+            underTest.tell(in, null);
         }};
     }
 

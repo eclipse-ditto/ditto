@@ -58,7 +58,7 @@ public class MessageMapperFactoryTest {
 
     @Before
     public void setUp() {
-        factory = MessageMapperFactory.from(((ExtendedActorSystem) system).dynamicAccess(), Mappers.class, null);
+        factory = MessageMapperFactory.from(((ExtendedActorSystem) system).dynamicAccess(), Mappers.class, null, null);
     }
 
     @After
@@ -171,7 +171,8 @@ public class MessageMapperFactoryTest {
         final String contentType = "test";
         Map<String, String> opts = new HashMap<>();
 
-        final MappingContext ctx = AmqpBridgeModelFactory.newMappingContext(contentType, MockMapper.class.getCanonicalName(), opts);
+        final MappingContext ctx =
+                AmqpBridgeModelFactory.newMappingContext(contentType, MockMapper.class.getCanonicalName(), opts);
         assertThat(factory.loadMapper(ctx)).isEmpty();
     }
 
@@ -182,7 +183,8 @@ public class MessageMapperFactoryTest {
         opts.put(MessageMapper.OPT_CONTENT_TYPE, contentType);
         opts.put(MockMapper.OPT_IS_VALID, String.valueOf(true));
 
-        final MappingContext ctx = AmqpBridgeModelFactory.newMappingContext(contentType, MockMapper.class.getCanonicalName(), opts);
+        final MappingContext ctx =
+                AmqpBridgeModelFactory.newMappingContext(contentType, MockMapper.class.getCanonicalName(), opts);
         final Optional<MessageMapper> underTest = factory.loadMapper(ctx);
         assertThat(underTest).isPresent();
         assertThat(underTest.get().getContentType()).isEqualTo(contentType);
@@ -193,7 +195,7 @@ public class MessageMapperFactoryTest {
     @Test
     public void loadMappers() {
         final List<MappingContext> contexts = Arrays.asList(
-                MappingContexts.mock("foo", true,true),
+                MappingContexts.mock("foo", true, true),
                 MappingContexts.mock("bar", false, true)
         );
         final List<MessageMapper> mappers = factory.loadMappers(contexts);
@@ -205,7 +207,7 @@ public class MessageMapperFactoryTest {
     @Test
     public void loadMappersWithFails() {
         final List<MappingContext> contexts = Arrays.asList(
-                MappingContexts.mock("foo", true,false),
+                MappingContexts.mock("foo", true, false),
                 MappingContexts.mock("bar", false, true)
         );
         final List<MessageMapper> mappers = factory.loadMappers(contexts);
@@ -215,8 +217,8 @@ public class MessageMapperFactoryTest {
 
     @Test
     public void loadRegistry() {
-        final MappingContext fooCtx = MappingContexts.mock("foo", true,true);
-        final MappingContext barCtx = MappingContexts.mock("bar", true,true);
+        final MappingContext fooCtx = MappingContexts.mock("foo", true, true);
+        final MappingContext barCtx = MappingContexts.mock("bar", true, true);
 
         final InternalMessage fooMessage = new InternalMessage.Builder(Collections.singletonMap(MessageMapper
                 .CONTENT_TYPE_KEY, "foo")).build();
