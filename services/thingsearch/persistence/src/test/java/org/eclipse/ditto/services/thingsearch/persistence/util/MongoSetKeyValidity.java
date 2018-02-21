@@ -16,8 +16,6 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 
-import org.eclipse.ditto.services.thingsearch.persistence.BsonUtil;
-
 /**
  * Checks that the keys of a MongoDB {@code $set} operation are valid.
  */
@@ -32,7 +30,7 @@ public class MongoSetKeyValidity {
      * @param bson Bson object possibly containing the {@code $set} operator.
      */
     public static void ensure(final Bson bson) {
-        ensure(JsonFactory.newObject(BsonUtil.toBsonDocument(bson).toJson()));
+        ensure(JsonFactory.newObject(org.eclipse.ditto.services.utils.persistence.mongo.BsonUtil.toBsonDocument(bson).toJson()));
     }
 
     /**

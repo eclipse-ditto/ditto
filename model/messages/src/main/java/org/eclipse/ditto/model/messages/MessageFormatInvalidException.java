@@ -54,7 +54,12 @@ public final class MessageFormatInvalidException extends DittoRuntimeException i
 
     private static final long serialVersionUID = -7767643705375184157L;
 
-    @Nullable private final JsonArray validationErrors;
+    /**
+     * ValidationErrors are marked as transient because JsonArray is not serializable and we do not use Java
+     * serialization anyway.
+     */
+    @SuppressWarnings("squid:S1948") // validationErrors cannot be serialized by java, but as JSON
+    private final JsonArray validationErrors;
 
     private MessageFormatInvalidException(final DittoHeaders dittoHeaders,
             @Nullable final String message,

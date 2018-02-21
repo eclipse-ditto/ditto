@@ -41,7 +41,7 @@ public abstract class AbstractThingsService extends DittoService {
     /**
      * Name for the Akka Actor System of the Things service.
      */
-    protected static final String SERVICE_NAME = "things";
+    private static final String SERVICE_NAME = "things";
 
     private static final BaseConfigKeys CONFIG_KEYS = BaseConfigKeys.getBuilder()
             .put(BaseConfigKey.Cluster.MAJORITY_CHECK_ENABLED, ConfigKeys.Cluster.MAJORITY_CHECK_ENABLED)

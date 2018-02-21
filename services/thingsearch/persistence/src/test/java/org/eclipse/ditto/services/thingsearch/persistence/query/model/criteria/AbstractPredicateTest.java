@@ -14,11 +14,12 @@ package org.eclipse.ditto.services.thingsearch.persistence.query.model.criteria;
 import javax.annotation.Nullable;
 
 import org.bson.conversions.Bson;
-import org.eclipse.ditto.services.thingsearch.persistence.BsonAssertions;
 import org.eclipse.ditto.services.thingsearch.persistence.read.criteria.visitors.CreateBsonPredicateVisitor;
 import org.junit.Test;
 
 import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Predicate;
+
+import org.eclipse.ditto.services.utils.persistence.mongo.assertions.BsonAssertions;
 
 /**
  * Common base implementation for predicate unit tests.

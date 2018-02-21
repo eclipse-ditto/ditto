@@ -29,6 +29,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
@@ -241,9 +242,16 @@ final class ImmutableFeatures implements Features {
 
         jsonObjectBuilder.set(JSON_SCHEMA_VERSION, schemaVersion.toInt(), predicate);
 
-        features.forEach((featureId, feature) -> jsonObjectBuilder.set(
-                JsonFactory.newJsonObjectFieldDefinition(featureId, FieldType.REGULAR,
-                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2), feature.toJson(schemaVersion, thePredicate)));
+        features.values()
+                .forEach(feature -> {
+                    final JsonKey key = JsonFactory.newKey(feature.getId());
+                    final JsonValue value = feature.toJson(schemaVersion, thePredicate);
+                    final JsonFieldDefinition<JsonObject> fieldDefinition =
+                            JsonFactory.newJsonObjectFieldDefinition(key, FieldType.REGULAR, JsonSchemaVersion.V_1,
+                                    JsonSchemaVersion.V_2);
+                    final JsonField field = JsonFactory.newField(key, value, fieldDefinition);
+                    jsonObjectBuilder.set(field, predicate);
+                });
 
         return jsonObjectBuilder.build();
     }

@@ -15,6 +15,8 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Implements logical nodes like AND or OR. A logical node has a name and several children to which the logic of this
@@ -33,7 +35,7 @@ public final class LogicalNode extends SuperNode {
     public LogicalNode(final String name) {
         super();
         this.name = requireNonNull(name);
-        this.type = Type.valueOf(name);
+        this.type = Type.byName(name);
     }
 
     /**
@@ -143,19 +145,26 @@ public final class LogicalNode extends SuperNode {
         /**
          * Represents a logical AND criteria.
          */
-        and("and"),
+        AND("and"),
 
         /**
          * Represents a logical OR criteria.
          */
-        or("or"),
+        OR("or"),
 
         /**
          * Represents a logical NOT criteria.
          */
-        not("not");
+        NOT("not");
 
         private final String name;
+
+        private static Map<String, Type> nameToType = new HashMap<>();
+        static {
+            for (Type type : values()) {
+                nameToType.put(type.getName(), type);
+            }
+        }
 
         Type(final String name) {
             this.name = name;
@@ -163,6 +172,16 @@ public final class LogicalNode extends SuperNode {
 
         public String getName() {
             return name;
+        }
+
+        public static Type byName(final String name) {
+            requireNonNull(name);
+
+            final Type type = nameToType.get(name);
+            if (type == null) {
+                throw new IllegalArgumentException("No type found with name: " + name);
+            }
+            return type;
         }
     }
 

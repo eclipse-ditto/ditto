@@ -48,6 +48,9 @@ public final class ThingErrorResponse extends AbstractCommandResponse<ThingError
     public static final String TYPE = TYPE_PREFIX + "errorResponse";
 
     private static final ThingErrorRegistry THING_ERROR_REGISTRY = ThingErrorRegistry.newInstance();
+    private static final String FALLBACK_ID = "unknown:unknown";
+    private static final String FALLBACK_THING_ID = FALLBACK_ID;
+    private static final String FALLBACK_ERROR_CODE = FALLBACK_ID;
 
     private final String thingId;
     private final DittoRuntimeException dittoRuntimeException;
@@ -68,7 +71,7 @@ public final class ThingErrorResponse extends AbstractCommandResponse<ThingError
      * @throws NullPointerException if one of the arguments is {@code null}.
      */
     public static ThingErrorResponse of(final DittoRuntimeException dittoRuntimeException) {
-        return of("unknown:unknown", dittoRuntimeException, dittoRuntimeException.getDittoHeaders());
+        return of(FALLBACK_THING_ID, dittoRuntimeException, dittoRuntimeException.getDittoHeaders());
     }
 
     /**
@@ -93,7 +96,7 @@ public final class ThingErrorResponse extends AbstractCommandResponse<ThingError
      */
     public static ThingErrorResponse of(final DittoRuntimeException dittoRuntimeException,
             final DittoHeaders dittoHeaders) {
-        return of("unknown:unknown", dittoRuntimeException, dittoHeaders);
+        return of(FALLBACK_THING_ID, dittoRuntimeException, dittoHeaders);
     }
 
     /**
@@ -176,7 +179,7 @@ public final class ThingErrorResponse extends AbstractCommandResponse<ThingError
         } catch (final Exception e) {
             final int status = jsonObject.getValue(CommandResponse.JsonFields.STATUS).orElse(500);
             final String errorCode =
-                    payload.getValue(DittoRuntimeException.JsonFields.ERROR_CODE).orElse("unknown:unknown");
+                    payload.getValue(DittoRuntimeException.JsonFields.ERROR_CODE).orElse(FALLBACK_ERROR_CODE);
             final String errorMessage =
                     payload.getValue(DittoRuntimeException.JsonFields.MESSAGE).orElse("An unknown error occurred");
             final String errorDescription = payload.getValue(DittoRuntimeException.JsonFields.DESCRIPTION).orElse("");

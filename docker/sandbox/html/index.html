@@ -103,16 +103,33 @@
         <p>Welcome to the Eclipse Ditto sandbox.</p>
         <p>
             You can use this sandbox to gather first experiences with the Eclipse Ditto <a href="/apidoc">HTTP
-            API</a>.<br/> The Swagger UI for exploring the API will require authentication. Please authenticate with
-            your Google account.
-        </p>
-        <p>
-            If you create any entity, your Google user ID will then be added to that entity in order to authorize you
-            work with it.
+            API</a>.<br/> The Swagger UI for exploring the API will require authentication.
         </p>
         <p>
             Visit the Eclipse Ditto <a href="https://www.eclipse.org/ditto/intro-overview.html">documentation</a> in
             order to learn more about the project.
+        </p>
+        <p>
+            Please consider that this sandbox has (very) limited resources - so don't expect a high performance setup.
+        </p>
+        <h2>Authentication</h2>
+        <p>
+            When using the <a href="/apidoc">HTTP API</a> you can authenticate with your Google account in order to use
+            an user ID belonging to only you.
+        </p>
+        <p>
+            Alternatively (also in order to connect to the WebSocket API) you can use one of the pre-defined user/password
+            combinations (which may be used by anyone) and provide them via "basic auth" <span style="font-family: monospace">Authorization</span> header:
+        </p>
+        <ul>
+            <li>demo1:demo</li>
+            <li>demo2:demo</li>
+            <li>...</li>
+            <li>demo9:demo</li>
+        </ul>
+        <p>
+            If you create any entity, either your Google user ID or some of the "basic auth" user's ID will be
+            added to that entity in order to authorize you work with it.
         </p>
     </div>
     <h2 style="clear: both">Health</h2>
@@ -126,9 +143,6 @@
         </div>
         <div class="stats">
             <span id="hot-things-count" class="stats-count"></span><span class="stats-count-text"> currently "hot" <i>Things</i> (accessed within the last 2 hours) in the Ditto sandbox</span>
-        </div>
-        <div class="grafana">
-            <iframe src="/grafana/dashboard-solo/db/ditto-gateway-traces?orgId=1&panelId=15&var-Host=All&theme=light" width="450" height="400" frameborder="0"></iframe>
         </div>
     </div>
 </article>

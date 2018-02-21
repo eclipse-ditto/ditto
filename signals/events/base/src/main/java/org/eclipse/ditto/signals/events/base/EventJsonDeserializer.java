@@ -90,7 +90,8 @@ public final class EventJsonDeserializer<T extends Event> {
      * @param factoryMethodFunction creates the actual {@code Event} object.
      * @return the created event.
      * @throws NullPointerException if {@code factoryMethodFunction} is {@code null}.
-     * @throws org.eclipse.ditto.json.JsonParseException if the JSON is invalid or if the event TYPE differs from the expected one.
+     * @throws org.eclipse.ditto.json.JsonParseException if the JSON is invalid or if the event TYPE differs from the
+     * expected one.
      */
     public T deserialize(final FactoryMethodFunction<T> factoryMethodFunction) {
         checkNotNull(factoryMethodFunction, "method for creating an event object");
@@ -109,11 +110,10 @@ public final class EventJsonDeserializer<T extends Event> {
     }
 
     private void validateEventType() {
-        final Optional<String> eventOpt = jsonObject.getValue(Event.JsonFields.ID);
         final String type = jsonObject.getValue(Event.JsonFields.TYPE)
                 .orElseGet(() -> // if type was not present (was included in V2)
                         // take event instead and transform to V2 format, fail if "event" is not present, too
-                        eventOpt.map(event -> eventTypePrefix + ':' + event)
+                        extractEventTypeV1()
                                 .orElseThrow(() -> new JsonMissingFieldException(Event.JsonFields.TYPE.getPointer()))
                 );
 
@@ -122,6 +122,12 @@ public final class EventJsonDeserializer<T extends Event> {
             final String msg = MessageFormat.format(msgPattern, expectedType, type);
             throw new DittoJsonException(new JsonParseException(msg));
         }
+    }
+
+    @SuppressWarnings("squid:CallToDeprecatedMethod")
+    private Optional<String> extractEventTypeV1() {
+        return jsonObject.getValue(Event.JsonFields.ID)
+                .map(event -> eventTypePrefix + ':' + event);
     }
 
     private static Instant tryToParseModified(final CharSequence dateTime) {

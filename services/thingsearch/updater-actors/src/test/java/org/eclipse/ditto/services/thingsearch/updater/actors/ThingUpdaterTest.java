@@ -292,7 +292,7 @@ public final class ThingUpdaterTest {
                 // wait until SudoRetrieveThing (inside a sharding envelope) is sent
                 expectShardedSudoRetrieveThing(thingsShardProbe, THING_ID);
 
-                underTest.tell(SudoRetrieveThingResponse.of(currentThing, f -> true, dittoHeaders), ref());
+                underTest.tell(createSudoRetrieveThingsResponse(currentThing, dittoHeaders), ref());
                 waitUntil().insertOrUpdate(eq(currentThing), eq(thingRevision), eq(-1L));
             }
         };
@@ -325,7 +325,7 @@ public final class ThingUpdaterTest {
                 underTest.tell(attributeCreated, getRef());
                 waitUntil().executeCombinedWrites(eq(THING_ID), eq(expectedWrite), any(),
                         eq(attributeCreated.getRevision()));
-                underTest.tell(SudoRetrieveThingResponse.of(currentThing, f -> true, dittoHeaders), getRef());
+                underTest.tell(createSudoRetrieveThingsResponse(currentThing, dittoHeaders), getRef());
                 waitUntil().insertOrUpdate(eq(currentThing), eq(revision), eq(-1L));
             }
         };
@@ -389,8 +389,7 @@ public final class ThingUpdaterTest {
                         thingsShardProbe.expectMsgClass(FiniteDuration.apply(5, SECONDS),
                                 ShardedMessageEnvelope.class);
                 assertEquals(expectedSudoRetrieveThing, shardedMessageEnvelope.getMessage());
-                underTest.tell(SudoRetrieveThingResponse.of(currentThing, f -> true, dittoHeadersV1),
-                        getRef());
+                underTest.tell(createSudoRetrieveThingsResponse(currentThing, dittoHeadersV1), getRef());
                 waitUntil().insertOrUpdate(eq(currentThing), eq(revision), eq(-1L));
             }
         };
@@ -573,10 +572,7 @@ public final class ThingUpdaterTest {
                         dittoHeaders), getRef());
 
                 // we send the fake Thing service response, the updater actor is waiting for
-                underTest.tell(SudoRetrieveThingResponse.of(currentThing, f -> true, DittoHeaders.newBuilder()
-                                .schemaVersion(V_1)
-                                .build()),
-                        getRef());
+                underTest.tell(createSudoRetrieveThingsResponse(currentThing, dittoHeaders), getRef());
 
                 // the updater persists the thing with sequence number 3 and goes back to thing event processing
                 waitUntil().insertOrUpdate(eq(currentThing), eq(3L), eq(-1L));
@@ -614,7 +610,7 @@ public final class ThingUpdaterTest {
         final SudoRetrievePolicyResponse sudoRetrievePolicyResponse =
                 SudoRetrievePolicyResponse.of(THING_ID, policy, retrievePolicyDittoHeaders);
         final SudoRetrieveThingResponse sudoRetrieveThingResponse =
-                SudoRetrieveThingResponse.of(thingWithPolicyId, FieldType.regularOrSpecial(), emptyDittoHeaders);
+                createSudoRetrieveThingsResponse(thingWithPolicyId, emptyDittoHeaders);
 
         new TestKit(actorSystem) {
             {
@@ -847,7 +843,7 @@ public final class ThingUpdaterTest {
 
                 // WHEN: synchronization is successful
                 expectShardedSudoRetrieveThing(thingsShardProbe, THING_ID);
-                underTest.tell(SudoRetrieveThingResponse.of(currentThing, f -> true, dittoHeaders), ref());
+                underTest.tell(createSudoRetrieveThingsResponse(currentThing, dittoHeaders), ref());
                 waitUntil().insertOrUpdate(eq(currentThing), eq(thingRevision), eq(-1L));
 
                 // THEN: success is acknowledged
@@ -1300,8 +1296,16 @@ public final class ThingUpdaterTest {
             final TestProbe thingsActor, final ActorRef thingUpdater) {
         expectShardedSudoRetrieveThing(thingsActor, thing.getId().orElseThrow(IllegalStateException::new));
 
-        thingUpdater.tell(SudoRetrieveThingResponse.of(thing, (unused) -> true, DittoHeaders.empty()),
+        thingUpdater.tell(createSudoRetrieveThingsResponse(thing, DittoHeaders.empty()),
                 ActorRef.noSender());
+    }
+
+    private static SudoRetrieveThingResponse createSudoRetrieveThingsResponse(final Thing thing,
+            final DittoHeaders headers) {
+
+        final JsonSchemaVersion schemaVersion = headers.getSchemaVersion().orElse(JsonSchemaVersion.LATEST);
+        final JsonObject thingJson = thing.toJson(schemaVersion, FieldType.all());
+        return SudoRetrieveThingResponse.of(thingJson, headers);
     }
 
     private java.time.Duration orDefaultTimeout(final java.time.Duration duration) {

@@ -91,15 +91,16 @@ public interface Event<T extends Event> extends Signal<T>, WithOptionalEntity {
 
         /**
          * JSON field containing the event's identifier - was used in SchemaVersion 1 instead of "type".
+         * @deprecated was replaced by {@link #TYPE} in Schema Version 2
          */
+        @Deprecated
         public static final JsonFieldDefinition<String> ID =
                 JsonFactory.newStringFieldDefinition("event", FieldType.REGULAR, JsonSchemaVersion.V_1);
 
         /**
-         * JSON field containing the event's type.
+         * JSON field containing the event's type. Always included in new events.
          */
-        public static final JsonFieldDefinition<String> TYPE =
-                JsonFactory.newStringFieldDefinition("type", FieldType.REGULAR, JsonSchemaVersion.V_2);
+        public static final JsonFieldDefinition<String> TYPE = JsonFactory.newStringFieldDefinition("type");
 
         /**
          * JSON field containing the event's revision.

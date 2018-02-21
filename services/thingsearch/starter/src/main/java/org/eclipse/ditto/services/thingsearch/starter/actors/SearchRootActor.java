@@ -35,7 +35,7 @@ import org.eclipse.ditto.services.thingsearch.querymodel.query.AggregationBuilde
 import org.eclipse.ditto.services.thingsearch.querymodel.query.QueryBuilderFactory;
 import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
-import org.eclipse.ditto.services.utils.health.HealthCheckingActor;
+import org.eclipse.ditto.services.utils.health.DefaultHealthCheckingActorFactory;
 import org.eclipse.ditto.services.utils.health.HealthCheckingActorOptions;
 import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
@@ -136,13 +136,16 @@ public final class SearchRootActor extends AbstractActor {
                 MongoReactiveHealthCheckActor.props(mongoClientWrapper));
 
         final HealthCheckingActorOptions healthCheckingActorOptions = hcBuilder.build();
-        final ActorRef healthCheckingActor = startChildActor(HealthCheckingActor.ACTOR_NAME,
-                HealthCheckingActor.props(healthCheckingActorOptions, mongoHealthCheckActor));
+        final ActorRef healthCheckingActor = startChildActor(DefaultHealthCheckingActorFactory.ACTOR_NAME,
+                DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions, mongoHealthCheckActor));
 
         final ThingsSearchPersistence searchPersistence =
                 new MongoThingsSearchPersistence(mongoClientWrapper, getContext().system());
 
-        searchPersistence.initIndexes();
+        final boolean indexInitializationEnabled = config.getBoolean(ConfigKeys.INDEX_INITIALIZATION_ENABLED);
+        if (indexInitializationEnabled) {
+            searchPersistence.initializeIndices();
+        }
 
         final CriteriaFactory criteriaFactory = new CriteriaFactoryImpl();
         final ThingsFieldExpressionFactory fieldExpressionFactory = new ThingsFieldExpressionFactoryImpl();

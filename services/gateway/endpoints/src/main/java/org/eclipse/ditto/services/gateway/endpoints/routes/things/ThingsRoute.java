@@ -188,7 +188,7 @@ public final class ThingsRoute extends AbstractRoute {
                 .map(JsonValue::asObject)
                 .filter(obj -> {
                     try {
-                        PoliciesModelFactory.newPolicy(obj.setValue("policyId", "empty:empty"));
+                        PoliciesModelFactory.newPolicy(obj.set(Thing.JsonFields.POLICY_ID, "empty:empty"));
                         // only accept valid inline policies
                         return true;
                     } catch (final RuntimeException e) {
