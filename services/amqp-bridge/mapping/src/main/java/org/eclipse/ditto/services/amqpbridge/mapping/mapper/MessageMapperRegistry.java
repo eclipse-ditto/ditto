@@ -11,17 +11,21 @@
  */
 package org.eclipse.ditto.services.amqpbridge.mapping.mapper;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
-
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.model.amqpbridge.InternalMessage;
+import org.eclipse.ditto.protocoladapter.Adaptable;
+
+import com.google.common.base.Converter;
 
 /**
  * A registry for instatiated mappers.
@@ -29,29 +33,49 @@ import org.eclipse.ditto.model.amqpbridge.InternalMessage;
 public class MessageMapperRegistry implements Collection<MessageMapper> {
 
     private final Map<String, MessageMapper> registry;
-    private final MessageMapper defaultMapper;
 
-    public MessageMapperRegistry(final MessageMapper defaultMapper) {
-        checkNotNull(defaultMapper);
+    @Nullable
+    private MessageMapper defaultMapper;
+
+    @SuppressWarnings("WeakerAccess")
+    public MessageMapperRegistry(@Nullable final MessageMapper defaultMapper) {
         registry = new HashMap<>();
-        this.defaultMapper = defaultMapper;
+        setDefaultMapper(defaultMapper);
     }
 
+    public MessageMapperRegistry(@Nullable final MessageMapper defaultMapper, final List<MessageMapper> mappers) {
+        this(defaultMapper);
+        addAll(mappers);
+    }
+
+    @Nullable
     public MessageMapper getDefaultMapper() {
         return defaultMapper;
+    }
+
+    private void setDefaultMapper(@Nullable final MessageMapper defaultMapper) {
+        this.defaultMapper = defaultMapper;
     }
 
     public Optional<MessageMapper> findMapper(final InternalMessage message) {
         return MessageMapper.findContentType(message).map(registry::get);
     }
 
-    public MessageMapper getOrDefault(final InternalMessage message) {
-        return getOrDefault(message, getDefaultMapper());
+    public Optional<MessageMapper> selectMapper(final InternalMessage message) {
+        Optional<MessageMapper> mapper = findMapper(message);
+        return mapper.isPresent() ? mapper : Optional.ofNullable(getDefaultMapper());
     }
 
-    public MessageMapper getOrDefault(final InternalMessage message, final MessageMapper defaultMapper) {
-        return findMapper(message).orElse(defaultMapper);
+    public Optional<Converter<Adaptable, InternalMessage>> findMapper(final Adaptable adaptable) {
+        return MessageMapper.findContentType(adaptable).map(registry::get).map(MessageMapper::reverse);
     }
+
+    public Optional<Converter<Adaptable, InternalMessage>> selectMapper(final Adaptable adaptable) {
+        Optional<Converter<Adaptable, InternalMessage>> mapper = findMapper(adaptable);
+        return mapper.isPresent() ? mapper : Optional.ofNullable(getDefaultMapper()).map(MessageMapper::reverse);
+    }
+
+
 
     @Override
     public int size() {
@@ -80,6 +104,7 @@ public class MessageMapperRegistry implements Collection<MessageMapper> {
 
     @Override
     public <T> T[] toArray(final T[] a) {
+        //noinspection SuspiciousToArrayCall
         return registry.values().toArray(a);
     }
 

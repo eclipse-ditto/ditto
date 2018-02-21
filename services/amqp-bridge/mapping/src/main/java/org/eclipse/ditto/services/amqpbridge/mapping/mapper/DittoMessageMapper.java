@@ -13,6 +13,7 @@ package org.eclipse.ditto.services.amqpbridge.mapping.mapper;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -32,7 +33,7 @@ import com.google.common.base.Converter;
  * A message mapper implementation for the ditto protocol.
  * Expects messages to contain a JSON serialized ditto protocol message.
  */
-public class DittoMessageMapper extends MessageMapper {
+public final class DittoMessageMapper extends MessageMapper {
 
     /**
      * A static converter to map adaptables to JSON strings and vice versa;
@@ -56,31 +57,28 @@ public class DittoMessageMapper extends MessageMapper {
     );
 
     /**
-     * Creates a new mapper with enabled content type check.
+     * A convenience constructor to init without a mapping context
      */
-    @SuppressWarnings("WeakerAccess")
-    public DittoMessageMapper() {
-        this(true);
-    }
+    public DittoMessageMapper(final MessageMapperConfiguration configuration) {
+        Map<String, String> map = new HashMap<>(configuration);
+        if (!map.containsKey(MessageMapper.OPT_CONTENT_TYPE)) {
+            map.put(MessageMapper.OPT_CONTENT_TYPE, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
+        }
 
-    /**
-     * Creates a new mapper.
-     * @param isContentTypeRequired if content type check should be performed prior mapping
-     */
-    public DittoMessageMapper(final boolean isContentTypeRequired) {
-        super(DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE, isContentTypeRequired);
+        if (!map.containsKey(MessageMapper.OPT_CONTENT_TYPE_REQUIRED)) {
+            map.put(MessageMapper.OPT_CONTENT_TYPE_REQUIRED, String.valueOf(true));
+        }
+
+        configure(MessageMapperConfiguration.from(map));
     }
 
     @Override
-    public void configure(@Nonnull final MessageMapperConfiguration configuration) {
-        configuration.findProperty(OPT_CONTENT_TYPE_REQUIRED).map(Boolean::valueOf)
-                .ifPresent(this::setContentTypeRequired);
+    public void doConfigure(@Nonnull final MessageMapperConfiguration configuration) {
+        // no op
     }
 
     @Override
-    protected Adaptable doForward(final InternalMessage message) {
-        requireMatchingContentType(message);
-
+    protected Adaptable doForwardMap(@Nonnull final InternalMessage message) {
         final Optional<String> payload = message.isTextMessage() ? message.getTextPayload()
                 : message.getBytePayload().isPresent() ? message.getBytePayload()
                 .map(ByteBuffer::array)
@@ -92,7 +90,7 @@ public class DittoMessageMapper extends MessageMapper {
     }
 
     @Override
-    protected InternalMessage doBackward(final Adaptable adaptable) {
+    protected InternalMessage doBackwardMap(@Nonnull final Adaptable adaptable) {
         final Map<String, String> headers = new LinkedHashMap<>(adaptable.getHeaders().orElse(DittoHeaders.empty()));
         headers.put(MessageMapper.CONTENT_TYPE_KEY, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
         return new InternalMessage.Builder(headers)

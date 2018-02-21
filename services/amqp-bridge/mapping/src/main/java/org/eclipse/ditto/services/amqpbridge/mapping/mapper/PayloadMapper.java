@@ -33,7 +33,7 @@ public interface PayloadMapper {
      *
      * @param options the options
      */
-    void configure(final PayloadMapperOptions options);
+    void configure(PayloadMapperOptions options);
 
     /**
      * Returns a representation of {@link PayloadMapperMessage} as an instance of type {@link Adaptable}. If {@link PayloadMapperMessage} cannot be
