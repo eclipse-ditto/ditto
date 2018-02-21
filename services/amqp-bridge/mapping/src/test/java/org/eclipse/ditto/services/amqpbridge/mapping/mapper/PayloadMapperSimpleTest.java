@@ -18,6 +18,7 @@ import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -26,6 +27,7 @@ import org.junit.Test;
  * Sorry, not really a test yet - class was used in order to manually test mapping functionality.
  */
 //@RunWith(Parameterized.class)
+@Ignore
 public class PayloadMapperSimpleTest {
 
     private static final String MAPPING_TEMPLATE = "ditto_mappingString = " +

@@ -132,7 +132,6 @@ public abstract class MessageMapper extends Converter<InternalMessage, Adaptable
      * @throws IllegalArgumentException if the configuration is invalid.
      */
     public final void configure(final MessageMapperConfiguration configuration){
-        checkNotNull(configuration);
         doConfigure(configuration);
 
         final boolean isContentTypeRequiredValue = configuration.findProperty(OPT_CONTENT_TYPE_REQUIRED).map
