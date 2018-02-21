@@ -36,7 +36,7 @@ public class TestConstants {
 
     private static final ConnectionType TYPE = ConnectionType.AMQP_10;
     private static final String URI = "amqps://username:password@my.endpoint:443";
-    private static final String SUBJECT_ID = "mySolutionId:mySubject";
+    public static final String SUBJECT_ID = "mySolutionId:mySubject";
     private static final AuthorizationSubject AUTHORIZATION_SUBJECT = AuthorizationSubject.newInstance(SUBJECT_ID);
     private static final Set<String> SOURCES = new HashSet<>(Arrays.asList("amqp/source1", "amqp/source2"));
     private static final String TARGET = "eventQueue";

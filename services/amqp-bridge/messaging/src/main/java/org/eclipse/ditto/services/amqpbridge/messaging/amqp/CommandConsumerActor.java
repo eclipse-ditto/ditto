@@ -23,15 +23,12 @@ import java.util.Objects;
 
 import javax.annotation.Nullable;
 import javax.jms.BytesMessage;
-import javax.jms.Destination;
 import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.MessageConsumer;
 import javax.jms.MessageListener;
-import javax.jms.Session;
 import javax.jms.TextMessage;
 
-import org.apache.qpid.jms.JmsQueue;
 import org.eclipse.ditto.model.amqpbridge.InternalMessage;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -56,33 +53,32 @@ final class CommandConsumerActor extends AbstractActor implements MessageListene
     private static final String CORRELATION_ID_HEADER = "correlation-id";
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
-    private final Session session;
     private final String source;
+    private final MessageConsumer messageConsumer;
     private final ActorRef commandProcessor;
 
-    @Nullable private MessageConsumer consumer = null;
-
-    private CommandConsumerActor(@Nullable final Session session, @Nullable final String source,
-            @Nullable final ActorRef commandProcessor) {
-        this.session = checkNotNull(session, "session");
+    private CommandConsumerActor(final String source, final MessageConsumer messageConsumer,
+            final ActorRef commandProcessor) {
         this.source = checkNotNull(source, "source");
+        this.messageConsumer = checkNotNull(messageConsumer);
         this.commandProcessor = checkNotNull(commandProcessor, "commandProcessor");
     }
 
     /**
      * Creates Akka configuration object {@link Props} for this {@code CommandConsumerActor}.
      *
-     * @param session the jms session.
+     * @param source the source of messages
+     * @param messageConsumer the JMS message consumer
+     * @param commandProcessor the command processor where received messages are forwarded to
      * @return the Akka configuration Props object.
      */
-    static Props props(@Nullable final Session session, @Nullable final String source,
-            @Nullable final ActorRef commandProcessor) {
+    static Props props(final String source, final MessageConsumer messageConsumer, final ActorRef commandProcessor) {
         return Props.create(CommandConsumerActor.class, new Creator<CommandConsumerActor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
             public CommandConsumerActor create() {
-                return new CommandConsumerActor(session, source, commandProcessor);
+                return new CommandConsumerActor(source, messageConsumer, commandProcessor);
             }
         });
     }
@@ -98,10 +94,7 @@ final class CommandConsumerActor extends AbstractActor implements MessageListene
 
     @Override
     public void preStart() throws JMSException {
-        final Destination destination = new JmsQueue(source);
-        log.debug("Creating AMQP Consumer for '{}'", source);
-        consumer = session.createConsumer(destination);
-        consumer.setMessageListener(this);
+        messageConsumer.setMessageListener(this);
     }
 
     @Override
@@ -109,10 +102,8 @@ final class CommandConsumerActor extends AbstractActor implements MessageListene
         super.postStop();
         try {
             log.debug("Closing AMQP Consumer for '{}'", source);
-            if (consumer != null) {
-                consumer.close();
-            }
-        } catch (JMSException jmsException) {
+            messageConsumer.close();
+        } catch (final JMSException jmsException) {
             log.debug("Closing consumer failed (can be ignored if connection was closed already): {}",
                     jmsException.getMessage());
         }
@@ -158,7 +149,7 @@ final class CommandConsumerActor extends AbstractActor implements MessageListene
 
     private Map<String, String> extractHeadersMapFromJmsMessage(final Message message) throws JMSException {
         @SuppressWarnings("unchecked") final List<String> names = Collections.list(message.getPropertyNames());
-        Map<String, String> headersFromJmsProperties = names.stream()
+        final Map<String, String> headersFromJmsProperties = names.stream()
                 .map(key -> getPropertyAsEntry(message, key))
                 .filter(Objects::nonNull)
                 .collect(toMap(Map.Entry::getKey, Map.Entry::getValue));

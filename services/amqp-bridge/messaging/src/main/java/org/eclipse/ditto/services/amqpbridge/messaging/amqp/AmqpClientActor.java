@@ -15,13 +15,14 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.services.amqpbridge.messaging.amqp.AmqpClientActor.State.DISCONNECTED;
 
 import java.text.MessageFormat;
+import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 
 import javax.annotation.Nullable;
 import javax.jms.Connection;
 import javax.jms.ExceptionListener;
 import javax.jms.JMSException;
+import javax.jms.MessageConsumer;
 import javax.jms.Session;
 
 import org.eclipse.ditto.model.amqpbridge.AmqpConnection;
@@ -171,9 +172,10 @@ public class AmqpClientActor extends BaseClientActor implements ExceptionListene
     private void handleConnected(final JmsConnected c) {
         this.jmsConnection = c.getConnection();
         this.jmsSession = c.getSession();
+        final Map<String, MessageConsumer> consumerMap = c.getConsumers();
         final ActorRef commandProducer = startCommandProducer();
         startCommandProcessor(commandProducer);
-        startCommandConsumers();
+        startCommandConsumers(consumerMap);
         changeBehaviour(State.CONNECTED);
         c.getOrigin().tell(CONNECTED_SUCCESS, self());
     }
@@ -199,20 +201,21 @@ public class AmqpClientActor extends BaseClientActor implements ExceptionListene
         d.getOrigin().tell(DISCONNECTED_SUCCESS, self());
     }
 
-    private void startCommandConsumers() {
+    private void startCommandConsumers(final Map<String, MessageConsumer> consumerMap) {
         if (isConsumingCommands()) {
-            final Set<String> sourcesOrEmptySet = getSourcesOrEmptySet();
-            sourcesOrEmptySet.forEach(this::startCommandConsumer);
-            log.info("Subscribed Connection '{}' to sources: {}", connectionId, sourcesOrEmptySet);
+
+            consumerMap.forEach(this::startCommandConsumer);
+            log.info("Subscribed Connection '{}' to sources: {}", connectionId, consumerMap.keySet());
         } else {
             log.debug("Not starting consumers, no source were configured.");
         }
     }
 
-    private void startCommandConsumer(final String source) {
+    private void startCommandConsumer(final String source, final MessageConsumer messageConsumer) {
+        checkNotNull(commandProcessor, "commandProcessor");
         final String name = CommandConsumerActor.ACTOR_NAME_PREFIX + source;
         if (!getContext().findChild(name).isPresent()) {
-            final Props props = CommandConsumerActor.props(jmsSession, source, commandProcessor);
+            final Props props = CommandConsumerActor.props(source, messageConsumer, commandProcessor);
             startChildActor(name, props);
         } else {
             log.debug("Child actor {} already exists.", name);
@@ -311,7 +314,6 @@ public class AmqpClientActor extends BaseClientActor implements ExceptionListene
      * {@code Connect} message for internal communication with {@link JMSConnectionHandlingActor}.
      */
     static class JmsConnect extends WithOrigin {
-
         private JmsConnect(final ActorRef origin) {
             super(origin);
         }
@@ -339,13 +341,16 @@ public class AmqpClientActor extends BaseClientActor implements ExceptionListene
      */
     static class JmsConnected extends WithOrigin {
 
-        private Connection connection;
-        private Session session;
+        private final Connection connection;
+        private final Session session;
+        private final Map<String, MessageConsumer> consumers;
 
-        JmsConnected(final ActorRef origin, final Connection connection, final Session session) {
+        JmsConnected(final ActorRef origin, final Connection connection, final Session session,
+                Map<String, MessageConsumer> consumers) {
             super(origin);
             this.connection = connection;
             this.session = session;
+            this.consumers = consumers;
         }
 
         Connection getConnection() {
@@ -354,6 +359,10 @@ public class AmqpClientActor extends BaseClientActor implements ExceptionListene
 
         Session getSession() {
             return session;
+        }
+
+        Map<String, MessageConsumer> getConsumers() {
+            return consumers;
         }
     }
 
@@ -372,7 +381,7 @@ public class AmqpClientActor extends BaseClientActor implements ExceptionListene
      */
     static class JmsFailure extends WithOrigin {
 
-        private Exception cause;
+        private final Exception cause;
 
         JmsFailure(ActorRef origin, final Exception cause) {
             super(origin);

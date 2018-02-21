@@ -13,12 +13,19 @@ package org.eclipse.ditto.services.amqpbridge.messaging.amqp;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+
 import javax.annotation.Nullable;
 import javax.jms.Connection;
+import javax.jms.Destination;
 import javax.jms.ExceptionListener;
 import javax.jms.JMSException;
+import javax.jms.MessageConsumer;
 import javax.jms.Session;
 
+import org.apache.qpid.jms.JmsQueue;
 import org.eclipse.ditto.model.amqpbridge.AmqpConnection;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
@@ -42,7 +49,7 @@ public class JMSConnectionHandlingActor extends AbstractActor {
 
     private final AmqpConnection amqpConnection;
     private final ExceptionListener exceptionListener;
-    private JmsConnectionFactory jmsConnectionFactory;
+    private final JmsConnectionFactory jmsConnectionFactory;
 
 
     private JMSConnectionHandlingActor(
@@ -82,7 +89,7 @@ public class JMSConnectionHandlingActor extends AbstractActor {
     }
 
     @SuppressWarnings("squid:S2095") // cannot use try-with-resources, connection has longer lifetime
-    private void handleConnect(AmqpClientActor.JmsConnect connect) {
+    private void handleConnect(final AmqpClientActor.JmsConnect connect) {
         try {
             final Connection jmsConnection = jmsConnectionFactory.createConnection(amqpConnection, exceptionListener);
             log.debug("Starting connection.");
@@ -90,15 +97,28 @@ public class JMSConnectionHandlingActor extends AbstractActor {
             log.debug("Connection started successfully, creating session.");
             final Session jmsSession = jmsConnection.createSession(false, Session.AUTO_ACKNOWLEDGE);
             log.debug("Session created.");
-            sender().tell(new AmqpClientActor.JmsConnected(connect.getOrigin(), jmsConnection, jmsSession), sender());
+
+            final Map<String, MessageConsumer> consumerMap = new HashMap<>();
+            if (amqpConnection.getSources().isPresent()) {
+                final Set<String> sources = amqpConnection.getSources().get();
+                for (final String source : sources) {
+                    log.debug("Creating AMQP Consumer for '{}'", source);
+                    final Destination destination = new JmsQueue(source);
+                    final MessageConsumer messageConsumer = jmsSession.createConsumer(destination);
+                    consumerMap.put(source, messageConsumer);
+                }
+            }
+
+            sender().tell(new AmqpClientActor.JmsConnected(connect.getOrigin(), jmsConnection, jmsSession, consumerMap),
+                    sender());
             log.debug("Connection <{}> established successfully, stopping myself.", amqpConnection.getId());
-        } catch (Exception e) {
+        } catch (final Exception e) {
             sender().tell(new AmqpClientActor.JmsFailure(connect.getOrigin(), e), sender());
         }
         context().stop(self());
     }
 
-    private void handleDisconnect(AmqpClientActor.JmsDisconnect disconnect) {
+    private void handleDisconnect(final AmqpClientActor.JmsDisconnect disconnect) {
         final Connection connection = disconnect.getConnection();
         try {
             log.debug("Closing JMS connection {}", amqpConnection.getId());
