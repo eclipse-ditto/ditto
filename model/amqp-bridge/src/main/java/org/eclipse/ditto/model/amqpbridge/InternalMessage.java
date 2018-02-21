@@ -12,6 +12,7 @@
 package org.eclipse.ditto.model.amqpbridge;
 
 import java.nio.ByteBuffer;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -30,9 +31,9 @@ public class InternalMessage {
     }
 
     private final Map<String, String> headers;
-    private final String textPayload;
-    private final ByteBuffer bytePayload;
-    private final Type type;
+    @Nullable private final String textPayload;
+    @Nullable private final ByteBuffer bytePayload;
+    @Nullable private final Type type;
 
     private InternalMessage(final Builder builder) {
         this.headers = builder.headers;
@@ -43,6 +44,23 @@ public class InternalMessage {
 
     public Map<String, String> getHeaders() {
         return headers;
+    }
+
+    /**
+     * @param key the header key
+     * @param value the header value
+     * @return new instance of {@link InternalMessage} including the provided header
+     */
+    public InternalMessage withHeader(final String key, final String value) {
+        return new Builder(this).withAdditionalHeaders(key, value).build();
+    }
+
+    /**
+     * @param additionalHeaders headers added to message headers
+     * @return new instance of {@link InternalMessage} including the provided headers
+     */
+    public InternalMessage withHeader(final Map<String, String> additionalHeaders) {
+        return new Builder(this).withAdditionalHeaders(additionalHeaders).build();
     }
 
     public Optional<String> findHeader(final String key) {
@@ -84,13 +102,29 @@ public class InternalMessage {
 
     public static class Builder {
 
-        private Map<String, String> headers;
-        private String textPayload;
-        private ByteBuffer bytePayload;
-        private Type type;
+        private final Map<String, String> headers;
+        @Nullable private String textPayload;
+        @Nullable private ByteBuffer bytePayload;
+        @Nullable private Type type;
 
         public Builder(final Map<String, String> headers) {
             this.headers = headers;
+        }
+
+        public Builder(final InternalMessage message) {
+            this.headers = new HashMap<>(message.headers);
+            this.bytePayload = message.bytePayload;
+            this.textPayload = message.textPayload;
+        }
+
+        public Builder withAdditionalHeaders(final String key, final String value) {
+            headers.put(key, value);
+            return this;
+        }
+
+        public Builder withAdditionalHeaders(final Map<String, String> additionalHeaders) {
+            headers.putAll(additionalHeaders);
+            return this;
         }
 
         public Builder withText(@Nullable final String text) {
@@ -101,7 +135,11 @@ public class InternalMessage {
         }
 
         public Builder withBytes(@Nullable final byte[] bytes) {
-            withBytes(ByteBuffer.wrap(bytes));
+            if (bytes == null) {
+                withBytes((ByteBuffer) null);
+            } else {
+                withBytes(ByteBuffer.wrap(bytes));
+            }
             return this;
         }
 
