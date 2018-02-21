@@ -28,7 +28,7 @@ import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
  */
 public final class TestConstants {
 
-    public static String ID = "myConnection";
+    public static String ID = "amqp-10:myConnection";
 
     private static final ConnectionType TYPE = ConnectionType.AMQP_10;
 
