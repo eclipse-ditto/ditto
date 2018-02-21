@@ -46,8 +46,8 @@ import akka.routing.RoundRobinPool;
 import scala.concurrent.duration.Duration;
 
 /**
- * Base class for *ClientActors which implement the connection handling for AMQP 0.9.1 or 1.0.
- * <p/>
+ * Base class for ClientActors which implement the connection handling for AMQP 0.9.1 or 1.0.
+ *
  * The actor expects to receive a {@link CreateConnection} command after it was started. If this command is not received
  * within timeout (can be the case when this actor is remotely deployed after the command was sent) the actor requests
  * the required information from ConnectionActor.

@@ -66,6 +66,7 @@ public class RabbitMQClientActor extends BaseClientActor {
     /**
      * Creates Akka configuration object for this actor.
      *
+     * @param connectionId the connection id
      * @param rmqConnectionActor the corresponding {@code ConnectionActor}
      * @return the Akka configuration Props object
      */

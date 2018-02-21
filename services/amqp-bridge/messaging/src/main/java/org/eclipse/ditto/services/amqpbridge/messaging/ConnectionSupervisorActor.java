@@ -96,6 +96,7 @@ public final class ConnectionSupervisorActor extends AbstractActor {
      * is added, e.g. `0.2` adds up to `20%` delay. In order to skip this additional delay pass in `0`.
      * for accessing the connection cache in cluster.
      * @param pubSubMediator the PubSub mediator actor.
+     * @param propsFactory the {@link ConnectionActorPropsFactory}
      * @return the {@link Props} to create this actor.
      */
     public static Props props(final Duration minBackoff,
