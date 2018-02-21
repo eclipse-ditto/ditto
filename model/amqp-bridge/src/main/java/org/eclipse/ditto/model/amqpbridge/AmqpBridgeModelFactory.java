@@ -12,7 +12,6 @@
 package org.eclipse.ditto.model.amqpbridge;
 
 import java.util.Map;
-import java.util.Set;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -36,14 +35,13 @@ public final class AmqpBridgeModelFactory {
      * @param connectionType the connection type
      * @param uri the connection uri.
      * @param authorizationSubject the connection authorization subject.
-     * @param sources the connection sources.
      * @return the ImmutableConnection.
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static AmqpConnection newConnection(final String id,
             final ConnectionType connectionType, final String uri,
-            final AuthorizationSubject authorizationSubject, final Set<String> sources) {
-        return ImmutableAmqpConnection.of(id, connectionType, uri, authorizationSubject, sources);
+            final AuthorizationSubject authorizationSubject) {
+        return ImmutableAmqpConnection.of(id, connectionType, uri, authorizationSubject);
     }
 
     /**
@@ -53,14 +51,13 @@ public final class AmqpBridgeModelFactory {
      * @param connectionType the connection type
      * @param uri the connection uri.
      * @param authorizationSubject the connection authorization subject.
-     * @param sources the connection sources.
      * @return the AmqpConnectionBuilder.
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static AmqpConnectionBuilder newConnectionBuilder(final String id,
             final ConnectionType connectionType, final String uri,
-            final AuthorizationSubject authorizationSubject, final Set<String> sources) {
-        return ImmutableAmqpConnectionBuilder.of(id, connectionType, uri, authorizationSubject, sources);
+            final AuthorizationSubject authorizationSubject) {
+        return ImmutableAmqpConnectionBuilder.of(id, connectionType, uri, authorizationSubject);
     }
 
     /**

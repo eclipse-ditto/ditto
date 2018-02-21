@@ -11,9 +11,12 @@
  */
 package org.eclipse.ditto.services.amqpbridge.mapping.mapper;
 
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Optional;
 
 import javax.annotation.Nonnull;
 
@@ -76,12 +79,14 @@ public final class DittoMessageMapper extends MessageMapper {
 
     @Override
     protected Adaptable doForwardMap(@Nonnull final InternalMessage message) {
-        if (!message.isTextMessage()) {
-            throw new IllegalArgumentException("Message is not a text message");
-        }
+        final Optional<String> payload = message.isTextMessage() ? message.getTextPayload()
+                : message.getBytePayload().isPresent() ? message.getBytePayload()
+                .map(ByteBuffer::array)
+                .map(ba -> new String(ba, StandardCharsets.UTF_8))
+                : Optional.empty();
 
-        return message.getTextPayload().filter(s -> !s.isEmpty()).map(STRING_ADAPTABLE_CONVERTER::convert)
-                .orElseThrow(() -> new IllegalArgumentException("Message contains no payload"));
+        return payload.filter(s -> !s.isEmpty()).map(STRING_ADAPTABLE_CONVERTER::convert)
+                .orElseThrow(() -> new IllegalArgumentException("Message contains no valid payload"));
     }
 
     @Override

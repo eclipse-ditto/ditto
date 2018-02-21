@@ -32,7 +32,6 @@ import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
-import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMapper;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -104,7 +103,7 @@ public class CommandProcessorActorTest {
 //            ));
 
             final Props amqpCommandProcessorProps =
-                    CommandProcessorActor.props(pubSubMediator, AuthorizationSubject.newInstance("foo:bar"),
+                    CommandProcessorActor.props(pubSubMediator, getRef(), AuthorizationSubject.newInstance("foo:bar"),
                             mappingContexts);
             final String amqpCommandProcessorName = CommandProcessorActor.ACTOR_NAME_PREFIX + "foo";
 
@@ -176,11 +175,11 @@ public class CommandProcessorActorTest {
 
 
     private ActorRef setupActor(final ActorRef testActor, final List<MappingContext> mappingContexts) {
-        final String targetActorPath = testActor.path().toStringWithoutAddress();
+
         pubSubMediator.tell(new DistributedPubSubMediator.Put(testActor), null);
 
         final Props amqpCommandProcessorProps =
-                CommandProcessorActor.props(pubSubMediator, AuthorizationSubject.newInstance("foo:bar"),
+                CommandProcessorActor.props(pubSubMediator, testActor, AuthorizationSubject.newInstance("foo:bar"),
                         mappingContexts);
         final String amqpCommandProcessorName = CommandProcessorActor.ACTOR_NAME_PREFIX + "foo";
 

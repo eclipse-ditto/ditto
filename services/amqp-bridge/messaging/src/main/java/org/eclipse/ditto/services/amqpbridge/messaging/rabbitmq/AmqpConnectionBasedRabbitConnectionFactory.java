@@ -17,6 +17,7 @@ import java.net.URISyntaxException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 
+import javax.annotation.Nullable;
 import javax.net.ssl.SSLContext;
 
 import org.eclipse.ditto.model.amqpbridge.AmqpConnection;
@@ -42,7 +43,7 @@ public class AmqpConnectionBasedRabbitConnectionFactory {
      *
      * @return the instance.
      */
-    public static ConnectionFactory createConnection(final AmqpConnection amqpConnection) {
+    public static ConnectionFactory createConnection(@Nullable final AmqpConnection amqpConnection) {
         checkNotNull(amqpConnection, "Connection");
 
         try {

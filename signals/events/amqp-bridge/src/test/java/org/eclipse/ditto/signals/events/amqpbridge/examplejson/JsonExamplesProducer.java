@@ -47,11 +47,7 @@ public class JsonExamplesProducer {
 
     private static final Set<String> SOURCES = new HashSet<>(Arrays.asList("amqp/source1", "amqp/source2"));
 
-    private static final boolean FAILOVER_ENABLED = true;
-
-    private static final boolean VALIDATE_CERTIFICATES = true;
-
-    private static final int THROTTLE = 250;
+    private static final String TARGET = "eventQueue";
 
     public static void main(final String... args) throws IOException {
         run(args, new JsonExamplesProducer());
@@ -79,7 +75,10 @@ public class JsonExamplesProducer {
         Files.createDirectories(eventsDir);
 
         final AmqpConnection amqpConnection =
-                AmqpBridgeModelFactory.newConnection(ID, TYPE, URI, AUTHORIZATION_SUBJECT, SOURCES);
+                AmqpBridgeModelFactory.newConnectionBuilder(ID, TYPE, URI, AUTHORIZATION_SUBJECT)
+                        .sources(SOURCES)
+                        .eventTarget(TARGET)
+                        .build();
         final DittoHeaders headers = DittoHeaders.empty();
 
         final ConnectionCreated connectionCreated = ConnectionCreated.of(amqpConnection,

@@ -14,14 +14,19 @@ package org.eclipse.ditto.services.amqpbridge.messaging.amqp;
 
 import static org.eclipse.ditto.services.amqpbridge.messaging.TestConstants.createConnection;
 import static org.eclipse.ditto.services.amqpbridge.messaging.TestConstants.createRandomConnectionId;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.when;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import javax.jms.Connection;
 import javax.jms.JMSException;
+import javax.jms.MessageConsumer;
+import javax.jms.Session;
 
+import org.apache.qpid.jms.JmsQueue;
 import org.eclipse.ditto.model.amqpbridge.AmqpConnection;
 import org.eclipse.ditto.model.amqpbridge.ConnectionStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -35,6 +40,7 @@ import org.eclipse.ditto.signals.commands.amqpbridge.query.RetrieveConnectionRes
 import org.eclipse.ditto.signals.commands.amqpbridge.query.RetrieveConnectionStatus;
 import org.eclipse.ditto.signals.commands.amqpbridge.query.RetrieveConnectionStatusResponse;
 import org.junit.AfterClass;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -67,6 +73,10 @@ public class AmqpClientActorTest {
 
     @Mock
     private Connection mockConnection = Mockito.mock(Connection.class);
+    @Mock
+    private Session mockSession = Mockito.mock(Session.class);
+    @Mock
+    private MessageConsumer mockConsumer = Mockito.mock(MessageConsumer.class);
 
     @BeforeClass
     public static void setUp() {
@@ -75,10 +85,14 @@ public class AmqpClientActorTest {
 
     @AfterClass
     public static void tearDown() {
-        if (actorSystem != null) {
-            TestKit.shutdownActorSystem(actorSystem, scala.concurrent.duration.Duration.apply(5, TimeUnit.SECONDS),
-                    false);
-        }
+        TestKit.shutdownActorSystem(actorSystem, scala.concurrent.duration.Duration.apply(5, TimeUnit.SECONDS),
+                false);
+    }
+
+    @Before
+    public void init() throws JMSException {
+        when(mockConnection.createSession(false, Session.AUTO_ACKNOWLEDGE)).thenReturn(mockSession);
+        when(mockSession.createConsumer(any(JmsQueue.class))).thenReturn(mockConsumer);
     }
 
     @Test
@@ -97,7 +111,8 @@ public class AmqpClientActorTest {
     @Test
     public void testConnectionHandling() {
         new TestKit(actorSystem) {{
-            final Props props = AmqpClientActor.props(connectionId, null, amqpConnection, null,
+
+            final Props props = AmqpClientActor.props(connectionId, getRef(), amqpConnection, null,
                     (amqpConnection1, exceptionListener) -> mockConnection);
             final ActorRef amqpClientActor = actorSystem.actorOf(props);
             watch(amqpClientActor);
@@ -163,7 +178,7 @@ public class AmqpClientActorTest {
     }
 
     @Test
-    public void testConnectFails() throws JMSException {
+    public void testStartConnectionFails() throws JMSException {
         new TestKit(actorSystem) {{
             doThrow(JMS_EXCEPTION).when(mockConnection).start();
             final Props props =
@@ -176,11 +191,38 @@ public class AmqpClientActorTest {
     }
 
     @Test
-    public void testDisconnectFails() throws JMSException {
+    public void testCreateSessionFails() throws JMSException {
+        new TestKit(actorSystem) {{
+            doThrow(JMS_EXCEPTION).when(mockConnection).createSession(false, Session.AUTO_ACKNOWLEDGE);
+            final Props props =
+                    AmqpClientActor.props(connectionId, getRef(), amqpConnection, getRef(), (ac, el) -> mockConnection);
+            final ActorRef amqpClientActor = actorSystem.actorOf(props);
+
+            amqpClientActor.tell(CreateConnection.of(amqpConnection, DittoHeaders.empty()), getRef());
+            expectMsg(new Status.Failure(JMS_EXCEPTION));
+        }};
+    }
+
+    @Test
+    public void testConsumeFails() throws JMSException {
+        new TestKit(actorSystem) {{
+            when(mockConnection.createSession(false, Session.AUTO_ACKNOWLEDGE)).thenReturn(mockSession);
+            doThrow(JMS_EXCEPTION).when(mockSession).createConsumer(any());
+            final Props props =
+                    AmqpClientActor.props(connectionId, getRef(), amqpConnection, getRef(), (ac, el) -> mockConnection);
+            final ActorRef amqpClientActor = actorSystem.actorOf(props);
+
+            amqpClientActor.tell(CreateConnection.of(amqpConnection, DittoHeaders.empty()), getRef());
+            expectMsg(new Status.Failure(JMS_EXCEPTION));
+        }};
+    }
+
+    @Test
+    public void testCloseConnectionFails() throws JMSException {
         new TestKit(actorSystem) {{
             doThrow(JMS_EXCEPTION).when(mockConnection).close();
             final Props props =
-                    AmqpClientActor.props(connectionId, null, amqpConnection, null, (ac, el) -> mockConnection);
+                    AmqpClientActor.props(connectionId, getRef(), amqpConnection, null, (ac, el) -> mockConnection);
             final ActorRef amqpClientActor = actorSystem.actorOf(props);
 
             amqpClientActor.tell(CreateConnection.of(amqpConnection, DittoHeaders.empty()), getRef());
@@ -211,10 +253,10 @@ public class AmqpClientActorTest {
         }};
     }
 
-    private <T> T waitForLatchAndReturn(final CountDownLatch latch, T result) {
+    private <T> T waitForLatchAndReturn(final CountDownLatch latch, final T result) {
         try {
             latch.await();
-        } catch (InterruptedException e) {
+        } catch (final InterruptedException e) {
             e.printStackTrace();
         }
         return result;

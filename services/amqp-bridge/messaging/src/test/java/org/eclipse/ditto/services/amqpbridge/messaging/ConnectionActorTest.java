@@ -12,11 +12,13 @@
 package org.eclipse.ditto.services.amqpbridge.messaging;
 
 import java.util.Collections;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.eclipse.ditto.model.amqpbridge.AmqpConnection;
 import org.eclipse.ditto.model.amqpbridge.ConnectionStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.signals.commands.amqpbridge.exceptions.ConnectionNotAccessibleException;
 import org.eclipse.ditto.signals.commands.amqpbridge.modify.CloseConnection;
 import org.eclipse.ditto.signals.commands.amqpbridge.modify.CloseConnectionResponse;
@@ -26,22 +28,40 @@ import org.eclipse.ditto.signals.commands.amqpbridge.modify.DeleteConnection;
 import org.eclipse.ditto.signals.commands.amqpbridge.modify.DeleteConnectionResponse;
 import org.eclipse.ditto.signals.commands.amqpbridge.query.RetrieveConnectionStatus;
 import org.eclipse.ditto.signals.commands.amqpbridge.query.RetrieveConnectionStatusResponse;
+import org.eclipse.ditto.signals.events.things.ThingModified;
 import org.junit.AfterClass;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
+import akka.actor.Props;
+import akka.actor.Status;
 import akka.cluster.pubsub.DistributedPubSub;
+import akka.japi.Creator;
 import akka.testkit.javadsl.TestKit;
 
 /**
  * Unit test for {@link ConnectionActor}.
  */
+@SuppressWarnings("NullableProblems")
 public class ConnectionActorTest {
 
     private static ActorSystem actorSystem;
     private static ActorRef pubSubMediator;
+    private String connectionId;
+    private CreateConnection createConnection;
+    private DeleteConnection deleteConnection;
+    private CreateConnectionResponse createConnectionResponse;
+    private CloseConnection closeConnection;
+    private CloseConnectionResponse closeConnectionResponse;
+    private DeleteConnectionResponse deleteConnectionResponse;
+    private RetrieveConnectionStatus retrieveConnectionStatus;
+    private RetrieveConnectionStatusResponse retrieveConnectionStatusOpenResponse;
+    private RetrieveConnectionStatusResponse retrieveConnectionStatusClosedResponse;
+    private ConnectionNotAccessibleException connectionNotAccessibleException;
 
     @BeforeClass
     public static void setUp() {
@@ -51,20 +71,34 @@ public class ConnectionActorTest {
 
     @AfterClass
     public static void tearDown() {
-        if (actorSystem != null) {
-            TestKit.shutdownActorSystem(actorSystem, scala.concurrent.duration.Duration.apply(5, TimeUnit.SECONDS),
-                    false);
-        }
+        TestKit.shutdownActorSystem(actorSystem, scala.concurrent.duration.Duration.apply(5, TimeUnit.SECONDS), false);
+    }
+
+    @Before
+    public void init() {
+        connectionId = TestConstants.createRandomConnectionId();
+        final AmqpConnection amqpConnection = TestConstants.createConnection(connectionId);
+        createConnection = CreateConnection.of(amqpConnection, DittoHeaders.empty());
+        deleteConnection = DeleteConnection.of(connectionId, DittoHeaders.empty());
+        createConnectionResponse =
+                CreateConnectionResponse.of(amqpConnection, Collections.emptyList(), DittoHeaders.empty());
+        closeConnection = CloseConnection.of(connectionId, DittoHeaders.empty());
+        closeConnectionResponse = CloseConnectionResponse.of(connectionId, DittoHeaders.empty());
+        deleteConnectionResponse = DeleteConnectionResponse.of(connectionId, DittoHeaders.empty());
+        retrieveConnectionStatus = RetrieveConnectionStatus.of(connectionId, DittoHeaders.empty());
+        retrieveConnectionStatusOpenResponse =
+                RetrieveConnectionStatusResponse.of(connectionId, ConnectionStatus.OPEN, DittoHeaders.empty());
+        retrieveConnectionStatusClosedResponse =
+                RetrieveConnectionStatusResponse.of(connectionId, ConnectionStatus.CLOSED, DittoHeaders.empty());
+        connectionNotAccessibleException = ConnectionNotAccessibleException.newBuilder(connectionId).build();
     }
 
     @Test
     public void tryToSendOtherCommandThanCreateDuringInitialization() {
         new TestKit(actorSystem) {{
-            final String connectionId = TestConstants.createRandomConnectionId();
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator);
 
-            final DeleteConnection deleteConnection = DeleteConnection.of(connectionId, DittoHeaders.empty());
             underTest.tell(deleteConnection, getRef());
 
             final ConnectionNotAccessibleException expectedMessage =
@@ -76,31 +110,20 @@ public class ConnectionActorTest {
     @Test
     public void manageConnection() {
         new TestKit(actorSystem) {{
-            final String connectionId = TestConstants.createRandomConnectionId();
-            final AmqpConnection amqpConnection = TestConstants.createConnection(connectionId);
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator);
             watch(underTest);
 
             // create connection
-            final CreateConnection createConnection = CreateConnection.of(amqpConnection, DittoHeaders.empty());
             underTest.tell(createConnection, getRef());
-            final CreateConnectionResponse createConnectionResponse =
-                    CreateConnectionResponse.of(amqpConnection, Collections.emptyList(), DittoHeaders.empty());
             expectMsg(createConnectionResponse);
 
             // close connection
-            final CloseConnection closeConnection = CloseConnection.of(connectionId, DittoHeaders.empty());
             underTest.tell(closeConnection, getRef());
-            final CloseConnectionResponse closeConnectionResponse =
-                    CloseConnectionResponse.of(connectionId, DittoHeaders.empty());
             expectMsg(closeConnectionResponse);
 
             // delete connection
-            final DeleteConnection deleteConnection = DeleteConnection.of(connectionId, DittoHeaders.empty());
             underTest.tell(deleteConnection, getRef());
-            final DeleteConnectionResponse deleteConnectionResponse =
-                    DeleteConnectionResponse.of(connectionId, DittoHeaders.empty());
             expectMsg(deleteConnectionResponse);
             expectTerminated(underTest);
         }};
@@ -109,17 +132,12 @@ public class ConnectionActorTest {
     @Test
     public void recoverOpenConnection() {
         new TestKit(actorSystem) {{
-            final String connectionId = TestConstants.createRandomConnectionId();
-            final AmqpConnection amqpConnection = TestConstants.createConnection(connectionId);
             ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator);
             watch(underTest);
 
             // create connection
-            final CreateConnection createConnection = CreateConnection.of(amqpConnection, DittoHeaders.empty());
             underTest.tell(createConnection, getRef());
-            final CreateConnectionResponse createConnectionResponse =
-                    CreateConnectionResponse.of(amqpConnection, Collections.emptyList(), DittoHeaders.empty());
             expectMsg(createConnectionResponse);
 
             // stop actor
@@ -130,36 +148,24 @@ public class ConnectionActorTest {
             underTest = TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator);
 
             // retrieve connection status
-            final RetrieveConnectionStatus retrieveConnectionStatus =
-                    RetrieveConnectionStatus.of(connectionId, DittoHeaders.empty());
             underTest.tell(retrieveConnectionStatus, getRef());
-            final RetrieveConnectionStatusResponse retrieveConnectionStatusResponse =
-                    RetrieveConnectionStatusResponse.of(connectionId, ConnectionStatus.OPEN, DittoHeaders.empty());
-            expectMsg(retrieveConnectionStatusResponse);
+            expectMsg(retrieveConnectionStatusOpenResponse);
         }};
     }
 
     @Test
     public void recoverClosedConnection() {
         new TestKit(actorSystem) {{
-            final String connectionId = TestConstants.createRandomConnectionId();
-            final AmqpConnection amqpConnection = TestConstants.createConnection(connectionId);
             ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator);
             watch(underTest);
 
             // create connection
-            final CreateConnection createConnection = CreateConnection.of(amqpConnection, DittoHeaders.empty());
             underTest.tell(createConnection, getRef());
-            final CreateConnectionResponse createConnectionResponse =
-                    CreateConnectionResponse.of(amqpConnection, Collections.emptyList(), DittoHeaders.empty());
             expectMsg(createConnectionResponse);
 
             // close connection
-            final CloseConnection closeConnection = CloseConnection.of(connectionId, DittoHeaders.empty());
             underTest.tell(closeConnection, getRef());
-            final CloseConnectionResponse closeConnectionResponse =
-                    CloseConnectionResponse.of(connectionId, DittoHeaders.empty());
             expectMsg(closeConnectionResponse);
 
             // stop actor
@@ -170,36 +176,24 @@ public class ConnectionActorTest {
             underTest = TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator);
 
             // retrieve connection status
-            final RetrieveConnectionStatus retrieveConnectionStatus =
-                    RetrieveConnectionStatus.of(connectionId, DittoHeaders.empty());
             underTest.tell(retrieveConnectionStatus, getRef());
-            final RetrieveConnectionStatusResponse retrieveConnectionStatusResponse =
-                    RetrieveConnectionStatusResponse.of(connectionId, ConnectionStatus.CLOSED, DittoHeaders.empty());
-            expectMsg(retrieveConnectionStatusResponse);
+            expectMsg(retrieveConnectionStatusClosedResponse);
         }};
     }
 
     @Test
     public void recoverDeletedConnection() {
         new TestKit(actorSystem) {{
-            final String connectionId = TestConstants.createRandomConnectionId();
-            final AmqpConnection amqpConnection = TestConstants.createConnection(connectionId);
             ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator);
             watch(underTest);
 
             // create connection
-            final CreateConnection createConnection = CreateConnection.of(amqpConnection, DittoHeaders.empty());
             underTest.tell(createConnection, getRef());
-            final CreateConnectionResponse createConnectionResponse =
-                    CreateConnectionResponse.of(amqpConnection, Collections.emptyList(), DittoHeaders.empty());
             expectMsg(createConnectionResponse);
 
             // delete connection
-            final DeleteConnection deleteConnection = DeleteConnection.of(connectionId, DittoHeaders.empty());
             underTest.tell(deleteConnection, getRef());
-            final DeleteConnectionResponse deleteConnectionResponse =
-                    DeleteConnectionResponse.of(connectionId, DittoHeaders.empty());
             expectMsg(deleteConnectionResponse);
             expectTerminated(underTest);
 
@@ -207,13 +201,81 @@ public class ConnectionActorTest {
             underTest = TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator);
 
             // retrieve connection status
-            final RetrieveConnectionStatus retrieveConnectionStatus =
-                    RetrieveConnectionStatus.of(connectionId, DittoHeaders.empty());
             underTest.tell(retrieveConnectionStatus, getRef());
-            final ConnectionNotAccessibleException connectionNotAccessibleException =
-                    ConnectionNotAccessibleException.newBuilder(connectionId).build();
             expectMsg(connectionNotAccessibleException);
         }};
     }
 
+    @Test
+    public void testThingEventWithAuthorizedSubjectExpectIsForwarded() {
+        final Set<String> valid = Collections.singleton(TestConstants.SUBJECT_ID);
+        testForwardThingEvent(valid, true);
+    }
+
+    @Test
+    public void testThingEventWithUnauthorizedSubjectExpectIsNotForwarded() {
+        final Set<String> invalid = Collections.singleton("iot:user");
+        testForwardThingEvent(invalid, false);
+    }
+
+    private void testForwardThingEvent(final Set<String> readSubjects, final boolean isForwarded) {
+        new TestKit(actorSystem) {{
+            final TestKit probe = new TestKit(actorSystem);
+            final ActorRef underTest =
+                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
+                            (connectionActor, connectionId1) -> TestActor.props(probe));
+            watch(underTest);
+
+            // create connection
+            underTest.tell(createConnection, getRef());
+            expectMsg(createConnectionResponse);
+
+            final Thing thing = Thing.newBuilder().setId("ditto:thing").build();
+            final DittoHeaders dittoHeaders =
+                    DittoHeaders.newBuilder().readSubjects(readSubjects).build();
+            final ThingModified thingModified = ThingModified.of(thing, 1, dittoHeaders);
+
+            underTest.tell(thingModified, getRef());
+
+            if (isForwarded) {
+                probe.expectMsg(thingModified);
+            } else {
+                probe.expectNoMsg();
+            }
+        }};
+    }
+
+    static class TestActor extends AbstractActor {
+
+        private final TestKit probe;
+
+        TestActor(final TestKit probe) {
+            this.probe = probe;
+        }
+
+        public static Props props(TestKit probe) {
+            return Props.create(TestActor.class, new Creator<TestActor>() {
+                private static final long serialVersionUID = 1L;
+
+                @Override
+                public TestActor create() {
+                    return new TestActor(probe);
+                }
+            });
+        }
+
+        @Override
+        public Receive createReceive() {
+            return receiveBuilder()
+                    .match(CreateConnection.class, cc -> {
+                        System.out.println("Received " + cc);
+                        System.out.println("Tell success to " + sender());
+                        sender().tell(new Status.Success("connected"), self());
+                    })
+                    .matchAny(m -> {
+                        probe.getRef().forward(m, context());
+                        System.out.println("forward " + m);
+                    }).build();
+        }
+    }
 }

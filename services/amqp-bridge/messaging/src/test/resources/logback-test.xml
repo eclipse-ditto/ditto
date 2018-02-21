@@ -6,9 +6,9 @@
     </contextListener>
 
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <immediateFlush>false</immediateFlush>
         <encoder>
             <pattern>%d{HH:mm:ss.SSS} [%-5level] [%-8thread] %X{akkaSource} %logger{15} - %msg%n%rEx</pattern>
-            <immediateFlush>false</immediateFlush>
         </encoder>
     </appender>
 

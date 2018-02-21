@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.model.amqpbridge;
 
+import java.util.Optional;
 import java.util.Set;
 
 import javax.annotation.concurrent.Immutable;
@@ -54,11 +55,21 @@ public interface AmqpConnection extends Jsonifiable.WithFieldSelectorAndPredicat
     AuthorizationSubject getAuthorizationSubject();
 
     /**
-     * Returns the sources of this {@code Connection}.
+     * Returns an optional of the sources of this {@code Connection}.
      *
      * @return the sources
      */
-    Set<String> getSources();
+    Optional<Set<String>> getSources();
+
+    /**
+     * Returns an optional of target for thing events of this {@code Connection}.
+     */
+    Optional<String> getEventTarget();
+
+    /**
+     * Returns an optional of target for thing command replies of this {@code Connection}.
+     */
+    Optional<String> getReplyTarget();
 
     /**
      * Returns whether or not failover is enabled for this {@code Connection}.
@@ -191,6 +202,22 @@ public interface AmqpConnection extends Jsonifiable.WithFieldSelectorAndPredicat
          */
         public static final JsonFieldDefinition<JsonArray> SOURCES =
                 JsonFactory.newJsonArrayFieldDefinition("sources", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
+
+        /**
+         * /**
+         * JSON field containing the {@code AmqpConnection} target.
+         */
+        public static final JsonFieldDefinition<String> EVENT_TARGET =
+                JsonFactory.newStringFieldDefinition("eventTarget", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
+
+        /**
+         * /**
+         * JSON field containing the {@code AmqpConnection} sources.
+         */
+        public static final JsonFieldDefinition<String> REPLY_TARGET =
+                JsonFactory.newStringFieldDefinition("replyTarget", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
         /**

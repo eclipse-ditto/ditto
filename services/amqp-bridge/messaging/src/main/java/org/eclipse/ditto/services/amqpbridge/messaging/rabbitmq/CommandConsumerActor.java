@@ -11,6 +11,8 @@
  */
 package org.eclipse.ditto.services.amqpbridge.messaging.rabbitmq;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -18,8 +20,10 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.eclipse.ditto.model.base.common.ConditionChecker;
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.model.amqpbridge.InternalMessage;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
 import com.rabbitmq.client.BasicProperties;
@@ -42,8 +46,8 @@ public class CommandConsumerActor extends AbstractActor {
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
     private final ActorRef commandProcessor;
 
-    private CommandConsumerActor(final ActorRef commandProcessor) {
-        this.commandProcessor = ConditionChecker.checkNotNull(commandProcessor, "commandProcessor");
+    private CommandConsumerActor(@Nullable final ActorRef commandProcessor) {
+        this.commandProcessor = checkNotNull(commandProcessor, "commandProcessor");
     }
 
     /**
@@ -51,14 +55,14 @@ public class CommandConsumerActor extends AbstractActor {
      *
      * @return the Akka configuration Props object.
      */
-    static Props props(final ActorRef targetActor) {
+    static Props props(@Nullable final ActorRef commandProcessor) {
         return Props.create(
                 CommandConsumerActor.class, new Creator<CommandConsumerActor>() {
                     private static final long serialVersionUID = 1L;
 
                     @Override
                     public CommandConsumerActor create() {
-                        return new CommandConsumerActor(targetActor);
+                        return new CommandConsumerActor(commandProcessor);
                     }
                 });
     }
@@ -101,6 +105,12 @@ public class CommandConsumerActor extends AbstractActor {
         }
         if (properties.getReplyTo() != null) {
             headersFromProperties.put(REPLY_TO_HEADER, properties.getReplyTo());
+        }
+        if (properties.getCorrelationId() != null) {
+            headersFromProperties.put(DittoHeaderDefinition.CORRELATION_ID.getKey(), properties.getCorrelationId());
+        }
+        if (properties.getContentType() != null) {
+            headersFromProperties.put(DittoHeaderDefinition.CONTENT_TYPE.getKey(), properties.getContentType());
         }
         headersFromProperties.put(MESSAGE_ID_HEADER, Long.toString(envelope.getDeliveryTag()));
         return headersFromProperties;

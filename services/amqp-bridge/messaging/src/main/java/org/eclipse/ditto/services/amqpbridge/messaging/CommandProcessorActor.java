@@ -21,12 +21,14 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.model.amqpbridge.InternalMessage;
 import org.eclipse.ditto.model.amqpbridge.MappingContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.common.ConditionChecker;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -65,19 +67,22 @@ public final class CommandProcessorActor extends AbstractActor {
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
     private final ActorRef pubSubMediator;
+    private final ActorRef commandProducer;
     private final AuthorizationSubject authorizationSubject;
     private final Cache<String, TraceContext> traces;
 
     private final CommandProcessor processor;
 
-    private CommandProcessorActor(final ActorRef pubSubMediator, final AuthorizationSubject authorizationSubject,
+    private CommandProcessorActor(final ActorRef pubSubMediator, final ActorRef commandProducer,
+            final AuthorizationSubject authorizationSubject,
             final List<MappingContext> mappingContexts) {
         this.pubSubMediator = pubSubMediator;
+        this.commandProducer = commandProducer;
         this.authorizationSubject = authorizationSubject;
         traces = CacheBuilder.newBuilder()
                 .expireAfterWrite(5, TimeUnit.MINUTES)
                 .removalListener((RemovalListener<String, TraceContext>) notification
-                        -> log.info("Trace for {} expired.", notification.getKey()))
+                        -> log.debug("Trace for {} removed.", notification.getKey()))
                 .build();
 
         this.processor = CommandProcessor.from(mappingContexts, getDynamicAccess(), log::debug, log::warning,
@@ -98,10 +103,12 @@ public final class CommandProcessorActor extends AbstractActor {
      * Creates Akka configuration object for this actor.
      *
      * @param pubSubMediator the akka pubsub mediator actor.
+     * @param commandProducer actor that handles outgoing messages
      * @param authorizationSubject the authorized subject that are set in command headers.
      * @return the Akka configuration Props object
      */
-    static Props props(final ActorRef pubSubMediator, final AuthorizationSubject authorizationSubject,
+    static Props props(final ActorRef pubSubMediator, final ActorRef commandProducer,
+            final AuthorizationSubject authorizationSubject,
             final List<MappingContext> mappingContexts) {
 
         return Props.create(CommandProcessorActor.class, new Creator<CommandProcessorActor>() {
@@ -109,7 +116,8 @@ public final class CommandProcessorActor extends AbstractActor {
 
             @Override
             public CommandProcessorActor create() {
-                return new CommandProcessorActor(pubSubMediator, authorizationSubject, mappingContexts);
+                return new CommandProcessorActor(pubSubMediator, commandProducer, authorizationSubject,
+                        mappingContexts);
             }
         });
     }
@@ -132,6 +140,12 @@ public final class CommandProcessorActor extends AbstractActor {
 
         final String correlationId = DittoHeaders.of(m.getHeaders()).getCorrelationId().orElse("no-correlation-id");
         LogUtil.enhanceLogWithCorrelationId(log, correlationId);
+
+        log.debug("Processing: {}", m);
+
+        // TODO dg find better way to inject header fields
+        final String subjectsArray = JsonFactory.newArray().add(authorizationSubject.getId()).toString();
+        m.getHeaders().put(DittoHeaderDefinition.AUTHORIZATION_SUBJECTS.getKey(), subjectsArray);
 
         try {
             final Command<?> command = processor.process(m);
@@ -159,11 +173,8 @@ public final class CommandProcessorActor extends AbstractActor {
     }
 
     private void handleCommandResponse(final CommandResponse response) {
+        LogUtil.enhanceLogWithCorrelationId(log, response);
         finishTrace(response);
-
-        final String correlationId = DittoHeaders.of(response.getDittoHeaders()).getCorrelationId()
-                .orElse("no-correlation-id");
-        LogUtil.enhanceLogWithCorrelationId(log, correlationId);
 
         if (response.getStatusCodeValue() < HttpStatusCode.BAD_REQUEST.toInt()) {
             log.debug("Received response: {}", response);
@@ -173,7 +184,7 @@ public final class CommandProcessorActor extends AbstractActor {
 
         try {
             final InternalMessage message = processor.process(response);
-            //TODO send message back to command consumer actor
+            commandProducer.forward(response, context());
         } catch (Exception e) {
             log.info(e.getMessage());
         }
