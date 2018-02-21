@@ -113,11 +113,20 @@ public final class ImmutableAmqpConnectionTest {
     }
 
     @Test
-    public void createInstanceWithNullTarget() {
+    public void createInstanceWithNullEventTarget() {
         assertThatExceptionOfType(NullPointerException.class)
                 .isThrownBy(
                         () -> ImmutableAmqpConnectionBuilder.of(ID, TYPE, URI, AUTHORIZATION_SUBJECT).eventTarget(null))
-                .withMessage("The %s must not be null!", "Target")
+                .withMessage("The %s must not be null!", "eventTarget")
+                .withNoCause();
+    }
+
+    @Test
+    public void createInstanceWithNullReplyTarget() {
+        assertThatExceptionOfType(NullPointerException.class)
+                .isThrownBy(
+                        () -> ImmutableAmqpConnectionBuilder.of(ID, TYPE, URI, AUTHORIZATION_SUBJECT).replyTarget(null))
+                .withMessage("The %s must not be null!", "replyTarget")
                 .withNoCause();
     }
 
