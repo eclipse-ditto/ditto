@@ -30,7 +30,8 @@ import org.eclipse.ditto.model.policies.PolicyBuilder;
 import org.eclipse.ditto.model.policies.PolicyLifecycle;
 import org.eclipse.ditto.model.policies.PolicyRevision;
 import org.eclipse.ditto.services.policies.persistence.actors.PersistenceActorTestBase;
-import org.eclipse.ditto.services.policies.persistence.serializer.MongoPolicyEventAdapter;
+import org.eclipse.ditto.services.policies.persistence.serializer.PolicyMongoEventAdapter;
+import org.eclipse.ditto.services.policies.persistence.serializer.PolicyMongoSnapshotAdapter;
 import org.eclipse.ditto.services.policies.persistence.testhelper.Assertions;
 import org.eclipse.ditto.services.policies.persistence.testhelper.PoliciesJournalTestHelper;
 import org.eclipse.ditto.services.policies.persistence.testhelper.PoliciesSnapshotTestHelper;
@@ -81,7 +82,7 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
                 .withValue(ConfigKeys.Policy.SNAPSHOT_INTERVAL, ConfigValueFactory.fromAnyRef(VERY_LONG_DURATION));
     }
 
-    private MongoPolicyEventAdapter eventAdapter;
+    private PolicyMongoEventAdapter eventAdapter;
     private PoliciesJournalTestHelper<Event> journalTestHelper;
     private PoliciesSnapshotTestHelper<Policy> snapshotTestHelper;
     private Map<Class<? extends Command>, BiFunction<Command, Long, Event>> commandToEventMapperRegistry;
@@ -89,7 +90,7 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
     @Override
     protected void setup(final Config customConfig) {
         super.setup(customConfig);
-        eventAdapter = new MongoPolicyEventAdapter((ExtendedActorSystem) actorSystem);
+        eventAdapter = new PolicyMongoEventAdapter((ExtendedActorSystem) actorSystem);
 
         journalTestHelper = new PoliciesJournalTestHelper<>(actorSystem, this::convertJournalEntryToEvent,
                 PolicyPersistenceActorSnapshottingTest::convertDomainIdToPersistenceId);
@@ -427,7 +428,8 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
     }
 
     protected ActorRef createPersistenceActorFor(final String policyId) {
-        final Props props = PolicyPersistenceActor.props(policyId, pubSubMediator, policyCacheFacade);
+        final PolicyMongoSnapshotAdapter snapshotAdapter = new PolicyMongoSnapshotAdapter();
+        final Props props = PolicyPersistenceActor.props(policyId, snapshotAdapter, pubSubMediator, policyCacheFacade);
         return actorSystem.actorOf(props);
     }
 

@@ -1,0 +1,656 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+
+    <title>Digital Twins go open source: Eclipse Ditto introduction</title>
+
+    <meta name="description" content="Virtual IoT Meetup - Digital Twins go open source: Eclipse Ditto introduction">
+    <meta name="author" content="Thomas Jäckle">
+
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <link rel="icon" type="image/png" href="../../images/favicon-16x16.png" sizes="16x16">
+    <link rel="icon" type="image/png" href="../../images/favicon-32x32.png" sizes="32x32">
+    <link rel="icon" type="image/png" href="../../images/favicon-96x96.png" sizes="96x96">
+
+    <link  rel="stylesheet" href="https://fonts.googleapis.com/css?family=News+Cycle">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/3.6.0/css/reveal.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/3.6.0/css/theme/simple.min.css" id="theme">
+
+    <!-- Theme used for syntax highlighting of code -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/3.6.0/lib/css/zenburn.min.css">
+
+    <style>
+        @font-face {
+            font-family:"News Cycle";
+        }
+        #header-left {
+            position: absolute;
+            top: 0%;
+            left: 0%;
+        }
+        #header-right {
+            position: absolute;
+            top: 0%;
+            right: 0%;
+        }
+
+        .reveal section img {
+            background: none;
+            border: none;
+            box-shadow: none;
+        }
+
+        .dim-background .slide-background {
+            opacity: 0.3 !important;
+            /*background: none !important;*/ /* for printing ! */
+            /* print with: file:///C:/...../index.html?print-pdf */
+        }
+
+        .chapter-background .slide-background {
+            opacity: 0.7 !important;
+            /*background: none !important;*/ /* for printing ! */
+        }
+
+        .print-pdf .reveal .slide-background {
+            opacity: 0.7 !important;
+        }
+
+        .dim-background .slide-background.past {
+            display: none !important;
+        }
+
+        .dim-background .slide-background.future {
+            display: none !important;
+        }
+
+        .chapter-background .slide-background.past {
+            display: none !important;
+        }
+
+        .chapter-background .slide-background.future {
+            display: none !important;
+        }
+
+        /*.new-chapter h3 { color: #586e75; }*/
+        .introlink a:link {
+            font-weight: bold;
+            color: #000000
+        }
+
+        /* unvisited links */
+        .introlink a:visited {
+            font-weight: bold;
+            color: #000000
+        }
+
+        /* visited links   */
+        .introlink a:hover {
+            font-weight: bold;
+            color: #000000
+        }
+
+        /* user hovers     */
+        .introlink a:active {
+            font-weight: bold;
+            color: #000000
+        }
+
+        ul {
+            list-style: none !important;
+        }
+        ul li {
+            padding-left: 1.3em;
+        }
+        ul li:before {
+            list-style: none;
+            content: "→";
+            display: inline-block;
+            margin-left: -1.3em; /* same as padding-left set on li */
+            width: 1.3em; /* same as padding-left set on li */
+        }
+
+        .footer {
+            font-size: 12px !Important;
+            font-family: "News Cycle", Impact, sans-serif;
+            color: #687175;
+            position: absolute;
+            bottom: 15px;
+            left: 15px;
+            margin-bottom: 10px
+        }
+
+        .footer a {
+            color: #003b6a;
+            text-decoration: none;
+        }
+
+        /* active links    */
+    </style>
+
+    <!-- Printing and PDF exports -->
+    <script>
+        var link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.type = 'text/css';
+        link.href = window.location.search.match(/print-pdf/gi) ? 'https://cdnjs.cloudflare.com/ajax/libs/reveal.js/3.6.0/css/print/pdf.min.css' : 'https://cdnjs.cloudflare.com/ajax/libs/reveal.js/3.6.0/css/print/paper.min.css';
+        document.getElementsByTagName('head')[0].appendChild(link);
+    </script>
+
+    <!--[if lt IE 9]>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/3.6.0/lib/js/html5shiv.js"></script>
+    <![endif]-->
+</head>
+
+<body>
+
+<div class="reveal">
+
+    <!-- 2. Create hidden header/footer <div> -->
+    <div id="hidden" style="display:none;">
+        <div id="header">
+            <div id="header-left"><img src="../../images/ditto.svg" style="width: 80px; padding-top: 10px; padding-left: 10px" alt="Ditto logo"></div>
+            <div id="header-right"><img src="eclipse_iot_logo.png" style="width: 150px; padding-top: 10px; padding-right: 10px" alt="Eclipse IoT logo"></div>
+        </div>
+    </div>
+
+    <!-- Any section element inside of this container is displayed as a slide -->
+    <div class="slides">
+        <!-- Section: Intro -->
+        <section>
+            <section id="title" class="new-chapter" data-background="../bg-images/background-twin-small.jpg" data-state="chapter-background">
+                <!-- background source: https://unsplash.com/collections/425779/iot -->
+                <br />
+                <h1 style="font-size: 3em;">Digital Twins go open source</h1>
+                <br/>
+                <h2>Eclipse Ditto introduction</h2>
+                <!--<h3>-</h3>-->
+                <!--<h2>new project introduction</h2>-->
+                <br style="clear: both"/>
+                <hr />
+                <small class="introlink">by <a
+                        href="mailto:thomas.jaeckle@bosch-si.com">Thomas Jäckle</a> (<a
+                        href="http://twitter.com/thjaeckle">@thjaeckle</a>)
+                </small>
+            </section>
+
+            <section id="agenda" class="new-chapter">
+                <h2>agenda</h2>
+                <br/>
+                <ol>
+                    <li><a href="#motivation">Motivation</a></li>
+                    <li><a href="#twin">Digital Twins</a></li>
+                    <li><a href="#ditto">Ditto model + features</a></li>
+                    <li><a href="#framework">A framework for Digital Twins</a></li>
+                    <li><a href="#demo">Demo</a></li>
+                    <li><a href="#wrap-up">Wrap up + Roadmap</a></li>
+                </ol>
+            </section>
+        </section>
+
+        <!-- Section: Motivation -->
+        <section style="clear: both;">
+            <section id="motivation" class="new-chapter" data-background="../bg-images/background-cloud-small.jpg"
+                     data-state="chapter-background">
+                <!-- background source: http://wallpapercave.com/wp/WkziiJQ.jpg -->
+                <h1>Motivation</h1>
+                <br/>
+                <h2>turn physical devices into services</h2>
+            </section>
+            <section id="motivation-1" style="clear: both;">
+                <h2>IoT development needs in the back-end</h2>
+                <br/>
+                <!--<h3 style="text-align: left;">for IoT devices we need</h3>-->
+                <ul style="font-size: 0.9em;">
+                    <li class="fragment"><b>APIs</b> optimized for the web</li>
+                    <li class="fragment" style="margin-top: 0.5em;"><b>control</b> who has <b>access</b> to which aspects</li>
+                    <li class="fragment" style="margin-top: 0.5em;"><b>directly</b> communicate to devices <b>and</b> access <b>last known</b> state</li>
+                    <li class="fragment" style="margin-top: 0.5em;">get <b>notified</b> about changes/events</li>
+                    <li class="fragment" style="margin-top: 0.5em;"><b>enhance</b> APIs with further functionality</li>
+                </ul>
+            </section>
+            <section id="motivation-2" style="clear: both;">
+                <h2>sounds complicated?</h2>
+                <br/>
+                <h3>let's find out if the Digital Twin pattern can help</h3>
+                <img src="../../images/ditto.svg" alt="Ditto logo" style="width: 200px">
+            </section>
+        </section>
+
+        <!-- Section: Digital Twins -->
+        <section style="clear: both;">
+            <section id="twin" class="new-chapter" data-background="../bg-images/background-twin-small.jpg"
+                     data-state="chapter-background">
+                <!-- background source: https://unsplash.com/search/twin?photo=SmAiLn-nnJg -->
+                <h1>Digital Twins</h1>
+                <br/>
+                <h2>a mechanism for simplifying IoT solution development</h2>
+            </section>
+
+            <section id="twin-1" style="clear: both;">
+                <!-- background source: https://unsplash.com/search/cloud?photo=FIKD9t5_5zQ -->
+                <h2>Digital Twin metaphor</h2>
+                <br/>
+                <ul>
+                    <li class="fragment" style="margin-top: 1em;">mirrors physical devices</li>
+                    <li class="fragment" style="margin-top: 1em;">provider of aspects+services around devices</li>
+                    <li class="fragment" style="margin-top: 1em;">keep real and digital worlds in sync</li>
+                    <li class="fragment" style="margin-top: 1em;">applicable for both industrial and consumer-centric IoT scenarios</li>
+                </ul>
+            </section>
+            <section id="twin-2" style="clear: both;">
+                <!-- background source: https://unsplash.com/search/cloud?photo=FIKD9t5_5zQ -->
+                <h2>in IIoT / Industry 4.0</h2>
+                <br/>
+                <ul style="float:left; width: 52%;">
+                    <li style="margin-top: 1em;">asset administration shell ("Verwaltungsschale")</li>
+                    <li style="margin-top: 2em;">holistic view of all capabilities (services) and aspects of an asset</li>
+                </ul>
+                <div style="float:right; width: 40%;">
+                    <img src="asset-admin-shell.png" style="width: 80%" alt="Asset admin shell" />
+                    <div style="font-size: 0.4em;"><a href="http://acplt.github.io/openAAS/AssetAdministrationShell.html">Source</a></div>
+                </div>
+                <!-- img source: http://acplt.github.io/openAAS/AssetAdministrationShell.html -->
+            </section>
+        </section>
+
+        <!-- Section: Ditto -->
+        <section style="clear: both;">
+            <section id="ditto" class="new-chapter" data-background="../bg-images/background-cloud-small.jpg"
+                     data-state="chapter-background">
+                <!-- background source: http://wallpapercave.com/wp/WkziiJQ.jpg -->
+                <h1>Eclipse Ditto</h1>
+                <br/>
+                <h2>… where IoT devices and their digital twins get together</h2>
+            </section>
+            <section id="ditto-1" style="clear: both;">
+                <h2>in context</h2>
+                <img src="ditto-in-action.png" style="width: 75%" alt="Ditto in action"/>
+            </section>
+            <section id="ditto-2" style="clear: both;">
+                <h2>domain model</h2>
+                <ul style="font-size: 0.8em;">
+                    <li>how does the model of Eclipse Ditto look like?</li>
+                    <li>KISS</li>
+                </ul>
+                <br />
+                <br />
+                <img src="../../images/pages/basic/ditto-class-diagram-v1.svg" alt="Ditto class diagram v1" class="fragment"/>
+                <a href="https://www.eclipse.org/ditto/basic-overview.html#domain-model">→ docs</a>
+            </section>
+            <section id="ditto-3" style="clear: both;">
+                <h2>turn device data into API</h2>
+                <div style="text-align: left; float: left; width: 38%">
+                <pre style="width: 100%; font-size: 0.48em;"><code class="hljs json">{
+  "thingId": "namespace:car-1",
+  "acl": { ... },
+  "attributes": {
+    "manufacturer": "ACME corp",
+    "productionData": {
+      "serialNo": 4711
+    }
+  },
+  "features": {
+    "headlights": {
+      "properties": {
+        "on": false
+      }
+    }
+  }
+}</code></pre>
+                </div>
+                <div style="text-align: left; float: right; width: 60%" class="fragment">
+                    <pre style="width: 105%; font-size: 0.48em;"><code class="hljs">GET/PUT/DELETE /api/1/things/namespace:car-1
+ /api/1/things/namespace:car-1/thingId
+ /api/1/things/namespace:car-1/acl
+ /api/1/things/namespace:car-1/attributes
+ /api/1/things/namespace:car-1/attributes/manufacturer
+ /api/1/things/namespace:car-1/attributes/productionData
+ /api/1/things/namespace:car-1/attributes/productionData/serialNo
+
+
+ /api/1/things/namespace:car-1/features
+ /api/1/things/namespace:car-1/features/headlights
+ /api/1/things/namespace:car-1/features/headlights/properties
+ /api/1/things/namespace:car-1/features/headlights/properties/on
+
+
+
+
+</code></pre>
+                    <a href="https://www.eclipse.org/ditto/httpapi-concepts.html#endpoints" style="float: right;">→ docs</a>
+                </div>
+            </section>
+            <section id="ditto-4" style="clear: both">
+                <h2>Ditto Protocol API</h2>
+                <ul>
+                    <li>JSON based text protocol for communicating with Digital Twins bidirectionally (commands/events)</li>
+                    <li>via: WebSocket, AMQP 1.0 (e.g. Hono), AMQP 0.9.1</li>
+                </ul>
+                <pre style="width: 100%; font-size: 0.5em;"><code class="hljs json">{
+  "topic": "namespace/car-1/things/twin/events/modified",
+  "headers": { ... },
+  "path": "/features/headlights/properties",
+  "value": {
+    "on": true
+  },
+  "revision": 42
+}</code></pre>
+                <a href="https://www.eclipse.org/ditto/protocol-overview.html" style="float: right;">→ docs</a>
+            </section>
+            <section id="ditto-5" style="clear: both">
+                <h2>access control</h2>
+                <div style="text-align: left; float: left; width: 48%">
+                    <h3>API v1: ACL</h3>
+                <pre style="width: 100%; font-size: 0.5em;"><code class="hljs json">"acl": {
+  "ditto": {
+    "READ": true,
+    "WRITE": false,
+    "ADMINISTRATE": false
+  },
+  "adam": {
+    "READ": true,
+    "WRITE": true,
+    "ADMINISTRATE": true
+  }
+}</code></pre>
+                    <ul>
+                        <li>inlined in Thing</li>
+                    </ul>
+                </div>
+                <div style="text-align: left; float: right; width: 48%" class="fragment">
+                    <h3>API v2: Policy</h3>
+                    <pre style="width: 110%; font-size: 0.3em;"><code class="hljs">{
+  "policyId": "namespace:car-1-policy",
+  "entries": {
+    "owner": {
+      "subjects": {
+        "nginx:admin": {
+          "type": "nginx basic auth user"
+        }
+      },
+      "resources": {
+        "thing:/": {
+          "grant": ["READ","WRITE"],
+          "revoke": []
+        },
+        "thing:/features/firmware": {
+          "grant": [],
+          "revoke": ["WRITE"]
+        },
+        "policy:/": {
+          "grant": ["READ","WRITE"],
+          "revoke": []
+        }
+      }
+    }
+  }
+}</code></pre>
+                    <a href="https://www.eclipse.org/ditto/basic-auth.html#authorization" style="float: right;">→ docs</a>
+                </div>
+            </section>
+            <section id="ditto-6" style="clear: both;">
+                <h2>twin vs. live</h2>
+                <br/>
+                <div style="text-align: left; float: left; width: 48%">
+                    <img src="../../images/pages/protocol/ditto-twin-channel.png" alt="Ditto twin channel" />
+                    <ul style="font-size: 0.7em">
+                        <li>uses Ditto as persistence</li>
+                        <li>Ditto enforces access control</li>
+                        <li>Ditto processes commands, emits events</li>
+                    </ul>
+                </div>
+                <div style="text-align: left; float: right; width: 48%" class="fragment">
+                    <ul style="font-size: 0.7em">
+                        <li>uses Ditto as router</li>
+                        <li>Ditto enforces access control</li>
+                        <li>endpoints process commands, emit events</li>
+                    </ul>
+                    <img src="../../images/pages/protocol/ditto-live-channel.png" alt="Ditto live channel" />
+                    <a href="https://www.eclipse.org/ditto/protocol-twinlive.html" style="float: right;">→ docs</a>
+                </div>
+            </section>
+            <section id="ditto-7" style="clear: both;">
+                <h2>get notified about changes</h2>
+                <br/>
+                <div style="text-align: left; float: left; width: 48%">
+                    <h3>via WebSocket</h3>
+                    <pre style="width: 100%; font-size: 0.5em;"><code class="hljs javascript">var ws = new WebSocket(
+  "ws://u:p@ditto.eclipse.org/ws/1");
+ws.onopen = function(w) {
+  w.send('START-SEND-EVENTS');
+};
+ws.onmessage = function(msg) {
+  console.log('received: ' + msg.data);
+};</code></pre>
+                    <ul style="font-size: 0.7em">
+                        <li>bidirectionally send/receive Ditto Protocol messages</li>
+                    </ul>
+                    <a href="https://www.eclipse.org/ditto/protocol-bindings-websocket.html" style="float: right;">→ docs</a>
+                </div>
+                <div style="text-align: left; float: right; width: 48%" class="fragment">
+                    <h3>via SSEs</h3>
+                    <pre style="width: 100%; font-size: 0.5em;"><code class="hljs">var source = new EventSource(
+  "/api/1/things?ids=namespace:car-1");
+source.onmessage = function(msg) {
+  console.log('received: ' + msg.data);
+};</code></pre>
+                    <ul style="font-size: 0.7em">
+                        <li>unidirectionally receive changes in Thing JSON form</li>
+                    </ul>
+                    <a href="https://www.eclipse.org/ditto/httpapi-sse.html" style="float: right;">→ docs</a>
+                </div>
+            </section>
+            <section id="ditto-8" style="clear: both;">
+                <h2>search</h2>
+                <br/>
+                <div style="text-align: left; float: left; width: 40%">
+                    <img src="meme-dino.jpg" style="width: 80%;" alt="Meme Dino" />
+                    <ul style="font-size: 0.7em">
+                        <li>you must not</li>
+                        <li>Ditto has you covered</li>
+                    </ul>
+                </div>
+                <div style="text-align: left; float: right; width: 60%" class="fragment">
+                    <pre style="width: 100%; font-size: 0.5em;"><code class="hljs javascript">GET /api/1/search/things
+  ?filter=like(attributes/manufacturer,"ACME*")</code></pre>
+                    <pre style="width: 100%; font-size: 0.5em;" class="fragment"><code class="hljs javascript">GET /api/1/search/things
+  ?filter=and(
+    exists(attributes/manufacturer),
+    eq(features/headlights/properties/on,true)
+  )
+  &namespaces=org.eclipse.ditto
+  &option=sort(-attributes/manufacturer)
+  &fields=thingId,attributes/manufacturer,_modified</code></pre>
+                </div>
+                <div class="fragment">
+                    <ul style="font-size: 0.7em">
+                        <li>search for arbitrary data with RQL query</li>
+                        <li>Ditto enforces access control</li>
+                        <li>apply field projection over the results</li>
+                        <li>don't worry about indexing</li>
+                    </ul>
+                    <a href="https://www.eclipse.org/ditto/basic-search.html" style="float: right;">→ docs</a>
+                </div>
+            </section>
+            <section id="ditto-9" style="clear: both;">
+                <h2>nonfunctional</h2>
+                <br/>
+                <div style="text-align: left; float: left; width: 48%">
+                    <img src="../../images/pages/architecture/context-overview.png" alt="Ditto context overview" />
+                </div>
+                <div style="text-align: left; float: right; width: 52%">
+                    <ul style="font-size: 0.8em">
+                        <li >modular architecture of Ditto services</li>
+                        <li style="margin-top: 0.5em;">horizontal scalability of each Ditto service</li>
+                        <li style="margin-top: 0.5em;">runtime dependency to only MongoDB</li>
+                        <li style="margin-top: 0.5em;">included monitoring (JVM metrics, roundtrips, MongoDB)</li>
+                        <li style="margin-top: 0.5em;">prepared for operations (e.g. via devops commands)</li>
+                    </ul>
+                </div>
+            </section>
+        </section>
+
+        <!-- Section: A framework for Digital Twins -->
+        <section style="clear: both;">
+            <section id="framework" class="new-chapter" data-background="../bg-images/background-framework-small.jpg"
+                     data-state="chapter-background">
+                <!-- img background: https://unsplash.com/photos/FO7bKvgETgQ -->
+                <h1>A framework for Digital Twins</h1>
+                <br/>
+                <h2>acting as a Twin orchestrator</h2>
+            </section>
+
+            <section id="framework-1" style="clear: both;">
+                <h2>orchestration via messages</h2>
+                <br/>
+                <div style="text-align: left; float: left; width: 38%">
+                    <ul style="font-size: 0.7em">
+                        <li>Ditto as router of messages (via "live" channel)</li>
+                        <li>enforcement of access control</li>
+                        <li>correlation of command/response (e.g. for HTTP)</li>
+                        <!--<li>device-to-cloud,cloud-to-device,device-to-device,cloud-to-cloud</li>-->
+                    </ul>
+                </div>
+                <div style="text-align: left; float: right; width: 58%">
+                    <img src="../../images/pages/basic/ditto-messages.png" alt="Ditto messages" />
+                </div>
+                <ul>
+                    <li>enhance the API of a Digital Twin by a custom WebSocket consumer</li>
+                </ul>
+            </section>
+
+            <section id="framework-2" style="clear: both;">
+                <h2>examples for orchestrations</h2>
+                <br/>
+                <ul style="font-size: 0.9em;">
+                    <li>enhance a location-aware Twin with the current weather</li>
+                    <li>enhance a Twin with an API for its known spare parts</li>
+                </ul>
+                <br/>
+                <br/>
+                <img src="ditto-orchestration-examples.png" style="width: 60%" alt="Ditto orchestration example" />
+            </section>
+        </section>
+
+        <!-- Section: Demo -->
+        <section style="clear: both;">
+            <section id="demo" class="new-chapter" data-background="../bg-images/background-demo-small.jpg" data-state="chapter-background">
+                <h1>Demo time!</h1>
+            </section>
+        </section>
+
+        <!-- Section: Wrap up + Roadmap -->
+        <section style="clear: both;">
+            <section id="wrap-up">
+                <h1>Wrap up</h1>
+                <br/>
+                <ul>
+                    <li class="fragment">Digital Twins as pattern for simplifying IoT back-end development</li>
+                    <li class="fragment" style="margin-top: 1em;">Mission: provide Device-as-a-Service</li>
+                    <li class="fragment" style="margin-top: 1em;">Eclipse Ditto as framework for Digital Twins</li>
+                </ul>
+            </section>
+
+            <section id="wrap-up-1" style="clear: both;">
+                <h2>Roadmap 2018</h2>
+                <br/>
+                <ul>
+                    <li>release (non-milestone)</li>
+                    <li style="margin-top: 1em;">using <b>Eclipse Vorto</b> generator for validation</li>
+                    <li style="margin-top: 1em;">mapping raw payloads to/from Ditto Protocol</li>
+                    <li style="margin-top: 1em;">attracting IoT developers in using Ditto</li>
+                    <li style="margin-top: 1em;">integration with other OSS projects</li>
+                </ul>
+            </section>
+        </section>
+
+        <!-- Section: Questions and Answers -->
+        <section style="clear: both;">
+            <section id="q-a" class="new-chapter" data-background="../bg-images/background-conclusion-small.jpg"
+                     data-state="chapter-background">
+                <h1>Q & A</h1>
+                <br/>
+                <h3>thanks for attending</h3>
+                <br/>
+                <br/>
+                <a href="https://www.eclipse.org/ditto/feedback.html">reach out to the Ditto team</a>
+            </section>
+        </section>
+    </div>
+
+</div>
+
+<div class="footer">
+    Copyright ©2018
+    <a href="https://www.bosch-si.com" target="_blank">Bosch Software Innovations GmbH</a> All rights reserved. |
+    <a href="https://www.bosch.com/terms-of-use/terms-of-use/provider/" target="_blank">Imprint</a> |
+    <a href="https://www.eclipse.org/ditto/intro-overview.html" target="_blank">Documentation</a> |
+    <a href="https://github.com/eclipse/ditto" target="_blank">GitHub</a> |
+    <a href="https://ditto.eclipse.org" target="_blank">Sandbox</a>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/3.6.0/lib/js/head.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/3.6.0/js/reveal.min.js"></script>
+
+<script>
+    function getParameterByName(name, url) {
+        if (!url) url = window.location.href;
+        name = name.replace(/[\[\]]/g, "\\$&");
+        var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
+            results = regex.exec(url);
+        if (!results) return null;
+        if (!results[2]) return '';
+        return decodeURIComponent(results[2].replace(/\+/g, " "));
+    }
+
+    // More info https://github.com/hakimel/reveal.js#configuration
+    Reveal.initialize({
+                          controls: true,
+                          progress: true,
+                          history: true,
+                          center: true,
+                          fragments: getParameterByName('fragments') === '', // only use "fragments" feature if queryParam 'fragments' is present
+                          slideNumber: 'h.v',
+
+                          transition: 'convex', // none/fade/cube/slide/convex/concave/zoom
+
+                          // More info https://github.com/hakimel/reveal.js#dependencies
+                          dependencies: [
+                              { src: 'https://cdnjs.cloudflare.com/ajax/libs/reveal.js/3.6.0/lib/js/classList.js', condition: function() { return !document.body.classList; } },
+                              { src: 'https://cdnjs.cloudflare.com/ajax/libs/reveal.js/3.6.0/plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+                              { src: 'https://cdnjs.cloudflare.com/ajax/libs/reveal.js/3.6.0/plugin/markdown/markdown.min.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+                              { src: 'https://cdnjs.cloudflare.com/ajax/libs/reveal.js/3.6.0/plugin/highlight/highlight.min.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
+                              { src: 'https://cdnjs.cloudflare.com/ajax/libs/reveal.js/3.6.0/plugin/zoom-js/zoom.min.js', async: true },
+                              { src: 'https://cdnjs.cloudflare.com/ajax/libs/reveal.js/3.6.0/plugin/notes/notes.min.js', async: true }
+                          ]
+//                keyboard: { // for hama remote presenter:
+//                      38: 'next',
+//                      40: 'prev'
+//                }
+                      });
+
+</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>
+<script type="text/javascript">
+    // 3. On Reveal.js ready event, copy header/footer <div> into each `.slide-background` <div>
+    var header = $('#header').html();
+    if ( window.location.search.match( /print-pdf/gi ) ) {
+        Reveal.addEventListener( 'ready', function( event ) {
+            $('.slide-background').append(header);
+        });
+    }
+    else {
+        $('div.reveal').append(header);
+    }
+</script>
+
+</body>
+</html>

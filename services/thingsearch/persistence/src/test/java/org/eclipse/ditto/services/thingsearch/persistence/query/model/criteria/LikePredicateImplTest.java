@@ -13,12 +13,11 @@ package org.eclipse.ditto.services.thingsearch.persistence.query.model.criteria;
 
 import org.bson.conversions.Bson;
 import org.eclipse.ditto.services.thingsearch.persistence.read.criteria.visitors.CreateBsonPredicateVisitor;
-import org.eclipse.ditto.services.thingsearch.persistence.BsonAssertions;
+import org.eclipse.ditto.services.thingsearch.querymodel.criteria.LikePredicateImpl;
+import org.eclipse.ditto.services.utils.persistence.mongo.assertions.BsonAssertions;
 import org.junit.Test;
 
 import com.mongodb.client.model.Filters;
-
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.LikePredicateImpl;
 
 /**
  * Unit test for {@link LikePredicateImpl}.

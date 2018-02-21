@@ -22,7 +22,6 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
-import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
@@ -78,40 +77,6 @@ public final class SudoRetrieveThingResponse extends AbstractCommandResponse<Sud
     }
 
     /**
-     * Creates a new instance of {@code SudoRetrieveThingResponse}.
-     *
-     * @param thing the retrieved Thing.
-     * @param predicate the predicate to apply to the thing when transforming to JSON.
-     * @param dittoHeaders the headers of the preceding command.
-     * @return the response.
-     * @throws NullPointerException if any argument is {@code null}.
-     */
-    public static SudoRetrieveThingResponse of(final Thing thing, final Predicate<JsonField> predicate,
-            final DittoHeaders dittoHeaders) {
-        return new SudoRetrieveThingResponse(HttpStatusCode.OK, checkNotNull(thing, "Thing")
-                .toJson(dittoHeaders.getSchemaVersion().orElse(thing.getImplementedSchemaVersion()), predicate),
-                dittoHeaders);
-    }
-
-    /**
-     * Creates a new instance of {@code SudoRetrieveThingResponse}.
-     *
-     * @param thing the retrieved Thing.
-     * @param fieldSelector the JsonFieldSelector to apply to the passed thing when transforming to JSON.
-     * @param predicate the predicate to apply to the thing when transforming to JSON.
-     * @param dittoHeaders the headers of the preceding command.
-     * @return the response.
-     * @throws NullPointerException if any argument is {@code null}.
-     */
-    public static SudoRetrieveThingResponse of(final Thing thing, final JsonFieldSelector fieldSelector,
-            final Predicate<JsonField> predicate, final DittoHeaders dittoHeaders) {
-        return new SudoRetrieveThingResponse(
-                HttpStatusCode.OK, checkNotNull(thing, "Thing")
-                .toJson(dittoHeaders.getSchemaVersion().orElse(JsonSchemaVersion.LATEST), fieldSelector, predicate),
-                dittoHeaders);
-    }
-
-    /**
      * Creates a new {@code SudoRetrieveThingResponse} from a JSON string.
      *
      * @param jsonString the JSON string of which a new SudoRetrieveThingResponse instance is to be created.
@@ -139,7 +104,7 @@ public final class SudoRetrieveThingResponse extends AbstractCommandResponse<Sud
      */
     public static SudoRetrieveThingResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<SudoRetrieveThingResponse>(TYPE, jsonObject)
-                .deserialize((statusCode) -> {
+                .deserialize(statusCode -> {
                     final JsonObject extractedThing = jsonObject.getValueOrThrow(JSON_THING);
 
                     return of(extractedThing, dittoHeaders);

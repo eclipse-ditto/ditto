@@ -16,6 +16,7 @@ import java.util.Map;
 
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -24,6 +25,7 @@ import org.junit.Test;
  * Sorry, not really a test yet - class was used in order to manually test mapping functionality.
  */
 //@RunWith(Parameterized.class)
+@Ignore
 public class ProtocolToRawMapperSimpleTest {
 
     private static final String CONTENT_TYPE = "text/plain";

@@ -45,11 +45,10 @@ import org.eclipse.ditto.model.policiesenforcers.PolicyEnforcer;
 import org.eclipse.ditto.model.policiesenforcers.PolicyEnforcers;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.models.policies.Permission;
-import org.eclipse.ditto.services.thingsearch.persistence.BsonAssertions;
-import org.eclipse.ditto.services.thingsearch.persistence.BsonUtil;
 import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
 import org.eclipse.ditto.services.thingsearch.persistence.TestConstants;
 import org.eclipse.ditto.services.thingsearch.persistence.ThingResourceKey;
+import org.eclipse.ditto.services.utils.persistence.mongo.assertions.BsonAssertions;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -258,8 +257,10 @@ public final class PolicyUpdateFactoryTest {
     private static void assertPushGlobalReads(final Bson expected, final Bson actual) {
         // order does not matter for the global-reads documents, so it is a bit complicated to test this
         final String grDocsPath = "$push.__internal.$each";
-        final Collection<Document> expectedGrDocs = BsonUtil.getValueByPath(expected, grDocsPath);
-        final Collection<Document> actualGrDocs = BsonUtil.getValueByPath(actual, grDocsPath);
+        final Collection<Document> expectedGrDocs =
+                org.eclipse.ditto.services.utils.persistence.mongo.BsonUtil.getValueByPath(expected, grDocsPath);
+        final Collection<Document> actualGrDocs =
+                org.eclipse.ditto.services.utils.persistence.mongo.BsonUtil.getValueByPath(actual, grDocsPath);
 
         BsonAssertions.assertThat(actualGrDocs).isEqualToInAnyOrder(expectedGrDocs);
     }

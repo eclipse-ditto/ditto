@@ -61,6 +61,7 @@ public final class DevOpsCommandsActor extends AbstractActor {
      * The name of this Actor in the ActorSystem.
      */
     public static final String ACTOR_NAME = "devOpsCommandsActor";
+    private static final String UNKNOWN_MESSAGE_TEMPLATE = "Unknown message: {}";
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
@@ -106,7 +107,7 @@ public final class DevOpsCommandsActor extends AbstractActor {
                 .match(DevOpsCommand.class, this::handleInitialDevOpsCommand)
                 .match(DevOpsCommandViaPubSub.class, this::handleDevOpsCommandViaPubSub)
                 .matchAny(m -> {
-                    log.warning("Unknown message: {}", m);
+                    log.warning(UNKNOWN_MESSAGE_TEMPLATE, m);
                     unhandled(m);
                 }).build();
     }
@@ -126,13 +127,14 @@ public final class DevOpsCommandsActor extends AbstractActor {
                         .orElseThrow(() -> new IllegalArgumentException("Missing correlation-id for DevOpsCommand")));
 
         final String topic;
-        final Optional<String> serviceNameOpt = command.getServiceName();
-        if (serviceNameOpt.isPresent()) {
-            final String serviceName = serviceNameOpt.get();
-            if (command.getInstance().isPresent()) {
-                topic = command.getType() + ":" + serviceName + ":" + command.getInstance().get();
+        final Optional<String> commandServiceNameOpt = command.getServiceName();
+        if (commandServiceNameOpt.isPresent()) {
+            final String commandServiceName = commandServiceNameOpt.get();
+            final Integer commandInstance = command.getInstance().orElse(null);
+            if (commandInstance != null) {
+                topic = command.getType() + ":" + commandServiceName + ":" + commandInstance;
             } else {
-                topic = command.getType() + ":" + serviceName;
+                topic = command.getType() + ":" + commandServiceName;
             }
         } else {
             topic = command.getType();
@@ -249,7 +251,7 @@ public final class DevOpsCommandsActor extends AbstractActor {
                     ))
                     .match(DistributedPubSubMediator.SubscribeAck.class, this::handleSubscribeAck)
                     .matchAny(m -> {
-                        log.warning("Unknown message: {}", m);
+                        log.warning(UNKNOWN_MESSAGE_TEMPLATE, m);
                         unhandled(m);
                     }).build();
         }
@@ -324,7 +326,7 @@ public final class DevOpsCommandsActor extends AbstractActor {
                     })
                     .matchAny(m -> {
                         LogUtil.enhanceLogWithCorrelationId(log, getSelf().path().name());
-                        log.warning("Unknown message: {}", m);
+                        log.warning(UNKNOWN_MESSAGE_TEMPLATE, m);
                         unhandled(m);
                     }).build();
         }

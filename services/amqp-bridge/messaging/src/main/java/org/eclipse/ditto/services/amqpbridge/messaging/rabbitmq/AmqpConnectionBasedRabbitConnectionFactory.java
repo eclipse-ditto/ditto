@@ -40,7 +40,7 @@ public class AmqpConnectionBasedRabbitConnectionFactory {
 
     /**
      * Returns an instance of {@code AmqpConnectionBasedRabbitConnectionFactory}.
-     *
+     * @param amqpConnection the amqp connection
      * @return the instance.
      */
     public static ConnectionFactory createConnection(@Nullable final AmqpConnection amqpConnection) {

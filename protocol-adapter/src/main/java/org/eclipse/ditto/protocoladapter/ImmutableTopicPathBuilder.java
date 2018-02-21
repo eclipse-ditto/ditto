@@ -88,8 +88,8 @@ final class ImmutableTopicPathBuilder implements TopicPathBuilder, MessagesTopic
      * @throws NullPointerException if {@code namespace} or {@code id} is {@code null}.
      */
     public static TopicPathBuilder of(final String namespace, final String id) {
-        requireNonNull(namespace, "namespace");
-        requireNonNull(id, "id");
+        requireNonNull(namespace, ImmutableTopicPath.PROP_NAME_NAMESPACE);
+        requireNonNull(id, ImmutableTopicPath.PROP_NAME_ID);
 
         return new ImmutableTopicPathBuilder(namespace, id);
     }

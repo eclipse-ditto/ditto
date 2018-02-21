@@ -21,6 +21,7 @@ import javax.annotation.Nullable;
 /**
  * TODO doc
  */
+@Deprecated
 final class ImmutablePayloadMapperOptions implements PayloadMapperOptions {
 
     private final Map<String, String> optionsMap;

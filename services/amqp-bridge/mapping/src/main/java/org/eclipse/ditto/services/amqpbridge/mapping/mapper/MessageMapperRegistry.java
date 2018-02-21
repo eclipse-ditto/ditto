@@ -28,7 +28,7 @@ import org.eclipse.ditto.protocoladapter.Adaptable;
 import com.google.common.base.Converter;
 
 /**
- * A registry for instatiated mappers.
+ * A registry for instantiated mappers.
  */
 public class MessageMapperRegistry implements Collection<MessageMapper> {
 
@@ -37,13 +37,13 @@ public class MessageMapperRegistry implements Collection<MessageMapper> {
     @Nullable
     private MessageMapper defaultMapper;
 
-    @SuppressWarnings("WeakerAccess")
-    public MessageMapperRegistry(@Nullable final MessageMapper defaultMapper) {
+
+    private MessageMapperRegistry(@Nullable final MessageMapper defaultMapper) {
         registry = new HashMap<>();
         setDefaultMapper(defaultMapper);
     }
 
-    public MessageMapperRegistry(@Nullable final MessageMapper defaultMapper, final List<MessageMapper> mappers) {
+    MessageMapperRegistry(@Nullable final MessageMapper defaultMapper, final List<MessageMapper> mappers) {
         this(defaultMapper);
         addAll(mappers);
     }
@@ -66,7 +66,7 @@ public class MessageMapperRegistry implements Collection<MessageMapper> {
         return mapper.isPresent() ? mapper : Optional.ofNullable(getDefaultMapper());
     }
 
-    public Optional<Converter<Adaptable, InternalMessage>> findMapper(final Adaptable adaptable) {
+    private Optional<Converter<Adaptable, InternalMessage>> findMapper(final Adaptable adaptable) {
         return MessageMapper.findContentType(adaptable).map(registry::get).map(MessageMapper::reverse);
     }
 

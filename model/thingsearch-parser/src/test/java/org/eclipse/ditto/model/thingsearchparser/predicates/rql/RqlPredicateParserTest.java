@@ -33,7 +33,7 @@ public class RqlPredicateParserTest {
         assertThat(root.getChildren().size()).isEqualTo(1);
 
         final SingleComparisonNode comparison = (SingleComparisonNode) root.getChildren().get(0);
-        assertThat(comparison.getComparisonType()).isEqualTo(SingleComparisonNode.Type.eq);
+        assertThat(comparison.getComparisonType()).isEqualTo(SingleComparisonNode.Type.EQ);
         assertThat(comparison.getComparisonProperty()).isEqualTo("username");
         assertThat(comparison.getComparisonValue().getClass()).isEqualTo(Long.class);
         assertThat(comparison.getComparisonValue()).isEqualTo(123L);
@@ -80,7 +80,7 @@ public class RqlPredicateParserTest {
         assertThat(root.getChildren().size()).isEqualTo(1);
 
         final SingleComparisonNode comparison = (SingleComparisonNode) root.getChildren().get(0);
-        assertThat(comparison.getComparisonType()).isEqualTo(SingleComparisonNode.Type.ne);
+        assertThat(comparison.getComparisonType()).isEqualTo(SingleComparisonNode.Type.NE);
         assertThat(comparison.getComparisonProperty()).isEqualTo("username");
         assertThat(comparison.getComparisonValue().getClass()).isEqualTo(Long.class);
         assertThat(comparison.getComparisonValue()).isEqualTo(123L);
@@ -93,7 +93,7 @@ public class RqlPredicateParserTest {
         assertThat(root.getChildren().size()).isEqualTo(1);
 
         final SingleComparisonNode comparison = (SingleComparisonNode) root.getChildren().get(0);
-        assertThat(comparison.getComparisonType()).isEqualTo(SingleComparisonNode.Type.gt);
+        assertThat(comparison.getComparisonType()).isEqualTo(SingleComparisonNode.Type.GT);
         assertThat(comparison.getComparisonProperty()).isEqualTo("width");
         assertThat(comparison.getComparisonValue().getClass()).isEqualTo(Long.class);
         assertThat(comparison.getComparisonValue()).isEqualTo(123L);
@@ -106,7 +106,7 @@ public class RqlPredicateParserTest {
         assertThat(root.getChildren().size()).isEqualTo(1);
 
         final SingleComparisonNode comparison = (SingleComparisonNode) root.getChildren().get(0);
-        assertThat(comparison.getComparisonType()).isEqualTo(SingleComparisonNode.Type.ge);
+        assertThat(comparison.getComparisonType()).isEqualTo(SingleComparisonNode.Type.GE);
         assertThat(comparison.getComparisonProperty()).isEqualTo("width");
         assertThat(comparison.getComparisonValue().getClass()).isEqualTo(Long.class);
         assertThat(comparison.getComparisonValue()).isEqualTo(123L);
@@ -119,7 +119,7 @@ public class RqlPredicateParserTest {
         assertThat(root.getChildren().size()).isEqualTo(1);
 
         final SingleComparisonNode comparison = (SingleComparisonNode) root.getChildren().get(0);
-        assertThat(comparison.getComparisonType()).isEqualTo(SingleComparisonNode.Type.lt);
+        assertThat(comparison.getComparisonType()).isEqualTo(SingleComparisonNode.Type.LT);
         assertThat(comparison.getComparisonProperty()).isEqualTo("width");
         assertThat(comparison.getComparisonValue().getClass()).isEqualTo(Long.class);
         assertThat(comparison.getComparisonValue()).isEqualTo(123L);
@@ -132,7 +132,7 @@ public class RqlPredicateParserTest {
         assertThat(root.getChildren().size()).isEqualTo(1);
 
         final SingleComparisonNode comparison = (SingleComparisonNode) root.getChildren().get(0);
-        assertThat(comparison.getComparisonType()).isEqualTo(SingleComparisonNode.Type.le);
+        assertThat(comparison.getComparisonType()).isEqualTo(SingleComparisonNode.Type.LE);
         assertThat(comparison.getComparisonProperty()).isEqualTo("width");
         assertThat(comparison.getComparisonValue().getClass()).isEqualTo(Long.class);
         assertThat(comparison.getComparisonValue()).isEqualTo(123L);
@@ -152,7 +152,7 @@ public class RqlPredicateParserTest {
         assertThat(root.getChildren().size()).isEqualTo(1);
 
         final SingleComparisonNode comparison = (SingleComparisonNode) root.getChildren().get(0);
-        assertThat(comparison.getComparisonType()).isEqualTo(SingleComparisonNode.Type.like);
+        assertThat(comparison.getComparisonType()).isEqualTo(SingleComparisonNode.Type.LIKE);
         assertThat(comparison.getComparisonProperty()).isEqualTo("width");
         assertThat(comparison.getComparisonValue().getClass()).isEqualTo(String.class);
         assertThat(comparison.getComparisonValue()).isEqualTo("test*");
@@ -165,7 +165,7 @@ public class RqlPredicateParserTest {
         assertThat(root.getChildren().size()).isEqualTo(1);
 
         final MultiComparisonNode comparison = (MultiComparisonNode) root.getChildren().get(0);
-        assertThat(comparison.getComparisonType()).isEqualTo(MultiComparisonNode.Type.in);
+        assertThat(comparison.getComparisonType()).isEqualTo(MultiComparisonNode.Type.IN);
         assertThat(comparison.getComparisonProperty()).isEqualTo("attributes");
         assertThat(comparison.getComparisonValue().size()).isEqualTo(3);
         assertThat(comparison.getComparisonValue().get(0)).isEqualTo("test");
@@ -186,13 +186,13 @@ public class RqlPredicateParserTest {
         assertThat(and.getChildren().size()).isEqualTo(3);
 
         comparison = (SingleComparisonNode) and.getChildren().get(0);
-        assertThat(comparison.getComparisonType()).isEqualTo(SingleComparisonNode.Type.eq);
+        assertThat(comparison.getComparisonType()).isEqualTo(SingleComparisonNode.Type.EQ);
         assertThat(comparison.getComparisonProperty()).isEqualTo("username");
         assertThat(comparison.getComparisonValue().getClass()).isEqualTo(Long.class);
         assertThat(comparison.getComparisonValue()).isEqualTo(123L);
 
         comparison = (SingleComparisonNode) and.getChildren().get(1);
-        assertThat(comparison.getComparisonType()).isEqualTo(SingleComparisonNode.Type.eq);
+        assertThat(comparison.getComparisonType()).isEqualTo(SingleComparisonNode.Type.EQ);
         assertThat(comparison.getComparisonProperty()).isEqualTo("coolness");
         assertThat(comparison.getComparisonValue().getClass()).isEqualTo(String.class);
         assertThat(comparison.getComparisonValue()).isEqualTo("super");
@@ -202,7 +202,7 @@ public class RqlPredicateParserTest {
         assertThat(or.getChildren().size()).isEqualTo(1);
 
         comparison = (SingleComparisonNode) or.getChildren().get(0);
-        assertThat(comparison.getComparisonType()).isEqualTo(SingleComparisonNode.Type.eq);
+        assertThat(comparison.getComparisonType()).isEqualTo(SingleComparisonNode.Type.EQ);
         assertThat(comparison.getComparisonProperty()).isEqualTo("username");
         assertThat(comparison.getComparisonValue().getClass()).isEqualTo(Long.class);
         assertThat(comparison.getComparisonValue()).isEqualTo(854L);
@@ -216,7 +216,7 @@ public class RqlPredicateParserTest {
 
         final LogicalNode and = (LogicalNode) root.getChildren().get(0);
         assertThat(and.getName()).isEqualTo("and");
-        assertThat(and.getType()).isEqualTo(LogicalNode.Type.and);
+        assertThat(and.getType()).isEqualTo(LogicalNode.Type.AND);
         assertThat(and.getChildren().size()).isEqualTo(3);
     }
 
@@ -228,7 +228,7 @@ public class RqlPredicateParserTest {
 
         final LogicalNode and = (LogicalNode) root.getChildren().get(0);
         assertThat(and.getName()).isEqualTo("or");
-        assertThat(and.getType()).isEqualTo(LogicalNode.Type.or);
+        assertThat(and.getType()).isEqualTo(LogicalNode.Type.OR);
         assertThat(and.getChildren().size()).isEqualTo(3);
     }
 
@@ -240,7 +240,7 @@ public class RqlPredicateParserTest {
 
         final LogicalNode and = (LogicalNode) root.getChildren().get(0);
         assertThat(and.getName()).isEqualTo("not");
-        assertThat(and.getType()).isEqualTo(LogicalNode.Type.not);
+        assertThat(and.getType()).isEqualTo(LogicalNode.Type.NOT);
         assertThat(and.getChildren().size()).isEqualTo(1);
     }
 
@@ -488,7 +488,7 @@ public class RqlPredicateParserTest {
         assertThat(root.getChildren().size()).isEqualTo(1);
 
         final SingleComparisonNode comparison = (SingleComparisonNode) root.getChildren().get(0);
-        assertThat(comparison.getComparisonType()).isEqualTo(SingleComparisonNode.Type.eq);
+        assertThat(comparison.getComparisonType()).isEqualTo(SingleComparisonNode.Type.EQ);
         assertThat(comparison.getComparisonProperty()).isEqualTo("username");
         assertThat(comparison.getComparisonValue()).isNull();
     }
@@ -500,7 +500,7 @@ public class RqlPredicateParserTest {
         assertThat(root.getChildren().size()).isEqualTo(1);
 
         final MultiComparisonNode comparison = (MultiComparisonNode) root.getChildren().get(0);
-        assertThat(comparison.getComparisonType()).isEqualTo(MultiComparisonNode.Type.in);
+        assertThat(comparison.getComparisonType()).isEqualTo(MultiComparisonNode.Type.IN);
         assertThat(comparison.getComparisonProperty()).isEqualTo("attributes");
         assertThat(comparison.getComparisonValue().size()).isEqualTo(3);
         assertThat(comparison.getComparisonValue().get(0)).isNull();

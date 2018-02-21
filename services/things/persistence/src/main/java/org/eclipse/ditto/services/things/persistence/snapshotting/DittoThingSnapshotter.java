@@ -20,8 +20,9 @@ import org.eclipse.ditto.services.models.things.commands.sudo.TakeSnapshot;
 import org.eclipse.ditto.services.models.things.commands.sudo.TakeSnapshotResponse;
 import org.eclipse.ditto.services.things.persistence.actors.ThingPersistenceActor;
 import org.eclipse.ditto.services.things.persistence.actors.ThingPersistenceActorInterface;
-import org.eclipse.ditto.services.things.persistence.serializer.things.ThingWithSnapshotTag;
-import org.eclipse.ditto.services.utils.akka.persistence.SnapshotAdapter;
+import org.eclipse.ditto.services.things.persistence.serializer.ThingMongoSnapshotAdapter;
+import org.eclipse.ditto.services.things.persistence.serializer.ThingWithSnapshotTag;
+import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
 
 import akka.actor.ActorRef;
 import akka.event.DiagnosticLoggingAdapter;
@@ -32,22 +33,49 @@ import scala.concurrent.duration.FiniteDuration;
  */
 public final class DittoThingSnapshotter extends ThingSnapshotter<TakeSnapshot, TakeSnapshotResponse> {
 
+    private static final ThingMongoSnapshotAdapter SNAPSHOT_ADAPTER = new ThingMongoSnapshotAdapter();
+
     // internal constructor for unit tests.
-    DittoThingSnapshotter(final ThingPersistenceActorInterface persistentActor, final DiagnosticLoggingAdapter log,
-            final SnapshotAdapter<ThingWithSnapshotTag> taggedSnapshotAdapter, final ActorRef snapshotPlugin,
-            final boolean snapshotDeleteOld, final boolean eventsDeleteOld,
-            final FiniteDuration snapshotInterval, final FiniteDuration saveSnapshotTimeout,
-            final FiniteDuration loadSnapshotTimeout) {
-        super(persistentActor, log, taggedSnapshotAdapter, snapshotPlugin, snapshotDeleteOld, eventsDeleteOld,
-                snapshotInterval, saveSnapshotTimeout, loadSnapshotTimeout);
+    DittoThingSnapshotter(final ThingPersistenceActorInterface persistentActor,
+            final SnapshotAdapter<ThingWithSnapshotTag> snapshotAdapter,
+            final boolean snapshotDeleteOld,
+            final boolean eventsDeleteOld,
+            final DiagnosticLoggingAdapter log,
+            final FiniteDuration snapshotInterval,
+            final FiniteDuration saveSnapshotTimeout,
+            final FiniteDuration loadSnapshotTimeout,
+            final ActorRef snapshotPlugin) {
+        super(persistentActor, snapshotAdapter, snapshotDeleteOld, eventsDeleteOld, log, snapshotInterval,
+                saveSnapshotTimeout, loadSnapshotTimeout, snapshotPlugin);
     }
 
-    private DittoThingSnapshotter(
-            final ThingPersistenceActor thingPersistenceActor,
+    private DittoThingSnapshotter(final ThingPersistenceActor thingPersistenceActor,
+            final SnapshotAdapter<ThingWithSnapshotTag> snapshotAdapter,
+            final boolean snapshotDeleteOld,
+            final boolean eventsDeleteOld,
             @Nullable final DiagnosticLoggingAdapter log,
-            @Nullable final Duration snapshotInterval, final boolean snapshotDeleteOld,
-            final boolean eventsDeleteOld) {
-        super(thingPersistenceActor, log, snapshotInterval, snapshotDeleteOld, eventsDeleteOld);
+            @Nullable final Duration snapshotInterval) {
+        super(thingPersistenceActor, snapshotAdapter, snapshotDeleteOld, eventsDeleteOld, log, snapshotInterval);
+    }
+
+    /**
+     * Creates a {@code ThingSnapshotter} for a {@code ThingPersistenceActor}.
+     *
+     * @param thingPersistenceActor The actor in which this snapshotter is run. Must not be null.
+     * @param pubSubMediator the akka distributed pubsub mediator.
+     * @param snapshotDeleteOld Whether old and unprotected snapshots are to be deleted.
+     * @param eventsDeleteOld Whether events before a saved snapshot are to be deleted.
+     * @param log The actor's logger. If null, nothing is logged.
+     * @param snapshotInterval How long to wait between scheduled maintenance snapshots.
+     */
+    public static DittoThingSnapshotter getInstance(final ThingPersistenceActor thingPersistenceActor,
+            @SuppressWarnings({"unused", "squid:S1172"}) final ActorRef pubSubMediator,
+            final boolean snapshotDeleteOld,
+            final boolean eventsDeleteOld,
+            @Nullable final DiagnosticLoggingAdapter log,
+            @Nullable final java.time.Duration snapshotInterval) {
+        return new DittoThingSnapshotter(thingPersistenceActor, SNAPSHOT_ADAPTER,
+                snapshotDeleteOld, eventsDeleteOld, log, snapshotInterval);
     }
 
     @Override
@@ -57,22 +85,8 @@ public final class DittoThingSnapshotter extends ThingSnapshotter<TakeSnapshot, 
 
     @Override
     protected TakeSnapshotResponse createExternalCommandResponse(final long newRevision,
-            final DittoHeaders dittoHeaders) {
+            @Nullable final DittoHeaders dittoHeaders) {
         return TakeSnapshotResponse.of(newRevision, dittoHeaders);
     }
 
-    /**
-     * Creates a {@code ThingSnapshotter} for a {@code ThingPersistenceActor}.
-     *
-     * @param thingPersistenceActor The actor in which this snapshotter is run. Must not be null.
-     * @param log The actor's logger. If null, nothing is logged.
-     * @param snapshotDeleteOld Whether old and unprotected snapshots are to be deleted.
-     * @param eventsDeleteOld Whether events before a saved snapshot are to be deleted.
-     */
-    public static DittoThingSnapshotter getInstance(final ThingPersistenceActor thingPersistenceActor,
-            @Nullable final DiagnosticLoggingAdapter log, @Nullable final java.time.Duration snapshotInterval,
-            final boolean snapshotDeleteOld, final boolean eventsDeleteOld) {
-        return new DittoThingSnapshotter(thingPersistenceActor, log, snapshotInterval, snapshotDeleteOld,
-                eventsDeleteOld);
-    }
 }

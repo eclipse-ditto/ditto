@@ -44,9 +44,14 @@ import de.flapdoodle.embed.process.io.progress.StandardConsoleProgressListener;
 public final class MongoDbResource extends ExternalResource {
 
     /**
-     * Default port number of the MongoDB process.
+     * Environment variable key for a HTTP Proxy.
      */
     private static final String HTTP_PROXY_ENV_KEY = "HTTP_PROXY";
+
+    /**
+     * Environment variable key for the port number of the MongoDB process.
+     */
+    private static final String MONGO_PORT_ENV_KEY = "MONGO_PORT";
 
     private final String bindIp;
 
@@ -89,7 +94,12 @@ public final class MongoDbResource extends ExternalResource {
                 .map(proxyURI -> ((IProxyFactory) new HttpProxyFactory(
                         proxyURI.getHost(), proxyURI.getPort())))
                 .orElse(new NoProxyFactory());
-        final int mongoDbPort = findFreePort();
+        final int mongoDbPort;
+        if (System.getenv(MONGO_PORT_ENV_KEY) != null) {
+            mongoDbPort = Integer.parseInt(System.getenv(MONGO_PORT_ENV_KEY));
+        } else {
+             mongoDbPort = findFreePort();
+        }
         mongodExecutable = tryToConfigureMongoDb(bindIp, mongoDbPort, proxyFactory);
         mongodProcess = tryToStartMongoDb(mongodExecutable);
         Assume.assumeTrue("MongoDBResource failed to start.", isHealthy());

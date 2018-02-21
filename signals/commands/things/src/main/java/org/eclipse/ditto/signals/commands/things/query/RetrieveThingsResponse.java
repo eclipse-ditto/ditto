@@ -64,13 +64,15 @@ public final class RetrieveThingsResponse extends AbstractCommandResponse<Retrie
             JsonFactory.newStringFieldDefinition("namespace", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
+    private static final String PROPERTY_NAME_THINGS = "Things";
+
     private final JsonArray things;
     @Nullable private final String namespace;
 
     private RetrieveThingsResponse(final HttpStatusCode statusCode, final JsonArray things,
             @Nullable final String namespace, final DittoHeaders dittoHeaders) {
         super(TYPE, statusCode, dittoHeaders);
-        this.things = checkNotNull(things, "Things");
+        this.things = checkNotNull(things, PROPERTY_NAME_THINGS);
         this.namespace = checkThingsNamespaces(namespace, getThingStream(things)).orElse(null);
     }
 
@@ -100,7 +102,7 @@ public final class RetrieveThingsResponse extends AbstractCommandResponse<Retrie
      */
     public static RetrieveThingsResponse of(final List<Thing> things, final Predicate<JsonField> predicate,
             @Nullable final String namespace, final DittoHeaders dittoHeaders) {
-        return new RetrieveThingsResponse(HttpStatusCode.OK, checkNotNull(things, "Things").stream()
+        return new RetrieveThingsResponse(HttpStatusCode.OK, checkNotNull(things, PROPERTY_NAME_THINGS).stream()
                 .map(thing -> thing.toJson(dittoHeaders.getSchemaVersion().orElse(JsonSchemaVersion.LATEST),
                         predicate))
                 .collect(JsonCollectors.valuesToArray()), namespace, dittoHeaders);
@@ -119,8 +121,9 @@ public final class RetrieveThingsResponse extends AbstractCommandResponse<Retrie
      */
     public static RetrieveThingsResponse of(final List<Thing> things, final JsonFieldSelector fieldSelector,
             final Predicate<JsonField> predicate, @Nullable final String namespace, final DittoHeaders dittoHeaders) {
-        return new RetrieveThingsResponse(HttpStatusCode.OK, checkNotNull(things, "Things").stream().map(thing -> thing
-                .toJson(dittoHeaders.getSchemaVersion().orElse(JsonSchemaVersion.LATEST), fieldSelector,
+        return new RetrieveThingsResponse(HttpStatusCode.OK, checkNotNull(things, PROPERTY_NAME_THINGS).stream()
+                .map(thing -> thing.toJson(dittoHeaders.getSchemaVersion().orElse(JsonSchemaVersion.LATEST),
+                        fieldSelector,
                         predicate))
                 .collect(JsonCollectors.valuesToArray()), namespace, dittoHeaders);
     }
@@ -154,7 +157,7 @@ public final class RetrieveThingsResponse extends AbstractCommandResponse<Retrie
      */
     public static RetrieveThingsResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<RetrieveThingsResponse>(TYPE, jsonObject)
-                .deserialize((statusCode) -> {
+                .deserialize(statusCode -> {
                     final JsonArray thingsJsonArray = jsonObject.getValueOrThrow(JSON_THINGS);
                     final String namespace = jsonObject.getValue(JSON_NAMESPACE).orElse(null);
                     return of(thingsJsonArray, namespace, dittoHeaders);

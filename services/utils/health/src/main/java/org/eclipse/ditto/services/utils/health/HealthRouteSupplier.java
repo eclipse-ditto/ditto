@@ -16,6 +16,8 @@ import static akka.http.javadsl.server.Directives.completeWithFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
+import javax.annotation.Nullable;
+
 import akka.actor.ActorRef;
 import akka.event.LoggingAdapter;
 import akka.http.javadsl.model.ContentTypes;
@@ -43,7 +45,7 @@ public class HealthRouteSupplier implements Supplier<Route> {
     /**
      * Constructs a new {@code HealthRouteFunction}.
      *
-     * @param healthCheckingActor the Actor selection to the {@link HealthCheckingActor} to use.
+     * @param healthCheckingActor the Actor selection to the health-checking actor to use.
      */
     public HealthRouteSupplier(final ActorRef healthCheckingActor, final LoggingAdapter log) {
         this.healthCheckingActor = healthCheckingActor;
@@ -52,35 +54,50 @@ public class HealthRouteSupplier implements Supplier<Route> {
 
     @Override
     public Route get() {
-        return completeWithFuture( //
-                PatternsCS //
-                        .ask(healthCheckingActor, RetrieveHealth.newInstance(), TIMEOUT) //
-                        .handle((health, throwable) -> completeHealthRequest((HealthRepresentation) health, throwable))
+        return completeWithFuture(
+                PatternsCS
+                        .ask(healthCheckingActor, RetrieveHealth.newInstance(), TIMEOUT)
+                        .handle(this::handleHealthResult)
         );
     }
 
-    private HttpResponse completeHealthRequest(final HealthRepresentation health, final Throwable failure) {
-        final HttpResponse response;
-
-        if (null == failure) {
-            final HealthStatus healthStatus = health.getHealthStatus();
-            final int httpStatusCode =
-                    healthStatus.getStatus() == HealthStatus.Status.DOWN ? HTTP_STATUS_SERVICE_UNAVAILABLE :
-                            HTTP_STATUS_OK;
-
-            if (healthStatus.getStatus() == HealthStatus.Status.DOWN) {
-                log.warning("Own health check returned DOWN: {}", healthStatus);
+    private HttpResponse handleHealthResult(@Nullable final Object health, @Nullable final Throwable failure) {
+        if (null != health) {
+            if (health instanceof StatusInfo) {
+                return completeHealthRequest((StatusInfo) health);
+            } else {
+                return completeHealthRequestForUnexpectedHealthResult(health);
             }
-
-            response = HttpResponse.create() //
-                    .withEntity(ContentTypes.APPLICATION_JSON, health.toJsonString()) //
-                    .withStatus(httpStatusCode);
+        } else if (null != failure) {
+            return completeHealthRequest(failure);
         } else {
-            log.error(failure, "Health check resulted in failure: '{}'", failure.getMessage());
-            response = HttpResponse.create() //
-                    .withStatus(HTTP_STATUS_SERVICE_UNAVAILABLE);
+            return completeHealthRequestForUnexpectedHealthResult(null);
+        }
+    }
+
+    private HttpResponse completeHealthRequest(final StatusInfo statusInfo) {
+        final int httpStatusCode =
+                statusInfo.getStatus() == StatusInfo.Status.DOWN ? HTTP_STATUS_SERVICE_UNAVAILABLE :
+                        HTTP_STATUS_OK;
+
+        if (statusInfo.getStatus() == StatusInfo.Status.DOWN) {
+            log.warning("Own health check returned DOWN: {}", statusInfo);
         }
 
-        return response;
+        return HttpResponse.create()
+                .withEntity(ContentTypes.APPLICATION_JSON, statusInfo.toJsonString())
+                .withStatus(httpStatusCode);
+    }
+
+    private HttpResponse completeHealthRequest(final Throwable failure) {
+        log.error(failure, "Health check resulted in failure: '{}'", failure.getMessage());
+        return HttpResponse.create()
+                .withStatus(HTTP_STATUS_SERVICE_UNAVAILABLE);
+    }
+
+    private HttpResponse completeHealthRequestForUnexpectedHealthResult(@Nullable final Object healthResult) {
+        log.error( "Health check returned an unexpected result: '{}'", healthResult);
+        return HttpResponse.create()
+                .withStatus(HTTP_STATUS_SERVICE_UNAVAILABLE);
     }
 }

@@ -20,11 +20,14 @@ import static akka.http.javadsl.server.Directives.rawPathPrefix;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.CustomPathMatchers.mergeDoubleSlashes;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
 import java.util.stream.StreamSupport;
 
 import org.eclipse.ditto.json.JsonFieldSelector;
@@ -81,7 +84,6 @@ import akka.http.javadsl.server.RequestContext;
 import akka.http.javadsl.server.Route;
 import akka.japi.JavaPartialFunction;
 import akka.stream.javadsl.Source;
-import scala.PartialFunction;
 import scala.concurrent.duration.FiniteDuration;
 
 /**
@@ -95,6 +97,9 @@ public class SseThingsRoute extends AbstractRoute {
 
     private ActorRef streamingActor;
 
+    private static final Map<Class<?>, BiFunction<ThingEvent, ThingBuilder.FromScratch, Thing>> EVENT_TO_THING_MAPPERS =
+            createEventToThingMappers();
+
     /**
      * Constructs the SSE - ServerSentEvents supporting {@code /things} route builder.
      *
@@ -107,37 +112,17 @@ public class SseThingsRoute extends AbstractRoute {
         this.streamingActor = streamingActor;
     }
 
-    private static final PartialFunction<HttpHeader, Accept> extractAccept =
-            new JavaPartialFunction<HttpHeader, Accept>() {
-                @Override
-                public Accept apply(final HttpHeader x, final boolean isCheck) throws Exception {
-                    if (x instanceof Accept) {
-                        if (isCheck) {
-                            return null;
-                        } else if (matchesTextEventStream((Accept) x)) {
-                            return ((Accept) x);
-                        }
-                    }
-                    throw noMatch();
-                }
-            };
-
-    private static boolean matchesTextEventStream(final Accept accept) {
-        return StreamSupport.stream(accept.getMediaRanges().spliterator(), false)
-                .filter(mr -> !"*".equals(mr.mainType()))
-                .anyMatch(mr -> mr.matches(MediaTypes.TEXT_EVENT_STREAM));
-    }
-
     /**
      * Describes {@code /things} SSE route.
      *
      * @return {@code /things} SSE route.
      */
+    @SuppressWarnings("squid:S1172") // allow unused ctx-Param in order to have a consistent route-"interface"
     public Route buildThingsSseRoute(final RequestContext ctx, final DittoHeaders dittoHeaders) {
         return rawPathPrefix(mergeDoubleSlashes().concat(PATH_THINGS), () ->
                 pathEndOrSingleSlash(() ->
                         get(() ->
-                                headerValuePF(extractAccept, accept ->
+                                headerValuePF(AcceptHeaderExtractor.INSTANCE, accept ->
                                         parameterOptional(ThingsParameter.FIELDS.toString(), fieldsString ->
                                                 parameterOptional(ThingsParameter.IDS.toString(),
                                                         idsString -> // "ids" is optional for SSE
@@ -153,6 +138,14 @@ public class SseThingsRoute extends AbstractRoute {
         );
     }
 
+    @SuppressWarnings("squid:CommentedOutCodeLine")
+    // Javascript example e.g. in Chrome console:
+      /*
+         var source = new EventSource('http://localhost:8080/api/1/things?ids=org.eclipse.ditto:foo2000&fields=attributes');
+         source.addEventListener('message', function (e) {
+             console.log(e.data);
+         }, false);
+       */
     private Route createSseRoute(final DittoHeaders dittoHeaders, final JsonFieldSelector fieldSelector,
             final Optional<String[]> thingIds) {
         final Optional<List<String>> targetThingIds = thingIds.map(Arrays::asList);
@@ -188,14 +181,6 @@ public class SseThingsRoute extends AbstractRoute {
                         .keepAlive(FiniteDuration.apply(1, TimeUnit.SECONDS),
                                 de.heikoseeberger.akkasse.scaladsl.model.ServerSentEvent::heartbeat);
 
-        // Javascript example e.g. in Chrome console:
-      /*
-         var source = new EventSource('http://localhost:8080/api/1/things?ids=org.eclipse.ditto:foo2000&fields=attributes');
-         source.addEventListener('message', function (e) {
-             console.log(e.data);
-         }, false);
-       */
-
         return completeOK(sseSource, EventStreamMarshalling.toEventStream());
     }
 
@@ -203,101 +188,104 @@ public class SseThingsRoute extends AbstractRoute {
      * Creates a Thing from the passed ThingEvent
      */
     private Thing thingEventToThing(final ThingEvent te) {
-        final ThingBuilder.FromScratch tb = Thing.newBuilder().setId(te.getThingId()).setRevision(te.getRevision());
-        if (te instanceof ThingCreated) {
-            return ((ThingCreated) te).getThing().toBuilder().setRevision(te.getRevision()).build();
-        }
-        if (te instanceof ThingModified) {
-            return ((ThingModified) te).getThing().toBuilder().setRevision(te.getRevision()).build();
-        }
-        if (te instanceof ThingDeleted) {
-            return tb.build();
-        }
-        if (te instanceof AclModified) {
-            return tb.setPermissions(((AclModified) te).getAccessControlList()).build();
-        }
-        if (te instanceof AclEntryCreated) {
-            return tb.setPermissions(((AclEntryCreated) te).getAclEntry()).build();
-        }
-        if (te instanceof AclEntryModified) {
-            return tb.setPermissions(((AclEntryModified) te).getAclEntry()).build();
-        }
-        if (te instanceof AclEntryDeleted) {
-            return tb.build();
-        }
-        if (te instanceof PolicyIdCreated) {
-            return tb.setPolicyId(((PolicyIdCreated) te).getPolicyId()).build();
-        }
-        if (te instanceof PolicyIdModified) {
-            return tb.setPolicyId(((PolicyIdModified) te).getPolicyId()).build();
-        }
-        if (te instanceof AttributesCreated) {
-            return tb.setAttributes(((AttributesCreated) te).getCreatedAttributes()).build();
-        }
-        if (te instanceof AttributesModified) {
-            return tb.setAttributes(((AttributesModified) te).getModifiedAttributes()).build();
-        }
-        if (te instanceof AttributesDeleted) {
-            return tb.build();
-        }
-        if (te instanceof AttributeCreated) {
-            return tb.setAttribute(((AttributeCreated) te).getAttributePointer(),
-                    ((AttributeCreated) te).getAttributeValue()).build();
-        }
-        if (te instanceof AttributeModified) {
-            return tb.setAttribute(((AttributeModified) te).getAttributePointer(),
-                    ((AttributeModified) te).getAttributeValue()).build();
-        }
-        if (te instanceof AttributeDeleted) {
-            return tb.build();
-        }
-        if (te instanceof FeaturesCreated) {
-            return tb.setFeatures(((FeaturesCreated) te).getFeatures()).build();
-        }
-        if (te instanceof FeaturesModified) {
-            return tb.setFeatures(((FeaturesModified) te).getFeatures()).build();
-        }
-        if (te instanceof FeaturesDeleted) {
-            return tb.build();
-        }
-        if (te instanceof FeatureCreated) {
-            return tb.setFeature(((FeatureCreated) te).getFeature()).build();
-        }
-        if (te instanceof FeatureModified) {
-            return tb.setFeature(((FeatureModified) te).getFeature()).build();
-        }
-        if (te instanceof FeatureDeleted) {
-            return tb.build();
-        }
-        if (te instanceof FeaturePropertiesCreated) {
-            return tb.setFeature(Feature.newBuilder()
-                    .properties(((FeaturePropertiesCreated) te).getProperties())
-                    .withId(((FeaturePropertiesCreated) te).getFeatureId())
-                    .build()).build();
-        }
-        if (te instanceof FeaturePropertiesModified) {
-            return tb.setFeature(Feature.newBuilder()
-                    .properties(((FeaturePropertiesModified) te).getProperties())
-                    .withId(((FeaturePropertiesModified) te).getFeatureId())
-                    .build()).build();
-        }
-        if (te instanceof FeaturePropertiesDeleted) {
-            return tb.build();
-        }
-        if (te instanceof FeaturePropertyCreated) {
-            return tb.setFeatureProperty(((FeaturePropertyCreated) te).getFeatureId(),
-                    ((FeaturePropertyCreated) te).getPropertyPointer(),
-                    ((FeaturePropertyCreated) te).getPropertyValue()).build();
-        }
-        if (te instanceof FeaturePropertyModified) {
-            return tb.setFeatureProperty(((FeaturePropertyModified) te).getFeatureId(),
-                    ((FeaturePropertyModified) te).getPropertyPointer(),
-                    ((FeaturePropertyModified) te).getPropertyValue()).build();
-        }
-        if (te instanceof FeaturePropertyDeleted) {
-            return tb.build();
+        final BiFunction<ThingEvent, ThingBuilder.FromScratch, Thing> eventToThingMapper =
+                EVENT_TO_THING_MAPPERS.get(te.getClass());
+        if (eventToThingMapper == null) {
+            return null;
         }
 
-        return null;
+        final ThingBuilder.FromScratch tb = Thing.newBuilder().setId(te.getThingId()).setRevision(te.getRevision());
+        return eventToThingMapper.apply(te, tb);
+    }
+
+    private static Map<Class<?>, BiFunction<ThingEvent, ThingBuilder.FromScratch, Thing>> createEventToThingMappers() {
+        final Map<Class<?>, BiFunction<ThingEvent, ThingBuilder.FromScratch, Thing>> mappers = new HashMap<>();
+
+        mappers.put(ThingCreated.class,
+                (te, tb) -> ((ThingCreated) te).getThing().toBuilder().setRevision(te.getRevision()).build());
+        mappers.put(ThingModified.class,
+                (te, tb) -> ((ThingModified) te).getThing().toBuilder().setRevision(te.getRevision()).build());
+        mappers.put(ThingDeleted.class,
+                (te, tb) -> tb.build());
+
+        mappers.put(AclModified.class,
+                (te, tb) -> tb.setPermissions(((AclModified) te).getAccessControlList()).build());
+        mappers.put(AclEntryCreated.class,
+                (te, tb) -> tb.setPermissions(((AclEntryCreated) te).getAclEntry()).build());
+        mappers.put(AclEntryModified.class,
+                (te, tb) -> tb.setPermissions(((AclEntryModified) te).getAclEntry()).build());
+        mappers.put(AclEntryDeleted.class,
+                (te, tb) -> tb.build());
+
+        mappers.put(PolicyIdCreated.class,
+                (te, tb) -> tb.setPolicyId(((PolicyIdCreated) te).getPolicyId()).build());
+        mappers.put(PolicyIdModified.class,
+                (te, tb) -> tb.setPolicyId(((PolicyIdModified) te).getPolicyId()).build());
+
+        mappers.put(AttributesCreated.class,
+                (te, tb) -> tb.setAttributes(((AttributesCreated) te).getCreatedAttributes()).build());
+        mappers.put(AttributesModified.class,
+                (te, tb) -> tb.setAttributes(((AttributesModified) te).getModifiedAttributes()).build());
+        mappers.put(AttributesDeleted.class, (te, tb) -> tb.build());
+        mappers.put(AttributeCreated.class, (te, tb) -> tb.setAttribute(((AttributeCreated) te).getAttributePointer(),
+                ((AttributeCreated) te).getAttributeValue()).build());
+        mappers.put(AttributeModified.class, (te, tb) -> tb.setAttribute(((AttributeModified) te).getAttributePointer(),
+                ((AttributeModified) te).getAttributeValue()).build());
+        mappers.put(AttributeDeleted.class, (te, tb) -> tb.build());
+
+        mappers.put(FeaturesCreated.class, (te, tb) -> tb.setFeatures(((FeaturesCreated) te).getFeatures()).build());
+        mappers.put(FeaturesModified.class, (te, tb) -> tb.setFeatures(((FeaturesModified) te).getFeatures()).build());
+        mappers.put(FeaturesDeleted.class, (te, tb) -> tb.build());
+        mappers.put(FeatureCreated.class, (te, tb) -> tb.setFeature(((FeatureCreated) te).getFeature()).build());
+        mappers.put(FeatureModified.class, (te, tb) -> tb.setFeature(((FeatureModified) te).getFeature()).build());
+        mappers.put(FeatureDeleted.class, (te, tb) -> tb.build());
+
+        mappers.put(FeaturePropertiesCreated.class, (te, tb) -> tb.setFeature(Feature.newBuilder()
+                .properties(((FeaturePropertiesCreated) te).getProperties())
+                .withId(((FeaturePropertiesCreated) te).getFeatureId())
+                .build()).build());
+        mappers.put(FeaturePropertiesModified.class, (te, tb) -> tb.setFeature(Feature.newBuilder()
+                .properties(((FeaturePropertiesModified) te).getProperties())
+                .withId(((FeaturePropertiesModified) te).getFeatureId())
+                .build()).build());
+        mappers.put(FeaturePropertiesDeleted.class, (te, tb) -> tb.build());
+        mappers.put(FeaturePropertyCreated.class, (te, tb) ->
+                tb.setFeatureProperty(((FeaturePropertyCreated) te).getFeatureId(),
+                        ((FeaturePropertyCreated) te).getPropertyPointer(),
+                        ((FeaturePropertyCreated) te).getPropertyValue()).build());
+        mappers.put(FeaturePropertyModified.class, (te, tb) ->
+                tb.setFeatureProperty(((FeaturePropertyModified) te).getFeatureId(),
+                        ((FeaturePropertyModified) te).getPropertyPointer(),
+                        ((FeaturePropertyModified) te).getPropertyValue()).build());
+        mappers.put(FeaturePropertyDeleted.class, (te, tb) -> tb.build());
+
+        return mappers;
+    }
+
+    private static final class AcceptHeaderExtractor extends JavaPartialFunction<HttpHeader, Accept> {
+
+        private static final AcceptHeaderExtractor INSTANCE = new AcceptHeaderExtractor();
+
+        private AcceptHeaderExtractor() {
+        }
+
+        @Override
+        public Accept apply(final HttpHeader x, final boolean isCheck) {
+            if (x instanceof Accept) {
+                if (isCheck) {
+                    return null;
+                } else if (matchesTextEventStream((Accept) x)) {
+                    return ((Accept) x);
+                }
+            }
+            throw noMatch();
+        }
+
+        private static boolean matchesTextEventStream(final Accept accept) {
+            return StreamSupport.stream(accept.getMediaRanges().spliterator(), false)
+                    .filter(mr -> !"*".equals(mr.mainType()))
+                    .anyMatch(mr -> mr.matches(MediaTypes.TEXT_EVENT_STREAM));
+        }
+
     }
 }

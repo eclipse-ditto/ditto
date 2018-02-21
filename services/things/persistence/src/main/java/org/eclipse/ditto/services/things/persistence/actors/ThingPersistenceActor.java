@@ -262,7 +262,8 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         final boolean snapshotDeleteOld = config.getBoolean(ConfigKeys.Thing.SNAPSHOT_DELETE_OLD);
         final boolean eventsDeleteOld = config.getBoolean(ConfigKeys.Thing.EVENTS_DELETE_OLD);
         thingSnapshotter =
-                thingSnapshotterCreate.apply(this, log, snapshotInterval, snapshotDeleteOld, eventsDeleteOld);
+                thingSnapshotterCreate.apply(this, pubSubMediator, snapshotDeleteOld, eventsDeleteOld, log,
+                        snapshotInterval);
 
         handleThingEvents = ReceiveBuilder.create()
                 // # Thing Creation
@@ -685,7 +686,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                 .build();
 
         getContext().become(receive, true);
-        getContext().getParent().tell(new ThingSupervisorActor.ManualReset(), getSelf());
+        getContext().getParent().tell(ThingSupervisorActor.ManualReset.INSTANCE, getSelf());
 
         scheduleCheckForThingActivity(activityCheckInterval.getSeconds());
         thingSnapshotter.startMaintenanceSnapshots();
@@ -761,7 +762,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                 .build();
 
         getContext().become(receive, true);
-        getContext().getParent().tell(new ThingSupervisorActor.ManualReset(), getSelf());
+        getContext().getParent().tell(ThingSupervisorActor.ManualReset.INSTANCE, getSelf());
 
         /* check in the next X minutes and therefore
          * - stay in-memory for a short amount of minutes after deletion

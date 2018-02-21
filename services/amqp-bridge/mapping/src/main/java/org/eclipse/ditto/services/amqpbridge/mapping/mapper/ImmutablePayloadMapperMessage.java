@@ -21,6 +21,7 @@ import javax.annotation.Nullable;
 /**
  * TODO doc
  */
+@Deprecated
 final class ImmutablePayloadMapperMessage implements PayloadMapperMessage {
 
     @Nullable private final String contentType;

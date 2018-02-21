@@ -39,8 +39,7 @@ public final class MongoHealthCheckIT {
     /** */
     @Before
     public void before() {
-        final Config config = ConfigFactory.load("test");
-        actorSystem = ActorSystem.create("AkkaTestSystem", config);
+        actorSystem = ActorSystem.create("AkkaTestSystem", CONFIG);
     }
 
     /** */

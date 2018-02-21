@@ -29,18 +29,15 @@ import java.util.function.IntPredicate;
 public final class UriEncoding {
 
     private static final String ENCODING = StandardCharsets.UTF_8.name();
-    private static final IntPredicate ALLOWED_IN_PATH = (c) -> isPchar(c) || '/' == c;
+    private static final IntPredicate ALLOWED_IN_PATH = c -> isPchar(c) || '/' == c;
     private static final IntPredicate ALLOWED_IN_PATH_SEGMENT = UriEncoding::isPchar;
-    private static final IntPredicate ALLOWED_IN_QUERY = (c) -> {
-      /*
-       * Workaround: '+' needs to be escaped to '%2B', otherwise it will be recognized as blank when decoding with MIME
-       * format {@code application/x-www-form-urlencoded} - what most servers do (such as akka-http).
-       */
-        return c != '+' && (isPchar(c) || '/' == c || '?' == c);
-
-    };
+    /*
+     * Workaround: '+' needs to be escaped to '%2B', otherwise it will be recognized as blank when decoding with MIME
+     * format {@code application/x-www-form-urlencoded} - what most servers do (such as akka-http).
+     */
+    private static final IntPredicate ALLOWED_IN_QUERY = c -> c != '+' && (isPchar(c) || '/' == c || '?' == c);
     private static final IntPredicate ALLOWED_IN_QUERY_PARAM =
-            (c) -> !('=' == c || '&' == c) && ALLOWED_IN_QUERY.test(c);
+            c -> !('=' == c || '&' == c) && ALLOWED_IN_QUERY.test(c);
 
     /**
      * Encodes the given path according to RFC 3986.
@@ -139,12 +136,14 @@ public final class UriEncoding {
         }
     }
 
+    @SuppressWarnings("squid:S3776") // simplification of this method would be difficult without sacrificing performance
     private static String decodeRFC3986(final String source) {
         final int length = source.length();
         final ByteArrayOutputStream out = new ByteArrayOutputStream(length);
         boolean changed = false;
 
-        for (int i = 0; i < length; i++) {
+        int i = 0;
+        while (i < length) {
             final int c = source.charAt(i);
             if (c == '%') {
                 if ((i + 2) < length) {
@@ -167,6 +166,7 @@ public final class UriEncoding {
             } else {
                 out.write(c);
             }
+            i++;
         }
 
         if (changed) {

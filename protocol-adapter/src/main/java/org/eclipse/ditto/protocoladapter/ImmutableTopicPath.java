@@ -25,6 +25,14 @@ import javax.annotation.concurrent.Immutable;
 @Immutable
 final class ImmutableTopicPath implements TopicPath {
 
+    static final String PROP_NAME_NAMESPACE = "namespace";
+    static final String PROP_NAME_ID = "id";
+    private static final String PROP_NAME_GROUP = "group";
+    private static final String PROP_NAME_CHANNEL = "channel";
+    private static final String PROP_NAME_CRITERION = "criterion";
+    private static final String PROP_NAME_ACTION = "action";
+    private static final String PROP_NAME_SUBJECT = "subject";
+
     private final String namespace;
     private final String id;
     private final Group group;
@@ -60,11 +68,11 @@ final class ImmutableTopicPath implements TopicPath {
      */
     public static ImmutableTopicPath of(final String namespace, final String id, final Group group,
             final Channel channel, final Criterion criterion) {
-        requireNonNull(namespace, "namespace");
-        requireNonNull(id, "id");
-        requireNonNull(group, "group");
-        requireNonNull(channel, "channel");
-        requireNonNull(criterion, "criterion");
+        requireNonNull(namespace, PROP_NAME_NAMESPACE);
+        requireNonNull(id, PROP_NAME_ID);
+        requireNonNull(group, PROP_NAME_GROUP);
+        requireNonNull(channel, PROP_NAME_CHANNEL);
+        requireNonNull(criterion, PROP_NAME_CRITERION);
 
         return new ImmutableTopicPath(namespace, id, group, channel, criterion, null, null);
     }
@@ -85,12 +93,12 @@ final class ImmutableTopicPath implements TopicPath {
     public static ImmutableTopicPath of(final String namespace, final String id, final Group group,
             final Channel channel,
             final Criterion criterion, final Action action) {
-        requireNonNull(namespace, "namespace");
-        requireNonNull(id, "id");
-        requireNonNull(group, "group");
-        requireNonNull(channel, "channel");
-        requireNonNull(criterion, "criterion");
-        requireNonNull(action, "action");
+        requireNonNull(namespace, PROP_NAME_NAMESPACE);
+        requireNonNull(id, PROP_NAME_ID);
+        requireNonNull(group, PROP_NAME_GROUP);
+        requireNonNull(channel, PROP_NAME_CHANNEL);
+        requireNonNull(criterion, PROP_NAME_CRITERION);
+        requireNonNull(action, PROP_NAME_ACTION);
 
         return new ImmutableTopicPath(namespace, id, group, channel, criterion, action, null);
     }
@@ -112,12 +120,12 @@ final class ImmutableTopicPath implements TopicPath {
     public static ImmutableTopicPath of(final String namespace, final String id, final Group group,
             final Channel channel,
             final Criterion criterion, final String subject) {
-        requireNonNull(namespace, "namespace");
-        requireNonNull(id, "id");
-        requireNonNull(group, "group");
-        requireNonNull(channel, "channel");
-        requireNonNull(criterion, "criterion");
-        requireNonNull(subject, "subject");
+        requireNonNull(namespace, PROP_NAME_NAMESPACE);
+        requireNonNull(id, PROP_NAME_ID);
+        requireNonNull(group, PROP_NAME_GROUP);
+        requireNonNull(channel, PROP_NAME_CHANNEL);
+        requireNonNull(criterion, PROP_NAME_CRITERION);
+        requireNonNull(subject, PROP_NAME_SUBJECT);
 
         return new ImmutableTopicPath(namespace, id, group, channel, criterion, null, subject);
     }

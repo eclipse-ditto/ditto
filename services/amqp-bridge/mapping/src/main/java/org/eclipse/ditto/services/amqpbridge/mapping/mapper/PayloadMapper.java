@@ -19,6 +19,7 @@ import org.eclipse.ditto.protocoladapter.Adaptable;
 /**
  * Payload mapper interface. Defines functions for configuration an payload transformation.
  */
+@Deprecated
 public interface PayloadMapper {
 
     /**

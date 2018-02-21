@@ -108,9 +108,9 @@ public abstract class AbstractThingEvent<T extends AbstractThingEvent> implement
     public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder()
+                // TYPE is included unconditionally
+                .set(Event.JsonFields.TYPE, type)
                 .set(Event.JsonFields.TIMESTAMP, getTimestamp().map(Instant::toString).orElse(null), predicate)
-                .set(Event.JsonFields.ID, type.replace(TYPE_PREFIX, ""), predicate) // backward compatibility to V1!
-                .set(Event.JsonFields.TYPE, type, predicate)
                 .set(Event.JsonFields.REVISION, revision, predicate)
                 .set(JsonFields.THING_ID, thingId);
 

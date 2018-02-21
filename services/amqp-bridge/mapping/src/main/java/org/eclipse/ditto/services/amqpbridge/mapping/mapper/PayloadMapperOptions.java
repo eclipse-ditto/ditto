@@ -16,6 +16,7 @@ import java.util.Map;
 /**
  * TODO doc
  */
+@Deprecated
 public interface PayloadMapperOptions {
 
     Map<String, String> getAsMap();

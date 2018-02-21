@@ -134,37 +134,7 @@ final class StreamingSessionActor extends AbstractActor {
                                 signal instanceof Event,
                         publishLiveSignal(StreamingType.LIVE_EVENTS.getDistributedPubSubTopic())
                 )
-
-                // for live signals which were not issued by this session, handle them by forwarding towards WS:
-                .match(Signal.class, this::isLiveSignal, liveSignal -> {
-                    LogUtil.enhanceLogWithCorrelationId(logger, liveSignal);
-
-                    acknowledgeSubscriptionForLiveSignal(liveSignal);
-
-                    final DittoHeaders dittoHeaders = liveSignal.getDittoHeaders();
-                    final Optional<String> correlationId = dittoHeaders.getCorrelationId();
-                    if (correlationId.map(cId -> cId.startsWith(connectionCorrelationId)).orElse(false)) {
-                        logger.debug("Got 'Live' Signal <{}> in <{}> session, " +
-                                "but this was issued by this connection itself, not telling "
-                                + "eventAndResponsePublisher about it", liveSignal.getType(), type);
-                    } else {
-                        // check if this session is "allowed" to receive the LiveSignal
-                        if (authorizationSubjects != null &&
-                                !Collections.disjoint(dittoHeaders.getReadSubjects(), authorizationSubjects)) {
-                            logger.debug("Got 'Live' Signal <{}> in <{}> session, " +
-                                            "telling eventAndResponsePublisher about it: {}",
-                                    liveSignal.getType(), type, liveSignal);
-
-                            if (liveSignal instanceof Command) {
-                                extractActualCorrelationId(liveSignal)
-                                        .ifPresent(cId -> responseAwaitingLiveSignals.put(cId, getSender()));
-                            }
-
-                            eventAndResponsePublisher.tell(liveSignal, getSelf());
-                        }
-                    }
-                })
-
+                .match(Signal.class, this::isLiveSignal, this::handleLiveSignalIssuedByOtherSession)
                 .match(Command.class, command -> {
                     LogUtil.enhanceLogWithCorrelationId(logger, command);
                     logger.debug(
@@ -186,32 +156,7 @@ final class StreamingSessionActor extends AbstractActor {
                             type, cre);
                     eventAndResponsePublisher.forward(cre, getContext());
                 })
-                .match(Event.class, event -> {
-                    LogUtil.enhanceLogWithCorrelationId(logger, event);
-
-                    if (outstandingSubscriptionAcks.contains(StreamingType.EVENTS)) {
-                        acknowledgeSubscription(StreamingType.EVENTS, getSelf());
-                    }
-
-                    final DittoHeaders dittoHeaders = event.getDittoHeaders();
-                    final Optional<String> correlationId = dittoHeaders.getCorrelationId();
-                    if (correlationId.map(cId -> cId.startsWith(connectionCorrelationId)).orElse(false)) {
-                        logger.debug(
-                                "Got 'Event' message in <{}> session, but this was issued by this connection itself, not telling "
-                                        + "eventAndResponsePublisher about it", type);
-                    } else {
-                        final Set<String> readSubjects = dittoHeaders.getReadSubjects();
-                        // check if this session is "allowed" to receive the event
-                        if (authorizationSubjects != null &&
-                                !Collections.disjoint(readSubjects, authorizationSubjects)) {
-                            logger.debug(
-                                    "Got 'Event' message in <{}> session, telling eventAndResponsePublisher about it: {}",
-                                    type, event);
-                            eventAndResponsePublisher.tell(event, getSelf());
-                        }
-                    }
-                })
-
+                .match(Event.class, this::handleEvent)
                 .match(StartStreaming.class, startStreaming -> {
                     authorizationSubjects = startStreaming.getAuthorizationContext().getAuthorizationSubjectIds();
                     LogUtil.enhanceLogWithCorrelationId(logger, connectionCorrelationId);
@@ -287,19 +232,69 @@ final class StreamingSessionActor extends AbstractActor {
                 .build();
     }
 
+    private void handleLiveSignalIssuedByOtherSession(final Signal liveSignal) {
+        // for live signals which were not issued by this session, handle them by forwarding towards WS:
+        LogUtil.enhanceLogWithCorrelationId(logger, liveSignal);
+
+        acknowledgeSubscriptionForLiveSignal(liveSignal);
+
+        final DittoHeaders dittoHeaders = liveSignal.getDittoHeaders();
+        final Optional<String> correlationId = dittoHeaders.getCorrelationId();
+        if (correlationId.map(cId -> cId.startsWith(connectionCorrelationId)).orElse(false)) {
+            logger.debug("Got 'Live' Signal <{}> in <{}> session, " +
+                    "but this was issued by this connection itself, not telling "
+                    + "eventAndResponsePublisher about it", liveSignal.getType(), type);
+        } else {
+            // check if this session is "allowed" to receive the LiveSignal
+            if (authorizationSubjects != null &&
+                    !Collections.disjoint(dittoHeaders.getReadSubjects(), authorizationSubjects)) {
+                logger.debug("Got 'Live' Signal <{}> in <{}> session, " +
+                                "telling eventAndResponsePublisher about it: {}",
+                        liveSignal.getType(), type, liveSignal);
+
+                if (liveSignal instanceof Command) {
+                    extractActualCorrelationId(liveSignal)
+                            .ifPresent(cId -> responseAwaitingLiveSignals.put(cId, getSender()));
+                }
+
+                eventAndResponsePublisher.tell(liveSignal, getSelf());
+            }
+        }
+    }
+
+    private void handleEvent(final Event event) {
+        LogUtil.enhanceLogWithCorrelationId(logger, event);
+
+        if (outstandingSubscriptionAcks.contains(StreamingType.EVENTS)) {
+            acknowledgeSubscription(StreamingType.EVENTS, getSelf());
+        }
+
+        final DittoHeaders dittoHeaders = event.getDittoHeaders();
+        final Optional<String> correlationId = dittoHeaders.getCorrelationId();
+        if (correlationId.map(cId -> cId.startsWith(connectionCorrelationId)).orElse(false)) {
+            logger.debug(
+                    "Got 'Event' message in <{}> session, but this was issued by this connection itself, not telling "
+                            + "eventAndResponsePublisher about it", type);
+        } else {
+            final Set<String> readSubjects = dittoHeaders.getReadSubjects();
+            // check if this session is "allowed" to receive the event
+            if (authorizationSubjects != null &&
+                    !Collections.disjoint(readSubjects, authorizationSubjects)) {
+                logger.debug(
+                        "Got 'Event' message in <{}> session, telling eventAndResponsePublisher about it: {}",
+                        type, event);
+                eventAndResponsePublisher.tell(event, getSelf());
+            }
+        }
+    }
+
     private void acknowledgeSubscriptionForLiveSignal(final Signal liveSignal) {
-        if (liveSignal instanceof MessageCommand) {
-            if (outstandingSubscriptionAcks.contains(StreamingType.MESSAGES)) {
-                acknowledgeSubscription(StreamingType.MESSAGES, getSelf());
-            }
-        } else if (liveSignal instanceof Command) {
-            if (outstandingSubscriptionAcks.contains(StreamingType.LIVE_COMMANDS)) {
-                acknowledgeSubscription(StreamingType.LIVE_COMMANDS, getSelf());
-            }
-        } else if (liveSignal instanceof Event) {
-            if (outstandingSubscriptionAcks.contains(StreamingType.LIVE_EVENTS)) {
-                acknowledgeSubscription(StreamingType.LIVE_EVENTS, getSelf());
-            }
+        if (liveSignal instanceof MessageCommand && outstandingSubscriptionAcks.contains(StreamingType.MESSAGES)) {
+            acknowledgeSubscription(StreamingType.MESSAGES, getSelf());
+        } else if (liveSignal instanceof Command && outstandingSubscriptionAcks.contains(StreamingType.LIVE_COMMANDS)) {
+            acknowledgeSubscription(StreamingType.LIVE_COMMANDS, getSelf());
+        } else if (liveSignal instanceof Event && outstandingSubscriptionAcks.contains(StreamingType.LIVE_EVENTS)) {
+            acknowledgeSubscription(StreamingType.LIVE_EVENTS, getSelf());
         }
     }
 

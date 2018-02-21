@@ -41,7 +41,7 @@ import org.eclipse.ditto.services.utils.devops.DevOpsCommandsActor;
 import org.eclipse.ditto.services.utils.devops.LogbackLoggingFacade;
 import org.eclipse.ditto.services.utils.distributedcache.actors.CacheFacadeActor;
 import org.eclipse.ditto.services.utils.distributedcache.actors.CacheRole;
-import org.eclipse.ditto.services.utils.health.HealthCheckingActor;
+import org.eclipse.ditto.services.utils.health.DefaultHealthCheckingActorFactory;
 import org.eclipse.ditto.services.utils.health.HealthCheckingActorOptions;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientActor;
 
@@ -88,13 +88,14 @@ final class GatewayRootActor extends AbstractActor {
 
     private static final String ACL_ENFORCER_SHARD_REGION = "aclEnforcer";
     private static final String POLICY_ENFORCER_SHARD_REGION = "policyEnforcer";
+    private static final String CHILD_RESTART_INFO_MSG = "Restarting child...";
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
     private final SupervisorStrategy strategy = new OneForOneStrategy(true, DeciderBuilder //
             .match(NullPointerException.class, e -> {
                 log.error(e, "NullPointer in child actor: {}", e.getMessage());
-                log.info("Restarting child...");
+                log.info(CHILD_RESTART_INFO_MSG);
                 return SupervisorStrategy.restart();
             }).match(IllegalArgumentException.class, e -> {
                 log.warning("Illegal Argument in child actor: {}", e.getMessage());
@@ -110,7 +111,7 @@ final class GatewayRootActor extends AbstractActor {
                 return SupervisorStrategy.resume();
             }).match(ConnectException.class, e -> {
                 log.warning("ConnectException in child actor: {}", e.getMessage());
-                log.info("Restarting child...");
+                log.info(CHILD_RESTART_INFO_MSG);
                 return SupervisorStrategy.restart();
             }).match(InvalidActorNameException.class, e -> {
                 log.warning("InvalidActorNameException in child actor: {}", e.getMessage());
@@ -122,7 +123,7 @@ final class GatewayRootActor extends AbstractActor {
                 return SupervisorStrategy.resume();
             }).match(ActorKilledException.class, e -> {
                 log.error(e, "ActorKilledException in child actor: {}", e.message());
-                log.info("Restarting child...");
+                log.info(CHILD_RESTART_INFO_MSG);
                 return SupervisorStrategy.restart();
             }).match(Throwable.class, e -> {
                 log.error(e, "Escalating above root actor!");
@@ -296,8 +297,8 @@ final class GatewayRootActor extends AbstractActor {
                         config.getDuration(ConfigKeys.HEALTH_CHECK_PERSISTENCE_TIMEOUT)));
 
         final HealthCheckingActorOptions healthCheckingActorOptions = hcBuilder.build();
-        return startChildActor(HealthCheckingActor.ACTOR_NAME,
-                HealthCheckingActor.props(healthCheckingActorOptions, mongoClient));
+        return startChildActor(DefaultHealthCheckingActorFactory.ACTOR_NAME,
+                DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions, mongoClient));
     }
 
     private FiniteDuration toFiniteDuration(final Duration duration) {

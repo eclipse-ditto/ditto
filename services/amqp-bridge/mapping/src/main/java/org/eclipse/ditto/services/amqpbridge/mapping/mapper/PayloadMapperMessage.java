@@ -18,6 +18,7 @@ import java.util.Optional;
 /**
  * TODO doc
  */
+@Deprecated
 public interface PayloadMapperMessage {
 
     /**

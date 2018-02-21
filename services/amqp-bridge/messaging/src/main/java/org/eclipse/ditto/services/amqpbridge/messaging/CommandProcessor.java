@@ -22,6 +22,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.amqpbridge.InternalMessage;
@@ -44,7 +45,11 @@ import kamon.trace.Segment;
 import kamon.trace.TraceContext;
 import scala.Option;
 
-public class CommandProcessor {
+/**
+ * Processes incoming bridge messages to commands and command responses to bridge messages.
+ * This command processor encapsulates the message processing logic from the command processor actor.
+ */
+public final class CommandProcessor {
 
     private static final String CONTEXT_NAME = CommandProcessor.class.getSimpleName();
     private static final String SEGMENT_CATEGORY = "payload-mapping";
@@ -52,23 +57,29 @@ public class CommandProcessor {
     private static final String PROTOCOL_SEGMENT_NAME = "protocoladapter";
 
     private static final DittoProtocolAdapter PROTOCOL_ADAPTER = DittoProtocolAdapter.newInstance();
-    private static final Converter<Adaptable, Command> ADAPTABLE_COMMAND_CONVERTER = Converter.from(
-            a -> (Command) PROTOCOL_ADAPTER.fromAdaptable(a),
-            PROTOCOL_ADAPTER::toAdaptable
-    );
-    private static final Converter<CommandResponse, Adaptable> COMMAND_RESPONSE_ADAPTABLE_CONVERTER = Converter.from(
-            PROTOCOL_ADAPTER::toAdaptable,
-            a -> (CommandResponse) PROTOCOL_ADAPTER.fromAdaptable(a)
-    );
 
     private final MessageMapperRegistry registry;
+
+    @Nullable
     private final Consumer<String> updateCorrelationId;
 
-    private CommandProcessor(final MessageMapperRegistry registry, final Consumer<String> updateCorrelationId) {
+    private CommandProcessor(final MessageMapperRegistry registry, @Nullable final Consumer<String> updateCorrelationId) {
         this.registry = registry;
         this.updateCorrelationId = updateCorrelationId;
     }
 
+    /**
+     * Initializes a new command processor with mappers defined in mapping contexts. The dynamic access is needed
+     * to instantiate message mappers for an actor system
+     *
+     * @param contexts the mapping contexts
+     * @param access the dynamic access used for message mapper instantiation
+     * @param logDebug a callback for debug logs (optional)
+     * @param logWarning a callback for warning logs (optional)
+     * @param updateCorrelationId a callback for correlation id changes
+     * @return the processor instance
+     */
+    @Nonnull
     public static CommandProcessor from(final List<MappingContext> contexts, final DynamicAccess access,
             Consumer<String> logDebug, Consumer<String> logWarning, Consumer<String> updateCorrelationId) {
         MessageMapperRegistry registry =
@@ -76,16 +87,37 @@ public class CommandProcessor {
         return new CommandProcessor(registry, updateCorrelationId);
     }
 
+    /**
+     * Returns all supported content types of the processor
+     *
+     * @return the content types
+     */
+    @Nonnull
     public List<String> getSupportedContentTypes() {
         return registry.stream().map(MessageMapper::getContentType).collect(Collectors.toList());
     }
 
+    /**
+     * Returns all supported content types of the processor
+     *
+     * @return the content types
+     */
     public Optional<String> getDefaultContentType() {
         return Optional.ofNullable(registry.getDefaultMapper()).map(MessageMapper::getContentType);
     }
 
+    /**
+     * Processes a message to a command
+     * @param message the message
+     * @return the command
+     * @throws RuntimeException if something went wrong
+     */
+    @Nullable
+    public Command process(@Nullable final InternalMessage message) {
+        if (Objects.isNull(message)) {
+            return null;
+        }
 
-    public Command process(final InternalMessage message) {
         final String correlationId = DittoHeaders.of(message.getHeaders()).getCorrelationId()
                 .orElse("no-correlation-id");
         return doApplyTraced(
@@ -93,7 +125,18 @@ public class CommandProcessor {
                 ctx -> convertMessage(message, ctx));
     }
 
-    public InternalMessage process(final CommandResponse response) {
+    /**
+     * Processes a response to a message
+     * @param response the response
+     * @return the message
+     * @throws RuntimeException if something went wrong
+     */
+    @Nullable
+    public InternalMessage process(@Nullable final CommandResponse response) {
+        if (Objects.isNull(response)) {
+            return null;
+        }
+
         final String correlationId = DittoHeaders.of(response.getDittoHeaders()).getCorrelationId()
                 .orElse("no-correlation-id");
         return doApplyTraced(
@@ -115,7 +158,7 @@ public class CommandProcessor {
 
             return doApplyTracedSegment(
                     () -> createSegment(ctx, PROTOCOL_SEGMENT_NAME, false),
-                    () -> ADAPTABLE_COMMAND_CONVERTER.convert(adaptable)
+                    () -> (Command) PROTOCOL_ADAPTER.fromAdaptable(adaptable)
             );
         } catch (Exception e) {
             throw new IllegalArgumentException("Converting message failed: " + e.getMessage(), e);
@@ -129,7 +172,7 @@ public class CommandProcessor {
         try {
             final Adaptable adaptable = doApplyTracedSegment(
                     () -> createSegment(ctx, PROTOCOL_SEGMENT_NAME, true),
-                    () -> COMMAND_RESPONSE_ADAPTABLE_CONVERTER.convert(response)
+                    () -> PROTOCOL_ADAPTER.toAdaptable(response)
             );
 
             doUpdateCorrelationId(adaptable);
@@ -156,7 +199,11 @@ public class CommandProcessor {
     }
 
     private void doUpdateCorrelationId(final Adaptable adaptable) {
-        adaptable.getHeaders().map(DittoHeaders::getCorrelationId).map(Optional::get).ifPresent(updateCorrelationId);
+        adaptable.getHeaders().map(DittoHeaders::getCorrelationId).map(Optional::get).ifPresent(s -> {
+            if (Objects.nonNull(updateCorrelationId)) {
+                updateCorrelationId.accept(s);
+            }
+        });
     }
 
     private Segment createSegment(final TraceContext ctx, final String name, final boolean isReverse) {

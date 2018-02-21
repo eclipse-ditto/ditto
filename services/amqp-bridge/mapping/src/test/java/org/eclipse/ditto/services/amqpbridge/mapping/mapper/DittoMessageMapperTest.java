@@ -115,7 +115,7 @@ public class DittoMessageMapperTest extends MessageMapperTest {
 
         InternalMessage message;
         message = new InternalMessage.Builder(headers).withText("").build();
-        mappings.put(message, new IllegalArgumentException("Message contains no payload"));
+        mappings.put(message, new IllegalArgumentException("Message contains no valid payload"));
 
         // --
 

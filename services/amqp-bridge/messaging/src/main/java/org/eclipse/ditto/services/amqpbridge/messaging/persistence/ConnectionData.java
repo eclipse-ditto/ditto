@@ -62,7 +62,7 @@ public final class ConnectionData implements Jsonifiable.WithFieldSelectorAndPre
      * Constructs a new connection data instance.
      * @param amqpConnection AmqpConnection information of the connection data.
      * @param connectionStatus ConnectionStatus information of the connection data.
-     * @param mappingContexts
+     * @param mappingContexts the mapping contexts
      */
     public ConnectionData(final AmqpConnection amqpConnection, final ConnectionStatus connectionStatus,
             final List<MappingContext> mappingContexts) {
@@ -87,7 +87,7 @@ public final class ConnectionData implements Jsonifiable.WithFieldSelectorAndPre
     }
 
     /**
-     * @return
+     * @return the mapping contexts configured for this connection
      */
     public List<MappingContext> getMappingContexts() {
         return mappingContexts;

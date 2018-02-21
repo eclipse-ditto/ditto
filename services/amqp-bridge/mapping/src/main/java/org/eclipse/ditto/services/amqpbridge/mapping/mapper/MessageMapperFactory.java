@@ -25,7 +25,6 @@ import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.amqpbridge.MappingContext;
@@ -39,7 +38,7 @@ import scala.util.Try;
 /**
  * Encapsulates responsibility for instantiating {@link MessageMapper} objects.
  *
- * As the message mapper instantiation is usually triggered by an actor, there are only limitited possiblilities of
+ * As the message mapper instantiation is usually triggered by an actor, there are only limited possibilities of
  * logging fine grained errors and at the same time keep all responsibility for mapper instantiation behavior away
  * from the actor.
  * Due to this, the factory can be instantiated with a reference to the actors log adapter and will log problems to
@@ -167,7 +166,7 @@ public class MessageMapperFactory {
 
     /**
      * Instantiates message mappers from a list of contexts. If there is no mapper for a context or the instantiation
-     * process fails, then the context will be ignored and all exceptions are catched and logged! Compare list
+     * process fails, then the context will be ignored and all exceptions are suppressed and logged! Compare list
      * lengths to ensure everything worked.
      *
      * @param contexts the contexts
@@ -205,9 +204,7 @@ public class MessageMapperFactory {
 //    --
 
     @Nullable
-    private MessageMapper configureInstance(@Nonnull final MessageMapper mapper,
-            @Nonnull final MessageMapperConfiguration options)
-    {
+    private MessageMapper configureInstance(final MessageMapper mapper, final MessageMapperConfiguration options) {
         try {
             mapper.configure(options);
             return mapper;
@@ -255,16 +252,13 @@ public class MessageMapperFactory {
         return m.getReturnType().equals(MessageMapper.class) && m.getParameterTypes().length == 0;
     }
 
-    @SuppressWarnings("ConstantConditions")
     private void tryLogWarning(String template, Object... args) {
-        //noinspection ConstantConditions
-        if (Objects.isNull(logDebug)) return;
-        logDebug.accept(MessageFormat.format(template, args));
+        if (Objects.isNull(logWarning)) return;
+        logWarning.accept(MessageFormat.format(template, args));
     }
 
     private void tryLogDebug(String template, Object... args) {
-        //noinspection ConstantConditions
-        if (Objects.isNull(logWarning)) return;
-        logWarning.accept(MessageFormat.format(template, args));
+        if (Objects.isNull(logDebug)) return;
+        logDebug.accept(MessageFormat.format(template, args));
     }
 }

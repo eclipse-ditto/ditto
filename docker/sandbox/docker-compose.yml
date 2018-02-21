@@ -99,43 +99,6 @@ services:
 #      - STATSD_PORT_8125_UDP_ADDR=graphite
 #      - STATSD_PORT_8125_UDP_PORT=8125
 
-  graphite:
-    image: hopsoft/graphite-statsd:v0.9.15-phusion0.9.18
-    volumes:
-      - "/opt/docker-volumes/graphite-data/storage/whisper:/opt/graphite/storage/whisper"
-      - "./graphite/storage-schemas.conf:/opt/graphite/conf/storage-schemas.conf"
-      - "./statsd/config.js:/opt/statsd/config.js"
-
-  postgres:
-    image: postgres:10.1-alpine
-    environment:
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD:-admin}
-    volumes:
-      - "/opt/docker-volumes/postgres-data:/var/lib/postgresql/data"
-
-  grafana:
-    image: grafana/grafana:4.5.2
-    depends_on:
-      - graphite
-      - postgres
-    environment:
-      TZ: Europe/Berlin
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
-      GF_SERVER_ROOT_URL: http://localhost:3000/grafana/
-      GF_DATABASE_TYPE: postgres
-      GF_DATABASE_HOST: postgres:5432
-      GF_DATABASE_USER: admin
-      GF_DATABASE_PASSWORD: ${POSTGRES_ADMIN_PASSWORD:-admin}
-      GF_DATABASE_NAME: postgres
-      GF_USERS_SIGNUP: "false"
-      GF_ALLOW_ORG_CREATE: "false"
-      GF_ANALYTICS_REPORTING_ENABLED: "false"
-      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
-      GF_AUTH_BASIC_ENABLED: "true"
-      GF_AUTH_ANONYMOUS_ENABLED: "true"
-      GF_SMTP_ENABLED: "false"
-
   swagger-ui:
     image: docker.io/swaggerapi/swagger-ui:v2.2.9
     volumes:
@@ -144,6 +107,14 @@ services:
        - ../swagger-index.html:/usr/share/nginx/html/index.html:ro
     environment:
        - API_URL=/apidoc/openapi/ditto-api-1.yml
+
+  node-red:
+    image: docker.io/nodered/node-red-docker:latest
+    volumes:
+       - /opt/docker-volumes/nodered-data:/data:rw
+       - ./nodered/settings.js:/data/settings.js:ro
+       - ./nodered/package.json:/data/package.json:rw
+       - ./nodered/flows-ditto.json:/data/flows-ditto.json:rw
 
   nginx:
     image: docker.io/nginx:1.13-alpine
@@ -163,4 +134,3 @@ services:
     depends_on:
       - gateway
       - swagger-ui
-      - grafana
