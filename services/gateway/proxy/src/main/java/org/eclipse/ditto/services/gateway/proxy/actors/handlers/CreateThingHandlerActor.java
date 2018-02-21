@@ -34,8 +34,6 @@ import org.eclipse.ditto.model.policies.PolicyException;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.model.policies.Subject;
 import org.eclipse.ditto.model.policies.SubjectId;
-import org.eclipse.ditto.model.policies.SubjectIssuer;
-import org.eclipse.ditto.model.policies.SubjectType;
 import org.eclipse.ditto.model.policiesenforcers.EffectedSubjectIds;
 import org.eclipse.ditto.model.policiesenforcers.PolicyEnforcers;
 import org.eclipse.ditto.model.things.AclNotAllowedException;
@@ -155,8 +153,12 @@ public final class CreateThingHandlerActor extends AbstractActor {
 
                     messageHandler.apply(createThing);
                 })
-                .matchAny(m -> log.warning("Got unknown message: {}", m))
+                .matchAny(this::handleUnknownMessage)
                 .build();
+    }
+
+    private void handleUnknownMessage(final Object m) {
+        log.warning("Got unknown message: {}", m);
     }
 
     private void handleCreateThingWithEnforcer(final CreateThing createThing) {
@@ -234,7 +236,7 @@ public final class CreateThingHandlerActor extends AbstractActor {
                             getContext().stop(getSelf());
                         } else {
                             // policy exists; thing has no inline policy
-                            becomeCreateThingResponseAwaiting(response.getPolicy());
+                            becomeCreateThingResponseAwaiting();
                             policyEnforcerShard.tell(createShardedMessageEnvelope(policyId, command), getSelf());
                         }
                     })
@@ -402,7 +404,7 @@ public final class CreateThingHandlerActor extends AbstractActor {
                     // policy creation is successful.
                     // replace policy in thing by ID of the created policy, then forward it to policy enforcer shard.
                     timeout.cancel();
-                    becomeCreateThingResponseAwaiting(response.getPolicyCreated().orElse(null));
+                    becomeCreateThingResponseAwaiting();
                     final Thing thingWithPolicyId = command.getThing().toBuilder()
                             .setPolicyId(policyId)
                             .build();
@@ -454,7 +456,7 @@ public final class CreateThingHandlerActor extends AbstractActor {
                                     getSelf());
                     getContext().stop(getSelf());
                 })
-                .matchAny(m -> log.warning("Got unknown message: {}", m)) //
+                .matchAny(this::handleUnknownMessage)
                 .build());
     }
 
@@ -479,7 +481,7 @@ public final class CreateThingHandlerActor extends AbstractActor {
                 getContext().dispatcher(), null);
     }
 
-    private void becomeCreateThingResponseAwaiting(final Policy policy) {
+    private void becomeCreateThingResponseAwaiting() {
         final Cancellable timeout = getContext().system().scheduler().scheduleOnce(ASK_TIMEOUT.duration(), getSelf(),
                 new AskTimeoutException("The thing could not be loaded within a the specified time frame"),
                 getContext().dispatcher(), null);
@@ -514,7 +516,7 @@ public final class CreateThingHandlerActor extends AbstractActor {
                     requester.tell(cre, getSelf());
                     getContext().stop(getSelf());
                 })
-                .matchAny(m -> log.warning("Got unknown message: {}", m))
+                .matchAny(this::handleUnknownMessage)
                 .build());
     }
 

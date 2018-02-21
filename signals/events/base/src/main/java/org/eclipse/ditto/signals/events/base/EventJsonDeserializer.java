@@ -17,6 +17,7 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import java.text.MessageFormat;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
+import java.util.Optional;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -112,8 +113,7 @@ public final class EventJsonDeserializer<T extends Event> {
         final String type = jsonObject.getValue(Event.JsonFields.TYPE)
                 .orElseGet(() -> // if type was not present (was included in V2)
                         // take event instead and transform to V2 format, fail if "event" is not present, too
-                        jsonObject.getValue(Event.JsonFields.ID)
-                                .map(event -> eventTypePrefix + ':' + event)
+                        extractEventTypeV1()
                                 .orElseThrow(() -> new JsonMissingFieldException(Event.JsonFields.TYPE.getPointer()))
                 );
 
@@ -122,6 +122,12 @@ public final class EventJsonDeserializer<T extends Event> {
             final String msg = MessageFormat.format(msgPattern, expectedType, type);
             throw new DittoJsonException(new JsonParseException(msg));
         }
+    }
+
+    @SuppressWarnings("squid:CallToDeprecatedMethod")
+    private Optional<String> extractEventTypeV1() {
+        return jsonObject.getValue(Event.JsonFields.ID)
+                .map(event -> eventTypePrefix + ':' + event);
     }
 
     private static Instant tryToParseModified(final CharSequence dateTime) {

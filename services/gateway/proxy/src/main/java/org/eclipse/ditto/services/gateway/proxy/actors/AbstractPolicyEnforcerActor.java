@@ -91,6 +91,7 @@ public abstract class AbstractPolicyEnforcerActor extends AbstractActorWithStash
 
     private static final JsonPointer ROOT_RESOURCE = JsonFactory.newPointer("/");
     private static final String POLICY_ENFORCER_SYNC_CORRELATION_PREFIX = "policy-enforcer-sync-";
+    private static final String POLICIES_SERVICE_NAME = "Policies";
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
@@ -333,12 +334,10 @@ public abstract class AbstractPolicyEnforcerActor extends AbstractActorWithStash
                 .match(PolicyQueryCommand.class, this::unauthorized)
 
                 /* PolicyEvents */
-                .match(PolicyCreated.class, this::isApplicable, policyCreated -> {
-                    rebuildPolicyEnforcer(policyCreated.getPolicy(), policyCreated.getRevision());
-                })
-                .match(PolicyModified.class, this::isApplicable, policyModified -> {
-                    rebuildPolicyEnforcer(policyModified.getPolicy(), policyModified.getRevision());
-                })
+                .match(PolicyCreated.class, this::isApplicable,
+                        policyCreated -> rebuildPolicyEnforcer(policyCreated.getPolicy(), policyCreated.getRevision()))
+                .match(PolicyModified.class, this::isApplicable, policyModified ->
+                        rebuildPolicyEnforcer(policyModified.getPolicy(), policyModified.getRevision()))
                 .match(PolicyEvent.class, this::isApplicable, event -> {
                     log.debug("Got '{}', reloading Policy now...", event.getName());
                     policyEnforcer = null;
@@ -597,7 +596,7 @@ public abstract class AbstractPolicyEnforcerActor extends AbstractActorWithStash
 
     private void forwardPolicySudoCommand(final Command command) {
         LogUtil.enhanceLogWithCorrelationId(log, command);
-        logForwardingOfReceivedSignal(command, "Policies");
+        logForwardingOfReceivedSignal(command, POLICIES_SERVICE_NAME);
         accessCounter++;
         policiesShardRegion.forward(command, getContext());
         if (command instanceof PolicyModifyCommand<?>) {
@@ -609,7 +608,7 @@ public abstract class AbstractPolicyEnforcerActor extends AbstractActorWithStash
         LogUtil.enhanceLogWithCorrelationId(log, command);
         final PolicyCommand commandWithReadSubjects =
                 enrichDittoHeaders(command, command.getResourcePath(), command.getResourceType());
-        logForwardingOfReceivedSignal(commandWithReadSubjects, "Policies");
+        logForwardingOfReceivedSignal(commandWithReadSubjects, POLICIES_SERVICE_NAME);
         accessCounter++;
         policiesShardRegion.forward(commandWithReadSubjects, getContext());
     }
@@ -623,7 +622,7 @@ public abstract class AbstractPolicyEnforcerActor extends AbstractActorWithStash
         LogUtil.enhanceLogWithCorrelationId(log, command);
         final PolicyCommand commandWithReadSubjects =
                 enrichDittoHeaders(command, command.getResourcePath(), command.getResourceType());
-        logForwardingOfReceivedSignal(command, "Policies");
+        logForwardingOfReceivedSignal(command, POLICIES_SERVICE_NAME);
         accessCounter++;
         policiesShardRegion.tell(commandWithReadSubjects, getSelf());
     }

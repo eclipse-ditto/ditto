@@ -88,6 +88,7 @@ import org.eclipse.ditto.services.thingsearch.querymodel.query.PolicyRestrictedS
 import org.eclipse.ditto.services.thingsearch.querymodel.query.QueryConstants;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.SortDirection;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.SortOption;
+import org.eclipse.ditto.services.utils.persistence.mongo.BsonUtil;
 import org.reactivestreams.Publisher;
 
 import com.mongodb.client.model.Aggregates;
@@ -388,7 +389,7 @@ final class PolicyRestrictedMongoSearchAggregation implements PolicyRestrictedSe
      */
     public String prettyPrintPipeline() {
         return "[" + aggregationPipeline.stream()
-                .map(bsonObj -> org.eclipse.ditto.services.utils.persistence.mongo.BsonUtil.toBsonDocument(bsonObj))
+                .map(BsonUtil::toBsonDocument)
                 .map(BsonDocument::toJson)
                 .collect(Collectors.joining(",\n")) + "]";
     }

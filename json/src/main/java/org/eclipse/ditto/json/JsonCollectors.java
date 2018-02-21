@@ -34,7 +34,7 @@ public final class JsonCollectors {
      *
      * @return a {@code Collector} which collects all the JSON fields into a {@code JsonObject}, in encounter order.
      */
-    public static Collector<JsonField, ?, JsonObject> fieldsToObject() {
+    public static Collector<JsonField, JsonObjectBuilder, JsonObject> fieldsToObject() {
         return Collector.of(JsonFactory::newObjectBuilder, JsonObjectBuilder::set, JsonObjectBuilder::setAll,
                 JsonObjectBuilder::build);
     }
@@ -44,7 +44,7 @@ public final class JsonCollectors {
      *
      * @return a {@code Collector} which collects all the JSON object into a {@code JsonObject}, in encounter order.
      */
-    public static Collector<JsonObject, ?, JsonObject> objectsToObject() {
+    public static Collector<JsonObject, JsonObjectBuilder, JsonObject> objectsToObject() {
         return Collector.of(JsonFactory::newObjectBuilder, JsonObjectBuilder::setAll, JsonObjectBuilder::setAll,
                 JsonObjectBuilder::build);
     }
@@ -56,7 +56,7 @@ public final class JsonCollectors {
      * @return a {@code Collector} which collects the key names of all the JSON fields into a {@code JsonArray}, in
      * encounter order.
      */
-    public static Collector<JsonField, ?, JsonArray> fieldKeysToArray() {
+    public static Collector<JsonField, JsonArrayBuilder, JsonArray> fieldKeysToArray() {
         return Collector.of(JsonFactory::newArrayBuilder, (arrayBuilder, field) -> arrayBuilder.add(field.getKeyName()),
                 JsonArrayBuilder::addAll, JsonArrayBuilder::build);
     }
@@ -74,7 +74,7 @@ public final class JsonCollectors {
      * @return a {@code Collector} which collects the values of all the JSON fields into a {@code JsonArray}, in
      * encounter order.
      */
-    public static Collector<JsonField, ?, JsonArray> fieldValuesToArray() {
+    public static Collector<JsonField, JsonArrayBuilder, JsonArray> fieldValuesToArray() {
         return Collector.of(JsonFactory::newArrayBuilder, (arrayBuilder, field) -> arrayBuilder.add(field.getValue()),
                 JsonArrayBuilder::addAll, JsonArrayBuilder::build);
     }
@@ -84,7 +84,7 @@ public final class JsonCollectors {
      *
      * @return a {@code Collector} which collects all the JSON values into a {@code JsonArray}, in encounter order.
      */
-    public static Collector<JsonValue, ?, JsonArray> valuesToArray() {
+    public static Collector<JsonValue, JsonArrayBuilder, JsonArray> valuesToArray() {
         return Collector.of(JsonFactory::newArrayBuilder, JsonArrayBuilder::add, JsonArrayBuilder::addAll,
                 JsonArrayBuilder::build);
     }

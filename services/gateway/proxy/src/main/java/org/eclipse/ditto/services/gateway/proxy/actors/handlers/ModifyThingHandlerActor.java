@@ -127,8 +127,12 @@ public class ModifyThingHandlerActor extends AbstractActor {
 
                     handler.apply(modifyThing);
                 })
-                .matchAny(m -> log.warning("Got unknown message: {}", m))
+                .matchAny(this::handleUnknownMessage)
                 .build();
+    }
+
+    private void handleUnknownMessage(final Object m) {
+        log.warning("Got unknown message: {}", m);
     }
 
     /**
@@ -213,7 +217,7 @@ public class ModifyThingHandlerActor extends AbstractActor {
                                     getSelf());
                     getContext().stop(getSelf());
                 })
-                .matchAny(m -> log.warning("Got unknown message: {}", m))
+                .matchAny(this::handleUnknownMessage)
                 .build());
     }
 
@@ -283,7 +287,7 @@ public class ModifyThingHandlerActor extends AbstractActor {
                                     getSelf());
                     getContext().stop(getSelf());
                 })
-                .matchAny(m -> log.warning("Got unknown message: {}", m))
+                .matchAny(this::handleUnknownMessage)
                 .build());
 
     }
@@ -340,10 +344,10 @@ public class ModifyThingHandlerActor extends AbstractActor {
 
     private ShardedMessageEnvelope createShardedMessageEnvelope(final String enforcerId,
             final Command<?> command) {
-        final DittoHeaders dittoHeaders = command.getDittoHeaders();
+        final DittoHeaders commandHeaders = command.getDittoHeaders();
         final JsonSchemaVersion schemaVersion =
-                dittoHeaders.getSchemaVersion().orElse(dittoHeaders.getLatestSchemaVersion());
+                commandHeaders.getSchemaVersion().orElse(commandHeaders.getLatestSchemaVersion());
         return ShardedMessageEnvelope.of(enforcerId, command.getType(),
-                command.toJson(schemaVersion, FieldType.regularOrSpecial()), dittoHeaders);
+                command.toJson(schemaVersion, FieldType.regularOrSpecial()), commandHeaders);
     }
 }

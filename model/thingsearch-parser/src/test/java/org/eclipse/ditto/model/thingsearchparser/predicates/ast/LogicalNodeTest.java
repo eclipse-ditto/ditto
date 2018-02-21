@@ -51,29 +51,25 @@ public class LogicalNodeTest {
     /** */
     @Test
     public void nameConstructorSuccess() {
-        final LogicalNode LogicalNode = new LogicalNode("and");
-        assertThat(LogicalNode.getName()).isEqualTo("and");
-        assertThat(LogicalNode.getType()).isEqualTo(
-                org.eclipse.ditto.model.thingsearchparser.predicates.ast.LogicalNode.Type.and);
+        final LogicalNode logicalNode = new LogicalNode("and");
+        assertThat(logicalNode.getName()).isEqualTo("and");
+        assertThat(logicalNode.getType()).isEqualTo(LogicalNode.Type.AND);
     }
 
     /** */
     @Test
     public void typeConstructorSuccess() {
-        final LogicalNode LogicalNode =
-                new LogicalNode(org.eclipse.ditto.model.thingsearchparser.predicates.ast.LogicalNode.Type.and);
-        assertThat(LogicalNode.getName()).isEqualTo("and");
-        assertThat(LogicalNode.getType()).isEqualTo(
-                org.eclipse.ditto.model.thingsearchparser.predicates.ast.LogicalNode.Type.and);
+        final LogicalNode logicalNode = new LogicalNode(LogicalNode.Type.AND);
+        assertThat(logicalNode.getName()).isEqualTo("and");
+        assertThat(logicalNode.getType()).isEqualTo(LogicalNode.Type.AND);
     }
 
     @Test
     public void visitorGetsVisited() {
         final PredicateVisitor visitorMock = mock(PredicateVisitor.class);
-        final LogicalNode LogicalNode =
-                new LogicalNode(org.eclipse.ditto.model.thingsearchparser.predicates.ast.LogicalNode.Type.and);
-        LogicalNode.accept(visitorMock);
-        verify(visitorMock).visit(LogicalNode);
+        final LogicalNode logicalNode = new LogicalNode(LogicalNode.Type.AND);
+        logicalNode.accept(visitorMock);
+        verify(visitorMock).visit(logicalNode);
     }
 
 }

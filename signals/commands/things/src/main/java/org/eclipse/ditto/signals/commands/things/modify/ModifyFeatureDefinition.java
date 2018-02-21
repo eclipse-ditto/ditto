@@ -182,7 +182,7 @@ public final class ModifyFeatureDefinition extends AbstractCommand<ModifyFeature
 
     @Override
     public String getId() {
-        return thingId;
+        return getThingId();
     }
 
     @Override

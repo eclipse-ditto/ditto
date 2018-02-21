@@ -44,37 +44,37 @@ public final class SingleComparisonNode extends ComparisonNode<SingleComparisonN
         /**
          * Represents an equals comparison.
          */
-        eq("eq"),
+        EQ("eq"),
 
         /**
          * Represents a not equal comparison.
          */
-        ne("ne"),
+        NE("ne"),
 
         /**
          * Represents a greater than comparison.
          */
-        gt("gt"),
+        GT("gt"),
 
         /**
          * Represents a greater than or equals comparison.
          */
-        ge("ge"),
+        GE("ge"),
 
         /**
          * Represents a lower than comparison.
          */
-        lt("lt"),
+        LT("lt"),
 
         /**
          * Represents a lower than or equals comparison.
          */
-        le("le"),
+        LE("le"),
 
         /**
          * Represents a lower than or equals comparison.
          */
-        like("like");
+        LIKE("like");
 
         private final String name;
 

@@ -28,52 +28,49 @@ public class SingleComparisonNodeTest {
     /** */
     @Test
     public void hashcodeAndEquals() {
-        EqualsVerifier.forClass(SingleComparisonNode.class) //
-                .usingGetClass() //
-                .suppress(Warning.REFERENCE_EQUALITY) //
+        EqualsVerifier.forClass(SingleComparisonNode.class)
+                .usingGetClass()
+                .suppress(Warning.REFERENCE_EQUALITY)
                 .verify();
     }
 
     /** */
     @Test(expected = NullPointerException.class)
     public void typeConstructorWithNullAsFilterProperty() {
-        new SingleComparisonNode(SingleComparisonNode.Type.eq, null, "test");
+        new SingleComparisonNode(SingleComparisonNode.Type.EQ, null, "test");
     }
 
     /** */
     @Test
     public void typeConstructorSuccess() {
-        final SingleComparisonNode SingleComparisonNode =
-                new SingleComparisonNode(
-                        org.eclipse.ditto.model.thingsearchparser.predicates.ast.SingleComparisonNode.Type.eq,
+        final SingleComparisonNode singleComparisonNode =
+                new SingleComparisonNode(SingleComparisonNode.Type.EQ,
                         "propertyName", "propertyValue");
-        assertThat(SingleComparisonNode.getComparisonType()).isEqualTo(
-                org.eclipse.ditto.model.thingsearchparser.predicates.ast.SingleComparisonNode.Type.eq);
-        assertThat(SingleComparisonNode.getComparisonProperty()).isEqualTo("propertyName");
-        assertThat(SingleComparisonNode.getComparisonValue()).isEqualTo("propertyValue");
+        assertThat(singleComparisonNode.getComparisonType()).isEqualTo(
+                SingleComparisonNode.Type.EQ);
+        assertThat(singleComparisonNode.getComparisonProperty()).isEqualTo("propertyName");
+        assertThat(singleComparisonNode.getComparisonValue()).isEqualTo("propertyValue");
     }
 
     /** */
     @Test
     public void typeConstructorWithNullAsValue() {
-        final SingleComparisonNode SingleComparisonNode = new SingleComparisonNode(
-                org.eclipse.ditto.model.thingsearchparser.predicates.ast.SingleComparisonNode.Type.eq, "propertyName",
+        final SingleComparisonNode singleComparisonNode = new SingleComparisonNode(
+                SingleComparisonNode.Type.EQ, "propertyName",
                 null);
-        assertThat(SingleComparisonNode.getComparisonType()).isEqualTo(
-                org.eclipse.ditto.model.thingsearchparser.predicates.ast.SingleComparisonNode.Type.eq);
-        assertThat(SingleComparisonNode.getComparisonProperty()).isEqualTo("propertyName");
-        assertThat(SingleComparisonNode.getComparisonValue()).isNull();
+        assertThat(singleComparisonNode.getComparisonType()).isEqualTo(SingleComparisonNode.Type.EQ);
+        assertThat(singleComparisonNode.getComparisonProperty()).isEqualTo("propertyName");
+        assertThat(singleComparisonNode.getComparisonValue()).isNull();
     }
 
     @Test
     public void visitorGetsVisited() {
         final PredicateVisitor visitorMock = mock(PredicateVisitor.class);
-        final SingleComparisonNode SingleComparisonNode =
-                new SingleComparisonNode(
-                        org.eclipse.ditto.model.thingsearchparser.predicates.ast.SingleComparisonNode.Type.eq,
+        final SingleComparisonNode singleComparisonNode =
+                new SingleComparisonNode(SingleComparisonNode.Type.EQ,
                         "propertyName", "propertyValue");
-        SingleComparisonNode.accept(visitorMock);
-        verify(visitorMock).visit(SingleComparisonNode);
+        singleComparisonNode.accept(visitorMock);
+        verify(visitorMock).visit(singleComparisonNode);
     }
 
 }
