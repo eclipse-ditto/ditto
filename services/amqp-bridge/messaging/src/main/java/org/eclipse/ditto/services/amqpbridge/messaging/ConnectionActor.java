@@ -290,11 +290,11 @@ class ConnectionActor extends AbstractPersistentActor {
                 ConnectionCreated.of(amqpConnection, mappingContexts, command.getDittoHeaders());
         persistEvent(connectionCreated,
                 persistedEvent -> askClientActor("connect", command, (origin, response) -> {
+                    getContext().become(connectionCreatedBehaviour);
+                    subscribeToThingEvents();
                     origin.tell(
                             CreateConnectionResponse.of(amqpConnection, mappingContexts, command.getDittoHeaders()),
                             getSelf());
-                    subscribeToThingEvents();
-                    getContext().become(connectionCreatedBehaviour);
                     getContext().getParent().tell(ConnectionSupervisorActor.ManualReset.getInstance(), getSelf());
                 }));
     }
@@ -308,8 +308,8 @@ class ConnectionActor extends AbstractPersistentActor {
                 persistedEvent -> {
                     final CreateConnection connect = CreateConnection.of(amqpConnection, command.getDittoHeaders());
                     askClientActor("connect", connect, (origin, response) -> {
-                        origin.tell(OpenConnectionResponse.of(connectionId, command.getDittoHeaders()), self());
                         subscribeToThingEvents();
+                        origin.tell(OpenConnectionResponse.of(connectionId, command.getDittoHeaders()), self());
                     });
                 });
     }
