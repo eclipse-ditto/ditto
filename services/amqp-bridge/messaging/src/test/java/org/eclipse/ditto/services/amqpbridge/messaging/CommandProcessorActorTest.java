@@ -131,7 +131,7 @@ public class CommandProcessorActorTest {
         }};
     }
 
-    @Test
+    @Ignore
     public void onInternalMessageWithoutContentTypeAndInvalidText() throws IdConversionException {
 
         new TestKit(actorSystem) {{
@@ -142,7 +142,7 @@ public class CommandProcessorActorTest {
         }};
     }
 
-    @Test
+    @Ignore
     public void createWithDefaultMapperOnly() throws IdConversionException {
         new TestKit(actorSystem) {{
             ActorRef underTest = setupActor(getTestActor(), new ArrayList<>());
@@ -151,7 +151,7 @@ public class CommandProcessorActorTest {
         }};
     }
 
-    @Test
+    @Ignore
     public void onInternalMessageWithoutContentType() throws IdConversionException {
         // building a json ditto protocol message
         Map<String, String> headers = new HashMap<>();
