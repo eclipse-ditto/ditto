@@ -11,14 +11,13 @@
  */
 package org.eclipse.ditto.services.amqpbridge.mapping.mapper;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotEmpty;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
-import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.amqpbridge.InternalMessage;
 import org.eclipse.ditto.protocoladapter.Adaptable;
@@ -40,7 +39,7 @@ public abstract class MessageMapper extends Converter<InternalMessage, Adaptable
      * The message content type expected by this mapper.
      * Not final as it might be set via dynamic configuration.
      */
-    @SuppressWarnings({"CanBeFinal", "NullableProblems"})
+    @Nullable
     private String contentType;
 
     /**
@@ -49,6 +48,7 @@ public abstract class MessageMapper extends Converter<InternalMessage, Adaptable
      */
     private boolean isContentTypeRequired;
 
+    @Nullable
     public final String getContentType() {
         return contentType;
     }
@@ -59,8 +59,7 @@ public abstract class MessageMapper extends Converter<InternalMessage, Adaptable
      * @throws IllegalArgumentException if contentType is null or empty
      */
     @SuppressWarnings("WeakerAccess")
-    protected void setContentType(@Nonnull final String contentType) {
-        checkNotEmpty(contentType, "contentType");
+    protected void setContentType(final String contentType) {
         this.contentType = contentType;
     }
 
@@ -86,7 +85,6 @@ public abstract class MessageMapper extends Converter<InternalMessage, Adaptable
     @SuppressWarnings("WeakerAccess")
     protected void requireMatchingContentType(final InternalMessage internalMessage) {
         if (isContentTypeRequired()) {
-            //noinspection ConstantConditions (will be set in subclasses)
             if (Objects.isNull(contentType) || contentType.isEmpty()) {
                 throw new IllegalArgumentException(String.format("A matching content type is required, but none configured. Set a content type with the following key in configuration: %s",
                         CONTENT_TYPE_KEY));
@@ -111,10 +109,7 @@ public abstract class MessageMapper extends Converter<InternalMessage, Adaptable
      */
     public static Optional<String> findContentType(final InternalMessage internalMessage) {
         checkNotNull(internalMessage);
-        return internalMessage.getHeaders().entrySet().stream()
-                .filter(e -> CONTENT_TYPE_KEY.equalsIgnoreCase(e.getKey()))
-                .findFirst()
-                .map(Map.Entry::getValue);
+        return internalMessage.findHeaderIgnoreCase(CONTENT_TYPE_KEY);
     }
 
     /**
@@ -136,7 +131,7 @@ public abstract class MessageMapper extends Converter<InternalMessage, Adaptable
      * @param configuration the configuration
      * @throws IllegalArgumentException if the configuration is invalid.
      */
-    public final void configure(@Nonnull final MessageMapperConfiguration configuration){
+    public final void configure(final MessageMapperConfiguration configuration){
         checkNotNull(configuration);
         doConfigure(configuration);
 
@@ -149,11 +144,11 @@ public abstract class MessageMapper extends Converter<InternalMessage, Adaptable
         setContentType(contentTypeValue);
     }
 
-    protected abstract void doConfigure(@Nonnull final MessageMapperConfiguration configuration);
+    protected abstract void doConfigure(final MessageMapperConfiguration configuration);
 
-    protected abstract Adaptable doForwardMap(final InternalMessage internalMessage);
+    protected abstract Adaptable doForwardMap(@Nullable final InternalMessage internalMessage);
 
-    protected abstract InternalMessage doBackwardMap(final Adaptable adaptable);
+    protected abstract InternalMessage doBackwardMap(@Nullable final Adaptable adaptable);
 
     @Override
     protected final Adaptable doForward(final InternalMessage internalMessage) {
@@ -166,9 +161,8 @@ public abstract class MessageMapper extends Converter<InternalMessage, Adaptable
         return doBackwardMap(adaptable);
     }
 
-    @SuppressWarnings("NullableProblems")
     @Override
-    public boolean equals(final Object o) {
+    public boolean equals(@Nullable final Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         if (!super.equals(o)) return false;

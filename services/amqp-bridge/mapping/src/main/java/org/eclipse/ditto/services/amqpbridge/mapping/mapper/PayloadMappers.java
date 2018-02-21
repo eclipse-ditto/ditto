@@ -23,6 +23,7 @@ import org.eclipse.ditto.services.amqpbridge.mapping.mapper.javascript.JavaScrip
 /**
  * TODO doc
  */
+@Deprecated
 public class PayloadMappers {
 
     /**

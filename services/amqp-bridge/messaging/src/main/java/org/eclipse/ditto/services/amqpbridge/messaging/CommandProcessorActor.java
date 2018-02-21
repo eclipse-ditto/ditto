@@ -24,6 +24,7 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.model.amqpbridge.InternalMessage;
 import org.eclipse.ditto.model.amqpbridge.MappingContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.common.ConditionChecker;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -127,6 +128,8 @@ public final class CommandProcessorActor extends AbstractActor {
     }
 
     private void handle(final InternalMessage m) {
+        ConditionChecker.checkNotNull(m);
+
         final String correlationId = DittoHeaders.of(m.getHeaders()).getCorrelationId().orElse("no-correlation-id");
         LogUtil.enhanceLogWithCorrelationId(log, correlationId);
 

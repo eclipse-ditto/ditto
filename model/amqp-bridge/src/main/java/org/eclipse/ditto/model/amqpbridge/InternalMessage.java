@@ -28,19 +28,24 @@ public class InternalMessage {
 
     private enum Type {
         TEXT,
-        BYTES
+        BYTES,
+        UNKNOWN
     }
 
     private final Map<String, String> headers;
-    private final String textPayload;
-    private final ByteBuffer bytePayload;
     private final Type type;
+
+    @Nullable
+    private final String textPayload;
+    @Nullable
+    private final ByteBuffer bytePayload;
 
     private InternalMessage(final Builder builder) {
         this.headers = Collections.unmodifiableMap(new LinkedHashMap<>(builder.headers));
+        this.type = builder.type;
         this.textPayload = builder.textPayload;
         this.bytePayload = builder.bytePayload;
-        this.type = builder.type;
+
     }
 
     public Map<String, String> getHeaders() {
@@ -49,6 +54,11 @@ public class InternalMessage {
 
     public Optional<String> findHeader(final String key) {
         return Optional.ofNullable(headers.get(key)).filter(s -> !s.isEmpty());
+    }
+
+    public Optional<String> findHeaderIgnoreCase(final String key) {
+        return headers.entrySet().stream().filter(e -> key.equalsIgnoreCase(e.getKey())).findFirst()
+                .map(Map.Entry::getValue);
     }
 
     public boolean isTextMessage() {
@@ -80,7 +90,6 @@ public class InternalMessage {
 
     @Override
     public int hashCode() {
-
         return Objects.hash(headers, textPayload, bytePayload, type);
     }
 
@@ -88,30 +97,36 @@ public class InternalMessage {
 
     public static class Builder {
 
-        private Map<String, String> headers;
+        private final Map<String, String> headers;
+        private Type type = Type.UNKNOWN;
+        @Nullable
         private String textPayload;
+        @Nullable
         private ByteBuffer bytePayload;
-        private Type type;
 
         public Builder(final Map<String, String> headers) {
             this.headers = headers;
         }
 
         public Builder withText(@Nullable final String text) {
-            this.textPayload = text;
             this.type = Type.TEXT;
+            this.textPayload = text;
             this.bytePayload = null;
             return this;
         }
 
         public Builder withBytes(@Nullable final byte[] bytes) {
-            withBytes(ByteBuffer.wrap(bytes));
+            if (Objects.isNull(bytes)) {
+                withBytes((ByteBuffer) null);
+            } else {
+                withBytes(ByteBuffer.wrap(bytes));
+            }
             return this;
         }
 
         public Builder withBytes(@Nullable final ByteBuffer bytes) {
-            this.bytePayload = bytes;
             this.type = Type.BYTES;
+            this.bytePayload = bytes;
             this.textPayload = null;
             return this;
         }
