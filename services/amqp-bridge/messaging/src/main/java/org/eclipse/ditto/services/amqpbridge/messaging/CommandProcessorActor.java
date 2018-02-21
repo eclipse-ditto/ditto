@@ -22,15 +22,11 @@ import java.util.concurrent.TimeUnit;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonFactory;
-import javax.annotation.Nullable;
-
-import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.model.amqpbridge.InternalMessage;
 import org.eclipse.ditto.model.amqpbridge.MappingContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -174,7 +170,7 @@ public final class CommandProcessorActor extends AbstractActor {
     }
 
     private void handleCommandResponse(final CommandResponse response) {
-        LogUtil.enhanceLogWithCorrelationId(log, correlationId);
+        LogUtil.enhanceLogWithCorrelationId(log, response);
         finishTrace(response);
 
         if (response.getStatusCodeValue() < HttpStatusCode.BAD_REQUEST.toInt()) {
