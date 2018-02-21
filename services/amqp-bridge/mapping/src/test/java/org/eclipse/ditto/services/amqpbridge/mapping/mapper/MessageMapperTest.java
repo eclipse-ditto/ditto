@@ -71,7 +71,7 @@ public abstract class MessageMapperTest {
 
     @Test
     public void configureNullOptionsFails() throws Exception {
-        assertThatIllegalArgumentException().isThrownBy(() -> mapper.configure(null));
+        assertThatNullPointerException().isThrownBy(() -> mapper.configure(null));
     }
 
     @Test
