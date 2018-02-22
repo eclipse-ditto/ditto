@@ -34,8 +34,6 @@ import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 
-import scala.Int;
-
 public class DittoMessageMapperTest extends MessageMapperTest {
 
     @Override
@@ -135,7 +133,7 @@ public class DittoMessageMapperTest extends MessageMapperTest {
 
         InternalMessage message;
         message = InternalMessage.Builder.newCommand(headers).withText("").build();
-        mappings.put(message, new IllegalArgumentException("Failed to extract string payload from message: InternalMessage{headers={header-key=header-value, Content-Type=application/vnd.eclipse.ditto+json}, textPayload='', bytePayload='null', type=TEXT}"));
+        mappings.put(message, new IllegalArgumentException("Failed to extract string payload from message:"));
 
         // --
 

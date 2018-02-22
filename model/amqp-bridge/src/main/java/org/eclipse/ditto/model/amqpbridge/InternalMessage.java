@@ -210,6 +210,7 @@ public final class InternalMessage {
                 ", bytePayload='" +
                 (bytePayload == null ? "null" : ("'<binary> (size :" + bytePayload.position() + ")")) + "'" +
                 ", payloadType=" + payloadType +
+                ", messageType=" + messageType +
                 '}';
     }
 }
