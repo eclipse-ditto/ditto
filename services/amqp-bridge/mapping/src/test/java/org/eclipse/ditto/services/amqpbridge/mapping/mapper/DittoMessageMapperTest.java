@@ -12,12 +12,15 @@
 package org.eclipse.ditto.services.amqpbridge.mapping.mapper;
 
 
+import java.util.AbstractMap;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonMissingFieldException;
@@ -30,6 +33,8 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
+
+import scala.Int;
 
 public class DittoMessageMapperTest extends MessageMapperTest {
 
@@ -77,8 +82,13 @@ public class DittoMessageMapperTest extends MessageMapperTest {
 
     @Override
     protected Map<InternalMessage, Adaptable> createValidIncomingMappings() {
-        Map<InternalMessage, Adaptable> mappings = new HashMap<>();
+        return Stream.of(
+                valid1(),
+                valid2()
+        ).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    }
 
+    private Map.Entry<InternalMessage, Adaptable> valid1() {
         Map<String, String> headers = new HashMap<>();
         headers.put("header-key", "header-value");
         headers.put(MessageMapper.CONTENT_TYPE_KEY, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
@@ -94,15 +104,25 @@ public class DittoMessageMapperTest extends MessageMapperTest {
                 .build());
 
         InternalMessage message = new InternalMessage.Builder(headers).withText(adaptable.toJsonString()).build();
-        mappings.put(message, adaptable);
+        Adaptable expected = ProtocolFactory.newAdaptableBuilder(adaptable).build();
+
+        return new AbstractMap.SimpleEntry<InternalMessage, Adaptable>(message, expected);
+    }
+
+    private Map.Entry<InternalMessage, Adaptable> valid2() {
+        Map<String, String> headers = new HashMap<>();
+        headers.put("header-key", "header-value");
+        headers.put(MessageMapper.CONTENT_TYPE_KEY, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
 
         JsonObject json = JsonFactory.newObjectBuilder()
                 .set("path","/some/path")
                 .build();
-        message = new InternalMessage.Builder(headers).withText(json.toString()).build();
-        mappings.put(message, ProtocolFactory.jsonifiableAdaptableFromJson(json));
 
-        return mappings;
+        Adaptable expected = ProtocolFactory.newAdaptableBuilder(ProtocolFactory.jsonifiableAdaptableFromJson(json))
+                .withHeaders(DittoHeaders.of(headers))
+                .build();
+        InternalMessage message = new InternalMessage.Builder(headers).withText(json.toString()).build();
+        return new AbstractMap.SimpleEntry<InternalMessage, Adaptable>(message, expected);
     }
 
     @Override
@@ -115,7 +135,7 @@ public class DittoMessageMapperTest extends MessageMapperTest {
 
         InternalMessage message;
         message = new InternalMessage.Builder(headers).withText("").build();
-        mappings.put(message, new IllegalArgumentException("Message contains no valid payload"));
+        mappings.put(message, new IllegalArgumentException("Failed to extract string payload from message: InternalMessage{headers={header-key=header-value, Content-Type=application/vnd.eclipse.ditto+json}, textPayload='', bytePayload='null', type=TEXT}"));
 
         // --
 

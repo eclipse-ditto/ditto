@@ -11,6 +11,8 @@
  */
 package org.eclipse.ditto.services.amqpbridge.mapping.mapper;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
@@ -57,7 +59,11 @@ public final class DittoMessageMapper extends MessageMapper {
     );
 
     /**
-     * A convenience constructor to init without a mapping context
+     * A convenience constructor to init without a mapping context. Sets the contentType and contentTypeRequired
+     * options to default values if not present in configuration. Default content type is {@value
+     * DittoConstants#DITTO_PROTOCOL_CONTENT_TYPE} and will be enforced.
+     *
+     * @param configuration the mapper configuration
      */
     public DittoMessageMapper(final MessageMapperConfiguration configuration) {
         Map<String, String> map = new HashMap<>(configuration);
@@ -78,19 +84,17 @@ public final class DittoMessageMapper extends MessageMapper {
     }
 
     @Override
-    protected Adaptable doForwardMap(@Nonnull final InternalMessage message) {
-        final Optional<String> payload = message.isTextMessage() ? message.getTextPayload()
-                : message.getBytePayload().isPresent() ? message.getBytePayload()
-                .map(ByteBuffer::array)
-                .map(ba -> new String(ba, StandardCharsets.UTF_8))
-                : Optional.empty();
+    protected Adaptable doForwardMap(final InternalMessage message) {
+        final String payload = extractPayloadAsString(message);
+        final Adaptable adaptable = STRING_ADAPTABLE_CONVERTER.convert(payload);
+        checkNotNull(adaptable);
 
-        return payload.filter(s -> !s.isEmpty()).map(STRING_ADAPTABLE_CONVERTER::convert)
-                .orElseThrow(() -> new IllegalArgumentException("Message contains no valid payload"));
+        DittoHeaders mergedHeaders = mergeHeaders(message, adaptable);
+        return ProtocolFactory.newAdaptableBuilder(adaptable).withHeaders(mergedHeaders).build();
     }
 
     @Override
-    protected InternalMessage doBackwardMap(@Nonnull final Adaptable adaptable) {
+    protected InternalMessage doBackwardMap(final Adaptable adaptable) {
         final Map<String, String> headers = new LinkedHashMap<>(adaptable.getHeaders().orElse(DittoHeaders.empty()));
         headers.put(MessageMapper.CONTENT_TYPE_KEY, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
         return new InternalMessage.Builder(headers)
@@ -98,5 +102,30 @@ public final class DittoMessageMapper extends MessageMapper {
                 .build();
     }
 
+    private static String extractPayloadAsString(final InternalMessage message) {
+        final Optional<String> payload;
+        if (message.isTextMessage()) {
+            payload = message.getTextPayload();
+        } else if (message.isBytesMessage()) {
+            payload = message.getBytePayload().map(ByteBuffer::array).map(ba -> new String(ba, StandardCharsets.UTF_8));
+        } else {
+            payload = Optional.empty();
+        }
 
+        return payload.filter(s -> !s.isEmpty()).orElseThrow(
+                () -> new IllegalArgumentException("Failed to extract string payload from message: " + message));
+    }
+
+    /**
+     * Merge message headers of message and adaptable. Adaptable headers do override message headers!
+     *
+     * @param message the message
+     * @param adaptable the adaptable
+     * @return the merged headers
+     */
+    private static DittoHeaders mergeHeaders(final InternalMessage message, final Adaptable adaptable) {
+        final Map<String, String> headers = new HashMap<>(message.getHeaders());
+        adaptable.getHeaders().ifPresent(headers::putAll);
+        return DittoHeaders.of(headers);
+    }
 }
