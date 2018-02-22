@@ -43,16 +43,29 @@ public class MessageMapperRegistry implements Collection<MessageMapper> {
         setDefaultMapper(defaultMapper);
     }
 
+    /**
+     * Constructs a mapper with the given params.
+     * @param defaultMapper the default mapper
+     * @param mappers the mappers
+     */
     MessageMapperRegistry(@Nullable final MessageMapper defaultMapper, final List<MessageMapper> mappers) {
         this(defaultMapper);
         addAll(mappers);
     }
 
+    /**
+     * Returns the default mapper if present
+     * @return the default mapper or null
+     */
     @Nullable
     public MessageMapper getDefaultMapper() {
         return defaultMapper;
     }
 
+    /**
+     * Sets a default mapper
+     * @param defaultMapper the default mapper
+     */
     private void setDefaultMapper(@Nullable final MessageMapper defaultMapper) {
         this.defaultMapper = defaultMapper;
     }
@@ -61,6 +74,13 @@ public class MessageMapperRegistry implements Collection<MessageMapper> {
         return MessageMapper.findContentType(message).map(registry::get);
     }
 
+    /**
+     * Selects a mapper for this message. If no explicit mapper is found for the message and a default mapper is
+     * present. The default mapper will be returned.
+     *
+     * @param message the message
+     * @return the selected mapper
+     */
     public Optional<MessageMapper> selectMapper(final InternalMessage message) {
         Optional<MessageMapper> mapper = findMapper(message);
         return mapper.isPresent() ? mapper : Optional.ofNullable(getDefaultMapper());
@@ -70,11 +90,17 @@ public class MessageMapperRegistry implements Collection<MessageMapper> {
         return MessageMapper.findContentType(adaptable).map(registry::get).map(MessageMapper::reverse);
     }
 
+    /**
+     * Selects a mapper for this adaptable. If no explicit mapper is found for the adaptable and a default mapper is
+     * present. The default mapper will be returned.
+     *
+     * @param adaptable the adaptable
+     * @return the selected mapper
+     */
     public Optional<Converter<Adaptable, InternalMessage>> selectMapper(final Adaptable adaptable) {
         Optional<Converter<Adaptable, InternalMessage>> mapper = findMapper(adaptable);
         return mapper.isPresent() ? mapper : Optional.ofNullable(getDefaultMapper()).map(MessageMapper::reverse);
     }
-
 
 
     @Override

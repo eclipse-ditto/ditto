@@ -83,8 +83,8 @@ public abstract class MessageMapper extends Converter<InternalMessage, Adaptable
 
 
     @SuppressWarnings("WeakerAccess")
-    protected void requireMatchingContentType(final InternalMessage internalMessage) {
-        if (isContentTypeRequired()) {
+    protected void requireMatchingContentType(@Nullable final InternalMessage internalMessage) {
+        if (Objects.nonNull(internalMessage) && isContentTypeRequired()) {
             if (Objects.isNull(contentType) || contentType.isEmpty()) {
                 throw new IllegalArgumentException(String.format("A matching content type is required, but none configured. Set a content type with the following key in configuration: %s",
                         CONTENT_TYPE_KEY));
@@ -144,11 +144,25 @@ public abstract class MessageMapper extends Converter<InternalMessage, Adaptable
         setContentType(contentTypeValue);
     }
 
+    /**
+     * Dynamically configures the mapper with the given configuration options.
+     * @param configuration the configuration
+     */
     protected abstract void doConfigure(final MessageMapperConfiguration configuration);
 
-    protected abstract Adaptable doForwardMap(@Nullable final InternalMessage internalMessage);
+    /**
+     * Maps a messeage to an adaptable. There is no need for implementing a content type check!
+     * @param internalMessage the message
+     * @return the adaptable
+     */
+    protected abstract Adaptable doForwardMap(final InternalMessage internalMessage);
 
-    protected abstract InternalMessage doBackwardMap(@Nullable final Adaptable adaptable);
+    /**
+     * Maps an adaptable to a messeage. There is no need for implementing a content type check!
+     * @param adaptable the adaptable
+     * @return the message
+     */
+    protected abstract InternalMessage doBackwardMap(final Adaptable adaptable);
 
     @Override
     protected final Adaptable doForward(final InternalMessage internalMessage) {
