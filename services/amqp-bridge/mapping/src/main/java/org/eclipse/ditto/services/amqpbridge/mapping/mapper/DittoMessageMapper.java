@@ -62,8 +62,8 @@ public final class DittoMessageMapper extends MessageMapper {
 
     /**
      * A convenience constructor to init without a mapping context. Sets the contentType and contentTypeRequired
-     * options to default values if not present in configuration. Default content type is {@value
-     * DittoConstants#DITTO_PROTOCOL_CONTENT_TYPE} and will be enforced.
+     * options to default values if not present in configuration.
+     * Default content type is {@link DittoConstants#DITTO_PROTOCOL_CONTENT_TYPE} and will be enforced.
      *
      * @param configuration the mapper configuration
      */
