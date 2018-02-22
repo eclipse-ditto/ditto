@@ -18,6 +18,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.qpid.jms.exceptions.IdConversionException;
@@ -173,7 +174,6 @@ public class CommandProcessorActorTest {
         }};
     }
 
-
     private ActorRef setupActor(final ActorRef testActor, final List<MappingContext> mappingContexts) {
 
         pubSubMediator.tell(new DistributedPubSubMediator.Put(testActor), null);
@@ -181,7 +181,7 @@ public class CommandProcessorActorTest {
         final Props amqpCommandProcessorProps =
                 CommandProcessorActor.props(pubSubMediator, testActor, AuthorizationSubject.newInstance("foo:bar"),
                         mappingContexts);
-        final String amqpCommandProcessorName = CommandProcessorActor.ACTOR_NAME_PREFIX + "foo";
+        final String amqpCommandProcessorName = CommandProcessorActor.ACTOR_NAME_PREFIX + UUID.randomUUID().toString();
 
         final DefaultResizer resizer = new DefaultResizer(1, 5);
 

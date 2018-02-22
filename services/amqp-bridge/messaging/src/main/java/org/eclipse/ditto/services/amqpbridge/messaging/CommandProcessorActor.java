@@ -21,7 +21,6 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.model.amqpbridge.InternalMessage;
 import org.eclipse.ditto.model.amqpbridge.MappingContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
@@ -29,7 +28,6 @@ import org.eclipse.ditto.model.base.common.ConditionChecker;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
@@ -137,23 +135,19 @@ public final class CommandProcessorActor extends AbstractActor {
 
     private void handle(final InternalMessage m) {
         ConditionChecker.checkNotNull(m);
-
-        final String correlationId = DittoHeaders.of(m.getHeaders()).getCorrelationId().orElse("no-correlation-id");
+        final String correlationId = m.getHeaders().get(DittoHeaderDefinition.CORRELATION_ID.getKey());
         LogUtil.enhanceLogWithCorrelationId(log, correlationId);
 
-        log.debug("Processing: {}", m);
-
-        // TODO dg find better way to inject header fields
-        final String subjectsArray = JsonFactory.newArray().add(authorizationSubject.getId()).toString();
-        m.getHeaders().put(DittoHeaderDefinition.AUTHORIZATION_SUBJECTS.getKey(), subjectsArray);
+        final InternalMessage messageWithAuthSubject =
+                m.withHeader(DittoHeaderDefinition.AUTHORIZATION_SUBJECTS.getKey(), authorizationSubject.getId());
 
         try {
-            final Command<?> command = processor.process(m);
+            final Command<?> command = processor.process(messageWithAuthSubject);
             startTrace(command);
             log.info("Publishing '{}' to '{}'", command.getType(), GATEWAY_PROXY_ACTOR_PATH);
             pubSubMediator.tell(new DistributedPubSubMediator.Send(GATEWAY_PROXY_ACTOR_PATH, command, true),
                     getSelf());
-        } catch (Exception e) {
+        } catch (final Exception e) {
             log.info(e.getMessage());
         }
     }
