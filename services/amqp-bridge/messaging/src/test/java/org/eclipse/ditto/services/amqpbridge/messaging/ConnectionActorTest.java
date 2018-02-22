@@ -18,7 +18,6 @@ import java.util.concurrent.TimeUnit;
 import org.eclipse.ditto.model.amqpbridge.AmqpConnection;
 import org.eclipse.ditto.model.amqpbridge.ConnectionStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.signals.commands.amqpbridge.exceptions.ConnectionNotAccessibleException;
 import org.eclipse.ditto.signals.commands.amqpbridge.modify.CloseConnection;
 import org.eclipse.ditto.signals.commands.amqpbridge.modify.CloseConnectionResponse;
@@ -28,7 +27,7 @@ import org.eclipse.ditto.signals.commands.amqpbridge.modify.DeleteConnection;
 import org.eclipse.ditto.signals.commands.amqpbridge.modify.DeleteConnectionResponse;
 import org.eclipse.ditto.signals.commands.amqpbridge.query.RetrieveConnectionStatus;
 import org.eclipse.ditto.signals.commands.amqpbridge.query.RetrieveConnectionStatusResponse;
-import org.eclipse.ditto.signals.events.things.ThingModified;
+import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -230,10 +229,7 @@ public class ConnectionActorTest {
             underTest.tell(createConnection, getRef());
             expectMsg(createConnectionResponse);
 
-            final Thing thing = Thing.newBuilder().setId("ditto:thing").build();
-            final DittoHeaders dittoHeaders =
-                    DittoHeaders.newBuilder().readSubjects(readSubjects).build();
-            final ThingModified thingModified = ThingModified.of(thing, 1, dittoHeaders);
+            final ThingModifiedEvent thingModified = TestConstants.thingModified(readSubjects);
 
             underTest.tell(thingModified, getRef());
 
@@ -249,11 +245,11 @@ public class ConnectionActorTest {
 
         private final TestKit probe;
 
-        TestActor(final TestKit probe) {
+        private TestActor(final TestKit probe) {
             this.probe = probe;
         }
 
-        public static Props props(TestKit probe) {
+        static Props props(final TestKit probe) {
             return Props.create(TestActor.class, new Creator<TestActor>() {
                 private static final long serialVersionUID = 1L;
 
@@ -267,15 +263,8 @@ public class ConnectionActorTest {
         @Override
         public Receive createReceive() {
             return receiveBuilder()
-                    .match(CreateConnection.class, cc -> {
-                        System.out.println("Received " + cc);
-                        System.out.println("Tell success to " + sender());
-                        sender().tell(new Status.Success("connected"), self());
-                    })
-                    .matchAny(m -> {
-                        probe.getRef().forward(m, context());
-                        System.out.println("forward " + m);
-                    }).build();
+                    .match(CreateConnection.class, cc -> sender().tell(new Status.Success("connected"), self()))
+                    .matchAny(m -> probe.getRef().forward(m, context())).build();
         }
     }
 }

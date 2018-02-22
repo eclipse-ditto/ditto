@@ -22,9 +22,8 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.amqpbridge.AmqpConnection;
 import org.eclipse.ditto.model.amqpbridge.InternalMessage;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.signals.commands.base.CommandResponse;
-import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 import com.newmotion.akka.rabbitmq.ChannelCreated;
 import com.newmotion.akka.rabbitmq.ChannelMessage;
@@ -45,6 +44,7 @@ public class RabbitMQPublisherActor extends AbstractActor {
     static final String ACTOR_NAME_PREFIX = "rmqPublisherActor-";
     private static final String REPLY_TO_HEADER = "replyTo";
     private static final String DEFAULT_EXCHANGE = "";
+    private static final String DEFAULT_EVENT_ROUTING_KEY = "thingEvent";
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
     private final AmqpConnection amqpConnection;
@@ -75,43 +75,30 @@ public class RabbitMQPublisherActor extends AbstractActor {
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
-                .match(ChannelCreated.class, channelCreated -> {
-                    this.channelActor = channelCreated.channel();
-                })
-                .match(InternalMessage.class, response -> {
-                    // ...
-                })
-                .match(CommandResponse.class, response -> {
-                    LogUtil.enhanceLogWithCorrelationId(log, response);
-                    final String replyTo;
-                    final String replyToFromHeaders = response.getDittoHeaders().get(REPLY_TO_HEADER);
-                    if (amqpConnection.getReplyTarget().isPresent()) {
-                        replyTo = amqpConnection.getReplyTarget().get();
-                    } else if (replyToFromHeaders != null) {
-                        replyTo = replyToFromHeaders;
+                .match(ChannelCreated.class, channelCreated -> this.channelActor = channelCreated.channel())
+                .match(InternalMessage.class, this::isCommandResponse, response -> {
+                    final String correlationId =
+                            response.getHeaders().get(DittoHeaderDefinition.CORRELATION_ID.getKey());
+                    LogUtil.enhanceLogWithCorrelationId(log, correlationId);
+                    log.debug("Received command response {} ", response);
+                    final String exchange = amqpConnection.getReplyTarget().orElse(DEFAULT_EXCHANGE);
+                    final String routingKey = response.getHeaders().get(REPLY_TO_HEADER);
+                    if (routingKey != null) {
+                        publishMessage(exchange, routingKey, response);
                     } else {
-                        replyTo = null;
+                        log.debug("Response dropped due to missing replyTo address.");
                     }
+                })
+                .match(InternalMessage.class, this::isEvent, event -> {
+                    final String correlationId = event.getHeaders().get(DittoHeaderDefinition.CORRELATION_ID.getKey());
+                    LogUtil.enhanceLogWithCorrelationId(log, correlationId);
+                    log.info("Received event {} ", event);
 
-                    if (replyTo != null) {
-                        // TODO this must be done in Mapper
-                        final InternalMessage message =
-                                new InternalMessage.Builder(response.getDittoHeaders()).withText(
-                                        response.toJsonString())
-                                        .build();
-                        publishMessage(DEFAULT_EXCHANGE, replyTo, message);
-                    } else {
-                        log.debug("No replyTo found in configuration or in message header, dropping reply.");
-                    }
-                })
-                .match(ThingEvent.class, event -> {
                     if (amqpConnection.getEventTarget().isPresent()) {
-                        final String eventTarget = amqpConnection.getEventTarget().get();
-                        log.debug("Received thing event. Will publish to {}/{}.", eventTarget, event.getType());
-                        final InternalMessage message =
-                                new InternalMessage.Builder(event.getDittoHeaders()).withText(event.toJsonString())
-                                        .build();
-                        publishMessage(eventTarget, event.getType(), message);
+                        final String exchange = amqpConnection.getEventTarget().get();
+                        publishMessage(exchange, DEFAULT_EVENT_ROUTING_KEY, event);
+                    } else {
+                        log.info("Dropping event, no target exchange configured.");
                     }
                 })
                 .matchAny(m -> {
@@ -120,8 +107,16 @@ public class RabbitMQPublisherActor extends AbstractActor {
                 }).build();
     }
 
+    private boolean isCommandResponse(final InternalMessage m) {
+        return InternalMessage.MessageType.RESPONSE.equals(m.getMessageType());
+    }
 
-    private void publishMessage(final String exchange, final String routingKey, InternalMessage message) {
+    private boolean isEvent(final InternalMessage m) {
+        return InternalMessage.MessageType.EVENT.equals(m.getMessageType());
+    }
+
+
+    private void publishMessage(final String exchange, final String routingKey, final InternalMessage message) {
 
         if (channelActor == null) {
             log.info("No channel available, dropping response.");
@@ -154,7 +149,7 @@ public class RabbitMQPublisherActor extends AbstractActor {
         final ChannelMessage channelMessage = ChannelMessage.apply(channel -> {
             try {
                 channel.basicPublish(exchange, routingKey, basicProperties, body);
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 log.info("Failed to publish message to RabbitMQ: {}", e.getMessage());
             }
             return null;

@@ -85,10 +85,10 @@ public class CommandConsumerActor extends AbstractActor {
             final String correlationId = properties.getCorrelationId();
             LogUtil.enhanceLogWithCorrelationId(log, correlationId);
             final Map<String, String> headers = extractHeadersFromMessage(properties, envelope);
-            final InternalMessage internalMessage = new InternalMessage.Builder(headers).withBytes(body).build();
+            final InternalMessage internalMessage = InternalMessage.Builder.newCommand(headers).withBytes(body).build();
             log.debug("Received message from RabbitMQ ({}//{}): {}", envelope, properties);
             commandProcessor.forward(internalMessage, context());
-        } catch (Exception e) {
+        } catch (final Exception e) {
             log.warning("Processing delivery {} failed: {}", envelope.getDeliveryTag(), e.getMessage(), e);
         }
     }

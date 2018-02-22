@@ -57,7 +57,6 @@ public class RabbitMQClientActor extends BaseClientActor {
 
     @Nullable private ActorRef rmqConnectionActor;
     @Nullable private ActorRef consumerChannelActor;
-    @Nullable private ActorRef publisherActor;
 
     private RabbitMQClientActor(final String connectionId, final ActorRef rmqConnectionActor) {
         super(connectionId, rmqConnectionActor);
@@ -94,8 +93,8 @@ public class RabbitMQClientActor extends BaseClientActor {
     }
 
     private void handleThingEvent(final ThingEvent<?> thingEvent) {
-        if (publisherActor != null) {
-            publisherActor.tell(thingEvent, self());
+        if (commandProcessor != null) {
+            commandProcessor.tell(thingEvent, self());
         }
     }
 
@@ -125,7 +124,8 @@ public class RabbitMQClientActor extends BaseClientActor {
             rmqConnectionActor = startChildActor(RMQ_CONNECTION_PREFIX + connectionId, props);
 
             final Props publisherProps = RabbitMQPublisherActor.props(amqpConnection);
-            publisherActor = startChildActor(RabbitMQPublisherActor.ACTOR_NAME_PREFIX + connectionId, publisherProps);
+            final ActorRef publisherActor =
+                    startChildActor(RabbitMQPublisherActor.ACTOR_NAME_PREFIX + connectionId, publisherProps);
 
             startCommandProcessor(publisherActor);
 
@@ -196,7 +196,7 @@ public class RabbitMQClientActor extends BaseClientActor {
                         channel.basicConsume(source, false,
                                 new RabbitMQMessageConsumer(commandConsumer, channel));
                 log.debug("Consuming queue {}, consumer tag is {}", source, consumerTag);
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 log.warning("Failed to consume queue '{}': {}", source, e.getMessage());
             }
         });
@@ -207,7 +207,7 @@ public class RabbitMQClientActor extends BaseClientActor {
         getSourcesOrEmptySet().forEach(source -> {
             try {
                 channel.queueDeclarePassive(source);
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 missingQueues.add(source);
                 log.warning("The queue '{}' does not exits.", source);
             }
@@ -236,12 +236,12 @@ public class RabbitMQClientActor extends BaseClientActor {
                 final AMQP.BasicProperties properties, final byte[] body) {
             try {
                 commandConsumer.tell(new Delivery(envelope, properties, body), RabbitMQClientActor.this.self());
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 log.info("Failed to process delivery {}: {}", envelope.getDeliveryTag(), e.getMessage());
             } finally {
                 try {
                     getChannel().basicAck(envelope.getDeliveryTag(), false);
-                } catch (IOException e) {
+                } catch (final IOException e) {
                     log.info("Failed to ack delivery {}: {}", envelope.getDeliveryTag(), e.getMessage());
                 }
             }

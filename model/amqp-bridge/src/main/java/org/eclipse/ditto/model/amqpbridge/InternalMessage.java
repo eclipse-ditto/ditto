@@ -23,16 +23,23 @@ import javax.annotation.Nullable;
 /**
  * Simple wrapper around the headers and the payload received from external AMQP source.
  */
-public class InternalMessage {
+public final class InternalMessage {
 
-    private enum Type {
+    public enum MessageType {
+        COMMAND,
+        EVENT,
+        RESPONSE
+    }
+
+    private enum PayloadType {
         TEXT,
         BYTES,
         UNKNOWN
     }
 
     private final Map<String, String> headers;
-    private final Type type;
+    private final MessageType messageType;
+    private final PayloadType payloadType;
 
     @Nullable
     private final String textPayload;
@@ -43,7 +50,8 @@ public class InternalMessage {
         this.headers = builder.headers;
         this.textPayload = builder.textPayload;
         this.bytePayload = builder.bytePayload;
-        this.type = builder.type;
+        this.payloadType = builder.payloadType;
+        this.messageType = builder.messageType;
     }
 
     public Map<String, String> getHeaders() {
@@ -77,11 +85,11 @@ public class InternalMessage {
     }
 
     public boolean isTextMessage() {
-        return Type.TEXT.equals(type);
+        return PayloadType.TEXT.equals(payloadType);
     }
 
     public boolean isBytesMessage() {
-        return Type.BYTES.equals(type);
+        return PayloadType.BYTES.equals(payloadType);
     }
 
     public Optional<String> getTextPayload() {
@@ -92,6 +100,9 @@ public class InternalMessage {
         return Optional.ofNullable(bytePayload);
     }
 
+    public MessageType getMessageType() {
+        return messageType;
+    }
     @Override
     public boolean equals(final Object o) {
         if (this == o) return true;
@@ -100,32 +111,57 @@ public class InternalMessage {
         return Objects.equals(headers, that.headers) &&
                 Objects.equals(textPayload, that.textPayload) &&
                 Objects.equals(bytePayload, that.bytePayload) &&
-                type == that.type;
+                payloadType == that.payloadType &&
+                messageType == that.messageType;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(headers, textPayload, bytePayload, type);
+        return Objects.hash(headers, textPayload, bytePayload, payloadType, messageType);
     }
 
     public static class Builder {
 
         private final Map<String, String> headers;
-        private Type type = Type.UNKNOWN;
+        private final MessageType messageType;
+        private PayloadType payloadType = PayloadType.UNKNOWN;
         @Nullable
         private String textPayload;
         @Nullable
         private ByteBuffer bytePayload;
 
-        public Builder(final Map<String, String> headers) {
-            this.headers = headers;
+        public static Builder newCommand(final Map<String, String> headers) {
+            return new Builder(headers, MessageType.COMMAND);
         }
 
-        public Builder(final InternalMessage message) {
+        public static Builder newEvent(final Map<String, String> headers) {
+            return new Builder(headers, MessageType.EVENT);
+        }
+
+        public static Builder newResponse(final Map<String, String> headers) {
+            return new Builder(headers, MessageType.RESPONSE);
+        }
+
+        public static Builder from(final InternalMessage message) {
+            return new Builder(message);
+        }
+
+        public static Builder from(final Map<String, String> headers, final MessageType messageType) {
+            return new Builder(headers, messageType);
+        }
+
+        private Builder(final InternalMessage message) {
             this.headers = new HashMap<>(message.headers);
             this.bytePayload = message.bytePayload;
             this.textPayload = message.textPayload;
+            this.messageType = message.messageType;
         }
+
+        private Builder(final Map<String, String> headers, final MessageType messageType) {
+            this.headers = headers;
+            this.messageType = messageType;
+        }
+
 
         public Builder withAdditionalHeaders(final String key, final String value) {
             headers.put(key, value);
@@ -138,7 +174,7 @@ public class InternalMessage {
         }
 
         public Builder withText(@Nullable final String text) {
-            this.type = Type.TEXT;
+            this.payloadType = PayloadType.TEXT;
             this.textPayload = text;
             this.bytePayload = null;
             return this;
@@ -154,7 +190,7 @@ public class InternalMessage {
         }
 
         public Builder withBytes(@Nullable final ByteBuffer bytes) {
-            this.type = Type.BYTES;
+            this.payloadType = PayloadType.BYTES;
             this.bytePayload = bytes;
             this.textPayload = null;
             return this;
@@ -173,7 +209,7 @@ public class InternalMessage {
                 ", textPayload='" + textPayload + '\'' +
                 ", bytePayload='" +
                 (bytePayload == null ? "null" : ("'<binary> (size :" + bytePayload.position() + ")")) + "'" +
-                ", type=" + type +
+                ", payloadType=" + payloadType +
                 '}';
     }
 }

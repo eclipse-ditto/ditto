@@ -93,13 +93,14 @@ public class DittoMessageMapperTest extends MessageMapperTest {
                         .build())
                 .build());
 
-        InternalMessage message = new InternalMessage.Builder(headers).withText(adaptable.toJsonString()).build();
+        InternalMessage message =
+                InternalMessage.Builder.newCommand(headers).withText(adaptable.toJsonString()).build();
         mappings.put(message, adaptable);
 
         JsonObject json = JsonFactory.newObjectBuilder()
                 .set("path","/some/path")
                 .build();
-        message = new InternalMessage.Builder(headers).withText(json.toString()).build();
+        message = InternalMessage.Builder.newCommand(headers).withText(json.toString()).build();
         mappings.put(message, ProtocolFactory.jsonifiableAdaptableFromJson(json));
 
         return mappings;
@@ -114,18 +115,18 @@ public class DittoMessageMapperTest extends MessageMapperTest {
         headers.put(MessageMapper.CONTENT_TYPE_KEY, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
 
         InternalMessage message;
-        message = new InternalMessage.Builder(headers).withText("").build();
+        message = InternalMessage.Builder.newCommand(headers).withText("").build();
         mappings.put(message, new IllegalArgumentException("Message contains no valid payload"));
 
         // --
 
-        message = new InternalMessage.Builder(headers).withText("{}").build();
+        message = InternalMessage.Builder.newCommand(headers).withText("{}").build();
         mappings.put(message, new IllegalArgumentException("Failed to map '{}'",
                 new JsonMissingFieldException("/path")));
 
         // --
 
-        message = new InternalMessage.Builder(headers).withText("no json").build();
+        message = InternalMessage.Builder.newCommand(headers).withText("no json").build();
         mappings.put(message, new IllegalArgumentException("Failed to map 'no json'",
                 new JsonParseException("Failed to create JSON object from string!")));
 
@@ -158,17 +159,19 @@ public class DittoMessageMapperTest extends MessageMapperTest {
                         .build())
                 .build());
 
-        InternalMessage message = new InternalMessage.Builder(headers).withText(adaptable.toJsonString()).build();
+        InternalMessage message =
+                InternalMessage.Builder.newCommand(headers).withText(adaptable.toJsonString()).build();
         mappings.put(adaptable, message);
 
-        JsonObject json = JsonFactory.newObjectBuilder()
+        final JsonObject json = JsonFactory.newObjectBuilder()
+                .set("topic", "org.eclipse.ditto/thing1/things/twin/commands/create")
                 .set("path","/some/path")
                 .build();
         adaptable = ProtocolFactory.jsonifiableAdaptableFromJson(json);
         adaptable = ProtocolFactory.wrapAsJsonifiableAdaptable(ProtocolFactory.newAdaptableBuilder(adaptable)
                 .withHeaders(DittoHeaders.of(headers)).build());
 
-        message = new InternalMessage.Builder(headers).withText(adaptable.toJsonString()).build();
+        message = InternalMessage.Builder.newCommand(headers).withText(adaptable.toJsonString()).build();
         mappings.put(adaptable, message);
 
         return mappings;

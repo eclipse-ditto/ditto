@@ -13,6 +13,7 @@ package org.eclipse.ditto.services.amqpbridge.mapping.mapper;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -26,6 +27,7 @@ import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
+import org.eclipse.ditto.protocoladapter.TopicPath;
 
 import com.google.common.base.Converter;
 
@@ -60,7 +62,7 @@ public final class DittoMessageMapper extends MessageMapper {
      * A convenience constructor to init without a mapping context
      */
     public DittoMessageMapper(final MessageMapperConfiguration configuration) {
-        Map<String, String> map = new HashMap<>(configuration);
+        final Map<String, String> map = new HashMap<>(configuration);
         if (!map.containsKey(MessageMapper.OPT_CONTENT_TYPE)) {
             map.put(MessageMapper.OPT_CONTENT_TYPE, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
         }
@@ -91,12 +93,28 @@ public final class DittoMessageMapper extends MessageMapper {
 
     @Override
     protected InternalMessage doBackwardMap(@Nonnull final Adaptable adaptable) {
+        final InternalMessage.MessageType messageType = determineMessageType(adaptable);
         final Map<String, String> headers = new LinkedHashMap<>(adaptable.getHeaders().orElse(DittoHeaders.empty()));
         headers.put(MessageMapper.CONTENT_TYPE_KEY, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
-        return new InternalMessage.Builder(headers)
+        return InternalMessage.Builder.from(headers, messageType)
                 .withText(STRING_ADAPTABLE_CONVERTER.reverse().convert(adaptable))
                 .build();
     }
 
-
+    private InternalMessage.MessageType determineMessageType(final @Nonnull Adaptable adaptable) {
+        final TopicPath.Criterion criterion = adaptable.getTopicPath().getCriterion();
+        if (TopicPath.Criterion.COMMANDS.equals(criterion)) {
+            if (adaptable.getPayload().getStatus().isPresent()) {
+                return InternalMessage.MessageType.RESPONSE;
+            } else {
+                return InternalMessage.MessageType.COMMAND;
+            }
+        } else if (TopicPath.Criterion.EVENTS.equals(criterion)) {
+            return InternalMessage.MessageType.EVENT;
+        } else {
+            final String errorMessage = MessageFormat.format("Cannot map '{0}' message. Only [{1}, {2}] allowed.",
+                    criterion, TopicPath.Criterion.COMMANDS, TopicPath.Criterion.EVENTS);
+            throw new IllegalArgumentException(errorMessage);
+        }
+    }
 }

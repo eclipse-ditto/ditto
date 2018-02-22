@@ -37,7 +37,7 @@ public final class ConnectionUriInvalidException extends DittoRuntimeException i
     private static final String MESSAGE_TEMPLATE = "The Connection URI ''{0}'' has an invalid format.";
 
     private static final String DEFAULT_DESCRIPTION =
-            "The accepted format is amqp(s)://{username}:{password}@{hostname}:{port}";
+            "The accepted format is amqp(s)://{username}:{password}@{hostname}:{port}/{path}";
 
     private static final long serialVersionUID = -3899791430534146626L;
 

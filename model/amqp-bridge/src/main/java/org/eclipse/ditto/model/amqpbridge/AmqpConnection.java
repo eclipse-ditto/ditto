@@ -121,6 +121,13 @@ public interface AmqpConnection extends Jsonifiable.WithFieldSelectorAndPredicat
     int getPort();
 
     /**
+     * Returns the path part of the URI of this {@code Connection}.
+     *
+     * @return the path.
+     */
+    String getPath();
+
+    /**
      * Maximum number of messages per second processed by the bridge. 0 (default) means no limit.
      *
      * @return number of messages that are processed per second at most.
@@ -318,10 +325,20 @@ public interface AmqpConnection extends Jsonifiable.WithFieldSelectorAndPredicat
         private static final String PORT_REGEX = "(?<" + PORT_REGEX_GROUP + ">(\\d*))?";
 
         /**
+         * Regex group for the path part of an URI.
+         */
+        public static final String PATH_REGEX_GROUP = "path";
+
+        /**
+         * Regex for the path part of an URI.
+         */
+        private static final String PATH_REGEX = "(/(?<" + PATH_REGEX_GROUP + ">(\\S+))?)?";
+
+        /**
          * Regex for an URI.
          */
         public static final String REGEX =
-                PROTOCOL_REGEX + USERNAME_REGEX + PASSWORD_REGEX + HOSTNAME_REGEX + PORT_REGEX;
+                PROTOCOL_REGEX + USERNAME_REGEX + PASSWORD_REGEX + HOSTNAME_REGEX + PORT_REGEX + PATH_REGEX;
 
         private UriRegex() {
             throw new AssertionError();

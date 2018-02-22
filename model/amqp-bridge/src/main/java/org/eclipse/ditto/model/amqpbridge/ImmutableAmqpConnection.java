@@ -51,6 +51,7 @@ final class ImmutableAmqpConnection implements AmqpConnection {
     private final String password;
     private final String hostname;
     private final int port;
+    private final String path;
 
     @Nullable private final Set<String> sources;
     @Nullable private final String eventTarget;
@@ -66,7 +67,11 @@ final class ImmutableAmqpConnection implements AmqpConnection {
         this.connectionType = builder.connectionType;
         this.uri = builder.uri;
         this.authorizationSubject = builder.authorizationSubject;
-        this.sources = Collections.unmodifiableSet(new HashSet<>(builder.sources));
+        if (builder.sources != null) {
+            this.sources = Collections.unmodifiableSet(new HashSet<>(builder.sources));
+        } else {
+            this.sources = null;
+        }
         this.eventTarget = builder.eventTarget;
         this.replyTarget = builder.replyTarget;
         this.failoverEnabled = builder.failoverEnabled;
@@ -83,6 +88,7 @@ final class ImmutableAmqpConnection implements AmqpConnection {
             password = matcher.group(AmqpConnection.UriRegex.PASSWORD_REGEX_GROUP);
             hostname = matcher.group(AmqpConnection.UriRegex.HOSTNAME_REGEX_GROUP);
             port = Integer.parseInt(matcher.group(AmqpConnection.UriRegex.PORT_REGEX_GROUP));
+            path = matcher.group(AmqpConnection.UriRegex.PATH_REGEX_GROUP);
         } else {
             throw ConnectionUriInvalidException.newBuilder(uri).build();
         }
@@ -211,6 +217,11 @@ final class ImmutableAmqpConnection implements AmqpConnection {
     }
 
     @Override
+    public String getPath() {
+        return path;
+    }
+
+    @Override
     public int getThrottle() {
         return throttle;
     }
@@ -277,6 +288,7 @@ final class ImmutableAmqpConnection implements AmqpConnection {
                 Objects.equals(username, that.username) &&
                 Objects.equals(password, that.password) &&
                 Objects.equals(hostname, that.hostname) &&
+                Objects.equals(path, that.path) &&
                 Objects.equals(throttle, that.throttle) &&
                 Objects.equals(consumerCount, that.consumerCount) &&
                 Objects.equals(processorPoolSize, that.processorPoolSize) &&
@@ -286,7 +298,7 @@ final class ImmutableAmqpConnection implements AmqpConnection {
     @Override
     public int hashCode() {
         return Objects.hash(id, connectionType, authorizationSubject, sources, eventTarget, replyTarget,
-                failoverEnabled, uri, protocol, username, password, hostname, port, validateCertificate, throttle,
+                failoverEnabled, uri, protocol, username, password, hostname, path, port, validateCertificate, throttle,
                 consumerCount, processorPoolSize);
     }
 
@@ -306,6 +318,7 @@ final class ImmutableAmqpConnection implements AmqpConnection {
                 ", password=" + password +
                 ", hostname=" + hostname +
                 ", port=" + port +
+                ", path=" + path +
                 ", validateCertificate=" + validateCertificate +
                 ", throttle=" + throttle +
                 ", consumerCount=" + consumerCount +
