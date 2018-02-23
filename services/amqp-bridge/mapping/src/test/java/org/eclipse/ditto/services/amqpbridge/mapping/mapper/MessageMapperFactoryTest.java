@@ -220,11 +220,11 @@ public class MessageMapperFactoryTest {
         final MappingContext fooCtx = MappingContexts.mock("foo", true, true);
         final MappingContext barCtx = MappingContexts.mock("bar", true, true);
 
-        final InternalMessage fooMessage = new InternalMessage.Builder(Collections.singletonMap(MessageMapper
+        final InternalMessage fooMessage = InternalMessage.Builder.newCommand(Collections.singletonMap(MessageMapper
                 .CONTENT_TYPE_KEY, "foo")).build();
-        final InternalMessage barMessage = new InternalMessage.Builder(Collections.singletonMap(MessageMapper
+        final InternalMessage barMessage = InternalMessage.Builder.newCommand(Collections.singletonMap(MessageMapper
                 .CONTENT_TYPE_KEY, "foo")).build();
-        final InternalMessage otherMessage = new InternalMessage.Builder(Collections.singletonMap(MessageMapper
+        final InternalMessage otherMessage = InternalMessage.Builder.newCommand(Collections.singletonMap(MessageMapper
                 .CONTENT_TYPE_KEY, "other")).build();
 
         final MessageMapper defaultMapper = new MockMapper(); // default mapper with null content type

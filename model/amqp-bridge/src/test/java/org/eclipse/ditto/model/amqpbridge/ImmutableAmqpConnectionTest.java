@@ -157,11 +157,28 @@ public final class ImmutableAmqpConnectionTest {
 
     @Test
     public void uriRegexMatchesExpected() {
-        final Matcher matcher = URI_PATTERN.matcher("amqps://foo:bar@hono.eclipse.org:5671");
+        final Matcher matcher = URI_PATTERN.matcher("amqps://foo:bar@hono.eclipse.org:5671/vhost");
+
+        System.out.println(URI_PATTERN);
 
         final boolean matches = matcher.matches();
 
         assertThat(matches).isTrue();
+        assertThat(matcher.group(AmqpConnection.UriRegex.PROTOCOL_REGEX_GROUP)).isEqualTo("amqps");
+        assertThat(matcher.group(AmqpConnection.UriRegex.USERNAME_REGEX_GROUP)).isEqualTo("foo");
+        assertThat(matcher.group(AmqpConnection.UriRegex.PASSWORD_REGEX_GROUP)).isEqualTo("bar");
+        assertThat(matcher.group(AmqpConnection.UriRegex.HOSTNAME_REGEX_GROUP)).isEqualTo("hono.eclipse.org");
+        assertThat(matcher.group(AmqpConnection.UriRegex.PORT_REGEX_GROUP)).isEqualTo("5671");
+        assertThat(matcher.group(AmqpConnection.UriRegex.PATH_REGEX_GROUP)).isEqualTo("vhost");
+    }
+
+    @Test
+    public void uriRegexMatchesWithoutVHost() {
+        final Matcher matcher = URI_PATTERN.matcher("amqps://foo:bar@hono.eclipse.org:5671");
+
+        final boolean matches = matcher.matches();
+        assertThat(matches).isTrue();
+        assertThat(matcher.group(AmqpConnection.UriRegex.PATH_REGEX_GROUP)).isNull();
     }
 
     @Test

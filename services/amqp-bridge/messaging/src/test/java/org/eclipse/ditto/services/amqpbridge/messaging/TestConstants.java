@@ -15,6 +15,7 @@ import static org.eclipse.ditto.services.amqpbridge.messaging.MockConnectionActo
 
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -23,6 +24,10 @@ import org.eclipse.ditto.model.amqpbridge.AmqpBridgeModelFactory;
 import org.eclipse.ditto.model.amqpbridge.AmqpConnection;
 import org.eclipse.ditto.model.amqpbridge.ConnectionType;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.signals.events.things.ThingModified;
+import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -81,6 +86,12 @@ public class TestConstants {
                 }
             }
         }
+    }
+
+    static ThingModifiedEvent thingModified(final Collection<String> readSubjects) {
+        final Thing thing = Thing.newBuilder().setId("ditto:thing").build();
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().readSubjects(readSubjects).build();
+        return ThingModified.of(thing, 1, dittoHeaders);
     }
 
     private static void backOff(final long ms) {

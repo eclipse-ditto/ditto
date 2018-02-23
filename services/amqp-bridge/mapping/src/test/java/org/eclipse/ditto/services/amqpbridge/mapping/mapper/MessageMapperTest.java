@@ -14,7 +14,6 @@ package org.eclipse.ditto.services.amqpbridge.mapping.mapper;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
 import java.util.List;
@@ -93,7 +92,7 @@ public abstract class MessageMapperTest {
         mapper.configure(createIncomingConfig());
         createInvalidIncomingMappings().forEach((m, err) ->
                 assertThatExceptionOfType(err.getClass()).isThrownBy(() -> mapper.convert(m))
-                        .withMessage(err.getMessage())
+                        .withMessageContaining(err.getMessage())
                         .withCause(err.getCause()));
     }
 

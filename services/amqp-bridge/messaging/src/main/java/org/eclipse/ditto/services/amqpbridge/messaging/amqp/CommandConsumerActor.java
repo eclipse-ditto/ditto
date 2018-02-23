@@ -113,7 +113,7 @@ final class CommandConsumerActor extends AbstractActor implements MessageListene
     public void onMessage(final Message message) {
         try {
             final Map<String, String> headers = extractHeadersMapFromJmsMessage(message);
-            final InternalMessage.Builder builder = new InternalMessage.Builder(headers);
+            final InternalMessage.Builder builder = InternalMessage.Builder.newCommand(headers);
             extractPayloadFromMessage(message, builder);
             final InternalMessage internalMessage = builder.build();
             log.debug("Forwarding to processor: {}, {}", internalMessage.getHeaders(),

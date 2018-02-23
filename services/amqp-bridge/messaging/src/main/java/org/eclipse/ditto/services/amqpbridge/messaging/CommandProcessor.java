@@ -28,6 +28,7 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.model.amqpbridge.InternalMessage;
 import org.eclipse.ditto.model.amqpbridge.MappingContext;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMapper;
@@ -36,6 +37,7 @@ import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMapperRegistr
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMappers;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
+import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 import com.google.common.base.Converter;
 
@@ -81,8 +83,9 @@ public final class CommandProcessor {
      */
     @Nonnull
     public static CommandProcessor from(final List<MappingContext> contexts, final DynamicAccess access,
-            Consumer<String> logDebug, Consumer<String> logWarning, Consumer<String> updateCorrelationId) {
-        MessageMapperRegistry registry =
+            final Consumer<String> logDebug, final Consumer<String> logWarning,
+            final Consumer<String> updateCorrelationId) {
+        final MessageMapperRegistry registry =
                 MessageMapperFactory.from(access, MessageMappers.class, logDebug, logWarning).loadRegistry(contexts);
         return new CommandProcessor(registry, updateCorrelationId);
     }
@@ -137,11 +140,29 @@ public final class CommandProcessor {
             return null;
         }
 
-        final String correlationId = DittoHeaders.of(response.getDittoHeaders()).getCorrelationId()
-                .orElse("no-correlation-id");
+        final String correlationId = response.getDittoHeaders().getCorrelationId().orElse("no-correlation-id");
         return doApplyTraced(
                 () -> createProcessingContext(CONTEXT_NAME, correlationId),
-                ctx -> convertResponse(response, ctx));
+                ctx -> convertToInternalMessage(() -> PROTOCOL_ADAPTER.toAdaptable(response), ctx));
+    }
+
+    /**
+     * Processes a thing event to a message
+     *
+     * @param thingEvent the thing event
+     * @return the message
+     * @throws RuntimeException if something went wrong
+     */
+    @Nullable
+    public InternalMessage process(@Nullable final ThingEvent thingEvent) {
+        if (Objects.isNull(thingEvent)) {
+            return null;
+        }
+
+        final String correlationId = thingEvent.getDittoHeaders().getCorrelationId().orElse("no-correlation-id");
+        return doApplyTraced(
+                () -> createProcessingContext(CONTEXT_NAME, correlationId),
+                ctx -> convertToInternalMessage(() -> PROTOCOL_ADAPTER.toAdaptable(thingEvent), ctx));
     }
 
     private Command<?> convertMessage(final InternalMessage message, final TraceContext ctx) {
@@ -158,22 +179,26 @@ public final class CommandProcessor {
 
             return doApplyTracedSegment(
                     () -> createSegment(ctx, PROTOCOL_SEGMENT_NAME, false),
-                    () -> (Command) PROTOCOL_ADAPTER.fromAdaptable(adaptable)
+                    () -> {
+                        final Command command = (Command) PROTOCOL_ADAPTER.fromAdaptable(adaptable);
+                        final DittoHeadersBuilder dittoHeadersBuilder = DittoHeaders.newBuilder(message.getHeaders());
+                        dittoHeadersBuilder.putHeaders(command.getDittoHeaders());
+                        return command.setDittoHeaders(dittoHeadersBuilder.build());
+                    }
             );
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new IllegalArgumentException("Converting message failed: " + e.getMessage(), e);
         }
     }
 
-    private InternalMessage convertResponse(final CommandResponse response, final TraceContext ctx) {
-        checkNotNull(response);
+    private InternalMessage convertToInternalMessage(final Supplier<Adaptable> adaptableSupplier,
+            final TraceContext ctx) {
+        checkNotNull(adaptableSupplier);
         checkNotNull(ctx);
 
         try {
             final Adaptable adaptable = doApplyTracedSegment(
-                    () -> createSegment(ctx, PROTOCOL_SEGMENT_NAME, true),
-                    () -> PROTOCOL_ADAPTER.toAdaptable(response)
-            );
+                    () -> createSegment(ctx, PROTOCOL_SEGMENT_NAME, true), adaptableSupplier);
 
             doUpdateCorrelationId(adaptable);
 
@@ -181,7 +206,7 @@ public final class CommandProcessor {
                     () -> createSegment(ctx, MAPPING_SEGMENT_NAME, true),
                     () -> getConverter(adaptable).convert(adaptable)
             );
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new IllegalArgumentException("Converting response failed: " + e.getMessage(), e);
         }
     }
@@ -199,11 +224,9 @@ public final class CommandProcessor {
     }
 
     private void doUpdateCorrelationId(final Adaptable adaptable) {
-        adaptable.getHeaders().map(DittoHeaders::getCorrelationId).map(Optional::get).ifPresent(s -> {
-            if (Objects.nonNull(updateCorrelationId)) {
-                updateCorrelationId.accept(s);
-            }
-        });
+        if (Objects.nonNull(updateCorrelationId)) {
+            adaptable.getHeaders().flatMap(DittoHeaders::getCorrelationId).ifPresent(updateCorrelationId);
+        }
     }
 
     private Segment createSegment(final TraceContext ctx, final String name, final boolean isReverse) {
@@ -219,27 +242,27 @@ public final class CommandProcessor {
                 Kamon.tracer().newContext(name, Option.apply(correlationId));
     }
 
-    private static <T> T doApplyTraced(Supplier<TraceContext> traceContextSupplier,
-            Function<TraceContext, T> function) {
-        TraceContext ctx = traceContextSupplier.get();
+    private static <T> T doApplyTraced(final Supplier<TraceContext> traceContextSupplier,
+            final Function<TraceContext, T> function) {
+        final TraceContext ctx = traceContextSupplier.get();
         try {
-            T t = function.apply(ctx);
+            final T t = function.apply(ctx);
             ctx.finish();
             return t;
-        } catch (Exception e) {
+        } catch (final Exception e) {
             ctx.finishWithError(e);
             throw e;
         }
     }
 
-    private static <T> T doApplyTracedSegment(Supplier<Segment> segmentSupplier,
-            Supplier<T> supplier) {
-        Segment segment = segmentSupplier.get();
+    private static <T> T doApplyTracedSegment(final Supplier<Segment> segmentSupplier,
+            final Supplier<T> supplier) {
+        final Segment segment = segmentSupplier.get();
         try {
-            T t = supplier.get();
+            final T t = supplier.get();
             segment.finish();
             return t;
-        } catch (Exception e) {
+        } catch (final Exception e) {
             segment.finishWithError(e);
             throw e;
         }

@@ -21,6 +21,7 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.model.amqpbridge.InternalMessage;
 import org.eclipse.ditto.model.amqpbridge.MappingContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
@@ -32,6 +33,7 @@ import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
+import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
@@ -89,7 +91,7 @@ public final class CommandProcessorActor extends AbstractActor {
         log.info("Configured for processing messages with the following content types: {}",
                 processor.getSupportedContentTypes());
 
-        Optional<String> defaultContentType = processor.getDefaultContentType();
+        final Optional<String> defaultContentType = processor.getDefaultContentType();
         if (defaultContentType.isPresent()) {
             log.info("Interpreting messages with missing content type as '{}'", defaultContentType.get());
         } else {
@@ -125,6 +127,7 @@ public final class CommandProcessorActor extends AbstractActor {
         return ReceiveBuilder.create()
                 .match(InternalMessage.class, this::handle)
                 .match(CommandResponse.class, this::handleCommandResponse)
+                .match(ThingEvent.class, this::handleThingEvent)
                 .match(DittoRuntimeException.class, this::handleDittoRuntimeException)
                 .match(Status.Failure.class, f -> log.error(f.cause(), "Got an unexpected failure."))
                 .matchAny(m -> {
@@ -138,8 +141,10 @@ public final class CommandProcessorActor extends AbstractActor {
         final String correlationId = m.getHeaders().get(DittoHeaderDefinition.CORRELATION_ID.getKey());
         LogUtil.enhanceLogWithCorrelationId(log, correlationId);
 
+        final String authSubjectsArray =
+                JsonFactory.newArrayBuilder().add(authorizationSubject.getId()).build().toString();
         final InternalMessage messageWithAuthSubject =
-                m.withHeader(DittoHeaderDefinition.AUTHORIZATION_SUBJECTS.getKey(), authorizationSubject.getId());
+                m.withHeader(DittoHeaderDefinition.AUTHORIZATION_SUBJECTS.getKey(), authSubjectsArray);
 
         try {
             final Command<?> command = processor.process(messageWithAuthSubject);
@@ -178,8 +183,18 @@ public final class CommandProcessorActor extends AbstractActor {
 
         try {
             final InternalMessage message = processor.process(response);
-            commandProducer.forward(response, context());
-        } catch (Exception e) {
+            commandProducer.forward(message, context());
+        } catch (final Exception e) {
+            log.info(e.getMessage());
+        }
+    }
+
+    private void handleThingEvent(final ThingEvent thingEvent) {
+        LogUtil.enhanceLogWithCorrelationId(log, thingEvent);
+        try {
+            final InternalMessage message = processor.process(thingEvent);
+            commandProducer.forward(message, context());
+        } catch (final Exception e) {
             log.info(e.getMessage());
         }
     }
@@ -193,7 +208,7 @@ public final class CommandProcessorActor extends AbstractActor {
         return ((ExtendedActorSystem) getContext().getSystem()).dynamicAccess();
     }
 
-    private void updateCorrelationId(String correlationId) {
+    private void updateCorrelationId(final String correlationId) {
         LogUtil.enhanceLogWithCorrelationId(log, correlationId);
     }
 
@@ -213,17 +228,17 @@ public final class CommandProcessorActor extends AbstractActor {
         }
     }
 
-    private void finishTrace(final CommandResponse response, @Nullable Throwable cause) {
+    private void finishTrace(final CommandResponse response, @Nullable final Throwable cause) {
         response.getDittoHeaders().getCorrelationId().ifPresent(correlationId -> {
             try {
                 finishTrace(correlationId, cause);
-            } catch (IllegalArgumentException e) {
+            } catch (final IllegalArgumentException e) {
                 log.info("Trace missing for response: '{}'", response);
             }
         });
     }
 
-    private void finishTrace(String correlationId, @Nullable Throwable cause) {
+    private void finishTrace(final String correlationId, @Nullable final Throwable cause) {
         final TraceContext ctx = traces.getIfPresent(correlationId);
         if (Objects.isNull(ctx)) {
             throw new IllegalArgumentException("No trace found for correlationId: " + correlationId);
