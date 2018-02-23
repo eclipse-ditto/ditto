@@ -12,12 +12,14 @@
 package org.eclipse.ditto.services.amqpbridge.messaging.amqp;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.model.base.headers.DittoHeaderDefinition.CORRELATION_ID;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
 import javax.annotation.Nullable;
+import javax.jms.BytesMessage;
 import javax.jms.Destination;
 import javax.jms.JMSException;
 import javax.jms.Message;
@@ -26,10 +28,9 @@ import javax.jms.Session;
 
 import org.apache.qpid.jms.JmsQueue;
 import org.eclipse.ditto.model.amqpbridge.AmqpConnection;
+import org.eclipse.ditto.model.amqpbridge.InternalMessage;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.commands.base.CommandResponse;
-import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 import akka.actor.AbstractActor;
 import akka.actor.Props;
@@ -43,6 +44,7 @@ public class AmqpPublisherActor extends AbstractActor {
      * The name prefix of this Actor in the ActorSystem.
      */
     static final String ACTOR_NAME = "amqpPublisherActor";
+    private static final String REPLY_TO_HEADER = "replyTo";
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
     private final Session session;
@@ -75,35 +77,64 @@ public class AmqpPublisherActor extends AbstractActor {
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
-                .match(CommandResponse.class,
-                        response -> Optional.ofNullable(response.getDittoHeaders().get("reply-to"))
-                                .flatMap(this::getProducer)
-                                .ifPresent(producer -> sendSignal(producer, response)))
-                .match(ThingEvent.class,
-                        event -> amqpConnection
-                                .getEventTarget()
-                                .flatMap(this::getProducer)
-                                .ifPresent(producer -> sendSignal(producer, event)))
+                .match(InternalMessage.class, InternalMessage::isCommandResponse, response -> {
+                    final String correlationId = response.getHeaders().get(CORRELATION_ID.getKey());
+                    LogUtil.enhanceLogWithCorrelationId(log, correlationId);
+                    log.debug("Received command response {} ", response);
+                    final String replyToFromHeader = response.getHeaders().get(REPLY_TO_HEADER);
+                    final String replyToFromConfig = amqpConnection.getReplyTarget().orElse(null);
+                    if (replyToFromHeader != null) {
+                        sendMessage(replyToFromHeader, response);
+                    } else if (replyToFromConfig != null) {
+                        sendMessage(replyToFromConfig, response);
+                    } else {
+                        log.debug("Response dropped, missing replyTo address.");
+                    }
+                })
+                .match(InternalMessage.class, InternalMessage::isCommandResponse, event -> {
+                    final String correlationId = event.getHeaders().get(CORRELATION_ID.getKey());
+                    LogUtil.enhanceLogWithCorrelationId(log, correlationId);
+                    log.debug("Received command response {} ", event);
+                    amqpConnection.getEventTarget().ifPresent(target -> sendMessage(target, event));
+                })
                 .matchAny(m -> {
                     log.debug("Unknown message: {}", m);
                     unhandled(m);
                 }).build();
     }
 
-    private void sendSignal(final MessageProducer messageProducer, final Signal<?> signal) {
+    private void sendMessage(final String target, final InternalMessage message) {
         try {
-            final Message message = session.createTextMessage(signal.toJsonString());
-            message.setJMSCorrelationID(signal.getDittoHeaders().getCorrelationId().orElse("no-cid"));
-            messageProducer.send(message);
-        } catch (JMSException e) {
-            log.info("Failed to send response: {}", e.getMessage());
+            final MessageProducer producer = getProducer(target);
+            if (producer != null) {
+                final Message jmsMessage = toJmsMessage(message);
+                producer.send(jmsMessage);
+            }
+        } catch (final JMSException e) {
+            log.info("Failed to send JMS response: {}", e.getMessage());
         }
     }
 
-    private Optional<MessageProducer> getProducer(final String target) {
+    private Message toJmsMessage(final InternalMessage internal) throws JMSException {
+        final Message message;
+        if (internal.getTextPayload().isPresent()) {
+            message = session.createTextMessage(internal.getTextPayload().get());
+        } else if (internal.getBytePayload().isPresent()) {
+            final BytesMessage bytesMessage = session.createBytesMessage();
+            bytesMessage.writeBytes(internal.getBytePayload().get().array());
+            message = bytesMessage;
+        } else {
+            throw new IllegalArgumentException("Only byte or text are supported, dropping.");
+        }
+        message.setJMSCorrelationID(internal.getHeaders().get(DittoHeaderDefinition.CORRELATION_ID.getKey()));
+        return message;
+    }
+
+    @Nullable
+    private MessageProducer getProducer(final String target) {
         return Optional.of(target)
                 .filter(String::isEmpty)
-                .map(t -> producerMap.computeIfAbsent(target, this::createMessageProducer));
+                .map(t -> producerMap.computeIfAbsent(target, this::createMessageProducer)).orElse(null);
     }
 
     @Nullable
@@ -125,7 +156,7 @@ public class AmqpPublisherActor extends AbstractActor {
             try {
                 log.debug("Closing AMQP Producer for '{}'", target);
                 producer.close();
-            } catch (JMSException jmsException) {
+            } catch (final JMSException jmsException) {
                 log.debug("Closing consumer failed (can be ignored if connection was closed already): {}",
                         jmsException.getMessage());
             }

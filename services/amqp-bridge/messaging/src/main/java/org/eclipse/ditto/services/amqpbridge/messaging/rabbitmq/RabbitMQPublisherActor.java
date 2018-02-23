@@ -76,11 +76,11 @@ public class RabbitMQPublisherActor extends AbstractActor {
     public Receive createReceive() {
         return ReceiveBuilder.create()
                 .match(ChannelCreated.class, channelCreated -> this.channelActor = channelCreated.channel())
-                .match(InternalMessage.class, this::isCommandResponse, response -> {
+                .match(InternalMessage.class, this::isResponseOrError, response -> {
                     final String correlationId =
                             response.getHeaders().get(DittoHeaderDefinition.CORRELATION_ID.getKey());
                     LogUtil.enhanceLogWithCorrelationId(log, correlationId);
-                    log.debug("Received command response {} ", response);
+                    log.debug("Received response {} ", response);
                     final String exchange = amqpConnection.getReplyTarget().orElse(DEFAULT_EXCHANGE);
                     final String routingKey = response.getHeaders().get(REPLY_TO_HEADER);
                     if (routingKey != null) {
@@ -89,7 +89,7 @@ public class RabbitMQPublisherActor extends AbstractActor {
                         log.debug("Response dropped due to missing replyTo address.");
                     }
                 })
-                .match(InternalMessage.class, this::isEvent, event -> {
+                .match(InternalMessage.class, InternalMessage::isEvent, event -> {
                     final String correlationId = event.getHeaders().get(DittoHeaderDefinition.CORRELATION_ID.getKey());
                     LogUtil.enhanceLogWithCorrelationId(log, correlationId);
                     log.info("Received event {} ", event);
@@ -107,14 +107,9 @@ public class RabbitMQPublisherActor extends AbstractActor {
                 }).build();
     }
 
-    private boolean isCommandResponse(final InternalMessage m) {
-        return InternalMessage.MessageType.RESPONSE.equals(m.getMessageType());
+    private boolean isResponseOrError(final InternalMessage message) {
+        return message.isCommandResponse() || message.isError();
     }
-
-    private boolean isEvent(final InternalMessage m) {
-        return InternalMessage.MessageType.EVENT.equals(m.getMessageType());
-    }
-
 
     private void publishMessage(final String exchange, final String routingKey, final InternalMessage message) {
 

@@ -28,7 +28,9 @@ public final class InternalMessage {
     public enum MessageType {
         COMMAND,
         EVENT,
-        RESPONSE
+        RESPONSE,
+        MESSAGE,
+        ERRORS
     }
 
     private enum PayloadType {
@@ -103,6 +105,27 @@ public final class InternalMessage {
     public MessageType getMessageType() {
         return messageType;
     }
+
+    public boolean isCommandResponse() {
+        return MessageType.RESPONSE.equals(messageType);
+    }
+
+    public boolean isEvent() {
+        return MessageType.EVENT.equals(messageType);
+    }
+
+    public boolean isCommand() {
+        return MessageType.RESPONSE.equals(messageType);
+    }
+
+    public boolean isError() {
+        return MessageType.ERRORS.equals(messageType);
+    }
+
+    public boolean isMessage() {
+        return MessageType.MESSAGE.equals(messageType);
+    }
+
     @Override
     public boolean equals(final Object o) {
         if (this == o) return true;
@@ -155,6 +178,7 @@ public final class InternalMessage {
             this.bytePayload = message.bytePayload;
             this.textPayload = message.textPayload;
             this.messageType = message.messageType;
+            this.payloadType = message.payloadType;
         }
 
         private Builder(final Map<String, String> headers, final MessageType messageType) {
@@ -208,7 +232,7 @@ public final class InternalMessage {
                 "headers=" + headers +
                 ", textPayload='" + textPayload + '\'' +
                 ", bytePayload='" +
-                (bytePayload == null ? "null" : ("'<binary> (size :" + bytePayload.position() + ")")) + "'" +
+                (bytePayload == null ? "null" : ("<binary> (size :" + bytePayload.array().length + ")")) + "'" +
                 ", payloadType=" + payloadType +
                 ", messageType=" + messageType +
                 '}';

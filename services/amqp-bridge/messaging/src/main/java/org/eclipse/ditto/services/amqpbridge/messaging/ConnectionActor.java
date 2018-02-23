@@ -74,6 +74,7 @@ import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.PatternsCS;
 import akka.persistence.AbstractPersistentActor;
 import akka.persistence.RecoveryCompleted;
+import akka.persistence.SaveSnapshotSuccess;
 import akka.persistence.SnapshotOffer;
 import akka.routing.Broadcast;
 import akka.routing.RoundRobinPool;
@@ -249,6 +250,7 @@ class ConnectionActor extends AbstractPersistentActor {
                 .match(ThingEvent.class, this::handleThingEvent)
                 .match(DistributedPubSubMediator.SubscribeAck.class, this::handleSubscribeAck)
                 .match(DistributedPubSubMediator.UnsubscribeAck.class, this::handleUnsubscribeAck)
+                .match(SaveSnapshotSuccess.class, sss -> handleSnapshotSuccess(sss))
                 .match(Shutdown.class, shutdown -> log.debug("Dropping Shutdown in created behaviour state."))
                 .match(Status.Failure.class, f -> log.error(f.cause(), "Got failure: {}", f))
                 .matchAny(m -> {
@@ -496,6 +498,10 @@ class ConnectionActor extends AbstractPersistentActor {
     private void handleUnsubscribeAck(final DistributedPubSubMediator.UnsubscribeAck unsubscribeAck) {
         log.debug("Successfully unsubscribed from distributed pub/sub on topic '{}'",
                 unsubscribeAck.unsubscribe().topic());
+    }
+
+    private void handleSnapshotSuccess(final SaveSnapshotSuccess sss) {
+        log.debug("Snapshot was saved successfully: {}", sss);
     }
 
     private static class Shutdown {

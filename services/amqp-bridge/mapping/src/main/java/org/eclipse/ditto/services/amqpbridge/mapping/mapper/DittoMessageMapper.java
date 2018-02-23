@@ -134,18 +134,23 @@ public final class DittoMessageMapper extends MessageMapper {
 
     private InternalMessage.MessageType determineMessageType(final @Nonnull Adaptable adaptable) {
         final TopicPath.Criterion criterion = adaptable.getTopicPath().getCriterion();
-        if (TopicPath.Criterion.COMMANDS.equals(criterion)) {
-            if (adaptable.getPayload().getStatus().isPresent()) {
-                return InternalMessage.MessageType.RESPONSE;
-            } else {
-                return InternalMessage.MessageType.COMMAND;
-            }
-        } else if (TopicPath.Criterion.EVENTS.equals(criterion)) {
-            return InternalMessage.MessageType.EVENT;
-        } else {
-            final String errorMessage = MessageFormat.format("Cannot map '{0}' message. Only [{1}, {2}] allowed.",
-                    criterion, TopicPath.Criterion.COMMANDS, TopicPath.Criterion.EVENTS);
-            throw new IllegalArgumentException(errorMessage);
+        switch (criterion) {
+            case COMMANDS:
+                if (adaptable.getPayload().getStatus().isPresent()) {
+                    return InternalMessage.MessageType.RESPONSE;
+                } else {
+                    return InternalMessage.MessageType.COMMAND;
+                }
+            case EVENTS:
+                return InternalMessage.MessageType.EVENT;
+            case MESSAGES:
+                return InternalMessage.MessageType.MESSAGE;
+            case ERRORS:
+                return InternalMessage.MessageType.ERRORS;
+            default:
+                final String errorMessage = MessageFormat.format("Cannot map '{0}' message. Only [{1}, {2}] allowed.",
+                        criterion.getName(), TopicPath.Criterion.COMMANDS, TopicPath.Criterion.EVENTS);
+                throw new IllegalArgumentException(errorMessage);
         }
     }
 }
