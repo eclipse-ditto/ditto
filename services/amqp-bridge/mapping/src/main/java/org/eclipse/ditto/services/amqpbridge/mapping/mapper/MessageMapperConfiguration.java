@@ -46,6 +46,11 @@ public class MessageMapperConfiguration implements Map<String, String> {
         return Optional.ofNullable(configuration.get(property)).filter(s -> !s.isEmpty());
     }
 
+    public String getProperty(final String property) {
+        return findProperty(property).orElseThrow(
+                () -> new IllegalArgumentException("Missing configuration property: " + property));
+    }
+
     @Override
     public int size() {
         return configuration.size();
