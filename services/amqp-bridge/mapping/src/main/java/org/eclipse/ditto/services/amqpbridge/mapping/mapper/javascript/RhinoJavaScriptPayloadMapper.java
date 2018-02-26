@@ -34,7 +34,7 @@ import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.PayloadMapper;
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.PayloadMapperMessage;
-import org.eclipse.ditto.services.amqpbridge.mapping.mapper.PayloadMapperOptions;
+import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMapperConfiguration;
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.PayloadMappers;
 import org.mozilla.javascript.Callable;
 import org.mozilla.javascript.Context;
@@ -74,14 +74,14 @@ final class RhinoJavaScriptPayloadMapper implements PayloadMapper {
     private final ContextFactory contextFactory;
     private final Scriptable scope;
 
-    @Nullable private JavaScriptPayloadMapperOptions options;
+    @Nullable private JavaScriptMessageMapperMapperOptions options;
 
 
     RhinoJavaScriptPayloadMapper() {
         this(PayloadMappers.createMapperOptionsBuilder(Collections.emptyMap()).build());
     }
 
-    RhinoJavaScriptPayloadMapper(final PayloadMapperOptions options) {
+    RhinoJavaScriptPayloadMapper(final MessageMapperConfiguration options) {
         configure(options);
         contextFactory = new RhinoContextFactory();
 
@@ -100,8 +100,8 @@ final class RhinoJavaScriptPayloadMapper implements PayloadMapper {
     }
 
     @Override
-    public void configure(final PayloadMapperOptions options) {
-        this.options = new ImmutableJavaScriptPayloadMapperOptions.Builder(options.getAsMap()).build();
+    public void configure(final MessageMapperConfiguration options) {
+        this.options = new ImmutableJavaScriptMessageMapperMapperOptions.Builder(options.getProperties()).build();
     }
 
     @Override
@@ -126,7 +126,7 @@ final class RhinoJavaScriptPayloadMapper implements PayloadMapper {
             ScriptableObject.putProperty(scope, MAPPING_STRING_VAR, message.getStringData().orElse(null));
             ScriptableObject.putProperty(scope, DITTO_PROTOCOL_JSON_VAR, new NativeObject());
 
-            cx.evaluateString(scope, getOptions().flatMap(JavaScriptPayloadMapperOptions::getIncomingMappingScript)
+            cx.evaluateString(scope, getOptions().flatMap(JavaScriptMessageMapperMapperOptions::getIncomingMappingScript)
                     .orElse(""), "template", 1, null);
 
             final Object dittoProtocolJson = ScriptableObject.getProperty(scope, DITTO_PROTOCOL_JSON_VAR);
@@ -149,7 +149,7 @@ final class RhinoJavaScriptPayloadMapper implements PayloadMapper {
                         NativeJSON.parse(cx, scope, jsonifiableAdaptable.toJsonString(), new NullCallable());
             ScriptableObject.putProperty(scope, DITTO_PROTOCOL_JSON_VAR, nativeJsonObject);
 
-            cx.evaluateString(scope, getOptions().flatMap(JavaScriptPayloadMapperOptions::getOutgoingMappingScript)
+            cx.evaluateString(scope, getOptions().flatMap(JavaScriptMessageMapperMapperOptions::getOutgoingMappingScript)
                     .orElse(""), "template", 1, null);
 
             final String contentType = ScriptableObject.getTypedProperty(scope, MAPPING_CONTENT_TYPE_VAR, String.class);
@@ -164,21 +164,21 @@ final class RhinoJavaScriptPayloadMapper implements PayloadMapper {
     }
 
     private void initLibraries(final Context cx, final Scriptable scope) {
-        if (getOptions().map(JavaScriptPayloadMapperOptions::isLoadBytebufferJS).orElse(false)) {
+        if (getOptions().map(JavaScriptMessageMapperMapperOptions::isLoadBytebufferJS).orElse(false)) {
             loadJavascriptLibrary(cx, scope, new InputStreamReader(getClass().getResourceAsStream(WEBJARS_BYTEBUFFER)),
                     "bytebuffer.js");
         }
-        if (getOptions().map(JavaScriptPayloadMapperOptions::isLoadLongJS).orElse(false)) {
+        if (getOptions().map(JavaScriptMessageMapperMapperOptions::isLoadLongJS).orElse(false)) {
             loadJavascriptLibrary(cx, scope, new InputStreamReader(getClass().getResourceAsStream(WEBJARS_LONG)),
                     "long.js");
         }
-        if (getOptions().map(JavaScriptPayloadMapperOptions::isLoadMustacheJS).orElse(false)) {
+        if (getOptions().map(JavaScriptMessageMapperMapperOptions::isLoadMustacheJS).orElse(false)) {
             loadJavascriptLibrary(cx, scope, new InputStreamReader(getClass().getResourceAsStream(WEBJARS_MUSTACHE)),
                     "mustache.js");
         }
     }
 
-    private Optional<JavaScriptPayloadMapperOptions> getOptions() {
+    private Optional<JavaScriptMessageMapperMapperOptions> getOptions() {
         return Optional.ofNullable(options);
     }
 

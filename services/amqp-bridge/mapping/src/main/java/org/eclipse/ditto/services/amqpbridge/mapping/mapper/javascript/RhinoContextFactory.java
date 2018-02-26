@@ -59,7 +59,7 @@ final class RhinoContextFactory extends ContextFactory {
         final RhinoContext mcx = (RhinoContext) cx;
         final long currentTime = System.currentTimeMillis();
         if (currentTime - mcx.startTime > MAX_SCRIPT_EXEC_TIME_MS) {
-            // More then x milliseconds from Context creation time: it is time to stop the script.
+            // More then x milliseconds of Context creation time: it is time to stop the script.
             // Throw Error instance to ensure that script will never get control back through catch or finally.
             throw new Error();
         }

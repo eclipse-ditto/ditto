@@ -19,9 +19,11 @@ import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.model.amqpbridge.InternalMessage;
@@ -37,7 +39,10 @@ import com.google.common.base.Converter;
  * A message mapper implementation for the ditto protocol.
  * Expects messages to contain a JSON serialized ditto protocol message.
  */
-public final class DittoMessageMapper extends MessageMapper {
+public final class DittoMessageMapper implements MessageMapper {
+
+    @Nullable
+    private String contentType;
 
     /**
      * A static converter to map adaptables to JSON strings and vice versa;
@@ -60,33 +65,20 @@ public final class DittoMessageMapper extends MessageMapper {
             }
     );
 
-    /**
-     * A convenience constructor to init without a mapping context. Sets the contentType and contentTypeRequired
-     * options to default values if not present in configuration.
-     * Default content type is {@link DittoConstants#DITTO_PROTOCOL_CONTENT_TYPE} and will be enforced.
-     *
-     * @param configuration the mapper configuration
-     */
-    public DittoMessageMapper(final MessageMapperConfiguration configuration) {
-        final Map<String, String> map = new HashMap<>(configuration);
-        if (!map.containsKey(MessageMapper.OPT_CONTENT_TYPE)) {
-            map.put(MessageMapper.OPT_CONTENT_TYPE, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
-        }
-
-        if (!map.containsKey(MessageMapper.OPT_CONTENT_TYPE_REQUIRED)) {
-            map.put(MessageMapper.OPT_CONTENT_TYPE_REQUIRED, String.valueOf(true));
-        }
-
-        configure(MessageMapperConfiguration.from(map));
+    @Override
+    public Optional<String> getContentType() {
+        return Optional.ofNullable(contentType);
     }
 
     @Override
-    public void doConfigure(@Nonnull final MessageMapperConfiguration configuration) {
-        // no op
+    public void configure(final MessageMapperConfiguration configuration) {
+        configuration.findContentType().ifPresent(s -> contentType = s);
     }
 
     @Override
-    protected Adaptable doForwardMap(final InternalMessage message) {
+    public Adaptable map(@Nullable final InternalMessage message) {
+        if (Objects.isNull(message)) return null;
+
         final String payload = extractPayloadAsString(message);
         final Adaptable adaptable = STRING_ADAPTABLE_CONVERTER.convert(payload);
         checkNotNull(adaptable);
@@ -96,10 +88,12 @@ public final class DittoMessageMapper extends MessageMapper {
     }
 
     @Override
-    protected InternalMessage doBackwardMap(final Adaptable adaptable) {
+    public InternalMessage map(@Nullable final Adaptable adaptable) {
+        if (Objects.isNull(adaptable)) return null;
+
         final InternalMessage.MessageType messageType = determineMessageType(adaptable);
         final Map<String, String> headers = new LinkedHashMap<>(adaptable.getHeaders().orElse(DittoHeaders.empty()));
-        headers.put(MessageMapper.CONTENT_TYPE_KEY, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
+        headers.put(AbstractMessageMapper.CONTENT_TYPE_KEY, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
         return InternalMessage.Builder.from(headers, messageType)
                 .withText(STRING_ADAPTABLE_CONVERTER.reverse().convert(adaptable))
                 .build();
@@ -116,7 +110,7 @@ public final class DittoMessageMapper extends MessageMapper {
         }
 
         return payload.filter(s -> !s.isEmpty()).orElseThrow(
-                () -> new IllegalArgumentException("Failed to extract string payload from message: " + message));
+                () -> new IllegalArgumentException("Failed to extract string payload of message: " + message));
     }
 
     /**

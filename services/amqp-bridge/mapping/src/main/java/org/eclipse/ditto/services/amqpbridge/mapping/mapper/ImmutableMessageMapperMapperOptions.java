@@ -22,7 +22,7 @@ import javax.annotation.Nullable;
  * TODO doc
  */
 @Deprecated
-final class ImmutablePayloadMapperOptions implements PayloadMapperOptions {
+final class ImmutableMessageMapperMapperOptions implements MessageMapperConfiguration {
 
     private final Map<String, String> optionsMap;
 
@@ -30,12 +30,12 @@ final class ImmutablePayloadMapperOptions implements PayloadMapperOptions {
      *
      * @param optionsMap
      */
-    ImmutablePayloadMapperOptions(final Map<String, String> optionsMap) {
+    ImmutableMessageMapperMapperOptions(final Map<String, String> optionsMap) {
         this.optionsMap = Collections.unmodifiableMap(new HashMap<>(optionsMap));
     }
 
     @Override
-    public Map<String, String> getAsMap() {
+    public Map<String, String> getProperties() {
         return optionsMap;
     }
 
@@ -44,10 +44,10 @@ final class ImmutablePayloadMapperOptions implements PayloadMapperOptions {
         if (this == o) {
             return true;
         }
-        if (!(o instanceof ImmutablePayloadMapperOptions)) {
+        if (!(o instanceof ImmutableMessageMapperMapperOptions)) {
             return false;
         }
-        final ImmutablePayloadMapperOptions that = (ImmutablePayloadMapperOptions) o;
+        final ImmutableMessageMapperMapperOptions that = (ImmutableMessageMapperMapperOptions) o;
         return Objects.equals(optionsMap, that.optionsMap);
     }
 
@@ -60,7 +60,7 @@ final class ImmutablePayloadMapperOptions implements PayloadMapperOptions {
     /**
      *
      */
-    static final class Builder implements PayloadMapperOptions.Builder {
+    static final class Builder implements MessageMapperConfiguration.Builder {
 
         private final Map<String, String> options;
 
@@ -69,8 +69,8 @@ final class ImmutablePayloadMapperOptions implements PayloadMapperOptions {
         }
 
         @Override
-        public PayloadMapperOptions build() {
-            return new ImmutablePayloadMapperOptions(options);
+        public MessageMapperConfiguration build() {
+            return new ImmutableMessageMapperMapperOptions(options);
         }
     }
 }

@@ -15,12 +15,12 @@ import java.util.Optional;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.services.amqpbridge.mapping.mapper.PayloadMapperOptions;
+import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMapperConfiguration;
 
 /**
  * TODO doc
  */
-public interface JavaScriptPayloadMapperOptions extends PayloadMapperOptions {
+public interface JavaScriptMessageMapperMapperOptions extends MessageMapperConfiguration {
 
     Optional<String> getIncomingMappingScript();
 
@@ -35,7 +35,7 @@ public interface JavaScriptPayloadMapperOptions extends PayloadMapperOptions {
     /**
      *
      */
-    interface Builder extends PayloadMapperOptions.Builder<JavaScriptPayloadMapperOptions> {
+    interface Builder extends MessageMapperConfiguration.Builder<JavaScriptMessageMapperMapperOptions> {
 
         Builder incomingMappingScript(@Nullable String mappingScript);
 

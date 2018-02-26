@@ -18,7 +18,7 @@ import java.util.Map;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.javascript.JavaScriptPayloadMapperFactory;
-import org.eclipse.ditto.services.amqpbridge.mapping.mapper.javascript.JavaScriptPayloadMapperOptions;
+import org.eclipse.ditto.services.amqpbridge.mapping.mapper.javascript.JavaScriptMessageMapperMapperOptions;
 
 /**
  * TODO doc
@@ -46,7 +46,7 @@ public class PayloadMappers {
      *
      * @return
      */
-    public static JavaScriptPayloadMapperOptions.Builder createJavaScriptMapperOptionsBuilder() {
+    public static JavaScriptMessageMapperMapperOptions.Builder createJavaScriptMapperOptionsBuilder() {
 
         return createJavaScriptMapperOptionsBuilder(Collections.emptyMap());
     }
@@ -56,7 +56,7 @@ public class PayloadMappers {
      * @param options
      * @return
      */
-    public static JavaScriptPayloadMapperOptions.Builder createJavaScriptMapperOptionsBuilder(
+    public static JavaScriptMessageMapperMapperOptions.Builder createJavaScriptMapperOptionsBuilder(
             final Map<String, String> options) {
 
         return JavaScriptPayloadMapperFactory.createJavaScriptOptionsBuilder(options);
@@ -67,9 +67,9 @@ public class PayloadMappers {
      * @param options
      * @return
      */
-    public static PayloadMapperOptions.Builder createMapperOptionsBuilder(final Map<String, String> options) {
+    public static MessageMapperConfiguration.Builder createMapperOptionsBuilder(final Map<String, String> options) {
 
-        return new ImmutablePayloadMapperOptions.Builder(options);
+        return new ImmutableMessageMapperMapperOptions.Builder(options);
     }
 
     /**
@@ -77,7 +77,7 @@ public class PayloadMappers {
      * @param options
      * @return
      */
-    public static PayloadMapper createJavaScriptRhinoMapper(final PayloadMapperOptions options) {
+    public static PayloadMapper createJavaScriptRhinoMapper(final MessageMapperConfiguration options) {
 
         return JavaScriptPayloadMapperFactory.createRhino(options);
     }

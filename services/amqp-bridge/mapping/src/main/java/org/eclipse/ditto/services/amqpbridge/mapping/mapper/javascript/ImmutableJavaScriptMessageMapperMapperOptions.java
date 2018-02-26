@@ -22,7 +22,7 @@ import javax.annotation.Nullable;
 /**
  * TODO doc
  */
-final class ImmutableJavaScriptPayloadMapperOptions implements JavaScriptPayloadMapperOptions {
+final class ImmutableJavaScriptMessageMapperMapperOptions implements JavaScriptMessageMapperMapperOptions {
 
     @Nullable private final String incomingMappingScript;
     @Nullable private final String outgoingMappingScript;
@@ -30,7 +30,7 @@ final class ImmutableJavaScriptPayloadMapperOptions implements JavaScriptPayload
     private final boolean loadLongJS;
     private final boolean loadMustacheJS;
 
-    ImmutableJavaScriptPayloadMapperOptions(@Nullable final String incomingMappingScript,
+    ImmutableJavaScriptMessageMapperMapperOptions(@Nullable final String incomingMappingScript,
             @Nullable final String outgoingMappingScript, final boolean loadBytebufferJS, final boolean loadLongJS,
             final boolean loadMustacheJS) {
         this.incomingMappingScript = incomingMappingScript;
@@ -66,7 +66,7 @@ final class ImmutableJavaScriptPayloadMapperOptions implements JavaScriptPayload
     }
 
     @Override
-    public Map<String, String> getAsMap() {
+    public Map<String, String> getProperties() {
         final Map<String, String> optionsMap = new HashMap<>();
         optionsMap.put("incomingMappingScript", incomingMappingScript);
         optionsMap.put("outgoingMappingScript", outgoingMappingScript);
@@ -81,10 +81,10 @@ final class ImmutableJavaScriptPayloadMapperOptions implements JavaScriptPayload
         if (this == o) {
             return true;
         }
-        if (!(o instanceof ImmutableJavaScriptPayloadMapperOptions)) {
+        if (!(o instanceof ImmutableJavaScriptMessageMapperMapperOptions)) {
             return false;
         }
-        final ImmutableJavaScriptPayloadMapperOptions that = (ImmutableJavaScriptPayloadMapperOptions) o;
+        final ImmutableJavaScriptMessageMapperMapperOptions that = (ImmutableJavaScriptMessageMapperMapperOptions) o;
         return loadBytebufferJS == that.loadBytebufferJS &&
                 loadLongJS == that.loadLongJS &&
                 loadMustacheJS == that.loadMustacheJS &&
@@ -111,7 +111,7 @@ final class ImmutableJavaScriptPayloadMapperOptions implements JavaScriptPayload
     /**
      *
      */
-    static final class Builder implements JavaScriptPayloadMapperOptions.Builder {
+    static final class Builder implements JavaScriptMessageMapperMapperOptions.Builder {
 
         @Nullable private String incomingMappingScript;
         @Nullable private String outgoingMappingScript;
@@ -136,38 +136,38 @@ final class ImmutableJavaScriptPayloadMapperOptions implements JavaScriptPayload
         }
 
         @Override
-        public JavaScriptPayloadMapperOptions.Builder incomingMappingScript(@Nullable final String mappingScript) {
+        public JavaScriptMessageMapperMapperOptions.Builder incomingMappingScript(@Nullable final String mappingScript) {
             incomingMappingScript = mappingScript;
             return this;
         }
 
         @Override
-        public JavaScriptPayloadMapperOptions.Builder outgoingMappingScript(@Nullable final String mappingScript) {
+        public JavaScriptMessageMapperMapperOptions.Builder outgoingMappingScript(@Nullable final String mappingScript) {
             outgoingMappingScript = mappingScript;
             return this;
         }
 
         @Override
-        public JavaScriptPayloadMapperOptions.Builder loadBytebufferJS(final boolean load) {
+        public JavaScriptMessageMapperMapperOptions.Builder loadBytebufferJS(final boolean load) {
             loadBytebufferJS = load;
             return this;
         }
 
         @Override
-        public JavaScriptPayloadMapperOptions.Builder loadLongJS(final boolean load) {
+        public JavaScriptMessageMapperMapperOptions.Builder loadLongJS(final boolean load) {
             loadLongJS = load;
             return this;
         }
 
         @Override
-        public JavaScriptPayloadMapperOptions.Builder loadMustacheJS(final boolean load) {
+        public JavaScriptMessageMapperMapperOptions.Builder loadMustacheJS(final boolean load) {
             loadMustacheJS = load;
             return this;
         }
 
         @Override
-        public JavaScriptPayloadMapperOptions build() {
-            return new ImmutableJavaScriptPayloadMapperOptions(incomingMappingScript, outgoingMappingScript,
+        public JavaScriptMessageMapperMapperOptions build() {
+            return new ImmutableJavaScriptMessageMapperMapperOptions(incomingMappingScript, outgoingMappingScript,
                     loadBytebufferJS, loadLongJS, loadMustacheJS);
         }
     }
