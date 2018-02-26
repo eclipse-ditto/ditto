@@ -4,7 +4,7 @@ import java.util.Optional;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.amqpbridge.InternalMessage;
+import org.eclipse.ditto.model.amqpbridge.ExternalMessage;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 
 public interface MessageMapper {
@@ -14,8 +14,8 @@ public interface MessageMapper {
     void configure(final MessageMapperConfiguration configuration);
 
     @Nullable
-    Adaptable map(@Nullable final InternalMessage message);
+    Adaptable map(@Nullable final ExternalMessage message);
 
     @Nullable
-    InternalMessage map(@Nullable final Adaptable adaptable);
+    ExternalMessage map(@Nullable final Adaptable adaptable);
 }

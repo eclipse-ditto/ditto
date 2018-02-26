@@ -26,7 +26,8 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.model.amqpbridge.InternalMessage;
+import org.eclipse.ditto.model.amqpbridge.AmqpBridgeModelFactory;
+import org.eclipse.ditto.model.amqpbridge.ExternalMessage;
 import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.protocoladapter.Adaptable;
@@ -76,7 +77,7 @@ public final class DittoMessageMapper implements MessageMapper {
     }
 
     @Override
-    public Adaptable map(@Nullable final InternalMessage message) {
+    public Adaptable map(@Nullable final ExternalMessage message) {
         if (Objects.isNull(message)) return null;
 
         final String payload = extractPayloadAsString(message);
@@ -88,18 +89,18 @@ public final class DittoMessageMapper implements MessageMapper {
     }
 
     @Override
-    public InternalMessage map(@Nullable final Adaptable adaptable) {
+    public ExternalMessage map(@Nullable final Adaptable adaptable) {
         if (Objects.isNull(adaptable)) return null;
 
-        final InternalMessage.MessageType messageType = determineMessageType(adaptable);
+        final ExternalMessage.MessageType messageType = determineMessageType(adaptable);
         final Map<String, String> headers = new LinkedHashMap<>(adaptable.getHeaders().orElse(DittoHeaders.empty()));
         headers.put(AbstractMessageMapper.CONTENT_TYPE_KEY, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
-        return InternalMessage.Builder.from(headers, messageType)
+        return AmqpBridgeModelFactory.newExternalMessageBuilder(headers, messageType)
                 .withText(STRING_ADAPTABLE_CONVERTER.reverse().convert(adaptable))
                 .build();
     }
 
-    private static String extractPayloadAsString(final InternalMessage message) {
+    private static String extractPayloadAsString(final ExternalMessage message) {
         final Optional<String> payload;
         if (message.isTextMessage()) {
             payload = message.getTextPayload();
@@ -120,27 +121,27 @@ public final class DittoMessageMapper implements MessageMapper {
      * @param adaptable the adaptable
      * @return the merged headers
      */
-    private static DittoHeaders mergeHeaders(final InternalMessage message, final Adaptable adaptable) {
+    private static DittoHeaders mergeHeaders(final ExternalMessage message, final Adaptable adaptable) {
         final Map<String, String> headers = new HashMap<>(message.getHeaders());
         adaptable.getHeaders().ifPresent(headers::putAll);
         return DittoHeaders.of(headers);
     }
 
-    private InternalMessage.MessageType determineMessageType(final @Nonnull Adaptable adaptable) {
+    private ExternalMessage.MessageType determineMessageType(final @Nonnull Adaptable adaptable) {
         final TopicPath.Criterion criterion = adaptable.getTopicPath().getCriterion();
         switch (criterion) {
             case COMMANDS:
                 if (adaptable.getPayload().getStatus().isPresent()) {
-                    return InternalMessage.MessageType.RESPONSE;
+                    return ExternalMessage.MessageType.RESPONSE;
                 } else {
-                    return InternalMessage.MessageType.COMMAND;
+                    return ExternalMessage.MessageType.COMMAND;
                 }
             case EVENTS:
-                return InternalMessage.MessageType.EVENT;
+                return ExternalMessage.MessageType.EVENT;
             case MESSAGES:
-                return InternalMessage.MessageType.MESSAGE;
+                return ExternalMessage.MessageType.MESSAGE;
             case ERRORS:
-                return InternalMessage.MessageType.ERRORS;
+                return ExternalMessage.MessageType.ERRORS;
             default:
                 final String errorMessage = MessageFormat.format("Cannot map '{0}' message. Only [{1}, {2}] allowed.",
                         criterion.getName(), TopicPath.Criterion.COMMANDS, TopicPath.Criterion.EVENTS);
