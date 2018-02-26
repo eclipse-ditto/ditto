@@ -12,91 +12,40 @@
 package org.eclipse.ditto.services.amqpbridge.mapping.mapper;
 
 import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 
-import org.eclipse.ditto.model.amqpbridge.InternalMessage;
-import org.eclipse.ditto.protocoladapter.Adaptable;
-
-import com.google.common.base.Converter;
-
-import akka.stream.impl.fusing.Collect;
-
 /**
- * A registry for instantiated mappers.
- *
- * TODO extract interface with public methods and implement this class as "Default"
+ * Defines a collection of mappers with a fallback default mapper.
  */
-public final class MessageMapperRegistry {
-
-    private final Map<String, MessageMapper> registry;
-
-    private final MessageMapper defaultMapper;
-
-
-    private MessageMapperRegistry(final MessageMapper defaultMapper, final Map<String, MessageMapper> registry) {
-        this.defaultMapper = defaultMapper; // TODO null check
-        this.registry = Collections.unmodifiableMap(new HashMap<>(registry));  // TODO null check
-    }
+public interface MessageMapperRegistry {
 
     /**
-     * Constructs a mapper with the given params.
-     * @param defaultMapper the default mapper
-     * @param mappers the mappers
+     * Returns a mapper with the supposed role of a fallback mapping strategy.
+     * @return the default mapper
      */
-    public static MessageMapperRegistry of(final MessageMapper defaultMapper, final MessageMapper... mappers) {
-        this(defaultMapper);
-        addAll(mappers);
-    }
+    MessageMapper getDefaultMapper();
 
     /**
-     * Returns the default mapper if present
-     * @return the default mapper or null
+     * Returns a list of all available mappers excluding the default mapper
+     * @return the mappers
      */
-    public MessageMapper getDefaultMapper() {
-        return defaultMapper;
-    }
+    Collection<MessageMapper> getMappers();
 
     /**
+     * Searches a mapper for a specific content type.
      *
-     * @param message
-     * @return
+     * @param contentType the content type
+     * @return the mapper if found
      */
-    public Optional<MessageMapper> findMapper(final InternalMessage message) {
-        return MessageMapper.findContentType(message).map(registry::get);
-    }
+    Optional<MessageMapper> findMapper(final String contentType);
 
     /**
-     * Selects a mapper for this message. If no explicit mapper is found for the message and a default mapper is
-     * present. The default mapper will be returned.
+     * Searches a mapper for a specific content type and returns the default mapper if none was found.
      *
-     * @param message the message
+     * @param contentType the content type
      * @return the selected mapper
      */
-    public Optional<MessageMapper> selectMapper(final InternalMessage message) {
-        Optional<MessageMapper> mapper = findMapper(message);
-        return mapper.isPresent() ? mapper : Optional.ofNullable(getDefaultMapper());
+    default MessageMapper selectMapper(final String contentType) {
+        return findMapper(contentType).orElse(getDefaultMapper());
     }
-
-    private Optional<Converter<Adaptable, InternalMessage>> findMapper(final Adaptable adaptable) {
-        return MessageMapper.findContentType(adaptable).map(registry::get).map(MessageMapper::reverse);
-    }
-
-    /**
-     * Selects a mapper for this adaptable. If no explicit mapper is found for the adaptable and a default mapper is
-     * present. The default mapper will be returned.
-     *
-     * @param adaptable the adaptable
-     * @return the selected mapper
-     */
-    public Optional<Converter<Adaptable, InternalMessage>> selectMapper(final Adaptable adaptable) {
-        Optional<Converter<Adaptable, InternalMessage>> mapper = findMapper(adaptable);
-        return mapper.isPresent() ? mapper : Optional.ofNullable(getDefaultMapper()).map(MessageMapper::reverse);
-    }
-
 }
