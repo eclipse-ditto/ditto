@@ -22,7 +22,7 @@ import java.util.concurrent.TimeUnit;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.model.amqpbridge.InternalMessage;
+import org.eclipse.ditto.model.amqpbridge.ExternalMessage;
 import org.eclipse.ditto.model.amqpbridge.MappingContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.common.ConditionChecker;
@@ -106,6 +106,7 @@ public final class CommandProcessorActor extends AbstractActor {
      * @param pubSubMediator the akka pubsub mediator actor.
      * @param commandProducer actor that handles outgoing messages
      * @param authorizationSubject the authorized subject that are set in command headers.
+     * @param mappingContexts the mapping contexts to apply for different content-types.
      * @return the Akka configuration Props object
      */
     static Props props(final ActorRef pubSubMediator, final ActorRef commandProducer,
@@ -126,7 +127,7 @@ public final class CommandProcessorActor extends AbstractActor {
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
-                .match(InternalMessage.class, this::handle)
+                .match(ExternalMessage.class, this::handle)
                 .match(CommandResponse.class, this::handleCommandResponse)
                 .match(ThingEvent.class, this::handleThingEvent)
                 .match(DittoRuntimeException.class, this::handleDittoRuntimeException)
@@ -137,14 +138,14 @@ public final class CommandProcessorActor extends AbstractActor {
                 }).build();
     }
 
-    private void handle(final InternalMessage m) {
+    private void handle(final ExternalMessage m) {
         ConditionChecker.checkNotNull(m);
         final String correlationId = m.getHeaders().get(DittoHeaderDefinition.CORRELATION_ID.getKey());
         LogUtil.enhanceLogWithCorrelationId(log, correlationId);
 
         final String authSubjectsArray =
                 JsonFactory.newArrayBuilder().add(authorizationSubject.getId()).build().toString();
-        final InternalMessage messageWithAuthSubject =
+        final ExternalMessage messageWithAuthSubject =
                 m.withHeader(DittoHeaderDefinition.AUTHORIZATION_SUBJECTS.getKey(), authSubjectsArray);
 
         try {
@@ -183,7 +184,7 @@ public final class CommandProcessorActor extends AbstractActor {
         }
 
         try {
-            final InternalMessage message = processor.process(response);
+            final ExternalMessage message = processor.process(response);
             commandProducer.forward(message, context());
         } catch (final Exception e) {
             log.info(e.getMessage());
@@ -193,7 +194,7 @@ public final class CommandProcessorActor extends AbstractActor {
     private void handleThingEvent(final ThingEvent<?> thingEvent) {
         LogUtil.enhanceLogWithCorrelationId(log, thingEvent);
         try {
-            final InternalMessage message = processor.process(thingEvent);
+            final ExternalMessage message = processor.process(thingEvent);
             commandProducer.forward(message, context());
         } catch (final Exception e) {
             log.info(e.getMessage());
@@ -221,7 +222,7 @@ public final class CommandProcessorActor extends AbstractActor {
         );
     }
 
-    private void finishTrace(final CommandResponse response) {
+    private void finishTrace(final CommandResponse<?> response) {
         if (ThingErrorResponse.class.isAssignableFrom(response.getClass())) {
             finishTrace(response, ((ThingErrorResponse) response).getDittoRuntimeException());
         } else {
@@ -229,7 +230,7 @@ public final class CommandProcessorActor extends AbstractActor {
         }
     }
 
-    private void finishTrace(final CommandResponse response, @Nullable final Throwable cause) {
+    private void finishTrace(final CommandResponse<?> response, @Nullable final Throwable cause) {
         response.getDittoHeaders().getCorrelationId().ifPresent(correlationId -> {
             try {
                 finishTrace(correlationId, cause);

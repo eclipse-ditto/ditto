@@ -5,9 +5,9 @@
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ *
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
- *
  */
 package org.eclipse.ditto.services.amqpbridge.messaging.rabbitmq;
 
@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.amqpbridge.AmqpConnection;
-import org.eclipse.ditto.model.amqpbridge.InternalMessage;
+import org.eclipse.ditto.model.amqpbridge.ExternalMessage;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
@@ -42,6 +42,7 @@ public class RabbitMQPublisherActor extends AbstractActor {
      * The name prefix of this Actor in the ActorSystem.
      */
     static final String ACTOR_NAME_PREFIX = "rmqPublisherActor-";
+
     private static final String REPLY_TO_HEADER = "replyTo";
     private static final String DEFAULT_EXCHANGE = "";
     private static final String DEFAULT_EVENT_ROUTING_KEY = "thingEvent";
@@ -76,7 +77,7 @@ public class RabbitMQPublisherActor extends AbstractActor {
     public Receive createReceive() {
         return ReceiveBuilder.create()
                 .match(ChannelCreated.class, channelCreated -> this.channelActor = channelCreated.channel())
-                .match(InternalMessage.class, this::isResponseOrError, response -> {
+                .match(ExternalMessage.class, this::isResponseOrError, response -> {
                     final String correlationId =
                             response.getHeaders().get(DittoHeaderDefinition.CORRELATION_ID.getKey());
                     LogUtil.enhanceLogWithCorrelationId(log, correlationId);
@@ -89,7 +90,7 @@ public class RabbitMQPublisherActor extends AbstractActor {
                         log.debug("Response dropped due to missing replyTo address.");
                     }
                 })
-                .match(InternalMessage.class, InternalMessage::isEvent, event -> {
+                .match(ExternalMessage.class, ExternalMessage::isEvent, event -> {
                     final String correlationId = event.getHeaders().get(DittoHeaderDefinition.CORRELATION_ID.getKey());
                     LogUtil.enhanceLogWithCorrelationId(log, correlationId);
                     log.info("Received event {} ", event);
@@ -107,11 +108,11 @@ public class RabbitMQPublisherActor extends AbstractActor {
                 }).build();
     }
 
-    private boolean isResponseOrError(final InternalMessage message) {
+    private boolean isResponseOrError(final ExternalMessage message) {
         return message.isCommandResponse() || message.isError();
     }
 
-    private void publishMessage(final String exchange, final String routingKey, final InternalMessage message) {
+    private void publishMessage(final String exchange, final String routingKey, final ExternalMessage message) {
 
         if (channelActor == null) {
             log.info("No channel available, dropping response.");

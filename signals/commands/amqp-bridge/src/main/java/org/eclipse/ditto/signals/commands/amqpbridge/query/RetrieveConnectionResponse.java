@@ -160,7 +160,7 @@ public final class RetrieveConnectionResponse extends AbstractCommandResponse<Re
     }
 
     /**
-     * @return
+     * @return the configured {@link MappingContext}s of the connection.
      */
     public List<MappingContext> getMappingContexts() {
         return mappingContexts;

@@ -19,7 +19,7 @@ import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import java.util.List;
 import java.util.Map;
 
-import org.eclipse.ditto.model.amqpbridge.InternalMessage;
+import org.eclipse.ditto.model.amqpbridge.ExternalMessage;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.junit.After;
 import org.junit.Before;
@@ -39,13 +39,13 @@ public abstract class MessageMapperTest {
 
     abstract protected DefaultMessageMapperOptions createIncomingConfig();
 
-    abstract protected Map<InternalMessage, Adaptable> createValidIncomingMappings();
+    abstract protected Map<ExternalMessage, Adaptable> createValidIncomingMappings();
 
-    abstract protected Map<InternalMessage, Throwable> createInvalidIncomingMappings();
+    abstract protected Map<ExternalMessage, Throwable> createInvalidIncomingMappings();
 
     abstract protected DefaultMessageMapperOptions createOutgoingConfig();
 
-    abstract protected Map<Adaptable, InternalMessage> createValidOutgoingMappings();
+    abstract protected Map<Adaptable, ExternalMessage> createValidOutgoingMappings();
 
     abstract protected Map<Adaptable, Throwable> createInvalidOutgoingMappings();
 

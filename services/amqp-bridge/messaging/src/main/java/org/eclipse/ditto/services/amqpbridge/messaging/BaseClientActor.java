@@ -5,9 +5,9 @@
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ *
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
- *
  */
 package org.eclipse.ditto.services.amqpbridge.messaging;
 
@@ -180,17 +180,20 @@ public abstract class BaseClientActor extends AbstractActor {
     }
 
     protected boolean isConsumingCommands() {
-        return amqpConnection.getSources().isPresent() && !amqpConnection.getSources().get().isEmpty();
+        return amqpConnection != null && amqpConnection.getSources().isPresent() &&
+                !amqpConnection.getSources().get().isEmpty();
     }
 
     protected boolean isPublishingEvents() {
-        return amqpConnection.getEventTarget().isPresent() && !amqpConnection.getEventTarget().get().isEmpty();
+        return amqpConnection != null && amqpConnection.getEventTarget().isPresent() &&
+                !amqpConnection.getEventTarget().get().isEmpty();
     }
 
     /**
      * @return the sources configured for this connection or an empty set if no sources were configured.
      */
     protected Set<String> getSourcesOrEmptySet() {
-        return amqpConnection.getSources().orElse(Collections.emptySet());
+        return amqpConnection != null ? amqpConnection.getSources().orElse(Collections.emptySet()) :
+                Collections.emptySet();
     }
 }

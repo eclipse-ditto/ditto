@@ -75,7 +75,7 @@ public final class AmqpBridgeModelFactory {
     /**
      * Returns a new {@code MappingContext}.
      *
-     * @return
+     * @return the created MappingContext.
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static MappingContext newMappingContext(final String contentType, final String mappingEngine,
@@ -93,6 +93,58 @@ public final class AmqpBridgeModelFactory {
      */
     public static MappingContext mappingContextFromJson(final JsonObject jsonObject) {
         return ImmutableMappingContext.fromJson(jsonObject);
+    }
+
+    /**
+     * Creates a new ExternalMessageBuilder for {@code COMMAND} messageType.
+     *
+     * @param headers the headers to initialize the builder with.
+     * @return the builder.
+     */
+    public static ExternalMessageBuilder newExternalMessageBuilderForCommand(final Map<String, String> headers) {
+        return newExternalMessageBuilder(headers, ExternalMessage.MessageType.COMMAND);
+    }
+
+    /**
+     * Creates a new ExternalMessageBuilder for {@code RESPONSE} messageType.
+     *
+     * @param headers the headers to initialize the builder with.
+     * @return the builder.
+     */
+    public static ExternalMessageBuilder newExternalMessageBuilderForResponse(final Map<String, String> headers) {
+        return newExternalMessageBuilder(headers, ExternalMessage.MessageType.RESPONSE);
+    }
+
+    /**
+     * Creates a new ExternalMessageBuilder for {@code EVENT} messageType.
+     *
+     * @param headers the headers to initialize the builder with.
+     * @return the builder.
+     */
+    public static ExternalMessageBuilder newExternalMessageBuilderForEvent(final Map<String, String> headers) {
+        return newExternalMessageBuilder(headers, ExternalMessage.MessageType.EVENT);
+    }
+
+    /**
+     * Creates a new ExternalMessageBuilder for the passed {@code messageType}.
+     *
+     * @param headers the headers to initialize the builder with.
+     * @param messageType the MessageType to initialize the builder with.
+     * @return the builder.
+     */
+    public static ExternalMessageBuilder newExternalMessageBuilder(final Map<String, String> headers,
+            final ExternalMessage.MessageType messageType) {
+        return new MutableExternalMessageBuilder(headers, messageType);
+    }
+
+    /**
+     * Creates a new ExternalMessageBuilder based on the passed existing {@code externalMessage}.
+     *
+     * @param externalMessage the ExternalMessage initialize the builder with.
+     * @return the builder.
+     */
+    public static ExternalMessageBuilder newExternalMessageBuilder(final ExternalMessage externalMessage) {
+        return new MutableExternalMessageBuilder(externalMessage);
     }
 
 }

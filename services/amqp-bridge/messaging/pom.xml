@@ -131,8 +131,7 @@
 
         <dependency>
             <groupId>com.newmotion</groupId>
-            <artifactId>akka-rabbitmq_2.12</artifactId>
-            <version>5.0.0</version>
+            <artifactId>akka-rabbitmq_${scala.version}</artifactId>
         </dependency>
 
         <dependency>

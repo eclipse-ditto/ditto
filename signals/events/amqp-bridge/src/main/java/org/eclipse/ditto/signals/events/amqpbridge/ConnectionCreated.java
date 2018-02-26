@@ -81,7 +81,7 @@ public final class ConnectionCreated extends AbstractAmqpBridgeEvent<ConnectionC
      * Returns a new {@code ConnectionCreated} event.
      *
      * @param amqpConnection the created Connection.
-     * @param mappingContexts
+     * @param mappingContexts the mapping contexts to apply for different content-types.
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the event.
      * @throws NullPointerException if any argument is {@code null}.
@@ -95,7 +95,7 @@ public final class ConnectionCreated extends AbstractAmqpBridgeEvent<ConnectionC
      * Returns a new {@code ConnectionCreated} event.
      *
      * @param amqpConnection the created Connection.
-     * @param mappingContexts
+     * @param mappingContexts the mapping contexts to apply for different content-types.
      * @param timestamp the timestamp of this event.
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the event.
@@ -158,7 +158,7 @@ public final class ConnectionCreated extends AbstractAmqpBridgeEvent<ConnectionC
     }
 
     /**
-     * @return
+     * @return the configured {@link MappingContext}s of the created connection.
      */
     public List<MappingContext> getMappingContexts() {
         return mappingContexts;
@@ -195,7 +195,7 @@ public final class ConnectionCreated extends AbstractAmqpBridgeEvent<ConnectionC
     }
 
     @Override
-    public boolean equals(final Object o) {
+    public boolean equals(@Nullable final Object o) {
         if (this == o) {
             return true;
         }

@@ -27,7 +27,8 @@ import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.amqpbridge.InternalMessage;
+import org.eclipse.ditto.model.amqpbridge.AmqpBridgeModelFactory;
+import org.eclipse.ditto.model.amqpbridge.ExternalMessage;
 import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.protocoladapter.Adaptable;
@@ -79,14 +80,14 @@ public class DittoMessageMapperTest extends MessageMapperTest {
     }
 
     @Override
-    protected Map<InternalMessage, Adaptable> createValidIncomingMappings() {
+    protected Map<ExternalMessage, Adaptable> createValidIncomingMappings() {
         return Stream.of(
                 valid1(),
                 valid2()
         ).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
-    private Map.Entry<InternalMessage, Adaptable> valid1() {
+    private Map.Entry<ExternalMessage, Adaptable> valid1() {
         Map<String, String> headers = new HashMap<>();
         headers.put("header-key", "header-value");
         headers.put(MessageMapper.CONTENT_TYPE_KEY, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
@@ -101,13 +102,13 @@ public class DittoMessageMapperTest extends MessageMapperTest {
                         .build())
                 .build());
 
-        InternalMessage message = InternalMessage.Builder.newCommand(headers).withText(adaptable.toJsonString()).build();
+        ExternalMessage message = AmqpBridgeModelFactory.newExternalMessageBuilderForCommand(headers).withText(adaptable.toJsonString()).build();
         Adaptable expected = ProtocolFactory.newAdaptableBuilder(adaptable).build();
 
         return new AbstractMap.SimpleEntry<>(message, expected);
     }
 
-    private Map.Entry<InternalMessage, Adaptable> valid2() {
+    private Map.Entry<ExternalMessage, Adaptable> valid2() {
         Map<String, String> headers = new HashMap<>();
         headers.put("header-key", "header-value");
         headers.put(MessageMapper.CONTENT_TYPE_KEY, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
@@ -119,31 +120,31 @@ public class DittoMessageMapperTest extends MessageMapperTest {
         Adaptable expected = ProtocolFactory.newAdaptableBuilder(ProtocolFactory.jsonifiableAdaptableFromJson(json))
                 .withHeaders(DittoHeaders.of(headers))
                 .build();
-        InternalMessage message = InternalMessage.Builder.newCommand(headers).withText(json.toString()).build();
-        return new AbstractMap.SimpleEntry<InternalMessage, Adaptable>(message, expected);
+        ExternalMessage message = AmqpBridgeModelFactory.newExternalMessageBuilderForCommand(headers).withText(json.toString()).build();
+        return new AbstractMap.SimpleEntry<ExternalMessage, Adaptable>(message, expected);
     }
 
     @Override
-    protected Map<InternalMessage, Throwable> createInvalidIncomingMappings() {
-        Map<InternalMessage, Throwable> mappings = new HashMap<>();
+    protected Map<ExternalMessage, Throwable> createInvalidIncomingMappings() {
+        Map<ExternalMessage, Throwable> mappings = new HashMap<>();
 
         Map<String, String> headers = new HashMap<>();
         headers.put("header-key", "header-value");
         headers.put(MessageMapper.CONTENT_TYPE_KEY, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
 
-        InternalMessage message;
-        message = InternalMessage.Builder.newCommand(headers).withText("").build();
+        ExternalMessage message;
+        message = AmqpBridgeModelFactory.newExternalMessageBuilderForCommand(headers).withText("").build();
         mappings.put(message, new IllegalArgumentException("Failed to extract string payload from message:"));
 
         // --
 
-        message = InternalMessage.Builder.newCommand(headers).withText("{}").build();
+        message = AmqpBridgeModelFactory.newExternalMessageBuilderForCommand(headers).withText("{}").build();
         mappings.put(message, new IllegalArgumentException("Failed to map '{}'",
                 new JsonMissingFieldException("/path")));
 
         // --
 
-        message = InternalMessage.Builder.newCommand(headers).withText("no json").build();
+        message = AmqpBridgeModelFactory.newExternalMessageBuilderForCommand(headers).withText("no json").build();
         mappings.put(message, new IllegalArgumentException("Failed to map 'no json'",
                 new JsonParseException("Failed to create JSON object from string!")));
 
@@ -159,8 +160,8 @@ public class DittoMessageMapperTest extends MessageMapperTest {
     }
 
     @Override
-    protected Map<Adaptable, InternalMessage> createValidOutgoingMappings() {
-        Map<Adaptable, InternalMessage> mappings = new HashMap<>();
+    protected Map<Adaptable, ExternalMessage> createValidOutgoingMappings() {
+        Map<Adaptable, ExternalMessage> mappings = new HashMap<>();
 
         Map<String, String> headers = new HashMap<>();
         headers.put("header-key", "header-value");
@@ -176,8 +177,8 @@ public class DittoMessageMapperTest extends MessageMapperTest {
                         .build())
                 .build());
 
-        InternalMessage message =
-                InternalMessage.Builder.newCommand(headers).withText(adaptable.toJsonString()).build();
+        ExternalMessage message =
+                AmqpBridgeModelFactory.newExternalMessageBuilderForCommand(headers).withText(adaptable.toJsonString()).build();
         mappings.put(adaptable, message);
 
         final JsonObject json = JsonFactory.newObjectBuilder()
@@ -188,7 +189,7 @@ public class DittoMessageMapperTest extends MessageMapperTest {
         adaptable = ProtocolFactory.wrapAsJsonifiableAdaptable(ProtocolFactory.newAdaptableBuilder(adaptable)
                 .withHeaders(DittoHeaders.of(headers)).build());
 
-        message = InternalMessage.Builder.newCommand(headers).withText(adaptable.toJsonString()).build();
+        message = AmqpBridgeModelFactory.newExternalMessageBuilderForCommand(headers).withText(adaptable.toJsonString()).build();
         mappings.put(adaptable, message);
 
         return mappings;

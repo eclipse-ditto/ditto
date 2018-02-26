@@ -152,7 +152,7 @@ public final class CreateConnection extends AbstractCommand<CreateConnection>
     }
 
     /**
-     * @return
+     * @return the configured {@link MappingContext}s of the connection to be created.
      */
     public List<MappingContext> getMappingContexts() {
         return mappingContexts;

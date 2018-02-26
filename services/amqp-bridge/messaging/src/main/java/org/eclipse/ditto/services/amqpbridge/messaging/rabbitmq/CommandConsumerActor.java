@@ -5,9 +5,9 @@
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ *
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
- *
  */
 package org.eclipse.ditto.services.amqpbridge.messaging.rabbitmq;
 
@@ -22,7 +22,8 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.amqpbridge.InternalMessage;
+import org.eclipse.ditto.model.amqpbridge.AmqpBridgeModelFactory;
+import org.eclipse.ditto.model.amqpbridge.ExternalMessage;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
@@ -44,6 +45,7 @@ public class CommandConsumerActor extends AbstractActor {
     private static final String EXCHANGE_HEADER = "exchange";
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+
     private final ActorRef commandProcessor;
 
     private CommandConsumerActor(@Nullable final ActorRef commandProcessor) {
@@ -85,9 +87,10 @@ public class CommandConsumerActor extends AbstractActor {
             final String correlationId = properties.getCorrelationId();
             LogUtil.enhanceLogWithCorrelationId(log, correlationId);
             final Map<String, String> headers = extractHeadersFromMessage(properties, envelope);
-            final InternalMessage internalMessage = InternalMessage.Builder.newCommand(headers).withBytes(body).build();
+            final ExternalMessage externalMessage = AmqpBridgeModelFactory.newExternalMessageBuilderForCommand(headers)
+                    .withBytes(body).build();
             log.debug("Received message from RabbitMQ ({}//{}): {}", envelope, properties);
-            commandProcessor.forward(internalMessage, context());
+            commandProcessor.forward(externalMessage, context());
         } catch (final Exception e) {
             log.warning("Processing delivery {} failed: {}", envelope.getDeliveryTag(), e.getMessage(), e);
         }

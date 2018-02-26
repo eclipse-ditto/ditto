@@ -21,7 +21,7 @@ import org.eclipse.ditto.services.amqpbridge.messaging.persistence.MongoReconnec
 import org.eclipse.ditto.services.amqpbridge.util.ConfigKeys;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
-import org.eclipse.ditto.signals.commands.amqpbridge.query.RetrieveConnectionStatus;
+import org.eclipse.ditto.signals.commands.amqpbridge.modify.OpenConnection;
 import org.eclipse.ditto.signals.commands.amqpbridge.query.RetrieveConnectionStatusResponse;
 import org.eclipse.ditto.signals.events.amqpbridge.ConnectionClosed;
 import org.eclipse.ditto.signals.events.amqpbridge.ConnectionCreated;
@@ -184,7 +184,7 @@ public final class ReconnectActor extends AbstractPersistentActor {
     }
 
     private void reconnect(final String connectionId) {
-        connectionShardRegion.tell(RetrieveConnectionStatus.of(connectionId, DittoHeaders.empty()), getSelf());
+        connectionShardRegion.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getSelf());
     }
 
     private void doSaveSnapshot() {
