@@ -11,103 +11,57 @@
  */
 package org.eclipse.ditto.services.amqpbridge.mapping.mapper;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 
 /**
- * Typed map wrapper for {@link MessageMapper} configuration. Offers some convenience to access values.
+ * Configuration properties for a {@link AbstractMessageMapper}.
  */
-public class MessageMapperConfiguration implements Map<String, String> {
+public interface MessageMapperConfiguration {
 
-    private final Map<String, String> configuration;
+    Map<String, String> getProperties();
 
-
-    private MessageMapperConfiguration(final Map<String, String> configuration) {
-        this.configuration = new LinkedHashMap<>(configuration);
-    }
-
-    public static MessageMapperConfiguration empty() {
-        return from(Collections.emptyMap());
+    /**
+     * Searches the configuration for a specific property.
+     *
+     * @param propertyName the property name
+     * @return the property if present
+     */
+    default Optional<String> findProperty(final String propertyName) {
+        return Optional.ofNullable(getProperties().get(propertyName));
     }
 
     /**
-     * Constructs a new {@link MessageMapperConfiguration} from the given map.
-     * @param configuration the map holding configuration properties
+     * Extracts a required property from the configuration and fails with an exception if missing.
+     *
+     * @param propertyName the property name
+     * @return the property value
+     * @throws IllegalArgumentException if no value present
      */
-    public static MessageMapperConfiguration from(final Map<String, String> configuration) {
-        return new MessageMapperConfiguration(configuration);
+    default String getProperty(final String propertyName) {
+        return findProperty(propertyName).orElseThrow(() ->
+                new IllegalArgumentException(String.format("Required configuration property missing: '%s'", propertyName))
+        );
     }
 
-    public Optional<String> findProperty(final String property) {
-        return Optional.ofNullable(configuration.get(property)).filter(s -> !s.isEmpty());
+    /**
+     * Searches the configuration for the content type property.
+     *
+     * @return the content type value if present
+     */
+    default Optional<String> findContentType() {
+        return findProperty(MessageMapperConfigurationProperties.CONTENT_TYPE);
     }
 
-    public String getProperty(final String property) {
-        return findProperty(property).orElseThrow(
-                () -> new IllegalArgumentException("Missing configuration property: " + property));
+    /**
+     * Extracts the content type and fails if missing.
+     *
+     * @return the contentType
+     * @throws IllegalArgumentException if content type is missing
+     */
+    default String getContentType() {
+        return getProperty(MessageMapperConfigurationProperties.CONTENT_TYPE);
     }
 
-    @Override
-    public int size() {
-        return configuration.size();
-    }
 
-    @Override
-    public boolean isEmpty() {
-        return configuration.isEmpty();
-    }
-
-    @Override
-    public boolean containsKey(final Object key) {
-        return configuration.containsKey(key);
-    }
-
-    @Override
-    public boolean containsValue(final Object value) {
-        return configuration.containsValue(value);
-    }
-
-    @Override
-    public String get(final Object key) {
-        return configuration.get(key);
-    }
-
-    @Override
-    public String put(final String key, final String value) {
-        return configuration.put(key, value);
-    }
-
-    @Override
-    public String remove(final Object key) {
-        return configuration.remove(key);
-    }
-
-    @Override
-    public void putAll(final Map<? extends String, ? extends String> m) {
-        configuration.putAll(m);
-    }
-
-    @Override
-    public void clear() {
-        configuration.clear();
-    }
-
-    @Override
-    public Set<String> keySet() {
-        return configuration.keySet();
-    }
-
-    @Override
-    public Collection<String> values() {
-        return configuration.values();
-    }
-
-    @Override
-    public Set<Entry<String, String>> entrySet() {
-        return configuration.entrySet();
-    }
 }

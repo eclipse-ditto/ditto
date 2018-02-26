@@ -11,31 +11,14 @@
  */
 package org.eclipse.ditto.services.amqpbridge.mapping.mapper;
 
-import java.util.Map;
-import java.util.Optional;
-
 /**
- * TODO doc
+ * Static configuration property keys for a {@link MessageMapperConfiguration}.
  */
-public interface PayloadMapperOptions {
+final class MessageMapperConfigurationProperties {
 
-    String CONTENT_TYPE_KEY = "Content-Type";
-
-    Map<String, String> getAsMap();
-
-    /**
-     *
-     * @return
-     */
-    default Optional<String> getContentType() {
-        return Optional.ofNullable(getAsMap().get(CONTENT_TYPE_KEY));
+    private MessageMapperConfigurationProperties() {
+        assert(false);
     }
 
-    /**
-     *
-     */
-    interface Builder<T extends PayloadMapperOptions> {
-
-        T build();
-    }
+    public static final String CONTENT_TYPE = "contentType";
 }
