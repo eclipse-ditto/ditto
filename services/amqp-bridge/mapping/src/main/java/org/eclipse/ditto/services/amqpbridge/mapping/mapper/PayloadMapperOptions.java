@@ -12,14 +12,24 @@
 package org.eclipse.ditto.services.amqpbridge.mapping.mapper;
 
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * TODO doc
  */
-@Deprecated
 public interface PayloadMapperOptions {
 
+    String CONTENT_TYPE_KEY = "Content-Type";
+
     Map<String, String> getAsMap();
+
+    /**
+     *
+     * @return
+     */
+    default Optional<String> getContentType() {
+        return Optional.ofNullable(getAsMap().get(CONTENT_TYPE_KEY));
+    }
 
     /**
      *

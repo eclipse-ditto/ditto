@@ -38,7 +38,7 @@ public class DittoMessageMapperTest extends MessageMapperTest {
 
     @Override
     protected MessageMapper createMapper() {
-        return new DittoMessageMapper(MessageMapperConfiguration.empty());
+        return new DittoMessageMapper(DefaultMessageMapperOptions.empty());
     }
 
     @Override
@@ -47,15 +47,15 @@ public class DittoMessageMapperTest extends MessageMapperTest {
     }
 
     @Override
-    protected List<MessageMapperConfiguration> createValidConfig() {
-        List<MessageMapperConfiguration> options = new LinkedList<>();
+    protected List<DefaultMessageMapperOptions> createValidConfig() {
+        List<DefaultMessageMapperOptions> options = new LinkedList<>();
 //        options.add(MessageMapperConfiguration.from(Collections.emptyMap()));
 
         Arrays.asList("true", "false", null, "asdfjökla", "").forEach(s -> {
                     Map<String, String> map = new HashMap<>();
                     map.put(MessageMapper.OPT_CONTENT_TYPE_REQUIRED, s);
                     map.put(MessageMapper.OPT_CONTENT_TYPE, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
-                    options.add(MessageMapperConfiguration.from(map));
+                    options.add(DefaultMessageMapperOptions.from(map));
                 }
         );
 
@@ -63,19 +63,19 @@ public class DittoMessageMapperTest extends MessageMapperTest {
     }
 
     @Override
-    protected Map<MessageMapperConfiguration, Throwable> createInvalidConfig() {
+    protected Map<DefaultMessageMapperOptions, Throwable> createInvalidConfig() {
         // there are none
-        Map<MessageMapperConfiguration, Throwable> map = new HashMap<>();
-        map.put(MessageMapperConfiguration.empty(), new IllegalArgumentException("Missing option <contentType>"));
+        Map<DefaultMessageMapperOptions, Throwable> map = new HashMap<>();
+        map.put(DefaultMessageMapperOptions.empty(), new IllegalArgumentException("Missing option <contentType>"));
         return map;
     }
 
     @Override
-    protected MessageMapperConfiguration createIncomingConfig() {
+    protected DefaultMessageMapperOptions createIncomingConfig() {
         Map<String, String> map = new HashMap<>();
         map.put(MessageMapper.OPT_CONTENT_TYPE_REQUIRED, String.valueOf(true));
         map.put(MessageMapper.OPT_CONTENT_TYPE, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
-        return MessageMapperConfiguration.from(map);
+        return DefaultMessageMapperOptions.from(map);
     }
 
     @Override
@@ -151,11 +151,11 @@ public class DittoMessageMapperTest extends MessageMapperTest {
     }
 
     @Override
-    protected MessageMapperConfiguration createOutgoingConfig() {
+    protected DefaultMessageMapperOptions createOutgoingConfig() {
         Map<String, String> map = new HashMap<>();
         map.put(MessageMapper.OPT_CONTENT_TYPE_REQUIRED, String.valueOf(true));
         map.put(MessageMapper.OPT_CONTENT_TYPE, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
-        return MessageMapperConfiguration.from(map);
+        return DefaultMessageMapperOptions.from(map);
     }
 
     @Override

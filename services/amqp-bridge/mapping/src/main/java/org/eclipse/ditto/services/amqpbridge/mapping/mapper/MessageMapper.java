@@ -27,6 +27,9 @@ import com.google.common.base.Converter;
 /**
  * An abstract message converter which converts a {@link InternalMessage} to a {@link Adaptable} and vice versa.
  * Enhances the basic Converter with convenience logic for dynamic configuration and content type based conversion.
+ *
+ * TODO TJ if we use guava and the converter construct only for convert() and reverse().convert() --> we should stop using it - too much complexity for that little API
+ * TODO prefer delegation -> implement {@link PayloadMapper} as "ContentTypeCheckingPayloadMapper" and delegate to passed in PayloadMapper
  */
 public abstract class MessageMapper extends Converter<InternalMessage, Adaptable> {
 
@@ -46,7 +49,7 @@ public abstract class MessageMapper extends Converter<InternalMessage, Adaptable
      * Defines if a content type check is performed.
      * Not final as it might be set via dynamic configuration.
      */
-    private boolean isContentTypeRequired;
+    private boolean contentTypeRequired;
 
     @Nullable
     public final String getContentType() {
@@ -69,7 +72,7 @@ public abstract class MessageMapper extends Converter<InternalMessage, Adaptable
      */
     @SuppressWarnings("WeakerAccess")
     public final boolean isContentTypeRequired() {
-        return isContentTypeRequired;
+        return contentTypeRequired;
     }
 
     /**
@@ -78,7 +81,7 @@ public abstract class MessageMapper extends Converter<InternalMessage, Adaptable
      */
     @SuppressWarnings("WeakerAccess")
     protected final void setContentTypeRequired(final boolean contentTypeRequired) {
-        isContentTypeRequired = contentTypeRequired;
+        this.contentTypeRequired = contentTypeRequired;
     }
 
 
@@ -131,12 +134,12 @@ public abstract class MessageMapper extends Converter<InternalMessage, Adaptable
      * @param configuration the configuration
      * @throws IllegalArgumentException if the configuration is invalid.
      */
-    public final void configure(final MessageMapperConfiguration configuration){
+    public final void configure(final DefaultMessageMapperOptions configuration){
         checkNotNull(configuration);
         doConfigure(configuration);
 
-        final boolean isContentTypeRequiredValue = configuration.findProperty(OPT_CONTENT_TYPE_REQUIRED).map
-                (Boolean::valueOf).orElse(true);
+        final boolean isContentTypeRequiredValue = configuration.getContentType().map(Boolean::valueOf)
+                .orElse(true);
         final String contentTypeValue = configuration.findProperty(OPT_CONTENT_TYPE).orElseThrow(() ->
                 new IllegalArgumentException(String.format("Missing option <%s>", OPT_CONTENT_TYPE)));
 
@@ -148,7 +151,7 @@ public abstract class MessageMapper extends Converter<InternalMessage, Adaptable
      * Dynamically configures the mapper with the given configuration options.
      * @param configuration the configuration
      */
-    protected abstract void doConfigure(final MessageMapperConfiguration configuration);
+    protected abstract void doConfigure(final DefaultMessageMapperOptions configuration);
 
     /**
      * Maps a messeage to an adaptable. There is no need for implementing a content type check!
@@ -181,12 +184,12 @@ public abstract class MessageMapper extends Converter<InternalMessage, Adaptable
         if (o == null || getClass() != o.getClass()) return false;
         if (!super.equals(o)) return false;
         final MessageMapper mapper = (MessageMapper) o;
-        return isContentTypeRequired == mapper.isContentTypeRequired &&
+        return contentTypeRequired == mapper.contentTypeRequired &&
                 Objects.equals(contentType, mapper.contentType);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(contentType, isContentTypeRequired);
+        return Objects.hash(contentType, contentTypeRequired);
     }
 }

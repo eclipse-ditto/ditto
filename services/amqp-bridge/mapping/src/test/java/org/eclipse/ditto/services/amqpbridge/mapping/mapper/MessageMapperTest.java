@@ -33,17 +33,17 @@ public abstract class MessageMapperTest {
 
     abstract protected String createSupportedContentType();
 
-    abstract protected List<MessageMapperConfiguration> createValidConfig();
+    abstract protected List<DefaultMessageMapperOptions> createValidConfig();
 
-    abstract protected Map<MessageMapperConfiguration, Throwable> createInvalidConfig();
+    abstract protected Map<DefaultMessageMapperOptions, Throwable> createInvalidConfig();
 
-    abstract protected MessageMapperConfiguration createIncomingConfig();
+    abstract protected DefaultMessageMapperOptions createIncomingConfig();
 
     abstract protected Map<InternalMessage, Adaptable> createValidIncomingMappings();
 
     abstract protected Map<InternalMessage, Throwable> createInvalidIncomingMappings();
 
-    abstract protected MessageMapperConfiguration createOutgoingConfig();
+    abstract protected DefaultMessageMapperOptions createOutgoingConfig();
 
     abstract protected Map<Adaptable, InternalMessage> createValidOutgoingMappings();
 

@@ -85,6 +85,7 @@ public final class CommandProcessorActor extends AbstractActor {
                         -> log.debug("Trace for {} removed.", notification.getKey()))
                 .build();
 
+        // TODO why not simply pass the "log" into here instead of the 2 consumers?!
         this.processor = CommandProcessor.from(mappingContexts, getDynamicAccess(), log::debug, log::warning,
                 this::updateCorrelationId);
 
@@ -171,7 +172,7 @@ public final class CommandProcessorActor extends AbstractActor {
         log.info(msgTemplate, exception.getErrorCode(), exception.getMessage());
     }
 
-    private void handleCommandResponse(final CommandResponse response) {
+    private void handleCommandResponse(final CommandResponse<?> response) {
         LogUtil.enhanceLogWithCorrelationId(log, response);
         finishTrace(response);
 
@@ -189,7 +190,7 @@ public final class CommandProcessorActor extends AbstractActor {
         }
     }
 
-    private void handleThingEvent(final ThingEvent thingEvent) {
+    private void handleThingEvent(final ThingEvent<?> thingEvent) {
         LogUtil.enhanceLogWithCorrelationId(log, thingEvent);
         try {
             final InternalMessage message = processor.process(thingEvent);

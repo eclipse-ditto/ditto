@@ -43,8 +43,10 @@ import scala.util.Try;
  * from the actor.
  * Due to this, the factory can be instantiated with a reference to the actors log adapter and will log problems to
  * the debug and warning level (no info and error). Setting a log adapter does not change factory behaviour!
+ *
+ * TODO extract interface
  */
-public class MessageMapperFactory {
+public final class MessageMapperFactory {
 
     /**
      * The actor system used for dynamic class instantiation.
@@ -70,8 +72,8 @@ public class MessageMapperFactory {
      * @param dynamicAccess the actor systems dynamic access used for dynamic class instantiation
      * @param factoryClass the factory class scanned for factory functions
      */
-    private MessageMapperFactory(final DynamicAccess dynamicAccess, final Class<?> factoryClass, final
-    @Nullable Consumer<String> logDebug, @Nullable Consumer<String> logWarning) {
+    private MessageMapperFactory(final DynamicAccess dynamicAccess, final Class<?> factoryClass,
+        @Nullable final Consumer<String> logDebug, @Nullable final Consumer<String> logWarning) {
         this.dynamicAccess = dynamicAccess;
         this.factoryClass = factoryClass;
         //noinspection ConstantConditions
@@ -79,6 +81,14 @@ public class MessageMapperFactory {
         this.logWarning = logWarning;
     }
 
+    /**
+     *
+     * @param dynamicAccess
+     * @param factoryClass
+     * @param logDebug
+     * @param logWarning
+     * @return
+     */
     public static MessageMapperFactory from(final DynamicAccess dynamicAccess, final Class<?> factoryClass, final
     @Nullable Consumer<String> logDebug, @Nullable Consumer<String> logWarning) {
         return new MessageMapperFactory(dynamicAccess, factoryClass, logDebug, logWarning);
@@ -118,7 +128,7 @@ public class MessageMapperFactory {
             }
         }
 
-        final MessageMapperConfiguration options = MessageMapperConfiguration.from(mappingContext.getOptions());
+        final DefaultMessageMapperOptions options = DefaultMessageMapperOptions.from(mappingContext.getOptions());
         return mapper.map(m -> configureInstance(m, options));
     }
 
@@ -183,15 +193,24 @@ public class MessageMapperFactory {
                 .collect(Collectors.toList());
     }
 
-//    --
-
+    /**
+     *
+     * @param contexts
+     * @return
+     */
     public MessageMapperRegistry loadRegistry(final List<MappingContext> contexts) {
-        final MessageMapperConfiguration cfg = MessageMapperConfiguration.from(
+        final DefaultMessageMapperOptions cfg = DefaultMessageMapperOptions.from(
                 Collections.singletonMap(MessageMapper.OPT_CONTENT_TYPE_REQUIRED, String.valueOf(false)));
         final List<MessageMapper> mappers = loadMappers(contexts);
         return new MessageMapperRegistry(new DittoMessageMapper(cfg), mappers);
     }
 
+    /**
+     *
+     * @param defaultMapper
+     * @param contexts
+     * @return
+     */
     public MessageMapperRegistry loadRegistry(final MessageMapper defaultMapper,
             final List<MappingContext> contexts) {
         final List<MessageMapper> mappers = loadMappers(contexts);
@@ -199,12 +218,8 @@ public class MessageMapperFactory {
         return new MessageMapperRegistry(defaultMapper, mappers);
     }
 
-
-
-//    --
-
     @Nullable
-    private MessageMapper configureInstance(final MessageMapper mapper, final MessageMapperConfiguration options) {
+    private MessageMapper configureInstance(final MessageMapper mapper, final DefaultMessageMapperOptions options) {
         try {
             mapper.configure(options);
             return mapper;
@@ -232,8 +247,8 @@ public class MessageMapperFactory {
             } else if (error.getClass().isAssignableFrom(ClassCastException.class)) {
                 throw (ClassCastException) error;
             } else {
-                //TODO: cast all possible exceptions to their appropriate type, not sure if i got all
-                throw new IllegalStateException("No throw handling for exception found", error);
+                throw new IllegalStateException("There was an unknown error when trying to creating instance for '"
+                        + className + "'", error);
             }
         }
 

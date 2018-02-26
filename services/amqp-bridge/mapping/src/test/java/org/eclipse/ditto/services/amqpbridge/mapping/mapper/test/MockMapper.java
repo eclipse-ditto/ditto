@@ -16,7 +16,7 @@ import javax.annotation.Nonnull;
 import org.eclipse.ditto.model.amqpbridge.InternalMessage;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMapper;
-import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMapperConfiguration;
+import org.eclipse.ditto.services.amqpbridge.mapping.mapper.DefaultMessageMapperOptions;
 
 
 public class MockMapper extends MessageMapper {
@@ -27,7 +27,7 @@ public class MockMapper extends MessageMapper {
     }
 
     @Override
-    public void doConfigure(@Nonnull final MessageMapperConfiguration configuration) {
+    public void doConfigure(@Nonnull final DefaultMessageMapperOptions configuration) {
         configuration.findProperty(OPT_IS_VALID).map(Boolean::valueOf).filter(Boolean.TRUE::equals).orElseThrow
                 (IllegalArgumentException::new);
     }

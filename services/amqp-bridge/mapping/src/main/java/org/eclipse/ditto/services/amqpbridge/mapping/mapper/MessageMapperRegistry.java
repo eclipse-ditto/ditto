@@ -12,6 +12,7 @@
 package org.eclipse.ditto.services.amqpbridge.mapping.mapper;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -19,28 +20,28 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
-
-import javax.annotation.Nullable;
-
 import org.eclipse.ditto.model.amqpbridge.InternalMessage;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 
 import com.google.common.base.Converter;
 
+import akka.stream.impl.fusing.Collect;
+
 /**
  * A registry for instantiated mappers.
+ *
+ * TODO extract interface with public methods and implement this class as "Default"
  */
-public class MessageMapperRegistry implements Collection<MessageMapper> {
+public final class MessageMapperRegistry {
 
     private final Map<String, MessageMapper> registry;
 
-    @Nullable
-    private MessageMapper defaultMapper;
+    private final MessageMapper defaultMapper;
 
 
-    private MessageMapperRegistry(@Nullable final MessageMapper defaultMapper) {
-        registry = new HashMap<>();
-        setDefaultMapper(defaultMapper);
+    private MessageMapperRegistry(final MessageMapper defaultMapper, final Map<String, MessageMapper> registry) {
+        this.defaultMapper = defaultMapper; // TODO null check
+        this.registry = Collections.unmodifiableMap(new HashMap<>(registry));  // TODO null check
     }
 
     /**
@@ -48,7 +49,7 @@ public class MessageMapperRegistry implements Collection<MessageMapper> {
      * @param defaultMapper the default mapper
      * @param mappers the mappers
      */
-    MessageMapperRegistry(@Nullable final MessageMapper defaultMapper, final List<MessageMapper> mappers) {
+    public static MessageMapperRegistry of(final MessageMapper defaultMapper, final MessageMapper... mappers) {
         this(defaultMapper);
         addAll(mappers);
     }
@@ -57,19 +58,15 @@ public class MessageMapperRegistry implements Collection<MessageMapper> {
      * Returns the default mapper if present
      * @return the default mapper or null
      */
-    @Nullable
     public MessageMapper getDefaultMapper() {
         return defaultMapper;
     }
 
     /**
-     * Sets a default mapper
-     * @param defaultMapper the default mapper
+     *
+     * @param message
+     * @return
      */
-    private void setDefaultMapper(@Nullable final MessageMapper defaultMapper) {
-        this.defaultMapper = defaultMapper;
-    }
-
     public Optional<MessageMapper> findMapper(final InternalMessage message) {
         return MessageMapper.findContentType(message).map(registry::get);
     }
@@ -102,77 +99,4 @@ public class MessageMapperRegistry implements Collection<MessageMapper> {
         return mapper.isPresent() ? mapper : Optional.ofNullable(getDefaultMapper()).map(MessageMapper::reverse);
     }
 
-
-    @Override
-    public int size() {
-        return registry.size();
-    }
-
-    @Override
-    public boolean isEmpty() {
-        return registry.isEmpty();
-    }
-
-    @Override
-    public boolean contains(final Object o) {
-        return registry.values().contains(o);
-    }
-
-    @Override
-    public Iterator<MessageMapper> iterator() {
-        return registry.values().iterator();
-    }
-
-    @Override
-    public Object[] toArray() {
-        return registry.values().toArray();
-    }
-
-    @Override
-    public <T> T[] toArray(final T[] a) {
-        //noinspection SuspiciousToArrayCall
-        return registry.values().toArray(a);
-    }
-
-    @Override
-    public boolean add(final MessageMapper messageMapper) {
-        return !messageMapper.equals(registry.put(messageMapper.getContentType(), messageMapper));
-    }
-
-    @Override
-    public boolean remove(final Object o) {
-        return !MessageMapper.class.isAssignableFrom(o.getClass()) &&
-                Objects.nonNull(registry.remove(((MessageMapper) o).getContentType()));
-    }
-
-    @Override
-    public boolean containsAll(final Collection<?> c) {
-        return registry.values().containsAll(c);
-    }
-
-    @Override
-    public boolean addAll(final Collection<? extends MessageMapper> c) {
-        boolean[] changed = new boolean[1];
-        c.forEach(e -> {
-            if (this.add(e)) {
-                changed[0] = true;
-            }
-        });
-        return changed[0];
-    }
-
-    @Override
-    public boolean removeAll(final Collection<?> c) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public boolean retainAll(final Collection<?> c) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void clear() {
-        registry.clear();
-    }
 }
