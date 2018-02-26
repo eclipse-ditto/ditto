@@ -35,7 +35,7 @@ public interface JavaScriptMessageMapperMapperOptions extends MessageMapperConfi
     /**
      *
      */
-    interface Builder extends MessageMapperConfiguration.Builder<JavaScriptMessageMapperMapperOptions> {
+    interface Builder {
 
         Builder incomingMappingScript(@Nullable String mappingScript);
 
@@ -47,5 +47,6 @@ public interface JavaScriptMessageMapperMapperOptions extends MessageMapperConfi
 
         Builder loadMustacheJS(boolean load);
 
+        JavaScriptMessageMapperMapperOptions build();
     }
 }

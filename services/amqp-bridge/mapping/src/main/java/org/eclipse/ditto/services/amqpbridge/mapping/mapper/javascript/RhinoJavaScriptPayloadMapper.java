@@ -29,13 +29,13 @@ import javax.script.Bindings;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.amqpbridge.AmqpBridgeModelFactory;
+import org.eclipse.ditto.model.amqpbridge.ExternalMessage;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
-import org.eclipse.ditto.services.amqpbridge.mapping.mapper.PayloadMapper;
-import org.eclipse.ditto.services.amqpbridge.mapping.mapper.PayloadMapperMessage;
+import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMapper;
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMapperConfiguration;
-import org.eclipse.ditto.services.amqpbridge.mapping.mapper.PayloadMappers;
 import org.mozilla.javascript.Callable;
 import org.mozilla.javascript.Context;
 import org.mozilla.javascript.ContextFactory;
@@ -49,7 +49,7 @@ import org.mozilla.javascript.Undefined;
 /**
  * This mapper executes its mapping methods on the <b>current thread</b>. The caller should be aware of that.
  */
-final class RhinoJavaScriptPayloadMapper implements PayloadMapper {
+final class RhinoJavaScriptPayloadMapper implements MessageMapper {
 
     private static final String WEBJARS_PATH = "/META-INF/resources/webjars";
 
@@ -76,13 +76,7 @@ final class RhinoJavaScriptPayloadMapper implements PayloadMapper {
 
     @Nullable private JavaScriptMessageMapperMapperOptions options;
 
-
     RhinoJavaScriptPayloadMapper() {
-        this(PayloadMappers.createMapperOptionsBuilder(Collections.emptyMap()).build());
-    }
-
-    RhinoJavaScriptPayloadMapper(final MessageMapperConfiguration options) {
-        configure(options);
         contextFactory = new RhinoContextFactory();
 
         // create scope once and load the required libraries in order to get best performance:
@@ -95,25 +89,20 @@ final class RhinoJavaScriptPayloadMapper implements PayloadMapper {
     }
 
     @Override
-    public List<String> getSupportedContentTypes() {
-        return Collections.singletonList(".*"); // matches all contentTypes (via regex)
+    public Optional<String> getContentType() {
+        return Optional.of(".*");
     }
 
+    @Nullable
     @Override
-    public void configure(final MessageMapperConfiguration options) {
-        this.options = new ImmutableJavaScriptMessageMapperMapperOptions.Builder(options.getProperties()).build();
-    }
-
-    @Override
-    public Adaptable mapIncoming(final PayloadMapperMessage message) {
-
+    public Adaptable map(@Nullable final ExternalMessage message) {
         return (Adaptable) contextFactory.call(cx -> {
             final NativeObject headersObj = new NativeObject();
             message.getHeaders().forEach((key, value) -> headersObj.put(key, headersObj, value));
             ScriptableObject.putProperty(scope, MAPPING_HEADERS_VAR, headersObj);
 
-            if (message.getRawData().isPresent()) {
-                final ByteBuffer byteBuffer = message.getRawData().get();
+            if (message.getBytePayload().isPresent()) {
+                final ByteBuffer byteBuffer = message.getBytePayload().get();
                 final byte[] array = byteBuffer.array();
                 final NativeArray newArray = new NativeArray(array.length);
                 for (int a = 0; a < array.length; a++) {
@@ -122,8 +111,8 @@ final class RhinoJavaScriptPayloadMapper implements PayloadMapper {
                 ScriptableObject.putProperty(scope, MAPPING_BYTEARRAY_VAR, newArray);
             }
 
-            ScriptableObject.putProperty(scope, MAPPING_CONTENT_TYPE_VAR, message.getContentType());
-            ScriptableObject.putProperty(scope, MAPPING_STRING_VAR, message.getStringData().orElse(null));
+            ScriptableObject.putProperty(scope, MAPPING_CONTENT_TYPE_VAR, message.getHeaders().get("content-type"));
+            ScriptableObject.putProperty(scope, MAPPING_STRING_VAR, message.getTextPayload().orElse(null));
             ScriptableObject.putProperty(scope, DITTO_PROTOCOL_JSON_VAR, new NativeObject());
 
             cx.evaluateString(scope, getOptions().flatMap(JavaScriptMessageMapperMapperOptions::getIncomingMappingScript)
@@ -138,15 +127,15 @@ final class RhinoJavaScriptPayloadMapper implements PayloadMapper {
         });
     }
 
+    @Nullable
     @Override
-    public PayloadMapperMessage mapOutgoing(final Adaptable dittoProtocolAdaptable) {
-
+    public ExternalMessage map(@Nullable final Adaptable adaptable) {
         final JsonifiableAdaptable jsonifiableAdaptable =
-                ProtocolFactory.wrapAsJsonifiableAdaptable(dittoProtocolAdaptable);
+                ProtocolFactory.wrapAsJsonifiableAdaptable(adaptable);
 
-        return (PayloadMapperMessage) contextFactory.call(cx ->{
+        return (ExternalMessage) contextFactory.call(cx ->{
             final Object nativeJsonObject =
-                        NativeJSON.parse(cx, scope, jsonifiableAdaptable.toJsonString(), new NullCallable());
+                    NativeJSON.parse(cx, scope, jsonifiableAdaptable.toJsonString(), new NullCallable());
             ScriptableObject.putProperty(scope, DITTO_PROTOCOL_JSON_VAR, nativeJsonObject);
 
             cx.evaluateString(scope, getOptions().flatMap(JavaScriptMessageMapperMapperOptions::getOutgoingMappingScript)
@@ -158,10 +147,18 @@ final class RhinoJavaScriptPayloadMapper implements PayloadMapper {
             final Object mappingHeaders = ScriptableObject.getProperty(scope, MAPPING_HEADERS_VAR);
 
             final Map<String, String> headers = !(mappingHeaders instanceof Undefined) ? null : Collections.emptyMap();
-            return PayloadMappers.createPayloadMapperMessage(contentType, convertToByteBuffer(mappingByteArray),
-                    mappingString, headers);
+            //TODO pm evaulate if bytes or text payload
+            return AmqpBridgeModelFactory.newExternalMessageBuilder(headers, ExternalMessage.MessageType.RESPONSE)
+                    .withAdditionalHeaders("content-type", contentType).withText(mappingString);
+
         });
     }
+
+    @Override
+    public void configure(final MessageMapperConfiguration options) {
+        this.options = new ImmutableJavaScriptMessageMapperMapperOptions.Builder(options.getProperties()).build();
+    }
+
 
     private void initLibraries(final Context cx, final Scriptable scope) {
         if (getOptions().map(JavaScriptMessageMapperMapperOptions::isLoadBytebufferJS).orElse(false)) {
