@@ -13,7 +13,7 @@ package org.eclipse.ditto.services.amqpbridge.mapping.mapper.test;
 
 import javax.annotation.Nonnull;
 
-import org.eclipse.ditto.model.amqpbridge.InternalMessage;
+import org.eclipse.ditto.model.amqpbridge.ExternalMessage;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMapper;
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.DefaultMessageMapperOptions;
@@ -33,12 +33,12 @@ public class MockMapper extends MessageMapper {
     }
 
     @Override
-    protected Adaptable doForwardMap(@Nonnull final InternalMessage internalMessage) {
+    protected Adaptable doForwardMap(@Nonnull final ExternalMessage internalMessage) {
         return null;
     }
 
     @Override
-    protected InternalMessage doBackwardMap(@Nonnull final Adaptable adaptable) {
+    protected ExternalMessage doBackwardMap(@Nonnull final Adaptable adaptable) {
         return null;
     }
 }

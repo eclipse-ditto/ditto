@@ -22,7 +22,7 @@ import java.util.concurrent.TimeUnit;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.model.amqpbridge.InternalMessage;
+import org.eclipse.ditto.model.amqpbridge.ExternalMessage;
 import org.eclipse.ditto.model.amqpbridge.MappingContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.common.ConditionChecker;
@@ -126,7 +126,7 @@ public final class CommandProcessorActor extends AbstractActor {
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
-                .match(InternalMessage.class, this::handle)
+                .match(ExternalMessage.class, this::handle)
                 .match(CommandResponse.class, this::handleCommandResponse)
                 .match(ThingEvent.class, this::handleThingEvent)
                 .match(DittoRuntimeException.class, this::handleDittoRuntimeException)
@@ -137,14 +137,14 @@ public final class CommandProcessorActor extends AbstractActor {
                 }).build();
     }
 
-    private void handle(final InternalMessage m) {
+    private void handle(final ExternalMessage m) {
         ConditionChecker.checkNotNull(m);
         final String correlationId = m.getHeaders().get(DittoHeaderDefinition.CORRELATION_ID.getKey());
         LogUtil.enhanceLogWithCorrelationId(log, correlationId);
 
         final String authSubjectsArray =
                 JsonFactory.newArrayBuilder().add(authorizationSubject.getId()).build().toString();
-        final InternalMessage messageWithAuthSubject =
+        final ExternalMessage messageWithAuthSubject =
                 m.withHeader(DittoHeaderDefinition.AUTHORIZATION_SUBJECTS.getKey(), authSubjectsArray);
 
         try {
@@ -183,7 +183,7 @@ public final class CommandProcessorActor extends AbstractActor {
         }
 
         try {
-            final InternalMessage message = processor.process(response);
+            final ExternalMessage message = processor.process(response);
             commandProducer.forward(message, context());
         } catch (final Exception e) {
             log.info(e.getMessage());
@@ -193,7 +193,7 @@ public final class CommandProcessorActor extends AbstractActor {
     private void handleThingEvent(final ThingEvent<?> thingEvent) {
         LogUtil.enhanceLogWithCorrelationId(log, thingEvent);
         try {
-            final InternalMessage message = processor.process(thingEvent);
+            final ExternalMessage message = processor.process(thingEvent);
             commandProducer.forward(message, context());
         } catch (final Exception e) {
             log.info(e.getMessage());

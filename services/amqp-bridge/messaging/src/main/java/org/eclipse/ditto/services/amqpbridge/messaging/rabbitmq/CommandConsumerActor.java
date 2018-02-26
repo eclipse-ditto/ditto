@@ -22,7 +22,8 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.amqpbridge.InternalMessage;
+import org.eclipse.ditto.model.amqpbridge.AmqpBridgeModelFactory;
+import org.eclipse.ditto.model.amqpbridge.ExternalMessage;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
@@ -85,7 +86,8 @@ public class CommandConsumerActor extends AbstractActor {
             final String correlationId = properties.getCorrelationId();
             LogUtil.enhanceLogWithCorrelationId(log, correlationId);
             final Map<String, String> headers = extractHeadersFromMessage(properties, envelope);
-            final InternalMessage internalMessage = InternalMessage.Builder.newCommand(headers).withBytes(body).build();
+            final ExternalMessage internalMessage = AmqpBridgeModelFactory.newExternalMessageBuilderForCommand(headers)
+                    .withBytes(body).build();
             log.debug("Received message from RabbitMQ ({}//{}): {}", envelope, properties);
             commandProcessor.forward(internalMessage, context());
         } catch (final Exception e) {

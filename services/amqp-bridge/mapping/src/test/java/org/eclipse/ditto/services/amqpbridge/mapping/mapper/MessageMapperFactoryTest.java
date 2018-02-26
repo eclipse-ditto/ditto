@@ -24,7 +24,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.model.amqpbridge.AmqpBridgeModelFactory;
-import org.eclipse.ditto.model.amqpbridge.InternalMessage;
+import org.eclipse.ditto.model.amqpbridge.ExternalMessage;
 import org.eclipse.ditto.model.amqpbridge.MappingContext;
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.test.Mappers;
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.test.MappingContexts;
@@ -220,11 +220,11 @@ public class MessageMapperFactoryTest {
         final MappingContext fooCtx = MappingContexts.mock("foo", true, true);
         final MappingContext barCtx = MappingContexts.mock("bar", true, true);
 
-        final InternalMessage fooMessage = InternalMessage.Builder.newCommand(Collections.singletonMap(MessageMapper
+        final ExternalMessage fooMessage = AmqpBridgeModelFactory.newExternalMessageBuilderForCommand(Collections.singletonMap(MessageMapper
                 .CONTENT_TYPE_KEY, "foo")).build();
-        final InternalMessage barMessage = InternalMessage.Builder.newCommand(Collections.singletonMap(MessageMapper
+        final ExternalMessage barMessage = AmqpBridgeModelFactory.newExternalMessageBuilderForCommand(Collections.singletonMap(MessageMapper
                 .CONTENT_TYPE_KEY, "foo")).build();
-        final InternalMessage otherMessage = InternalMessage.Builder.newCommand(Collections.singletonMap(MessageMapper
+        final ExternalMessage otherMessage = AmqpBridgeModelFactory.newExternalMessageBuilderForCommand(Collections.singletonMap(MessageMapper
                 .CONTENT_TYPE_KEY, "other")).build();
 
         final MessageMapper defaultMapper = new MockMapper(); // default mapper with null content type

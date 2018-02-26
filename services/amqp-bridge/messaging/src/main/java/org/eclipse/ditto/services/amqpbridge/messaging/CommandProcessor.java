@@ -25,7 +25,7 @@ import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.amqpbridge.InternalMessage;
+import org.eclipse.ditto.model.amqpbridge.ExternalMessage;
 import org.eclipse.ditto.model.amqpbridge.MappingContext;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
@@ -116,7 +116,7 @@ public final class CommandProcessor {
      * @throws RuntimeException if something went wrong
      */
     @Nullable
-    public Command process(@Nullable final InternalMessage message) {
+    public Command process(@Nullable final ExternalMessage message) {
         if (Objects.isNull(message)) {
             return null;
         }
@@ -135,7 +135,7 @@ public final class CommandProcessor {
      * @throws RuntimeException if something went wrong
      */
     @Nullable
-    public InternalMessage process(@Nullable final CommandResponse response) {
+    public ExternalMessage process(@Nullable final CommandResponse response) {
         if (Objects.isNull(response)) {
             return null;
         }
@@ -154,7 +154,7 @@ public final class CommandProcessor {
      * @throws RuntimeException if something went wrong
      */
     @Nullable
-    public InternalMessage process(@Nullable final ThingEvent thingEvent) {
+    public ExternalMessage process(@Nullable final ThingEvent thingEvent) {
         if (Objects.isNull(thingEvent)) {
             return null;
         }
@@ -165,7 +165,7 @@ public final class CommandProcessor {
                 ctx -> convertToInternalMessage(() -> PROTOCOL_ADAPTER.toAdaptable(thingEvent), ctx));
     }
 
-    private Command<?> convertMessage(final InternalMessage message, final TraceContext ctx) {
+    private Command<?> convertMessage(final ExternalMessage message, final TraceContext ctx) {
         checkNotNull(message);
         checkNotNull(ctx);
 
@@ -191,7 +191,7 @@ public final class CommandProcessor {
         }
     }
 
-    private InternalMessage convertToInternalMessage(final Supplier<Adaptable> adaptableSupplier,
+    private ExternalMessage convertToInternalMessage(final Supplier<Adaptable> adaptableSupplier,
             final TraceContext ctx) {
         checkNotNull(adaptableSupplier);
         checkNotNull(ctx);
@@ -211,13 +211,13 @@ public final class CommandProcessor {
         }
     }
 
-    private Converter<InternalMessage, Adaptable> getConverter(final InternalMessage message) {
+    private Converter<ExternalMessage, Adaptable> getConverter(final ExternalMessage message) {
         return registry.selectMapper(message).orElseThrow(
                 () -> new IllegalArgumentException("No mapper found for message: " + message)
         );
     }
 
-    private Converter<Adaptable, InternalMessage> getConverter(final Adaptable adaptable) {
+    private Converter<Adaptable, ExternalMessage> getConverter(final Adaptable adaptable) {
         return registry.selectMapper(adaptable).orElseThrow(
                 () -> new IllegalArgumentException("No mapper found for adaptable: " + adaptable)
         );

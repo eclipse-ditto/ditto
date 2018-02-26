@@ -29,7 +29,9 @@ import javax.jms.MessageConsumer;
 import javax.jms.MessageListener;
 import javax.jms.TextMessage;
 
-import org.eclipse.ditto.model.amqpbridge.InternalMessage;
+import org.eclipse.ditto.model.amqpbridge.AmqpBridgeModelFactory;
+import org.eclipse.ditto.model.amqpbridge.ExternalMessage;
+import org.eclipse.ditto.model.amqpbridge.ExternalMessageBuilder;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
@@ -113,9 +115,9 @@ final class CommandConsumerActor extends AbstractActor implements MessageListene
     public void onMessage(final Message message) {
         try {
             final Map<String, String> headers = extractHeadersMapFromJmsMessage(message);
-            final InternalMessage.Builder builder = InternalMessage.Builder.newCommand(headers);
+            final ExternalMessageBuilder builder = AmqpBridgeModelFactory.newExternalMessageBuilderForCommand(headers);
             extractPayloadFromMessage(message, builder);
-            final InternalMessage internalMessage = builder.build();
+            final ExternalMessage internalMessage = builder.build();
             log.debug("Forwarding to processor: {}, {}", internalMessage.getHeaders(),
                     internalMessage.getTextPayload().orElse("binary"));
             commandProcessor.tell(internalMessage, self());
@@ -127,7 +129,7 @@ final class CommandConsumerActor extends AbstractActor implements MessageListene
     }
 
     private void extractPayloadFromMessage(final Message message,
-            final InternalMessage.Builder builder) throws JMSException {
+            final ExternalMessageBuilder builder) throws JMSException {
         if (message instanceof TextMessage) {
             final String payload = ((TextMessage) message).getText();
             builder.withText(payload);

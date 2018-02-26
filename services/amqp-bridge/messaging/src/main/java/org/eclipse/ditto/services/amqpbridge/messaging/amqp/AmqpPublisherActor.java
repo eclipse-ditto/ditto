@@ -28,7 +28,7 @@ import javax.jms.Session;
 
 import org.apache.qpid.jms.JmsQueue;
 import org.eclipse.ditto.model.amqpbridge.AmqpConnection;
-import org.eclipse.ditto.model.amqpbridge.InternalMessage;
+import org.eclipse.ditto.model.amqpbridge.ExternalMessage;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
@@ -77,7 +77,7 @@ public class AmqpPublisherActor extends AbstractActor {
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
-                .match(InternalMessage.class, InternalMessage::isCommandResponse, response -> {
+                .match(ExternalMessage.class, ExternalMessage::isCommandResponse, response -> {
                     final String correlationId = response.getHeaders().get(CORRELATION_ID.getKey());
                     LogUtil.enhanceLogWithCorrelationId(log, correlationId);
                     log.debug("Received command response {} ", response);
@@ -91,7 +91,7 @@ public class AmqpPublisherActor extends AbstractActor {
                         log.debug("Response dropped, missing replyTo address.");
                     }
                 })
-                .match(InternalMessage.class, InternalMessage::isCommandResponse, event -> {
+                .match(ExternalMessage.class, ExternalMessage::isCommandResponse, event -> {
                     final String correlationId = event.getHeaders().get(CORRELATION_ID.getKey());
                     LogUtil.enhanceLogWithCorrelationId(log, correlationId);
                     log.debug("Received command response {} ", event);
@@ -103,7 +103,7 @@ public class AmqpPublisherActor extends AbstractActor {
                 }).build();
     }
 
-    private void sendMessage(final String target, final InternalMessage message) {
+    private void sendMessage(final String target, final ExternalMessage message) {
         try {
             final MessageProducer producer = getProducer(target);
             if (producer != null) {
@@ -115,7 +115,7 @@ public class AmqpPublisherActor extends AbstractActor {
         }
     }
 
-    private Message toJmsMessage(final InternalMessage internal) throws JMSException {
+    private Message toJmsMessage(final ExternalMessage internal) throws JMSException {
         final Message message;
         if (internal.getTextPayload().isPresent()) {
             message = session.createTextMessage(internal.getTextPayload().get());

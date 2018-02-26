@@ -27,7 +27,8 @@ import org.apache.qpid.jms.provider.amqp.message.AmqpJmsTextMessageFacade;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.amqpbridge.InternalMessage;
+import org.eclipse.ditto.model.amqpbridge.AmqpBridgeModelFactory;
+import org.eclipse.ditto.model.amqpbridge.ExternalMessage;
 import org.eclipse.ditto.model.amqpbridge.MappingContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.common.DittoConstants;
@@ -137,7 +138,7 @@ public class CommandProcessorActorTest {
 
         new TestKit(actorSystem) {{
             ActorRef underTest = setupActor(getTestActor(), new ArrayList<>());
-            InternalMessage in = InternalMessage.Builder.newCommand(Collections.emptyMap()).withText("").build();
+            ExternalMessage in = AmqpBridgeModelFactory.newExternalMessageBuilderForCommand(Collections.emptyMap()).withText("").build();
             underTest.tell(in, null);
             expectNoMsg();
         }};
@@ -147,7 +148,7 @@ public class CommandProcessorActorTest {
     public void createWithDefaultMapperOnly() throws IdConversionException {
         new TestKit(actorSystem) {{
             ActorRef underTest = setupActor(getTestActor(), new ArrayList<>());
-            InternalMessage in = InternalMessage.Builder.newCommand(Collections.emptyMap()).withText("").build();
+            ExternalMessage in = AmqpBridgeModelFactory.newExternalMessageBuilderForCommand(Collections.emptyMap()).withText("").build();
             underTest.tell(in, null);
         }};
     }
@@ -168,7 +169,7 @@ public class CommandProcessorActorTest {
 
         new TestKit(actorSystem) {{
             ActorRef underTest = setupActor(getTestActor(), new ArrayList<>());
-            InternalMessage in = InternalMessage.Builder.newCommand(Collections.emptyMap())
+            ExternalMessage in = AmqpBridgeModelFactory.newExternalMessageBuilderForCommand(Collections.emptyMap())
                     .withText(adaptable.toJsonString())
                     .build();
             underTest.tell(in, null);

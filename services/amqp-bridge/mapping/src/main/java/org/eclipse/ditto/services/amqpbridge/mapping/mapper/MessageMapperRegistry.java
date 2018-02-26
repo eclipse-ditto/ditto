@@ -11,21 +11,15 @@
  */
 package org.eclipse.ditto.services.amqpbridge.mapping.mapper;
 
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 
-import org.eclipse.ditto.model.amqpbridge.InternalMessage;
+import org.eclipse.ditto.model.amqpbridge.ExternalMessage;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 
 import com.google.common.base.Converter;
-
-import akka.stream.impl.fusing.Collect;
 
 /**
  * A registry for instantiated mappers.
@@ -67,7 +61,7 @@ public final class MessageMapperRegistry {
      * @param message
      * @return
      */
-    public Optional<MessageMapper> findMapper(final InternalMessage message) {
+    public Optional<MessageMapper> findMapper(final ExternalMessage message) {
         return MessageMapper.findContentType(message).map(registry::get);
     }
 
@@ -78,12 +72,12 @@ public final class MessageMapperRegistry {
      * @param message the message
      * @return the selected mapper
      */
-    public Optional<MessageMapper> selectMapper(final InternalMessage message) {
+    public Optional<MessageMapper> selectMapper(final ExternalMessage message) {
         Optional<MessageMapper> mapper = findMapper(message);
         return mapper.isPresent() ? mapper : Optional.ofNullable(getDefaultMapper());
     }
 
-    private Optional<Converter<Adaptable, InternalMessage>> findMapper(final Adaptable adaptable) {
+    private Optional<Converter<Adaptable, ExternalMessage>> findMapper(final Adaptable adaptable) {
         return MessageMapper.findContentType(adaptable).map(registry::get).map(MessageMapper::reverse);
     }
 
@@ -94,8 +88,8 @@ public final class MessageMapperRegistry {
      * @param adaptable the adaptable
      * @return the selected mapper
      */
-    public Optional<Converter<Adaptable, InternalMessage>> selectMapper(final Adaptable adaptable) {
-        Optional<Converter<Adaptable, InternalMessage>> mapper = findMapper(adaptable);
+    public Optional<Converter<Adaptable, ExternalMessage>> selectMapper(final Adaptable adaptable) {
+        Optional<Converter<Adaptable, ExternalMessage>> mapper = findMapper(adaptable);
         return mapper.isPresent() ? mapper : Optional.ofNullable(getDefaultMapper()).map(MessageMapper::reverse);
     }
 

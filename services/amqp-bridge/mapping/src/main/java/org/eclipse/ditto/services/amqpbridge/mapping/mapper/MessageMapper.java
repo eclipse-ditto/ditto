@@ -19,19 +19,19 @@ import java.util.Optional;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.amqpbridge.InternalMessage;
+import org.eclipse.ditto.model.amqpbridge.ExternalMessage;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 
 import com.google.common.base.Converter;
 
 /**
- * An abstract message converter which converts a {@link InternalMessage} to a {@link Adaptable} and vice versa.
+ * An abstract message converter which converts a {@link ExternalMessage} to a {@link Adaptable} and vice versa.
  * Enhances the basic Converter with convenience logic for dynamic configuration and content type based conversion.
  *
  * TODO TJ if we use guava and the converter construct only for convert() and reverse().convert() --> we should stop using it - too much complexity for that little API
  * TODO prefer delegation -> implement {@link PayloadMapper} as "ContentTypeCheckingPayloadMapper" and delegate to passed in PayloadMapper
  */
-public abstract class MessageMapper extends Converter<InternalMessage, Adaptable> {
+public abstract class MessageMapper extends Converter<ExternalMessage, Adaptable> {
 
     public static final String OPT_CONTENT_TYPE_REQUIRED = "contentTypeRequired";
     public static final String OPT_CONTENT_TYPE = "contentType";
@@ -86,7 +86,7 @@ public abstract class MessageMapper extends Converter<InternalMessage, Adaptable
 
 
     @SuppressWarnings("WeakerAccess")
-    protected void requireMatchingContentType(@Nullable final InternalMessage internalMessage) {
+    protected void requireMatchingContentType(@Nullable final ExternalMessage internalMessage) {
         if (Objects.nonNull(internalMessage) && isContentTypeRequired()) {
             if (Objects.isNull(contentType) || contentType.isEmpty()) {
                 throw new IllegalArgumentException(String.format("A matching content type is required, but none configured. Set a content type with the following key in configuration: %s",
@@ -110,7 +110,7 @@ public abstract class MessageMapper extends Converter<InternalMessage, Adaptable
      * @param internalMessage the message
      * @return the content type if found
      */
-    public static Optional<String> findContentType(final InternalMessage internalMessage) {
+    public static Optional<String> findContentType(final ExternalMessage internalMessage) {
         checkNotNull(internalMessage);
         return internalMessage.findHeaderIgnoreCase(CONTENT_TYPE_KEY);
     }
@@ -158,23 +158,23 @@ public abstract class MessageMapper extends Converter<InternalMessage, Adaptable
      * @param internalMessage the message
      * @return the adaptable
      */
-    protected abstract Adaptable doForwardMap(final InternalMessage internalMessage);
+    protected abstract Adaptable doForwardMap(final ExternalMessage internalMessage);
 
     /**
      * Maps an adaptable to a messeage. There is no need for implementing a content type check!
      * @param adaptable the adaptable
      * @return the message
      */
-    protected abstract InternalMessage doBackwardMap(final Adaptable adaptable);
+    protected abstract ExternalMessage doBackwardMap(final Adaptable adaptable);
 
     @Override
-    protected final Adaptable doForward(final InternalMessage internalMessage) {
+    protected final Adaptable doForward(final ExternalMessage internalMessage) {
         requireMatchingContentType(internalMessage);
         return doForwardMap(internalMessage);
     }
 
     @Override
-    protected final InternalMessage doBackward(final Adaptable adaptable) {
+    protected final ExternalMessage doBackward(final Adaptable adaptable) {
         return doBackwardMap(adaptable);
     }
 
