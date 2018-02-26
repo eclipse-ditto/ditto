@@ -86,13 +86,13 @@ public abstract class MessageMapper extends Converter<ExternalMessage, Adaptable
 
 
     @SuppressWarnings("WeakerAccess")
-    protected void requireMatchingContentType(@Nullable final ExternalMessage internalMessage) {
-        if (Objects.nonNull(internalMessage) && isContentTypeRequired()) {
+    protected void requireMatchingContentType(@Nullable final ExternalMessage externalMessage) {
+        if (Objects.nonNull(externalMessage) && isContentTypeRequired()) {
             if (Objects.isNull(contentType) || contentType.isEmpty()) {
                 throw new IllegalArgumentException(String.format("A matching content type is required, but none configured. Set a content type with the following key in configuration: %s",
                         CONTENT_TYPE_KEY));
             }
-            final String actualContentType = findContentType(internalMessage)
+            final String actualContentType = findContentType(externalMessage)
                     .orElseThrow(() -> new IllegalArgumentException(
                             String.format("Message headers do not contain a value for %s", CONTENT_TYPE_KEY)));
 
@@ -107,12 +107,12 @@ public abstract class MessageMapper extends Converter<ExternalMessage, Adaptable
 
     /**
      * Identifies and gets a configured content type from a message.
-     * @param internalMessage the message
+     * @param externalMessage the message
      * @return the content type if found
      */
-    public static Optional<String> findContentType(final ExternalMessage internalMessage) {
-        checkNotNull(internalMessage);
-        return internalMessage.findHeaderIgnoreCase(CONTENT_TYPE_KEY);
+    public static Optional<String> findContentType(final ExternalMessage externalMessage) {
+        checkNotNull(externalMessage);
+        return externalMessage.findHeaderIgnoreCase(CONTENT_TYPE_KEY);
     }
 
     /**
@@ -155,10 +155,10 @@ public abstract class MessageMapper extends Converter<ExternalMessage, Adaptable
 
     /**
      * Maps a messeage to an adaptable. There is no need for implementing a content type check!
-     * @param internalMessage the message
+     * @param externalMessage the message
      * @return the adaptable
      */
-    protected abstract Adaptable doForwardMap(final ExternalMessage internalMessage);
+    protected abstract Adaptable doForwardMap(final ExternalMessage externalMessage);
 
     /**
      * Maps an adaptable to a messeage. There is no need for implementing a content type check!
@@ -168,9 +168,9 @@ public abstract class MessageMapper extends Converter<ExternalMessage, Adaptable
     protected abstract ExternalMessage doBackwardMap(final Adaptable adaptable);
 
     @Override
-    protected final Adaptable doForward(final ExternalMessage internalMessage) {
-        requireMatchingContentType(internalMessage);
-        return doForwardMap(internalMessage);
+    protected final Adaptable doForward(final ExternalMessage externalMessage) {
+        requireMatchingContentType(externalMessage);
+        return doForwardMap(externalMessage);
     }
 
     @Override

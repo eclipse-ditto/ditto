@@ -106,6 +106,7 @@ public final class CommandProcessorActor extends AbstractActor {
      * @param pubSubMediator the akka pubsub mediator actor.
      * @param commandProducer actor that handles outgoing messages
      * @param authorizationSubject the authorized subject that are set in command headers.
+     * @param mappingContexts the mapping contexts to apply for different content-types.
      * @return the Akka configuration Props object
      */
     static Props props(final ActorRef pubSubMediator, final ActorRef commandProducer,
@@ -221,7 +222,7 @@ public final class CommandProcessorActor extends AbstractActor {
         );
     }
 
-    private void finishTrace(final CommandResponse response) {
+    private void finishTrace(final CommandResponse<?> response) {
         if (ThingErrorResponse.class.isAssignableFrom(response.getClass())) {
             finishTrace(response, ((ThingErrorResponse) response).getDittoRuntimeException());
         } else {
@@ -229,7 +230,7 @@ public final class CommandProcessorActor extends AbstractActor {
         }
     }
 
-    private void finishTrace(final CommandResponse response, @Nullable final Throwable cause) {
+    private void finishTrace(final CommandResponse<?> response, @Nullable final Throwable cause) {
         response.getDittoHeaders().getCorrelationId().ifPresent(correlationId -> {
             try {
                 finishTrace(correlationId, cause);

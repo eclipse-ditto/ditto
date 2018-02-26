@@ -5,9 +5,9 @@
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ *
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
- *
  */
 package org.eclipse.ditto.services.amqpbridge.messaging.rabbitmq;
 
@@ -17,7 +17,6 @@ import java.net.URISyntaxException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 
-import javax.annotation.Nullable;
 import javax.net.ssl.SSLContext;
 
 import org.eclipse.ditto.model.amqpbridge.AmqpConnection;
@@ -32,6 +31,7 @@ import com.rabbitmq.client.ConnectionFactory;
 public class AmqpConnectionBasedRabbitConnectionFactory {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AmqpConnectionBasedRabbitConnectionFactory.class);
+
     private static final String SECURE_AMQP_SCHEME = "amqps";
 
     private AmqpConnectionBasedRabbitConnectionFactory() {
@@ -43,7 +43,7 @@ public class AmqpConnectionBasedRabbitConnectionFactory {
      * @param amqpConnection the amqp connection
      * @return the instance.
      */
-    public static ConnectionFactory createConnection(@Nullable final AmqpConnection amqpConnection) {
+    public static ConnectionFactory createConnection(final AmqpConnection amqpConnection) {
         checkNotNull(amqpConnection, "Connection");
 
         try {
@@ -67,7 +67,7 @@ public class AmqpConnectionBasedRabbitConnectionFactory {
             }
 
             return connectionFactory;
-        } catch (NoSuchAlgorithmException | KeyManagementException | URISyntaxException e) {
+        } catch (final NoSuchAlgorithmException | KeyManagementException | URISyntaxException e) {
             LOGGER.warn(e.getMessage());
             throw new IllegalStateException("Failed to create RabbitMQ connection factory.", e);
         }

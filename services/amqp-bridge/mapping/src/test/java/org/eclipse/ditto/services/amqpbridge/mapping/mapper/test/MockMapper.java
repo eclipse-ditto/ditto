@@ -33,7 +33,7 @@ public class MockMapper extends MessageMapper {
     }
 
     @Override
-    protected Adaptable doForwardMap(@Nonnull final ExternalMessage internalMessage) {
+    protected Adaptable doForwardMap(@Nonnull final ExternalMessage externalMessage) {
         return null;
     }
 

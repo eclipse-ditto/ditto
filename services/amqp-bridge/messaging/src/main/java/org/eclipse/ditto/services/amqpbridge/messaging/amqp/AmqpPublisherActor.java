@@ -5,9 +5,9 @@
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ *
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
- *
  */
 package org.eclipse.ditto.services.amqpbridge.messaging.amqp;
 
@@ -38,13 +38,18 @@ import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
 
-public class AmqpPublisherActor extends AbstractActor {
+/**
+ * Responsible for creating JMS {@link MessageProducer}s and sending {@link ExternalMessage}s as JMSMessages to those.
+ */
+public final class AmqpPublisherActor extends AbstractActor {
 
     /**
      * The name prefix of this Actor in the ActorSystem.
      */
     static final String ACTOR_NAME = "amqpPublisherActor";
+
     private static final String REPLY_TO_HEADER = "replyTo";
+
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
     private final Session session;
@@ -115,18 +120,18 @@ public class AmqpPublisherActor extends AbstractActor {
         }
     }
 
-    private Message toJmsMessage(final ExternalMessage internal) throws JMSException {
+    private Message toJmsMessage(final ExternalMessage externalMessage) throws JMSException {
         final Message message;
-        if (internal.getTextPayload().isPresent()) {
-            message = session.createTextMessage(internal.getTextPayload().get());
-        } else if (internal.getBytePayload().isPresent()) {
+        if (externalMessage.getTextPayload().isPresent()) {
+            message = session.createTextMessage(externalMessage.getTextPayload().get());
+        } else if (externalMessage.getBytePayload().isPresent()) {
             final BytesMessage bytesMessage = session.createBytesMessage();
-            bytesMessage.writeBytes(internal.getBytePayload().get().array());
+            bytesMessage.writeBytes(externalMessage.getBytePayload().get().array());
             message = bytesMessage;
         } else {
             throw new IllegalArgumentException("Only byte or text are supported, dropping.");
         }
-        message.setJMSCorrelationID(internal.getHeaders().get(DittoHeaderDefinition.CORRELATION_ID.getKey()));
+        message.setJMSCorrelationID(externalMessage.getHeaders().get(DittoHeaderDefinition.CORRELATION_ID.getKey()));
         return message;
     }
 

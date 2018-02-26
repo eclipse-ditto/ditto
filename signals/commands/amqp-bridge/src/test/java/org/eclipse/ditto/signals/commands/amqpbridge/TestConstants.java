@@ -12,6 +12,7 @@
 package org.eclipse.ditto.signals.commands.amqpbridge;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -21,6 +22,7 @@ import org.eclipse.ditto.model.amqpbridge.AmqpBridgeModelFactory;
 import org.eclipse.ditto.model.amqpbridge.AmqpConnection;
 import org.eclipse.ditto.model.amqpbridge.ConnectionStatus;
 import org.eclipse.ditto.model.amqpbridge.ConnectionType;
+import org.eclipse.ditto.model.amqpbridge.MappingContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 
 /**
@@ -46,6 +48,14 @@ public final class TestConstants {
                     .sources(SOURCES)
                     .eventTarget(TARGET)
                     .build();
+
+    public static MappingContext MAPPING_CONTEXT = AmqpBridgeModelFactory.newMappingContext("text/plain", "JavaScript",
+            Collections.singletonMap("incomingMappingScript",
+                    "ditto_protocolJson.topic = 'org.eclipse.ditto/foo-bar/things/twin/commands/create';" +
+                    "ditto_protocolJson.path = '/';" +
+                    "ditto_protocolJson.headers = {};" +
+                    "ditto_protocolJson.headers['correlation-id'] = ditto_mappingHeaders['correlation-id'];" +
+                    "ditto_protocolJson.value = ditto_mappingString;"));
 
     public static Map<String, ConnectionStatus> CONNECTION_STATUSES;
 

@@ -5,9 +5,9 @@
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ *
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
- *
  */
 package org.eclipse.ditto.services.amqpbridge.messaging.amqp;
 
@@ -17,7 +17,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-import javax.annotation.Nullable;
 import javax.jms.Connection;
 import javax.jms.Destination;
 import javax.jms.ExceptionListener;
@@ -45,6 +44,7 @@ public class JMSConnectionHandlingActor extends AbstractActor {
      * The Actor name prefix.
      */
     static final String ACTOR_NAME_PREFIX = "jmsConnectionHandling-";
+
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
     private final AmqpConnection amqpConnection;
@@ -52,9 +52,9 @@ public class JMSConnectionHandlingActor extends AbstractActor {
     private final JmsConnectionFactory jmsConnectionFactory;
 
 
-    private JMSConnectionHandlingActor(
-            final @Nullable AmqpConnection amqpConnection, final ExceptionListener exceptionListener,
+    private JMSConnectionHandlingActor(final AmqpConnection amqpConnection, final ExceptionListener exceptionListener,
             final JmsConnectionFactory jmsConnectionFactory) {
+
         this.amqpConnection = checkNotNull(amqpConnection, "amqpConnection");
         this.exceptionListener = exceptionListener;
         this.jmsConnectionFactory = jmsConnectionFactory;
@@ -68,8 +68,9 @@ public class JMSConnectionHandlingActor extends AbstractActor {
      * @param jmsConnectionFactory the jms connection factory
      * @return the Akka configuration Props object.
      */
-    static Props props(@Nullable final AmqpConnection amqpConnection, final ExceptionListener exceptionListener,
+    static Props props(final AmqpConnection amqpConnection, final ExceptionListener exceptionListener,
             final JmsConnectionFactory jmsConnectionFactory) {
+
         return Props.create(JMSConnectionHandlingActor.class, new Creator<JMSConnectionHandlingActor>() {
             private static final long serialVersionUID = 1L;
 

@@ -5,9 +5,9 @@
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ *
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
- *
  */
 package org.eclipse.ditto.services.amqpbridge.messaging.amqp;
 
@@ -50,12 +50,13 @@ import scala.concurrent.duration.Duration;
  * This actor delegates interaction with the JMS client to a child actor because the JMS client blocks in most cases
  * which does not work well with actors.
  */
-public class AmqpClientActor extends BaseClientActor implements ExceptionListener {
+public final class AmqpClientActor extends BaseClientActor implements ExceptionListener {
 
     private static final Status.Success CONNECTED_SUCCESS = new Status.Success(State.CONNECTED);
     private static final Status.Success DISCONNECTED_SUCCESS = new Status.Success(State.DISCONNECTED);
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+
     private final JmsConnectionFactory jmsConnectionFactory;
     private final AbstractActor.Receive connecting;
     private final AbstractActor.Receive connected;
@@ -250,7 +251,7 @@ public class AmqpClientActor extends BaseClientActor implements ExceptionListene
         return getContext().actorOf(props, name);
     }
 
-    private void handleThingEvent(final ThingEvent thingEvent) {
+    private void handleThingEvent(final ThingEvent<?> thingEvent) {
         if (commandProcessor != null) {
             commandProcessor.tell(thingEvent, self());
         } else {
@@ -296,7 +297,7 @@ public class AmqpClientActor extends BaseClientActor implements ExceptionListene
         return new Status.Success(state);
     }
 
-    private void cannotHandle(final Command command) {
+    private void cannotHandle(final Command<?> command) {
         log.info("Command <{}> cannot be handled in current state <{}>.", command.getType(), state);
         final String message =
                 MessageFormat.format("Cannot execute command <{0}> in current state <{1}>.", command.getType(), state);
@@ -346,7 +347,7 @@ public class AmqpClientActor extends BaseClientActor implements ExceptionListene
         private final Map<String, MessageConsumer> consumers;
 
         JmsConnected(final ActorRef origin, final Connection connection, final Session session,
-                Map<String, MessageConsumer> consumers) {
+                final Map<String, MessageConsumer> consumers) {
             super(origin);
             this.connection = connection;
             this.session = session;
@@ -416,6 +417,6 @@ public class AmqpClientActor extends BaseClientActor implements ExceptionListene
         CONNECTING,
         CONNECTED,
         DISCONNECTING,
-        DISCONNECTED;
+        DISCONNECTED
     }
 }

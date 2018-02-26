@@ -5,9 +5,9 @@
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ *
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
- *
  */
 package org.eclipse.ditto.services.amqpbridge.messaging.rabbitmq;
 
@@ -42,6 +42,7 @@ public class RabbitMQPublisherActor extends AbstractActor {
      * The name prefix of this Actor in the ActorSystem.
      */
     static final String ACTOR_NAME_PREFIX = "rmqPublisherActor-";
+
     private static final String REPLY_TO_HEADER = "replyTo";
     private static final String DEFAULT_EXCHANGE = "";
     private static final String DEFAULT_EVENT_ROUTING_KEY = "thingEvent";

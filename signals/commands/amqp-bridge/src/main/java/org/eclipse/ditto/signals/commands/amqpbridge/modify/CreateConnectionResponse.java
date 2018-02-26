@@ -75,7 +75,7 @@ public final class CreateConnectionResponse extends AbstractCommandResponse<Crea
      * Returns a new instance of {@code CreateConnectionResponse}.
      *
      * @param amqpConnection the connection to be created.
-     * @param mappingContexts
+     * @param mappingContexts the mapping contexts to apply for different content-types.
      * @param dittoHeaders the headers of the request.
      * @return a new CreateConnectionResponse.
      * @throws NullPointerException if any argument is {@code null}.
@@ -138,7 +138,7 @@ public final class CreateConnectionResponse extends AbstractCommandResponse<Crea
     }
 
     /**
-     * @return
+     * @return the configured {@link MappingContext}s of the created connection.
      */
     public List<MappingContext> getMappingContexts() {
         return mappingContexts;

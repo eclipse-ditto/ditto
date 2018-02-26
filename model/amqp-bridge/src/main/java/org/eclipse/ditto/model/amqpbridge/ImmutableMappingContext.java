@@ -50,12 +50,13 @@ final class ImmutableMappingContext implements MappingContext {
     }
 
     /**
-     * Returns a new {@code ImmutableMappingContext}.
+     * Creates a new {@code ImmutableMappingContext} instance.
      *
-     * @param contentType
-     * @param mappingEngine
-     * @param options
-     * @return
+     * @param contentType the Content-Type this MappingContext can map.
+     * @param mappingEngine the mapping engine to use (may be fixed ones as "JavaScript" or a fully qualified classname
+     *                      of an implementation of {@code MessageMapper} interface.
+     * @param options the mapping engine specific options to apply.
+     * @return a new instance of ImmutableMappingContext.
      */
     public static ImmutableMappingContext of(final String contentType, final String mappingEngine,
             final Map<String, String> options) {

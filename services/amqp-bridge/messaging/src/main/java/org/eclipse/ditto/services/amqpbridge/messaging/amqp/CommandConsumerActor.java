@@ -5,9 +5,9 @@
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ *
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
- *
  */
 package org.eclipse.ditto.services.amqpbridge.messaging.amqp;
 
@@ -55,6 +55,7 @@ final class CommandConsumerActor extends AbstractActor implements MessageListene
     private static final String CORRELATION_ID_HEADER = "correlation-id";
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+
     private final String source;
     private final MessageConsumer messageConsumer;
     private final ActorRef commandProcessor;
@@ -117,10 +118,10 @@ final class CommandConsumerActor extends AbstractActor implements MessageListene
             final Map<String, String> headers = extractHeadersMapFromJmsMessage(message);
             final ExternalMessageBuilder builder = AmqpBridgeModelFactory.newExternalMessageBuilderForCommand(headers);
             extractPayloadFromMessage(message, builder);
-            final ExternalMessage internalMessage = builder.build();
-            log.debug("Forwarding to processor: {}, {}", internalMessage.getHeaders(),
-                    internalMessage.getTextPayload().orElse("binary"));
-            commandProcessor.tell(internalMessage, self());
+            final ExternalMessage externalMessage = builder.build();
+            log.debug("Forwarding to processor: {}, {}", externalMessage.getHeaders(),
+                    externalMessage.getTextPayload().orElse("binary"));
+            commandProcessor.tell(externalMessage, self());
         } catch (final DittoRuntimeException e) {
             log.info("Got DittoRuntimeException '{}' when command was parsed: {}", e.getErrorCode(), e.getMessage());
         } catch (final Exception e) {

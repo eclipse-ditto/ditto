@@ -88,12 +88,12 @@ public final class DittoMessageMapper extends MessageMapper {
     }
 
     @Override
-    protected Adaptable doForwardMap(final ExternalMessage message) {
-        final String payload = extractPayloadAsString(message);
+    protected Adaptable doForwardMap(final ExternalMessage externalMessage) {
+        final String payload = extractPayloadAsString(externalMessage);
         final Adaptable adaptable = STRING_ADAPTABLE_CONVERTER.convert(payload);
         checkNotNull(adaptable);
 
-        DittoHeaders mergedHeaders = mergeHeaders(message, adaptable);
+        DittoHeaders mergedHeaders = mergeHeaders(externalMessage, adaptable);
         return ProtocolFactory.newAdaptableBuilder(adaptable).withHeaders(mergedHeaders).build();
     }
 
