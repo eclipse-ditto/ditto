@@ -143,7 +143,7 @@ public final class CommandProcessor {
         final String correlationId = response.getDittoHeaders().getCorrelationId().orElse("no-correlation-id");
         return doApplyTraced(
                 () -> createProcessingContext(CONTEXT_NAME, correlationId),
-                ctx -> convertToInternalMessage(() -> PROTOCOL_ADAPTER.toAdaptable(response), ctx));
+                ctx -> convertToExternalMessage(() -> PROTOCOL_ADAPTER.toAdaptable(response), ctx));
     }
 
     /**
@@ -162,7 +162,7 @@ public final class CommandProcessor {
         final String correlationId = thingEvent.getDittoHeaders().getCorrelationId().orElse("no-correlation-id");
         return doApplyTraced(
                 () -> createProcessingContext(CONTEXT_NAME, correlationId),
-                ctx -> convertToInternalMessage(() -> PROTOCOL_ADAPTER.toAdaptable(thingEvent), ctx));
+                ctx -> convertToExternalMessage(() -> PROTOCOL_ADAPTER.toAdaptable(thingEvent), ctx));
     }
 
     private Command<?> convertMessage(final ExternalMessage message, final TraceContext ctx) {
@@ -191,7 +191,7 @@ public final class CommandProcessor {
         }
     }
 
-    private ExternalMessage convertToInternalMessage(final Supplier<Adaptable> adaptableSupplier,
+    private ExternalMessage convertToExternalMessage(final Supplier<Adaptable> adaptableSupplier,
             final TraceContext ctx) {
         checkNotNull(adaptableSupplier);
         checkNotNull(ctx);

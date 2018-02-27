@@ -17,7 +17,7 @@ package org.eclipse.ditto.services.amqpbridge.mapping.mapper;
 public final class MessageMapperConfigurationProperties {
 
     private MessageMapperConfigurationProperties() {
-        assert(false);
+        throw new AssertionError();
     }
 
     public static final String CONTENT_TYPE = "contentType";
