@@ -11,7 +11,6 @@
  */
 package org.eclipse.ditto.services.amqpbridge.mapping.mapper;
 
-
 import java.util.Collections;
 import java.util.Map;
 
@@ -22,10 +21,25 @@ public final class MessageMappers {
 
     public static final String CONTENT_TYPE_KEY = "content-type";
 
+    private MessageMappers() {
+        assert (false);
+    }
 
     /**
+     * Creates a mapper configuration from the given properties
      *
-     * @return
+     * @param properties the properties
+     * @return the configuration
+     */
+    public static MessageMapperConfiguration configurationOf(final Map<String, String> properties) {
+        return DefaultMessageMapperConfiguration.of(properties);
+    }
+
+    /**
+     * Creates a new
+     * {@link org.eclipse.ditto.services.amqpbridge.mapping.mapper.javascript.JavaScriptMessageMapperConfiguration.Builder}
+     *
+     * @return the builder
      */
     public static JavaScriptMessageMapperConfiguration.Builder createJavaScriptMapperConfigurationBuilder() {
 
@@ -33,9 +47,11 @@ public final class MessageMappers {
     }
 
     /**
+     * Creates a new
+     * {@link org.eclipse.ditto.services.amqpbridge.mapping.mapper.javascript.JavaScriptMessageMapperConfiguration.Builder} with options
      *
-     * @param options
-     * @return
+     * @param options the configuration options
+     * @return the builder
      */
     public static JavaScriptMessageMapperConfiguration.Builder createJavaScriptMapperConfigurationBuilder(
             final Map<String, String> options) {
@@ -43,6 +59,11 @@ public final class MessageMappers {
         return JavaScriptPayloadMapperFactory.createJavaScriptConfigurationBuilder(options);
     }
 
+    /**
+     * Factory method for a rhino mapper
+     *
+     * @return the mapper
+     */
     public static MessageMapper createJavaScriptRhinoMapper() {
         return JavaScriptPayloadMapperFactory.createRhino();
     }
