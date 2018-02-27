@@ -9,7 +9,6 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-
 package org.eclipse.ditto.services.amqpbridge.mapping.mapper;
 
 import java.util.Optional;
