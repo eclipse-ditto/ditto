@@ -231,7 +231,7 @@ public class MessageMapperFactoryTest {
         final MessageMapper defaultMapper = new MockMapper(); // default mapper with null content type
 
         final List<MappingContext> contexts = Arrays.asList(fooCtx, barCtx);
-        MessageMapperRegistry underTest = factory.registryOf(contexts);
+        MessageMapperRegistry underTest = factory.registryOf(DittoMessageMapper.CONTEXT, contexts);
         assertThat(underTest.getDefaultMapper().equals(defaultMapper)).isTrue();
         assertThat(underTest.findMapper(fooMessage)).isPresent().map(MessageMapper::getContentType)
                 .isEqualTo(Optional.of("foo"));
