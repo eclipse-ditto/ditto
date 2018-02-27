@@ -15,7 +15,7 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * Configuration properties for a {@link AbstractMessageMapper}.
+ * Configuration properties for a {@link org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMapper}.
  */
 public interface MessageMapperConfiguration {
 

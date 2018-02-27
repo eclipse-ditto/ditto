@@ -90,7 +90,7 @@ public final class DittoMessageMapper implements MessageMapper {
 
         final ExternalMessage.MessageType messageType = determineMessageType(adaptable);
         final Map<String, String> headers = new LinkedHashMap<>(adaptable.getHeaders().orElse(DittoHeaders.empty()));
-        headers.put(AbstractMessageMapper.CONTENT_TYPE_KEY, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
+        getContentType().ifPresent(value -> headers.put(AbstractMessageMapper.CONTENT_TYPE_KEY, value));
         return AmqpBridgeModelFactory.newExternalMessageBuilder(headers, messageType)
                 .withText(STRING_ADAPTABLE_CONVERTER.reverse().convert(adaptable))
                 .build();

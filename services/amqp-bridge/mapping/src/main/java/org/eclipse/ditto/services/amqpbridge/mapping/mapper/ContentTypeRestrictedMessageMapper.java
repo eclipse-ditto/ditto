@@ -3,7 +3,10 @@ package org.eclipse.ditto.services.amqpbridge.mapping.mapper;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+
+import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.amqpbridge.ExternalMessage;
 import org.eclipse.ditto.protocoladapter.Adaptable;
@@ -13,18 +16,26 @@ class ContentTypeRestrictedMessageMapper implements MessageMapper {
     public static final String CONTENT_TYPE_KEY = "Content-Type";
 
     private final MessageMapper delegate;
+    @Nullable
+    private final String contentTypeOverride;
 
-    private ContentTypeRestrictedMessageMapper(final MessageMapper delegate) {
+
+    private ContentTypeRestrictedMessageMapper(final MessageMapper delegate, @Nullable final String contentTypeOverride) {
         this.delegate = checkNotNull(delegate);
+        this.contentTypeOverride = contentTypeOverride;
     }
 
     public static MessageMapper of(final MessageMapper mapper) {
-        return new ContentTypeRestrictedMessageMapper(mapper);
+        return new ContentTypeRestrictedMessageMapper(mapper, null);
+    }
+
+    public static MessageMapper of(final MessageMapper mapper, final String contentTypeOverride) {
+        return new ContentTypeRestrictedMessageMapper(mapper, contentTypeOverride);
     }
 
     @Override
     public Optional<String> getContentType() {
-        return delegate.getContentType();
+        return Objects.nonNull(contentTypeOverride) ? Optional.of(contentTypeOverride) : delegate.getContentType();
     }
 
     @Override
@@ -90,25 +101,27 @@ class ContentTypeRestrictedMessageMapper implements MessageMapper {
                 .map(Map.Entry::getValue).orElse(null));
     }
 
+
     @Override
     public boolean equals(final Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-
         final ContentTypeRestrictedMessageMapper that = (ContentTypeRestrictedMessageMapper) o;
-
-        return delegate.equals(that.delegate);
+        return Objects.equals(delegate, that.delegate) &&
+                Objects.equals(contentTypeOverride, that.contentTypeOverride);
     }
 
     @Override
     public int hashCode() {
-        return delegate.hashCode();
+
+        return Objects.hash(delegate, contentTypeOverride);
     }
 
     @Override
     public String toString() {
-        return "ContentTypeRestrictedMessageMapper{" +
+        return getClass().getSimpleName() + " [" +
                 "delegate=" + delegate +
-                '}';
+                ", contentTypeOverride=" + contentTypeOverride +
+                "]";
     }
 }
