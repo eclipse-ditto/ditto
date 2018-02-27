@@ -31,17 +31,18 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
+import org.eclipse.ditto.services.amqpbridge.mapping.mapper.DefaultMessageMapperFactory;
+import org.eclipse.ditto.services.amqpbridge.mapping.mapper.DittoMessageMapper;
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMapper;
-import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMapperFactory;
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMapperRegistry;
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMappers;
+import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 
-import com.google.common.base.Converter;
-
 import akka.actor.DynamicAccess;
+import akka.event.DiagnosticLoggingAdapter;
 import kamon.Kamon;
 import kamon.trace.Segment;
 import kamon.trace.TraceContext;
@@ -62,12 +63,12 @@ public final class CommandProcessor {
 
     private final MessageMapperRegistry registry;
 
-    @Nullable
-    private final Consumer<String> updateCorrelationId;
+    private final DiagnosticLoggingAdapter log;
 
-    private CommandProcessor(final MessageMapperRegistry registry, @Nullable final Consumer<String> updateCorrelationId) {
+
+    private CommandProcessor(final MessageMapperRegistry registry, final DiagnosticLoggingAdapter log) {
         this.registry = registry;
-        this.updateCorrelationId = updateCorrelationId;
+        this.log = log;
     }
 
     /**
@@ -76,18 +77,14 @@ public final class CommandProcessor {
      *
      * @param contexts the mapping contexts
      * @param access the dynamic access used for message mapper instantiation
-     * @param logDebug a callback for debug logs (optional)
-     * @param logWarning a callback for warning logs (optional)
-     * @param updateCorrelationId a callback for correlation id changes
+     * @param log the log adapter
      * @return the processor instance
      */
-    @Nonnull
-    public static CommandProcessor from(final List<MappingContext> contexts, final DynamicAccess access,
-            final Consumer<String> logDebug, final Consumer<String> logWarning,
-            final Consumer<String> updateCorrelationId) {
-        final MessageMapperRegistry registry =
-                MessageMapperFactory.from(access, MessageMappers.class, logDebug, logWarning).loadRegistry(contexts);
-        return new CommandProcessor(registry, updateCorrelationId);
+    public static CommandProcessor of(final List<MappingContext> contexts, final DynamicAccess access,
+            final DiagnosticLoggingAdapter log) {
+        final MessageMapperRegistry registry = DefaultMessageMapperFactory.of(access, MessageMappers.class, log)
+                .registryOf(DittoMessageMapper.CONTEXT, contexts);
+        return new CommandProcessor(registry, log);
     }
 
     /**
@@ -97,7 +94,11 @@ public final class CommandProcessor {
      */
     @Nonnull
     public List<String> getSupportedContentTypes() {
-        return registry.stream().map(MessageMapper::getContentType).collect(Collectors.toList());
+        return registry.getMappers().stream()
+                .map(MessageMapper::getContentType)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .collect(Collectors.toList());
     }
 
     /**
@@ -106,7 +107,7 @@ public final class CommandProcessor {
      * @return the content types
      */
     public Optional<String> getDefaultContentType() {
-        return Optional.ofNullable(registry.getDefaultMapper()).map(MessageMapper::getContentType);
+        return registry.getDefaultMapper().getContentType();
     }
 
     /**
@@ -172,7 +173,7 @@ public final class CommandProcessor {
         try {
             final Adaptable adaptable = doApplyTracedSegment(
                     () -> createSegment(ctx, MAPPING_SEGMENT_NAME, false),
-                    () -> getConverter(message).convert(message)
+                    () -> getMapper(message).map(message)
             );
 
             doUpdateCorrelationId(adaptable);
@@ -204,29 +205,32 @@ public final class CommandProcessor {
 
             return doApplyTracedSegment(
                     () -> createSegment(ctx, MAPPING_SEGMENT_NAME, true),
-                    () -> getConverter(adaptable).convert(adaptable)
+                    () -> getMapper(adaptable).map(adaptable)
             );
         } catch (final Exception e) {
             throw new IllegalArgumentException("Converting response failed: " + e.getMessage(), e);
         }
     }
 
-    private Converter<ExternalMessage, Adaptable> getConverter(final ExternalMessage message) {
-        return registry.selectMapper(message).orElseThrow(
+    private MessageMapper getMapper(final ExternalMessage message) {
+        return message.findHeader(MessageMappers.CONTENT_TYPE_KEY)
+                .map(registry::selectMapper)
+                .orElseThrow(
                 () -> new IllegalArgumentException("No mapper found for message: " + message)
         );
     }
 
-    private Converter<Adaptable, ExternalMessage> getConverter(final Adaptable adaptable) {
-        return registry.selectMapper(adaptable).orElseThrow(
+    private MessageMapper getMapper(final Adaptable adaptable) {
+        return adaptable.getHeaders()
+                .map(m -> m.get(MessageMappers.CONTENT_TYPE_KEY))
+                .map(registry::selectMapper).orElseThrow(
                 () -> new IllegalArgumentException("No mapper found for adaptable: " + adaptable)
         );
     }
 
     private void doUpdateCorrelationId(final Adaptable adaptable) {
-        if (Objects.nonNull(updateCorrelationId)) {
-            adaptable.getHeaders().flatMap(DittoHeaders::getCorrelationId).ifPresent(updateCorrelationId);
-        }
+        adaptable.getHeaders().flatMap(DittoHeaders::getCorrelationId)
+                .ifPresent(s -> LogUtil.enhanceLogWithCorrelationId(log, s));
     }
 
     private Segment createSegment(final TraceContext ctx, final String name, final boolean isReverse) {

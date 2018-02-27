@@ -85,9 +85,7 @@ public final class CommandProcessorActor extends AbstractActor {
                         -> log.debug("Trace for {} removed.", notification.getKey()))
                 .build();
 
-        // TODO why not simply pass the "log" into here instead of the 2 consumers?!
-        this.processor = CommandProcessor.from(mappingContexts, getDynamicAccess(), log::debug, log::warning,
-                this::updateCorrelationId);
+        this.processor = CommandProcessor.of(mappingContexts, getDynamicAccess(), log);
 
         log.info("Configured for processing messages with the following content types: {}",
                 processor.getSupportedContentTypes());
@@ -209,12 +207,6 @@ public final class CommandProcessorActor extends AbstractActor {
     private DynamicAccess getDynamicAccess() {
         return ((ExtendedActorSystem) getContext().getSystem()).dynamicAccess();
     }
-
-    private void updateCorrelationId(final String correlationId) {
-        LogUtil.enhanceLogWithCorrelationId(log, correlationId);
-    }
-
-//    kamon helpers
 
     private void startTrace(final Command<?> command) {
         command.getDittoHeaders().getCorrelationId().ifPresent(correlationId ->

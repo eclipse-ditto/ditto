@@ -35,7 +35,7 @@ import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
-import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMapper;
+import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMappers;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttribute;
 import org.junit.AfterClass;
@@ -157,7 +157,7 @@ public class CommandProcessorActorTest {
     public void onExternalMessageWithoutContentType() throws IdConversionException {
         // building a json ditto protocol message
         Map<String, String> headers = new HashMap<>();
-        headers.put(MessageMapper.CONTENT_TYPE_KEY, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
+        headers.put(MessageMappers.CONTENT_TYPE_KEY, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
         JsonifiableAdaptable adaptable = ProtocolFactory.wrapAsJsonifiableAdaptable(ProtocolFactory.newAdaptableBuilder
                 (ProtocolFactory.newTopicPathBuilder("asd:jkl").things().twin().commands().modify().build())
                 .withHeaders(DittoHeaders.of(headers))

@@ -18,7 +18,7 @@ import java.util.Map;
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.javascript.JavaScriptMessageMapperConfiguration;
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.javascript.JavaScriptPayloadMapperFactory;
 
-public class MessageMappers {
+public final class MessageMappers {
 
     public static final String CONTENT_TYPE_KEY = "content-type";
 
