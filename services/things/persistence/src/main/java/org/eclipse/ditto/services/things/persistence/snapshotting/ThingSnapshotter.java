@@ -524,6 +524,7 @@ public abstract class ThingSnapshotter<T extends Command<?>, R extends CommandRe
                 doLog(logger -> logger.debug(
                         "Completed internal request for snapshot: last snapshot of Thing <{}> is up to date.",
                         persistenceActor.getThingId()));
+                resetMaintenanceSnapshotSchedule();
             } else {
                 doSaveSnapshot(SnapshotTag.UNPROTECTED, null, null);
             }
