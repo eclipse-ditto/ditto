@@ -11,13 +11,15 @@
  */
 package org.eclipse.ditto.services.amqpbridge.mapping.mapper;
 
-
 import java.util.Collections;
 import java.util.Map;
 
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.javascript.JavaScriptMessageMapperConfiguration;
-import org.eclipse.ditto.services.amqpbridge.mapping.mapper.javascript.JavaScriptPayloadMapperFactory;
+import org.eclipse.ditto.services.amqpbridge.mapping.mapper.javascript.JavaScriptMessageMapperFactory;
 
+/**
+ *
+ */
 public final class MessageMappers {
 
     public static final String CONTENT_TYPE_KEY = "content-type";
@@ -40,10 +42,11 @@ public final class MessageMappers {
     public static JavaScriptMessageMapperConfiguration.Builder createJavaScriptMapperConfigurationBuilder(
             final Map<String, String> options) {
 
-        return JavaScriptPayloadMapperFactory.createJavaScriptConfigurationBuilder(options);
+        return JavaScriptMessageMapperFactory.createJavaScriptMessageMapperConfigurationBuilder(options);
     }
 
-    public static MessageMapper createJavaScriptRhinoMapper() {
-        return JavaScriptPayloadMapperFactory.createRhino();
+
+    public static MessageMapper createJavaScriptMessageMapper() {
+        return JavaScriptMessageMapperFactory.createJavaScriptMessageMapperRhino();
     }
 }

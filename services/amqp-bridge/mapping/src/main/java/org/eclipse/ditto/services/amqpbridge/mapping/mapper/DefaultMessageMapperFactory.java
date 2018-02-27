@@ -39,6 +39,8 @@ import scala.util.Try;
  * As the message mapper instantiation is usually triggered by an actor, there are only limited possibilities of
  * logging fine grained errors and at the same time keep all responsibility for mapper instantiation behavior away
  * of the actor.
+ * </p>
+ * <p>
  * Due to this, the factory can be instantiated with a reference to the actors log adapter and will log problems to
  * the debug and warning level (no info and error). Setting a log adapter does not change factory behaviour!
  * <p>
@@ -91,10 +93,10 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
         Optional<MessageMapper> mapper = Optional.empty();
         try {
             mapper = findFactoryMethodAndCreateInstance(mappingContext);
-        } catch (IllegalAccessException e) {
+        } catch (final IllegalAccessException e) {
             log.warning("Failed to load mapper of ctx <{}>! Can't access factory function: {}", mappingContext,
                     e.getMessage());
-        } catch (InvocationTargetException e) {
+        } catch (final InvocationTargetException e) {
             log.warning("Failed to load mapper of ctx <{}>! Can't invoke factory function: {}", mappingContext,
                     e.getMessage());
         }
@@ -102,10 +104,10 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
         if (!mapper.isPresent()) {
             try {
                 mapper = findClassAndCreateInstance(mappingContext);
-            } catch (InstantiationException e) {
+            } catch (final InstantiationException e) {
                 log.warning("Failed to load mapper of ctx <{}>! Can't instantiate mapper class: {}",
                         mappingContext, e.getMessage());
-            } catch (ClassCastException e) {
+            } catch (final ClassCastException e) {
                 log.warning("Failed to load mapper of ctx <{}>! Class is no MessageMapper: {}",
                         mappingContext, e.getMessage());
             }
@@ -131,8 +133,9 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
 
     @Override
     public MessageMapperRegistry registryOf(final MappingContext defaultContext, final List<MappingContext> contexts) {
-        final MessageMapper defaultMapper = mapperOf(defaultContext).orElseThrow(
-                () -> new IllegalArgumentException("No mapper found for default context: " + defaultContext));
+        final MessageMapper defaultMapper = mapperOf(defaultContext)
+                .orElseThrow(() ->
+                        new IllegalArgumentException("No mapper found for default context: " + defaultContext));
 
         final List<MessageMapper> mappers = contexts.stream()
                 .filter(Objects::nonNull)
@@ -179,7 +182,7 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
 
         try {
             return Optional.of(createInstanceFor(mappingContext.getMappingEngine()));
-        } catch (ClassNotFoundException e) {
+        } catch (final ClassNotFoundException e) {
             log.debug("No mapper class found for ctx: <{}>", mappingContext);
             return Optional.empty();
         }
@@ -189,7 +192,7 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
         try {
             mapper.configure(options);
             return true;
-        } catch (IllegalArgumentException e) {
+        } catch (final IllegalArgumentException e) {
             log.warning("Failed to apply configuration <{}> to mapper instance <{}>: {}", options, mapper,
                     e.getMessage());
             return false;

@@ -49,7 +49,7 @@ import org.mozilla.javascript.Undefined;
 /**
  * This mapper executes its mapping methods on the <b>current thread</b>. The caller should be aware of that.
  */
-final class RhinoJavaScriptPayloadMapper implements MessageMapper {
+final class JavaScriptMessageMapperRhino implements MessageMapper {
 
     private static final String WEBJARS_PATH = "/META-INF/resources/webjars";
 
@@ -78,7 +78,7 @@ final class RhinoJavaScriptPayloadMapper implements MessageMapper {
 
     @Nullable private JavaScriptMessageMapperConfiguration configuration;
 
-    RhinoJavaScriptPayloadMapper() {
+    JavaScriptMessageMapperRhino() {
 
     }
 

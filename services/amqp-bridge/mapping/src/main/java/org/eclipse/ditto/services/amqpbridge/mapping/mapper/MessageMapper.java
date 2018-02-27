@@ -21,7 +21,7 @@ import org.eclipse.ditto.protocoladapter.Adaptable;
  * {@link org.eclipse.ditto.protocoladapter.Adaptable} and vice versa.
  * <p>
  * Usually a mapper is bound to a content type.
- * <p>
+ * </p>
  * A message mapper is considered to be dynamically instantiated at runtime, it therefore can only be configured at
  * runtime.
  */
@@ -38,7 +38,7 @@ public interface MessageMapper {
      * @throws org.eclipse.ditto.services.amqpbridge.mapping.mapper.IllegalConfigurationException if configuration is
      * invalid
      */
-    void configure(final MessageMapperConfiguration configuration);
+    void configure(MessageMapperConfiguration configuration);
 
     /**
      * Maps an {@link org.eclipse.ditto.model.amqpbridge.ExternalMessage} to an {@link org.eclipse.ditto.protocoladapter.Adaptable}
@@ -47,7 +47,7 @@ public interface MessageMapper {
      * configuration
      * @throws java.lang.IllegalArgumentException if the given message can not be mapped.
      */
-    Adaptable map(final ExternalMessage message);
+    Adaptable map(ExternalMessage message);
 
     /**
      * Maps an {@link org.eclipse.ditto.protocoladapter.Adaptable} to an {@link org.eclipse.ditto.model.amqpbridge.ExternalMessage}
@@ -58,5 +58,5 @@ public interface MessageMapper {
      * configuration
      * @throws java.lang.IllegalArgumentException if the given adaptable can not be mapped.
      */
-    ExternalMessage map(final Adaptable adaptable);
+    ExternalMessage map(Adaptable adaptable);
 }

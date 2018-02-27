@@ -9,7 +9,7 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package org.eclipse.ditto.services.amqpbridge.mapping.mapper;
+package org.eclipse.ditto.services.amqpbridge.mapping.mapper.javascript;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -18,9 +18,11 @@ import java.util.Map;
 import org.eclipse.ditto.model.amqpbridge.AmqpBridgeModelFactory;
 import org.eclipse.ditto.model.amqpbridge.ExternalMessage;
 import org.eclipse.ditto.protocoladapter.Adaptable;
-import org.eclipse.ditto.services.amqpbridge.mapping.mapper.javascript.JavaScriptPayloadMapperFactory;
+import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMapper;
+import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMapperConfiguration;
+import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMapperConfigurationProperties;
+import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMappers;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -29,7 +31,6 @@ import org.junit.Test;
  * Sorry, not really a test yet - class was used in order to manually test mapping functionality.
  */
 //@RunWith(Parameterized.class)
-@Ignore
 public class ProtocolToRawMapperSimpleTest {
 
     private static final String CONTENT_TYPE = "text/plain";
@@ -53,21 +54,19 @@ public class ProtocolToRawMapperSimpleTest {
 
     @BeforeClass
     public static void setup() {
-        javaScriptRhinoMapper = MessageMappers.createJavaScriptRhinoMapper();
-        MessageMapperConfiguration configuration = JavaScriptPayloadMapperFactory.createJavaScriptConfigurationBuilder
+        javaScriptRhinoMapper = MessageMappers.createJavaScriptMessageMapper();
+        MessageMapperConfiguration configuration = JavaScriptMessageMapperFactory.createJavaScriptMessageMapperConfigurationBuilder
                 (Collections.emptyMap()).incomingMappingScript(MAPPING_TEMPLATE).loadMustacheJS(true).build();
         javaScriptRhinoMapper.configure(configuration);
     }
 
     @Test
     public void testRhinoMapper() {
-        System.out.println("\nRhino");
-
         final Map<String, String> headers = new HashMap<>();
         headers.put("correlation-id", "4711-foobar");
         headers.put(MessageMapperConfigurationProperties.CONTENT_TYPE, CONTENT_TYPE);
         final ExternalMessage message = AmqpBridgeModelFactory.newExternalMessageBuilder(headers, ExternalMessage.MessageType.RESPONSE)
-        .withText("huhu!").build();
+            .withText(PAYLOAD_STRING).build();
 
 
         final long startTs = System.nanoTime();

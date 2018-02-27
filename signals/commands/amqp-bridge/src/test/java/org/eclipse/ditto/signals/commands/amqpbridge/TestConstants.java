@@ -49,7 +49,8 @@ public final class TestConstants {
                     .eventTarget(TARGET)
                     .build();
 
-    public static MappingContext MAPPING_CONTEXT = AmqpBridgeModelFactory.newMappingContext("text/plain", "JavaScript",
+    public static MappingContext MAPPING_CONTEXT = AmqpBridgeModelFactory.newMappingContext("text/plain",
+            "org.eclipse.ditto.services.amqpbridge.mapping.mapper.javascript.JavaScriptMessageMapperRhino",
             Collections.singletonMap("incomingMappingScript",
                     "ditto_protocolJson.topic = 'org.eclipse.ditto/foo-bar/things/twin/commands/create';" +
                     "ditto_protocolJson.path = '/';" +

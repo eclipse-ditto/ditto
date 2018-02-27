@@ -132,8 +132,12 @@ final class ContentTypeRestrictedMessageMapper implements MessageMapper {
 
     @Override
     public boolean equals(final Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         final ContentTypeRestrictedMessageMapper that = (ContentTypeRestrictedMessageMapper) o;
         return Objects.equals(delegate, that.delegate) &&
                 Objects.equals(contentTypeOverride, that.contentTypeOverride);
