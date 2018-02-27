@@ -130,6 +130,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
 
     private static final String TRACE_THING_MODIFIED = "thing.modified";
     private static final String TRACE_THING_BULK_UPDATE = "thing.bulkUpdate";
+    private static final String COUNT_THING_BULK_UPDATE = "thing.bulkUpdate.count";
     private static final String TRACE_THING_DELETE = "thing.delete";
     private static final String TRACE_POLICY_UPDATE = "policy.update";
 
@@ -618,6 +619,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         log.debug("Executing bulk write operation with <{}> updates.", thingEvents.size());
         if (!thingEvents.isEmpty()) {
             transactionActive = true;
+            Kamon.metrics().histogram(COUNT_THING_BULK_UPDATE).record(thingEvents.size());
             final TraceContext traceContext = Kamon.tracer().newContext(TRACE_THING_BULK_UPDATE);
             circuitBreaker.callWithCircuitBreakerCS(() -> searchUpdaterPersistence
                     .executeCombinedWrites(thingId, thingEvents, policyEnforcer, targetRevision)
