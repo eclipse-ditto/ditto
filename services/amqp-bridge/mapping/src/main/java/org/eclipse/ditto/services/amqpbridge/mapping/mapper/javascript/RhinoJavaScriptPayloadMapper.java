@@ -71,17 +71,25 @@ final class RhinoJavaScriptPayloadMapper implements MessageMapper {
             DITTO_PROTOCOL_JSON_VAR + "={}" +
             ";";
 
-    private final ContextFactory contextFactory;
-    private final Scriptable scope;
+    @Nullable
+    private ContextFactory contextFactory;
+    @Nullable
+    private Scriptable scope;
 
     @Nullable private JavaScriptMessageMapperConfiguration configuration;
 
     RhinoJavaScriptPayloadMapper() {
-        this(PayloadMappers.createMapperOptionsBuilder(Collections.emptyMap()).build());
+
     }
 
-    RhinoJavaScriptPayloadMapper(final MessageMapperConfiguration configuration) {
-        configure(configuration);
+    @Override
+    public Optional<String> getContentType() {
+        return Optional.empty();
+    }
+
+    @Override
+    public void configure(final MessageMapperConfiguration options) {
+        this.configuration = new ImmutableJavaScriptMessageMapperMapperOptions.Builder(options.getProperties()).build();
         contextFactory = new RhinoContextFactory();
 
         // create scope once and load the required libraries in order to get best performance:
@@ -93,19 +101,9 @@ final class RhinoJavaScriptPayloadMapper implements MessageMapper {
         });
     }
 
-    @Override
-    public List<String> getSupportedContentTypes() {
-        return Collections.singletonList(".*"); // matches all contentTypes (via regex)
-    }
-
-    @Override
-    public void configure(final MessageMapperConfiguration options) {
-        this.configuration = new ImmutableJavaScriptMessageMapperMapperOptions.Builder(options.getProperties()).build();
-    }
-
     @Nullable
     @Override
-    public Adaptable mapIncoming(final PayloadMapperMessage message) {
+    public Adaptable map(final ExternalMessage message) {
 
         return (Adaptable) contextFactory.call(cx -> {
             final NativeObject headersObj = new NativeObject();
@@ -158,18 +156,11 @@ final class RhinoJavaScriptPayloadMapper implements MessageMapper {
             final Object mappingHeaders = ScriptableObject.getProperty(scope, MAPPING_HEADERS_VAR);
 
             final Map<String, String> headers = !(mappingHeaders instanceof Undefined) ? null : Collections.emptyMap();
-            return PayloadMappers.createPayloadMapperMessage(contentType, convertToByteBuffer(mappingByteArray),
-                    mappingString, headers != null ? headers : Collections.emptyMap());
             //TODO pm evaulate if bytes or text payload
             return AmqpBridgeModelFactory.newExternalMessageBuilder(headers, ExternalMessage.MessageType.RESPONSE)
                     .withAdditionalHeaders("content-type", contentType).withText(mappingString);
 
         });
-    }
-
-    @Override
-    public void configure(final MessageMapperConfiguration options) {
-        this.options = new ImmutableJavaScriptMessageMapperMapperOptions.Builder(options.getProperties()).build();
     }
 
 
