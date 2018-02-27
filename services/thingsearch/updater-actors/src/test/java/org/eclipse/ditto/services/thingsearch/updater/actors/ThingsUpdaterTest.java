@@ -176,6 +176,7 @@ public class ThingsUpdaterTest {
                 circuitBreaker,
                 eventProcessingActive,
                 activityCheckInterval,
+                Integer.MAX_VALUE,
                 thingCache.ref(),
                 policyCache.ref()));
     }
