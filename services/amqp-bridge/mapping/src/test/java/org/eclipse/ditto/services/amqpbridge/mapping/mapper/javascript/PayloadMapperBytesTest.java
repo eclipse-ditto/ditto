@@ -9,7 +9,7 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package org.eclipse.ditto.services.amqpbridge.mapping.mapper;
+package org.eclipse.ditto.services.amqpbridge.mapping.mapper.javascript;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
@@ -22,10 +22,11 @@ import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
-import org.eclipse.ditto.services.amqpbridge.mapping.mapper.javascript.JavaScriptPayloadMapperFactory;
+import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMapper;
+import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMapperConfiguration;
+import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMappers;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -34,7 +35,6 @@ import org.junit.Test;
  * Sorry, not really a test yet - class was used in order to manually test mapping functionality.
  */
 //@RunWith(Parameterized.class)
-@Ignore
 public class PayloadMapperBytesTest {
 
     private static final String MAPPING_TEMPLATE = "ditto_mappingByteArray = [];" +
@@ -51,8 +51,8 @@ public class PayloadMapperBytesTest {
 
     @BeforeClass
     public static void setup() {
-        javaScriptRhinoMapper = MessageMappers.createJavaScriptRhinoMapper();
-        MessageMapperConfiguration configuration = JavaScriptPayloadMapperFactory.createJavaScriptConfigurationBuilder
+        javaScriptRhinoMapper = MessageMappers.createJavaScriptMessageMapper();
+        MessageMapperConfiguration configuration = JavaScriptMessageMapperFactory.createJavaScriptMessageMapperConfigurationBuilder
                 (Collections.emptyMap()).outgoingMappingScript(MAPPING_TEMPLATE).build();
         javaScriptRhinoMapper.configure(configuration);
     }
@@ -74,7 +74,6 @@ public class PayloadMapperBytesTest {
 
     @Test
     public void testRhinoMapper() {
-        System.out.println("\nRhino");
         final Thing newThing = Thing.newBuilder()
                 .setId("org.eclipse.ditto:foo-bar")
                 .setAttributes(Attributes.newBuilder().set("foo", "bar").build())

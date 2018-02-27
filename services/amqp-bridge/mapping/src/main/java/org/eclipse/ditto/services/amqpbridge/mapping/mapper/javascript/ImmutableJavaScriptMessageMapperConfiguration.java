@@ -14,11 +14,14 @@ package org.eclipse.ditto.services.amqpbridge.mapping.mapper.javascript;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.annotation.concurrent.Immutable;
+
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.DefaultMessageMapperConfiguration;
 
 /**
- * TODO doc
+ * Immutable implementation of {@link JavaScriptMessageMapperConfiguration}.
  */
+@Immutable
 final class ImmutableJavaScriptMessageMapperConfiguration extends DefaultMessageMapperConfiguration
         implements JavaScriptMessageMapperConfiguration {
 
@@ -32,7 +35,7 @@ final class ImmutableJavaScriptMessageMapperConfiguration extends DefaultMessage
     }
 
     /**
-     *
+     * Mutable Builder for {@link JavaScriptMessageMapperConfiguration}.
      */
     static final class Builder implements JavaScriptMessageMapperConfiguration.Builder {
 

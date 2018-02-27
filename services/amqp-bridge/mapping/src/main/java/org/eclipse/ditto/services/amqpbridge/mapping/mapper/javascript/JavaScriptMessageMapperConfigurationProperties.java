@@ -12,7 +12,7 @@
 package org.eclipse.ditto.services.amqpbridge.mapping.mapper.javascript;
 
 /**
- * TODO doc
+ * Holds configuration keys for JavaScript MessageMapper.
  */
 final class JavaScriptMessageMapperConfigurationProperties {
 
@@ -20,10 +20,29 @@ final class JavaScriptMessageMapperConfigurationProperties {
         throw new AssertionError();
     }
 
-    public static final String INCOMING_MAPPING_SCRIPT = "incomingMappingScript";
-    public static final String OUTGOING_MAPPING_SCRIPT = "outgoingMappingScript";
-    public static final String LOAD_BYTEBUFFER_JS = "loadBytebufferJS";
-    public static final String LOAD_LONG_JS = "loadLongJS";
-    public static final String LOAD_MUSTACHE_JS = "loadMustacheJS";
+    /**
+     * Configuration key for the incoming MappingScript.
+     */
+    static final String INCOMING_MAPPING_SCRIPT = "incomingMappingScript";
+
+    /**
+     * Configuration key for the outgoing MappingScript.
+     */
+    static final String OUTGOING_MAPPING_SCRIPT = "outgoingMappingScript";
+
+    /**
+     * Configuration key for loading the "bytebuffer.js" library.
+     */
+    static final String LOAD_BYTEBUFFER_JS = "loadBytebufferJS";
+
+    /**
+     * Configuration key for loading the "long.js" library.
+     */
+    static final String LOAD_LONG_JS = "loadLongJS";
+
+    /**
+     * Configuration key for loading the "mustache.js" library.
+     */
+    static final String LOAD_MUSTACHE_JS = "loadMustacheJS";
 
 }

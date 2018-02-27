@@ -13,6 +13,7 @@ package org.eclipse.ditto.services.amqpbridge.mapping.mapper.test;
 
 import java.util.Optional;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.amqpbridge.ExternalMessage;
@@ -32,24 +33,27 @@ public class MockMapper implements MessageMapper {
     }
 
     @Override
+    @Nonnull
     public Optional<String> getContentType() {
         return Optional.ofNullable(contentType);
     }
 
     @Override
-    public void configure(final MessageMapperConfiguration configuration) {
+    public void configure(@Nonnull final MessageMapperConfiguration configuration) {
         configuration.findContentType().ifPresent(s -> contentType = s);
         configuration.findProperty(OPT_IS_VALID).map(Boolean::valueOf).filter(Boolean.TRUE::equals).orElseThrow
                 (IllegalArgumentException::new);
     }
 
     @Override
-    public Adaptable map(final ExternalMessage message) {
+    @Nonnull
+    public Adaptable map(@Nonnull final ExternalMessage message) {
         return null;
     }
 
     @Override
-    public ExternalMessage map(final Adaptable adaptable) {
+    @Nonnull
+    public ExternalMessage map(@Nonnull final Adaptable adaptable) {
         return null;
     }
 

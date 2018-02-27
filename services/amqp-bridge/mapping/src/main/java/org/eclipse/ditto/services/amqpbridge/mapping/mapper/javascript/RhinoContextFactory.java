@@ -17,7 +17,7 @@ import org.mozilla.javascript.ContextFactory;
 import org.mozilla.javascript.Scriptable;
 
 /**
- *
+ * Special Rhino ContextFactory responsible for sandboxing JavaScript execution.
  */
 final class RhinoContextFactory extends ContextFactory {
 
@@ -37,7 +37,7 @@ final class RhinoContextFactory extends ContextFactory {
         final RhinoContext cx = new RhinoContext(this);
         // Use pure interpreter mode to allow for observeInstructionCount(Context, int) to work
         cx.setOptimizationLevel(OPTIMIZATION_LEVEL);
-        // Make Rhino runtime to call observeInstructionCount each 10000 bytecode instructions
+        // Make Rhino runtime to call observeInstructionCount each 1000 bytecode instructions
         cx.setInstructionObserverThreshold(INSTRUCTION_OBSERVER_THRESHOLD);
         cx.setLanguageVersion(Context.VERSION_1_8);
         cx.setMaximumInterpreterStackDepth(MAXIMUM_INTERPRETER_STACK_DEPTH);

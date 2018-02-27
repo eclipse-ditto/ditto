@@ -19,6 +19,10 @@ import java.util.Optional;
  */
 public interface MessageMapperConfiguration {
 
+    /**
+     *
+     * @return
+     */
     Map<String, String> getProperties();
 
     /**
@@ -64,19 +68,19 @@ public interface MessageMapperConfiguration {
     }
 
     /**
-     *
+     * Builder for {@link MessageMapperConfiguration} instances to be used as a base for a more concrete builder.
      */
     interface Builder<T extends MessageMapperConfiguration> {
 
         /**
-         *
-         * @return
+         * @return the configuration properties as mutable map
          */
         Map<String, String> getProperties();
 
         /**
+         * Builds the builder and returns a new instance of {@link MessageMapperConfiguration}
          *
-         * @return
+         * @return the built MessageMapperConfiguration
          */
         T build();
     }

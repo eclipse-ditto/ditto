@@ -18,20 +18,29 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMapperConfiguration;
 
 /**
- * TODO doc
+ * Configuration properties for JavaScript MassageMapper.
  */
 public interface JavaScriptMessageMapperConfiguration extends MessageMapperConfiguration {
 
+    /**
+     * @return the mappingScript responsible for mapping incoming messages (e.g. via AMQP).
+     */
     default Optional<String> getIncomingMappingScript() {
         return Optional.ofNullable(
                 getProperties().get(JavaScriptMessageMapperConfigurationProperties.INCOMING_MAPPING_SCRIPT));
     }
 
+    /**
+     * @return the mappingScript responsible for mapping outgoing messages (e.g. to AMQP).
+     */
     default Optional<String> getOutgoingMappingScript() {
         return Optional.ofNullable(
                 getProperties().get(JavaScriptMessageMapperConfigurationProperties.OUTGOING_MAPPING_SCRIPT));
     }
 
+    /**
+     * @return whether to load "bytebuffer.js" library.
+     */
     default boolean isLoadBytebufferJS() {
         return Optional.ofNullable(
                 getProperties().get(JavaScriptMessageMapperConfigurationProperties.LOAD_BYTEBUFFER_JS))
@@ -39,6 +48,9 @@ public interface JavaScriptMessageMapperConfiguration extends MessageMapperConfi
                 .orElse(false);
     }
 
+    /**
+     * @return whether to load "long.js" library.
+     */
     default boolean isLoadLongJS() {
         return Optional.ofNullable(
                 getProperties().get(JavaScriptMessageMapperConfigurationProperties.LOAD_LONG_JS))
@@ -46,6 +58,9 @@ public interface JavaScriptMessageMapperConfiguration extends MessageMapperConfi
                 .orElse(false);
     }
 
+    /**
+     * @return whether to load "mustache.js" library.
+     */
     default boolean isLoadMustacheJS() {
         return Optional.ofNullable(
                 getProperties().get(JavaScriptMessageMapperConfigurationProperties.LOAD_MUSTACHE_JS))
@@ -54,10 +69,16 @@ public interface JavaScriptMessageMapperConfiguration extends MessageMapperConfi
     }
 
     /**
-     *
+     * Specific builder for {@link JavaScriptMessageMapperConfiguration}.
      */
     interface Builder extends MessageMapperConfiguration.Builder<JavaScriptMessageMapperConfiguration> {
 
+        /**
+         * Configures the mappingScript responsible for mapping incoming messages (e.g. via AMQP).
+         *
+         * @param mappingScript the incoming mapping script
+         * @return this builder for chaining
+         */
         default Builder incomingMappingScript(@Nullable String mappingScript) {
             if (mappingScript != null) {
                 getProperties().put(JavaScriptMessageMapperConfigurationProperties.INCOMING_MAPPING_SCRIPT,
@@ -68,6 +89,12 @@ public interface JavaScriptMessageMapperConfiguration extends MessageMapperConfi
             return this;
         }
 
+        /**
+         * Configures the mappingScript responsible for mapping outgoing messages (e.g. to AMQP).
+         *
+         * @param mappingScript the outgoing mapping script
+         * @return this builder for chaining
+         */
         default Builder outgoingMappingScript(@Nullable String mappingScript) {
             if (mappingScript != null) {
                 getProperties().put(JavaScriptMessageMapperConfigurationProperties.OUTGOING_MAPPING_SCRIPT,
@@ -78,18 +105,36 @@ public interface JavaScriptMessageMapperConfiguration extends MessageMapperConfi
             return this;
         }
 
+        /**
+         * Configures whether to load "bytebuffer.js" library.
+         *
+         * @param load whether to load "bytebuffer.js" library
+         * @return this builder for chaining
+         */
         default Builder loadBytebufferJS(boolean load) {
             getProperties().put(JavaScriptMessageMapperConfigurationProperties.LOAD_BYTEBUFFER_JS,
                     Boolean.toString(load));
             return this;
         }
 
+        /**
+         * Configures whether to load "long.js" library.
+         *
+         * @param load whether to load "long.js" library
+         * @return this builder for chaining
+         */
         default Builder loadLongJS(boolean load) {
             getProperties().put(JavaScriptMessageMapperConfigurationProperties.LOAD_LONG_JS,
                     Boolean.toString(load));
             return this;
         }
 
+        /**
+         * Configures whether to load "mustache.js" library.
+         *
+         * @param load whether to load "mustache.js" library
+         * @return this builder for chaining
+         */
         default Builder loadMustacheJS(boolean load) {
             getProperties().put(JavaScriptMessageMapperConfigurationProperties.LOAD_MUSTACHE_JS,
                     Boolean.toString(load));
