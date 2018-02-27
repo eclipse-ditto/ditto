@@ -50,11 +50,6 @@ final class DeleteAttributesLiveCommandImpl
     }
 
     @Override
-    public Category getCategory() {
-        return Category.MODIFY;
-    }
-
-    @Override
     public DeleteAttributesLiveCommand setDittoHeaders(final DittoHeaders dittoHeaders) {
         return new DeleteAttributesLiveCommandImpl(DeleteAttributes.of(getThingId(), dittoHeaders));
     }

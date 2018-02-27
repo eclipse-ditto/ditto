@@ -152,7 +152,7 @@ public final class DeleteAttribute extends AbstractCommand<DeleteAttribute>
 
     @Override
     public Category getCategory() {
-        return Category.MODIFY;
+        return Category.DELETE;
     }
 
     @Override

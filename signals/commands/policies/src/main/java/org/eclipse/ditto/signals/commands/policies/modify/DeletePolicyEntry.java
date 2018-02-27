@@ -146,7 +146,7 @@ public final class DeletePolicyEntry extends AbstractCommand<DeletePolicyEntry>
 
     @Override
     public Category getCategory() {
-        return Category.MODIFY;
+        return Category.DELETE;
     }
 
     @Override

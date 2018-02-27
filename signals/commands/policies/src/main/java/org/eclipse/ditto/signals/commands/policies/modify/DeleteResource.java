@@ -169,7 +169,7 @@ public final class DeleteResource extends AbstractCommand<DeleteResource>
 
     @Override
     public Category getCategory() {
-        return Category.MODIFY;
+        return Category.DELETE;
     }
 
     @Override

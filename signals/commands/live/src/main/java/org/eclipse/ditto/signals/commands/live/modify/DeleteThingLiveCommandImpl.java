@@ -45,11 +45,6 @@ final class DeleteThingLiveCommandImpl extends AbstractModifyLiveCommand<DeleteT
     }
 
     @Override
-    public Category getCategory() {
-        return Category.DELETE;
-    }
-
-    @Override
     public DeleteThingLiveCommand setDittoHeaders(final DittoHeaders dittoHeaders) {
         return new DeleteThingLiveCommandImpl(DeleteThing.of(getThingId(), dittoHeaders));
     }

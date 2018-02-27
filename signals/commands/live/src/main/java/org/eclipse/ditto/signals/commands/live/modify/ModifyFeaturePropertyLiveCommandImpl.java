@@ -73,11 +73,6 @@ final class ModifyFeaturePropertyLiveCommandImpl
     }
 
     @Override
-    public Category getCategory() {
-        return Category.MODIFY;
-    }
-
-    @Override
     public ModifyFeaturePropertyLiveCommand setDittoHeaders(final DittoHeaders dittoHeaders) {
         return new ModifyFeaturePropertyLiveCommandImpl(ModifyFeatureProperty.of(getThingId(), getFeatureId(),
                 getPropertyPointer(), getPropertyValue(), dittoHeaders));

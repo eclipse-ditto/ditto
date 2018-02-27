@@ -46,11 +46,6 @@ abstract class AbstractQueryLiveCommand<T extends LiveCommand<T, B> & ThingQuery
     }
 
     @Override
-    public Category getCategory() {
-        return Category.QUERY;
-    }
-
-    @Override
     public String getThingId() {
         return thingQueryCommand.getThingId();
     }

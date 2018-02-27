@@ -166,7 +166,7 @@ public final class DeleteFeatureProperty extends AbstractCommand<DeleteFeaturePr
 
     @Override
     public Category getCategory() {
-        return Category.MODIFY;
+        return Category.DELETE;
     }
 
     @Override

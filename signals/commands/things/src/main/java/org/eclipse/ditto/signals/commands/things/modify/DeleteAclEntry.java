@@ -154,7 +154,7 @@ public final class DeleteAclEntry extends AbstractCommand<DeleteAclEntry>
 
     @Override
     public Category getCategory() {
-        return Category.MODIFY;
+        return Category.DELETE;
     }
 
     @Override
