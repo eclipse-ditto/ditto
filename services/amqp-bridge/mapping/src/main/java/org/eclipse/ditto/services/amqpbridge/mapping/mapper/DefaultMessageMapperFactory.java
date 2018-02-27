@@ -34,7 +34,7 @@ import scala.reflect.ClassTag;
 import scala.util.Try;
 
 /**
- * Encapsulates responsibility for instantiating {@link AbstractMessageMapper} objects.
+ * Encapsulates responsibility for instantiating {@link org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMapper} objects.
  * <p>
  * As the message mapper instantiation is usually triggered by an actor, there are only limited possibilities of
  * logging fine grained errors and at the same time keep all responsibility for mapper instantiation behavior away
@@ -53,7 +53,7 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
     private final DynamicAccess dynamicAccess;
 
     /**
-     * The class scanned for static {@link AbstractMessageMapper} factory functions.
+     * The class scanned for static {@link org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMapper} factory functions.
      */
     private final Class<?> factoryClass;
 
@@ -107,7 +107,7 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
                 log.warning("Failed to load mapper of ctx <{}>! Can't instantiate mapper class: {}",
                         mappingContext, e.getMessage());
             } catch (ClassCastException e) {
-                log.warning("Failed to load mapper of ctx <{}>! Class is no AbstractMessageMapper: {}",
+                log.warning("Failed to load mapper of ctx <{}>! Class is no MessageMapper: {}",
                         mappingContext, e.getMessage());
             }
         }
@@ -128,13 +128,15 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
                 .map(this::mapperOf)
                 .map(m -> m.orElse(null))
                 .filter(Objects::nonNull)
-                .peek(m -> log.debug("AbstractMessageMapper loaded: <{}>", m))
+                .peek(m -> log.debug("MessageMapper loaded: <{}>", m))
                 .collect(Collectors.toList());
     }
 
     @Override
-    public MessageMapperRegistry registryOf(final List<MappingContext> contexts) {
-        return DefaultMessageMapperRegistry.of(new DittoMessageMapper(), mappersOf(contexts));
+    public MessageMapperRegistry registryOf(final MappingContext defaultContext, final List<MappingContext> contexts) {
+        final MessageMapper defaultMapper = mapperOf(defaultContext).orElseThrow(
+                () -> new IllegalArgumentException("No mapper found for default context: " + defaultContext));
+        return DefaultMessageMapperRegistry.of(defaultMapper, mappersOf(contexts));
     }
 
     /**
@@ -164,7 +166,7 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
      * @param mappingContext the mapping context
      * @return the instantiated mapper, if a class matched.
      * @throws InstantiationException if a class matched, but mapper instantiation failed.
-     * @throws ClassCastException if a class matched but does not conform to the {@link AbstractMessageMapper} interface.
+     * @throws ClassCastException if a class matched but does not conform to the {@link org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMapper} interface.
      */
     Optional<MessageMapper> findClassAndCreateInstance(final MappingContext mappingContext)
             throws InstantiationException {
@@ -230,19 +232,14 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
     public boolean equals(final Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-
         final DefaultMessageMapperFactory that = (DefaultMessageMapperFactory) o;
-
-        if (!dynamicAccess.equals(that.dynamicAccess)) return false;
-        if (!factoryClass.equals(that.factoryClass)) return false;
-        return log.equals(that.log);
+        return Objects.equals(dynamicAccess, that.dynamicAccess) &&
+                Objects.equals(factoryClass, that.factoryClass) &&
+                Objects.equals(log, that.log);
     }
 
     @Override
     public int hashCode() {
-        int result = dynamicAccess.hashCode();
-        result = 31 * result + factoryClass.hashCode();
-        result = 31 * result + log.hashCode();
-        return result;
+        return Objects.hash(dynamicAccess, factoryClass, log);
     }
 }

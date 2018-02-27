@@ -18,6 +18,8 @@ package org.eclipse.ditto.services.amqpbridge.mapping.mapper;
  */
 public class MessageMapperException extends RuntimeException {
 
+    private static final long serialVersionUID = -6938754724846714933L;
+
     public MessageMapperException() {
         super();
     }

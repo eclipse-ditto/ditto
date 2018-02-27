@@ -17,6 +17,8 @@ package org.eclipse.ditto.services.amqpbridge.mapping.mapper;
  */
 public class IllegalConfigurationException extends MessageMapperException {
 
+    private static final long serialVersionUID = 3008975824954909682L;
+
     public IllegalConfigurationException() {
         super();
     }

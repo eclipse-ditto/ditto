@@ -17,6 +17,8 @@ package org.eclipse.ditto.services.amqpbridge.mapping.mapper;
  */
 public class NotYetConfiguredException extends MessageMapperException {
 
+    private static final long serialVersionUID = 7361331553802393779L;
+
     public NotYetConfiguredException() {
         super();
     }
