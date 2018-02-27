@@ -42,7 +42,6 @@ import scala.util.Try;
  * Due to this, the factory can be instantiated with a reference to the actors log adapter and will log problems to
  * the debug and warning level (no info and error). Setting a log adapter does not change factory behaviour!
  * <p>
- * TODO extract interface
  */
 @Immutable
 public final class DefaultMessageMapperFactory implements MessageMapperFactory {
@@ -114,9 +113,7 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
 
         final DefaultMessageMapperConfiguration options =
                 DefaultMessageMapperConfiguration.of(mappingContext.getOptions());
-        return mapper
-                .map(ContentTypeRestrictedMessageMapper::of)
-                .map(m -> configureInstance(m, options) ? m : null);
+        return mapper.map(m -> configureInstance(m, options) ? m : null);
     }
 
 
@@ -136,7 +133,15 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
     public MessageMapperRegistry registryOf(final MappingContext defaultContext, final List<MappingContext> contexts) {
         final MessageMapper defaultMapper = mapperOf(defaultContext).orElseThrow(
                 () -> new IllegalArgumentException("No mapper found for default context: " + defaultContext));
-        return DefaultMessageMapperRegistry.of(defaultMapper, mappersOf(contexts));
+
+        final List<MessageMapper> mappers = contexts.stream()
+                .filter(Objects::nonNull)
+                .map(ctx -> mapperOf(ctx)
+                        .map(m -> ContentTypeRestrictedMessageMapper.wrap(m, ctx.getContentType()))
+                        .orElse(null))
+                .peek(m -> log.debug("MessageMapper loaded: <{}>", m))
+                .collect(Collectors.toList());
+        return DefaultMessageMapperRegistry.of(defaultMapper, mappers);
     }
 
     /**

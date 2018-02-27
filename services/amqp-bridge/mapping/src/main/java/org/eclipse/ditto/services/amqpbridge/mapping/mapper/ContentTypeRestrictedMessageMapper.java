@@ -12,6 +12,7 @@
 package org.eclipse.ditto.services.amqpbridge.mapping.mapper;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMappers.CONTENT_TYPE_KEY;
 
 import java.util.Map;
 import java.util.Objects;
@@ -22,9 +23,12 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.model.amqpbridge.ExternalMessage;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 
-class ContentTypeRestrictedMessageMapper implements MessageMapper {
+/**
+ * Does wrap any {@link org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMapper} and adds content type checks
+ * to mapping methods. It allows to override the mappers content type by any content type.
+ */
+final class ContentTypeRestrictedMessageMapper implements MessageMapper {
 
-    public static final String CONTENT_TYPE_KEY = "Content-Type";
 
     private final MessageMapper delegate;
     @Nullable
@@ -36,11 +40,24 @@ class ContentTypeRestrictedMessageMapper implements MessageMapper {
         this.contentTypeOverride = contentTypeOverride;
     }
 
-    public static MessageMapper of(final MessageMapper mapper) {
+    /**
+     * Enforces content type checking for the mapper
+     *
+     * @param mapper the mapper
+     * @return the wrapped mapper
+     */
+    public static MessageMapper wrap(final MessageMapper mapper) {
         return new ContentTypeRestrictedMessageMapper(mapper, null);
     }
 
-    public static MessageMapper of(final MessageMapper mapper, final String contentTypeOverride) {
+    /**
+     * Enforces content type checking for the mapper and overrides the content type.
+     *
+     * @param mapper the mapper
+     * @param contentTypeOverride the content type substitution
+     * @return the wrapped mapper
+     */
+    public static MessageMapper wrap(final MessageMapper mapper, final String contentTypeOverride) {
         return new ContentTypeRestrictedMessageMapper(mapper, contentTypeOverride);
     }
 
@@ -57,53 +74,53 @@ class ContentTypeRestrictedMessageMapper implements MessageMapper {
 
     @Override
     public Adaptable map(final ExternalMessage message) {
-        requireMatchingContentType(message);
+        final String actualContentType = findContentType(message)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        String.format("Message headers do not contain a value for %s", CONTENT_TYPE_KEY)));
+
+        requireMatchingContentType(actualContentType);
         return delegate.map(message);
     }
 
     @Override
     public ExternalMessage map(final Adaptable adaptable) {
+        final String actualContentType = findContentType(adaptable)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        String.format("Adaptable headers do not contain a value for %s", CONTENT_TYPE_KEY)));
+
+        requireMatchingContentType(actualContentType);
         return delegate.map(adaptable);
     }
 
     private void requireConfiguredContentType() {
         if (!getContentType().isPresent()) {
-            throw new IllegalArgumentException("Required configuration property missing: '%s'" +
+            throw new IllegalConfigurationException("Required configuration property missing: '%s'" +
                     MessageMapperConfigurationProperties.CONTENT_TYPE);
         }
     }
 
-    private void requireMatchingContentType(final ExternalMessage internalMessage) {
 
+    private void requireMatchingContentType(final String actualContentType) {
         final String contentType = getContentType().filter(s -> !s.isEmpty()).orElseThrow(
-                () -> new IllegalArgumentException(String.format(
+                () -> new NotYetConfiguredException(String.format(
                         "A matching content type is required, but none configured. Set a content type with the following key in configuration: %s",
                         MessageMapperConfigurationProperties.CONTENT_TYPE))
         );
-
-        final String actualContentType = findContentType(internalMessage)
-                .orElseThrow(() -> new IllegalArgumentException(
-                        String.format("Message headers do not contain a value for %s", CONTENT_TYPE_KEY)));
 
         if (!contentType.equalsIgnoreCase(actualContentType)) {
             throw new IllegalArgumentException(
                     String.format("Unsupported value for %s: actual='%s', expected='%s'",
                             CONTENT_TYPE_KEY, actualContentType, contentType));
         }
-
     }
+
 
     private static Optional<String> findContentType(final ExternalMessage internalMessage) {
         checkNotNull(internalMessage);
         return internalMessage.findHeaderIgnoreCase(CONTENT_TYPE_KEY);
     }
 
-    /**
-     * Identifies and gets a configured content type of a protocol adaptable.
-     *
-     * @param adaptable the message
-     * @return the content type if found
-     */
+
     private static Optional<String> findContentType(final Adaptable adaptable) {
         checkNotNull(adaptable);
         return adaptable.getHeaders().map(h -> h.entrySet().stream()
@@ -124,7 +141,6 @@ class ContentTypeRestrictedMessageMapper implements MessageMapper {
 
     @Override
     public int hashCode() {
-
         return Objects.hash(delegate, contentTypeOverride);
     }
 

@@ -12,20 +12,21 @@
 package org.eclipse.ditto.services.amqpbridge.mapping.mapper;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMappers.CONTENT_TYPE_KEY;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 
-import javax.annotation.Nullable;
-
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.model.amqpbridge.AmqpBridgeModelFactory;
 import org.eclipse.ditto.model.amqpbridge.ExternalMessage;
+import org.eclipse.ditto.model.amqpbridge.MappingContext;
 import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.protocoladapter.Adaptable;
@@ -39,9 +40,6 @@ import com.google.common.base.Converter;
  * Expects messages to contain a JSON serialized ditto protocol message.
  */
 public final class DittoMessageMapper implements MessageMapper {
-
-    @Nullable
-    private String contentType;
 
     /**
      * A static converter to map adaptables to JSON strings and vice versa;
@@ -64,19 +62,30 @@ public final class DittoMessageMapper implements MessageMapper {
             }
     );
 
+    /**
+     * The context representing this mapper
+     */
+    public static final MappingContext CONTEXT = AmqpBridgeModelFactory.newMappingContext(
+            DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE,
+            DittoMessageMapper.class.getCanonicalName(),
+            Collections.emptyMap()
+    );
+
+
     @Override
     public Optional<String> getContentType() {
-        return Optional.ofNullable(contentType);
+        return Optional.ofNullable(DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
     }
+
 
     @Override
     public void configure(final MessageMapperConfiguration configuration) {
-        configuration.findContentType().ifPresent(s -> contentType = s);
+        // no op
     }
+
 
     @Override
     public Adaptable map(final ExternalMessage message) {
-
         final String payload = extractPayloadAsString(message);
         final Adaptable adaptable = STRING_ADAPTABLE_CONVERTER.convert(payload);
         checkNotNull(adaptable);
@@ -85,12 +94,12 @@ public final class DittoMessageMapper implements MessageMapper {
         return ProtocolFactory.newAdaptableBuilder(adaptable).withHeaders(mergedHeaders).build();
     }
 
+
     @Override
     public ExternalMessage map(final Adaptable adaptable) {
-
         final ExternalMessage.MessageType messageType = determineMessageType(adaptable);
         final Map<String, String> headers = new LinkedHashMap<>(adaptable.getHeaders().orElse(DittoHeaders.empty()));
-        getContentType().ifPresent(value -> headers.put(AbstractMessageMapper.CONTENT_TYPE_KEY, value));
+        getContentType().ifPresent(value -> headers.put(CONTENT_TYPE_KEY, value));
         return AmqpBridgeModelFactory.newExternalMessageBuilder(headers, messageType)
                 .withText(STRING_ADAPTABLE_CONVERTER.reverse().convert(adaptable))
                 .build();
@@ -143,5 +152,11 @@ public final class DittoMessageMapper implements MessageMapper {
                         criterion.getName(), TopicPath.Criterion.COMMANDS, TopicPath.Criterion.EVENTS);
                 throw new IllegalArgumentException(errorMessage);
         }
+    }
+
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "[]";
     }
 }

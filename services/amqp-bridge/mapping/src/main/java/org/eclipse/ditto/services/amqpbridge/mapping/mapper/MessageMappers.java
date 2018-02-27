@@ -20,6 +20,9 @@ import org.eclipse.ditto.services.amqpbridge.mapping.mapper.javascript.JavaScrip
 
 public class MessageMappers {
 
+    public static final String CONTENT_TYPE_KEY = "content-type";
+
+
     /**
      *
      * @return

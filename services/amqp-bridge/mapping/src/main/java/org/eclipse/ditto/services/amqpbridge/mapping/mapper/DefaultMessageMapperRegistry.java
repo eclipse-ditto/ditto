@@ -17,6 +17,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -70,25 +71,22 @@ public final class DefaultMessageMapperRegistry implements MessageMapperRegistry
     public boolean equals(final Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-
         final DefaultMessageMapperRegistry that = (DefaultMessageMapperRegistry) o;
-
-        if (!mappers.equals(that.mappers)) return false;
-        return defaultMapper.equals(that.defaultMapper);
+        return Objects.equals(mappers, that.mappers) &&
+                Objects.equals(defaultMapper, that.defaultMapper);
     }
 
     @Override
     public int hashCode() {
-        int result = mappers.hashCode();
-        result = 31 * result + defaultMapper.hashCode();
-        return result;
+        return Objects.hash(mappers, defaultMapper);
     }
+
 
     @Override
     public String toString() {
-        return "DefaultMessageMapperRegistry{" +
+        return getClass().getSimpleName() + " [" +
                 "mappers=" + mappers +
                 ", defaultMapper=" + defaultMapper +
-                '}';
+                "]";
     }
 }
