@@ -11,34 +11,50 @@
  */
 package org.eclipse.ditto.services.amqpbridge.mapping.mapper.test;
 
+import java.util.Optional;
+
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.amqpbridge.ExternalMessage;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMapper;
-import org.eclipse.ditto.services.amqpbridge.mapping.mapper.DefaultMessageMapperOptions;
+import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMapperConfiguration;
 
 
-public class MockMapper extends MessageMapper {
+public class MockMapper implements MessageMapper {
 
     public static final String OPT_IS_VALID = "Mock";
+
+    @Nullable
+    private String contentType;
 
     public MockMapper() {
     }
 
     @Override
-    public void doConfigure(@Nonnull final DefaultMessageMapperOptions configuration) {
+    public Optional<String> getContentType() {
+        return Optional.ofNullable(contentType);
+    }
+
+    @Override
+    public void configure(final MessageMapperConfiguration configuration) {
+        configuration.findContentType().ifPresent(s -> contentType = s);
         configuration.findProperty(OPT_IS_VALID).map(Boolean::valueOf).filter(Boolean.TRUE::equals).orElseThrow
                 (IllegalArgumentException::new);
     }
 
+    @Nullable
     @Override
-    protected Adaptable doForwardMap(@Nonnull final ExternalMessage externalMessage) {
+    public Adaptable map(@Nullable final ExternalMessage message) {
         return null;
     }
 
+    @Nullable
     @Override
-    protected ExternalMessage doBackwardMap(@Nonnull final Adaptable adaptable) {
+    public ExternalMessage map(@Nullable final Adaptable adaptable) {
         return null;
     }
+
+
 }

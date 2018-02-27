@@ -13,10 +13,14 @@ package org.eclipse.ditto.services.amqpbridge.mapping.mapper;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.eclipse.ditto.model.amqpbridge.AmqpBridgeModelFactory;
+import org.eclipse.ditto.model.amqpbridge.ExternalMessage;
 import org.eclipse.ditto.protocoladapter.Adaptable;
+import org.eclipse.ditto.services.amqpbridge.mapping.mapper.javascript.JavaScriptPayloadMapperFactory;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -42,7 +46,7 @@ public class ProtocolToRawMapperBytesTest {
 
     private static final ByteBuffer PAYLOAD_BYTEBUFFER = ByteBuffer.wrap("hello binary!".getBytes(StandardCharsets.UTF_8));
 
-    private static PayloadMapper javaScriptRhinoMapper;
+    private static MessageMapper javaScriptRhinoMapper;
 
 //    @Parameterized.Parameters
 //    public static List<Object[]> data() {
@@ -51,11 +55,10 @@ public class ProtocolToRawMapperBytesTest {
 
     @BeforeClass
     public static void setup() {
-        javaScriptRhinoMapper = PayloadMappers.createJavaScriptRhinoMapper(
-                PayloadMappers
-                        .createJavaScriptMapperOptionsBuilder()
-                        .incomingMappingScript(MAPPING_TEMPLATE)
-                        .build());
+        javaScriptRhinoMapper = MessageMappers.createJavaScriptRhinoMapper();
+        MessageMapperConfiguration configuration = JavaScriptPayloadMapperFactory.createJavaScriptOptionsBuilder
+                (Collections.emptyMap()).outgoingMappingScript(MAPPING_TEMPLATE).loadMustacheJS(true).build();
+        javaScriptRhinoMapper.configure(configuration);
     }
 
     @Test
@@ -64,10 +67,12 @@ public class ProtocolToRawMapperBytesTest {
 
         final Map<String, String> headers = new HashMap<>();
         headers.put("correlation-id", "4711-foobar");
-        final PayloadMapperMessage message = new ImmutablePayloadMapperMessage(CONTENT_TYPE, PAYLOAD_BYTEBUFFER, null, headers);
+        headers.put(MessageMapperConfigurationProperties.CONTENT_TYPE, CONTENT_TYPE);
+        final ExternalMessage message = AmqpBridgeModelFactory.newExternalMessageBuilder(headers, ExternalMessage
+                .MessageType.EVENT).withBytes(PAYLOAD_BYTEBUFFER).build();
 
         final long startTs = System.nanoTime();
-        final Adaptable adaptable = javaScriptRhinoMapper.mapIncoming(message);
+        final Adaptable adaptable = javaScriptRhinoMapper.map(message);
         System.out.println(adaptable);
         System.out.println("Duration: " + (System.nanoTime() - startTs) / 1000000.0 + "ms");
     }

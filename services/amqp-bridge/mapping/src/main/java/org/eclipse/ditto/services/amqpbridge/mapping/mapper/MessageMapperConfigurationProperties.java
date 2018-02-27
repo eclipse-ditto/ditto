@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.amqpbridge.mapping.mapper;
 /**
  * Static configuration property keys for a {@link MessageMapperConfiguration}.
  */
-final class MessageMapperConfigurationProperties {
+public final class MessageMapperConfigurationProperties {
 
     private MessageMapperConfigurationProperties() {
         assert(false);

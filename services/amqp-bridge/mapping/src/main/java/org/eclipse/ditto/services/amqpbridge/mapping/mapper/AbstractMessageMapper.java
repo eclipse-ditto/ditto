@@ -29,8 +29,8 @@ import com.google.common.base.Converter;
  * Enhances the basic Converter with convenience logic for dynamic configuration and content type based conversion.
  *
  * TODO TJ if we use guava and the converter construct only for convert() and reverse().convert() --> we should stop using it - too much complexity for that little API
- * TODO prefer delegation -> implement {@link PayloadMapper} as "ContentTypeCheckingPayloadMapper" and delegate to passed in PayloadMapper
- */
+*/
+@Deprecated
 public abstract class AbstractMessageMapper extends Converter<ExternalMessage, Adaptable> {
 
     public static final String OPT_CONTENT_TYPE_REQUIRED = "contentTypeRequired";

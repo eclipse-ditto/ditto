@@ -16,6 +16,7 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -47,23 +48,21 @@ public class DefaultMessageMapperConfiguration implements MessageMapperConfigura
 
     @Override
     public boolean equals(final Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
+        if (this == o) { return true; }
+        if (o == null || getClass() != o.getClass()) { return false; }
         final DefaultMessageMapperConfiguration that = (DefaultMessageMapperConfiguration) o;
-
-        return properties.equals(that.properties);
+        return Objects.equals(properties, that.properties);
     }
 
     @Override
     public int hashCode() {
-        return properties.hashCode();
+        return Objects.hash(properties);
     }
 
     @Override
     public String toString() {
-        return "DefaultMessageMapperConfiguration{" +
+        return getClass().getSimpleName() + " [" +
                 "properties=" + properties +
-                '}';
+                "]";
     }
 }

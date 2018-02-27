@@ -13,7 +13,6 @@ package org.eclipse.ditto.services.amqpbridge.mapping.mapper;
 
 
 import java.util.AbstractMap;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -39,7 +38,7 @@ public class DittoMessageMapperTest extends MessageMapperTest {
 
     @Override
     protected MessageMapper createMapper() {
-        return new DittoMessageMapper(DefaultMessageMapperOptions.empty());
+        return new DittoMessageMapper();
     }
 
     @Override
@@ -48,35 +47,32 @@ public class DittoMessageMapperTest extends MessageMapperTest {
     }
 
     @Override
-    protected List<DefaultMessageMapperOptions> createValidConfig() {
-        List<DefaultMessageMapperOptions> options = new LinkedList<>();
+    protected List<MessageMapperConfiguration> createValidConfig() {
+        List<MessageMapperConfiguration> options = new LinkedList<>();
 //        options.add(MessageMapperConfiguration.from(Collections.emptyMap()));
 
-        Arrays.asList("true", "false", null, "asdfjökla", "").forEach(s -> {
-                    Map<String, String> map = new HashMap<>();
-                    map.put(MessageMapper.OPT_CONTENT_TYPE_REQUIRED, s);
-                    map.put(MessageMapper.OPT_CONTENT_TYPE, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
-                    options.add(DefaultMessageMapperOptions.from(map));
-                }
-        );
+        Map<String, String> map = new HashMap<>();
+        map.put(MessageMapperConfigurationProperties.CONTENT_TYPE, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
+        options.add(DefaultMessageMapperConfiguration.of(map));
+
 
         return options;
     }
 
     @Override
-    protected Map<DefaultMessageMapperOptions, Throwable> createInvalidConfig() {
+    protected Map<MessageMapperConfiguration, Throwable> createInvalidConfig() {
         // there are none
-        Map<DefaultMessageMapperOptions, Throwable> map = new HashMap<>();
-        map.put(DefaultMessageMapperOptions.empty(), new IllegalArgumentException("Missing option <contentType>"));
+        Map<MessageMapperConfiguration, Throwable> map = new HashMap<>();
+        map.put(DefaultMessageMapperConfiguration.of(Collections.emptyMap()), new IllegalArgumentException("Missing option " +
+                "<contentType>"));
         return map;
     }
 
     @Override
-    protected DefaultMessageMapperOptions createIncomingConfig() {
+    protected MessageMapperConfiguration createIncomingConfig() {
         Map<String, String> map = new HashMap<>();
-        map.put(MessageMapper.OPT_CONTENT_TYPE_REQUIRED, String.valueOf(true));
-        map.put(MessageMapper.OPT_CONTENT_TYPE, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
-        return DefaultMessageMapperOptions.from(map);
+        map.put(MessageMapperConfigurationProperties.CONTENT_TYPE, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
+        return DefaultMessageMapperConfiguration.of(map);
     }
 
     @Override
@@ -90,7 +86,7 @@ public class DittoMessageMapperTest extends MessageMapperTest {
     private Map.Entry<ExternalMessage, Adaptable> valid1() {
         Map<String, String> headers = new HashMap<>();
         headers.put("header-key", "header-value");
-        headers.put(MessageMapper.CONTENT_TYPE_KEY, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
+        headers.put(MessageMapperConfigurationProperties.CONTENT_TYPE, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
 
         JsonifiableAdaptable adaptable = ProtocolFactory.wrapAsJsonifiableAdaptable(ProtocolFactory.newAdaptableBuilder
                 (ProtocolFactory.newTopicPathBuilder("asd" +
@@ -111,7 +107,7 @@ public class DittoMessageMapperTest extends MessageMapperTest {
     private Map.Entry<ExternalMessage, Adaptable> valid2() {
         Map<String, String> headers = new HashMap<>();
         headers.put("header-key", "header-value");
-        headers.put(MessageMapper.CONTENT_TYPE_KEY, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
+        headers.put(MessageMapperConfigurationProperties.CONTENT_TYPE, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
 
         JsonObject json = JsonFactory.newObjectBuilder()
                 .set("path","/some/path")
@@ -130,7 +126,7 @@ public class DittoMessageMapperTest extends MessageMapperTest {
 
         Map<String, String> headers = new HashMap<>();
         headers.put("header-key", "header-value");
-        headers.put(MessageMapper.CONTENT_TYPE_KEY, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
+        headers.put(MessageMapperConfigurationProperties.CONTENT_TYPE, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
 
         ExternalMessage message;
         message = AmqpBridgeModelFactory.newExternalMessageBuilderForCommand(headers).withText("").build();
@@ -152,11 +148,10 @@ public class DittoMessageMapperTest extends MessageMapperTest {
     }
 
     @Override
-    protected DefaultMessageMapperOptions createOutgoingConfig() {
+    protected MessageMapperConfiguration createOutgoingConfig() {
         Map<String, String> map = new HashMap<>();
-        map.put(MessageMapper.OPT_CONTENT_TYPE_REQUIRED, String.valueOf(true));
-        map.put(MessageMapper.OPT_CONTENT_TYPE, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
-        return DefaultMessageMapperOptions.from(map);
+        map.put(MessageMapperConfigurationProperties.CONTENT_TYPE, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
+        return DefaultMessageMapperConfiguration.of(map);
     }
 
     @Override
@@ -165,7 +160,7 @@ public class DittoMessageMapperTest extends MessageMapperTest {
 
         Map<String, String> headers = new HashMap<>();
         headers.put("header-key", "header-value");
-        headers.put(MessageMapper.CONTENT_TYPE_KEY, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
+        headers.put(MessageMapperConfigurationProperties.CONTENT_TYPE, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
 
         JsonifiableAdaptable adaptable = ProtocolFactory.wrapAsJsonifiableAdaptable(ProtocolFactory.newAdaptableBuilder
                 (ProtocolFactory.newTopicPathBuilder("asd" +

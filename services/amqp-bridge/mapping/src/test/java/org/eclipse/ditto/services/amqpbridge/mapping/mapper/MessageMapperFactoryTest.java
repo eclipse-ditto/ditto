@@ -14,6 +14,9 @@ package org.eclipse.ditto.services.amqpbridge.mapping.mapper;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -37,13 +40,14 @@ import org.junit.Test;
 
 import akka.actor.ActorSystem;
 import akka.actor.ExtendedActorSystem;
+import akka.event.DiagnosticLoggingAdapter;
 import akka.testkit.javadsl.TestKit;
 
 public class MessageMapperFactoryTest {
 
     private static ActorSystem system;
 
-    private MessageMapperFactory factory;
+    private DefaultMessageMapperFactory factory;
 
     @BeforeClass
     public static void setup() {
@@ -58,7 +62,8 @@ public class MessageMapperFactoryTest {
 
     @Before
     public void setUp() {
-        factory = MessageMapperFactory.from(((ExtendedActorSystem) system).dynamicAccess(), Mappers.class, null, null);
+        DiagnosticLoggingAdapter log = mock(DiagnosticLoggingAdapter.class);
+        factory = DefaultMessageMapperFactory.of(((ExtendedActorSystem) system).dynamicAccess(), Mappers.class, log);
     }
 
     @After
@@ -76,12 +81,12 @@ public class MessageMapperFactoryTest {
         options.put(MockMapper.OPT_IS_VALID, String.valueOf(true));
 
         // looking for a method containing 'test' and returning a MessageMapper in Mappers.class
-        final MappingContext ctx = MappingContexts.mock(contentType, isContentTypeRequired, "test", options);
+        final MappingContext ctx = MappingContexts.mock(contentType, "test", options);
 
-        final Optional<MessageMapper> underTest = factory.loadMapper(ctx);
+        final Optional<MessageMapper> underTest = factory.mapperOf(ctx);
         assertThat(underTest).isPresent();
         assertThat(underTest.get().getContentType()).isEqualTo(contentType);
-        assertThat(underTest.get().isContentTypeRequired()).isEqualTo(isContentTypeRequired);
+//        assertThat(underTest.get().isContentTypeRequired()).isEqualTo(isContentTypeRequired);
     }
 
     @Test
@@ -89,34 +94,34 @@ public class MessageMapperFactoryTest {
         final String contentType = "test";
         final boolean isContentTypeRequired = true;
 
-        final MappingContext ctx = MappingContexts.mock(contentType, isContentTypeRequired, true);
+        final MappingContext ctx = MappingContexts.mock(contentType, true);
 
-        final Optional<MessageMapper> underTest = factory.loadMapper(ctx);
+        final Optional<MessageMapper> underTest = factory.mapperOf(ctx);
         assertThat(underTest).isPresent();
         assertThat(underTest.get().getContentType()).isEqualTo(contentType);
-        assertThat(underTest.get().isContentTypeRequired()).isEqualTo(isContentTypeRequired);
+//        assertThat(underTest.get().isContentTypeRequired()).isEqualTo(isContentTypeRequired);
     }
 
     @Test
     public void loadMissingMapper() throws Exception {
-        final MappingContext ctx = MappingContexts.mock("test", true, "not-a-class",
+        final MappingContext ctx = MappingContexts.mock("test", "not-a-class",
                 Collections.emptyMap());
 
-        assertThat(factory.loadMapper(ctx)).isEmpty();
+        assertThat(factory.mapperOf(ctx)).isEmpty();
     }
 
     @Test
     public void loadNonMessageMapperClass() {
-        final MappingContext ctx = MappingContexts.mock("test", true, String.class.getCanonicalName(),
+        final MappingContext ctx = MappingContexts.mock("test", String.class.getCanonicalName(),
                 Collections.emptyMap());
 
-        assertThat(factory.loadMapper(ctx)).isEmpty();
+        assertThat(factory.mapperOf(ctx)).isEmpty();
     }
 
     @Test
     public void createWithFactoryMethod() throws Exception {
         // looking for a method containing 'test' and returning a MessageMapper in Mappers.class
-        final MappingContext ctx = MappingContexts.mock("test", true, "test", Collections.emptyMap());
+        final MappingContext ctx = MappingContexts.mock("test", "test", Collections.emptyMap());
         assertThat(factory.findFactoryMethodAndCreateInstance(ctx)).isPresent();
     }
 
@@ -124,7 +129,7 @@ public class MessageMapperFactoryTest {
     public void createWithFactoryMethodFindsNoMethod() throws Exception {
         // looking for a message containing 'strong-smell-wasabi' which does not exist in Mappers.class and therefore
         // expect an empty optional
-        final MappingContext ctx = MappingContexts.mock("test", true, "strong-smell-wasabi",
+        final MappingContext ctx = MappingContexts.mock("test", "strong-smell-wasabi",
                 Collections.emptyMap());
 
         assertThat(factory.findFactoryMethodAndCreateInstance(ctx)).isEmpty();
@@ -133,7 +138,7 @@ public class MessageMapperFactoryTest {
     @Test
     public void createWithClassName() throws Exception {
         // MockMapper extends MessageMapper and can be loaded
-        final MappingContext ctx = MappingContexts.mock("test", true, MockMapper.class,
+        final MappingContext ctx = MappingContexts.mock("test", MockMapper.class,
                 Collections.emptyMap());
 
         assertThat(factory.findClassAndCreateInstance(ctx)).isPresent();
@@ -141,7 +146,7 @@ public class MessageMapperFactoryTest {
 
     @Test
     public void createWithClassNameFindsNoClass() throws Exception {
-        final MappingContext ctx = MappingContexts.mock("test", true, "not-a-class",
+        final MappingContext ctx = MappingContexts.mock("test", "not-a-class",
                 Collections.emptyMap());
 
         assertThat(factory.findClassAndCreateInstance(ctx)).isEmpty();
@@ -150,7 +155,7 @@ public class MessageMapperFactoryTest {
     @Test
     public void createWithClassNameFailsForNonMapperClass() {
         // load string as a MessageMapper -> should fail
-        final MappingContext ctx = MappingContexts.mock("test", true, String.class.getCanonicalName(),
+        final MappingContext ctx = MappingContexts.mock("test", String.class.getCanonicalName(),
                 Collections.emptyMap());
 
         assertThatExceptionOfType(ClassCastException.class).isThrownBy(
@@ -160,10 +165,9 @@ public class MessageMapperFactoryTest {
     @Test
     public void loadMapperWithInvalidConfig() {
         final String contentType = "test";
-        final boolean isContentTypeRequired = true;
 
-        final MappingContext ctx = MappingContexts.mock(contentType, isContentTypeRequired, false);
-        assertThat(factory.loadMapper(ctx)).isEmpty();
+        final MappingContext ctx = MappingContexts.mock(contentType, false);
+        assertThat(factory.mapperOf(ctx)).isEmpty();
     }
 
     @Test
@@ -173,64 +177,61 @@ public class MessageMapperFactoryTest {
 
         final MappingContext ctx =
                 AmqpBridgeModelFactory.newMappingContext(contentType, MockMapper.class.getCanonicalName(), opts);
-        assertThat(factory.loadMapper(ctx)).isEmpty();
+        assertThat(factory.mapperOf(ctx)).isEmpty();
     }
 
     @Test
     public void loadMapperWithoutRequiredContentTypeOptionSetsRequireContentTypeToTrue() {
         final String contentType = "test";
         Map<String, String> opts = new HashMap<>();
-        opts.put(MessageMapper.OPT_CONTENT_TYPE, contentType);
+//        opts.put(MessageMapper.OPT_CONTENT_TYPE, contentType);
         opts.put(MockMapper.OPT_IS_VALID, String.valueOf(true));
 
         final MappingContext ctx =
                 AmqpBridgeModelFactory.newMappingContext(contentType, MockMapper.class.getCanonicalName(), opts);
-        final Optional<MessageMapper> underTest = factory.loadMapper(ctx);
+        final Optional<MessageMapper> underTest = factory.mapperOf(ctx);
         assertThat(underTest).isPresent();
         assertThat(underTest.get().getContentType()).isEqualTo(contentType);
-        assertThat(underTest.get().isContentTypeRequired()).isEqualTo(true);
+//        assertThat(underTest.get().isContentTypeRequired()).isEqualTo(true);
     }
 
 
     @Test
     public void loadMappers() {
         final List<MappingContext> contexts = Arrays.asList(
-                MappingContexts.mock("foo", true, true),
-                MappingContexts.mock("bar", false, true)
+                MappingContexts.mock("foo", true),
+                MappingContexts.mock("bar", true)
         );
-        final List<MessageMapper> mappers = factory.loadMappers(contexts);
+        final List<MessageMapper> mappers = factory.mappersOf(contexts);
         assertThat(mappers).isNotEmpty().hasSize(2);
-        assertThat(mappers.stream().map(MessageMapper::getContentType).collect(Collectors.toList())).contains("foo",
-                "bar");
+        assertThat(mappers.stream().map(MessageMapper::getContentType).map(Optional::get).collect(Collectors.toList()))
+                .contains("foo", "bar");
     }
 
     @Test
     public void loadMappersWithFails() {
         final List<MappingContext> contexts = Arrays.asList(
-                MappingContexts.mock("foo", true, false),
-                MappingContexts.mock("bar", false, true)
+                MappingContexts.mock("foo", false),
+                MappingContexts.mock("bar", true)
         );
-        final List<MessageMapper> mappers = factory.loadMappers(contexts);
+        final List<MessageMapper> mappers = factory.mappersOf(contexts);
         assertThat(mappers).isNotEmpty().hasSize(1);
-        assertThat(mappers.stream().map(MessageMapper::getContentType).collect(Collectors.toList())).contains("bar");
+        assertThat(mappers.stream().map(MessageMapper::getContentType).map(Optional::get).collect(Collectors.toList())).contains("bar");
     }
 
     @Test
     public void loadRegistry() {
-        final MappingContext fooCtx = MappingContexts.mock("foo", true, true);
-        final MappingContext barCtx = MappingContexts.mock("bar", true, true);
+        final MappingContext fooCtx = MappingContexts.mock("foo", true);
+        final MappingContext barCtx = MappingContexts.mock("bar", true);
 
-        final ExternalMessage fooMessage = AmqpBridgeModelFactory.newExternalMessageBuilderForCommand(Collections.singletonMap(MessageMapper
-                .CONTENT_TYPE_KEY, "foo")).build();
-        final ExternalMessage barMessage = AmqpBridgeModelFactory.newExternalMessageBuilderForCommand(Collections.singletonMap(MessageMapper
-                .CONTENT_TYPE_KEY, "foo")).build();
-        final ExternalMessage otherMessage = AmqpBridgeModelFactory.newExternalMessageBuilderForCommand(Collections.singletonMap(MessageMapper
-                .CONTENT_TYPE_KEY, "other")).build();
+        final String fooMessage = "foo";
+        final String barMessage = "bar";
+        final String otherMessage = "other";
 
         final MessageMapper defaultMapper = new MockMapper(); // default mapper with null content type
 
         final List<MappingContext> contexts = Arrays.asList(fooCtx, barCtx);
-        MessageMapperRegistry underTest = factory.loadRegistry(defaultMapper, contexts);
+        MessageMapperRegistry underTest = factory.registryOf(contexts);
         assertThat(underTest.getDefaultMapper().equals(defaultMapper)).isTrue();
         assertThat(underTest.findMapper(fooMessage)).isPresent().map(MessageMapper::getContentType)
                 .isEqualTo(Optional.of("foo"));
@@ -239,7 +240,7 @@ public class MessageMapperFactoryTest {
         assertThat(underTest.findMapper(otherMessage)).isEmpty();
 
         //select uses default mapper
-        assertThat(underTest.selectMapper(otherMessage)).isPresent().map(MessageMapper::getContentType).isEqualTo
-                (Optional.empty());
+        assertThat(underTest.selectMapper(otherMessage)).isEqualTo(defaultMapper);
     }
+
 }

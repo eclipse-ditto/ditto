@@ -13,7 +13,7 @@ package org.eclipse.ditto.services.amqpbridge.mapping.mapper.javascript;
 
 import java.util.Map;
 
-import org.eclipse.ditto.services.amqpbridge.mapping.mapper.PayloadMapper;
+import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMapper;
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMapperConfiguration;
 
 /**
@@ -38,11 +38,9 @@ public final class JavaScriptPayloadMapperFactory {
 
     /**
      *
-     * @param options
      * @return
      */
-    public static PayloadMapper createRhino(final MessageMapperConfiguration options) {
-
-        return new RhinoJavaScriptPayloadMapper(options);
+    public static MessageMapper createRhino() {
+        return new RhinoJavaScriptPayloadMapper();
     }
 }

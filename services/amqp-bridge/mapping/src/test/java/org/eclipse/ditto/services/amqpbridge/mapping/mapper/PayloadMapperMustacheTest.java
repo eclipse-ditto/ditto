@@ -11,11 +11,15 @@
  */
 package org.eclipse.ditto.services.amqpbridge.mapping.mapper;
 
+import java.util.Collections;
+
+import org.eclipse.ditto.model.amqpbridge.ExternalMessage;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
+import org.eclipse.ditto.services.amqpbridge.mapping.mapper.javascript.JavaScriptPayloadMapperFactory;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
@@ -36,7 +40,7 @@ public class PayloadMapperMustacheTest {
             "Mustache.render(\"Topic was: {{{topic}}}\\n\" +\n" +
             "\"Header correlation-id was: {{headers.correlation-id}}\", ditto_protocolJson);";
 
-    private static PayloadMapper javaScriptRhinoMapper;
+    private static MessageMapper javaScriptRhinoMapper;
 
 //    @Parameterized.Parameters
 //    public static List<Object[]> data() {
@@ -45,12 +49,10 @@ public class PayloadMapperMustacheTest {
 
     @BeforeClass
     public static void setup() {
-        javaScriptRhinoMapper = PayloadMappers.createJavaScriptRhinoMapper(
-                PayloadMappers
-                        .createJavaScriptMapperOptionsBuilder()
-                        .outgoingMappingScript(MAPPING_TEMPLATE)
-                        .loadMustacheJS(true)
-                        .build());
+        javaScriptRhinoMapper = MessageMappers.createJavaScriptRhinoMapper();
+        MessageMapperConfiguration configuration = JavaScriptPayloadMapperFactory.createJavaScriptOptionsBuilder
+                (Collections.emptyMap()).outgoingMappingScript(MAPPING_TEMPLATE).loadMustacheJS(true).build();
+        javaScriptRhinoMapper.configure(configuration);
     }
 
     @Test
@@ -65,7 +67,7 @@ public class PayloadMapperMustacheTest {
         final Adaptable adaptable = DittoProtocolAdapter.newInstance().toAdaptable(createThing);
 
         final long startTs = System.nanoTime();
-        final PayloadMapperMessage rawMessage = javaScriptRhinoMapper.mapOutgoing(adaptable);
+        final ExternalMessage rawMessage = javaScriptRhinoMapper.map(adaptable);
         System.out.println(rawMessage);
         System.out.println("Duration: " + (System.nanoTime() - startTs) / 1000000.0 + "ms");
     }

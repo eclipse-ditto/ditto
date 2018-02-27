@@ -12,5 +12,12 @@
 package org.eclipse.ditto.services.amqpbridge.mapping.mapper;
 
 
+import org.eclipse.ditto.services.amqpbridge.mapping.mapper.javascript.JavaScriptPayloadMapperFactory;
+
 public class MessageMappers {
+
+
+    public static MessageMapper createJavaScriptRhinoMapper() {
+        return JavaScriptPayloadMapperFactory.createRhino();
+    }
 }

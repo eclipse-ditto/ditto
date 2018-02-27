@@ -17,30 +17,27 @@ import java.util.Map;
 import org.eclipse.ditto.model.amqpbridge.AmqpBridgeModelFactory;
 import org.eclipse.ditto.model.amqpbridge.MappingContext;
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMapper;
+import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMapperConfigurationProperties;
 
 public class MappingContexts {
 
-    public static MappingContext mock(final String contentType, final boolean
-            isContentTypeRequired, final String engine, Map<String, String> options)
+    public static MappingContext mock(final String contentType, final String engine, Map<String, String> options)
     {
         Map<String, String> opts = new HashMap<>(options);
-        opts.put(MessageMapper.OPT_CONTENT_TYPE, contentType);
-        opts.put(MessageMapper.OPT_CONTENT_TYPE_REQUIRED, String.valueOf(isContentTypeRequired));
-
+        opts.put(MessageMapperConfigurationProperties.CONTENT_TYPE, contentType);
         return AmqpBridgeModelFactory.newMappingContext(contentType, engine, opts);
     }
 
-    public static MappingContext mock(final String contentType, final boolean
-            isContentTypeRequired, final Class<? extends MessageMapper> messageMapperClass, Map<String, String> opts)
+    public static MappingContext mock(final String contentType, final Class<? extends MessageMapper> messageMapperClass,
+            Map<String, String> opts)
     {
-        return mock(contentType, isContentTypeRequired, messageMapperClass.getCanonicalName(), opts);
+        return mock(contentType, messageMapperClass.getCanonicalName(), opts);
     }
 
-    public static MappingContext mock(final String contentType, final boolean isContentTypeRequired,
-            final boolean isValid)
+    public static MappingContext mock(final String contentType, final boolean isValid)
     {
         Map<String, String> opts = new HashMap<>();
         opts.put(MockMapper.OPT_IS_VALID, String.valueOf(isValid));
-        return mock(contentType, isContentTypeRequired, MockMapper.class, opts);
+        return mock(contentType, MockMapper.class, opts);
     }
 }

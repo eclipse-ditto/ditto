@@ -33,17 +33,17 @@ public abstract class MessageMapperTest {
 
     abstract protected String createSupportedContentType();
 
-    abstract protected List<DefaultMessageMapperOptions> createValidConfig();
+    abstract protected List<MessageMapperConfiguration> createValidConfig();
 
-    abstract protected Map<DefaultMessageMapperOptions, Throwable> createInvalidConfig();
+    abstract protected Map<MessageMapperConfiguration, Throwable> createInvalidConfig();
 
-    abstract protected DefaultMessageMapperOptions createIncomingConfig();
+    abstract protected MessageMapperConfiguration createIncomingConfig();
 
     abstract protected Map<ExternalMessage, Adaptable> createValidIncomingMappings();
 
     abstract protected Map<ExternalMessage, Throwable> createInvalidIncomingMappings();
 
-    abstract protected DefaultMessageMapperOptions createOutgoingConfig();
+    abstract protected MessageMapperConfiguration createOutgoingConfig();
 
     abstract protected Map<Adaptable, ExternalMessage> createValidOutgoingMappings();
 
@@ -84,14 +84,14 @@ public abstract class MessageMapperTest {
     @Test
     public void mapIncoming() throws Exception {
         mapper.configure(createIncomingConfig());
-        createValidIncomingMappings().forEach((m, a) -> assertThat(mapper.convert(m)).isEqualTo(a));
+        createValidIncomingMappings().forEach((m, a) -> assertThat(mapper.map(m)).isEqualTo(a));
     }
 
     @Test
     public void mapIncomingFails() throws Exception {
         mapper.configure(createIncomingConfig());
         createInvalidIncomingMappings().forEach((m, err) ->
-                assertThatExceptionOfType(err.getClass()).isThrownBy(() -> mapper.convert(m))
+                assertThatExceptionOfType(err.getClass()).isThrownBy(() -> mapper.map(m))
                         .withMessageContaining(err.getMessage())
                         .withCause(err.getCause()));
     }
@@ -99,14 +99,14 @@ public abstract class MessageMapperTest {
     @Test
     public void mapOutgoing() throws Exception {
         mapper.configure(createOutgoingConfig());
-        createValidOutgoingMappings().forEach((a, m) -> assertThat(mapper.reverse().convert(a)).isEqualTo(m));
+        createValidOutgoingMappings().forEach((a, m) -> assertThat(mapper.map(a)).isEqualTo(m));
     }
 
     @Test
     public void mapOutgoingFails() throws Exception {
         mapper.configure(createOutgoingConfig());
         createInvalidOutgoingMappings().forEach((a, err) ->
-                assertThatExceptionOfType(err.getClass()).isThrownBy(() -> mapper.reverse().convert(a))
+                assertThatExceptionOfType(err.getClass()).isThrownBy(() -> mapper.map(a))
                         .withMessage(err.getMessage())
                         .withCause(err.getCause()));
     }
