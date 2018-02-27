@@ -25,6 +25,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.amqpbridge.AmqpBridgeModelFactory;
 import org.eclipse.ditto.model.amqpbridge.AmqpConnection;
 import org.eclipse.ditto.model.amqpbridge.ConnectionType;
+import org.eclipse.ditto.model.amqpbridge.MappingContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -48,6 +49,14 @@ public class JsonExamplesProducer {
     private static final Set<String> SOURCES = new HashSet<>(Arrays.asList("amqp/source1", "amqp/source2"));
 
     private static final String TARGET = "eventQueue";
+
+    public static MappingContext MAPPING_CONTEXT = AmqpBridgeModelFactory.newMappingContext("text/plain", "JavaScript",
+            Collections.singletonMap("incomingMappingScript",
+                    "ditto_protocolJson.topic = 'org.eclipse.ditto/foo-bar/things/twin/commands/create';" +
+                            "ditto_protocolJson.path = '/';" +
+                            "ditto_protocolJson.headers = {};" +
+                            "ditto_protocolJson.headers['correlation-id'] = ditto_mappingHeaders['correlation-id'];" +
+                            "ditto_protocolJson.value = ditto_mappingString;"));
 
     public static void main(final String... args) throws IOException {
         run(args, new JsonExamplesProducer());
@@ -82,7 +91,7 @@ public class JsonExamplesProducer {
         final DittoHeaders headers = DittoHeaders.empty();
 
         final ConnectionCreated connectionCreated = ConnectionCreated.of(amqpConnection,
-                Collections.emptyList(), headers);
+                Collections.singletonList(MAPPING_CONTEXT), headers);
         writeJson(eventsDir.resolve(Paths.get("connectionCreated.json")), connectionCreated);
 
         final ConnectionOpened connectionOpened = ConnectionOpened.of(ID, headers);

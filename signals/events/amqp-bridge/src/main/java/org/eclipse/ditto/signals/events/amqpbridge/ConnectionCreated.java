@@ -137,7 +137,8 @@ public final class ConnectionCreated extends AbstractAmqpBridgeEvent<ConnectionC
                 .deserialize((revision, timestamp) -> {
                     final JsonObject connectionJsonObject = jsonObject.getValueOrThrow(JSON_CONNECTION);
                     final AmqpConnection readAmqpConnection = AmqpBridgeModelFactory.connectionFromJson(connectionJsonObject);
-                    final JsonArray mappingContexts = jsonObject.getValueOrThrow(JSON_MAPPING_CONTEXTS);
+                    final JsonArray mappingContexts = jsonObject.getValue(JSON_MAPPING_CONTEXTS)
+                            .orElse(JsonFactory.newArray());
                     final List<MappingContext> readMappingContexts = mappingContexts.stream()
                             .filter(JsonValue::isObject)
                             .map(JsonValue::asObject)
