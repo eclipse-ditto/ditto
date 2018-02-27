@@ -131,7 +131,8 @@ public final class RetrieveConnectionResponse extends AbstractCommandResponse<Re
                     final JsonObject jsonConnection = jsonObject.getValueOrThrow(JSON_CONNECTION);
                     final AmqpConnection readAmqpConnection = AmqpBridgeModelFactory.connectionFromJson(jsonConnection);
 
-                    final JsonArray mappingContexts = jsonObject.getValueOrThrow(JSON_MAPPING_CONTEXTS);
+                    final JsonArray mappingContexts = jsonObject.getValue(JSON_MAPPING_CONTEXTS)
+                            .orElse(JsonFactory.newArray());
                     final List<MappingContext> readMappingContexts = mappingContexts.stream()
                             .filter(JsonValue::isObject)
                             .map(JsonValue::asObject)
