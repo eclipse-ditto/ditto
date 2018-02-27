@@ -74,15 +74,15 @@ final class RhinoJavaScriptPayloadMapper implements PayloadMapper {
     private final ContextFactory contextFactory;
     private final Scriptable scope;
 
-    @Nullable private JavaScriptMessageMapperMapperOptions options;
+    @Nullable private JavaScriptMessageMapperConfiguration configuration;
 
 
     RhinoJavaScriptPayloadMapper() {
         this(PayloadMappers.createMapperOptionsBuilder(Collections.emptyMap()).build());
     }
 
-    RhinoJavaScriptPayloadMapper(final MessageMapperConfiguration options) {
-        configure(options);
+    RhinoJavaScriptPayloadMapper(final MessageMapperConfiguration configuration) {
+        configure(configuration);
         contextFactory = new RhinoContextFactory();
 
         // create scope once and load the required libraries in order to get best performance:
@@ -101,7 +101,7 @@ final class RhinoJavaScriptPayloadMapper implements PayloadMapper {
 
     @Override
     public void configure(final MessageMapperConfiguration options) {
-        this.options = new ImmutableJavaScriptMessageMapperMapperOptions.Builder(options.getProperties()).build();
+        this.configuration = new ImmutableJavaScriptMessageMapperMapperOptions.Builder(options.getProperties()).build();
     }
 
     @Override
@@ -126,7 +126,7 @@ final class RhinoJavaScriptPayloadMapper implements PayloadMapper {
             ScriptableObject.putProperty(scope, MAPPING_STRING_VAR, message.getStringData().orElse(null));
             ScriptableObject.putProperty(scope, DITTO_PROTOCOL_JSON_VAR, new NativeObject());
 
-            cx.evaluateString(scope, getOptions().flatMap(JavaScriptMessageMapperMapperOptions::getIncomingMappingScript)
+            cx.evaluateString(scope, getConfiguration().flatMap(JavaScriptMessageMapperConfiguration::getIncomingMappingScript)
                     .orElse(""), "template", 1, null);
 
             final Object dittoProtocolJson = ScriptableObject.getProperty(scope, DITTO_PROTOCOL_JSON_VAR);
@@ -149,7 +149,7 @@ final class RhinoJavaScriptPayloadMapper implements PayloadMapper {
                         NativeJSON.parse(cx, scope, jsonifiableAdaptable.toJsonString(), new NullCallable());
             ScriptableObject.putProperty(scope, DITTO_PROTOCOL_JSON_VAR, nativeJsonObject);
 
-            cx.evaluateString(scope, getOptions().flatMap(JavaScriptMessageMapperMapperOptions::getOutgoingMappingScript)
+            cx.evaluateString(scope, getConfiguration().flatMap(JavaScriptMessageMapperConfiguration::getOutgoingMappingScript)
                     .orElse(""), "template", 1, null);
 
             final String contentType = ScriptableObject.getTypedProperty(scope, MAPPING_CONTENT_TYPE_VAR, String.class);
@@ -159,27 +159,27 @@ final class RhinoJavaScriptPayloadMapper implements PayloadMapper {
 
             final Map<String, String> headers = !(mappingHeaders instanceof Undefined) ? null : Collections.emptyMap();
             return PayloadMappers.createPayloadMapperMessage(contentType, convertToByteBuffer(mappingByteArray),
-                    mappingString, headers);
+                    mappingString, headers != null ? headers : Collections.emptyMap());
         });
     }
 
     private void initLibraries(final Context cx, final Scriptable scope) {
-        if (getOptions().map(JavaScriptMessageMapperMapperOptions::isLoadBytebufferJS).orElse(false)) {
+        if (getConfiguration().map(JavaScriptMessageMapperConfiguration::isLoadBytebufferJS).orElse(false)) {
             loadJavascriptLibrary(cx, scope, new InputStreamReader(getClass().getResourceAsStream(WEBJARS_BYTEBUFFER)),
                     "bytebuffer.js");
         }
-        if (getOptions().map(JavaScriptMessageMapperMapperOptions::isLoadLongJS).orElse(false)) {
+        if (getConfiguration().map(JavaScriptMessageMapperConfiguration::isLoadLongJS).orElse(false)) {
             loadJavascriptLibrary(cx, scope, new InputStreamReader(getClass().getResourceAsStream(WEBJARS_LONG)),
                     "long.js");
         }
-        if (getOptions().map(JavaScriptMessageMapperMapperOptions::isLoadMustacheJS).orElse(false)) {
+        if (getConfiguration().map(JavaScriptMessageMapperConfiguration::isLoadMustacheJS).orElse(false)) {
             loadJavascriptLibrary(cx, scope, new InputStreamReader(getClass().getResourceAsStream(WEBJARS_MUSTACHE)),
                     "mustache.js");
         }
     }
 
-    private Optional<JavaScriptMessageMapperMapperOptions> getOptions() {
-        return Optional.ofNullable(options);
+    private Optional<JavaScriptMessageMapperConfiguration> getConfiguration() {
+        return Optional.ofNullable(configuration);
     }
 
     private void loadJavascriptLibrary(final Context cx, final Scriptable scope, final Reader reader, final String libraryName) {

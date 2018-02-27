@@ -27,7 +27,7 @@ public class DefaultMessageMapperConfiguration implements MessageMapperConfigura
 
     private final Map<String, String> properties;
 
-    private DefaultMessageMapperConfiguration(final Map<String, String> properties) {
+    protected DefaultMessageMapperConfiguration(final Map<String, String> properties) {
         checkNotNull(properties);
         this.properties = Collections.unmodifiableMap(new HashMap<>(properties));
     }

@@ -8,7 +8,7 @@ import java.util.Optional;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.amqpbridge.InternalMessage;
+import org.eclipse.ditto.model.amqpbridge.ExternalMessage;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 
 class ContentTypeRestrictedMessageMapper implements MessageMapper {
@@ -37,13 +37,13 @@ class ContentTypeRestrictedMessageMapper implements MessageMapper {
     }
 
     @Override
-    public Adaptable map(@Nullable final InternalMessage message) {
+    public Adaptable map(@Nullable final ExternalMessage message) {
         requireMatchingContentType(message);
         return delegate.map(message);
     }
 
     @Override
-    public InternalMessage map(@Nullable final Adaptable adaptable) {
+    public ExternalMessage map(@Nullable final Adaptable adaptable) {
         return delegate.map(adaptable);
     }
 
@@ -54,7 +54,7 @@ class ContentTypeRestrictedMessageMapper implements MessageMapper {
         }
     }
 
-    private void requireMatchingContentType(@Nullable final InternalMessage internalMessage) {
+    private void requireMatchingContentType(@Nullable final ExternalMessage internalMessage) {
         if (Objects.isNull(internalMessage)) return;
 
         final String contentType = getContentType().filter(s -> !s.isEmpty()).orElseThrow(
@@ -75,7 +75,7 @@ class ContentTypeRestrictedMessageMapper implements MessageMapper {
 
     }
 
-    private static Optional<String> findContentType(final InternalMessage internalMessage) {
+    private static Optional<String> findContentType(final ExternalMessage internalMessage) {
         checkNotNull(internalMessage);
         return internalMessage.findHeaderIgnoreCase(CONTENT_TYPE_KEY);
     }

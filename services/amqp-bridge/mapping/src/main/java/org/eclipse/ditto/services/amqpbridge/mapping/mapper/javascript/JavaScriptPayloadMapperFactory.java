@@ -30,7 +30,7 @@ public final class JavaScriptPayloadMapperFactory {
      * @return
      * @param options
      */
-    public static JavaScriptMessageMapperMapperOptions.Builder createJavaScriptOptionsBuilder(
+    public static JavaScriptMessageMapperConfiguration.Builder createJavaScriptOptionsBuilder(
             final Map<String, String> options) {
 
         return new ImmutableJavaScriptMessageMapperMapperOptions.Builder(options);

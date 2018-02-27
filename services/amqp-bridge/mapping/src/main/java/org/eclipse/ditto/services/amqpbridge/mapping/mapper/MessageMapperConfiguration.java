@@ -63,5 +63,22 @@ public interface MessageMapperConfiguration {
         return getProperty(MessageMapperConfigurationProperties.CONTENT_TYPE);
     }
 
+    /**
+     *
+     */
+    interface Builder<T extends MessageMapperConfiguration> {
+
+        /**
+         *
+         * @return
+         */
+        Map<String, String> getProperties();
+
+        /**
+         *
+         * @return
+         */
+        T build();
+    }
 
 }

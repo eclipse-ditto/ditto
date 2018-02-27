@@ -17,8 +17,8 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.services.amqpbridge.mapping.mapper.javascript.JavaScriptMessageMapperConfiguration;
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.javascript.JavaScriptPayloadMapperFactory;
-import org.eclipse.ditto.services.amqpbridge.mapping.mapper.javascript.JavaScriptMessageMapperMapperOptions;
 
 /**
  * TODO doc
@@ -46,7 +46,7 @@ public class PayloadMappers {
      *
      * @return
      */
-    public static JavaScriptMessageMapperMapperOptions.Builder createJavaScriptMapperOptionsBuilder() {
+    public static JavaScriptMessageMapperConfiguration.Builder createJavaScriptMapperOptionsBuilder() {
 
         return createJavaScriptMapperOptionsBuilder(Collections.emptyMap());
     }
@@ -56,7 +56,7 @@ public class PayloadMappers {
      * @param options
      * @return
      */
-    public static JavaScriptMessageMapperMapperOptions.Builder createJavaScriptMapperOptionsBuilder(
+    public static JavaScriptMessageMapperConfiguration.Builder createJavaScriptMapperOptionsBuilder(
             final Map<String, String> options) {
 
         return JavaScriptPayloadMapperFactory.createJavaScriptOptionsBuilder(options);
