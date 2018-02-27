@@ -41,7 +41,6 @@ final class RhinoContextFactory extends ContextFactory {
         cx.setInstructionObserverThreshold(INSTRUCTION_OBSERVER_THRESHOLD);
         cx.setLanguageVersion(Context.VERSION_1_8);
         cx.setMaximumInterpreterStackDepth(MAXIMUM_INTERPRETER_STACK_DEPTH);
-        cx.initSafeStandardObjects();
         return cx;
     }
 

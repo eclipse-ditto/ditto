@@ -19,10 +19,8 @@ import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonFactory;
@@ -77,8 +75,7 @@ public final class DittoMessageMapper implements MessageMapper {
     }
 
     @Override
-    public Adaptable map(@Nullable final ExternalMessage message) {
-        if (Objects.isNull(message)) return null;
+    public Adaptable map(final ExternalMessage message) {
 
         final String payload = extractPayloadAsString(message);
         final Adaptable adaptable = STRING_ADAPTABLE_CONVERTER.convert(payload);
@@ -89,8 +86,7 @@ public final class DittoMessageMapper implements MessageMapper {
     }
 
     @Override
-    public ExternalMessage map(@Nullable final Adaptable adaptable) {
-        if (Objects.isNull(adaptable)) return null;
+    public ExternalMessage map(final Adaptable adaptable) {
 
         final ExternalMessage.MessageType messageType = determineMessageType(adaptable);
         final Map<String, String> headers = new LinkedHashMap<>(adaptable.getHeaders().orElse(DittoHeaders.empty()));
@@ -127,7 +123,7 @@ public final class DittoMessageMapper implements MessageMapper {
         return DittoHeaders.of(headers);
     }
 
-    private ExternalMessage.MessageType determineMessageType(final @Nonnull Adaptable adaptable) {
+    private ExternalMessage.MessageType determineMessageType(final Adaptable adaptable) {
         final TopicPath.Criterion criterion = adaptable.getTopicPath().getCriterion();
         switch (criterion) {
             case COMMANDS:

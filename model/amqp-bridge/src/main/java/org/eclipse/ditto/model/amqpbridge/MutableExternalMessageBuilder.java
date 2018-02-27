@@ -51,7 +51,7 @@ final class MutableExternalMessageBuilder implements ExternalMessageBuilder {
      * @param messageType the messageType to use for initialization.
      */
     MutableExternalMessageBuilder(final Map<String, String> headers, final ExternalMessage.MessageType messageType) {
-        this.headers = headers;
+        this.headers = new HashMap<>(headers);
         this.messageType = messageType;
     }
 

@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.services.amqpbridge.mapping.mapper.javascript;
 
+import java.util.HashMap;
 import java.util.Map;
 
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.DefaultMessageMapperConfiguration;
@@ -18,10 +19,10 @@ import org.eclipse.ditto.services.amqpbridge.mapping.mapper.DefaultMessageMapper
 /**
  * TODO doc
  */
-final class ImmutableJavaScriptMessageMapperMapperOptions extends DefaultMessageMapperConfiguration
+final class ImmutableJavaScriptMessageMapperConfiguration extends DefaultMessageMapperConfiguration
         implements JavaScriptMessageMapperConfiguration {
 
-    ImmutableJavaScriptMessageMapperMapperOptions(final Map<String, String> properties) {
+    ImmutableJavaScriptMessageMapperConfiguration(final Map<String, String> properties) {
         super(properties);
     }
 
@@ -39,7 +40,7 @@ final class ImmutableJavaScriptMessageMapperMapperOptions extends DefaultMessage
         private Map<String, String> properties;
 
         Builder(final Map<String, String> properties) {
-            this.properties = properties;
+            this.properties = new HashMap<>(properties); // mutable map!
         }
 
         @Override
@@ -49,7 +50,7 @@ final class ImmutableJavaScriptMessageMapperMapperOptions extends DefaultMessage
 
         @Override
         public JavaScriptMessageMapperConfiguration build() {
-            return new ImmutableJavaScriptMessageMapperMapperOptions(properties);
+            return new ImmutableJavaScriptMessageMapperConfiguration(properties);
         }
     }
 }

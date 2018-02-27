@@ -3,10 +3,7 @@ package org.eclipse.ditto.services.amqpbridge.mapping.mapper;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
-
-import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.amqpbridge.ExternalMessage;
 import org.eclipse.ditto.protocoladapter.Adaptable;
@@ -37,13 +34,13 @@ class ContentTypeRestrictedMessageMapper implements MessageMapper {
     }
 
     @Override
-    public Adaptable map(@Nullable final ExternalMessage message) {
+    public Adaptable map(final ExternalMessage message) {
         requireMatchingContentType(message);
         return delegate.map(message);
     }
 
     @Override
-    public ExternalMessage map(@Nullable final Adaptable adaptable) {
+    public ExternalMessage map(final Adaptable adaptable) {
         return delegate.map(adaptable);
     }
 
@@ -54,8 +51,7 @@ class ContentTypeRestrictedMessageMapper implements MessageMapper {
         }
     }
 
-    private void requireMatchingContentType(@Nullable final ExternalMessage internalMessage) {
-        if (Objects.isNull(internalMessage)) return;
+    private void requireMatchingContentType(final ExternalMessage internalMessage) {
 
         final String contentType = getContentType().filter(s -> !s.isEmpty()).orElseThrow(
                 () -> new IllegalArgumentException(String.format(

@@ -91,7 +91,7 @@ public class CommandProcessorActorTest {
 //            mappingContexts.add(AmqpBridgeModelFactory.newMappingContext(
 //                    "text/plain",
 //                    "JavaScript",
-//                    PayloadMappers.createJavaScriptMapperOptionsBuilder()
+//                    PayloadMappers.createJavaScriptMapperConfigurationBuilder()
 //                        .loadMustacheJS(false)
 //                        .incomingMappingScript("ditto_protocolJson.topic = 'org.eclipse.ditto/foo-bar/things/twin/commands/modify';" +
 //                                "ditto_protocolJson.path = '/attributes/foo';" +

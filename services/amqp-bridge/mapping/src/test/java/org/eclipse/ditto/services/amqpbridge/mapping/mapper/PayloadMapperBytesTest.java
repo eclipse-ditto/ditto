@@ -52,7 +52,7 @@ public class PayloadMapperBytesTest {
     @BeforeClass
     public static void setup() {
         javaScriptRhinoMapper = MessageMappers.createJavaScriptRhinoMapper();
-        MessageMapperConfiguration configuration = JavaScriptPayloadMapperFactory.createJavaScriptOptionsBuilder
+        MessageMapperConfiguration configuration = JavaScriptPayloadMapperFactory.createJavaScriptConfigurationBuilder
                 (Collections.emptyMap()).outgoingMappingScript(MAPPING_TEMPLATE).build();
         javaScriptRhinoMapper.configure(configuration);
     }

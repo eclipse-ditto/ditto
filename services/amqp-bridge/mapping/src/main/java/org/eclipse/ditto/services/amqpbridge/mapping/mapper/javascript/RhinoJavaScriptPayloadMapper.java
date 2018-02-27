@@ -89,19 +89,18 @@ final class RhinoJavaScriptPayloadMapper implements MessageMapper {
 
     @Override
     public void configure(final MessageMapperConfiguration options) {
-        this.configuration = new ImmutableJavaScriptMessageMapperMapperOptions.Builder(options.getProperties()).build();
+        this.configuration = new ImmutableJavaScriptMessageMapperConfiguration.Builder(options.getProperties()).build();
         contextFactory = new RhinoContextFactory();
 
         // create scope once and load the required libraries in order to get best performance:
         scope = (Scriptable) contextFactory.call(cx -> {
-            final Scriptable scope = cx.initStandardObjects();
+            final Scriptable scope = cx.initSafeStandardObjects();
             cx.evaluateString(scope, INIT_VARS_TEMPLATE, "init-vars", 1, null);
             initLibraries(cx, scope);
             return scope;
         });
     }
 
-    @Nullable
     @Override
     public Adaptable map(final ExternalMessage message) {
 
@@ -136,9 +135,8 @@ final class RhinoJavaScriptPayloadMapper implements MessageMapper {
         });
     }
 
-    @Nullable
     @Override
-    public ExternalMessage map(@Nullable final Adaptable adaptable) {
+    public ExternalMessage map(final Adaptable adaptable) {
         final JsonifiableAdaptable jsonifiableAdaptable =
                 ProtocolFactory.wrapAsJsonifiableAdaptable(adaptable);
 
@@ -158,7 +156,7 @@ final class RhinoJavaScriptPayloadMapper implements MessageMapper {
             final Map<String, String> headers = !(mappingHeaders instanceof Undefined) ? null : Collections.emptyMap();
             //TODO pm evaulate if bytes or text payload
             return AmqpBridgeModelFactory.newExternalMessageBuilder(headers, ExternalMessage.MessageType.RESPONSE)
-                    .withAdditionalHeaders("content-type", contentType).withText(mappingString);
+                    .withAdditionalHeaders("content-type", contentType).withText(mappingString).build();
 
         });
     }

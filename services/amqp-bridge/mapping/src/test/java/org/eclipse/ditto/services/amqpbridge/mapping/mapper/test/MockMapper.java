@@ -13,7 +13,6 @@ package org.eclipse.ditto.services.amqpbridge.mapping.mapper.test;
 
 import java.util.Optional;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.amqpbridge.ExternalMessage;
@@ -44,15 +43,13 @@ public class MockMapper implements MessageMapper {
                 (IllegalArgumentException::new);
     }
 
-    @Nullable
     @Override
-    public Adaptable map(@Nullable final ExternalMessage message) {
+    public Adaptable map(final ExternalMessage message) {
         return null;
     }
 
-    @Nullable
     @Override
-    public ExternalMessage map(@Nullable final Adaptable adaptable) {
+    public ExternalMessage map(final Adaptable adaptable) {
         return null;
     }
 

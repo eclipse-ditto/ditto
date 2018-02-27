@@ -54,8 +54,8 @@ public class ProtocolToRawMapperSimpleTest {
     @BeforeClass
     public static void setup() {
         javaScriptRhinoMapper = MessageMappers.createJavaScriptRhinoMapper();
-        MessageMapperConfiguration configuration = JavaScriptPayloadMapperFactory.createJavaScriptOptionsBuilder
-                (Collections.emptyMap()).outgoingMappingScript(MAPPING_TEMPLATE).loadMustacheJS(true).build();
+        MessageMapperConfiguration configuration = JavaScriptPayloadMapperFactory.createJavaScriptConfigurationBuilder
+                (Collections.emptyMap()).incomingMappingScript(MAPPING_TEMPLATE).loadMustacheJS(true).build();
         javaScriptRhinoMapper.configure(configuration);
     }
 

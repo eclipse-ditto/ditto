@@ -50,7 +50,7 @@ public class PayloadMapperMustacheTest {
     @BeforeClass
     public static void setup() {
         javaScriptRhinoMapper = MessageMappers.createJavaScriptRhinoMapper();
-        MessageMapperConfiguration configuration = JavaScriptPayloadMapperFactory.createJavaScriptOptionsBuilder
+        MessageMapperConfiguration configuration = JavaScriptPayloadMapperFactory.createJavaScriptConfigurationBuilder
                 (Collections.emptyMap()).outgoingMappingScript(MAPPING_TEMPLATE).loadMustacheJS(true).build();
         javaScriptRhinoMapper.configure(configuration);
     }
