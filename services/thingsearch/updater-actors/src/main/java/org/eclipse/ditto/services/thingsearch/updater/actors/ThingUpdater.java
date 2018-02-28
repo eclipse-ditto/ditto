@@ -118,6 +118,11 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
      * How long to wait for things and policies by default.
      */
     static final java.time.Duration DEFAULT_THINGS_TIMEOUT = java.time.Duration.of(20, ChronoUnit.SECONDS);
+
+    /**
+     * (Effectively) Unlimited max bulk size.
+     */
+    static final int UNLIMITED_MAX_BULK_SIZE = Integer.MAX_VALUE;
     /**
      * Max attempts when trying to sync a thing.
      */

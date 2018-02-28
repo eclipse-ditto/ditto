@@ -158,11 +158,11 @@ public final class SearchUpdaterRootActor extends AbstractActor {
         final ShardRegionFactory shardRegionFactory = ShardRegionFactory.getInstance(getContext().getSystem());
         final int maxBulkSize = config.hasPath(ConfigKeys.MAX_BULK_SIZE)
                 ? config.getInt(ConfigKeys.MAX_BULK_SIZE)
-                : Integer.MAX_VALUE;
+                : ThingUpdater.UNLIMITED_MAX_BULK_SIZE;
         thingsUpdaterActor = startChildActor(ThingsUpdater.ACTOR_NAME, ThingsUpdater
                 .props(numberOfShards, shardRegionFactory, searchUpdaterPersistence, circuitBreaker,
-                        eventProcessingActive, thingUpdaterActivityCheckInterval, maxBulkSize, thingCacheFacade,
-                        policyCacheFacade));
+                        eventProcessingActive, thingUpdaterActivityCheckInterval, maxBulkSize,
+                        thingCacheFacade, policyCacheFacade));
 
         final boolean thingsSynchronizationActive = config.getBoolean(ConfigKeys.THINGS_SYNCER_ACTIVE);
         if (thingsSynchronizationActive) {
