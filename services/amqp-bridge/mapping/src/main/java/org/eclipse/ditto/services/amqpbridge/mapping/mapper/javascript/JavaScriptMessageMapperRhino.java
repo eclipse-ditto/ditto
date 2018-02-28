@@ -31,6 +31,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.amqpbridge.AmqpBridgeModelFactory;
 import org.eclipse.ditto.model.amqpbridge.ExternalMessage;
+import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
@@ -130,8 +131,10 @@ final class JavaScriptMessageMapperRhino implements MessageMapper {
             final String dittoProtocolJsonStr =
                     (String) NativeJSON.stringify(cx, scope, dittoProtocolJson, null, null);
 
-            final JsonObject jsonObject = JsonFactory.readFrom(dittoProtocolJsonStr).asObject();
-            return ProtocolFactory.jsonifiableAdaptableFromJson(jsonObject);
+            return DittoJsonException.wrapJsonRuntimeException(() -> {
+                final JsonObject jsonObject = JsonFactory.readFrom(dittoProtocolJsonStr).asObject();
+                return ProtocolFactory.jsonifiableAdaptableFromJson(jsonObject);
+            });
         });
     }
 
@@ -155,8 +158,10 @@ final class JavaScriptMessageMapperRhino implements MessageMapper {
 
             final Map<String, String> headers = !(mappingHeaders instanceof Undefined) ? null : Collections.emptyMap();
             //TODO pm evaulate if bytes or text payload
-            return AmqpBridgeModelFactory.newExternalMessageBuilder(headers, ExternalMessage.MessageType.RESPONSE)
-                    .withAdditionalHeaders("content-type", contentType).withText(mappingString).build();
+            return AmqpBridgeModelFactory.newExternalMessageBuilder(headers, ExternalMessage.MessageType.RESPONSE) // TODO it is not always response! could be also event or error
+                    .withAdditionalHeaders(ExternalMessage.CONTENT_TYPE_HEADER, contentType)
+                    .withText(mappingString)
+                    .build();
 
         });
     }

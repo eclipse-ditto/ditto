@@ -51,7 +51,7 @@ public class RabbitMQPublisherActor extends AbstractActor {
     private final AmqpConnection amqpConnection;
     @Nullable private ActorRef channelActor;
 
-    private RabbitMQPublisherActor(@Nullable final AmqpConnection amqpConnection) {
+    private RabbitMQPublisherActor(final AmqpConnection amqpConnection) {
         this.amqpConnection = checkNotNull(amqpConnection, "amqpConnection");
     }
 
@@ -62,7 +62,7 @@ public class RabbitMQPublisherActor extends AbstractActor {
      * @param amqpConnection the amqp connection configuration
      * @return the Akka configuration Props object.
      */
-    static Props props(@Nullable final AmqpConnection amqpConnection) {
+    static Props props(final AmqpConnection amqpConnection) {
         return Props.create(RabbitMQPublisherActor.class, new Creator<RabbitMQPublisherActor>() {
             private static final long serialVersionUID = 1L;
 

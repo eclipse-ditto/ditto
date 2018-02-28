@@ -21,6 +21,7 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.amqpbridge.ExternalMessage;
+import org.eclipse.ditto.model.amqpbridge.MessageMappingFailedException;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 
 /**
@@ -75,8 +76,10 @@ final class ContentTypeRestrictedMessageMapper implements MessageMapper {
     @Override
     public Adaptable map(final ExternalMessage message) {
         final String actualContentType = findContentType(message)
-                .orElseThrow(() -> new IllegalArgumentException(
-                        String.format("Message headers do not contain a value for %s", CONTENT_TYPE_KEY)));
+                .orElseThrow(() ->
+                        MessageMappingFailedException.newBuilder("?")
+                                .description("Make sure you specify the 'Content-Type' when sending your message")
+                                .build());
 
         requireMatchingContentType(actualContentType);
         return delegate.map(message);
@@ -103,7 +106,7 @@ final class ContentTypeRestrictedMessageMapper implements MessageMapper {
     private void requireMatchingContentType(final String actualContentType) {
         final String contentType = getContentType().filter(s -> !s.isEmpty()).orElseThrow(
                 () -> new NotYetConfiguredException(String.format(
-                        "A matching content type is required, but none configured. Set a content type with the following key in configuration: %s",
+                        "A matching Content-Type is required, but none configured. Set a Content-Type with the following key in configuration: %s",
                         MessageMapperConfigurationProperties.CONTENT_TYPE))
         );
 

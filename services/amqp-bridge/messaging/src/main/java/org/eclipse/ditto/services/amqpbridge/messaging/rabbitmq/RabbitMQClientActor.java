@@ -214,6 +214,7 @@ public class RabbitMQClientActor extends BaseClientActor {
             }
         });
         if (!missingQueues.isEmpty()) {
+            // TODO TJ IllegalStateException here means the parent actor needs to handle that - is that intended?
             throw new IllegalStateException("The queues " + missingQueues + " are missing.");
         }
     }

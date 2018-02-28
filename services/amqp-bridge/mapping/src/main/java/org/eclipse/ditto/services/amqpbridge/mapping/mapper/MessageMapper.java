@@ -45,7 +45,9 @@ public interface MessageMapper {
      *
      * @throws org.eclipse.ditto.services.amqpbridge.mapping.mapper.NotYetConfiguredException if this mapper requires
      * configuration
-     * @throws java.lang.IllegalArgumentException if the given message can not be mapped.
+     * @throws org.eclipse.ditto.model.amqpbridge.MessageMappingFailedException if the given message can not be mapped
+     * @throws org.eclipse.ditto.model.base.exceptions.DittoRuntimeException if anything during Ditto Adaptable creation
+     * went wrong
      */
     Adaptable map(ExternalMessage message);
 
@@ -56,7 +58,7 @@ public interface MessageMapper {
      * @return the message
      * @throws org.eclipse.ditto.services.amqpbridge.mapping.mapper.NotYetConfiguredException if this mapper requires
      * configuration
-     * @throws java.lang.IllegalArgumentException if the given adaptable can not be mapped.
+     * @throws org.eclipse.ditto.model.amqpbridge.MessageMappingFailedException if the given adaptable can not be mapped
      */
     ExternalMessage map(Adaptable adaptable);
 }

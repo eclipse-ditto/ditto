@@ -21,6 +21,7 @@ import org.eclipse.ditto.services.amqpbridge.messaging.persistence.MongoReconnec
 import org.eclipse.ditto.services.amqpbridge.util.ConfigKeys;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
+import org.eclipse.ditto.signals.commands.amqpbridge.AmqpBridgeCommandResponse;
 import org.eclipse.ditto.signals.commands.amqpbridge.modify.OpenConnection;
 import org.eclipse.ditto.signals.commands.amqpbridge.query.RetrieveConnectionStatusResponse;
 import org.eclipse.ditto.signals.events.amqpbridge.ConnectionClosed;
@@ -161,6 +162,8 @@ public final class ReconnectActor extends AbstractPersistentActor {
                         event -> persistEvent(event, e -> connectionIds.remove(e.getConnectionId())))
                 .match(ConnectionDeleted.class,
                         event -> persistEvent(event, e -> connectionIds.remove(e.getConnectionId())))
+                .match(AmqpBridgeCommandResponse.class, amqpBridgeCommandResponse ->
+                        log.info("Received CommandResponse: <{}>", amqpBridgeCommandResponse))
                 .match(DistributedPubSubMediator.SubscribeAck.class, subscribeAck ->
                         log.debug("Successfully subscribed to distributed pub/sub on topic '{}'",
                                 subscribeAck.subscribe().topic())

@@ -11,7 +11,6 @@
  */
 package org.eclipse.ditto.services.amqpbridge.mapping.mapper;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMappers.CONTENT_TYPE_KEY;
 
 import java.nio.ByteBuffer;
@@ -29,39 +28,18 @@ import org.eclipse.ditto.model.amqpbridge.AmqpBridgeModelFactory;
 import org.eclipse.ditto.model.amqpbridge.ExternalMessage;
 import org.eclipse.ditto.model.amqpbridge.MappingContext;
 import org.eclipse.ditto.model.base.common.DittoConstants;
+import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.protocoladapter.Adaptable;
+import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 
-import com.google.common.base.Converter;
-
 /**
- * A message mapper implementation for the ditto protocol.
- * Expects messages to contain a JSON serialized ditto protocol message.
+ * A message mapper implementation for the Ditto Protocol.
+ * Expects messages to contain a JSON serialized Ditto Protocol message.
  */
 public final class DittoMessageMapper implements MessageMapper {
-
-    /**
-     * A static converter to map adaptables to JSON strings and vice versa;
-     */
-    private static final Converter<String, Adaptable> STRING_ADAPTABLE_CONVERTER = Converter.from(
-            s -> {
-                try {
-                    //noinspection ConstantConditions (converter guarantees nonnull value)
-                    return ProtocolFactory.jsonifiableAdaptableFromJson(JsonFactory.newObject(s));
-                } catch (Exception e) {
-                    throw new IllegalArgumentException(String.format("Failed to map '%s'", s), e);
-                }
-            },
-            a -> {
-                try {
-                    return ProtocolFactory.wrapAsJsonifiableAdaptable(a).toJsonString();
-                } catch (Exception e) {
-                    throw new IllegalArgumentException(String.format("Failed to map '%s'", a), e);
-                }
-            }
-    );
 
     /**
      * The context representing this mapper
@@ -71,7 +49,6 @@ public final class DittoMessageMapper implements MessageMapper {
             DittoMessageMapper.class.getCanonicalName(),
             Collections.emptyMap()
     );
-
 
     @Override
     public Optional<String> getContentType() {
@@ -88,11 +65,12 @@ public final class DittoMessageMapper implements MessageMapper {
     @Override
     public Adaptable map(final ExternalMessage message) {
         final String payload = extractPayloadAsString(message);
-        final Adaptable adaptable = STRING_ADAPTABLE_CONVERTER.convert(payload);
-        checkNotNull(adaptable);
+        final JsonifiableAdaptable jsonifiableAdaptable = DittoJsonException.wrapJsonRuntimeException(() ->
+                ProtocolFactory.jsonifiableAdaptableFromJson(JsonFactory.newObject(payload))
+        );
 
-        DittoHeaders mergedHeaders = mergeHeaders(message, adaptable);
-        return ProtocolFactory.newAdaptableBuilder(adaptable).withHeaders(mergedHeaders).build();
+        final DittoHeaders mergedHeaders = mergeHeaders(message, jsonifiableAdaptable);
+        return ProtocolFactory.newAdaptableBuilder(jsonifiableAdaptable).withHeaders(mergedHeaders).build();
     }
 
 
@@ -101,8 +79,11 @@ public final class DittoMessageMapper implements MessageMapper {
         final ExternalMessage.MessageType messageType = determineMessageType(adaptable);
         final Map<String, String> headers = new LinkedHashMap<>(adaptable.getHeaders().orElse(DittoHeaders.empty()));
         getContentType().ifPresent(value -> headers.put(CONTENT_TYPE_KEY, value));
+
+        final String jsonString = ProtocolFactory.wrapAsJsonifiableAdaptable(adaptable).toJsonString();
+
         return AmqpBridgeModelFactory.newExternalMessageBuilder(headers, messageType)
-                .withText(STRING_ADAPTABLE_CONVERTER.reverse().convert(adaptable))
+                .withText(jsonString)
                 .build();
     }
 
