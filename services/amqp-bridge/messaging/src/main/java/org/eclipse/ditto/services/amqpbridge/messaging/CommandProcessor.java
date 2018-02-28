@@ -111,6 +111,7 @@ public final class CommandProcessor {
 
     /**
      * Processes a message to a command
+     *
      * @param message the message
      * @return the command
      * @throws RuntimeException if something went wrong
@@ -126,6 +127,7 @@ public final class CommandProcessor {
 
     /**
      * Processes a response to a message
+     *
      * @param response the response
      * @return the message
      * @throws RuntimeException if something went wrong
@@ -214,22 +216,27 @@ public final class CommandProcessor {
     }
 
     private MessageMapper getMapper(final ExternalMessage message) {
-        return message.findContentType()
-                .map(registry::selectMapper) // this falls back to the default mapper for unknown content-types
+        final Optional<String> contentType = message.findContentType();
+        if (!contentType.isPresent()) {
+            return registry.getDefaultMapper();
+        }
+
+        return contentType.map(registry::selectMapper) // this falls back to the default mapper for unknown content-types
                 .orElseThrow(() ->
                         MessageMappingFailedException.newBuilder(message.findContentType().orElse("?"))
-                            .description("Make sure you specify the 'Content-Type' when sending your message")
-                            .build()
-        );
+                                .description("Make sure you specify the 'Content-Type' when sending your message")
+                                .build()
+                );
     }
 
     private MessageMapper getMapper(final Adaptable adaptable) {
         return adaptable.getHeaders()
-                .map(m -> m.get(MessageMappers.CONTENT_TYPE_KEY)) // TODO TJ instead of content-type check for "Accepts" header
+                .map(m -> m.get(
+                        MessageMappers.CONTENT_TYPE_KEY)) // TODO TJ instead of content-type check for "Accepts" header
                 .map(registry::selectMapper)
                 .orElseThrow(() -> // TODO TJ replace exception
                         new IllegalArgumentException("No mapper found for adaptable: " + adaptable)
-        );
+                );
     }
 
     private void doUpdateCorrelationId(final Adaptable adaptable) {
