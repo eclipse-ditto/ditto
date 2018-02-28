@@ -18,6 +18,7 @@ import java.util.List;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.services.amqpbridge.messaging.BaseClientActor;
+import org.eclipse.ditto.services.models.amqpbridge.AmqpBridgeMessagingConstants;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.amqpbridge.modify.AmqpBridgeModifyCommand;
 import org.eclipse.ditto.signals.commands.amqpbridge.modify.CloseConnection;
@@ -60,7 +61,7 @@ public class RabbitMQClientActor extends BaseClientActor {
     @Nullable private ActorRef consumerChannelActor;
 
     private RabbitMQClientActor(final String connectionId, final ActorRef rmqConnectionActor) {
-        super(connectionId, rmqConnectionActor);
+        super(connectionId, rmqConnectionActor, AmqpBridgeMessagingConstants.GATEWAY_PROXY_ACTOR_PATH);
     }
 
     /**

@@ -12,8 +12,6 @@
 package org.eclipse.ditto.services.amqpbridge.messaging;
 
 
-import static org.eclipse.ditto.services.models.amqpbridge.AmqpBridgeMessagingConstants.GATEWAY_PROXY_ACTOR_PATH;
-
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -67,16 +65,19 @@ public final class CommandProcessorActor extends AbstractActor {
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
     private final ActorRef pubSubMediator;
+    private final String pubSubTargetPath;
     private final ActorRef commandProducer;
     private final AuthorizationSubject authorizationSubject;
     private final Cache<String, TraceContext> traces;
 
     private final CommandProcessor processor;
 
-    private CommandProcessorActor(final ActorRef pubSubMediator, final ActorRef commandProducer,
+    private CommandProcessorActor(final ActorRef pubSubMediator, final String pubSubTargetPath,
+            final ActorRef commandProducer,
             final AuthorizationSubject authorizationSubject,
             final List<MappingContext> mappingContexts) {
         this.pubSubMediator = pubSubMediator;
+        this.pubSubTargetPath = pubSubTargetPath;
         this.commandProducer = commandProducer;
         this.authorizationSubject = authorizationSubject;
         traces = CacheBuilder.newBuilder()
@@ -102,12 +103,14 @@ public final class CommandProcessorActor extends AbstractActor {
      * Creates Akka configuration object for this actor.
      *
      * @param pubSubMediator the akka pubsub mediator actor.
+     * @param pubSubTargetPath the target path where incoming messages are sent
      * @param commandProducer actor that handles outgoing messages
      * @param authorizationSubject the authorized subject that are set in command headers.
      * @param mappingContexts the mapping contexts to apply for different content-types.
      * @return the Akka configuration Props object
      */
-    static Props props(final ActorRef pubSubMediator, final ActorRef commandProducer,
+    static Props props(final ActorRef pubSubMediator, final String pubSubTargetPath,
+            final ActorRef commandProducer,
             final AuthorizationSubject authorizationSubject,
             final List<MappingContext> mappingContexts) {
 
@@ -116,7 +119,8 @@ public final class CommandProcessorActor extends AbstractActor {
 
             @Override
             public CommandProcessorActor create() {
-                return new CommandProcessorActor(pubSubMediator, commandProducer, authorizationSubject,
+                return new CommandProcessorActor(pubSubMediator, pubSubTargetPath, commandProducer,
+                        authorizationSubject,
                         mappingContexts);
             }
         });
@@ -149,10 +153,11 @@ public final class CommandProcessorActor extends AbstractActor {
         try {
             final Command<?> command = processor.process(messageWithAuthSubject);
             startTrace(command);
-            log.info("Publishing '{}' to '{}'", command.getType(), GATEWAY_PROXY_ACTOR_PATH);
-            pubSubMediator.tell(new DistributedPubSubMediator.Send(GATEWAY_PROXY_ACTOR_PATH, command, true),
+            log.info("Publishing '{}' to '{}'", command.getType(), pubSubTargetPath);
+            pubSubMediator.tell(new DistributedPubSubMediator.Send(pubSubTargetPath, command, true),
                     getSelf());
         } catch (final Exception e) {
+            // TODO the exception has two causes, we should either reduce this or print the root cause here, too
             log.info(e.getMessage());
         }
     }

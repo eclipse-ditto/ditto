@@ -105,7 +105,8 @@ public class CommandProcessorActorTest {
 //            ));
 
             final Props amqpCommandProcessorProps =
-                    CommandProcessorActor.props(pubSubMediator, getRef(), AuthorizationSubject.newInstance("foo:bar"),
+                    CommandProcessorActor.props(pubSubMediator, targetActorPath, getRef(),
+                            AuthorizationSubject.newInstance("foo:bar"),
                             mappingContexts);
             final String amqpCommandProcessorName = CommandProcessorActor.ACTOR_NAME_PREFIX + "foo";
 
@@ -180,9 +181,10 @@ public class CommandProcessorActorTest {
     private ActorRef setupActor(final ActorRef testActor, final List<MappingContext> mappingContexts) {
 
         pubSubMediator.tell(new DistributedPubSubMediator.Put(testActor), null);
-
+        final String pubSubTarget = testActor.path().toStringWithoutAddress();
         final Props amqpCommandProcessorProps =
-                CommandProcessorActor.props(pubSubMediator, testActor, AuthorizationSubject.newInstance("foo:bar"),
+                CommandProcessorActor.props(pubSubMediator, pubSubTarget, testActor,
+                        AuthorizationSubject.newInstance("foo:bar"),
                         mappingContexts);
         final String amqpCommandProcessorName = CommandProcessorActor.ACTOR_NAME_PREFIX + UUID.randomUUID().toString();
 

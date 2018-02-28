@@ -59,6 +59,7 @@ public abstract class BaseClientActor extends AbstractActor {
     protected final ActorRef pubSubMediator;
     protected final Receive initHandling;
     protected final String connectionId;
+    protected final String pubSubTargetPath;
 
     private final ActorRef connectionActor;
     private final java.time.Duration initTimeout;
@@ -68,9 +69,11 @@ public abstract class BaseClientActor extends AbstractActor {
     @Nullable protected ActorRef commandProcessor;
     @Nullable private ConnectionStatus connectionStatus;
 
-    protected BaseClientActor(final String connectionId, final ActorRef connectionActor) {
+    protected BaseClientActor(final String connectionId, final ActorRef connectionActor,
+            final String pubSubTargetPath) {
         this.connectionId = checkNotNull(connectionId, "connectionId");
         this.connectionActor = checkNotNull(connectionActor, "connectionActor");
+        this.pubSubTargetPath = pubSubTargetPath;
         this.pubSubMediator = DistributedPubSub.get(getContext().getSystem()).mediator();
         final Config config = getContext().getSystem().settings().config();
         initTimeout = config.getDuration(ConfigKeys.Client.INIT_TIMEOUT);
@@ -92,11 +95,12 @@ public abstract class BaseClientActor extends AbstractActor {
     protected void startCommandProcessor(final ActorRef commandProducer) {
         checkNotNull(amqpConnection, "AmqpConnection");
         checkNotNull(mappingContexts, "MappingContexts");
+        checkNotNull(pubSubTargetPath, "PubSubTargetPath");
         if (commandProcessor == null) {
 
             log.debug("Starting CommandProcessorActor with pool size of {}.", amqpConnection.getProcessorPoolSize());
             final Props commandProcessorProps =
-                    CommandProcessorActor.props(pubSubMediator, commandProducer,
+                    CommandProcessorActor.props(pubSubMediator, pubSubTargetPath, commandProducer,
                             amqpConnection.getAuthorizationSubject(),
                             mappingContexts);
             final String amqpCommandProcessorName = getCommandProcessorActorName(amqpConnection.getId());

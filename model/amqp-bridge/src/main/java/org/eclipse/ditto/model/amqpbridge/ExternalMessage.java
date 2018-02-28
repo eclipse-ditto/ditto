@@ -16,7 +16,8 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * Simple wrapper around the headers and the payload received from external AMQP (0.9 or 1.0) sources.
+ * Simple wrapper around the headers and the payload received from or sent to external AMQP (0.9 or 1.0)
+ * sources/targets.
  */
 public interface ExternalMessage {
 

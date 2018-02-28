@@ -26,6 +26,11 @@ import org.eclipse.ditto.model.amqpbridge.ConnectionType;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.protocoladapter.Adaptable;
+import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
+import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
+import org.eclipse.ditto.protocoladapter.ProtocolFactory;
+import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
 import org.eclipse.ditto.signals.events.things.ThingModified;
 import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
 
@@ -46,6 +51,9 @@ public class TestConstants {
     private static final Set<String> SOURCES = new HashSet<>(Arrays.asList("amqp/source1", "amqp/source2"));
     private static final String TARGET = "eventQueue";
     public static final Config CONFIG = ConfigFactory.load("test");
+    public static final String THING_ID = "ditto:thing";
+    private static final Thing THING = Thing.newBuilder().setId(THING_ID).build();
+    public static final String CORRELATION_ID = "cid";
 
     public static String createRandomConnectionId() {
         return ConnectionType.AMQP_10.getName() + ":connection-" + UUID.randomUUID();
@@ -88,10 +96,17 @@ public class TestConstants {
         }
     }
 
-    static ThingModifiedEvent thingModified(final Collection<String> readSubjects) {
-        final Thing thing = Thing.newBuilder().setId("ditto:thing").build();
+    public static ThingModifiedEvent thingModified(final Collection<String> readSubjects) {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().readSubjects(readSubjects).build();
-        return ThingModified.of(thing, 1, dittoHeaders);
+        return ThingModified.of(THING, 1, dittoHeaders);
+    }
+
+    public static String modifyThing() {
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().correlationId(CORRELATION_ID).build();
+        final ModifyThing modifyThing = ModifyThing.of(THING_ID, THING, null, dittoHeaders);
+        final Adaptable adaptable = DittoProtocolAdapter.newInstance().toAdaptable(modifyThing);
+        final JsonifiableAdaptable jsonifiable = ProtocolFactory.wrapAsJsonifiableAdaptable(adaptable);
+        return jsonifiable.toJsonString();
     }
 
     private static void backOff(final long ms) {

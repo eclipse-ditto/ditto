@@ -27,6 +27,7 @@ import javax.jms.Session;
 
 import org.eclipse.ditto.model.amqpbridge.AmqpConnection;
 import org.eclipse.ditto.services.amqpbridge.messaging.BaseClientActor;
+import org.eclipse.ditto.services.models.amqpbridge.AmqpBridgeMessagingConstants;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.amqpbridge.exceptions.ConnectionFailedException;
 import org.eclipse.ditto.signals.commands.amqpbridge.modify.AmqpBridgeModifyCommand;
@@ -68,15 +69,15 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     private State state = DISCONNECTED;
 
     private AmqpClientActor(final String connectionId, final ActorRef connectionActor) {
-        this(connectionId, connectionActor, null, null, AmqpConnectionBasedJmsConnectionFactory.getInstance());
+        this(connectionId, connectionActor, null, AmqpBridgeMessagingConstants.GATEWAY_PROXY_ACTOR_PATH,
+                AmqpConnectionBasedJmsConnectionFactory.getInstance());
     }
 
     private AmqpClientActor(final String connectionId, final ActorRef connectionActor,
             @Nullable final AmqpConnection amqpConnection,
-            @Nullable final ActorRef commandProcessor, final JmsConnectionFactory jmsConnectionFactory) {
-        super(connectionId, connectionActor);
+            final String pubSubTargetPath, final JmsConnectionFactory jmsConnectionFactory) {
+        super(connectionId, connectionActor, pubSubTargetPath);
         this.amqpConnection = amqpConnection;
-        this.commandProcessor = commandProcessor;
         this.jmsConnectionFactory = jmsConnectionFactory;
 
         final Receive defaultBehaviour = ReceiveBuilder.create()
@@ -133,20 +134,20 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
      * @param connectionId the connection id
      * @param connectionActor the connection actor
      * @param amqpConnection amqp connection parameters
-     * @param commandProcessor the command processor which receives the incoming messages
+     * @param pubSubTargetPath the pub sub target path
      * @param jmsConnectionFactory the JMS connection factory
      * @return the Akka configuration Props object
      */
     public static Props props(final String connectionId, final ActorRef connectionActor,
             final AmqpConnection amqpConnection,
-            final ActorRef commandProcessor,
+            final String pubSubTargetPath,
             final JmsConnectionFactory jmsConnectionFactory) {
         return Props.create(AmqpClientActor.class, new Creator<AmqpClientActor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
             public AmqpClientActor create() {
-                return new AmqpClientActor(connectionId, connectionActor, amqpConnection, commandProcessor,
+                return new AmqpClientActor(connectionId, connectionActor, amqpConnection, pubSubTargetPath,
                         jmsConnectionFactory);
             }
         });
