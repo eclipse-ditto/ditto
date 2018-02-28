@@ -40,6 +40,7 @@ import akka.actor.ExtendedActorSystem;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.testkit.javadsl.TestKit;
 
+@SuppressWarnings("NullableProblems")
 public class MessageMapperFactoryTest {
 
     private static ActorSystem system;

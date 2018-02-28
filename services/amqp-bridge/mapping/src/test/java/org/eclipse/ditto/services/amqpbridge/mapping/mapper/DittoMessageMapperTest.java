@@ -12,11 +12,12 @@
 package org.eclipse.ditto.services.amqpbridge.mapping.mapper;
 
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+
 import java.util.AbstractMap;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -33,52 +34,48 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
-import org.junit.Ignore;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
-@Ignore
-public class DittoMessageMapperTest extends MessageMapperTest {
 
-    @Override
-    protected MessageMapper createMapper() {
-        return new DittoMessageMapper();
+@SuppressWarnings("NullableProblems")
+public class DittoMessageMapperTest {
+
+    private DittoMessageMapper underTest;
+
+    @Before
+    public void setUp() throws Exception {
+        underTest = new DittoMessageMapper();
     }
 
-    @Override
-    protected String createSupportedContentType() {
-        return DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE;
+    @After
+    public void tearDown() throws Exception {
     }
 
-    @Override
-    protected List<MessageMapperConfiguration> createValidConfig() {
-        List<MessageMapperConfiguration> options = new LinkedList<>();
-//        options.add(MessageMapperConfiguration.from(Collections.emptyMap()));
-
-        Map<String, String> map = new HashMap<>();
-        map.put(MessageMapperConfigurationProperties.CONTENT_TYPE, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
-        options.add(DefaultMessageMapperConfiguration.of(map));
-
-
-        return options;
+    @Test
+    public void mapMessage() {
+        createValidIncomingMappings().forEach((in, out) -> assertThat(underTest.map(in)).isEqualTo(out));
     }
 
-    @Override
-    protected Map<MessageMapperConfiguration, Throwable> createInvalidConfig() {
-        // there are none
-        Map<MessageMapperConfiguration, Throwable> map = new HashMap<>();
-        map.put(DefaultMessageMapperConfiguration.of(Collections.emptyMap()), new IllegalArgumentException("Missing option " +
-                "<contentType>"));
-        return map;
+    @Test
+    public void mapMessageFails() {
+        createInvalidIncomingMappings().forEach((in, e) -> assertThatExceptionOfType(e.getClass()).isThrownBy(
+                () -> underTest.map(in)));
     }
 
-    @Override
-    protected MessageMapperConfiguration createIncomingConfig() {
-        Map<String, String> map = new HashMap<>();
-        map.put(MessageMapperConfigurationProperties.CONTENT_TYPE, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
-        return DefaultMessageMapperConfiguration.of(map);
+    @Test
+    public void mapAdaptable() {
+        createValidOutgoingMappings().forEach((in, out) -> assertThat(underTest.map(in)).isEqualTo(out));
     }
 
-    @Override
-    protected Map<ExternalMessage, Adaptable> createValidIncomingMappings() {
+    @Test
+    public void mapAdaptableFails() {
+        createInvalidOutgoingMappings().forEach((in, e) -> assertThatExceptionOfType(e.getClass()).isThrownBy(
+                () -> underTest.map(in)));
+    }
+
+    private Map<ExternalMessage, Adaptable> createValidIncomingMappings() {
         return Stream.of(
                 valid1(),
                 valid2()
@@ -122,13 +119,12 @@ public class DittoMessageMapperTest extends MessageMapperTest {
         return new AbstractMap.SimpleEntry<ExternalMessage, Adaptable>(message, expected);
     }
 
-    @Override
-    protected Map<ExternalMessage, Throwable> createInvalidIncomingMappings() {
+    private Map<ExternalMessage, Throwable> createInvalidIncomingMappings() {
         Map<ExternalMessage, Throwable> mappings = new HashMap<>();
 
         Map<String, String> headers = new HashMap<>();
         headers.put("header-key", "header-value");
-        headers.put(MessageMapperConfigurationProperties.CONTENT_TYPE, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
+        headers.put(MessageMappers.CONTENT_TYPE_KEY, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
 
         ExternalMessage message;
         message = AmqpBridgeModelFactory.newExternalMessageBuilderForCommand(headers).withText("").build();
@@ -149,20 +145,13 @@ public class DittoMessageMapperTest extends MessageMapperTest {
         return mappings;
     }
 
-    @Override
-    protected MessageMapperConfiguration createOutgoingConfig() {
-        Map<String, String> map = new HashMap<>();
-        map.put(MessageMapperConfigurationProperties.CONTENT_TYPE, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
-        return DefaultMessageMapperConfiguration.of(map);
-    }
 
-    @Override
-    protected Map<Adaptable, ExternalMessage> createValidOutgoingMappings() {
+    private Map<Adaptable, ExternalMessage> createValidOutgoingMappings() {
         Map<Adaptable, ExternalMessage> mappings = new HashMap<>();
 
         Map<String, String> headers = new HashMap<>();
         headers.put("header-key", "header-value");
-        headers.put(MessageMapperConfigurationProperties.CONTENT_TYPE, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
+        headers.put(MessageMappers.CONTENT_TYPE_KEY, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
 
         JsonifiableAdaptable adaptable = ProtocolFactory.wrapAsJsonifiableAdaptable(ProtocolFactory.newAdaptableBuilder
                 (ProtocolFactory.newTopicPathBuilder("asd" +
@@ -192,8 +181,7 @@ public class DittoMessageMapperTest extends MessageMapperTest {
         return mappings;
     }
 
-    @Override
-    protected Map<Adaptable, Throwable> createInvalidOutgoingMappings() {
+    private Map<Adaptable, Throwable> createInvalidOutgoingMappings() {
         // adaptible is strongly typed and can always be jsonified, no invalid test needed.
         return Collections.emptyMap();
     }
