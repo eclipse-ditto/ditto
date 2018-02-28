@@ -890,6 +890,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         return thing.hasLifecycle(ThingLifecycle.ACTIVE);
     }
 
+    @Override
     public boolean isThingDeleted() {
         return thing.hasLifecycle(ThingLifecycle.DELETED);
     }
