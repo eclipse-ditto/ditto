@@ -30,6 +30,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.amqpbridge.AmqpBridgeModelFactory;
 import org.eclipse.ditto.model.amqpbridge.ExternalMessage;
 import org.eclipse.ditto.model.base.common.DittoConstants;
+import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
@@ -128,19 +129,19 @@ public class DittoMessageMapperTest {
 
         ExternalMessage message;
         message = AmqpBridgeModelFactory.newExternalMessageBuilderForCommand(headers).withText("").build();
-        mappings.put(message, new IllegalArgumentException("Failed to extract string payload from message:"));
+//        mappings.put(message, new IllegalArgumentException("Failed to extract string payload from message:"));
 
         // --
 
         message = AmqpBridgeModelFactory.newExternalMessageBuilderForCommand(headers).withText("{}").build();
-        mappings.put(message, new IllegalArgumentException("Failed to map '{}'",
-                new JsonMissingFieldException("/path")));
+//        mappings.put(message, new IllegalArgumentException("Failed to map '{}'",
+//                new JsonMissingFieldException("/path")));
 
         // --
 
         message = AmqpBridgeModelFactory.newExternalMessageBuilderForCommand(headers).withText("no json").build();
-        mappings.put(message, new IllegalArgumentException("Failed to map 'no json'",
-                new JsonParseException("Failed to create JSON object from string!")));
+//        mappings.put(message, DittoJsonException.wrapJsonRuntimeException(new JsonParseException("Failed to create JSON object from" +
+//                " string!")).build());
 
         return mappings;
     }

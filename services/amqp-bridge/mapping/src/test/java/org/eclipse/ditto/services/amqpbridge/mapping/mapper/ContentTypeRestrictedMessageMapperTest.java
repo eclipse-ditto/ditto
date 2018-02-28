@@ -25,6 +25,7 @@ import java.util.Collections;
 import java.util.Optional;
 
 import org.eclipse.ditto.model.amqpbridge.ExternalMessage;
+import org.eclipse.ditto.model.amqpbridge.MessageMappingFailedException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.junit.After;
@@ -128,7 +129,7 @@ public class ContentTypeRestrictedMessageMapperTest {
 //        when(mockMessage.findHeaderIgnoreCase("content-type")).thenReturn(Optional.of("contentType"));
         when(mockMapper.getContentType()).thenReturn(Optional.of("contentType"));
 
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(
+        assertThatExceptionOfType(MessageMappingFailedException.class).isThrownBy(
                 () ->underTest.map(mockMessage));
     }
 
