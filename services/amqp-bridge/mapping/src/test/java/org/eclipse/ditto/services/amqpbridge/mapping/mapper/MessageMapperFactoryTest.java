@@ -83,7 +83,7 @@ public class MessageMapperFactoryTest {
 
         final Optional<MessageMapper> underTest = factory.mapperOf(ctx);
         assertThat(underTest).isPresent();
-        assertThat(underTest.get().getContentType().get()).isEqualTo(contentType);
+        assertThat(underTest.get().getContentType()).isEqualTo(contentType);
     }
 
     @Test
@@ -95,7 +95,7 @@ public class MessageMapperFactoryTest {
 
         final Optional<MessageMapper> underTest = factory.mapperOf(ctx);
         assertThat(underTest).isPresent();
-        assertThat(underTest.get().getContentType().get()).isEqualTo(contentType);
+        assertThat(underTest.get().getContentType()).isEqualTo(contentType);
     }
 
     @Test
@@ -185,7 +185,7 @@ public class MessageMapperFactoryTest {
         );
         final List<MessageMapper> mappers = factory.mappersOf(contexts);
         assertThat(mappers).isNotEmpty().hasSize(2);
-        assertThat(mappers.stream().map(MessageMapper::getContentType).map(Optional::get).collect(Collectors.toList()))
+        assertThat(mappers.stream().map(MessageMapper::getContentType).collect(Collectors.toList()))
                 .contains("foo", "bar");
     }
 
@@ -197,7 +197,7 @@ public class MessageMapperFactoryTest {
         );
         final List<MessageMapper> mappers = factory.mappersOf(contexts);
         assertThat(mappers).isNotEmpty().hasSize(1);
-        assertThat(mappers.stream().map(MessageMapper::getContentType).map(Optional::get).collect(Collectors.toList())).contains("bar");
+        assertThat(mappers.stream().map(MessageMapper::getContentType).collect(Collectors.toList())).contains("bar");
     }
 
     @Test
@@ -215,11 +215,9 @@ public class MessageMapperFactoryTest {
         assertThat(underTest.getDefaultMapper()).isEqualTo(new DittoMessageMapper());
         assertThat(underTest.findMapper(fooMessage)).isPresent()
                 .map(MessageMapper::getContentType)
-                .map(Optional::get)
                 .isEqualTo(Optional.of("foo"));
         assertThat(underTest.findMapper(barMessage)).isPresent()
                 .map(MessageMapper::getContentType)
-                .map(Optional::get)
                 .isEqualTo(Optional.of("bar"));
         assertThat(underTest.findMapper(otherMessage)).isEmpty();
 

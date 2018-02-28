@@ -27,6 +27,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.model.amqpbridge.AmqpBridgeModelFactory;
 import org.eclipse.ditto.model.amqpbridge.ExternalMessage;
 import org.eclipse.ditto.model.amqpbridge.MappingContext;
+import org.eclipse.ditto.model.amqpbridge.MessageMappingFailedException;
 import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -51,8 +52,8 @@ public final class DittoMessageMapper implements MessageMapper {
     );
 
     @Override
-    public Optional<String> getContentType() {
-        return Optional.ofNullable(DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
+    public String getContentType() {
+        return DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE;
     }
 
 
@@ -78,7 +79,7 @@ public final class DittoMessageMapper implements MessageMapper {
     public ExternalMessage map(final Adaptable adaptable) {
         final ExternalMessage.MessageType messageType = determineMessageType(adaptable);
         final Map<String, String> headers = new LinkedHashMap<>(adaptable.getHeaders().orElse(DittoHeaders.empty()));
-        getContentType().ifPresent(value -> headers.put(CONTENT_TYPE_KEY, value));
+        headers.put(CONTENT_TYPE_KEY, getContentType());
 
         final String jsonString = ProtocolFactory.wrapAsJsonifiableAdaptable(adaptable).toJsonString();
 
@@ -92,13 +93,16 @@ public final class DittoMessageMapper implements MessageMapper {
         if (message.isTextMessage()) {
             payload = message.getTextPayload();
         } else if (message.isBytesMessage()) {
+            // TODO TJ Handle charset correctly
             payload = message.getBytePayload().map(ByteBuffer::array).map(ba -> new String(ba, StandardCharsets.UTF_8));
         } else {
             payload = Optional.empty();
         }
 
-        return payload.filter(s -> !s.isEmpty()).orElseThrow(
-                () -> new IllegalArgumentException("Failed to extract string payload of message: " + message));
+        return payload.filter(s -> !s.isEmpty()).orElseThrow(() ->
+                MessageMappingFailedException.newBuilder(message.findContentType().orElse(""))
+                    .description("As payload was absent or empty, please make sure to send payload in your messages.")
+                    .build());
     }
 
     /**
@@ -132,7 +136,7 @@ public final class DittoMessageMapper implements MessageMapper {
             default:
                 final String errorMessage = MessageFormat.format("Cannot map '{0}' message. Only [{1}, {2}] allowed.",
                         criterion.getName(), TopicPath.Criterion.COMMANDS, TopicPath.Criterion.EVENTS);
-                throw new IllegalArgumentException(errorMessage);
+                throw new IllegalArgumentException(errorMessage); // TODO TJ other exception
         }
     }
 

@@ -19,6 +19,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.amqpbridge.AmqpBridgeException;
 import org.eclipse.ditto.model.amqpbridge.ConnectionUriInvalidException;
+import org.eclipse.ditto.model.amqpbridge.MessageMapperConfigurationInvalidException;
 import org.eclipse.ditto.model.amqpbridge.MessageMappingFailedException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.signals.base.AbstractErrorRegistry;
@@ -66,6 +67,8 @@ public final class AmqpBridgeErrorRegistry extends AbstractErrorRegistry<DittoRu
 
         parseStrategies.put(ConnectionUriInvalidException.ERROR_CODE, ConnectionUriInvalidException::fromJson);
         parseStrategies.put(MessageMappingFailedException.ERROR_CODE, MessageMappingFailedException::fromJson);
+        parseStrategies.put(MessageMapperConfigurationInvalidException.ERROR_CODE,
+                MessageMapperConfigurationInvalidException::fromJson);
         parseStrategies.put(ConnectionNotAccessibleException.ERROR_CODE, ConnectionNotAccessibleException::fromJson);
         parseStrategies.put(ConnectionUnavailableException.ERROR_CODE, ConnectionUnavailableException::fromJson);
         parseStrategies.put(ConnectionFailedException.ERROR_CODE, ConnectionFailedException::fromJson);

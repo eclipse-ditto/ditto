@@ -71,7 +71,7 @@ public interface JavaScriptMessageMapperConfiguration extends MessageMapperConfi
     /**
      * Specific builder for {@link JavaScriptMessageMapperConfiguration}.
      */
-    interface Builder extends MessageMapperConfiguration.Builder<JavaScriptMessageMapperConfiguration> {
+    interface Builder extends MessageMapperConfiguration.Builder<Builder, JavaScriptMessageMapperConfiguration> {
 
         /**
          * Configures the mappingScript responsible for mapping incoming messages (e.g. via AMQP).

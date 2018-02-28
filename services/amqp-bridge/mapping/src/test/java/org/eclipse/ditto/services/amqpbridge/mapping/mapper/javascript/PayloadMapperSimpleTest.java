@@ -48,9 +48,12 @@ public class PayloadMapperSimpleTest {
     @BeforeClass
     public static void setup() {
         javaScriptRhinoMapper = MessageMappers.createJavaScriptMessageMapper();
-        MessageMapperConfiguration configuration = JavaScriptMessageMapperFactory.createJavaScriptMessageMapperConfigurationBuilder
-                (Collections.emptyMap()).outgoingMappingScript(MAPPING_TEMPLATE).build();
-        javaScriptRhinoMapper.configure(configuration);
+        MessageMapperConfiguration configuration = JavaScriptMessageMapperFactory
+                .createJavaScriptMessageMapperConfigurationBuilder(Collections.emptyMap())
+                .contentType("text/plain")
+                .outgoingMappingScript(MAPPING_TEMPLATE)
+                .build();
+        javaScriptRhinoMapper.configureWithValidation(configuration);
     }
 
     @Test

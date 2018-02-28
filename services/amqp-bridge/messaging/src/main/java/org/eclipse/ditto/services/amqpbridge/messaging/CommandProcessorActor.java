@@ -16,7 +16,6 @@ import static org.eclipse.ditto.services.models.amqpbridge.AmqpBridgeMessagingCo
 
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
@@ -90,13 +89,7 @@ public final class CommandProcessorActor extends AbstractActor {
 
         log.info("Configured for processing messages with the following content types: {}",
                 processor.getSupportedContentTypes());
-
-        final Optional<String> defaultContentType = processor.getDefaultContentType();
-        if (defaultContentType.isPresent()) {
-            log.info("Interpreting messages with missing content type as '{}'", defaultContentType.get());
-        } else {
-            log.warning("No default config type configured!");
-        }
+        log.info("Interpreting messages with missing content type as '{}'", processor.getDefaultContentType());
     }
 
     /**

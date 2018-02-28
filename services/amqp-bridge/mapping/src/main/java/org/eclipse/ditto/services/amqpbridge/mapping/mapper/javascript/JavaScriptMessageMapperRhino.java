@@ -31,12 +31,14 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.amqpbridge.AmqpBridgeModelFactory;
 import org.eclipse.ditto.model.amqpbridge.ExternalMessage;
+import org.eclipse.ditto.model.amqpbridge.MessageMapperConfigurationInvalidException;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMapper;
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMapperConfiguration;
+import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMapperConfigurationProperties;
 import org.mozilla.javascript.Callable;
 import org.mozilla.javascript.Context;
 import org.mozilla.javascript.ContextFactory;
@@ -80,12 +82,16 @@ final class JavaScriptMessageMapperRhino implements MessageMapper {
     @Nullable private JavaScriptMessageMapperConfiguration configuration;
 
     JavaScriptMessageMapperRhino() {
-
+        // no-op
     }
 
     @Override
-    public Optional<String> getContentType() {
-        return Optional.empty();
+    public String getContentType() {
+        return Optional.ofNullable(configuration)
+                .flatMap(MessageMapperConfiguration::findContentType)
+                .orElseThrow(() -> MessageMapperConfigurationInvalidException
+                        .newBuilder(MessageMapperConfigurationProperties.CONTENT_TYPE)
+                        .build());
     }
 
     @Override

@@ -41,6 +41,9 @@ public final class MessageMappingFailedException extends DittoRuntimeException i
             "Check if you are sending the correct content-type/payload combination an that you have registered a mapper " +
                     "which transforms your payload to Ditto Protocol";
 
+    private static final String CONTENT_TYPE_MISSING_DESCRIPTION =
+            "Make sure you specify the 'Content-Type' when sending your message";
+
     private static final long serialVersionUID = -6312489434534126579L;
 
     private MessageMappingFailedException(final DittoHeaders dittoHeaders, @Nullable final String message,
@@ -52,10 +55,11 @@ public final class MessageMappingFailedException extends DittoRuntimeException i
     /**
      * A mutable builder for a {@code MessageMappingFailedException}.
      *
-     * @param contentType the contentType of the ExternalMessage which could not be mapped.
+     * @param contentType the contentType of the ExternalMessage which could not be mapped or {@code null} if there was
+     * not a contentType present.
      * @return the builder.
      */
-    public static Builder newBuilder(final String contentType) {
+    public static Builder newBuilder(@Nullable final String contentType) {
         return new Builder(contentType);
     }
 
@@ -97,9 +101,13 @@ public final class MessageMappingFailedException extends DittoRuntimeException i
             description(DEFAULT_DESCRIPTION);
         }
 
-        private Builder(final String contentType) {
+        private Builder(@Nullable final String contentType) {
             this();
-            message(MessageFormat.format(MESSAGE_TEMPLATE, contentType));
+            final boolean contentTypeAvailable = contentType == null || contentType.isEmpty();
+            message(MessageFormat.format(MESSAGE_TEMPLATE, contentTypeAvailable ? contentType : "<unspecified>"));
+            if (contentTypeAvailable) {
+                description(CONTENT_TYPE_MISSING_DESCRIPTION);
+            }
         }
 
         @Override

@@ -14,6 +14,10 @@ package org.eclipse.ditto.services.amqpbridge.mapping.mapper;
 import java.util.Map;
 import java.util.Optional;
 
+import javax.annotation.Nullable;
+
+import org.eclipse.ditto.model.amqpbridge.MessageMapperConfigurationInvalidException;
+
 /**
  * Configuration properties for a {@link org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMapper}.
  */
@@ -40,11 +44,11 @@ public interface MessageMapperConfiguration {
      *
      * @param propertyName the property name
      * @return the property value
-     * @throws IllegalArgumentException if no value present
+     * @throws MessageMapperConfigurationInvalidException if no value for the the requested property name is present
      */
     default String getProperty(final String propertyName) {
         return findProperty(propertyName).orElseThrow(() ->
-                new IllegalArgumentException(String.format("Required configuration property missing: '%s'", propertyName))
+                MessageMapperConfigurationInvalidException.newBuilder(propertyName).build()
         );
     }
 
@@ -61,7 +65,7 @@ public interface MessageMapperConfiguration {
      * Extracts the content type and fails if missing.
      *
      * @return the contentType
-     * @throws IllegalArgumentException if content type is missing
+     * @throws MessageMapperConfigurationInvalidException if content type is missing
      */
     default String getContentType() {
         return getProperty(MessageMapperConfigurationProperties.CONTENT_TYPE);
@@ -70,12 +74,27 @@ public interface MessageMapperConfiguration {
     /**
      * Builder for {@link MessageMapperConfiguration} instances to be used as a base for a more concrete builder.
      */
-    interface Builder<T extends MessageMapperConfiguration> {
+    interface Builder<B extends Builder<?, T>,T extends MessageMapperConfiguration> {
 
         /**
          * @return the configuration properties as mutable map
          */
         Map<String, String> getProperties();
+
+        /**
+         * Configures the Content-Type of the MessageMapperConfiguration.
+         *
+         * @param contentType the Content-Type
+         * @return this builder for chaining
+         */
+        default B contentType(@Nullable String contentType) {
+            if (contentType != null) {
+                getProperties().put(MessageMapperConfigurationProperties.CONTENT_TYPE, contentType);
+            } else {
+                getProperties().remove(MessageMapperConfigurationProperties.CONTENT_TYPE);
+            }
+            return (B) this;
+        }
 
         /**
          * Builds the builder and returns a new instance of {@link MessageMapperConfiguration}

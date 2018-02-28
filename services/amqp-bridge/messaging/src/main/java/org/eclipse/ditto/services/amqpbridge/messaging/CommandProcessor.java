@@ -95,17 +95,15 @@ public final class CommandProcessor {
     public List<String> getSupportedContentTypes() {
         return registry.getMappers().stream()
                 .map(MessageMapper::getContentType)
-                .filter(Optional::isPresent)
-                .map(Optional::get)
                 .collect(Collectors.toList());
     }
 
     /**
-     * Returns all supported content types of the processor
+     * Returns the content type of the default mapper.
      *
-     * @return the content types
+     * @return the default content type
      */
-    public Optional<String> getDefaultContentType() {
+    public String getDefaultContentType() {
         return registry.getDefaultMapper().getContentType();
     }
 
@@ -179,7 +177,7 @@ public final class CommandProcessor {
         } catch (final DittoRuntimeException e) {
             throw e;
         } catch (final Exception e) {
-            throw MessageMappingFailedException.newBuilder(message.findContentType().orElse("?"))
+            throw MessageMappingFailedException.newBuilder(message.findContentType().orElse(""))
                     .description("Could not map ExternalMessage due to unknown problem: " + e.getMessage())
                     .cause(e)
                     .build();
@@ -207,7 +205,7 @@ public final class CommandProcessor {
             final String contentType = adaptableSupplier.get()
                     .getHeaders()
                     .map(h -> h.get(ExternalMessage.CONTENT_TYPE_HEADER))
-                    .orElse("?");
+                    .orElse("");
             throw MessageMappingFailedException.newBuilder(contentType)
                     .description("Could not map Adaptable due to unknown problem: " + e.getMessage())
                     .cause(e)
@@ -216,27 +214,26 @@ public final class CommandProcessor {
     }
 
     private MessageMapper getMapper(final ExternalMessage message) {
-        final Optional<String> contentType = message.findContentType();
-        if (!contentType.isPresent()) {
+
+        final Optional<String> contentTypeOpt = message.findContentType();
+        if (contentTypeOpt.isPresent()) {
+            final String contentType = contentTypeOpt.get();
+            return registry.selectMapper(contentType);
+        } else {
             return registry.getDefaultMapper();
         }
-
-        return contentType.map(registry::selectMapper) // this falls back to the default mapper for unknown content-types
-                .orElseThrow(() ->
-                        MessageMappingFailedException.newBuilder(message.findContentType().orElse("?"))
-                                .description("Make sure you specify the 'Content-Type' when sending your message")
-                                .build()
-                );
     }
 
     private MessageMapper getMapper(final Adaptable adaptable) {
-        return adaptable.getHeaders()
-                .map(m -> m.get(
-                        MessageMappers.CONTENT_TYPE_KEY)) // TODO TJ instead of content-type check for "Accepts" header
-                .map(registry::selectMapper)
-                .orElseThrow(() -> // TODO TJ replace exception
-                        new IllegalArgumentException("No mapper found for adaptable: " + adaptable)
-                );
+
+        final Optional<String> acceptHeaderOpt = adaptable.getHeaders()
+                .map(m -> m.get(MessageMappers.ACCEPT_KEY));
+        if (acceptHeaderOpt.isPresent()) {
+            final String acceptHeader = acceptHeaderOpt.get();
+            return registry.selectMapper(acceptHeader);
+        } else {
+            return registry.getDefaultMapper();
+        }
     }
 
     private void doUpdateCorrelationId(final Adaptable adaptable) {

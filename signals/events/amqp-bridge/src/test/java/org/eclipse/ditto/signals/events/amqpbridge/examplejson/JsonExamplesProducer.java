@@ -51,7 +51,7 @@ public class JsonExamplesProducer {
     private static final String TARGET = "eventQueue";
 
     public static MappingContext MAPPING_CONTEXT = AmqpBridgeModelFactory.newMappingContext("text/plain",
-            "org.eclipse.ditto.services.amqpbridge.mapping.mapper.javascript.JavaScriptMessageMapperRhino",
+            "JavaScript",
             Collections.singletonMap("incomingMappingScript",
                     "ditto_protocolJson.topic = 'org.eclipse.ditto/foo-bar/things/twin/commands/create';" +
                             "ditto_protocolJson.path = '/';" +

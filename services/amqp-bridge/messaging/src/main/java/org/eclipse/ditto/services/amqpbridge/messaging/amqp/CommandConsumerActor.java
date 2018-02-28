@@ -116,6 +116,7 @@ final class CommandConsumerActor extends AbstractActor implements MessageListene
     public void onMessage(final Message message) {
         try {
             final Map<String, String> headers = extractHeadersMapFromJmsMessage(message);
+            // TODO TJ how can we be sure that the message is a command at this point? could be anything ..
             final ExternalMessageBuilder builder = AmqpBridgeModelFactory.newExternalMessageBuilderForCommand(headers);
             extractPayloadFromMessage(message, builder);
             final ExternalMessage externalMessage = builder.build();

@@ -36,9 +36,11 @@ public interface MappingContext extends Jsonifiable.WithFieldSelectorAndPredicat
     String getContentType();
 
     /**
-     * Fully qualified classname of a mapping engine which can map messages of the contexts content-type.
+     * Fully qualified classname of a mapping engine which can map messages of the contexts content-type or one of the
+     * supported built-in mapping-engines aliases.
      * E.g.:
      * <ul>
+     *     <li>JavaScript</li>
      *     <li><pre>org.eclipse.ditto.services.amqpbridge.mapping.mapper.javascript.JavaScriptMessageMapperRhino</pre></li>
      * </ul>
      * @return the mapping engine name

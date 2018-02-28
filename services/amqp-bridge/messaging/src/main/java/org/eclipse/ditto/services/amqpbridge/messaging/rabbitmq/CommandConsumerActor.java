@@ -95,6 +95,7 @@ public class CommandConsumerActor extends AbstractActor {
             final String correlationId = properties.getCorrelationId();
             LogUtil.enhanceLogWithCorrelationId(log, correlationId);
             final Map<String, String> headers = extractHeadersFromMessage(properties, envelope);
+            // TODO TJ how can we be sure that the message is a command at this point? could be anything ..
             final ExternalMessageBuilder externalMessageBuilder =
                     AmqpBridgeModelFactory.newExternalMessageBuilderForCommand(headers);
             final String contentType = properties.getContentType();

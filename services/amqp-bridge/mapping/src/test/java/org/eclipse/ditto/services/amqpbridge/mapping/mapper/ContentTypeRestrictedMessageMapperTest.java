@@ -25,6 +25,7 @@ import java.util.Collections;
 import java.util.Optional;
 
 import org.eclipse.ditto.model.amqpbridge.ExternalMessage;
+import org.eclipse.ditto.model.amqpbridge.MessageMapperConfigurationInvalidException;
 import org.eclipse.ditto.model.amqpbridge.MessageMappingFailedException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.protocoladapter.Adaptable;
@@ -68,18 +69,17 @@ public class ContentTypeRestrictedMessageMapperTest {
 
     @Test
     public void configure() {
-        when(mockMapper.getContentType()).thenReturn(Optional.of("contentType"));
+        when(mockConfiguration.findContentType()).thenReturn(Optional.of("contentType"));
 
-        underTest.configure(mockConfiguration);
+        underTest.configureWithValidation(mockConfiguration);
 
-        verify(mockMapper).getContentType();
         verify(mockMapper).configure(mockConfiguration);
     }
 
     @Test
     public void mapMessage() {
         when(mockMessage.findHeaderIgnoreCase("content-type")).thenReturn(Optional.of("contentType"));
-        when(mockMapper.getContentType()).thenReturn(Optional.of("contentType"));
+        when(mockMapper.getContentType()).thenReturn("contentType");
 
         final Adaptable actual = underTest.map(mockMessage);
         verify(mockMapper).getContentType();
@@ -92,7 +92,7 @@ public class ContentTypeRestrictedMessageMapperTest {
     public void mapAdaptable() {
         final DittoHeaders headers = DittoHeaders.of(Collections.singletonMap("content-type", "contentType"));
         when(mockAdaptable.getHeaders()).thenReturn(Optional.of(headers));
-        when(mockMapper.getContentType()).thenReturn(Optional.of("contentType"));
+        when(mockMapper.getContentType()).thenReturn("contentType");
 
         final ExternalMessage actual = underTest.map(mockAdaptable);
         verify(mockMapper).getContentType();
@@ -106,28 +106,18 @@ public class ContentTypeRestrictedMessageMapperTest {
         underTest = ContentTypeRestrictedMessageMapper.wrap(mockMapper, "contentTypeOverride");
         underTest.getContentType();
         verify(mockMapper, never()).getContentType();
-        assertThat(underTest.getContentType()).isEqualTo(Optional.of("contentTypeOverride"));
+        assertThat(underTest.getContentType()).isEqualTo("contentTypeOverride");
     }
 
     @Test
     public void configureConfigurationWithoutContentTypeFails() {
-        assertThatExceptionOfType(IllegalConfigurationException.class).isThrownBy(
-                () -> underTest.configure(mockConfiguration));
-    }
-
-    @Test
-    public void mapMessageWithoutConfiguredContentTypeFails() {
-        when(mockMessage.findHeaderIgnoreCase("content-type")).thenReturn(Optional.of("contentType"));
-//        when(mockMapper.getContentType()).thenReturn(Optional.of("contentType"));
-
-        assertThatExceptionOfType(NotYetConfiguredException.class).isThrownBy(
-                () ->underTest.map(mockMessage));
+        assertThatExceptionOfType(MessageMapperConfigurationInvalidException.class).isThrownBy(
+                () -> underTest.configureWithValidation(mockConfiguration));
     }
 
     @Test
     public void mapMessageWithoutContentTypeHeaderFails() {
-//        when(mockMessage.findHeaderIgnoreCase("content-type")).thenReturn(Optional.of("contentType"));
-        when(mockMapper.getContentType()).thenReturn(Optional.of("contentType"));
+        when(mockMapper.getContentType()).thenReturn("contentType");
 
         assertThatExceptionOfType(MessageMappingFailedException.class).isThrownBy(
                 () ->underTest.map(mockMessage));
@@ -136,29 +126,17 @@ public class ContentTypeRestrictedMessageMapperTest {
     @Test
     public void mapMessageWithoutDeviationgContentTypesFails() {
         when(mockMessage.findHeaderIgnoreCase("content-type")).thenReturn(Optional.of("a"));
-        when(mockMapper.getContentType()).thenReturn(Optional.of("b"));
+        when(mockMapper.getContentType()).thenReturn("b");
 
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(
+        assertThatExceptionOfType(MessageMappingFailedException.class).isThrownBy(
                 () ->underTest.map(mockMessage));
     }
 
     @Test
-    public void mapAdaptableWithoutConfiguredContentTypeFails() {
-        final DittoHeaders headers = DittoHeaders.of(Collections.singletonMap("content-type", "contentType"));
-        when(mockAdaptable.getHeaders()).thenReturn(Optional.of(headers));
-//        when(mockMapper.getContentType()).thenReturn(Optional.of("contentType"));
-
-        assertThatExceptionOfType(NotYetConfiguredException.class).isThrownBy(
-                () -> underTest.map(mockAdaptable));
-    }
-
-    @Test
     public void mapAdaptableWithoutContentTypeHeaderFails() {
-//        final DittoHeaders headers = DittoHeaders.of(Collections.singletonMap("content-type", "contentType"));
-//        when(mockAdaptable.getHeaders()).thenReturn(Optional.of(headers));
-        when(mockMapper.getContentType()).thenReturn(Optional.of("contentType"));
+        when(mockMapper.getContentType()).thenReturn("contentType");
 
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(
+        assertThatExceptionOfType(MessageMappingFailedException.class).isThrownBy(
                 () ->underTest.map(mockAdaptable));
     }
 
@@ -166,9 +144,9 @@ public class ContentTypeRestrictedMessageMapperTest {
     public void mapAdaptableWithoutDeviationgContentTypesFails() {
         final DittoHeaders headers = DittoHeaders.of(Collections.singletonMap("content-type", "a"));
         when(mockAdaptable.getHeaders()).thenReturn(Optional.of(headers));
-        when(mockMapper.getContentType()).thenReturn(Optional.of("b"));
+        when(mockMapper.getContentType()).thenReturn("b");
 
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(
+        assertThatExceptionOfType(MessageMappingFailedException.class).isThrownBy(
                 () ->underTest.map(mockAdaptable));
     }
 }
