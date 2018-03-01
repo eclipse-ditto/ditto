@@ -34,7 +34,7 @@
         <!-- ### Compile dependencies versions -->
         <minimal-json.version>0.9.5</minimal-json.version>
         <typesafe-config.version>1.3.1</typesafe-config.version>
-        <akka.version>2.5.10</akka.version>
+        <akka.version>2.5.11</akka.version>
         <akka-http.version>10.0.11</akka-http.version>
         <akka-sse.version>3.0.0</akka-sse.version>
         <akka-persistence-mongo.version>2.0.7</akka-persistence-mongo.version>

@@ -128,7 +128,7 @@ public final class AmqpPublisherActor extends AbstractActor {
             bytesMessage.writeBytes(externalMessage.getBytePayload().map(ByteBuffer::array).orElse(new byte[]{}));
             message = bytesMessage;
         } else {
-            throw new IllegalArgumentException("Only byte or text are supported, dropping.");
+            message = session.createMessage();
         }
         message.setJMSCorrelationID(externalMessage.getHeaders().get(DittoHeaderDefinition.CORRELATION_ID.getKey()));
         return message;
