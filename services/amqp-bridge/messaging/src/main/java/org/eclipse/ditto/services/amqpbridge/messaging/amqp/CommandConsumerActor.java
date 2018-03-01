@@ -29,10 +29,14 @@ import javax.jms.MessageConsumer;
 import javax.jms.MessageListener;
 import javax.jms.TextMessage;
 
+import org.apache.qpid.jms.message.JmsMessage;
+import org.apache.qpid.jms.message.facade.JmsMessageFacade;
+import org.apache.qpid.jms.provider.amqp.message.AmqpJmsMessageFacade;
 import org.eclipse.ditto.model.amqpbridge.AmqpBridgeModelFactory;
 import org.eclipse.ditto.model.amqpbridge.ExternalMessage;
 import org.eclipse.ditto.model.amqpbridge.ExternalMessageBuilder;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
 import akka.actor.AbstractActor;
@@ -52,7 +56,7 @@ final class CommandConsumerActor extends AbstractActor implements MessageListene
      */
     static final String ACTOR_NAME_PREFIX = "amqpConsumerActor-";
 
-    private static final String CORRELATION_ID_HEADER = "correlation-id";
+    private static final String REPLY_TO_HEADER = "replyTo";
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
@@ -60,7 +64,7 @@ final class CommandConsumerActor extends AbstractActor implements MessageListene
     private final MessageConsumer messageConsumer;
     private final ActorRef commandProcessor;
 
-    private CommandConsumerActor(final String source, final MessageConsumer messageConsumer,
+    CommandConsumerActor(final String source, final MessageConsumer messageConsumer,
             final ActorRef commandProcessor) {
         this.source = checkNotNull(source, "source");
         this.messageConsumer = checkNotNull(messageConsumer);
@@ -89,6 +93,7 @@ final class CommandConsumerActor extends AbstractActor implements MessageListene
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
+                .match(Message.class, this::onMessage)
                 .matchAny(m -> {
                     log.debug("Unknown message: {}", m);
                     unhandled(m);
@@ -159,16 +164,24 @@ final class CommandConsumerActor extends AbstractActor implements MessageListene
 
         final String replyTo = message.getJMSReplyTo() != null ? String.valueOf(message.getJMSReplyTo()) : null;
         if (replyTo != null) {
-            headersFromJmsProperties.put("replyTo", replyTo);
+            headersFromJmsProperties.put(REPLY_TO_HEADER, replyTo);
         }
 
         final String jmsCorrelationId = message.getJMSCorrelationID() != null ? message.getJMSCorrelationID() :
                 message.getJMSMessageID();
         if (jmsCorrelationId != null) {
-            headersFromJmsProperties.put(CORRELATION_ID_HEADER, jmsCorrelationId);
+            headersFromJmsProperties.put(DittoHeaderDefinition.CORRELATION_ID.getKey(), jmsCorrelationId);
         }
 
-//        message. // TODO TJ extract contentType
+        if (message instanceof JmsMessage) {
+            final JmsMessage jmsMessage = (JmsMessage) message;
+            final JmsMessageFacade facade = jmsMessage.getFacade();
+            if (facade instanceof AmqpJmsMessageFacade) {
+                final String contentType = ((AmqpJmsMessageFacade) facade).getContentType();
+                headersFromJmsProperties.put(DittoHeaderDefinition.CONTENT_TYPE.getKey(), contentType);
+            }
+
+        }
 
         return headersFromJmsProperties;
     }
