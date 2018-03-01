@@ -227,7 +227,7 @@ public final class CommandProcessor {
     private MessageMapper getMapper(final Adaptable adaptable) {
 
         final Optional<String> acceptHeaderOpt = adaptable.getHeaders()
-                .map(m -> m.get(MessageMappers.ACCEPT_KEY));
+                .map(m -> m.get(ExternalMessage.ACCEPT_HEADER));
         if (acceptHeaderOpt.isPresent()) {
             final String acceptHeader = acceptHeaderOpt.get();
             return registry.selectMapper(acceptHeader);

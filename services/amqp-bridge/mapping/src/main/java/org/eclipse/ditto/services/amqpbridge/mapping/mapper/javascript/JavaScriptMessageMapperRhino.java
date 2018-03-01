@@ -40,7 +40,6 @@ import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMapper;
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMapperConfiguration;
-import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMapperConfigurationProperties;
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMappers;
 import org.mozilla.javascript.Callable;
 import org.mozilla.javascript.Context;
@@ -93,7 +92,7 @@ final class JavaScriptMessageMapperRhino implements MessageMapper {
         return Optional.ofNullable(configuration)
                 .flatMap(MessageMapperConfiguration::findContentType)
                 .orElseThrow(() -> MessageMapperConfigurationInvalidException
-                        .newBuilder(MessageMapperConfigurationProperties.CONTENT_TYPE)
+                        .newBuilder(ExternalMessage.CONTENT_TYPE_HEADER)
                         .build());
     }
 
@@ -129,7 +128,8 @@ final class JavaScriptMessageMapperRhino implements MessageMapper {
                 ScriptableObject.putProperty(scope, MAPPING_BYTEARRAY_VAR, newArray);
             }
 
-            ScriptableObject.putProperty(scope, MAPPING_CONTENT_TYPE_VAR, message.getHeaders().get("content-type"));
+            ScriptableObject.putProperty(scope, MAPPING_CONTENT_TYPE_VAR, message.getHeaders().get(
+                    ExternalMessage.CONTENT_TYPE_HEADER));
             ScriptableObject.putProperty(scope, MAPPING_STRING_VAR, message.getTextPayload().orElse(null));
             ScriptableObject.putProperty(scope, DITTO_PROTOCOL_JSON_VAR, new NativeObject());
 

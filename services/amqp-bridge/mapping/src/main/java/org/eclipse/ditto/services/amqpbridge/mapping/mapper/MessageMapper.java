@@ -34,22 +34,29 @@ public interface MessageMapper {
     String getContentType();
 
     /**
-     * TODO TJ rethink this pattern with the default method for validation - seems wrong
+     * Applies configuration for this MessageMapper by first validating for required configuration items.
+     * <p>
+     * Overwrite this method if you want to apply further configuration validation but think about calling
+     * super.configureWithValidation() as this one validates the existence of the Content-Type which is a mandatory
+     * configuration property.
+     * </p>
      *
-     * @param configuration
+     * @param configuration the configuration to apply and validate
      * @throws MessageMapperConfigurationInvalidException if configuration is invalid
      */
     default void configureWithValidation(final MessageMapperConfiguration configuration) {
         if (!configuration.findContentType().isPresent()) {
             throw MessageMapperConfigurationInvalidException
-                    .newBuilder(MessageMapperConfigurationProperties.CONTENT_TYPE)
+                    .newBuilder(ExternalMessage.CONTENT_TYPE_HEADER)
                     .build();
         }
         configure(configuration);
     }
 
     /**
-     * @param configuration
+     * Applies configuration for this MessageMapper.
+     *
+     * @param configuration the configuration to apply
      * @throws MessageMapperConfigurationInvalidException if configuration is invalid
      */
     void configure(MessageMapperConfiguration configuration);
@@ -57,8 +64,8 @@ public interface MessageMapper {
     /**
      * Maps an {@link org.eclipse.ditto.model.amqpbridge.ExternalMessage} to an {@link org.eclipse.ditto.protocoladapter.Adaptable}
      *
-     * @param message
-     * @return
+     * @param message the ExternalMessage to map
+     * @return the mapped Adaptable
      * @throws org.eclipse.ditto.model.amqpbridge.MessageMappingFailedException if the given message can not be mapped
      * @throws org.eclipse.ditto.model.base.exceptions.DittoRuntimeException if anything during Ditto Adaptable creation
      * went wrong
@@ -68,8 +75,8 @@ public interface MessageMapper {
     /**
      * Maps an {@link org.eclipse.ditto.protocoladapter.Adaptable} to an {@link org.eclipse.ditto.model.amqpbridge.ExternalMessage}
      *
-     * @param adaptable the adaptable
-     * @return the message
+     * @param adaptable the Adaptable to map
+     * @return the ExternalMessage
      * @throws org.eclipse.ditto.model.amqpbridge.MessageMappingFailedException if the given adaptable can not be mapped
      */
     ExternalMessage map(Adaptable adaptable);

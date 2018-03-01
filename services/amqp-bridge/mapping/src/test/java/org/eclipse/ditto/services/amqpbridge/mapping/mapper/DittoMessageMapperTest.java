@@ -87,7 +87,7 @@ public class DittoMessageMapperTest {
     private Map.Entry<ExternalMessage, Adaptable> valid1() {
         Map<String, String> headers = new HashMap<>();
         headers.put("header-key", "header-value");
-        headers.put(MessageMapperConfigurationProperties.CONTENT_TYPE, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
+        headers.put(ExternalMessage.CONTENT_TYPE_HEADER, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
 
         JsonifiableAdaptable adaptable = ProtocolFactory.wrapAsJsonifiableAdaptable(ProtocolFactory.newAdaptableBuilder
                 (ProtocolFactory.newTopicPathBuilder("asd" +
@@ -108,7 +108,7 @@ public class DittoMessageMapperTest {
     private Map.Entry<ExternalMessage, Adaptable> valid2() {
         Map<String, String> headers = new HashMap<>();
         headers.put("header-key", "header-value");
-        headers.put(MessageMapperConfigurationProperties.CONTENT_TYPE, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
+        headers.put(ExternalMessage.CONTENT_TYPE_HEADER, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
 
         JsonObject json = JsonFactory.newObjectBuilder()
                 .set("path","/some/path")
@@ -126,7 +126,7 @@ public class DittoMessageMapperTest {
 
         Map<String, String> headers = new HashMap<>();
         headers.put("header-key", "header-value");
-        headers.put(MessageMappers.CONTENT_TYPE_KEY, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
+        headers.put(ExternalMessage.CONTENT_TYPE_HEADER, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
 
         ExternalMessage message;
         message = AmqpBridgeModelFactory.newExternalMessageBuilderForCommand(headers).withText("").build();
@@ -148,7 +148,7 @@ public class DittoMessageMapperTest {
 
         Map<String, String> headers = new HashMap<>();
         headers.put("header-key", "header-value");
-        headers.put(MessageMappers.CONTENT_TYPE_KEY, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
+        headers.put(ExternalMessage.CONTENT_TYPE_HEADER, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
 
         JsonifiableAdaptable adaptable = ProtocolFactory.wrapAsJsonifiableAdaptable(ProtocolFactory.newAdaptableBuilder
                 (ProtocolFactory.newTopicPathBuilder("asd" +

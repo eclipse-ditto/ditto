@@ -15,6 +15,8 @@ import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.Optional;
 
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
+
 /**
  * Simple wrapper around the headers and the payload received from or sent to external AMQP (0.9 or 1.0)
  * sources/targets.
@@ -22,12 +24,12 @@ import java.util.Optional;
 public interface ExternalMessage {
 
     /**
-     * TODO TJ doc
+     * Message header for the Content-Type.
      */
-    String CONTENT_TYPE_HEADER = "content-type";
+    String CONTENT_TYPE_HEADER = DittoHeaderDefinition.CONTENT_TYPE.getKey();
 
     /**
-     * TODO TJ doc
+     * Message header for the Accept - meaning which Content-Type does a sender accept/expect to get back.
      */
     String ACCEPT_HEADER = "accept";
 

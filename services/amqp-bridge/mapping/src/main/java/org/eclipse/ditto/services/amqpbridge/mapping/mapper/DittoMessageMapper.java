@@ -11,8 +11,6 @@
  */
 package org.eclipse.ditto.services.amqpbridge.mapping.mapper;
 
-import static org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMappers.CONTENT_TYPE_KEY;
-
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -77,7 +75,7 @@ public final class DittoMessageMapper implements MessageMapper {
     public ExternalMessage map(final Adaptable adaptable) {
         final ExternalMessage.MessageType messageType = MessageMappers.determineMessageType(adaptable);
         final Map<String, String> headers = new LinkedHashMap<>(adaptable.getHeaders().orElse(DittoHeaders.empty()));
-        headers.put(CONTENT_TYPE_KEY, getContentType());
+        headers.put(ExternalMessage.CONTENT_TYPE_HEADER, getContentType());
 
         final String jsonString = ProtocolFactory.wrapAsJsonifiableAdaptable(adaptable).toJsonString();
 
@@ -91,7 +89,8 @@ public final class DittoMessageMapper implements MessageMapper {
         if (message.isTextMessage()) {
             payload = message.getTextPayload();
         } else if (message.isBytesMessage()) {
-            final Charset charset = Optional.ofNullable(message.getHeaders().get(MessageMappers.CONTENT_TYPE_KEY))
+            final Charset charset = Optional.ofNullable(message.getHeaders()
+                    .get(ExternalMessage.CONTENT_TYPE_HEADER))
                     .map(MessageMappers::determineCharset)
                     .orElse(StandardCharsets.UTF_8);
             payload = message.getBytePayload().map(ByteBuffer::array).map(ba -> new String(ba, charset));

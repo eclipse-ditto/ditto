@@ -78,7 +78,7 @@ public class ContentTypeRestrictedMessageMapperTest {
 
     @Test
     public void mapMessage() {
-        when(mockMessage.findHeaderIgnoreCase("content-type")).thenReturn(Optional.of("contentType"));
+        when(mockMessage.findHeaderIgnoreCase(ExternalMessage.CONTENT_TYPE_HEADER)).thenReturn(Optional.of("contentType"));
         when(mockMapper.getContentType()).thenReturn("contentType");
 
         final Adaptable actual = underTest.map(mockMessage);
@@ -90,7 +90,7 @@ public class ContentTypeRestrictedMessageMapperTest {
 
     @Test
     public void mapAdaptable() {
-        final DittoHeaders headers = DittoHeaders.of(Collections.singletonMap("content-type", "contentType"));
+        final DittoHeaders headers = DittoHeaders.of(Collections.singletonMap(ExternalMessage.CONTENT_TYPE_HEADER, "contentType"));
         when(mockAdaptable.getHeaders()).thenReturn(Optional.of(headers));
         when(mockMapper.getContentType()).thenReturn("contentType");
 
@@ -125,7 +125,7 @@ public class ContentTypeRestrictedMessageMapperTest {
 
     @Test
     public void mapMessageWithoutDeviationgContentTypesFails() {
-        when(mockMessage.findHeaderIgnoreCase("content-type")).thenReturn(Optional.of("a"));
+        when(mockMessage.findHeaderIgnoreCase(ExternalMessage.CONTENT_TYPE_HEADER)).thenReturn(Optional.of("a"));
         when(mockMapper.getContentType()).thenReturn("b");
 
         assertThatExceptionOfType(MessageMappingFailedException.class).isThrownBy(
@@ -142,7 +142,7 @@ public class ContentTypeRestrictedMessageMapperTest {
 
     @Test
     public void mapAdaptableWithoutDeviationgContentTypesFails() {
-        final DittoHeaders headers = DittoHeaders.of(Collections.singletonMap("content-type", "a"));
+        final DittoHeaders headers = DittoHeaders.of(Collections.singletonMap(ExternalMessage.CONTENT_TYPE_HEADER, "a"));
         when(mockAdaptable.getHeaders()).thenReturn(Optional.of(headers));
         when(mockMapper.getContentType()).thenReturn("b");
 

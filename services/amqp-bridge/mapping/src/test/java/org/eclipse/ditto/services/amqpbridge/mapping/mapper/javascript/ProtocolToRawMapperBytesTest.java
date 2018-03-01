@@ -22,7 +22,6 @@ import org.eclipse.ditto.model.amqpbridge.ExternalMessage;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMapper;
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMapperConfiguration;
-import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMapperConfigurationProperties;
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMappers;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -70,7 +69,7 @@ public class ProtocolToRawMapperBytesTest {
     public void testRhinoMapper() {
         final Map<String, String> headers = new HashMap<>();
         headers.put("correlation-id", "4711-foobar");
-        headers.put(MessageMapperConfigurationProperties.CONTENT_TYPE, CONTENT_TYPE);
+        headers.put(ExternalMessage.CONTENT_TYPE_HEADER, CONTENT_TYPE);
         final ExternalMessage message = AmqpBridgeModelFactory.newExternalMessageBuilder(headers, ExternalMessage
                 .MessageType.EVENT).withBytes(PAYLOAD_BYTEBUFFER).build();
 

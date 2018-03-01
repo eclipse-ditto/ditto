@@ -27,19 +27,10 @@ import org.eclipse.ditto.services.amqpbridge.mapping.mapper.javascript.JavaScrip
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.javascript.JavaScriptMessageMapperFactory;
 
 /**
- * TODO TJ doc
+ * Factory for creating known {@link MessageMapper} instances and helpers useful for {@link MessageMapper}
+ * implementations.
  */
 public final class MessageMappers {
-
-    /**
-     *
-     */
-    public static final String CONTENT_TYPE_KEY = "content-type";
-
-    /**
-     *
-     */
-    public static final String ACCEPT_KEY = "accept";
 
     private static final Pattern CHARSET_PATTERN = Pattern.compile(";.?charset=");
 
@@ -71,9 +62,8 @@ public final class MessageMappers {
             case ERRORS:
                 return ExternalMessage.MessageType.ERRORS;
             default:
-                final String errorMessage = MessageFormat.format("Cannot map '{0}' message. Only [{1}, {2}] allowed.",
-                        criterion.getName(), TopicPath.Criterion.COMMANDS, TopicPath.Criterion.EVENTS);
-                throw new IllegalArgumentException(errorMessage);
+                throw new IllegalArgumentException(MessageFormat.format("Cannot map ''{0}'' message.",
+                        criterion.getName()));
         }
     }
 

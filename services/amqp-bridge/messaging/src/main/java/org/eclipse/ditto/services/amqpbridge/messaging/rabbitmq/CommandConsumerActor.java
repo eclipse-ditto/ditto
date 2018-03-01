@@ -130,7 +130,7 @@ public class CommandConsumerActor extends AbstractActor {
             headersFromProperties.put(DittoHeaderDefinition.CORRELATION_ID.getKey(), properties.getCorrelationId());
         }
         if (properties.getContentType() != null) {
-            headersFromProperties.put(DittoHeaderDefinition.CONTENT_TYPE.getKey(), properties.getContentType());
+            headersFromProperties.put(ExternalMessage.CONTENT_TYPE_HEADER, properties.getContentType());
         }
         headersFromProperties.put(MESSAGE_ID_HEADER, Long.toString(envelope.getDeliveryTag()));
         return headersFromProperties;

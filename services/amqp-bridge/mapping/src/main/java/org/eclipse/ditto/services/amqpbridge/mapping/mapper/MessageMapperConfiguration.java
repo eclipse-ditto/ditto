@@ -16,6 +16,7 @@ import java.util.Optional;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.amqpbridge.ExternalMessage;
 import org.eclipse.ditto.model.amqpbridge.MessageMapperConfigurationInvalidException;
 
 /**
@@ -24,8 +25,9 @@ import org.eclipse.ditto.model.amqpbridge.MessageMapperConfigurationInvalidExcep
 public interface MessageMapperConfiguration {
 
     /**
-     * TODO TJ doc
-     * @return
+     * Returns the configuration properties as Map.
+     *
+     * @return the configuration properties
      */
     Map<String, String> getProperties();
 
@@ -58,7 +60,7 @@ public interface MessageMapperConfiguration {
      * @return the content type value if present
      */
     default Optional<String> findContentType() {
-        return findProperty(MessageMapperConfigurationProperties.CONTENT_TYPE);
+        return findProperty(ExternalMessage.CONTENT_TYPE_HEADER);
     }
 
     /**
@@ -68,7 +70,7 @@ public interface MessageMapperConfiguration {
      * @throws MessageMapperConfigurationInvalidException if content type is missing
      */
     default String getContentType() {
-        return getProperty(MessageMapperConfigurationProperties.CONTENT_TYPE);
+        return getProperty(ExternalMessage.CONTENT_TYPE_HEADER);
     }
 
     /**
@@ -89,9 +91,9 @@ public interface MessageMapperConfiguration {
          */
         default B contentType(@Nullable String contentType) {
             if (contentType != null) {
-                getProperties().put(MessageMapperConfigurationProperties.CONTENT_TYPE, contentType);
+                getProperties().put(ExternalMessage.CONTENT_TYPE_HEADER, contentType);
             } else {
-                getProperties().remove(MessageMapperConfigurationProperties.CONTENT_TYPE);
+                getProperties().remove(ExternalMessage.CONTENT_TYPE_HEADER);
             }
             return (B) this;
         }

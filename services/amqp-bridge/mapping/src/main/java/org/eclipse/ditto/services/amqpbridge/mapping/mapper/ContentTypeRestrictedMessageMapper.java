@@ -12,7 +12,6 @@
 package org.eclipse.ditto.services.amqpbridge.mapping.mapper;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
-import static org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMappers.CONTENT_TYPE_KEY;
 
 import java.util.Map;
 import java.util.Objects;
@@ -101,14 +100,14 @@ final class ContentTypeRestrictedMessageMapper implements MessageMapper {
 
     private static Optional<String> findContentType(final ExternalMessage internalMessage) {
         checkNotNull(internalMessage);
-        return internalMessage.findHeaderIgnoreCase(CONTENT_TYPE_KEY);
+        return internalMessage.findHeaderIgnoreCase(ExternalMessage.CONTENT_TYPE_HEADER);
     }
 
 
     private static Optional<String> findContentType(final Adaptable adaptable) {
         checkNotNull(adaptable);
         return adaptable.getHeaders().map(h -> h.entrySet().stream()
-                .filter(e -> CONTENT_TYPE_KEY.equalsIgnoreCase(e.getKey()))
+                .filter(e -> ExternalMessage.CONTENT_TYPE_HEADER.equalsIgnoreCase(e.getKey()))
                 .findFirst()
                 .map(Map.Entry::getValue).orElse(null));
     }
