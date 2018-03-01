@@ -14,7 +14,10 @@ package org.eclipse.ditto.services.amqpbridge.messaging.amqp;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.text.MessageFormat;
+import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.NotThreadSafe;
 import javax.jms.Connection;
@@ -73,26 +76,17 @@ public final class AmqpConnectionBasedJmsConnectionFactory implements JmsConnect
         final int port = amqpConnection.getPort();
         final boolean failoverEnabled = amqpConnection.isFailoverEnabled();
 
-        final String uri = formatUri(protocol, hostname, port);
+        final String baseUri = formatUri(protocol, hostname, port, failoverEnabled);
 
-        final String uriWithTransportParams;
+        final List<String> uriParams = new ArrayList<>();
         if (!amqpConnection.isValidateCertificates()) {
-            uriWithTransportParams = appendTransportParameters(uri);
-        } else {
-            uriWithTransportParams = uri;
+            uriParams.add(getTransportParameters());
         }
+        uriParams.add(getJmsParameters(id, username, password));
+        uriParams.add(getFailoverParameters());
+        uriParams.add(getAmqpParameters(failoverEnabled));
 
-        final String connectionUri;
-        if (failoverEnabled) {
-            final String uriWrappedWithFailover = wrapWithFailOver(uriWithTransportParams);
-            final String uriWithJmsParams = appendJmsParameters(uriWrappedWithFailover, "?", id, username, password);
-            final String uriWithAmqpParams = appendAmqpParameters(uriWithJmsParams, true);
-            connectionUri = appendFailoverParameters(uriWithAmqpParams);
-        } else {
-            final String uriWithJmsParams = appendJmsParameters(uriWithTransportParams, "&", id, username, password);
-            final String uriWithAmqpParams = appendAmqpParameters(uriWithJmsParams, false);
-            connectionUri = appendFailoverParameters(uriWithAmqpParams);
-        }
+        final String connectionUri = baseUri + uriParams.stream().collect(Collectors.joining("&", "?", ""));
 
         LOGGER.debug("[{}] URI: {}", id, connectionUri);
 
@@ -103,34 +97,31 @@ public final class AmqpConnectionBasedJmsConnectionFactory implements JmsConnect
         return new InitialContext(env);
     }
 
-    private static String formatUri(final String protocol, final String hostname, final int port) {
+    private static String formatUri(final String protocol, final String hostname, final int port,
+            final boolean failoverEnabled) {
         final String pattern = "{0}://{1}:{2}";
-        return MessageFormat.format(pattern, protocol, hostname, Integer.toString(port));
+        final String uri = MessageFormat.format(pattern, protocol, hostname, Integer.toString(port));
+        return failoverEnabled ? wrapWithFailOver(uri) : uri;
     }
 
     @SuppressWarnings("squid:S2068")
-    private static String appendJmsParameters(final String uri, final String uriDelimiter, final String id,
-            final String username, final String password) {
-        final String pattern = "{0}{1}" +
-                "jms.clientID={2}" +
-                "&jms.username={3}" +
-                "&jms.password={4}";
-        return MessageFormat.format(pattern, uri, uriDelimiter, id, username, password);
+    private static String getJmsParameters(final String id, final String username, final String password) {
+        return "jms.clientID=" + id +
+                "&jms.username=" + username +
+                "&jms.password=" + password;
     }
 
-    private static String appendAmqpParameters(final String uri, final boolean nested) {
-        return uri + "?" + (nested ? "failover.nested." : "") + "amqp.saslMechanisms=ANONYMOUS,PLAIN";
+    private static String getAmqpParameters(final boolean nested) {
+        return (nested ? "failover.nested." : "") + "amqp.saslMechanisms=ANONYMOUS,PLAIN";
     }
 
-    private static String appendTransportParameters(final String uri) {
-        return uri +
-                "&transport.trustAll=true" +
+    private static String getTransportParameters() {
+        return "transport.trustAll=true" +
                 "&transport.verifyHost=false";
     }
 
-    private static String appendFailoverParameters(final String uri) {
-        return uri +
-                "&initialReconnectDelay=10s" +
+    private static String getFailoverParameters() {
+        return "initialReconnectDelay=10s" +
                 "&failover.startupMaxReconnectAttempts=1" + // important, we cannot interrupt connection initiation
                 "&reconnectDelay=1s" +
                 "&maxReconnectDelay=1h" +

@@ -159,8 +159,6 @@ public final class ImmutableAmqpConnectionTest {
     public void uriRegexMatchesExpected() {
         final Matcher matcher = URI_PATTERN.matcher("amqps://foo:bar@hono.eclipse.org:5671/vhost");
 
-        System.out.println(URI_PATTERN);
-
         final boolean matches = matcher.matches();
 
         assertThat(matches).isTrue();

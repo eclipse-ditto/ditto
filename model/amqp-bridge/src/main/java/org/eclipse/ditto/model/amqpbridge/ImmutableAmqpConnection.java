@@ -306,7 +306,7 @@ final class ImmutableAmqpConnection implements AmqpConnection {
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "id=" + id +
-                "type=" + connectionType +
+                ", type=" + connectionType +
                 ", authorizationSubject=" + authorizationSubject +
                 ", sources=" + sources +
                 ", eventTarget=" + eventTarget +
