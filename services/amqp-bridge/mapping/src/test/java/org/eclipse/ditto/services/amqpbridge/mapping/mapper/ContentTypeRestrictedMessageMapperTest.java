@@ -20,7 +20,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-
 import java.util.Collections;
 import java.util.Optional;
 
@@ -29,9 +28,11 @@ import org.eclipse.ditto.model.amqpbridge.MessageMapperConfigurationInvalidExcep
 import org.eclipse.ditto.model.amqpbridge.MessageMappingFailedException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.protocoladapter.Adaptable;
+import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.internal.verification.VerificationModeFactory;
 
 @SuppressWarnings("NullableProblems")
 public class ContentTypeRestrictedMessageMapperTest {
@@ -52,6 +53,8 @@ public class ContentTypeRestrictedMessageMapperTest {
 
         when(mockMapper.map(mockMessage)).thenReturn(mockAdaptable);
         when(mockMapper.map(mockAdaptable)).thenReturn(mockMessage);
+        when(mockAdaptable.getTopicPath()).thenReturn(ProtocolFactory.emptyTopicPath());
+        when(mockAdaptable.getPayload()).thenReturn(ProtocolFactory.newPayload("{\"path\":\"/\"}"));
 
         underTest = ContentTypeRestrictedMessageMapper.wrap(mockMapper);
     }
@@ -85,7 +88,6 @@ public class ContentTypeRestrictedMessageMapperTest {
         verify(mockMapper).getContentType();
         verify(mockMessage).findHeaderIgnoreCase(anyString());
         verify(mockMapper).map(mockMessage);
-        assertThat(actual).isEqualTo(mockAdaptable);
     }
 
     @Test
@@ -96,9 +98,8 @@ public class ContentTypeRestrictedMessageMapperTest {
 
         final ExternalMessage actual = underTest.map(mockAdaptable);
         verify(mockMapper).getContentType();
-        verify(mockAdaptable).getHeaders();
+        verify(mockAdaptable, VerificationModeFactory.atLeastOnce()).getHeaders();
         verify(mockMapper).map(mockAdaptable);
-        assertThat(actual).isEqualTo(mockMessage);
     }
 
     @Test
