@@ -9,39 +9,35 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package org.eclipse.ditto.services.amqpbridge.messaging;
+package org.eclipse.ditto.services.amqpbridge.messaging.amqp;
 
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+
+import javax.jms.MessageConsumer;
 
 import org.apache.qpid.jms.exceptions.IdConversionException;
 import org.apache.qpid.jms.message.JmsMessage;
 import org.apache.qpid.jms.provider.amqp.message.AmqpJmsTextMessageFacade;
-import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.amqpbridge.AmqpBridgeModelFactory;
 import org.eclipse.ditto.model.amqpbridge.ExternalMessage;
 import org.eclipse.ditto.model.amqpbridge.MappingContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
-import org.eclipse.ditto.model.base.common.DittoConstants;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
-import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMappers;
+import org.eclipse.ditto.services.amqpbridge.messaging.CommandProcessorActor;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttribute;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -56,9 +52,9 @@ import akka.routing.RoundRobinPool;
 import akka.testkit.javadsl.TestKit;
 
 /**
- * Tests the {@link CommandProcessorActor}.
+ * Tests the AMQP {@link CommandConsumerActor}.
  */
-public class CommandProcessorActorTest {
+public class CommandConsumerActorTest {
 
     private static final Config CONFIG = ConfigFactory.load("test");
 
@@ -80,29 +76,27 @@ public class CommandProcessorActorTest {
     }
 
     @Test
-    @Ignore
     public void plainStringMappingTest() throws IdConversionException {
         new TestKit(actorSystem) {{
             final String targetActorPath = getTestActor().path().toStringWithoutAddress();
             pubSubMediator.tell(new DistributedPubSubMediator.Put(getTestActor()), null);
 
             final List<MappingContext> mappingContexts = new ArrayList<>();
-            // TODO: fix mapping (code below causes timeout in CommandProcessorActorTest)
-//            mappingContexts.add(AmqpBridgeModelFactory.newMappingContext(
-//                    "text/plain",
-//                    "JavaScript",
-//                    PayloadMappers.createJavaScriptMapperConfigurationBuilder()
-//                        .loadMustacheJS(false)
-//                        .incomingMappingScript("ditto_protocolJson.topic = 'org.eclipse.ditto/foo-bar/things/twin/commands/modify';" +
-//                                "ditto_protocolJson.path = '/attributes/foo';" +
-//                                "ditto_protocolJson.headers = ditto_mappingHeaders;" +
-//                                "ditto_protocolJson.value = ditto_mappingString;")
-//                        .outgoingMappingScript("ditto_mappingString = " +
-//                                "\"Topic was: \" + ditto_protocolJson.topic + \"\\n\" +\n" +
-//                                "\"Header correlation-id was: \" + ditto_protocolJson.headers['correlation-id'];")
-//                        .build()
-//                        .getAsMap()
-//            ));
+            mappingContexts.add(AmqpBridgeModelFactory.newMappingContext(
+                    "text/plain",
+                    "JavaScript",
+                    MessageMappers.createJavaScriptMapperConfigurationBuilder()
+                        .loadMustacheJS(false)
+                        .incomingMappingScript("ditto_protocolJson.topic = 'org.eclipse.ditto/foo-bar/things/twin/commands/modify';" +
+                                "ditto_protocolJson.path = '/attributes/foo';" +
+                                "ditto_protocolJson.headers = ditto_mappingHeaders;" +
+                                "ditto_protocolJson.value = ditto_mappingString;")
+                        .outgoingMappingScript("ditto_mappingString = " +
+                                "\"Topic was: \" + ditto_protocolJson.topic + \"\\n\" +\n" +
+                                "\"Header correlation-id was: \" + ditto_protocolJson.headers['correlation-id'];")
+                        .build()
+                        .getProperties()
+            ));
 
             final Props amqpCommandProcessorProps =
                     CommandProcessorActor.props(pubSubMediator, targetActorPath, getRef(),
@@ -110,11 +104,9 @@ public class CommandProcessorActorTest {
                             mappingContexts);
             final String amqpCommandProcessorName = CommandProcessorActor.ACTOR_NAME_PREFIX + "foo";
 
-            final DefaultResizer resizer = new DefaultResizer(1, 5);
-            final ActorRef underTest = actorSystem.actorOf(new RoundRobinPool(2)
-                    .withDispatcher("command-processor-dispatcher")
-                    .withResizer(resizer)
-                    .props(amqpCommandProcessorProps), amqpCommandProcessorName);
+            final ActorRef processor = actorSystem.actorOf(amqpCommandProcessorProps, amqpCommandProcessorName);
+
+            final ActorRef underTest = actorSystem.actorOf(CommandConsumerActor.props("foo", Mockito.mock(MessageConsumer.class), processor));
 
             final String plainPayload = "hello world!";
             final String correlationId = "cor-";
@@ -134,47 +126,12 @@ public class CommandProcessorActorTest {
         }};
     }
 
-    @Ignore
-    public void onExternalMessageWithoutContentTypeAndInvalidText() throws IdConversionException {
-
-        new TestKit(actorSystem) {{
-            ActorRef underTest = setupActor(getTestActor(), new ArrayList<>());
-            ExternalMessage in = AmqpBridgeModelFactory.newExternalMessageBuilderForCommand(Collections.emptyMap()).withText("").build();
-            underTest.tell(in, null);
-            expectNoMsg();
-        }};
-    }
-
-    @Ignore
+    @Test
     public void createWithDefaultMapperOnly() throws IdConversionException {
         new TestKit(actorSystem) {{
             ActorRef underTest = setupActor(getTestActor(), new ArrayList<>());
             ExternalMessage in = AmqpBridgeModelFactory.newExternalMessageBuilderForCommand(Collections.emptyMap()).withText("").build();
             underTest.tell(in, null);
-        }};
-    }
-
-    @Ignore
-    public void onExternalMessageWithoutContentType() throws IdConversionException {
-        // building a json ditto protocol message
-        Map<String, String> headers = new HashMap<>();
-        headers.put(MessageMappers.CONTENT_TYPE_KEY, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
-        JsonifiableAdaptable adaptable = ProtocolFactory.wrapAsJsonifiableAdaptable(ProtocolFactory.newAdaptableBuilder
-                (ProtocolFactory.newTopicPathBuilder("asd:jkl").things().twin().commands().modify().build())
-                .withHeaders(DittoHeaders.of(headers))
-                .withPayload(ProtocolFactory
-                        .newPayloadBuilder(JsonPointer.of("/features"))
-                        .withValue(JsonFactory.nullLiteral())
-                        .build())
-                .build());
-
-        new TestKit(actorSystem) {{
-            ActorRef underTest = setupActor(getTestActor(), new ArrayList<>());
-            ExternalMessage in = AmqpBridgeModelFactory.newExternalMessageBuilderForCommand(Collections.emptyMap())
-                    .withText(adaptable.toJsonString())
-                    .build();
-            underTest.tell(in, null);
-            expectNoMsg();
         }};
     }
 
