@@ -64,7 +64,7 @@ final class CommandConsumerActor extends AbstractActor implements MessageListene
     private final MessageConsumer messageConsumer;
     private final ActorRef commandProcessor;
 
-    CommandConsumerActor(final String source, final MessageConsumer messageConsumer,
+    private CommandConsumerActor(final String source, final MessageConsumer messageConsumer,
             final ActorRef commandProcessor) {
         this.source = checkNotNull(source, "source");
         this.messageConsumer = checkNotNull(messageConsumer);

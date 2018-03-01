@@ -20,7 +20,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.timeout;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -305,7 +304,7 @@ public class AmqpClientActorTest {
             expectMsg(CONNECTED_SUCCESS);
 
             final ArgumentCaptor<MessageListener> captor = ArgumentCaptor.forClass(MessageListener.class);
-            verify(mockConsumer, times(2)).setMessageListener(captor.capture());
+            verify(mockConsumer, timeout(1000).atLeastOnce()).setMessageListener(captor.capture());
             final MessageListener messageListener = captor.getValue();
             messageListener.onMessage(mockMessage());
 
@@ -327,10 +326,9 @@ public class AmqpClientActorTest {
             amqpClientActor.tell(CreateConnection.of(amqpConnection, DittoHeaders.empty()), getRef());
             expectMsg(CONNECTED_SUCCESS);
 
-
             amqpClientActor.tell(TestConstants.thingModified(singletonList("")), getRef());
 
-            verify(mockProducer, timeout(500)).send(mockTextMessage);
+            verify(mockProducer, timeout(2000)).send(mockTextMessage);
         }};
     }
 
