@@ -161,7 +161,7 @@ public class DittoMessageMapperTest {
                 .build());
 
         ExternalMessage message =
-                AmqpBridgeModelFactory.newExternalMessageBuilder(headers).withText(adaptable.toJsonString()).build();
+                AmqpBridgeModelFactory.newExternalMessageBuilderForCommand(headers).withText(adaptable.toJsonString()).build();
         mappings.put(adaptable, message);
 
         final JsonObject json = JsonFactory.newObjectBuilder()
@@ -172,7 +172,7 @@ public class DittoMessageMapperTest {
         adaptable = ProtocolFactory.wrapAsJsonifiableAdaptable(ProtocolFactory.newAdaptableBuilder(adaptable)
                 .withHeaders(DittoHeaders.of(headers)).build());
 
-        message = AmqpBridgeModelFactory.newExternalMessageBuilder(headers).withText(adaptable.toJsonString()).build();
+        message = AmqpBridgeModelFactory.newExternalMessageBuilderForCommand(headers).withText(adaptable.toJsonString()).build();
         mappings.put(adaptable, message);
 
         return mappings;
