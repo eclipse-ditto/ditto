@@ -178,7 +178,8 @@ public final class CommandProcessor {
             throw e;
         } catch (final Exception e) {
             throw MessageMappingFailedException.newBuilder(message.findContentType().orElse(""))
-                    .description("Could not map ExternalMessage due to unknown problem: " + e.getMessage())
+                    .description("Could not map ExternalMessage due to unknown problem: " +
+                            e.getClass().getSimpleName() + " " + e.getMessage())
                     .cause(e)
                     .build();
         }

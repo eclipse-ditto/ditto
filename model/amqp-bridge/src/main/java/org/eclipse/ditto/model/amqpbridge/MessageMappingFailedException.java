@@ -103,7 +103,7 @@ public final class MessageMappingFailedException extends DittoRuntimeException i
 
         private Builder(@Nullable final String contentType) {
             this();
-            final boolean contentTypeAvailable = contentType == null || contentType.isEmpty();
+            final boolean contentTypeAvailable = contentType != null && !contentType.isEmpty();
             message(MessageFormat.format(MESSAGE_TEMPLATE, contentTypeAvailable ? contentType : "<unspecified>"));
             if (contentTypeAvailable) {
                 description(CONTENT_TYPE_MISSING_DESCRIPTION);
