@@ -19,13 +19,22 @@ import java.util.Optional;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.amqpbridge.AmqpBridgeModelFactory;
 import org.eclipse.ditto.model.amqpbridge.ExternalMessage;
+import org.eclipse.ditto.model.amqpbridge.ExternalMessageBuilder;
 import org.eclipse.ditto.model.amqpbridge.MessageMappingFailedException;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.protocoladapter.Adaptable;
+import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 
 /**
  * Does wrap any {@link org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMapper} and adds content type checks
  * to mapping methods. It allows to override the mappers content type by any content type.
+ * <p>
+ * Also adds headers to ExternalMessage and Adaptable in mappings even when the wrapped {@link MessageMapper} does
+ * forget to do so by himself.
+ * </p>
  */
 final class ContentTypeRestrictedMessageMapper implements MessageMapper {
 
@@ -77,7 +86,16 @@ final class ContentTypeRestrictedMessageMapper implements MessageMapper {
                 .orElseThrow(() -> MessageMappingFailedException.newBuilder("").build());
 
         requireMatchingContentType(actualContentType);
-        return delegate.map(message);
+        final Adaptable mapped = delegate.map(message);
+
+        final DittoHeadersBuilder headersBuilder = DittoHeaders.newBuilder(message.getHeaders());
+
+        final Optional<DittoHeaders> headersOpt = mapped.getHeaders();
+        headersOpt.ifPresent(headersBuilder::putHeaders); // overwrite with mapped headers (if any)
+
+        return ProtocolFactory.newAdaptableBuilder(mapped)
+                .withHeaders(headersBuilder.build())
+                .build();
     }
 
     @Override
@@ -86,7 +104,15 @@ final class ContentTypeRestrictedMessageMapper implements MessageMapper {
                 .orElseThrow(() -> MessageMappingFailedException.newBuilder("").build());
 
         requireMatchingContentType(actualContentType);
-        return delegate.map(adaptable);
+        final ExternalMessage mapped = delegate.map(adaptable);
+
+        final ExternalMessageBuilder messageBuilder = AmqpBridgeModelFactory.newExternalMessageBuilder(mapped);
+        adaptable.getHeaders().ifPresent(adaptableHeaders -> {
+            messageBuilder.withAdditionalHeaders(adaptableHeaders);
+            messageBuilder.withAdditionalHeaders(mapped.getHeaders());
+        });
+
+        return messageBuilder.build();
     }
 
 

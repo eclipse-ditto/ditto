@@ -14,7 +14,6 @@ package org.eclipse.ditto.services.amqpbridge.messaging.rabbitmq;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -23,6 +22,7 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.model.amqpbridge.AmqpConnection;
 import org.eclipse.ditto.model.amqpbridge.ExternalMessage;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMappers;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
 import com.newmotion.akka.rabbitmq.ChannelCreated;
@@ -86,7 +86,7 @@ public class RabbitMQPublisherActor extends AbstractActor {
                     if (routingKey != null) {
                         publishMessage(exchange, routingKey, response);
                     } else {
-                        log.debug("Response dropped due to missing replyTo address.");
+                        log.info("Response dropped due to missing replyTo address.");
                     }
                 })
                 .match(ExternalMessage.class, ExternalMessage::isEvent, event -> {
@@ -133,12 +133,12 @@ public class RabbitMQPublisherActor extends AbstractActor {
         final byte[] body;
         if (message.isTextMessage()) {
             body = message.getTextPayload()
-                    .map(text -> text.getBytes(StandardCharsets.UTF_8))
+                    .map(text -> text.getBytes(MessageMappers.determineCharset(contentType)))
                     .orElseThrow(() -> new IllegalArgumentException("Failed to convert text to bytes."));
         } else {
             body = message.getBytePayload()
                     .map(ByteBuffer::array)
-                    .orElseThrow(() -> new IllegalArgumentException("Byte payload was empty."));
+                    .orElse(new byte[]{});
         }
 
         final ChannelMessage channelMessage = ChannelMessage.apply(channel -> {
