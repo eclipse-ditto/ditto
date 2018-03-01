@@ -118,8 +118,8 @@ public class RabbitMQPublisherActor extends AbstractActor {
             return;
         }
 
-        final String contentType = message.getHeaders().get("content-type");
-        final String correlationId = message.getHeaders().get("correlation-id");
+        final String contentType = message.getHeaders().get(ExternalMessage.CONTENT_TYPE_HEADER);
+        final String correlationId = message.getHeaders().get(DittoHeaderDefinition.CORRELATION_ID.getKey());
 
         final Map<String, Object> stringObjectMap =
                 message.getHeaders().entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey,

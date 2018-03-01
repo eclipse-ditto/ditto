@@ -11,11 +11,9 @@
  */
 package org.eclipse.ditto.services.amqpbridge.mapping.mapper;
 
-import static org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMappers.CONTENT_TYPE_KEY;
-
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.text.MessageFormat;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -33,7 +31,6 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
-import org.eclipse.ditto.protocoladapter.TopicPath;
 
 /**
  * A message mapper implementation for the Ditto Protocol.
@@ -76,9 +73,9 @@ public final class DittoMessageMapper implements MessageMapper {
 
     @Override
     public ExternalMessage map(final Adaptable adaptable) {
-        final ExternalMessage.MessageType messageType = determineMessageType(adaptable);
+        final ExternalMessage.MessageType messageType = MessageMappers.determineMessageType(adaptable);
         final Map<String, String> headers = new LinkedHashMap<>(adaptable.getHeaders().orElse(DittoHeaders.empty()));
-        headers.put(CONTENT_TYPE_KEY, getContentType());
+        headers.put(ExternalMessage.CONTENT_TYPE_HEADER, getContentType());
 
         final String jsonString = ProtocolFactory.wrapAsJsonifiableAdaptable(adaptable).toJsonString();
 
@@ -92,16 +89,20 @@ public final class DittoMessageMapper implements MessageMapper {
         if (message.isTextMessage()) {
             payload = message.getTextPayload();
         } else if (message.isBytesMessage()) {
-            // TODO TJ Handle charset correctly
-            payload = message.getBytePayload().map(ByteBuffer::array).map(ba -> new String(ba, StandardCharsets.UTF_8));
+            final Charset charset = Optional.ofNullable(message.getHeaders()
+                    .get(ExternalMessage.CONTENT_TYPE_HEADER))
+                    .map(MessageMappers::determineCharset)
+                    .orElse(StandardCharsets.UTF_8);
+            payload = message.getBytePayload().map(ByteBuffer::array).map(ba -> new String(ba, charset));
         } else {
             payload = Optional.empty();
         }
 
         return payload.filter(s -> !s.isEmpty()).orElseThrow(() ->
                 MessageMappingFailedException.newBuilder(message.findContentType().orElse(""))
-                    .description("As payload was absent or empty, please make sure to send payload in your messages.")
-                    .build());
+                        .description(
+                                "As payload was absent or empty, please make sure to send payload in your messages.")
+                        .build());
     }
 
     /**
@@ -115,28 +116,6 @@ public final class DittoMessageMapper implements MessageMapper {
         final Map<String, String> headers = new HashMap<>(message.getHeaders());
         adaptable.getHeaders().ifPresent(headers::putAll);
         return DittoHeaders.of(headers);
-    }
-
-    private ExternalMessage.MessageType determineMessageType(final Adaptable adaptable) {
-        final TopicPath.Criterion criterion = adaptable.getTopicPath().getCriterion();
-        switch (criterion) {
-            case COMMANDS:
-                if (adaptable.getPayload().getStatus().isPresent()) {
-                    return ExternalMessage.MessageType.RESPONSE;
-                } else {
-                    return ExternalMessage.MessageType.COMMAND;
-                }
-            case EVENTS:
-                return ExternalMessage.MessageType.EVENT;
-            case MESSAGES:
-                return ExternalMessage.MessageType.MESSAGE;
-            case ERRORS:
-                return ExternalMessage.MessageType.ERRORS;
-            default:
-                final String errorMessage = MessageFormat.format("Cannot map '{0}' message. Only [{1}, {2}] allowed.",
-                        criterion.getName(), TopicPath.Criterion.COMMANDS, TopicPath.Criterion.EVENTS);
-                throw new IllegalArgumentException(errorMessage); // TODO TJ other exception
-        }
     }
 
 }

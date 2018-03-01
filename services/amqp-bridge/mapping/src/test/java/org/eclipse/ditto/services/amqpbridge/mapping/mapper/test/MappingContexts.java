@@ -15,16 +15,16 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.eclipse.ditto.model.amqpbridge.AmqpBridgeModelFactory;
+import org.eclipse.ditto.model.amqpbridge.ExternalMessage;
 import org.eclipse.ditto.model.amqpbridge.MappingContext;
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMapper;
-import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMapperConfigurationProperties;
 
 public class MappingContexts {
 
     public static MappingContext mock(final String contentType, final String engine, Map<String, String> options)
     {
-        Map<String, String> opts = new HashMap<>(options);
-        opts.put(MessageMapperConfigurationProperties.CONTENT_TYPE, contentType);
+        final Map<String, String> opts = new HashMap<>(options);
+        opts.put(ExternalMessage.CONTENT_TYPE_HEADER, contentType);
         return AmqpBridgeModelFactory.newMappingContext(contentType, engine, opts);
     }
 
@@ -36,7 +36,7 @@ public class MappingContexts {
 
     public static MappingContext mock(final String contentType, final boolean isValid)
     {
-        Map<String, String> opts = new HashMap<>();
+        final Map<String, String> opts = new HashMap<>();
         opts.put(MockMapper.OPT_IS_VALID, String.valueOf(isValid));
         return mock(contentType, MockMapper.class, opts);
     }

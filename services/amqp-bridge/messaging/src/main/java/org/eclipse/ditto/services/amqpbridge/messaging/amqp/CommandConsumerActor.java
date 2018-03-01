@@ -56,8 +56,6 @@ final class CommandConsumerActor extends AbstractActor implements MessageListene
      */
     static final String ACTOR_NAME_PREFIX = "amqpConsumerActor-";
 
-    private static final String REPLY_TO_HEADER = "replyTo";
-
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
     private final String source;
@@ -168,7 +166,7 @@ final class CommandConsumerActor extends AbstractActor implements MessageListene
 
         final String replyTo = message.getJMSReplyTo() != null ? String.valueOf(message.getJMSReplyTo()) : null;
         if (replyTo != null) {
-            headersFromJmsProperties.put(REPLY_TO_HEADER, replyTo);
+            headersFromJmsProperties.put(ExternalMessage.REPLY_TO_HEADER, replyTo);
         }
 
         final String jmsCorrelationId = message.getJMSCorrelationID() != null ? message.getJMSCorrelationID() :
@@ -182,7 +180,7 @@ final class CommandConsumerActor extends AbstractActor implements MessageListene
             final JmsMessageFacade facade = jmsMessage.getFacade();
             if (facade instanceof AmqpJmsMessageFacade) {
                 final String contentType = ((AmqpJmsMessageFacade) facade).getContentType();
-                headersFromJmsProperties.put(DittoHeaderDefinition.CONTENT_TYPE.getKey(), contentType);
+                headersFromJmsProperties.put(ExternalMessage.CONTENT_TYPE_HEADER, contentType);
             }
 
         }
