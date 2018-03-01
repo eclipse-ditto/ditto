@@ -83,7 +83,10 @@ final class ImmutableMappingContext implements MappingContext {
         final String contentType = jsonObject.getValueOrThrow(JsonFields.CONTENT_TYPE);
         final String mappingEngine = jsonObject.getValueOrThrow(JsonFields.MAPPING_ENGINE);
         final Map<String, String> options = jsonObject.getValueOrThrow(JsonFields.OPTIONS).stream()
-                .collect(Collectors.toMap(e -> e.getKey().toString(), e -> e.getValue().toString()));
+                .collect(Collectors.toMap(
+                        e -> e.getKey().toString(),
+                        e -> e.getValue().isString() ? e.getValue().asString() : e.getValue().toString())
+                );
 
         return of(contentType, mappingEngine, options);
     }
