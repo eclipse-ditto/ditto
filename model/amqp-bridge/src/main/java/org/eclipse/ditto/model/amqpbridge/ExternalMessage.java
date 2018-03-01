@@ -94,9 +94,10 @@ public interface ExternalMessage {
     Optional<ByteBuffer> getBytePayload();
 
     /**
-     * @return the MessageType of this ExternalMessage
+     * @return the MessageType of this ExternalMessage, only makes sense for outgoing messages where the type was
+     * already known.
      */
-    MessageType getMessageType();
+    Optional<MessageType> getMessageType();
 
     /**
      * @return the PayloadType of this ExternalMessage

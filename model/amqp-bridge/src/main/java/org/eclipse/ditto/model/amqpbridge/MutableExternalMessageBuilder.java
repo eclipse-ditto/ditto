@@ -24,6 +24,7 @@ import javax.annotation.Nullable;
 final class MutableExternalMessageBuilder implements ExternalMessageBuilder {
 
     private final Map<String, String> headers;
+    @Nullable
     private final ExternalMessage.MessageType messageType;
     private ExternalMessage.PayloadType payloadType = ExternalMessage.PayloadType.UNKNOWN;
     @Nullable
@@ -40,8 +41,17 @@ final class MutableExternalMessageBuilder implements ExternalMessageBuilder {
         this.headers = new HashMap<>(message.getHeaders());
         this.bytePayload = message.getBytePayload().orElse(null);
         this.textPayload = message.getTextPayload().orElse(null);
-        this.messageType = message.getMessageType();
+        this.messageType = message.getMessageType().orElse(null);
         this.payloadType = message.getPayloadType();
+    }
+
+    /**
+     * Constructs a new MutableExternalMessageBuilder initialized with the passed {@code headers}.
+     *
+     * @param headers the headers to use for initialization.
+     */
+    MutableExternalMessageBuilder(final Map<String, String> headers) {
+        this(headers, null);
     }
 
     /**
@@ -50,7 +60,8 @@ final class MutableExternalMessageBuilder implements ExternalMessageBuilder {
      * @param headers the headers to use for initialization.
      * @param messageType the messageType to use for initialization.
      */
-    MutableExternalMessageBuilder(final Map<String, String> headers, final ExternalMessage.MessageType messageType) {
+    MutableExternalMessageBuilder(final Map<String, String> headers,
+            @Nullable final ExternalMessage.MessageType messageType) {
         this.headers = new HashMap<>(headers);
         this.messageType = messageType;
     }

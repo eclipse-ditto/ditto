@@ -116,8 +116,7 @@ final class CommandConsumerActor extends AbstractActor implements MessageListene
     public void onMessage(final Message message) {
         try {
             final Map<String, String> headers = extractHeadersMapFromJmsMessage(message);
-            // TODO TJ how can we be sure that the message is a command at this point? could be anything ..
-            final ExternalMessageBuilder builder = AmqpBridgeModelFactory.newExternalMessageBuilderForCommand(headers);
+            final ExternalMessageBuilder builder = AmqpBridgeModelFactory.newExternalMessageBuilder(headers);
             extractPayloadFromMessage(message, builder);
             final ExternalMessage externalMessage = builder.build();
             log.debug("Forwarding to processor: {}, {}", externalMessage.getHeaders(),
@@ -160,7 +159,7 @@ final class CommandConsumerActor extends AbstractActor implements MessageListene
 
         final String replyTo = message.getJMSReplyTo() != null ? String.valueOf(message.getJMSReplyTo()) : null;
         if (replyTo != null) {
-            headersFromJmsProperties.put("reply-to", replyTo);
+            headersFromJmsProperties.put("replyTo", replyTo);
         }
 
         final String jmsCorrelationId = message.getJMSCorrelationID() != null ? message.getJMSCorrelationID() :
@@ -168,6 +167,9 @@ final class CommandConsumerActor extends AbstractActor implements MessageListene
         if (jmsCorrelationId != null) {
             headersFromJmsProperties.put(CORRELATION_ID_HEADER, jmsCorrelationId);
         }
+
+//        message. // TODO TJ extract contentType
+
         return headersFromJmsProperties;
     }
 

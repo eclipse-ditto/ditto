@@ -24,7 +24,7 @@ import org.eclipse.ditto.model.amqpbridge.MessageMapperConfigurationInvalidExcep
 public interface MessageMapperConfiguration {
 
     /**
-     *
+     * TODO TJ doc
      * @return
      */
     Map<String, String> getProperties();

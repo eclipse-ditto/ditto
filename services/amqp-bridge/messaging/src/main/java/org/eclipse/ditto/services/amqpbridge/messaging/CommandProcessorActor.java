@@ -103,7 +103,7 @@ public final class CommandProcessorActor extends AbstractActor {
      * @param mappingContexts the mapping contexts to apply for different content-types.
      * @return the Akka configuration Props object
      */
-    static Props props(final ActorRef pubSubMediator, final String pubSubTargetPath,
+    public static Props props(final ActorRef pubSubMediator, final String pubSubTargetPath,
             final ActorRef commandProducer,
             final AuthorizationSubject authorizationSubject,
             final List<MappingContext> mappingContexts) {
