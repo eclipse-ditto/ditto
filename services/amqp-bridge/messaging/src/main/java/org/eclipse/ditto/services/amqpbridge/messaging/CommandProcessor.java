@@ -229,10 +229,21 @@ public final class CommandProcessor {
 
         final Optional<String> acceptHeaderOpt = adaptable.getHeaders()
                 .map(m -> m.get(ExternalMessage.ACCEPT_HEADER));
+        final Optional<String> contentTypeOpt = adaptable.getHeaders()
+                .map(m -> m.get(ExternalMessage.CONTENT_TYPE_HEADER));
         if (acceptHeaderOpt.isPresent()) {
             final String acceptHeader = acceptHeaderOpt.get();
+            log.info("Selecting MessageMapper based on <{}> header <{}> for mapping back Adaptable on " +
+                    "topic <{}>", ExternalMessage.ACCEPT_HEADER, acceptHeader, adaptable.getTopicPath().getPath());
             return registry.selectMapper(acceptHeader);
+        } else if (contentTypeOpt.isPresent()) {
+            final String contentType = contentTypeOpt.get();
+            log.info("Selecting MessageMapper based on <{}> header <{}> for mapping back Adaptable on " +
+                    "topic <{}>", ExternalMessage.CONTENT_TYPE_HEADER, contentType, adaptable.getTopicPath().getPath());
+            return registry.selectMapper(contentType);
         } else {
+            log.info("No header <{}> was set, so using the default MessageMapper for mapping back Adaptable on " +
+                            "topic <{}>", ExternalMessage.ACCEPT_HEADER, adaptable.getTopicPath().getPath());
             return registry.getDefaultMapper();
         }
     }

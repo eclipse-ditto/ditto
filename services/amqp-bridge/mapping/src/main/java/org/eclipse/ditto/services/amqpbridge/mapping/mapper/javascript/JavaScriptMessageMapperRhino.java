@@ -114,6 +114,8 @@ final class JavaScriptMessageMapperRhino implements MessageMapper {
     public Adaptable map(final ExternalMessage message) {
 
         return (Adaptable) contextFactory.call(cx -> {
+            cx.evaluateString(scope, INIT_VARS_TEMPLATE, "init-vars", 1, null);
+
             final NativeObject headersObj = new NativeObject();
             message.getHeaders().forEach((key, value) -> headersObj.put(key, headersObj, value));
             ScriptableObject.putProperty(scope, MAPPING_HEADERS_VAR, headersObj);
@@ -154,6 +156,8 @@ final class JavaScriptMessageMapperRhino implements MessageMapper {
                 ProtocolFactory.wrapAsJsonifiableAdaptable(adaptable);
 
         return (ExternalMessage) contextFactory.call(cx -> {
+            cx.evaluateString(scope, INIT_VARS_TEMPLATE, "init-vars", 1, null);
+
             final Object nativeJsonObject =
                     NativeJSON.parse(cx, scope, jsonifiableAdaptable.toJsonString(), new NullCallable());
             ScriptableObject.putProperty(scope, DITTO_PROTOCOL_JSON_VAR, nativeJsonObject);
@@ -162,8 +166,8 @@ final class JavaScriptMessageMapperRhino implements MessageMapper {
                     getConfiguration().flatMap(JavaScriptMessageMapperConfiguration::getOutgoingMappingScript)
                             .orElse(""), "template", 1, null);
 
-            final String contentType = ScriptableObject.getTypedProperty(scope, MAPPING_CONTENT_TYPE_VAR, String.class);
-            final String mappingString = ScriptableObject.getTypedProperty(scope, MAPPING_STRING_VAR, String.class);
+            final Object contentType = ScriptableObject.getProperty(scope, MAPPING_CONTENT_TYPE_VAR);
+            final Object mappingString = ScriptableObject.getProperty(scope, MAPPING_STRING_VAR);
             final Object mappingByteArray = ScriptableObject.getProperty(scope, MAPPING_BYTEARRAY_VAR);
             final Object mappingHeaders = ScriptableObject.getProperty(scope, MAPPING_HEADERS_VAR);
 
@@ -177,14 +181,17 @@ final class JavaScriptMessageMapperRhino implements MessageMapper {
             }
 
             final ExternalMessageBuilder messageBuilder = AmqpBridgeModelFactory.newExternalMessageBuilder(headers,
-                    MessageMappers.determineMessageType(adaptable))
-                    .withAdditionalHeaders(ExternalMessage.CONTENT_TYPE_HEADER, contentType);
+                    MessageMappers.determineMessageType(adaptable));
+
+            if (!(contentType instanceof Undefined)) {
+                messageBuilder.withAdditionalHeaders(ExternalMessage.CONTENT_TYPE_HEADER, (String) contentType);
+            }
 
             final Optional<ByteBuffer> byteBuffer = convertToByteBuffer(mappingByteArray);
             if (byteBuffer.isPresent()) {
                 messageBuilder.withBytes(byteBuffer.get());
-            } else {
-                messageBuilder.withText(mappingString);
+            } else if (!(mappingString instanceof Undefined)) {
+                messageBuilder.withText((String) mappingString);
             }
 
             return messageBuilder.build();

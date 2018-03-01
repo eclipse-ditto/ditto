@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.amqpbridge.messaging.amqp;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.model.base.headers.DittoHeaderDefinition.CORRELATION_ID;
 
+import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -124,7 +125,7 @@ public final class AmqpPublisherActor extends AbstractActor {
             message = session.createTextMessage(externalMessage.getTextPayload().get());
         } else if (externalMessage.getBytePayload().isPresent()) {
             final BytesMessage bytesMessage = session.createBytesMessage();
-            bytesMessage.writeBytes(externalMessage.getBytePayload().get().array());
+            bytesMessage.writeBytes(externalMessage.getBytePayload().map(ByteBuffer::array).orElse(new byte[]{}));
             message = bytesMessage;
         } else {
             throw new IllegalArgumentException("Only byte or text are supported, dropping.");

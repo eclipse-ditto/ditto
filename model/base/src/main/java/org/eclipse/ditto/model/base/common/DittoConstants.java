@@ -12,7 +12,7 @@
 package org.eclipse.ditto.model.base.common;
 
 /**
- * TODO doc
+ * Global constants for Ditto.
  */
 public final class DittoConstants {
 
@@ -21,7 +21,7 @@ public final class DittoConstants {
     }
 
     /**
-     *
+     * Defines the Ditto Protocol Content-Type.
      */
     public static String DITTO_PROTOCOL_CONTENT_TYPE = "application/vnd.eclipse.ditto+json";
 }
