@@ -71,16 +71,12 @@ public class ThingsUpdaterTest {
     private ThingsSearchUpdaterPersistence persistence;
 
     private ActorSystem actorSystem;
-    private TestProbe thingCache;
-    private TestProbe policyCache;
     private TestProbe shardMessageReceiver;
     private ShardRegionFactory shardRegionFactory;
 
     @Before
     public void setUp() {
         actorSystem = ActorSystem.create("AkkaTestSystem", ConfigFactory.load("test"));
-        thingCache = TestProbe.apply(actorSystem);
-        policyCache = TestProbe.apply(actorSystem);
         shardMessageReceiver = TestProbe.apply(actorSystem);
         shardRegionFactory = TestUtils.getMockedShardRegionFactory(
                 original -> actorSystem.actorOf(TestUtils.getForwarderActorProps(original, shardMessageReceiver.ref())),
@@ -175,9 +171,7 @@ public class ThingsUpdaterTest {
                 persistence,
                 circuitBreaker,
                 eventProcessingActive,
-                activityCheckInterval,
-                thingCache.ref(),
-                policyCache.ref()));
+                activityCheckInterval));
     }
 
     private ThingsSearchUpdaterPersistence waitUntil() {

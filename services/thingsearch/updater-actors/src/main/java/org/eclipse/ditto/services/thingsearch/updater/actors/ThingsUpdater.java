@@ -16,8 +16,6 @@ import java.util.Set;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
-import javax.annotation.Nullable;
-
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
@@ -70,9 +68,7 @@ final class ThingsUpdater extends AbstractActor {
             final ThingsSearchUpdaterPersistence searchUpdaterPersistence,
             final CircuitBreaker circuitBreaker,
             final boolean eventProcessingActive,
-            final Duration thingUpdaterActivityCheckInterval,
-            @Nullable final ActorRef thingCacheFacade,
-            @Nullable final ActorRef policyCacheFacade) {
+            final Duration thingUpdaterActivityCheckInterval) {
 
         final ActorSystem actorSystem = context().system();
 
@@ -84,8 +80,7 @@ final class ThingsUpdater extends AbstractActor {
 
         final Props thingUpdaterProps =
                 ThingUpdater.props(searchUpdaterPersistence, circuitBreaker, thingsShardRegion, policiesShardRegion,
-                        thingUpdaterActivityCheckInterval, ThingUpdater.DEFAULT_THINGS_TIMEOUT, thingCacheFacade,
-                        policyCacheFacade)
+                        thingUpdaterActivityCheckInterval, ThingUpdater.DEFAULT_THINGS_TIMEOUT)
                         .withMailbox("akka.actor.custom-updater-mailbox");
 
         shardRegion = shardRegionFactory.getSearchUpdaterShardRegion(numberOfShards, thingUpdaterProps);
@@ -106,11 +101,7 @@ final class ThingsUpdater extends AbstractActor {
      * @param numberOfShards the number of shards the "search-updater" shardRegion should be started with.
      * @param shardRegionFactory The shard region factory to use when creating sharded actors.
      * @param thingUpdaterActivityCheckInterval the interval at which is checked, if the corresponding Thing is still
-     * actively updated
-     * @param thingCacheFacade the {@link org.eclipse.ditto.services.utils.distributedcache.actors.CacheFacadeActor} for
-     * accessing the Thing cache in cluster.
-     * @param policyCacheFacade the {@link org.eclipse.ditto.services.utils.distributedcache.actors.CacheFacadeActor}
-     * for accessing the Policy cache in cluster.
+     * actively updated.
      * @return the Akka configuration Props object
      */
     static Props props(final int numberOfShards,
@@ -118,18 +109,15 @@ final class ThingsUpdater extends AbstractActor {
             final ThingsSearchUpdaterPersistence searchUpdaterPersistence,
             final CircuitBreaker circuitBreaker,
             final boolean eventProcessingActive,
-            final Duration thingUpdaterActivityCheckInterval,
-            @Nullable final ActorRef thingCacheFacade,
-            @Nullable final ActorRef policyCacheFacade) {
+            final Duration thingUpdaterActivityCheckInterval) {
 
         return Props.create(ThingsUpdater.class, new Creator<ThingsUpdater>() {
             private static final long serialVersionUID = 1L;
 
             @Override
-            public ThingsUpdater create() throws Exception {
+            public ThingsUpdater create() {
                 return new ThingsUpdater(numberOfShards, shardRegionFactory, searchUpdaterPersistence, circuitBreaker,
-                        eventProcessingActive, thingUpdaterActivityCheckInterval, thingCacheFacade,
-                        policyCacheFacade);
+                        eventProcessingActive, thingUpdaterActivityCheckInterval);
             }
         });
     }

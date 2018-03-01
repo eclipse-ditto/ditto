@@ -26,8 +26,6 @@ import org.eclipse.ditto.services.thingsearch.persistence.write.impl.MongoEventT
 import org.eclipse.ditto.services.thingsearch.persistence.write.impl.MongoThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamConsumerSettings;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamMetadataPersistence;
-import org.eclipse.ditto.services.utils.distributedcache.actors.CacheFacadeActor;
-import org.eclipse.ditto.services.utils.distributedcache.actors.CacheRole;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.services.utils.persistence.mongo.streaming.MongoSearchSyncPersistence;
 
@@ -141,26 +139,12 @@ public final class SearchUpdaterRootActor extends AbstractActor {
             log.warning("Event processing is disabled.");
         }
 
-        final boolean cacheUpdatesActive = config.getBoolean(ConfigKeys.CACHE_UPDATES_ACTIVE);
-        if (!cacheUpdatesActive) {
-            log.warning("Cache-updates are disabled.");
-        }
-
-        final ActorRef thingCacheFacade = cacheUpdatesActive ?
-                startChildActor(CacheFacadeActor.actorNameFor(CacheRole.THING),
-                        CacheFacadeActor.props(CacheRole.THING, config)) : null;
-        final ActorRef policyCacheFacade = cacheUpdatesActive ?
-                startChildActor(CacheFacadeActor.actorNameFor(CacheRole.POLICY),
-                        CacheFacadeActor.props(CacheRole.POLICY, config)) : null;
-
         final Duration thingUpdaterActivityCheckInterval =
                 config.getDuration(ConfigKeys.THINGS_ACTIVITY_CHECK_INTERVAL);
         final ShardRegionFactory shardRegionFactory = ShardRegionFactory.getInstance(getContext().getSystem());
         thingsUpdaterActor = startChildActor(ThingsUpdater.ACTOR_NAME, ThingsUpdater
                 .props(numberOfShards, shardRegionFactory, searchUpdaterPersistence, circuitBreaker,
-                        eventProcessingActive,
-                        thingUpdaterActivityCheckInterval, thingCacheFacade,
-                        policyCacheFacade));
+                        eventProcessingActive, thingUpdaterActivityCheckInterval));
 
         final boolean thingsSynchronizationActive = config.getBoolean(ConfigKeys.THINGS_SYNCER_ACTIVE);
         if (thingsSynchronizationActive) {

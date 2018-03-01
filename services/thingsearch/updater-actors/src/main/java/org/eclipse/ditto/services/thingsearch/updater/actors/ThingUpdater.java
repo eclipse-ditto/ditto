@@ -29,8 +29,6 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
-import javax.annotation.Nullable;
-
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
@@ -43,12 +41,10 @@ import org.eclipse.ditto.model.policiesenforcers.PolicyEnforcer;
 import org.eclipse.ditto.model.policiesenforcers.PolicyEnforcers;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingRevision;
-import org.eclipse.ditto.services.models.policies.PolicyCacheEntry;
 import org.eclipse.ditto.services.models.policies.PolicyReferenceTag;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicy;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicyResponse;
 import org.eclipse.ditto.services.models.streaming.IdentifiableStreamingMessage;
-import org.eclipse.ditto.services.models.things.ThingCacheEntry;
 import org.eclipse.ditto.services.models.things.ThingTag;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
@@ -58,7 +54,6 @@ import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpda
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamAck;
 import org.eclipse.ditto.services.utils.cluster.ShardedMessageEnvelope;
-import org.eclipse.ditto.services.utils.distributedcache.actors.RegisterForCacheUpdates;
 import org.eclipse.ditto.signals.commands.base.ErrorResponse;
 import org.eclipse.ditto.signals.commands.policies.PolicyErrorResponse;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyNotAccessibleException;
@@ -78,9 +73,6 @@ import akka.actor.Cancellable;
 import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.actor.Scheduler;
-import akka.cluster.ddata.LWWRegister;
-import akka.cluster.ddata.ReplicatedData;
-import akka.cluster.ddata.Replicator;
 import akka.dispatch.DequeBasedMessageQueueSemantics;
 import akka.dispatch.RequiresMessageQueue;
 import akka.event.DiagnosticLoggingAdapter;
@@ -143,8 +135,6 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
     private final java.time.Duration activityCheckInterval;
     private final ThingsSearchUpdaterPersistence searchUpdaterPersistence;
     private final CircuitBreaker circuitBreaker;
-    private final ActorRef thingCacheFacade;
-    private final ActorRef policyCacheFacade;
     private final Materializer materializer;
 
     // transducer state-transition table
@@ -176,9 +166,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
             final ActorRef policiesShardRegion,
             final ThingsSearchUpdaterPersistence searchUpdaterPersistence,
             final CircuitBreaker circuitBreaker,
-            final java.time.Duration activityCheckInterval,
-            final ActorRef thingCacheFacade,
-            final ActorRef policyCacheFacade) {
+            final java.time.Duration activityCheckInterval) {
 
         this.thingsTimeout = Duration.create(thingsTimeout.toNanos(), TimeUnit.NANOSECONDS);
         this.thingsShardRegion = thingsShardRegion;
@@ -186,16 +174,12 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         this.activityCheckInterval = activityCheckInterval;
         this.searchUpdaterPersistence = searchUpdaterPersistence;
         this.circuitBreaker = circuitBreaker;
-        this.thingCacheFacade = thingCacheFacade;
-        this.policyCacheFacade = policyCacheFacade;
         this.gatheredEvents = new ArrayList<>();
 
         thingId = tryToGetThingId(StandardCharsets.UTF_8);
         materializer = ActorMaterializer.create(getContext());
         transactionActive = false;
         syncAttempts = 0;
-
-        registerForThingCacheUpdates(thingId);
 
         scheduleCheckForThingActivity();
         searchUpdaterPersistence.getThingMetadata(thingId)
@@ -240,10 +224,6 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
      * @param activityCheckInterval the interval at which is checked, if the corresponding Thing is still actively
      * updated.
      * @param thingsTimeout how long to wait for Things and Policies service.
-     * @param thingCacheFacade the {@link org.eclipse.ditto.services.utils.distributedcache.actors.CacheFacadeActor} for
-     * accessing the Thing cache in cluster, may be {@code null}.
-     * @param policyCacheFacade the {@link org.eclipse.ditto.services.utils.distributedcache.actors.CacheFacadeActor}
-     * for accessing the Policy cache in cluster, may be {@code null}.
      * @return the Akka configuration Props object
      */
     static Props props(final ThingsSearchUpdaterPersistence searchUpdaterPersistence,
@@ -251,18 +231,15 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
             final ActorRef thingsShardRegion,
             final ActorRef policiesShardRegion,
             final java.time.Duration activityCheckInterval,
-            final java.time.Duration thingsTimeout,
-            final ActorRef thingCacheFacade,
-            final ActorRef policyCacheFacade) {
+            final java.time.Duration thingsTimeout) {
 
         return Props.create(ThingUpdater.class, new Creator<ThingUpdater>() {
             private static final long serialVersionUID = 1L;
 
             @Override
-            public ThingUpdater create() throws Exception {
+            public ThingUpdater create() {
                 return new ThingUpdater(thingsTimeout, thingsShardRegion, policiesShardRegion,
-                        searchUpdaterPersistence, circuitBreaker, activityCheckInterval, thingCacheFacade,
-                        policyCacheFacade);
+                        searchUpdaterPersistence, circuitBreaker, activityCheckInterval);
             }
         });
     }
@@ -280,33 +257,13 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
                     sequenceNumber = retrievedThingMetadata.getThingRevision();
                     policyId = retrievedThingMetadata.getPolicyId();
                     policyRevision = retrievedThingMetadata.getPolicyRevision();
-                    if (Objects.nonNull(policyId)) {
-                        registerForPolicyCacheUpdates(policyId);
-                    }
+
                     becomeEventProcessing();
                 })
                 .match(ActorInitializationComplete.class, msg -> becomeEventProcessing())
                 .matchAny(msg -> stashWithErrorsIgnored())
                 .build();
     }
-
-    private void registerForPolicyCacheUpdates(final String policyIdForRegistration) {
-        registerForCacheUpdates(policyIdForRegistration, policyCacheFacade);
-    }
-
-    private void registerForThingCacheUpdates(final String thingIdForRegistration) {
-        registerForCacheUpdates(thingIdForRegistration, thingCacheFacade);
-    }
-
-    private void registerForCacheUpdates(final String id, final @Nullable ActorRef cacheFacade) {
-        if (cacheFacade == null) {
-            return;
-        }
-
-        log.debug("Registering for cache updates with id <{}> at <{}>.", id, cacheFacade);
-        cacheFacade.tell(new RegisterForCacheUpdates(id, getSelf()), getSelf());
-    }
-
 
     private void scheduleCheckForThingActivity() {
         log.debug("Scheduling for activity check in <{}> seconds.", activityCheckInterval.getSeconds());
@@ -375,7 +332,6 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
                 .match(PolicyEvent.class, this::processPolicyEvent)
                 .match(ThingTag.class, this::processThingTag)
                 .match(PolicyReferenceTag.class, this::processPolicyReferenceTag)
-                .match(Replicator.Changed.class, this::processChangedCacheEntry)
                 .match(CheckForActivity.class, this::checkActivity)
                 .match(PersistenceWriteResult.class, this::handlePersistenceUpdateResult)
                 .matchAny(m -> {
@@ -453,63 +409,6 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
             triggerSynchronization();
         } else {
             ackSync(true);
-        }
-    }
-
-    @SuppressWarnings("unchecked") // ignore unchecked warning due to scala type parameter bound on changed.get
-    private void processChangedCacheEntry(final Replicator.Changed changed) {
-        final ReplicatedData replicatedData = changed.get(changed.key());
-        if (replicatedData instanceof LWWRegister) {
-            final LWWRegister<?> lwwRegister = (LWWRegister<?>) replicatedData;
-            final Object value = lwwRegister.getValue();
-            if (value instanceof ThingCacheEntry) {
-                processThingCacheEntry((ThingCacheEntry) value);
-            } else if (value instanceof PolicyCacheEntry) {
-                processPolicyCacheEntry((PolicyCacheEntry) value);
-            } else {
-                log.warning("Received unknown changed CacheEntry: {}", value);
-            }
-        }
-    }
-
-    private void processThingCacheEntry(final ThingCacheEntry cacheEntry) {
-        LogUtil.enhanceLogWithCorrelationId(log, "thing-cache-sync");
-
-        log.debug("Received new ThingCacheEntry for thing <{}> with revision <{}>.", thingId,
-                cacheEntry.getRevision());
-
-        if (cacheEntry.getRevision() > sequenceNumber) {
-            if (cacheEntry.isDeleted()) {
-                log.info("ThingCacheEntry was deleted, therefore deleting the Thing from search index: {}", cacheEntry);
-                deleteThingFromSearchIndex();
-            } else {
-                log.info(
-                        "The ThingCacheEntry for the thing <{}> has the revision {} with is greater than the current actor's"
-                                + " sequence number <{}>.", thingId, cacheEntry.getRevision(), sequenceNumber);
-                triggerSynchronization();
-            }
-        }
-    }
-
-    private void processPolicyCacheEntry(final PolicyCacheEntry cacheEntry) {
-        LogUtil.enhanceLogWithCorrelationId(log, "policy-cache-sync");
-
-        log.debug("Received new PolicyCacheEntry for policy <{}> with revision <{}>.", policyId,
-                cacheEntry.getRevision());
-
-        if (cacheEntry.getRevision() > policyRevision) {
-            if (cacheEntry.isDeleted()) {
-                log.info("PolicyCacheEntry was deleted, therefore deleting the Thing from search index: {}",
-                        cacheEntry);
-                policyEnforcer = null;
-                policyRevision = cacheEntry.getRevision();
-                deleteThingFromSearchIndex();
-            } else {
-                log.info(
-                        "The PolicyCacheEntry for the policy <{}> has the revision {} with is greater than the current actor's"
-                                + " sequence number <{}>.", policyId, cacheEntry.getRevision(), policyRevision);
-                triggerSynchronization();
-            }
         }
     }
 
@@ -830,7 +729,6 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
                 policyRevision = -1L; // reset policyRevision
                 policyEnforcer = null; // reset policyEnforcer
                 policyId = policyIdOfThing;
-                registerForPolicyCacheUpdates(policyIdOfThing);
             }
         } else if (hasNonEmptyAcl(thing)) {
             policyRevision = -1L; // reset policyRevision

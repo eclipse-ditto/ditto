@@ -68,11 +68,6 @@ public final class ConfigKeys {
     public static final String EVENT_PROCESSING_ACTIVE = SEARCH_UPDATER_PREFIX + "event-processing.active";
 
     /**
-     * Controls whether thing and policy cache-updates should be active or not.
-     */
-    public static final String CACHE_UPDATES_ACTIVE = SEARCH_UPDATER_PREFIX + "cache-updates.active";
-
-    /**
      * The interval which defines how long a thing updater is considered active. When not active, the corresponding
      * actor can be stopped.
      */
