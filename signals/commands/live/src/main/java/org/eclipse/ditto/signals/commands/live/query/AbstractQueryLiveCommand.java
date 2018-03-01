@@ -55,4 +55,9 @@ abstract class AbstractQueryLiveCommand<T extends LiveCommand<T, B> & ThingQuery
         return thingQueryCommand.getSelectedFields();
     }
 
+    @Override
+    public Category getCategory() {
+        return Category.QUERY;
+    }
+
 }

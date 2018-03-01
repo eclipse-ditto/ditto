@@ -72,11 +72,6 @@ public abstract class AbstractLiveCommand<T extends LiveCommand<T, B>, B extends
     }
 
     @Override
-    public Category getCategory() {
-        return Category.LIVE;
-    }
-
-    @Override
     public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> predicate) {
         return command.toJson(schemaVersion, predicate);
     }

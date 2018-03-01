@@ -117,11 +117,7 @@ public interface Command<T extends Command> extends Signal<T> {
         /**
          * Category of commands that delete entities.
          */
-        DELETE,
-        /**
-         * Category of commands for messages and live commands.
-         */
-        LIVE
+        DELETE
     }
 
 }

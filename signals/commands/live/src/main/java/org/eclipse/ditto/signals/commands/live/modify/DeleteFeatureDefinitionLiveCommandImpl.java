@@ -55,6 +55,11 @@ final class DeleteFeatureDefinitionLiveCommandImpl
     }
 
     @Override
+    public Category getCategory() {
+        return Category.DELETE;
+    }
+
+    @Override
     public DeleteFeatureDefinitionLiveCommand setDittoHeaders(final DittoHeaders dittoHeaders) {
         return new DeleteFeatureDefinitionLiveCommandImpl(DeleteFeatureDefinition.of(getThingId(), getFeatureId(),
                 dittoHeaders));
