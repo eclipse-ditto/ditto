@@ -48,8 +48,6 @@ public final class AmqpPublisherActor extends AbstractActor {
      */
     static final String ACTOR_NAME = "amqpPublisherActor";
 
-    private static final String REPLY_TO_HEADER = "replyTo";
-
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
     private final Session session;
@@ -86,7 +84,7 @@ public final class AmqpPublisherActor extends AbstractActor {
                     final String correlationId = response.getHeaders().get(CORRELATION_ID.getKey());
                     LogUtil.enhanceLogWithCorrelationId(log, correlationId);
                     log.debug("Received command response {} ", response);
-                    final String replyToFromHeader = response.getHeaders().get(REPLY_TO_HEADER);
+                    final String replyToFromHeader = response.getHeaders().get(ExternalMessage.REPLY_TO_HEADER);
                     final String replyToFromConfig = amqpConnection.getReplyTarget().orElse(null);
                     if (replyToFromHeader != null) {
                         sendMessage(replyToFromHeader, response);

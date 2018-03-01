@@ -32,6 +32,11 @@ public interface ExternalMessage {
     String ACCEPT_HEADER = "accept";
 
     /**
+     * Message header for the reply to address.
+     */
+    String REPLY_TO_HEADER = "replyTo";
+
+    /**
      * @return the headers of the ExternalMessage
      */
     Map<String, String> getHeaders();

@@ -43,7 +43,6 @@ public class RabbitMQPublisherActor extends AbstractActor {
      */
     static final String ACTOR_NAME_PREFIX = "rmqPublisherActor-";
 
-    private static final String REPLY_TO_HEADER = "replyTo";
     private static final String DEFAULT_EXCHANGE = "";
     private static final String DEFAULT_EVENT_ROUTING_KEY = "thingEvent";
 
@@ -83,7 +82,7 @@ public class RabbitMQPublisherActor extends AbstractActor {
                     LogUtil.enhanceLogWithCorrelationId(log, correlationId);
                     log.debug("Received response {} ", response);
                     final String exchange = amqpConnection.getReplyTarget().orElse(DEFAULT_EXCHANGE);
-                    final String routingKey = response.getHeaders().get(REPLY_TO_HEADER);
+                    final String routingKey = response.getHeaders().get(ExternalMessage.REPLY_TO_HEADER);
                     if (routingKey != null) {
                         publishMessage(exchange, routingKey, response);
                     } else {
