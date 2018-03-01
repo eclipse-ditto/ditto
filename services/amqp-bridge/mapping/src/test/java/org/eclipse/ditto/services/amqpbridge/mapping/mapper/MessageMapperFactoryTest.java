@@ -14,9 +14,7 @@ package org.eclipse.ditto.services.amqpbridge.mapping.mapper;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -27,7 +25,6 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.model.amqpbridge.AmqpBridgeModelFactory;
-import org.eclipse.ditto.model.amqpbridge.ExternalMessage;
 import org.eclipse.ditto.model.amqpbridge.MappingContext;
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.test.Mappers;
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.test.MappingContexts;
@@ -43,6 +40,7 @@ import akka.actor.ExtendedActorSystem;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.testkit.javadsl.TestKit;
 
+@SuppressWarnings("NullableProblems")
 public class MessageMapperFactoryTest {
 
     private static ActorSystem system;
@@ -85,8 +83,7 @@ public class MessageMapperFactoryTest {
 
         final Optional<MessageMapper> underTest = factory.mapperOf(ctx);
         assertThat(underTest).isPresent();
-        assertThat(underTest.get().getContentType()).isEqualTo(contentType);
-//        assertThat(underTest.get().isContentTypeRequired()).isEqualTo(isContentTypeRequired);
+        assertThat(underTest.get().getContentType().get()).isEqualTo(contentType);
     }
 
     @Test
@@ -98,8 +95,7 @@ public class MessageMapperFactoryTest {
 
         final Optional<MessageMapper> underTest = factory.mapperOf(ctx);
         assertThat(underTest).isPresent();
-        assertThat(underTest.get().getContentType()).isEqualTo(contentType);
-//        assertThat(underTest.get().isContentTypeRequired()).isEqualTo(isContentTypeRequired);
+        assertThat(underTest.get().getContentType().get()).isEqualTo(contentType);
     }
 
     @Test
@@ -180,21 +176,6 @@ public class MessageMapperFactoryTest {
         assertThat(factory.mapperOf(ctx)).isEmpty();
     }
 
-    @Test
-    public void loadMapperWithoutRequiredContentTypeOptionSetsRequireContentTypeToTrue() {
-        final String contentType = "test";
-        Map<String, String> opts = new HashMap<>();
-//        opts.put(MessageMapper.OPT_CONTENT_TYPE, contentType);
-        opts.put(MockMapper.OPT_IS_VALID, String.valueOf(true));
-
-        final MappingContext ctx =
-                AmqpBridgeModelFactory.newMappingContext(contentType, MockMapper.class.getCanonicalName(), opts);
-        final Optional<MessageMapper> underTest = factory.mapperOf(ctx);
-        assertThat(underTest).isPresent();
-        assertThat(underTest.get().getContentType()).isEqualTo(contentType);
-//        assertThat(underTest.get().isContentTypeRequired()).isEqualTo(true);
-    }
-
 
     @Test
     public void loadMappers() {
@@ -228,19 +209,22 @@ public class MessageMapperFactoryTest {
         final String barMessage = "bar";
         final String otherMessage = "other";
 
-        final MessageMapper defaultMapper = new MockMapper(); // default mapper with null content type
-
         final List<MappingContext> contexts = Arrays.asList(fooCtx, barCtx);
         MessageMapperRegistry underTest = factory.registryOf(DittoMessageMapper.CONTEXT, contexts);
-        assertThat(underTest.getDefaultMapper().equals(defaultMapper)).isTrue();
-        assertThat(underTest.findMapper(fooMessage)).isPresent().map(MessageMapper::getContentType)
+        assertThat(underTest.getMappers().size()).isEqualTo(2);
+        assertThat(underTest.getDefaultMapper()).isEqualTo(new DittoMessageMapper());
+        assertThat(underTest.findMapper(fooMessage)).isPresent()
+                .map(MessageMapper::getContentType)
+                .map(Optional::get)
                 .isEqualTo(Optional.of("foo"));
-        assertThat(underTest.findMapper(barMessage)).isPresent().map(MessageMapper::getContentType)
-                .isEqualTo(Optional.of("foo"));
+        assertThat(underTest.findMapper(barMessage)).isPresent()
+                .map(MessageMapper::getContentType)
+                .map(Optional::get)
+                .isEqualTo(Optional.of("bar"));
         assertThat(underTest.findMapper(otherMessage)).isEmpty();
 
         //select uses default mapper
-        assertThat(underTest.selectMapper(otherMessage)).isEqualTo(defaultMapper);
+        assertThat(underTest.selectMapper(otherMessage)).isEqualTo(new DittoMessageMapper());
     }
 
 }

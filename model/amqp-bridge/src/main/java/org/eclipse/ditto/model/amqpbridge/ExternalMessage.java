@@ -22,6 +22,11 @@ import java.util.Optional;
 public interface ExternalMessage {
 
     /**
+     * TODO TJ doc
+     */
+    String CONTENT_TYPE_HEADER = "content-type";
+
+    /**
      * @return the headers of the ExternalMessage
      */
     Map<String, String> getHeaders();
@@ -38,6 +43,13 @@ public interface ExternalMessage {
      * @return new instance of {@link ExternalMessage} including the provided headers
      */
     ExternalMessage withHeaders(Map<String, String> additionalHeaders);
+
+    /**
+     * @return the optional value of the Content-Type header
+     */
+    default Optional<String> findContentType() {
+        return findHeaderIgnoreCase(CONTENT_TYPE_HEADER);
+    }
 
     /**
      * @param key the key to look up in the headers

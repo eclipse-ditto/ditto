@@ -33,7 +33,7 @@ public final class DefaultMessageMapperRegistry implements MessageMapperRegistry
         this.defaultMapper = checkNotNull(defaultMapper);
         this.mappers = Collections.unmodifiableMap(
                 mappers.stream()
-                        .filter(m -> !m.getContentType().isPresent())
+                        .filter(m -> m.getContentType().isPresent())
                         .collect(Collectors.toMap(m -> m.getContentType().orElseThrow(
                                 () -> new IllegalArgumentException(
                                         "Mappers contains a mapper without content type: " + m)),

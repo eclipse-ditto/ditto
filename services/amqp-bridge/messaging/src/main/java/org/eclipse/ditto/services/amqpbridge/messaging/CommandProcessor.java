@@ -17,16 +17,16 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.amqpbridge.ExternalMessage;
 import org.eclipse.ditto.model.amqpbridge.MappingContext;
+import org.eclipse.ditto.model.amqpbridge.MessageMappingFailedException;
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.protocoladapter.Adaptable;
@@ -39,7 +39,7 @@ import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMappers;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
-import org.eclipse.ditto.signals.events.things.ThingEvent;
+import org.eclipse.ditto.signals.events.base.Event;
 
 import akka.actor.DynamicAccess;
 import akka.event.DiagnosticLoggingAdapter;
@@ -92,7 +92,6 @@ public final class CommandProcessor {
      *
      * @return the content types
      */
-    @Nonnull
     public List<String> getSupportedContentTypes() {
         return registry.getMappers().stream()
                 .map(MessageMapper::getContentType)
@@ -112,15 +111,12 @@ public final class CommandProcessor {
 
     /**
      * Processes a message to a command
+     *
      * @param message the message
      * @return the command
      * @throws RuntimeException if something went wrong
      */
-    @Nullable
-    public Command process(@Nullable final ExternalMessage message) {
-        if (Objects.isNull(message)) {
-            return null;
-        }
+    public Command process(final ExternalMessage message) {
 
         final String correlationId = DittoHeaders.of(message.getHeaders()).getCorrelationId()
                 .orElse("no-correlation-id");
@@ -131,15 +127,12 @@ public final class CommandProcessor {
 
     /**
      * Processes a response to a message
+     *
      * @param response the response
      * @return the message
      * @throws RuntimeException if something went wrong
      */
-    @Nullable
-    public ExternalMessage process(@Nullable final CommandResponse response) {
-        if (Objects.isNull(response)) {
-            return null;
-        }
+    public ExternalMessage process(final CommandResponse response) {
 
         final String correlationId = response.getDittoHeaders().getCorrelationId().orElse("no-correlation-id");
         return doApplyTraced(
@@ -148,22 +141,18 @@ public final class CommandProcessor {
     }
 
     /**
-     * Processes a thing event to a message
+     * Processes an event to a message
      *
-     * @param thingEvent the thing event
+     * @param event the event
      * @return the message
      * @throws RuntimeException if something went wrong
      */
-    @Nullable
-    public ExternalMessage process(@Nullable final ThingEvent thingEvent) {
-        if (Objects.isNull(thingEvent)) {
-            return null;
-        }
+    public ExternalMessage process(final Event event) {
 
-        final String correlationId = thingEvent.getDittoHeaders().getCorrelationId().orElse("no-correlation-id");
+        final String correlationId = event.getDittoHeaders().getCorrelationId().orElse("no-correlation-id");
         return doApplyTraced(
                 () -> createProcessingContext(CONTEXT_NAME, correlationId),
-                ctx -> convertToExternalMessage(() -> PROTOCOL_ADAPTER.toAdaptable(thingEvent), ctx));
+                ctx -> convertToExternalMessage(() -> PROTOCOL_ADAPTER.toAdaptable(event), ctx));
     }
 
     private Command<?> convertMessage(final ExternalMessage message, final TraceContext ctx) {
@@ -187,8 +176,13 @@ public final class CommandProcessor {
                         return command.setDittoHeaders(dittoHeadersBuilder.build());
                     }
             );
+        } catch (final DittoRuntimeException e) {
+            throw e;
         } catch (final Exception e) {
-            throw new IllegalArgumentException("Converting message failed: " + e.getMessage(), e);
+            throw MessageMappingFailedException.newBuilder(message.findContentType().orElse("?"))
+                    .description("Could not map ExternalMessage due to unknown problem: " + e.getMessage())
+                    .cause(e)
+                    .build();
         }
     }
 
@@ -207,25 +201,42 @@ public final class CommandProcessor {
                     () -> createSegment(ctx, MAPPING_SEGMENT_NAME, true),
                     () -> getMapper(adaptable).map(adaptable)
             );
+        } catch (final DittoRuntimeException e) {
+            throw e;
         } catch (final Exception e) {
-            throw new IllegalArgumentException("Converting response failed: " + e.getMessage(), e);
+            final String contentType = adaptableSupplier.get()
+                    .getHeaders()
+                    .map(h -> h.get(ExternalMessage.CONTENT_TYPE_HEADER))
+                    .orElse("?");
+            throw MessageMappingFailedException.newBuilder(contentType)
+                    .description("Could not map Adaptable due to unknown problem: " + e.getMessage())
+                    .cause(e)
+                    .build();
         }
     }
 
     private MessageMapper getMapper(final ExternalMessage message) {
-        return message.findHeader(MessageMappers.CONTENT_TYPE_KEY)
-                .map(registry::selectMapper)
-                .orElseThrow(
-                () -> new IllegalArgumentException("No mapper found for message: " + message)
-        );
+        final Optional<String> contentType = message.findContentType();
+        if (!contentType.isPresent()) {
+            return registry.getDefaultMapper();
+        }
+
+        return contentType.map(registry::selectMapper) // this falls back to the default mapper for unknown content-types
+                .orElseThrow(() ->
+                        MessageMappingFailedException.newBuilder(message.findContentType().orElse("?"))
+                                .description("Make sure you specify the 'Content-Type' when sending your message")
+                                .build()
+                );
     }
 
     private MessageMapper getMapper(final Adaptable adaptable) {
         return adaptable.getHeaders()
-                .map(m -> m.get(MessageMappers.CONTENT_TYPE_KEY))
-                .map(registry::selectMapper).orElseThrow(
-                () -> new IllegalArgumentException("No mapper found for adaptable: " + adaptable)
-        );
+                .map(m -> m.get(
+                        MessageMappers.CONTENT_TYPE_KEY)) // TODO TJ instead of content-type check for "Accepts" header
+                .map(registry::selectMapper)
+                .orElseThrow(() -> // TODO TJ replace exception
+                        new IllegalArgumentException("No mapper found for adaptable: " + adaptable)
+                );
     }
 
     private void doUpdateCorrelationId(final Adaptable adaptable) {

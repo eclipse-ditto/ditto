@@ -31,6 +31,7 @@ import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
+import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 import com.google.common.cache.Cache;
@@ -156,9 +157,10 @@ public final class CommandProcessorActor extends AbstractActor {
             log.info("Publishing '{}' to '{}'", command.getType(), pubSubTargetPath);
             pubSubMediator.tell(new DistributedPubSubMediator.Send(pubSubTargetPath, command, true),
                     getSelf());
+        } catch (final DittoRuntimeException e) {
+            handleDittoRuntimeException(e);
         } catch (final Exception e) {
-            // TODO the exception has two causes, we should either reduce this or print the root cause here, too
-            log.info(e.getMessage());
+            log.warning("Got <{}> when message was processed: <{}>", e.getClass().getSimpleName(), e.getMessage());
         }
     }
 
@@ -172,8 +174,8 @@ public final class CommandProcessorActor extends AbstractActor {
     private void logDittoRuntimeException(final DittoRuntimeException exception) {
         LogUtil.enhanceLogWithCorrelationId(log, exception);
 
-        final String msgTemplate = "Got DittoRuntimeException '{}' when command via AMQP was processed: {}";
-        log.info(msgTemplate, exception.getErrorCode(), exception.getMessage());
+        log.info( "Got DittoRuntimeException '{}' when command via AMQP was processed: {}",
+                exception.getErrorCode(), exception.getMessage());
     }
 
     private void handleCommandResponse(final CommandResponse<?> response) {
@@ -189,18 +191,22 @@ public final class CommandProcessorActor extends AbstractActor {
         try {
             final ExternalMessage message = processor.process(response);
             commandProducer.forward(message, context());
+        } catch (final DittoRuntimeException e) {
+            log.info("Got DittoRuntimeException during processing CommandResponse: <{}>", e.getMessage());
         } catch (final Exception e) {
-            log.info(e.getMessage());
+            log.warning("Got unexpected exception during processing CommandResponse: <{}>", e.getMessage());
         }
     }
 
-    private void handleThingEvent(final ThingEvent<?> thingEvent) {
-        LogUtil.enhanceLogWithCorrelationId(log, thingEvent);
+    private void handleThingEvent(final Event<?> event) {
+        LogUtil.enhanceLogWithCorrelationId(log, event);
         try {
-            final ExternalMessage message = processor.process(thingEvent);
+            final ExternalMessage message = processor.process(event);
             commandProducer.forward(message, context());
+        } catch (final DittoRuntimeException e) {
+            log.info("Got DittoRuntimeException during processing Event: <{}>", e.getMessage());
         } catch (final Exception e) {
-            log.info(e.getMessage());
+            log.warning("Got unexpected exception during processing Event: <{}>", e.getMessage());
         }
     }
 
