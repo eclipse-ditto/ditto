@@ -93,7 +93,7 @@ final class CommandConsumerActor extends AbstractActor implements MessageListene
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
-                .match(Message.class, this::onMessage)
+                .match(Message.class, this::handleJmsMessage)
                 .matchAny(m -> {
                     log.debug("Unknown message: {}", m);
                     unhandled(m);
@@ -119,6 +119,10 @@ final class CommandConsumerActor extends AbstractActor implements MessageListene
 
     @Override
     public void onMessage(final Message message) {
+        self().tell(message, ActorRef.noSender());
+    }
+
+    private void handleJmsMessage(final Message message) {
         try {
             final Map<String, String> headers = extractHeadersMapFromJmsMessage(message);
             final ExternalMessageBuilder builder = AmqpBridgeModelFactory.newExternalMessageBuilder(headers);
