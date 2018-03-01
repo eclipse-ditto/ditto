@@ -20,6 +20,7 @@ import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -31,6 +32,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.amqpbridge.AmqpBridgeModelFactory;
 import org.eclipse.ditto.model.amqpbridge.ExternalMessage;
+import org.eclipse.ditto.model.amqpbridge.ExternalMessageBuilder;
 import org.eclipse.ditto.model.amqpbridge.MessageMapperConfigurationInvalidException;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.protocoladapter.Adaptable;
@@ -39,6 +41,7 @@ import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMapper;
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMapperConfiguration;
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMapperConfigurationProperties;
+import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMappers;
 import org.mozilla.javascript.Callable;
 import org.mozilla.javascript.Context;
 import org.mozilla.javascript.ContextFactory;
@@ -130,8 +133,9 @@ final class JavaScriptMessageMapperRhino implements MessageMapper {
             ScriptableObject.putProperty(scope, MAPPING_STRING_VAR, message.getTextPayload().orElse(null));
             ScriptableObject.putProperty(scope, DITTO_PROTOCOL_JSON_VAR, new NativeObject());
 
-            cx.evaluateString(scope, getConfiguration().flatMap(JavaScriptMessageMapperConfiguration::getIncomingMappingScript)
-                    .orElse(""), "template", 1, null);
+            cx.evaluateString(scope,
+                    getConfiguration().flatMap(JavaScriptMessageMapperConfiguration::getIncomingMappingScript)
+                            .orElse(""), "template", 1, null);
 
             final Object dittoProtocolJson = ScriptableObject.getProperty(scope, DITTO_PROTOCOL_JSON_VAR);
             final String dittoProtocolJsonStr =
@@ -149,27 +153,41 @@ final class JavaScriptMessageMapperRhino implements MessageMapper {
         final JsonifiableAdaptable jsonifiableAdaptable =
                 ProtocolFactory.wrapAsJsonifiableAdaptable(adaptable);
 
-        return (ExternalMessage) contextFactory.call(cx ->{
+        return (ExternalMessage) contextFactory.call(cx -> {
             final Object nativeJsonObject =
                     NativeJSON.parse(cx, scope, jsonifiableAdaptable.toJsonString(), new NullCallable());
             ScriptableObject.putProperty(scope, DITTO_PROTOCOL_JSON_VAR, nativeJsonObject);
 
-            cx.evaluateString(scope, getConfiguration().flatMap(JavaScriptMessageMapperConfiguration::getOutgoingMappingScript)
-                    .orElse(""), "template", 1, null);
+            cx.evaluateString(scope,
+                    getConfiguration().flatMap(JavaScriptMessageMapperConfiguration::getOutgoingMappingScript)
+                            .orElse(""), "template", 1, null);
 
             final String contentType = ScriptableObject.getTypedProperty(scope, MAPPING_CONTENT_TYPE_VAR, String.class);
             final String mappingString = ScriptableObject.getTypedProperty(scope, MAPPING_STRING_VAR, String.class);
             final Object mappingByteArray = ScriptableObject.getProperty(scope, MAPPING_BYTEARRAY_VAR);
             final Object mappingHeaders = ScriptableObject.getProperty(scope, MAPPING_HEADERS_VAR);
 
-            final Map<String, String> headers = !(mappingHeaders instanceof Undefined) ? null : Collections.emptyMap();
-            //TODO pm evaulate if bytes or text payload
-            // TODO TJ it is not always response! could be also event or error
-            return AmqpBridgeModelFactory.newExternalMessageBuilder(headers, ExternalMessage.MessageType.RESPONSE)
-                    .withAdditionalHeaders(ExternalMessage.CONTENT_TYPE_HEADER, contentType)
-                    .withText(mappingString)
-                    .build();
+            final Map<String, String> headers;
+            if (mappingHeaders != null && !(mappingHeaders instanceof Undefined)) {
+                headers = new HashMap<>();
+                final Map jsHeaders = (Map) mappingHeaders;
+                jsHeaders.forEach((key, value) -> headers.put((String) key, value.toString()));
+            } else {
+                headers = Collections.emptyMap();
+            }
 
+            final ExternalMessageBuilder messageBuilder = AmqpBridgeModelFactory.newExternalMessageBuilder(headers,
+                    MessageMappers.determineMessageType(adaptable))
+                    .withAdditionalHeaders(ExternalMessage.CONTENT_TYPE_HEADER, contentType);
+
+            final Optional<ByteBuffer> byteBuffer = convertToByteBuffer(mappingByteArray);
+            if (byteBuffer.isPresent()) {
+                messageBuilder.withBytes(byteBuffer.get());
+            } else {
+                messageBuilder.withText(mappingString);
+            }
+
+            return messageBuilder.build();
         });
     }
 
@@ -193,7 +211,8 @@ final class JavaScriptMessageMapperRhino implements MessageMapper {
         return Optional.ofNullable(configuration);
     }
 
-    private void loadJavascriptLibrary(final Context cx, final Scriptable scope, final Reader reader, final String libraryName) {
+    private void loadJavascriptLibrary(final Context cx, final Scriptable scope, final Reader reader,
+            final String libraryName) {
 
         try {
             cx.evaluateReader(scope, reader, libraryName, 1, null);
@@ -202,7 +221,7 @@ final class JavaScriptMessageMapperRhino implements MessageMapper {
         }
     }
 
-    private static ByteBuffer convertToByteBuffer(final Object obj) {
+    private static Optional<ByteBuffer> convertToByteBuffer(final Object obj) {
         if (obj instanceof Bindings) {
             try {
                 final Class<?> cls = Class.forName("jdk.nashorn.api.scripting.ScriptObjectMirror");
@@ -216,7 +235,7 @@ final class JavaScriptMessageMapperRhino implements MessageMapper {
                             final ByteArrayOutputStream baos = new ByteArrayOutputStream();
                             final Collection coll = (Collection) vals;
                             coll.forEach(e -> baos.write(((Number) e).intValue()));
-                            return ByteBuffer.wrap(baos.toByteArray());
+                            return Optional.of(ByteBuffer.wrap(baos.toByteArray()));
                         }
                     }
                 }
@@ -229,9 +248,9 @@ final class JavaScriptMessageMapperRhino implements MessageMapper {
             final List<?> list = (List<?>) obj;
             final ByteArrayOutputStream baos = new ByteArrayOutputStream();
             list.forEach(e -> baos.write(((Number) e).intValue()));
-            return ByteBuffer.wrap(baos.toByteArray());
+            return Optional.of(ByteBuffer.wrap(baos.toByteArray()));
         }
-        return null;
+        return Optional.empty();
     }
 
     /**
