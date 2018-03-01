@@ -19,6 +19,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -33,11 +34,7 @@ public final class DefaultMessageMapperRegistry implements MessageMapperRegistry
         this.defaultMapper = checkNotNull(defaultMapper);
         this.mappers = Collections.unmodifiableMap(
                 mappers.stream()
-                        .filter(m -> m.getContentType().isPresent())
-                        .collect(Collectors.toMap(m -> m.getContentType().orElseThrow(
-                                () -> new IllegalArgumentException(
-                                        "Mappers contains a mapper without content type: " + m)),
-                                m -> m))
+                        .collect(Collectors.toMap(MessageMapper::getContentType, Function.identity()))
         );
     }
 
@@ -69,8 +66,12 @@ public final class DefaultMessageMapperRegistry implements MessageMapperRegistry
 
     @Override
     public boolean equals(final Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         final DefaultMessageMapperRegistry that = (DefaultMessageMapperRegistry) o;
         return Objects.equals(mappers, that.mappers) &&
                 Objects.equals(defaultMapper, that.defaultMapper);

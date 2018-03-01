@@ -46,7 +46,11 @@ final class ImmutableMappingContext implements MappingContext {
 
         this.contentType = contentType;
         this.mappingEngine = mappingEngine;
-        this.options = Collections.unmodifiableMap(new HashMap<>(options));
+        final HashMap<String, String> adjustedMap = new HashMap<>(options);
+        if (!adjustedMap.containsKey(ExternalMessage.CONTENT_TYPE_HEADER)) {
+            adjustedMap.put(ExternalMessage.CONTENT_TYPE_HEADER, contentType);
+        }
+        this.options = Collections.unmodifiableMap(adjustedMap);
     }
 
     /**

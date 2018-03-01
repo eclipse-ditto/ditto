@@ -27,6 +27,11 @@ public interface ExternalMessage {
     String CONTENT_TYPE_HEADER = "content-type";
 
     /**
+     * TODO TJ doc
+     */
+    String ACCEPT_HEADER = "accept";
+
+    /**
      * @return the headers of the ExternalMessage
      */
     Map<String, String> getHeaders();

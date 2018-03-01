@@ -18,11 +18,19 @@ import org.eclipse.ditto.services.amqpbridge.mapping.mapper.javascript.JavaScrip
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.javascript.JavaScriptMessageMapperFactory;
 
 /**
- *
+ * TODO TJ doc
  */
 public final class MessageMappers {
 
+    /**
+     *
+     */
     public static final String CONTENT_TYPE_KEY = "content-type";
+
+    /**
+     *
+     */
+    public static final String ACCEPT_KEY = "accept";
 
     private MessageMappers() {
         assert (false);
@@ -51,7 +59,8 @@ public final class MessageMappers {
 
     /**
      * Creates a new
-     * {@link org.eclipse.ditto.services.amqpbridge.mapping.mapper.javascript.JavaScriptMessageMapperConfiguration.Builder} with options
+     * {@link org.eclipse.ditto.services.amqpbridge.mapping.mapper.javascript.JavaScriptMessageMapperConfiguration.Builder}
+     * with options.
      *
      * @param options
      * @return

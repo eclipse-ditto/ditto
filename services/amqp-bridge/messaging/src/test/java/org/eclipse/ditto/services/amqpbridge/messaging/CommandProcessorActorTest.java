@@ -90,7 +90,7 @@ public class CommandProcessorActorTest {
             // TODO: fix mapping (code below causes timeout in CommandProcessorActorTest)
 //            mappingContexts.add(AmqpBridgeModelFactory.newMappingContext(
 //                    "text/plain",
-//                    "org.eclipse.ditto.services.amqpbridge.mapping.mapper.javascript.JavaScriptMessageMapperRhino",
+//                    "JavaScript",
 //                    PayloadMappers.createJavaScriptMapperConfigurationBuilder()
 //                        .loadMustacheJS(false)
 //                        .incomingMappingScript("ditto_protocolJson.topic = 'org.eclipse.ditto/foo-bar/things/twin/commands/modify';" +

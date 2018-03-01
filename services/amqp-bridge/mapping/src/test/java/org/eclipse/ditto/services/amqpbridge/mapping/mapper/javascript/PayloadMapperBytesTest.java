@@ -52,9 +52,12 @@ public class PayloadMapperBytesTest {
     @BeforeClass
     public static void setup() {
         javaScriptRhinoMapper = MessageMappers.createJavaScriptMessageMapper();
-        MessageMapperConfiguration configuration = JavaScriptMessageMapperFactory.createJavaScriptMessageMapperConfigurationBuilder
-                (Collections.emptyMap()).outgoingMappingScript(MAPPING_TEMPLATE).build();
-        javaScriptRhinoMapper.configure(configuration);
+        MessageMapperConfiguration configuration = JavaScriptMessageMapperFactory
+                .createJavaScriptMessageMapperConfigurationBuilder(Collections.emptyMap())
+                .contentType("application/octet-stream")
+                .outgoingMappingScript(MAPPING_TEMPLATE)
+                .build();
+        javaScriptRhinoMapper.configureWithValidation(configuration);
     }
 
     private static String byteBuffer2String(final ByteBuffer buf, Charset charset) {

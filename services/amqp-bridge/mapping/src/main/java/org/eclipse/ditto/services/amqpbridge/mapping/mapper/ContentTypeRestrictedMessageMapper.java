@@ -63,23 +63,19 @@ final class ContentTypeRestrictedMessageMapper implements MessageMapper {
     }
 
     @Override
-    public Optional<String> getContentType() {
-        return Objects.nonNull(contentTypeOverride) ? Optional.of(contentTypeOverride) : delegate.getContentType();
+    public String getContentType() {
+        return Objects.nonNull(contentTypeOverride) ? contentTypeOverride : delegate.getContentType();
     }
 
     @Override
     public void configure(final MessageMapperConfiguration configuration) {
         delegate.configure(configuration);
-        requireConfiguredContentType();
     }
 
     @Override
     public Adaptable map(final ExternalMessage message) {
         final String actualContentType = findContentType(message)
-                .orElseThrow(() ->
-                        MessageMappingFailedException.newBuilder("?")
-                                .description("Make sure you specify the 'Content-Type' when sending your message")
-                                .build());
+                .orElseThrow(() -> MessageMappingFailedException.newBuilder("").build());
 
         requireMatchingContentType(actualContentType);
         return delegate.map(message);
@@ -88,32 +84,17 @@ final class ContentTypeRestrictedMessageMapper implements MessageMapper {
     @Override
     public ExternalMessage map(final Adaptable adaptable) {
         final String actualContentType = findContentType(adaptable)
-                .orElseThrow(() -> new IllegalArgumentException(
-                        String.format("Adaptable headers do not contain a value for %s", CONTENT_TYPE_KEY)));
+                .orElseThrow(() -> MessageMappingFailedException.newBuilder("").build());
 
         requireMatchingContentType(actualContentType);
         return delegate.map(adaptable);
     }
 
-    private void requireConfiguredContentType() {
-        if (!getContentType().isPresent()) {
-            throw new IllegalConfigurationException("Required configuration property missing: '%s'" +
-                    MessageMapperConfigurationProperties.CONTENT_TYPE);
-        }
-    }
-
 
     private void requireMatchingContentType(final String actualContentType) {
-        final String contentType = getContentType().filter(s -> !s.isEmpty()).orElseThrow(
-                () -> new NotYetConfiguredException(String.format(
-                        "A matching Content-Type is required, but none configured. Set a Content-Type with the following key in configuration: %s",
-                        MessageMapperConfigurationProperties.CONTENT_TYPE))
-        );
 
-        if (!contentType.equalsIgnoreCase(actualContentType)) {
-            throw new IllegalArgumentException(
-                    String.format("Unsupported value for %s: actual='%s', expected='%s'",
-                            CONTENT_TYPE_KEY, actualContentType, contentType));
+        if (!getContentType().equalsIgnoreCase(actualContentType)) {
+            throw MessageMappingFailedException.newBuilder(actualContentType).build();
         }
     }
 

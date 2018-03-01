@@ -11,6 +11,8 @@
  */
 package org.eclipse.ditto.services.amqpbridge.mapping.mapper;
 
+import org.eclipse.ditto.model.amqpbridge.ExternalMessage;
+
 /**
  * Static configuration property keys for a {@link MessageMapperConfiguration}.
  */
@@ -20,5 +22,8 @@ public final class MessageMapperConfigurationProperties {
         throw new AssertionError();
     }
 
-    public static final String CONTENT_TYPE = "contentType";
+    /**
+     * TODO TJ doc
+     */
+    public static final String CONTENT_TYPE = ExternalMessage.CONTENT_TYPE_HEADER;
 }

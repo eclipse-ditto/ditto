@@ -57,9 +57,13 @@ public class ProtocolToRawMapperBytesTest {
     @BeforeClass
     public static void setup() {
         javaScriptRhinoMapper = MessageMappers.createJavaScriptMessageMapper();
-        MessageMapperConfiguration configuration = JavaScriptMessageMapperFactory.createJavaScriptMessageMapperConfigurationBuilder
-                (Collections.emptyMap()).incomingMappingScript(MAPPING_TEMPLATE).loadMustacheJS(true).build();
-        javaScriptRhinoMapper.configure(configuration);
+        MessageMapperConfiguration configuration = JavaScriptMessageMapperFactory
+                .createJavaScriptMessageMapperConfigurationBuilder(Collections.emptyMap())
+                .contentType(CONTENT_TYPE)
+                .incomingMappingScript(MAPPING_TEMPLATE)
+                .loadMustacheJS(true)
+                .build();
+        javaScriptRhinoMapper.configureWithValidation(configuration);
     }
 
     @Test

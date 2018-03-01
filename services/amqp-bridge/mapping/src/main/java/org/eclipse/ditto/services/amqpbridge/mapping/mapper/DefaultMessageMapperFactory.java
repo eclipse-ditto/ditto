@@ -25,6 +25,7 @@ import java.util.stream.Collectors;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.amqpbridge.MappingContext;
+import org.eclipse.ditto.model.amqpbridge.MessageMapperConfigurationInvalidException;
 
 import akka.actor.DynamicAccess;
 import akka.event.DiagnosticLoggingAdapter;
@@ -134,7 +135,7 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
     @Override
     public MessageMapperRegistry registryOf(final MappingContext defaultContext, final List<MappingContext> contexts) {
         final MessageMapper defaultMapper = mapperOf(defaultContext)
-                .orElseThrow(() ->
+                .orElseThrow(() -> // TODO TJ other exception - also in JavaDoc
                         new IllegalArgumentException("No mapper found for default context: " + defaultContext));
 
         final List<MessageMapper> mappers = contexts.stream()
@@ -190,9 +191,9 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
 
     private boolean configureInstance(final MessageMapper mapper, final DefaultMessageMapperConfiguration options) {
         try {
-            mapper.configure(options);
+            mapper.configureWithValidation(options);
             return true;
-        } catch (final IllegalArgumentException e) {
+        } catch (final MessageMapperConfigurationInvalidException e) {
             log.warning("Failed to apply configuration <{}> to mapper instance <{}>: {}", options, mapper,
                     e.getMessage());
             return false;
