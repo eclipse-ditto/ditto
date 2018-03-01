@@ -94,10 +94,10 @@ public final class AmqpPublisherActor extends AbstractActor {
                         log.debug("Response dropped, missing replyTo address.");
                     }
                 })
-                .match(ExternalMessage.class, ExternalMessage::isCommandResponse, event -> {
+                .match(ExternalMessage.class, ExternalMessage::isEvent, event -> {
                     final String correlationId = event.getHeaders().get(CORRELATION_ID.getKey());
                     LogUtil.enhanceLogWithCorrelationId(log, correlationId);
-                    log.debug("Received command response {} ", event);
+                    log.debug("Received thing event {} ", event);
                     amqpConnection.getEventTarget().ifPresent(target -> sendMessage(target, event));
                 })
                 .matchAny(m -> {
@@ -136,7 +136,7 @@ public final class AmqpPublisherActor extends AbstractActor {
     @Nullable
     private MessageProducer getProducer(final String target) {
         return Optional.of(target)
-                .filter(String::isEmpty)
+                .filter(s -> !s.isEmpty())
                 .map(t -> producerMap.computeIfAbsent(target, this::createMessageProducer)).orElse(null);
     }
 
@@ -146,7 +146,7 @@ public final class AmqpPublisherActor extends AbstractActor {
         log.debug("Creating AMQP Producer for '{}'", target);
         try {
             return session.createProducer(destination);
-        } catch (JMSException e) {
+        } catch (final JMSException e) {
             log.warning("Could not create producer for {}.", target);
             return null;
         }

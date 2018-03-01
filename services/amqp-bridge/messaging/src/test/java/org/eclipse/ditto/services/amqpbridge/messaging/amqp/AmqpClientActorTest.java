@@ -19,6 +19,7 @@ import static org.eclipse.ditto.services.amqpbridge.messaging.TestConstants.crea
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -28,6 +29,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import javax.jms.Connection;
+import javax.jms.Destination;
 import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.MessageConsumer;
@@ -53,7 +55,6 @@ import org.eclipse.ditto.signals.commands.base.Command;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
@@ -94,6 +95,8 @@ public class AmqpClientActorTest {
     private MessageConsumer mockConsumer = Mockito.mock(MessageConsumer.class);
     @Mock
     private MessageProducer mockProducer = Mockito.mock(MessageProducer.class);
+    @Mock
+    private TextMessage mockTextMessage = Mockito.mock(TextMessage.class);
 
     @BeforeClass
     public static void setUp() {
@@ -110,7 +113,8 @@ public class AmqpClientActorTest {
     public void init() throws JMSException {
         when(mockConnection.createSession(false, Session.AUTO_ACKNOWLEDGE)).thenReturn(mockSession);
         when(mockSession.createConsumer(any(JmsQueue.class))).thenReturn(mockConsumer);
-        when(mockSession.createProducer(any(JmsQueue.class))).thenReturn(mockProducer);
+        when(mockSession.createProducer(any(Destination.class))).thenReturn(mockProducer);
+        when(mockSession.createTextMessage(anyString())).thenReturn(mockTextMessage);
     }
 
     @Test
@@ -264,7 +268,7 @@ public class AmqpClientActorTest {
     }
 
     @Test
-    public void testInitAfterTimeout() {
+    public void testInitializeClientActorAfterTimeout() {
         new TestKit(actorSystem) {{
             final String pubSubTargetPath = getRef().path().toStringWithoutAddress();
             final Props props =
@@ -286,7 +290,6 @@ public class AmqpClientActorTest {
     }
 
     @Test
-    @Ignore("currently failing")
     public void testConsumeMessageAndExpectForwardToProxyActor() throws JMSException {
         new TestKit(actorSystem) {{
             final ActorRef mediator = DistributedPubSub.get(actorSystem).mediator();
@@ -313,12 +316,8 @@ public class AmqpClientActorTest {
     }
 
     @Test
-    @Ignore("currently failing")
-    public void testReceiveThingEventAndExpectForwardToAmqpClient() throws JMSException {
+    public void testReceiveThingEventAndExpectForwardToJMSProducer() throws JMSException {
         new TestKit(actorSystem) {{
-            final ActorRef mediator = DistributedPubSub.get(actorSystem).mediator();
-            mediator.tell(new DistributedPubSubMediator.Put(getRef()), getRef());
-
             final String pubSubTargetPath = getRef().path().toStringWithoutAddress();
             final Props props =
                     AmqpClientActor.props(connectionId, getRef(), amqpConnection, pubSubTargetPath,
@@ -328,17 +327,10 @@ public class AmqpClientActorTest {
             amqpClientActor.tell(CreateConnection.of(amqpConnection, DittoHeaders.empty()), getRef());
             expectMsg(CONNECTED_SUCCESS);
 
+
             amqpClientActor.tell(TestConstants.thingModified(singletonList("")), getRef());
 
-            //TODO find better way, this is ugly
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-
-            verify(mockProducer).send(any(Message.class));
-
+            verify(mockProducer, timeout(500)).send(mockTextMessage);
         }};
     }
 
