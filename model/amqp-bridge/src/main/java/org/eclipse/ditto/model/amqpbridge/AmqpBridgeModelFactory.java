@@ -126,7 +126,18 @@ public final class AmqpBridgeModelFactory {
     }
 
     /**
-     * Creates a new ExternalMessageBuilder for the passed {@code messageType}.
+     * Creates a new ExternalMessageBuilder initialized with the passed {@code headers}.
+     *
+     * @param headers the headers to initialize the builder with.
+     * @return the builder.
+     */
+    public static ExternalMessageBuilder newExternalMessageBuilder(final Map<String, String> headers) {
+        return new MutableExternalMessageBuilder(headers);
+    }
+
+    /**
+     * Creates a new ExternalMessageBuilder for the passed {@code messageType} initialized with the passed
+     * {@code headers}.
      *
      * @param headers the headers to initialize the builder with.
      * @param messageType the MessageType to initialize the builder with.

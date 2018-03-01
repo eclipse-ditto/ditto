@@ -28,6 +28,7 @@ import javax.annotation.concurrent.Immutable;
 final class ImmutableExternalMessage implements ExternalMessage {
 
     private final Map<String, String> headers;
+    @Nullable
     private final MessageType messageType;
     private final PayloadType payloadType;
 
@@ -37,7 +38,7 @@ final class ImmutableExternalMessage implements ExternalMessage {
     private final ByteBuffer bytePayload;
 
     ImmutableExternalMessage(final Map<String, String> headers,
-            final MessageType messageType,
+            @Nullable final MessageType messageType,
             final PayloadType payloadType,
             @Nullable final String textPayload,
             @Nullable final ByteBuffer bytePayload) {
@@ -96,8 +97,8 @@ final class ImmutableExternalMessage implements ExternalMessage {
     }
 
     @Override
-    public MessageType getMessageType() {
-        return messageType;
+    public Optional<MessageType> getMessageType() {
+        return Optional.ofNullable(messageType);
     }
 
     @Override

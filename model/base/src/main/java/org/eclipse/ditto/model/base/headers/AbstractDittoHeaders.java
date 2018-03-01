@@ -14,7 +14,6 @@ package org.eclipse.ditto.model.base.headers;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.AbstractMap;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -63,6 +62,11 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
 
     protected Optional<String> getStringForDefinition(final HeaderDefinition definition) {
         return Optional.ofNullable(headers.get(definition.getKey()));
+    }
+
+    @Override
+    public Optional<String> getContentType() {
+        return getStringForDefinition(DittoHeaderDefinition.CONTENT_TYPE);
     }
 
     @Override

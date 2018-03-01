@@ -164,7 +164,8 @@ final class JavaScriptMessageMapperRhino implements MessageMapper {
 
             final Map<String, String> headers = !(mappingHeaders instanceof Undefined) ? null : Collections.emptyMap();
             //TODO pm evaulate if bytes or text payload
-            return AmqpBridgeModelFactory.newExternalMessageBuilder(headers, ExternalMessage.MessageType.RESPONSE) // TODO it is not always response! could be also event or error
+            // TODO TJ it is not always response! could be also event or error
+            return AmqpBridgeModelFactory.newExternalMessageBuilder(headers, ExternalMessage.MessageType.RESPONSE)
                     .withAdditionalHeaders(ExternalMessage.CONTENT_TYPE_HEADER, contentType)
                     .withText(mappingString)
                     .build();
