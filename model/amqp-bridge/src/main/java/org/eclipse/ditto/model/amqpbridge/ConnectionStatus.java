@@ -32,6 +32,11 @@ public enum ConnectionStatus implements CharSequence {
     CLOSED("closed"),
 
     /**
+     * Indicates a failed {@code AmqpConnection}.
+     */
+    FAILED("failed"),
+
+    /**
      * Indicates an unknown status.
      */
     UNKNOWN("unknown");

@@ -22,7 +22,7 @@ import org.eclipse.ditto.services.amqpbridge.util.ConfigKeys;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.signals.commands.amqpbridge.AmqpBridgeCommandResponse;
-import org.eclipse.ditto.signals.commands.amqpbridge.modify.OpenConnection;
+import org.eclipse.ditto.signals.commands.amqpbridge.query.RetrieveConnectionStatus;
 import org.eclipse.ditto.signals.commands.amqpbridge.query.RetrieveConnectionStatusResponse;
 import org.eclipse.ditto.signals.events.amqpbridge.ConnectionClosed;
 import org.eclipse.ditto.signals.events.amqpbridge.ConnectionCreated;
@@ -187,7 +187,10 @@ public final class ReconnectActor extends AbstractPersistentActor {
     }
 
     private void reconnect(final String connectionId) {
-        connectionShardRegion.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getSelf());
+        // yes, this is intentionally a RetrieveConnectionStatus instead of OpenConnection
+        // the response is expected in this actor
+        connectionShardRegion.tell(RetrieveConnectionStatus.of(connectionId, DittoHeaders.newBuilder()
+                .correlationId("reconnect-actor-triggered").build()), getSelf());
     }
 
     private void doSaveSnapshot() {

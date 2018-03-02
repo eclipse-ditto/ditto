@@ -17,18 +17,18 @@ import java.util.function.Function;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonArray;
 
-import com.mongodb.BasicDBObject;
+import com.mongodb.BasicDBList;
 
 /**
- * This function maps a specified {@link com.mongodb.BasicDBObject} to a {@link org.eclipse.ditto.json.JsonObject}.
+ * This function maps a specified {@link BasicDBList} to a {@link JsonArray}.
  * While mapping, the keys of all JSON objects can be revised by utilising a configurable function.
  */
 @Immutable
-final class BasicDBObjectToJsonObjectMapper extends AbstractBasicDBMapper<BasicDBObject, JsonObject> {
+final class BasicDBListToJsonObjectMapper extends AbstractBasicDBMapper<BasicDBList, JsonArray> {
 
-    private BasicDBObjectToJsonObjectMapper(final Function<String, String> theJsonKeyNameReviser) {
+    private BasicDBListToJsonObjectMapper(final Function<String, String> theJsonKeyNameReviser) {
         super(theJsonKeyNameReviser);
     }
 
@@ -39,13 +39,14 @@ final class BasicDBObjectToJsonObjectMapper extends AbstractBasicDBMapper<BasicD
      * @return the instance.
      * @throws NullPointerException if {@code jsonKeyNameReviser} is {@code null}.
      */
-    public static BasicDBObjectToJsonObjectMapper getInstance(final Function<String, String> jsonKeyNameReviser) {
-        return new BasicDBObjectToJsonObjectMapper(jsonKeyNameReviser);
+    public static BasicDBListToJsonObjectMapper getInstance(final Function<String, String> jsonKeyNameReviser) {
+        return new BasicDBListToJsonObjectMapper(jsonKeyNameReviser);
     }
 
     @Override
-    public JsonObject apply(final BasicDBObject basicDBObject) {
-        return mapBasicDBObjectToJsonObject(checkNotNull(basicDBObject, "BasicDBObject to be mapped"),
-                jsonKeyNameReviser);
+    public JsonArray apply(final BasicDBList basicDBList) {
+        return AbstractBasicDBMapper.mapBasicDBListToJsonArray(
+                checkNotNull(basicDBList, "BasicDBList to be mapped"), jsonKeyNameReviser);
     }
+
 }

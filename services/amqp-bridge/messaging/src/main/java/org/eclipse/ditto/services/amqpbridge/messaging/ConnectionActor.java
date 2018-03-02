@@ -26,6 +26,7 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.model.amqpbridge.AmqpConnection;
 import org.eclipse.ditto.model.amqpbridge.ConnectionStatus;
 import org.eclipse.ditto.model.amqpbridge.MappingContext;
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.amqpbridge.messaging.persistence.ConnectionData;
 import org.eclipse.ditto.services.amqpbridge.messaging.persistence.ConnectionMongoSnapshotAdapter;
@@ -114,6 +115,8 @@ class ConnectionActor extends AbstractPersistentActor {
 
     private long lastSnapshotSequenceNr = -1L;
     private boolean snapshotInProgress = false;
+
+    @Nullable private String connectionStatusDetails;
 
     private ConnectionActor(final String connectionId, final ActorRef pubSubMediator,
             final ConnectionActorPropsFactory propsFactory) {
@@ -205,6 +208,7 @@ class ConnectionActor extends AbstractPersistentActor {
                 .match(RecoveryCompleted.class, rc -> {
                     log.info("Connection '{}' was recovered: {}", connectionId, amqpConnection);
                     if (amqpConnection != null) {
+                        connectionStatusDetails = null;
                         if (ConnectionStatus.OPEN.equals(connectionStatus)) {
                             log.debug("Opening connection {} after recovery.", connectionId);
 
@@ -236,7 +240,10 @@ class ConnectionActor extends AbstractPersistentActor {
                 .match(CreateConnection.class, this::createConnection)
                 .match(AmqpBridgeCommand.class, this::handleCommandDuringInitialization)
                 .match(Shutdown.class, shutdown -> stopSelf())
-                .match(Status.Failure.class, f -> log.error(f.cause(), "Got failure: {}", f))
+                .match(Status.Failure.class, f -> {
+                    log.error(f.cause(), "Got failure: {}", f);
+                    connectionStatusDetails = f.cause().getMessage();
+                })
                 .matchAny(m -> {
                     log.warning("Unknown message: {}", m);
                     unhandled(m);
@@ -327,8 +334,7 @@ class ConnectionActor extends AbstractPersistentActor {
 
         persistEvent(connectionOpened, persistedEvent -> {
             connectionStatus = ConnectionStatus.OPEN;
-            final CreateConnection connect = CreateConnection.of(amqpConnection, command.getDittoHeaders());
-            askClientActor("connect", connect, origin, response -> {
+            askClientActor("open-connection", command, origin, response -> {
                 subscribeToThingEvents();
                 origin.tell(OpenConnectionResponse.of(connectionId, command.getDittoHeaders()), self());
             });
@@ -347,6 +353,7 @@ class ConnectionActor extends AbstractPersistentActor {
                 origin.tell(CloseConnectionResponse.of(connectionId, command.getDittoHeaders()),
                         self());
                 unsubscribeFromThingEvents();
+                connectionStatusDetails = "closed as requested by CloseConnection command";
             });
         });
     }
@@ -393,12 +400,20 @@ class ConnectionActor extends AbstractPersistentActor {
     }
 
     private void handleException(final String action, final ActorRef origin, final Throwable exception) {
-        final ConnectionFailedException error = ConnectionFailedException.newBuilder(connectionId)
-                .description(exception.getMessage())
-                .build();
+        final DittoRuntimeException dre;
+        if (exception instanceof DittoRuntimeException) {
+            dre = (DittoRuntimeException) exception;
+        } else {
+            dre = ConnectionFailedException.newBuilder(connectionId)
+                    .description(exception.getMessage())
+                    .build();
+        }
 
-        origin.tell(error, getSelf());
-        log.error(exception, "Operation '{}' on connection '{}' failed: {}.", action,
+        connectionStatus = ConnectionStatus.FAILED;
+        connectionStatusDetails = dre.getMessage() + " " + dre.getDescription().orElse("");
+
+        origin.tell(dre, getSelf());
+        log.error(dre, "Operation '{}' on connection '{}' failed: {}.", action,
                 connectionId,
                 exception.getMessage());
     }
@@ -413,7 +428,7 @@ class ConnectionActor extends AbstractPersistentActor {
     private void retrieveConnectionStatus(final RetrieveConnectionStatus command) {
         checkNotNull(amqpConnection, "AmqpConnection");
         checkNotNull(mappingContexts, "MappingContexts");
-        getSender().tell(RetrieveConnectionStatusResponse.of(connectionId, connectionStatus,
+        getSender().tell(RetrieveConnectionStatusResponse.of(connectionId, connectionStatus, connectionStatusDetails,
                 command.getDittoHeaders()), getSelf());
     }
 

@@ -17,13 +17,16 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.services.amqpbridge.messaging.BaseClientActor;
 import org.eclipse.ditto.services.models.amqpbridge.AmqpBridgeMessagingConstants;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.signals.commands.amqpbridge.exceptions.ConnectionFailedException;
 import org.eclipse.ditto.signals.commands.amqpbridge.modify.AmqpBridgeModifyCommand;
 import org.eclipse.ditto.signals.commands.amqpbridge.modify.CloseConnection;
 import org.eclipse.ditto.signals.commands.amqpbridge.modify.CreateConnection;
 import org.eclipse.ditto.signals.commands.amqpbridge.modify.DeleteConnection;
+import org.eclipse.ditto.signals.commands.amqpbridge.modify.OpenConnection;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 import com.newmotion.akka.rabbitmq.ChannelActor;
@@ -60,6 +63,7 @@ public class RabbitMQClientActor extends BaseClientActor {
     @Nullable private ActorRef rmqConnectionActor;
     @Nullable private ActorRef consumerChannelActor;
     @Nullable private ActorRef rmqPublisherActor;
+    @Nullable private ActorRef createConnectionSender;
 
     private RabbitMQClientActor(final String connectionId, final ActorRef rmqConnectionActor) {
         super(connectionId, rmqConnectionActor, AmqpBridgeMessagingConstants.GATEWAY_PROXY_ACTOR_PATH);
@@ -87,6 +91,7 @@ public class RabbitMQClientActor extends BaseClientActor {
     public Receive createReceive() {
         return receiveBuilder()
                 .match(CreateConnection.class, this::handleConnect)
+                .match(OpenConnection.class, this::handleOpenConnection)
                 .match(CloseConnection.class, this::handleDisconnect)
                 .match(DeleteConnection.class, this::handleDisconnect)
                 .match(ChannelCreated.class, this::handleChannelCreated)
@@ -108,7 +113,14 @@ public class RabbitMQClientActor extends BaseClientActor {
         // reset receive timeout when CreateConnection is received
         getContext().setReceiveTimeout(Duration.Undefined());
 
+        createConnectionSender = getSender();
+
         connect();
+    }
+
+    private void handleOpenConnection(final OpenConnection openConnection) {
+        createConnectionSender = getSender();
+        openConnection();
     }
 
     private void handleChannelCreated(final ChannelCreated channelCreated) {
@@ -138,6 +150,14 @@ public class RabbitMQClientActor extends BaseClientActor {
                             ChannelActor.props((channel, s) -> null),
                             Option.apply(PUBLISHER_CHANNEL)), rmqPublisherActor);
 
+            openConnection();
+        } else {
+            log.debug("Connection '{}' is already open.", connectionId);
+        }
+    }
+
+    private void openConnection() {
+        if (rmqConnectionActor != null) {
             // create a consumer channel - if source is configured
             if (isConsumingCommands()) {
                 rmqConnectionActor.tell(
@@ -146,10 +166,7 @@ public class RabbitMQClientActor extends BaseClientActor {
                                 Option.apply(CONSUMER_CHANNEL)), self());
             }
             log.debug("Connection '{}' opened.", connectionId);
-        } else {
-            log.debug("Connection '{}' is already open.", connectionId);
         }
-        getSender().tell(new Status.Success("connected"), self());
     }
 
     private void handleDisconnect(final AmqpBridgeModifyCommand<?> cmd) {
@@ -169,7 +186,7 @@ public class RabbitMQClientActor extends BaseClientActor {
             stopChildActor(rmqPublisherActor);
             rmqPublisherActor = null;
         }
-        getSender().tell(new Status.Success("disconnected"), self());
+        getSender().tell(new Status.Success("disconnected"), getSelf());
     }
 
     private void stopCommandPublisher() {
@@ -186,11 +203,26 @@ public class RabbitMQClientActor extends BaseClientActor {
             log.info("No consumerChannelActor, cannot consume queues without a channel.");
         } else {
             final ChannelMessage channelMessage = ChannelMessage.apply(channel -> {
-                ensureQueuesExist(channel);
-                startConsumers(channel);
+                try {
+                    ensureQueuesExist(channel);
+                    startConsumers(channel);
+                } catch (final DittoRuntimeException dre) {
+                    if (createConnectionSender != null) {
+                        createConnectionSender.tell(new Status.Failure(dre), getSelf());
+                        createConnectionSender = null;
+                    }
+                    // stop consumer channel actor
+                    stopChildActor(consumerChannelActor);
+                    consumerChannelActor = null;
+                }
+                if (createConnectionSender != null) {
+                    createConnectionSender.tell(new Status.Success("connected"), getSelf());
+                    createConnectionSender = null;
+                }
                 return null;
             }, false);
-            consumerChannelActor.tell(channelMessage, self());
+
+            consumerChannelActor.tell(channelMessage, getSelf());
         }
     }
 
@@ -216,12 +248,15 @@ public class RabbitMQClientActor extends BaseClientActor {
                 channel.queueDeclarePassive(source);
             } catch (final IOException e) {
                 missingQueues.add(source);
-                log.warning("The queue '{}' does not exits.", source);
+                log.warning("The queue '{}' does not exist.", source);
             }
         });
         if (!missingQueues.isEmpty()) {
-            // TODO TJ IllegalStateException here means the parent actor needs to handle that - is that intended?
-            throw new IllegalStateException("The queues " + missingQueues + " are missing.");
+            log.error("STOPPING RMQ client actor for connection <{}> as queues to connect to are missing: <{}>",
+                    connectionId, missingQueues);
+            throw ConnectionFailedException.newBuilder(connectionId)
+                    .description("The queues " + missingQueues + " to connect to are missing.")
+                    .build();
         }
     }
 

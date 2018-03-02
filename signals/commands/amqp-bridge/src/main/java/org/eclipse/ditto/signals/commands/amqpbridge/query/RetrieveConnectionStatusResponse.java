@@ -14,6 +14,7 @@ package org.eclipse.ditto.signals.commands.amqpbridge.query;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
@@ -25,6 +26,7 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.amqpbridge.ConnectionStatus;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
@@ -32,8 +34,6 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.signals.commands.base.WithEntity;
-
-import org.eclipse.ditto.model.amqpbridge.ConnectionStatus;
 
 /**
  * Response to a {@link RetrieveConnection} command.
@@ -55,14 +55,20 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
             JsonFactory.newStringFieldDefinition("connectionStatus", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
+    static final JsonFieldDefinition<String> JSON_CONNECTION_STATUS_DETAILS =
+            JsonFactory.newStringFieldDefinition("connectionStatusDetails", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
+
     private final String connectionId;
     private final ConnectionStatus connectionStatus;
+    @Nullable private final String connectionStatusDetails;
 
     private RetrieveConnectionStatusResponse(final String connectionId, final ConnectionStatus connectionStatus,
-            final DittoHeaders dittoHeaders) {
+            @Nullable final String connectionStatusDetails, final DittoHeaders dittoHeaders) {
         super(TYPE, HttpStatusCode.OK, dittoHeaders);
         this.connectionId = connectionId;
         this.connectionStatus = connectionStatus;
+        this.connectionStatusDetails = connectionStatusDetails;
     }
 
     /**
@@ -76,9 +82,26 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
      */
     public static RetrieveConnectionStatusResponse of(final String connectionId,
             final ConnectionStatus connectionStatus, final DittoHeaders dittoHeaders) {
+        return of(connectionId, connectionStatus, null, dittoHeaders);
+    }
+
+    /**
+     * Returns a new instance of {@code RetrieveConnectionStatusResponse}.
+     *
+     * @param connectionId the identifier of the connection.
+     * @param connectionStatus the retrieved connection status.
+     * @param connectionStatusDetails optional connection status details (e.g. in case of a failed connection).
+     * @param dittoHeaders the headers of the request.
+     * @return a new RetrieveConnectionStatusResponse response.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public static RetrieveConnectionStatusResponse of(final String connectionId,
+            final ConnectionStatus connectionStatus, @Nullable final String connectionStatusDetails,
+            final DittoHeaders dittoHeaders) {
         checkNotNull(connectionId, "Connection ID");
         checkNotNull(connectionStatus, "Connection Status");
-        return new RetrieveConnectionStatusResponse(connectionId, connectionStatus, dittoHeaders);
+        return new RetrieveConnectionStatusResponse(connectionId, connectionStatus, connectionStatusDetails,
+                dittoHeaders);
     }
 
     /**
@@ -115,7 +138,10 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
                             ConnectionStatus.forName(jsonObject.getValueOrThrow(JSON_CONNECTION_STATUS))
                                     .orElse(ConnectionStatus.UNKNOWN);
 
-                    return of(readConnectionId, readConnectionStatus, dittoHeaders);
+                    final String readConnectionStatusDetails = jsonObject.getValue(JSON_CONNECTION_STATUS_DETAILS)
+                            .orElse(null);
+
+                    return of(readConnectionId, readConnectionStatus, readConnectionStatusDetails, dittoHeaders);
                 });
     }
 
@@ -128,12 +154,24 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
         return connectionStatus;
     }
 
+    /**
+     * Returns the retrieved details about the connection status.
+     *
+     * @return the details
+     */
+    public Optional<String> getConnectionStatusDetails() {
+        return Optional.ofNullable(connectionStatusDetails);
+    }
+
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(JSON_CONNECTION_ID, connectionId, predicate);
         jsonObjectBuilder.set(JSON_CONNECTION_STATUS, connectionStatus.getName(), predicate);
+        if (connectionStatusDetails != null) {
+            jsonObjectBuilder.set(JSON_CONNECTION_STATUS_DETAILS, connectionStatusDetails, predicate);
+        }
     }
 
     @Override
@@ -145,7 +183,7 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
     public WithEntity setEntity(final JsonValue entity) {
         final ConnectionStatus connectionStatusToSet =
                 ConnectionStatus.forName(entity.asString()).orElse(ConnectionStatus.UNKNOWN);
-        return of(connectionId, connectionStatusToSet, getDittoHeaders());
+        return of(connectionId, connectionStatusToSet, connectionStatusDetails, getDittoHeaders());
     }
 
     @Override
@@ -155,7 +193,7 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
 
     @Override
     public RetrieveConnectionStatusResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(connectionId, connectionStatus, dittoHeaders);
+        return of(connectionId, connectionStatus, connectionStatusDetails, dittoHeaders);
     }
 
     @Override
@@ -170,12 +208,13 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
         if (!super.equals(o)) {return false;}
         final RetrieveConnectionStatusResponse that = (RetrieveConnectionStatusResponse) o;
         return Objects.equals(connectionId, that.connectionId) &&
-                connectionStatus == that.connectionStatus;
+                connectionStatus == that.connectionStatus &&
+                Objects.equals(connectionStatusDetails, that.connectionStatusDetails);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), connectionId, connectionStatus);
+        return Objects.hash(super.hashCode(), connectionId, connectionStatus, connectionStatusDetails);
     }
 
     @Override
@@ -184,6 +223,7 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
                 super.toString() +
                 ", connectionId=" + connectionId +
                 ", connectionStatus=" + connectionStatus +
+                ", connectionStatusDetails=" + connectionStatusDetails +
                 "]";
     }
 
