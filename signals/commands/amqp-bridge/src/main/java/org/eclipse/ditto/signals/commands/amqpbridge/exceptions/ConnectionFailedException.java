@@ -46,8 +46,8 @@ public final class ConnectionFailedException extends DittoRuntimeException imple
     private static final long serialVersionUID = 897914540900650802L;
 
 
-    private ConnectionFailedException(final DittoHeaders dittoHeaders, final String message,
-            final String description, final Throwable cause, final URI href) {
+    private ConnectionFailedException(final DittoHeaders dittoHeaders, @Nullable final String message,
+            @Nullable final String description, @Nullable final Throwable cause, @Nullable final URI href) {
         super(ERROR_CODE, HttpStatusCode.BAD_GATEWAY, dittoHeaders, message, description, cause, href);
     }
 
@@ -109,8 +109,8 @@ public final class ConnectionFailedException extends DittoRuntimeException imple
         }
 
         @Override
-        protected ConnectionFailedException doBuild(final DittoHeaders dittoHeaders, final String message,
-                final String description, final Throwable cause, final URI href) {
+        protected ConnectionFailedException doBuild(final DittoHeaders dittoHeaders, @Nullable final String message,
+                @Nullable final String description, @Nullable final Throwable cause, @Nullable final URI href) {
             return new ConnectionFailedException(dittoHeaders, message, description, cause, href);
         }
     }

@@ -19,40 +19,39 @@ import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.amqpbridge.AmqpBridgeException;
 import org.eclipse.ditto.model.amqpbridge.AmqpConnection;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 
-import org.eclipse.ditto.model.amqpbridge.AmqpBridgeException;
-
 /**
  * Thrown if a {@link AmqpConnection} exists but is not available at the moment.
  */
 @Immutable
-public final class ConnectionUnavailableException extends DittoRuntimeException implements AmqpBridgeException {
+public final class ConnectionConflictException extends DittoRuntimeException implements AmqpBridgeException {
 
     /**
      * Error code of this exception.
      */
-    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "connection.unavailable";
+    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "connection.conflict";
 
     private static final String MESSAGE_TEMPLATE =
-            "The Connection with ID ''{0}'' is not available, please try again later.";
+            "The Connection with ID ''{0}'' was already created.";
 
-    private static final String DEFAULT_DESCRIPTION = "The requested Connection is temporarily not available.";
+    private static final String DEFAULT_DESCRIPTION = "If you need to update it, remove it first before creating it again.";
 
-    private static final long serialVersionUID = 9075301177869840493L;
+    private static final long serialVersionUID = -4525302146860945435L;
 
 
-    private ConnectionUnavailableException(final DittoHeaders dittoHeaders, @Nullable final String message,
+    private ConnectionConflictException(final DittoHeaders dittoHeaders, @Nullable final String message,
             @Nullable final String description, @Nullable final Throwable cause, @Nullable final URI href) {
-        super(ERROR_CODE, HttpStatusCode.SERVICE_UNAVAILABLE, dittoHeaders, message, description, cause, href);
+        super(ERROR_CODE, HttpStatusCode.CONFLICT, dittoHeaders, message, description, cause, href);
     }
 
     /**
-     * A mutable builder for a {@code ConnectionUnavailableException}.
+     * A mutable builder for a {@code ConnectionConflictException}.
      *
      * @param connectionId the ID of the connection.
      * @return the builder.
@@ -62,13 +61,13 @@ public final class ConnectionUnavailableException extends DittoRuntimeException 
     }
 
     /**
-     * Constructs a new {@code ConnectionUnavailableException} object with given message.
+     * Constructs a new {@code ConnectionConflictException} object with given message.
      *
      * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
      * @param dittoHeaders the headers of the command which resulted in this exception.
-     * @return the new ConnectionUnavailableException.
+     * @return the new ConnectionConflictException.
      */
-    public static ConnectionUnavailableException fromMessage(final String message, final DittoHeaders dittoHeaders) {
+    public static ConnectionConflictException fromMessage(final String message, final DittoHeaders dittoHeaders) {
         return new Builder()
                 .dittoHeaders(dittoHeaders)
                 .message(message)
@@ -76,25 +75,25 @@ public final class ConnectionUnavailableException extends DittoRuntimeException 
     }
 
     /**
-     * Constructs a new {@code ConnectionUnavailableException} object with the exception message extracted from the
+     * Constructs a new {@code ConnectionConflictException} object with the exception message extracted from the
      * given JSON object.
      *
-     * @param jsonObject the JSON to read the {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException.JsonFields#MESSAGE} field from.
+     * @param jsonObject the JSON to read the {@link JsonFields#MESSAGE} field from.
      * @param dittoHeaders the headers of the command which resulted in this exception.
-     * @return the new ConnectionUnavailableException.
+     * @return the new ConnectionConflictException.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if the {@code jsonObject} does not have the {@link
-     * org.eclipse.ditto.model.base.exceptions.DittoRuntimeException.JsonFields#MESSAGE} field.
+     * JsonFields#MESSAGE} field.
      */
-    public static ConnectionUnavailableException fromJson(final JsonObject jsonObject,
+    public static ConnectionConflictException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
         return fromMessage(readMessage(jsonObject), dittoHeaders);
     }
 
     /**
-     * A mutable builder with a fluent API for a {@link ConnectionUnavailableException}.
+     * A mutable builder with a fluent API for a {@link ConnectionConflictException}.
      */
     @NotThreadSafe
-    public static final class Builder extends DittoRuntimeExceptionBuilder<ConnectionUnavailableException> {
+    public static final class Builder extends DittoRuntimeExceptionBuilder<ConnectionConflictException> {
 
         private Builder() {
             description(DEFAULT_DESCRIPTION);
@@ -106,10 +105,9 @@ public final class ConnectionUnavailableException extends DittoRuntimeException 
         }
 
         @Override
-        protected ConnectionUnavailableException doBuild(final DittoHeaders dittoHeaders,
-                @Nullable final String message,
+        protected ConnectionConflictException doBuild(final DittoHeaders dittoHeaders, @Nullable final String message,
                 @Nullable final String description, @Nullable final Throwable cause, @Nullable final URI href) {
-            return new ConnectionUnavailableException(dittoHeaders, message, description, cause, href);
+            return new ConnectionConflictException(dittoHeaders, message, description, cause, href);
         }
     }
 

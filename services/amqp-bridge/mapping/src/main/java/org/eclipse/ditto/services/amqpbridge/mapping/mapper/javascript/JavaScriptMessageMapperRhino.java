@@ -184,14 +184,15 @@ final class JavaScriptMessageMapperRhino implements MessageMapper {
                     MessageMappers.determineMessageType(adaptable));
 
             if (!(contentType instanceof Undefined)) {
-                messageBuilder.withAdditionalHeaders(ExternalMessage.CONTENT_TYPE_HEADER, (String) contentType);
+                messageBuilder.withAdditionalHeaders(ExternalMessage.CONTENT_TYPE_HEADER,
+                        ((CharSequence) contentType).toString());
             }
 
             final Optional<ByteBuffer> byteBuffer = convertToByteBuffer(mappingByteArray);
             if (byteBuffer.isPresent()) {
                 messageBuilder.withBytes(byteBuffer.get());
             } else if (!(mappingString instanceof Undefined)) {
-                messageBuilder.withText((String) mappingString);
+                messageBuilder.withText(((CharSequence) mappingString).toString());
             }
 
             return messageBuilder.build();

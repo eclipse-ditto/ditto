@@ -36,6 +36,9 @@ import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
 
+/**
+ * Responsible for publishing {@link ExternalMessage}s into RabbitMQ / AMQP 0.9.1.
+ */
 public class RabbitMQPublisherActor extends AbstractActor {
 
     /**

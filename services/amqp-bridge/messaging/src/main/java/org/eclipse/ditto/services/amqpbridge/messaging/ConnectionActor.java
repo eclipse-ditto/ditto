@@ -33,6 +33,7 @@ import org.eclipse.ditto.services.amqpbridge.util.ConfigKeys;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.signals.commands.amqpbridge.AmqpBridgeCommand;
+import org.eclipse.ditto.signals.commands.amqpbridge.exceptions.ConnectionConflictException;
 import org.eclipse.ditto.signals.commands.amqpbridge.exceptions.ConnectionFailedException;
 import org.eclipse.ditto.signals.commands.amqpbridge.exceptions.ConnectionNotAccessibleException;
 import org.eclipse.ditto.signals.commands.amqpbridge.modify.CloseConnection;
@@ -244,10 +245,15 @@ class ConnectionActor extends AbstractPersistentActor {
 
     private Receive createConnectionCreatedBehaviour() {
         return ReceiveBuilder.create()
-                .match(CreateConnection.class,
-                        // TODO DG handle this as "update"?
-                        // at least we must send a response
-                        created -> log.info("Connection {} already exists. Ignoring.", created.getId()))
+                .match(CreateConnection.class, createConnection -> {
+                    LogUtil.enhanceLogWithCorrelationId(log, createConnection);
+                    log.info("Connection <{}> already exists, responding with conflict", createConnection.getId());
+                    final ConnectionConflictException conflictException =
+                            ConnectionConflictException.newBuilder(createConnection.getId())
+                                    .dittoHeaders(createConnection.getDittoHeaders())
+                                    .build();
+                    getSender().tell(conflictException, getSelf());
+                })
                 .match(OpenConnection.class, this::openConnection)
                 .match(CloseConnection.class, this::closeConnection)
                 .match(DeleteConnection.class, this::deleteConnection)

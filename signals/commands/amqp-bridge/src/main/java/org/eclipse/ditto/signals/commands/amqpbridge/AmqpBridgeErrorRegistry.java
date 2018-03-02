@@ -24,6 +24,7 @@ import org.eclipse.ditto.model.amqpbridge.MessageMappingFailedException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.signals.base.AbstractErrorRegistry;
 import org.eclipse.ditto.signals.base.JsonParsable;
+import org.eclipse.ditto.signals.commands.amqpbridge.exceptions.ConnectionConflictException;
 import org.eclipse.ditto.signals.commands.amqpbridge.exceptions.ConnectionFailedException;
 import org.eclipse.ditto.signals.commands.amqpbridge.exceptions.ConnectionNotAccessibleException;
 import org.eclipse.ditto.signals.commands.amqpbridge.exceptions.ConnectionUnavailableException;
@@ -72,6 +73,7 @@ public final class AmqpBridgeErrorRegistry extends AbstractErrorRegistry<DittoRu
         parseStrategies.put(ConnectionNotAccessibleException.ERROR_CODE, ConnectionNotAccessibleException::fromJson);
         parseStrategies.put(ConnectionUnavailableException.ERROR_CODE, ConnectionUnavailableException::fromJson);
         parseStrategies.put(ConnectionFailedException.ERROR_CODE, ConnectionFailedException::fromJson);
+        parseStrategies.put(ConnectionConflictException.ERROR_CODE, ConnectionConflictException::fromJson);
 
         return new AmqpBridgeErrorRegistry(parseStrategies);
     }
