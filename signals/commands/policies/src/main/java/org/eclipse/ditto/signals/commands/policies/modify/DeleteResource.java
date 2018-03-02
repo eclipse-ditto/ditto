@@ -96,7 +96,8 @@ public final class DeleteResource extends AbstractCommand<DeleteResource>
      * @return the command.
      * @throws NullPointerException if {@code jsonString} is {@code null}.
      * @throws IllegalArgumentException if {@code jsonString} is empty.
-     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected format.
+     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
+     * format.
      */
     public static DeleteResource fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
         return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
@@ -109,7 +110,8 @@ public final class DeleteResource extends AbstractCommand<DeleteResource>
      * @param dittoHeaders the headers of the command.
      * @return the command.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
-     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected format.
+     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
+     * format.
      */
     public static DeleteResource fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<DeleteResource>(TYPE, jsonObject).deserialize(() -> {
@@ -163,6 +165,11 @@ public final class DeleteResource extends AbstractCommand<DeleteResource>
         jsonObjectBuilder.set(PolicyModifyCommand.JsonFields.JSON_POLICY_ID, policyId, predicate);
         jsonObjectBuilder.set(JSON_LABEL, label.toString(), predicate);
         jsonObjectBuilder.set(JSON_RESOURCE_KEY, resourceKey.toString(), predicate);
+    }
+
+    @Override
+    public Category getCategory() {
+        return Category.DELETE;
     }
 
     @Override

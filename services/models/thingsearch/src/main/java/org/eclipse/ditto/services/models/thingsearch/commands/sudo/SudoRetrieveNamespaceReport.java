@@ -25,11 +25,13 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
 /**
  * Command which retrieves a Namespace-Report (without authorization).
  */
 @Immutable
+@AllValuesAreNonnullByDefault
 public final class SudoRetrieveNamespaceReport extends AbstractCommand<SudoRetrieveNamespaceReport>
         implements ThingSearchSudoCommand<SudoRetrieveNamespaceReport> {
 
@@ -92,6 +94,11 @@ public final class SudoRetrieveNamespaceReport extends AbstractCommand<SudoRetri
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
         // nothing to do
+    }
+
+    @Override
+    public Category getCategory() {
+        return Category.QUERY;
     }
 
     @Override

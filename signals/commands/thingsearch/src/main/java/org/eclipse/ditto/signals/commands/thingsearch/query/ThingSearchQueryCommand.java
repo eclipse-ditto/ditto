@@ -36,4 +36,9 @@ public interface ThingSearchQueryCommand<T extends ThingSearchQueryCommand> exte
      * @return the optional filter string.
      */
     Optional<String> getFilter();
+
+    @Override
+    default Category getCategory() {
+        return Category.QUERY;
+    }
 }

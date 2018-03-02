@@ -31,6 +31,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.ThingIdValidator;
 import org.eclipse.ditto.signals.base.WithFeatureId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
+import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 
 /**
@@ -142,6 +143,11 @@ public final class DeleteFeatureDefinition extends AbstractCommand<DeleteFeature
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(ThingModifyCommand.JsonFields.JSON_THING_ID, thingId, predicate);
         jsonObjectBuilder.set(JSON_FEATURE_ID, featureId, predicate);
+    }
+
+    @Override
+    public Category getCategory() {
+        return Category.DELETE;
     }
 
     @Override

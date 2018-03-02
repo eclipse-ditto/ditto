@@ -38,6 +38,11 @@ public interface ThingPersistenceActorInterface extends PersistentActor {
      */
     @Nonnull String getThingId();
 
+    /**
+     * @return whether the Thing is in state "deleted".
+     */
+    boolean isThingDeleted();
+
     @Override
     default <A> void deferAsync(final A event, final Function1<A, BoxedUnit> handler) {
         internalDeferAsync(event, handler);

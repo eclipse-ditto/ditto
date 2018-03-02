@@ -146,6 +146,11 @@ public final class ChangeLogLevel extends AbstractDevOpsCommand<ChangeLogLevel> 
     }
 
     @Override
+    public Category getCategory() {
+        return Category.MODIFY;
+    }
+
+    @Override
     public ChangeLogLevel setDittoHeaders(final DittoHeaders dittoHeaders) {
         return of(getServiceName().orElse(null), getInstance().orElse(null), loggerConfig, dittoHeaders);
     }

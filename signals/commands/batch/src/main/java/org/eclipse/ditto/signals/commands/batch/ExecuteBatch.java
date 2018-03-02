@@ -167,6 +167,11 @@ public final class ExecuteBatch extends AbstractCommand<ExecuteBatch> implements
     }
 
     @Override
+    public Category getCategory() {
+        return Category.MODIFY;
+    }
+
+    @Override
     public ExecuteBatch setDittoHeaders(final DittoHeaders dittoHeaders) {
         return of(batchId, commands, dittoHeaders);
     }

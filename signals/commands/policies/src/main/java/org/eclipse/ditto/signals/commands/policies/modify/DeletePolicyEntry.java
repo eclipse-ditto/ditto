@@ -145,6 +145,11 @@ public final class DeletePolicyEntry extends AbstractCommand<DeletePolicyEntry>
     }
 
     @Override
+    public Category getCategory() {
+        return Category.DELETE;
+    }
+
+    @Override
     public DeletePolicyEntry setDittoHeaders(final DittoHeaders dittoHeaders) {
         return of(policyId, label, dittoHeaders);
     }

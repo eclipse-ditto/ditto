@@ -59,6 +59,11 @@ final class CreateThingLiveCommandImpl extends AbstractModifyLiveCommand<CreateT
     }
 
     @Override
+    public Category getCategory() {
+        return Category.MODIFY;
+    }
+
+    @Override
     public CreateThingLiveCommand setDittoHeaders(final DittoHeaders dittoHeaders) {
         return of(CreateThing.of(thing, null, dittoHeaders));
     }

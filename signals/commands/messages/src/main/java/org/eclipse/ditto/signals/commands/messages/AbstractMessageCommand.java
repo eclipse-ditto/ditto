@@ -81,6 +81,11 @@ abstract class AbstractMessageCommand<T, C extends AbstractMessageCommand> exten
     }
 
     @Override
+    public Category getCategory() {
+        return Category.MODIFY;
+    }
+
+    @Override
     public String getThingId() {
         return thingId;
     }

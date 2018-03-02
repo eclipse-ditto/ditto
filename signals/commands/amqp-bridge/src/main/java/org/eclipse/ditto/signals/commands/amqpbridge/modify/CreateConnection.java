@@ -24,14 +24,13 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.model.amqpbridge.AmqpBridgeModelFactory;
+import org.eclipse.ditto.model.amqpbridge.AmqpConnection;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
-
-import org.eclipse.ditto.model.amqpbridge.AmqpBridgeModelFactory;
-import org.eclipse.ditto.model.amqpbridge.AmqpConnection;
 
 /**
  * Command which creates a {@link AmqpConnection}.
@@ -127,6 +126,11 @@ public final class CreateConnection extends AbstractCommand<CreateConnection>
     @Override
     public String getConnectionId() {
         return amqpConnection.getId();
+    }
+
+    @Override
+    public Category getCategory() {
+        return Category.MODIFY;
     }
 
     @Override

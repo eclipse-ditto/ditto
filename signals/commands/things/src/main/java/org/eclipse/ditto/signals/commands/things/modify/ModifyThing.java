@@ -121,8 +121,8 @@ public final class ModifyThing extends AbstractCommand<ModifyThing> implements T
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
-     * @throws org.eclipse.ditto.json.JsonMissingFieldException if {@code jsonObject} did not contain a field for
-     * {@link ThingModifyCommand.JsonFields#JSON_THING_ID} or {@link #JSON_THING}.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if {@code jsonObject} did not contain a field for {@link
+     * ThingModifyCommand.JsonFields#JSON_THING_ID} or {@link #JSON_THING}.
      */
     public static ModifyThing fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<ModifyThing>(TYPE, jsonObject).deserialize(() -> {
@@ -140,11 +140,10 @@ public final class ModifyThing extends AbstractCommand<ModifyThing> implements T
     }
 
     /**
-     * Ensures that the command will not contain inconsistent authorization information.
-     * <ul>
-     * <li>{@link org.eclipse.ditto.model.base.json.JsonSchemaVersion#V_1} commands may not contain policy information.</li>
-     * <li>{@link org.eclipse.ditto.model.base.json.JsonSchemaVersion#LATEST} commands may not contain ACL information.</li>
-     * </ul>
+     * Ensures that the command will not contain inconsistent authorization information. <ul> <li>{@link
+     * org.eclipse.ditto.model.base.json.JsonSchemaVersion#V_1} commands may not contain policy information.</li>
+     * <li>{@link org.eclipse.ditto.model.base.json.JsonSchemaVersion#LATEST} commands may not contain ACL
+     * information.</li> </ul>
      */
     private static void ensureAuthorizationMatchesSchemaVersion(final String thingId,
             final Thing thing,
@@ -216,6 +215,11 @@ public final class ModifyThing extends AbstractCommand<ModifyThing> implements T
         if (initialPolicy != null) {
             jsonObjectBuilder.set(JSON_INITIAL_POLICY, initialPolicy, predicate);
         }
+    }
+
+    @Override
+    public Category getCategory() {
+        return Category.MODIFY;
     }
 
     @Override
