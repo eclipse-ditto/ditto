@@ -59,6 +59,7 @@ public class RabbitMQClientActor extends BaseClientActor {
 
     @Nullable private ActorRef rmqConnectionActor;
     @Nullable private ActorRef consumerChannelActor;
+    @Nullable private ActorRef rmqPublisherActor;
 
     private RabbitMQClientActor(final String connectionId, final ActorRef rmqConnectionActor) {
         super(connectionId, rmqConnectionActor, AmqpBridgeMessagingConstants.GATEWAY_PROXY_ACTOR_PATH);
@@ -126,16 +127,16 @@ public class RabbitMQClientActor extends BaseClientActor {
             rmqConnectionActor = startChildActor(RMQ_CONNECTION_PREFIX + connectionId, props);
 
             final Props publisherProps = RabbitMQPublisherActor.props(amqpConnection);
-            final ActorRef publisherActor =
+            rmqPublisherActor =
                     startChildActor(RabbitMQPublisherActor.ACTOR_NAME_PREFIX + connectionId, publisherProps);
 
-            startCommandProcessor(publisherActor);
+            startCommandProcessor(rmqPublisherActor);
 
             // create publisher channel
             rmqConnectionActor.tell(
                     CreateChannel.apply(
                             ChannelActor.props((channel, s) -> null),
-                            Option.apply(PUBLISHER_CHANNEL)), publisherActor);
+                            Option.apply(PUBLISHER_CHANNEL)), rmqPublisherActor);
 
             // create a consumer channel - if source is configured
             if (isConsumingCommands()) {
@@ -163,6 +164,10 @@ public class RabbitMQClientActor extends BaseClientActor {
         if (rmqConnectionActor != null) {
             stopChildActor(rmqConnectionActor);
             rmqConnectionActor = null;
+        }
+        if (rmqPublisherActor != null) {
+            stopChildActor(rmqPublisherActor);
+            rmqPublisherActor = null;
         }
         getSender().tell(new Status.Success("disconnected"), self());
     }

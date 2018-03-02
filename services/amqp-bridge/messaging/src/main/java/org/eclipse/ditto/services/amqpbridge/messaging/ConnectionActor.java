@@ -246,6 +246,7 @@ class ConnectionActor extends AbstractPersistentActor {
     private Receive createConnectionCreatedBehaviour() {
         return ReceiveBuilder.create()
                 .match(CreateConnection.class, createConnection -> {
+                    LogUtil.enhanceLogWithCorrelationId(log, createConnection);
                     log.info("Connection <{}> already exists, responding with conflict", createConnection.getId());
                     final ConnectionConflictException conflictException =
                             ConnectionConflictException.newBuilder(createConnection.getId())
