@@ -91,6 +91,7 @@ public interface Event<T extends Event> extends Signal<T>, WithOptionalEntity {
 
         /**
          * JSON field containing the event's identifier - was used in SchemaVersion 1 instead of "type".
+         * @deprecated was replaced by {@link #TYPE} in Schema Version 2
          */
         @Deprecated
         public static final JsonFieldDefinition<String> ID =

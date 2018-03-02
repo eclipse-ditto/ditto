@@ -88,13 +88,14 @@ final class GatewayRootActor extends AbstractActor {
 
     private static final String ACL_ENFORCER_SHARD_REGION = "aclEnforcer";
     private static final String POLICY_ENFORCER_SHARD_REGION = "policyEnforcer";
+    private static final String CHILD_RESTART_INFO_MSG = "Restarting child...";
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
     private final SupervisorStrategy strategy = new OneForOneStrategy(true, DeciderBuilder //
             .match(NullPointerException.class, e -> {
                 log.error(e, "NullPointer in child actor: {}", e.getMessage());
-                log.info("Restarting child...");
+                log.info(CHILD_RESTART_INFO_MSG);
                 return SupervisorStrategy.restart();
             }).match(IllegalArgumentException.class, e -> {
                 log.warning("Illegal Argument in child actor: {}", e.getMessage());
@@ -110,7 +111,7 @@ final class GatewayRootActor extends AbstractActor {
                 return SupervisorStrategy.resume();
             }).match(ConnectException.class, e -> {
                 log.warning("ConnectException in child actor: {}", e.getMessage());
-                log.info("Restarting child...");
+                log.info(CHILD_RESTART_INFO_MSG);
                 return SupervisorStrategy.restart();
             }).match(InvalidActorNameException.class, e -> {
                 log.warning("InvalidActorNameException in child actor: {}", e.getMessage());
@@ -122,7 +123,7 @@ final class GatewayRootActor extends AbstractActor {
                 return SupervisorStrategy.resume();
             }).match(ActorKilledException.class, e -> {
                 log.error(e, "ActorKilledException in child actor: {}", e.message());
-                log.info("Restarting child...");
+                log.info(CHILD_RESTART_INFO_MSG);
                 return SupervisorStrategy.restart();
             }).match(Throwable.class, e -> {
                 log.error(e, "Escalating above root actor!");

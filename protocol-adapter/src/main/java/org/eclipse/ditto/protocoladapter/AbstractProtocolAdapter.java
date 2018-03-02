@@ -66,33 +66,9 @@ public abstract class AbstractProtocolAdapter implements ProtocolAdapter {
             final TopicPath.Channel channel = topicPath.getChannel();
 
             if (channel.equals(TopicPath.Channel.LIVE)) { // /things/live
-
-                final Signal<?> liveSignal;
-                if (TopicPath.Criterion.MESSAGES.equals(topicPath.getCriterion())) { // /things/live/messages
-                    final boolean isResponse = adaptable.getPayload().getStatus().isPresent();
-                    if (isResponse) {
-                        liveSignal = messageCommandResponseAdapter.fromAdaptable(adaptable);
-                    } else {
-                        liveSignal = messageCommandAdapter.fromAdaptable(adaptable);
-                    }
-                } else {
-                    liveSignal = signalFromAdaptable(adaptable, topicPath); // /things/live/(commands|events)
-                }
-
-                if (liveSignal != null) {
-                    final DittoHeadersBuilder enhancedHeadersBuilder = liveSignal.getDittoHeaders()
-                            .toBuilder()
-                            .channel(TopicPath.Channel.LIVE.getName());
-
-                    return liveSignal.setDittoHeaders(enhancedHeadersBuilder.build());
-                }
+                return fromLiveAdaptable(adaptable);
             } else if (channel.equals(TopicPath.Channel.TWIN)) { // /things/twin
-
-                final Signal<?> signal =
-                        signalFromAdaptable(adaptable, topicPath); // /things/twin/(commands|events)
-                if (signal != null) {
-                    return signal;
-                }
+                return fromTwinAdaptable(adaptable);
             }
         }
 
@@ -250,6 +226,44 @@ public abstract class AbstractProtocolAdapter implements ProtocolAdapter {
     @Override
     public Adaptable toAdaptable(final ThingEvent<?> thingEvent, final TopicPath.Channel channel) {
         return thingEventAdapter.toAdaptable(thingEvent, channel);
+    }
+
+    private Signal<?> fromLiveAdaptable(final Adaptable adaptable) {
+        final TopicPath topicPath = adaptable.getTopicPath();
+
+        final Signal<?> liveSignal;
+        if (TopicPath.Criterion.MESSAGES.equals(topicPath.getCriterion())) { // /things/live/messages
+            final boolean isResponse = adaptable.getPayload().getStatus().isPresent();
+            if (isResponse) {
+                liveSignal = messageCommandResponseAdapter.fromAdaptable(adaptable);
+            } else {
+                liveSignal = messageCommandAdapter.fromAdaptable(adaptable);
+            }
+        } else {
+            liveSignal = signalFromAdaptable(adaptable, topicPath); // /things/live/(commands|events)
+        }
+
+        if (liveSignal != null) {
+            final DittoHeadersBuilder enhancedHeadersBuilder = liveSignal.getDittoHeaders()
+                    .toBuilder()
+                    .channel(TopicPath.Channel.LIVE.getName());
+
+            return liveSignal.setDittoHeaders(enhancedHeadersBuilder.build());
+        } else {
+            throw UnknownTopicPathException.newBuilder(topicPath).build();
+        }
+    }
+
+    private Signal<?> fromTwinAdaptable(final Adaptable adaptable) {
+        final TopicPath topicPath = adaptable.getTopicPath();
+
+        final Signal<?> signal =
+                signalFromAdaptable(adaptable, topicPath); // /things/twin/(commands|events)
+        if (signal != null) {
+            return signal;
+        } else {
+            throw UnknownTopicPathException.newBuilder(topicPath).build();
+        }
     }
 
     private Signal<?> signalFromAdaptable(final Adaptable adaptable, final TopicPath topicPath) {

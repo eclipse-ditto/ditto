@@ -126,7 +126,7 @@ public final class Index {
      * @return whether this index is to be built in the background.
      */
     public boolean isBackground() {
-        return sparse;
+        return background;
     }
 
     @Override

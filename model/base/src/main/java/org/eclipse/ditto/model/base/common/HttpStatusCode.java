@@ -264,7 +264,7 @@ public enum HttpStatusCode {
      * not configured to produce responses for the combination of scheme and authority that are included in the request
      * URI.
      */
-    MISDIRECTED__REQUEST(421),
+    MISDIRECTED_REQUEST(421),
 
     /**
      * The server understands the content type of the request entity (hence a 415 Unsupported Media Type status code is

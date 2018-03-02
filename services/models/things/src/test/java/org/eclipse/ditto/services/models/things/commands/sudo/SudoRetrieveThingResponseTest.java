@@ -63,8 +63,9 @@ public final class SudoRetrieveThingResponseTest {
     /** */
     @Test
     public void toJsonReturnsExpected() {
+        final JsonObject thingJson = THING.toJson(FieldType.notHidden());
         final SudoRetrieveThingResponse underTest =
-                SudoRetrieveThingResponse.of(THING, FieldType.notHidden(), EMPTY_DITTO_HEADERS);
+                SudoRetrieveThingResponse.of(thingJson, EMPTY_DITTO_HEADERS);
         final JsonObject actualJson = underTest.toJson(FieldType.notHidden());
 
         assertThat(actualJson).isEqualTo(KNOWN_JSON);

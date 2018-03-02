@@ -87,14 +87,18 @@ public final class ThingEventRegistry extends AbstractEventRegistry<ThingEvent> 
 
     @Override
     protected String resolveType(final JsonObject jsonObject) {
-        final Optional<String> eventOpt = jsonObject.getValue(Event.JsonFields.ID);
         /*
          * If type was not present (was included in V2) take "event" instead and transform to V2 format.
           * Fail if "event" also is not present.
          */
         return jsonObject.getValue(Event.JsonFields.TYPE)
-                .orElseGet(() -> eventOpt.map(event -> ThingEvent.TYPE_PREFIX + event)
+                .orElseGet(() -> extractTypeV1(jsonObject)
                         .orElseThrow(() -> new JsonMissingFieldException(Event.JsonFields.TYPE)));
+    }
+
+    @SuppressWarnings("squid:CallToDeprecatedMethod")
+    private Optional<String> extractTypeV1(final JsonObject jsonObject) {
+        return jsonObject.getValue(Event.JsonFields.ID).map(event -> ThingEvent.TYPE_PREFIX + event);
     }
 
 }

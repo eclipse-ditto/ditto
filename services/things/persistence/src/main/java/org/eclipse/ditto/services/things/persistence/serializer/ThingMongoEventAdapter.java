@@ -107,8 +107,8 @@ public final class ThingMongoEventAdapter implements EventAdapter {
         migrationMappings.put(FeaturesModified.NAME,
                 jsonObject -> migrateModifiedToCreated(jsonObject, FeaturesCreated.TYPE));
 
-        migrationMappings.put(THING_ACL_MODIFIED, jsonObject -> migrateId(jsonObject));
-        migrationMappings.put(THING_ACL_ENTRY_DELETED, jsonObject -> migrateId(jsonObject));
+        migrationMappings.put(THING_ACL_MODIFIED, ThingMongoEventAdapter::migrateId);
+        migrationMappings.put(THING_ACL_ENTRY_DELETED, ThingMongoEventAdapter::migrateId);
         migrationMappings.put(THING_ACL_ENTRY_MODIFIED,
                 jsonObject -> migrateModifiedToCreated(migrateId(jsonObject), AclEntryCreated.TYPE));
 
@@ -117,7 +117,7 @@ public final class ThingMongoEventAdapter implements EventAdapter {
         migrationMappings.put(THING_ATTRIBUTE_MODIFIED, jsonObject -> renameValue(ATTRIBUTE,
                 renameJsonPointer(ATTRIBUTE, migrateModifiedToCreated(migrateId(jsonObject), AttributeCreated.TYPE))));
 
-        migrationMappings.put(THING_ATTRIBUTES_DELETED, jsonObject -> migrateId(jsonObject));
+        migrationMappings.put(THING_ATTRIBUTES_DELETED, ThingMongoEventAdapter::migrateId);
         migrationMappings.put(THING_ATTRIBUTES_MODIFIED,
                 jsonObject -> migrateModifiedToCreated(migrateId(jsonObject), AttributesCreated.TYPE));
 
@@ -210,6 +210,7 @@ public final class ThingMongoEventAdapter implements EventAdapter {
                 .orElse(jsonObject);
     }
 
+    @SuppressWarnings("squid:CallToDeprecatedMethod")
     private static JsonObject migrateId(final JsonObject jsonObject) {
         return jsonObject.getValue(Event.JsonFields.ID)
                 .map(name -> name.replaceFirst("thing", ""))
@@ -220,6 +221,7 @@ public final class ThingMongoEventAdapter implements EventAdapter {
                 .orElse(jsonObject);
     }
 
+    @SuppressWarnings("squid:CallToDeprecatedMethod")
     private JsonObject migrateComplex(final JsonObject jsonObject) {
         return jsonObject.getValue(Event.JsonFields.ID)
                 .map(migrationMappings::get)

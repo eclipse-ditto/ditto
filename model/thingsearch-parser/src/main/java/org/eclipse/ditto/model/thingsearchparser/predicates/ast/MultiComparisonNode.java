@@ -66,7 +66,7 @@ public final class MultiComparisonNode extends ComparisonNode<MultiComparisonNod
         /**
          * Represents an in comparison.
          */
-        in("in");
+        IN("in");
 
         private final String name;
 
