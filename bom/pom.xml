@@ -49,7 +49,7 @@
         <asm.version>5.2</asm.version>
         <javax-jms-api.version>2.0.1</javax-jms-api.version>
         <!-- qpid-jms-client version 0.29 has a strange bug - beware of updating -->
-        <qpid-jms-client.version>0.28.0</qpid-jms-client.version>
+        <qpid-jms-client.version>0.26.0</qpid-jms-client.version>
         <newmotion-akka-rabbitmq.version>5.0.0</newmotion-akka-rabbitmq.version>
         <reactive-streams.version>1.0.1</reactive-streams.version>
 
