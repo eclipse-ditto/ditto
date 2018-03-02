@@ -90,12 +90,15 @@ public final class AmqpConnectionBasedJmsConnectionFactory implements JmsConnect
         final String nestedUri = baseUri + parameters.stream().collect(Collectors.joining("&", "?", ""));
 
         final List<String> globalParameters = new ArrayList<>(getJmsParameters(id, username, password));
+        final String connectionUri;
         if (failoverEnabled) {
             globalParameters.addAll(getFailoverParameters());
+            connectionUri =
+                    wrapWithFailOver(nestedUri) + globalParameters.stream().collect(Collectors.joining("&", "?", ""));
+        } else {
+            connectionUri = nestedUri + globalParameters.stream().collect(Collectors.joining("&", "&", ""));
         }
-        final String connectionUri = wrapWithFailOver(nestedUri, failoverEnabled)
-                + globalParameters.stream().collect(Collectors.joining("&", "?", ""));
-
+        System.out.println(connectionUri);
         LOGGER.debug("[{}] URI: {}", id, connectionUri);
         @SuppressWarnings("squid:S1149") final Hashtable<Object, Object> env = new Hashtable<>();
         env.put(Context.INITIAL_CONTEXT_FACTORY, "org.apache.qpid.jms.jndi.JmsInitialContextFactory");
@@ -142,8 +145,8 @@ public final class AmqpConnectionBasedJmsConnectionFactory implements JmsConnect
                 "reconnectBackOffMultiplier=1m");
     }
 
-    private static String wrapWithFailOver(final String uri, final boolean failoverEnabled) {
-        return failoverEnabled ? MessageFormat.format("failover:({0})", uri) : uri;
+    private static String wrapWithFailOver(final String uri) {
+        return MessageFormat.format("failover:({0})", uri);
     }
 
 }
