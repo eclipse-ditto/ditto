@@ -19,6 +19,8 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.CompletionStage;
 
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.services.gateway.health.StatusAndHealthProvider;
 import org.eclipse.ditto.services.utils.health.StatusDetailMessage;
 import org.eclipse.ditto.services.utils.health.StatusInfo;
@@ -81,14 +83,16 @@ public final class CachingHealthRoute {
         }
 
         return cachedHealth.thenApply(overallHealth -> {
+            final JsonObject statusObject = JsonFactory.newObject()
+                    .set(StatusInfo.JSON_KEY_STATUS, overallHealth.getStatus().toString());
             if (overallHealth.isHealthy()) {
                 return HttpResponse.create()
                         .withStatus(StatusCodes.OK)
-                        .withEntity(ContentTypes.APPLICATION_JSON, overallHealth.toString());
+                        .withEntity(ContentTypes.APPLICATION_JSON, statusObject.toString());
             } else {
                 return HttpResponse.create()
                         .withStatus(StatusCodes.SERVICE_UNAVAILABLE)
-                        .withEntity(ContentTypes.APPLICATION_JSON, overallHealth.toString());
+                        .withEntity(ContentTypes.APPLICATION_JSON, statusObject.toString());
             }
         });
     }
