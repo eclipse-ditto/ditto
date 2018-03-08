@@ -49,10 +49,7 @@ public final class SearchService extends DittoService {
     private static final String SERVICE_NAME = ConfigKeys.SERVICE_NAME;
 
     private SearchService() {
-        super(LOGGER, SERVICE_NAME, SearchRootActor.ACTOR_NAME, BaseConfigKeys.getBuilder()
-            .put(BaseConfigKey.Cluster.MAJORITY_CHECK_ENABLED, ConfigKeys.CLUSTER_MAJORITY_CHECK_ENABLED)
-            .put(BaseConfigKey.Cluster.MAJORITY_CHECK_DELAY, ConfigKeys.CLUSTER_MAJORITY_CHECK_DELAY)
-            .build());
+        super(LOGGER, SERVICE_NAME, SearchRootActor.ACTOR_NAME, BaseConfigKeys.of(CONFIG_ROOT, SERVICE_NAME));
     }
 
     /**

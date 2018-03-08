@@ -21,6 +21,23 @@ import javax.annotation.concurrent.Immutable;
 public interface BaseConfigKey {
 
     /**
+     * Retrieve the config suffix for this option.
+     *
+     * @return the config suffix
+     */
+    String getSuffix();
+
+    /**
+     * Return the config path for this option.
+     *
+     * @param servicePrefix prefix of the service, e. g., {@code ditto.things}
+     * @return the config path
+     */
+    default String getConfigPath(final String servicePrefix) {
+        return servicePrefix + getSuffix();
+    }
+
+    /**
      * Enumeration of keys for cluster configuration settings.
      */
     enum Cluster implements BaseConfigKey {
@@ -28,13 +45,23 @@ public interface BaseConfigKey {
         /**
          * Key of the configuration setting which indicates whether the majority check is enabled.
          */
-        MAJORITY_CHECK_ENABLED,
+        MAJORITY_CHECK_ENABLED(".cluster.majority-check.enabled"),
 
         /**
          * Key of the majority check delay configuration setting.
          */
-        MAJORITY_CHECK_DELAY;
+        MAJORITY_CHECK_DELAY(".cluster.majority-check.delay");
 
+        private final String suffix;
+
+        Cluster(final String suffix) {
+            this.suffix = suffix;
+        }
+
+        @Override
+        public String getSuffix() {
+            return suffix;
+        }
     }
 
     /**
@@ -45,13 +72,23 @@ public interface BaseConfigKey {
         /**
          * Key of the StatsD hostname configuration setting.
          */
-        HOSTNAME,
+        HOSTNAME(".statsd.hostname"),
 
         /**
          * Key of the StatsD port configuration setting.
          */
-        PORT;
+        PORT(".statsd.port");
 
+        private final String suffix;
+
+        StatsD(final String suffix) {
+            this.suffix = suffix;
+        }
+
+        @Override
+        public String getSuffix() {
+            return suffix;
+        }
     }
 
 }

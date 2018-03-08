@@ -40,12 +40,7 @@ public final class GatewayService extends DittoService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(GatewayService.class);
 
-    private static final BaseConfigKeys CONFIG_KEYS = BaseConfigKeys.getBuilder()
-            .put(BaseConfigKey.Cluster.MAJORITY_CHECK_ENABLED, ConfigKeys.CLUSTER_MAJORITY_CHECK_ENABLED)
-            .put(BaseConfigKey.Cluster.MAJORITY_CHECK_DELAY, ConfigKeys.CLUSTER_MAJORITY_CHECK_DELAY)
-            .put(BaseConfigKey.StatsD.HOSTNAME, ConfigKeys.STATSD_HOSTNAME)
-            .put(BaseConfigKey.StatsD.PORT, ConfigKeys.STATSD_PORT)
-            .build();
+    private static final BaseConfigKeys CONFIG_KEYS = BaseConfigKeys.of(CONFIG_ROOT, SERVICE_NAME);
 
     private GatewayService() {
         super(LOGGER, SERVICE_NAME, GatewayRootActor.ACTOR_NAME, CONFIG_KEYS);

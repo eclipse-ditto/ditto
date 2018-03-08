@@ -16,12 +16,14 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -46,6 +48,24 @@ public final class BaseConfigKeys {
      */
     public static Builder getBuilder() {
         return new Builder();
+    }
+
+    /**
+     * Construct {@code BaseConfigKeys} from config root and service name.
+     *
+     * @param rootConfigKey root of base configurations.
+     * @param serviceName name of the service.
+     * @return {code BaseConfigKey} object.
+     */
+    public static BaseConfigKeys of(final String rootConfigKey, final String serviceName) {
+        final String servicePrefix = String.format("%s.%s", rootConfigKey, serviceName);
+        final Builder builder = new Builder();
+        Stream.concat(Arrays.stream(BaseConfigKey.Cluster.values()), Arrays.stream(BaseConfigKey.StatsD.values()))
+                .forEach(baseConfigKey -> {
+                    final String configPath = baseConfigKey.getConfigPath(servicePrefix);
+                    builder.put(baseConfigKey, configPath);
+                });
+        return builder.build();
     }
 
     /**
@@ -95,7 +115,7 @@ public final class BaseConfigKeys {
 
     /**
      * Returns the service-specific config key for the given base config key.
-     * 
+     *
      * @param baseConfigKey the base config key to get the associated service-specific config key for.
      * @return the service-specific config key.
      * @throws NullPointerException if {@code baseConfigKey} is {@code null} or if {@code baseConfigKey} is not

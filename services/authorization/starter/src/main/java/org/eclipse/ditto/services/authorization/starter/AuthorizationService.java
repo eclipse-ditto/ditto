@@ -38,14 +38,7 @@ public final class AuthorizationService extends DittoService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AuthorizationService.class);
 
-    private static final BaseConfigKeys CONFIG_KEYS = BaseConfigKeys.getBuilder()
-            /* TODO: add config facade
-                    .put(BaseConfigKey.Cluster.MAJORITY_CHECK_ENABLED, ConfigKeys.CLUSTER_MAJORITY_CHECK_ENABLED)
-                    .put(BaseConfigKey.Cluster.MAJORITY_CHECK_DELAY, ConfigKeys.CLUSTER_MAJORITY_CHECK_DELAY)
-                    .put(BaseConfigKey.StatsD.HOSTNAME, ConfigKeys.STATSD_HOSTNAME)
-                    .put(BaseConfigKey.StatsD.PORT, ConfigKeys.STATSD_PORT)
-                    */
-            .build();
+    private static final BaseConfigKeys CONFIG_KEYS = BaseConfigKeys.of(CONFIG_ROOT, SERVICE_NAME);
 
     private AuthorizationService() {
         super(LOGGER, SERVICE_NAME, AuthorizationRootActor.ACTOR_NAME, CONFIG_KEYS);

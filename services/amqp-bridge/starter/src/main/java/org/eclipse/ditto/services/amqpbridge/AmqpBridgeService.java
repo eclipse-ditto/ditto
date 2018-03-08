@@ -44,10 +44,7 @@ public final class AmqpBridgeService extends DittoService {
     private static final String SERVICE_NAME = "amqp-bridge";
 
     private AmqpBridgeService() {
-        super(LOGGER, SERVICE_NAME, AmqpBridgeRootActor.ACTOR_NAME, BaseConfigKeys.getBuilder()
-                .put(BaseConfigKey.Cluster.MAJORITY_CHECK_ENABLED, ConfigKeys.Cluster.MAJORITY_CHECK_ENABLED)
-                .put(BaseConfigKey.Cluster.MAJORITY_CHECK_DELAY, ConfigKeys.Cluster.MAJORITY_CHECK_DELAY)
-                .build());
+        super(LOGGER, SERVICE_NAME, AmqpBridgeRootActor.ACTOR_NAME, BaseConfigKeys.of(CONFIG_ROOT, SERVICE_NAME));
     }
 
     /**

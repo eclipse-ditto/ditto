@@ -36,12 +36,7 @@ public abstract class AbstractPoliciesService extends DittoService {
      */
     private static final String SERVICE_NAME = "policies";
 
-    private static final BaseConfigKeys CONFIG_KEYS = BaseConfigKeys.getBuilder()
-            .put(BaseConfigKey.Cluster.MAJORITY_CHECK_ENABLED, ConfigKeys.Cluster.MAJORITY_CHECK_ENABLED)
-            .put(BaseConfigKey.Cluster.MAJORITY_CHECK_DELAY, ConfigKeys.Cluster.MAJORITY_CHECK_DELAY)
-            .put(BaseConfigKey.StatsD.HOSTNAME, ConfigKeys.StatsD.HOSTNAME)
-            .put(BaseConfigKey.StatsD.PORT, ConfigKeys.StatsD.PORT)
-            .build();
+    private static final BaseConfigKeys CONFIG_KEYS = BaseConfigKeys.of(CONFIG_ROOT, SERVICE_NAME);
 
     private final Logger logger;
 

@@ -59,24 +59,29 @@ import scala.concurrent.duration.FiniteDuration;
  * order:
  * </p>
  * <ol>
- *     <li>{@link #determineConfig()},</li>
- *     <li>{@link #createActorSystem(Config)},</li>
- *     <li>{@link #startStatusSupplierActor(ActorSystem, Config)},</li>
- *     <li>{@link #joinCluster(ActorSystem, Config)},</li>
- *     <li>{@link #startClusterMemberAwareActor(ActorSystem, Config)} and</li>
- *     <li>{@link #startServiceRootActors(ActorSystem, Config, Cancellable)}.
-     *     <ol>
-     *         <li>{@link #startStatsdMetricsReporter(ActorSystem, Config)},</li>
-     *         <li>{@link #getMainRootActorProps(Config, ActorRef, ActorMaterializer)},</li>
-     *         <li>{@link #startMainRootActor(ActorSystem, Props)},</li>
-     *         <li>{@link #getAdditionalRootActorsInformation(Config, ActorRef, ActorMaterializer)} and</li>
-     *         <li>{@link #startAdditionalRootActors(ActorSystem, Iterable)}.</li>
-     *     </ol>
- *     </li>
+ * <li>{@link #determineConfig()},</li>
+ * <li>{@link #createActorSystem(Config)},</li>
+ * <li>{@link #startStatusSupplierActor(ActorSystem, Config)},</li>
+ * <li>{@link #joinCluster(ActorSystem, Config)},</li>
+ * <li>{@link #startClusterMemberAwareActor(ActorSystem, Config)} and</li>
+ * <li>{@link #startServiceRootActors(ActorSystem, Config, Cancellable)}.
+ * <ol>
+ * <li>{@link #startStatsdMetricsReporter(ActorSystem, Config)},</li>
+ * <li>{@link #getMainRootActorProps(Config, ActorRef, ActorMaterializer)},</li>
+ * <li>{@link #startMainRootActor(ActorSystem, Props)},</li>
+ * <li>{@link #getAdditionalRootActorsInformation(Config, ActorRef, ActorMaterializer)} and</li>
+ * <li>{@link #startAdditionalRootActors(ActorSystem, Iterable)}.</li>
+ * </ol>
+ * </li>
  * </ol>
  */
 @NotThreadSafe
 public abstract class DittoService {
+
+    /**
+     * Root node of service-specific Typesafe config.
+     */
+    public static final String CONFIG_ROOT = "ditto";
 
     /**
      * Amount of seconds this service waits to join the Akka cluster.
@@ -156,12 +161,12 @@ public abstract class DittoService {
      * automatically:</em>
      * </p>
      * <ul>
-     *     <li>{@link #determineConfig()},</li>
-     *     <li>{@link #createActorSystem(Config)},</li>
-     *     <li>{@link #startStatusSupplierActor(ActorSystem, Config)},</li>
-     *     <li>{@link #joinCluster(ActorSystem, Config)},</li>
-     *     <li>{@link #startClusterMemberAwareActor(ActorSystem, Config)} and</li>
-     *     <li>{@link #startServiceRootActors(ActorSystem, Config, Cancellable)}.</li>
+     * <li>{@link #determineConfig()},</li>
+     * <li>{@link #createActorSystem(Config)},</li>
+     * <li>{@link #startStatusSupplierActor(ActorSystem, Config)},</li>
+     * <li>{@link #joinCluster(ActorSystem, Config)},</li>
+     * <li>{@link #startClusterMemberAwareActor(ActorSystem, Config)} and</li>
+     * <li>{@link #startServiceRootActors(ActorSystem, Config, Cancellable)}.</li>
      * </ul>
      */
     protected void startActorSystem() {
@@ -231,7 +236,7 @@ public abstract class DittoService {
      * overridden the following method won't be called automatically:</em>
      * </p>
      * <ul>
-     *     <li>{@link #scheduleShutdownIfJoinFails(ActorSystem)}.</li>
+     * <li>{@link #scheduleShutdownIfJoinFails(ActorSystem)}.</li>
      * </ul>
      *
      * @param actorSystem Akka actor system for starting actors.
@@ -296,11 +301,11 @@ public abstract class DittoService {
      * method is overridden, the following methods will not be called automatically:</em>
      * </p>
      * <ul>
-     *     <li>{@link #startStatsdMetricsReporter(ActorSystem, Config)},</li>
-     *     <li>{@link #getMainRootActorProps(Config, ActorRef, ActorMaterializer)},</li>
-     *     <li>{@link #startMainRootActor(ActorSystem, Props)},</li>
-     *     <li>{@link #getAdditionalRootActorsInformation(Config, ActorRef, ActorMaterializer)} and</li>
-     *     <li>{@link #startAdditionalRootActors(ActorSystem, Iterable)}.</li>
+     * <li>{@link #startStatsdMetricsReporter(ActorSystem, Config)},</li>
+     * <li>{@link #getMainRootActorProps(Config, ActorRef, ActorMaterializer)},</li>
+     * <li>{@link #startMainRootActor(ActorSystem, Props)},</li>
+     * <li>{@link #getAdditionalRootActorsInformation(Config, ActorRef, ActorMaterializer)} and</li>
+     * <li>{@link #startAdditionalRootActors(ActorSystem, Iterable)}.</li>
      * </ul>
      *
      * @param actorSystem Akka actor system for starting actors.
