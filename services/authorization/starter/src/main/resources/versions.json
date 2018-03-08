@@ -1,0 +1,4 @@
+{
+  "service-version": "${project.version}",
+  "build-timestamp": "${the.build.timestamp}"
+}

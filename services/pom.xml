@@ -28,6 +28,7 @@
     <modules>
         <module>amqp-bridge</module>
         <module>base</module>
+        <module>authorization</module>
         <module>gateway</module>
         <module>models</module>
         <module>policies</module>
