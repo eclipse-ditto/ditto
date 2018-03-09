@@ -20,7 +20,7 @@
         <version>${revision}</version>
     </parent>
 
-    <artifactId>ditto-model-policies-enforcers</artifactId>
+    <artifactId>ditto-model-enforcers</artifactId>
     <packaging>bundle</packaging>
     <name>Eclipse Ditto :: Model :: Policies Enforcers</name>
 

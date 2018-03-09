@@ -9,7 +9,7 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package org.eclipse.ditto.service.authorization.util;
+package org.eclipse.ditto.services.authorization.util;
 
 import java.util.HashMap;
 import java.util.Map;
