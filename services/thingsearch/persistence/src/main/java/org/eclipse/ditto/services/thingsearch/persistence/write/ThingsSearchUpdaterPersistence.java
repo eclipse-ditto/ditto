@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.thingsearch.persistence.write;
 import java.util.List;
 import java.util.Set;
 
-import org.eclipse.ditto.model.policiesenforcers.PolicyEnforcer;
+import org.eclipse.ditto.model.enforcers.PolicyEnforcer;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.models.policies.PolicyTag;
 import org.eclipse.ditto.signals.events.things.ThingEvent;

@@ -13,7 +13,7 @@ package org.eclipse.ditto.services.thingsearch.persistence.write;
 
 import java.util.List;
 
-import org.eclipse.ditto.model.policiesenforcers.PolicyEnforcer;
+import org.eclipse.ditto.model.enforcers.PolicyEnforcer;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 /**
