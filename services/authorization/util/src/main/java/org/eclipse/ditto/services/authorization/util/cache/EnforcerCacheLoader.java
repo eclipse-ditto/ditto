@@ -11,28 +11,40 @@
  */
 package org.eclipse.ditto.services.authorization.util.cache;
 
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
+import java.time.Duration;
 
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.enforcers.Enforcer;
-import org.eclipse.ditto.model.policies.ResourceKey;
+import org.eclipse.ditto.services.authorization.util.cache.entry.Entry;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
-import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
-
-import scala.NotImplementedError;
+import akka.actor.ActorRef;
 
 /**
  * Loads an enforcer by asking entity shard regions.
  */
 @Immutable
 @AllValuesAreNonnullByDefault
-final class EnforcerCacheLoader implements AsyncCacheLoader<ResourceKey, Versioned<Enforcer>> {
+public class EnforcerCacheLoader extends AbstractAskCacheLoader<Enforcer> {
 
     @Override
-    public CompletableFuture<Versioned<Enforcer>> asyncLoad(final ResourceKey key, final Executor executor) {
-        throw new NotImplementedError();
+    protected Duration getAskTimeout() {
+        return null;
+    }
+
+    @Override
+    protected ActorRef getEntityRegion(final String resourceType) {
+        return null;
+    }
+
+    @Override
+    protected Object getCommand(final String resourceType, final String id) {
+        return null;
+    }
+
+    @Override
+    protected Entry<Enforcer> transformResponse(final String resourceType, final Object response) {
+        return null;
     }
 }
