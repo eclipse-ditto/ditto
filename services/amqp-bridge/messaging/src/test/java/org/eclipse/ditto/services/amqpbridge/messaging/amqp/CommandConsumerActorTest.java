@@ -86,14 +86,67 @@ public class CommandConsumerActorTest {
                     "text/plain",
                     "JavaScript",
                     MessageMappers.createJavaScriptMapperConfigurationBuilder()
-                        .loadMustacheJS(false)
-                        .incomingMappingScript("ditto_protocolJson.topic = 'org.eclipse.ditto/foo-bar/things/twin/commands/modify';" +
-                                "ditto_protocolJson.path = '/attributes/foo';" +
-                                "ditto_protocolJson.headers = ditto_mappingHeaders;" +
-                                "ditto_protocolJson.value = ditto_mappingString;")
-                        .outgoingMappingScript("ditto_mappingString = " +
-                                "\"Topic was: \" + ditto_protocolJson.topic + \"\\n\" +\n" +
-                                "\"Header correlation-id was: \" + ditto_protocolJson.headers['correlation-id'];")
+                        .incomingMappingScript("function mapToDittoProtocolMsg(\n" +
+                                        "    headers,\n" +
+                                        "    textPayload,\n" +
+                                        "    bytePayload,\n" +
+                                        "    contentType\n" +
+                                        ") {\n" +
+                                        "\n" +
+                                        "    // ###\n" +
+                                        "    // Insert your mapping logic here\n" +
+                                        "    let namespace = \"org.eclipse.ditto\";\n" +
+                                        "    let id = \"foo-bar\";\n" +
+                                        "    let group = \"things\";\n" +
+                                        "    let channel = \"twin\";\n" +
+                                        "    let criterion = \"commands\";\n" +
+                                        "    let action = \"modify\";\n" +
+                                        "    let path = \"/attributes/foo\";\n" +
+                                        "    let dittoHeaders = headers;\n" +
+                                        "    let value = textPayload;\n" +
+                                        "    // ###\n" +
+                                        "\n" +
+                                        "    return buildDittoProtocolMsg(\n" +
+                                        "        namespace,\n" +
+                                        "        id,\n" +
+                                        "        group,\n" +
+                                        "        channel,\n" +
+                                        "        criterion,\n" +
+                                        "        action,\n" +
+                                        "        path,\n" +
+                                        "        dittoHeaders,\n" +
+                                        "        value\n" +
+                                        "    );\n" +
+                                        "}")
+                        .outgoingMappingScript("function mapFromDittoProtocolMsg(\n" +
+                                        "    namespace,\n" +
+                                        "    id,\n" +
+                                        "    group,\n" +
+                                        "    channel,\n" +
+                                        "    criterion,\n" +
+                                        "    action,\n" +
+                                        "    path,\n" +
+                                        "    dittoHeaders,\n" +
+                                        "    value\n" +
+                                        ") {\n" +
+                                        "\n" +
+                                        "    let externalMsg = {};\n" +
+                                        "\n" +
+                                        "    // ###\n" +
+                                        "    // Insert your mapping logic here\n" +
+                                        "    let headers = {};\n" +
+                                        "    headers['correlation-id'] = dittoHeaders['correlation-id'];\n" +
+                                        "    let textPayload = \"Topic was: \" + namespace + \":\" + id;\n" +
+                                        "    let contentType = \"text/plain\";\n" +
+                                        "    // ###\n" +
+                                        "\n" +
+                                        "     return buildExternalMsg(\n" +
+                                        "        headers,\n" +
+                                        "        textPayload,\n" +
+                                        "        bytePayload,\n" +
+                                        "        contentType\n" +
+                                        "    );" +
+                                        "}")
                         .build()
                         .getProperties()
             ));

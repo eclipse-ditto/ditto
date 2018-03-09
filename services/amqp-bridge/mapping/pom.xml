@@ -58,21 +58,12 @@
         <dependency>
             <groupId>org.webjars.npm</groupId>
             <artifactId>mustache</artifactId>
-            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.webjars.npm</groupId>
             <artifactId>bytebuffer</artifactId>
-            <scope>provided</scope>
         </dependency>
-        <dependency>
-            <groupId>com.google.guava</groupId>
-            <artifactId>guava</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.scala-lang</groupId>
-            <artifactId>scala-library</artifactId>
-        </dependency>
+
         <dependency>
             <groupId>com.typesafe.akka</groupId>
             <artifactId>akka-testkit_2.12</artifactId>

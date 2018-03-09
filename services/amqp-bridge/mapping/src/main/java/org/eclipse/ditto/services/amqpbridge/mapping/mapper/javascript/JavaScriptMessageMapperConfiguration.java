@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.services.amqpbridge.mapping.mapper.javascript;
 
+import java.time.Duration;
 import java.util.Optional;
 
 import javax.annotation.Nullable;
@@ -66,6 +67,30 @@ public interface JavaScriptMessageMapperConfiguration extends MessageMapperConfi
                 getProperties().get(JavaScriptMessageMapperConfigurationProperties.LOAD_MUSTACHE_JS))
                 .map(Boolean::valueOf)
                 .orElse(false);
+    }
+
+    /**
+     * Returns the maximum execution time of a mapping script to run. Prevents endless loops and too complex scripts.
+     *
+     * @return the configured maximum execution time for a script to run.
+     */
+    default Duration getMaxScriptExecutionTime() {
+        return Optional.ofNullable(
+                getProperties().get(JavaScriptMessageMapperConfigurationProperties.MAX_SCRIPT_EXECUTION_TIME))
+                .map(Duration::parse)
+                .orElse(Duration.ofMillis(500)); // default: 500ms max.
+    }
+
+    /**
+     * Returns the maximum call stack depth in the mapping script. Prevents recursions or other too complex computation.
+     *
+     * @return the configured maximum call stack depth for a script to run.
+     */
+    default int getMaxScriptStackDepth() {
+        return Optional.ofNullable(
+                getProperties().get(JavaScriptMessageMapperConfigurationProperties.MAX_SCRIPT_STACK_DEPTH))
+                .map(Integer::parseInt)
+                .orElse(10); // default: 10
     }
 
     /**

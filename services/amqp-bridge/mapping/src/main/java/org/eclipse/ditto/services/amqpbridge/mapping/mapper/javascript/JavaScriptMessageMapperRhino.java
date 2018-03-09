@@ -33,7 +33,9 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.amqpbridge.AmqpBridgeModelFactory;
 import org.eclipse.ditto.model.amqpbridge.ExternalMessage;
 import org.eclipse.ditto.model.amqpbridge.ExternalMessageBuilder;
+import org.eclipse.ditto.model.amqpbridge.MessageMapperConfigurationFailedException;
 import org.eclipse.ditto.model.amqpbridge.MessageMapperConfigurationInvalidException;
+import org.eclipse.ditto.model.amqpbridge.MessageMappingFailedException;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
@@ -44,9 +46,11 @@ import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMappers;
 import org.mozilla.javascript.Callable;
 import org.mozilla.javascript.Context;
 import org.mozilla.javascript.ContextFactory;
+import org.mozilla.javascript.Function;
 import org.mozilla.javascript.NativeArray;
 import org.mozilla.javascript.NativeJSON;
 import org.mozilla.javascript.NativeObject;
+import org.mozilla.javascript.RhinoException;
 import org.mozilla.javascript.Scriptable;
 import org.mozilla.javascript.ScriptableObject;
 import org.mozilla.javascript.Undefined;
@@ -62,19 +66,13 @@ final class JavaScriptMessageMapperRhino implements MessageMapper {
     private static final String WEBJARS_LONG = WEBJARS_PATH + "/long/3.2.0/dist/long.min.js";
     private static final String WEBJARS_MUSTACHE = WEBJARS_PATH + "/mustache/2.3.0/mustache.min.js";
 
-    private static final String DITTO_PROTOCOL_JSON_VAR = "ditto_protocolJson";
-    private static final String MAPPING_CONTENT_TYPE_VAR = "ditto_mappingContentType";
-    private static final String MAPPING_STRING_VAR = "ditto_mappingString";
-    private static final String MAPPING_BYTEARRAY_VAR = "ditto_mappingByteArray";
-    private static final String MAPPING_HEADERS_VAR = "ditto_mappingHeaders";
+    private static final String INCOMING_SCRIPT = "/javascript/incoming-mapping.js";
+    private static final String OUTGOING_SCRIPT = "/javascript/outgoing-mapping.js";
 
-    private static final String INIT_VARS_TEMPLATE = "var " +
-            MAPPING_CONTENT_TYPE_VAR + "=undefined," +
-            MAPPING_STRING_VAR + "=undefined," +
-            MAPPING_BYTEARRAY_VAR + "=undefined," +
-            MAPPING_HEADERS_VAR + "=undefined," +
-            DITTO_PROTOCOL_JSON_VAR + "={}" +
-            ";";
+    private static final String EXTERNAL_MESSAGE_HEADERS = "headers";
+    private static final String EXTERNAL_MESSAGE_CONTENT_TYPE = "contentType";
+    private static final String EXTERNAL_MESSAGE_TEXT_PAYLOAD = "textPayload";
+    private static final String EXTERNAL_MESSAGE_BYTE_PAYLOAD = "bytePayload";
 
     @Nullable
     private ContextFactory contextFactory;
@@ -99,55 +97,87 @@ final class JavaScriptMessageMapperRhino implements MessageMapper {
     @Override
     public void configure(final MessageMapperConfiguration options) {
         this.configuration = new ImmutableJavaScriptMessageMapperConfiguration.Builder(options.getProperties()).build();
-        contextFactory = new RhinoContextFactory();
+        contextFactory = new SandboxingContextFactory(configuration.getMaxScriptExecutionTime(),
+                configuration.getMaxScriptStackDepth());
 
-        // create scope once and load the required libraries in order to get best performance:
-        scope = (Scriptable) contextFactory.call(cx -> {
-            final Scriptable scope = cx.initSafeStandardObjects();
-            cx.evaluateString(scope, INIT_VARS_TEMPLATE, "init-vars", 1, null);
-            initLibraries(cx, scope);
-            return scope;
-        });
+        try {
+            // create scope once and load the required libraries in order to get best performance:
+            scope = (Scriptable) contextFactory.call(cx -> {
+                final Scriptable scope = cx.initSafeStandardObjects();
+                initLibraries(cx, scope);
+                return scope;
+            });
+        } catch (final RhinoException e) {
+            final boolean sourceExists = e.lineSource() != null && !e.lineSource().isEmpty();
+            final String lineSource = sourceExists ? (", source:\n" + e.lineSource()) : "";
+            final boolean stackExists = e.getScriptStackTrace() != null && !e.getScriptStackTrace().isEmpty();
+            final String scriptStackTrace = stackExists ? (", stack:\n" + e.getScriptStackTrace()) : "";
+            throw MessageMapperConfigurationFailedException.newBuilder(e.getMessage() +
+                    " - in line/column #" + e.lineNumber() + "/" + e.columnNumber() + lineSource + scriptStackTrace)
+                    .cause(e)
+                    .build();
+        }
     }
 
     @Override
     public Adaptable map(final ExternalMessage message) {
 
-        return (Adaptable) contextFactory.call(cx -> {
-            cx.evaluateString(scope, INIT_VARS_TEMPLATE, "init-vars", 1, null);
+        try {
+            return (Adaptable) contextFactory.call(cx -> {
+                final NativeObject headersObj = new NativeObject();
+                message.getHeaders().forEach((key, value) -> headersObj.put(key, headersObj, value));
 
-            final NativeObject headersObj = new NativeObject();
-            message.getHeaders().forEach((key, value) -> headersObj.put(key, headersObj, value));
-            ScriptableObject.putProperty(scope, MAPPING_HEADERS_VAR, headersObj);
-
-            if (message.getBytePayload().isPresent()) {
-                final ByteBuffer byteBuffer = message.getBytePayload().get();
-                final byte[] array = byteBuffer.array();
-                final NativeArray newArray = new NativeArray(array.length);
-                for (int a = 0; a < array.length; a++) {
-                    ScriptableObject.putProperty(newArray, a, array[a]);
+                final NativeArray bytePayload;
+                if (message.getBytePayload().isPresent()) {
+                    final ByteBuffer byteBuffer = message.getBytePayload().get();
+                    final byte[] array = byteBuffer.array();
+                    bytePayload = new NativeArray(array.length);
+                    for (int a = 0; a < array.length; a++) {
+                        ScriptableObject.putProperty(bytePayload, a, array[a]);
+                    }
+                } else {
+                    bytePayload = null;
                 }
-                ScriptableObject.putProperty(scope, MAPPING_BYTEARRAY_VAR, newArray);
-            }
 
-            ScriptableObject.putProperty(scope, MAPPING_CONTENT_TYPE_VAR, message.getHeaders().get(
-                    ExternalMessage.CONTENT_TYPE_HEADER));
-            ScriptableObject.putProperty(scope, MAPPING_STRING_VAR, message.getTextPayload().orElse(null));
-            ScriptableObject.putProperty(scope, DITTO_PROTOCOL_JSON_VAR, new NativeObject());
+                final String contentType = message.getHeaders().get(ExternalMessage.CONTENT_TYPE_HEADER);
+                final String textPayload = message.getTextPayload().orElse(null);
 
-            cx.evaluateString(scope,
-                    getConfiguration().flatMap(JavaScriptMessageMapperConfiguration::getIncomingMappingScript)
-                            .orElse(""), "template", 1, null);
+                final NativeObject externalMessage = new NativeObject();
+                externalMessage.put(EXTERNAL_MESSAGE_HEADERS, externalMessage, headersObj);
+                externalMessage.put(EXTERNAL_MESSAGE_TEXT_PAYLOAD, externalMessage, textPayload);
+                externalMessage.put(EXTERNAL_MESSAGE_BYTE_PAYLOAD, externalMessage, bytePayload);
+                externalMessage.put(EXTERNAL_MESSAGE_CONTENT_TYPE, externalMessage, contentType);
 
-            final Object dittoProtocolJson = ScriptableObject.getProperty(scope, DITTO_PROTOCOL_JSON_VAR);
-            final String dittoProtocolJsonStr =
-                    (String) NativeJSON.stringify(cx, scope, dittoProtocolJson, null, null);
+                final Function mapToDittoProtocolMsgWrapper = (Function) scope.get("mapToDittoProtocolMsgWrapper", scope);
+                final Object result = mapToDittoProtocolMsgWrapper.call(cx, scope, scope, new Object[] {externalMessage});
 
-            return DittoJsonException.wrapJsonRuntimeException(() -> {
-                final JsonObject jsonObject = JsonFactory.readFrom(dittoProtocolJsonStr).asObject();
-                return ProtocolFactory.jsonifiableAdaptableFromJson(jsonObject);
+                final String dittoProtocolJsonStr = (String) NativeJSON.stringify(cx, scope, result, null, null);
+
+                return DittoJsonException.wrapJsonRuntimeException(() -> {
+                    final JsonObject jsonObject = JsonFactory.readFrom(dittoProtocolJsonStr).asObject();
+                    return ProtocolFactory.jsonifiableAdaptableFromJson(jsonObject);
+                });
             });
-        });
+        } catch (final RhinoException e) {
+            throw buildMessageMappingFailedException(e, message.findContentType().orElse(""));
+        } catch (final Throwable e) {
+            throw MessageMappingFailedException.newBuilder(message.findContentType().orElse(null))
+                    .description(e.getMessage())
+                    .cause(e)
+                    .build();
+        }
+    }
+
+    private MessageMappingFailedException buildMessageMappingFailedException(final RhinoException e, final String contentType) {
+        final boolean sourceExists = e.lineSource() != null && !e.lineSource().isEmpty();
+        final String lineSource = sourceExists ? (", source:\n" + e.lineSource()) : "";
+        final boolean stackExists = e.getScriptStackTrace() != null && !e.getScriptStackTrace().isEmpty();
+        final String scriptStackTrace = stackExists ? (", stack:\n" + e.getScriptStackTrace()) : "";
+        return MessageMappingFailedException.newBuilder(contentType)
+                .description(e.getMessage() + " - in line/column #" + e.lineNumber() + "/" + e.columnNumber() +
+                        lineSource + scriptStackTrace)
+                .cause(e)
+                .build();
     }
 
     @Override
@@ -155,64 +185,84 @@ final class JavaScriptMessageMapperRhino implements MessageMapper {
         final JsonifiableAdaptable jsonifiableAdaptable =
                 ProtocolFactory.wrapAsJsonifiableAdaptable(adaptable);
 
-        return (ExternalMessage) contextFactory.call(cx -> {
-            cx.evaluateString(scope, INIT_VARS_TEMPLATE, "init-vars", 1, null);
+        try {
+            return (ExternalMessage) contextFactory.call(cx -> {
+                final Object dittoProtocolMessage =
+                        NativeJSON.parse(cx, scope, jsonifiableAdaptable.toJsonString(), new NullCallable());
 
-            final Object nativeJsonObject =
-                    NativeJSON.parse(cx, scope, jsonifiableAdaptable.toJsonString(), new NullCallable());
-            ScriptableObject.putProperty(scope, DITTO_PROTOCOL_JSON_VAR, nativeJsonObject);
+                final Function mapFromDittoProtocolMsgWrapper = (Function) scope.get("mapFromDittoProtocolMsgWrapper", scope);
+                final NativeObject result =
+                        (NativeObject) mapFromDittoProtocolMsgWrapper.call(cx, scope, scope, new Object[] {dittoProtocolMessage});
 
-            cx.evaluateString(scope,
-                    getConfiguration().flatMap(JavaScriptMessageMapperConfiguration::getOutgoingMappingScript)
-                            .orElse(""), "template", 1, null);
+                final Object contentType = result.get(EXTERNAL_MESSAGE_CONTENT_TYPE);
+                final Object textPayload = result.get(EXTERNAL_MESSAGE_TEXT_PAYLOAD);
+                final Object bytePayload = result.get(EXTERNAL_MESSAGE_BYTE_PAYLOAD);
+                final Object mappingHeaders = result.get(EXTERNAL_MESSAGE_HEADERS);
 
-            final Object contentType = ScriptableObject.getProperty(scope, MAPPING_CONTENT_TYPE_VAR);
-            final Object mappingString = ScriptableObject.getProperty(scope, MAPPING_STRING_VAR);
-            final Object mappingByteArray = ScriptableObject.getProperty(scope, MAPPING_BYTEARRAY_VAR);
-            final Object mappingHeaders = ScriptableObject.getProperty(scope, MAPPING_HEADERS_VAR);
+                final Map<String, String> headers;
+                if (mappingHeaders != null && !(mappingHeaders instanceof Undefined)) {
+                    headers = new HashMap<>();
+                    final Map jsHeaders = (Map) mappingHeaders;
+                    jsHeaders.forEach((key, value) -> headers.put((String) key, value.toString()));
+                } else {
+                    headers = Collections.emptyMap();
+                }
 
-            final Map<String, String> headers;
-            if (mappingHeaders != null && !(mappingHeaders instanceof Undefined)) {
-                headers = new HashMap<>();
-                final Map jsHeaders = (Map) mappingHeaders;
-                jsHeaders.forEach((key, value) -> headers.put((String) key, value.toString()));
-            } else {
-                headers = Collections.emptyMap();
-            }
+                final ExternalMessageBuilder messageBuilder = AmqpBridgeModelFactory.newExternalMessageBuilder(headers,
+                        MessageMappers.determineMessageType(adaptable));
 
-            final ExternalMessageBuilder messageBuilder = AmqpBridgeModelFactory.newExternalMessageBuilder(headers,
-                    MessageMappers.determineMessageType(adaptable));
+                if (!(contentType instanceof Undefined)) {
+                    messageBuilder.withAdditionalHeaders(ExternalMessage.CONTENT_TYPE_HEADER,
+                            ((CharSequence) contentType).toString());
+                }
 
-            if (!(contentType instanceof Undefined)) {
-                messageBuilder.withAdditionalHeaders(ExternalMessage.CONTENT_TYPE_HEADER,
-                        ((CharSequence) contentType).toString());
-            }
+                final Optional<ByteBuffer> byteBuffer = convertToByteBuffer(bytePayload);
+                if (byteBuffer.isPresent()) {
+                    messageBuilder.withBytes(byteBuffer.get());
+                } else if (!(textPayload instanceof Undefined)) {
+                    messageBuilder.withText(((CharSequence) textPayload).toString());
+                }
 
-            final Optional<ByteBuffer> byteBuffer = convertToByteBuffer(mappingByteArray);
-            if (byteBuffer.isPresent()) {
-                messageBuilder.withBytes(byteBuffer.get());
-            } else if (!(mappingString instanceof Undefined)) {
-                messageBuilder.withText(((CharSequence) mappingString).toString());
-            }
-
-            return messageBuilder.build();
-        });
+                return messageBuilder.build();
+            });
+        } catch (final RhinoException e) {
+            throw buildMessageMappingFailedException(e, "");
+        } catch (final Throwable e) {
+            throw MessageMappingFailedException.newBuilder("")
+                    .description(e.getMessage())
+                    .cause(e)
+                    .build();
+        }
     }
 
 
     private void initLibraries(final Context cx, final Scriptable scope) {
         if (getConfiguration().map(JavaScriptMessageMapperConfiguration::isLoadBytebufferJS).orElse(false)) {
             loadJavascriptLibrary(cx, scope, new InputStreamReader(getClass().getResourceAsStream(WEBJARS_BYTEBUFFER)),
-                    "bytebuffer.js");
+                    WEBJARS_BYTEBUFFER);
         }
         if (getConfiguration().map(JavaScriptMessageMapperConfiguration::isLoadLongJS).orElse(false)) {
             loadJavascriptLibrary(cx, scope, new InputStreamReader(getClass().getResourceAsStream(WEBJARS_LONG)),
-                    "long.js");
+                    WEBJARS_LONG);
         }
         if (getConfiguration().map(JavaScriptMessageMapperConfiguration::isLoadMustacheJS).orElse(false)) {
             loadJavascriptLibrary(cx, scope, new InputStreamReader(getClass().getResourceAsStream(WEBJARS_MUSTACHE)),
-                    "mustache.js");
+                    WEBJARS_MUSTACHE);
         }
+
+        loadJavascriptLibrary(cx, scope, new InputStreamReader(getClass().getResourceAsStream(INCOMING_SCRIPT)),
+                INCOMING_SCRIPT);
+        loadJavascriptLibrary(cx, scope, new InputStreamReader(getClass().getResourceAsStream(OUTGOING_SCRIPT)),
+                OUTGOING_SCRIPT);
+
+        cx.evaluateString(scope,
+                    getConfiguration().flatMap(JavaScriptMessageMapperConfiguration::getIncomingMappingScript)
+                            .orElse(""),
+                JavaScriptMessageMapperConfigurationProperties.INCOMING_MAPPING_SCRIPT, 1, null);
+        cx.evaluateString(scope,
+                    getConfiguration().flatMap(JavaScriptMessageMapperConfiguration::getOutgoingMappingScript)
+                            .orElse(""),
+                JavaScriptMessageMapperConfigurationProperties.OUTGOING_MAPPING_SCRIPT, 1, null);
     }
 
     private Optional<JavaScriptMessageMapperConfiguration> getConfiguration() {

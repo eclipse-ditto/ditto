@@ -9,5 +9,9 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
+
+/**
+ * JavaScript based mapping implementation using the Rhino JavaScript engine.
+ */
 @org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault
 package org.eclipse.ditto.services.amqpbridge.mapping.mapper.javascript;

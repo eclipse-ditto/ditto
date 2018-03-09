@@ -43,6 +43,8 @@ public interface MessageMapper {
      *
      * @param configuration the configuration to apply and validate
      * @throws MessageMapperConfigurationInvalidException if configuration is invalid
+     * @throws org.eclipse.ditto.model.amqpbridge.MessageMapperConfigurationFailedException if the configuration failed
+     * for a mapper specific reason
      */
     default void configureWithValidation(final MessageMapperConfiguration configuration) {
         if (!configuration.findContentType().isPresent()) {
@@ -58,6 +60,8 @@ public interface MessageMapper {
      *
      * @param configuration the configuration to apply
      * @throws MessageMapperConfigurationInvalidException if configuration is invalid
+     * @throws org.eclipse.ditto.model.amqpbridge.MessageMapperConfigurationFailedException if the configuration failed
+     * for a mapper specific reason
      */
     void configure(MessageMapperConfiguration configuration);
 

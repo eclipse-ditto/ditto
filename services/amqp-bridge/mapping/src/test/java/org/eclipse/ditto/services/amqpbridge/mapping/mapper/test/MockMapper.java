@@ -12,7 +12,6 @@
 package org.eclipse.ditto.services.amqpbridge.mapping.mapper.test;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.amqpbridge.ExternalMessage;
 import org.eclipse.ditto.model.amqpbridge.MessageMapperConfigurationInvalidException;
@@ -25,7 +24,6 @@ public class MockMapper implements MessageMapper {
 
     public static final String OPT_IS_VALID = "Mock";
 
-    @Nullable
     private String contentType;
 
     public MockMapper() {

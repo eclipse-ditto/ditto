@@ -11,6 +11,8 @@
  */
 package org.eclipse.ditto.services.amqpbridge.mapping.mapper.javascript;
 
+import java.time.Duration;
+
 import org.mozilla.javascript.Callable;
 import org.mozilla.javascript.Context;
 import org.mozilla.javascript.ContextFactory;
@@ -19,28 +21,41 @@ import org.mozilla.javascript.Scriptable;
 /**
  * Special Rhino ContextFactory responsible for sandboxing JavaScript execution.
  */
-final class RhinoContextFactory extends ContextFactory {
+final class SandboxingContextFactory extends ContextFactory {
 
-    private static final int INSTRUCTION_OBSERVER_THRESHOLD = 1000;
+    /**
+     * Make Rhino runtime to call observeInstructionCount each 10000 bytecode instructions.
+     */
+    private static final int INSTRUCTION_OBSERVER_THRESHOLD = 10000;
+
+    /**
+     * Use pure interpreter mode, otherwise max script exec time observation won't work.
+     */
     private static final int OPTIMIZATION_LEVEL = -1;
 
-    private static final int MAX_SCRIPT_EXEC_TIME_MS = 1000;
-    private static final int MAXIMUM_INTERPRETER_STACK_DEPTH = 10;
+    private final Duration maxScriptExecutionTime;
+    private final int maxStackDepth;
 
-    static {
-        // Initialize GlobalFactory with custom factory
-        ContextFactory.initGlobal(new RhinoContextFactory());
+    /**
+     * Constructs a new ContextFactory for sandboxing Rhino executions.
+     *
+     * @param maxScriptExecutionTime the maximum execution time of a mapping script to run.
+     * Prevents endless loops and too complex scripts.
+     * @param maxStackDepth the maximum call stack depth in the mapping script. Prevents recursions or other too complex
+     * computation.
+     */
+    SandboxingContextFactory(final Duration maxScriptExecutionTime, final int maxStackDepth) {
+        this.maxScriptExecutionTime = maxScriptExecutionTime;
+        this.maxStackDepth = maxStackDepth;
     }
 
     @Override
     protected Context makeContext() {
-        final RhinoContext cx = new RhinoContext(this);
-        // Use pure interpreter mode to allow for observeInstructionCount(Context, int) to work
+        final StartTimeAwareContext cx = new StartTimeAwareContext(this);
         cx.setOptimizationLevel(OPTIMIZATION_LEVEL);
-        // Make Rhino runtime to call observeInstructionCount each 1000 bytecode instructions
         cx.setInstructionObserverThreshold(INSTRUCTION_OBSERVER_THRESHOLD);
-        cx.setLanguageVersion(Context.VERSION_1_8);
-        cx.setMaximumInterpreterStackDepth(MAXIMUM_INTERPRETER_STACK_DEPTH);
+        cx.setLanguageVersion(Context.VERSION_ES6);
+        cx.setMaximumInterpreterStackDepth(maxStackDepth);
         return cx;
     }
 
@@ -55,19 +70,17 @@ final class RhinoContextFactory extends ContextFactory {
 
     @Override
     protected void observeInstructionCount(final Context cx, final int instructionCount) {
-        final RhinoContext mcx = (RhinoContext) cx;
+        final StartTimeAwareContext context = (StartTimeAwareContext) cx;
         final long currentTime = System.currentTimeMillis();
-        if (currentTime - mcx.startTime > MAX_SCRIPT_EXEC_TIME_MS) {
-            // More then x milliseconds of Context creation time: it is time to stop the script.
-            // Throw Error instance to ensure that script will never get control back through catch or finally.
-            throw new Error();
+        if (currentTime - context.startTime > maxScriptExecutionTime.toMillis()) {
+            throw new Error("Maximum execution time of <" + maxScriptExecutionTime.toMillis() + ">ms was exceeded.");
         }
     }
 
     @Override
     protected Object doTopCall(final Callable callable, final Context cx, final Scriptable scope,
             final Scriptable thisObj, final Object[] args) {
-        final RhinoContext mcx = (RhinoContext) cx;
+        final StartTimeAwareContext mcx = (StartTimeAwareContext) cx;
         mcx.startTime = System.currentTimeMillis();
 
         return super.doTopCall(callable, cx, scope, thisObj, args);
@@ -76,11 +89,11 @@ final class RhinoContextFactory extends ContextFactory {
     /**
      * Custom Context to store execution time.
      */
-    private static class RhinoContext extends Context {
+    private static class StartTimeAwareContext extends Context {
 
         private long startTime;
 
-        private RhinoContext(final ContextFactory factory) {
+        private StartTimeAwareContext(final ContextFactory factory) {
             super(factory);
         }
     }

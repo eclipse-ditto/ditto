@@ -9,5 +9,13 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
+
+/**
+ * The mapping package contains the mapping functionality of mapping between arbitrary messages and Ditto Protocol and
+ * back.
+ * <p>
+ * This allows transformation of unknown paylaod (e.g. sensor data) to a structured format understood by Ditto.
+ * </p>
+ */
 @org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault
 package org.eclipse.ditto.services.amqpbridge.mapping.mapper;
