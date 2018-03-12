@@ -213,7 +213,7 @@
                                 <transformer
                                         implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                                     <manifestEntries>
-                                        <Main-Class>org.eclipse.ditto.services.gateway.starter.GatewayService
+                                        <Main-Class>org.eclipse.ditto.services.authorization.starter.AuthorizationService
                                         </Main-Class>
                                     </manifestEntries>
                                 </transformer>
@@ -230,9 +230,9 @@
                     <autoPull>always</autoPull> <!-- always pull latest BaseImage -->
                     <images>
                         <image>
-                            <alias>${gateway.docker.image.name}</alias>
+                            <alias>${authorization.docker.image.name}</alias>
                             <name>
-                                ${docker.repository}/${gateway.docker.image.name}:${project.version}
+                                ${docker.repository}/${authorization.docker.image.name}:${project.version}
                             </name>
                             <build>
                                 <from>${docker.image.jdk}</from>

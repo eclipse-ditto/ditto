@@ -26,13 +26,13 @@ import akka.actor.Props;
 import akka.stream.ActorMaterializer;
 
 /**
- * The Gateway service for Eclipse Ditto.
+ * The Authorization service for Eclipse Ditto.
  */
 @AllParametersAndReturnValuesAreNonnullByDefault
 public final class AuthorizationService extends DittoService {
 
     /**
-     * Name for the Akka actor system of the Gateway service.
+     * Name for the Akka actor system of the Authorization service.
      */
     static final String SERVICE_NAME = "authorization";
 
@@ -45,7 +45,7 @@ public final class AuthorizationService extends DittoService {
     }
 
     /**
-     * Starts the Gateway service.
+     * Starts the Authorization service.
      *
      * @param args command line arguments.
      */
