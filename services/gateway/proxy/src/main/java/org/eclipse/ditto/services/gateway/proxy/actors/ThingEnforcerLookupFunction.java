@@ -63,7 +63,7 @@ public final class ThingEnforcerLookupFunction implements EnforcerLookupFunction
 
         this.thingsShardRegion = checkNotNull(thingsShardRegion, "Things Shard Region");
         this.aclEnforcerShardRegion = checkNotNull(aclEnforcerShardRegion, "ACL enforcer Shard Region");
-        this.policyEnforcerShardRegion = checkNotNull(policyEnforcerShardRegion, "PolicyEnforcer Shard Region");
+        this.policyEnforcerShardRegion = checkNotNull(policyEnforcerShardRegion, "Enforcer Shard Region");
         this.dispatcher = checkNotNull(dispatcher, "dispatcher");
     }
 

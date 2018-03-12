@@ -33,7 +33,7 @@ import scala.concurrent.duration.FiniteDuration;
  * allowed to be processed by the responsible persistence actor. <ul> <li>A {@link PolicyCommand} will be proxied to the
  * policies shard region.</li> <li>A {@link ThingCommand} will be proxied to the things shard region.</li> <li>A {@link
  * org.eclipse.ditto.signals.commands.messages.MessageCommand} will be proxied via distributed pub-sub.</li> </ul> <p>
- * For each {@code policyId} an instance of this Actor is created which caches the {@code PolicyEnforcer} used to
+ * For each {@code policyId} an instance of this Actor is created which caches the {@code Enforcer} used to
  * determine the permissions. </p>
  */
 public final class PolicyEnforcerActor extends AbstractThingPolicyEnforcerActor {

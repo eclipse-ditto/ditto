@@ -42,7 +42,7 @@ import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyRevision;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.model.enforcers.EffectedSubjectIds;
-import org.eclipse.ditto.model.enforcers.PolicyEnforcer;
+import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.enforcers.PolicyEnforcers;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.models.policies.PolicyCacheEntry;
@@ -106,7 +106,7 @@ public abstract class AbstractPolicyEnforcerActor extends AbstractActorWithStash
     private final Receive queryingBehaviour;
     private final Receive synchronizingBehaviour;
 
-    private PolicyEnforcer policyEnforcer;
+    private Enforcer policyEnforcer;
     private Cancellable activityCheckCancellable;
     private Cancellable synchronizationTimeout;
     private Set<String> cachedThingReadSubjectsOnRoot;
@@ -176,7 +176,7 @@ public abstract class AbstractPolicyEnforcerActor extends AbstractActorWithStash
         return policyId;
     }
 
-    protected PolicyEnforcer getPolicyEnforcer() {
+    protected Enforcer getPolicyEnforcer() {
         return policyEnforcer;
     }
 
@@ -246,7 +246,7 @@ public abstract class AbstractPolicyEnforcerActor extends AbstractActorWithStash
     }
 
     protected void rebuildPolicyEnforcer(final Policy policy, final long revision) {
-        final PolicyEnforcer newPolicyEnforcer = PolicyEnforcers.defaultEvaluator(policy);
+        final Enforcer newPolicyEnforcer = PolicyEnforcers.defaultEvaluator(policy);
 
         final EffectedSubjectIds effectedSubjectIdsOnThingResource =
                 newPolicyEnforcer.getSubjectIdsWithPermission(PoliciesResourceType.thingResource(
@@ -390,7 +390,7 @@ public abstract class AbstractPolicyEnforcerActor extends AbstractActorWithStash
                         try {
                             queryOriginalSender.tell(withEntity.setEntity(filterView), getSelf());
                         } catch (final DittoRuntimeException e) {
-                            log.warning("Received <{}> after building JsonView with PolicyEnforcer: <{}> ",
+                            log.warning("Received <{}> after building JsonView with Enforcer: <{}> ",
                                     getSimpleClassName(e), e.getMessage());
                             queryOriginalSender.tell(e, getSelf());
                         }

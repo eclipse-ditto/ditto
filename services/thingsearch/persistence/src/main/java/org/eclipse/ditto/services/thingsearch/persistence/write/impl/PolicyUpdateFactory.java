@@ -29,7 +29,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.enforcers.PolicyEnforcer;
+import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.FeatureProperties;
@@ -67,7 +67,7 @@ final class PolicyUpdateFactory {
      * @param policyEnforcer the enforcer which holds the current policy.
      * @return the created update.
      */
-    static PolicyUpdate createPolicyIndexUpdate(final Thing thing, final PolicyEnforcer policyEnforcer) {
+    static PolicyUpdate createPolicyIndexUpdate(final Thing thing, final Enforcer policyEnforcer) {
         final Collection<ResourcePermissions> resourcePermissions = new LinkedHashSet<>();
 
         resourcePermissions.addAll(thing.getAttributes()
@@ -96,7 +96,7 @@ final class PolicyUpdateFactory {
         return new PolicyUpdate(policiesFilter, policyEntries, PULL_GLOBAL_READS, pushGlobalReads, PULL_ACL);
     }
 
-    private static Set<Document> getGlobalReadsDocuments(final PolicyEnforcer policyEnforcer) {
+    private static Set<Document> getGlobalReadsDocuments(final Enforcer policyEnforcer) {
         final Set<String> subjectIds =
                 policyEnforcer.getSubjectIdsWithPartialPermission(ThingResourceKey.ROOT, Permission.READ);
 
@@ -118,7 +118,7 @@ final class PolicyUpdateFactory {
             final CharSequence thingId,
             final JsonPointer attributePointer,
             final JsonValue attributeValue,
-            final PolicyEnforcer policyEnforcer) {
+            final Enforcer policyEnforcer) {
 
         final Bson removalFilter = createRemovalFilter(thingId, PersistenceConstants.FIELD_ATTRIBUTE_PREFIX + attributePointer.toString());
         final Collection<ResourcePermissions> resourcePermissions =
@@ -137,7 +137,7 @@ final class PolicyUpdateFactory {
      * @return the created update.
      */
     static PolicyUpdate createAttributesUpdate(final CharSequence thingId, final Attributes attributes,
-            final PolicyEnforcer policyEnforcer) {
+            final Enforcer policyEnforcer) {
         final Bson removalFilter = createRemovalFilter(thingId, PersistenceConstants.FIELD_ATTRIBUTE_PREFIX);
         final Collection<ResourcePermissions> resourcePermissions =
                 createEntriesForAttributes(attributes, policyEnforcer);
@@ -227,7 +227,7 @@ final class PolicyUpdateFactory {
      * @return the created update.
      */
     static PolicyUpdate createFeatureUpdate(final CharSequence thingId, final Feature feature,
-            final PolicyEnforcer policyEnforcer) {
+            final Enforcer policyEnforcer) {
         final Collection<ResourcePermissions> resourcePermissions = createEntriesForFeature(feature, policyEnforcer);
         final Set<Document> policyEntries = createPolicyEntries(thingId, resourcePermissions);
         final Bson removalFilter = createFeatureRemovalFilter(thingId, feature.getId());
@@ -244,7 +244,7 @@ final class PolicyUpdateFactory {
      * @return the created update.
      */
     static PolicyUpdate createFeaturesUpdate(final CharSequence thingId, final Features features,
-            final PolicyEnforcer policyEnforcer) {
+            final Enforcer policyEnforcer) {
         final Collection<ResourcePermissions> resourcePermissions = createEntriesForFeatures(features, policyEnforcer);
         final Set<Document> policyEntries = createPolicyEntries(thingId, resourcePermissions);
         final Bson removalFilter = createFeaturesRemovalFilter(thingId);
@@ -267,7 +267,7 @@ final class PolicyUpdateFactory {
             final CharSequence featureId,
             final JsonPointer propertyPointer,
             final JsonValue propertyValue,
-            final PolicyEnforcer policyEnforcer) {
+            final Enforcer policyEnforcer) {
 
         final Collection<ResourcePermissions> resourcePermissions =
                 createEntriesForFeatureProperty(featureId, propertyPointer, propertyValue, policyEnforcer);
@@ -292,7 +292,7 @@ final class PolicyUpdateFactory {
             final CharSequence thingId,
             final String featureId,
             final FeatureProperties properties,
-            final PolicyEnforcer policyEnforcer) {
+            final Enforcer policyEnforcer) {
 
         final Bson removalFilter = createRemovalFilter(thingId, featureId + PersistenceConstants.FIELD_FEATURE_PROPERTIES_PREFIX);
         final Collection<ResourcePermissions> resourcePermissions = new HashSet<>();
@@ -355,7 +355,7 @@ final class PolicyUpdateFactory {
     }
 
     private static Collection<ResourcePermissions> createEntriesForAttributes(final Attributes attributes,
-            final PolicyEnforcer policyEnforcer) {
+            final Enforcer policyEnforcer) {
 
         final Collection<ResourcePermissions> result = new HashSet<>();
         attributes.forEach(attribute -> result.addAll(
@@ -366,7 +366,7 @@ final class PolicyUpdateFactory {
     }
 
     private static Collection<ResourcePermissions> createEntriesForAttribute(final JsonPointer attributePointer,
-            final JsonValue attributeValue, final PolicyEnforcer policyEnforcer) {
+            final JsonValue attributeValue, final Enforcer policyEnforcer) {
 
         final Collection<ResourcePermissions> result = new HashSet<>(3);
 
@@ -384,7 +384,7 @@ final class PolicyUpdateFactory {
     }
 
     private static Collection<ResourcePermissions> createEntriesForFeatures(final Features features,
-            final PolicyEnforcer policyEnforcer) {
+            final Enforcer policyEnforcer) {
 
         final Collection<ResourcePermissions> result = new HashSet<>();
         features.forEach(feature -> result.addAll(createEntriesForFeature(feature, policyEnforcer)));
@@ -392,7 +392,7 @@ final class PolicyUpdateFactory {
     }
 
     private static Collection<ResourcePermissions> createEntriesForFeature(final Feature feature,
-            final PolicyEnforcer policyEnforcer) {
+            final Enforcer policyEnforcer) {
 
         final Collection<ResourcePermissions> result = new HashSet<>();
 
@@ -408,7 +408,7 @@ final class PolicyUpdateFactory {
     }
 
     private static Collection<ResourcePermissions> createEntriesForFeatureProperty(final CharSequence featureId,
-            final JsonPointer propertyPointer, final JsonValue propertyValue, final PolicyEnforcer policyEnforcer) {
+            final JsonPointer propertyPointer, final JsonValue propertyValue, final Enforcer policyEnforcer) {
 
         final Collection<ResourcePermissions> result = new HashSet<>(3);
 

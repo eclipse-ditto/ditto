@@ -16,7 +16,7 @@ import java.util.List;
 
 import org.bson.conversions.Bson;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.enforcers.PolicyEnforcer;
+import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.services.thingsearch.persistence.write.EventToPersistenceStrategy;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 
@@ -37,7 +37,7 @@ public abstract class MongoEventToPersistenceStrategy<T extends ThingEvent> impl
      */
     @Override
     public List<PolicyUpdate> policyUpdates(final T event,
-            final PolicyEnforcer policyEnforcer) {
+            final Enforcer policyEnforcer) {
         // implemented since not all strategies need policy updates.
         return Collections.emptyList();
     }

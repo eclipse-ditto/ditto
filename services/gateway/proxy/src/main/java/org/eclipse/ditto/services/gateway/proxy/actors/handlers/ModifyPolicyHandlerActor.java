@@ -53,7 +53,7 @@ public class ModifyPolicyHandlerActor extends AbstractActor {
     /**
      * Creates Akka configuration object Props for this ModifyPolicyHandlerActor.
      *
-     * @param policyEnforcerShardRegion the Actor ref of the {@code PolicyEnforcer} shard region.
+     * @param policyEnforcerShardRegion the Actor ref of the {@code Enforcer} shard region.
      * @return the Akka configuration Props object.
      */
     public static Props props(final ActorRef policyEnforcerShardRegion) {

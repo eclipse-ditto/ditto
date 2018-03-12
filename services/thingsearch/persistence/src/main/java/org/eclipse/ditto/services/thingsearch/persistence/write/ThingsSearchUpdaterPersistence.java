@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.thingsearch.persistence.write;
 import java.util.List;
 import java.util.Set;
 
-import org.eclipse.ditto.model.enforcers.PolicyEnforcer;
+import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.models.policies.PolicyTag;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
@@ -66,7 +66,7 @@ public interface ThingsSearchUpdaterPersistence {
      * @return a {@link Source} holding the publisher to execute the operation.
      */
     Source<Boolean, NotUsed> executeCombinedWrites(String thingId, List<ThingEvent> gatheredEvents,
-            PolicyEnforcer policyEnforcer, long targetRevision);
+            Enforcer policyEnforcer, long targetRevision);
 
     /**
      * Updates the thing representation as well as the policy index due to the passed in thing; must be called after the
@@ -76,7 +76,7 @@ public interface ThingsSearchUpdaterPersistence {
      * @param policyEnforcer the enforcer holding the current policy.
      * @return a {@link Source} holding the publisher to execute the operation.
      */
-    Source<Boolean, NotUsed> updatePolicy(Thing thing, PolicyEnforcer policyEnforcer);
+    Source<Boolean, NotUsed> updatePolicy(Thing thing, Enforcer policyEnforcer);
 
     /**
      * Retrieves a modifiable unsorted list of thing ids which all share the same policy.

@@ -27,7 +27,7 @@ import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyEntry;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.model.enforcers.EffectedSubjectIds;
-import org.eclipse.ditto.model.enforcers.PolicyEnforcer;
+import org.eclipse.ditto.model.enforcers.Enforcer;
 
 /**
  * Holds Algorithms to build trie-based indices for a policy and to perform policy checks based on those indices.
@@ -62,7 +62,7 @@ import org.eclipse.ditto.model.enforcers.PolicyEnforcer;
  * resource make all its super-resources non-writable. To build it, start from {@code inheritedTrie}, push revoked
  * subjects from descendants up to ancestors. </li> </ol> See Javadoc of individual methods for more details.
  */
-public final class TrieBasedPolicyEnforcer implements PolicyEnforcer {
+public final class TrieBasedPolicyEnforcer implements Enforcer {
 
     /**
      * PolicyTrie obtained by propagating grant & revoke sets down from ancestors to descendants.

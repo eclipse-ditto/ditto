@@ -24,7 +24,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.policies.PoliciesResourceType;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.model.enforcers.EffectedSubjectIds;
-import org.eclipse.ditto.model.enforcers.PolicyEnforcer;
+import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.services.models.policies.Permission;
 import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
 
@@ -51,7 +51,7 @@ final class AttributeResourcePermissions implements ResourcePermissions {
      */
     @Nonnull
     static AttributeResourcePermissions getInstance(@Nonnull final JsonPointer attributePointer,
-            @Nonnull final JsonValue attributeValue, @Nonnull final PolicyEnforcer policyEnforcer) {
+            @Nonnull final JsonValue attributeValue, @Nonnull final Enforcer policyEnforcer) {
 
         checkNotNull(attributePointer, "attribute pointer");
         checkNotNull(attributeValue, "attribute value");

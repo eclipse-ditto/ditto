@@ -131,7 +131,7 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
                 /* Policy Events */
                 .match(PolicyEvent.class, event -> {
                     LogUtil.enhanceLogWithCorrelationId(getLogger(), event);
-                    getLogger().debug("Got '{}' message, forwarding to the PolicyEnforcer", event.getType());
+                    getLogger().debug("Got '{}' message, forwarding to the Enforcer", event.getType());
                     policyEnforcerShardRegion.tell(event, getSender());
                 })
 

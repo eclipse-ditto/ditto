@@ -21,9 +21,9 @@ import java.util.Random;
 import java.util.UUID;
 
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
-import org.eclipse.ditto.model.enforcers.PolicyEnforcer;
 import org.eclipse.ditto.model.enforcers.PolicyEnforcers;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Criteria;
@@ -44,7 +44,7 @@ public final class CountIT extends AbstractVersionedThingSearchPersistenceITBase
     private static final String KNOWN_STRING_VALUE = "value";
     private static final String SUDO_NAMESPACE = "sudoThings";
 
-    private final PolicyEnforcer otherPolicyEnforcer = PolicyEnforcers.defaultEvaluator(createOtherPolicy());
+    private final Enforcer otherPolicyEnforcer = PolicyEnforcers.defaultEvaluator(createOtherPolicy());
 
     @Override
     void createTestDataV1() {
@@ -141,7 +141,7 @@ public final class CountIT extends AbstractVersionedThingSearchPersistenceITBase
     }
 
     @Override
-    protected PolicyEnforcer getPolicyEnforcer(final String thingId) {
+    protected Enforcer getPolicyEnforcer(final String thingId) {
         if (thingId.startsWith(SUDO_NAMESPACE + ":")) {
             return otherPolicyEnforcer;
         } else {

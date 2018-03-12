@@ -11,7 +11,7 @@
  */
 
 /**
- * This package provides an implementation of {@link org.eclipse.ditto.model.enforcers.PolicyEnforcer}
+ * This package provides an implementation of {@link org.eclipse.ditto.model.enforcers.Enforcer}
  * which is based on a Trie (en.wikipedia.org/wiki/Trie) data structure.
  */
 @org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault

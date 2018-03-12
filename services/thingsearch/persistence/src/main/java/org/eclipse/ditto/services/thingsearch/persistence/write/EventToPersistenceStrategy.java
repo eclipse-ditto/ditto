@@ -13,7 +13,7 @@ package org.eclipse.ditto.services.thingsearch.persistence.write;
 
 import java.util.List;
 
-import org.eclipse.ditto.model.enforcers.PolicyEnforcer;
+import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 /**
@@ -41,5 +41,5 @@ public interface EventToPersistenceStrategy<T extends ThingEvent, D, P> {
      * @param policyEnforcer The policy enforcer.
      * @return The updates needed to persist the policy information of {@code event}.
      */
-    List<P> policyUpdates(T event, final PolicyEnforcer policyEnforcer);
+    List<P> policyUpdates(T event, final Enforcer policyEnforcer);
 }

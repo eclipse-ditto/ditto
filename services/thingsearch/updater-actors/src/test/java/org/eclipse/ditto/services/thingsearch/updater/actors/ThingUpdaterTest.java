@@ -42,8 +42,8 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.policies.Policy;
-import org.eclipse.ditto.model.enforcers.PolicyEnforcer;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.AccessControlListModelFactory;
 import org.eclipse.ditto.model.things.AclEntry;
@@ -628,7 +628,7 @@ public final class ThingUpdaterTest {
                 assertEquals(THING_ID, sudoRetrievePolicy.getId());
                 underTest.tell(sudoRetrievePolicyResponse, null);
 
-                waitUntil().updatePolicy(eq(thingWithPolicyId), any(PolicyEnforcer.class));
+                waitUntil().updatePolicy(eq(thingWithPolicyId), any(Enforcer.class));
             }
         };
     }
@@ -683,7 +683,7 @@ public final class ThingUpdaterTest {
                 assertEquals(policy2Id, sudoRetrievePolicy2.getId());
                 underTest.tell(policyResponse2, null);
 
-                waitUntil().updatePolicy(eq(thingWithPolicy2), any(PolicyEnforcer.class));
+                waitUntil().updatePolicy(eq(thingWithPolicy2), any(Enforcer.class));
             }
         };
     }
@@ -726,7 +726,7 @@ public final class ThingUpdaterTest {
                 assertEquals(policyId, sudoRetrievePolicy.getId());
                 underTest.tell(policyResponse, null);
 
-                waitUntil().updatePolicy(eq(thingWithPolicy), any(PolicyEnforcer.class));
+                waitUntil().updatePolicy(eq(thingWithPolicy), any(Enforcer.class));
             }
         };
     }

@@ -28,6 +28,7 @@ import java.util.stream.Stream;
 import org.bson.BsonRegularExpression;
 import org.bson.Document;
 import org.bson.conversions.Bson;
+import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.policies.EffectedPermissions;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.PoliciesResourceType;
@@ -41,7 +42,6 @@ import org.eclipse.ditto.model.policies.Subject;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
 import org.eclipse.ditto.model.policies.Subjects;
-import org.eclipse.ditto.model.enforcers.PolicyEnforcer;
 import org.eclipse.ditto.model.enforcers.PolicyEnforcers;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.models.policies.Permission;
@@ -65,7 +65,7 @@ public final class PolicyUpdateFactoryTest {
             ResourceKey.newInstance(PoliciesResourceType.THING, "/attributes/location");
     private static Policy defaultPolicy;
 
-    private PolicyEnforcer policyEnforcer;
+    private Enforcer policyEnforcer;
 
     /** */
     @BeforeClass
@@ -200,7 +200,7 @@ public final class PolicyUpdateFactoryTest {
                 WRITE_PERMISSIONS, NO_PERMISSIONS));
 
         final Policy complexPolicy = complexPolicyBuilder.build();
-        final PolicyEnforcer complexPolicyEnforcer = PolicyEnforcers.defaultEvaluator(complexPolicy);
+        final Enforcer complexPolicyEnforcer = PolicyEnforcers.defaultEvaluator(complexPolicy);
         final PolicyUpdate policyUpdate =
                 PolicyUpdateFactory.createPolicyIndexUpdate(thingWithAttributesOnly, complexPolicyEnforcer);
 

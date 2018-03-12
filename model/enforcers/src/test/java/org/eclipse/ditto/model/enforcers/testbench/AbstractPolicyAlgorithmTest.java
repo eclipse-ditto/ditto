@@ -30,7 +30,7 @@ import org.eclipse.ditto.model.policies.Subject;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
 import org.eclipse.ditto.model.enforcers.EffectedSubjectIds;
-import org.eclipse.ditto.model.enforcers.PolicyEnforcer;
+import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.enforcers.testbench.algorithms.PolicyAlgorithm;
 import org.eclipse.ditto.model.enforcers.testbench.scenarios.Scenario;
 import org.eclipse.ditto.model.enforcers.testbench.scenarios.ScenarioSetup;
@@ -547,7 +547,7 @@ public abstract class AbstractPolicyAlgorithmTest {
                         "READ", "WRITE")
                 .build();
 
-        final PolicyEnforcer policyEnforcer = TreeBasedPolicyEnforcer.createInstance(POLICY);
+        final Enforcer policyEnforcer = TreeBasedPolicyEnforcer.createInstance(POLICY);
 
         final boolean actual = policyEnforcer
                 .hasPartialPermissions(PoliciesResourceType.thingResource("/"),

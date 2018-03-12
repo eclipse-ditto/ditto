@@ -38,18 +38,18 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.policies.EffectedPermissions;
 import org.eclipse.ditto.model.policies.Permissions;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.Resource;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.model.enforcers.EffectedSubjectIds;
-import org.eclipse.ditto.model.enforcers.PolicyEnforcer;
 
 /**
  * Holds Algorithms to create a policy tree and to perform different policy checks on this tree.
  */
-public final class TreeBasedPolicyEnforcer implements PolicyEnforcer {
+public final class TreeBasedPolicyEnforcer implements Enforcer {
 
     private static final String ROOT_RESOURCE = "/";
 

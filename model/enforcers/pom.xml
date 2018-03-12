@@ -22,7 +22,7 @@
 
     <artifactId>ditto-model-enforcers</artifactId>
     <packaging>bundle</packaging>
-    <name>Eclipse Ditto :: Model :: Policies Enforcers</name>
+    <name>Eclipse Ditto :: Model :: Enforcers</name>
 
     <properties>
         <javac.target>1.8</javac.target>
@@ -37,8 +37,8 @@
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-model-things</artifactId>
-            <scope>test</scope>
         </dependency>
+
         <dependency>
             <groupId>org.openjdk.jmh</groupId>
             <artifactId>jmh-core</artifactId>

@@ -26,8 +26,8 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
-import org.eclipse.ditto.model.enforcers.PolicyEnforcer;
 import org.eclipse.ditto.model.enforcers.PolicyEnforcers;
 import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
 import org.eclipse.ditto.services.thingsearch.persistence.write.EventToPersistenceStrategyFactory;
@@ -99,7 +99,7 @@ public final class MongoDBMockSearchUpdaterPersistenceTest {
 
     @Test
     public void testExceptionHandling() {
-        final PolicyEnforcer policyEnforcer = PolicyEnforcers.defaultEvaluator(
+        final Enforcer policyEnforcer = PolicyEnforcers.defaultEvaluator(
                 PoliciesModelFactory.newPolicyBuilder(":theThing").build());
         final ThingEvent attributeCreated = AttributeCreated.of(":t", JsonPointer.empty(), JsonValue.of(1), 1L,
                 DittoHeaders.newBuilder().schemaVersion(JsonSchemaVersion.LATEST).build());

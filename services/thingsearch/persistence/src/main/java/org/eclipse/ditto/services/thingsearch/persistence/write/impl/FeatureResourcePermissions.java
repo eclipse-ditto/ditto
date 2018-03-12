@@ -20,10 +20,10 @@ import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.policies.PoliciesResourceType;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.model.enforcers.EffectedSubjectIds;
-import org.eclipse.ditto.model.enforcers.PolicyEnforcer;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.services.models.policies.Permission;
 import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
@@ -53,7 +53,7 @@ final class FeatureResourcePermissions implements ResourcePermissions {
      */
     @Nonnull
     static FeatureResourcePermissions getInstance(@Nonnull final Feature feature,
-            @Nonnull final PolicyEnforcer policyEnforcer) {
+            @Nonnull final Enforcer policyEnforcer) {
         checkNotNull(feature, "feature");
         checkNotNull(policyEnforcer, "policy enforcer");
 

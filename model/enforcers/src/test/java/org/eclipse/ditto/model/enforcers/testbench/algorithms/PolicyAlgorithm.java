@@ -14,13 +14,13 @@ package org.eclipse.ditto.model.enforcers.testbench.algorithms;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.policies.ResourceKey;
-import org.eclipse.ditto.model.enforcers.PolicyEnforcer;
+import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.enforcers.testbench.scenarios.ScenarioSetup;
 
 /**
- * Interface for policy enforcing algorithms providing default implementation of the {@link PolicyEnforcer} interface.
+ * Interface for policy enforcing algorithms providing default implementation of the {@link Enforcer} interface.
  */
-public interface PolicyAlgorithm extends PolicyEnforcer {
+public interface PolicyAlgorithm extends Enforcer {
 
     default String getName() {
         return getClass().getSimpleName();

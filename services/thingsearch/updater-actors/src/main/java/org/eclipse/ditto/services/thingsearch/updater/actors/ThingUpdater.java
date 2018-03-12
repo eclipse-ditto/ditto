@@ -35,9 +35,9 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyRevision;
-import org.eclipse.ditto.model.enforcers.PolicyEnforcer;
 import org.eclipse.ditto.model.enforcers.PolicyEnforcers;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingRevision;
@@ -152,7 +152,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
     private JsonSchemaVersion schemaVersion;
     private String policyId;
     private long policyRevision = -1L;
-    private PolicyEnforcer policyEnforcer;
+    private Enforcer policyEnforcer;
 
     // required for acking of synchronization
     private SyncMetadata activeSyncMetadata = null;
@@ -775,7 +775,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
                 .isPresent();
         if (isExpectedPolicyId) {
             policyRevision = policy.getRevision().map(PolicyRevision::toLong).orElse(UNKNOWN_REVISION);
-            final PolicyEnforcer thePolicyEnforcer = PolicyEnforcers.defaultEvaluator(policy);
+            final Enforcer thePolicyEnforcer = PolicyEnforcers.defaultEvaluator(policy);
             this.policyEnforcer = thePolicyEnforcer;
             updateSearchIndexWithPolicy(syncedThing, thePolicyEnforcer);
         } else {
@@ -840,7 +840,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
 
     // eventually writes the Thing to the persistence, updates policy, then ends the synchronization cycle.
     // keeps stashing messages in the mean time.
-    private void updateSearchIndexWithPolicy(final Thing newThing, final PolicyEnforcer thePolicyEnforcer) {
+    private void updateSearchIndexWithPolicy(final Thing newThing, final Enforcer thePolicyEnforcer) {
         becomeSyncResultAwaiting();
         updateThing(newThing)
                 .whenComplete((thingIndexChanged, thingError) ->
@@ -872,10 +872,10 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
                         .runWith(Sink.last(), materializer));
     }
 
-    private CompletionStage<Boolean> updatePolicy(final Thing thing, final PolicyEnforcer policyEnforcer) {
+    private CompletionStage<Boolean> updatePolicy(final Thing thing, final Enforcer policyEnforcer) {
 
         if (policyEnforcer == null) {
-            log.warning("PolicyEnforcer was null when trying to update Policy search index - resyncing Policy!");
+            log.warning("Enforcer was null when trying to update Policy search index - resyncing Policy!");
             syncPolicy(thing);
             return CompletableFuture.completedFuture(Boolean.FALSE);
         }

@@ -11,7 +11,7 @@
  */
 
 /**
- * This package provides access to several implementations of {@link org.eclipse.ditto.model.enforcers.PolicyEnforcer}.
+ * This package provides access to several implementations of {@link org.eclipse.ditto.model.enforcers.Enforcer}.
  * The entry point to this package is {@link org.eclipse.ditto.model.enforcers.PolicyEnforcers}.
  */
 @org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault

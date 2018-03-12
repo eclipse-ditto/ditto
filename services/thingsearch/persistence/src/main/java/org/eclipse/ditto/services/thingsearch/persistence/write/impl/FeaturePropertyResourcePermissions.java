@@ -22,10 +22,10 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.policies.PoliciesResourceType;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.model.enforcers.EffectedSubjectIds;
-import org.eclipse.ditto.model.enforcers.PolicyEnforcer;
 import org.eclipse.ditto.services.models.policies.Permission;
 import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
 
@@ -58,7 +58,7 @@ final class FeaturePropertyResourcePermissions implements ResourcePermissions {
     @Nonnull
     static FeaturePropertyResourcePermissions getInstance(@Nonnull final CharSequence featureId,
             @Nonnull final JsonPointer propertyPointer, @Nonnull final JsonValue propertyValue,
-            @Nonnull final PolicyEnforcer policyEnforcer) {
+            @Nonnull final Enforcer policyEnforcer) {
         argumentNotEmpty(featureId, "feature ID");
         checkNotNull(propertyPointer, "property pointer");
         checkNotNull(propertyValue, "property value");
