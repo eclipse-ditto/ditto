@@ -20,7 +20,7 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 
 /**
  * Builder for {@code ImmutableAmqpConnection}.
@@ -29,7 +29,7 @@ class ImmutableAmqpConnectionBuilder implements AmqpConnectionBuilder {
 
     final String id;
     final ConnectionType connectionType;
-    final AuthorizationSubject authorizationSubject;
+    final AuthorizationContext authorizationContext;
     final String uri;
     @Nullable Set<String> sources;
     @Nullable String eventTarget;
@@ -41,11 +41,11 @@ class ImmutableAmqpConnectionBuilder implements AmqpConnectionBuilder {
     int processorPoolSize = 5;
 
     private ImmutableAmqpConnectionBuilder(final String id, final ConnectionType connectionType,
-            final String uri, final AuthorizationSubject authorizationSubject) {
+            final String uri, final AuthorizationContext authorizationContext) {
         this.id = checkNotNull(id, "ID");
         this.connectionType = checkNotNull(connectionType, "Connection Type");
         this.uri = checkNotNull(uri, "URI");
-        this.authorizationSubject = checkNotNull(authorizationSubject, "Authorization Subject");
+        this.authorizationContext = checkNotNull(authorizationContext, "Authorization Context");
     }
 
     /**
@@ -54,12 +54,12 @@ class ImmutableAmqpConnectionBuilder implements AmqpConnectionBuilder {
      * @param id the connection id
      * @param connectionType the connection type
      * @param uri the uri
-     * @param authorizationSubject the authorization subject
+     * @param authorizationContext the authorization context
      * @return new instance of {@code ImmutableAmqpConnectionBuilder}
      */
     static AmqpConnectionBuilder of(final String id, final ConnectionType connectionType,
-            final String uri, final AuthorizationSubject authorizationSubject) {
-        return new ImmutableAmqpConnectionBuilder(id, connectionType, uri, authorizationSubject);
+            final String uri, final AuthorizationContext authorizationContext) {
+        return new ImmutableAmqpConnectionBuilder(id, connectionType, uri, authorizationContext);
     }
 
     @Override

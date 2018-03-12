@@ -23,6 +23,7 @@ import java.util.UUID;
 import org.eclipse.ditto.model.amqpbridge.AmqpBridgeModelFactory;
 import org.eclipse.ditto.model.amqpbridge.AmqpConnection;
 import org.eclipse.ditto.model.amqpbridge.ConnectionType;
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
@@ -47,7 +48,8 @@ public class TestConstants {
     private static final ConnectionType TYPE = ConnectionType.AMQP_10;
     private static final String URI = "amqps://username:password@my.endpoint:443";
     public static final String SUBJECT_ID = "mySolutionId:mySubject";
-    private static final AuthorizationSubject AUTHORIZATION_SUBJECT = AuthorizationSubject.newInstance(SUBJECT_ID);
+    private static final AuthorizationContext AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(
+            AuthorizationSubject.newInstance(SUBJECT_ID));
     private static final Set<String> SOURCES = new HashSet<>(Arrays.asList("amqp/source1", "amqp/source2"));
     private static final String TARGET = "eventQueue";
     public static final Config CONFIG = ConfigFactory.load("test");
@@ -60,7 +62,7 @@ public class TestConstants {
     }
 
     public static AmqpConnection createConnection(final String connectionId) {
-        return AmqpBridgeModelFactory.newConnectionBuilder(connectionId, TYPE, URI, AUTHORIZATION_SUBJECT)
+        return AmqpBridgeModelFactory.newConnectionBuilder(connectionId, TYPE, URI, AUTHORIZATION_CONTEXT)
                 .sources(SOURCES)
                 .eventTarget(TARGET)
                 .build();

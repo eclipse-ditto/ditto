@@ -101,8 +101,7 @@ public abstract class BaseClientActor extends AbstractActor {
             log.debug("Starting CommandProcessorActor with pool size of {}.", amqpConnection.getProcessorPoolSize());
             final Props commandProcessorProps =
                     CommandProcessorActor.props(pubSubMediator, pubSubTargetPath, commandProducer,
-                            amqpConnection.getAuthorizationSubject(),
-                            mappingContexts);
+                            amqpConnection.getAuthorizationContext(), mappingContexts);
             final String amqpCommandProcessorName = getCommandProcessorActorName(amqpConnection.getId());
 
             final DefaultResizer resizer = new DefaultResizer(1, amqpConnection.getProcessorPoolSize());

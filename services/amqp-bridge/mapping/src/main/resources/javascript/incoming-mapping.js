@@ -9,7 +9,8 @@
  * @param {string} path - The path which is affected by the message, e.g.: "/attributes"
  * @param {Object.<string, string>} dittoHeaders - The headers Object containing all Ditto Protocol header values
  * @param {*} [value] - The value to apply / which was applied (e.g. in a "modify" action)
- * @returns {DittoProtocolMessage} dittoProtocolMessage - the mapped Ditto Protocol message
+ * @returns {DittoProtocolMessage} dittoProtocolMessage - the mapped Ditto Protocol message or <code>null</code> if the
+ * message could/should not be mapped
  */
 function buildDittoProtocolMsg(namespace, id, group, channel, criterion, action, path, dittoHeaders, value) {
 
@@ -27,7 +28,8 @@ function buildDittoProtocolMsg(namespace, id, group, channel, criterion, action,
  * @param {string} [textPayload] - The String to be mapped
  * @param {Array<byte>} [bytePayload] - The bytes to be mapped
  * @param {string} contentType - The received Content-Type, e.g. "application/json"
- * @returns {DittoProtocolMessage} the mapped Ditto Protocol message
+ * @returns {DittoProtocolMessage} dittoProtocolMessage - the mapped Ditto Protocol message or <code>null</code> if the
+ * message could/should not be mapped
  */
 function mapToDittoProtocolMsg(
     headers,
@@ -60,7 +62,8 @@ function mapToDittoProtocolMsg(
  * @param {string} [externalMsg.textPayload] - The String to be mapped
  * @param {Array<byte>}  [externalMsg.bytePayload] - The bytes to be mapped
  * @param {string} externalMsg.contentType - The received Content-Type, e.g. "application/json"
- * @returns {DittoProtocolMessage}
+ * @returns {DittoProtocolMessage} dittoProtocolMessage - the mapped Ditto Protocol message or <code>null</code> if the
+ * message could/should not be mapped
  */
 function mapToDittoProtocolMsgWrapper(externalMsg) {
 

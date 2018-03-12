@@ -29,6 +29,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.amqpbridge.AmqpBridgeModelFactory;
 import org.eclipse.ditto.model.amqpbridge.ExternalMessage;
 import org.eclipse.ditto.model.amqpbridge.MappingContext;
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMappers;
 import org.eclipse.ditto.services.amqpbridge.messaging.CommandProcessorActor;
@@ -153,7 +154,7 @@ public class CommandConsumerActorTest {
 
             final Props amqpCommandProcessorProps =
                     CommandProcessorActor.props(pubSubMediator, targetActorPath, getRef(),
-                            AuthorizationSubject.newInstance("foo:bar"),
+                            AuthorizationContext.newInstance(AuthorizationSubject.newInstance("foo:bar")),
                             mappingContexts);
             final String amqpCommandProcessorName = CommandProcessorActor.ACTOR_NAME_PREFIX + "foo";
 
@@ -194,7 +195,7 @@ public class CommandConsumerActorTest {
         final String pubSubTarget = testActor.path().toStringWithoutAddress();
         final Props amqpCommandProcessorProps =
                 CommandProcessorActor.props(pubSubMediator, pubSubTarget, testActor,
-                        AuthorizationSubject.newInstance("foo:bar"),
+                        AuthorizationContext.newInstance(AuthorizationSubject.newInstance("foo:bar")),
                         mappingContexts);
         final String amqpCommandProcessorName = CommandProcessorActor.ACTOR_NAME_PREFIX + UUID.randomUUID().toString();
 

@@ -23,6 +23,7 @@ import org.eclipse.ditto.model.amqpbridge.AmqpConnection;
 import org.eclipse.ditto.model.amqpbridge.ConnectionStatus;
 import org.eclipse.ditto.model.amqpbridge.ConnectionType;
 import org.eclipse.ditto.model.amqpbridge.MappingContext;
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 
 /**
@@ -36,15 +37,15 @@ public final class TestConstants {
 
     public static String URI = "amqps://username:password@my.endpoint:443";
 
-    public static AuthorizationSubject AUTHORIZATION_SUBJECT =
-            AuthorizationSubject.newInstance("mySolutionId:mySubject");
+    public static AuthorizationContext AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(
+            AuthorizationSubject.newInstance("mySolutionId:mySubject"));
 
     public static Set<String> SOURCES = new HashSet<>(Arrays.asList("amqp/source1", "amqp/source2"));
 
     public static String TARGET = "eventQueue";
 
     public static AmqpConnection CONNECTION =
-            AmqpBridgeModelFactory.newConnectionBuilder(ID, TYPE, URI, AUTHORIZATION_SUBJECT)
+            AmqpBridgeModelFactory.newConnectionBuilder(ID, TYPE, URI, AUTHORIZATION_CONTEXT)
                     .sources(SOURCES)
                     .eventTarget(TARGET)
                     .build();

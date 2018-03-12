@@ -19,6 +19,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 import javax.annotation.Nullable;
@@ -134,6 +135,32 @@ public class JavaScriptMessageMapperRhinoTest {
             "    );" +
             "}";
 
+    private static final String MAPPING_INCOMING_EMPTY =
+            "function mapToDittoProtocolMsg(\n" +
+                    "    headers,\n" +
+                    "    textPayload,\n" +
+                    "    bytePayload,\n" +
+                    "    contentType\n" +
+                    ") {\n" +
+                    "\n" +
+                    "    return null;\n" +
+                    "}";
+
+    private static final String MAPPING_OUTGOING_EMPTY = "function mapFromDittoProtocolMsg(\n" +
+            "    namespace,\n" +
+            "    id,\n" +
+            "    group,\n" +
+            "    channel,\n" +
+            "    criterion,\n" +
+            "    action,\n" +
+            "    path,\n" +
+            "    dittoHeaders,\n" +
+            "    value\n" +
+            ") {\n" +
+            "\n" +
+            "    return null;" +
+            "}";
+
     private static final String MAPPING_OUTGOING_MUSTACHE = "function mapFromDittoProtocolMsgWrapper(\n" +
             "    dittoProtocolMsg\n" +
             ") {\n" +
@@ -224,6 +251,7 @@ public class JavaScriptMessageMapperRhinoTest {
             "}";
 
     private static MessageMapper javaScriptRhinoMapperPlain;
+    private static MessageMapper javaScriptRhinoMapperEmpty;
     private static MessageMapper javaScriptRhinoMapperWithMustache;
     private static MessageMapper javaScriptRhinoMapperBinary;
 
@@ -236,6 +264,16 @@ public class JavaScriptMessageMapperRhinoTest {
                         .contentType(CONTENT_TYPE_PLAIN)
                         .incomingMappingScript(MAPPING_INCOMING_PLAIN)
                         .outgoingMappingScript(MAPPING_OUTGOING_PLAIN)
+                        .build()
+        );
+
+        javaScriptRhinoMapperEmpty = MessageMappers.createJavaScriptMessageMapper();
+        javaScriptRhinoMapperEmpty.configureWithValidation(
+                JavaScriptMessageMapperFactory
+                        .createJavaScriptMessageMapperConfigurationBuilder(Collections.emptyMap())
+                        .contentType(CONTENT_TYPE_PLAIN)
+                        .incomingMappingScript(MAPPING_INCOMING_EMPTY)
+                        .outgoingMappingScript(MAPPING_OUTGOING_EMPTY)
                         .build()
         );
 
@@ -272,7 +310,8 @@ public class JavaScriptMessageMapperRhinoTest {
 
 
         final long startTs = System.nanoTime();
-        final Adaptable adaptable = javaScriptRhinoMapperPlain.map(message);
+        final Optional<Adaptable> adaptableOpt = javaScriptRhinoMapperPlain.map(message);
+        final Adaptable adaptable = adaptableOpt.get();
         System.out.println(adaptable);
         System.out.println(
                 "testPlainJavascriptIncomingMapping Duration: " + (System.nanoTime() - startTs) / 1000000.0 + "ms");
@@ -301,7 +340,8 @@ public class JavaScriptMessageMapperRhinoTest {
 
         final long startTs = System.nanoTime();
 
-        final ExternalMessage rawMessage = javaScriptRhinoMapperPlain.map(adaptable);
+        final Optional<ExternalMessage> rawMessageOpt = javaScriptRhinoMapperPlain.map(adaptable);
+        final ExternalMessage rawMessage = rawMessageOpt.get();
         System.out.println(rawMessage);
         System.out.println(
                 "testPlainJavascriptOutgoingMapping Duration: " + (System.nanoTime() - startTs) / 1000000.0 + "ms");
@@ -310,6 +350,45 @@ public class JavaScriptMessageMapperRhinoTest {
         assertThat(rawMessage.findHeader(HEADER_CORRELATION_ID)).contains(correlationId);
         assertThat(rawMessage.isTextMessage()).isTrue();
         assertThat(rawMessage.getTextPayload()).contains("Thing ID was: " + thingId);
+    }
+
+    @Test
+    public void testEmptyJavascriptIncomingMapping() {
+        final String correlationId = UUID.randomUUID().toString();
+        final Map<String, String> headers = new HashMap<>();
+        headers.put(HEADER_CORRELATION_ID, correlationId);
+        headers.put(ExternalMessage.CONTENT_TYPE_HEADER, CONTENT_TYPE_PLAIN);
+        final ExternalMessage message = AmqpBridgeModelFactory.newExternalMessageBuilder(headers)
+                .build();
+
+
+        final long startTs = System.nanoTime();
+        final Optional<Adaptable> adaptableOpt = javaScriptRhinoMapperEmpty.map(message);
+        System.out.println(
+                "testEmptyJavascriptIncomingMapping Duration: " + (System.nanoTime() - startTs) / 1000000.0 + "ms");
+
+        assertThat(adaptableOpt).isEmpty();
+    }
+
+    @Test
+    public void testEmptyJavascriptOutgoingMapping() {
+        final String thingId = "org.eclipse.ditto:foo-bar-empty";
+        final String correlationId = UUID.randomUUID().toString();
+        final Thing newThing = Thing.newBuilder()
+                .setId(thingId)
+                .setAttributes(Attributes.newBuilder().set("foo", "bar").build())
+                .build();
+        final CreateThing createThing =
+                CreateThing.of(newThing, null, DittoHeaders.newBuilder().correlationId(correlationId).build());
+        final Adaptable adaptable = DittoProtocolAdapter.newInstance().toAdaptable(createThing);
+
+        final long startTs = System.nanoTime();
+
+        final Optional<ExternalMessage> rawMessageOpt = javaScriptRhinoMapperEmpty.map(adaptable);
+        System.out.println(
+                "testEmptyJavascriptOutgoingMapping Duration: " + (System.nanoTime() - startTs) / 1000000.0 + "ms");
+
+        assertThat(rawMessageOpt).isEmpty();
     }
 
     @Test
@@ -325,7 +404,8 @@ public class JavaScriptMessageMapperRhinoTest {
         final Adaptable adaptable = DittoProtocolAdapter.newInstance().toAdaptable(createThing);
 
         final long startTs = System.nanoTime();
-        final ExternalMessage rawMessage = javaScriptRhinoMapperWithMustache.map(adaptable);
+        final Optional<ExternalMessage> rawMessageOpt = javaScriptRhinoMapperWithMustache.map(adaptable);
+        final ExternalMessage rawMessage = rawMessageOpt.get();
         System.out.println(rawMessage);
         System.out.println(
                 "testMustacheJavascriptOutgoingMapping Duration: " + (System.nanoTime() - startTs) / 1000000.0 + "ms");
@@ -347,7 +427,8 @@ public class JavaScriptMessageMapperRhinoTest {
                 .build();
 
         final long startTs = System.nanoTime();
-        final Adaptable adaptable = javaScriptRhinoMapperBinary.map(message);
+        final Optional<Adaptable> adaptableOpt = javaScriptRhinoMapperBinary.map(message);
+        final Adaptable adaptable = adaptableOpt.get();
         System.out.println(adaptable);
         System.out.println(
                 "testBinaryJavascriptIncomingMapping Duration: " + (System.nanoTime() - startTs) / 1000000.0 + "ms");
@@ -375,7 +456,8 @@ public class JavaScriptMessageMapperRhinoTest {
         final Adaptable adaptable = DittoProtocolAdapter.newInstance().toAdaptable(createThing);
 
         final long startTs = System.nanoTime();
-        final ExternalMessage rawMessage = javaScriptRhinoMapperBinary.map(adaptable);
+        final Optional<ExternalMessage> rawMessageOpt = javaScriptRhinoMapperBinary.map(adaptable);
+        final ExternalMessage rawMessage = rawMessageOpt.get();
         System.out.println(rawMessage);
         System.out.println(
                 "testBinaryJavascriptOutgoingMapping Duration: " + (System.nanoTime() - startTs) / 1000000.0 + "ms");

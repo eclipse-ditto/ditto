@@ -19,6 +19,7 @@ import java.util.AbstractMap;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -41,7 +42,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 
-@SuppressWarnings("NullableProblems")
 public class DittoMessageMapperTest {
 
     private DittoMessageMapper underTest;
@@ -77,14 +77,14 @@ public class DittoMessageMapperTest {
                 () -> underTest.map(in)));
     }
 
-    private Map<ExternalMessage, Adaptable> createValidIncomingMappings() {
+    private Map<ExternalMessage, Optional<Adaptable>> createValidIncomingMappings() {
         return Stream.of(
                 valid1(),
                 valid2()
         ).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
-    private Map.Entry<ExternalMessage, Adaptable> valid1() {
+    private Map.Entry<ExternalMessage, Optional<Adaptable>> valid1() {
         Map<String, String> headers = new HashMap<>();
         headers.put("header-key", "header-value");
         headers.put(ExternalMessage.CONTENT_TYPE_HEADER, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
@@ -100,12 +100,12 @@ public class DittoMessageMapperTest {
                 .build());
 
         ExternalMessage message = AmqpBridgeModelFactory.newExternalMessageBuilderForCommand(headers).withText(adaptable.toJsonString()).build();
-        Adaptable expected = ProtocolFactory.newAdaptableBuilder(adaptable).build();
+        Optional<Adaptable> expected = Optional.of(ProtocolFactory.newAdaptableBuilder(adaptable).build());
 
         return new AbstractMap.SimpleEntry<>(message, expected);
     }
 
-    private Map.Entry<ExternalMessage, Adaptable> valid2() {
+    private Map.Entry<ExternalMessage, Optional<Adaptable>> valid2() {
         Map<String, String> headers = new HashMap<>();
         headers.put("header-key", "header-value");
         headers.put(ExternalMessage.CONTENT_TYPE_HEADER, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
@@ -114,11 +114,12 @@ public class DittoMessageMapperTest {
                 .set("path","/some/path")
                 .build();
 
-        Adaptable expected = ProtocolFactory.newAdaptableBuilder(ProtocolFactory.jsonifiableAdaptableFromJson(json))
-                .withHeaders(DittoHeaders.of(headers))
-                .build();
+        Optional<Adaptable> expected = Optional.ofNullable(
+                ProtocolFactory.newAdaptableBuilder(ProtocolFactory.jsonifiableAdaptableFromJson(json))
+                        .withHeaders(DittoHeaders.of(headers))
+                        .build());
         ExternalMessage message = AmqpBridgeModelFactory.newExternalMessageBuilderForCommand(headers).withText(json.toString()).build();
-        return new AbstractMap.SimpleEntry<ExternalMessage, Adaptable>(message, expected);
+        return new AbstractMap.SimpleEntry<>(message, expected);
     }
 
     private Map<ExternalMessage, Throwable> createInvalidIncomingMappings() {
@@ -143,8 +144,8 @@ public class DittoMessageMapperTest {
     }
 
 
-    private Map<Adaptable, ExternalMessage> createValidOutgoingMappings() {
-        Map<Adaptable, ExternalMessage> mappings = new HashMap<>();
+    private Map<Adaptable, Optional<ExternalMessage>> createValidOutgoingMappings() {
+        Map<Adaptable, Optional<ExternalMessage>> mappings = new HashMap<>();
 
         Map<String, String> headers = new HashMap<>();
         headers.put("header-key", "header-value");
@@ -160,8 +161,10 @@ public class DittoMessageMapperTest {
                         .build())
                 .build());
 
-        ExternalMessage message =
-                AmqpBridgeModelFactory.newExternalMessageBuilderForCommand(headers).withText(adaptable.toJsonString()).build();
+        Optional<ExternalMessage> message =
+                Optional.of(AmqpBridgeModelFactory.newExternalMessageBuilderForCommand(headers)
+                        .withText(adaptable.toJsonString())
+                        .build());
         mappings.put(adaptable, message);
 
         final JsonObject json = JsonFactory.newObjectBuilder()
@@ -172,14 +175,16 @@ public class DittoMessageMapperTest {
         adaptable = ProtocolFactory.wrapAsJsonifiableAdaptable(ProtocolFactory.newAdaptableBuilder(adaptable)
                 .withHeaders(DittoHeaders.of(headers)).build());
 
-        message = AmqpBridgeModelFactory.newExternalMessageBuilderForCommand(headers).withText(adaptable.toJsonString()).build();
+        message = Optional.of(AmqpBridgeModelFactory.newExternalMessageBuilderForCommand(headers)
+                .withText(adaptable.toJsonString())
+                .build());
         mappings.put(adaptable, message);
 
         return mappings;
     }
 
     private Map<Adaptable, Throwable> createInvalidOutgoingMappings() {
-        // adaptible is strongly typed and can always be jsonified, no invalid test needed.
+        // adaptable is strongly typed and can always be jsonified, no invalid test needed.
         return Collections.emptyMap();
     }
 }

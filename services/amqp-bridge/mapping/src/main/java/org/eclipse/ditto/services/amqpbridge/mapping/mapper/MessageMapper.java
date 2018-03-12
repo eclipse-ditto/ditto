@@ -11,6 +11,8 @@
  */
 package org.eclipse.ditto.services.amqpbridge.mapping.mapper;
 
+import java.util.Optional;
+
 import org.eclipse.ditto.model.amqpbridge.ExternalMessage;
 import org.eclipse.ditto.model.amqpbridge.MessageMapperConfigurationInvalidException;
 import org.eclipse.ditto.protocoladapter.Adaptable;
@@ -69,19 +71,19 @@ public interface MessageMapper {
      * Maps an {@link org.eclipse.ditto.model.amqpbridge.ExternalMessage} to an {@link org.eclipse.ditto.protocoladapter.Adaptable}
      *
      * @param message the ExternalMessage to map
-     * @return the mapped Adaptable
+     * @return the mapped Adaptable or an empty Optional if the ExternalMessage should not be mapped after all
      * @throws org.eclipse.ditto.model.amqpbridge.MessageMappingFailedException if the given message can not be mapped
      * @throws org.eclipse.ditto.model.base.exceptions.DittoRuntimeException if anything during Ditto Adaptable creation
      * went wrong
      */
-    Adaptable map(ExternalMessage message);
+    Optional<Adaptable> map(ExternalMessage message);
 
     /**
      * Maps an {@link org.eclipse.ditto.protocoladapter.Adaptable} to an {@link org.eclipse.ditto.model.amqpbridge.ExternalMessage}
      *
      * @param adaptable the Adaptable to map
-     * @return the ExternalMessage
+     * @return the ExternalMessage or an empty Optional if the Adaptable should not be mapped after all
      * @throws org.eclipse.ditto.model.amqpbridge.MessageMappingFailedException if the given adaptable can not be mapped
      */
-    ExternalMessage map(Adaptable adaptable);
+    Optional<ExternalMessage> map(Adaptable adaptable);
 }

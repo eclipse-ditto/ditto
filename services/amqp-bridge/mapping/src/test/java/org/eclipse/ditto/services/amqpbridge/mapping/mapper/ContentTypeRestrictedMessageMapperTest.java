@@ -51,8 +51,8 @@ public class ContentTypeRestrictedMessageMapperTest {
         mockMessage = mock(ExternalMessage.class);
         mockAdaptable = mock(Adaptable.class);
 
-        when(mockMapper.map(mockMessage)).thenReturn(mockAdaptable);
-        when(mockMapper.map(mockAdaptable)).thenReturn(mockMessage);
+        when(mockMapper.map(mockMessage)).thenReturn(Optional.of(mockAdaptable));
+        when(mockMapper.map(mockAdaptable)).thenReturn(Optional.of(mockMessage));
         when(mockAdaptable.getTopicPath()).thenReturn(ProtocolFactory.emptyTopicPath());
         when(mockAdaptable.getPayload()).thenReturn(ProtocolFactory.newPayload("{\"path\":\"/\"}"));
 
@@ -84,7 +84,7 @@ public class ContentTypeRestrictedMessageMapperTest {
         when(mockMessage.findHeaderIgnoreCase(ExternalMessage.CONTENT_TYPE_HEADER)).thenReturn(Optional.of("contentType"));
         when(mockMapper.getContentType()).thenReturn("contentType");
 
-        final Adaptable actual = underTest.map(mockMessage);
+        final Adaptable actual = underTest.map(mockMessage).get();
         verify(mockMapper).getContentType();
         verify(mockMessage).findHeaderIgnoreCase(anyString());
         verify(mockMapper).map(mockMessage);
@@ -96,7 +96,7 @@ public class ContentTypeRestrictedMessageMapperTest {
         when(mockAdaptable.getHeaders()).thenReturn(Optional.of(headers));
         when(mockMapper.getContentType()).thenReturn("contentType");
 
-        final ExternalMessage actual = underTest.map(mockAdaptable);
+        final ExternalMessage actual = underTest.map(mockAdaptable).get();
         verify(mockMapper).getContentType();
         verify(mockAdaptable, VerificationModeFactory.atLeastOnce()).getHeaders();
         verify(mockMapper).map(mockAdaptable);

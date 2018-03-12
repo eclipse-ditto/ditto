@@ -14,24 +14,27 @@ package org.eclipse.ditto.services.amqpbridge.messaging;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.model.amqpbridge.ExternalMessage;
 import org.eclipse.ditto.model.amqpbridge.MappingContext;
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.common.ConditionChecker;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
-import org.eclipse.ditto.signals.events.base.Event;
-import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
@@ -67,19 +70,18 @@ public final class CommandProcessorActor extends AbstractActor {
     private final ActorRef pubSubMediator;
     private final String pubSubTargetPath;
     private final ActorRef commandProducer;
-    private final AuthorizationSubject authorizationSubject;
+    private final AuthorizationContext authorizationContext;
     private final Cache<String, TraceContext> traces;
 
     private final CommandProcessor processor;
 
     private CommandProcessorActor(final ActorRef pubSubMediator, final String pubSubTargetPath,
-            final ActorRef commandProducer,
-            final AuthorizationSubject authorizationSubject,
+            final ActorRef commandProducer, final AuthorizationContext authorizationContext,
             final List<MappingContext> mappingContexts) {
         this.pubSubMediator = pubSubMediator;
         this.pubSubTargetPath = pubSubTargetPath;
         this.commandProducer = commandProducer;
-        this.authorizationSubject = authorizationSubject;
+        this.authorizationContext = authorizationContext;
         traces = CacheBuilder.newBuilder()
                 .expireAfterWrite(5, TimeUnit.MINUTES)
                 .removalListener((RemovalListener<String, TraceContext>) notification
@@ -99,13 +101,13 @@ public final class CommandProcessorActor extends AbstractActor {
      * @param pubSubMediator the akka pubsub mediator actor.
      * @param pubSubTargetPath the target path where incoming messages are sent
      * @param commandProducer actor that handles outgoing messages
-     * @param authorizationSubject the authorized subject that are set in command headers.
+     * @param authorizationContext the authorization context (authorized subjects) that are set in command headers.
      * @param mappingContexts the mapping contexts to apply for different content-types.
      * @return the Akka configuration Props object
      */
     public static Props props(final ActorRef pubSubMediator, final String pubSubTargetPath,
             final ActorRef commandProducer,
-            final AuthorizationSubject authorizationSubject,
+            final AuthorizationContext authorizationContext,
             final List<MappingContext> mappingContexts) {
 
         return Props.create(CommandProcessorActor.class, new Creator<CommandProcessorActor>() {
@@ -114,8 +116,7 @@ public final class CommandProcessorActor extends AbstractActor {
             @Override
             public CommandProcessorActor create() {
                 return new CommandProcessorActor(pubSubMediator, pubSubTargetPath, commandProducer,
-                        authorizationSubject,
-                        mappingContexts);
+                        authorizationContext, mappingContexts);
             }
         });
     }
@@ -125,7 +126,7 @@ public final class CommandProcessorActor extends AbstractActor {
         return ReceiveBuilder.create()
                 .match(ExternalMessage.class, this::handle)
                 .match(CommandResponse.class, this::handleCommandResponse)
-                .match(ThingEvent.class, this::handleThingEvent)
+                .match(Signal.class, this::handleSignal)
                 .match(DittoRuntimeException.class, this::handleDittoRuntimeException)
                 .match(Status.Failure.class, f -> log.error(f.cause(), "Got an unexpected failure."))
                 .matchAny(m -> {
@@ -139,17 +140,28 @@ public final class CommandProcessorActor extends AbstractActor {
         final String correlationId = m.getHeaders().get(DittoHeaderDefinition.CORRELATION_ID.getKey());
         LogUtil.enhanceLogWithCorrelationId(log, correlationId);
 
-        final String authSubjectsArray =
-                JsonFactory.newArrayBuilder().add(authorizationSubject.getId()).build().toString();
+        final String authSubjectsArray = authorizationContext.stream()
+                        .map(AuthorizationSubject::getId)
+                        .map(JsonFactory::newValue)
+                        .collect(JsonCollectors.valuesToArray())
+                .toString();
         final ExternalMessage messageWithAuthSubject =
                 m.withHeader(DittoHeaderDefinition.AUTHORIZATION_SUBJECTS.getKey(), authSubjectsArray);
 
         try {
-            final Command<?> command = processor.process(messageWithAuthSubject);
-            startTrace(command);
-            log.info("Publishing '{}' to '{}'", command.getType(), pubSubTargetPath);
-            pubSubMediator.tell(new DistributedPubSubMediator.Send(pubSubTargetPath, command, true),
-                    getSelf());
+            final Optional<Signal<?>> signalOpt = processor.process(messageWithAuthSubject);
+            signalOpt.ifPresent(signal -> {
+                final DittoHeaders adjustedHeaders = signal.getDittoHeaders().toBuilder()
+                        .authorizationContext(authorizationContext)
+                        .build();
+                // overwrite the auth-subjects to the configured ones after mapping in order to be sure that the mapping
+                // does not choose/change the auth-subjects itself:
+                final Signal<?> adjustedSignal = signal.setDittoHeaders(adjustedHeaders);
+                startTrace(adjustedSignal);
+                log.info("Publishing '{}' to '{}'", adjustedSignal.getType(), pubSubTargetPath);
+                pubSubMediator.tell(new DistributedPubSubMediator.Send(pubSubTargetPath, adjustedSignal, true),
+                        getSelf());
+            });
         } catch (final DittoRuntimeException e) {
             handleDittoRuntimeException(e);
         } catch (final Exception e) {
@@ -160,15 +172,12 @@ public final class CommandProcessorActor extends AbstractActor {
     private void handleDittoRuntimeException(final DittoRuntimeException exception) {
         final ThingErrorResponse errorResponse = ThingErrorResponse.of(exception);
 
-        logDittoRuntimeException(exception);
-        handleCommandResponse(errorResponse);
-    }
-
-    private void logDittoRuntimeException(final DittoRuntimeException exception) {
         LogUtil.enhanceLogWithCorrelationId(log, exception);
 
         log.info( "Got DittoRuntimeException '{}' when command via AMQP was processed: {}",
                 exception.getErrorCode(), exception.getMessage());
+
+        handleCommandResponse(errorResponse);
     }
 
     private void handleCommandResponse(final CommandResponse<?> response) {
@@ -181,25 +190,19 @@ public final class CommandProcessorActor extends AbstractActor {
             log.info("Received error response: {}", response.toJsonString());
         }
 
-        try {
-            final ExternalMessage message = processor.process(response);
-            commandProducer.forward(message, context());
-        } catch (final DittoRuntimeException e) {
-            log.info("Got DittoRuntimeException during processing CommandResponse: <{}>", e.getMessage());
-        } catch (final Exception e) {
-            log.warning("Got unexpected exception during processing CommandResponse: <{}>", e.getMessage());
-        }
+        handleSignal(response);
     }
 
-    private void handleThingEvent(final Event<?> event) {
-        LogUtil.enhanceLogWithCorrelationId(log, event);
+    private void handleSignal(final Signal<?> response) {
+        LogUtil.enhanceLogWithCorrelationId(log, response);
+
         try {
-            final ExternalMessage message = processor.process(event);
-            commandProducer.forward(message, context());
+            final Optional<ExternalMessage> messageOpt = processor.process(response);
+            messageOpt.ifPresent(message -> commandProducer.forward(message, getContext()));
         } catch (final DittoRuntimeException e) {
-            log.info("Got DittoRuntimeException during processing Event: <{}>", e.getMessage());
+            log.info("Got DittoRuntimeException during processing Signal: <{}>", e.getMessage());
         } catch (final Exception e) {
-            log.warning("Got unexpected exception during processing Event: <{}>", e.getMessage());
+            log.warning("Got unexpected exception during processing Signal: <{}>", e.getMessage());
         }
     }
 
@@ -212,13 +215,13 @@ public final class CommandProcessorActor extends AbstractActor {
         return ((ExtendedActorSystem) getContext().getSystem()).dynamicAccess();
     }
 
-    private void startTrace(final Command<?> command) {
+    private void startTrace(final Signal<?> command) {
         command.getDittoHeaders().getCorrelationId().ifPresent(correlationId ->
                 traces.put(correlationId, createRoundtripContext(correlationId, command.getType()))
         );
     }
 
-    private void finishTrace(final CommandResponse<?> response) {
+    private void finishTrace(final Signal<?> response) {
         if (ThingErrorResponse.class.isAssignableFrom(response.getClass())) {
             finishTrace(response, ((ThingErrorResponse) response).getDittoRuntimeException());
         } else {
@@ -226,7 +229,7 @@ public final class CommandProcessorActor extends AbstractActor {
         }
     }
 
-    private void finishTrace(final CommandResponse<?> response, @Nullable final Throwable cause) {
+    private void finishTrace(final Signal<?> response, @Nullable final Throwable cause) {
         response.getDittoHeaders().getCorrelationId().ifPresent(correlationId -> {
             try {
                 finishTrace(correlationId, cause);

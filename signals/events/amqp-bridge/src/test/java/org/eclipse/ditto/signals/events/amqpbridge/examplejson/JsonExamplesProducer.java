@@ -26,6 +26,7 @@ import org.eclipse.ditto.model.amqpbridge.AmqpBridgeModelFactory;
 import org.eclipse.ditto.model.amqpbridge.AmqpConnection;
 import org.eclipse.ditto.model.amqpbridge.ConnectionType;
 import org.eclipse.ditto.model.amqpbridge.MappingContext;
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -43,8 +44,8 @@ public class JsonExamplesProducer {
 
     private static final String URI = "amqps://foo:bar@example.com:443";
 
-    private static final AuthorizationSubject AUTHORIZATION_SUBJECT =
-            AuthorizationSubject.newInstance("mySolutionId:mySubject");
+    private static final AuthorizationContext AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(
+            AuthorizationSubject.newInstance("mySolutionId:mySubject"));
 
     private static final Set<String> SOURCES = new HashSet<>(Arrays.asList("amqp/source1", "amqp/source2"));
 
@@ -85,7 +86,7 @@ public class JsonExamplesProducer {
         Files.createDirectories(eventsDir);
 
         final AmqpConnection amqpConnection =
-                AmqpBridgeModelFactory.newConnectionBuilder(ID, TYPE, URI, AUTHORIZATION_SUBJECT)
+                AmqpBridgeModelFactory.newConnectionBuilder(ID, TYPE, URI, AUTHORIZATION_CONTEXT)
                         .sources(SOURCES)
                         .eventTarget(TARGET)
                         .build();

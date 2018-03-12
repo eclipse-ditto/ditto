@@ -292,11 +292,11 @@ class ConnectionActor extends AbstractPersistentActor {
             return;
         }
 
-        final Set<String> connectionSubject =
-                Collections.singleton(amqpConnection.getAuthorizationSubject().getId());
         final Set<String> authorizedReadSubjects = thingEvent.getDittoHeaders().getReadSubjects();
         // forward to client actor router if the configured subject is allowed to read
-        if (!Collections.disjoint(authorizedReadSubjects, connectionSubject)) {
+        final List<String> connectionSubjects =
+                amqpConnection.getAuthorizationContext().getAuthorizationSubjectIds();
+        if (!Collections.disjoint(authorizedReadSubjects, connectionSubjects)) {
             log.debug("Forwarding thing event <{}> to client actor.", thingEvent.getType());
             clientActor.tell(thingEvent, self());
         }

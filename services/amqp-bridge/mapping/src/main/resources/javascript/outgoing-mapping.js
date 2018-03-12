@@ -4,7 +4,8 @@
  * @param {string} [textPayload] - The external mapped String
  * @param {string} [bytePayload] - The external mapped byte[]
  * @param {string} contentType - The returned Content-Type
- * @returns {ExternalMessage} externalMessage - the mapped external message
+ * @returns {ExternalMessage} externalMessage - the mapped external message or <code>null</code> if the
+ * message could/should not be mapped
  */
 function buildExternalMsg(headers, textPayload, bytePayload, contentType) {
 
@@ -27,7 +28,8 @@ function buildExternalMsg(headers, textPayload, bytePayload, contentType) {
  * @param {string} path - The path which is affected by the message, e.g.: "/attributes"
  * @param {Object.<string, string>} dittoHeaders - The headers Object containing all Ditto Protocol header values
  * @param {*} [value] - The value to apply / which was applied (e.g. in a "modify" action)
- * @returns {ExternalMessage} externalMessage - The mapped external message to be sent out again
+ * @returns {ExternalMessage} externalMessage - The mapped external message or <code>null</code> if the
+ * message could/should not be mapped
  */
 function mapFromDittoProtocolMsg(
     namespace,
@@ -56,7 +58,8 @@ function mapFromDittoProtocolMsg(
 /**
  * Maps the passed Ditto Protocol message to an external message.
  * @param {DittoProtocolMessage} dittoProtocolMsg - The Ditto Protocol message to map
- * @returns {ExternalMessage} externalMessage - The mapped external message to be sent out again
+ * @returns {ExternalMessage} externalMessage - The mapped external message or <code>null</code> if the
+ * message could/should not be mapped
  */
 function mapFromDittoProtocolMsgWrapper(dittoProtocolMsg) {
 

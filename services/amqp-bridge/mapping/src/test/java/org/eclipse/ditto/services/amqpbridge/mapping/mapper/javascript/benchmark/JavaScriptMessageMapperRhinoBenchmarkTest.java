@@ -93,7 +93,7 @@ public class JavaScriptMessageMapperRhinoBenchmarkTest {
     private Adaptable runScenario(final MapToDittoProtocolScenario scenario) {
         final MessageMapper messageMapper = scenario.getMessageMapper();
         final ExternalMessage externalMessage = scenario.getExternalMessage();
-        return messageMapper.map(externalMessage);
+        return messageMapper.map(externalMessage).get();
     }
 
     private static void assertDefaults(final Adaptable adaptable) {

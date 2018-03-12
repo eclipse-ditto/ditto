@@ -123,10 +123,10 @@ final class JavaScriptMessageMapperRhino implements MessageMapper {
     }
 
     @Override
-    public Adaptable map(final ExternalMessage message) {
+    public Optional<Adaptable> map(final ExternalMessage message) {
 
         try {
-            return (Adaptable) contextFactory.call(cx -> {
+            return Optional.ofNullable((Adaptable) contextFactory.call(cx -> {
                 final NativeObject headersObj = new NativeObject();
                 message.getHeaders().forEach((key, value) -> headersObj.put(key, headersObj, value));
 
@@ -154,13 +154,18 @@ final class JavaScriptMessageMapperRhino implements MessageMapper {
                 final Function mapToDittoProtocolMsgWrapper = (Function) scope.get(INCOMING_FUNCTION_NAME, scope);
                 final Object result = mapToDittoProtocolMsgWrapper.call(cx, scope, scope, new Object[] {externalMessage});
 
+                if (result == null) {
+                    // return null if result is null causing the wrapping Optional to be empty
+                    return null;
+                }
+
                 final String dittoProtocolJsonStr = (String) NativeJSON.stringify(cx, scope, result, null, null);
 
                 return DittoJsonException.wrapJsonRuntimeException(() -> {
                     final JsonObject jsonObject = JsonFactory.readFrom(dittoProtocolJsonStr).asObject();
                     return ProtocolFactory.jsonifiableAdaptableFromJson(jsonObject);
                 });
-            });
+            }));
         } catch (final RhinoException e) {
             throw buildMessageMappingFailedException(e, message.findContentType().orElse(""));
         } catch (final Throwable e) {
@@ -184,18 +189,24 @@ final class JavaScriptMessageMapperRhino implements MessageMapper {
     }
 
     @Override
-    public ExternalMessage map(final Adaptable adaptable) {
+    public Optional<ExternalMessage> map(final Adaptable adaptable) {
         final JsonifiableAdaptable jsonifiableAdaptable =
                 ProtocolFactory.wrapAsJsonifiableAdaptable(adaptable);
 
         try {
-            return (ExternalMessage) contextFactory.call(cx -> {
+            return Optional.ofNullable((ExternalMessage) contextFactory.call(cx -> {
                 final Object dittoProtocolMessage =
                         NativeJSON.parse(cx, scope, jsonifiableAdaptable.toJsonString(), new NullCallable());
 
                 final Function mapFromDittoProtocolMsgWrapper = (Function) scope.get(OUTGOING_FUNCTION_NAME, scope);
                 final NativeObject result =
-                        (NativeObject) mapFromDittoProtocolMsgWrapper.call(cx, scope, scope, new Object[] {dittoProtocolMessage});
+                        (NativeObject) mapFromDittoProtocolMsgWrapper.call(cx, scope, scope,
+                                new Object[]{dittoProtocolMessage});
+
+                if (result == null) {
+                    // return null if result is null causing the wrapping Optional to be empty
+                    return null;
+                }
 
                 final Object contentType = result.get(EXTERNAL_MESSAGE_CONTENT_TYPE);
                 final Object textPayload = result.get(EXTERNAL_MESSAGE_TEXT_PAYLOAD);
@@ -227,7 +238,7 @@ final class JavaScriptMessageMapperRhino implements MessageMapper {
                 }
 
                 return messageBuilder.build();
-            });
+            }));
         } catch (final RhinoException e) {
             throw buildMessageMappingFailedException(e, "");
         } catch (final Throwable e) {

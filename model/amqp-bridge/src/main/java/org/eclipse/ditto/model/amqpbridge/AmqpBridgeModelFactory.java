@@ -16,7 +16,7 @@ import java.util.Map;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 
 /**
  * Factory to create new {@link AmqpConnection} instances.
@@ -34,14 +34,14 @@ public final class AmqpBridgeModelFactory {
      * @param id the connection identifier.
      * @param connectionType the connection type
      * @param uri the connection uri.
-     * @param authorizationSubject the connection authorization subject.
+     * @param authorizationContext the connection authorization context.
      * @return the ImmutableConnection.
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static AmqpConnection newConnection(final String id,
             final ConnectionType connectionType, final String uri,
-            final AuthorizationSubject authorizationSubject) {
-        return ImmutableAmqpConnection.of(id, connectionType, uri, authorizationSubject);
+            final AuthorizationContext authorizationContext) {
+        return ImmutableAmqpConnection.of(id, connectionType, uri, authorizationContext);
     }
 
     /**
@@ -50,14 +50,14 @@ public final class AmqpBridgeModelFactory {
      * @param id the connection identifier.
      * @param connectionType the connection type
      * @param uri the connection uri.
-     * @param authorizationSubject the connection authorization subject.
+     * @param authorizationContext the connection authorization context.
      * @return the AmqpConnectionBuilder.
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static AmqpConnectionBuilder newConnectionBuilder(final String id,
             final ConnectionType connectionType, final String uri,
-            final AuthorizationSubject authorizationSubject) {
-        return ImmutableAmqpConnectionBuilder.of(id, connectionType, uri, authorizationSubject);
+            final AuthorizationContext authorizationContext) {
+        return ImmutableAmqpConnectionBuilder.of(id, connectionType, uri, authorizationContext);
     }
 
     /**

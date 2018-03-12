@@ -11,6 +11,8 @@
  */
 package org.eclipse.ditto.services.amqpbridge.mapping.mapper.test;
 
+import java.util.Optional;
+
 import javax.annotation.Nonnull;
 
 import org.eclipse.ditto.model.amqpbridge.ExternalMessage;
@@ -44,14 +46,14 @@ public class MockMapper implements MessageMapper {
 
     @Override
     @Nonnull
-    public Adaptable map(@Nonnull final ExternalMessage message) {
-        return null;
+    public Optional<Adaptable> map(@Nonnull final ExternalMessage message) {
+        return Optional.empty();
     }
 
     @Override
     @Nonnull
-    public ExternalMessage map(@Nonnull final Adaptable adaptable) {
-        return null;
+    public Optional<ExternalMessage> map(@Nonnull final Adaptable adaptable) {
+        return Optional.empty();
     }
 
 

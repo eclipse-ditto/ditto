@@ -26,6 +26,7 @@ import java.util.regex.Pattern;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.junit.Test;
 
@@ -44,8 +45,8 @@ public final class ImmutableAmqpConnectionTest {
 
     private static final String URI = "amqps://foo:bar@example.com:443";
 
-    private static final AuthorizationSubject AUTHORIZATION_SUBJECT =
-            AuthorizationSubject.newInstance("mySolutionId:mySubject");
+    private static final AuthorizationContext AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(
+            AuthorizationSubject.newInstance("mySolutionId:mySubject"));
 
     private static final Set<String> SOURCES = new HashSet<>(Arrays.asList("amqp/source1", "amqp/source2"));
     private static final String TARGET = "eventQueue";
@@ -53,7 +54,10 @@ public final class ImmutableAmqpConnectionTest {
     private static final JsonObject KNOWN_JSON = JsonObject.newBuilder()
             .set(AmqpConnection.JsonFields.ID, ID)
             .set(AmqpConnection.JsonFields.URI, URI)
-            .set(AmqpConnection.JsonFields.AUTHORIZATION_SUBJECT, AUTHORIZATION_SUBJECT.getId())
+            .set(AmqpConnection.JsonFields.AUTHORIZATION_CONTEXT, AUTHORIZATION_CONTEXT.stream()
+                    .map(AuthorizationSubject::getId)
+                    .map(JsonFactory::newValue)
+                    .collect(JsonCollectors.valuesToArray()))
             .set(AmqpConnection.JsonFields.SOURCES, SOURCES.stream()
                     .map(JsonFactory::newValue)
                     .collect(JsonCollectors.valuesToArray()))
@@ -75,13 +79,13 @@ public final class ImmutableAmqpConnectionTest {
     @Test
     public void assertImmutability() {
         assertInstancesOf(ImmutableAmqpConnection.class, areImmutable(),
-                provided(AuthorizationSubject.class).isAlsoImmutable());
+                provided(AuthorizationContext.class).isAlsoImmutable());
     }
 
     @Test
     public void createInstanceWithNullId() {
         assertThatExceptionOfType(NullPointerException.class)
-                .isThrownBy(() -> ImmutableAmqpConnection.of(null, TYPE, URI, AUTHORIZATION_SUBJECT))
+                .isThrownBy(() -> ImmutableAmqpConnection.of(null, TYPE, URI, AUTHORIZATION_CONTEXT))
                 .withMessage("The %s must not be null!", "ID")
                 .withNoCause();
     }
@@ -89,7 +93,7 @@ public final class ImmutableAmqpConnectionTest {
     @Test
     public void createInstanceWithNullUri() {
         assertThatExceptionOfType(NullPointerException.class)
-                .isThrownBy(() -> ImmutableAmqpConnection.of(ID, TYPE, null, AUTHORIZATION_SUBJECT))
+                .isThrownBy(() -> ImmutableAmqpConnection.of(ID, TYPE, null, AUTHORIZATION_CONTEXT))
                 .withMessage("The %s must not be null!", "URI")
                 .withNoCause();
     }
@@ -98,7 +102,7 @@ public final class ImmutableAmqpConnectionTest {
     public void createInstanceWithNullAuthorizationSubject() {
         assertThatExceptionOfType(NullPointerException.class)
                 .isThrownBy(() -> ImmutableAmqpConnection.of(ID, TYPE, URI, null))
-                .withMessage("The %s must not be null!", "Authorization Subject")
+                .withMessage("The %s must not be null!", "Authorization Context")
                 .withNoCause();
     }
 
@@ -106,7 +110,7 @@ public final class ImmutableAmqpConnectionTest {
     public void createInstanceWithNullSources() {
         assertThatExceptionOfType(NullPointerException.class)
                 .isThrownBy(
-                        () -> ImmutableAmqpConnectionBuilder.of(ID, TYPE, URI, AUTHORIZATION_SUBJECT)
+                        () -> ImmutableAmqpConnectionBuilder.of(ID, TYPE, URI, AUTHORIZATION_CONTEXT)
                                 .sources((Set) null))
                 .withMessage("The %s must not be null!", "Sources")
                 .withNoCause();
@@ -116,7 +120,7 @@ public final class ImmutableAmqpConnectionTest {
     public void createInstanceWithNullEventTarget() {
         assertThatExceptionOfType(NullPointerException.class)
                 .isThrownBy(
-                        () -> ImmutableAmqpConnectionBuilder.of(ID, TYPE, URI, AUTHORIZATION_SUBJECT).eventTarget(null))
+                        () -> ImmutableAmqpConnectionBuilder.of(ID, TYPE, URI, AUTHORIZATION_CONTEXT).eventTarget(null))
                 .withMessage("The %s must not be null!", "eventTarget")
                 .withNoCause();
     }
@@ -125,7 +129,7 @@ public final class ImmutableAmqpConnectionTest {
     public void createInstanceWithNullReplyTarget() {
         assertThatExceptionOfType(NullPointerException.class)
                 .isThrownBy(
-                        () -> ImmutableAmqpConnectionBuilder.of(ID, TYPE, URI, AUTHORIZATION_SUBJECT).replyTarget(null))
+                        () -> ImmutableAmqpConnectionBuilder.of(ID, TYPE, URI, AUTHORIZATION_CONTEXT).replyTarget(null))
                 .withMessage("The %s must not be null!", "replyTarget")
                 .withNoCause();
     }
@@ -133,7 +137,7 @@ public final class ImmutableAmqpConnectionTest {
     @Test
     public void fromJsonReturnsExpected() {
         final AmqpConnection expected =
-                AmqpBridgeModelFactory.newConnectionBuilder(ID, TYPE, URI, AUTHORIZATION_SUBJECT)
+                AmqpBridgeModelFactory.newConnectionBuilder(ID, TYPE, URI, AUTHORIZATION_CONTEXT)
                         .sources(SOURCES)
                         .eventTarget(TARGET)
                         .build();
@@ -146,7 +150,7 @@ public final class ImmutableAmqpConnectionTest {
     @Test
     public void toJsonReturnsExpected() {
         final JsonObject actual =
-                AmqpBridgeModelFactory.newConnectionBuilder(ID, TYPE, URI, AUTHORIZATION_SUBJECT)
+                AmqpBridgeModelFactory.newConnectionBuilder(ID, TYPE, URI, AUTHORIZATION_CONTEXT)
                         .sources(SOURCES)
                         .eventTarget(TARGET)
                         .build()

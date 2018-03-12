@@ -22,7 +22,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
@@ -48,11 +48,11 @@ public interface AmqpConnection extends Jsonifiable.WithFieldSelectorAndPredicat
     ConnectionType getConnectionType();
 
     /**
-     * Returns the Authorization Subject of this {@code Connection}.
+     * Returns the Authorization Context of this {@code Connection}.
      *
-     * @return the Authorization Subject.
+     * @return the Authorization Context.
      */
-    AuthorizationSubject getAuthorizationSubject();
+    AuthorizationContext getAuthorizationContext();
 
     /**
      * Returns an optional of the sources of this {@code Connection}.
@@ -198,10 +198,10 @@ public interface AmqpConnection extends Jsonifiable.WithFieldSelectorAndPredicat
                         JsonSchemaVersion.V_2);
 
         /**
-         * JSON field containing the {@code AmqpConnection} authorization subject.
+         * JSON field containing the {@code AmqpConnection} authorization context (list of authorization subjects).
          */
-        public static final JsonFieldDefinition<String> AUTHORIZATION_SUBJECT =
-                JsonFactory.newStringFieldDefinition("authorizationSubject", FieldType.REGULAR, JsonSchemaVersion.V_1,
+        public static final JsonFieldDefinition<JsonArray> AUTHORIZATION_CONTEXT =
+                JsonFactory.newJsonArrayFieldDefinition("authorizationContext", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
         /**

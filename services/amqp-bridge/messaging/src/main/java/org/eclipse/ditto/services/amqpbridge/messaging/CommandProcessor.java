@@ -37,9 +37,7 @@ import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMapper;
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMapperRegistry;
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMappers;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.signals.commands.base.Command;
-import org.eclipse.ditto.signals.commands.base.CommandResponse;
-import org.eclipse.ditto.signals.events.base.Event;
+import org.eclipse.ditto.signals.base.Signal;
 
 import akka.actor.DynamicAccess;
 import akka.event.DiagnosticLoggingAdapter;
@@ -108,13 +106,13 @@ public final class CommandProcessor {
     }
 
     /**
-     * Processes a message to a command
+     * Processes an ExternalMessage to a Signal
      *
      * @param message the message
-     * @return the command
+     * @return the signal
      * @throws RuntimeException if something went wrong
      */
-    public Command process(final ExternalMessage message) {
+    public Optional<Signal<?>> process(final ExternalMessage message) {
 
         final String correlationId = DittoHeaders.of(message.getHeaders()).getCorrelationId()
                 .orElse("no-correlation-id");
@@ -124,56 +122,44 @@ public final class CommandProcessor {
     }
 
     /**
-     * Processes a response to a message
+     * Processes a Signal to an ExternalMessage
      *
-     * @param response the response
+     * @param signal the signal
      * @return the message
      * @throws RuntimeException if something went wrong
      */
-    public ExternalMessage process(final CommandResponse response) {
+    public Optional<ExternalMessage> process(final Signal<?> signal) {
 
-        final String correlationId = response.getDittoHeaders().getCorrelationId().orElse("no-correlation-id");
+        final String correlationId = signal.getDittoHeaders().getCorrelationId().orElse("no-correlation-id");
         return doApplyTraced(
                 () -> createProcessingContext(CONTEXT_NAME, correlationId),
-                ctx -> convertToExternalMessage(() -> PROTOCOL_ADAPTER.toAdaptable(response), ctx));
+                ctx -> convertToExternalMessage(() -> PROTOCOL_ADAPTER.toAdaptable(signal), ctx));
     }
 
-    /**
-     * Processes an event to a message
-     *
-     * @param event the event
-     * @return the message
-     * @throws RuntimeException if something went wrong
-     */
-    public ExternalMessage process(final Event event) {
-
-        final String correlationId = event.getDittoHeaders().getCorrelationId().orElse("no-correlation-id");
-        return doApplyTraced(
-                () -> createProcessingContext(CONTEXT_NAME, correlationId),
-                ctx -> convertToExternalMessage(() -> PROTOCOL_ADAPTER.toAdaptable(event), ctx));
-    }
-
-    private Command<?> convertMessage(final ExternalMessage message, final TraceContext ctx) {
+    private Optional<Signal<?>> convertMessage(final ExternalMessage message, final TraceContext ctx) {
         checkNotNull(message);
         checkNotNull(ctx);
 
         try {
-            final Adaptable adaptable = doApplyTracedSegment(
+            final Optional<Adaptable> adaptableOpt = doApplyTracedSegment(
                     () -> createSegment(ctx, MAPPING_SEGMENT_NAME, false),
                     () -> getMapper(message).map(message)
             );
 
-            doUpdateCorrelationId(adaptable);
+            return adaptableOpt.map(adaptable -> {
+                doUpdateCorrelationId(adaptable);
 
-            return doApplyTracedSegment(
-                    () -> createSegment(ctx, PROTOCOL_SEGMENT_NAME, false),
-                    () -> {
-                        final Command command = (Command) PROTOCOL_ADAPTER.fromAdaptable(adaptable);
-                        final DittoHeadersBuilder dittoHeadersBuilder = DittoHeaders.newBuilder(message.getHeaders());
-                        dittoHeadersBuilder.putHeaders(command.getDittoHeaders());
-                        return command.setDittoHeaders(dittoHeadersBuilder.build());
-                    }
-            );
+                return doApplyTracedSegment(
+                        () -> createSegment(ctx, PROTOCOL_SEGMENT_NAME, false),
+                        () -> {
+                            final Signal<?> signal = PROTOCOL_ADAPTER.fromAdaptable(adaptable);
+                            final DittoHeadersBuilder dittoHeadersBuilder =
+                                    DittoHeaders.newBuilder(message.getHeaders());
+                            dittoHeadersBuilder.putHeaders(signal.getDittoHeaders());
+                            return signal.setDittoHeaders(dittoHeadersBuilder.build());
+                        }
+                );
+            });
         } catch (final DittoRuntimeException e) {
             throw e;
         } catch (final Exception e) {
@@ -185,7 +171,7 @@ public final class CommandProcessor {
         }
     }
 
-    private ExternalMessage convertToExternalMessage(final Supplier<Adaptable> adaptableSupplier,
+    private Optional<ExternalMessage> convertToExternalMessage(final Supplier<Adaptable> adaptableSupplier,
             final TraceContext ctx) {
         checkNotNull(adaptableSupplier);
         checkNotNull(ctx);

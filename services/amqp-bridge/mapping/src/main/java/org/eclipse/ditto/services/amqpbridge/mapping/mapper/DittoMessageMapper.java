@@ -60,28 +60,29 @@ public final class DittoMessageMapper implements MessageMapper {
 
 
     @Override
-    public Adaptable map(final ExternalMessage message) {
+    public Optional<Adaptable> map(final ExternalMessage message) {
         final String payload = extractPayloadAsString(message);
         final JsonifiableAdaptable jsonifiableAdaptable = DittoJsonException.wrapJsonRuntimeException(() ->
                 ProtocolFactory.jsonifiableAdaptableFromJson(JsonFactory.newObject(payload))
         );
 
         final DittoHeaders mergedHeaders = mergeHeaders(message, jsonifiableAdaptable);
-        return ProtocolFactory.newAdaptableBuilder(jsonifiableAdaptable).withHeaders(mergedHeaders).build();
+        return Optional.of(
+                ProtocolFactory.newAdaptableBuilder(jsonifiableAdaptable).withHeaders(mergedHeaders).build());
     }
 
 
     @Override
-    public ExternalMessage map(final Adaptable adaptable) {
+    public Optional<ExternalMessage> map(final Adaptable adaptable) {
         final ExternalMessage.MessageType messageType = MessageMappers.determineMessageType(adaptable);
         final Map<String, String> headers = new LinkedHashMap<>(adaptable.getHeaders().orElse(DittoHeaders.empty()));
         headers.put(ExternalMessage.CONTENT_TYPE_HEADER, getContentType());
 
         final String jsonString = ProtocolFactory.wrapAsJsonifiableAdaptable(adaptable).toJsonString();
 
-        return AmqpBridgeModelFactory.newExternalMessageBuilder(headers, messageType)
+        return Optional.of(AmqpBridgeModelFactory.newExternalMessageBuilder(headers, messageType)
                 .withText(jsonString)
-                .build();
+                .build());
     }
 
     private static String extractPayloadAsString(final ExternalMessage message) {

@@ -81,38 +81,44 @@ final class ContentTypeRestrictedMessageMapper implements MessageMapper {
     }
 
     @Override
-    public Adaptable map(final ExternalMessage message) {
+    public Optional<Adaptable> map(final ExternalMessage message) {
+
         final String actualContentType = findContentType(message)
                 .orElseThrow(() -> MessageMappingFailedException.newBuilder("").build());
 
         requireMatchingContentType(actualContentType);
-        final Adaptable mapped = delegate.map(message);
+        final Optional<Adaptable> mappedOpt = delegate.map(message);
 
-        final DittoHeadersBuilder headersBuilder = DittoHeaders.newBuilder(message.getHeaders());
+        return mappedOpt.map(mapped -> {
+            final DittoHeadersBuilder headersBuilder = DittoHeaders.newBuilder(message.getHeaders());
 
-        final Optional<DittoHeaders> headersOpt = mapped.getHeaders();
-        headersOpt.ifPresent(headersBuilder::putHeaders); // overwrite with mapped headers (if any)
+            final Optional<DittoHeaders> headersOpt = mapped.getHeaders();
+            headersOpt.ifPresent(headersBuilder::putHeaders); // overwrite with mapped headers (if any)
 
-        return ProtocolFactory.newAdaptableBuilder(mapped)
-                .withHeaders(headersBuilder.build())
-                .build();
+            return ProtocolFactory.newAdaptableBuilder(mapped)
+                    .withHeaders(headersBuilder.build())
+                    .build();
+        });
     }
 
     @Override
-    public ExternalMessage map(final Adaptable adaptable) {
+    public Optional<ExternalMessage> map(final Adaptable adaptable) {
         final String actualContentType = findContentType(adaptable)
                 .orElseThrow(() -> MessageMappingFailedException.newBuilder("").build());
 
         requireMatchingContentType(actualContentType);
-        final ExternalMessage mapped = delegate.map(adaptable);
+        final Optional<ExternalMessage> mappedOpt = delegate.map(adaptable);
 
-        final ExternalMessageBuilder messageBuilder = AmqpBridgeModelFactory.newExternalMessageBuilder(mapped);
-        adaptable.getHeaders().ifPresent(adaptableHeaders -> {
-            messageBuilder.withAdditionalHeaders(adaptableHeaders);
-            messageBuilder.withAdditionalHeaders(mapped.getHeaders());
+        return mappedOpt.map(mapped -> {
+
+            final ExternalMessageBuilder messageBuilder = AmqpBridgeModelFactory.newExternalMessageBuilder(mapped);
+            adaptable.getHeaders().ifPresent(adaptableHeaders -> {
+                messageBuilder.withAdditionalHeaders(adaptableHeaders);
+                messageBuilder.withAdditionalHeaders(mapped.getHeaders());
+            });
+
+            return messageBuilder.build();
         });
-
-        return messageBuilder.build();
     }
 
 

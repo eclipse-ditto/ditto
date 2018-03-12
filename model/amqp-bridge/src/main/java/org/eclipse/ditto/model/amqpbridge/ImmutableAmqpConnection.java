@@ -13,6 +13,7 @@ package org.eclipse.ditto.model.amqpbridge;
 
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -24,13 +25,17 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
@@ -44,7 +49,7 @@ final class ImmutableAmqpConnection implements AmqpConnection {
 
     private final String id;
     private final ConnectionType connectionType;
-    private final AuthorizationSubject authorizationSubject;
+    private final AuthorizationContext authorizationContext;
     private final String uri;
     private final String protocol;
     private final String username;
@@ -66,7 +71,7 @@ final class ImmutableAmqpConnection implements AmqpConnection {
         this.id = builder.id;
         this.connectionType = builder.connectionType;
         this.uri = builder.uri;
-        this.authorizationSubject = builder.authorizationSubject;
+        this.authorizationContext = builder.authorizationContext;
         if (builder.sources != null) {
             this.sources = Collections.unmodifiableSet(new HashSet<>(builder.sources));
         } else {
@@ -100,15 +105,15 @@ final class ImmutableAmqpConnection implements AmqpConnection {
      * @param id the connection identifier.
      * @param connectionType the connection type
      * @param uri the connection uri.
-     * @param authorizationSubject the connection authorization subject.
+     * @param authorizationContext the connection authorization context.
      * @return the ImmutableConnection.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws ConnectionUriInvalidException if {@code uri} does not conform to {@link AmqpConnection.UriRegex#REGEX}.
      */
     public static AmqpConnection of(final String id,
             final ConnectionType connectionType, final String uri,
-            final AuthorizationSubject authorizationSubject) {
-        return ImmutableAmqpConnectionBuilder.of(id, connectionType, uri, authorizationSubject)
+            final AuthorizationContext authorizationContext) {
+        return ImmutableAmqpConnectionBuilder.of(id, connectionType, uri, authorizationContext)
                 .build();
     }
 
@@ -125,8 +130,21 @@ final class ImmutableAmqpConnection implements AmqpConnection {
         final ConnectionType readConnectionType = ConnectionType.forName(readId.substring(0, readId.indexOf(':')))
                 .orElseThrow(() -> JsonParseException.newBuilder().message("Invalid connection type.").build());
         final String readUri = jsonObject.getValueOrThrow(JsonFields.URI);
-        final AuthorizationSubject readAuthorizationSubject =
-                AuthorizationSubject.newInstance(jsonObject.getValueOrThrow(JsonFields.AUTHORIZATION_SUBJECT));
+        final JsonArray authContext = jsonObject.getValue(JsonFields.AUTHORIZATION_CONTEXT)
+                .orElseGet(() ->
+                    jsonObject.getValue("authorizationSubject") // as a fallback use the already persisted "authorizationSubject" field
+                            .filter(JsonValue::isString)
+                            .map(JsonValue::asString)
+                            .map(str -> JsonArray.newBuilder().add(str).build())
+                            .orElseThrow(() -> new JsonMissingFieldException(JsonFields.AUTHORIZATION_CONTEXT))
+                );
+        final List<AuthorizationSubject> authorizationSubjects = authContext.stream()
+                .filter(JsonValue::isString)
+                .map(JsonValue::asString)
+                .map(AuthorizationSubject::newInstance)
+                .collect(Collectors.toList());
+        final AuthorizationContext readAuthorizationContext =
+                AuthorizationModelFactory.newAuthContext(authorizationSubjects);
         final Optional<Set<String>> readSources = jsonObject.getValue(JsonFields.SOURCES).map(array -> array.stream()
                 .map(JsonValue::asString)
                 .collect(Collectors.toSet()));
@@ -139,7 +157,7 @@ final class ImmutableAmqpConnection implements AmqpConnection {
         final Optional<Integer> readProcessorPoolSize = jsonObject.getValue(JsonFields.PROCESSOR_POOL_SIZE);
 
         final AmqpConnectionBuilder builder =
-                ImmutableAmqpConnectionBuilder.of(readId, readConnectionType, readUri, readAuthorizationSubject);
+                ImmutableAmqpConnectionBuilder.of(readId, readConnectionType, readUri, readAuthorizationContext);
         readSources.ifPresent(builder::sources);
         readEventTarget.ifPresent(builder::eventTarget);
         readReplyTarget.ifPresent(builder::replyTarget);
@@ -162,8 +180,8 @@ final class ImmutableAmqpConnection implements AmqpConnection {
     }
 
     @Override
-    public AuthorizationSubject getAuthorizationSubject() {
-        return authorizationSubject;
+    public AuthorizationContext getAuthorizationContext() {
+        return authorizationContext;
     }
 
     @Override
@@ -249,7 +267,10 @@ final class ImmutableAmqpConnection implements AmqpConnection {
         jsonObjectBuilder.set(JsonFields.SCHEMA_VERSION, schemaVersion.toInt(), predicate);
         jsonObjectBuilder.set(JsonFields.ID, id, predicate);
         jsonObjectBuilder.set(JsonFields.URI, uri, predicate);
-        jsonObjectBuilder.set(JsonFields.AUTHORIZATION_SUBJECT, authorizationSubject.getId(), predicate);
+        jsonObjectBuilder.set(JsonFields.AUTHORIZATION_CONTEXT, authorizationContext.stream()
+                .map(AuthorizationSubject::getId)
+                .map(JsonFactory::newValue)
+                .collect(JsonCollectors.valuesToArray()), predicate);
         if (sources != null) {
             jsonObjectBuilder.set(JsonFields.SOURCES, sources.stream()
                     .map(JsonFactory::newValue)
@@ -279,7 +300,7 @@ final class ImmutableAmqpConnection implements AmqpConnection {
                 port == that.port &&
                 Objects.equals(id, that.id) &&
                 Objects.equals(connectionType, that.connectionType) &&
-                Objects.equals(authorizationSubject, that.authorizationSubject) &&
+                Objects.equals(authorizationContext, that.authorizationContext) &&
                 Objects.equals(sources, that.sources) &&
                 Objects.equals(eventTarget, that.eventTarget) &&
                 Objects.equals(replyTarget, that.replyTarget) &&
@@ -297,7 +318,7 @@ final class ImmutableAmqpConnection implements AmqpConnection {
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, connectionType, authorizationSubject, sources, eventTarget, replyTarget,
+        return Objects.hash(id, connectionType, authorizationContext, sources, eventTarget, replyTarget,
                 failoverEnabled, uri, protocol, username, password, hostname, path, port, validateCertificate, throttle,
                 consumerCount, processorPoolSize);
     }
@@ -307,7 +328,7 @@ final class ImmutableAmqpConnection implements AmqpConnection {
         return getClass().getSimpleName() + " [" +
                 "id=" + id +
                 ", type=" + connectionType +
-                ", authorizationSubject=" + authorizationSubject +
+                ", authorizationContext=" + authorizationContext +
                 ", sources=" + sources +
                 ", eventTarget=" + eventTarget +
                 ", replyTarget=" + replyTarget +
