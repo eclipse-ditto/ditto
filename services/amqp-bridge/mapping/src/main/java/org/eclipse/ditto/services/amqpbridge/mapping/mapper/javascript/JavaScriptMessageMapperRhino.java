@@ -74,6 +74,9 @@ final class JavaScriptMessageMapperRhino implements MessageMapper {
     private static final String EXTERNAL_MESSAGE_TEXT_PAYLOAD = "textPayload";
     private static final String EXTERNAL_MESSAGE_BYTE_PAYLOAD = "bytePayload";
 
+    private static final String INCOMING_FUNCTION_NAME = "mapToDittoProtocolMsgWrapper";
+    private static final String OUTGOING_FUNCTION_NAME = "mapFromDittoProtocolMsgWrapper";
+
     @Nullable
     private ContextFactory contextFactory;
     @Nullable
@@ -148,7 +151,7 @@ final class JavaScriptMessageMapperRhino implements MessageMapper {
                 externalMessage.put(EXTERNAL_MESSAGE_BYTE_PAYLOAD, externalMessage, bytePayload);
                 externalMessage.put(EXTERNAL_MESSAGE_CONTENT_TYPE, externalMessage, contentType);
 
-                final Function mapToDittoProtocolMsgWrapper = (Function) scope.get("mapToDittoProtocolMsgWrapper", scope);
+                final Function mapToDittoProtocolMsgWrapper = (Function) scope.get(INCOMING_FUNCTION_NAME, scope);
                 final Object result = mapToDittoProtocolMsgWrapper.call(cx, scope, scope, new Object[] {externalMessage});
 
                 final String dittoProtocolJsonStr = (String) NativeJSON.stringify(cx, scope, result, null, null);
@@ -190,7 +193,7 @@ final class JavaScriptMessageMapperRhino implements MessageMapper {
                 final Object dittoProtocolMessage =
                         NativeJSON.parse(cx, scope, jsonifiableAdaptable.toJsonString(), new NullCallable());
 
-                final Function mapFromDittoProtocolMsgWrapper = (Function) scope.get("mapFromDittoProtocolMsgWrapper", scope);
+                final Function mapFromDittoProtocolMsgWrapper = (Function) scope.get(OUTGOING_FUNCTION_NAME, scope);
                 final NativeObject result =
                         (NativeObject) mapFromDittoProtocolMsgWrapper.call(cx, scope, scope, new Object[] {dittoProtocolMessage});
 
@@ -311,13 +314,11 @@ final class JavaScriptMessageMapperRhino implements MessageMapper {
         return Optional.empty();
     }
 
-    /**
-     *
-     */
     private static class NullCallable implements Callable {
 
         @Override
-        public Object call(Context context, Scriptable scope, Scriptable holdable, Object[] objects) {
+        public Object call(final Context context, final Scriptable scope, final Scriptable holdable,
+                final Object[] objects) {
             return objects[1];
         }
     }
