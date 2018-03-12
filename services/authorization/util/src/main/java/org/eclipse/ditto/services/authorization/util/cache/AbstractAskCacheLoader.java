@@ -11,14 +11,24 @@
  */
 package org.eclipse.ditto.services.authorization.util.cache;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+
 import java.time.Duration;
-import java.util.Optional;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
+import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonKey;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.policies.ResourceKey;
+import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.authorization.util.cache.entry.Entry;
+import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
@@ -35,38 +45,37 @@ import akka.pattern.PatternsCS;
 @AllValuesAreNonnullByDefault
 abstract class AbstractAskCacheLoader<V> implements AsyncCacheLoader<ResourceKey, Entry<V>> {
 
-    /**
-     * How long to wait for the entity region's answer.
-     *
-     * @return the timeout.
-     */
-    protected abstract Duration getAskTimeout();
+    private final long askTimeoutMillis;
+    private final Map<String, ActorRef> entityRegionMap;
+    private final Map<String, Function<String, Object>> commandMap;
+    private final Map<String, Function<Object, Entry<V>>> transformerMap;
+
+    protected AbstractAskCacheLoader(final Duration askTimeout, final Map<String, ActorRef> entityRegionMap) {
+        this.askTimeoutMillis = askTimeout.toMillis();
+        this.entityRegionMap = entityRegionMap;
+        this.commandMap = Collections.unmodifiableMap(buildCommandMap());
+        this.transformerMap = Collections.unmodifiableMap(buildTransformerMap());
+    }
 
     /**
-     * Get the proxy actor to the shard region of entities based on resource type.
+     * Map resource type to the command used to retrieve the ID of the authorization data for the entity.
+     * Subclasses may override this method to handle additional resource types a la "cake pattern".
      *
-     * @param resourceType resource type of said entities.
-     * @return proxy actor to the shard region.
+     * @return A mutable map from resource types to authorization retrieval commands.
      */
-    protected abstract ActorRef getEntityRegion(final String resourceType);
+    protected HashMap<String, Function<String, Object>> buildCommandMap() {
+        return new HashMap<>();
+    }
 
     /**
-     * Get the command to ask the entity region with.
+     * Map resource type to the transformation applied to responses. Subclasses may override this method to handle
+     * additional resource types a la "cake pattern".
      *
-     * @param resourceType resource type of said entities.
-     * @param id id of the entity to ask about.
-     * @return the command to send to the entity region.
+     * @return A mutable map containing response transformations.
      */
-    protected abstract Object getCommand(final String resourceType, final String id);
-
-    /**
-     * Construct a cache entry from a response containing all necessary information.
-     *
-     * @param resourceType resource type of the response.
-     * @param response response with all necessary information.
-     * @return the cache entry.
-     */
-    protected abstract Entry<V> transformResponse(final String resourceType, final Object response);
+    protected HashMap<String, Function<Object, Entry<V>>> buildTransformerMap() {
+        return new HashMap<>();
+    }
 
     @Override
     public final CompletableFuture<Entry<V>> asyncLoad(final ResourceKey key, final Executor executor) {
@@ -76,14 +85,43 @@ abstract class AbstractAskCacheLoader<V> implements AsyncCacheLoader<ResourceKey
             return getCommand(resourceType, entityId);
         }).thenCompose(command -> {
             final ActorRef entityRegion = getEntityRegion(key.getResourceType());
-            return PatternsCS.ask(entityRegion, command, getAskTimeout().toMillis())
+            return PatternsCS.ask(entityRegion, command, askTimeoutMillis)
                     .thenApply(response -> transformResponse(resourceType, response))
                     .toCompletableFuture();
         });
+    }
+
+    static SudoRetrieveThing sudoRetrieveThing(final String thingId) {
+        final JsonFieldSelector jsonFieldSelector = JsonFieldSelector.newInstance(
+                Thing.JsonFields.ID.getPointer(),
+                Thing.JsonFields.REVISION.getPointer(),
+                Thing.JsonFields.ACL.getPointer(),
+                Thing.JsonFields.POLICY_ID.getPointer());
+        return SudoRetrieveThing.withOriginalSchemaVersion(thingId, jsonFieldSelector, DittoHeaders.empty());
     }
 
     private static String getEntityId(final ResourceKey key) {
         return key.getResourcePath().getRoot().map(JsonKey::toString).orElse("");
     }
 
+    private ActorRef getEntityRegion(final String resourceType) {
+        return checkNotNull(entityRegionMap.get(resourceType), resourceType);
+    }
+
+    private Object getCommand(final String resourceType, final String id) {
+        return checkNotNull(commandMap.get(resourceType), resourceType).apply(id);
+    }
+
+    private Entry<V> transformResponse(final String resourceType, final Object response) {
+        return checkNotNull(transformerMap.get(resourceType), resourceType).apply(response);
+    }
+
+
+    static Supplier<RuntimeException> badThingResponse(final String message) {
+        return () -> new IllegalStateException("Bad SudoRetrieveThingResponse: " + message);
+    }
+
+    static Supplier<RuntimeException> badPolicyResponse(final String message) {
+        return () -> new IllegalStateException("Bad SudoRetrievePolicyResponse: " + message);
+    }
 }

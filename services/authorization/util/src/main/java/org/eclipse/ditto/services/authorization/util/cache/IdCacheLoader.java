@@ -11,25 +11,18 @@
  */
 package org.eclipse.ditto.services.authorization.util.cache;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
-
 import java.time.Duration;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonFieldSelector;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingRevision;
 import org.eclipse.ditto.services.authorization.util.cache.entry.Entry;
-import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
@@ -45,89 +38,42 @@ import akka.actor.ActorRef;
 @AllParametersAndReturnValuesAreNonnullByDefault
 public class IdCacheLoader extends AbstractAskCacheLoader<ResourceKey> {
 
-    private final Duration askTimeout;
-    private final Map<String, ActorRef> entityRegionMap;
-    private final Map<String, Function<String, Object>> commandMap;
-    private final Map<String, Function<Object, Entry<ResourceKey>>> transformerMap;
     private final AuthorizationCache authorizationCache;
 
     IdCacheLoader(final Duration askTimeout, final Map<String, ActorRef> entityRegionMap,
             final AuthorizationCache authorizationCache) {
+        super(askTimeout, entityRegionMap);
         this.authorizationCache = authorizationCache;
-
-        this.askTimeout = askTimeout;
-        this.entityRegionMap = entityRegionMap;
-        this.commandMap = Collections.unmodifiableMap(buildCommandMap());
-        this.transformerMap = Collections.unmodifiableMap(buildTransformerMap());
     }
 
     @Override
-    protected Duration getAskTimeout() {
-        return askTimeout;
-    }
-
-    @Override
-    protected ActorRef getEntityRegion(final String resourceType) {
-        return checkNotNull(entityRegionMap.get(resourceType), resourceType);
-    }
-
-    @Override
-    protected Object getCommand(final String resourceType, final String id) {
-        return checkNotNull(commandMap.get(resourceType), resourceType).apply(id);
-    }
-
-    @Override
-    protected Entry<ResourceKey> transformResponse(final String resourceType, final Object response) {
-        return checkNotNull(transformerMap.get(resourceType), resourceType).apply(response);
-    }
-
-    /**
-     * Map resource type to the command used to retrieve the ID of the authorization data for the entity.
-     * Subclasses may override this method to handle additional resource types a la "cake pattern".
-     *
-     * @return A mutable map from resource types to authorization retrieval commands.
-     */
     protected HashMap<String, Function<String, Object>> buildCommandMap() {
-        final HashMap<String, Function<String, Object>> hashMap = new HashMap<>();
-        hashMap.put(ThingCommand.RESOURCE_TYPE, IdCacheLoader::sudoRetrieveThing);
+        final HashMap<String, Function<String, Object>> hashMap = super.buildCommandMap();
+        hashMap.put(ThingCommand.RESOURCE_TYPE, AbstractAskCacheLoader::sudoRetrieveThing);
         return hashMap;
     }
 
-    /**
-     * Map resource type to the transformation applied to responses. Subclasses may override this method to handle
-     * additional resource types a la "cake pattern".
-     *
-     * @return A mutable map containing response transformations.
-     */
+    @Override
     protected HashMap<String, Function<Object, Entry<ResourceKey>>> buildTransformerMap() {
-        final HashMap<String, Function<Object, Entry<ResourceKey>>> hashMap = new HashMap<>();
+        final HashMap<String, Function<Object, Entry<ResourceKey>>> hashMap = super.buildTransformerMap();
         hashMap.put(ThingCommand.RESOURCE_TYPE, this::handleSudoRetrieveThingResponse);
         return hashMap;
-    }
-
-    private static SudoRetrieveThing sudoRetrieveThing(final String thingId) {
-        final JsonFieldSelector jsonFieldSelector = JsonFieldSelector.newInstance(
-                Thing.JsonFields.ID.getPointer(),
-                Thing.JsonFields.REVISION.getPointer(),
-                Thing.JsonFields.ACL.getPointer(),
-                Thing.JsonFields.POLICY_ID.getPointer());
-        return SudoRetrieveThing.withOriginalSchemaVersion(thingId, jsonFieldSelector, DittoHeaders.empty());
     }
 
     private Entry<ResourceKey> handleSudoRetrieveThingResponse(final Object response) {
         if (response instanceof SudoRetrieveThingResponse) {
             final SudoRetrieveThingResponse sudoRetrieveThingResponse = (SudoRetrieveThingResponse) response;
             final Thing thing = sudoRetrieveThingResponse.getThing();
-            final String thingId = thing.getId().orElseThrow(badResponse("no ThingId"));
+            final String thingId = thing.getId().orElseThrow(badThingResponse("no ThingId"));
             final long revision = thing.getRevision().map(ThingRevision::toLong)
-                    .orElseThrow(badResponse("no revision"));
+                    .orElseThrow(badThingResponse("no revision"));
             if (thing.getAccessControlList().isPresent()) {
                 final ResourceKey resourceKey = ResourceKey.newInstance(ThingCommand.RESOURCE_TYPE, thingId);
                 final AccessControlList acl = thing.getAccessControlList().get();
                 authorizationCache.updateAcl(resourceKey, revision, acl);
                 return Entry.of(revision, resourceKey);
             } else {
-                final String policyId = thing.getPolicyId().orElseThrow(badResponse("no PolicyId or ACL"));
+                final String policyId = thing.getPolicyId().orElseThrow(badThingResponse("no PolicyId or ACL"));
                 final ResourceKey resourceKey = ResourceKey.newInstance(PolicyCommand.RESOURCE_TYPE, policyId);
                 return Entry.of(revision, resourceKey);
             }
@@ -136,9 +82,5 @@ public class IdCacheLoader extends AbstractAskCacheLoader<ResourceKey> {
         } else {
             throw new IllegalStateException("expect SudoRetrieveThingResponse, got: " + response);
         }
-    }
-
-    private static Supplier<RuntimeException> badResponse(final String message) {
-        return () -> new IllegalStateException("Bad SudoRetrieveThingResponse: " + message);
     }
 }

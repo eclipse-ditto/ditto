@@ -50,7 +50,13 @@ public final class AclEnforcer implements Enforcer {
         this.acl = acl;
     }
 
-    public AclEnforcer of(final AccessControlList acl) {
+    /**
+     * Construct an ACL enforcer.
+     *
+     * @param acl the access control list.
+     * @return the ACL enforcer.
+     */
+    public static AclEnforcer of(final AccessControlList acl) {
         return new AclEnforcer(acl);
     }
 

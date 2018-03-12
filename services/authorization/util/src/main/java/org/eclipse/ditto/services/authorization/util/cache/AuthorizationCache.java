@@ -11,10 +11,12 @@
  */
 package org.eclipse.ditto.services.authorization.util.cache;
 
+import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 
+import org.eclipse.ditto.model.enforcers.AclEnforcer;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.model.things.AccessControlList;
@@ -43,22 +45,28 @@ public final class AuthorizationCache {
      */
     public AuthorizationCache(final CacheConfigReader cacheConfigReader) {
         // TODO: compute entity region map in root actor
-        final Supplier<Map<String, ActorRef>> entityRegionMap = () -> { throw new NotImplementedError(); };
-        final EnforcerCacheLoader enforcerCacheLoader = new EnforcerCacheLoader();
+        final Supplier<Map<String, ActorRef>> entityRegionMapSupplier = () -> { throw new NotImplementedError(); };
+        final Map<String, ActorRef> entityRegionMap = entityRegionMapSupplier.get();
+
+        final Duration askTimeout = cacheConfigReader.getAskTimeout();
+
+        final EnforcerCacheLoader enforcerCacheLoader = new EnforcerCacheLoader(askTimeout, entityRegionMap);
         enforcerCache = cacheConfigReader.getEnforcerCacheConfigReader().toCaffeine().buildAsync(enforcerCacheLoader);
 
-        final IdCacheLoader idCacheLoader =
-                new IdCacheLoader(cacheConfigReader.getAskTimeout(), entityRegionMap.get(), this);
+        final IdCacheLoader idCacheLoader = new IdCacheLoader(askTimeout, entityRegionMap, this);
         idCache = cacheConfigReader.getIdCacheConfigReader().toCaffeine().buildAsync(idCacheLoader);
 
     }
 
     void updateAcl(final ResourceKey resourceKey, final long revision, final AccessControlList acl) {
-        final Enforcer enforcerFromAcl = null; // TODO: implement
-        final Entry<Enforcer> entry = Entry.of(revision, enforcerFromAcl);
-        enforcerCache.put(resourceKey, CompletableFuture.completedFuture(entry));
-
-        throw new NotImplementedError();
+        final Supplier<Entry<Enforcer>> entrySupplier = () -> Entry.of(revision, AclEnforcer.of(acl));
+        // accept potential race condition to react to events quickly
+        enforcerCache.get(resourceKey, k -> entrySupplier.get())
+                .thenAccept(cachedEntry -> {
+                    if (cachedEntry.getRevision() < revision) {
+                        enforcerCache.put(resourceKey, CompletableFuture.completedFuture(entrySupplier.get()));
+                    }
+                });
     }
 
     // TODO: DO NOT save policy id relation into the ID cache because it is always the identity relation.
