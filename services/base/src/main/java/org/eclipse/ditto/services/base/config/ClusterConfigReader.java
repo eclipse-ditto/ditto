@@ -23,17 +23,17 @@ public final class ClusterConfigReader extends AbstractConfigReader {
     /**
      * Whether to enable majority check by default.
      */
-    public final boolean DEFAULT_MAJORITY_CHECK_ENABLED = false;
+    public static final boolean DEFAULT_MAJORITY_CHECK_ENABLED = false;
 
     /**
      * Number of cluster shards by default.
      */
-    public final int DEFAULT_NUMBER_OF_SHARDS = 30;
+    public static final int DEFAULT_NUMBER_OF_SHARDS = 30;
 
     /**
      * Delay of majority check by default.
      */
-    public final Duration DEFAULT_MAJORITY_CHECK_DELAY = Duration.ofSeconds(30L);
+    public static final Duration DEFAULT_MAJORITY_CHECK_DELAY = Duration.ofSeconds(30L);
 
     ClusterConfigReader(final Config config) {
         super(config);

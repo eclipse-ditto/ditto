@@ -13,11 +13,14 @@ package org.eclipse.ditto.services.base.config;
 
 import java.util.function.Function;
 
+import javax.annotation.concurrent.Immutable;
+
 import com.typesafe.config.Config;
 
 /**
  * Bare-bone implementation of service config reader. Reads only cluster and statsd configurations.
  */
+@Immutable
 public final class DittoServiceConfigReader extends AbstractServiceConfigReader {
 
     private DittoServiceConfigReader(final Config config, final String serviceName) {
@@ -26,6 +29,7 @@ public final class DittoServiceConfigReader extends AbstractServiceConfigReader 
 
     /**
      * Create a default service config reader.
+     *
      * @param serviceName name of the service.
      * @return the service config reader.
      */

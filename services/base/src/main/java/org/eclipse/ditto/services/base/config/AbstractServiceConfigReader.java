@@ -12,13 +12,11 @@
 package org.eclipse.ditto.services.base.config;
 
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 
 public class AbstractServiceConfigReader extends AbstractConfigReader implements ServiceConfigReader {
 
     private static final String DEFAULT_CONFIG_PREFIX = "ditto";
-
-    private final String prefix;
-    private final String serviceName;
 
     /**
      * Create a service config reader with the default config prefix.
@@ -38,9 +36,7 @@ public class AbstractServiceConfigReader extends AbstractConfigReader implements
      * @param serviceName Name of service.
      */
     protected AbstractServiceConfigReader(final Config config, final String prefix, final String serviceName) {
-        super(config.getConfig(String.format("%s.%s", prefix, serviceName)));
-        this.prefix = prefix;
-        this.serviceName = serviceName;
+        super(getOrEmpty(config, String.format("%s.%s", prefix, serviceName)));
     }
 
     @Override
@@ -56,5 +52,9 @@ public class AbstractServiceConfigReader extends AbstractConfigReader implements
     @Override
     public StatsdConfigReader getStatsdConfigReader() {
         return new StatsdConfigReader(getChild("statsd"));
+    }
+
+    private static Config getOrEmpty(final Config config, final String path) {
+        return config.hasPath(path) ? config.getConfig(path) : ConfigFactory.empty();
     }
 }
