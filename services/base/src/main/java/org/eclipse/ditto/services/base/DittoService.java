@@ -65,13 +65,13 @@ import scala.concurrent.duration.FiniteDuration;
  * <li>{@link #createActorSystem(Config)},</li>
  * <li>{@link #startStatusSupplierActor(ActorSystem, Config)},</li>
  * <li>{@link #joinCluster(ActorSystem, Config)},</li>
- * <li>{@link #startClusterMemberAwareActor(ActorSystem, C)} and</li>
+ * <li>{@link #startClusterMemberAwareActor(ActorSystem, ServiceConfigReader)} and</li>
  * <li>{@link #startServiceRootActors(ActorSystem, ServiceConfigReader, Cancellable)}.
  * <ol>
- * <li>{@link #startStatsdMetricsReporter(ActorSystem, C)},</li>
- * <li>{@link #getMainRootActorProps(C, ActorRef, ActorMaterializer)},</li>
+ * <li>{@link #startStatsdMetricsReporter(ActorSystem, ServiceConfigReader)},</li>
+ * <li>{@link #getMainRootActorProps(ServiceConfigReader, ActorRef, ActorMaterializer)},</li>
  * <li>{@link #startMainRootActor(ActorSystem, Props)},</li>
- * <li>{@link #getAdditionalRootActorsInformation(C, ActorRef, ActorMaterializer)} and</li>
+ * <li>{@link #getAdditionalRootActorsInformation(ServiceConfigReader, ActorRef, ActorMaterializer)} and</li>
  * <li>{@link #startAdditionalRootActors(ActorSystem, Iterable)}.</li>
  * </ol>
  * </li>
@@ -161,8 +161,8 @@ public abstract class DittoService<C extends ServiceConfigReader> {
      * <li>{@link #createActorSystem(Config)},</li>
      * <li>{@link #startStatusSupplierActor(ActorSystem, Config)},</li>
      * <li>{@link #joinCluster(ActorSystem, Config)},</li>
-     * <li>{@link #startClusterMemberAwareActor(ActorSystem, C)} and</li>
-     * <li>{@link #startServiceRootActors(ActorSystem, C, Cancellable)}.</li>
+     * <li>{@link #startClusterMemberAwareActor(ActorSystem, ServiceConfigReader)} and</li>
+     * <li>{@link #startServiceRootActors(ActorSystem, ServiceConfigReader, Cancellable)}.</li>
      * </ul>
      */
     protected void startActorSystem() {
@@ -298,10 +298,10 @@ public abstract class DittoService<C extends ServiceConfigReader> {
      * method is overridden, the following methods will not be called automatically:</em>
      * </p>
      * <ul>
-     * <li>{@link #startStatsdMetricsReporter(ActorSystem, C)},</li>
-     * <li>{@link #getMainRootActorProps(C, ActorRef, ActorMaterializer)},</li>
+     * <li>{@link #startStatsdMetricsReporter(ActorSystem, ServiceConfigReader)},</li>
+     * <li>{@link #getMainRootActorProps(ServiceConfigReader, ActorRef, ActorMaterializer)},</li>
      * <li>{@link #startMainRootActor(ActorSystem, Props)},</li>
-     * <li>{@link #getAdditionalRootActorsInformation(C, ActorRef, ActorMaterializer)} and</li>
+     * <li>{@link #getAdditionalRootActorsInformation(ServiceConfigReader, ActorRef, ActorMaterializer)} and</li>
      * <li>{@link #startAdditionalRootActors(ActorSystem, Iterable)}.</li>
      * </ul>
      *
