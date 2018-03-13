@@ -40,7 +40,7 @@ public class IdCacheLoader extends AbstractAskCacheLoader<ResourceKey> {
 
     private final AuthorizationCache authorizationCache;
 
-    IdCacheLoader(final Duration askTimeout, final Map<String, ActorRef> entityRegionMap,
+    protected IdCacheLoader(final Duration askTimeout, final Map<String, ActorRef> entityRegionMap,
             final AuthorizationCache authorizationCache) {
         super(askTimeout, entityRegionMap);
         this.authorizationCache = authorizationCache;

@@ -15,7 +15,7 @@ import java.time.Duration;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.services.base.AbstractConfigReader;
+import org.eclipse.ditto.services.base.config.AbstractConfigReader;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
 import com.typesafe.config.Config;

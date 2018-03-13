@@ -47,7 +47,7 @@ import akka.actor.ActorRef;
 @AllValuesAreNonnullByDefault
 public class EnforcerCacheLoader extends AbstractAskCacheLoader<Enforcer> {
 
-    EnforcerCacheLoader(final Duration askTimeout, final Map<String, ActorRef> entityRegionMap) {
+    protected EnforcerCacheLoader(final Duration askTimeout, final Map<String, ActorRef> entityRegionMap) {
         super(askTimeout, entityRegionMap);
     }
 

@@ -11,14 +11,11 @@
  */
 package org.eclipse.ditto.services.policies.starter;
 
-import org.eclipse.ditto.services.base.BaseConfigKey;
-import org.eclipse.ditto.services.base.BaseConfigKeys;
 import org.eclipse.ditto.services.base.DittoService;
 import org.eclipse.ditto.services.base.StatsdMongoDbMetricsStarter;
-import org.eclipse.ditto.services.policies.util.ConfigKeys;
+import org.eclipse.ditto.services.base.config.DittoServiceConfigReader;
+import org.eclipse.ditto.services.base.config.ServiceConfigReader;
 import org.slf4j.Logger;
-
-import com.typesafe.config.Config;
 
 import akka.actor.ActorSystem;
 
@@ -29,14 +26,12 @@ import akka.actor.ActorSystem;
  * <li>Sets up ActorSystem</li>
  * </ul>
  */
-public abstract class AbstractPoliciesService extends DittoService {
+public abstract class AbstractPoliciesService extends DittoService<ServiceConfigReader> {
 
     /**
      * Name for the Akka Actor System of the Policies Service.
      */
     private static final String SERVICE_NAME = "policies";
-
-    private static final BaseConfigKeys CONFIG_KEYS = BaseConfigKeys.of(CONFIG_ROOT, SERVICE_NAME);
 
     private final Logger logger;
 
@@ -46,13 +41,13 @@ public abstract class AbstractPoliciesService extends DittoService {
      * @param logger the logger to use.
      */
     protected AbstractPoliciesService(final Logger logger) {
-        super(logger, SERVICE_NAME, PoliciesRootActor.ACTOR_NAME, CONFIG_KEYS);
+        super(logger, SERVICE_NAME, PoliciesRootActor.ACTOR_NAME, DittoServiceConfigReader.from(SERVICE_NAME));
         this.logger = logger;
     }
 
     @Override
-    protected void startStatsdMetricsReporter(final ActorSystem actorSystem, final Config config) {
-        StatsdMongoDbMetricsStarter.newInstance(config, CONFIG_KEYS, actorSystem, SERVICE_NAME, logger).run();
+    protected void startStatsdMetricsReporter(final ActorSystem actorSystem, final ServiceConfigReader configReader) {
+        StatsdMongoDbMetricsStarter.newInstance(configReader, actorSystem, SERVICE_NAME, logger).run();
     }
 
 }

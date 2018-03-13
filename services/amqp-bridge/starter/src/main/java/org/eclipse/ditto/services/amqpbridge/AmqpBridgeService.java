@@ -12,15 +12,12 @@
 package org.eclipse.ditto.services.amqpbridge;
 
 import org.eclipse.ditto.services.amqpbridge.actors.AmqpBridgeRootActor;
-import org.eclipse.ditto.services.amqpbridge.util.ConfigKeys;
-import org.eclipse.ditto.services.base.BaseConfigKey;
-import org.eclipse.ditto.services.base.BaseConfigKeys;
 import org.eclipse.ditto.services.base.DittoService;
+import org.eclipse.ditto.services.base.config.DittoServiceConfigReader;
+import org.eclipse.ditto.services.base.config.ServiceConfigReader;
 import org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.typesafe.config.Config;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -29,12 +26,12 @@ import akka.stream.ActorMaterializer;
 /**
  * Entry point of the AMQP Bridge.
  * <ul>
- *     <li>Reads configuration, enhances it with cloud environment settings.</li>
- *     <li>Sets up Akka actor system.</li>
+ * <li>Reads configuration, enhances it with cloud environment settings.</li>
+ * <li>Sets up Akka actor system.</li>
  * </ul>
  */
 @AllParametersAndReturnValuesAreNonnullByDefault
-public final class AmqpBridgeService extends DittoService {
+public final class AmqpBridgeService extends DittoService<ServiceConfigReader> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AmqpBridgeService.class);
 
@@ -44,7 +41,7 @@ public final class AmqpBridgeService extends DittoService {
     private static final String SERVICE_NAME = "amqp-bridge";
 
     private AmqpBridgeService() {
-        super(LOGGER, SERVICE_NAME, AmqpBridgeRootActor.ACTOR_NAME, BaseConfigKeys.of(CONFIG_ROOT, SERVICE_NAME));
+        super(LOGGER, SERVICE_NAME, AmqpBridgeRootActor.ACTOR_NAME, DittoServiceConfigReader.from(SERVICE_NAME));
     }
 
     /**
@@ -58,10 +55,10 @@ public final class AmqpBridgeService extends DittoService {
     }
 
     @Override
-    protected Props getMainRootActorProps(final Config config, final ActorRef pubSubMediator,
+    protected Props getMainRootActorProps(final ServiceConfigReader configReader, final ActorRef pubSubMediator,
             final ActorMaterializer materializer) {
 
-        return AmqpBridgeRootActor.props(config, pubSubMediator, materializer);
+        return AmqpBridgeRootActor.props(configReader.getConfig(), pubSubMediator, materializer);
     }
 
 }

@@ -11,9 +11,10 @@
  */
 package org.eclipse.ditto.services.authorization.starter;
 
-import org.eclipse.ditto.services.base.BaseConfigKeys;
 import org.eclipse.ditto.services.base.DittoService;
 import org.eclipse.ditto.services.base.StatsdMongoDbMetricsStarter;
+import org.eclipse.ditto.services.base.config.DittoServiceConfigReader;
+import org.eclipse.ditto.services.base.config.ServiceConfigReader;
 import org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,10 +39,9 @@ public final class AuthorizationService extends DittoService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AuthorizationService.class);
 
-    private static final BaseConfigKeys CONFIG_KEYS = BaseConfigKeys.of(CONFIG_ROOT, SERVICE_NAME);
-
     private AuthorizationService() {
-        super(LOGGER, SERVICE_NAME, AuthorizationRootActor.ACTOR_NAME, CONFIG_KEYS);
+        // TODO: use own config reader
+        super(LOGGER, SERVICE_NAME, AuthorizationRootActor.ACTOR_NAME, DittoServiceConfigReader.from(SERVICE_NAME));
     }
 
     /**
@@ -60,15 +60,15 @@ public final class AuthorizationService extends DittoService {
     }
 
     @Override
-    protected void startStatsdMetricsReporter(final ActorSystem actorSystem, final Config config) {
-        StatsdMongoDbMetricsStarter.newInstance(config, CONFIG_KEYS, actorSystem, SERVICE_NAME, LOGGER).run();
+    protected void startStatsdMetricsReporter(final ActorSystem actorSystem, final ServiceConfigReader configReader) {
+        StatsdMongoDbMetricsStarter.newInstance(configReader, actorSystem, SERVICE_NAME, LOGGER).run();
     }
 
     @Override
-    protected Props getMainRootActorProps(final Config config, final ActorRef pubSubMediator,
+    protected Props getMainRootActorProps(final ServiceConfigReader configReader, final ActorRef pubSubMediator,
             final ActorMaterializer materializer) {
 
-        return AuthorizationRootActor.props(config, pubSubMediator);
+        return AuthorizationRootActor.props(configReader.getConfig(), pubSubMediator);
     }
 
 }

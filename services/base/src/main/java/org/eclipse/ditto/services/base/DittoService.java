@@ -20,10 +20,12 @@ import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.services.base.config.ServiceConfigReader;
 import org.eclipse.ditto.services.utils.cluster.ClusterMemberAwareActor;
 import org.eclipse.ditto.services.utils.cluster.ClusterUtil;
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
@@ -63,25 +65,22 @@ import scala.concurrent.duration.FiniteDuration;
  * <li>{@link #createActorSystem(Config)},</li>
  * <li>{@link #startStatusSupplierActor(ActorSystem, Config)},</li>
  * <li>{@link #joinCluster(ActorSystem, Config)},</li>
- * <li>{@link #startClusterMemberAwareActor(ActorSystem, Config)} and</li>
- * <li>{@link #startServiceRootActors(ActorSystem, Config, Cancellable)}.
+ * <li>{@link #startClusterMemberAwareActor(ActorSystem, C)} and</li>
+ * <li>{@link #startServiceRootActors(ActorSystem, ServiceConfigReader, Cancellable)}.
  * <ol>
- * <li>{@link #startStatsdMetricsReporter(ActorSystem, Config)},</li>
- * <li>{@link #getMainRootActorProps(Config, ActorRef, ActorMaterializer)},</li>
+ * <li>{@link #startStatsdMetricsReporter(ActorSystem, C)},</li>
+ * <li>{@link #getMainRootActorProps(C, ActorRef, ActorMaterializer)},</li>
  * <li>{@link #startMainRootActor(ActorSystem, Props)},</li>
- * <li>{@link #getAdditionalRootActorsInformation(Config, ActorRef, ActorMaterializer)} and</li>
+ * <li>{@link #getAdditionalRootActorsInformation(C, ActorRef, ActorMaterializer)} and</li>
  * <li>{@link #startAdditionalRootActors(ActorSystem, Iterable)}.</li>
  * </ol>
  * </li>
  * </ol>
+ *
+ * @param <C> type of configuration reader for the service.
  */
 @NotThreadSafe
-public abstract class DittoService {
-
-    /**
-     * Root node of service-specific Typesafe config.
-     */
-    public static final String CONFIG_ROOT = "ditto";
+public abstract class DittoService<C extends ServiceConfigReader> {
 
     /**
      * Amount of seconds this service waits to join the Akka cluster.
@@ -96,7 +95,7 @@ public abstract class DittoService {
     private final Logger logger;
     private final String serviceName;
     private final String rootActorName;
-    private final BaseConfigKeys configKeys;
+    private final C configReader;
 
     /**
      * Constructs a new {@code DittoService} object.
@@ -104,23 +103,20 @@ public abstract class DittoService {
      * @param logger the Logger to be used for logging.
      * @param serviceName the name of this service.
      * @param rootActorName the name of this service's root actor.
-     * @param configKeys mapping of base config keys to service-specific config keys.
+     * @param configReaderCreator creator of a service config reader.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws java.lang.IllegalArgumentException if {@code serviceName} or {@code rootActorName} is empty.
-     * @throws java.lang.IllegalStateException if {@code configKeys} did neither contain
-     * {@link BaseConfigKey.Cluster#MAJORITY_CHECK_ENABLED} nor {@link BaseConfigKey.Cluster#MAJORITY_CHECK_DELAY}.
      */
     protected DittoService(final Logger logger,
             final String serviceName,
             final String rootActorName,
-            final BaseConfigKeys configKeys) {
+            final Function<Config, C> configReaderCreator) {
 
         this.logger = checkNotNull(logger, "logger");
         this.serviceName = argumentNotEmpty(serviceName, "service name");
         this.rootActorName = argumentNotEmpty(rootActorName, "root actor name");
-        this.configKeys = checkNotNull(configKeys, "config keys");
-        configKeys.checkExistence(BaseConfigKey.Cluster.MAJORITY_CHECK_ENABLED,
-                BaseConfigKey.Cluster.MAJORITY_CHECK_DELAY);
+        final Config config = determineConfig();
+        this.configReader = checkNotNull(configReaderCreator, "config reader creator").apply(config);
     }
 
     /**
@@ -165,19 +161,19 @@ public abstract class DittoService {
      * <li>{@link #createActorSystem(Config)},</li>
      * <li>{@link #startStatusSupplierActor(ActorSystem, Config)},</li>
      * <li>{@link #joinCluster(ActorSystem, Config)},</li>
-     * <li>{@link #startClusterMemberAwareActor(ActorSystem, Config)} and</li>
-     * <li>{@link #startServiceRootActors(ActorSystem, Config, Cancellable)}.</li>
+     * <li>{@link #startClusterMemberAwareActor(ActorSystem, C)} and</li>
+     * <li>{@link #startServiceRootActors(ActorSystem, C, Cancellable)}.</li>
      * </ul>
      */
     protected void startActorSystem() {
-        final Config config = determineConfig();
+        final Config config = configReader.getConfig();
         final ActorSystem actorSystem = createActorSystem(config);
 
         startStatusSupplierActor(actorSystem, config);
         startDevOpsCommandsActor(actorSystem, config);
         final Cancellable shutdownIfJoinFails = joinCluster(actorSystem, config);
-        startClusterMemberAwareActor(actorSystem, config);
-        startServiceRootActors(actorSystem, config, shutdownIfJoinFails);
+        startClusterMemberAwareActor(actorSystem, configReader);
+        startServiceRootActors(actorSystem, configReader, shutdownIfJoinFails);
     }
 
     /**
@@ -279,19 +275,20 @@ public abstract class DittoService {
      * Starts the {@link ClusterMemberAwareActor}. May be overridden to change the way how the actor is started.
      *
      * @param actorSystem Akka actor system for starting actors.
-     * @param config the configuration settings of this service.
+     * @param configReader the config reader of this service.
      */
-    protected void startClusterMemberAwareActor(final ActorSystem actorSystem, final Config config) {
-        startActor(actorSystem, ClusterMemberAwareActor.props(serviceName, isMajorityCheckEnabled(config),
-                getMajorityCheckDelay(config)), ClusterMemberAwareActor.ACTOR_NAME);
+    protected void startClusterMemberAwareActor(final ActorSystem actorSystem, final C configReader) {
+        startActor(actorSystem, ClusterMemberAwareActor.props(serviceName, isMajorityCheckEnabled(configReader),
+                getMajorityCheckDelay(configReader)), ClusterMemberAwareActor.ACTOR_NAME);
     }
 
-    private boolean isMajorityCheckEnabled(final Config config) {
-        return config.getBoolean(configKeys.getOrThrow(BaseConfigKey.Cluster.MAJORITY_CHECK_ENABLED));
+    private boolean isMajorityCheckEnabled(final ServiceConfigReader configReader) {
+        return configReader.getClusterConfigReader().isMajorityCheckEnabled();
+
     }
 
-    private Duration getMajorityCheckDelay(final Config config) {
-        return config.getDuration(configKeys.getOrThrow(BaseConfigKey.Cluster.MAJORITY_CHECK_DELAY));
+    private Duration getMajorityCheckDelay(final ServiceConfigReader configReader) {
+        return configReader.getClusterConfigReader().getMajorityCheckDelay();
     }
 
     /**
@@ -301,19 +298,19 @@ public abstract class DittoService {
      * method is overridden, the following methods will not be called automatically:</em>
      * </p>
      * <ul>
-     * <li>{@link #startStatsdMetricsReporter(ActorSystem, Config)},</li>
-     * <li>{@link #getMainRootActorProps(Config, ActorRef, ActorMaterializer)},</li>
+     * <li>{@link #startStatsdMetricsReporter(ActorSystem, C)},</li>
+     * <li>{@link #getMainRootActorProps(C, ActorRef, ActorMaterializer)},</li>
      * <li>{@link #startMainRootActor(ActorSystem, Props)},</li>
-     * <li>{@link #getAdditionalRootActorsInformation(Config, ActorRef, ActorMaterializer)} and</li>
+     * <li>{@link #getAdditionalRootActorsInformation(C, ActorRef, ActorMaterializer)} and</li>
      * <li>{@link #startAdditionalRootActors(ActorSystem, Iterable)}.</li>
      * </ul>
      *
      * @param actorSystem Akka actor system for starting actors.
-     * @param config the configuration settings of this service.
+     * @param configReader the configuration settings of this service.
      * @param shutdownIfJoinFails gets cancelled as soon as the cluster was joined. Otherwise the actor system is
      * terminated an an error logged.
      */
-    protected void startServiceRootActors(final ActorSystem actorSystem, final Config config,
+    protected void startServiceRootActors(final ActorSystem actorSystem, final C configReader,
             final Cancellable shutdownIfJoinFails) {
 
         logger.info("Waiting for member to be up before proceeding with further initialisation.");
@@ -322,13 +319,13 @@ public abstract class DittoService {
 
             shutdownIfJoinFails.cancel();
 
-            startStatsdMetricsReporter(actorSystem, config);
+            startStatsdMetricsReporter(actorSystem, configReader);
 
             final ActorRef pubSubMediator = getDistributedPubSubMediatorActor(actorSystem);
             final ActorMaterializer materializer = createActorMaterializer(actorSystem);
 
-            startMainRootActor(actorSystem, getMainRootActorProps(config, pubSubMediator, materializer));
-            startAdditionalRootActors(actorSystem, getAdditionalRootActorsInformation(config, pubSubMediator,
+            startMainRootActor(actorSystem, getMainRootActorProps(configReader, pubSubMediator, materializer));
+            startAdditionalRootActors(actorSystem, getAdditionalRootActorsInformation(configReader, pubSubMediator,
                     materializer));
         });
     }
@@ -337,9 +334,9 @@ public abstract class DittoService {
      * May be overridden to start a StatsD metrics reporter. <em>The base implementation does nothing.</em>
      *
      * @param actorSystem Akka actor system for starting actors.
-     * @param config the configuration settings of this service.
+     * @param configReader the configuration reader of this service.
      */
-    protected void startStatsdMetricsReporter(final ActorSystem actorSystem, final Config config) {
+    protected void startStatsdMetricsReporter(final ActorSystem actorSystem, final C configReader) {
         // Does nothing by default.
     }
 
@@ -354,12 +351,12 @@ public abstract class DittoService {
     /**
      * Returns the Props of this service's main root actor.
      *
-     * @param config the configuration settings of this service.
+     * @param configReader the configuration reader of this service.
      * @param pubSubMediator ActorRef of the distributed pub-sub-mediator.
      * @param materializer the materializer for the Akka actor system.
      * @return the Props.
      */
-    protected abstract Props getMainRootActorProps(Config config, ActorRef pubSubMediator,
+    protected abstract Props getMainRootActorProps(C configReader, ActorRef pubSubMediator,
             ActorMaterializer materializer);
 
     /**
@@ -377,12 +374,12 @@ public abstract class DittoService {
      * May be overridden to return information of additional root actors of this service. <em>The base implementation
      * returns an empty collection.</em>
      *
-     * @param config the configuration settings of this service.
+     * @param configReader the configuration reader of this service.
      * @param pubSubMediator ActorRef of the distributed pub-sub-mediator.
      * @param materializer the materializer for the Akka actor system.
      * @return the additional root actors information.
      */
-    protected Collection<RootActorInformation> getAdditionalRootActorsInformation(final Config config,
+    protected Collection<RootActorInformation> getAdditionalRootActorsInformation(final C configReader,
             final ActorRef pubSubMediator, final ActorMaterializer materializer) {
 
         return Collections.emptyList();

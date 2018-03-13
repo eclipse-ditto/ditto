@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.authorization.util.config;
 import java.time.Duration;
 import java.util.Optional;
 
-import org.eclipse.ditto.services.base.AbstractConfigReader;
+import org.eclipse.ditto.services.base.config.AbstractConfigReader;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.typesafe.config.Config;

@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.services.policies.starter;
 
+import org.eclipse.ditto.services.base.config.ServiceConfigReader;
 import org.eclipse.ditto.services.policies.persistence.serializer.PolicyMongoSnapshotAdapter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,8 +44,9 @@ public final class PoliciesService extends AbstractPoliciesService {
     }
 
     @Override
-    protected Props getMainRootActorProps(final Config config, final ActorRef pubSubMediator,
+    protected Props getMainRootActorProps(final ServiceConfigReader configReader, final ActorRef pubSubMediator,
             final ActorMaterializer materializer) {
+        final Config config = configReader.getConfig();
         return PoliciesRootActor.props(config, new PolicyMongoSnapshotAdapter(), pubSubMediator, materializer);
     }
 

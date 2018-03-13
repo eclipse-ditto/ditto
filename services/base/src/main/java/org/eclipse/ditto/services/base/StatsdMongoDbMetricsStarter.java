@@ -14,11 +14,14 @@ package org.eclipse.ditto.services.base;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.argumentNotEmpty;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.net.InetSocketAddress;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.services.base.config.ServiceConfigReader;
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
 import org.slf4j.Logger;
 
@@ -46,39 +49,35 @@ public final class StatsdMongoDbMetricsStarter implements Runnable {
     /**
      * Returns a new instance of {@code StatsdMetricsStarter}.
      *
-     * @param config the configuration settings of the service which sends StatsD metrics.
-     * @param configKeys the configuration keys for accessing StatsD related settings.
+     * @param configReader the configuration settings of the service which sends StatsD metrics.
      * @param actorSystem the Akka actor system to be used for creating the metric registry.
      * @param serviceName the name of the service which sends StatsD metrics.
      * @param logger the logger to be used.
      * @return the new instance.
      * @throws NullPointerException if any argument is {@code null}.
-     * @throws java.lang.IllegalStateException if {@code configKeys} did neither contain
-     * {@link BaseConfigKey.StatsD#HOSTNAME} nor {@link BaseConfigKey.StatsD#PORT}.
      * @throws IllegalArgumentException if {@code serviceName} is empty.
      */
-    public static StatsdMongoDbMetricsStarter newInstance(final Config config,
-            final BaseConfigKeys configKeys,
+    public static StatsdMongoDbMetricsStarter newInstance(final ServiceConfigReader configReader,
             final ActorSystem actorSystem,
             final String serviceName,
             final Logger logger) {
 
-        checkNotNull(config, "config");
-        checkNotNull(configKeys, "config keys");
-        configKeys.checkExistence(BaseConfigKey.StatsD.HOSTNAME, BaseConfigKey.StatsD.PORT);
+        checkNotNull(configReader, "config");
         checkNotNull(actorSystem, "Akka actor system");
         argumentNotEmpty(serviceName, "service name");
         checkNotNull(logger, "logger");
 
+
         final Runnable implementation;
-        final String statsdHostnameConfigKey = configKeys.getOrThrow(BaseConfigKey.StatsD.HOSTNAME);
-        if (config.hasPath(statsdHostnameConfigKey)) {
-            final MetricRegistry metricRegistry = createMetricRegistry(actorSystem, config);
-            final String hostname = config.getString(statsdHostnameConfigKey);
-            final int port = config.getInt(configKeys.getOrThrow(BaseConfigKey.StatsD.PORT));
+        final Optional<InetSocketAddress> statsdAddress = configReader.getStatsdConfigReader().getStatsd();
+        if (statsdAddress.isPresent()) {
+            final InetSocketAddress statsd = statsdAddress.get();
+            final MetricRegistry metricRegistry = createMetricRegistry(actorSystem, configReader.getConfig());
+            final String hostname = statsd.getHostName();
+            final int port = statsd.getPort();
             implementation = new StartMetricsReporterImplementation(metricRegistry, serviceName, hostname, port);
         } else {
-            implementation = new LogOnlyImplementation(logger, statsdHostnameConfigKey);
+            implementation = new LogOnlyImplementation(logger);
         }
 
         return new StatsdMongoDbMetricsStarter(implementation);
@@ -142,16 +141,14 @@ public final class StatsdMongoDbMetricsStarter implements Runnable {
     private static final class LogOnlyImplementation implements Runnable {
 
         private final Logger logger;
-        private final String statsdHostnameConfigKey;
 
-        private LogOnlyImplementation(final Logger theLogger, final String theStatsdHostnameConfigKey) {
+        private LogOnlyImplementation(final Logger theLogger) {
             logger = theLogger;
-            statsdHostnameConfigKey = theStatsdHostnameConfigKey;
         }
 
         @Override
         public void run() {
-            logger.warn("MongoDB monitoring will be deactivated as <{}> is not configured.", statsdHostnameConfigKey);
+            logger.warn("MongoDB monitoring will be deactivated as statsd is not configured.");
         }
 
     }

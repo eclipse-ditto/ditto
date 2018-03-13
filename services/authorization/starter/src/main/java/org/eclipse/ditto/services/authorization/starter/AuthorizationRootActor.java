@@ -21,16 +21,21 @@ import akka.japi.pf.ReceiveBuilder;
 /**
  * The root actor of Authorization Service.
  */
-public class AuthorizationRootActor extends AbstractActor {
+public final class AuthorizationRootActor extends AbstractActor {
+
+    // TODO: supervisory strategy, best without code duplication
 
     /**
      * Name of this actor.
      */
     public static final String ACTOR_NAME = "authorizationRoot";
 
-    public static final Props props(final Config config, final ActorRef pubSubMediator) {
+    private AuthorizationRootActor(final Config config, final ActorRef pubSubMediator) {
 
-        return Props.create(AuthorizationRootActor.class, AuthorizationRootActor::new);
+    }
+
+    public static final Props props(final Config config, final ActorRef pubSubMediator) {
+        return Props.create(AuthorizationRootActor.class, new AuthorizationRootActor(config, pubSubMediator));
     }
 
     @Override

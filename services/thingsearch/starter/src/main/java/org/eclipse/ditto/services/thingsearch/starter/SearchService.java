@@ -14,17 +14,15 @@ package org.eclipse.ditto.services.thingsearch.starter;
 import java.util.Collection;
 import java.util.Collections;
 
-import org.eclipse.ditto.services.base.BaseConfigKey;
-import org.eclipse.ditto.services.base.BaseConfigKeys;
 import org.eclipse.ditto.services.base.DittoService;
+import org.eclipse.ditto.services.base.config.DittoServiceConfigReader;
+import org.eclipse.ditto.services.base.config.ServiceConfigReader;
 import org.eclipse.ditto.services.thingsearch.common.util.ConfigKeys;
 import org.eclipse.ditto.services.thingsearch.starter.actors.SearchRootActor;
 import org.eclipse.ditto.services.thingsearch.updater.actors.SearchUpdaterRootActor;
 import org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.typesafe.config.Config;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -39,7 +37,7 @@ import akka.stream.ActorMaterializer;
  * </ul>
  */
 @AllParametersAndReturnValuesAreNonnullByDefault
-public final class SearchService extends DittoService {
+public final class SearchService extends DittoService<ServiceConfigReader> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SearchService.class);
 
@@ -49,7 +47,7 @@ public final class SearchService extends DittoService {
     private static final String SERVICE_NAME = ConfigKeys.SERVICE_NAME;
 
     private SearchService() {
-        super(LOGGER, SERVICE_NAME, SearchRootActor.ACTOR_NAME, BaseConfigKeys.of(CONFIG_ROOT, SERVICE_NAME));
+        super(LOGGER, SERVICE_NAME, SearchRootActor.ACTOR_NAME, DittoServiceConfigReader.from(SERVICE_NAME));
     }
 
     /**
@@ -63,18 +61,19 @@ public final class SearchService extends DittoService {
     }
 
     @Override
-    protected Props getMainRootActorProps(final Config config, final ActorRef pubSubMediator,
+    protected Props getMainRootActorProps(final ServiceConfigReader configReader, final ActorRef pubSubMediator,
             final ActorMaterializer materializer) {
 
-        return SearchRootActor.props(config, pubSubMediator, materializer);
+        return SearchRootActor.props(configReader.getConfig(), pubSubMediator, materializer);
     }
 
     @Override
-    protected Collection<DittoService.RootActorInformation> getAdditionalRootActorsInformation(final Config config,
+    protected Collection<DittoService.RootActorInformation> getAdditionalRootActorsInformation(
+            final ServiceConfigReader configReader,
             final ActorRef pubSubMediator, final ActorMaterializer actorMaterializer) {
 
         return Collections.singleton(
-                RootActorInformation.getInstance(SearchUpdaterRootActor.props(config, pubSubMediator),
+                RootActorInformation.getInstance(SearchUpdaterRootActor.props(configReader.getConfig(), pubSubMediator),
                         SearchUpdaterRootActor.ACTOR_NAME));
     }
 

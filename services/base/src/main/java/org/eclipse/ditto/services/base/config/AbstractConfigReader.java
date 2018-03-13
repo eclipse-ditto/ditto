@@ -9,7 +9,7 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package org.eclipse.ditto.services.base;
+package org.eclipse.ditto.services.base.config;
 
 import java.util.Optional;
 import java.util.function.Function;
