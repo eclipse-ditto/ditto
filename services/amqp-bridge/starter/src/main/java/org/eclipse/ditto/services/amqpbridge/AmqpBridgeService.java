@@ -58,7 +58,7 @@ public final class AmqpBridgeService extends DittoService<ServiceConfigReader> {
     protected Props getMainRootActorProps(final ServiceConfigReader configReader, final ActorRef pubSubMediator,
             final ActorMaterializer materializer) {
 
-        return AmqpBridgeRootActor.props(configReader.getConfig(), pubSubMediator, materializer);
+        return AmqpBridgeRootActor.props(configReader.getRawConfig(), pubSubMediator, materializer);
     }
 
 }

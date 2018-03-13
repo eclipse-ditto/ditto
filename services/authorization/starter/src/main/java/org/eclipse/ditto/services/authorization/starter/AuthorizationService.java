@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.services.authorization.starter;
 
+import org.eclipse.ditto.services.authorization.util.config.AuthorizationConfigReader;
 import org.eclipse.ditto.services.base.DittoService;
 import org.eclipse.ditto.services.base.StatsdMongoDbMetricsStarter;
 import org.eclipse.ditto.services.base.config.DittoServiceConfigReader;
@@ -30,7 +31,7 @@ import akka.stream.ActorMaterializer;
  * The Authorization service for Eclipse Ditto.
  */
 @AllParametersAndReturnValuesAreNonnullByDefault
-public final class AuthorizationService extends DittoService {
+public final class AuthorizationService extends DittoService<AuthorizationConfigReader> {
 
     /**
      * Name for the Akka actor system of the Authorization service.
@@ -41,7 +42,7 @@ public final class AuthorizationService extends DittoService {
 
     private AuthorizationService() {
         // TODO: use own config reader
-        super(LOGGER, SERVICE_NAME, AuthorizationRootActor.ACTOR_NAME, DittoServiceConfigReader.from(SERVICE_NAME));
+        super(LOGGER, SERVICE_NAME, AuthorizationRootActor.ACTOR_NAME, AuthorizationConfigReader.from(SERVICE_NAME));
     }
 
     /**
@@ -60,15 +61,16 @@ public final class AuthorizationService extends DittoService {
     }
 
     @Override
-    protected void startStatsdMetricsReporter(final ActorSystem actorSystem, final ServiceConfigReader configReader) {
+    protected void startStatsdMetricsReporter(final ActorSystem actorSystem,
+            final AuthorizationConfigReader configReader) {
         StatsdMongoDbMetricsStarter.newInstance(configReader, actorSystem, SERVICE_NAME, LOGGER).run();
     }
 
     @Override
-    protected Props getMainRootActorProps(final ServiceConfigReader configReader, final ActorRef pubSubMediator,
+    protected Props getMainRootActorProps(final AuthorizationConfigReader configReader, final ActorRef pubSubMediator,
             final ActorMaterializer materializer) {
 
-        return AuthorizationRootActor.props(configReader.getConfig(), pubSubMediator);
+        return AuthorizationRootActor.props(configReader, pubSubMediator);
     }
 
 }

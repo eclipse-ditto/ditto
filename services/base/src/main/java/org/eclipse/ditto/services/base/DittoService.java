@@ -166,7 +166,7 @@ public abstract class DittoService<C extends ServiceConfigReader> {
      * </ul>
      */
     protected void startActorSystem() {
-        final Config config = configReader.getConfig();
+        final Config config = configReader.getRawConfig();
         final ActorSystem actorSystem = createActorSystem(config);
 
         startStatusSupplierActor(actorSystem, config);

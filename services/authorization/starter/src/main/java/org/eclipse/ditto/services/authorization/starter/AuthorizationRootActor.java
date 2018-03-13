@@ -11,7 +11,8 @@
  */
 package org.eclipse.ditto.services.authorization.starter;
 
-import com.typesafe.config.Config;
+import org.eclipse.ditto.services.authorization.util.cache.AuthorizationCache;
+import org.eclipse.ditto.services.authorization.util.config.AuthorizationConfigReader;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -30,12 +31,15 @@ public final class AuthorizationRootActor extends AbstractActor {
      */
     public static final String ACTOR_NAME = "authorizationRoot";
 
-    private AuthorizationRootActor(final Config config, final ActorRef pubSubMediator) {
+    private final AuthorizationCache cache;
 
+    private AuthorizationRootActor(final AuthorizationConfigReader configReader, final ActorRef pubSubMediator) {
+        this.cache = new AuthorizationCache(configReader.getCacheConfigReader());
+        // create shard region as children so that if this actor dies all reference to the cache is gone
     }
 
-    public static final Props props(final Config config, final ActorRef pubSubMediator) {
-        return Props.create(AuthorizationRootActor.class, new AuthorizationRootActor(config, pubSubMediator));
+    public static Props props(final AuthorizationConfigReader configReader, final ActorRef pubSubMediator) {
+        return Props.create(AuthorizationRootActor.class, new AuthorizationRootActor(configReader, pubSubMediator));
     }
 
     @Override

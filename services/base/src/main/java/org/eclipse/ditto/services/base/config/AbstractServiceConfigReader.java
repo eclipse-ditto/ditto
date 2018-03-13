@@ -18,6 +18,8 @@ public class AbstractServiceConfigReader extends AbstractConfigReader implements
 
     private static final String DEFAULT_CONFIG_PREFIX = "ditto";
 
+    private final Config rawConfig;
+
     /**
      * Create a service config reader with the default config prefix.
      *
@@ -37,11 +39,12 @@ public class AbstractServiceConfigReader extends AbstractConfigReader implements
      */
     protected AbstractServiceConfigReader(final Config config, final String prefix, final String serviceName) {
         super(getOrEmpty(config, String.format("%s.%s", prefix, serviceName)));
+        this.rawConfig = config;
     }
 
     @Override
-    public Config getConfig() {
-        return config;
+    public Config getRawConfig() {
+        return rawConfig;
     }
 
     @Override

@@ -46,7 +46,7 @@ public final class PoliciesService extends AbstractPoliciesService {
     @Override
     protected Props getMainRootActorProps(final ServiceConfigReader configReader, final ActorRef pubSubMediator,
             final ActorMaterializer materializer) {
-        final Config config = configReader.getConfig();
+        final Config config = configReader.getRawConfig();
         return PoliciesRootActor.props(config, new PolicyMongoSnapshotAdapter(), pubSubMediator, materializer);
     }
 

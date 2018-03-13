@@ -37,5 +37,5 @@ public interface ServiceConfigReader {
      *
      * @return the underlying {@code Config} object.
      */
-    Config getConfig();
+    Config getRawConfig();
 }
