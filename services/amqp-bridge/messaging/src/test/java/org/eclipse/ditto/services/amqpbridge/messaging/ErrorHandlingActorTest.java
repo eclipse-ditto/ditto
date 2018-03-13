@@ -18,7 +18,7 @@ import static org.eclipse.ditto.services.amqpbridge.messaging.TestConstants.crea
 import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
 
-import org.eclipse.ditto.model.amqpbridge.AmqpConnection;
+import org.eclipse.ditto.model.amqpbridge.Connection;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.signals.commands.amqpbridge.exceptions.ConnectionFailedException;
 import org.eclipse.ditto.signals.commands.amqpbridge.modify.AmqpBridgeModifyCommand;
@@ -62,13 +62,13 @@ public class ErrorHandlingActorTest {
     public void tryCreateConnectionExpectErrorResponse() {
         new TestKit(actorSystem) {{
             final String connectionId = createRandomConnectionId();
-            final AmqpConnection amqpConnection = createConnection(connectionId);
+            final Connection connection = createConnection(connectionId);
             final ActorRef underTest = TestConstants.createConnectionSupervisorActor(connectionId, actorSystem,
                     pubSubMediator, (ca, id) -> FaultyConnectionActor.props(false));
             watch(underTest);
 
             // create connection
-            final AmqpBridgeModifyCommand command = CreateConnection.of(amqpConnection, DittoHeaders.empty());
+            final AmqpBridgeModifyCommand command = CreateConnection.of(connection, DittoHeaders.empty());
             underTest.tell(command, getRef());
             expectMsg(ConnectionFailedException
                     .newBuilder(connectionId)
@@ -95,17 +95,17 @@ public class ErrorHandlingActorTest {
     private void tryModifyConnectionExpectErrorResponse(final String action) {
         new TestKit(actorSystem) {{
             final String connectionId = createRandomConnectionId();
-            final AmqpConnection amqpConnection = createConnection(connectionId);
+            final Connection connection = createConnection(connectionId);
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
                             faultyConnectionActorPropsFactory);
             watch(underTest);
 
             // create connection
-            final CreateConnection createConnection = CreateConnection.of(amqpConnection, DittoHeaders.empty());
+            final CreateConnection createConnection = CreateConnection.of(connection, DittoHeaders.empty());
             underTest.tell(createConnection, getRef());
             final CreateConnectionResponse createConnectionResponse =
-                    CreateConnectionResponse.of(amqpConnection, new ArrayList<>(), DittoHeaders.empty());
+                    CreateConnectionResponse.of(connection, new ArrayList<>(), DittoHeaders.empty());
             expectMsg(createConnectionResponse);
 
             // modify connection

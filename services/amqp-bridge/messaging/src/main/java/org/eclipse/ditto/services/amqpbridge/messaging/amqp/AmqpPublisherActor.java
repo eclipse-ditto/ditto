@@ -28,7 +28,7 @@ import javax.jms.MessageProducer;
 import javax.jms.Session;
 
 import org.apache.qpid.jms.JmsQueue;
-import org.eclipse.ditto.model.amqpbridge.AmqpConnection;
+import org.eclipse.ditto.model.amqpbridge.Connection;
 import org.eclipse.ditto.model.amqpbridge.ExternalMessage;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -52,12 +52,12 @@ public final class AmqpPublisherActor extends AbstractActor {
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
     private final Session session;
-    private final AmqpConnection amqpConnection;
+    private final Connection connection;
     private final Map<String, MessageProducer> producerMap;
 
-    private AmqpPublisherActor(@Nullable final Session session, @Nullable final AmqpConnection amqpConnection) {
+    private AmqpPublisherActor(@Nullable final Session session, @Nullable final Connection connection) {
         this.session = checkNotNull(session, "session");
-        this.amqpConnection = checkNotNull(amqpConnection, "amqpConnection");
+        this.connection = checkNotNull(connection, "connection");
         this.producerMap = new HashMap<>();
     }
 
@@ -67,13 +67,13 @@ public final class AmqpPublisherActor extends AbstractActor {
      * @param session the jms session.
      * @return the Akka configuration Props object.
      */
-    static Props props(@Nullable final Session session, @Nullable final AmqpConnection amqpConnection) {
+    static Props props(@Nullable final Session session, @Nullable final Connection connection) {
         return Props.create(AmqpPublisherActor.class, new Creator<AmqpPublisherActor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
             public AmqpPublisherActor create() {
-                return new AmqpPublisherActor(session, amqpConnection);
+                return new AmqpPublisherActor(session, connection);
             }
         });
     }
@@ -86,7 +86,7 @@ public final class AmqpPublisherActor extends AbstractActor {
                     LogUtil.enhanceLogWithCorrelationId(log, correlationId);
                     log.debug("Received command response {} ", response);
                     final String replyToFromHeader = response.getHeaders().get(ExternalMessage.REPLY_TO_HEADER);
-                    final String replyToFromConfig = amqpConnection.getReplyTarget().orElse(null);
+                    final String replyToFromConfig = connection.getReplyTarget().orElse(null);
                     if (replyToFromHeader != null) {
                         sendMessage(replyToFromHeader, response);
                     } else if (replyToFromConfig != null) {
@@ -99,7 +99,7 @@ public final class AmqpPublisherActor extends AbstractActor {
                     final String correlationId = event.getHeaders().get(CORRELATION_ID.getKey());
                     LogUtil.enhanceLogWithCorrelationId(log, correlationId);
                     log.debug("Received thing event {} ", event);
-                    amqpConnection.getEventTarget().ifPresent(target -> sendMessage(target, event));
+                    connection.getEventTarget().ifPresent(target -> sendMessage(target, event));
                 })
                 .matchAny(m -> {
                     log.debug("Unknown message: {}", m);

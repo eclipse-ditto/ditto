@@ -17,7 +17,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-import javax.jms.Connection;
 import javax.jms.Destination;
 import javax.jms.ExceptionListener;
 import javax.jms.JMSException;
@@ -25,7 +24,7 @@ import javax.jms.MessageConsumer;
 import javax.jms.Session;
 
 import org.apache.qpid.jms.JmsQueue;
-import org.eclipse.ditto.model.amqpbridge.AmqpConnection;
+import org.eclipse.ditto.model.amqpbridge.Connection;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
 import akka.actor.AbstractActor;
@@ -47,15 +46,15 @@ public class JMSConnectionHandlingActor extends AbstractActor {
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
-    private final AmqpConnection amqpConnection;
+    private final Connection connection;
     private final ExceptionListener exceptionListener;
     private final JmsConnectionFactory jmsConnectionFactory;
 
 
-    private JMSConnectionHandlingActor(final AmqpConnection amqpConnection, final ExceptionListener exceptionListener,
+    private JMSConnectionHandlingActor(final Connection connection, final ExceptionListener exceptionListener,
             final JmsConnectionFactory jmsConnectionFactory) {
 
-        this.amqpConnection = checkNotNull(amqpConnection, "amqpConnection");
+        this.connection = checkNotNull(connection, "connection");
         this.exceptionListener = exceptionListener;
         this.jmsConnectionFactory = jmsConnectionFactory;
     }
@@ -63,12 +62,12 @@ public class JMSConnectionHandlingActor extends AbstractActor {
     /**
      * Creates Akka configuration object {@link Props} for this {@code JMSConnectionHandlingActor}.
      *
-     * @param amqpConnection the amqp connection
+     * @param connection the connection
      * @param exceptionListener the exception listener
      * @param jmsConnectionFactory the jms connection factory
      * @return the Akka configuration Props object.
      */
-    static Props props(final AmqpConnection amqpConnection, final ExceptionListener exceptionListener,
+    static Props props(final Connection connection, final ExceptionListener exceptionListener,
             final JmsConnectionFactory jmsConnectionFactory) {
 
         return Props.create(JMSConnectionHandlingActor.class, new Creator<JMSConnectionHandlingActor>() {
@@ -76,7 +75,7 @@ public class JMSConnectionHandlingActor extends AbstractActor {
 
             @Override
             public JMSConnectionHandlingActor create() {
-                return new JMSConnectionHandlingActor(amqpConnection, exceptionListener, jmsConnectionFactory);
+                return new JMSConnectionHandlingActor(connection, exceptionListener, jmsConnectionFactory);
             }
         });
     }
@@ -92,7 +91,8 @@ public class JMSConnectionHandlingActor extends AbstractActor {
     @SuppressWarnings("squid:S2095") // cannot use try-with-resources, connection has longer lifetime
     private void handleConnect(final AmqpClientActor.JmsConnect connect) {
         try {
-            final Connection jmsConnection = jmsConnectionFactory.createConnection(amqpConnection, exceptionListener);
+            final javax.jms.Connection
+                    jmsConnection = jmsConnectionFactory.createConnection(connection, exceptionListener);
             log.debug("Starting connection.");
             jmsConnection.start();
             log.debug("Connection started successfully, creating session.");
@@ -100,8 +100,8 @@ public class JMSConnectionHandlingActor extends AbstractActor {
             log.debug("Session created.");
 
             final Map<String, MessageConsumer> consumerMap = new HashMap<>();
-            if (amqpConnection.getSources().isPresent()) {
-                final Set<String> sources = amqpConnection.getSources().get();
+            if (connection.getSources().isPresent()) {
+                final Set<String> sources = connection.getSources().get();
                 for (final String source : sources) {
                     log.debug("Creating AMQP Consumer for '{}'", source);
                     final Destination destination = new JmsQueue(source);
@@ -112,7 +112,7 @@ public class JMSConnectionHandlingActor extends AbstractActor {
 
             sender().tell(new AmqpClientActor.JmsConnected(connect.getOrigin(), jmsConnection, jmsSession, consumerMap),
                     sender());
-            log.debug("Connection <{}> established successfully, stopping myself.", amqpConnection.getId());
+            log.debug("Connection <{}> established successfully, stopping myself.", connection.getId());
         } catch (final Exception e) {
             sender().tell(new AmqpClientActor.JmsFailure(connect.getOrigin(), e), sender());
         }
@@ -120,14 +120,14 @@ public class JMSConnectionHandlingActor extends AbstractActor {
     }
 
     private void handleDisconnect(final AmqpClientActor.JmsDisconnect disconnect) {
-        final Connection connection = disconnect.getConnection();
+        final javax.jms.Connection connection = disconnect.getConnection();
         try {
-            log.debug("Closing JMS connection {}", amqpConnection.getId());
+            log.debug("Closing JMS connection {}", this.connection.getId());
             connection.stop();
             connection.close();
-            log.info("Connection '{}' closed.", amqpConnection.getId());
+            log.info("Connection '{}' closed.", this.connection.getId());
         } catch (final JMSException e) {
-            log.debug("Connection '{}' already closed: {}", amqpConnection.getId(), e.getMessage());
+            log.debug("Connection '{}' already closed: {}", this.connection.getId(), e.getMessage());
         }
         sender().tell(new AmqpClientActor.JmsDisconnected(disconnect.getOrigin()), sender());
         log.info("Stop myself {}", self());

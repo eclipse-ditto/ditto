@@ -11,18 +11,18 @@
  */
 package org.eclipse.ditto.services.amqpbridge.messaging;
 
-import org.eclipse.ditto.model.amqpbridge.AmqpConnection;
+import org.eclipse.ditto.model.amqpbridge.Connection;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
 
 /**
- * Creates actor {@link Props} based on the given {@link AmqpConnection}.
+ * Creates actor {@link Props} based on the given {@link Connection}.
  */
 public interface ConnectionActorPropsFactory {
 
     /**
-     * Create actor {@link Props} for a type of AMQP connection.
+     * Create actor {@link Props} for a type of connection.
      *
      * @param connectionActor the connection actor
      * @param connectionId the connection id

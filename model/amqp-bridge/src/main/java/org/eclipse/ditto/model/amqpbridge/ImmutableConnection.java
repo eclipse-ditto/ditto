@@ -40,12 +40,12 @@ import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
 /**
- * Immutable implementation of {@link AmqpConnection}.
+ * Immutable implementation of {@link Connection}.
  */
 @Immutable
-final class ImmutableAmqpConnection implements AmqpConnection {
+final class ImmutableConnection implements Connection {
 
-    private static final Pattern URI_REGEX_PATTERN = Pattern.compile(AmqpConnection.UriRegex.REGEX);
+    private static final Pattern URI_REGEX_PATTERN = Pattern.compile(Connection.UriRegex.REGEX);
 
     private final String id;
     private final ConnectionType connectionType;
@@ -67,7 +67,7 @@ final class ImmutableAmqpConnection implements AmqpConnection {
     private final int consumerCount;
     private final int processorPoolSize;
 
-    ImmutableAmqpConnection(final ImmutableAmqpConnectionBuilder builder) {
+    ImmutableConnection(final ImmutableConnectionBuilder builder) {
         this.id = builder.id;
         this.connectionType = builder.connectionType;
         this.uri = builder.uri;
@@ -88,12 +88,12 @@ final class ImmutableAmqpConnection implements AmqpConnection {
         final Matcher matcher = URI_REGEX_PATTERN.matcher(uri);
 
         if (matcher.matches()) {
-            protocol = matcher.group(AmqpConnection.UriRegex.PROTOCOL_REGEX_GROUP);
-            username = matcher.group(AmqpConnection.UriRegex.USERNAME_REGEX_GROUP);
-            password = matcher.group(AmqpConnection.UriRegex.PASSWORD_REGEX_GROUP);
-            hostname = matcher.group(AmqpConnection.UriRegex.HOSTNAME_REGEX_GROUP);
-            port = Integer.parseInt(matcher.group(AmqpConnection.UriRegex.PORT_REGEX_GROUP));
-            path = matcher.group(AmqpConnection.UriRegex.PATH_REGEX_GROUP);
+            protocol = matcher.group(Connection.UriRegex.PROTOCOL_REGEX_GROUP);
+            username = matcher.group(Connection.UriRegex.USERNAME_REGEX_GROUP);
+            password = matcher.group(Connection.UriRegex.PASSWORD_REGEX_GROUP);
+            hostname = matcher.group(Connection.UriRegex.HOSTNAME_REGEX_GROUP);
+            port = Integer.parseInt(matcher.group(Connection.UriRegex.PORT_REGEX_GROUP));
+            path = matcher.group(Connection.UriRegex.PATH_REGEX_GROUP);
         } else {
             throw ConnectionUriInvalidException.newBuilder(uri).build();
         }
@@ -108,12 +108,12 @@ final class ImmutableAmqpConnection implements AmqpConnection {
      * @param authorizationContext the connection authorization context.
      * @return the ImmutableConnection.
      * @throws NullPointerException if any argument is {@code null}.
-     * @throws ConnectionUriInvalidException if {@code uri} does not conform to {@link AmqpConnection.UriRegex#REGEX}.
+     * @throws ConnectionUriInvalidException if {@code uri} does not conform to {@link Connection.UriRegex#REGEX}.
      */
-    public static AmqpConnection of(final String id,
+    public static Connection of(final String id,
             final ConnectionType connectionType, final String uri,
             final AuthorizationContext authorizationContext) {
-        return ImmutableAmqpConnectionBuilder.of(id, connectionType, uri, authorizationContext)
+        return ImmutableConnectionBuilder.of(id, connectionType, uri, authorizationContext)
                 .build();
     }
 
@@ -125,7 +125,7 @@ final class ImmutableAmqpConnection implements AmqpConnection {
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} is not an appropriate JSON object.
      */
-    public static AmqpConnection fromJson(final JsonObject jsonObject) {
+    public static Connection fromJson(final JsonObject jsonObject) {
         final String readId = jsonObject.getValueOrThrow(JsonFields.ID);
         final ConnectionType readConnectionType = ConnectionType.forName(readId.substring(0, readId.indexOf(':')))
                 .orElseThrow(() -> JsonParseException.newBuilder().message("Invalid connection type.").build());
@@ -156,8 +156,8 @@ final class ImmutableAmqpConnection implements AmqpConnection {
         final Optional<Integer> readConsumerCount = jsonObject.getValue(JsonFields.CONSUMER_COUNT);
         final Optional<Integer> readProcessorPoolSize = jsonObject.getValue(JsonFields.PROCESSOR_POOL_SIZE);
 
-        final AmqpConnectionBuilder builder =
-                ImmutableAmqpConnectionBuilder.of(readId, readConnectionType, readUri, readAuthorizationContext);
+        final ConnectionBuilder builder =
+                ImmutableConnectionBuilder.of(readId, readConnectionType, readUri, readAuthorizationContext);
         readSources.ifPresent(builder::sources);
         readEventTarget.ifPresent(builder::eventTarget);
         readReplyTarget.ifPresent(builder::replyTarget);
@@ -295,7 +295,7 @@ final class ImmutableAmqpConnection implements AmqpConnection {
     public boolean equals(@Nullable final Object o) {
         if (this == o) {return true;}
         if (o == null || getClass() != o.getClass()) {return false;}
-        final ImmutableAmqpConnection that = (ImmutableAmqpConnection) o;
+        final ImmutableConnection that = (ImmutableConnection) o;
         return failoverEnabled == that.failoverEnabled &&
                 port == that.port &&
                 Objects.equals(id, that.id) &&

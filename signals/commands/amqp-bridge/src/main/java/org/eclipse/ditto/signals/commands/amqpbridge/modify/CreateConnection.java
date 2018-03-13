@@ -39,10 +39,10 @@ import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 
 import org.eclipse.ditto.model.amqpbridge.AmqpBridgeModelFactory;
-import org.eclipse.ditto.model.amqpbridge.AmqpConnection;
+import org.eclipse.ditto.model.amqpbridge.Connection;
 
 /**
- * Command which creates a {@link AmqpConnection}.
+ * Command which creates a {@link Connection}.
  */
 @Immutable
 public final class CreateConnection extends AbstractCommand<CreateConnection>
@@ -66,13 +66,13 @@ public final class CreateConnection extends AbstractCommand<CreateConnection>
             JsonFactory.newJsonArrayFieldDefinition("mappingContexts", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
-    private final AmqpConnection amqpConnection;
+    private final Connection connection;
     private final List<MappingContext> mappingContexts;
 
-    private CreateConnection(final AmqpConnection amqpConnection, final List<MappingContext> mappingContexts,
+    private CreateConnection(final Connection connection, final List<MappingContext> mappingContexts,
             final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
-        this.amqpConnection = amqpConnection;
+        this.connection = connection;
         this.mappingContexts = Collections.unmodifiableList(new ArrayList<>(mappingContexts));
     }
 
@@ -84,7 +84,7 @@ public final class CreateConnection extends AbstractCommand<CreateConnection>
      * @return a new CreateConnection command.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static CreateConnection of(final AmqpConnection amqpConnection, final DittoHeaders dittoHeaders) {
+    public static CreateConnection of(final Connection amqpConnection, final DittoHeaders dittoHeaders) {
         return of(amqpConnection, Collections.emptyList(), dittoHeaders);
     }
 
@@ -97,7 +97,7 @@ public final class CreateConnection extends AbstractCommand<CreateConnection>
      * @return a new CreateConnection command.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static CreateConnection of(final AmqpConnection amqpConnection, final List<MappingContext> mappingContexts,
+    public static CreateConnection of(final Connection amqpConnection, final List<MappingContext> mappingContexts,
             final DittoHeaders dittoHeaders) {
         checkNotNull(amqpConnection, "Connection");
         checkNotNull(mappingContexts, "mapping Contexts");
@@ -132,7 +132,7 @@ public final class CreateConnection extends AbstractCommand<CreateConnection>
     public static CreateConnection fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<CreateConnection>(TYPE, jsonObject).deserialize(() -> {
             final JsonObject jsonConnection = jsonObject.getValueOrThrow(JSON_CONNECTION);
-            final AmqpConnection readAmqpConnection = AmqpBridgeModelFactory.connectionFromJson(jsonConnection);
+            final Connection readAmqpConnection = AmqpBridgeModelFactory.connectionFromJson(jsonConnection);
             final JsonArray mappingContexts = jsonObject.getValue(JSON_MAPPING_CONTEXTS)
                     .orElse(JsonFactory.newArray());
             final List<MappingContext> readMappingContexts = mappingContexts.stream()
@@ -148,8 +148,8 @@ public final class CreateConnection extends AbstractCommand<CreateConnection>
     /**
      * @return the {@code AmqpConnection} to be created.
      */
-    public AmqpConnection getAmqpConnection() {
-        return amqpConnection;
+    public Connection getConnection() {
+        return connection;
     }
 
     /**
@@ -163,7 +163,7 @@ public final class CreateConnection extends AbstractCommand<CreateConnection>
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(JSON_CONNECTION, amqpConnection.toJson(schemaVersion, thePredicate), predicate);
+        jsonObjectBuilder.set(JSON_CONNECTION, connection.toJson(schemaVersion, thePredicate), predicate);
         jsonObjectBuilder.set(JSON_MAPPING_CONTEXTS, mappingContexts.stream()
                         .map(ms -> ms.toJson(schemaVersion, thePredicate))
                         .collect(JsonCollectors.valuesToArray()), predicate);
@@ -171,12 +171,12 @@ public final class CreateConnection extends AbstractCommand<CreateConnection>
 
     @Override
     public String getConnectionId() {
-        return amqpConnection.getId();
+        return connection.getId();
     }
 
     @Override
     public CreateConnection setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(amqpConnection, mappingContexts, dittoHeaders);
+        return of(connection, mappingContexts, dittoHeaders);
     }
 
     @Override
@@ -196,20 +196,20 @@ public final class CreateConnection extends AbstractCommand<CreateConnection>
             return false;
         }
         final CreateConnection that = (CreateConnection) o;
-        return Objects.equals(amqpConnection, that.amqpConnection) && Objects.equals(
+        return Objects.equals(connection, that.connection) && Objects.equals(
                 mappingContexts, that.mappingContexts);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), amqpConnection, mappingContexts);
+        return Objects.hash(super.hashCode(), connection, mappingContexts);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 super.toString() +
-                ", amqpConnection=" + amqpConnection +
+                ", connection=" + connection +
                 ", mappingContexts=" + mappingContexts +
                 "]";
     }

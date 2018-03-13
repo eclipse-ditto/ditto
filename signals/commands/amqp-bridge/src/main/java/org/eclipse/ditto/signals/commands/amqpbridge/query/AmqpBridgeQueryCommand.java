@@ -14,13 +14,13 @@ package org.eclipse.ditto.signals.commands.amqpbridge.query;
 import java.util.Optional;
 
 import org.eclipse.ditto.json.JsonFieldSelector;
-import org.eclipse.ditto.model.amqpbridge.AmqpConnection;
+import org.eclipse.ditto.model.amqpbridge.Connection;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.signals.commands.amqpbridge.AmqpBridgeCommand;
 
 /**
  * Aggregates all {@link AmqpBridgeCommand}s which query the state of
- * a {@link AmqpConnection}.
+ * a {@link Connection}.
  *
  * @param <T> the type of the implementing class.
  */

@@ -47,9 +47,9 @@ import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
 
 /**
- * Actor which receives message from an AMQP source and forwards them to a {@code CommandProcessorActor}.
+ * Actor which receives message from an AMQP source and forwards them to a {@code MessageMappingProcessorActor}.
  */
-final class CommandConsumerActor extends AbstractActor implements MessageListener {
+final class AmqpConsumerActor extends AbstractActor implements MessageListener {
 
     /**
      * The name of this Actor in the ActorSystem.
@@ -60,30 +60,31 @@ final class CommandConsumerActor extends AbstractActor implements MessageListene
 
     private final String source;
     private final MessageConsumer messageConsumer;
-    private final ActorRef commandProcessor;
+    private final ActorRef messageMappingProcessor;
 
-    private CommandConsumerActor(final String source, final MessageConsumer messageConsumer,
-            final ActorRef commandProcessor) {
+    private AmqpConsumerActor(final String source, final MessageConsumer messageConsumer,
+            final ActorRef messageMappingProcessor) {
         this.source = checkNotNull(source, "source");
         this.messageConsumer = checkNotNull(messageConsumer);
-        this.commandProcessor = checkNotNull(commandProcessor, "commandProcessor");
+        this.messageMappingProcessor = checkNotNull(messageMappingProcessor, "messageMappingProcessor");
     }
 
     /**
-     * Creates Akka configuration object {@link Props} for this {@code CommandConsumerActor}.
+     * Creates Akka configuration object {@link Props} for this {@code AmqpConsumerActor}.
      *
      * @param source the source of messages
      * @param messageConsumer the JMS message consumer
-     * @param commandProcessor the command processor where received messages are forwarded to
+     * @param messageMappingProcessor the message mapping processor where received messages are forwarded to
      * @return the Akka configuration Props object.
      */
-    static Props props(final String source, final MessageConsumer messageConsumer, final ActorRef commandProcessor) {
-        return Props.create(CommandConsumerActor.class, new Creator<CommandConsumerActor>() {
+    static Props props(final String source, final MessageConsumer messageConsumer,
+            final ActorRef messageMappingProcessor) {
+        return Props.create(AmqpConsumerActor.class, new Creator<AmqpConsumerActor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
-            public CommandConsumerActor create() {
-                return new CommandConsumerActor(source, messageConsumer, commandProcessor);
+            public AmqpConsumerActor create() {
+                return new AmqpConsumerActor(source, messageConsumer, messageMappingProcessor);
             }
         });
     }
@@ -128,7 +129,7 @@ final class CommandConsumerActor extends AbstractActor implements MessageListene
             final ExternalMessage externalMessage = builder.build();
             log.debug("Forwarding to processor: {}, {}", externalMessage.getHeaders(),
                     externalMessage.getTextPayload().orElse("binary"));
-            commandProcessor.tell(externalMessage, self());
+            messageMappingProcessor.tell(externalMessage, self());
         } catch (final DittoRuntimeException e) {
             log.info("Got DittoRuntimeException '{}' when command was parsed: {}", e.getErrorCode(), e.getMessage());
         } catch (final Exception e) {

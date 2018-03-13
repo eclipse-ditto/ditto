@@ -33,11 +33,11 @@ import org.junit.Test;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link ImmutableAmqpConnection}.
+ * Unit test for {@link ImmutableConnection}.
  */
 public final class ImmutableAmqpConnectionTest {
 
-    private static final Pattern URI_PATTERN = Pattern.compile(AmqpConnection.UriRegex.REGEX);
+    private static final Pattern URI_PATTERN = Pattern.compile(Connection.UriRegex.REGEX);
 
     private static final ConnectionType TYPE = ConnectionType.AMQP_10;
 
@@ -52,40 +52,40 @@ public final class ImmutableAmqpConnectionTest {
     private static final String TARGET = "eventQueue";
 
     private static final JsonObject KNOWN_JSON = JsonObject.newBuilder()
-            .set(AmqpConnection.JsonFields.ID, ID)
-            .set(AmqpConnection.JsonFields.URI, URI)
-            .set(AmqpConnection.JsonFields.AUTHORIZATION_CONTEXT, AUTHORIZATION_CONTEXT.stream()
+            .set(Connection.JsonFields.ID, ID)
+            .set(Connection.JsonFields.URI, URI)
+            .set(Connection.JsonFields.AUTHORIZATION_CONTEXT, AUTHORIZATION_CONTEXT.stream()
                     .map(AuthorizationSubject::getId)
                     .map(JsonFactory::newValue)
                     .collect(JsonCollectors.valuesToArray()))
-            .set(AmqpConnection.JsonFields.SOURCES, SOURCES.stream()
+            .set(Connection.JsonFields.SOURCES, SOURCES.stream()
                     .map(JsonFactory::newValue)
                     .collect(JsonCollectors.valuesToArray()))
-            .set(AmqpConnection.JsonFields.EVENT_TARGET, TARGET)
-            .set(AmqpConnection.JsonFields.FAILOVER_ENABLED, true)
-            .set(AmqpConnection.JsonFields.VALIDATE_CERTIFICATES, true)
-            .set(AmqpConnection.JsonFields.THROTTLE, -1)
-            .set(AmqpConnection.JsonFields.CONSUMER_COUNT, 1)
-            .set(AmqpConnection.JsonFields.PROCESSOR_POOL_SIZE, 5)
+            .set(Connection.JsonFields.EVENT_TARGET, TARGET)
+            .set(Connection.JsonFields.FAILOVER_ENABLED, true)
+            .set(Connection.JsonFields.VALIDATE_CERTIFICATES, true)
+            .set(Connection.JsonFields.THROTTLE, -1)
+            .set(Connection.JsonFields.CONSUMER_COUNT, 1)
+            .set(Connection.JsonFields.PROCESSOR_POOL_SIZE, 5)
             .build();
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(ImmutableAmqpConnection.class)
+        EqualsVerifier.forClass(ImmutableConnection.class)
                 .usingGetClass()
                 .verify();
     }
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(ImmutableAmqpConnection.class, areImmutable(),
+        assertInstancesOf(ImmutableConnection.class, areImmutable(),
                 provided(AuthorizationContext.class).isAlsoImmutable());
     }
 
     @Test
     public void createInstanceWithNullId() {
         assertThatExceptionOfType(NullPointerException.class)
-                .isThrownBy(() -> ImmutableAmqpConnection.of(null, TYPE, URI, AUTHORIZATION_CONTEXT))
+                .isThrownBy(() -> ImmutableConnection.of(null, TYPE, URI, AUTHORIZATION_CONTEXT))
                 .withMessage("The %s must not be null!", "ID")
                 .withNoCause();
     }
@@ -93,7 +93,7 @@ public final class ImmutableAmqpConnectionTest {
     @Test
     public void createInstanceWithNullUri() {
         assertThatExceptionOfType(NullPointerException.class)
-                .isThrownBy(() -> ImmutableAmqpConnection.of(ID, TYPE, null, AUTHORIZATION_CONTEXT))
+                .isThrownBy(() -> ImmutableConnection.of(ID, TYPE, null, AUTHORIZATION_CONTEXT))
                 .withMessage("The %s must not be null!", "URI")
                 .withNoCause();
     }
@@ -101,7 +101,7 @@ public final class ImmutableAmqpConnectionTest {
     @Test
     public void createInstanceWithNullAuthorizationSubject() {
         assertThatExceptionOfType(NullPointerException.class)
-                .isThrownBy(() -> ImmutableAmqpConnection.of(ID, TYPE, URI, null))
+                .isThrownBy(() -> ImmutableConnection.of(ID, TYPE, URI, null))
                 .withMessage("The %s must not be null!", "Authorization Context")
                 .withNoCause();
     }
@@ -110,7 +110,7 @@ public final class ImmutableAmqpConnectionTest {
     public void createInstanceWithNullSources() {
         assertThatExceptionOfType(NullPointerException.class)
                 .isThrownBy(
-                        () -> ImmutableAmqpConnectionBuilder.of(ID, TYPE, URI, AUTHORIZATION_CONTEXT)
+                        () -> ImmutableConnectionBuilder.of(ID, TYPE, URI, AUTHORIZATION_CONTEXT)
                                 .sources((Set) null))
                 .withMessage("The %s must not be null!", "Sources")
                 .withNoCause();
@@ -120,7 +120,7 @@ public final class ImmutableAmqpConnectionTest {
     public void createInstanceWithNullEventTarget() {
         assertThatExceptionOfType(NullPointerException.class)
                 .isThrownBy(
-                        () -> ImmutableAmqpConnectionBuilder.of(ID, TYPE, URI, AUTHORIZATION_CONTEXT).eventTarget(null))
+                        () -> ImmutableConnectionBuilder.of(ID, TYPE, URI, AUTHORIZATION_CONTEXT).eventTarget(null))
                 .withMessage("The %s must not be null!", "eventTarget")
                 .withNoCause();
     }
@@ -129,20 +129,20 @@ public final class ImmutableAmqpConnectionTest {
     public void createInstanceWithNullReplyTarget() {
         assertThatExceptionOfType(NullPointerException.class)
                 .isThrownBy(
-                        () -> ImmutableAmqpConnectionBuilder.of(ID, TYPE, URI, AUTHORIZATION_CONTEXT).replyTarget(null))
+                        () -> ImmutableConnectionBuilder.of(ID, TYPE, URI, AUTHORIZATION_CONTEXT).replyTarget(null))
                 .withMessage("The %s must not be null!", "replyTarget")
                 .withNoCause();
     }
 
     @Test
     public void fromJsonReturnsExpected() {
-        final AmqpConnection expected =
+        final Connection expected =
                 AmqpBridgeModelFactory.newConnectionBuilder(ID, TYPE, URI, AUTHORIZATION_CONTEXT)
                         .sources(SOURCES)
                         .eventTarget(TARGET)
                         .build();
 
-        final AmqpConnection actual = ImmutableAmqpConnection.fromJson(KNOWN_JSON);
+        final Connection actual = ImmutableConnection.fromJson(KNOWN_JSON);
 
         assertThat(actual).isEqualTo(expected);
     }
@@ -166,12 +166,12 @@ public final class ImmutableAmqpConnectionTest {
         final boolean matches = matcher.matches();
 
         assertThat(matches).isTrue();
-        assertThat(matcher.group(AmqpConnection.UriRegex.PROTOCOL_REGEX_GROUP)).isEqualTo("amqps");
-        assertThat(matcher.group(AmqpConnection.UriRegex.USERNAME_REGEX_GROUP)).isEqualTo("foo");
-        assertThat(matcher.group(AmqpConnection.UriRegex.PASSWORD_REGEX_GROUP)).isEqualTo("bar");
-        assertThat(matcher.group(AmqpConnection.UriRegex.HOSTNAME_REGEX_GROUP)).isEqualTo("hono.eclipse.org");
-        assertThat(matcher.group(AmqpConnection.UriRegex.PORT_REGEX_GROUP)).isEqualTo("5671");
-        assertThat(matcher.group(AmqpConnection.UriRegex.PATH_REGEX_GROUP)).isEqualTo("vhost");
+        assertThat(matcher.group(Connection.UriRegex.PROTOCOL_REGEX_GROUP)).isEqualTo("amqps");
+        assertThat(matcher.group(Connection.UriRegex.USERNAME_REGEX_GROUP)).isEqualTo("foo");
+        assertThat(matcher.group(Connection.UriRegex.PASSWORD_REGEX_GROUP)).isEqualTo("bar");
+        assertThat(matcher.group(Connection.UriRegex.HOSTNAME_REGEX_GROUP)).isEqualTo("hono.eclipse.org");
+        assertThat(matcher.group(Connection.UriRegex.PORT_REGEX_GROUP)).isEqualTo("5671");
+        assertThat(matcher.group(Connection.UriRegex.PATH_REGEX_GROUP)).isEqualTo("vhost");
     }
 
     @Test
@@ -180,7 +180,7 @@ public final class ImmutableAmqpConnectionTest {
 
         final boolean matches = matcher.matches();
         assertThat(matches).isTrue();
-        assertThat(matcher.group(AmqpConnection.UriRegex.PATH_REGEX_GROUP)).isNull();
+        assertThat(matcher.group(Connection.UriRegex.PATH_REGEX_GROUP)).isNull();
     }
 
     @Test

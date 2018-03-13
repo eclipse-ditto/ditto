@@ -27,7 +27,7 @@ import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
-import org.eclipse.ditto.model.amqpbridge.AmqpConnection;
+import org.eclipse.ditto.model.amqpbridge.Connection;
 
 /**
  * Unit test for {@link CreateConnection}.
@@ -49,7 +49,7 @@ public final class CreateConnectionTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(CreateConnection.class, areImmutable(), provided(AmqpConnection.class, MappingContext.class)
+        assertInstancesOf(CreateConnection.class, areImmutable(), provided(Connection.class, MappingContext.class)
                 .isAlsoImmutable
                 ());
     }

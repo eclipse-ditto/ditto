@@ -25,7 +25,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.NotThreadSafe;
-import javax.jms.Connection;
 import javax.jms.ConnectionFactory;
 import javax.jms.ExceptionListener;
 import javax.jms.JMSException;
@@ -33,58 +32,58 @@ import javax.naming.Context;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
 
-import org.eclipse.ditto.model.amqpbridge.AmqpConnection;
+import org.eclipse.ditto.model.amqpbridge.Connection;
 import org.slf4j.LoggerFactory;
 
 /**
- * Factory for creating a {@link javax.jms.Connection} based on a {@link AmqpConnection}.
+ * Factory for creating a {@link javax.jms.Connection} based on a {@link Connection}.
  */
 @NotThreadSafe
-public final class AmqpConnectionBasedJmsConnectionFactory implements JmsConnectionFactory {
+public final class ConnectionBasedJmsConnectionFactory implements JmsConnectionFactory {
 
     private static final org.slf4j.Logger LOGGER =
-            LoggerFactory.getLogger(AmqpConnectionBasedJmsConnectionFactory.class);
+            LoggerFactory.getLogger(ConnectionBasedJmsConnectionFactory.class);
 
-    private AmqpConnectionBasedJmsConnectionFactory() {
+    private ConnectionBasedJmsConnectionFactory() {
         // no-op
     }
 
     /**
-     * Returns an instance of {@code AmqpConnectionBasedJmsConnectionFactory}.
+     * Returns an instance of {@code ConnectionBasedJmsConnectionFactory}.
      *
      * @return the instance.
      */
-    public static AmqpConnectionBasedJmsConnectionFactory getInstance() {
-        return new AmqpConnectionBasedJmsConnectionFactory();
+    public static ConnectionBasedJmsConnectionFactory getInstance() {
+        return new ConnectionBasedJmsConnectionFactory();
     }
 
     @Override
-    public Connection createConnection(final AmqpConnection amqpConnection, final ExceptionListener exceptionListener)
+    public javax.jms.Connection createConnection(final Connection connection, final ExceptionListener exceptionListener)
             throws JMSException, NamingException {
-        checkNotNull(amqpConnection, "Connection");
+        checkNotNull(connection, "Connection");
         checkNotNull(exceptionListener, "Exception Listener");
 
-        final Context ctx = createContext(amqpConnection);
-        final ConnectionFactory cf = (javax.jms.ConnectionFactory) ctx.lookup(amqpConnection.getId());
+        final Context ctx = createContext(connection);
+        final ConnectionFactory cf = (javax.jms.ConnectionFactory) ctx.lookup(connection.getId());
 
-        @SuppressWarnings("squid:S2095") final Connection connection = cf.createConnection();
-        connection.setExceptionListener(exceptionListener);
-        return connection;
+        @SuppressWarnings("squid:S2095") final javax.jms.Connection jmsConnection = cf.createConnection();
+        jmsConnection.setExceptionListener(exceptionListener);
+        return jmsConnection;
     }
 
-    private Context createContext(final AmqpConnection amqpConnection) throws NamingException {
-        final String id = amqpConnection.getId();
-        final String username = amqpConnection.getUsername();
-        final String password = amqpConnection.getPassword();
-        final String protocol = amqpConnection.getProtocol();
-        final String hostname = amqpConnection.getHostname();
-        final int port = amqpConnection.getPort();
-        final boolean failoverEnabled = amqpConnection.isFailoverEnabled();
+    private Context createContext(final Connection connection) throws NamingException {
+        final String id = connection.getId();
+        final String username = connection.getUsername();
+        final String password = connection.getPassword();
+        final String protocol = connection.getProtocol();
+        final String hostname = connection.getHostname();
+        final int port = connection.getPort();
+        final boolean failoverEnabled = connection.isFailoverEnabled();
 
         final String baseUri = formatUri(protocol, hostname, port);
 
         final List<String> parameters = new ArrayList<>(getAmqpParameters());
-        if (!amqpConnection.isValidateCertificates()) {
+        if (!connection.isValidateCertificates()) {
             parameters.addAll(getTransportParameters());
         }
         final String nestedUri = baseUri + parameters.stream().collect(Collectors.joining("&", "?", ""));
@@ -101,7 +100,7 @@ public final class AmqpConnectionBasedJmsConnectionFactory implements JmsConnect
         LOGGER.debug("[{}] URI: {}", id, connectionUri);
         @SuppressWarnings("squid:S1149") final Hashtable<Object, Object> env = new Hashtable<>();
         env.put(Context.INITIAL_CONTEXT_FACTORY, "org.apache.qpid.jms.jndi.JmsInitialContextFactory");
-        env.put("connectionfactory." + amqpConnection.getId(), connectionUri);
+        env.put("connectionfactory." + connection.getId(), connectionUri);
 
         return new InitialContext(env);
     }

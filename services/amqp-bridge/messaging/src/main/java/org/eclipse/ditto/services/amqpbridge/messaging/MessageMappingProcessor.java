@@ -47,12 +47,13 @@ import kamon.trace.TraceContext;
 import scala.Option;
 
 /**
- * Processes incoming bridge messages to commands and command responses to bridge messages.
- * This command processor encapsulates the message processing logic from the command processor actor.
+ * Processes incoming {@link ExternalMessage}s to {@link Signal}s and {@link Signal}s back to {@link ExternalMessage}s.
+ * Encapsulates the message processing logic from the message mapping processor actor.
  */
-public final class CommandProcessor {
+public final class MessageMappingProcessor {
 
-    private static final String CONTEXT_NAME = CommandProcessor.class.getSimpleName();
+    private static final String CONTEXT_NAME = MessageMappingProcessor.class.getSimpleName();
+
     private static final String SEGMENT_CATEGORY = "payload-mapping";
     private static final String MAPPING_SEGMENT_NAME = "mapping";
     private static final String PROTOCOL_SEGMENT_NAME = "protocoladapter";
@@ -64,7 +65,7 @@ public final class CommandProcessor {
     private final DiagnosticLoggingAdapter log;
 
 
-    private CommandProcessor(final MessageMapperRegistry registry, final DiagnosticLoggingAdapter log) {
+    private MessageMappingProcessor(final MessageMapperRegistry registry, final DiagnosticLoggingAdapter log) {
         this.registry = registry;
         this.log = log;
     }
@@ -78,11 +79,11 @@ public final class CommandProcessor {
      * @param log the log adapter
      * @return the processor instance
      */
-    public static CommandProcessor of(final List<MappingContext> contexts, final DynamicAccess access,
+    public static MessageMappingProcessor of(final List<MappingContext> contexts, final DynamicAccess access,
             final DiagnosticLoggingAdapter log) {
         final MessageMapperRegistry registry = DefaultMessageMapperFactory.of(access, MessageMappers.class, log)
                 .registryOf(DittoMessageMapper.CONTEXT, contexts);
-        return new CommandProcessor(registry, log);
+        return new MessageMappingProcessor(registry, log);
     }
 
     /**
@@ -106,7 +107,7 @@ public final class CommandProcessor {
     }
 
     /**
-     * Processes an ExternalMessage to a Signal
+     * Processes an ExternalMessage to a Signal.
      *
      * @param message the message
      * @return the signal
@@ -122,7 +123,7 @@ public final class CommandProcessor {
     }
 
     /**
-     * Processes a Signal to an ExternalMessage
+     * Processes a Signal to an ExternalMessage.
      *
      * @param signal the signal
      * @return the message

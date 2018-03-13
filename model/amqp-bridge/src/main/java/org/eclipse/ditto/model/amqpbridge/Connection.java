@@ -28,10 +28,10 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 
 /**
- * Represents a connection within the AMQP Bridge.
+ * Represents a connection within the Connectivity service.
  */
 @Immutable
-public interface AmqpConnection extends Jsonifiable.WithFieldSelectorAndPredicate<JsonField> {
+public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<JsonField> {
 
     /**
      * Returns the identifier of this {@code Connection}.

@@ -40,7 +40,10 @@ import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
 
-public class CommandConsumerActor extends AbstractActor {
+/**
+ * Actor which receives message from an RabbitMQ source and forwards them to a {@code MessageMappingProcessorActor}.
+ */
+public final class RabbitMQConsumerActor extends AbstractActor {
 
     private static final String MESSAGE_ID_HEADER = "messageId";
     private static final String EXCHANGE_HEADER = "exchange";
@@ -50,25 +53,26 @@ public class CommandConsumerActor extends AbstractActor {
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
-    private final ActorRef commandProcessor;
+    private final ActorRef messageMappingProcessor;
 
-    private CommandConsumerActor(@Nullable final ActorRef commandProcessor) {
-        this.commandProcessor = checkNotNull(commandProcessor, "commandProcessor");
+    private RabbitMQConsumerActor(@Nullable final ActorRef messageMappingProcessor) {
+        this.messageMappingProcessor = checkNotNull(messageMappingProcessor, "messageMappingProcessor");
     }
 
     /**
-     * Creates Akka configuration object {@link Props} for this {@code CommandConsumerActor}.
+     * Creates Akka configuration object {@link Props} for this {@code RabbitMQConsumerActor}.
      *
+     * @param messageMappingProcessor the message mapping processor where received messages are forwarded to
      * @return the Akka configuration Props object.
      */
-    static Props props(@Nullable final ActorRef commandProcessor) {
+    static Props props(@Nullable final ActorRef messageMappingProcessor) {
         return Props.create(
-                CommandConsumerActor.class, new Creator<CommandConsumerActor>() {
+                RabbitMQConsumerActor.class, new Creator<RabbitMQConsumerActor>() {
                     private static final long serialVersionUID = 1L;
 
                     @Override
-                    public CommandConsumerActor create() {
-                        return new CommandConsumerActor(commandProcessor);
+                    public RabbitMQConsumerActor create() {
+                        return new RabbitMQConsumerActor(messageMappingProcessor);
                     }
                 });
     }
@@ -102,7 +106,7 @@ public class CommandConsumerActor extends AbstractActor {
             }
             final ExternalMessage externalMessage = externalMessageBuilder.build();
             log.debug("Received message from RabbitMQ ({}//{}): {}", envelope, properties);
-            commandProcessor.forward(externalMessage, context());
+            messageMappingProcessor.forward(externalMessage, context());
         } catch (final Exception e) {
             log.warning("Processing delivery {} failed: {}", envelope.getDeliveryTag(), e.getMessage(), e);
         }

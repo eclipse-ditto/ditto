@@ -19,38 +19,38 @@ import java.security.NoSuchAlgorithmException;
 
 import javax.net.ssl.SSLContext;
 
-import org.eclipse.ditto.model.amqpbridge.AmqpConnection;
+import org.eclipse.ditto.model.amqpbridge.Connection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.rabbitmq.client.ConnectionFactory;
 
 /**
- * Factory for creating a RabbitMQ {@link ConnectionFactory} based on a {@link AmqpConnection}.
+ * Factory for creating a RabbitMQ {@link ConnectionFactory} based on a {@link Connection}.
  */
-public class AmqpConnectionBasedRabbitConnectionFactory {
+public final class ConnectionBasedRabbitConnectionFactory {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(AmqpConnectionBasedRabbitConnectionFactory.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(ConnectionBasedRabbitConnectionFactory.class);
 
     private static final String SECURE_AMQP_SCHEME = "amqps";
 
-    private AmqpConnectionBasedRabbitConnectionFactory() {
+    private ConnectionBasedRabbitConnectionFactory() {
         // no-op
     }
 
     /**
-     * Returns an instance of {@code AmqpConnectionBasedRabbitConnectionFactory}.
-     * @param amqpConnection the amqp connection
+     * Returns an instance of {@code ConnectionBasedRabbitConnectionFactory}.
+     * @param connection the connection
      * @return the instance.
      */
-    public static ConnectionFactory createConnection(final AmqpConnection amqpConnection) {
-        checkNotNull(amqpConnection, "Connection");
+    public static ConnectionFactory createConnection(final Connection connection) {
+        checkNotNull(connection, "Connection");
 
         try {
             final ConnectionFactory connectionFactory = new ConnectionFactory();
 
-            if (SECURE_AMQP_SCHEME.equalsIgnoreCase(amqpConnection.getProtocol())) {
-                if (amqpConnection.isValidateCertificates()) {
+            if (SECURE_AMQP_SCHEME.equalsIgnoreCase(connection.getProtocol())) {
+                if (connection.isValidateCertificates()) {
                     connectionFactory.useSslProtocol(SSLContext.getDefault());
                 } else {
                     // attention: this accepts all certificates whether they are valid or not
@@ -58,9 +58,9 @@ public class AmqpConnectionBasedRabbitConnectionFactory {
                 }
             }
 
-            connectionFactory.setUri(amqpConnection.getUri());
+            connectionFactory.setUri(connection.getUri());
 
-            if (amqpConnection.isFailoverEnabled()) {
+            if (connection.isFailoverEnabled()) {
                 connectionFactory.setAutomaticRecoveryEnabled(true);
             } else {
                 connectionFactory.setAutomaticRecoveryEnabled(false);

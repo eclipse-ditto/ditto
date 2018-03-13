@@ -32,7 +32,6 @@ import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 
@@ -55,15 +54,15 @@ import kamon.trace.TraceContext;
 import scala.Option;
 
 /**
- * This Actor processes incoming {@link Command}s and dispatches them via {@link DistributedPubSubMediator} to a
+ * This Actor processes incoming {@link Signal}s and dispatches them via {@link DistributedPubSubMediator} to a
  * consumer actor.
  */
-public final class CommandProcessorActor extends AbstractActor {
+public final class MessageMappingProcessorActor extends AbstractActor {
 
     /**
      * The name of this Actor in the ActorSystem.
      */
-    public static final String ACTOR_NAME_PREFIX = "amqpCommandProcessor-";
+    public static final String ACTOR_NAME_PREFIX = "messageMappingProcessor-";
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
@@ -73,9 +72,9 @@ public final class CommandProcessorActor extends AbstractActor {
     private final AuthorizationContext authorizationContext;
     private final Cache<String, TraceContext> traces;
 
-    private final CommandProcessor processor;
+    private final MessageMappingProcessor processor;
 
-    private CommandProcessorActor(final ActorRef pubSubMediator, final String pubSubTargetPath,
+    private MessageMappingProcessorActor(final ActorRef pubSubMediator, final String pubSubTargetPath,
             final ActorRef commandProducer, final AuthorizationContext authorizationContext,
             final List<MappingContext> mappingContexts) {
         this.pubSubMediator = pubSubMediator;
@@ -88,7 +87,7 @@ public final class CommandProcessorActor extends AbstractActor {
                         -> log.debug("Trace for {} removed.", notification.getKey()))
                 .build();
 
-        this.processor = CommandProcessor.of(mappingContexts, getDynamicAccess(), log);
+        this.processor = MessageMappingProcessor.of(mappingContexts, getDynamicAccess(), log);
 
         log.info("Configured for processing messages with the following content types: {}",
                 processor.getSupportedContentTypes());
@@ -98,11 +97,11 @@ public final class CommandProcessorActor extends AbstractActor {
     /**
      * Creates Akka configuration object for this actor.
      *
-     * @param pubSubMediator the akka pubsub mediator actor.
+     * @param pubSubMediator the akka pubsub mediator actor
      * @param pubSubTargetPath the target path where incoming messages are sent
      * @param commandProducer actor that handles outgoing messages
-     * @param authorizationContext the authorization context (authorized subjects) that are set in command headers.
-     * @param mappingContexts the mapping contexts to apply for different content-types.
+     * @param authorizationContext the authorization context (authorized subjects) that are set in command headers
+     * @param mappingContexts the mapping contexts to apply for different content-types
      * @return the Akka configuration Props object
      */
     public static Props props(final ActorRef pubSubMediator, final String pubSubTargetPath,
@@ -110,12 +109,12 @@ public final class CommandProcessorActor extends AbstractActor {
             final AuthorizationContext authorizationContext,
             final List<MappingContext> mappingContexts) {
 
-        return Props.create(CommandProcessorActor.class, new Creator<CommandProcessorActor>() {
+        return Props.create(MessageMappingProcessorActor.class, new Creator<MessageMappingProcessorActor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
-            public CommandProcessorActor create() {
-                return new CommandProcessorActor(pubSubMediator, pubSubTargetPath, commandProducer,
+            public MessageMappingProcessorActor create() {
+                return new MessageMappingProcessorActor(pubSubMediator, pubSubTargetPath, commandProducer,
                         authorizationContext, mappingContexts);
             }
         });

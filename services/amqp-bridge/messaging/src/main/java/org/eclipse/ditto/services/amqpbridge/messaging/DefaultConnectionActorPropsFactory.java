@@ -23,7 +23,7 @@ import akka.actor.Props;
 /**
  * The default implementation of {@link ConnectionActorPropsFactory}.
  */
-public class DefaultConnectionActorPropsFactory implements ConnectionActorPropsFactory {
+public final class DefaultConnectionActorPropsFactory implements ConnectionActorPropsFactory {
 
     private static final DefaultConnectionActorPropsFactory INSTANCE = new DefaultConnectionActorPropsFactory();
 

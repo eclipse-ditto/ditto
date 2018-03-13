@@ -51,7 +51,7 @@ import scala.concurrent.duration.Duration;
 /**
  * Actor which handles connection to AMQP 0.9.1 server.
  */
-public class RabbitMQClientActor extends BaseClientActor {
+public final class RabbitMQClientActor extends BaseClientActor {
 
     private static final String RMQ_CONNECTION_PREFIX = "rmq-connection-";
     private static final String RMQ_PUBLISHER_PREFIX = "rmq-publisher-";
@@ -101,13 +101,13 @@ public class RabbitMQClientActor extends BaseClientActor {
     }
 
     private void handleThingEvent(final ThingEvent<?> thingEvent) {
-        if (commandProcessor != null) {
-            commandProcessor.tell(thingEvent, self());
+        if (messageMappingProcessor != null) {
+            messageMappingProcessor.tell(thingEvent, self());
         }
     }
 
     private void handleConnect(final CreateConnection connect) {
-        amqpConnection = connect.getAmqpConnection();
+        connection = connect.getConnection();
         mappingContexts = connect.getMappingContexts();
 
         // reset receive timeout when CreateConnection is received
@@ -129,20 +129,20 @@ public class RabbitMQClientActor extends BaseClientActor {
     }
 
     private void connect() {
-        if (rmqConnectionActor == null && amqpConnection != null) {
+        if (rmqConnectionActor == null && connection != null) {
             final ConnectionFactory connectionFactory =
-                    AmqpConnectionBasedRabbitConnectionFactory.createConnection(amqpConnection);
+                    ConnectionBasedRabbitConnectionFactory.createConnection(connection);
 
             final Props props = com.newmotion.akka.rabbitmq.ConnectionActor.props(connectionFactory,
                     com.newmotion.akka.rabbitmq.ConnectionActor.props$default$2(),
                     com.newmotion.akka.rabbitmq.ConnectionActor.props$default$3());
             rmqConnectionActor = startChildActor(RMQ_CONNECTION_PREFIX + connectionId, props);
 
-            final Props publisherProps = RabbitMQPublisherActor.props(amqpConnection);
+            final Props publisherProps = RabbitMQPublisherActor.props(connection);
             rmqPublisherActor =
                     startChildActor(RabbitMQPublisherActor.ACTOR_NAME_PREFIX + connectionId, publisherProps);
 
-            startCommandProcessor(rmqPublisherActor);
+            startMessageMappingProcessor(rmqPublisherActor);
 
             // create publisher channel
             rmqConnectionActor.tell(
@@ -172,7 +172,7 @@ public class RabbitMQClientActor extends BaseClientActor {
     private void handleDisconnect(final AmqpBridgeModifyCommand<?> cmd) {
         log.debug("Handling <{}> command: {}", cmd.getType(), cmd);
         stopCommandConsumers();
-        stopCommandProcessor();
+        stopMessageMappingProcessor();
         stopCommandPublisher();
         if (consumerChannelActor != null) {
             stopChildActor(consumerChannelActor);
@@ -229,7 +229,7 @@ public class RabbitMQClientActor extends BaseClientActor {
     private void startConsumers(final Channel channel) {
         getSourcesOrEmptySet().forEach(source -> {
             final ActorRef commandConsumer =
-                    startChildActor("consumer-" + source, CommandConsumerActor.props(commandProcessor));
+                    startChildActor("consumer-" + source, RabbitMQConsumerActor.props(messageMappingProcessor));
             try {
                 final String consumerTag =
                         channel.basicConsume(source, false,

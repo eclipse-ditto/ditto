@@ -20,7 +20,7 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.amqpbridge.AmqpConnection;
+import org.eclipse.ditto.model.amqpbridge.Connection;
 import org.eclipse.ditto.model.amqpbridge.ConnectionStatus;
 import org.eclipse.ditto.model.amqpbridge.MappingContext;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -64,9 +64,9 @@ public abstract class BaseClientActor extends AbstractActor {
     private final ActorRef connectionActor;
     private final java.time.Duration initTimeout;
 
-    @Nullable protected AmqpConnection amqpConnection;
+    @Nullable protected Connection connection;
     @Nullable protected List<MappingContext> mappingContexts;
-    @Nullable protected ActorRef commandProcessor;
+    @Nullable protected ActorRef messageMappingProcessor;
     @Nullable private ConnectionStatus connectionStatus;
 
     protected BaseClientActor(final String connectionId, final ActorRef connectionActor,
@@ -92,36 +92,35 @@ public abstract class BaseClientActor extends AbstractActor {
         getContext().setReceiveTimeout(Duration.fromNanos(initTimeout.toNanos()));
     }
 
-    protected void startCommandProcessor(final ActorRef commandProducer) {
-        checkNotNull(amqpConnection, "AmqpConnection");
+    protected void startMessageMappingProcessor(final ActorRef commandProducer) {
+        checkNotNull(connection, "Connection");
         checkNotNull(mappingContexts, "MappingContexts");
         checkNotNull(pubSubTargetPath, "PubSubTargetPath");
-        if (commandProcessor == null) {
+        if (messageMappingProcessor == null) {
 
-            log.debug("Starting CommandProcessorActor with pool size of {}.", amqpConnection.getProcessorPoolSize());
-            final Props commandProcessorProps =
-                    CommandProcessorActor.props(pubSubMediator, pubSubTargetPath, commandProducer,
-                            amqpConnection.getAuthorizationContext(), mappingContexts);
-            final String amqpCommandProcessorName = getCommandProcessorActorName(amqpConnection.getId());
+            log.debug("Starting MessageMappingProcessorActor with pool size of {}.", connection.getProcessorPoolSize());
+            final Props props = MessageMappingProcessorActor.props(pubSubMediator, pubSubTargetPath, commandProducer,
+                            connection.getAuthorizationContext(), mappingContexts);
+            final String messageMappingProcessorName = getMessageMappingProcessorActorName(connection.getId());
 
-            final DefaultResizer resizer = new DefaultResizer(1, amqpConnection.getProcessorPoolSize());
-            commandProcessor = getContext().actorOf(new RoundRobinPool(1)
-                    .withDispatcher("command-processor-dispatcher")
+            final DefaultResizer resizer = new DefaultResizer(1, connection.getProcessorPoolSize());
+            messageMappingProcessor = getContext().actorOf(new RoundRobinPool(1)
+                    .withDispatcher("message-mapping-processor-dispatcher")
                     .withResizer(resizer)
-                    .props(commandProcessorProps), amqpCommandProcessorName);
+                    .props(props), messageMappingProcessorName);
         }
     }
 
-    protected void stopCommandProcessor() {
-        if (commandProcessor != null) {
-            log.debug("Stopping CommandProcessorActor.");
-            context().stop(commandProcessor);
-            commandProcessor = null;
+    protected void stopMessageMappingProcessor() {
+        if (messageMappingProcessor != null) {
+            log.debug("Stopping MessageMappingProcessorActor.");
+            context().stop(messageMappingProcessor);
+            messageMappingProcessor = null;
         }
     }
 
-    private String getCommandProcessorActorName(final String connectionId) {
-        return escapeActorName(CommandProcessorActor.ACTOR_NAME_PREFIX + connectionId);
+    private String getMessageMappingProcessorActorName(final String connectionId) {
+        return escapeActorName(MessageMappingProcessorActor.ACTOR_NAME_PREFIX + connectionId);
     }
 
     protected String escapeActorName(final String name) {
@@ -167,36 +166,36 @@ public abstract class BaseClientActor extends AbstractActor {
     }
 
     private void handleConnectionResponse(final RetrieveConnectionResponse rcr) {
-        if (amqpConnection == null) {
-            amqpConnection = rcr.getAmqpConnection();
-            log.debug("Received AmqpConnection: {}", amqpConnection);
+        if (connection == null) {
+            connection = rcr.getConnection();
+            log.debug("Received Connection: {}", connection);
             connectIfStatusIsOpen();
         }
     }
 
     private void connectIfStatusIsOpen() {
-        if (amqpConnection != null && connectionStatus != null && ConnectionStatus.OPEN.equals(connectionStatus)) {
-            final CreateConnection connect = CreateConnection.of(amqpConnection, DittoHeaders.empty());
+        if (connection != null && connectionStatus != null && ConnectionStatus.OPEN.equals(connectionStatus)) {
+            final CreateConnection connect = CreateConnection.of(connection, DittoHeaders.empty());
             log.info("Sending CreateConnection to myself: {}", connect);
             self().tell(connect, sender());
         }
     }
 
     protected boolean isConsumingCommands() {
-        return amqpConnection != null && amqpConnection.getSources().isPresent() &&
-                !amqpConnection.getSources().get().isEmpty();
+        return connection != null && connection.getSources().isPresent() &&
+                !connection.getSources().get().isEmpty();
     }
 
     protected boolean isPublishingEvents() {
-        return amqpConnection != null && amqpConnection.getEventTarget().isPresent() &&
-                !amqpConnection.getEventTarget().get().isEmpty();
+        return connection != null && connection.getEventTarget().isPresent() &&
+                !connection.getEventTarget().get().isEmpty();
     }
 
     /**
      * @return the sources configured for this connection or an empty set if no sources were configured.
      */
     protected Set<String> getSourcesOrEmptySet() {
-        return amqpConnection != null ? amqpConnection.getSources().orElse(Collections.emptySet()) :
+        return connection != null ? connection.getSources().orElse(Collections.emptySet()) :
                 Collections.emptySet();
     }
 }

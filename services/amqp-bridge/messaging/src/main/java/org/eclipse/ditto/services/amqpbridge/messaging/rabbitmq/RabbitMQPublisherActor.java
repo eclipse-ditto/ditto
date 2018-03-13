@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.amqpbridge.AmqpConnection;
+import org.eclipse.ditto.model.amqpbridge.Connection;
 import org.eclipse.ditto.model.amqpbridge.ExternalMessage;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMappers;
@@ -39,7 +39,7 @@ import akka.japi.pf.ReceiveBuilder;
 /**
  * Responsible for publishing {@link ExternalMessage}s into RabbitMQ / AMQP 0.9.1.
  */
-public class RabbitMQPublisherActor extends AbstractActor {
+public final class RabbitMQPublisherActor extends AbstractActor {
 
     /**
      * The name prefix of this Actor in the ActorSystem.
@@ -50,27 +50,27 @@ public class RabbitMQPublisherActor extends AbstractActor {
     private static final String DEFAULT_EVENT_ROUTING_KEY = "thingEvent";
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
-    private final AmqpConnection amqpConnection;
+    private final Connection connection;
     @Nullable private ActorRef channelActor;
 
-    private RabbitMQPublisherActor(final AmqpConnection amqpConnection) {
-        this.amqpConnection = checkNotNull(amqpConnection, "amqpConnection");
+    private RabbitMQPublisherActor(final Connection connection) {
+        this.connection = checkNotNull(connection, "connection");
     }
 
 
     /**
-     * Creates Akka configuration object {@link Props} for this {@code CommandConsumerActor}.
+     * Creates Akka configuration object {@link Props} for this {@code RabbitMQPublisherActor}.
      *
-     * @param amqpConnection the amqp connection configuration
+     * @param connection the connection configuration
      * @return the Akka configuration Props object.
      */
-    static Props props(final AmqpConnection amqpConnection) {
+    static Props props(final Connection connection) {
         return Props.create(RabbitMQPublisherActor.class, new Creator<RabbitMQPublisherActor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
             public RabbitMQPublisherActor create() {
-                return new RabbitMQPublisherActor(amqpConnection);
+                return new RabbitMQPublisherActor(connection);
             }
         });
     }
@@ -84,7 +84,7 @@ public class RabbitMQPublisherActor extends AbstractActor {
                             response.getHeaders().get(DittoHeaderDefinition.CORRELATION_ID.getKey());
                     LogUtil.enhanceLogWithCorrelationId(log, correlationId);
                     log.debug("Received response {} ", response);
-                    final String exchange = amqpConnection.getReplyTarget().orElse(DEFAULT_EXCHANGE);
+                    final String exchange = connection.getReplyTarget().orElse(DEFAULT_EXCHANGE);
                     final String routingKey = response.getHeaders().get(ExternalMessage.REPLY_TO_HEADER);
                     if (routingKey != null) {
                         publishMessage(exchange, routingKey, response);
@@ -97,8 +97,8 @@ public class RabbitMQPublisherActor extends AbstractActor {
                     LogUtil.enhanceLogWithCorrelationId(log, correlationId);
                     log.info("Received event {} ", event);
 
-                    if (amqpConnection.getEventTarget().isPresent()) {
-                        final String exchange = amqpConnection.getEventTarget().get();
+                    if (connection.getEventTarget().isPresent()) {
+                        final String exchange = connection.getEventTarget().get();
                         publishMessage(exchange, DEFAULT_EVENT_ROUTING_KEY, event);
                     } else {
                         log.info("Dropping event, no target exchange configured.");

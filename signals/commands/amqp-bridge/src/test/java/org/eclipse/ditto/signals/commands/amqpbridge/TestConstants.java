@@ -19,7 +19,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.eclipse.ditto.model.amqpbridge.AmqpBridgeModelFactory;
-import org.eclipse.ditto.model.amqpbridge.AmqpConnection;
+import org.eclipse.ditto.model.amqpbridge.Connection;
 import org.eclipse.ditto.model.amqpbridge.ConnectionStatus;
 import org.eclipse.ditto.model.amqpbridge.ConnectionType;
 import org.eclipse.ditto.model.amqpbridge.MappingContext;
@@ -44,7 +44,7 @@ public final class TestConstants {
 
     public static String TARGET = "eventQueue";
 
-    public static AmqpConnection CONNECTION =
+    public static Connection CONNECTION =
             AmqpBridgeModelFactory.newConnectionBuilder(ID, TYPE, URI, AUTHORIZATION_CONTEXT)
                     .sources(SOURCES)
                     .eventTarget(TARGET)

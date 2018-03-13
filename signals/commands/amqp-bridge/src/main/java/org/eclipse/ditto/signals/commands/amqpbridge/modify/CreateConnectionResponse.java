@@ -32,7 +32,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.amqpbridge.AmqpBridgeModelFactory;
-import org.eclipse.ditto.model.amqpbridge.AmqpConnection;
+import org.eclipse.ditto.model.amqpbridge.Connection;
 import org.eclipse.ditto.model.amqpbridge.MappingContext;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -61,10 +61,10 @@ public final class CreateConnectionResponse extends AbstractCommandResponse<Crea
             JsonFactory.newJsonArrayFieldDefinition("mappingContexts", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
-    private final AmqpConnection amqpConnection;
+    private final Connection amqpConnection;
     private final List<MappingContext> mappingContexts;
 
-    private CreateConnectionResponse(final AmqpConnection amqpConnection, final List<MappingContext> mappingContexts,
+    private CreateConnectionResponse(final Connection amqpConnection, final List<MappingContext> mappingContexts,
             final DittoHeaders dittoHeaders) {
         super(TYPE, HttpStatusCode.CREATED, dittoHeaders);
         this.amqpConnection = amqpConnection;
@@ -80,7 +80,7 @@ public final class CreateConnectionResponse extends AbstractCommandResponse<Crea
      * @return a new CreateConnectionResponse.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static CreateConnectionResponse of(final AmqpConnection amqpConnection,
+    public static CreateConnectionResponse of(final Connection amqpConnection,
             final List<MappingContext> mappingContexts, final DittoHeaders dittoHeaders) {
         checkNotNull(amqpConnection, "Connection");
         return new CreateConnectionResponse(amqpConnection, mappingContexts, dittoHeaders);
@@ -115,7 +115,7 @@ public final class CreateConnectionResponse extends AbstractCommandResponse<Crea
         return new CommandResponseJsonDeserializer<CreateConnectionResponse>(TYPE, jsonObject).deserialize(
                 statusCode -> {
                     final JsonObject jsonConnection = jsonObject.getValueOrThrow(JSON_CONNECTION);
-                    final AmqpConnection readAmqpConnection = AmqpBridgeModelFactory.connectionFromJson(jsonConnection);
+                    final Connection readAmqpConnection = AmqpBridgeModelFactory.connectionFromJson(jsonConnection);
 
                     final JsonArray mappingContexts = jsonObject.getValue(JSON_MAPPING_CONTEXTS)
                             .orElse(JsonFactory.newArray());
@@ -134,7 +134,7 @@ public final class CreateConnectionResponse extends AbstractCommandResponse<Crea
      *
      * @return the Connection.
      */
-    public AmqpConnection getAmqpConnection() {
+    public Connection getAmqpConnection() {
         return amqpConnection;
     }
 

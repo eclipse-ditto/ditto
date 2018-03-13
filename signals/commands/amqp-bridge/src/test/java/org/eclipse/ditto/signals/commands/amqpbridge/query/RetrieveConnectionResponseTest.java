@@ -28,9 +28,7 @@ import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
-import org.eclipse.ditto.model.amqpbridge.AmqpConnection;
-
-import com.eclipsesource.json.Json;
+import org.eclipse.ditto.model.amqpbridge.Connection;
 
 /**
  * Unit test for {@link RetrieveConnectionResponse}.
@@ -54,7 +52,7 @@ public final class RetrieveConnectionResponseTest {
     @Test
     public void assertImmutability() {
         assertInstancesOf(RetrieveConnectionResponse.class, areImmutable(),
-                provided(AmqpConnection.class, MappingContext.class).isAlsoImmutable());
+                provided(Connection.class, MappingContext.class).isAlsoImmutable());
     }
 
     @Test

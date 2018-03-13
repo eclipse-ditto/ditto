@@ -23,7 +23,7 @@ import java.util.Set;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.amqpbridge.AmqpBridgeModelFactory;
-import org.eclipse.ditto.model.amqpbridge.AmqpConnection;
+import org.eclipse.ditto.model.amqpbridge.Connection;
 import org.eclipse.ditto.model.amqpbridge.ConnectionType;
 import org.eclipse.ditto.model.amqpbridge.MappingContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
@@ -85,7 +85,7 @@ public class JsonExamplesProducer {
         final Path eventsDir = rootPath.resolve(Paths.get("events"));
         Files.createDirectories(eventsDir);
 
-        final AmqpConnection amqpConnection =
+        final Connection amqpConnection =
                 AmqpBridgeModelFactory.newConnectionBuilder(ID, TYPE, URI, AUTHORIZATION_CONTEXT)
                         .sources(SOURCES)
                         .eventTarget(TARGET)

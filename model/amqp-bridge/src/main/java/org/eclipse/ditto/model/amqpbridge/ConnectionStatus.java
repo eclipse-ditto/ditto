@@ -17,7 +17,7 @@ import java.util.Arrays;
 import java.util.Optional;
 
 /**
- * An enumeration of status of a {@link AmqpConnection}.
+ * An enumeration of status of a {@link Connection}.
  */
 public enum ConnectionStatus implements CharSequence {
 

@@ -11,12 +11,12 @@
  */
 package org.eclipse.ditto.signals.commands.amqpbridge.modify;
 
-import org.eclipse.ditto.model.amqpbridge.AmqpConnection;
+import org.eclipse.ditto.model.amqpbridge.Connection;
 import org.eclipse.ditto.signals.base.WithOptionalEntity;
 import org.eclipse.ditto.signals.commands.amqpbridge.AmqpBridgeCommand;
 
 /**
- * Aggregates all {@link AmqpBridgeCommand}s which modify the state of a {@link AmqpConnection}.
+ * Aggregates all {@link AmqpBridgeCommand}s which modify the state of a {@link Connection}.
  *
  * @param <T> the type of the implementing class.
  */

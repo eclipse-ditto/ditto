@@ -32,7 +32,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.amqpbridge.AmqpBridgeModelFactory;
-import org.eclipse.ditto.model.amqpbridge.AmqpConnection;
+import org.eclipse.ditto.model.amqpbridge.Connection;
 import org.eclipse.ditto.model.amqpbridge.MappingContext;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -62,13 +62,13 @@ public final class RetrieveConnectionResponse extends AbstractCommandResponse<Re
             JsonFactory.newJsonArrayFieldDefinition("mappingContexts", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
-    private final AmqpConnection amqpConnection;
+    private final Connection connection;
     private final List<MappingContext> mappingContexts;
 
-    private RetrieveConnectionResponse(final AmqpConnection amqpConnection, final List<MappingContext> mappingContexts,
+    private RetrieveConnectionResponse(final Connection connection, final List<MappingContext> mappingContexts,
             final DittoHeaders dittoHeaders) {
         super(TYPE, HttpStatusCode.OK, dittoHeaders);
-        this.amqpConnection = amqpConnection;
+        this.connection = connection;
         this.mappingContexts = Collections.unmodifiableList(new ArrayList<>(mappingContexts));
     }
 
@@ -80,7 +80,7 @@ public final class RetrieveConnectionResponse extends AbstractCommandResponse<Re
      * @return a new RetrieveConnectionResponse response.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static RetrieveConnectionResponse of(final AmqpConnection amqpConnection, final DittoHeaders dittoHeaders) {
+    public static RetrieveConnectionResponse of(final Connection amqpConnection, final DittoHeaders dittoHeaders) {
         return of(amqpConnection, Collections.emptyList(), dittoHeaders);
     }
 
@@ -93,7 +93,7 @@ public final class RetrieveConnectionResponse extends AbstractCommandResponse<Re
      * @return a new RetrieveConnectionResponse response.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static RetrieveConnectionResponse of(final AmqpConnection amqpConnection,
+    public static RetrieveConnectionResponse of(final Connection amqpConnection,
             final List<MappingContext> mappingContexts, final DittoHeaders dittoHeaders) {
         checkNotNull(amqpConnection, "Connection");
         checkNotNull(mappingContexts, "mapping Contexts");
@@ -129,7 +129,7 @@ public final class RetrieveConnectionResponse extends AbstractCommandResponse<Re
         return new CommandResponseJsonDeserializer<RetrieveConnectionResponse>(TYPE, jsonObject).deserialize(
                 statusCode -> {
                     final JsonObject jsonConnection = jsonObject.getValueOrThrow(JSON_CONNECTION);
-                    final AmqpConnection readAmqpConnection = AmqpBridgeModelFactory.connectionFromJson(jsonConnection);
+                    final Connection readAmqpConnection = AmqpBridgeModelFactory.connectionFromJson(jsonConnection);
 
                     final JsonArray mappingContexts = jsonObject.getValue(JSON_MAPPING_CONTEXTS)
                             .orElse(JsonFactory.newArray());
@@ -147,17 +147,17 @@ public final class RetrieveConnectionResponse extends AbstractCommandResponse<Re
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(JSON_CONNECTION, amqpConnection.toJson(schemaVersion, thePredicate), predicate);
+        jsonObjectBuilder.set(JSON_CONNECTION, connection.toJson(schemaVersion, thePredicate), predicate);
         jsonObjectBuilder.set(JSON_MAPPING_CONTEXTS, mappingContexts.stream()
                 .map(ms -> ms.toJson(schemaVersion, thePredicate))
                 .collect(JsonCollectors.valuesToArray()), predicate);
     }
 
     /**
-     * @return the {@code AmqpConnection}.
+     * @return the {@code Connection}.
      */
-    public AmqpConnection getAmqpConnection() {
-        return amqpConnection;
+    public Connection getConnection() {
+        return connection;
     }
 
     /**
@@ -169,7 +169,7 @@ public final class RetrieveConnectionResponse extends AbstractCommandResponse<Re
 
     @Override
     public String getConnectionId() {
-        return amqpConnection.getId();
+        return connection.getId();
     }
 
     @Override
@@ -179,12 +179,12 @@ public final class RetrieveConnectionResponse extends AbstractCommandResponse<Re
 
     @Override
     public JsonValue getEntity(final JsonSchemaVersion schemaVersion) {
-        return amqpConnection.toJson(schemaVersion);
+        return connection.toJson(schemaVersion);
     }
 
     @Override
     public RetrieveConnectionResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(amqpConnection, dittoHeaders);
+        return of(connection, dittoHeaders);
     }
 
     @Override
@@ -198,20 +198,20 @@ public final class RetrieveConnectionResponse extends AbstractCommandResponse<Re
         if (o == null || getClass() != o.getClass()) {return false;}
         if (!super.equals(o)) {return false;}
         final RetrieveConnectionResponse that = (RetrieveConnectionResponse) o;
-        return Objects.equals(amqpConnection, that.amqpConnection) &&
+        return Objects.equals(connection, that.connection) &&
                 Objects.equals(mappingContexts, that.mappingContexts);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), amqpConnection, mappingContexts);
+        return Objects.hash(super.hashCode(), connection, mappingContexts);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 super.toString() +
-                ", amqpConnection=" + amqpConnection +
+                ", connection=" + connection +
                 ", mappingContexts=" + mappingContexts +
                 "]";
     }

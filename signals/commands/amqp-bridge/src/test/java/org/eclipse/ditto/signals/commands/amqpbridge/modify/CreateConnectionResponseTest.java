@@ -21,7 +21,7 @@ import java.util.Collections;
 
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.amqpbridge.AmqpConnection;
+import org.eclipse.ditto.model.amqpbridge.Connection;
 import org.eclipse.ditto.model.amqpbridge.MappingContext;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -52,7 +52,7 @@ public final class CreateConnectionResponseTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(CreateConnectionResponse.class, areImmutable(), provided(AmqpConnection.class,
+        assertInstancesOf(CreateConnectionResponse.class, areImmutable(), provided(Connection.class,
                 MappingContext.class)
                 .isAlsoImmutable());
     }

@@ -32,7 +32,7 @@ import org.eclipse.ditto.model.amqpbridge.MappingContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.services.amqpbridge.mapping.mapper.MessageMappers;
-import org.eclipse.ditto.services.amqpbridge.messaging.CommandProcessorActor;
+import org.eclipse.ditto.services.amqpbridge.messaging.MessageMappingProcessorActor;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttribute;
 import org.junit.AfterClass;
@@ -53,7 +53,7 @@ import akka.routing.RoundRobinPool;
 import akka.testkit.javadsl.TestKit;
 
 /**
- * Tests the AMQP {@link CommandConsumerActor}.
+ * Tests the AMQP {@link AmqpConsumerActor}.
  */
 public class CommandConsumerActorTest {
 
@@ -152,15 +152,16 @@ public class CommandConsumerActorTest {
                         .getProperties()
             ));
 
-            final Props amqpCommandProcessorProps =
-                    CommandProcessorActor.props(pubSubMediator, targetActorPath, getRef(),
+            final Props messageMappingProcessorProps =
+                    MessageMappingProcessorActor.props(pubSubMediator, targetActorPath, getRef(),
                             AuthorizationContext.newInstance(AuthorizationSubject.newInstance("foo:bar")),
                             mappingContexts);
-            final String amqpCommandProcessorName = CommandProcessorActor.ACTOR_NAME_PREFIX + "foo";
+            final String messageMappingProcessorName = MessageMappingProcessorActor.ACTOR_NAME_PREFIX + "foo";
 
-            final ActorRef processor = actorSystem.actorOf(amqpCommandProcessorProps, amqpCommandProcessorName);
+            final ActorRef processor = actorSystem.actorOf(messageMappingProcessorProps, messageMappingProcessorName);
 
-            final ActorRef underTest = actorSystem.actorOf(CommandConsumerActor.props("foo", Mockito.mock(MessageConsumer.class), processor));
+            final ActorRef underTest = actorSystem.actorOf(
+                    AmqpConsumerActor.props("foo", Mockito.mock(MessageConsumer.class), processor));
 
             final String plainPayload = "hello world!";
             final String correlationId = "cor-";
@@ -193,17 +194,17 @@ public class CommandConsumerActorTest {
 
         pubSubMediator.tell(new DistributedPubSubMediator.Put(testActor), null);
         final String pubSubTarget = testActor.path().toStringWithoutAddress();
-        final Props amqpCommandProcessorProps =
-                CommandProcessorActor.props(pubSubMediator, pubSubTarget, testActor,
+        final Props messageMappingProcessorProps =
+                MessageMappingProcessorActor.props(pubSubMediator, pubSubTarget, testActor,
                         AuthorizationContext.newInstance(AuthorizationSubject.newInstance("foo:bar")),
                         mappingContexts);
-        final String amqpCommandProcessorName = CommandProcessorActor.ACTOR_NAME_PREFIX + UUID.randomUUID().toString();
+        final String messageMappingProcessorName = MessageMappingProcessorActor.ACTOR_NAME_PREFIX + UUID.randomUUID().toString();
 
         final DefaultResizer resizer = new DefaultResizer(1, 5);
 
         return actorSystem.actorOf(new RoundRobinPool(2)
-                .withDispatcher("command-processor-dispatcher")
+                .withDispatcher("message-mapping-processor-dispatcher")
                 .withResizer(resizer)
-                .props(amqpCommandProcessorProps), amqpCommandProcessorName);
+                .props(messageMappingProcessorProps), messageMappingProcessorName);
     }
 }

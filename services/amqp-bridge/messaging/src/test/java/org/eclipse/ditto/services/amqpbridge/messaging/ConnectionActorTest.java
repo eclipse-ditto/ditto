@@ -15,7 +15,7 @@ import java.util.Collections;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import org.eclipse.ditto.model.amqpbridge.AmqpConnection;
+import org.eclipse.ditto.model.amqpbridge.Connection;
 import org.eclipse.ditto.model.amqpbridge.ConnectionStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.signals.commands.amqpbridge.exceptions.ConnectionNotAccessibleException;
@@ -76,11 +76,11 @@ public class ConnectionActorTest {
     @Before
     public void init() {
         connectionId = TestConstants.createRandomConnectionId();
-        final AmqpConnection amqpConnection = TestConstants.createConnection(connectionId);
-        createConnection = CreateConnection.of(amqpConnection, DittoHeaders.empty());
+        final Connection connection = TestConstants.createConnection(connectionId);
+        createConnection = CreateConnection.of(connection, DittoHeaders.empty());
         deleteConnection = DeleteConnection.of(connectionId, DittoHeaders.empty());
         createConnectionResponse =
-                CreateConnectionResponse.of(amqpConnection, Collections.emptyList(), DittoHeaders.empty());
+                CreateConnectionResponse.of(connection, Collections.emptyList(), DittoHeaders.empty());
         closeConnection = CloseConnection.of(connectionId, DittoHeaders.empty());
         closeConnectionResponse = CloseConnectionResponse.of(connectionId, DittoHeaders.empty());
         deleteConnectionResponse = DeleteConnectionResponse.of(connectionId, DittoHeaders.empty());

@@ -19,7 +19,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 
 /**
- * Factory to create new {@link AmqpConnection} instances.
+ * Factory to create new {@link Connection} instances.
  */
 @Immutable
 public final class AmqpBridgeModelFactory {
@@ -38,10 +38,10 @@ public final class AmqpBridgeModelFactory {
      * @return the ImmutableConnection.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static AmqpConnection newConnection(final String id,
+    public static Connection newConnection(final String id,
             final ConnectionType connectionType, final String uri,
             final AuthorizationContext authorizationContext) {
-        return ImmutableAmqpConnection.of(id, connectionType, uri, authorizationContext);
+        return ImmutableConnection.of(id, connectionType, uri, authorizationContext);
     }
 
     /**
@@ -54,10 +54,10 @@ public final class AmqpBridgeModelFactory {
      * @return the AmqpConnectionBuilder.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static AmqpConnectionBuilder newConnectionBuilder(final String id,
+    public static ConnectionBuilder newConnectionBuilder(final String id,
             final ConnectionType connectionType, final String uri,
             final AuthorizationContext authorizationContext) {
-        return ImmutableAmqpConnectionBuilder.of(id, connectionType, uri, authorizationContext);
+        return ImmutableConnectionBuilder.of(id, connectionType, uri, authorizationContext);
     }
 
     /**
@@ -68,8 +68,8 @@ public final class AmqpBridgeModelFactory {
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} is not an appropriate JSON object.
      */
-    public static AmqpConnection connectionFromJson(final JsonObject jsonObject) {
-        return ImmutableAmqpConnection.fromJson(jsonObject);
+    public static Connection connectionFromJson(final JsonObject jsonObject) {
+        return ImmutableConnection.fromJson(jsonObject);
     }
 
     /**

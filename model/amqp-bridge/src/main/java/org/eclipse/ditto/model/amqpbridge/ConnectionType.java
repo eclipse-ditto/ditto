@@ -19,7 +19,7 @@ import java.util.Arrays;
 import java.util.Optional;
 
 /**
- * An enumeration of connection types of a {@link AmqpConnection}.
+ * An enumeration of connection types of a {@link Connection}.
  */
 public enum ConnectionType implements CharSequence {
 

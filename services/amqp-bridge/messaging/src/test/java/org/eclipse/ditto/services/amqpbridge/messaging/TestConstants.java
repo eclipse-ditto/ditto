@@ -21,7 +21,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.eclipse.ditto.model.amqpbridge.AmqpBridgeModelFactory;
-import org.eclipse.ditto.model.amqpbridge.AmqpConnection;
+import org.eclipse.ditto.model.amqpbridge.Connection;
 import org.eclipse.ditto.model.amqpbridge.ConnectionType;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
@@ -61,7 +61,7 @@ public class TestConstants {
         return ConnectionType.AMQP_10.getName() + ":connection-" + UUID.randomUUID();
     }
 
-    public static AmqpConnection createConnection(final String connectionId) {
+    public static Connection createConnection(final String connectionId) {
         return AmqpBridgeModelFactory.newConnectionBuilder(connectionId, TYPE, URI, AUTHORIZATION_CONTEXT)
                 .sources(SOURCES)
                 .eventTarget(TARGET)

@@ -25,7 +25,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 
 /**
- * Thrown if a {@link AmqpConnection} as an invalid URI configured.
+ * Thrown if a {@link Connection} as an invalid URI configured.
  */
 @Immutable
 public final class ConnectionUriInvalidException extends DittoRuntimeException implements AmqpBridgeException {

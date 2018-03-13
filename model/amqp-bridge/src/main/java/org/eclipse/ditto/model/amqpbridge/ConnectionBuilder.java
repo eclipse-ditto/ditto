@@ -14,62 +14,62 @@ package org.eclipse.ditto.model.amqpbridge;
 import java.util.Set;
 
 /**
- * A mutable builder for a {@link AmqpConnection} with a fluent API.
+ * A mutable builder for a {@link Connection} with a fluent API.
  */
-public interface AmqpConnectionBuilder {
+public interface ConnectionBuilder {
 
     /**
-     * Enable/disable failover for the {@link AmqpConnection}.
+     * Enable/disable failover for the {@link Connection}.
      *
      * @param failoverEnabled if failover is enabled for this connection (default {@code true})
      * @return this builder to allow method chaining.
      */
-    AmqpConnectionBuilder failoverEnabled(boolean failoverEnabled);
+    ConnectionBuilder failoverEnabled(boolean failoverEnabled);
 
     /**
-     * Enable/disable validtion of certificates for the {@link AmqpConnection}.
+     * Enable/disable validtion of certificates for the {@link Connection}.
      *
      * @param validateCertificate if server certificates are validated (default {@code true})
      * @return this builder to allow method chaining.
      */
-    AmqpConnectionBuilder validateCertificate(boolean validateCertificate);
+    ConnectionBuilder validateCertificate(boolean validateCertificate);
 
     /**
-     * Set the throttling rate for the {@link AmqpConnection}.
+     * Set the throttling rate for the {@link Connection}.
      *
      * @param throttle the throttling rate per second (default {@code 0}, disabled)
      * @return this builder to allow method chaining.
      */
-    AmqpConnectionBuilder throttle(int throttle);
+    ConnectionBuilder throttle(int throttle);
 
     /**
-     * Set the consumer count for the {@link AmqpConnection}.
+     * Set the consumer count for the {@link Connection}.
      *
      * @param consumerCount the number of consumers that will be started in the cluster (default {@code 1})
      * @return this builder to allow method chaining.
      */
-    AmqpConnectionBuilder consumerCount(int consumerCount);
+    ConnectionBuilder consumerCount(int consumerCount);
 
     /**
-     * Set the command processor pool size for the {@link AmqpConnection}.
+     * Set the command processor pool size for the {@link Connection}.
      *
      * @param processorPoolSize number of command processor actors that will be used at max (default {@code 5})
      * @return this builder to allow method chaining.
      */
-    AmqpConnectionBuilder processorPoolSize(int processorPoolSize);
+    ConnectionBuilder processorPoolSize(int processorPoolSize);
 
-    AmqpConnectionBuilder sources(String... sources);
+    ConnectionBuilder sources(String... sources);
 
-    AmqpConnectionBuilder sources(Set<String> sources);
+    ConnectionBuilder sources(Set<String> sources);
 
-    AmqpConnectionBuilder eventTarget(String eventTarget);
+    ConnectionBuilder eventTarget(String eventTarget);
 
-    AmqpConnectionBuilder replyTarget(String replyTarget);
+    ConnectionBuilder replyTarget(String replyTarget);
 
     /**
-     * Builds a new {@link AmqpConnection}.
+     * Builds a new {@link Connection}.
      *
-     * @return the new {@link AmqpConnection}
+     * @return the new {@link Connection}
      */
-    AmqpConnection build();
+    Connection build();
 }

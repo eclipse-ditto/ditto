@@ -23,9 +23,9 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 
 /**
- * Builder for {@code ImmutableAmqpConnection}.
+ * Builder for {@code ImmutableConnection}.
  */
-class ImmutableAmqpConnectionBuilder implements AmqpConnectionBuilder {
+class ImmutableConnectionBuilder implements ConnectionBuilder {
 
     final String id;
     final ConnectionType connectionType;
@@ -40,7 +40,7 @@ class ImmutableAmqpConnectionBuilder implements AmqpConnectionBuilder {
     int consumerCount = 1;
     int processorPoolSize = 5;
 
-    private ImmutableAmqpConnectionBuilder(final String id, final ConnectionType connectionType,
+    private ImmutableConnectionBuilder(final String id, final ConnectionType connectionType,
             final String uri, final AuthorizationContext authorizationContext) {
         this.id = checkNotNull(id, "ID");
         this.connectionType = checkNotNull(connectionType, "Connection Type");
@@ -57,71 +57,71 @@ class ImmutableAmqpConnectionBuilder implements AmqpConnectionBuilder {
      * @param authorizationContext the authorization context
      * @return new instance of {@code ImmutableAmqpConnectionBuilder}
      */
-    static AmqpConnectionBuilder of(final String id, final ConnectionType connectionType,
+    static ConnectionBuilder of(final String id, final ConnectionType connectionType,
             final String uri, final AuthorizationContext authorizationContext) {
-        return new ImmutableAmqpConnectionBuilder(id, connectionType, uri, authorizationContext);
+        return new ImmutableConnectionBuilder(id, connectionType, uri, authorizationContext);
     }
 
     @Override
-    public AmqpConnectionBuilder failoverEnabled(final boolean failoverEnabled) {
+    public ConnectionBuilder failoverEnabled(final boolean failoverEnabled) {
         this.failoverEnabled = failoverEnabled;
         return this;
     }
 
     @Override
-    public AmqpConnectionBuilder validateCertificate(final boolean validateCertificate) {
+    public ConnectionBuilder validateCertificate(final boolean validateCertificate) {
         this.validateCertificate = validateCertificate;
         return this;
     }
 
     @Override
-    public AmqpConnectionBuilder throttle(final int throttle) {
+    public ConnectionBuilder throttle(final int throttle) {
         this.throttle = throttle;
         return this;
     }
 
     @Override
-    public AmqpConnectionBuilder consumerCount(final int consumerCount) {
+    public ConnectionBuilder consumerCount(final int consumerCount) {
         this.consumerCount = checkArgument(consumerCount, c -> c > 0, () -> "consumerCount must be positive");
         return this;
     }
 
     @Override
-    public AmqpConnectionBuilder processorPoolSize(final int processorPoolSize) {
+    public ConnectionBuilder processorPoolSize(final int processorPoolSize) {
         this.processorPoolSize = checkArgument(processorPoolSize, ps -> ps > 0, () -> "consumerCount must be positive");
         return this;
     }
 
     @Override
-    public AmqpConnectionBuilder sources(final String... sources) {
+    public ConnectionBuilder sources(final String... sources) {
         checkNotNull(sources, "Sources");
         this.sources = new HashSet<>(Arrays.asList(sources));
         return this;
     }
 
     @Override
-    public AmqpConnectionBuilder sources(final Set<String> sources) {
+    public ConnectionBuilder sources(final Set<String> sources) {
         checkNotNull(sources, "Sources");
         this.sources = new HashSet<>(sources);
         return this;
     }
 
     @Override
-    public AmqpConnectionBuilder eventTarget(final String eventTarget) {
+    public ConnectionBuilder eventTarget(final String eventTarget) {
         checkNotNull(eventTarget, "eventTarget");
         this.eventTarget = eventTarget;
         return this;
     }
 
     @Override
-    public AmqpConnectionBuilder replyTarget(final String replyTarget) {
+    public ConnectionBuilder replyTarget(final String replyTarget) {
         checkNotNull(replyTarget, "replyTarget");
         this.replyTarget = replyTarget;
         return this;
     }
 
     @Override
-    public AmqpConnection build() {
-        return new ImmutableAmqpConnection(this);
+    public Connection build() {
+        return new ImmutableConnection(this);
     }
 }

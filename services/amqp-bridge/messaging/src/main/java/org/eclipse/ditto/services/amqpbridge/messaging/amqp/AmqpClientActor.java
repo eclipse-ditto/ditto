@@ -19,13 +19,12 @@ import java.util.Map;
 import java.util.Optional;
 
 import javax.annotation.Nullable;
-import javax.jms.Connection;
 import javax.jms.ExceptionListener;
 import javax.jms.JMSException;
 import javax.jms.MessageConsumer;
 import javax.jms.Session;
 
-import org.eclipse.ditto.model.amqpbridge.AmqpConnection;
+import org.eclipse.ditto.model.amqpbridge.Connection;
 import org.eclipse.ditto.services.amqpbridge.messaging.BaseClientActor;
 import org.eclipse.ditto.services.models.amqpbridge.AmqpBridgeMessagingConstants;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -64,20 +63,20 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     private final AbstractActor.Receive disconnecting;
     private final AbstractActor.Receive disconnected;
 
-    @Nullable private Connection jmsConnection;
+    @Nullable private javax.jms.Connection jmsConnection;
     @Nullable private Session jmsSession;
     private State state = DISCONNECTED;
 
     private AmqpClientActor(final String connectionId, final ActorRef connectionActor) {
         this(connectionId, connectionActor, null, AmqpBridgeMessagingConstants.GATEWAY_PROXY_ACTOR_PATH,
-                AmqpConnectionBasedJmsConnectionFactory.getInstance());
+                ConnectionBasedJmsConnectionFactory.getInstance());
     }
 
     private AmqpClientActor(final String connectionId, final ActorRef connectionActor,
-            @Nullable final AmqpConnection amqpConnection,
+            @Nullable final Connection connection,
             final String pubSubTargetPath, final JmsConnectionFactory jmsConnectionFactory) {
         super(connectionId, connectionActor, pubSubTargetPath);
-        this.amqpConnection = amqpConnection;
+        this.connection = connection;
         this.jmsConnectionFactory = jmsConnectionFactory;
 
         final Receive defaultBehaviour = ReceiveBuilder.create()
@@ -133,13 +132,13 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
      *
      * @param connectionId the connection id
      * @param connectionActor the connection actor
-     * @param amqpConnection amqp connection parameters
+     * @param connection connection parameters
      * @param pubSubTargetPath the pub sub target path
      * @param jmsConnectionFactory the JMS connection factory
      * @return the Akka configuration Props object
      */
     public static Props props(final String connectionId, final ActorRef connectionActor,
-            final AmqpConnection amqpConnection,
+            final Connection connection,
             final String pubSubTargetPath,
             final JmsConnectionFactory jmsConnectionFactory) {
         return Props.create(AmqpClientActor.class, new Creator<AmqpClientActor>() {
@@ -147,7 +146,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
 
             @Override
             public AmqpClientActor create() {
-                return new AmqpClientActor(connectionId, connectionActor, amqpConnection, pubSubTargetPath,
+                return new AmqpClientActor(connectionId, connectionActor, connection, pubSubTargetPath,
                         jmsConnectionFactory);
             }
         });
@@ -160,7 +159,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
 
     private void handleConnect(final CreateConnection connect) {
         log.debug("Handling {} command: {}", connect.getType(), connect);
-        this.amqpConnection = connect.getAmqpConnection();
+        this.connection = connect.getConnection();
         this.mappingContexts = connect.getMappingContexts();
         changeBehaviour(State.CONNECTING);
 
@@ -176,7 +175,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         this.jmsSession = c.getSession();
         final Map<String, MessageConsumer> consumerMap = c.getConsumers();
         final ActorRef commandProducer = startCommandProducer();
-        startCommandProcessor(commandProducer);
+        startMessageMappingProcessor(commandProducer);
         startCommandConsumers(consumerMap);
         changeBehaviour(State.CONNECTED);
         c.getOrigin().tell(CONNECTED_SUCCESS, self());
@@ -186,7 +185,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         log.debug("Handling {} command: {}", disconnect.getType(), disconnect);
         changeBehaviour(State.DISCONNECTING);
         stopCommandConsumers();
-        stopCommandProcessor();
+        stopMessageMappingProcessor();
         stopCommandProducer();
         // delegate to child actor because the QPID JMS client is blocking until connection is opened/closed
         startConnectionHandlingActor("disconnect").tell(new JmsDisconnect(sender(), jmsConnection), self());
@@ -214,10 +213,10 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     }
 
     private void startCommandConsumer(final String source, final MessageConsumer messageConsumer) {
-        checkNotNull(commandProcessor, "commandProcessor");
-        final String name = CommandConsumerActor.ACTOR_NAME_PREFIX + source;
+        checkNotNull(messageMappingProcessor, "messageMappingProcessor");
+        final String name = AmqpConsumerActor.ACTOR_NAME_PREFIX + source;
         if (!getContext().findChild(name).isPresent()) {
-            final Props props = CommandConsumerActor.props(source, messageConsumer, commandProcessor);
+            final Props props = AmqpConsumerActor.props(source, messageConsumer, messageMappingProcessor);
             startChildActor(name, props);
         } else {
             log.debug("Child actor {} already exists.", name);
@@ -228,7 +227,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         final String name = AmqpPublisherActor.ACTOR_NAME;
         final Optional<ActorRef> child = getContext().findChild(name);
         if (!child.isPresent()) {
-            final Props props = AmqpPublisherActor.props(jmsSession, amqpConnection);
+            final Props props = AmqpPublisherActor.props(jmsSession, connection);
             return startChildActor(name, props);
         } else {
             return child.get();
@@ -241,22 +240,22 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     }
 
     private void stopCommandConsumers() {
-        getSourcesOrEmptySet().forEach(source -> stopChildActor(CommandConsumerActor.ACTOR_NAME_PREFIX + source));
+        getSourcesOrEmptySet().forEach(source -> stopChildActor(AmqpConsumerActor.ACTOR_NAME_PREFIX + source));
         log.info("Unsubscribed Connection '{}' from sources: {}", connectionId, getSourcesOrEmptySet());
     }
 
     private ActorRef startConnectionHandlingActor(final String suffix) {
         final String name =
                 JMSConnectionHandlingActor.ACTOR_NAME_PREFIX + escapeActorName(connectionId + "-" + suffix);
-        final Props props = JMSConnectionHandlingActor.props(amqpConnection, this, jmsConnectionFactory);
+        final Props props = JMSConnectionHandlingActor.props(connection, this, jmsConnectionFactory);
         return getContext().actorOf(props, name);
     }
 
     private void handleThingEvent(final ThingEvent<?> thingEvent) {
-        if (commandProcessor != null) {
-            commandProcessor.tell(thingEvent, self());
+        if (messageMappingProcessor != null) {
+            messageMappingProcessor.tell(thingEvent, self());
         } else {
-            log.info("Cannot publish <{}> event, no CommandProcessor available.", thingEvent.getType());
+            log.info("Cannot publish <{}> event, no MessageMappingProcessor available.", thingEvent.getType());
         }
     }
 
@@ -303,7 +302,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         final String message =
                 MessageFormat.format("Cannot execute command <{0}> in current state <{1}>.", command.getType(), state);
         final ConnectionFailedException failedException =
-                ConnectionFailedException.newBuilder(amqpConnection.getId()).message(message).build();
+                ConnectionFailedException.newBuilder(connection.getId()).message(message).build();
         getSender().tell(new Status.Failure(failedException), self());
     }
 
@@ -326,14 +325,14 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
      */
     static class JmsDisconnect extends WithOrigin {
 
-        private final Connection connection;
+        private final javax.jms.Connection connection;
 
-        JmsDisconnect(final ActorRef origin, @Nullable final Connection connection) {
+        JmsDisconnect(final ActorRef origin, @Nullable final javax.jms.Connection connection) {
             super(origin);
             this.connection = checkNotNull(connection, "connection");
         }
 
-        Connection getConnection() {
+        javax.jms.Connection getConnection() {
             return connection;
         }
     }
@@ -343,11 +342,11 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
      */
     static class JmsConnected extends WithOrigin {
 
-        private final Connection connection;
+        private final javax.jms.Connection connection;
         private final Session session;
         private final Map<String, MessageConsumer> consumers;
 
-        JmsConnected(final ActorRef origin, final Connection connection, final Session session,
+        JmsConnected(final ActorRef origin, final javax.jms.Connection connection, final Session session,
                 final Map<String, MessageConsumer> consumers) {
             super(origin);
             this.connection = connection;
@@ -355,7 +354,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
             this.consumers = consumers;
         }
 
-        Connection getConnection() {
+        javax.jms.Connection getConnection() {
             return connection;
         }
 

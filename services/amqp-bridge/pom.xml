@@ -22,7 +22,7 @@
 
     <artifactId>ditto-services-amqpbridge</artifactId>
     <packaging>pom</packaging>
-    <name>Eclipse Ditto :: Services :: AMQP Bridge</name>
+    <name>Eclipse Ditto :: Services :: Connectivity</name>
 
     <modules>
         <module>util</module>
@@ -31,22 +31,4 @@
         <module>starter</module>
     </modules>
 
-    <properties>
-        <netty.version>4.1.16.Final</netty.version>
-    </properties>
-
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>io.netty</groupId>
-                <artifactId>netty-codec</artifactId>
-                <version>${netty.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.netty</groupId>
-                <artifactId>netty-transport</artifactId>
-                <version>${netty.version}</version>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
 </project>

@@ -24,7 +24,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.model.amqpbridge.AmqpConnection;
+import org.eclipse.ditto.model.amqpbridge.Connection;
 import org.eclipse.ditto.model.amqpbridge.ConnectionStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
@@ -34,7 +34,7 @@ import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 
 /**
  * Command which retrieves the {@link ConnectionStatus} of a {@link
- * AmqpConnection}.
+ * Connection}.
  */
 @Immutable
 public final class RetrieveConnectionStatus extends AbstractCommand<RetrieveConnectionStatus>
