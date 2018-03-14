@@ -13,7 +13,6 @@ package org.eclipse.ditto.services.authorization.util.cache;
 
 import java.time.Duration;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.function.Function;
 
 import javax.annotation.Nullable;
@@ -28,6 +27,7 @@ import org.eclipse.ditto.model.policies.PolicyRevision;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingRevision;
+import org.eclipse.ditto.services.authorization.util.EntityRegionMap;
 import org.eclipse.ditto.services.authorization.util.cache.entry.Entry;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicy;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicyResponse;
@@ -38,8 +38,6 @@ import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
-import akka.actor.ActorRef;
-
 /**
  * Loads an enforcer by asking entity shard regions.
  */
@@ -47,7 +45,7 @@ import akka.actor.ActorRef;
 @AllValuesAreNonnullByDefault
 public class EnforcerCacheLoader extends AbstractAskCacheLoader<Enforcer> {
 
-    protected EnforcerCacheLoader(final Duration askTimeout, final Map<String, ActorRef> entityRegionMap) {
+    protected EnforcerCacheLoader(final Duration askTimeout, final EntityRegionMap entityRegionMap) {
         super(askTimeout, entityRegionMap);
     }
 

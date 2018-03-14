@@ -13,7 +13,6 @@ package org.eclipse.ditto.services.authorization.util.cache;
 
 import java.time.Duration;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.function.Function;
 
 import javax.annotation.concurrent.Immutable;
@@ -22,14 +21,13 @@ import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingRevision;
+import org.eclipse.ditto.services.authorization.util.EntityRegionMap;
 import org.eclipse.ditto.services.authorization.util.cache.entry.Entry;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault;
-
-import akka.actor.ActorRef;
 
 /**
  * Loads entity ID relation for authorization by asking entity shard regions.
@@ -40,7 +38,7 @@ public class IdCacheLoader extends AbstractAskCacheLoader<ResourceKey> {
 
     private final AuthorizationCache authorizationCache;
 
-    protected IdCacheLoader(final Duration askTimeout, final Map<String, ActorRef> entityRegionMap,
+    protected IdCacheLoader(final Duration askTimeout, final EntityRegionMap entityRegionMap,
             final AuthorizationCache authorizationCache) {
         super(askTimeout, entityRegionMap);
         this.authorizationCache = authorizationCache;

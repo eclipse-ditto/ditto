@@ -27,6 +27,7 @@ import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.services.authorization.util.EntityRegionMap;
 import org.eclipse.ditto.services.authorization.util.cache.entry.Entry;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
@@ -46,11 +47,11 @@ import akka.pattern.PatternsCS;
 abstract class AbstractAskCacheLoader<V> implements AsyncCacheLoader<ResourceKey, Entry<V>> {
 
     private final long askTimeoutMillis;
-    private final Map<String, ActorRef> entityRegionMap;
+    private final EntityRegionMap entityRegionMap;
     private final Map<String, Function<String, Object>> commandMap;
     private final Map<String, Function<Object, Entry<V>>> transformerMap;
 
-    protected AbstractAskCacheLoader(final Duration askTimeout, final Map<String, ActorRef> entityRegionMap) {
+    protected AbstractAskCacheLoader(final Duration askTimeout, final EntityRegionMap entityRegionMap) {
         this.askTimeoutMillis = askTimeout.toMillis();
         this.entityRegionMap = entityRegionMap;
         this.commandMap = Collections.unmodifiableMap(buildCommandMap());
@@ -105,7 +106,8 @@ abstract class AbstractAskCacheLoader<V> implements AsyncCacheLoader<ResourceKey
     }
 
     private ActorRef getEntityRegion(final String resourceType) {
-        return checkNotNull(entityRegionMap.get(resourceType), resourceType);
+        return entityRegionMap.lookup(resourceType)
+                .orElseThrow(() -> new IllegalArgumentException("no entity region for resource type " + resourceType));
     }
 
     private Object getCommand(final String resourceType, final String id) {
