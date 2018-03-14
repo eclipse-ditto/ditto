@@ -122,7 +122,7 @@ Example response for retrieving all currently configured log levels:<br/>
     "things": {
         ...
     },
-    "amqp-bridge": {
+    "connectivity": {
         ...
     }
 }
@@ -178,17 +178,17 @@ Example request payload to change the log level of logger `org.eclipse.ditto` in
 }
 ```
 
-### Create a new AMQP-Bridge connection
+### Create a new AMQP connection in Connectivity service
 
 Example request payload to create a new AMQP 1.0 connection:<br/>
-`POST /devops/piggyback/amqp-bridge`
+`POST /devops/piggyback/connectivity`
 
 ```json
 {
-    "targetActorSelection": "/system/sharding/amqp-connection",
+    "targetActorSelection": "/system/sharding/connection",
     "headers": {},
     "piggybackCommand": {
-        "type": "amqp.bridge.commands:createConnection",
+        "type": "connectivity.commands:createConnection",
         "connection": {
             "id": "hono-example-connection-123",
             "authorizationSubject": "<<<my-subject-id-included-in-policy-or-acl>>>",

@@ -81,8 +81,8 @@ services:
       - DEVOPS_SECURE_STATUS=false
       - GATEWAY_PUBLIC_HEALTH_SECURE=false
 
-#  amqp-bridge:
-#    image: docker.io/eclipse/ditto-amqp-bridge:${DITTO_VERSION:-latest}
+#  connectivity:
+#    image: docker.io/eclipse/ditto-connectivity:${DITTO_VERSION:-latest}
 #    networks:
 #      default:
 #        aliases:
@@ -96,8 +96,6 @@ services:
 #      - INSTANCE_INDEX=1
 #      - BIND_HOSTNAME=0.0.0.0
 #      - _JAVA_OPTIONS=-Xms256m -Xmx256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError
-#      - STATSD_PORT_8125_UDP_ADDR=graphite
-#      - STATSD_PORT_8125_UDP_PORT=8125
 
   swagger-ui:
     image: docker.io/swaggerapi/swagger-ui:v2.2.9

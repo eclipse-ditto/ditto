@@ -1,0 +1,62 @@
+/*
+ * Copyright (c) 2017 Bosch Software Innovations GmbH.
+ *
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License v2.0
+ * which accompanies this distribution, and is available at
+ * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ *
+ * Contributors:
+ *    Bosch Software Innovations GmbH - initial contribution
+ */
+package org.eclipse.ditto.signals.commands.connectivity;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import javax.annotation.concurrent.Immutable;
+
+import org.eclipse.ditto.signals.base.JsonParsable;
+import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnectionResponse;
+import org.eclipse.ditto.signals.commands.connectivity.modify.CreateConnectionResponse;
+import org.eclipse.ditto.signals.commands.connectivity.modify.DeleteConnectionResponse;
+import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnectionResponse;
+import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionResponse;
+import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatusResponse;
+import org.eclipse.ditto.signals.commands.base.AbstractCommandResponseRegistry;
+
+import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatusesResponse;
+
+/**
+ * Registry which is capable of parsing {@link ConnectivityCommandResponse}s from JSON.
+ */
+@Immutable
+public final class ConnectivityCommandResponseRegistry
+        extends AbstractCommandResponseRegistry<ConnectivityCommandResponse> {
+
+    private ConnectivityCommandResponseRegistry(
+            final Map<String, JsonParsable<ConnectivityCommandResponse>> parseStrategies) {
+        super(parseStrategies);
+    }
+
+    /**
+     * Returns a new {@code ConnectivityCommandResponseRegistry}.
+     *
+     * @return the command response registry.
+     */
+    public static ConnectivityCommandResponseRegistry newInstance() {
+        final Map<String, JsonParsable<ConnectivityCommandResponse>> parseStrategies = new HashMap<>();
+
+        parseStrategies.put(CreateConnectionResponse.TYPE, CreateConnectionResponse::fromJson);
+        parseStrategies.put(DeleteConnectionResponse.TYPE, DeleteConnectionResponse::fromJson);
+        parseStrategies.put(OpenConnectionResponse.TYPE, OpenConnectionResponse::fromJson);
+        parseStrategies.put(CloseConnectionResponse.TYPE, CloseConnectionResponse::fromJson);
+
+        parseStrategies.put(RetrieveConnectionResponse.TYPE, RetrieveConnectionResponse::fromJson);
+        parseStrategies.put(RetrieveConnectionStatusResponse.TYPE, RetrieveConnectionStatusResponse::fromJson);
+        parseStrategies.put(RetrieveConnectionStatusesResponse.TYPE, RetrieveConnectionStatusesResponse::fromJson);
+
+        return new ConnectivityCommandResponseRegistry(parseStrategies);
+    }
+
+}
