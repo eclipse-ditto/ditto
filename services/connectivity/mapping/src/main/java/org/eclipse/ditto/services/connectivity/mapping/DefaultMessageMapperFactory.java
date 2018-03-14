@@ -141,7 +141,7 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
         final List<MessageMapper> mappers = contexts.stream()
                 .filter(Objects::nonNull)
                 .map(ctx -> mapperOf(ctx)
-                        .map(m -> ContentTypeRestrictedMessageMapper.wrap(m, ctx.getContentType()))
+                        .map(m -> WrappingMessageMapper.wrap(m, ctx.getContentType()))
                         .orElse(null))
                 .peek(m -> log.debug("MessageMapper loaded: <{}>", m))
                 .collect(Collectors.toList());

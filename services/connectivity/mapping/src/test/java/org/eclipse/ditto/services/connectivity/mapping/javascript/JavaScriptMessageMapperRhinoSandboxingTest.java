@@ -19,6 +19,7 @@ import java.util.UUID;
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ExternalMessage;
+import org.eclipse.ditto.model.connectivity.MessageMapperConfigurationFailedException;
 import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMappers;
@@ -70,6 +71,22 @@ public class JavaScriptMessageMapperRhinoSandboxingTest {
                 "ensureRecursionGetsAborted aborted after: " + (System.nanoTime() - startTs) / 1000000.0 + "ms");
     }
 
+    @Test
+    public void ensureTooBigMappingScriptIsNotLoaded() {
+
+        final StringBuilder stringBuilder = new StringBuilder();
+        for (int i = 0; i < 100_000; i++) {
+            stringBuilder
+                    .append("function foo").append(i)
+                    .append("() { return ").append(i).append("; };")
+                    .append('\n');
+        }
+
+        Assertions.assertThatExceptionOfType(MessageMapperConfigurationFailedException.class).isThrownBy(() ->
+                createMapper(stringBuilder.toString())
+        );
+    }
+
 
     private MessageMapper createMapper(final String maliciousStuff) {
         final MessageMapper mapper = MessageMappers.createJavaScriptMessageMapper();
@@ -107,7 +124,7 @@ public class JavaScriptMessageMapperRhinoSandboxingTest {
                 "    " + maliciousStuff + "\n" +
                 "    // ###\n" +
                 "\n" +
-                "    return buildDittoProtocolMsg(\n" +
+                "    return Ditto.buildDittoProtocolMsg(\n" +
                 "        'org.eclipse.ditto',\n" +
                 "        'should-not-come-trough',\n" +
                 "        'things',\n" +

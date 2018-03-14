@@ -80,16 +80,6 @@ public class JavaScriptMessageMapperRhinoBenchmarkTest {
                 .contains(JsonValue.of("xxx/456/yyy"));
     }
 
-    @Test
-    public void test5MustacheTemplatePayloadToDitto() {
-        final Adaptable adaptable = runScenario(new Test5MustacheTemplatePayloadToDitto());
-        System.out.println(adaptable);
-
-        assertDefaults(adaptable);
-        assertThat(adaptable.getPayload().getValue()).contains(
-                JsonValue.of("Joe spends 6"));
-    }
-
     private Adaptable runScenario(final MapToDittoProtocolScenario scenario) {
         final MessageMapper messageMapper = scenario.getMessageMapper();
         final ExternalMessage externalMessage = scenario.getExternalMessage();
