@@ -16,7 +16,6 @@ import java.time.Duration;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.base.config.AbstractConfigReader;
-import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
 import com.typesafe.config.Config;
 
@@ -24,7 +23,6 @@ import com.typesafe.config.Config;
  * Configuration reader for authorization cache.
  */
 @Immutable
-@AllValuesAreNonnullByDefault
 public final class CacheConfigReader extends AbstractConfigReader {
 
     private static final Duration DEFAULT_ASK_TIMEOUT = Duration.ofSeconds(10);

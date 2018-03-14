@@ -21,6 +21,9 @@ import com.typesafe.config.Config;
  */
 public final class StatsdConfigReader extends AbstractConfigReader {
 
+    private static final String PATH_HOSTNAME = "hostname";
+    private static final String PATH_PORT = "port";
+
     StatsdConfigReader(final Config config) {
         super(config);
     }
@@ -29,10 +32,11 @@ public final class StatsdConfigReader extends AbstractConfigReader {
      * Retrieve statsd hostname and port number.
      *
      * @return An unresolved address if both hostname and port number are configured and an empty optional otherwise.
+     *
+     * @throws com.typesafe.config.ConfigException.Missing if hostname is configured, but port number is missing
      */
     public Optional<InetSocketAddress> getStatsd() {
-        return getIfPresent("hostname", config::getString)
-                .flatMap(hostname -> getIfPresent("port", config::getInt)
-                        .map(port -> InetSocketAddress.createUnresolved(hostname, port)));
+        return getIfPresent(PATH_HOSTNAME, config::getString)
+                        .map(hostname -> InetSocketAddress.createUnresolved(hostname, config.getInt(PATH_PORT)));
     }
 }

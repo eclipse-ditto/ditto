@@ -22,6 +22,8 @@ import com.typesafe.config.Config;
  */
 public final class AuthorizationConfigReader extends AbstractServiceConfigReader {
 
+    private static final String PATH_CACHE = "cache";
+
     private AuthorizationConfigReader(final Config config, final String serviceName) {
         super(config, serviceName);
     }
@@ -42,6 +44,6 @@ public final class AuthorizationConfigReader extends AbstractServiceConfigReader
      * @return the configuration reader.
      */
     public CacheConfigReader getCacheConfigReader() {
-        return new CacheConfigReader(getChild("cache"));
+        return new CacheConfigReader(getChild(PATH_CACHE));
     }
 }

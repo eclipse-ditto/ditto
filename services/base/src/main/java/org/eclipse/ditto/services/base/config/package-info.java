@@ -10,4 +10,4 @@
  *    Bosch Software Innovations GmbH - initial contribution
  */
 @org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault
-package org.eclipse.ditto.services.base;
+package org.eclipse.ditto.services.base.config;

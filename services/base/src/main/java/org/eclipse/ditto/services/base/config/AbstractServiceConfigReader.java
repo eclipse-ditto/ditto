@@ -17,6 +17,8 @@ import com.typesafe.config.ConfigFactory;
 public class AbstractServiceConfigReader extends AbstractConfigReader implements ServiceConfigReader {
 
     private static final String DEFAULT_CONFIG_PREFIX = "ditto";
+    private static final String PATH_CLUSTER = "cluster";
+    private static final String PATH_STATSD = "statsd";
 
     private final Config rawConfig;
 
@@ -49,12 +51,12 @@ public class AbstractServiceConfigReader extends AbstractConfigReader implements
 
     @Override
     public ClusterConfigReader getClusterConfigReader() {
-        return new ClusterConfigReader(getChild("cluster"));
+        return new ClusterConfigReader(getChildOrEmpty(PATH_CLUSTER));
     }
 
     @Override
     public StatsdConfigReader getStatsdConfigReader() {
-        return new StatsdConfigReader(getChild("statsd"));
+        return new StatsdConfigReader(getChildOrEmpty(PATH_STATSD));
     }
 
     private static Config getOrEmpty(final Config config, final String path) {

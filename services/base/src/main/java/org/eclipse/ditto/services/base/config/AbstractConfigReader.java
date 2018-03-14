@@ -11,6 +11,8 @@
  */
 package org.eclipse.ditto.services.base.config;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.Optional;
 import java.util.function.Function;
 
@@ -21,6 +23,8 @@ import com.typesafe.config.ConfigFactory;
  * Superclass for accessors of {@link Config}.
  */
 public abstract class AbstractConfigReader {
+
+    private static final String PATH_DELIMITER = ".";
 
     /**
      * Underlying Config object.
@@ -55,8 +59,36 @@ public abstract class AbstractConfigReader {
      *
      * @param childPath path to the child.
      * @return the child configuration if it exists.
+     *
+     * @throws com.typesafe.config.ConfigException.Missing
+     *             if value is absent or null
+     * @throws com.typesafe.config.ConfigException.WrongType
+     *             if value is not convertible to a Config
      */
     protected Config getChild(final String childPath) {
+        return config.getConfig(childPath);
+    }
+
+    /**
+     * Retrieve a child configuration by name.
+     *
+     * @param childPath path to the child.
+     * @return the child configuration if it exists, an empty config otherwise.
+     *
+     * @throws com.typesafe.config.ConfigException.WrongType
+     *             if value is not convertible to a Config
+     */
+    protected Config getChildOrEmpty(final String childPath) {
         return getIfPresent(childPath, config::getConfig).orElse(ConfigFactory.empty());
+    }
+
+    /**
+     * Builds a config path from the given {@code pathElements}.
+     * @param pathElements the path elements.
+     * @return the config path.
+     */
+    protected static String path(final CharSequence... pathElements) {
+        requireNonNull(pathElements);
+        return String.join(PATH_DELIMITER, pathElements);
     }
 }

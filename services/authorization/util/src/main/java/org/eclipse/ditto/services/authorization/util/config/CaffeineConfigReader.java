@@ -12,7 +12,6 @@
 package org.eclipse.ditto.services.authorization.util.config;
 
 import java.time.Duration;
-import java.util.Optional;
 
 import org.eclipse.ditto.services.base.config.AbstractConfigReader;
 
@@ -24,6 +23,9 @@ import com.typesafe.config.Config;
  */
 public final class CaffeineConfigReader extends AbstractConfigReader {
 
+    private static final String PATH_MAXIMUM_SIZE = "maximum-size";
+    private static final String PATH_EXPIRE_AFTER_WRITE = "expire-after-write";
+
     CaffeineConfigReader(final Config config) {
         super(config);
     }
@@ -33,8 +35,8 @@ public final class CaffeineConfigReader extends AbstractConfigReader {
      *
      * @return the maximum size if it exists.
      */
-    public Optional<Long> getMaximumSize() {
-        return getIfPresent("maximum-size", config::getLong);
+    public long getMaximumSize() {
+        return config.getLong(PATH_MAXIMUM_SIZE);
     }
 
     /**
@@ -42,8 +44,8 @@ public final class CaffeineConfigReader extends AbstractConfigReader {
      *
      * @return duration between write and expiration.
      */
-    public Optional<Duration> getExpireAfterWrite() {
-        return getIfPresent("expire-after-write", config::getDuration);
+    public Duration getExpireAfterWrite() {
+        return config.getDuration(PATH_EXPIRE_AFTER_WRITE);
     }
 
     /**
@@ -51,8 +53,8 @@ public final class CaffeineConfigReader extends AbstractConfigReader {
      */
     public Caffeine<Object, Object> toCaffeine() {
         final Caffeine<Object, Object> caffeine = Caffeine.newBuilder();
-        getMaximumSize().ifPresent(caffeine::maximumSize);
-        getExpireAfterWrite().ifPresent(caffeine::expireAfterWrite);
+        caffeine.maximumSize(getMaximumSize());
+        caffeine.expireAfterWrite(getExpireAfterWrite());
         return caffeine;
     }
 }
