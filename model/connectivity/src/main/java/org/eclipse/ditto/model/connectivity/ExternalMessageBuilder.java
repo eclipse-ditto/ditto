@@ -39,6 +39,14 @@ public interface ExternalMessageBuilder {
     ExternalMessageBuilder withAdditionalHeaders(Map<String, String> additionalHeaders);
 
     /**
+     * Sets the message headers for this builder.
+     *
+     * @param headers the headers to set
+     * @return this builder in order to enable method chaining
+     */
+    ExternalMessageBuilder withHeaders(Map<String, String> headers);
+
+    /**
      * Sets the passed {@code text} to the builder and also changing the
      * {@link org.eclipse.ditto.model.connectivity.ExternalMessage.PayloadType PayloadType} to {@code TEXT}.
      *
