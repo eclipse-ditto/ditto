@@ -11,12 +11,26 @@
  */
 package org.eclipse.ditto.services.authorization.starter;
 
+import java.util.Optional;
+
+import org.eclipse.ditto.services.authorization.util.EntityRegionMap;
+import org.eclipse.ditto.services.authorization.util.actors.EnforcerActor;
 import org.eclipse.ditto.services.authorization.util.cache.AuthorizationCache;
 import org.eclipse.ditto.services.authorization.util.config.AuthorizationConfigReader;
+import org.eclipse.ditto.services.base.config.ClusterConfigReader;
+import org.eclipse.ditto.services.models.authorization.AuthorizationMessagingConstants;
+import org.eclipse.ditto.services.models.policies.PoliciesMessagingConstants;
+import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
+import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
+import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
+import org.eclipse.ditto.signals.commands.things.ThingCommand;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
 import akka.actor.Props;
+import akka.cluster.sharding.ClusterSharding;
+import akka.cluster.sharding.ClusterShardingSettings;
 import akka.japi.pf.ReceiveBuilder;
 
 /**
@@ -32,19 +46,79 @@ public final class AuthorizationRootActor extends AbstractActor {
     public static final String ACTOR_NAME = "authorizationRoot";
 
     private final AuthorizationCache cache;
+    private final ActorRef enforcerShardRegion;
 
     private AuthorizationRootActor(final AuthorizationConfigReader configReader, final ActorRef pubSubMediator) {
-        this.cache = new AuthorizationCache(configReader.getCacheConfigReader());
-        // create shard region as children so that if this actor dies all reference to the cache is gone
+        final ActorSystem actorSystem = getContext().getSystem();
+        final ClusterConfigReader clusterConfigReader = configReader.getClusterConfigReader();
+
+        final EntityRegionMap entityRegionMap = buildEntityRegionMap(actorSystem, clusterConfigReader);
+        cache = new AuthorizationCache(configReader.getCacheConfigReader(), entityRegionMap);
+
+        final Props enforcerProps = EnforcerActor.props(pubSubMediator, entityRegionMap, cache);
+        enforcerShardRegion = startShardRegion(actorSystem, clusterConfigReader, enforcerProps);
     }
 
+    /**
+     * Creates Akka configuration object Props for this AuthorizationRootActor
+     *
+     * @param configReader the authorization service config reader.
+     * @param pubSubMediator the PubSub mediator Actor.
+     * @return the Akka configuration Props object.
+     */
     public static Props props(final AuthorizationConfigReader configReader, final ActorRef pubSubMediator) {
-        return Props.create(AuthorizationRootActor.class, new AuthorizationRootActor(configReader, pubSubMediator));
+        return Props.create(AuthorizationRootActor.class,
+                () -> new AuthorizationRootActor(configReader, pubSubMediator));
     }
 
     @Override
     public Receive createReceive() {
         // TODO: do something.
-        return ReceiveBuilder.create().build();
+        return ReceiveBuilder.create()
+                .build();
+    }
+
+    // TODO: turn into extension point
+    private EntityRegionMap buildEntityRegionMap(final ActorSystem actorSystem,
+            final ClusterConfigReader clusterConfigReader) {
+
+        final int numberOfShards = clusterConfigReader.getNumberOfShards();
+
+        final ActorRef policiesShardRegionProxy = startProxy(actorSystem, numberOfShards,
+                PoliciesMessagingConstants.SHARD_REGION, PoliciesMessagingConstants.CLUSTER_ROLE);
+
+        final ActorRef thingsShardRegionProxy = startProxy(actorSystem, numberOfShards,
+                ThingsMessagingConstants.SHARD_REGION, ThingsMessagingConstants.CLUSTER_ROLE);
+
+        return EntityRegionMap.newBuilder()
+                .put(PolicyCommand.RESOURCE_TYPE, policiesShardRegionProxy)
+                .put(ThingCommand.RESOURCE_TYPE, thingsShardRegionProxy)
+                .build();
+    }
+
+    private static ActorRef startProxy(final ActorSystem actorSystem,
+            final int numberOfShards,
+            final String shardRegionName,
+            final String clusterRole) {
+
+        final ShardRegionExtractor shardRegionExtractor = ShardRegionExtractor.of(numberOfShards, actorSystem);
+
+        return ClusterSharding.get(actorSystem)
+                .startProxy(shardRegionName, Optional.of(clusterRole), shardRegionExtractor);
+    }
+
+    private static ActorRef startShardRegion(final ActorSystem actorSystem,
+            final ClusterConfigReader clusterConfigReader,
+            final Props props) {
+
+        final String shardName = AuthorizationMessagingConstants.SHARD_REGION;
+
+        final ClusterShardingSettings settings = ClusterShardingSettings.create(actorSystem)
+                .withRole(AuthorizationMessagingConstants.CLUSTER_ROLE);
+
+        final ShardRegionExtractor extractor =
+                ShardRegionExtractor.of(clusterConfigReader.getNumberOfShards(), actorSystem);
+
+        return ClusterSharding.get(actorSystem).start(shardName, props, settings, extractor);
     }
 }

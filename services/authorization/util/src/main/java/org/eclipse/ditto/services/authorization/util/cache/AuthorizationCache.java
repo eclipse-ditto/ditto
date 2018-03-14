@@ -12,7 +12,6 @@
 package org.eclipse.ditto.services.authorization.util.cache;
 
 import java.time.Duration;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 
@@ -20,13 +19,11 @@ import org.eclipse.ditto.model.enforcers.AclEnforcer;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.model.things.AccessControlList;
+import org.eclipse.ditto.services.authorization.util.EntityRegionMap;
 import org.eclipse.ditto.services.authorization.util.cache.entry.Entry;
 import org.eclipse.ditto.services.authorization.util.config.CacheConfigReader;
 
 import com.github.benmanes.caffeine.cache.AsyncLoadingCache;
-
-import akka.actor.ActorRef;
-import scala.NotImplementedError;
 
 /**
  * Cache of enforcer objects for each
@@ -40,11 +37,9 @@ public final class AuthorizationCache {
      * Creates a cache from configuration.
      *
      * @param cacheConfigReader config reader for authorization cache.
+     * @param entityRegionMap map resource types to the shard regions of corresponding entities.
      */
-    public AuthorizationCache(final CacheConfigReader cacheConfigReader) {
-        // TODO: compute entity region map in root actor
-        final Supplier<Map<String, ActorRef>> entityRegionMapSupplier = () -> { throw new NotImplementedError(); };
-        final Map<String, ActorRef> entityRegionMap = entityRegionMapSupplier.get();
+    public AuthorizationCache(final CacheConfigReader cacheConfigReader, final EntityRegionMap entityRegionMap) {
 
         final Duration askTimeout = cacheConfigReader.getAskTimeout();
 
@@ -54,6 +49,15 @@ public final class AuthorizationCache {
         final IdCacheLoader idCacheLoader = new IdCacheLoader(askTimeout, entityRegionMap, this);
         idCache = cacheConfigReader.getIdCacheConfigReader().toCaffeine().buildAsync(idCacheLoader);
 
+    }
+
+    /**
+     * Invalidate an entry in the entity ID cache.
+     *
+     * @param resourceKey cache key of the entity.
+     */
+    public void invalidateEntityId(final ResourceKey resourceKey) {
+        idCache.synchronous().invalidate(resourceKey);
     }
 
     void updateAcl(final ResourceKey resourceKey, final long revision, final AccessControlList acl) {

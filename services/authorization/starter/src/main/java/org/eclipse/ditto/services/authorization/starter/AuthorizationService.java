@@ -14,8 +14,6 @@ package org.eclipse.ditto.services.authorization.starter;
 import org.eclipse.ditto.services.authorization.util.config.AuthorizationConfigReader;
 import org.eclipse.ditto.services.base.DittoService;
 import org.eclipse.ditto.services.base.StatsdMongoDbMetricsStarter;
-import org.eclipse.ditto.services.base.config.DittoServiceConfigReader;
-import org.eclipse.ditto.services.base.config.ServiceConfigReader;
 import org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,7 +39,6 @@ public final class AuthorizationService extends DittoService<AuthorizationConfig
     private static final Logger LOGGER = LoggerFactory.getLogger(AuthorizationService.class);
 
     private AuthorizationService() {
-        // TODO: use own config reader
         super(LOGGER, SERVICE_NAME, AuthorizationRootActor.ACTOR_NAME, AuthorizationConfigReader.from(SERVICE_NAME));
     }
 
