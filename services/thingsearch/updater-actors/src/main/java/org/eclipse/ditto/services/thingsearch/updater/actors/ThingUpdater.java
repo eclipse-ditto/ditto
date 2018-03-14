@@ -619,6 +619,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         if (!thingEvents.isEmpty()) {
             transactionActive = true;
             final TraceContext traceContext = Kamon.tracer().newContext(TRACE_THING_BULK_UPDATE);
+            traceContext.addMetadata("count", String.valueOf(thingEvents.size()));
             circuitBreaker.callWithCircuitBreakerCS(() -> searchUpdaterPersistence
                     .executeCombinedWrites(thingId, thingEvents, policyEnforcer, targetRevision)
                     .via(finishTrace(traceContext))
