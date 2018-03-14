@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.authorization.util.cache;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 
 import javax.annotation.concurrent.Immutable;
@@ -27,7 +28,6 @@ import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingR
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
-import org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault;
 
 import akka.actor.ActorRef;
 
@@ -35,7 +35,6 @@ import akka.actor.ActorRef;
  * Loads entity ID relation for authorization by asking entity shard regions.
  */
 @Immutable
-@AllParametersAndReturnValuesAreNonnullByDefault
 public class IdCacheLoader extends AbstractAskCacheLoader<ResourceKey> {
 
     private final AuthorizationCache authorizationCache;
@@ -67,9 +66,10 @@ public class IdCacheLoader extends AbstractAskCacheLoader<ResourceKey> {
             final String thingId = thing.getId().orElseThrow(badThingResponse("no ThingId"));
             final long revision = thing.getRevision().map(ThingRevision::toLong)
                     .orElseThrow(badThingResponse("no revision"));
-            if (thing.getAccessControlList().isPresent()) {
+            final Optional<AccessControlList> accessControlListOptional = thing.getAccessControlList();
+            if (accessControlListOptional.isPresent()) {
+                final AccessControlList acl = accessControlListOptional.get();
                 final ResourceKey resourceKey = ResourceKey.newInstance(ThingCommand.RESOURCE_TYPE, thingId);
-                final AccessControlList acl = thing.getAccessControlList().get();
                 authorizationCache.updateAcl(resourceKey, revision, acl);
                 return Entry.of(revision, resourceKey);
             } else {

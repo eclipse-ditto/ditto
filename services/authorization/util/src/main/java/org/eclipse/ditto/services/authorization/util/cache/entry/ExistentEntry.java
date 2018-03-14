@@ -13,15 +13,12 @@ package org.eclipse.ditto.services.authorization.util.cache.entry;
 
 import java.util.Optional;
 
-import org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault;
-
 import jdk.nashorn.internal.ir.annotations.Immutable;
 
 /**
  * A pair consisting of a value and a revision.
  */
 @Immutable
-@AllParametersAndReturnValuesAreNonnullByDefault
 final class ExistentEntry<T> implements Entry<T> {
 
     private final long revision;

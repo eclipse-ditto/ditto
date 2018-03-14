@@ -193,7 +193,7 @@ public final class SearchRootActor extends AbstractActor {
             private static final long serialVersionUID = 1L;
 
             @Override
-            public SearchRootActor create() throws Exception {
+            public SearchRootActor create() {
                 return new SearchRootActor(config, pubSubMediator, materializer);
             }
         });

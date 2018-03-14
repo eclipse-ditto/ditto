@@ -28,7 +28,6 @@ import org.eclipse.ditto.model.policies.Permissions;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
-import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
 /**
  * Abstraction for algorithms operating on an access control list and finding out whether specified permissions
@@ -36,7 +35,6 @@ import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
  * {@code ADMINISTRATE}. To check for {@code ADMINISTRATE}, the caller must pass it as an explicit policy permission.
  */
 @Immutable
-@AllValuesAreNonnullByDefault
 public final class AclEnforcer implements Enforcer {
 
     private static final Set<String> THING_PERMISSION_NAMES =

@@ -38,6 +38,7 @@ import org.eclipse.ditto.services.utils.health.DefaultHealthCheckingActorFactory
 import org.eclipse.ditto.services.utils.health.HealthCheckingActorOptions;
 import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientActor;
+import org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault;
 
 import com.typesafe.config.Config;
 
@@ -70,6 +71,7 @@ import akka.stream.ActorMaterializer;
 /**
  * Parent Actor which takes care of supervision of all other Actors in our system.
  */
+@AllParametersAndReturnValuesAreNonnullByDefault
 public final class AmqpBridgeRootActor extends AbstractActor {
 
     /**

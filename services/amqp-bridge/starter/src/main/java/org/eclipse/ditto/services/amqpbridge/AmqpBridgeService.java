@@ -15,7 +15,6 @@ import org.eclipse.ditto.services.amqpbridge.actors.AmqpBridgeRootActor;
 import org.eclipse.ditto.services.base.DittoService;
 import org.eclipse.ditto.services.base.config.DittoServiceConfigReader;
 import org.eclipse.ditto.services.base.config.ServiceConfigReader;
-import org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,7 +29,6 @@ import akka.stream.ActorMaterializer;
  * <li>Sets up Akka actor system.</li>
  * </ul>
  */
-@AllParametersAndReturnValuesAreNonnullByDefault
 public final class AmqpBridgeService extends DittoService<ServiceConfigReader> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AmqpBridgeService.class);

@@ -155,7 +155,7 @@ public final class SearchActor extends AbstractActor {
             private static final long serialVersionUID = 1L;
 
             @Override
-            public SearchActor create() throws Exception {
+            public SearchActor create() {
                 return new SearchActor(pubSubMediator, aggregationQueryActor, findQueryActor, searchPersistence);
             }
         });

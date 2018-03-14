@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.authorization.util.cache;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 
 import javax.annotation.Nullable;
@@ -25,7 +26,7 @@ import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.enforcers.PolicyEnforcers;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyRevision;
-import org.eclipse.ditto.model.policies.ResourceKey;
+import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingRevision;
 import org.eclipse.ditto.services.authorization.util.cache.entry.Entry;
@@ -36,7 +37,6 @@ import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
-import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
 import akka.actor.ActorRef;
 
@@ -44,13 +44,11 @@ import akka.actor.ActorRef;
  * Loads an enforcer by asking entity shard regions.
  */
 @Immutable
-@AllValuesAreNonnullByDefault
 public class EnforcerCacheLoader extends AbstractAskCacheLoader<Enforcer> {
 
     protected EnforcerCacheLoader(final Duration askTimeout, final Map<String, ActorRef> entityRegionMap) {
         super(askTimeout, entityRegionMap);
     }
-
 
     @Override
     protected HashMap<String, Function<String, Object>> buildCommandMap() {
@@ -73,12 +71,14 @@ public class EnforcerCacheLoader extends AbstractAskCacheLoader<Enforcer> {
         if (response instanceof SudoRetrieveThingResponse) {
             final SudoRetrieveThingResponse sudoRetrieveThingResponse = (SudoRetrieveThingResponse) response;
             final Thing thing = sudoRetrieveThingResponse.getThing();
-            if (thing.getAccessControlList().isPresent()) {
-                final String thingId = thing.getId().orElseThrow(badThingResponse("no ThingId"));
+            final Optional<AccessControlList> accessControlListOptional = thing.getAccessControlList();
+            if (accessControlListOptional.isPresent()) {
+                final AccessControlList accessControlList = accessControlListOptional.get();
+
                 final long revision = thing.getRevision().map(ThingRevision::toLong)
                         .orElseThrow(badThingResponse("no revision"));
-                final ResourceKey resourceKey = ResourceKey.newInstance(ThingCommand.RESOURCE_TYPE, thingId);
-                return Entry.of(revision, AclEnforcer.of(thing.getAccessControlList().get()));
+
+                return Entry.of(revision, AclEnforcer.of(accessControlList));
             } else {
                 // The thing exists, but it has a policy. Remove entry from cache.
                 return null;
@@ -90,7 +90,6 @@ public class EnforcerCacheLoader extends AbstractAskCacheLoader<Enforcer> {
         }
     }
 
-    @Nullable
     private Entry<Enforcer> handleSudoRetrievePolicyResponse(final Object response) {
         if (response instanceof SudoRetrievePolicyResponse) {
             final SudoRetrievePolicyResponse sudoRetrievePolicyResponse = (SudoRetrievePolicyResponse) response;

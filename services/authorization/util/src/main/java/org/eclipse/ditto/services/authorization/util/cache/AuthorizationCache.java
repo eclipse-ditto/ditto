@@ -22,7 +22,6 @@ import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.services.authorization.util.cache.entry.Entry;
 import org.eclipse.ditto.services.authorization.util.config.CacheConfigReader;
-import org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault;
 
 import com.github.benmanes.caffeine.cache.AsyncLoadingCache;
 
@@ -32,7 +31,6 @@ import scala.NotImplementedError;
 /**
  * Cache of enforcer objects for each
  */
-@AllParametersAndReturnValuesAreNonnullByDefault
 public final class AuthorizationCache {
 
     private final AsyncLoadingCache<ResourceKey, Entry<Enforcer>> enforcerCache;

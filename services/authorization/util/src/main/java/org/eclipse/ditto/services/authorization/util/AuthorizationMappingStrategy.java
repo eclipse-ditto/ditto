@@ -29,13 +29,11 @@ import org.eclipse.ditto.signals.commands.devops.DevOpsCommandResponseRegistry;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandRegistry;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandResponseRegistry;
 import org.eclipse.ditto.signals.commands.messages.MessageErrorRegistry;
-import org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault;
 
 /**
  * {@link MappingStrategy} for the Authorization service containing all {@link Jsonifiable} types known to Authorization.
  */
-@AllParametersAndReturnValuesAreNonnullByDefault
-public class AuthorizationMappingStrategy implements MappingStrategy {
+public final class AuthorizationMappingStrategy implements MappingStrategy {
 
     private final PoliciesMappingStrategy policiesMappingStrategy;
     private final ThingsMappingStrategy thingsMappingStrategy;

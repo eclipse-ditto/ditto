@@ -15,10 +15,7 @@ import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
-
 @Immutable
-@AllValuesAreNonnullByDefault
 final class NonexistentEntry<T> implements Entry<T> {
 
     private static final NonexistentEntry<?> INSTANCE = new NonexistentEntry<>();

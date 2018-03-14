@@ -11,19 +11,18 @@
  */
 package org.eclipse.ditto.services.thingsearch.starter.actors;
 
+import org.eclipse.ditto.services.thingsearch.persistence.MongoHealthCheck;
+import org.eclipse.ditto.services.thingsearch.persistence.PersistenceHealthCheck;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.health.mongo.RetrieveMongoStatus;
 import org.eclipse.ditto.services.utils.health.mongo.RetrieveMongoStatusResponse;
+import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
 
 import akka.actor.AbstractActor;
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
-
-import org.eclipse.ditto.services.thingsearch.persistence.MongoHealthCheck;
-import org.eclipse.ditto.services.thingsearch.persistence.PersistenceHealthCheck;
-import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
 
 /**
  * Actor encapsulating {@link MongoHealthCheck} and reacting on {@link RetrieveMongoStatus} messages.
@@ -46,7 +45,7 @@ public final class MongoReactiveHealthCheckActor extends AbstractActor {
             private static final long serialVersionUID = 1L;
 
             @Override
-            public MongoReactiveHealthCheckActor create() throws Exception {
+            public MongoReactiveHealthCheckActor create() {
                 return new MongoReactiveHealthCheckActor(mongoClientWrapper);
             }
         });

@@ -29,7 +29,6 @@ import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.authorization.util.cache.entry.Entry;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
-import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 
@@ -42,7 +41,6 @@ import akka.pattern.PatternsCS;
  *
  * @param <V> type of values in the cache entry.
  */
-@AllValuesAreNonnullByDefault
 abstract class AbstractAskCacheLoader<V> implements AsyncCacheLoader<ResourceKey, Entry<V>> {
 
     private final long askTimeoutMillis;

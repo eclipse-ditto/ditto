@@ -13,12 +13,9 @@ package org.eclipse.ditto.services.authorization.util.cache.entry;
 
 import java.util.Optional;
 
-import org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault;
-
 /**
  * Cache entry for authorization.
  */
-@AllParametersAndReturnValuesAreNonnullByDefault
 public interface Entry<T> {
 
     /**

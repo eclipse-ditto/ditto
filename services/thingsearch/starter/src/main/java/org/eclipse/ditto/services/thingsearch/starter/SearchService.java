@@ -20,7 +20,6 @@ import org.eclipse.ditto.services.base.config.ServiceConfigReader;
 import org.eclipse.ditto.services.thingsearch.common.util.ConfigKeys;
 import org.eclipse.ditto.services.thingsearch.starter.actors.SearchRootActor;
 import org.eclipse.ditto.services.thingsearch.updater.actors.SearchUpdaterRootActor;
-import org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,7 +35,6 @@ import akka.stream.ActorMaterializer;
  * <li>Wires up Akka HTTP Routes.</li>
  * </ul>
  */
-@AllParametersAndReturnValuesAreNonnullByDefault
 public final class SearchService extends DittoService<ServiceConfigReader> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SearchService.class);
