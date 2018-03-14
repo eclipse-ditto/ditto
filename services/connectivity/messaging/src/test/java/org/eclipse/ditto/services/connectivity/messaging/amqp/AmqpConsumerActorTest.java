@@ -55,7 +55,7 @@ import akka.testkit.javadsl.TestKit;
 /**
  * Tests the AMQP {@link AmqpConsumerActor}.
  */
-public class CommandConsumerActorTest {
+public class AmqpConsumerActorTest {
 
     private static final Config CONFIG = ConfigFactory.load("test");
 
@@ -107,7 +107,7 @@ public class CommandConsumerActorTest {
                                         "    let value = textPayload;\n" +
                                         "    // ###\n" +
                                         "\n" +
-                                        "    return buildDittoProtocolMsg(\n" +
+                                        "    return Ditto.buildDittoProtocolMsg(\n" +
                                         "        namespace,\n" +
                                         "        id,\n" +
                                         "        group,\n" +
@@ -141,7 +141,7 @@ public class CommandConsumerActorTest {
                                         "    let contentType = \"text/plain\";\n" +
                                         "    // ###\n" +
                                         "\n" +
-                                        "     return buildExternalMsg(\n" +
+                                        "     return Ditto.buildExternalMsg(\n" +
                                         "        headers,\n" +
                                         "        textPayload,\n" +
                                         "        bytePayload,\n" +
