@@ -19,18 +19,16 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.policies.Permissions;
-import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.ResourceKey;
 
 /**
- * Abstraction for algorithms operating on a Policy and finding out whether specified {@link Permissions} are existing
- * on a {@code resource} for a given {@link AuthorizationContext}.
- * TODO: generify documentation.
+ * Abstraction for algorithms enforcing {@link Permissions} on a {@code resource} for a given
+ * {@link AuthorizationContext}.
  */
 public interface Enforcer {
 
     /**
-     * Checks whether for the Policy of this evaluator the {@code authorizationContext} either implicitly or explicitly
+     * Checks whether for the {@code authorizationContext} either implicitly or explicitly
      * has "GRANT" for the {@code permissions} on the specified {@code resourceKey} considering "REVOKE"s down in the
      * hierarchy, so if there is a REVOKE for the {@code authorizationContext} somewhere down the hierarchy of the
      * {@code resourceKey}, the result will be {@code false}.
@@ -52,7 +50,7 @@ public interface Enforcer {
     }
 
     /**
-     * Checks whether for the Policy of this evaluator the {@code authorizationContext} either implicitly or explicitly
+     * Checks whether the {@code authorizationContext} either implicitly or explicitly
      * has "GRANT" for the {@code permissions} on the specified {@code resourceKey} considering "REVOKE"s down in the
      * hierarchy, so if there is a REVOKE for the {@code authorizationContext} somewhere down the hierarchy of the
      * {@code resourceKey}, the result will be {@code false}.
@@ -128,7 +126,7 @@ public interface Enforcer {
     Set<String> getSubjectIdsWithPartialPermission(ResourceKey resourceKey, Permissions permissions);
 
     /**
-     * Checks whether for the Policy of this evaluator the {@code authorizationContext} either implicitly or explicitly
+     * Checks whether the {@code authorizationContext} either implicitly or explicitly
      * has "GRANT" for the specified permissions on the passed in {@code resourceKey} or on any {@code resource} down in
      * the hierarchy of the {@code resourceKey}.
      *
@@ -150,7 +148,7 @@ public interface Enforcer {
     }
 
     /**
-     * Checks whether for the Policy of this evaluator the {@code authorizationContext} either implicitly or explicitly
+     * Checks whether the {@code authorizationContext} either implicitly or explicitly
      * has "GRANT" for the specified permissions on the passed in {@code resourceKey} or on any {@code resource} down in
      * the hierarchy of the {@code resourceKey}.
      *
@@ -219,8 +217,7 @@ public interface Enforcer {
      * org.eclipse.ditto.json.JsonObjectBuilder}) for {@code authorizationContext} and {@code permissions} with some
      * fields white-listed. The resulting {@code JsonObject} only contains those {@code JsonFields} for which the {@code
      * authorizationContext} has the required permissions or those that are present in the white list. Fields in the
-     * white list are not present in the output if the authorization subjects are not granted any rights in this policy
-     * at all.
+     * white list are not present in the output if the authorization subjects are not granted any rights at all.
      *
      * @param resourceKey the ResourceKey (containing Resource type and path) to start from.
      * @param jsonFields the full JsonFields from which to build the view based on the permissions.
@@ -240,7 +237,7 @@ public interface Enforcer {
         final JsonObject enforcedJsonView =
                 buildJsonView(resourceKey, jsonFields, authorizationContext, permissions);
 
-        final ResourceKey rootResourceKey = PoliciesModelFactory.newResourceKey(resourceKey.getResourceType(),
+        final ResourceKey rootResourceKey = ResourceKey.newInstance(resourceKey.getResourceType(),
                 JsonFactory.emptyPointer());
         final boolean isAuthorizationSubjectRelevant =
                 hasPartialPermissions(rootResourceKey, authorizationContext, permissions);
