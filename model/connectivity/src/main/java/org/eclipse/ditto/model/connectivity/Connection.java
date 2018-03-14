@@ -191,6 +191,13 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
                         JsonSchemaVersion.V_2);
 
         /**
+         * JSON field containing the {@code ConnectionType}.
+         */
+        public static final JsonFieldDefinition<String> CONNECTION_TYPE =
+                JsonFactory.newStringFieldDefinition("connectionType", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
+
+        /**
          * JSON field containing the {@code Connection} uri.
          */
         public static final JsonFieldDefinition<String> URI =

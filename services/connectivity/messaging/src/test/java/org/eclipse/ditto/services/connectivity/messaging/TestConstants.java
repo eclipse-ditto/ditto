@@ -58,7 +58,7 @@ public class TestConstants {
     public static final String CORRELATION_ID = "cid";
 
     public static String createRandomConnectionId() {
-        return ConnectionType.AMQP_10.getName() + ":connection-" + UUID.randomUUID();
+        return "connection-" + UUID.randomUUID();
     }
 
     public static Connection createConnection(final String connectionId) {

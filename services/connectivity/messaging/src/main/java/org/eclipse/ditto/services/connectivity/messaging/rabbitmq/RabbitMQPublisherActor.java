@@ -153,7 +153,7 @@ public final class RabbitMQPublisherActor extends AbstractActor {
             return null;
         }, false);
 
-        channelActor.tell(channelMessage, self());
+        channelActor.tell(channelMessage, getSelf());
     }
 
 }

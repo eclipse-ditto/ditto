@@ -31,7 +31,7 @@ import org.eclipse.ditto.model.connectivity.MappingContext;
  */
 public final class TestConstants {
 
-    public static String ID = "amqp-10:myConnection";
+    public static String ID = "myConnection";
 
     public static ConnectionType TYPE = ConnectionType.AMQP_10;
 

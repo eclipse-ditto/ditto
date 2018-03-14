@@ -22,12 +22,12 @@ import akka.actor.Props;
 public interface ConnectionActorPropsFactory {
 
     /**
-     * Create actor {@link Props} for a type of connection.
+     * Create actor {@link Props} for a connection.
      *
      * @param connectionActor the connection actor
-     * @param connectionId the connection id
+     * @param connection the connection
      * @return the actor props
      */
-    Props getActorPropsForType(ActorRef connectionActor, String connectionId);
+    Props getActorPropsForType(ActorRef connectionActor, Connection connection);
 
 }
