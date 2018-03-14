@@ -11,8 +11,7 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging;
 
-import java.util.Arrays;
-
+import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.services.connectivity.messaging.amqp.AmqpClientActor;
 import org.eclipse.ditto.services.connectivity.messaging.rabbitmq.RabbitMQClientActor;
@@ -38,8 +37,9 @@ public final class DefaultConnectionActorPropsFactory implements ConnectionActor
     }
 
     @Override
-    public Props getActorPropsForType(final ActorRef connectionActor, final String connectionId) {
-        final ConnectionType connectionType = extractConnectionTypeFromId(connectionId);
+    public Props getActorPropsForType(final ActorRef connectionActor, final Connection connection) {
+        final String connectionId = connection.getId();
+        final ConnectionType connectionType = connection.getConnectionType();
         switch (connectionType) {
             case AMQP_091:
                 return RabbitMQClientActor.props(connectionId, connectionActor);
@@ -50,15 +50,4 @@ public final class DefaultConnectionActorPropsFactory implements ConnectionActor
         }
     }
 
-    private ConnectionType extractConnectionTypeFromId(final String actorName) {
-        int idx = actorName.indexOf(':');
-        if (idx <= 0) {
-            throw new IllegalArgumentException("Missing connection type prefix in " + actorName);
-        }
-        final String type = actorName.substring(0, idx);
-        return ConnectionType.forName(type)
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "<" + type + "> is not one of the valid ConnectionTypes " +
-                                Arrays.toString(ConnectionType.values()) + "."));
-    }
 }

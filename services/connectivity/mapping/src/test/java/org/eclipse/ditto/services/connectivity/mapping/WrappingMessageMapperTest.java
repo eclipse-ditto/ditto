@@ -34,8 +34,10 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.internal.verification.VerificationModeFactory;
 
-@SuppressWarnings("NullableProblems")
-public class ContentTypeRestrictedMessageMapperTest {
+/**
+ * Tests for {@link WrappingMessageMapper}.
+ */
+public class WrappingMessageMapperTest {
 
 
     private MessageMapper mockMapper;
@@ -45,7 +47,7 @@ public class ContentTypeRestrictedMessageMapperTest {
     private Adaptable mockAdaptable;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         mockMapper = mock(MessageMapper.class);
         mockConfiguration = mock(MessageMapperConfiguration.class);
         mockMessage = mock(ExternalMessage.class);
@@ -56,11 +58,11 @@ public class ContentTypeRestrictedMessageMapperTest {
         when(mockAdaptable.getTopicPath()).thenReturn(ProtocolFactory.emptyTopicPath());
         when(mockAdaptable.getPayload()).thenReturn(ProtocolFactory.newPayload("{\"path\":\"/\"}"));
 
-        underTest = ContentTypeRestrictedMessageMapper.wrap(mockMapper);
+        underTest = WrappingMessageMapper.wrap(mockMapper);
     }
 
     @After
-    public void tearDown() throws Exception {
+    public void tearDown() {
     }
 
     @Test
@@ -97,14 +99,14 @@ public class ContentTypeRestrictedMessageMapperTest {
         when(mockMapper.getContentType()).thenReturn("contentType");
 
         final ExternalMessage actual = underTest.map(mockAdaptable).get();
-        verify(mockMapper).getContentType();
+        verify(mockMapper, VerificationModeFactory.atLeastOnce()).getContentType();
         verify(mockAdaptable, VerificationModeFactory.atLeastOnce()).getHeaders();
         verify(mockMapper).map(mockAdaptable);
     }
 
     @Test
     public void contentTypeOverride() {
-        underTest = ContentTypeRestrictedMessageMapper.wrap(mockMapper, "contentTypeOverride");
+        underTest = WrappingMessageMapper.wrap(mockMapper, "contentTypeOverride");
         underTest.getContentType();
         verify(mockMapper, never()).getContentType();
         assertThat(underTest.getContentType()).isEqualTo("contentTypeOverride");

@@ -60,13 +60,16 @@ public interface JavaScriptMessageMapperConfiguration extends MessageMapperConfi
     }
 
     /**
-     * @return whether to load "mustache.js" library.
+     * Returns the maximum script size in bytes of a mapping script to run. Prevents loading big JS dependencies
+     * into the script (e.g. jQuery which has ~250kB).
+     *
+     * @return the configured maximum script size in bytes for a script to run.
      */
-    default boolean isLoadMustacheJS() {
+    default int getMaxScriptSizeBytes() {
         return Optional.ofNullable(
-                getProperties().get(JavaScriptMessageMapperConfigurationProperties.LOAD_MUSTACHE_JS))
-                .map(Boolean::valueOf)
-                .orElse(false);
+                getProperties().get(JavaScriptMessageMapperConfigurationProperties.MAX_SCRIPT_SIZE_BYTES))
+                .map(Integer::parseInt)
+                .orElse(50 * 1000); // default: 50 kB max.
     }
 
     /**
@@ -129,7 +132,6 @@ public interface JavaScriptMessageMapperConfiguration extends MessageMapperConfi
             }
             return this;
         }
-
         /**
          * Configures whether to load "bytebuffer.js" library.
          *
@@ -155,14 +157,49 @@ public interface JavaScriptMessageMapperConfiguration extends MessageMapperConfi
         }
 
         /**
-         * Configures whether to load "mustache.js" library.
+         * Configures the maximum script size in bytes of a mapping script.
          *
-         * @param load whether to load "mustache.js" library
+         * @param maxScriptSizeInBytes maximum script size in bytes for a script to run
          * @return this builder for chaining
          */
-        default Builder loadMustacheJS(boolean load) {
-            getProperties().put(JavaScriptMessageMapperConfigurationProperties.LOAD_MUSTACHE_JS,
-                    Boolean.toString(load));
+        default Builder maxScriptSizeBytes(@Nullable Integer maxScriptSizeInBytes) {
+            if (maxScriptSizeInBytes != null) {
+                getProperties().put(JavaScriptMessageMapperConfigurationProperties.MAX_SCRIPT_SIZE_BYTES,
+                        maxScriptSizeInBytes.toString());
+            } else {
+                getProperties().remove(JavaScriptMessageMapperConfigurationProperties.MAX_SCRIPT_SIZE_BYTES);
+            }
+            return this;
+        }
+        /**
+         * Configures the maximum execution time of a mapping script to run.
+         *
+         * @param maxScriptExecutionTime maximum execution time of a mapping script to run
+         * @return this builder for chaining
+         */
+        default Builder maxScriptExecutionTime(@Nullable Duration maxScriptExecutionTime) {
+            if (maxScriptExecutionTime != null) {
+                getProperties().put(JavaScriptMessageMapperConfigurationProperties.MAX_SCRIPT_EXECUTION_TIME,
+                        maxScriptExecutionTime.toString());
+            } else {
+                getProperties().remove(JavaScriptMessageMapperConfigurationProperties.MAX_SCRIPT_EXECUTION_TIME);
+            }
+            return this;
+        }
+
+        /**
+         * Configures the maximum call stack depth in the mapping script.
+         *
+         * @param maxScriptStackDepth maximum call stack depth in the mapping script
+         * @return this builder for chaining
+         */
+        default Builder maxScriptStackDepth(@Nullable Integer maxScriptStackDepth) {
+            if (maxScriptStackDepth != null) {
+                getProperties().put(JavaScriptMessageMapperConfigurationProperties.MAX_SCRIPT_STACK_DEPTH,
+                        maxScriptStackDepth.toString());
+            } else {
+                getProperties().remove(JavaScriptMessageMapperConfigurationProperties.MAX_SCRIPT_STACK_DEPTH);
+            }
             return this;
         }
 

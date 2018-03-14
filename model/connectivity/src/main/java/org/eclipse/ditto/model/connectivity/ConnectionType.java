@@ -11,8 +11,6 @@
  */
 package org.eclipse.ditto.model.connectivity;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkArgument;
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotEmpty;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Arrays;
@@ -59,22 +57,6 @@ public enum ConnectionType implements CharSequence {
         checkNotNull(name, "Name");
         return Arrays.stream(values())
                 .filter(c -> c.name.contentEquals(name))
-                .findFirst();
-    }
-
-    /**
-     * Extract the connectionType from the connectionId whichis prefixed with the connectionType (i.e. type:id).
-     *
-     * @param id the connection id.
-     * @return the ConnectionType or an empty optional.
-     */
-    public static Optional<ConnectionType> fromConnectionId(final CharSequence id) {
-        checkNotNull(id, "id");
-        checkNotEmpty(id, "id");
-        final int colonPosition = checkArgument(id.toString().indexOf(':'), idx -> idx > 0);
-        final CharSequence type = id.subSequence(0, colonPosition);
-        return Arrays.stream(values())
-                .filter(c -> c.name.contentEquals(type))
                 .findFirst();
     }
 

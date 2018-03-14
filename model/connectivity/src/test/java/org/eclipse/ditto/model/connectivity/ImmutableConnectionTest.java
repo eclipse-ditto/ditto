@@ -41,7 +41,7 @@ public final class ImmutableConnectionTest {
 
     private static final ConnectionType TYPE = ConnectionType.AMQP_10;
 
-    private static final String ID = TYPE + ":myConnection";
+    private static final String ID = "myConnection";
 
     private static final String URI = "amqps://foo:bar@example.com:443";
 
@@ -53,6 +53,7 @@ public final class ImmutableConnectionTest {
 
     private static final JsonObject KNOWN_JSON = JsonObject.newBuilder()
             .set(Connection.JsonFields.ID, ID)
+            .set(Connection.JsonFields.CONNECTION_TYPE, TYPE.getName())
             .set(Connection.JsonFields.URI, URI)
             .set(Connection.JsonFields.AUTHORIZATION_CONTEXT, AUTHORIZATION_CONTEXT.stream()
                     .map(AuthorizationSubject::getId)

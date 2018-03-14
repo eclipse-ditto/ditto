@@ -93,7 +93,7 @@ public class JavaScriptMessageMapperRhinoTest {
                     "    let value = textPayload;\n" +
                     "    // ###\n" +
                     "\n" +
-                    "    return buildDittoProtocolMsg(\n" +
+                    "    return Ditto.buildDittoProtocolMsg(\n" +
                     "        namespace,\n" +
                     "        id,\n" +
                     "        group,\n" +
@@ -127,7 +127,7 @@ public class JavaScriptMessageMapperRhinoTest {
             "    let contentType = \"" + CONTENT_TYPE_PLAIN + "\";\n" +
             "    // ###\n" +
             "\n" +
-            "     return buildExternalMsg(\n" +
+            "     return Ditto.buildExternalMsg(\n" +
             "        headers,\n" +
             "        textPayload,\n" +
             "        bytePayload,\n" +
@@ -161,27 +161,6 @@ public class JavaScriptMessageMapperRhinoTest {
             "    return null;" +
             "}";
 
-    private static final String MAPPING_OUTGOING_MUSTACHE = "function mapFromDittoProtocolMsgWrapper(\n" +
-            "    dittoProtocolMsg\n" +
-            ") {\n" +
-            "\n" +
-            "    // ###\n" +
-            "    // Insert your mapping logic here\n" +
-            "    let headers = {};\n" +
-            "    headers['correlation-id'] = dittoProtocolMsg.headers['correlation-id'];\n" +
-            "    let textPayload = Mustache.render(\"Thing ID was: {{{value.thingId}}}\", dittoProtocolMsg);\n" +
-            "    let bytePayload = null;\n" +
-            "    let contentType = \"" + CONTENT_TYPE_MUSTACHE + "\";\n" +
-            "    // ###\n" +
-            "\n" +
-            "     return buildExternalMsg(\n" +
-            "        headers,\n" +
-            "        textPayload,\n" +
-            "        bytePayload,\n" +
-            "        contentType\n" +
-            "    );" +
-            "}";
-
     private static final String MAPPING_INCOMING_BINARY =
             "function mapToDittoProtocolMsg(\n" +
                     "    headers,\n" +
@@ -204,7 +183,7 @@ public class JavaScriptMessageMapperRhinoTest {
                     "    let value = String.fromCharCode.apply(null, bytePayload);\n" +
                     "    // ###\n" +
                     "\n" +
-                    "    return buildDittoProtocolMsg(\n" +
+                    "    return Ditto.buildDittoProtocolMsg(\n" +
                     "        namespace,\n" +
                     "        id,\n" +
                     "        group,\n" +
@@ -242,7 +221,7 @@ public class JavaScriptMessageMapperRhinoTest {
             "    let contentType = \"" + CONTENT_TYPE_BINARY + "\";\n" +
             "    // ###\n" +
             "\n" +
-            "     return buildExternalMsg(\n" +
+            "     return Ditto.buildExternalMsg(\n" +
             "        headers,\n" +
             "        textPayload,\n" +
             "        bytePayload,\n" +
@@ -252,7 +231,6 @@ public class JavaScriptMessageMapperRhinoTest {
 
     private static MessageMapper javaScriptRhinoMapperPlain;
     private static MessageMapper javaScriptRhinoMapperEmpty;
-    private static MessageMapper javaScriptRhinoMapperWithMustache;
     private static MessageMapper javaScriptRhinoMapperBinary;
 
     @BeforeClass
@@ -274,16 +252,6 @@ public class JavaScriptMessageMapperRhinoTest {
                         .contentType(CONTENT_TYPE_PLAIN)
                         .incomingMappingScript(MAPPING_INCOMING_EMPTY)
                         .outgoingMappingScript(MAPPING_OUTGOING_EMPTY)
-                        .build()
-        );
-
-        javaScriptRhinoMapperWithMustache = MessageMappers.createJavaScriptMessageMapper();
-        javaScriptRhinoMapperWithMustache.configureWithValidation(
-                JavaScriptMessageMapperFactory
-                        .createJavaScriptMessageMapperConfigurationBuilder(Collections.emptyMap())
-                        .contentType(CONTENT_TYPE_MUSTACHE)
-                        .outgoingMappingScript(MAPPING_OUTGOING_MUSTACHE)
-                        .loadMustacheJS(true)
                         .build()
         );
 
@@ -389,31 +357,6 @@ public class JavaScriptMessageMapperRhinoTest {
                 "testEmptyJavascriptOutgoingMapping Duration: " + (System.nanoTime() - startTs) / 1000000.0 + "ms");
 
         assertThat(rawMessageOpt).isEmpty();
-    }
-
-    @Test
-    public void testMustacheJavascriptOutgoingMapping() {
-        final String thingId = "org.eclipse.ditto:foo-bar-mustache";
-        final String correlationId = UUID.randomUUID().toString();
-        final Thing newThing = Thing.newBuilder()
-                .setId(thingId)
-                .setAttributes(Attributes.newBuilder().set("foo", "bar").build())
-                .build();
-        final CreateThing createThing =
-                CreateThing.of(newThing, null, DittoHeaders.newBuilder().correlationId(correlationId).build());
-        final Adaptable adaptable = DittoProtocolAdapter.newInstance().toAdaptable(createThing);
-
-        final long startTs = System.nanoTime();
-        final Optional<ExternalMessage> rawMessageOpt = javaScriptRhinoMapperWithMustache.map(adaptable);
-        final ExternalMessage rawMessage = rawMessageOpt.get();
-        System.out.println(rawMessage);
-        System.out.println(
-                "testMustacheJavascriptOutgoingMapping Duration: " + (System.nanoTime() - startTs) / 1000000.0 + "ms");
-
-        assertThat(rawMessage.findContentType()).contains(CONTENT_TYPE_MUSTACHE);
-        assertThat(rawMessage.findHeader(HEADER_CORRELATION_ID)).contains(correlationId);
-        assertThat(rawMessage.isTextMessage()).isTrue();
-        assertThat(rawMessage.getTextPayload()).contains("Thing ID was: " + thingId);
     }
 
     @Test

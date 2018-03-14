@@ -127,8 +127,11 @@ final class ImmutableConnection implements Connection {
      */
     public static Connection fromJson(final JsonObject jsonObject) {
         final String readId = jsonObject.getValueOrThrow(JsonFields.ID);
-        final ConnectionType readConnectionType = ConnectionType.forName(readId.substring(0, readId.indexOf(':')))
-                .orElseThrow(() -> JsonParseException.newBuilder().message("Invalid connection type.").build());
+        final String readConnectionTypeStr = jsonObject.getValueOrThrow(JsonFields.CONNECTION_TYPE);
+        final ConnectionType readConnectionType = ConnectionType.forName(readConnectionTypeStr)
+                .orElseThrow(() -> JsonParseException.newBuilder()
+                        .message("Invalid connection type: " + readConnectionTypeStr)
+                        .build());
         final String readUri = jsonObject.getValueOrThrow(JsonFields.URI);
         final JsonArray authContext = jsonObject.getValue(JsonFields.AUTHORIZATION_CONTEXT)
                 .orElseGet(() ->
@@ -266,6 +269,7 @@ final class ImmutableConnection implements Connection {
 
         jsonObjectBuilder.set(JsonFields.SCHEMA_VERSION, schemaVersion.toInt(), predicate);
         jsonObjectBuilder.set(JsonFields.ID, id, predicate);
+        jsonObjectBuilder.set(JsonFields.CONNECTION_TYPE, connectionType.getName(), predicate);
         jsonObjectBuilder.set(JsonFields.URI, uri, predicate);
         jsonObjectBuilder.set(JsonFields.AUTHORIZATION_CONTEXT, authorizationContext.stream()
                 .map(AuthorizationSubject::getId)
@@ -327,7 +331,7 @@ final class ImmutableConnection implements Connection {
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "id=" + id +
-                ", type=" + connectionType +
+                ", connectionType=" + connectionType +
                 ", authorizationContext=" + authorizationContext +
                 ", sources=" + sources +
                 ", eventTarget=" + eventTarget +

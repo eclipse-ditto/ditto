@@ -30,7 +30,7 @@ import akka.japi.Creator;
 public class FaultyConnectionActor extends AbstractActor {
 
     static final ConnectionActorPropsFactory faultyConnectionActorPropsFactory =
-            (connectionActor, connectionId) -> FaultyConnectionActor.props(true);
+            (connectionActor, connection) -> FaultyConnectionActor.props(true);
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
     private boolean allowCreate;
@@ -57,21 +57,21 @@ public class FaultyConnectionActor extends AbstractActor {
                     if (allowCreate) {
                         log.info("connection created");
                         this.allowCreate = false;
-                        sender().tell("success", self());
+                        sender().tell("success", getSelf());
                     } else {
                         sender().tell(new Status.Failure(new IllegalStateException("error message")),
-                                self());
+                                getSelf());
                     }
                 })
                 .match(OpenConnection.class,
                         oc -> sender().tell(new Status.Failure(new IllegalStateException("error message")),
-                                self()))
+                                getSelf()))
                 .match(CloseConnection.class,
                         cc -> sender().tell(new Status.Failure(new IllegalStateException("error message")),
-                                self()))
+                                getSelf()))
                 .match(DeleteConnection.class,
                         dc -> sender().tell(new Status.Failure(new IllegalStateException("error message")),
-                                self()))
+                                getSelf()))
                 .build();
     }
 }

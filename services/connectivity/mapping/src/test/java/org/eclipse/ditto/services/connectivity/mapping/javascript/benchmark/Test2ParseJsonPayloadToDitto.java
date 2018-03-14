@@ -111,7 +111,7 @@ public class Test2ParseJsonPayloadToDitto implements MapToDittoProtocolScenario 
                     "    let value = JSON.parse(textPayload);\n" +
                     "    // ###\n" +
                     "\n" +
-                    "    return buildDittoProtocolMsg(\n" +
+                    "    return Ditto.buildDittoProtocolMsg(\n" +
                     "        namespace,\n" +
                     "        id,\n" +
                     "        group,\n" +

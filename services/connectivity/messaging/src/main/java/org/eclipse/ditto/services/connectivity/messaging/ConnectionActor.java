@@ -299,7 +299,7 @@ final class ConnectionActor extends AbstractPersistentActor {
                 connection.getAuthorizationContext().getAuthorizationSubjectIds();
         if (!Collections.disjoint(authorizedReadSubjects, connectionSubjects)) {
             log.debug("Forwarding thing event <{}> to client actor.", thingEvent.getType());
-            clientActor.tell(thingEvent, self());
+            clientActor.tell(thingEvent, getSelf());
         }
     }
 
@@ -337,7 +337,7 @@ final class ConnectionActor extends AbstractPersistentActor {
             connectionStatus = ConnectionStatus.OPEN;
             askClientActor("open-connection", command, origin, response -> {
                 subscribeToThingEvents();
-                origin.tell(OpenConnectionResponse.of(connectionId, command.getDittoHeaders()), self());
+                origin.tell(OpenConnectionResponse.of(connectionId, command.getDittoHeaders()), getSelf());
             });
         });
     }
@@ -352,7 +352,7 @@ final class ConnectionActor extends AbstractPersistentActor {
             connectionStatus = ConnectionStatus.CLOSED;
             askClientActor("disconnect", command, origin, response -> {
                 origin.tell(CloseConnectionResponse.of(connectionId, command.getDittoHeaders()),
-                        self());
+                        getSelf());
                 unsubscribeFromThingEvents();
                 connectionStatusDetails = "closed as requested by CloseConnection command";
             });
@@ -372,7 +372,7 @@ final class ConnectionActor extends AbstractPersistentActor {
                         unsubscribeFromThingEvents();
                         stopClientActor();
                         origin.tell(DeleteConnectionResponse.of(connectionId, command.getDittoHeaders()),
-                                self());
+                                getSelf());
                         stopSelf();
                     });
                 });
@@ -492,7 +492,7 @@ final class ConnectionActor extends AbstractPersistentActor {
         if (clientActor == null) {
             final int consumerCount = connection.getConsumerCount();
             log.info("Starting ClientActor for connection <{}> with {} consumers.", connectionId, consumerCount);
-            final Props props = propsFactory.getActorPropsForType(self(), connectionId);
+            final Props props = propsFactory.getActorPropsForType(getSelf(), connection);
             final ClusterRouterPoolSettings clusterRouterPoolSettings =
                     new ClusterRouterPoolSettings(consumerCount, 1, true,
                             Collections.singleton(CLUSTER_ROLE));

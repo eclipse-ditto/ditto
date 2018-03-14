@@ -64,8 +64,8 @@ final class JavaScriptMessageMapperRhino implements MessageMapper {
 
     private static final String WEBJARS_BYTEBUFFER = WEBJARS_PATH + "/bytebuffer/5.0.0/dist/bytebuffer.min.js";
     private static final String WEBJARS_LONG = WEBJARS_PATH + "/long/3.2.0/dist/long.min.js";
-    private static final String WEBJARS_MUSTACHE = WEBJARS_PATH + "/mustache/2.3.0/mustache.min.js";
 
+    private static final String DITTO_SCOPE_SCRIPT = "/javascript/ditto-scope.js";
     private static final String INCOMING_SCRIPT = "/javascript/incoming-mapping.js";
     private static final String OUTGOING_SCRIPT = "/javascript/outgoing-mapping.js";
 
@@ -100,6 +100,19 @@ final class JavaScriptMessageMapperRhino implements MessageMapper {
     @Override
     public void configure(final MessageMapperConfiguration options) {
         this.configuration = new ImmutableJavaScriptMessageMapperConfiguration.Builder(options.getProperties()).build();
+
+        final int maxScriptSizeBytes = configuration.getMaxScriptSizeBytes();
+        final Integer incomingScriptSize = configuration.getIncomingMappingScript().map(String::length).orElse(0);
+        final Integer outgoingScriptSize = configuration.getOutgoingMappingScript().map(String::length).orElse(0);
+
+        if (incomingScriptSize > maxScriptSizeBytes || outgoingScriptSize > maxScriptSizeBytes) {
+            throw MessageMapperConfigurationFailedException
+                    .newBuilder("The script size was bigger than the allowed <" + maxScriptSizeBytes + "> bytes: " +
+                            "incoming script size was <" + incomingScriptSize + "> bytes, " +
+                            "outgoing script size was <" + outgoingScriptSize + "> bytes")
+                    .build();
+        }
+
         contextFactory = new SandboxingContextFactory(configuration.getMaxScriptExecutionTime(),
                 configuration.getMaxScriptStackDepth());
 
@@ -259,11 +272,9 @@ final class JavaScriptMessageMapperRhino implements MessageMapper {
             loadJavascriptLibrary(cx, scope, new InputStreamReader(getClass().getResourceAsStream(WEBJARS_LONG)),
                     WEBJARS_LONG);
         }
-        if (getConfiguration().map(JavaScriptMessageMapperConfiguration::isLoadMustacheJS).orElse(false)) {
-            loadJavascriptLibrary(cx, scope, new InputStreamReader(getClass().getResourceAsStream(WEBJARS_MUSTACHE)),
-                    WEBJARS_MUSTACHE);
-        }
 
+        loadJavascriptLibrary(cx, scope, new InputStreamReader(getClass().getResourceAsStream(DITTO_SCOPE_SCRIPT)),
+                DITTO_SCOPE_SCRIPT);
         loadJavascriptLibrary(cx, scope, new InputStreamReader(getClass().getResourceAsStream(INCOMING_SCRIPT)),
                 INCOMING_SCRIPT);
         loadJavascriptLibrary(cx, scope, new InputStreamReader(getClass().getResourceAsStream(OUTGOING_SCRIPT)),

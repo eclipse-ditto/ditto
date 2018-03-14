@@ -52,7 +52,7 @@ public class SimpleMapTextPayloadToDitto implements MapToDittoProtocolScenario {
                     "    let value = textPayload;\n" +
                     "    // ###\n" +
                     "\n" +
-                    "    return buildDittoProtocolMsg(\n" +
+                    "    return Ditto.buildDittoProtocolMsg(\n" +
                     "        namespace,\n" +
                     "        id,\n" +
                     "        group,\n" +
