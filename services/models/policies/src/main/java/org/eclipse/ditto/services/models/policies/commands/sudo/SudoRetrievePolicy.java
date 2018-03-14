@@ -26,12 +26,14 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
+import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
 /**
  * Command which retrieves one {@link org.eclipse.ditto.model.policies.Policy} based on the the passed in Policy ID w/o
  * authorization context.
  */
 @Immutable
+@AllValuesAreNonnullByDefault
 public final class SudoRetrievePolicy extends AbstractCommand<SudoRetrievePolicy>
         implements SudoCommand<SudoRetrievePolicy> {
 
@@ -114,6 +116,11 @@ public final class SudoRetrievePolicy extends AbstractCommand<SudoRetrievePolicy
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(SudoCommand.JsonFields.JSON_POLICY_ID, policyId, predicate);
+    }
+
+    @Override
+    public Category getCategory() {
+        return Category.QUERY;
     }
 
     @Override

@@ -22,7 +22,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
@@ -37,6 +36,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
+import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
 /**
  * Command which starts a stream from a persistence query actor based on the the passed in time span without
@@ -44,6 +44,7 @@ import org.eclipse.ditto.signals.commands.base.AbstractCommand;
  * synchronize their search index.
  */
 @Immutable
+@AllValuesAreNonnullByDefault
 public final class SudoStreamModifiedEntities extends AbstractCommand<SudoStreamModifiedEntities>
         implements StreamingMessage {
 
@@ -175,9 +176,13 @@ public final class SudoStreamModifiedEntities extends AbstractCommand<SudoStream
     }
 
     @Override
-    @Nonnull
     public String getTypePrefix() {
         return TYPE_PREFIX;
+    }
+
+    @Override
+    public Category getCategory() {
+        return Category.QUERY;
     }
 
     @Override

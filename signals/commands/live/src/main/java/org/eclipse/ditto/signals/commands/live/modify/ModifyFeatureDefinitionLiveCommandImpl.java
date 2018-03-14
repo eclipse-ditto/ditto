@@ -26,7 +26,8 @@ import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 @AllValuesAreNonnullByDefault
 @Immutable
 final class ModifyFeatureDefinitionLiveCommandImpl
-        extends AbstractModifyLiveCommand<ModifyFeatureDefinitionLiveCommand, ModifyFeatureDefinitionLiveCommandAnswerBuilder>
+        extends
+        AbstractModifyLiveCommand<ModifyFeatureDefinitionLiveCommand, ModifyFeatureDefinitionLiveCommandAnswerBuilder>
         implements ModifyFeatureDefinitionLiveCommand {
 
     private final String featureId;
@@ -60,6 +61,11 @@ final class ModifyFeatureDefinitionLiveCommandImpl
     @Override
     public FeatureDefinition getDefinition() {
         return featureProperties;
+    }
+
+    @Override
+    public Category getCategory() {
+        return Category.MODIFY;
     }
 
     @Override

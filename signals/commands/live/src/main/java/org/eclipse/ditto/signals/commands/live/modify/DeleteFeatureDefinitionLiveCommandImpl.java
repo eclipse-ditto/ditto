@@ -25,7 +25,8 @@ import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 @AllValuesAreNonnullByDefault
 @Immutable
 final class DeleteFeatureDefinitionLiveCommandImpl
-        extends AbstractModifyLiveCommand<DeleteFeatureDefinitionLiveCommand, DeleteFeatureDefinitionLiveCommandAnswerBuilder>
+        extends
+        AbstractModifyLiveCommand<DeleteFeatureDefinitionLiveCommand, DeleteFeatureDefinitionLiveCommandAnswerBuilder>
         implements DeleteFeatureDefinitionLiveCommand {
 
     private final String featureId;
@@ -51,6 +52,11 @@ final class DeleteFeatureDefinitionLiveCommandImpl
     @Override
     public String getFeatureId() {
         return featureId;
+    }
+
+    @Override
+    public Category getCategory() {
+        return Category.DELETE;
     }
 
     @Override

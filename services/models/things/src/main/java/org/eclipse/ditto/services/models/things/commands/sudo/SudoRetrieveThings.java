@@ -37,6 +37,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
+import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
 /**
  * Command which retrieves several {@link org.eclipse.ditto.model.things.Thing}s based on the the passed in List of
@@ -44,6 +45,7 @@ import org.eclipse.ditto.signals.commands.base.AbstractCommand;
  * in order to synchronize their Things cache.
  */
 @Immutable
+@AllValuesAreNonnullByDefault
 public final class SudoRetrieveThings extends AbstractCommand<SudoRetrieveThings>
         implements SudoCommand<SudoRetrieveThings> {
 
@@ -179,6 +181,11 @@ public final class SudoRetrieveThings extends AbstractCommand<SudoRetrieveThings
         if (null != selectedFields) {
             jsonObjectBuilder.set(SudoCommand.JsonFields.SELECTED_FIELDS, selectedFields.toString(), predicate);
         }
+    }
+
+    @Override
+    public Category getCategory() {
+        return Category.QUERY;
     }
 
     @Override

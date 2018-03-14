@@ -172,6 +172,11 @@ public final class DeleteSubject extends AbstractCommand<DeleteSubject> implemen
     }
 
     @Override
+    public Category getCategory() {
+        return Category.DELETE;
+    }
+
+    @Override
     public DeleteSubject setDittoHeaders(final DittoHeaders dittoHeaders) {
         return of(policyId, label, subjectId, dittoHeaders);
     }

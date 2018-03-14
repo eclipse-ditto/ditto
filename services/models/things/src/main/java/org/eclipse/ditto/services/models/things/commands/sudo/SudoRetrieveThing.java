@@ -30,12 +30,14 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
+import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
 /**
  * Command which retrieves a {@link org.eclipse.ditto.model.things.Thing} without authorization. This command is sent
  * only internally by the Ditto services, e.g. eventing or search, in order to synchronize their Things cache.
  */
 @Immutable
+@AllValuesAreNonnullByDefault
 public final class SudoRetrieveThing extends AbstractCommand<SudoRetrieveThing> implements
         SudoCommand<SudoRetrieveThing> {
 
@@ -199,6 +201,11 @@ public final class SudoRetrieveThing extends AbstractCommand<SudoRetrieveThing> 
         if (null != selectedFields) {
             jsonObjectBuilder.set(SudoCommand.JsonFields.SELECTED_FIELDS, selectedFields.toString(), predicate);
         }
+    }
+
+    @Override
+    public Category getCategory() {
+        return Category.QUERY;
     }
 
     @Override

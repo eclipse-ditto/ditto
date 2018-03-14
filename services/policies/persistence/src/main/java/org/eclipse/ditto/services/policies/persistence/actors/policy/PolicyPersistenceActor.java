@@ -168,6 +168,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
     private final ActorRef pubSubMediator;
     private final ActorRef policyCacheFacade;
     private final java.time.Duration activityCheckInterval;
+    private final java.time.Duration activityCheckDeletedInterval;
     private final java.time.Duration snapshotInterval;
     private final long snapshotThreshold;
     private final Receive handlePolicyEvents;
@@ -192,6 +193,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
         final Config config = getContext().system().settings().config();
         activityCheckInterval = config.getDuration(ConfigKeys.Policy.ACTIVITY_CHECK_INTERVAL);
+        activityCheckDeletedInterval = config.getDuration(ConfigKeys.Policy.ACTIVITY_CHECK_DELETED_INTERVAL);
         snapshotInterval = config.getDuration(ConfigKeys.Policy.SNAPSHOT_INTERVAL);
         snapshotThreshold = config.getLong(ConfigKeys.Policy.SNAPSHOT_THRESHOLD);
         snapshotDeleteOld = config.getBoolean(ConfigKeys.Policy.SNAPSHOT_DELETE_OLD);
@@ -564,7 +566,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
          * - stay in-memory for a short amount of minutes after deletion
          * - get a Snapshot when removed from memory
          */
-        scheduleCheckForPolicyActivity(300);
+        scheduleCheckForPolicyActivity(activityCheckDeletedInterval.getSeconds());
     }
 
     private Collection<ReceiveStrategy<?>> initPolicyDeletedStrategies() {
@@ -606,12 +608,6 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             modifyClusterPolicyCacheEntry(event);
             notifySubscribers(event);
         });
-    }
-
-    private void shutdown(final String shutdownLogTemplate, final String policyId) {
-        log.debug(shutdownLogTemplate, policyId);
-        // stop the supervisor (otherwise it'd restart this actor) which causes this actor to stop, too.
-        getContext().parent().tell(PoisonPill.getInstance(), getSelf());
     }
 
     private long getNextRevision() {
@@ -1711,7 +1707,6 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
                 log.error(message.cause(), "Failed to save snapshot for {}. Cause: {}.", policyId,
                         message.cause().getMessage());
             }
-            shutdown("Shutting Actor for Policy '{}' down..", policyId);
         }
     }
 
@@ -1890,32 +1885,34 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
         @Override
         protected void doApply(final CheckForActivity message) {
-            // if the Policy was accessed in any way since the last check AND it is not "deleted":
-            if (accessCounter > message.getCurrentAccessCounter()) {
+            if (isPolicyDeleted() && lastSnapshotSequenceNr < lastSequenceNr()) {
+                // take a snapshot after a period of inactivity if:
+                // - thing is deleted,
+                // - the latest snapshot is out of date or is still ongoing.
+                final Object snapshotToStore = snapshotAdapter.toSnapshotStore(policy);
+                saveSnapshot(snapshotToStore);
+                scheduleCheckForPolicyActivity(activityCheckDeletedInterval.getSeconds());
+            } else if (accessCounter > message.getCurrentAccessCounter()) {
+                // if the Thing was accessed in any way since the last check
                 scheduleCheckForPolicyActivity(activityCheckInterval.getSeconds());
-            } else if (policy == null) {
-                // no more activity during initialization, shutting down.
-                shutdown("Uninitialized policy '{}' was not accessed in a while. Shutting Actor down..", policyId);
             } else {
-                boolean isSnapshotSavedForDeletedPolicy = false;
-                final boolean policyDeleted = isPolicyDeleted();
-                // make a snapshot if there is any activity since last check or if the policy was deleted
-                if (lastSequenceNr() > (message.getCurrentSequenceNr()) || policyDeleted) {
-                    isSnapshotSavedForDeletedPolicy = policyDeleted;
-                    doSaveSnapshot(() -> {
-                        if (policyDeleted) {
-                            shutdown("Thing '{}' was deleted recently. Shutting Actor down..", policyId);
-                        }
-                    });
-                }
-
+                // safe to shutdown after a period of inactivity if:
+                // - policy is active (and taking regular snapshots of itself), or
+                // - policy is deleted and the latest snapshot is up to date
                 if (isPolicyActive()) {
-                    shutdown("Thing '{}' was not accessed in a while. Shutting Actor down..", policyId);
-                } else if (!isSnapshotSavedForDeletedPolicy) {
-                    shutdown("Thing '{}' was deleted recently. Shutting Actor down..", policyId);
+                    shutdown("Policy <{}> was not accessed in a while. Shutting Actor down ...", policyId);
+                } else {
+                    shutdown("Policy <{}> was deleted recently. Shutting Actor down ...", policyId);
                 }
             }
         }
+
+        private void shutdown(final String shutdownLogTemplate, final String thingId) {
+            log.debug(shutdownLogTemplate, thingId);
+            // stop the supervisor (otherwise it'd restart this actor) which causes this actor to stop, too.
+            getContext().getParent().tell(PoisonPill.getInstance(), getSelf());
+        }
+
     }
 
     /**

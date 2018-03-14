@@ -121,6 +121,11 @@ public final class RetrieveConnectionStatus extends AbstractCommand<RetrieveConn
     }
 
     @Override
+    public Category getCategory() {
+        return Category.QUERY;
+    }
+
+    @Override
     public RetrieveConnectionStatus setDittoHeaders(final DittoHeaders dittoHeaders) {
         return of(connectionId, dittoHeaders);
     }

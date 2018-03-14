@@ -122,6 +122,11 @@ public final class DeleteThing extends AbstractCommand<DeleteThing> implements T
     }
 
     @Override
+    public Category getCategory() {
+        return Category.DELETE;
+    }
+
+    @Override
     public DeleteThing setDittoHeaders(final DittoHeaders dittoHeaders) {
         return of(thingId, dittoHeaders);
     }

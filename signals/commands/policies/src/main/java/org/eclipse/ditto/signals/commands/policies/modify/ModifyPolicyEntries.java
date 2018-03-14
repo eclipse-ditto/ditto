@@ -168,6 +168,11 @@ public final class ModifyPolicyEntries extends AbstractCommand<ModifyPolicyEntri
     }
 
     @Override
+    public Category getCategory() {
+        return Category.MODIFY;
+    }
+
+    @Override
     public ModifyPolicyEntries setDittoHeaders(final DittoHeaders dittoHeaders) {
         return of(policyId, policyEntries, dittoHeaders);
     }

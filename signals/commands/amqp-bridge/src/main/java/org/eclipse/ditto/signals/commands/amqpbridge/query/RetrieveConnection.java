@@ -118,6 +118,11 @@ public final class RetrieveConnection extends AbstractCommand<RetrieveConnection
     }
 
     @Override
+    public Category getCategory() {
+        return Category.QUERY;
+    }
+
+    @Override
     public RetrieveConnection setDittoHeaders(final DittoHeaders dittoHeaders) {
         return of(connectionId, dittoHeaders);
     }

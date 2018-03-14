@@ -177,6 +177,11 @@ public final class ModifySubjects extends AbstractCommand<ModifySubjects>
     }
 
     @Override
+    public Category getCategory() {
+        return Category.MODIFY;
+    }
+
+    @Override
     public ModifySubjects setDittoHeaders(final DittoHeaders dittoHeaders) {
         return of(policyId, label, subjects, dittoHeaders);
     }

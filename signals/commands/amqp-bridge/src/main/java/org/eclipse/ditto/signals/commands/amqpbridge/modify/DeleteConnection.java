@@ -118,6 +118,11 @@ public final class DeleteConnection extends AbstractCommand<DeleteConnection>
     }
 
     @Override
+    public Category getCategory() {
+        return Category.DELETE;
+    }
+
+    @Override
     public DeleteConnection setDittoHeaders(final DittoHeaders dittoHeaders) {
         return of(connectionId, dittoHeaders);
     }

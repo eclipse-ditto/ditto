@@ -172,6 +172,11 @@ public final class ExecutePiggybackCommand extends AbstractDevOpsCommand<Execute
     }
 
     @Override
+    public Category getCategory() {
+        return Category.MODIFY;
+    }
+
+    @Override
     public ExecutePiggybackCommand setDittoHeaders(final DittoHeaders dittoHeaders) {
         return of(getServiceName().orElse(null), getInstance().orElse(null), targetActorSelection, piggybackCommand,
                 dittoHeaders);
