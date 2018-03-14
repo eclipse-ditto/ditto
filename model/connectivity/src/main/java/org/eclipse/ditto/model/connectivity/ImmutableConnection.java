@@ -72,6 +72,8 @@ final class ImmutableConnection implements Connection {
         this.connectionType = builder.connectionType;
         this.uri = builder.uri;
         this.authorizationContext = builder.authorizationContext;
+
+        checkSourceAndTargetAreValid(builder);
         if (builder.sources != null) {
             this.sources = Collections.unmodifiableSet(new HashSet<>(builder.sources));
         } else {
@@ -99,22 +101,14 @@ final class ImmutableConnection implements Connection {
         }
     }
 
-    /**
-     * Returns a new {@code ImmutableConnection}.
-     *
-     * @param id the connection identifier.
-     * @param connectionType the connection type
-     * @param uri the connection uri.
-     * @param authorizationContext the connection authorization context.
-     * @return the ImmutableConnection.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @throws ConnectionUriInvalidException if {@code uri} does not conform to {@link Connection.UriRegex#REGEX}.
-     */
-    public static Connection of(final String id,
-            final ConnectionType connectionType, final String uri,
-            final AuthorizationContext authorizationContext) {
-        return ImmutableConnectionBuilder.of(id, connectionType, uri, authorizationContext)
-                .build();
+    private void checkSourceAndTargetAreValid(final ImmutableConnectionBuilder builder) {
+        if ((builder.sources == null || builder.sources.isEmpty())
+                && (builder.eventTarget == null || builder.eventTarget.isEmpty())) {
+            throw ConnectionConfigurationInvalidException
+                    .newBuilder("Either a source or an eventTarget must be specified " +
+                            "in the configuration of a connection.")
+                    .build();
+        }
     }
 
     /**
