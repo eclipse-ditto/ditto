@@ -1,0 +1,9 @@
+#set( $h1 = '#' )
+#set( $h2 = '##' )
+#set( $h3 = '###' )
+#set( $snippetName = "" )
+
+These are the commands *for Connectivity service*.
+
+* <a href="commands-connectivity-query.html">Commands for retrieving Connections of the Connectivity service</a>
+* <a href="commands-connectivity-modify.html">Commands for modifying Connections of the Connectivity service</a>

@@ -362,7 +362,7 @@
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-model-amqp-bridge</artifactId>
+                <artifactId>ditto-model-connectivity</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -413,7 +413,7 @@
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-signals-commands-amqp-bridge</artifactId>
+                <artifactId>ditto-signals-commands-connectivity</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -449,7 +449,7 @@
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-signals-events-amqp-bridge</artifactId>
+                <artifactId>ditto-signals-events-connectivity</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -522,7 +522,7 @@
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-services-models-amqp-bridge</artifactId>
+                <artifactId>ditto-services-models-connectivity</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
