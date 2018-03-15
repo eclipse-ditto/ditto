@@ -283,12 +283,12 @@ public abstract class DittoService<C extends ServiceConfigReader> {
     }
 
     private boolean isMajorityCheckEnabled(final ServiceConfigReader configReader) {
-        return configReader.getClusterConfigReader().isMajorityCheckEnabled();
+        return configReader.cluster().majorityCheckEnabled();
 
     }
 
     private Duration getMajorityCheckDelay(final ServiceConfigReader configReader) {
-        return configReader.getClusterConfigReader().getMajorityCheckDelay();
+        return configReader.cluster().majorityCheckDelay();
     }
 
     /**

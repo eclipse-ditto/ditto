@@ -50,12 +50,12 @@ public class AbstractServiceConfigReader extends AbstractConfigReader implements
     }
 
     @Override
-    public ClusterConfigReader getClusterConfigReader() {
+    public ClusterConfigReader cluster() {
         return new ClusterConfigReader(getChildOrEmpty(PATH_CLUSTER));
     }
 
     @Override
-    public StatsdConfigReader getStatsdConfigReader() {
+    public StatsdConfigReader statsd() {
         return new StatsdConfigReader(getChildOrEmpty(PATH_STATSD));
     }
 

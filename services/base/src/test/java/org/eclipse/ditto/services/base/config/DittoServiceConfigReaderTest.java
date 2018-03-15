@@ -39,10 +39,10 @@ public final class DittoServiceConfigReaderTest {
     @Test
     public void allValuesSet() {
         final ServiceConfigReader underTest = loadResource("allValuesSet.conf");
-        assertThat(underTest.getClusterConfigReader().getNumberOfShards()).isEqualTo(1234);
-        assertThat(underTest.getClusterConfigReader().isMajorityCheckEnabled()).isTrue();
-        assertThat(underTest.getClusterConfigReader().getMajorityCheckDelay()).isEqualTo(Duration.ofHours(500));
-        assertThat(underTest.getStatsdConfigReader().getStatsd())
+        assertThat(underTest.cluster().numberOfShards()).isEqualTo(1234);
+        assertThat(underTest.cluster().majorityCheckEnabled()).isTrue();
+        assertThat(underTest.cluster().majorityCheckDelay()).isEqualTo(Duration.ofHours(500));
+        assertThat(underTest.statsd().address())
                 .contains(InetSocketAddress.createUnresolved("statsdhost", 5678));
     }
 
@@ -50,23 +50,23 @@ public final class DittoServiceConfigReaderTest {
     public void noValuesSet() {
         final ServiceConfigReader underTest = DittoServiceConfigReader.from(SERVICE_NAME).apply(ConfigFactory.empty());
 
-        assertThat(underTest.getClusterConfigReader().getNumberOfShards())
+        assertThat(underTest.cluster().numberOfShards())
                 .isEqualTo(ClusterConfigReader.DEFAULT_NUMBER_OF_SHARDS);
-        assertThat(underTest.getClusterConfigReader().isMajorityCheckEnabled())
+        assertThat(underTest.cluster().majorityCheckEnabled())
                 .isEqualTo(ClusterConfigReader.DEFAULT_MAJORITY_CHECK_ENABLED);
-        assertThat(underTest.getClusterConfigReader().getMajorityCheckDelay())
+        assertThat(underTest.cluster().majorityCheckDelay())
                 .isEqualTo(ClusterConfigReader.DEFAULT_MAJORITY_CHECK_DELAY);
-        assertThat(underTest.getStatsdConfigReader().getStatsd()).isEmpty();
+        assertThat(underTest.statsd().address()).isEmpty();
     }
 
     @Test
     public void someValuesSet() {
         final ServiceConfigReader underTest = loadResource("someValuesSet.conf");
-        assertThat(underTest.getClusterConfigReader().getNumberOfShards()).isEqualTo(1234);
-        assertThat(underTest.getClusterConfigReader().isMajorityCheckEnabled()).isTrue();
-        assertThat(underTest.getClusterConfigReader().getMajorityCheckDelay())
+        assertThat(underTest.cluster().numberOfShards()).isEqualTo(1234);
+        assertThat(underTest.cluster().majorityCheckEnabled()).isTrue();
+        assertThat(underTest.cluster().majorityCheckDelay())
                 .isEqualTo(ClusterConfigReader.DEFAULT_MAJORITY_CHECK_DELAY);
-        assertThat(underTest.getStatsdConfigReader().getStatsd()).isEmpty();
+        assertThat(underTest.statsd().address()).isEmpty();
     }
 
     private static ServiceConfigReader loadResource(final String resourceName) {

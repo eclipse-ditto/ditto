@@ -17,7 +17,7 @@ import java.nio.charset.StandardCharsets;
 
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.services.authorization.util.EntityRegionMap;
-import org.eclipse.ditto.services.authorization.util.cache.AuthorizationCache;
+import org.eclipse.ditto.services.authorization.util.cache.AuthorizationCaches;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
 import akka.actor.AbstractActor;
@@ -35,15 +35,15 @@ public class EnforcerActor extends AbstractActor {
 
     private final ActorRef pubSubMediator;
     private final EntityRegionMap entityRegionMap;
-    private final AuthorizationCache authorizationCache;
+    private final AuthorizationCaches authorizationCaches;
     private final ResourceKey cacheKey;
 
     private EnforcerActor(final ActorRef pubSubMediator,
             final EntityRegionMap entityRegionMap,
-            final AuthorizationCache authorizationCache) {
+            final AuthorizationCaches authorizationCaches) {
         this.pubSubMediator = pubSubMediator;
         this.entityRegionMap = entityRegionMap;
-        this.authorizationCache = authorizationCache;
+        this.authorizationCaches = authorizationCaches;
         this.cacheKey = getCacheKey(getSelf());
     }
 
@@ -52,21 +52,21 @@ public class EnforcerActor extends AbstractActor {
      *
      * @param pubSubMediator the Pub/Sub mediator to use for subscribing for events.
      * @param entityRegionMap map from resource types to entity shard regions.
-     * @param authorizationCache cache of information relevant for authorization.
+     * @param authorizationCaches cache of information relevant for authorization.
      * @return the Akka configuration Props object.
      */
     public static Props props(final ActorRef pubSubMediator,
             final EntityRegionMap entityRegionMap,
-            final AuthorizationCache authorizationCache) {
+            final AuthorizationCaches authorizationCaches) {
 
         return Props.create(EnforcerActor.class,
-                () -> new EnforcerActor(pubSubMediator, entityRegionMap, authorizationCache));
+                () -> new EnforcerActor(pubSubMediator, entityRegionMap, authorizationCaches));
     }
 
     @Override
     public void postStop() {
         // if stopped, remove self from entity ID cache.
-        authorizationCache.invalidateEntityId(cacheKey);
+        authorizationCaches.invalidateEntityId(cacheKey);
     }
 
     @Override

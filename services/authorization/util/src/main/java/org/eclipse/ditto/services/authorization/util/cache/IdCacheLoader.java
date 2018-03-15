@@ -31,16 +31,18 @@ import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleEx
 
 /**
  * Loads entity ID relation for authorization by asking entity shard regions.
+ *
+ * TODO: make extensible.
  */
 @Immutable
-public class IdCacheLoader extends AbstractAskCacheLoader<ResourceKey> {
+public final class IdCacheLoader extends AbstractAskCacheLoader<ResourceKey> {
 
-    private final AuthorizationCache authorizationCache;
+    private final AuthorizationCaches authorizationCaches;
 
     protected IdCacheLoader(final Duration askTimeout, final EntityRegionMap entityRegionMap,
-            final AuthorizationCache authorizationCache) {
+            final AuthorizationCaches authorizationCaches) {
         super(askTimeout, entityRegionMap);
-        this.authorizationCache = authorizationCache;
+        this.authorizationCaches = authorizationCaches;
     }
 
     @Override
@@ -68,7 +70,7 @@ public class IdCacheLoader extends AbstractAskCacheLoader<ResourceKey> {
             if (accessControlListOptional.isPresent()) {
                 final AccessControlList acl = accessControlListOptional.get();
                 final ResourceKey resourceKey = ResourceKey.newInstance(ThingCommand.RESOURCE_TYPE, thingId);
-                authorizationCache.updateAcl(resourceKey, revision, acl);
+                authorizationCaches.updateAcl(resourceKey, revision, acl);
                 return Entry.of(revision, resourceKey);
             } else {
                 final String policyId = thing.getPolicyId().orElseThrow(badThingResponse("no PolicyId or ACL"));

@@ -35,7 +35,7 @@ public final class StatsdConfigReader extends AbstractConfigReader {
      *
      * @throws com.typesafe.config.ConfigException.Missing if hostname is configured, but port number is missing
      */
-    public Optional<InetSocketAddress> getStatsd() {
+    public Optional<InetSocketAddress> address() {
         return getIfPresent(PATH_HOSTNAME, config::getString)
                         .map(hostname -> InetSocketAddress.createUnresolved(hostname, config.getInt(PATH_PORT)));
     }

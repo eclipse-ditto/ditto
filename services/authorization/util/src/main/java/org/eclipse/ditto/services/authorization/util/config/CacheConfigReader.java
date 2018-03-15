@@ -13,53 +13,38 @@ package org.eclipse.ditto.services.authorization.util.config;
 
 import java.time.Duration;
 
-import javax.annotation.concurrent.Immutable;
-
 import org.eclipse.ditto.services.base.config.AbstractConfigReader;
 
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.typesafe.config.Config;
 
 /**
- * Configuration reader for authorization cache.
+ * Configuration reader for id and enforcer cache.
  */
-@Immutable
 public final class CacheConfigReader extends AbstractConfigReader {
 
-    private static final Duration DEFAULT_ASK_TIMEOUT = Duration.ofSeconds(10);
+    private static final String PATH_MAXIMUM_SIZE = "maximum-size";
+    private static final String PATH_EXPIRE_AFTER_WRITE = "expire-after-write";
 
     CacheConfigReader(final Config config) {
         super(config);
     }
 
     /**
-     * Retrieve duration to wait for entity shard regions.
+     * Retrieve the maximum size of a cache.
      *
-     * @return Internal ask timeout duration.
+     * @return the maximum size if it exists.
      */
-    public Duration getAskTimeout() {
-        return getIfPresent("ask-timeout", config::getDuration).orElse(DEFAULT_ASK_TIMEOUT);
+    public long maximumSize() {
+        return config.getLong(PATH_MAXIMUM_SIZE);
     }
 
     /**
-     * Retrieve config reader for the id cache.
+     * Retrieve duration after which a cache entry expires.
      *
-     * @return the config reader.
+     * @return duration between write and expiration.
      */
-    public CaffeineConfigReader getIdCacheConfigReader() {
-        return getCaffeineConfigReader("id");
+    public Duration expireAfterWrite() {
+        return config.getDuration(PATH_EXPIRE_AFTER_WRITE);
     }
-
-    /**
-     * Retrieve config reader for the enforcer cache.
-     *
-     * @return the config reader.
-     */
-    public CaffeineConfigReader getEnforcerCacheConfigReader() {
-        return getCaffeineConfigReader("enforcer");
-    }
-
-    private CaffeineConfigReader getCaffeineConfigReader(final String childPath) {
-        return new CaffeineConfigReader(getChild(childPath));
-    }
-
 }

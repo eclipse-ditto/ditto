@@ -69,7 +69,7 @@ public final class StatsdMongoDbMetricsStarter implements Runnable {
 
 
         final Runnable implementation;
-        final Optional<InetSocketAddress> statsdAddress = configReader.getStatsdConfigReader().getStatsd();
+        final Optional<InetSocketAddress> statsdAddress = configReader.statsd().address();
         if (statsdAddress.isPresent()) {
             final InetSocketAddress statsd = statsdAddress.get();
             final MetricRegistry metricRegistry = createMetricRegistry(actorSystem, configReader.getRawConfig());
