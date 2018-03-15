@@ -11,7 +11,7 @@
  */
 package org.eclipse.ditto.services.authorization.util.cache.entry;
 
-import java.util.Optional;
+import java.util.NoSuchElementException;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -29,8 +29,8 @@ final class NonexistentEntry<T> implements Entry<T> {
     }
 
     @Override
-    public Optional<T> getValue() {
-        return Optional.empty();
+    public T getValue() {
+        throw new NoSuchElementException();
     }
 
     @Override

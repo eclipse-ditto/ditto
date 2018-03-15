@@ -12,7 +12,10 @@
 package org.eclipse.ditto.services.authorization.util.cache;
 
 import java.time.Duration;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
 import org.eclipse.ditto.model.enforcers.AclEnforcer;
@@ -23,6 +26,7 @@ import org.eclipse.ditto.services.authorization.util.EntityRegionMap;
 import org.eclipse.ditto.services.authorization.util.cache.entry.Entry;
 import org.eclipse.ditto.services.authorization.util.config.CacheConfigReader;
 import org.eclipse.ditto.services.authorization.util.config.CachesConfigReader;
+import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 
 import com.github.benmanes.caffeine.cache.AsyncLoadingCache;
 import com.github.benmanes.caffeine.cache.Caffeine;
@@ -54,6 +58,30 @@ public final class AuthorizationCaches {
     }
 
     /**
+     * By an entity cache key, look up the enforcer cache key and the enforcer itself.
+     *
+     * @param entityKey cache key of an entity.
+     * @param consumer handler of cache lookup results.
+     */
+    public void retrieve(final ResourceKey entityKey, final BiConsumer<Entry<ResourceKey>, Entry<Enforcer>> consumer) {
+        if (Objects.equals(PolicyCommand.RESOURCE_TYPE, entityKey.getResourceType())) {
+            // Enforcer cache key of a policy is always identical to the entity cache key of the policy.
+            // No need to save the identity relation in entity cache and waste memory and bandwidth.
+            enforcerCache.get(entityKey)
+                    .thenAccept(enforcerEntry -> consumer.accept(Entry.permanent(entityKey), enforcerEntry));
+        } else {
+            idCache.get(entityKey).thenAccept(enforcerKeyEntry -> {
+                if (enforcerKeyEntry.exists()) {
+                    enforcerCache.get(enforcerKeyEntry.getValue())
+                            .thenAccept(enforcerEntry -> consumer.accept(enforcerKeyEntry, enforcerEntry));
+                } else {
+                    consumer.accept(enforcerKeyEntry, Entry.nonexistent());
+                }
+            });
+        }
+    }
+
+    /**
      * Invalidate an entry in the entity ID cache.
      *
      * @param resourceKey cache key of the entity.
@@ -72,9 +100,6 @@ public final class AuthorizationCaches {
                     }
                 });
     }
-
-    // TODO: DO NOT save policy id relation into the ID cache because it is always the identity relation.
-    // TODO: DO NOT save message commands into the ID cache to not waste memory and bandwidth
 
     private Caffeine<Object, Object> caffeine(final CacheConfigReader cacheConfigReader) {
         final Caffeine<Object, Object> caffeine = Caffeine.newBuilder();

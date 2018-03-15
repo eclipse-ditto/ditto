@@ -35,8 +35,8 @@ final class ExistentEntry<T> implements Entry<T> {
     }
 
     @Override
-    public Optional<T> getValue() {
-        return Optional.of(value);
+    public T getValue() {
+        return value;
     }
 
     @Override

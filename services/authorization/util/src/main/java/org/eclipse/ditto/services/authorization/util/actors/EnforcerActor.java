@@ -14,11 +14,13 @@ package org.eclipse.ditto.services.authorization.util.actors;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.services.authorization.util.EntityRegionMap;
 import org.eclipse.ditto.services.authorization.util.cache.AuthorizationCaches;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.signals.commands.things.ThingCommand;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -29,22 +31,22 @@ import akka.japi.pf.ReceiveBuilder;
 /**
  * Actor that enforces authorization for all commands.
  */
-public class EnforcerActor extends AbstractActor {
+public class EnforcerActor extends AbstractActor implements ThingCommandEnforcement {
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
     private final ActorRef pubSubMediator;
     private final EntityRegionMap entityRegionMap;
-    private final AuthorizationCaches authorizationCaches;
-    private final ResourceKey cacheKey;
+    private final AuthorizationCaches caches;
+    private final ResourceKey entityKey;
 
     private EnforcerActor(final ActorRef pubSubMediator,
             final EntityRegionMap entityRegionMap,
-            final AuthorizationCaches authorizationCaches) {
+            final AuthorizationCaches caches) {
         this.pubSubMediator = pubSubMediator;
         this.entityRegionMap = entityRegionMap;
-        this.authorizationCaches = authorizationCaches;
-        this.cacheKey = getCacheKey(getSelf());
+        this.caches = caches;
+        this.entityKey = getCacheKey(getSelf());
     }
 
     /**
@@ -66,15 +68,40 @@ public class EnforcerActor extends AbstractActor {
     @Override
     public void postStop() {
         // if stopped, remove self from entity ID cache.
-        authorizationCaches.invalidateEntityId(cacheKey);
+        caches.invalidateEntityId(entityKey);
+    }
+
+    @Override
+    public Duration getAskTimeout() {
+        return Duration.ofSeconds(10L); // TODO: make configurable
+    }
+
+    @Override
+    public EntityRegionMap entityRegionMap() {
+        return entityRegionMap;
+    }
+
+    @Override
+    public ResourceKey entityKey() {
+        return entityKey;
+    }
+
+    @Override
+    public DiagnosticLoggingAdapter log() {
+        return log;
+    }
+
+    @Override
+    public AuthorizationCaches caches() {
+        return caches;
     }
 
     @Override
     public Receive createReceive() {
-        // TODO: do something
         return ReceiveBuilder.create()
+                .match(ThingCommand.class, this::enforceThingCommand)
                 .matchAny(message -> {
-                    log.warning("unexpected message: <{}>", message);
+                    log.warning("Unexpected message: <{}>", message);
                     unhandled(message);
                 })
                 .build();
