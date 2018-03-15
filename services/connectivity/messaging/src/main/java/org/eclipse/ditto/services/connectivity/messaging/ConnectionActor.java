@@ -23,16 +23,17 @@ import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.MappingContext;
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionData;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionMongoSnapshotAdapter;
 import org.eclipse.ditto.services.connectivity.util.ConfigKeys;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
+import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionConflictException;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
@@ -45,16 +46,18 @@ import org.eclipse.ditto.signals.commands.connectivity.modify.DeleteConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.DeleteConnectionResponse;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnectionResponse;
+import org.eclipse.ditto.signals.commands.connectivity.modify.TestConnection;
+import org.eclipse.ditto.signals.commands.connectivity.modify.TestConnectionResponse;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnection;
+import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetrics;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionResponse;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatus;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatusResponse;
-import org.eclipse.ditto.signals.commands.base.Command;
+import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.connectivity.ConnectionClosed;
 import org.eclipse.ditto.signals.events.connectivity.ConnectionCreated;
 import org.eclipse.ditto.signals.events.connectivity.ConnectionDeleted;
 import org.eclipse.ditto.signals.events.connectivity.ConnectionOpened;
-import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 import com.typesafe.config.Config;
@@ -117,8 +120,6 @@ final class ConnectionActor extends AbstractPersistentActor {
     private long lastSnapshotSequenceNr = -1L;
     private boolean snapshotInProgress = false;
 
-    @Nullable private String connectionStatusDetails;
-
     private ConnectionActor(final String connectionId, final ActorRef pubSubMediator,
             final ConnectionActorPropsFactory propsFactory) {
         this.connectionId = connectionId;
@@ -178,6 +179,7 @@ final class ConnectionActor extends AbstractPersistentActor {
         if (shutdownCancellable != null) {
             shutdownCancellable.cancel();
         }
+        log.info("stopped connection <{}>", connectionId);
     }
 
     @Override
@@ -209,7 +211,6 @@ final class ConnectionActor extends AbstractPersistentActor {
                 .match(RecoveryCompleted.class, rc -> {
                     log.info("Connection '{}' was recovered: {}", connectionId, connection);
                     if (connection != null) {
-                        connectionStatusDetails = null;
                         if (ConnectionStatus.OPEN.equals(connectionStatus)) {
                             log.debug("Opening connection {} after recovery.", connectionId);
 
@@ -238,13 +239,11 @@ final class ConnectionActor extends AbstractPersistentActor {
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
+                .match(TestConnection.class, this::testConnection)
                 .match(CreateConnection.class, this::createConnection)
                 .match(ConnectivityCommand.class, this::handleCommandDuringInitialization)
                 .match(Shutdown.class, shutdown -> stopSelf())
-                .match(Status.Failure.class, f -> {
-                    log.error(f.cause(), "Got failure: {}", f);
-                    connectionStatusDetails = f.cause().getMessage();
-                })
+                .match(Status.Failure.class, f -> log.error(f.cause(), "Got failure: {}", f))
                 .matchAny(m -> {
                     log.warning("Unknown message: {}", m);
                     unhandled(m);
@@ -253,6 +252,12 @@ final class ConnectionActor extends AbstractPersistentActor {
 
     private Receive createConnectionCreatedBehaviour() {
         return ReceiveBuilder.create()
+                .match(TestConnection.class, testConnection ->
+                        getSender().tell(
+                                TestConnectionResponse.of(testConnection.getConnectionId(),
+                                        "Connection was already created - no test possible",
+                                        testConnection.getDittoHeaders()),
+                                getSelf()))
                 .match(CreateConnection.class, createConnection -> {
                     LogUtil.enhanceLogWithCorrelationId(log, createConnection);
                     log.info("Connection <{}> already exists, responding with conflict", createConnection.getId());
@@ -267,6 +272,7 @@ final class ConnectionActor extends AbstractPersistentActor {
                 .match(DeleteConnection.class, this::deleteConnection)
                 .match(RetrieveConnection.class, this::retrieveConnection)
                 .match(RetrieveConnectionStatus.class, this::retrieveConnectionStatus)
+                .match(RetrieveConnectionMetrics.class, this::retrieveConnectionMetrics)
                 .match(ThingEvent.class, this::handleThingEvent)
                 .match(DistributedPubSubMediator.SubscribeAck.class, this::handleSubscribeAck)
                 .match(DistributedPubSubMediator.UnsubscribeAck.class, this::handleUnsubscribeAck)
@@ -301,6 +307,26 @@ final class ConnectionActor extends AbstractPersistentActor {
             log.debug("Forwarding thing event <{}> to client actor.", thingEvent.getType());
             clientActor.tell(thingEvent, getSelf());
         }
+    }
+
+    private void testConnection(final TestConnection command) {
+
+        final ActorRef origin = getSender();
+
+        connection = command.getConnection();
+        mappingContexts = command.getMappingContexts();
+
+        askClientActor("test", command, origin, response -> {
+            origin.tell(
+                    TestConnectionResponse.of(command.getConnectionId(), response.toString(),
+                            command.getDittoHeaders()),
+                    getSelf());
+        });
+
+        // terminate this actor's supervisor after a connection test again:
+        final ActorRef parent = getContext().getParent();
+        getContext().getSystem().scheduler().scheduleOnce(FiniteDuration.apply(5, TimeUnit.SECONDS), parent,
+                PoisonPill.getInstance(), getContext().dispatcher(), getSelf());
     }
 
     private void createConnection(final CreateConnection command) {
@@ -354,7 +380,6 @@ final class ConnectionActor extends AbstractPersistentActor {
                 origin.tell(CloseConnectionResponse.of(connectionId, command.getDittoHeaders()),
                         getSelf());
                 unsubscribeFromThingEvents();
-                connectionStatusDetails = "closed as requested by CloseConnection command";
             });
         });
     }
@@ -394,6 +419,8 @@ final class ConnectionActor extends AbstractPersistentActor {
                         handleException(action, origin, exception);
                     } else if (response instanceof Status.Failure) {
                         handleException(action, origin, ((Status.Failure) response).cause());
+                    } else if (response instanceof DittoRuntimeException) {
+                        handleException(action, origin, (DittoRuntimeException) response);
                     } else {
                         onSuccess.accept(response);
                     }
@@ -407,16 +434,14 @@ final class ConnectionActor extends AbstractPersistentActor {
         } else {
             dre = ConnectionFailedException.newBuilder(connectionId)
                     .description(exception.getMessage())
+                    .cause(exception)
                     .build();
         }
-
-        connectionStatus = ConnectionStatus.FAILED;
-        connectionStatusDetails = dre.getMessage() + " " + dre.getDescription().orElse("");
 
         origin.tell(dre, getSelf());
         log.error(dre, "Operation '{}' on connection '{}' failed: {}.", action,
                 connectionId,
-                exception.getMessage());
+                dre.getMessage());
     }
 
     private void retrieveConnection(final RetrieveConnection command) {
@@ -429,12 +454,22 @@ final class ConnectionActor extends AbstractPersistentActor {
     private void retrieveConnectionStatus(final RetrieveConnectionStatus command) {
         checkNotNull(connection, "Connection");
         checkNotNull(mappingContexts, "MappingContexts");
-        getSender().tell(RetrieveConnectionStatusResponse.of(connectionId, connectionStatus, connectionStatusDetails,
-                command.getDittoHeaders()), getSelf());
+        getSender().tell(RetrieveConnectionStatusResponse.of(connectionId, connectionStatus,
+                "the status as persisted / desired status", command.getDittoHeaders()), getSelf());
+    }
+
+    private void retrieveConnectionMetrics(final RetrieveConnectionMetrics command) {
+        checkNotNull(connection, "Connection");
+        checkNotNull(mappingContexts, "MappingContexts");
+
+        final ActorRef origin = getSender();
+        askClientActor("retrieve-metrics", command, origin, response -> {
+            origin.tell(response, getSelf());
+        });
     }
 
     private void subscribeToThingEvents() {
-        checkNotNull(connection, "connection");
+        checkNotNull(connection, "Connection");
         if (connection.getEventTarget().isPresent()) {
             final DistributedPubSubMediator.Subscribe subscribe =
                     new DistributedPubSubMediator.Subscribe(ThingEvent.TYPE_PREFIX, PUB_SUB_GROUP_PREFIX + connectionId,

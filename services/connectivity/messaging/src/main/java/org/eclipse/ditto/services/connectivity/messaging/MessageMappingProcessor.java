@@ -78,6 +78,10 @@ public final class MessageMappingProcessor {
      * @param access the dynamic access used for message mapper instantiation
      * @param log the log adapter
      * @return the processor instance
+     * @throws org.eclipse.ditto.model.connectivity.MessageMapperConfigurationInvalidException if the configuration of
+     * one of the {@code contexts} is invalid
+     * @throws org.eclipse.ditto.model.connectivity.MessageMapperConfigurationFailedException if the configuration of
+     * one of the {@code contexts} failed for a mapper specific reason
      */
     public static MessageMappingProcessor of(final List<MappingContext> contexts, final DynamicAccess access,
             final DiagnosticLoggingAdapter log) {

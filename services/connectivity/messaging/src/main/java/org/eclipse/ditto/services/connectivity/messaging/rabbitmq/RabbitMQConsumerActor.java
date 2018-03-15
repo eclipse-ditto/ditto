@@ -55,7 +55,7 @@ public final class RabbitMQConsumerActor extends AbstractActor {
 
     private final ActorRef messageMappingProcessor;
 
-    private RabbitMQConsumerActor(@Nullable final ActorRef messageMappingProcessor) {
+    private RabbitMQConsumerActor(final ActorRef messageMappingProcessor) {
         this.messageMappingProcessor = checkNotNull(messageMappingProcessor, "messageMappingProcessor");
     }
 
@@ -65,7 +65,7 @@ public final class RabbitMQConsumerActor extends AbstractActor {
      * @param messageMappingProcessor the message mapping processor where received messages are forwarded to
      * @return the Akka configuration Props object.
      */
-    static Props props(@Nullable final ActorRef messageMappingProcessor) {
+    static Props props(final ActorRef messageMappingProcessor) {
         return Props.create(
                 RabbitMQConsumerActor.class, new Creator<RabbitMQConsumerActor>() {
                     private static final long serialVersionUID = 1L;

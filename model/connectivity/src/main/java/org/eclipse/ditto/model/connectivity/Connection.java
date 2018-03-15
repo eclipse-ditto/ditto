@@ -97,14 +97,14 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
      *
      * @return the username.
      */
-    String getUsername();
+    Optional<String> getUsername();
 
     /**
      * Returns the password part of the URI of this {@code Connection}.
      *
      * @return the password.
      */
-    String getPassword();
+    Optional<String> getPassword();
 
     /**
      * Returns the hostname part of the URI of this {@code Connection}.
@@ -298,7 +298,8 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
         /**
          * Regex for the username part of an URI.
          */
-        private static final String USERNAME_REGEX = "(?<" + USERNAME_REGEX_GROUP + ">(\\S+)):";
+        private static final String USERNAME_REGEX = "(?<" + USERNAME_REGEX_GROUP + ">(\\S+))";
+
 
         /**
          * Regex group for the password part of an URI.
@@ -309,8 +310,13 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
         /**
          * Regex for the password part of an URI.
          */
-        private static final String PASSWORD_REGEX = "(?<" + PASSWORD_REGEX_GROUP + ">(\\S+))@";
+        private static final String PASSWORD_REGEX = "(?<" + PASSWORD_REGEX_GROUP + ">(\\S+))";
 
+        /**
+         * Regex for the username part of an URI.
+         */
+
+        private static final String USERNAME_PASSWORD_REGEX = "(" + USERNAME_REGEX + ":" + PASSWORD_REGEX + "@)?";
         /**
          * Regex group for the host part of an URI.
          */
@@ -345,7 +351,7 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
          * Regex for an URI.
          */
         public static final String REGEX =
-                PROTOCOL_REGEX + USERNAME_REGEX + PASSWORD_REGEX + HOSTNAME_REGEX + PORT_REGEX + PATH_REGEX;
+                PROTOCOL_REGEX + USERNAME_PASSWORD_REGEX + HOSTNAME_REGEX + PORT_REGEX + PATH_REGEX;
 
         private UriRegex() {
             throw new AssertionError();

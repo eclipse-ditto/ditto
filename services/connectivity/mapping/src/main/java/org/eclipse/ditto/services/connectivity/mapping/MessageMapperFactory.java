@@ -30,8 +30,12 @@ public interface MessageMapperFactory {
      * @param context the context
      * @return the mapper
      * @throws java.lang.NullPointerException if the context is null
+     * @throws org.eclipse.ditto.model.connectivity.MessageMapperConfigurationInvalidException if the configuration of
+     * the {@code context} is invalid
+     * @throws org.eclipse.ditto.model.connectivity.MessageMapperConfigurationFailedException if the configuration of
+     * the {@code context} failed for a mapper specific reason
      */
-    Optional<MessageMapper> mapperOf(final MappingContext context);
+    Optional<MessageMapper> mapperOf(MappingContext context);
 
     /**
      * Creates an configures multiple {@link MessageMapper}
@@ -40,8 +44,12 @@ public interface MessageMapperFactory {
      * @param contexts the contexts
      * @return the mappers that could be instantiated and configured
      * @throws java.lang.NullPointerException if the context is null
+     * @throws org.eclipse.ditto.model.connectivity.MessageMapperConfigurationInvalidException if the configuration of
+     * the {@code context} is invalid
+     * @throws org.eclipse.ditto.model.connectivity.MessageMapperConfigurationFailedException if the configuration of
+     * the {@code context} failed for a mapper specific reason
      */
-    List<MessageMapper> mappersOf(final List<MappingContext> contexts);
+    List<MessageMapper> mappersOf(List<MappingContext> contexts);
 
     /**
      * Creates a {@link MessageMapperRegistry}. Mappers that are
@@ -52,6 +60,10 @@ public interface MessageMapperFactory {
      * @return the registry
      * @throws java.lang.NullPointerException if a parameters is null
      * @throws java.lang.IllegalArgumentException if the default mapper could not be instantiated
+     * @throws org.eclipse.ditto.model.connectivity.MessageMapperConfigurationInvalidException if the configuration of
+     * the {@code context} is invalid
+     * @throws org.eclipse.ditto.model.connectivity.MessageMapperConfigurationFailedException if the configuration of
+     * the {@code context} failed for a mapper specific reason
      */
-    MessageMapperRegistry registryOf(final MappingContext defaultContext, final List<MappingContext> contexts);
+    MessageMapperRegistry registryOf(MappingContext defaultContext, List<MappingContext> contexts);
 }

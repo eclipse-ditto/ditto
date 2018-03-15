@@ -19,10 +19,10 @@ import java.util.Collections;
 
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.signals.commands.connectivity.TestConstants;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionNotAccessibleException;
@@ -35,12 +35,14 @@ import org.eclipse.ditto.signals.commands.connectivity.modify.DeleteConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.DeleteConnectionResponse;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnectionResponse;
+import org.eclipse.ditto.signals.commands.connectivity.modify.TestConnection;
+import org.eclipse.ditto.signals.commands.connectivity.modify.TestConnectionResponse;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnection;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionResponse;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatus;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatusResponse;
-import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatuses;
-import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatusesResponse;
+import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetrics;
+import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetricsResponse;
 
 public class JsonExamplesProducer {
 
@@ -73,6 +75,10 @@ public class JsonExamplesProducer {
         final Path commandsDir = rootPath.resolve(Paths.get("commands", "modify"));
         Files.createDirectories(commandsDir);
 
+        final TestConnection testConnection =
+                TestConnection.of(TestConstants.CONNECTION, Collections.singletonList(TestConstants.MAPPING_CONTEXT), DittoHeaders.empty());
+        writeJson(commandsDir.resolve(Paths.get("testConnection.json")), testConnection);
+
         final CreateConnection createConnection =
                 CreateConnection.of(TestConstants.CONNECTION, Collections.singletonList(TestConstants.MAPPING_CONTEXT), DittoHeaders.empty());
         writeJson(commandsDir.resolve(Paths.get("createConnection.json")), createConnection);
@@ -93,6 +99,10 @@ public class JsonExamplesProducer {
     private static void produceModifyResponse(final Path rootPath) throws IOException {
         final Path commandsDir = rootPath.resolve(Paths.get("responses", "modify"));
         Files.createDirectories(commandsDir);
+
+        final TestConnectionResponse testConnectionResponse =
+                TestConnectionResponse.of(TestConstants.CONNECTION.getId(), "connected",  DittoHeaders.empty());
+        writeJson(commandsDir.resolve(Paths.get("testConnectionResponse.json")), testConnectionResponse);
 
         final CreateConnectionResponse createConnectionResponse =
                 CreateConnectionResponse.of(TestConstants.CONNECTION, Collections.singletonList(TestConstants.MAPPING_CONTEXT), DittoHeaders.empty());
@@ -124,9 +134,9 @@ public class JsonExamplesProducer {
                 RetrieveConnectionStatus.of(TestConstants.ID, DittoHeaders.empty());
         writeJson(commandsDir.resolve(Paths.get("retrieveConnectionStatus.json")), retrieveConnectionStatus);
 
-        final RetrieveConnectionStatuses retrieveConnectionStatuses =
-                RetrieveConnectionStatuses.of(DittoHeaders.empty());
-        writeJson(commandsDir.resolve(Paths.get("retrieveConnectionStatuses.json")), retrieveConnectionStatuses);
+        final RetrieveConnectionMetrics retrieveConnectionMetrics =
+                RetrieveConnectionMetrics.of(TestConstants.ID, DittoHeaders.empty());
+        writeJson(commandsDir.resolve(Paths.get("retrieveConnectionMetrics.json")), retrieveConnectionMetrics);
     }
 
     private static void produceViewCommandResponse(final Path rootPath) throws IOException {
@@ -141,9 +151,9 @@ public class JsonExamplesProducer {
                 RetrieveConnectionStatusResponse.of(TestConstants.ID, ConnectionStatus.OPEN, DittoHeaders.empty());
         writeJson(commandsDir.resolve(Paths.get("retrieveConnectionStatus.json")), retrieveConnectionStatusResponse);
 
-        final RetrieveConnectionStatusesResponse retrieveConnectionStatusesResponse =
-                RetrieveConnectionStatusesResponse.of(TestConstants.CONNECTION_STATUSES, DittoHeaders.empty());
-        writeJson(commandsDir.resolve(Paths.get("retrieveConnectionStatuses.json")), retrieveConnectionStatusesResponse);
+        final RetrieveConnectionMetricsResponse retrieveConnectionMetricsResponse =
+                RetrieveConnectionMetricsResponse.of(TestConstants.ID, ConnectionStatus.OPEN, DittoHeaders.empty());
+        writeJson(commandsDir.resolve(Paths.get("retrieveConnectionMetrics.json")), retrieveConnectionMetricsResponse);
     }
 
     private static void produceExceptions(final Path rootPath) throws IOException {

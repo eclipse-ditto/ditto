@@ -19,7 +19,7 @@ $h3 Retrieve Connection Status
 
 $h3 Retrieve Connection Statuses
 
-#set( $snippetFile = "/target/generated-resources/connectivity/responses/view/retrieveConnectionStatuses.json" )
+#set( $snippetFile = "/target/generated-resources/connectivity/responses/view/retrieveConnectionMetrics.json" )
 ```
 #parse( "snippet" )
 ```

@@ -20,10 +20,11 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.MappingContext;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.connectivity.util.ConfigKeys;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CreateConnection;
@@ -36,6 +37,8 @@ import com.typesafe.config.Config;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
+import akka.actor.DynamicAccess;
+import akka.actor.ExtendedActorSystem;
 import akka.actor.Props;
 import akka.actor.ReceiveTimeout;
 import akka.cluster.pubsub.DistributedPubSub;
@@ -65,6 +68,7 @@ public abstract class BaseClientActor extends AbstractActor {
     private final java.time.Duration initTimeout;
 
     @Nullable protected Connection connection;
+    protected boolean testConnection = false;
     @Nullable protected List<MappingContext> mappingContexts;
     @Nullable protected ActorRef messageMappingProcessor;
     @Nullable private ConnectionStatus connectionStatus;
@@ -98,9 +102,24 @@ public abstract class BaseClientActor extends AbstractActor {
         checkNotNull(pubSubTargetPath, "PubSubTargetPath");
         if (messageMappingProcessor == null) {
 
-            log.debug("Starting MessageMappingProcessorActor with pool size of {}.", connection.getProcessorPoolSize());
+            final MessageMappingProcessor processor;
+            try {
+                // this one throws DittoRuntimeExceptions when the mapper could not be configured
+                processor = MessageMappingProcessor.of(mappingContexts, getDynamicAccess(), log);
+            } catch (final DittoRuntimeException dre) {
+                log.info("Got DittoRuntimeException during initialization of MessageMappingProcessor: {} {} - desc: {}",
+                        dre.getClass().getSimpleName(), dre.getMessage(), dre.getDescription().orElse(""));
+                getSender().tell(dre, getSelf());
+                return;
+            }
+
+            log.info("Configured for processing messages with the following content types: <{}>",
+                    processor.getSupportedContentTypes());
+            log.info("Interpreting messages with missing content type as <{}>", processor.getDefaultContentType());
+
+            log.debug("Starting MessageMappingProcessorActor with pool size of <{}>.", connection.getProcessorPoolSize());
             final Props props = MessageMappingProcessorActor.props(pubSubMediator, pubSubTargetPath, commandProducer,
-                            connection.getAuthorizationContext(), mappingContexts);
+                            connection.getAuthorizationContext(), processor);
             final String messageMappingProcessorName = getMessageMappingProcessorActorName(connection.getId());
 
             final DefaultResizer resizer = new DefaultResizer(1, connection.getProcessorPoolSize());
@@ -117,6 +136,10 @@ public abstract class BaseClientActor extends AbstractActor {
             getContext().stop(messageMappingProcessor);
             messageMappingProcessor = null;
         }
+    }
+
+    private DynamicAccess getDynamicAccess() {
+        return ((ExtendedActorSystem) getContext().getSystem()).dynamicAccess();
     }
 
     private String getMessageMappingProcessorActorName(final String connectionId) {

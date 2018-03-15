@@ -12,7 +12,6 @@
 package org.eclipse.ditto.services.connectivity.messaging;
 
 
-import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -21,8 +20,6 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.model.connectivity.ExternalMessage;
-import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.common.ConditionChecker;
@@ -30,6 +27,7 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
@@ -41,8 +39,6 @@ import com.google.common.cache.RemovalListener;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
-import akka.actor.DynamicAccess;
-import akka.actor.ExtendedActorSystem;
 import akka.actor.Props;
 import akka.actor.Status;
 import akka.cluster.pubsub.DistributedPubSubMediator;
@@ -70,28 +66,23 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     private final String pubSubTargetPath;
     private final ActorRef commandProducer;
     private final AuthorizationContext authorizationContext;
-    private final Cache<String, TraceContext> traces;
-
     private final MessageMappingProcessor processor;
+
+    private final Cache<String, TraceContext> traces;
 
     private MessageMappingProcessorActor(final ActorRef pubSubMediator, final String pubSubTargetPath,
             final ActorRef commandProducer, final AuthorizationContext authorizationContext,
-            final List<MappingContext> mappingContexts) {
+            final MessageMappingProcessor processor) {
         this.pubSubMediator = pubSubMediator;
         this.pubSubTargetPath = pubSubTargetPath;
         this.commandProducer = commandProducer;
         this.authorizationContext = authorizationContext;
+        this.processor = processor;
         traces = CacheBuilder.newBuilder()
                 .expireAfterWrite(5, TimeUnit.MINUTES)
                 .removalListener((RemovalListener<String, TraceContext>) notification
                         -> log.debug("Trace for {} removed.", notification.getKey()))
                 .build();
-
-        this.processor = MessageMappingProcessor.of(mappingContexts, getDynamicAccess(), log);
-
-        log.info("Configured for processing messages with the following content types: {}",
-                processor.getSupportedContentTypes());
-        log.info("Interpreting messages with missing content type as '{}'", processor.getDefaultContentType());
     }
 
     /**
@@ -101,13 +92,13 @@ public final class MessageMappingProcessorActor extends AbstractActor {
      * @param pubSubTargetPath the target path where incoming messages are sent
      * @param commandProducer actor that handles outgoing messages
      * @param authorizationContext the authorization context (authorized subjects) that are set in command headers
-     * @param mappingContexts the mapping contexts to apply for different content-types
+     * @param processor the MessageMappingProcessor to use
      * @return the Akka configuration Props object
      */
     public static Props props(final ActorRef pubSubMediator, final String pubSubTargetPath,
             final ActorRef commandProducer,
             final AuthorizationContext authorizationContext,
-            final List<MappingContext> mappingContexts) {
+            final MessageMappingProcessor processor) {
 
         return Props.create(MessageMappingProcessorActor.class, new Creator<MessageMappingProcessorActor>() {
             private static final long serialVersionUID = 1L;
@@ -115,7 +106,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
             @Override
             public MessageMappingProcessorActor create() {
                 return new MessageMappingProcessorActor(pubSubMediator, pubSubTargetPath, commandProducer,
-                        authorizationContext, mappingContexts);
+                        authorizationContext, processor);
             }
         });
     }
@@ -203,15 +194,6 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         } catch (final Exception e) {
             log.warning("Got unexpected exception during processing Signal: <{}>", e.getMessage());
         }
-    }
-
-    /**
-     * Shortcut to the dynamic access object
-     *
-     * @return the dynamic access object
-     */
-    private DynamicAccess getDynamicAccess() {
-        return ((ExtendedActorSystem) getContext().getSystem()).dynamicAccess();
     }
 
     private void startTrace(final Signal<?> command) {

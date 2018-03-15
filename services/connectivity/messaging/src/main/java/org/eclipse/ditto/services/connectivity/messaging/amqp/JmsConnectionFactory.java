@@ -15,6 +15,7 @@ import javax.jms.ExceptionListener;
 import javax.jms.JMSException;
 import javax.naming.NamingException;
 
+import org.apache.qpid.jms.JmsConnection;
 import org.eclipse.ditto.model.connectivity.Connection;
 
 /**
@@ -31,7 +32,7 @@ public interface JmsConnectionFactory {
      * @throws javax.jms.JMSException if the context could not be created.
      * @throws javax.naming.NamingException if the identifier of {@code connection} could not be found in the Context.
      */
-    javax.jms.Connection createConnection(final Connection connection, ExceptionListener exceptionListener)
+    JmsConnection createConnection(final Connection connection, ExceptionListener exceptionListener)
             throws JMSException, NamingException;
 
 }

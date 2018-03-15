@@ -36,7 +36,7 @@ public final class MessageMapperConfigurationFailedException extends DittoRuntim
      */
     public static final String ERROR_CODE = ERROR_CODE_PREFIX + "message.mapper.config.failed";
 
-    private static final String MESSAGE_TEMPLATE = "The message mapper configuration failed due to: ''{0}''";
+    private static final String MESSAGE_TEMPLATE = "The message mapper configuration failed due to: {0}";
 
     private static final String DEFAULT_DESCRIPTION = "Check the configuration options of your mapper for errors.";
 
