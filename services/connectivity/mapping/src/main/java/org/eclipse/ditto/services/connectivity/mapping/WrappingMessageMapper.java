@@ -36,7 +36,7 @@ import org.eclipse.ditto.protocoladapter.ProtocolFactory;
  * forget to do so by himself.
  * </p>
  */
-final class ContentTypeRestrictedMessageMapper implements MessageMapper {
+final class WrappingMessageMapper implements MessageMapper {
 
 
     private final MessageMapper delegate;
@@ -44,7 +44,7 @@ final class ContentTypeRestrictedMessageMapper implements MessageMapper {
     private final String contentTypeOverride;
 
 
-    private ContentTypeRestrictedMessageMapper(final MessageMapper delegate, @Nullable final String contentTypeOverride) {
+    private WrappingMessageMapper(final MessageMapper delegate, @Nullable final String contentTypeOverride) {
         this.delegate = checkNotNull(delegate);
         this.contentTypeOverride = contentTypeOverride;
     }
@@ -56,7 +56,7 @@ final class ContentTypeRestrictedMessageMapper implements MessageMapper {
      * @return the wrapped mapper
      */
     public static MessageMapper wrap(final MessageMapper mapper) {
-        return new ContentTypeRestrictedMessageMapper(mapper, null);
+        return new WrappingMessageMapper(mapper, null);
     }
 
     /**
@@ -67,7 +67,7 @@ final class ContentTypeRestrictedMessageMapper implements MessageMapper {
      * @return the wrapped mapper
      */
     public static MessageMapper wrap(final MessageMapper mapper, final String contentTypeOverride) {
-        return new ContentTypeRestrictedMessageMapper(mapper, contentTypeOverride);
+        return new WrappingMessageMapper(mapper, contentTypeOverride);
     }
 
     @Override
@@ -116,6 +116,7 @@ final class ContentTypeRestrictedMessageMapper implements MessageMapper {
                 messageBuilder.withAdditionalHeaders(adaptableHeaders);
                 messageBuilder.withAdditionalHeaders(mapped.getHeaders());
             });
+            messageBuilder.withAdditionalHeaders(ExternalMessage.CONTENT_TYPE_HEADER, getContentType());
 
             return messageBuilder.build();
         });
@@ -153,7 +154,7 @@ final class ContentTypeRestrictedMessageMapper implements MessageMapper {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        final ContentTypeRestrictedMessageMapper that = (ContentTypeRestrictedMessageMapper) o;
+        final WrappingMessageMapper that = (WrappingMessageMapper) o;
         return Objects.equals(delegate, that.delegate) &&
                 Objects.equals(contentTypeOverride, that.contentTypeOverride);
     }

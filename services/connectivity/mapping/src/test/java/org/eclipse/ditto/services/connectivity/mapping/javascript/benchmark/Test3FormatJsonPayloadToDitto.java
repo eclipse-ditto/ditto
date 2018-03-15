@@ -111,7 +111,7 @@ public class Test3FormatJsonPayloadToDitto implements MapToDittoProtocolScenario
                     "    let value = JSON.stringify(input);\n" +
                     "    // ###\n" +
                     "\n" +
-                    "    return buildDittoProtocolMsg(\n" +
+                    "    return Ditto.buildDittoProtocolMsg(\n" +
                     "        namespace,\n" +
                     "        id,\n" +
                     "        group,\n" +

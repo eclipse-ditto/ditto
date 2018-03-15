@@ -72,6 +72,8 @@ final class ImmutableConnection implements Connection {
         this.connectionType = builder.connectionType;
         this.uri = builder.uri;
         this.authorizationContext = builder.authorizationContext;
+
+        checkSourceAndTargetAreValid(builder);
         if (builder.sources != null) {
             this.sources = Collections.unmodifiableSet(new HashSet<>(builder.sources));
         } else {
@@ -99,22 +101,14 @@ final class ImmutableConnection implements Connection {
         }
     }
 
-    /**
-     * Returns a new {@code ImmutableConnection}.
-     *
-     * @param id the connection identifier.
-     * @param connectionType the connection type
-     * @param uri the connection uri.
-     * @param authorizationContext the connection authorization context.
-     * @return the ImmutableConnection.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @throws ConnectionUriInvalidException if {@code uri} does not conform to {@link Connection.UriRegex#REGEX}.
-     */
-    public static Connection of(final String id,
-            final ConnectionType connectionType, final String uri,
-            final AuthorizationContext authorizationContext) {
-        return ImmutableConnectionBuilder.of(id, connectionType, uri, authorizationContext)
-                .build();
+    private void checkSourceAndTargetAreValid(final ImmutableConnectionBuilder builder) {
+        if ((builder.sources == null || builder.sources.isEmpty())
+                && (builder.eventTarget == null || builder.eventTarget.isEmpty())) {
+            throw ConnectionConfigurationInvalidException
+                    .newBuilder("Either a source or an eventTarget must be specified " +
+                            "in the configuration of a connection.")
+                    .build();
+        }
     }
 
     /**
@@ -127,8 +121,11 @@ final class ImmutableConnection implements Connection {
      */
     public static Connection fromJson(final JsonObject jsonObject) {
         final String readId = jsonObject.getValueOrThrow(JsonFields.ID);
-        final ConnectionType readConnectionType = ConnectionType.forName(readId.substring(0, readId.indexOf(':')))
-                .orElseThrow(() -> JsonParseException.newBuilder().message("Invalid connection type.").build());
+        final String readConnectionTypeStr = jsonObject.getValueOrThrow(JsonFields.CONNECTION_TYPE);
+        final ConnectionType readConnectionType = ConnectionType.forName(readConnectionTypeStr)
+                .orElseThrow(() -> JsonParseException.newBuilder()
+                        .message("Invalid connection type: " + readConnectionTypeStr)
+                        .build());
         final String readUri = jsonObject.getValueOrThrow(JsonFields.URI);
         final JsonArray authContext = jsonObject.getValue(JsonFields.AUTHORIZATION_CONTEXT)
                 .orElseGet(() ->
@@ -266,6 +263,7 @@ final class ImmutableConnection implements Connection {
 
         jsonObjectBuilder.set(JsonFields.SCHEMA_VERSION, schemaVersion.toInt(), predicate);
         jsonObjectBuilder.set(JsonFields.ID, id, predicate);
+        jsonObjectBuilder.set(JsonFields.CONNECTION_TYPE, connectionType.getName(), predicate);
         jsonObjectBuilder.set(JsonFields.URI, uri, predicate);
         jsonObjectBuilder.set(JsonFields.AUTHORIZATION_CONTEXT, authorizationContext.stream()
                 .map(AuthorizationSubject::getId)
@@ -327,7 +325,7 @@ final class ImmutableConnection implements Connection {
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "id=" + id +
-                ", type=" + connectionType +
+                ", connectionType=" + connectionType +
                 ", authorizationContext=" + authorizationContext +
                 ", sources=" + sources +
                 ", eventTarget=" + eventTarget +

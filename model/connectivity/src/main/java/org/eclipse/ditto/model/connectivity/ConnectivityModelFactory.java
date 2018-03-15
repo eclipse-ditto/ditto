@@ -29,22 +29,6 @@ public final class ConnectivityModelFactory {
     }
 
     /**
-     * Returns a new {@code Connection} with all required fields set, optional fields are set to defaults.
-     *
-     * @param id the connection identifier.
-     * @param connectionType the connection type
-     * @param uri the connection uri.
-     * @param authorizationContext the connection authorization context.
-     * @return the ImmutableConnection.
-     * @throws NullPointerException if any argument is {@code null}.
-     */
-    public static Connection newConnection(final String id,
-            final ConnectionType connectionType, final String uri,
-            final AuthorizationContext authorizationContext) {
-        return ImmutableConnection.of(id, connectionType, uri, authorizationContext);
-    }
-
-    /**
      * Returns a new {@code ConnectionBuilder} with the required fields set.
      *
      * @param id the connection identifier.

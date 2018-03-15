@@ -65,7 +65,7 @@ public class Test4ConstructJsonPayloadToDitto implements MapToDittoProtocolScena
                     "    };\n" +
                     "    // ###\n" +
                     "\n" +
-                    "    return buildDittoProtocolMsg(\n" +
+                    "    return Ditto.buildDittoProtocolMsg(\n" +
                     "        namespace,\n" +
                     "        id,\n" +
                     "        group,\n" +

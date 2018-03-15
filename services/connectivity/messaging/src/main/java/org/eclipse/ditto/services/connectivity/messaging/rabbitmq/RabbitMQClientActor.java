@@ -102,7 +102,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
 
     private void handleThingEvent(final ThingEvent<?> thingEvent) {
         if (messageMappingProcessor != null) {
-            messageMappingProcessor.tell(thingEvent, self());
+            messageMappingProcessor.tell(thingEvent, getSelf());
         }
     }
 
@@ -163,7 +163,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
                 rmqConnectionActor.tell(
                         CreateChannel.apply(
                                 ChannelActor.props((channel, s) -> null),
-                                Option.apply(CONSUMER_CHANNEL)), self());
+                                Option.apply(CONSUMER_CHANNEL)), getSelf());
             }
             log.debug("Connection '{}' opened.", connectionId);
         }
@@ -278,7 +278,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
         public void handleDelivery(final String consumerTag, final Envelope envelope,
                 final AMQP.BasicProperties properties, final byte[] body) {
             try {
-                commandConsumer.tell(new Delivery(envelope, properties, body), RabbitMQClientActor.this.self());
+                commandConsumer.tell(new Delivery(envelope, properties, body), RabbitMQClientActor.this.getSelf());
             } catch (final Exception e) {
                 log.info("Failed to process delivery {}: {}", envelope.getDeliveryTag(), e.getMessage());
             } finally {

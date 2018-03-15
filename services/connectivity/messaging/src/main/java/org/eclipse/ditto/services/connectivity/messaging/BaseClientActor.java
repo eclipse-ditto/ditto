@@ -119,7 +119,7 @@ public abstract class BaseClientActor extends AbstractActor {
     protected void stopMessageMappingProcessor() {
         if (messageMappingProcessor != null) {
             log.debug("Stopping MessageMappingProcessorActor.");
-            context().stop(messageMappingProcessor);
+            getContext().stop(messageMappingProcessor);
             messageMappingProcessor = null;
         }
     }
@@ -158,8 +158,8 @@ public abstract class BaseClientActor extends AbstractActor {
         log.info(
                 "Did not receive connect command within {}, requesting information from connection actor for connection <{}>.",
                 initTimeout, connectionId);
-        connectionActor.tell(RetrieveConnection.of(connectionId, DittoHeaders.empty()), self());
-        connectionActor.tell(RetrieveConnectionStatus.of(connectionId, DittoHeaders.empty()), self());
+        connectionActor.tell(RetrieveConnection.of(connectionId, DittoHeaders.empty()), getSelf());
+        connectionActor.tell(RetrieveConnectionStatus.of(connectionId, DittoHeaders.empty()), getSelf());
     }
 
     private void handleStatusResponse(final RetrieveConnectionStatusResponse rcr) {
@@ -182,7 +182,7 @@ public abstract class BaseClientActor extends AbstractActor {
         if (connection != null && connectionStatus != null && ConnectionStatus.OPEN.equals(connectionStatus)) {
             final CreateConnection connect = CreateConnection.of(connection, DittoHeaders.empty());
             log.info("Sending CreateConnection to myself: {}", connect);
-            self().tell(connect, sender());
+            getSelf().tell(connect, sender());
         }
     }
 

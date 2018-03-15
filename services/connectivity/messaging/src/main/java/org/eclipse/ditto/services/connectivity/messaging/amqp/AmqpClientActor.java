@@ -82,7 +82,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         final Receive defaultBehaviour = ReceiveBuilder.create()
                 .match(JmsFailure.class, f -> {
                     changeBehaviour(State.DISCONNECTED);
-                    f.getOrigin().tell(new Status.Failure(f.getCause()), self());
+                    f.getOrigin().tell(new Status.Failure(f.getCause()), getSelf());
                     log.warning("Error occurred while connecting: {}", f.getCause().getMessage());
                 })
                 .match(Command.class, this::noop)
@@ -164,10 +164,10 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         changeBehaviour(State.CONNECTING);
 
         // reset receive timeout when a connect command was received
-        context().setReceiveTimeout(Duration.Undefined());
+        getContext().setReceiveTimeout(Duration.Undefined());
 
         // delegate to child actor because the QPID JMS client is blocking until connection is opened/closed
-        startConnectionHandlingActor("connect").tell(new JmsConnect(sender()), self());
+        startConnectionHandlingActor("connect").tell(new JmsConnect(sender()), getSelf());
     }
 
     private void handleConnected(final JmsConnected c) {
@@ -178,7 +178,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         startMessageMappingProcessor(commandProducer);
         startCommandConsumers(consumerMap);
         changeBehaviour(State.CONNECTED);
-        c.getOrigin().tell(CONNECTED_SUCCESS, self());
+        c.getOrigin().tell(CONNECTED_SUCCESS, getSelf());
     }
 
     private void handleDisconnect(final ConnectivityModifyCommand<?> disconnect) {
@@ -188,7 +188,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         stopMessageMappingProcessor();
         stopCommandProducer();
         // delegate to child actor because the QPID JMS client is blocking until connection is opened/closed
-        startConnectionHandlingActor("disconnect").tell(new JmsDisconnect(sender(), jmsConnection), self());
+        startConnectionHandlingActor("disconnect").tell(new JmsDisconnect(sender(), jmsConnection), getSelf());
     }
 
     private void handleDisconnected(final JmsDisconnected d) {
@@ -199,7 +199,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
 
         changeBehaviour(State.DISCONNECTED);
         log.info("Telling {} to {} as sender {}", DISCONNECTED_SUCCESS, d.getOrigin(), sender());
-        d.getOrigin().tell(DISCONNECTED_SUCCESS, self());
+        d.getOrigin().tell(DISCONNECTED_SUCCESS, getSelf());
     }
 
     private void startCommandConsumers(final Map<String, MessageConsumer> consumerMap) {
@@ -253,7 +253,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
 
     private void handleThingEvent(final ThingEvent<?> thingEvent) {
         if (messageMappingProcessor != null) {
-            messageMappingProcessor.tell(thingEvent, self());
+            messageMappingProcessor.tell(thingEvent, getSelf());
         } else {
             log.info("Cannot publish <{}> event, no MessageMappingProcessor available.", thingEvent.getType());
         }
@@ -290,7 +290,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
 
     private void noop(final Command<?> command) {
         log.debug("Nothing to do for command <{}> in current state <{}>", command.getType(), state);
-        getSender().tell(success(), self());
+        getSender().tell(success(), getSelf());
     }
 
     private Status.Success success() {
@@ -303,7 +303,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
                 MessageFormat.format("Cannot execute command <{0}> in current state <{1}>.", command.getType(), state);
         final ConnectionFailedException failedException =
                 ConnectionFailedException.newBuilder(connection.getId()).message(message).build();
-        getSender().tell(new Status.Failure(failedException), self());
+        getSender().tell(new Status.Failure(failedException), getSelf());
     }
 
     private void ignoreMessage(final Object msg) {

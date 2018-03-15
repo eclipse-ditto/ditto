@@ -68,7 +68,7 @@ public class Test1DecodeBinaryPayloadToDitto implements MapToDittoProtocolScenar
                     "    };\n" +
                     "    // ###\n" +
                     "\n" +
-                    "    return buildDittoProtocolMsg(\n" +
+                    "    return Ditto.buildDittoProtocolMsg(\n" +
                     "        namespace,\n" +
                     "        id,\n" +
                     "        group,\n" +

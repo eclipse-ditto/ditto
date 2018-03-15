@@ -33,24 +33,22 @@ import org.eclipse.ditto.signals.commands.connectivity.ConnectivityErrorRegistry
 import org.eclipse.ditto.signals.events.connectivity.ConnectivityEventRegistry;
 
 /**
- * {@link org.eclipse.ditto.services.utils.cluster.MappingStrategy} for the Gateway service containing all {@link
+ * {@link org.eclipse.ditto.services.utils.cluster.MappingStrategy} for the Connectivity service containing all {@link
  * org.eclipse.ditto.model.base.json.Jsonifiable} types known to this service.
- *
- * TODO TJ add more mappings related to this service!
  */
 public final class ConnectivityMappingStrategy implements MappingStrategy {
 
     private final ThingsMappingStrategy thingsMappingStrategy;
 
     /**
-     * Constructs a new Mapping Strategy for AMQP Bridge.
+     * Constructs a new Mapping Strategy for Connectivity service.
      */
     public ConnectivityMappingStrategy() {
         this(new ThingsMappingStrategy());
     }
 
     /**
-     * Constructs a new Mapping Strategy for AMQP Bridge.
+     * Constructs a new Mapping Strategy for Connectivity service.
      *
      * @param thingsMappingStrategy the existing ThingsMappingStrategy to use.
      */

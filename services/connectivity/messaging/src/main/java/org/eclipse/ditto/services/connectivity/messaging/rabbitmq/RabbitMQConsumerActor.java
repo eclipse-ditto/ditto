@@ -106,7 +106,7 @@ public final class RabbitMQConsumerActor extends AbstractActor {
             }
             final ExternalMessage externalMessage = externalMessageBuilder.build();
             log.debug("Received message from RabbitMQ ({}//{}): {}", envelope, properties);
-            messageMappingProcessor.forward(externalMessage, context());
+            messageMappingProcessor.forward(externalMessage, getContext());
         } catch (final Exception e) {
             log.warning("Processing delivery {} failed: {}", envelope.getDeliveryTag(), e.getMessage(), e);
         }

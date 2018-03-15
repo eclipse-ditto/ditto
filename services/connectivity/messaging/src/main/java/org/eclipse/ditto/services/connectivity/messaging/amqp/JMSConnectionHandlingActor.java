@@ -116,7 +116,7 @@ public class JMSConnectionHandlingActor extends AbstractActor {
         } catch (final Exception e) {
             sender().tell(new AmqpClientActor.JmsFailure(connect.getOrigin(), e), sender());
         }
-        context().stop(self());
+        getContext().stop(getSelf());
     }
 
     private void handleDisconnect(final AmqpClientActor.JmsDisconnect disconnect) {
@@ -130,7 +130,7 @@ public class JMSConnectionHandlingActor extends AbstractActor {
             log.debug("Connection '{}' already closed: {}", this.connection.getId(), e.getMessage());
         }
         sender().tell(new AmqpClientActor.JmsDisconnected(disconnect.getOrigin()), sender());
-        log.info("Stop myself {}", self());
-        context().stop(self());
+        log.info("Stop myself {}", getSelf());
+        getContext().stop(getSelf());
     }
 }

@@ -28,7 +28,7 @@ import akka.japi.Creator;
 public class MockConnectionActor extends AbstractActor {
 
     static final ConnectionActorPropsFactory mockConnectionActorPropsFactory =
-            (connectionActor, connectionId) -> MockConnectionActor.props();
+            (connectionActor, connection) -> MockConnectionActor.props();
 
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
@@ -45,19 +45,19 @@ public class MockConnectionActor extends AbstractActor {
         return receiveBuilder()
                 .match(CreateConnection.class, cc -> {
                     log.info("Creating connection...");
-                    sender().tell("success", self());
+                    sender().tell("success", getSelf());
                 })
                 .match(OpenConnection.class, oc -> {
                     log.info("Opening connection...");
-                    sender().tell("success", self());
+                    sender().tell("success", getSelf());
                 })
                 .match(CloseConnection.class, cc -> {
                     log.info("Closing connection...");
-                    sender().tell("success", self());
+                    sender().tell("success", getSelf());
                 })
                 .match(DeleteConnection.class, dc -> {
                     log.info("Deleting connection...");
-                    sender().tell("success", self());
+                    sender().tell("success", getSelf());
                 })
                 .build();
     }

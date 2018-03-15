@@ -41,9 +41,9 @@ final class JavaScriptMessageMapperConfigurationProperties {
     static final String LOAD_LONG_JS = "loadLongJS";
 
     /**
-     * Configuration key for loading the "mustache.js" library.
+     * Configuration key for the maximum script size in bytes.
      */
-    static final String LOAD_MUSTACHE_JS = "loadMustacheJS";
+    static final String MAX_SCRIPT_SIZE_BYTES = "maxScriptSizeBytes";
 
     /**
      * Configuration key for the maximum script execution time.

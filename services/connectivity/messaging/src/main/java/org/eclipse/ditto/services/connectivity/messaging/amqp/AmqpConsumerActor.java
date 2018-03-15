@@ -118,7 +118,7 @@ final class AmqpConsumerActor extends AbstractActor implements MessageListener {
 
     @Override
     public void onMessage(final Message message) {
-        self().tell(message, ActorRef.noSender());
+        getSelf().tell(message, ActorRef.noSender());
     }
 
     private void handleJmsMessage(final Message message) {
@@ -129,7 +129,7 @@ final class AmqpConsumerActor extends AbstractActor implements MessageListener {
             final ExternalMessage externalMessage = builder.build();
             log.debug("Forwarding to processor: {}, {}", externalMessage.getHeaders(),
                     externalMessage.getTextPayload().orElse("binary"));
-            messageMappingProcessor.tell(externalMessage, self());
+            messageMappingProcessor.tell(externalMessage, getSelf());
         } catch (final DittoRuntimeException e) {
             log.info("Got DittoRuntimeException '{}' when command was parsed: {}", e.getErrorCode(), e.getMessage());
         } catch (final Exception e) {
