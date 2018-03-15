@@ -12,6 +12,7 @@
 package org.eclipse.ditto.services.connectivity.messaging;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.services.connectivity.messaging.MessageHeaderFilter.Mode.EXCLUDE;
 
 import java.util.Collections;
 import java.util.List;
@@ -63,6 +64,7 @@ public abstract class BaseClientActor extends AbstractActor {
 
     private final ActorRef connectionActor;
     private final java.time.Duration initTimeout;
+    private final List<String> headerBlacklist;
 
     @Nullable protected Connection connection;
     @Nullable protected List<MappingContext> mappingContexts;
@@ -77,6 +79,8 @@ public abstract class BaseClientActor extends AbstractActor {
         this.pubSubMediator = DistributedPubSub.get(getContext().getSystem()).mediator();
         final Config config = getContext().getSystem().settings().config();
         initTimeout = config.getDuration(ConfigKeys.Client.INIT_TIMEOUT);
+        headerBlacklist = config.getStringList(ConfigKeys.Message.HEADER_BLACKLIST);
+
 
         initHandling = ReceiveBuilder.create()
                 .match(ReceiveTimeout.class, rt -> handleReceiveTimeout())
@@ -100,7 +104,8 @@ public abstract class BaseClientActor extends AbstractActor {
 
             log.debug("Starting MessageMappingProcessorActor with pool size of {}.", connection.getProcessorPoolSize());
             final Props props = MessageMappingProcessorActor.props(pubSubMediator, pubSubTargetPath, commandProducer,
-                            connection.getAuthorizationContext(), mappingContexts);
+                            connection.getAuthorizationContext(), new MessageHeaderFilter(EXCLUDE, headerBlacklist),
+                    mappingContexts);
             final String messageMappingProcessorName = getMessageMappingProcessorActorName(connection.getId());
 
             final DefaultResizer resizer = new DefaultResizer(1, connection.getProcessorPoolSize());

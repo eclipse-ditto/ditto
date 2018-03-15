@@ -20,12 +20,13 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ExternalMessage;
 
-public class MessageHeaderFilter {
+public class MessageHeaderFilter implements Function<ExternalMessage, ExternalMessage> {
 
     /**
      * A simple enum describing the filter mode

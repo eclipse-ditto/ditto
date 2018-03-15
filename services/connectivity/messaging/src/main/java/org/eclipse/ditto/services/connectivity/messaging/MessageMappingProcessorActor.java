@@ -12,6 +12,7 @@
 package org.eclipse.ditto.services.connectivity.messaging;
 
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -72,10 +73,12 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     private final AuthorizationContext authorizationContext;
     private final Cache<String, TraceContext> traces;
 
+    private final MessageHeaderFilter headerFilter;
     private final MessageMappingProcessor processor;
 
     private MessageMappingProcessorActor(final ActorRef pubSubMediator, final String pubSubTargetPath,
             final ActorRef commandProducer, final AuthorizationContext authorizationContext,
+            final MessageHeaderFilter headerFilter,
             final List<MappingContext> mappingContexts) {
         this.pubSubMediator = pubSubMediator;
         this.pubSubTargetPath = pubSubTargetPath;
@@ -87,11 +90,40 @@ public final class MessageMappingProcessorActor extends AbstractActor {
                         -> log.debug("Trace for {} removed.", notification.getKey()))
                 .build();
 
+        this.headerFilter = headerFilter;
         this.processor = MessageMappingProcessor.of(mappingContexts, getDynamicAccess(), log);
 
         log.info("Configured for processing messages with the following content types: {}",
                 processor.getSupportedContentTypes());
         log.info("Interpreting messages with missing content type as '{}'", processor.getDefaultContentType());
+    }
+
+    /**
+     * Creates Akka configuration object for this actor.
+     *
+     * @param pubSubMediator the akka pubsub mediator actor
+     * @param pubSubTargetPath the target path where incoming messages are sent
+     * @param commandProducer actor that handles outgoing messages
+     * @param authorizationContext the authorization context (authorized subjects) that are set in command headers
+     * @param headerFilter the header filter used to apply on responses
+     * @param mappingContexts the mapping contexts to apply for different content-types
+     * @return the Akka configuration Props object
+     */
+    public static Props props(final ActorRef pubSubMediator, final String pubSubTargetPath,
+            final ActorRef commandProducer,
+            final AuthorizationContext authorizationContext,
+            final MessageHeaderFilter headerFilter,
+            final List<MappingContext> mappingContexts) {
+
+        return Props.create(MessageMappingProcessorActor.class, new Creator<MessageMappingProcessorActor>() {
+            private static final long serialVersionUID = 1L;
+
+            @Override
+            public MessageMappingProcessorActor create() {
+                return new MessageMappingProcessorActor(pubSubMediator, pubSubTargetPath, commandProducer,
+                        authorizationContext, headerFilter, mappingContexts);
+            }
+        });
     }
 
     /**
@@ -109,16 +141,12 @@ public final class MessageMappingProcessorActor extends AbstractActor {
             final AuthorizationContext authorizationContext,
             final List<MappingContext> mappingContexts) {
 
-        return Props.create(MessageMappingProcessorActor.class, new Creator<MessageMappingProcessorActor>() {
-            private static final long serialVersionUID = 1L;
-
-            @Override
-            public MessageMappingProcessorActor create() {
-                return new MessageMappingProcessorActor(pubSubMediator, pubSubTargetPath, commandProducer,
-                        authorizationContext, mappingContexts);
-            }
-        });
+        return props(pubSubMediator, pubSubTargetPath, commandProducer,
+                        authorizationContext,
+                        new MessageHeaderFilter(MessageHeaderFilter.Mode.EXCLUDE, Collections.emptyList()),
+                        mappingContexts);
     }
+
 
     @Override
     public Receive createReceive() {
@@ -197,7 +225,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
 
         try {
             final Optional<ExternalMessage> messageOpt = processor.process(response);
-            messageOpt.ifPresent(message -> commandProducer.forward(message, getContext()));
+            messageOpt.map(headerFilter).ifPresent(message -> commandProducer.forward(message, getContext()));
         } catch (final DittoRuntimeException e) {
             log.info("Got DittoRuntimeException during processing Signal: <{}>", e.getMessage());
         } catch (final Exception e) {
