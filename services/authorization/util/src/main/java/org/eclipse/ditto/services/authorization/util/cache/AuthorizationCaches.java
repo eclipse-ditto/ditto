@@ -12,7 +12,10 @@
 package org.eclipse.ditto.services.authorization.util.cache;
 
 import java.time.Duration;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
 import org.eclipse.ditto.model.enforcers.AclEnforcer;
@@ -22,13 +25,16 @@ import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.services.authorization.util.EntityRegionMap;
 import org.eclipse.ditto.services.authorization.util.cache.entry.Entry;
 import org.eclipse.ditto.services.authorization.util.config.CacheConfigReader;
+import org.eclipse.ditto.services.authorization.util.config.CachesConfigReader;
+import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 
 import com.github.benmanes.caffeine.cache.AsyncLoadingCache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 
 /**
- * Cache of enforcer objects for each
+ * Caches of entity IDs and enforcer objects.
  */
-public final class AuthorizationCache {
+public final class AuthorizationCaches {
 
     private final AsyncLoadingCache<ResourceKey, Entry<Enforcer>> enforcerCache;
     private final AsyncLoadingCache<ResourceKey, Entry<ResourceKey>> idCache;
@@ -36,19 +42,43 @@ public final class AuthorizationCache {
     /**
      * Creates a cache from configuration.
      *
-     * @param cacheConfigReader config reader for authorization cache.
+     * @param cachesConfigReader config reader for authorization cache.
      * @param entityRegionMap map resource types to the shard regions of corresponding entities.
      */
-    public AuthorizationCache(final CacheConfigReader cacheConfigReader, final EntityRegionMap entityRegionMap) {
+    public AuthorizationCaches(final CachesConfigReader cachesConfigReader, final EntityRegionMap entityRegionMap) {
 
-        final Duration askTimeout = cacheConfigReader.getAskTimeout();
+        final Duration askTimeout = cachesConfigReader.askTimeout();
 
         final EnforcerCacheLoader enforcerCacheLoader = new EnforcerCacheLoader(askTimeout, entityRegionMap);
-        enforcerCache = cacheConfigReader.getEnforcerCacheConfigReader().toCaffeine().buildAsync(enforcerCacheLoader);
+        enforcerCache = caffeine(cachesConfigReader.enforcer()).buildAsync(enforcerCacheLoader);
 
         final IdCacheLoader idCacheLoader = new IdCacheLoader(askTimeout, entityRegionMap, this);
-        idCache = cacheConfigReader.getIdCacheConfigReader().toCaffeine().buildAsync(idCacheLoader);
+        idCache = caffeine(cachesConfigReader.id()).buildAsync(idCacheLoader);
 
+    }
+
+    /**
+     * By an entity cache key, look up the enforcer cache key and the enforcer itself.
+     *
+     * @param entityKey cache key of an entity.
+     * @param consumer handler of cache lookup results.
+     */
+    public void retrieve(final ResourceKey entityKey, final BiConsumer<Entry<ResourceKey>, Entry<Enforcer>> consumer) {
+        if (Objects.equals(PolicyCommand.RESOURCE_TYPE, entityKey.getResourceType())) {
+            // Enforcer cache key of a policy is always identical to the entity cache key of the policy.
+            // No need to save the identity relation in entity cache and waste memory and bandwidth.
+            enforcerCache.get(entityKey)
+                    .thenAccept(enforcerEntry -> consumer.accept(Entry.permanent(entityKey), enforcerEntry));
+        } else {
+            idCache.get(entityKey).thenAccept(enforcerKeyEntry -> {
+                if (enforcerKeyEntry.exists()) {
+                    enforcerCache.get(enforcerKeyEntry.getValue())
+                            .thenAccept(enforcerEntry -> consumer.accept(enforcerKeyEntry, enforcerEntry));
+                } else {
+                    consumer.accept(enforcerKeyEntry, Entry.nonexistent());
+                }
+            });
+        }
     }
 
     /**
@@ -71,6 +101,10 @@ public final class AuthorizationCache {
                 });
     }
 
-    // TODO: DO NOT save policy id relation into the ID cache because it is always the identity relation.
-    // TODO: DO NOT save message commands into the ID cache to not waste memory and bandwidth
+    private Caffeine<Object, Object> caffeine(final CacheConfigReader cacheConfigReader) {
+        final Caffeine<Object, Object> caffeine = Caffeine.newBuilder();
+        caffeine.maximumSize(cacheConfigReader.maximumSize());
+        caffeine.expireAfterWrite(cacheConfigReader.expireAfterWrite());
+        return caffeine;
+    }
 }

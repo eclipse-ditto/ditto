@@ -22,6 +22,8 @@ import java.util.concurrent.Executor;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -52,8 +54,8 @@ abstract class AbstractAskCacheLoader<V> implements AsyncCacheLoader<ResourceKey
     protected AbstractAskCacheLoader(final Duration askTimeout, final EntityRegionMap entityRegionMap) {
         this.askTimeoutMillis = askTimeout.toMillis();
         this.entityRegionMap = entityRegionMap;
-        this.commandMap = Collections.unmodifiableMap(buildCommandMap());
-        this.transformerMap = Collections.unmodifiableMap(buildTransformerMap());
+        this.commandMap = Collections.unmodifiableMap(new HashMap<>(buildCommandMap()));
+        this.transformerMap = Collections.unmodifiableMap(new HashMap<>(buildTransformerMap()));
     }
 
     /**
@@ -112,6 +114,7 @@ abstract class AbstractAskCacheLoader<V> implements AsyncCacheLoader<ResourceKey
         return checkNotNull(commandMap.get(resourceType), resourceType).apply(id);
     }
 
+    @Nullable
     private Entry<V> transformResponse(final String resourceType, final Object response) {
         return checkNotNull(transformerMap.get(resourceType), resourceType).apply(response);
     }

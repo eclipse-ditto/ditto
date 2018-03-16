@@ -23,14 +23,14 @@ public interface ServiceConfigReader {
      *
      * @return cluster configuration of the service.
      */
-    ClusterConfigReader getClusterConfigReader();
+    ClusterConfigReader cluster();
 
     /**
      * Retrieve statsd configuration reader.
      *
      * @return statsd configuration of the service.
      */
-    StatsdConfigReader getStatsdConfigReader();
+    StatsdConfigReader statsd();
 
     /**
      * Retrieve the underlying {@code Config} object for backward compatibility.

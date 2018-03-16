@@ -30,9 +30,13 @@ public interface Entry<T> {
      *
      * @return the cached value if present.
      */
-    Optional<T> getValue();
+    T getValue();
 
     boolean exists();
+
+    static <T> Entry<T> permanent(final T value) {
+        return new ExistentEntry<>(Long.MAX_VALUE, value);
+    }
 
     static <T> Entry<T> of(final long revision, final T value) {
         return new ExistentEntry<>(revision, value);

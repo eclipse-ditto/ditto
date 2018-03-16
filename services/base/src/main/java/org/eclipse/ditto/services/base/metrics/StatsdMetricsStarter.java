@@ -58,7 +58,7 @@ public final class StatsdMetricsStarter implements Runnable {
         checkNotNull(actorSystem, "Akka actor system");
         argumentNotEmpty(serviceName, "service name");
 
-        final InetSocketAddress socketAddress = configReader.getStatsdConfigReader().getStatsd().orElse(null);
+        final InetSocketAddress socketAddress = configReader.statsd().address().orElse(null);
 
         return new StatsdMetricsStarter(socketAddress, serviceName);
     }

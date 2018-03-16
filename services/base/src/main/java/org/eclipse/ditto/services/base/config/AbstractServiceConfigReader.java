@@ -40,7 +40,7 @@ public class AbstractServiceConfigReader extends AbstractConfigReader implements
      * @param serviceName Name of service.
      */
     protected AbstractServiceConfigReader(final Config config, final String prefix, final String serviceName) {
-        super(getOrEmpty(config, String.format("%s.%s", prefix, serviceName)));
+        super(getOrEmpty(config, path(prefix, serviceName)));
         this.rawConfig = config;
     }
 
@@ -50,12 +50,12 @@ public class AbstractServiceConfigReader extends AbstractConfigReader implements
     }
 
     @Override
-    public ClusterConfigReader getClusterConfigReader() {
+    public ClusterConfigReader cluster() {
         return new ClusterConfigReader(getChildOrEmpty(PATH_CLUSTER));
     }
 
     @Override
-    public StatsdConfigReader getStatsdConfigReader() {
+    public StatsdConfigReader statsd() {
         return new StatsdConfigReader(getChildOrEmpty(PATH_STATSD));
     }
 

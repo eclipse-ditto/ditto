@@ -49,7 +49,7 @@ public final class ClusterConfigReader extends AbstractConfigReader {
      *
      * @return number of shards.
      */
-    public int getNumberOfShards() {
+    public int numberOfShards() {
         return getIfPresent(PATH_NUMBER_OF_SHARDS, config::getInt).orElse(DEFAULT_NUMBER_OF_SHARDS);
     }
 
@@ -58,7 +58,7 @@ public final class ClusterConfigReader extends AbstractConfigReader {
      *
      * @return whether cluster majority check is enabled.
      */
-    public boolean isMajorityCheckEnabled() {
+    public boolean majorityCheckEnabled() {
         return getIfPresent(PATH_MAJORITY_CHECK_ENABLED, config::getBoolean).orElse(DEFAULT_MAJORITY_CHECK_ENABLED);
     }
 
@@ -67,7 +67,7 @@ public final class ClusterConfigReader extends AbstractConfigReader {
      *
      * @return delay of cluster majority check.
      */
-    public Duration getMajorityCheckDelay() {
+    public Duration majorityCheckDelay() {
         return getIfPresent(PATH_MAJORITY_CHECK_DELAY, config::getDuration).orElse(DEFAULT_MAJORITY_CHECK_DELAY);
     }
 

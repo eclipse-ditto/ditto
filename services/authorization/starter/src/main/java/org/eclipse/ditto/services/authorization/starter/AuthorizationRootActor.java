@@ -15,7 +15,7 @@ import java.util.Optional;
 
 import org.eclipse.ditto.services.authorization.util.EntityRegionMap;
 import org.eclipse.ditto.services.authorization.util.actors.EnforcerActor;
-import org.eclipse.ditto.services.authorization.util.cache.AuthorizationCache;
+import org.eclipse.ditto.services.authorization.util.cache.AuthorizationCaches;
 import org.eclipse.ditto.services.authorization.util.config.AuthorizationConfigReader;
 import org.eclipse.ditto.services.base.config.ClusterConfigReader;
 import org.eclipse.ditto.services.models.authorization.AuthorizationMessagingConstants;
@@ -45,15 +45,15 @@ public final class AuthorizationRootActor extends AbstractActor {
      */
     public static final String ACTOR_NAME = "authorizationRoot";
 
-    private final AuthorizationCache cache;
+    private final AuthorizationCaches cache;
     private final ActorRef enforcerShardRegion;
 
     private AuthorizationRootActor(final AuthorizationConfigReader configReader, final ActorRef pubSubMediator) {
         final ActorSystem actorSystem = getContext().getSystem();
-        final ClusterConfigReader clusterConfigReader = configReader.getClusterConfigReader();
+        final ClusterConfigReader clusterConfigReader = configReader.cluster();
 
         final EntityRegionMap entityRegionMap = buildEntityRegionMap(actorSystem, clusterConfigReader);
-        cache = new AuthorizationCache(configReader.getCacheConfigReader(), entityRegionMap);
+        cache = new AuthorizationCaches(configReader.caches(), entityRegionMap);
 
         final Props enforcerProps = EnforcerActor.props(pubSubMediator, entityRegionMap, cache);
         enforcerShardRegion = startShardRegion(actorSystem, clusterConfigReader, enforcerProps);
@@ -82,7 +82,7 @@ public final class AuthorizationRootActor extends AbstractActor {
     private EntityRegionMap buildEntityRegionMap(final ActorSystem actorSystem,
             final ClusterConfigReader clusterConfigReader) {
 
-        final int numberOfShards = clusterConfigReader.getNumberOfShards();
+        final int numberOfShards = clusterConfigReader.numberOfShards();
 
         final ActorRef policiesShardRegionProxy = startProxy(actorSystem, numberOfShards,
                 PoliciesMessagingConstants.SHARD_REGION, PoliciesMessagingConstants.CLUSTER_ROLE);
@@ -117,7 +117,7 @@ public final class AuthorizationRootActor extends AbstractActor {
                 .withRole(AuthorizationMessagingConstants.CLUSTER_ROLE);
 
         final ShardRegionExtractor extractor =
-                ShardRegionExtractor.of(clusterConfigReader.getNumberOfShards(), actorSystem);
+                ShardRegionExtractor.of(clusterConfigReader.numberOfShards(), actorSystem);
 
         return ClusterSharding.get(actorSystem).start(shardName, props, settings, extractor);
     }

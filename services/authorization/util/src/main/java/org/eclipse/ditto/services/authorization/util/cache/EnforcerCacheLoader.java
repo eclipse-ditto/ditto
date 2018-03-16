@@ -40,9 +40,11 @@ import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleEx
 
 /**
  * Loads an enforcer by asking entity shard regions.
+ *
+ * TODO: make extensible.
  */
 @Immutable
-public class EnforcerCacheLoader extends AbstractAskCacheLoader<Enforcer> {
+public final class EnforcerCacheLoader extends AbstractAskCacheLoader<Enforcer> {
 
     protected EnforcerCacheLoader(final Duration askTimeout, final EntityRegionMap entityRegionMap) {
         super(askTimeout, entityRegionMap);
