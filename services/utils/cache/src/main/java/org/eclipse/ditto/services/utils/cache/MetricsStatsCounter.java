@@ -27,8 +27,9 @@ import com.github.benmanes.caffeine.cache.stats.StatsCounter;
  * A caffeine {@link StatsCounter} implementation for Dropwizard Metrics.
  * </p>
  * <p>
- *     Inspired by <a href="https://github.com/ben-manes/caffeine/blob/master/examples/stats-metrics/src/main/java/com/github/benmanes/caffeine/examples/stats/metrics/MetricsStatsCounter.java>Caffeine examples</a>.
+ * Inspired by <a href="https://github.com/ben-manes/caffeine/blob/master/examples/stats-metrics">Caffeine examples</a>.
  * </p>
+ *
  * @see CacheStats for details on how the statistics are calculated.
  */
 public final class MetricsStatsCounter implements StatsCounter {
@@ -74,6 +75,7 @@ public final class MetricsStatsCounter implements StatsCounter {
 
         /**
          * Returns the String value of this metric name, i.e. "just the name".
+         *
          * @return the String value.
          */
         public String getValue() {
