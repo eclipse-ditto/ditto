@@ -20,6 +20,11 @@ script:
     docker build -f services/Dockerfile --build-arg SERVICE_STARTER=ditto-services-thingsearch-starter --build-arg SERVICE_VERSION=$IMAGE_TAG   -t eclipse/ditto-things-search:$IMAGE_TAG -t eclipse/ditto-things-search:latest .;
     docker build -f services/Dockerfile --build-arg SERVICE_STARTER=ditto-services-gateway-starter     --build-arg SERVICE_VERSION=$IMAGE_TAG   -t eclipse/ditto-gateway:$IMAGE_TAG       -t eclipse/ditto-gateway:latest .;
     docker build -f services/Dockerfile --build-arg SERVICE_STARTER=ditto-services-amqpbridge-starter  --build-arg SERVICE_VERSION=$IMAGE_TAG   -t eclipse/ditto-amqp-bridge:$IMAGE_TAG   -t eclipse/ditto-amqp-bridge:latest .;
+    docker build -f services/Dockerfile-openj9 --build-arg SERVICE_STARTER=ditto-services-policies-starter    --build-arg SERVICE_VERSION=$IMAGE_TAG   -t eclipse/ditto-policies:$IMAGE_TAG-openj9      -t eclipse/ditto-policies:latest-openj9 .;
+    docker build -f services/Dockerfile-openj9 --build-arg SERVICE_STARTER=ditto-services-things-starter      --build-arg SERVICE_VERSION=$IMAGE_TAG   -t eclipse/ditto-things:$IMAGE_TAG-openj9        -t eclipse/ditto-things:latest-openj9 .;
+    docker build -f services/Dockerfile-openj9 --build-arg SERVICE_STARTER=ditto-services-thingsearch-starter --build-arg SERVICE_VERSION=$IMAGE_TAG   -t eclipse/ditto-things-search:$IMAGE_TAG-openj9 -t eclipse/ditto-things-search:latest-openj9 .;
+    docker build -f services/Dockerfile-openj9 --build-arg SERVICE_STARTER=ditto-services-gateway-starter     --build-arg SERVICE_VERSION=$IMAGE_TAG   -t eclipse/ditto-gateway:$IMAGE_TAG-openj9       -t eclipse/ditto-gateway:latest-openj9 .;
+    docker build -f services/Dockerfile-openj9 --build-arg SERVICE_STARTER=ditto-services-amqpbridge-starter  --build-arg SERVICE_VERSION=$IMAGE_TAG   -t eclipse/ditto-amqp-bridge:$IMAGE_TAG-openj9   -t eclipse/ditto-amqp-bridge:latest-openj9 .;
     docker push eclipse/ditto-policies:$IMAGE_TAG;
     docker push eclipse/ditto-policies:latest;
     docker push eclipse/ditto-things:$IMAGE_TAG;
@@ -30,4 +35,14 @@ script:
     docker push eclipse/ditto-gateway:latest;
     docker push eclipse/ditto-amqp-bridge:$IMAGE_TAG;
     docker push eclipse/ditto-amqp-bridge:latest;
+    docker push eclipse/ditto-policies:$IMAGE_TAG-openj9;
+    docker push eclipse/ditto-policies:latest-openj9;
+    docker push eclipse/ditto-things:$IMAGE_TAG-openj9;
+    docker push eclipse/ditto-things:latest-openj9;
+    docker push eclipse/ditto-things-search:$IMAGE_TAG-openj9;
+    docker push eclipse/ditto-things-search:latest-openj9;
+    docker push eclipse/ditto-gateway:$IMAGE_TAG-openj9;
+    docker push eclipse/ditto-gateway:latest-openj9;
+    docker push eclipse/ditto-amqp-bridge:$IMAGE_TAG-openj9;
+    docker push eclipse/ditto-amqp-bridge:latest-openj9;
     fi;
