@@ -51,7 +51,7 @@ import scala.concurrent.duration.Duration;
 
 /**
  * Base class for ClientActors which implement the connection handling for AMQP 0.9.1 or 1.0.
- *
+ * <p>
  * The actor expects to receive a {@link CreateConnection} command after it was started. If this command is not received
  * within timeout (can be the case when this actor is remotely deployed after the command was sent) the actor requests
  * the required information from ConnectionActor.
@@ -121,11 +121,11 @@ public abstract class BaseClientActor extends AbstractActor {
                     processor.getSupportedContentTypes());
             log.info("Interpreting messages with missing content type as <{}>", processor.getDefaultContentType());
 
-            log.debug("Starting MessageMappingProcessorActor with pool size of <{}>.", connection.getProcessorPoolSize());
+            log.debug("Starting MessageMappingProcessorActor with pool size of <{}>.",
+                    connection.getProcessorPoolSize());
             final Props props = MessageMappingProcessorActor.props(pubSubMediator, pubSubTargetPath, commandProducer,
-                            connection.getAuthorizationContext(), processor);
-                            connection.getAuthorizationContext(), new MessageHeaderFilter(EXCLUDE, headerBlacklist),
-                    mappingContexts);
+                    connection.getAuthorizationContext(), new MessageHeaderFilter(EXCLUDE, headerBlacklist),
+                    processor);
             final String messageMappingProcessorName = getMessageMappingProcessorActorName(connection.getId());
 
             final DefaultResizer resizer = new DefaultResizer(1, connection.getProcessorPoolSize());
