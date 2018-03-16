@@ -26,7 +26,10 @@ import java.util.stream.Collectors;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ExternalMessage;
 
-public class MessageHeaderFilter implements Function<ExternalMessage, ExternalMessage> {
+/**
+ * A filter implementation to remove headers of a {@link org.eclipse.ditto.model.connectivity.ExternalMessage}
+ */
+final class MessageHeaderFilter implements Function<ExternalMessage, ExternalMessage> {
 
     /**
      * A simple enum describing the filter mode
@@ -44,7 +47,7 @@ public class MessageHeaderFilter implements Function<ExternalMessage, ExternalMe
      * @param mode the filter mode
      * @param headerNames the header names
      */
-    public MessageHeaderFilter(final Mode mode, final String... headerNames) {
+     MessageHeaderFilter(final Mode mode, final String... headerNames) {
         this(mode, Arrays.asList(headerNames));
     }
 
@@ -53,7 +56,7 @@ public class MessageHeaderFilter implements Function<ExternalMessage, ExternalMe
      * @param mode the filter mode
      * @param headerNames the header names
      */
-    public MessageHeaderFilter(final Mode mode, final Collection<String> headerNames) {
+     MessageHeaderFilter(final Mode mode, final Collection<String> headerNames) {
         checkNotNull(mode);
         this.mode = mode;
         this.headerNames = new HashSet<>(headerNames);
@@ -65,7 +68,6 @@ public class MessageHeaderFilter implements Function<ExternalMessage, ExternalMe
      * @return the filtered messeage
      */
     public ExternalMessage apply(final ExternalMessage message) {
-        checkNotNull(mode);
         return ConnectivityModelFactory.newExternalMessageBuilder(message)
                 .withHeaders(message.getHeaders().entrySet().stream()
                         .filter(e -> filterPredicate(e.getKey()))
