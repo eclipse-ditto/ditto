@@ -11,11 +11,17 @@
  */
 package org.eclipse.ditto.services.policies.starter;
 
+import java.util.Map;
+
 import org.eclipse.ditto.services.base.DittoService;
-import org.eclipse.ditto.services.base.StatsdMongoDbMetricsStarter;
+import org.eclipse.ditto.services.base.metrics.MongoDbMetricRegistryFactory;
+import org.eclipse.ditto.services.base.metrics.StatsdMetricsReporter;
+import org.eclipse.ditto.services.base.metrics.StatsdMetricsStarter;
 import org.eclipse.ditto.services.base.config.DittoServiceConfigReader;
 import org.eclipse.ditto.services.base.config.ServiceConfigReader;
 import org.slf4j.Logger;
+
+import com.codahale.metrics.MetricRegistry;
 
 import akka.actor.ActorSystem;
 
@@ -47,7 +53,11 @@ public abstract class AbstractPoliciesService extends DittoService<ServiceConfig
 
     @Override
     protected void startStatsdMetricsReporter(final ActorSystem actorSystem, final ServiceConfigReader configReader) {
-        StatsdMongoDbMetricsStarter.newInstance(configReader, actorSystem, SERVICE_NAME, logger).run();
+        final Map.Entry<String, MetricRegistry> mongoDbMetrics =
+                MongoDbMetricRegistryFactory.createOrGet(actorSystem, configReader.getRawConfig());
+        StatsdMetricsReporter.getInstance().add(mongoDbMetrics);
+
+        StatsdMetricsStarter.newInstance(configReader, actorSystem, SERVICE_NAME).run();
     }
 
 }

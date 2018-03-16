@@ -9,9 +9,10 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package org.eclipse.ditto.services.gateway.security.cache;
+package org.eclipse.ditto.services.utils.cache;
 
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * A general purpose cache for items which are associated with a key.
@@ -22,29 +23,30 @@ import java.util.Optional;
 public interface Cache<K, V> {
 
     /**
+     * Returns a {@link CompletableFuture} returning the value which is associated with the specified key.
+     *
+     * @param key the key to get the associated value for.
+     * @return a {@link CompletableFuture} returning the value which is associated with the specified key or an empty
+     * {@link Optional}.
+     * @throws NullPointerException if {@code key} is {@code null}.
+     */
+    CompletableFuture<Optional<V>> get(K key);
+
+    /**
      * Returns the value which is associated with the specified key.
      *
      * @param key the key to get the associated value for.
-     * @return the value which is associated with the specified key.
+     * @return the value which is associated with the specified key or an empty
+     * {@link Optional}.
      * @throws NullPointerException if {@code key} is {@code null}.
      */
-    Optional<V> get(K key);
+    Optional<V> getBlocking(K key);
 
     /**
-     * Associates the specified value with the specified key.
+     * Invalidates the passed key from the cache if present.
      *
-     * @param key the key to be associated with {@code value}.
-     * @param value the value to be associated with {@code key}.
-     * @throws NullPointerException if {@code key} is {@code null}.
+     * @param key the key to invalidate.
      */
-    void put(K key, V value);
-
-    /**
-     * Removes the passed key from the cache if present.
-     *
-     * @param key the key to remove from cache.
-     * @return {@code true} if the key was present and deleted from cache, {@code false} otherwise.
-     */
-    boolean remove(K key);
+    void invalidate(K key);
 
 }

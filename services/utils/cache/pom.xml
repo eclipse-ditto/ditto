@@ -16,24 +16,30 @@
 
     <parent>
         <groupId>org.eclipse.ditto</groupId>
-        <artifactId>ditto-services</artifactId>
+        <artifactId>ditto-services-utils</artifactId>
         <version>${revision}</version>
     </parent>
 
-    <artifactId>ditto-services-utils</artifactId>
-    <packaging>pom</packaging>
-    <name>Eclipse Ditto :: Services :: Utils</name>
+    <artifactId>ditto-services-utils-cache</artifactId>
+    <name>Eclipse Ditto :: Services :: Utils :: Cache Utils</name>
 
-    <modules>
-        <module>akka</module>
-		<module>cache</module>
-        <module>cluster</module>
-        <module>config</module>
-        <module>devops</module>
-        <module>distributed-cache</module>
-        <module>health</module>
-        <module>persistence</module>
-        <module>test</module>
-    </modules>
+    <dependencies>
+        <dependency>
+            <groupId>com.typesafe</groupId>
+            <artifactId>config</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.dropwizard.metrics</groupId>
+            <artifactId>metrics-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+        </dependency>
+    </dependencies>
 
 </project>

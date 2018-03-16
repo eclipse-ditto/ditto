@@ -11,38 +11,40 @@
  */
 package org.eclipse.ditto.services.gateway.security.cache;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
-import static org.eclipse.ditto.model.base.common.ConditionChecker.argumentNotNull;
 
 import java.security.PublicKey;
-import java.text.MessageFormat;
 import java.time.Duration;
+import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
+import org.eclipse.ditto.services.utils.cache.Cache;
+import org.eclipse.ditto.services.utils.cache.CaffeineCache;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.RemovalCause;
-import com.google.common.cache.RemovalListener;
-import com.google.common.cache.RemovalNotification;
+import com.codahale.metrics.MetricRegistry;
+import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.RemovalListener;
 
 /**
- * This cache holds the last recently used {@link PublicKey}s which are identified by their Key ID. The maximum size of
- * the cache can be configured.
+ * This cache holds the last recently used {@link PublicKey}s which are identified by a {@link PublicKeyIdWithIssuer}.
+ * The maximum size of the cache can be configured.
  */
-public class PublicKeyCache implements Cache<String, PublicKey> {
+public class PublicKeyCache implements Cache<PublicKeyIdWithIssuer, PublicKey> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PublicKeyCache.class);
 
-    private static final int CACHE_CONCURRENCY_LEVEL = 8;
+    private final Cache<PublicKeyIdWithIssuer, PublicKey> delegate;
 
-    private final com.google.common.cache.Cache<String, PublicKey> cache;
-
-    private PublicKeyCache(final com.google.common.cache.Cache<String, PublicKey> theCache) {
-        cache = theCache;
+    private PublicKeyCache(final Cache<PublicKeyIdWithIssuer, PublicKey> delegate) {
+        this.delegate = delegate;
     }
 
     /**
@@ -50,75 +52,54 @@ public class PublicKeyCache implements Cache<String, PublicKey> {
      *
      * @param maxCacheEntries the maximum amount of entries in the returned cache.
      * @param expiry the expiry of entries.
+     * @param loader the algorithm used for loading public keys.
+     * @param namedMetricRegistry the named {@link MetricRegistry} for cache statistics.
      * @return a new PublicKeyCache.
      */
-    public static Cache<String, PublicKey> newInstance(final int maxCacheEntries, final Duration expiry) {
-        return new PublicKeyCache(initCache(maxCacheEntries, argumentNotNull(expiry)));
+    public static Cache<PublicKeyIdWithIssuer, PublicKey> newInstance(final int maxCacheEntries,
+            final Duration expiry, final AsyncCacheLoader<PublicKeyIdWithIssuer, PublicKey> loader,
+            final Map.Entry<String, MetricRegistry> namedMetricRegistry) {
+
+        requireNonNull(expiry);
+        requireNonNull(loader);
+        requireNonNull(namedMetricRegistry);
+
+        return new PublicKeyCache(createDelegateCache(maxCacheEntries, expiry, loader, namedMetricRegistry));
     }
 
-    private static com.google.common.cache.Cache<String, PublicKey> initCache(final int maxCacheEntries,
-            final Duration expiry) {
-        return CacheBuilder.newBuilder()
+    private static Cache<PublicKeyIdWithIssuer, PublicKey> createDelegateCache(final int maxCacheEntries,
+            final Duration expiry, final AsyncCacheLoader<PublicKeyIdWithIssuer, PublicKey> loader,
+            final Map.Entry<String, MetricRegistry> namedMetricRegistry) {
+
+        final Caffeine<PublicKeyIdWithIssuer, PublicKey> caffeine = Caffeine.newBuilder()
                 .maximumSize(maxCacheEntries)
                 .expireAfterWrite(expiry.getSeconds(), TimeUnit.SECONDS)
-                .concurrencyLevel(CACHE_CONCURRENCY_LEVEL)
-                .removalListener(new CacheRemovalListener())
-                .build();
-    }
-
-    private static void checkKeyId(final String keyId) {
-        final String msgTemplate = "The ID of the PublicKey to get must not be {0}!";
-        requireNonNull(keyId, MessageFormat.format(msgTemplate, "null"));
-        checkArgument(!keyId.isEmpty(), MessageFormat.format(msgTemplate, "empty"));
+                .removalListener(new CacheRemovalListener());
+        return CaffeineCache.of(caffeine, loader, namedMetricRegistry);
     }
 
     @Override
-    public Optional<PublicKey> get(final String keyId) {
-        checkKeyId(keyId);
-
-        final PublicKey foundSolutionCacheEntryOrNull = cache.getIfPresent(keyId);
-        return Optional.ofNullable(foundSolutionCacheEntryOrNull);
+    public CompletableFuture<Optional<PublicKey>> get(final PublicKeyIdWithIssuer keyIdWithIssuer) {
+        return delegate.get(keyIdWithIssuer);
     }
 
     @Override
-    public void put(final String keyId, final PublicKey key) {
-        checkKeyId(keyId);
-        requireNonNull(key, "The PublicKey to put into this cache must not be null!");
-
-        LOGGER.debug("Caching PublicKey '{}' ...", key);
-        cache.put(keyId, key);
+    public Optional<PublicKey> getBlocking(final PublicKeyIdWithIssuer keyIdWithIssuer) {
+        return delegate.getBlocking(keyIdWithIssuer);
     }
 
     @Override
-    public boolean remove(final String keyId) {
-        requireNonNull(keyId, "The keyId must not be null!");
-        LOGGER.debug("Removing cached PublicKey for Key ID from cache: '{}'", keyId);
-        if (cache.getIfPresent(keyId) != null) {
-            cache.invalidate(keyId);
-            return true;
-        } else {
-            return false;
-        }
+    public void invalidate(final PublicKeyIdWithIssuer keyIdWithIssuer) {
+        delegate.invalidate(keyIdWithIssuer);
     }
 
-    private static final class CacheRemovalListener implements RemovalListener<String, PublicKey> {
+    private static final class CacheRemovalListener implements RemovalListener<PublicKeyIdWithIssuer, PublicKey> {
 
         @Override
-        public void onRemoval(final RemovalNotification<String, PublicKey> notification) {
-            final RemovalCause cause = notification.getCause();
-            final String publicKeyId = notification.getKey();
+        public void onRemoval(@Nullable final PublicKeyIdWithIssuer key, @Nullable final PublicKey value,
+                @Nonnull final com.github.benmanes.caffeine.cache.RemovalCause cause) {
             final String msgTemplate = "Removed PublicKey with ID <{}> from cache due to cause '{}'.";
-            switch (cause) {
-                case REPLACED:
-                    // log nothing here
-                    break;
-                case EXPLICIT:
-                case EXPIRED:
-                    LOGGER.debug(msgTemplate, publicKeyId, cause);
-                    break;
-                default:
-                    LOGGER.info(msgTemplate, publicKeyId, cause);
-            }
+            LOGGER.debug(msgTemplate, key, cause);
         }
     }
 

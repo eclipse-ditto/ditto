@@ -11,14 +11,19 @@
  */
 package org.eclipse.ditto.services.gateway.starter;
 
+import java.util.Map;
+
 import org.eclipse.ditto.services.base.DittoService;
-import org.eclipse.ditto.services.base.StatsdMongoDbMetricsStarter;
+import org.eclipse.ditto.services.base.metrics.MongoDbMetricRegistryFactory;
+import org.eclipse.ditto.services.base.metrics.StatsdMetricsReporter;
+import org.eclipse.ditto.services.base.metrics.StatsdMetricsStarter;
 import org.eclipse.ditto.services.base.config.DittoServiceConfigReader;
 import org.eclipse.ditto.services.base.config.ServiceConfigReader;
 import org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.codahale.metrics.MetricRegistry;
 import com.typesafe.config.Config;
 
 import akka.actor.ActorRef;
@@ -60,7 +65,11 @@ public final class GatewayService extends DittoService {
 
     @Override
     protected void startStatsdMetricsReporter(final ActorSystem actorSystem, final ServiceConfigReader configReader) {
-        StatsdMongoDbMetricsStarter.newInstance(configReader, actorSystem, SERVICE_NAME, LOGGER).run();
+        final Map.Entry<String, MetricRegistry> mongoDbMetrics =
+                MongoDbMetricRegistryFactory.createOrGet(actorSystem, configReader.getRawConfig());
+        StatsdMetricsReporter.getInstance().add(mongoDbMetrics);
+
+        StatsdMetricsStarter.newInstance(configReader, actorSystem, SERVICE_NAME).run();
     }
 
     @Override
