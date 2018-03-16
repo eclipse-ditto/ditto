@@ -26,12 +26,13 @@ import org.apache.qpid.jms.message.JmsMessage;
 import org.apache.qpid.jms.provider.amqp.message.AmqpJmsTextMessageFacade;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ExternalMessage;
 import org.eclipse.ditto.model.connectivity.MappingContext;
-import org.eclipse.ditto.model.base.auth.AuthorizationContext;
-import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMappers;
+import org.eclipse.ditto.services.connectivity.messaging.MessageMappingProcessor;
 import org.eclipse.ditto.services.connectivity.messaging.MessageMappingProcessorActor;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttribute;
@@ -45,9 +46,11 @@ import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
+import akka.actor.ExtendedActorSystem;
 import akka.actor.Props;
 import akka.cluster.pubsub.DistributedPubSub;
 import akka.cluster.pubsub.DistributedPubSubMediator;
+import akka.event.DiagnosticLoggingAdapter;
 import akka.routing.DefaultResizer;
 import akka.routing.RoundRobinPool;
 import akka.testkit.javadsl.TestKit;
@@ -152,10 +155,12 @@ public class AmqpConsumerActorTest {
                         .getProperties()
             ));
 
+            final MessageMappingProcessor mappingProcessor = getMessageMappingProcessor(mappingContexts);
+
             final Props messageMappingProcessorProps =
                     MessageMappingProcessorActor.props(pubSubMediator, targetActorPath, getRef(),
                             AuthorizationContext.newInstance(AuthorizationSubject.newInstance("foo:bar")),
-                            mappingContexts);
+                            mappingProcessor);
             final String messageMappingProcessorName = MessageMappingProcessorActor.ACTOR_NAME_PREFIX + "foo";
 
             final ActorRef processor = actorSystem.actorOf(messageMappingProcessorProps, messageMappingProcessorName);
@@ -181,6 +186,11 @@ public class AmqpConsumerActorTest {
         }};
     }
 
+    private MessageMappingProcessor getMessageMappingProcessor(final List<MappingContext> mappingContexts) {
+        return MessageMappingProcessor.of(mappingContexts, ((ExtendedActorSystem) actorSystem).dynamicAccess(),
+                Mockito.mock(DiagnosticLoggingAdapter.class));
+    }
+
     @Test
     public void createWithDefaultMapperOnly() throws IdConversionException {
         new TestKit(actorSystem) {{
@@ -194,10 +204,13 @@ public class AmqpConsumerActorTest {
 
         pubSubMediator.tell(new DistributedPubSubMediator.Put(testActor), null);
         final String pubSubTarget = testActor.path().toStringWithoutAddress();
+
+        final MessageMappingProcessor mappingProcessor = getMessageMappingProcessor(mappingContexts);
+
         final Props messageMappingProcessorProps =
                 MessageMappingProcessorActor.props(pubSubMediator, pubSubTarget, testActor,
                         AuthorizationContext.newInstance(AuthorizationSubject.newInstance("foo:bar")),
-                        mappingContexts);
+                        mappingProcessor);
         final String messageMappingProcessorName = MessageMappingProcessorActor.ACTOR_NAME_PREFIX + UUID.randomUUID().toString();
 
         final DefaultResizer resizer = new DefaultResizer(1, 5);

@@ -17,15 +17,15 @@ import java.util.Map;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.signals.base.JsonParsable;
+import org.eclipse.ditto.signals.commands.base.AbstractCommandResponseRegistry;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnectionResponse;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CreateConnectionResponse;
 import org.eclipse.ditto.signals.commands.connectivity.modify.DeleteConnectionResponse;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnectionResponse;
+import org.eclipse.ditto.signals.commands.connectivity.modify.TestConnectionResponse;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionResponse;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatusResponse;
-import org.eclipse.ditto.signals.commands.base.AbstractCommandResponseRegistry;
-
-import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatusesResponse;
+import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetricsResponse;
 
 /**
  * Registry which is capable of parsing {@link ConnectivityCommandResponse}s from JSON.
@@ -47,6 +47,7 @@ public final class ConnectivityCommandResponseRegistry
     public static ConnectivityCommandResponseRegistry newInstance() {
         final Map<String, JsonParsable<ConnectivityCommandResponse>> parseStrategies = new HashMap<>();
 
+        parseStrategies.put(TestConnectionResponse.TYPE, TestConnectionResponse::fromJson);
         parseStrategies.put(CreateConnectionResponse.TYPE, CreateConnectionResponse::fromJson);
         parseStrategies.put(DeleteConnectionResponse.TYPE, DeleteConnectionResponse::fromJson);
         parseStrategies.put(OpenConnectionResponse.TYPE, OpenConnectionResponse::fromJson);
@@ -54,7 +55,7 @@ public final class ConnectivityCommandResponseRegistry
 
         parseStrategies.put(RetrieveConnectionResponse.TYPE, RetrieveConnectionResponse::fromJson);
         parseStrategies.put(RetrieveConnectionStatusResponse.TYPE, RetrieveConnectionStatusResponse::fromJson);
-        parseStrategies.put(RetrieveConnectionStatusesResponse.TYPE, RetrieveConnectionStatusesResponse::fromJson);
+        parseStrategies.put(RetrieveConnectionMetricsResponse.TYPE, RetrieveConnectionMetricsResponse::fromJson);
 
         return new ConnectivityCommandResponseRegistry(parseStrategies);
     }

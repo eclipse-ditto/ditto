@@ -52,8 +52,8 @@ final class ImmutableConnection implements Connection {
     private final AuthorizationContext authorizationContext;
     private final String uri;
     private final String protocol;
-    private final String username;
-    private final String password;
+    @Nullable private final String username;
+    @Nullable private final String password;
     private final String hostname;
     private final int port;
     private final String path;
@@ -212,13 +212,13 @@ final class ImmutableConnection implements Connection {
     }
 
     @Override
-    public String getUsername() {
-        return username;
+    public Optional<String> getUsername() {
+        return Optional.ofNullable(username);
     }
 
     @Override
-    public String getPassword() {
-        return password;
+    public Optional<String> getPassword() {
+        return Optional.ofNullable(password);
     }
 
     @Override

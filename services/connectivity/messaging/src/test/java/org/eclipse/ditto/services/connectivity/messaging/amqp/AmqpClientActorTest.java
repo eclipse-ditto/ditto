@@ -34,6 +34,7 @@ import javax.jms.MessageProducer;
 import javax.jms.Session;
 import javax.jms.TextMessage;
 
+import org.apache.qpid.jms.JmsConnection;
 import org.apache.qpid.jms.JmsQueue;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
@@ -84,7 +85,7 @@ public class AmqpClientActorTest {
     private final Connection connection = TestConstants.createConnection(connectionId);
 
     @Mock
-    private javax.jms.Connection mockConnection = Mockito.mock(javax.jms.Connection.class);
+    private JmsConnection mockConnection = Mockito.mock(JmsConnection.class);
     @Mock
     private Session mockSession = Mockito.mock(Session.class);
     @Mock

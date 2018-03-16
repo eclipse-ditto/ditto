@@ -18,43 +18,45 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.signals.commands.base.Command;
+import org.eclipse.ditto.signals.commands.connectivity.TestConstants;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link RetrieveConnectionStatuses}.
+ * Unit test for {@link RetrieveConnectionMetrics}.
  */
-public final class RetrieveConnectionStatusesTest {
+public final class RetrieveConnectionMetricsTest {
 
     private static final JsonObject KNOWN_JSON = JsonObject.newBuilder()
-            .set(Command.JsonFields.TYPE, RetrieveConnectionStatuses.TYPE)
+            .set(Command.JsonFields.TYPE, RetrieveConnectionMetrics.TYPE)
+            .set(RetrieveConnectionMetrics.JSON_CONNECTION_ID, TestConstants.ID)
             .build();
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(RetrieveConnectionStatuses.class)
+        EqualsVerifier.forClass(RetrieveConnectionMetrics.class)
                 .usingGetClass()
                 .verify();
     }
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(RetrieveConnectionStatuses.class, areImmutable());
+        assertInstancesOf(RetrieveConnectionMetrics.class, areImmutable());
     }
 
     @Test
     public void fromJsonReturnsExpected() {
-        final RetrieveConnectionStatuses expected = RetrieveConnectionStatuses.of(DittoHeaders.empty());
+        final RetrieveConnectionMetrics expected = RetrieveConnectionMetrics.of(TestConstants.ID, DittoHeaders.empty());
 
-        final RetrieveConnectionStatuses actual = RetrieveConnectionStatuses.fromJson(KNOWN_JSON, DittoHeaders.empty());
+        final RetrieveConnectionMetrics actual = RetrieveConnectionMetrics.fromJson(KNOWN_JSON, DittoHeaders.empty());
 
         assertThat(actual).isEqualTo(expected);
     }
 
     @Test
     public void toJsonReturnsExpected() {
-        final JsonObject actual = RetrieveConnectionStatuses.of(DittoHeaders.empty()).toJson();
+        final JsonObject actual = RetrieveConnectionMetrics.of(TestConstants.ID, DittoHeaders.empty()).toJson();
 
         assertThat(actual).isEqualTo(KNOWN_JSON);
     }

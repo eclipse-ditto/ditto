@@ -39,7 +39,7 @@ public final class GatewayMappingStrategy implements MappingStrategy {
 
     private final PoliciesMappingStrategy policiesMappingStrategy;
     private final ThingsMappingStrategy thingsMappingStrategy;
-    private final ConnectivityMappingStrategy amqpBridgeMappingStrategy;
+    private final ConnectivityMappingStrategy connectivityMappingStrategy;
     private final ThingSearchMappingStrategy thingSearchMappingStrategy;
 
     /**
@@ -48,7 +48,7 @@ public final class GatewayMappingStrategy implements MappingStrategy {
     public GatewayMappingStrategy() {
         policiesMappingStrategy = new PoliciesMappingStrategy();
         thingsMappingStrategy = new ThingsMappingStrategy();
-        amqpBridgeMappingStrategy = new ConnectivityMappingStrategy(thingsMappingStrategy);
+        connectivityMappingStrategy = new ConnectivityMappingStrategy(thingsMappingStrategy);
         thingSearchMappingStrategy = new ThingSearchMappingStrategy();
     }
 
@@ -57,7 +57,7 @@ public final class GatewayMappingStrategy implements MappingStrategy {
         final Map<String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>> combinedStrategy = new HashMap<>();
         combinedStrategy.putAll(policiesMappingStrategy.determineStrategy());
         combinedStrategy.putAll(thingSearchMappingStrategy.determineStrategy());
-        combinedStrategy.putAll(amqpBridgeMappingStrategy.determineStrategy());
+        combinedStrategy.putAll(connectivityMappingStrategy.determineStrategy());
         combinedStrategy.putAll(thingsMappingStrategy.determineStrategy());
 
         final MappingStrategiesBuilder builder = MappingStrategiesBuilder.newInstance();
