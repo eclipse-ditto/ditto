@@ -24,6 +24,7 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 import javax.jms.ConnectionFactory;
 import javax.jms.ExceptionListener;
@@ -32,6 +33,7 @@ import javax.naming.Context;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
 
+import org.apache.qpid.jms.JmsConnection;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.slf4j.LoggerFactory;
 
@@ -43,6 +45,8 @@ public final class ConnectionBasedJmsConnectionFactory implements JmsConnectionF
 
     private static final org.slf4j.Logger LOGGER =
             LoggerFactory.getLogger(ConnectionBasedJmsConnectionFactory.class);
+
+    private static final String SECURE_AMQP_SCHEME = "amqps";
 
     private ConnectionBasedJmsConnectionFactory() {
         // no-op
@@ -58,7 +62,7 @@ public final class ConnectionBasedJmsConnectionFactory implements JmsConnectionF
     }
 
     @Override
-    public javax.jms.Connection createConnection(final Connection connection, final ExceptionListener exceptionListener)
+    public JmsConnection createConnection(final Connection connection, final ExceptionListener exceptionListener)
             throws JMSException, NamingException {
         checkNotNull(connection, "Connection");
         checkNotNull(exceptionListener, "Exception Listener");
@@ -66,15 +70,15 @@ public final class ConnectionBasedJmsConnectionFactory implements JmsConnectionF
         final Context ctx = createContext(connection);
         final ConnectionFactory cf = (javax.jms.ConnectionFactory) ctx.lookup(connection.getId());
 
-        @SuppressWarnings("squid:S2095") final javax.jms.Connection jmsConnection = cf.createConnection();
+        @SuppressWarnings("squid:S2095") final JmsConnection jmsConnection = (JmsConnection) cf.createConnection();
         jmsConnection.setExceptionListener(exceptionListener);
         return jmsConnection;
     }
 
     private Context createContext(final Connection connection) throws NamingException {
         final String id = connection.getId();
-        final String username = connection.getUsername();
-        final String password = connection.getPassword();
+        final String username = connection.getUsername().orElse(null);
+        final String password = connection.getPassword().orElse(null);
         final String protocol = connection.getProtocol();
         final String hostname = connection.getHostname();
         final int port = connection.getPort();
@@ -83,7 +87,8 @@ public final class ConnectionBasedJmsConnectionFactory implements JmsConnectionF
         final String baseUri = formatUri(protocol, hostname, port);
 
         final List<String> parameters = new ArrayList<>(getAmqpParameters());
-        if (!connection.isValidateCertificates()) {
+        if (!connection.isValidateCertificates() && SECURE_AMQP_SCHEME.equalsIgnoreCase(protocol)) {
+            // these setting can only be applied for amqps connections:
             parameters.addAll(getTransportParameters());
         }
         final String nestedUri = baseUri + parameters.stream().collect(Collectors.joining("&", "?", ""));
@@ -111,7 +116,8 @@ public final class ConnectionBasedJmsConnectionFactory implements JmsConnectionF
     }
 
     @SuppressWarnings("squid:S2068")
-    private static List<String> getJmsParameters(final String id, final String username, final String password) {
+    private static List<String> getJmsParameters(final String id, @Nullable final String username,
+            @Nullable final String password) {
         String encodedId;
         try {
             encodedId = URLEncoder.encode(id, StandardCharsets.UTF_8.displayName());
@@ -120,13 +126,17 @@ public final class ConnectionBasedJmsConnectionFactory implements JmsConnectionF
             //fallback: replace special characters
             encodedId = id.replaceAll("[^a-zA-Z0-9]+", "");
         }
-        return Arrays.asList("jms.clientID=" + encodedId,
-                "jms.username=" + username,
-                "jms.password=" + password);
+        final List<String> parameters = new ArrayList<>();
+        parameters.add("jms.clientID=" + encodedId);
+        if (username != null && password != null) {
+            parameters.add("jms.username=" + username);
+            parameters.add("jms.password=" + password);
+        }
+        return parameters;
     }
 
     private static List<String> getAmqpParameters() {
-        return Collections.singletonList("amqp.saslMechanisms=PLAIN");
+        return Collections.singletonList("amqp.saslMechanisms=PLAIN,ANONYMOUS");
     }
 
     private static List<String> getTransportParameters() {

@@ -18,12 +18,14 @@ import java.util.Objects;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.common.ConditionChecker;
+
 /**
  * Mutable builder for building new instances of ExternalMessage.
  */
 final class MutableExternalMessageBuilder implements ExternalMessageBuilder {
 
-    private final Map<String, String> headers;
+    private Map<String, String> headers;
     @Nullable
     private final String topicPath;
     private ExternalMessage.PayloadType payloadType = ExternalMessage.PayloadType.UNKNOWN;
@@ -75,6 +77,13 @@ final class MutableExternalMessageBuilder implements ExternalMessageBuilder {
     @Override
     public ExternalMessageBuilder withAdditionalHeaders(final Map<String, String> additionalHeaders) {
         headers.putAll(additionalHeaders);
+        return this;
+    }
+
+    @Override
+    public ExternalMessageBuilder withHeaders(final Map<String, String> headers) {
+        ConditionChecker.checkNotNull(headers);
+        this.headers = new HashMap<>(headers);
         return this;
     }
 

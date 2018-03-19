@@ -39,8 +39,9 @@ import akka.japi.pf.ReceiveBuilder;
  * Responsible for publishing {@link ExternalMessage}s into RabbitMQ / AMQP 0.9.1.
  * The behaviour how the events and responses are published can be controlled by the configuration settings
  * {@code eventTarget} and {@code replyTarget}.
- * <p/>
+ * <p>
  * The {@code eventTarget} from the {@link Connection} is interpreted as follows:
+ * </p>
  * <ul>
  *     <li>{@code eventTarget} undefined: thing events are not published at all</li>
  *     <li>{@code eventTarget="target"}: thing events are published to exchange

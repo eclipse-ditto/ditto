@@ -218,6 +218,16 @@ public final class ImmutableConnectionTest {
     }
 
     @Test
+    public void uriRegexMatchesWithoutCredentials() {
+        final Matcher matcher = URI_PATTERN.matcher("amqps://hono.eclipse.org:5671");
+
+        final boolean matches = matcher.matches();
+        assertThat(matches).isTrue();
+        assertThat(matcher.group(Connection.UriRegex.USERNAME_REGEX_GROUP)).isNull();
+        assertThat(matcher.group(Connection.UriRegex.PASSWORD_REGEX_GROUP)).isNull();
+    }
+
+    @Test
     public void uriRegexMatchesWithoutVHost() {
         final Matcher matcher = URI_PATTERN.matcher("amqps://foo:bar@hono.eclipse.org:5671");
 

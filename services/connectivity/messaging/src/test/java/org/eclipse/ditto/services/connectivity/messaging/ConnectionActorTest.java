@@ -86,9 +86,9 @@ public class ConnectionActorTest {
         deleteConnectionResponse = DeleteConnectionResponse.of(connectionId, DittoHeaders.empty());
         retrieveConnectionStatus = RetrieveConnectionStatus.of(connectionId, DittoHeaders.empty());
         retrieveConnectionStatusOpenResponse =
-                RetrieveConnectionStatusResponse.of(connectionId, ConnectionStatus.OPEN, DittoHeaders.empty());
+                RetrieveConnectionStatusResponse.of(connectionId, ConnectionStatus.OPEN, "the status as persisted / desired status", DittoHeaders.empty());
         retrieveConnectionStatusClosedResponse =
-                RetrieveConnectionStatusResponse.of(connectionId, ConnectionStatus.CLOSED, DittoHeaders.empty());
+                RetrieveConnectionStatusResponse.of(connectionId, ConnectionStatus.CLOSED, "the status as persisted / desired status", DittoHeaders.empty());
         connectionNotAccessibleException = ConnectionNotAccessibleException.newBuilder(connectionId).build();
     }
 
@@ -236,7 +236,7 @@ public class ConnectionActorTest {
             if (isForwarded) {
                 probe.expectMsg(thingModified);
             } else {
-                probe.expectNoMsg();
+                probe.expectNoMessage();
             }
         }};
     }

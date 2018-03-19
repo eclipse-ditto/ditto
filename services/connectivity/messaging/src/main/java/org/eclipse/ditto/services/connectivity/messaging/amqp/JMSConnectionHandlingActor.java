@@ -23,6 +23,7 @@ import javax.jms.JMSException;
 import javax.jms.MessageConsumer;
 import javax.jms.Session;
 
+import org.apache.qpid.jms.JmsConnection;
 import org.apache.qpid.jms.JmsQueue;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -91,9 +92,9 @@ public class JMSConnectionHandlingActor extends AbstractActor {
 
     @SuppressWarnings("squid:S2095") // cannot use try-with-resources, connection has longer lifetime
     private void handleConnect(final AmqpClientActor.JmsConnect connect) {
-        javax.jms.Connection jmsConnection = null;
         try {
-            jmsConnection = jmsConnectionFactory.createConnection(connection, exceptionListener);
+            final JmsConnection
+                    jmsConnection = jmsConnectionFactory.createConnection(connection, exceptionListener);
             log.debug("Starting connection.");
             jmsConnection.start();
             log.debug("Connection started successfully, creating session.");
@@ -153,4 +154,5 @@ public class JMSConnectionHandlingActor extends AbstractActor {
         log.info("Stop myself {}", getSelf());
         getContext().stop(getSelf());
     }
+
 }

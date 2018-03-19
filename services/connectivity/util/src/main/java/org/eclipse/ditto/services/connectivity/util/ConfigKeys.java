@@ -219,6 +219,15 @@ public final class ConfigKeys {
         }
     }
 
+    @Immutable
+    public static final class Message {
+
+        private static final String PREFIX = CONNECTIVITY_PREFIX + "message.";
+
+        public static final String HEADER_BLACKLIST = PREFIX + "header-blacklist";
+    }
+
+
     /*
      * This class is not designed for instantiation.
      */
