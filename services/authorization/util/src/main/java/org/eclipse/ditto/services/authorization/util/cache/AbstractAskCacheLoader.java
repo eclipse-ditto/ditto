@@ -25,12 +25,11 @@ import java.util.function.Supplier;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonFieldSelector;
-import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.authorization.util.EntityRegionMap;
 import org.eclipse.ditto.services.authorization.util.cache.entry.Entry;
+import org.eclipse.ditto.services.models.authorization.EntityId;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
@@ -44,7 +43,7 @@ import akka.pattern.PatternsCS;
  *
  * @param <V> type of values in the cache entry.
  */
-abstract class AbstractAskCacheLoader<V> implements AsyncCacheLoader<ResourceKey, Entry<V>> {
+abstract class AbstractAskCacheLoader<V> implements AsyncCacheLoader<EntityId, Entry<V>> {
 
     private final long askTimeoutMillis;
     private final EntityRegionMap entityRegionMap;
@@ -79,7 +78,7 @@ abstract class AbstractAskCacheLoader<V> implements AsyncCacheLoader<ResourceKey
     }
 
     @Override
-    public final CompletableFuture<Entry<V>> asyncLoad(final ResourceKey key, final Executor executor) {
+    public final CompletableFuture<Entry<V>> asyncLoad(final EntityId key, final Executor executor) {
         final String resourceType = key.getResourceType();
         return CompletableFuture.supplyAsync(() -> {
             final String entityId = getEntityId(key);
@@ -101,8 +100,8 @@ abstract class AbstractAskCacheLoader<V> implements AsyncCacheLoader<ResourceKey
         return SudoRetrieveThing.withOriginalSchemaVersion(thingId, jsonFieldSelector, DittoHeaders.empty());
     }
 
-    private static String getEntityId(final ResourceKey key) {
-        return key.getResourcePath().getRoot().map(JsonKey::toString).orElse("");
+    private static String getEntityId(final EntityId key) {
+        return key.getId();
     }
 
     private ActorRef getEntityRegion(final String resourceType) {

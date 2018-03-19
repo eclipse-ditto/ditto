@@ -16,9 +16,9 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 
-import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.services.authorization.util.EntityRegionMap;
 import org.eclipse.ditto.services.authorization.util.cache.AuthorizationCaches;
+import org.eclipse.ditto.services.models.authorization.EntityId;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 
@@ -38,7 +38,7 @@ public class EnforcerActor extends AbstractActor implements ThingCommandEnforcem
     private final ActorRef pubSubMediator;
     private final EntityRegionMap entityRegionMap;
     private final AuthorizationCaches caches;
-    private final ResourceKey entityKey;
+    private final EntityId entityId;
 
     private EnforcerActor(final ActorRef pubSubMediator,
             final EntityRegionMap entityRegionMap,
@@ -46,7 +46,7 @@ public class EnforcerActor extends AbstractActor implements ThingCommandEnforcem
         this.pubSubMediator = pubSubMediator;
         this.entityRegionMap = entityRegionMap;
         this.caches = caches;
-        this.entityKey = getCacheKey(getSelf());
+        this.entityId = decodeEntityId(getSelf());
     }
 
     /**
@@ -68,7 +68,7 @@ public class EnforcerActor extends AbstractActor implements ThingCommandEnforcem
     @Override
     public void postStop() {
         // if stopped, remove self from entity ID cache.
-        caches.invalidateEntityId(entityKey);
+        caches.invalidateEntityId(entityId);
     }
 
     @Override
@@ -82,8 +82,8 @@ public class EnforcerActor extends AbstractActor implements ThingCommandEnforcem
     }
 
     @Override
-    public ResourceKey entityKey() {
-        return entityKey;
+    public EntityId entityId() {
+        return entityId;
     }
 
     @Override
@@ -107,11 +107,11 @@ public class EnforcerActor extends AbstractActor implements ThingCommandEnforcem
                 .build();
     }
 
-    private static ResourceKey getCacheKey(final ActorRef self) {
+    private static EntityId decodeEntityId(final ActorRef self) {
         final String name = self.path().name();
         try {
             final String typeWithPath = URLDecoder.decode(name, StandardCharsets.UTF_8.name());
-            return ResourceKey.newInstance(typeWithPath);
+            return EntityId.fromString(typeWithPath);
         } catch (final UnsupportedEncodingException e) {
             throw new IllegalStateException("Unsupported encoding", e);
         }

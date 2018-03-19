@@ -18,6 +18,7 @@ import java.util.stream.StreamSupport;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.services.authorization.util.EntityRegionMap;
 import org.eclipse.ditto.services.authorization.util.cache.AuthorizationCaches;
+import org.eclipse.ditto.services.models.authorization.EntityId;
 
 import akka.actor.Actor;
 import akka.event.DiagnosticLoggingAdapter;
@@ -45,12 +46,12 @@ public interface CommandEnforcementSelfType extends Actor {
     EntityRegionMap entityRegionMap();
 
     /**
-     * Self-type requirement: It has an entity key.
+     * Self-type requirement: It has an entity ID.
      * Do not call outside of this package.
      *
-     * @return the entity cache key.
+     * @return the entity ID.
      */
-    ResourceKey entityKey();
+    EntityId entityId();
 
     /**
      * Self-type requirement: It has a diagnostic logging adapter.
@@ -67,15 +68,4 @@ public interface CommandEnforcementSelfType extends Actor {
      * @return the authorization caches.
      */
     AuthorizationCaches caches();
-
-    /**
-     * Convenience method to reconstruct entity ID from its cache key.
-     *
-     * @param cacheKey Cache key of an entity.
-     * @return ID of the entity.
-     */
-    default String getEntityIdFromCacheKey(final ResourceKey cacheKey) {
-        return StreamSupport.stream(cacheKey.getResourcePath().spliterator(), false)
-                .collect(Collectors.joining("/"));
-    }
 }

@@ -15,17 +15,16 @@ import java.time.Duration;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
 import org.eclipse.ditto.model.enforcers.AclEnforcer;
 import org.eclipse.ditto.model.enforcers.Enforcer;
-import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.services.authorization.util.EntityRegionMap;
 import org.eclipse.ditto.services.authorization.util.cache.entry.Entry;
 import org.eclipse.ditto.services.authorization.util.config.CacheConfigReader;
 import org.eclipse.ditto.services.authorization.util.config.CachesConfigReader;
+import org.eclipse.ditto.services.models.authorization.EntityId;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 
 import com.github.benmanes.caffeine.cache.AsyncLoadingCache;
@@ -36,8 +35,8 @@ import com.github.benmanes.caffeine.cache.Caffeine;
  */
 public final class AuthorizationCaches {
 
-    private final AsyncLoadingCache<ResourceKey, Entry<Enforcer>> enforcerCache;
-    private final AsyncLoadingCache<ResourceKey, Entry<ResourceKey>> idCache;
+    private final AsyncLoadingCache<EntityId, Entry<Enforcer>> enforcerCache;
+    private final AsyncLoadingCache<EntityId, Entry<EntityId>> idCache;
 
     /**
      * Creates a cache from configuration.
@@ -63,7 +62,7 @@ public final class AuthorizationCaches {
      * @param entityKey cache key of an entity.
      * @param consumer handler of cache lookup results.
      */
-    public void retrieve(final ResourceKey entityKey, final BiConsumer<Entry<ResourceKey>, Entry<Enforcer>> consumer) {
+    public void retrieve(final EntityId entityKey, final BiConsumer<Entry<EntityId>, Entry<Enforcer>> consumer) {
         if (Objects.equals(PolicyCommand.RESOURCE_TYPE, entityKey.getResourceType())) {
             // Enforcer cache key of a policy is always identical to the entity cache key of the policy.
             // No need to save the identity relation in entity cache and waste memory and bandwidth.
@@ -86,11 +85,11 @@ public final class AuthorizationCaches {
      *
      * @param resourceKey cache key of the entity.
      */
-    public void invalidateEntityId(final ResourceKey resourceKey) {
+    public void invalidateEntityId(final EntityId resourceKey) {
         idCache.synchronous().invalidate(resourceKey);
     }
 
-    void updateAcl(final ResourceKey resourceKey, final long revision, final AccessControlList acl) {
+    void updateAcl(final EntityId resourceKey, final long revision, final AccessControlList acl) {
         final Supplier<Entry<Enforcer>> entrySupplier = () -> Entry.of(revision, AclEnforcer.of(acl));
         // accept potential race condition to react to events quickly
         enforcerCache.get(resourceKey, k -> entrySupplier.get())

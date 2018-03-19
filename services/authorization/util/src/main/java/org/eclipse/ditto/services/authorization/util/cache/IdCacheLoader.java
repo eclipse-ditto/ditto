@@ -18,12 +18,12 @@ import java.util.function.Function;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingRevision;
 import org.eclipse.ditto.services.authorization.util.EntityRegionMap;
 import org.eclipse.ditto.services.authorization.util.cache.entry.Entry;
+import org.eclipse.ditto.services.models.authorization.EntityId;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
@@ -31,11 +31,11 @@ import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleEx
 
 /**
  * Loads entity ID relation for authorization by asking entity shard regions.
- *
+ * <p>
  * TODO: make extensible.
  */
 @Immutable
-public final class IdCacheLoader extends AbstractAskCacheLoader<ResourceKey> {
+public final class IdCacheLoader extends AbstractAskCacheLoader<EntityId> {
 
     private final AuthorizationCaches authorizationCaches;
 
@@ -53,13 +53,13 @@ public final class IdCacheLoader extends AbstractAskCacheLoader<ResourceKey> {
     }
 
     @Override
-    protected HashMap<String, Function<Object, Entry<ResourceKey>>> buildTransformerMap() {
-        final HashMap<String, Function<Object, Entry<ResourceKey>>> hashMap = super.buildTransformerMap();
+    protected HashMap<String, Function<Object, Entry<EntityId>>> buildTransformerMap() {
+        final HashMap<String, Function<Object, Entry<EntityId>>> hashMap = super.buildTransformerMap();
         hashMap.put(ThingCommand.RESOURCE_TYPE, this::handleSudoRetrieveThingResponse);
         return hashMap;
     }
 
-    private Entry<ResourceKey> handleSudoRetrieveThingResponse(final Object response) {
+    private Entry<EntityId> handleSudoRetrieveThingResponse(final Object response) {
         if (response instanceof SudoRetrieveThingResponse) {
             final SudoRetrieveThingResponse sudoRetrieveThingResponse = (SudoRetrieveThingResponse) response;
             final Thing thing = sudoRetrieveThingResponse.getThing();
@@ -69,12 +69,12 @@ public final class IdCacheLoader extends AbstractAskCacheLoader<ResourceKey> {
             final Optional<AccessControlList> accessControlListOptional = thing.getAccessControlList();
             if (accessControlListOptional.isPresent()) {
                 final AccessControlList acl = accessControlListOptional.get();
-                final ResourceKey resourceKey = ResourceKey.newInstance(ThingCommand.RESOURCE_TYPE, thingId);
+                final EntityId resourceKey = EntityId.of(ThingCommand.RESOURCE_TYPE, thingId);
                 authorizationCaches.updateAcl(resourceKey, revision, acl);
                 return Entry.of(revision, resourceKey);
             } else {
                 final String policyId = thing.getPolicyId().orElseThrow(badThingResponse("no PolicyId or ACL"));
-                final ResourceKey resourceKey = ResourceKey.newInstance(PolicyCommand.RESOURCE_TYPE, policyId);
+                final EntityId resourceKey = EntityId.of(PolicyCommand.RESOURCE_TYPE, policyId);
                 return Entry.of(revision, resourceKey);
             }
         } else if (response instanceof ThingNotAccessibleException) {

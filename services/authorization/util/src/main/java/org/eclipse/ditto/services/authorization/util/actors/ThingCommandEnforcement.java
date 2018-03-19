@@ -38,6 +38,7 @@ import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.authorization.util.cache.entry.Entry;
+import org.eclipse.ditto.services.models.authorization.EntityId;
 import org.eclipse.ditto.services.models.policies.Permission;
 import org.eclipse.ditto.signals.commands.base.CommandToExceptionRegistry;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
@@ -79,7 +80,7 @@ interface ThingCommandEnforcement extends CommandEnforcementSelfType {
      */
     default void enforceThingCommand(final ThingCommand thingCommand) {
         final ActorRef sender = sender();
-        caches().retrieve(entityKey(), (enforcerKeyEntry, enforcerEntry) -> {
+        caches().retrieve(entityId(), (enforcerKeyEntry, enforcerEntry) -> {
             if (!enforcerEntry.exists()) {
                 enforceThingCommandByNonexistentEnforcer(enforcerKeyEntry, thingCommand, sender);
             } else if (isAclEnforcer(enforcerKeyEntry)) {
@@ -107,12 +108,12 @@ interface ThingCommandEnforcement extends CommandEnforcementSelfType {
      * @param thingCommand the command to authorize.
      * @param sender sender of the command.
      */
-    default void enforceThingCommandByNonexistentEnforcer(final Entry<ResourceKey> enforcerKeyEntry,
+    default void enforceThingCommandByNonexistentEnforcer(final Entry<EntityId> enforcerKeyEntry,
             final ThingCommand thingCommand, final ActorRef sender) {
         if (enforcerKeyEntry.exists()) {
             // Thing exists but its policy is deleted.
             final String thingId = thingCommand.getThingId();
-            final String policyId = getEntityIdFromCacheKey(enforcerKeyEntry.getValue());
+            final String policyId = enforcerKeyEntry.getValue().getId();
             final DittoRuntimeException error = errorForExistingThingWithDeletedPolicy(thingId, policyId);
             sender.tell(error, self());
         } else {
@@ -380,7 +381,7 @@ interface ThingCommandEnforcement extends CommandEnforcementSelfType {
      * @param enforcerKeyEntry cache key entry of an enforcer.
      * @return whether it is based on an access control list and requires special handling.
      */
-    static boolean isAclEnforcer(final Entry<ResourceKey> enforcerKeyEntry) {
+    static boolean isAclEnforcer(final Entry<EntityId> enforcerKeyEntry) {
         return enforcerKeyEntry.exists() &&
                 Objects.equals(ThingCommand.RESOURCE_TYPE, enforcerKeyEntry.getValue().getResourceType());
     }
