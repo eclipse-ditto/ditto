@@ -33,21 +33,31 @@ import com.github.benmanes.caffeine.cache.LoadingCache;
  */
 public class CaffeineCache<K, V> implements Cache<K, V> {
 
+    @Nullable
+    private final MetricsStatsCounter metricStatsCounter;
     private AsyncLoadingCache<K, V> asyncLoadingCache;
     private LoadingCache<K, V> synchronousCacheView;
 
-    private CaffeineCache(final Caffeine<K, V> caffeine, final AsyncCacheLoader<K, V> loader,
-            @Nullable final Map.Entry<String, MetricRegistry> namedMetricRegistry) {
-        if (namedMetricRegistry != null) {
-            caffeine.recordStats(() -> {
-                final String metricsPrefix = namedMetricRegistry.getKey();
-                final MetricRegistry metricRegistry = namedMetricRegistry.getValue();
-                return MetricsStatsCounter.of(metricsPrefix, metricRegistry);
-            });
-        }
 
-        this.asyncLoadingCache = caffeine.buildAsync(loader);
-        synchronousCacheView = asyncLoadingCache.synchronous();
+    private CaffeineCache(final Caffeine<?, ?> caffeine,
+            final AsyncCacheLoader<K, V> loader,
+            @Nullable final Map.Entry<String, MetricRegistry> namedMetricRegistry) {
+
+        @SuppressWarnings("unchecked")
+        final Caffeine<K, V> typedCaffeine = (Caffeine<K, V>) caffeine;
+        if (namedMetricRegistry != null) {
+            final String metricsPrefix = namedMetricRegistry.getKey();
+            final MetricRegistry metricRegistry = namedMetricRegistry.getValue();
+            this.metricStatsCounter = MetricsStatsCounter.of(metricsPrefix, metricRegistry);
+            caffeine.recordStats(() -> metricStatsCounter);
+            this.asyncLoadingCache = typedCaffeine.buildAsync(loader);
+            this.synchronousCacheView = asyncLoadingCache.synchronous();
+            metricStatsCounter.configureCache(this.synchronousCacheView);
+        } else {
+            this.asyncLoadingCache = typedCaffeine.buildAsync(loader);
+            this.synchronousCacheView = asyncLoadingCache.synchronous();
+            this.metricStatsCounter = null;
+        }
     }
 
     /**
@@ -59,7 +69,7 @@ public class CaffeineCache<K, V> implements Cache<K, V> {
      * @param <V> the type of the value.
      * @return the created instance
      */
-    public static <K, V> CaffeineCache<K, V> of(final Caffeine<K, V> caffeine, final AsyncCacheLoader<K, V> loader) {
+    public static <K, V> CaffeineCache<K, V> of(final Caffeine<?, ?> caffeine, final AsyncCacheLoader<K, V> loader) {
         requireNonNull(caffeine);
         requireNonNull(loader);
 
@@ -76,7 +86,7 @@ public class CaffeineCache<K, V> implements Cache<K, V> {
      * @param <V> the type of the value.
      * @return the created instance
      */
-    public static <K, V> CaffeineCache<K, V> of(final Caffeine<K, V> caffeine, final AsyncCacheLoader<K, V> loader,
+    public static <K, V> CaffeineCache<K, V> of(final Caffeine<?, ?> caffeine, final AsyncCacheLoader<K, V> loader,
             final Map.Entry<String, MetricRegistry> namedMetricRegistry) {
         requireNonNull(caffeine);
         requireNonNull(loader);
@@ -87,18 +97,30 @@ public class CaffeineCache<K, V> implements Cache<K, V> {
 
     @Override
     public CompletableFuture<Optional<V>> get(final K key) {
+        requireNonNull(key);
+
         return asyncLoadingCache.get(key).thenApply(Optional::ofNullable);
     }
 
     @Override
     public Optional<V> getBlocking(final K key) {
+        requireNonNull(key);
+
         final V value = synchronousCacheView.get(key);
         return Optional.ofNullable(value);
     }
 
     @Override
     public void invalidate(final K key) {
+        requireNonNull(key);
+
+        final boolean reportInvalidation =
+                (metricStatsCounter != null) && (asyncLoadingCache.getIfPresent(key) != null);
         synchronousCacheView.invalidate(key);
+
+        if (reportInvalidation) {
+            metricStatsCounter.recordInvalidation();
+        }
     }
 
 }

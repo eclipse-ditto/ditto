@@ -14,11 +14,17 @@ package org.eclipse.ditto.services.utils.cache;
 import static com.codahale.metrics.MetricRegistry.name;
 import static java.util.Objects.requireNonNull;
 
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
+import javax.annotation.Nullable;
+
+import com.codahale.metrics.Gauge;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Policy;
 import com.github.benmanes.caffeine.cache.stats.CacheStats;
 import com.github.benmanes.caffeine.cache.stats.StatsCounter;
 
@@ -47,9 +53,9 @@ public final class MetricsStatsCounter implements StatsCounter {
          */
         MISSES("misses"),
         /**
-         * Calls of the cache's load function. Might be lower than {@link #MISSES} in case of parallel cache access.
+         * The total load time in nanoseconds.
          */
-        LOADS("loads"),
+        TOTAL_LOAD_TIME("loads"),
         /**
          * Number of successful loads.
          */
@@ -59,13 +65,27 @@ public final class MetricsStatsCounter implements StatsCounter {
          */
         LOADS_FAILURE("loads-failure"),
         /**
-         * Number of cache evictions, e.g. when the cache grows to large. Manual cache invalidation is NOT counted.
+         * Number of cache evictions, e.g. when the cache grows to large. Manual cache invalidation is NOT included,
+         * it is counted by {@link #ESTIMATED_INVALIDATIONS}.
          */
         EVICTIONS("evictions"),
         /**
          * Sum of the weights of the cache evictions.
          */
-        EVICTIONS_WEIGHT("evictions-weight");
+        EVICTIONS_WEIGHT("evictions-weight"),
+        /**
+         * The estimated size of the cache.
+         */
+        ESTIMATED_SIZE("estimated-size"),
+        /**
+         * The maximum size of the cache.
+         */
+        MAX_SIZE("max-size"),
+        /**
+         * Estimated cache invalidations (manual, in contrast to {@link #EVICTIONS}). The value is estimated, it may
+         * be not completely correct in case of parallel loads or evictions.
+         */
+        ESTIMATED_INVALIDATIONS("estimated-invalidations");
 
         private final String name;
 
@@ -97,15 +117,29 @@ public final class MetricsStatsCounter implements StatsCounter {
     private final Timer totalLoadTime;
     private final Meter evictionCount;
     private final Meter evictionWeight;
+    private final SimpleGauge<Long> estimatedSize;
+    private final SimpleGauge<Long> maxSize;
+    private final Meter estimatedInvalidations;
+
+    private volatile @Nullable Cache cache;
 
     private MetricsStatsCounter(final MetricRegistry registry, final String metricsPrefix) {
-        hitCount = registry.meter(name(metricsPrefix, "hits"));
-        missCount = registry.meter(name(metricsPrefix, "misses"));
-        totalLoadTime = registry.timer(name(metricsPrefix, "loads"));
-        loadSuccessCount = registry.meter(name(metricsPrefix, "loads-success"));
-        loadFailureCount = registry.meter(name(metricsPrefix, "loads-failure"));
-        evictionCount = registry.meter(name(metricsPrefix, "evictions"));
-        evictionWeight = registry.meter(name(metricsPrefix, "evictions-weight"));
+        hitCount = registry.meter(createMetricName(metricsPrefix, MetricName.HITS));
+        missCount = registry.meter(createMetricName(metricsPrefix, MetricName.MISSES));
+        totalLoadTime = registry.timer(createMetricName(metricsPrefix, MetricName.TOTAL_LOAD_TIME));
+        loadSuccessCount = registry.meter(createMetricName(metricsPrefix, MetricName.LOADS_SUCCESS));
+        loadFailureCount = registry.meter(createMetricName(metricsPrefix, MetricName.LOADS_FAILURE));
+        evictionCount = registry.meter(createMetricName(metricsPrefix, MetricName.EVICTIONS));
+        evictionWeight = registry.meter(createMetricName(metricsPrefix, MetricName.EVICTIONS_WEIGHT));
+        estimatedSize = registry.register(createMetricName(metricsPrefix, MetricName.ESTIMATED_SIZE),
+                new SimpleGauge<>(null));
+        maxSize = registry.register(createMetricName(metricsPrefix, MetricName.MAX_SIZE),
+                new SimpleGauge<>(null));
+        estimatedInvalidations = registry.meter(createMetricName(metricsPrefix, MetricName.ESTIMATED_INVALIDATIONS));
+    }
+
+    private String createMetricName(final String metricsPrefix, final MetricName metricName) {
+        return name(metricsPrefix, metricName.getValue());
     }
 
     /**
@@ -122,6 +156,18 @@ public final class MetricsStatsCounter implements StatsCounter {
         return new MetricsStatsCounter(registry, metricsPrefix);
     }
 
+    /**
+     * Configures the given cache, which allows reporting of estimated and maximum size.
+     *
+     * @param cache the cache.
+     */
+    public void configureCache(final Cache cache) {
+        if (this.cache != null) {
+            throw new IllegalStateException("Cache has already been configured!");
+        }
+        this.cache = requireNonNull(cache);
+    }
+
     @Override
     public void recordHits(int count) {
         hitCount.mark(count);
@@ -136,6 +182,7 @@ public final class MetricsStatsCounter implements StatsCounter {
     public void recordLoadSuccess(long loadTime) {
         loadSuccessCount.mark();
         totalLoadTime.update(loadTime, TimeUnit.NANOSECONDS);
+        updateCacheSizeMetrics();
     }
 
     @Override
@@ -147,12 +194,22 @@ public final class MetricsStatsCounter implements StatsCounter {
     @Override
     public void recordEviction() {
         recordEviction(DEFAULT_EVICTION_WEIGHT);
+        updateCacheSizeMetrics();
     }
 
     @Override
     public void recordEviction(int weight) {
         evictionCount.mark();
         evictionWeight.mark(weight);
+        updateCacheSizeMetrics();
+    }
+
+    /**
+     * Records the invalidation of an entry in the cache.
+     */
+    public void recordInvalidation() {
+        estimatedInvalidations.mark();
+        updateCacheSizeMetrics();
     }
 
     @Override
@@ -172,5 +229,50 @@ public final class MetricsStatsCounter implements StatsCounter {
         return getClass().getSimpleName() + " ["
                 + "snapshot=" + snapshot()
                 + ']';
+    }
+
+    private void updateCacheSizeMetrics() {
+        if (cache != null) {
+            estimatedSize.setValue(getRequiredCache().estimatedSize());
+            final Long currentMaxCacheSize = getMaxSize();
+            if (currentMaxCacheSize != null) {
+                maxSize.setValue(currentMaxCacheSize);
+            }
+        }
+    }
+
+    @Nullable
+    private Long getMaxSize() {
+        @SuppressWarnings("unchecked")
+        final Optional<Policy.Eviction> evictionOptional = getRequiredCache().policy().eviction();
+        return evictionOptional.map(Policy.Eviction::getMaximum).orElse(null);
+    }
+
+    private Cache getRequiredCache() {
+        return requireNonNull(cache);
+    }
+
+    /**
+     * Simple {@link Gauge} implementation.
+     */
+    private static final class SimpleGauge<T> implements Gauge<T> {
+
+        @Nullable
+        private volatile T value;
+
+        private SimpleGauge(@Nullable T value) {
+            this.value = value;
+        }
+
+        @Nullable
+        @Override
+        public T getValue() {
+            return this.value;
+        }
+
+        public void setValue(T value) {
+            this.value = value;
+        }
+
     }
 }
