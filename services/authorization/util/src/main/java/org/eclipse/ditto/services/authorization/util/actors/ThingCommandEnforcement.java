@@ -46,6 +46,7 @@ import org.eclipse.ditto.signals.commands.base.exceptions.GatewayServiceTimeoutE
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingCommandToAccessExceptionRegistry;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingCommandToModifyExceptionRegistry;
+import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotModifiableException;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteThing;
@@ -70,7 +71,7 @@ interface ThingCommandEnforcement extends CommandEnforcementSelfType {
     /**
      * Json fields that are always shown regardless of authorization.
      */
-    static JsonFieldSelector THING_QUERY_COMMAND_RESPONSE_WHITELIST = JsonFactory.newFieldSelector(Thing.JsonFields.ID);
+    JsonFieldSelector THING_QUERY_COMMAND_RESPONSE_WHITELIST = JsonFactory.newFieldSelector(Thing.JsonFields.ID);
 
     /**
      * Mixin API: authorize a thing command. Either the command is forwarded to things-shard-region for execution or
@@ -114,7 +115,7 @@ interface ThingCommandEnforcement extends CommandEnforcementSelfType {
             // Thing exists but its policy is deleted.
             final String thingId = thingCommand.getThingId();
             final String policyId = enforcerKeyEntry.getValue().getId();
-            final DittoRuntimeException error = errorForExistingThingWithDeletedPolicy(thingId, policyId);
+            final DittoRuntimeException error = errorForExistingThingWithDeletedPolicy(thingCommand, thingId, policyId);
             sender.tell(error, self());
         } else {
             // Without prior enforcer in cache, enforce CreateThing by self.
@@ -165,11 +166,11 @@ interface ThingCommandEnforcement extends CommandEnforcementSelfType {
      *
      * @param thingCommand command to forward.
      * @param sender sender of the command.
-     * @return null.
+     * @return 0 (must not be null).
      */
-    default Void forwardToThingsShardRegion(final ThingCommand thingCommand, final ActorRef sender) {
+    default Integer forwardToThingsShardRegion(final ThingCommand thingCommand, final ActorRef sender) {
         thingsShardRegion().tell(thingCommand, sender);
-        return null;
+        return 0;
     }
 
     /**
@@ -177,11 +178,13 @@ interface ThingCommandEnforcement extends CommandEnforcementSelfType {
      *
      * @param thingCommand command that generated the error.
      * @param sender sender of the command.
-     * @return null.
+     * @return 0 (must not be null).
      */
-    default Supplier<Void> respondWithError(final ThingCommand thingCommand, final ActorRef sender) {
-        sender.tell(errorForThingCommand(thingCommand), self());
-        return null;
+    default Supplier<Integer> respondWithError(final ThingCommand thingCommand, final ActorRef sender) {
+        return () -> {
+            sender.tell(errorForThingCommand(thingCommand), self());
+            return 0;
+        };
     }
 
     /**
@@ -190,9 +193,9 @@ interface ThingCommandEnforcement extends CommandEnforcementSelfType {
      * @param commandWithReadSubjects the command to ask.
      * @param enforcer enforcer to build JsonView with.
      * @param sender sender of the command.
-     * @return null.
+     * @return 0 (must not be null).
      */
-    default Void askThingsShardRegionAndBuildJsonView(
+    default Integer askThingsShardRegionAndBuildJsonView(
             final ThingQueryCommand commandWithReadSubjects,
             final Enforcer enforcer,
             final ActorRef sender) {
@@ -214,7 +217,7 @@ interface ThingCommandEnforcement extends CommandEnforcementSelfType {
                     }
                     return null;
                 });
-        return null;
+        return 0;
     }
 
     /**
@@ -346,19 +349,34 @@ interface ThingCommandEnforcement extends CommandEnforcementSelfType {
     /**
      * Mixin-private: create error for commands to an existing thing whose policy is deleted.
      *
+     * @param thingCommand the triggering command.
      * @param thingId ID of the thing.
      * @param policyId ID of the deleted policy.
      * @return an appropriate error.
      */
-    static DittoRuntimeException errorForExistingThingWithDeletedPolicy(final String thingId, final String policyId) {
-        final String message =
-                "The Thing with ID ''%s'' could not be accessed as its Policy with ID ''%s'' is not or no longer existing.";
-        final String description =
-                "Recreate/create the Policy with ID ''%s'' in order to get access to the Thing again.";
-        return ThingNotModifiableException.newBuilder(thingId)
-                .message(String.format(message, thingId, policyId))
-                .description(String.format(description, policyId))
-                .build();
+    static DittoRuntimeException errorForExistingThingWithDeletedPolicy(
+            final ThingCommand thingCommand,
+            final String thingId,
+            final String policyId) {
+
+        final String message = String.format(
+                "The Thing with ID ''%s'' could not be accessed as its Policy with ID ''%s'' is not or no longer existing.",
+                thingId, policyId);
+        final String description = String.format(
+                "Recreate/create the Policy with ID ''%s'' in order to get access to the Thing again.",
+                policyId);
+
+        if (thingCommand instanceof ThingModifyCommand) {
+            return ThingNotModifiableException.newBuilder(thingId)
+                    .message(message)
+                    .description(description)
+                    .build();
+        } else {
+            return ThingNotAccessibleException.newBuilder(thingId)
+                    .message(message)
+                    .description(description)
+                    .build();
+        }
     }
 
     /**
@@ -493,7 +511,7 @@ interface ThingCommandEnforcement extends CommandEnforcementSelfType {
                 .flatMap(root -> Thing.JsonFields.ACL.getPointer()
                         .getRoot()
                         .map(aclRoot -> Objects.equals(root, aclRoot)))
-                .orElse(false);
+                .orElse(true);
     }
 
     /**
