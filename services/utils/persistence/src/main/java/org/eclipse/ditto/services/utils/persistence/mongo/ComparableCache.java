@@ -13,15 +13,19 @@ package org.eclipse.ditto.services.utils.persistence.mongo;
 
 import static java.util.Objects.requireNonNull;
 
+import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.services.utils.cache.CaffeineCache;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.cache.CacheBuilder;
+import com.codahale.metrics.MetricRegistry;
+import com.github.benmanes.caffeine.cache.CacheLoader;
+import com.github.benmanes.caffeine.cache.Caffeine;
 
 /**
  * Cache implementation for {@link Comparable} values which performs updates only when a value is new or greater than
@@ -33,6 +37,7 @@ import com.google.common.cache.CacheBuilder;
 final class ComparableCache<K, V extends Comparable<V>> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ComparableCache.class);
+    private static final CacheLoader<Object, Object> NULL_LOADER = k -> null;
 
     private final ConcurrentMap<K, V> internalCache;
 
@@ -42,7 +47,27 @@ final class ComparableCache<K, V extends Comparable<V>> {
      * @param size the (maximum) size of this cache
      */
     public ComparableCache(final int size) {
-        this.internalCache = CacheBuilder.newBuilder().maximumSize(size).<K, V>build().asMap();
+        this(size, null);
+    }
+
+    /**
+     * Constructor.
+     *
+     * @param size the (maximum) size of this cache
+     * @param namedMetricRegistry the named {@link MetricRegistry} for cache statistics.
+     */
+    public ComparableCache(final int size, @Nullable final Map.Entry<String, MetricRegistry> namedMetricRegistry) {
+        final Caffeine<Object, Object> caffeine = Caffeine.newBuilder().maximumSize(size);
+
+        final CaffeineCache<K, V> caffeineCache = CaffeineCache.of(caffeine, ComparableCache.<K, V>getTypedNullLoader(),
+                namedMetricRegistry);
+        this.internalCache = caffeineCache.asMap();
+    }
+
+    private static <K,V> CacheLoader<K, V> getTypedNullLoader() {
+        @SuppressWarnings("unchecked")
+        final CacheLoader<K, V> typedNullNoader = (CacheLoader<K, V>) NULL_LOADER;
+        return typedNullNoader;
     }
 
     /**
@@ -87,4 +112,8 @@ final class ComparableCache<K, V extends Comparable<V>> {
         return result;
     }
 
+
+    public ConcurrentMap<K, V> asMap() {
+        return internalCache;
+    }
 }

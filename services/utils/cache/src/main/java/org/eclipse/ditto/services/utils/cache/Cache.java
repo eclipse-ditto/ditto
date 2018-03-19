@@ -13,6 +13,7 @@ package org.eclipse.ditto.services.utils.cache;
 
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentMap;
 
 /**
  * A general purpose cache for items which are associated with a key.
@@ -49,4 +50,12 @@ public interface Cache<K, V> {
      */
     void invalidate(K key);
 
+    /**
+     * Returns a synchronous view of the entries stored in this cache as a (thread-safe) map.
+     * Modifications directly affect the cache.
+     *
+     * @return a view of this cache
+     * @see com.github.benmanes.caffeine.cache.Cache
+     */
+    ConcurrentMap<K, V> asMap();
 }

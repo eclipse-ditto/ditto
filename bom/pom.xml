@@ -43,7 +43,6 @@
         <mongo-reactivestreams.version>1.6.0</mongo-reactivestreams.version>
 
         <parboiled.version>2.1.4</parboiled.version>
-        <guava.version>21.0</guava.version>
         <jjwt.version>0.7.0</jjwt.version>
         <jackson-databind.version>2.8.10</jackson-databind.version>
         <asm.version>5.2</asm.version>
@@ -189,11 +188,6 @@
                 <groupId>org.parboiled</groupId>
                 <artifactId>parboiled_${scala.version}</artifactId>
                 <version>${parboiled.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.google.guava</groupId>
-                <artifactId>guava</artifactId>
-                <version>${guava.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.jsonwebtoken</groupId>

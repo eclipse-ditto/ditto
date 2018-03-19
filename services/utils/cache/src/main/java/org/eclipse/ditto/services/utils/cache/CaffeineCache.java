@@ -16,12 +16,14 @@ import static java.util.Objects.requireNonNull;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentMap;
 
 import javax.annotation.Nullable;
 
 import com.codahale.metrics.MetricRegistry;
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 import com.github.benmanes.caffeine.cache.AsyncLoadingCache;
+import com.github.benmanes.caffeine.cache.CacheLoader;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 
@@ -64,16 +66,50 @@ public class CaffeineCache<K, V> implements Cache<K, V> {
      * Creates a new instance.
      *
      * @param caffeine a (pre-configured) caffeine instance.
+     * @param asyncLoader the algorithm used for loading values asynchronously.
+     * @param <K> the type of the key.
+     * @param <V> the type of the value.
+     * @return the created instance
+     */
+    public static <K, V> CaffeineCache<K, V> of(final Caffeine<?, ?> caffeine, final AsyncCacheLoader<K, V> asyncLoader) {
+        requireNonNull(caffeine);
+        requireNonNull(asyncLoader);
+
+        return new CaffeineCache<>(caffeine, asyncLoader, null);
+    }
+
+    /**
+     * Creates a new instance.
+     *
+     * @param caffeine a (pre-configured) caffeine instance.
      * @param loader the algorithm used for loading values.
      * @param <K> the type of the key.
      * @param <V> the type of the value.
      * @return the created instance
      */
-    public static <K, V> CaffeineCache<K, V> of(final Caffeine<?, ?> caffeine, final AsyncCacheLoader<K, V> loader) {
+    public static <K, V> CaffeineCache<K, V> of(final Caffeine<?, ?> caffeine, final CacheLoader<K, V> loader) {
         requireNonNull(caffeine);
         requireNonNull(loader);
 
         return new CaffeineCache<>(caffeine, loader, null);
+    }
+
+    /**
+     * Creates a new instance.
+     *
+     * @param caffeine a (pre-configured) caffeine instance.
+     * @param loader the algorithm used for loading values asynchronously.
+     * @param namedMetricRegistry a named {@link MetricRegistry} for cache statistics.
+     * @param <K> the type of the key.
+     * @param <V> the type of the value.
+     * @return the created instance
+     */
+    public static <K, V> CaffeineCache<K, V> of(final Caffeine<?, ?> caffeine, final AsyncCacheLoader<K, V> loader,
+            @Nullable final Map.Entry<String, MetricRegistry> namedMetricRegistry) {
+        requireNonNull(caffeine);
+        requireNonNull(loader);
+
+        return new CaffeineCache<>(caffeine, loader, namedMetricRegistry);
     }
 
     /**
@@ -86,11 +122,10 @@ public class CaffeineCache<K, V> implements Cache<K, V> {
      * @param <V> the type of the value.
      * @return the created instance
      */
-    public static <K, V> CaffeineCache<K, V> of(final Caffeine<?, ?> caffeine, final AsyncCacheLoader<K, V> loader,
-            final Map.Entry<String, MetricRegistry> namedMetricRegistry) {
+    public static <K, V> CaffeineCache<K, V> of(final Caffeine<?, ?> caffeine, final CacheLoader<K, V> loader,
+            @Nullable final Map.Entry<String, MetricRegistry> namedMetricRegistry) {
         requireNonNull(caffeine);
         requireNonNull(loader);
-        requireNonNull(namedMetricRegistry);
 
         return new CaffeineCache<>(caffeine, loader, namedMetricRegistry);
     }
@@ -123,4 +158,8 @@ public class CaffeineCache<K, V> implements Cache<K, V> {
         }
     }
 
+    @Override
+    public ConcurrentMap<K, V> asMap() {
+        return synchronousCacheView.asMap();
+    }
 }

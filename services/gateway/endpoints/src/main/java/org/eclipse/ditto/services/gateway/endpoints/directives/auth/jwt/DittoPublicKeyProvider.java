@@ -29,6 +29,9 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonMissingFieldException;
@@ -36,18 +39,20 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
-import org.eclipse.ditto.services.gateway.security.cache.PublicKeyCache;
 import org.eclipse.ditto.services.gateway.security.cache.PublicKeyIdWithIssuer;
 import org.eclipse.ditto.services.gateway.security.jwt.ImmutableJsonWebKey;
 import org.eclipse.ditto.services.gateway.security.jwt.JsonWebKey;
 import org.eclipse.ditto.services.gateway.starter.service.util.HttpClientFacade;
 import org.eclipse.ditto.services.utils.cache.Cache;
+import org.eclipse.ditto.services.utils.cache.CaffeineCache;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayJwtIssuerNotSupportedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.MetricRegistry;
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.RemovalListener;
 
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.HttpResponse;
@@ -75,9 +80,16 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
 
         this.jwtSubjectIssuersConfig = argumentNotNull(jwtSubjectIssuersConfig);
         this.httpClient = argumentNotNull(httpClient);
+        argumentNotNull(expiry);
+        argumentNotNull(namedMetricRegistry);
+
         final AsyncCacheLoader<PublicKeyIdWithIssuer, PublicKey> loader = this::loadPublicKey;
-        this.publicKeyCache = PublicKeyCache.newInstance(maxCacheEntries, argumentNotNull(expiry), loader,
-                argumentNotNull(namedMetricRegistry));
+
+        final Caffeine<PublicKeyIdWithIssuer, PublicKey> caffeine = Caffeine.newBuilder()
+                .maximumSize(maxCacheEntries)
+                .expireAfterWrite(expiry.getSeconds(), TimeUnit.SECONDS)
+                .removalListener(new CacheRemovalListener());
+        this.publicKeyCache = CaffeineCache.of(caffeine, loader, namedMetricRegistry);
     }
 
     /**
@@ -183,4 +195,13 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
         return null;
     }
 
+    private static final class CacheRemovalListener implements RemovalListener<PublicKeyIdWithIssuer, PublicKey> {
+
+        @Override
+        public void onRemoval(@Nullable final PublicKeyIdWithIssuer key, @Nullable final PublicKey value,
+                @Nonnull final com.github.benmanes.caffeine.cache.RemovalCause cause) {
+            final String msgTemplate = "Removed PublicKey with ID <{}> from cache due to cause '{}'.";
+            LOGGER.debug(msgTemplate, key, cause);
+        }
+    }
 }
