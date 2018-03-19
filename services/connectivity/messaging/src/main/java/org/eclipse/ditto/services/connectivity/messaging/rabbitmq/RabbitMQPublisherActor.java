@@ -11,11 +11,9 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.rabbitmq;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
-
 import java.nio.ByteBuffer;
 import java.util.Map;
-import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
@@ -24,13 +22,13 @@ import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMappers;
+import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
 import com.newmotion.akka.rabbitmq.ChannelCreated;
 import com.newmotion.akka.rabbitmq.ChannelMessage;
 import com.rabbitmq.client.AMQP;
 
-import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
@@ -64,24 +62,21 @@ import akka.japi.pf.ReceiveBuilder;
  *         {@code replyKeyFromHeader}. Note: This means the {@code replyTo} header takes precedence over the configured routing key.</li>
  * </ul>
  */
-public final class RabbitMQPublisherActor extends AbstractActor {
+public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTarget> {
 
     /**
      * The name prefix of this Actor in the ActorSystem.
      */
     static final String ACTOR_NAME_PREFIX = "rmqPublisherActor-";
-
     private static final String DEFAULT_EXCHANGE = "";
-    private static final String DEFAULT_EVENT_ROUTING_KEY = "thingEvent";
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
-    private final Connection connection;
+
     @Nullable private ActorRef channelActor;
 
     private RabbitMQPublisherActor(final Connection connection) {
-        this.connection = checkNotNull(connection, "connection");
+        super(connection);
     }
-
 
     /**
      * Creates Akka configuration object {@link Props} for this {@code RabbitMQPublisherActor}.
@@ -104,35 +99,25 @@ public final class RabbitMQPublisherActor extends AbstractActor {
     public Receive createReceive() {
         return ReceiveBuilder.create()
                 .match(ChannelCreated.class, channelCreated -> this.channelActor = channelCreated.channel())
-                .match(ExternalMessage.class, this::isResponseOrError, response -> {
+                .match(ExternalMessage.class, this::isResponseOrError, message -> {
                     final String correlationId =
-                            response.getHeaders().get(DittoHeaderDefinition.CORRELATION_ID.getKey());
+                            message.getHeaders().get(DittoHeaderDefinition.CORRELATION_ID.getKey());
                     LogUtil.enhanceLogWithCorrelationId(log, correlationId);
-                    log.debug("Received response {} ", response);
-                    final String exchange =
-                            connection.getReplyTarget().flatMap(this::getExchangeFromTarget).orElse(DEFAULT_EXCHANGE);
-                    final Optional<String> routingKeyFromTarget =
-                            connection.getReplyTarget().flatMap(this::getRoutingKeyFromTarget);
-                    final Optional<String> routingKeyFromHeader =
-                            Optional.ofNullable(response.getHeaders().get(ExternalMessage.REPLY_TO_HEADER));
-                    final String routingKey = routingKeyFromHeader.orElse(routingKeyFromTarget.orElse(null));
-                    if (routingKey != null) {
-                        publishMessage(exchange, routingKey, response);
-                    } else {
-                        log.info("Dropping response, no routingKey defined via config or replyTo header.");
-                    }
-                })
-                .match(ExternalMessage.class, ExternalMessage::isEvent, event -> {
-                    final String correlationId = event.getHeaders().get(DittoHeaderDefinition.CORRELATION_ID.getKey());
-                    LogUtil.enhanceLogWithCorrelationId(log, correlationId);
-                    log.info("Received event {} ", event);
+                    log.debug("Received mapped message {} ", message);
 
-                    if (connection.getEventTarget().isPresent()) {
-                        final String exchange = connection.getEventTarget().get();
-                        publishMessage(exchange, DEFAULT_EVENT_ROUTING_KEY, event);
-                    } else {
-                        log.info("Dropping event, no target exchange configured.");
-                    }
+                    final String replyTo = message.getHeaders().get(ExternalMessage.REPLY_TO_HEADER);
+                    final RabbitMQTarget replyTarget = RabbitMQTarget.of(DEFAULT_EXCHANGE, replyTo);
+                    publishMessage(replyTarget, message);
+                })
+                .match(ExternalMessage.class, message -> {
+                    final String correlationId =
+                            message.getHeaders().get(DittoHeaderDefinition.CORRELATION_ID.getKey());
+                    LogUtil.enhanceLogWithCorrelationId(log, correlationId);
+                    log.debug("Received mapped message {} ", message);
+
+                    final Set<RabbitMQTarget> destinationForMessage = getDestinationForMessage(message);
+                    log.debug("Publishing message to {} to targets {}", message, destinationForMessage);
+                    destinationForMessage.forEach(destination -> publishMessage(destination, message));
                 })
                 .matchAny(m -> {
                     log.debug("Unknown message: {}", m);
@@ -140,41 +125,20 @@ public final class RabbitMQPublisherActor extends AbstractActor {
                 }).build();
     }
 
-    /**
-     * For RabbitMQ connections the target can have the following format: [exchange]/[routingKey].
-     *
-     * @param target the configured target
-     * @return the exchange part of the target, {@link Optional#EMPTY} otherwise.
-     */
-    private Optional<String> getExchangeFromTarget(final String target) {
-        return Optional.of(target.split("/"))
-                .filter(segments -> segments.length > 0)
-                .map(segments -> segments[0])
-                .filter(exchange -> !exchange.isEmpty());
+    @Override
+    protected RabbitMQTarget toPublishTarget(final String target) {
+        return RabbitMQTarget.fromTarget(target);
     }
 
-    /**
-     * For RabbitMQ connections the target can have the following format: [exchange]/[routingKey].
-     *
-     * @param target the configured target
-     * @return the optional routing key part
-     */
-    private Optional<String> getRoutingKeyFromTarget(final String target) {
-        return Optional.of(target.split("/"))
-                .filter(segments -> segments.length == 2)
-                .map(segments -> segments[1])
-                .filter(routingKey -> !routingKey.isEmpty());
-    }
-
-    private boolean isResponseOrError(final ExternalMessage message) {
-        return message.isCommandResponse() || message.isError();
-    }
-
-    private void publishMessage(final String exchange, final String routingKey, final ExternalMessage message) {
-
+    private void publishMessage(final RabbitMQTarget rabbitMQTarget, final ExternalMessage message) {
         if (channelActor == null) {
             log.info("No channel available, dropping response.");
             return;
+        }
+
+        if (rabbitMQTarget.getRoutingKey() == null) {
+            log.debug("No routing key, dropping message.");
+
         }
 
         final String contentType = message.getHeaders().get(ExternalMessage.CONTENT_TYPE_HEADER);
@@ -202,7 +166,8 @@ public final class RabbitMQPublisherActor extends AbstractActor {
 
         final ChannelMessage channelMessage = ChannelMessage.apply(channel -> {
             try {
-                channel.basicPublish(exchange, routingKey, basicProperties, body);
+                channel.basicPublish(rabbitMQTarget.getExchange(), rabbitMQTarget.getRoutingKey(), basicProperties,
+                        body);
             } catch (final Exception e) {
                 log.info("Failed to publish message to RabbitMQ: {}", e.getMessage());
             }

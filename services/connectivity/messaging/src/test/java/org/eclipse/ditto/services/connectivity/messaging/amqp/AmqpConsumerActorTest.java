@@ -26,11 +26,11 @@ import org.apache.qpid.jms.message.JmsMessage;
 import org.apache.qpid.jms.provider.amqp.message.AmqpJmsTextMessageFacade;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ExternalMessage;
 import org.eclipse.ditto.model.connectivity.MappingContext;
-import org.eclipse.ditto.model.base.auth.AuthorizationContext;
-import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMappers;
 import org.eclipse.ditto.services.connectivity.messaging.MessageMappingProcessorActor;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -185,7 +185,8 @@ public class AmqpConsumerActorTest {
     public void createWithDefaultMapperOnly() throws IdConversionException {
         new TestKit(actorSystem) {{
             ActorRef underTest = setupActor(getTestActor(), new ArrayList<>());
-            ExternalMessage in = ConnectivityModelFactory.newExternalMessageBuilderForCommand(Collections.emptyMap()).withText("").build();
+            ExternalMessage in =
+                    ConnectivityModelFactory.newExternalMessageBuilder(Collections.emptyMap()).withText("").build();
             underTest.tell(in, null);
         }};
     }

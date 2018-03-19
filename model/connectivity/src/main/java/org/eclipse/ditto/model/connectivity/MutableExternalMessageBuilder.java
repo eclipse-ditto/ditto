@@ -25,7 +25,7 @@ final class MutableExternalMessageBuilder implements ExternalMessageBuilder {
 
     private final Map<String, String> headers;
     @Nullable
-    private final ExternalMessage.MessageType messageType;
+    private final String topicPath;
     private ExternalMessage.PayloadType payloadType = ExternalMessage.PayloadType.UNKNOWN;
     @Nullable
     private String textPayload;
@@ -41,7 +41,7 @@ final class MutableExternalMessageBuilder implements ExternalMessageBuilder {
         this.headers = new HashMap<>(message.getHeaders());
         this.bytePayload = message.getBytePayload().orElse(null);
         this.textPayload = message.getTextPayload().orElse(null);
-        this.messageType = message.getMessageType().orElse(null);
+        this.topicPath = message.getTopicPath().orElse(null);
         this.payloadType = message.getPayloadType();
     }
 
@@ -58,12 +58,12 @@ final class MutableExternalMessageBuilder implements ExternalMessageBuilder {
      * Constructs a new MutableExternalMessageBuilder initialized with the passed {@code headers} and {@code messageType}.
      *
      * @param headers the headers to use for initialization.
-     * @param messageType the messageType to use for initialization.
+     * @param topicPath the topicPath to use for initialization.
      */
     MutableExternalMessageBuilder(final Map<String, String> headers,
-            @Nullable final ExternalMessage.MessageType messageType) {
+            @Nullable final String topicPath) {
         this.headers = new HashMap<>(headers);
-        this.messageType = messageType;
+        this.topicPath = topicPath;
     }
 
     @Override
@@ -105,7 +105,7 @@ final class MutableExternalMessageBuilder implements ExternalMessageBuilder {
 
     @Override
     public ExternalMessage build() {
-        return new ImmutableExternalMessage(headers, messageType, payloadType, textPayload, bytePayload);
+        return new ImmutableExternalMessage(headers, topicPath, payloadType, textPayload, bytePayload);
     }
 
 }

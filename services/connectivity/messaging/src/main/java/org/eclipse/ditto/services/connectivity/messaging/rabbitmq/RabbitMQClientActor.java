@@ -21,13 +21,13 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor;
 import org.eclipse.ditto.services.models.connectivity.ConnectivityMessagingConstants;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.ConnectivityModifyCommand;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CreateConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.DeleteConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
-import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 import com.newmotion.akka.rabbitmq.ChannelActor;
 import com.newmotion.akka.rabbitmq.ChannelCreated;
@@ -57,6 +57,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
     private static final String RMQ_PUBLISHER_PREFIX = "rmq-publisher-";
     private static final String CONSUMER_CHANNEL = "consumer-channel";
     private static final String PUBLISHER_CHANNEL = "publisher-channel";
+    private static final String CONSUMER_ACTOR_PREFIX = "consumer-";
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
@@ -95,14 +96,14 @@ public final class RabbitMQClientActor extends BaseClientActor {
                 .match(CloseConnection.class, this::handleDisconnect)
                 .match(DeleteConnection.class, this::handleDisconnect)
                 .match(ChannelCreated.class, this::handleChannelCreated)
-                .match(ThingEvent.class, this::handleThingEvent)
+                .match(Signal.class, this::handleSignal)
                 .build()
                 .orElse(initHandling);
     }
 
-    private void handleThingEvent(final ThingEvent<?> thingEvent) {
+    private void handleSignal(final Signal<?> signal) {
         if (messageMappingProcessor != null) {
-            messageMappingProcessor.tell(thingEvent, getSelf());
+            messageMappingProcessor.tell(signal, getSelf());
         }
     }
 
@@ -159,7 +160,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
     private void openConnection() {
         if (rmqConnectionActor != null) {
             // create a consumer channel - if source is configured
-            if (isConsumingCommands()) {
+            if (isConsuming()) {
                 rmqConnectionActor.tell(
                         CreateChannel.apply(
                                 ChannelActor.props((channel, s) -> null),
@@ -194,7 +195,11 @@ public final class RabbitMQClientActor extends BaseClientActor {
     }
 
     private void stopCommandConsumers() {
-        getSourcesOrEmptySet().forEach(source -> stopChildActor("consumer-" + source));
+        getContext().getChildren().forEach(child -> {
+            if (child.path().name().startsWith(CONSUMER_ACTOR_PREFIX)) {
+                getContext().stop(child);
+            }
+        });
     }
 
     private void startCommandConsumers() {
@@ -227,32 +232,36 @@ public final class RabbitMQClientActor extends BaseClientActor {
     }
 
     private void startConsumers(final Channel channel) {
-        getSourcesOrEmptySet().forEach(source -> {
-            final ActorRef commandConsumer =
-                    startChildActor("consumer-" + source, RabbitMQConsumerActor.props(messageMappingProcessor));
-            try {
-                final String consumerTag =
-                        channel.basicConsume(source, false,
+        getSourcesOrEmptySet().forEach(consumer -> {
+            consumer.getSources().forEach(source -> {
+                for (int i = 0; i < consumer.getConsumerCount(); i++) {
+                    final ActorRef commandConsumer = startChildActor(CONSUMER_ACTOR_PREFIX + source + "-" + i,
+                            RabbitMQConsumerActor.props(messageMappingProcessor));
+                    try {
+                        final String consumerTag = channel.basicConsume(source, false,
                                 new RabbitMQMessageConsumer(commandConsumer, channel));
-                log.debug("Consuming queue {}, consumer tag is {}", source, consumerTag);
-            } catch (final IOException e) {
-                log.warning("Failed to consume queue '{}': {}", source, e.getMessage());
-            }
+                        log.debug("Consuming queue {}, consumer tag is {}", consumer, consumerTag);
+                    } catch (final IOException e) {
+                        log.warning("Failed to consume queue '{}': {}", consumer, e.getMessage());
+                    }
+                }
+            });
         });
     }
 
     private void ensureQueuesExist(final Channel channel) {
         final List<String> missingQueues = new ArrayList<>();
-        getSourcesOrEmptySet().forEach(source -> {
-            try {
-                channel.queueDeclarePassive(source);
-            } catch (final IOException e) {
-                missingQueues.add(source);
-                log.warning("The queue '{}' does not exist.", source);
-            }
+        getSourcesOrEmptySet().forEach(consumer -> {
+            consumer.getSources().forEach(source -> {
+                try {
+                    channel.queueDeclarePassive(source);
+                } catch (final IOException e) {
+                    missingQueues.add(source);
+                }
+            });
         });
         if (!missingQueues.isEmpty()) {
-            log.error("STOPPING RMQ client actor for connection <{}> as queues to connect to are missing: <{}>",
+            log.error("Stopping RMQ client actor for connection <{}> as queues to connect to are missing: <{}>",
                     connectionId, missingQueues);
             throw ConnectionFailedException.newBuilder(connectionId)
                     .description("The queues " + missingQueues + " to connect to are missing.")

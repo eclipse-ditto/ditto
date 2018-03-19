@@ -16,16 +16,19 @@ import static org.eclipse.ditto.services.connectivity.messaging.MockConnectionAc
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
-import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
-import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectionType;
+import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
+import org.eclipse.ditto.model.connectivity.Source;
+import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
@@ -50,8 +53,11 @@ public class TestConstants {
     public static final String SUBJECT_ID = "mySolutionId:mySubject";
     private static final AuthorizationContext AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(
             AuthorizationSubject.newInstance(SUBJECT_ID));
-    private static final Set<String> SOURCES = new HashSet<>(Arrays.asList("amqp/source1", "amqp/source2"));
-    private static final String TARGET = "eventQueue";
+    private static final Set<Source> SOURCES = new HashSet<>(
+            Arrays.asList(ConnectivityModelFactory.newSource(2, "amqp/source1"),
+                    ConnectivityModelFactory.newSource(2, "amqp/source2")));
+    private static final Set<Target> TARGETS = new HashSet<>(
+            Collections.singletonList(ConnectivityModelFactory.newTarget("eventQueue", "_/_/things/twin/events")));
     public static final Config CONFIG = ConfigFactory.load("test");
     public static final String THING_ID = "ditto:thing";
     private static final Thing THING = Thing.newBuilder().setId(THING_ID).build();
@@ -64,7 +70,7 @@ public class TestConstants {
     public static Connection createConnection(final String connectionId) {
         return ConnectivityModelFactory.newConnectionBuilder(connectionId, TYPE, URI, AUTHORIZATION_CONTEXT)
                 .sources(SOURCES)
-                .eventTarget(TARGET)
+                .targets(TARGETS)
                 .build();
     }
 

@@ -23,6 +23,7 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
@@ -48,8 +49,23 @@ public final class ImmutableConnectionTest {
     private static final AuthorizationContext AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(
             AuthorizationSubject.newInstance("mySolutionId:mySubject"));
 
-    private static final Set<String> SOURCES = new HashSet<>(Arrays.asList("amqp/source1", "amqp/source2"));
-    private static final String TARGET = "eventQueue";
+    private static final Source SOURCE1 = ImmutableSource.of("amqp/source1");
+    private static final Source SOURCE2 = ImmutableSource.of("amqp/source2");
+    private static final Set<Source> SOURCES = new HashSet<>(Arrays.asList(SOURCE1, SOURCE2));
+    private static final Target TARGET1 =
+            ImmutableTarget.of("amqp/target1", "_/_/things/twin/events", "_/_/things/live/events");
+    private static final Target TARGET2 =
+            ImmutableTarget.of("amqp/target2", "_/_/things/live/messages", "_/_/things/live/messages",
+                    "_/_/things/live/events");
+    private static final Target TARGET3 =
+            ImmutableTarget.of("amqp/target3", "_/_/things/live/messages", "_/_/things/live/messages",
+                    "_/_/things/live/commands");
+    private static final Set<Target> TARGETS = new HashSet<>(Arrays.asList(TARGET1, TARGET2, TARGET3));
+
+    private static final JsonArray KNOWN_SOURCES_JSON =
+            SOURCES.stream().map(Source::toJson).collect(JsonCollectors.valuesToArray());
+    private static final JsonArray KNOWN_TARGETS_JSON =
+            TARGETS.stream().map(Target::toJson).collect(JsonCollectors.valuesToArray());
 
     private static final JsonObject KNOWN_JSON = JsonObject.newBuilder()
             .set(Connection.JsonFields.ID, ID)
@@ -59,14 +75,11 @@ public final class ImmutableConnectionTest {
                     .map(AuthorizationSubject::getId)
                     .map(JsonFactory::newValue)
                     .collect(JsonCollectors.valuesToArray()))
-            .set(Connection.JsonFields.SOURCES, SOURCES.stream()
-                    .map(JsonFactory::newValue)
-                    .collect(JsonCollectors.valuesToArray()))
-            .set(Connection.JsonFields.EVENT_TARGET, TARGET)
+            .set(Connection.JsonFields.CONSUME, KNOWN_SOURCES_JSON)
+            .set(Connection.JsonFields.PUBLISH, KNOWN_TARGETS_JSON)
             .set(Connection.JsonFields.FAILOVER_ENABLED, true)
             .set(Connection.JsonFields.VALIDATE_CERTIFICATES, true)
             .set(Connection.JsonFields.THROTTLE, -1)
-            .set(Connection.JsonFields.CONSUMER_COUNT, 1)
             .set(Connection.JsonFields.PROCESSOR_POOL_SIZE, 5)
             .build();
 
@@ -80,7 +93,7 @@ public final class ImmutableConnectionTest {
     @Test
     public void assertImmutability() {
         assertInstancesOf(ImmutableConnection.class, areImmutable(),
-                provided(AuthorizationContext.class).isAlsoImmutable());
+                provided(AuthorizationContext.class, Source.class, Target.class).isAlsoImmutable());
     }
 
     @Test
@@ -88,12 +101,14 @@ public final class ImmutableConnectionTest {
         final Connection connection = ConnectivityModelFactory
                 .newConnectionBuilder(ID, TYPE, URI, AUTHORIZATION_CONTEXT)
                 .sources(SOURCES)
+                .targets(TARGETS)
                 .build();
+
         assertThat(connection.getId()).isEqualTo(ID);
         assertThat((Object) connection.getConnectionType()).isEqualTo(TYPE);
         assertThat(connection.getUri()).isEqualTo(URI);
         assertThat(connection.getAuthorizationContext()).isEqualTo(AUTHORIZATION_CONTEXT);
-        assertThat(connection.getSources()).contains(SOURCES);
+        assertThat(connection.getSources()).isEqualTo(SOURCES);
     }
 
     @Test
@@ -134,17 +149,8 @@ public final class ImmutableConnectionTest {
     public void createInstanceWithNullEventTarget() {
         assertThatExceptionOfType(NullPointerException.class)
                 .isThrownBy(
-                        () -> ImmutableConnectionBuilder.of(ID, TYPE, URI, AUTHORIZATION_CONTEXT).eventTarget(null))
-                .withMessage("The %s must not be null!", "eventTarget")
-                .withNoCause();
-    }
-
-    @Test
-    public void createInstanceWithNullReplyTarget() {
-        assertThatExceptionOfType(NullPointerException.class)
-                .isThrownBy(
-                        () -> ImmutableConnectionBuilder.of(ID, TYPE, URI, AUTHORIZATION_CONTEXT).replyTarget(null))
-                .withMessage("The %s must not be null!", "replyTarget")
+                        () -> ImmutableConnectionBuilder.of(ID, TYPE, URI, AUTHORIZATION_CONTEXT).targets(null))
+                .withMessage("The %s must not be null!", "Targets")
                 .withNoCause();
     }
 
@@ -154,7 +160,7 @@ public final class ImmutableConnectionTest {
                 .isThrownBy(
                         () -> ImmutableConnectionBuilder.of(ID, TYPE, URI, AUTHORIZATION_CONTEXT).build())
                 .withMessageContaining("source")
-                .withMessageContaining("eventTarget")
+                .withMessageContaining("target")
                 .withNoCause();
     }
 
@@ -163,7 +169,7 @@ public final class ImmutableConnectionTest {
         final Connection expected =
                 ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, URI, AUTHORIZATION_CONTEXT)
                         .sources(SOURCES)
-                        .eventTarget(TARGET)
+                        .targets(TARGETS)
                         .build();
 
         final Connection actual = ImmutableConnection.fromJson(KNOWN_JSON);
@@ -173,14 +179,14 @@ public final class ImmutableConnectionTest {
 
     @Test
     public void fromInvalidJsonFails() {
-        final JsonObject INVALID_JSON = KNOWN_JSON.remove(Connection.JsonFields.SOURCES.getPointer())
-                .remove(Connection.JsonFields.EVENT_TARGET.getPointer());
+        final JsonObject INVALID_JSON = KNOWN_JSON.remove(Connection.JsonFields.CONSUME.getPointer())
+                .remove(Connection.JsonFields.PUBLISH.getPointer());
 
         assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
                 .isThrownBy(
                         () -> ImmutableConnection.fromJson(INVALID_JSON))
                 .withMessageContaining("source")
-                .withMessageContaining("eventTarget")
+                .withMessageContaining("target")
                 .withNoCause();
     }
 
@@ -189,7 +195,7 @@ public final class ImmutableConnectionTest {
         final JsonObject actual =
                 ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, URI, AUTHORIZATION_CONTEXT)
                         .sources(SOURCES)
-                        .eventTarget(TARGET)
+                        .targets(TARGETS)
                         .build()
                         .toJson();
 

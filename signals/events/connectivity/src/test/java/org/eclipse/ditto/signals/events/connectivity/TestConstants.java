@@ -12,6 +12,7 @@
 package org.eclipse.ditto.signals.events.connectivity;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -23,6 +24,8 @@ import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
+import org.eclipse.ditto.model.connectivity.Source;
+import org.eclipse.ditto.model.connectivity.Target;
 
 /**
  * Constants for testing.
@@ -38,15 +41,17 @@ public final class TestConstants {
     public static AuthorizationContext AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(
             AuthorizationSubject.newInstance("mySolutionId:mySubject"));
 
-    public static Set<String> SOURCES = new HashSet<>(Arrays.asList("amqp/source1", "amqp/source2"));
+    public static final Set<Source> SOURCES = new HashSet<>(
+            Arrays.asList(ConnectivityModelFactory.newSource(2, "amqp/source1"),
+                    ConnectivityModelFactory.newSource(2, "amqp/source2")));
 
-    public static String TARGET = "eventQueue";
-
+    public static final Set<Target> TARGETS = new HashSet<>(
+            Collections.singletonList(ConnectivityModelFactory.newTarget("eventQueue", "_/_/things/twin/events")));
     public static Connection CONNECTION =
 
             ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, URI, AUTHORIZATION_CONTEXT)
                     .sources(SOURCES)
-                    .eventTarget(TARGET)
+                    .targets(TARGETS)
                     .build();
 
     public static Map<String, ConnectionStatus> CONNECTION_STATUSES;

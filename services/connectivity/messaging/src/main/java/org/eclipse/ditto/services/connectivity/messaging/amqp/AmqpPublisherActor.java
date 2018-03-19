@@ -18,6 +18,7 @@ import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import javax.annotation.Nullable;
 import javax.jms.BytesMessage;
@@ -27,13 +28,12 @@ import javax.jms.Message;
 import javax.jms.MessageProducer;
 import javax.jms.Session;
 
-import org.apache.qpid.jms.JmsQueue;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ExternalMessage;
-import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
-import akka.actor.AbstractActor;
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
@@ -42,7 +42,7 @@ import akka.japi.pf.ReceiveBuilder;
 /**
  * Responsible for creating JMS {@link MessageProducer}s and sending {@link ExternalMessage}s as JMSMessages to those.
  */
-public final class AmqpPublisherActor extends AbstractActor {
+public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
 
     /**
      * The name prefix of this Actor in the ActorSystem.
@@ -52,12 +52,11 @@ public final class AmqpPublisherActor extends AbstractActor {
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
     private final Session session;
-    private final Connection connection;
-    private final Map<String, MessageProducer> producerMap;
+    private final Map<Destination, MessageProducer> producerMap;
 
     private AmqpPublisherActor(@Nullable final Session session, @Nullable final Connection connection) {
+        super(connection);
         this.session = checkNotNull(session, "session");
-        this.connection = checkNotNull(connection, "connection");
         this.producerMap = new HashMap<>();
     }
 
@@ -81,25 +80,26 @@ public final class AmqpPublisherActor extends AbstractActor {
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
-                .match(ExternalMessage.class, ExternalMessage::isCommandResponse, response -> {
+                .match(ExternalMessage.class, this::isResponseOrError, response -> {
                     final String correlationId = response.getHeaders().get(CORRELATION_ID.getKey());
                     LogUtil.enhanceLogWithCorrelationId(log, correlationId);
-                    log.debug("Received command response {} ", response);
+                    log.debug("Received response or error {} ", response);
+
                     final String replyToFromHeader = response.getHeaders().get(ExternalMessage.REPLY_TO_HEADER);
-                    final String replyToFromConfig = connection.getReplyTarget().orElse(null);
                     if (replyToFromHeader != null) {
-                        sendMessage(replyToFromHeader, response);
-                    } else if (replyToFromConfig != null) {
-                        sendMessage(replyToFromConfig, response);
+                        final AmqpTarget amqpTarget = AmqpTarget.fromTarget(replyToFromHeader);
+                        sendMessage(amqpTarget, response);
                     } else {
                         log.debug("Response dropped, missing replyTo address.");
                     }
                 })
-                .match(ExternalMessage.class, ExternalMessage::isEvent, event -> {
-                    final String correlationId = event.getHeaders().get(CORRELATION_ID.getKey());
+                .match(ExternalMessage.class, message -> {
+                    final String correlationId = message.getHeaders().get(CORRELATION_ID.getKey());
                     LogUtil.enhanceLogWithCorrelationId(log, correlationId);
-                    log.debug("Received thing event {} ", event);
-                    connection.getEventTarget().ifPresent(target -> sendMessage(target, event));
+                    log.debug("Received mapped message {} ", message);
+
+                    final Set<AmqpTarget> destinationForMessage = getDestinationForMessage(message);
+                    destinationForMessage.forEach(amqpTarget -> sendMessage(amqpTarget, message));
                 })
                 .matchAny(m -> {
                     log.debug("Unknown message: {}", m);
@@ -107,12 +107,19 @@ public final class AmqpPublisherActor extends AbstractActor {
                 }).build();
     }
 
-    private void sendMessage(final String target, final ExternalMessage message) {
+    @Override
+    protected AmqpTarget toPublishTarget(final String target) {
+        return AmqpTarget.fromTarget(target);
+    }
+
+    private void sendMessage(final AmqpTarget target, final ExternalMessage message) {
         try {
-            final MessageProducer producer = getProducer(target);
+            final MessageProducer producer = getProducer(target.getJmsDestination());
             if (producer != null) {
                 final Message jmsMessage = toJmsMessage(message);
                 producer.send(jmsMessage);
+            } else {
+                log.warning("No producer for destination {} available.", target);
             }
         } catch (final JMSException e) {
             log.info("Failed to send JMS response: {}", e.getMessage());
@@ -135,20 +142,19 @@ public final class AmqpPublisherActor extends AbstractActor {
     }
 
     @Nullable
-    private MessageProducer getProducer(final String target) {
-        return Optional.of(target)
-                .filter(s -> !s.isEmpty())
-                .map(t -> producerMap.computeIfAbsent(target, this::createMessageProducer)).orElse(null);
+    private MessageProducer getProducer(final Destination destination) {
+        return Optional.of(destination)
+                .map(t -> producerMap.computeIfAbsent(destination, this::createMessageProducer))
+                .orElse(null);
     }
 
     @Nullable
-    private MessageProducer createMessageProducer(final String target) {
-        final Destination destination = new JmsQueue(target);
-        log.debug("Creating AMQP Producer for '{}'", target);
+    private MessageProducer createMessageProducer(final Destination destination) {
+        log.debug("Creating AMQP Producer for '{}'", destination);
         try {
             return session.createProducer(destination);
         } catch (final JMSException e) {
-            log.warning("Could not create producer for {}.", target);
+            log.warning("Could not create producer for {}.", destination);
             return null;
         }
     }

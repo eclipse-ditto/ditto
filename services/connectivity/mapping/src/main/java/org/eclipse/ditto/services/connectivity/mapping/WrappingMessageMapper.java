@@ -19,12 +19,12 @@ import java.util.Optional;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ExternalMessage;
 import org.eclipse.ditto.model.connectivity.ExternalMessageBuilder;
 import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 
@@ -118,10 +118,11 @@ final class WrappingMessageMapper implements MessageMapper {
             });
             messageBuilder.withAdditionalHeaders(ExternalMessage.CONTENT_TYPE_HEADER, getContentType());
 
+            // TODO add topicPath if not set??
+
             return messageBuilder.build();
         });
     }
-
 
     private void requireMatchingContentType(final String actualContentType) {
 

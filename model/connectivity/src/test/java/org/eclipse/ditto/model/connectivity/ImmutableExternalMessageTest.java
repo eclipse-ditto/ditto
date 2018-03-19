@@ -18,7 +18,6 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import java.nio.ByteBuffer;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -28,7 +27,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  */
 public final class ImmutableExternalMessageTest {
 
-
     @Test
     public void assertImmutability() {
         assertInstancesOf(ImmutableExternalMessage.class, areImmutable(),
@@ -36,14 +34,14 @@ public final class ImmutableExternalMessageTest {
                 provided(ByteBuffer.class).areAlsoImmutable());
     }
 
-
     @Test
-    @Ignore("Somehow EqualsVerifier has a problem with this class")
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(ImmutableExternalMessage.class)
+                .withPrefabValues(ByteBuffer.class,
+                        ByteBuffer.wrap("red" .getBytes()),
+                        ByteBuffer.wrap("black" .getBytes()))
                 .usingGetClass()
                 .verify();
     }
-
 
 }

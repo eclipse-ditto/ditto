@@ -203,8 +203,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     }
 
     private void startCommandConsumers(final Map<String, MessageConsumer> consumerMap) {
-        if (isConsumingCommands()) {
-
+        if (isConsuming()) {
             consumerMap.forEach(this::startCommandConsumer);
             log.info("Subscribed Connection '{}' to sources: {}", connectionId, consumerMap.keySet());
         } else {

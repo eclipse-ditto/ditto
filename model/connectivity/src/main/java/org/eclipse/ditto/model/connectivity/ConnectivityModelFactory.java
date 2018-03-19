@@ -12,6 +12,7 @@
 package org.eclipse.ditto.model.connectivity;
 
 import java.util.Map;
+import java.util.Set;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -80,36 +81,6 @@ public final class ConnectivityModelFactory {
     }
 
     /**
-     * Creates a new ExternalMessageBuilder for {@code COMMAND} messageType.
-     *
-     * @param headers the headers to initialize the builder with.
-     * @return the builder.
-     */
-    public static ExternalMessageBuilder newExternalMessageBuilderForCommand(final Map<String, String> headers) {
-        return newExternalMessageBuilder(headers, ExternalMessage.MessageType.COMMAND);
-    }
-
-    /**
-     * Creates a new ExternalMessageBuilder for {@code RESPONSE} messageType.
-     *
-     * @param headers the headers to initialize the builder with.
-     * @return the builder.
-     */
-    public static ExternalMessageBuilder newExternalMessageBuilderForResponse(final Map<String, String> headers) {
-        return newExternalMessageBuilder(headers, ExternalMessage.MessageType.RESPONSE);
-    }
-
-    /**
-     * Creates a new ExternalMessageBuilder for {@code EVENT} messageType.
-     *
-     * @param headers the headers to initialize the builder with.
-     * @return the builder.
-     */
-    public static ExternalMessageBuilder newExternalMessageBuilderForEvent(final Map<String, String> headers) {
-        return newExternalMessageBuilder(headers, ExternalMessage.MessageType.EVENT);
-    }
-
-    /**
      * Creates a new ExternalMessageBuilder initialized with the passed {@code headers}.
      *
      * @param headers the headers to initialize the builder with.
@@ -124,12 +95,12 @@ public final class ConnectivityModelFactory {
      * {@code headers}.
      *
      * @param headers the headers to initialize the builder with.
-     * @param messageType the MessageType to initialize the builder with.
+     * @param topicPath the topicPath to initialize the builder with.
      * @return the builder.
      */
     public static ExternalMessageBuilder newExternalMessageBuilder(final Map<String, String> headers,
-            final ExternalMessage.MessageType messageType) {
-        return new MutableExternalMessageBuilder(headers, messageType);
+            final String topicPath) {
+        return new MutableExternalMessageBuilder(headers, topicPath);
     }
 
     /**
@@ -140,6 +111,22 @@ public final class ConnectivityModelFactory {
      */
     public static ExternalMessageBuilder newExternalMessageBuilder(final ExternalMessage externalMessage) {
         return new MutableExternalMessageBuilder(externalMessage);
+    }
+
+    public static Source newSource(final Set<String> sources, final int consumerCount) {
+        return ImmutableSource.of(sources, consumerCount);
+    }
+
+    public static Source newSource(final int consumerCount, final String... sources) {
+        return ImmutableSource.of(consumerCount, sources);
+    }
+
+    public static Target newTarget(final String target, final Set<String> topics) {
+        return ImmutableTarget.of(target, topics);
+    }
+
+    public static Target newTarget(final String target, final String requiredTopic, final String... topics) {
+        return ImmutableTarget.of(target, requiredTopic, topics);
     }
 
 }

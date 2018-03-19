@@ -20,10 +20,11 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.MappingContext;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.services.connectivity.util.ConfigKeys;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CreateConnection;
@@ -55,14 +56,14 @@ import scala.concurrent.duration.Duration;
 public abstract class BaseClientActor extends AbstractActor {
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+    private final ActorRef connectionActor;
+    private final java.time.Duration initTimeout;
 
     protected final ActorRef pubSubMediator;
     protected final Receive initHandling;
     protected final String connectionId;
     protected final String pubSubTargetPath;
 
-    private final ActorRef connectionActor;
-    private final java.time.Duration initTimeout;
 
     @Nullable protected Connection connection;
     @Nullable protected List<MappingContext> mappingContexts;
@@ -181,21 +182,18 @@ public abstract class BaseClientActor extends AbstractActor {
         }
     }
 
-    protected boolean isConsumingCommands() {
-        return connection != null && connection.getSources().isPresent() &&
-                !connection.getSources().get().isEmpty();
+    protected boolean isConsuming() {
+        return connection != null && !connection.getSources().isEmpty();
     }
 
-    protected boolean isPublishingEvents() {
-        return connection != null && connection.getEventTarget().isPresent() &&
-                !connection.getEventTarget().get().isEmpty();
+    protected boolean isPublishing() {
+        return connection != null && !connection.getTargets().isEmpty();
     }
 
     /**
      * @return the sources configured for this connection or an empty set if no sources were configured.
      */
-    protected Set<String> getSourcesOrEmptySet() {
-        return connection != null ? connection.getSources().orElse(Collections.emptySet()) :
-                Collections.emptySet();
+    protected Set<Source> getSourcesOrEmptySet() {
+        return connection != null ? connection.getSources() : Collections.emptySet();
     }
 }

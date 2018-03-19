@@ -20,19 +20,23 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.MappingContext;
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionData;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionMongoSnapshotAdapter;
 import org.eclipse.ditto.services.connectivity.util.ConfigKeys;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
+import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionConflictException;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
@@ -49,12 +53,11 @@ import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnection;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionResponse;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatus;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatusResponse;
-import org.eclipse.ditto.signals.commands.base.Command;
+import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.connectivity.ConnectionClosed;
 import org.eclipse.ditto.signals.events.connectivity.ConnectionCreated;
 import org.eclipse.ditto.signals.events.connectivity.ConnectionDeleted;
 import org.eclipse.ditto.signals.events.connectivity.ConnectionOpened;
-import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 import com.typesafe.config.Config;
@@ -118,6 +121,7 @@ final class ConnectionActor extends AbstractPersistentActor {
     private boolean snapshotInProgress = false;
 
     @Nullable private String connectionStatusDetails;
+    private Set<String> uniqueTopicPaths;
 
     private ConnectionActor(final String connectionId, final ActorRef pubSubMediator,
             final ConnectionActorPropsFactory propsFactory) {
@@ -223,7 +227,7 @@ final class ConnectionActor extends AbstractPersistentActor {
                             final ActorRef origin = getSender();
                             askClientActor("recovery-connect", connect, origin,
                                     response -> log.info("CreateConnection result: {}", response));
-                            subscribeToThingEvents();
+                            subscribeForEvents();
                         }
                         getContext().become(connectionCreatedBehaviour);
                     }
@@ -267,7 +271,7 @@ final class ConnectionActor extends AbstractPersistentActor {
                 .match(DeleteConnection.class, this::deleteConnection)
                 .match(RetrieveConnection.class, this::retrieveConnection)
                 .match(RetrieveConnectionStatus.class, this::retrieveConnectionStatus)
-                .match(ThingEvent.class, this::handleThingEvent)
+                .match(Signal.class, this::handleSignal)
                 .match(DistributedPubSubMediator.SubscribeAck.class, this::handleSubscribeAck)
                 .match(DistributedPubSubMediator.UnsubscribeAck.class, this::handleUnsubscribeAck)
                 .match(SaveSnapshotSuccess.class, this::handleSnapshotSuccess)
@@ -279,7 +283,7 @@ final class ConnectionActor extends AbstractPersistentActor {
                 }).build();
     }
 
-    private void handleThingEvent(final ThingEvent<?> thingEvent) {
+    private void handleSignal(final Signal<?> signal) {
         if (clientActor == null) {
             log.debug("Cannot forward thing event, client actor not ready.");
             return;
@@ -288,19 +292,23 @@ final class ConnectionActor extends AbstractPersistentActor {
             log.debug("No Connection configuration available.");
             return;
         }
-        if (!connection.getEventTarget().isPresent()) {
-            log.debug("No event target configured, dropping all events.");
+        if (uniqueTopicPaths.isEmpty()) {
+            log.debug("Not forwarding anything.");
             return;
         }
 
-        final Set<String> authorizedReadSubjects = thingEvent.getDittoHeaders().getReadSubjects();
-        // forward to client actor router if the configured subject is allowed to read
-        final List<String> connectionSubjects =
-                connection.getAuthorizationContext().getAuthorizationSubjectIds();
-        if (!Collections.disjoint(authorizedReadSubjects, connectionSubjects)) {
-            log.debug("Forwarding thing event <{}> to client actor.", thingEvent.getType());
-            clientActor.tell(thingEvent, getSelf());
+        final String topicPath = TopicPathMapper.mapSignalToTopicPath(signal);
+        // forward to client actor if topic was subscribed and connection is authorized to read
+        if (uniqueTopicPaths.contains(topicPath) && isAuthorized(signal, connection.getAuthorizationContext())) {
+            log.debug("Forwarding signal <{}> to client actor.", signal.getType());
+            clientActor.tell(signal, getSelf());
         }
+    }
+
+    private boolean isAuthorized(final Signal<?> signal, final AuthorizationContext authorizationContext) {
+        final Set<String> authorizedReadSubjects = signal.getDittoHeaders().getReadSubjects();
+        final List<String> connectionSubjects = authorizationContext.getAuthorizationSubjectIds();
+        return !Collections.disjoint(authorizedReadSubjects, connectionSubjects);
     }
 
     private void createConnection(final CreateConnection command) {
@@ -317,7 +325,7 @@ final class ConnectionActor extends AbstractPersistentActor {
 
             askClientActor("connect", command, origin, response -> {
                 getContext().become(connectionCreatedBehaviour);
-                subscribeToThingEvents();
+                subscribeForEvents();
                 origin.tell(
                         CreateConnectionResponse.of(connection, mappingContexts, command.getDittoHeaders()),
                         getSelf());
@@ -336,7 +344,7 @@ final class ConnectionActor extends AbstractPersistentActor {
         persistEvent(connectionOpened, persistedEvent -> {
             connectionStatus = ConnectionStatus.OPEN;
             askClientActor("open-connection", command, origin, response -> {
-                subscribeToThingEvents();
+                subscribeForEvents();
                 origin.tell(OpenConnectionResponse.of(connectionId, command.getDittoHeaders()), getSelf());
             });
         });
@@ -353,7 +361,7 @@ final class ConnectionActor extends AbstractPersistentActor {
             askClientActor("disconnect", command, origin, response -> {
                 origin.tell(CloseConnectionResponse.of(connectionId, command.getDittoHeaders()),
                         getSelf());
-                unsubscribeFromThingEvents();
+                unsubscribeFromEvents();
                 connectionStatusDetails = "closed as requested by CloseConnection command";
             });
         });
@@ -369,7 +377,7 @@ final class ConnectionActor extends AbstractPersistentActor {
                 persistedEvent -> {
                     connectionStatus = ConnectionStatus.CLOSED;
                     askClientActor("disconnect", command, origin, response -> {
-                        unsubscribeFromThingEvents();
+                        unsubscribeFromEvents();
                         stopClientActor();
                         origin.tell(DeleteConnectionResponse.of(connectionId, command.getDittoHeaders()),
                                 getSelf());
@@ -382,7 +390,7 @@ final class ConnectionActor extends AbstractPersistentActor {
             final Consumer<Object> onSuccess) {
 
         startClientActorIfRequired();
-        long timeout = Optional.ofNullable(cmd.getDittoHeaders().get("timeout"))
+        final long timeout = Optional.ofNullable(cmd.getDittoHeaders().get("timeout"))
                 .map(Long::parseLong)
                 .orElse(DEFAULT_TIMEOUT_MS);
         // wrap in Broadcast message because these management messages must be delivered to each client actor
@@ -433,17 +441,28 @@ final class ConnectionActor extends AbstractPersistentActor {
                 command.getDittoHeaders()), getSelf());
     }
 
-    private void subscribeToThingEvents() {
+    private void subscribeForEvents() {
         checkNotNull(connection, "connection");
-        if (connection.getEventTarget().isPresent()) {
+        uniqueTopicPaths = connection.getTargets().stream()
+                .flatMap(target -> target.getTopics().stream())
+                .collect(Collectors.toSet());
+
+        final Set<String> pubSubTopics = uniqueTopicPaths.stream()
+                .map(TopicPathMapper::mapToPubSubTopic)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .collect(Collectors.toSet());
+
+        pubSubTopics.forEach(pubSubTopic -> {
             final DistributedPubSubMediator.Subscribe subscribe =
-                    new DistributedPubSubMediator.Subscribe(ThingEvent.TYPE_PREFIX, PUB_SUB_GROUP_PREFIX + connectionId,
+                    new DistributedPubSubMediator.Subscribe(pubSubTopic, PUB_SUB_GROUP_PREFIX + connectionId,
                             getSelf());
+            log.info("Subscribing to pubsub topic {} for connection {}.", pubSubTopic, connectionId);
             pubSubMediator.tell(subscribe, getSelf());
-        }
+        });
     }
 
-    private void unsubscribeFromThingEvents() {
+    private void unsubscribeFromEvents() {
         pubSubMediator.tell(
                 new DistributedPubSubMediator.Unsubscribe(ThingEvent.TYPE_PREFIX, PUB_SUB_GROUP_PREFIX + connectionId,
                         getSelf()), getSelf());
@@ -490,7 +509,7 @@ final class ConnectionActor extends AbstractPersistentActor {
         checkNotNull(connectionId, "connectionId");
         checkNotNull(connection, "connection");
         if (clientActor == null) {
-            final int consumerCount = connection.getConsumerCount();
+            final int consumerCount = 2; // TODO read consumer count from source connection.getConsumerCount();
             log.info("Starting ClientActor for connection <{}> with {} consumers.", connectionId, consumerCount);
             final Props props = propsFactory.getActorPropsForType(getSelf(), connection);
             final ClusterRouterPoolSettings clusterRouterPoolSettings =

@@ -43,14 +43,6 @@ public interface ConnectionBuilder {
     ConnectionBuilder throttle(int throttle);
 
     /**
-     * Set the consumer count for the {@link Connection}.
-     *
-     * @param consumerCount the number of consumers that will be started in the cluster (default {@code 1})
-     * @return this builder to allow method chaining.
-     */
-    ConnectionBuilder consumerCount(int consumerCount);
-
-    /**
      * Set the command processor pool size for the {@link Connection}.
      *
      * @param processorPoolSize number of command processor actors that will be used at max (default {@code 5})
@@ -58,13 +50,21 @@ public interface ConnectionBuilder {
      */
     ConnectionBuilder processorPoolSize(int processorPoolSize);
 
-    ConnectionBuilder sources(String... sources);
+    /**
+     * Adds additional sources to the connection.
+     *
+     * @param sources the sources that are added.
+     * @return this builder to allow method chaining.
+     */
+    ConnectionBuilder sources(Set<Source> sources);
 
-    ConnectionBuilder sources(Set<String> sources);
-
-    ConnectionBuilder eventTarget(String eventTarget);
-
-    ConnectionBuilder replyTarget(String replyTarget);
+    /**
+     * Adds additional targets to the connection.
+     *
+     * @param targets the targets that are added
+     * @return this builder to allow method chaining.
+     */
+    ConnectionBuilder targets(Set<Target> targets);
 
     /**
      * Builds a new {@link Connection}.

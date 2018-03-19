@@ -11,7 +11,6 @@
  */
 package org.eclipse.ditto.model.connectivity;
 
-import java.util.Optional;
 import java.util.Set;
 
 import javax.annotation.concurrent.Immutable;
@@ -55,21 +54,16 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
     AuthorizationContext getAuthorizationContext();
 
     /**
-     * Returns an optional of the sources of this {@code Connection}.
+     * Returns a set of the sources of this {@code Connection}.
      *
      * @return the sources
      */
-    Optional<Set<String>> getSources();
+    Set<Source> getSources();
 
     /**
-     * Returns an optional of target for thing events of this {@code Connection}.
+     * Returns a set of targets of this {@code Connection}.
      */
-    Optional<String> getEventTarget();
-
-    /**
-     * Returns an optional of target for thing command replies of this {@code Connection}.
-     */
-    Optional<String> getReplyTarget();
+    Set<Target> getTargets();
 
     /**
      * Returns whether or not failover is enabled for this {@code Connection}.
@@ -127,6 +121,7 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
      */
     String getPath();
 
+
     /**
      * Maximum number of messages per second processed by the bridge. 0 (default) means no limit.
      *
@@ -140,13 +135,6 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
      * @return {@code true} (default) if server certificates must be valid
      */
     boolean isValidateCertificates();
-
-    /**
-     * The number of consumers (connections) that will be opened to the remote server.
-     *
-     * @return number of connections that will be opened, default is {@code 1}
-     */
-    int getConsumerCount();
 
     /**
      * The size of the command processor pool i.e. how many processor actors.
@@ -212,26 +200,16 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
                         JsonSchemaVersion.V_2);
 
         /**
-         * JSON field containing the {@code Connection} sources.
+         * JSON field containing the {@code Connection} consume configuration.
          */
-        public static final JsonFieldDefinition<JsonArray> SOURCES =
-                JsonFactory.newJsonArrayFieldDefinition("sources", FieldType.REGULAR, JsonSchemaVersion.V_1,
+        public static final JsonFieldDefinition<JsonArray> CONSUME =
+                JsonFactory.newJsonArrayFieldDefinition("consume", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
-
         /**
-         * /**
-         * JSON field containing the {@code Connection} target.
+         * JSON field containing the {@code Connection} publish configuration.
          */
-        public static final JsonFieldDefinition<String> EVENT_TARGET =
-                JsonFactory.newStringFieldDefinition("eventTarget", FieldType.REGULAR, JsonSchemaVersion.V_1,
-                        JsonSchemaVersion.V_2);
-
-        /**
-         * /**
-         * JSON field containing the {@code Connection} sources.
-         */
-        public static final JsonFieldDefinition<String> REPLY_TARGET =
-                JsonFactory.newStringFieldDefinition("replyTarget", FieldType.REGULAR, JsonSchemaVersion.V_1,
+        public static final JsonFieldDefinition<JsonArray> PUBLISH =
+                JsonFactory.newJsonArrayFieldDefinition("publish", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
         /**
@@ -253,13 +231,6 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
          */
         public static final JsonFieldDefinition<Integer> THROTTLE =
                 JsonFactory.newIntFieldDefinition("throttle", FieldType.REGULAR, JsonSchemaVersion.V_1,
-                        JsonSchemaVersion.V_2);
-
-        /**
-         * JSON field containing the {@code Connection} consumer count.
-         */
-        public static final JsonFieldDefinition<Integer> CONSUMER_COUNT =
-                JsonFactory.newIntFieldDefinition("consumerCount", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
         /**

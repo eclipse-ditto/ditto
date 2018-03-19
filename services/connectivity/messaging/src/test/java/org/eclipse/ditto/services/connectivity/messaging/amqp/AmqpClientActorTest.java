@@ -35,10 +35,11 @@ import javax.jms.Session;
 import javax.jms.TextMessage;
 
 import org.apache.qpid.jms.JmsQueue;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
+import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CreateConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.DeleteConnection;
@@ -47,7 +48,6 @@ import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnection;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionResponse;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatus;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatusResponse;
-import org.eclipse.ditto.signals.commands.base.Command;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -241,7 +241,7 @@ public class AmqpClientActorTest {
             final ActorRef amqpClientActor = actorSystem.actorOf(props);
 
             amqpClientActor.tell(CreateConnection.of(connection, DittoHeaders.empty()), getRef());
-            expectMsg(new Status.Failure(JMS_EXCEPTION));
+            expectMsgClass(Status.Failure.class);
         }};
     }
 

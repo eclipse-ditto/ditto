@@ -14,11 +14,8 @@ package org.eclipse.ditto.model.connectivity;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkArgument;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
-
-import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 
@@ -31,13 +28,11 @@ class ImmutableConnectionBuilder implements ConnectionBuilder {
     final ConnectionType connectionType;
     final AuthorizationContext authorizationContext;
     final String uri;
-    @Nullable Set<String> sources;
-    @Nullable String eventTarget;
-    @Nullable String replyTarget;
     boolean failoverEnabled = true;
     boolean validateCertificate = true;
+    final Set<Source> sources = new HashSet<>();
+    final Set<Target> targets = new HashSet<>();
     int throttle = -1;
-    int consumerCount = 1;
     int processorPoolSize = 5;
 
     private ImmutableConnectionBuilder(final String id, final ConnectionType connectionType,
@@ -81,42 +76,22 @@ class ImmutableConnectionBuilder implements ConnectionBuilder {
     }
 
     @Override
-    public ConnectionBuilder consumerCount(final int consumerCount) {
-        this.consumerCount = checkArgument(consumerCount, c -> c > 0, () -> "consumerCount must be positive");
-        return this;
-    }
-
-    @Override
     public ConnectionBuilder processorPoolSize(final int processorPoolSize) {
         this.processorPoolSize = checkArgument(processorPoolSize, ps -> ps > 0, () -> "consumerCount must be positive");
         return this;
     }
 
     @Override
-    public ConnectionBuilder sources(final String... sources) {
+    public ConnectionBuilder sources(final Set<Source> sources) {
         checkNotNull(sources, "Sources");
-        this.sources = new HashSet<>(Arrays.asList(sources));
+        this.sources.addAll(sources);
         return this;
     }
 
     @Override
-    public ConnectionBuilder sources(final Set<String> sources) {
-        checkNotNull(sources, "Sources");
-        this.sources = new HashSet<>(sources);
-        return this;
-    }
-
-    @Override
-    public ConnectionBuilder eventTarget(final String eventTarget) {
-        checkNotNull(eventTarget, "eventTarget");
-        this.eventTarget = eventTarget;
-        return this;
-    }
-
-    @Override
-    public ConnectionBuilder replyTarget(final String replyTarget) {
-        checkNotNull(replyTarget, "replyTarget");
-        this.replyTarget = replyTarget;
+    public ConnectionBuilder targets(final Set<Target> targets) {
+        checkNotNull(targets, "Targets");
+        this.targets.addAll(targets);
         return this;
     }
 

@@ -15,7 +15,7 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.jms.Destination;
 import javax.jms.ExceptionListener;
@@ -26,6 +26,7 @@ import javax.jms.Session;
 import org.apache.qpid.jms.JmsQueue;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
 
 import akka.actor.AbstractActor;
 import akka.actor.Props;
@@ -90,9 +91,9 @@ public class JMSConnectionHandlingActor extends AbstractActor {
 
     @SuppressWarnings("squid:S2095") // cannot use try-with-resources, connection has longer lifetime
     private void handleConnect(final AmqpClientActor.JmsConnect connect) {
+        javax.jms.Connection jmsConnection = null;
         try {
-            final javax.jms.Connection
-                    jmsConnection = jmsConnectionFactory.createConnection(connection, exceptionListener);
+            jmsConnection = jmsConnectionFactory.createConnection(connection, exceptionListener);
             log.debug("Starting connection.");
             jmsConnection.start();
             log.debug("Connection started successfully, creating session.");
@@ -100,19 +101,38 @@ public class JMSConnectionHandlingActor extends AbstractActor {
             log.debug("Session created.");
 
             final Map<String, MessageConsumer> consumerMap = new HashMap<>();
-            if (connection.getSources().isPresent()) {
-                final Set<String> sources = connection.getSources().get();
-                for (final String source : sources) {
-                    log.debug("Creating AMQP Consumer for '{}'", source);
-                    final Destination destination = new JmsQueue(source);
-                    final MessageConsumer messageConsumer = jmsSession.createConsumer(destination);
-                    consumerMap.put(source, messageConsumer);
-                }
-            }
+            final Map<String, Exception> failedSources = new HashMap<>();
+            connection.getSources().forEach(source -> {
+                source.getSources().forEach(jmsSource -> {
+                    log.debug("Creating AMQP Consumer for '{}'", jmsSource);
+                    final Destination destination = new JmsQueue(jmsSource);
+                    final MessageConsumer messageConsumer;
+                    try {
+                        messageConsumer = jmsSession.createConsumer(destination);
+                        consumerMap.put(jmsSource, messageConsumer);
+                    } catch (final JMSException jmsException) {
+                        failedSources.put(jmsSource, jmsException);
+                    }
+                });
+            });
 
-            sender().tell(new AmqpClientActor.JmsConnected(connect.getOrigin(), jmsConnection, jmsSession, consumerMap),
-                    sender());
-            log.debug("Connection <{}> established successfully, stopping myself.", connection.getId());
+            if (failedSources.isEmpty()) {
+                final AmqpClientActor.JmsConnected connectedMessage =
+                        new AmqpClientActor.JmsConnected(connect.getOrigin(), jmsConnection, jmsSession, consumerMap);
+                sender().tell(connectedMessage, sender());
+                log.debug("Connection <{}> established successfully, stopping myself.", connection.getId());
+            } else {
+                log.warning("Failed to consume sources: {}.", failedSources);
+                final ConnectionFailedException failedException = ConnectionFailedException
+                        .newBuilder(connection.getId())
+                        .message("\"Failed to consume sources: " + failedSources.keySet())
+                        .description(() -> failedSources.entrySet()
+                                .stream()
+                                .map(e -> e.getKey() + ": " + e.getValue().getMessage())
+                                .collect(Collectors.joining(", ")))
+                        .build();
+                sender().tell(new AmqpClientActor.JmsFailure(connect.getOrigin(), failedException), sender());
+            }
         } catch (final Exception e) {
             sender().tell(new AmqpClientActor.JmsFailure(connect.getOrigin(), e), sender());
         }

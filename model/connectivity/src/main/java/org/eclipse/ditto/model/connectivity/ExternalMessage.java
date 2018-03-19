@@ -99,48 +99,12 @@ public interface ExternalMessage {
      * @return the MessageType of this ExternalMessage, only makes sense for outgoing messages where the type was
      * already known.
      */
-    Optional<MessageType> getMessageType();
+    Optional<String> getTopicPath();
 
     /**
      * @return the PayloadType of this ExternalMessage
      */
     PayloadType getPayloadType();
-
-    /**
-     * @return whether this ExternalMessage is a CommandResponse
-     */
-    boolean isCommandResponse();
-
-    /**
-     * @return whether this ExternalMessage is an Event
-     */
-    boolean isEvent();
-
-    /**
-     * @return whether this ExternalMessage is a Command
-     */
-    boolean isCommand();
-
-    /**
-     * @return whether this ExternalMessage is an Error
-     */
-    boolean isError();
-
-    /**
-     * @return whether this ExternalMessage is a Message
-     */
-    boolean isMessage();
-
-    /**
-     * The known types of ExternalMessages.
-     */
-    enum MessageType {
-        COMMAND,
-        EVENT,
-        RESPONSE,
-        MESSAGE,
-        ERRORS
-    }
 
     /**
      * The known payload types of ExternalMessages.

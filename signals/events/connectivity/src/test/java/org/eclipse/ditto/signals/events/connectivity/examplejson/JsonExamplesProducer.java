@@ -31,6 +31,8 @@ import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.MappingContext;
+import org.eclipse.ditto.model.connectivity.Source;
+import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.signals.events.connectivity.ConnectionClosed;
 import org.eclipse.ditto.signals.events.connectivity.ConnectionCreated;
 import org.eclipse.ditto.signals.events.connectivity.ConnectionDeleted;
@@ -47,9 +49,12 @@ public class JsonExamplesProducer {
     private static final AuthorizationContext AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(
             AuthorizationSubject.newInstance("mySolutionId:mySubject"));
 
-    private static final Set<String> SOURCES = new HashSet<>(Arrays.asList("amqp/source1", "amqp/source2"));
+    private static final Set<Source> SOURCES = new HashSet<>(
+            Arrays.asList(ConnectivityModelFactory.newSource(2, "amqp/source1"),
+                    ConnectivityModelFactory.newSource(2, "amqp/source2")));
 
-    private static final String TARGET = "eventQueue";
+    private static final Set<Target> TARGETS = new HashSet<>(
+            Collections.singletonList(ConnectivityModelFactory.newTarget("eventQueue", "_/_/things/twin/events")));
 
     public static MappingContext MAPPING_CONTEXT = ConnectivityModelFactory.newMappingContext("text/plain",
             "JavaScript",
@@ -88,7 +93,7 @@ public class JsonExamplesProducer {
         final Connection connection =
                 ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, URI, AUTHORIZATION_CONTEXT)
                         .sources(SOURCES)
-                        .eventTarget(TARGET)
+                        .targets(TARGETS)
                         .build();
         final DittoHeaders headers = DittoHeaders.empty();
 

@@ -58,13 +58,11 @@ final class ImmutableConnection implements Connection {
     private final int port;
     private final String path;
 
-    @Nullable private final Set<String> sources;
-    @Nullable private final String eventTarget;
-    @Nullable private final String replyTarget;
+    private final Set<Source> sources;
+    private final Set<Target> targets;
     private final boolean failoverEnabled;
     private final boolean validateCertificate;
     private final int throttle;
-    private final int consumerCount;
     private final int processorPoolSize;
 
     ImmutableConnection(final ImmutableConnectionBuilder builder) {
@@ -72,19 +70,12 @@ final class ImmutableConnection implements Connection {
         this.connectionType = builder.connectionType;
         this.uri = builder.uri;
         this.authorizationContext = builder.authorizationContext;
-
         checkSourceAndTargetAreValid(builder);
-        if (builder.sources != null) {
-            this.sources = Collections.unmodifiableSet(new HashSet<>(builder.sources));
-        } else {
-            this.sources = null;
-        }
-        this.eventTarget = builder.eventTarget;
-        this.replyTarget = builder.replyTarget;
+        this.sources = Collections.unmodifiableSet(new HashSet<>(builder.sources));
+        this.targets = Collections.unmodifiableSet(new HashSet<>(builder.targets));
         this.failoverEnabled = builder.failoverEnabled;
         this.validateCertificate = builder.validateCertificate;
         this.throttle = builder.throttle;
-        this.consumerCount = builder.consumerCount;
         this.processorPoolSize = builder.processorPoolSize;
 
         final Matcher matcher = URI_REGEX_PATTERN.matcher(uri);
@@ -102,10 +93,9 @@ final class ImmutableConnection implements Connection {
     }
 
     private void checkSourceAndTargetAreValid(final ImmutableConnectionBuilder builder) {
-        if ((builder.sources == null || builder.sources.isEmpty())
-                && (builder.eventTarget == null || builder.eventTarget.isEmpty())) {
+        if (builder.sources.isEmpty() && builder.targets.isEmpty()) {
             throw ConnectionConfigurationInvalidException
-                    .newBuilder("Either a source or an eventTarget must be specified " +
+                    .newBuilder("Either a source or a target must be specified " +
                             "in the configuration of a connection.")
                     .build();
         }
@@ -129,11 +119,12 @@ final class ImmutableConnection implements Connection {
         final String readUri = jsonObject.getValueOrThrow(JsonFields.URI);
         final JsonArray authContext = jsonObject.getValue(JsonFields.AUTHORIZATION_CONTEXT)
                 .orElseGet(() ->
-                    jsonObject.getValue("authorizationSubject") // as a fallback use the already persisted "authorizationSubject" field
-                            .filter(JsonValue::isString)
-                            .map(JsonValue::asString)
-                            .map(str -> JsonArray.newBuilder().add(str).build())
-                            .orElseThrow(() -> new JsonMissingFieldException(JsonFields.AUTHORIZATION_CONTEXT))
+                        jsonObject.getValue(
+                                "authorizationSubject") // as a fallback use the already persisted "authorizationSubject" field
+                                .filter(JsonValue::isString)
+                                .map(JsonValue::asString)
+                                .map(str -> JsonArray.newBuilder().add(str).build())
+                                .orElseThrow(() -> new JsonMissingFieldException(JsonFields.AUTHORIZATION_CONTEXT))
                 );
         final List<AuthorizationSubject> authorizationSubjects = authContext.stream()
                 .filter(JsonValue::isString)
@@ -142,26 +133,34 @@ final class ImmutableConnection implements Connection {
                 .collect(Collectors.toList());
         final AuthorizationContext readAuthorizationContext =
                 AuthorizationModelFactory.newAuthContext(authorizationSubjects);
-        final Optional<Set<String>> readSources = jsonObject.getValue(JsonFields.SOURCES).map(array -> array.stream()
-                .map(JsonValue::asString)
-                .collect(Collectors.toSet()));
-        final Optional<String> readEventTarget = jsonObject.getValue(JsonFields.EVENT_TARGET);
-        final Optional<String> readReplyTarget = jsonObject.getValue(JsonFields.REPLY_TARGET);
+        final Set<Source> readSources = jsonObject.getValue(JsonFields.CONSUME)
+                .map(array -> array.stream()
+                        .filter(JsonValue::isObject)
+                        .map(JsonValue::asObject)
+                        .map(ImmutableSource::fromJson)
+                        .collect(Collectors.toSet()))
+                .orElse(Collections.emptySet());
+        final Set<Target> readTargets = jsonObject.getValue(JsonFields.PUBLISH)
+                .map(array -> array.stream()
+                        .filter(JsonValue::isObject)
+                        .map(JsonValue::asObject)
+                        .map(ImmutableTarget::fromJson)
+                        .collect(Collectors.toSet()))
+                .orElse(Collections.emptySet());
+
         final Optional<Boolean> readFailoverEnabled = jsonObject.getValue(JsonFields.FAILOVER_ENABLED);
         final Optional<Boolean> readValidateCertificates = jsonObject.getValue(JsonFields.VALIDATE_CERTIFICATES);
         final Optional<Integer> readThrottle = jsonObject.getValue(JsonFields.THROTTLE);
-        final Optional<Integer> readConsumerCount = jsonObject.getValue(JsonFields.CONSUMER_COUNT);
         final Optional<Integer> readProcessorPoolSize = jsonObject.getValue(JsonFields.PROCESSOR_POOL_SIZE);
 
         final ConnectionBuilder builder =
                 ImmutableConnectionBuilder.of(readId, readConnectionType, readUri, readAuthorizationContext);
-        readSources.ifPresent(builder::sources);
-        readEventTarget.ifPresent(builder::eventTarget);
-        readReplyTarget.ifPresent(builder::replyTarget);
+
+        builder.sources(readSources);
+        builder.targets(readTargets);
         readThrottle.ifPresent(builder::throttle);
         readFailoverEnabled.ifPresent(builder::failoverEnabled);
         readValidateCertificates.ifPresent(builder::validateCertificate);
-        readConsumerCount.ifPresent(builder::consumerCount);
         readProcessorPoolSize.ifPresent(builder::processorPoolSize);
         return builder.build();
     }
@@ -182,18 +181,13 @@ final class ImmutableConnection implements Connection {
     }
 
     @Override
-    public Optional<Set<String>> getSources() {
-        return Optional.ofNullable(sources);
+    public Set<Source> getSources() {
+        return sources;
     }
 
     @Override
-    public Optional<String> getEventTarget() {
-        return Optional.ofNullable(eventTarget);
-    }
-
-    @Override
-    public Optional<String> getReplyTarget() {
-        return Optional.ofNullable(replyTarget);
+    public Set<Target> getTargets() {
+        return targets;
     }
 
     @Override
@@ -247,11 +241,6 @@ final class ImmutableConnection implements Connection {
     }
 
     @Override
-    public int getConsumerCount() {
-        return consumerCount;
-    }
-
-    @Override
     public int getProcessorPoolSize() {
         return processorPoolSize;
     }
@@ -269,21 +258,15 @@ final class ImmutableConnection implements Connection {
                 .map(AuthorizationSubject::getId)
                 .map(JsonFactory::newValue)
                 .collect(JsonCollectors.valuesToArray()), predicate);
-        if (sources != null) {
-            jsonObjectBuilder.set(JsonFields.SOURCES, sources.stream()
-                    .map(JsonFactory::newValue)
-                    .collect(JsonCollectors.valuesToArray()), predicate.and(Objects::nonNull));
-        }
-        if (eventTarget != null) {
-            jsonObjectBuilder.set(JsonFields.EVENT_TARGET, eventTarget, predicate.and(Objects::nonNull));
-        }
-        if (replyTarget != null) {
-            jsonObjectBuilder.set(JsonFields.REPLY_TARGET, replyTarget, predicate.and(Objects::nonNull));
-        }
+        jsonObjectBuilder.set(JsonFields.CONSUME, sources.stream()
+                .map(source -> source.toJson(schemaVersion, thePredicate))
+                .collect(JsonCollectors.valuesToArray()), predicate.and(Objects::nonNull));
+        jsonObjectBuilder.set(JsonFields.PUBLISH, targets.stream()
+                .map(source -> source.toJson(schemaVersion, thePredicate))
+                .collect(JsonCollectors.valuesToArray()), predicate.and(Objects::nonNull));
         jsonObjectBuilder.set(JsonFields.FAILOVER_ENABLED, failoverEnabled, predicate);
         jsonObjectBuilder.set(JsonFields.VALIDATE_CERTIFICATES, validateCertificate, predicate);
         jsonObjectBuilder.set(JsonFields.THROTTLE, throttle, predicate);
-        jsonObjectBuilder.set(JsonFields.CONSUMER_COUNT, consumerCount, predicate);
         jsonObjectBuilder.set(JsonFields.PROCESSOR_POOL_SIZE, processorPoolSize, predicate);
         return jsonObjectBuilder.build();
     }
@@ -300,8 +283,7 @@ final class ImmutableConnection implements Connection {
                 Objects.equals(connectionType, that.connectionType) &&
                 Objects.equals(authorizationContext, that.authorizationContext) &&
                 Objects.equals(sources, that.sources) &&
-                Objects.equals(eventTarget, that.eventTarget) &&
-                Objects.equals(replyTarget, that.replyTarget) &&
+                Objects.equals(targets, that.targets) &&
                 Objects.equals(uri, that.uri) &&
                 Objects.equals(protocol, that.protocol) &&
                 Objects.equals(username, that.username) &&
@@ -309,16 +291,15 @@ final class ImmutableConnection implements Connection {
                 Objects.equals(hostname, that.hostname) &&
                 Objects.equals(path, that.path) &&
                 Objects.equals(throttle, that.throttle) &&
-                Objects.equals(consumerCount, that.consumerCount) &&
                 Objects.equals(processorPoolSize, that.processorPoolSize) &&
                 Objects.equals(validateCertificate, that.validateCertificate);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, connectionType, authorizationContext, sources, eventTarget, replyTarget,
+        return Objects.hash(id, connectionType, authorizationContext, sources, targets,
                 failoverEnabled, uri, protocol, username, password, hostname, path, port, validateCertificate, throttle,
-                consumerCount, processorPoolSize);
+                processorPoolSize);
     }
 
     @Override
@@ -327,9 +308,6 @@ final class ImmutableConnection implements Connection {
                 "id=" + id +
                 ", connectionType=" + connectionType +
                 ", authorizationContext=" + authorizationContext +
-                ", sources=" + sources +
-                ", eventTarget=" + eventTarget +
-                ", replyTarget=" + replyTarget +
                 ", failoverEnabled=" + failoverEnabled +
                 ", uri=" + uri +
                 ", protocol=" + protocol +
@@ -338,11 +316,11 @@ final class ImmutableConnection implements Connection {
                 ", hostname=" + hostname +
                 ", port=" + port +
                 ", path=" + path +
+                ", sources=" + sources +
+                ", targets=" + targets +
                 ", validateCertificate=" + validateCertificate +
                 ", throttle=" + throttle +
-                ", consumerCount=" + consumerCount +
                 ", processorPoolSize=" + processorPoolSize +
                 "]";
     }
-
 }

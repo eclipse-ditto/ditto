@@ -21,13 +21,13 @@ import java.util.Map;
 import java.util.Optional;
 
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.model.base.common.DittoConstants;
+import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ExternalMessage;
 import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;
-import org.eclipse.ditto.model.base.common.DittoConstants;
-import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
@@ -74,13 +74,13 @@ public final class DittoMessageMapper implements MessageMapper {
 
     @Override
     public Optional<ExternalMessage> map(final Adaptable adaptable) {
-        final ExternalMessage.MessageType messageType = MessageMappers.determineMessageType(adaptable);
         final Map<String, String> headers = new LinkedHashMap<>(adaptable.getHeaders().orElse(DittoHeaders.empty()));
         headers.put(ExternalMessage.CONTENT_TYPE_HEADER, getContentType());
 
         final String jsonString = ProtocolFactory.wrapAsJsonifiableAdaptable(adaptable).toJsonString();
 
-        return Optional.of(ConnectivityModelFactory.newExternalMessageBuilder(headers, messageType)
+        return Optional.of(
+                ConnectivityModelFactory.newExternalMessageBuilder(headers, adaptable.getTopicPath().getPath())
                 .withText(jsonString)
                 .build());
     }

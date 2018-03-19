@@ -29,7 +29,7 @@ final class ImmutableExternalMessage implements ExternalMessage {
 
     private final Map<String, String> headers;
     @Nullable
-    private final MessageType messageType;
+    private final String topicPath;
     private final PayloadType payloadType;
 
     @Nullable
@@ -38,13 +38,13 @@ final class ImmutableExternalMessage implements ExternalMessage {
     private final ByteBuffer bytePayload;
 
     ImmutableExternalMessage(final Map<String, String> headers,
-            @Nullable final MessageType messageType,
+            @Nullable final String topicPath,
             final PayloadType payloadType,
             @Nullable final String textPayload,
             @Nullable final ByteBuffer bytePayload) {
 
         this.headers = Collections.unmodifiableMap(new HashMap<>(headers));
-        this.messageType = messageType;
+        this.topicPath = topicPath;
         this.payloadType = payloadType;
         this.textPayload = textPayload;
         this.bytePayload = bytePayload;
@@ -97,8 +97,8 @@ final class ImmutableExternalMessage implements ExternalMessage {
     }
 
     @Override
-    public Optional<MessageType> getMessageType() {
-        return Optional.ofNullable(messageType);
+    public Optional<String> getTopicPath() {
+        return Optional.ofNullable(topicPath);
     }
 
     @Override
@@ -106,30 +106,6 @@ final class ImmutableExternalMessage implements ExternalMessage {
         return payloadType;
     }
 
-    @Override
-    public boolean isCommandResponse() {
-        return MessageType.RESPONSE.equals(messageType);
-    }
-
-    @Override
-    public boolean isEvent() {
-        return MessageType.EVENT.equals(messageType);
-    }
-
-    @Override
-    public boolean isCommand() {
-        return MessageType.RESPONSE.equals(messageType);
-    }
-
-    @Override
-    public boolean isError() {
-        return MessageType.ERRORS.equals(messageType);
-    }
-
-    @Override
-    public boolean isMessage() {
-        return MessageType.MESSAGE.equals(messageType);
-    }
 
     @Override
     public boolean equals(final Object o) {
@@ -143,20 +119,20 @@ final class ImmutableExternalMessage implements ExternalMessage {
         return Objects.equals(headers, that.headers) &&
                 Objects.equals(textPayload, that.textPayload) &&
                 Objects.equals(bytePayload, that.bytePayload) &&
-                payloadType == that.payloadType &&
-                messageType == that.messageType;
+                Objects.equals(topicPath, that.topicPath) &&
+                payloadType == that.payloadType;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(headers, textPayload, bytePayload, payloadType, messageType);
+        return Objects.hash(headers, textPayload, bytePayload, payloadType, topicPath);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "headers=" + headers +
-                ", messageType=" + messageType +
+                ", topicPath=" + topicPath +
                 ", payloadType=" + payloadType +
                 ", textPayload=" + textPayload +
                 ", bytePayload=" +
