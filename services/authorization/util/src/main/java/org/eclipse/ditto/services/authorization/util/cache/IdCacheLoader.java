@@ -68,9 +68,7 @@ public final class IdCacheLoader extends AbstractAskCacheLoader<EntityId> {
                     .orElseThrow(badThingResponse("no revision"));
             final Optional<AccessControlList> accessControlListOptional = thing.getAccessControlList();
             if (accessControlListOptional.isPresent()) {
-                final AccessControlList acl = accessControlListOptional.get();
                 final EntityId resourceKey = EntityId.of(ThingCommand.RESOURCE_TYPE, thingId);
-                authorizationCaches.updateAcl(resourceKey, revision, acl);
                 return Entry.of(revision, resourceKey);
             } else {
                 final String policyId = thing.getPolicyId().orElseThrow(badThingResponse("no PolicyId or ACL"));

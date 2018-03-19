@@ -12,22 +12,25 @@
 package org.eclipse.ditto.services.authorization.util.cache;
 
 import java.time.Duration;
+import java.util.AbstractMap;
+import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
-import java.util.function.Supplier;
 
-import org.eclipse.ditto.model.enforcers.AclEnforcer;
 import org.eclipse.ditto.model.enforcers.Enforcer;
-import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.services.authorization.util.EntityRegionMap;
 import org.eclipse.ditto.services.authorization.util.cache.entry.Entry;
 import org.eclipse.ditto.services.authorization.util.config.CacheConfigReader;
 import org.eclipse.ditto.services.authorization.util.config.CachesConfigReader;
 import org.eclipse.ditto.services.models.authorization.EntityId;
+import org.eclipse.ditto.services.utils.cache.Cache;
+import org.eclipse.ditto.services.utils.cache.CaffeineCache;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import com.github.benmanes.caffeine.cache.AsyncLoadingCache;
+import com.codahale.metrics.MetricRegistry;
+import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 import com.github.benmanes.caffeine.cache.Caffeine;
 
 /**
@@ -35,8 +38,11 @@ import com.github.benmanes.caffeine.cache.Caffeine;
  */
 public final class AuthorizationCaches {
 
-    private final AsyncLoadingCache<EntityId, Entry<Enforcer>> enforcerCache;
-    private final AsyncLoadingCache<EntityId, Entry<EntityId>> idCache;
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(AuthorizationCaches.class);
+
+    private final Cache<EntityId, Entry<Enforcer>> enforcerCache;
+    private final Cache<EntityId, Entry<EntityId>> idCache;
 
     /**
      * Creates a cache from configuration.
@@ -49,10 +55,12 @@ public final class AuthorizationCaches {
         final Duration askTimeout = cachesConfigReader.askTimeout();
 
         final EnforcerCacheLoader enforcerCacheLoader = new EnforcerCacheLoader(askTimeout, entityRegionMap);
-        enforcerCache = caffeine(cachesConfigReader.enforcer()).buildAsync(enforcerCacheLoader);
+        enforcerCache = createCache(cachesConfigReader.enforcer(), enforcerCacheLoader,
+                new AbstractMap.SimpleImmutableEntry<>("ditto.authorization.enforcer.cache", new MetricRegistry()));
 
         final IdCacheLoader idCacheLoader = new IdCacheLoader(askTimeout, entityRegionMap, this);
-        idCache = caffeine(cachesConfigReader.id()).buildAsync(idCacheLoader);
+        idCache = createCache(cachesConfigReader.id(), idCacheLoader,
+                new AbstractMap.SimpleImmutableEntry<>("ditto.authorization.entityId.cache", new MetricRegistry()));
 
     }
 
@@ -67,14 +75,31 @@ public final class AuthorizationCaches {
             // Enforcer cache key of a policy is always identical to the entity cache key of the policy.
             // No need to save the identity relation in entity cache and waste memory and bandwidth.
             enforcerCache.get(entityKey)
-                    .thenAccept(enforcerEntry -> consumer.accept(Entry.permanent(entityKey), enforcerEntry));
+                    .thenAccept(enforcerEntry -> consumer.accept(Entry.permanent(entityKey),
+                            enforcerEntry.orElse(null)));
         } else {
-            idCache.get(entityKey).thenAccept(enforcerKeyEntry -> {
-                if (enforcerKeyEntry.exists()) {
-                    enforcerCache.get(enforcerKeyEntry.getValue())
-                            .thenAccept(enforcerEntry -> consumer.accept(enforcerKeyEntry, enforcerEntry));
+            idCache.get(entityKey).thenAccept(enforcerKeyEntryOptional -> {
+                if (!enforcerKeyEntryOptional.isPresent()) {
+                    // must not happen
+                    LOGGER.error("Did not get id-cache value for entityKey <{}>.", entityKey);
                 } else {
-                    consumer.accept(enforcerKeyEntry, Entry.nonexistent());
+                    final Entry<EntityId> enforcerKeyEntry = enforcerKeyEntryOptional.get();
+                    if (enforcerKeyEntry.exists()) {
+                        final EntityId enforcerKey = enforcerKeyEntry.getValue();
+                        enforcerCache.get(enforcerKey)
+                                .thenAccept(enforcerEntryOptional -> {
+                                    if (!enforcerEntryOptional.isPresent()) {
+                                        // must not happen
+                                        LOGGER.error("Did not get enforcer-cache value for entityKey <{}>.",
+                                                enforcerKey);
+                                    } else {
+                                        final Entry<Enforcer> enforcerEntry = enforcerEntryOptional.get();
+                                        consumer.accept(enforcerKeyEntry, enforcerEntry);
+                                    }
+                                });
+                    } else {
+                        consumer.accept(enforcerKeyEntry, Entry.nonexistent());
+                    }
                 }
             });
         }
@@ -86,21 +111,15 @@ public final class AuthorizationCaches {
      * @param resourceKey cache key of the entity.
      */
     public void invalidateEntityId(final EntityId resourceKey) {
-        idCache.synchronous().invalidate(resourceKey);
+        idCache.invalidate(resourceKey);
     }
 
-    void updateAcl(final EntityId resourceKey, final long revision, final AccessControlList acl) {
-        final Supplier<Entry<Enforcer>> entrySupplier = () -> Entry.of(revision, AclEnforcer.of(acl));
-        // accept potential race condition to react to events quickly
-        enforcerCache.get(resourceKey, k -> entrySupplier.get())
-                .thenAccept(cachedEntry -> {
-                    if (cachedEntry.getRevision() < revision) {
-                        enforcerCache.put(resourceKey, CompletableFuture.completedFuture(entrySupplier.get()));
-                    }
-                });
+    private static <K, V> CaffeineCache<K, V> createCache(final CacheConfigReader cacheConfigReader,
+            final AsyncCacheLoader<K, V> loader, Map.Entry<String, MetricRegistry> namedMetricRegistry) {
+        return CaffeineCache.of(caffeine(cacheConfigReader), loader, namedMetricRegistry);
     }
 
-    private Caffeine<Object, Object> caffeine(final CacheConfigReader cacheConfigReader) {
+    private static Caffeine<Object, Object> caffeine(final CacheConfigReader cacheConfigReader) {
         final Caffeine<Object, Object> caffeine = Caffeine.newBuilder();
         caffeine.maximumSize(cacheConfigReader.maximumSize());
         caffeine.expireAfterWrite(cacheConfigReader.expireAfterWrite());
