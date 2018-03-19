@@ -19,13 +19,12 @@ services:
       default:
         aliases:
           - ditto-cluster
+    command: sh -c "java -jar /starter.jar"
     environment:
       - TZ=Europe/Berlin
       - INSTANCE_INDEX=1
       - BIND_HOSTNAME=0.0.0.0
-      - _JAVA_OPTIONS=-Xms256m -Xmx256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError -Dditto.cluster.become-leader=true
-      - STATSD_PORT_8125_UDP_ADDR=graphite
-      - STATSD_PORT_8125_UDP_PORT=8125
+      - IBM_JAVA_OPTIONS=-Xms256m -Xmx256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError -Xtune:virtualized -Dditto.cluster.become-leader=true
 
   things:
     image: docker.io/eclipse/ditto-things:${DITTO_VERSION:-latest}
@@ -40,9 +39,7 @@ services:
       - TZ=Europe/Berlin
       - INSTANCE_INDEX=1
       - BIND_HOSTNAME=0.0.0.0
-      - _JAVA_OPTIONS=-Xms256m -Xmx256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError
-      - STATSD_PORT_8125_UDP_ADDR=graphite
-      - STATSD_PORT_8125_UDP_PORT=8125
+      - IBM_JAVA_OPTIONS=-Xms256m -Xmx256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError -Xtune:virtualized
 
   things-search:
     image: docker.io/eclipse/ditto-things-search:${DITTO_VERSION:-latest}
@@ -57,9 +54,7 @@ services:
       - TZ=Europe/Berlin
       - INSTANCE_INDEX=1
       - BIND_HOSTNAME=0.0.0.0
-      - _JAVA_OPTIONS=-Xms256m -Xmx256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError
-      - STATSD_PORT_8125_UDP_ADDR=graphite
-      - STATSD_PORT_8125_UDP_PORT=8125
+      - IBM_JAVA_OPTIONS=-Xms256m -Xmx256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError -Xtune:virtualized
 
   gateway:
     image: docker.io/eclipse/ditto-gateway:${DITTO_VERSION:-latest}
@@ -75,29 +70,25 @@ services:
       - INSTANCE_INDEX=1
       - BIND_HOSTNAME=0.0.0.0
       - ENABLE_DUMMY_AUTH=true
-      - _JAVA_OPTIONS=-Xms512m -Xmx512m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError
-      - STATSD_PORT_8125_UDP_ADDR=graphite
-      - STATSD_PORT_8125_UDP_PORT=8125
+      - IBM_JAVA_OPTIONS=-Xms512m -Xmx512m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError -Xtune:virtualized
       - DEVOPS_SECURE_STATUS=false
       - GATEWAY_PUBLIC_HEALTH_SECURE=false
 
-#  amqp-bridge:
-#    image: docker.io/eclipse/ditto-amqp-bridge:${DITTO_VERSION:-latest}
-#    networks:
-#      default:
-#        aliases:
-#          - ditto-cluster
-#    depends_on:
-#      - policies
-#      - gateway
-#    command: sh -c "sleep 30; java -jar /starter.jar"
-#    environment:
-#      - TZ=Europe/Berlin
-#      - INSTANCE_INDEX=1
-#      - BIND_HOSTNAME=0.0.0.0
-#      - _JAVA_OPTIONS=-Xms256m -Xmx256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError
-#      - STATSD_PORT_8125_UDP_ADDR=graphite
-#      - STATSD_PORT_8125_UDP_PORT=8125
+  amqp-bridge:
+    image: docker.io/eclipse/ditto-amqp-bridge:${DITTO_VERSION:-latest}
+    networks:
+      default:
+        aliases:
+          - ditto-cluster
+    depends_on:
+      - policies
+      - gateway
+    command: sh -c "sleep 60; java -jar /starter.jar"
+    environment:
+      - TZ=Europe/Berlin
+      - INSTANCE_INDEX=1
+      - BIND_HOSTNAME=0.0.0.0
+      - IBM_JAVA_OPTIONS=-Xms256m -Xmx256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError -Xtune:virtualized
 
   swagger-ui:
     image: docker.io/swaggerapi/swagger-ui:v2.2.9
