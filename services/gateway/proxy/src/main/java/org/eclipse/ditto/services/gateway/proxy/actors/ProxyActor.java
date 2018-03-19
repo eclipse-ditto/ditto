@@ -26,10 +26,11 @@ public final class ProxyActor extends AbstractThingProxyActor {
             final ActorRef devOpsCommandsActor,
             final ActorRef aclEnforcerShardRegion,
             final ActorRef policyEnforcerShardRegion,
+            final ActorRef authorizationShardRegion,
             final ActorRef thingEnforcerLookup,
             final ActorRef thingCacheFacade) {
         super(pubSubMediator, devOpsCommandsActor, aclEnforcerShardRegion, policyEnforcerShardRegion,
-                thingEnforcerLookup, thingCacheFacade);
+                authorizationShardRegion, thingEnforcerLookup, thingCacheFacade);
     }
 
     /**
@@ -39,6 +40,7 @@ public final class ProxyActor extends AbstractThingProxyActor {
      * @param devOpsCommandsActor the Actor ref to the local DevOpsCommandsActor.
      * @param aclEnforcerShardRegion the Actor ref of the acl enforcer shard region.
      * @param policyEnforcerShardRegion the Actor ref of the policy enforcer shard region.
+     * @param authorizationShardRegion the Actor ref of the authorization shard region.
      * @param thingEnforcerLookup the Actor ref to the thing enforcer lookup actor.
      * @param thingCacheFacade the Actor ref to the thing cache facade actor.
      * @return the Akka configuration Props object.
@@ -47,6 +49,7 @@ public final class ProxyActor extends AbstractThingProxyActor {
             final ActorRef devOpsCommandsActor,
             final ActorRef aclEnforcerShardRegion,
             final ActorRef policyEnforcerShardRegion,
+            final ActorRef authorizationShardRegion,
             final ActorRef thingEnforcerLookup,
             final ActorRef thingCacheFacade) {
         return Props.create(ProxyActor.class, new Creator<ProxyActor>() {
@@ -55,7 +58,7 @@ public final class ProxyActor extends AbstractThingProxyActor {
             @Override
             public ProxyActor create() throws Exception {
                 return new ProxyActor(pubSubMediator, devOpsCommandsActor, aclEnforcerShardRegion,
-                        policyEnforcerShardRegion, thingEnforcerLookup, thingCacheFacade);
+                        policyEnforcerShardRegion, authorizationShardRegion, thingEnforcerLookup, thingCacheFacade);
             }
         });
     }
