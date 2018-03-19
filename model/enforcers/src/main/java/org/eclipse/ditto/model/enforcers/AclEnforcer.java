@@ -62,10 +62,15 @@ public final class AclEnforcer implements Enforcer {
     public boolean hasUnrestrictedPermissions(final ResourceKey resourceKey,
             final AuthorizationContext authorizationContext,
             final Permissions permissions) {
-        final Set<AuthorizationSubject> grantedSubjects = acl.getAuthorizedSubjectsFor(mapPermissions(permissions));
-        return authorizationContext.getAuthorizationSubjects()
-                .stream()
-                .anyMatch(grantedSubjects::contains);
+        final org.eclipse.ditto.model.things.Permissions mappedPermissions = mapPermissions(permissions);
+        if (mappedPermissions.isEmpty()) {
+            return false;
+        } else {
+            final Set<AuthorizationSubject> grantedSubjects = acl.getAuthorizedSubjectsFor(mappedPermissions);
+            return authorizationContext.getAuthorizationSubjects()
+                    .stream()
+                    .anyMatch(grantedSubjects::contains);
+        }
     }
 
     @Override

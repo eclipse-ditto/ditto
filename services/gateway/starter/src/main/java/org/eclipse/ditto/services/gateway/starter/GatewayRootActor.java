@@ -30,6 +30,7 @@ import org.eclipse.ditto.services.gateway.proxy.actors.ThingEnforcerLookupFuncti
 import org.eclipse.ditto.services.gateway.starter.service.util.ConfigKeys;
 import org.eclipse.ditto.services.gateway.starter.service.util.HttpClientFacade;
 import org.eclipse.ditto.services.gateway.streaming.actors.StreamingActor;
+import org.eclipse.ditto.services.models.authorization.AuthorizationMessagingConstants;
 import org.eclipse.ditto.services.models.policies.PoliciesMessagingConstants;
 import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
 import org.eclipse.ditto.services.models.thingsearch.ThingsSearchConstants;
@@ -139,16 +140,21 @@ final class GatewayRootActor extends AbstractActor {
     private GatewayRootActor(final Config config, final ActorRef pubSubMediator, final ActorMaterializer materializer) {
 
         final int numberOfShards = config.getInt(ConfigKeys.CLUSTER_NUMBER_OF_SHARDS);
-        final ActorRef policiesShardRegionProxy = ClusterSharding.get(this.getContext().system())
+        final ActorSystem actorSystem = context().system();
+        final ActorRef authorizationShardRegionProxy = ClusterSharding.get(actorSystem)
+                .startProxy(AuthorizationMessagingConstants.SHARD_REGION,
+                        Optional.of(AuthorizationMessagingConstants.CLUSTER_ROLE),
+                        ShardRegionExtractor.of(numberOfShards, getContext().getSystem()));
+        final ActorRef policiesShardRegionProxy = ClusterSharding.get(actorSystem)
                 .startProxy(PoliciesMessagingConstants.SHARD_REGION,
                         Optional.of(PoliciesMessagingConstants.CLUSTER_ROLE), ShardRegionExtractor.of(numberOfShards,
                                 getContext().getSystem()));
-        final ActorRef thingsShardRegionProxy = ClusterSharding.get(this.getContext().system())
+        final ActorRef thingsShardRegionProxy = ClusterSharding.get(actorSystem)
                 .startProxy(ThingsMessagingConstants.SHARD_REGION,
                         Optional.of(ThingsMessagingConstants.CLUSTER_ROLE), ShardRegionExtractor.of(numberOfShards,
                                 getContext().getSystem()));
 
-        ClusterSharding.get(this.getContext().system())
+        ClusterSharding.get(actorSystem)
                 .startProxy(ThingsSearchConstants.SHARD_REGION, Optional.of(ThingsSearchConstants.CLUSTER_ROLE),
                         ShardRegionExtractor.of(numberOfShards, getContext().getSystem()));
 
@@ -158,7 +164,7 @@ final class GatewayRootActor extends AbstractActor {
                 .ENFORCER_INTERNAL_ASK_TIMEOUT));
 
         final ClusterShardingSettings shardingSettings =
-                ClusterShardingSettings.create(this.getContext().system()).withRole(GATEWAY_CLUSTER_ROLE);
+                ClusterShardingSettings.create(actorSystem).withRole(GATEWAY_CLUSTER_ROLE);
 
         final ActorRef thingCacheFacade = startChildActor(CacheFacadeActor.actorNameFor(CacheRole.THING),
                 CacheFacadeActor.props(CacheRole.THING, config));
@@ -167,7 +173,7 @@ final class GatewayRootActor extends AbstractActor {
                 AclEnforcerActor.props(pubSubMediator, thingsShardRegionProxy, policiesShardRegionProxy,
                         thingCacheFacade, enforcerCacheInterval, enforcerInternalAskTimeout,
                         Collections.singletonList(SubjectIssuer.GOOGLE));
-        aclEnforcerShardRegion = ClusterSharding.get(this.getContext().system())
+        aclEnforcerShardRegion = ClusterSharding.get(actorSystem)
                 .start(ACL_ENFORCER_SHARD_REGION, aclEnforcerProps, shardingSettings,
                         ShardRegionExtractor.of(numberOfShards, getContext().getSystem()));
 
@@ -176,12 +182,12 @@ final class GatewayRootActor extends AbstractActor {
         final Props policyEnforcerProps =
                 PolicyEnforcerActor.props(pubSubMediator, policiesShardRegionProxy, thingsShardRegionProxy,
                         policyCacheFacade, enforcerCacheInterval, enforcerInternalAskTimeout);
-        policyEnforcerShardRegion = ClusterSharding.get(this.getContext().system())
+        policyEnforcerShardRegion = ClusterSharding.get(actorSystem)
                 .start(POLICY_ENFORCER_SHARD_REGION, policyEnforcerProps, shardingSettings,
                         ShardRegionExtractor.of(numberOfShards, getContext().getSystem()));
 
         final MessageDispatcher lookupDispatcher =
-                getContext().system().dispatchers().lookup("enforcer-lookup-dispatcher");
+                actorSystem.dispatchers().lookup("enforcer-lookup-dispatcher");
 
         final ThingEnforcerLookupFunction thingEnforcerLookupFunction =
                 ThingEnforcerLookupFunction.of(thingsShardRegionProxy, aclEnforcerShardRegion,
@@ -196,7 +202,7 @@ final class GatewayRootActor extends AbstractActor {
 
         final ActorRef proxyActor = startChildActor(ProxyActor.ACTOR_NAME,
                 ProxyActor.props(pubSubMediator, devOpsCommandsActor, aclEnforcerShardRegion, policyEnforcerShardRegion,
-                        thingEnforcerLookupActor, thingCacheFacade));
+                        authorizationShardRegionProxy, thingEnforcerLookupActor, thingCacheFacade));
 
         pubSubMediator.tell(new DistributedPubSubMediator.Put(getSelf()), getSelf());
         pubSubMediator.tell(new DistributedPubSubMediator.Put(proxyActor), getSelf());
@@ -212,14 +218,14 @@ final class GatewayRootActor extends AbstractActor {
             log.info("No explicit hostname configured, using HTTP hostname: {}", hostname);
         }
 
-        final CompletionStage<ServerBinding> binding = Http.get(getContext().system())
-                .bindAndHandle(createRoute(getContext().system(), config, proxyActor, streamingActor, healthCheckActor)
-                                .flow(getContext().system(), materializer),
+        final CompletionStage<ServerBinding> binding = Http.get(actorSystem)
+                .bindAndHandle(createRoute(actorSystem, config, proxyActor, streamingActor, healthCheckActor)
+                                .flow(actorSystem, materializer),
                         ConnectHttp.toHost(hostname, config.getInt(ConfigKeys.HTTP_PORT)), materializer);
 
         binding.exceptionally(failure -> {
             log.error(failure, "Something very bad happened: {}", failure.getMessage());
-            getContext().system().terminate();
+            actorSystem.terminate();
             return null;
         });
     }

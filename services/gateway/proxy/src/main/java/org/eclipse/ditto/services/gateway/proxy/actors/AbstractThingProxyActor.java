@@ -13,17 +13,20 @@ package org.eclipse.ditto.services.gateway.proxy.actors;
 
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.services.gateway.proxy.actors.handlers.CreateThingHandlerActor;
 import org.eclipse.ditto.services.gateway.proxy.actors.handlers.ModifyPolicyHandlerActor;
 import org.eclipse.ditto.services.gateway.proxy.actors.handlers.ModifyThingHandlerActor;
 import org.eclipse.ditto.services.gateway.proxy.actors.handlers.RetrieveThingHandlerActor;
 import org.eclipse.ditto.services.gateway.proxy.actors.handlers.ThingHandlerCreator;
+import org.eclipse.ditto.services.models.authorization.EntityId;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoCommand;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThings;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingsResponse;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.ThingSearchSudoCommand;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.cluster.ShardedMessageEnvelope;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.devops.DevOpsCommand;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
@@ -60,6 +63,7 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
     private final ActorRef aclEnforcerShardRegion;
     private final ActorRef devOpsCommandsActor;
     private final ActorRef policyEnforcerShardRegion;
+    private final ActorRef authorizationShardRegion;
     private final ActorRef thingEnforcerLookup;
     private final ActorRef thingCacheFacade;
     private final ActorRef thingsAggregator;
@@ -68,6 +72,7 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
             final ActorRef devOpsCommandsActor,
             final ActorRef aclEnforcerShardRegion,
             final ActorRef policyEnforcerShardRegion,
+            final ActorRef authorizationShardRegion,
             final ActorRef thingEnforcerLookup,
             final ActorRef thingCacheFacade) {
         super(pubSubMediator);
@@ -76,6 +81,7 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
         this.devOpsCommandsActor = devOpsCommandsActor;
         this.policyEnforcerShardRegion = policyEnforcerShardRegion;
         this.aclEnforcerShardRegion = aclEnforcerShardRegion;
+        this.authorizationShardRegion = authorizationShardRegion;
         this.thingCacheFacade = thingCacheFacade;
         this.thingEnforcerLookup = thingEnforcerLookup;
 
@@ -146,7 +152,7 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
                         thingsAggregator.forward(command, getContext());
                     }
                 })
-                .match(ThingCommand.class, forwardToLocalEnforcerLookup(thingEnforcerLookup))
+                .match(ThingCommand.class, this::forwardToAuthorizationShardRegion)
                 .match(MessageCommand.class, forwardToLocalEnforcerLookup(thingEnforcerLookup))
 
                 /* Thing Events */
@@ -195,19 +201,6 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
     @Override
     protected void addErrorBehaviour(final ReceiveBuilder receiveBuilder) {
         receiveBuilder
-                .match(LookupEnforcerResponse.class, isOfType(ThingCommand.class), response -> {
-                    final LookupContext<?> lookupContext = response.getContext();
-                    final ThingCommand thingCommand = (ThingCommand) lookupContext.getInitialCommandOrEvent();
-                    getLogger().info(
-                            "Command of type <{}> with ID <{}> could not be dispatched as no enforcer could be" +
-                                    " looked up! Answering with ThingNotAccessibleException.", thingCommand.getType(),
-                            thingCommand.getId());
-                    final ActorRef initialSender = lookupContext.getInitialSender();
-                    final Exception exception = ThingNotAccessibleException.newBuilder(thingCommand.getId())
-                            .dittoHeaders(thingCommand.getDittoHeaders())
-                            .build();
-                    initialSender.tell(exception, ActorRef.noSender());
-                })
                 .match(LookupEnforcerResponse.class, isOfType(MessageCommand.class), response -> {
                     final LookupContext<?> lookupContext = response.getContext();
                     final MessageCommand messageCommand = (MessageCommand) lookupContext.getInitialCommandOrEvent();
@@ -228,6 +221,17 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
         if (isOfType(ThingDeleted.TYPE).defined(response)) {
             deleteEntryFromCache(response, thingCacheFacade);
         }
+    }
+
+    private void forwardToAuthorizationShardRegion(final Signal<?> signal) {
+        // TODO: move envelope creation to ditto-services-models-authorization
+        final EntityId entityId = EntityId.of(signal.getResourceType(), signal.getId());
+        final ShardedMessageEnvelope message = ShardedMessageEnvelope.of(
+                entityId.toString(),
+                signal.getType(),
+                signal.toJson(signal.getImplementedSchemaVersion(), FieldType.regularOrSpecial()),
+                signal.getDittoHeaders());
+        authorizationShardRegion.forward(message, getContext());
     }
 
     private static FI.TypedPredicate<LookupEnforcerResponse> isRetrieveThingWithAggregationNeeded() {
