@@ -58,6 +58,7 @@ import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.testkit.javadsl.TestKit;
 
+@SuppressWarnings({"squid:S3599", "squid:S1171"})
 public final class ThingCommandEnforcementTest {
 
     private static final String THING = "thing";
@@ -165,11 +166,10 @@ public final class ThingCommandEnforcementTest {
         final String policyId = "not:accessible";
         final SudoRetrieveThingResponse sudoRetrieveThingResponse =
                 SudoRetrieveThingResponse.of(newThingWithPolicyId(policyId), DittoHeaders.empty());
-        final DittoRuntimeException error = PolicyNotAccessibleException.newBuilder(policyId).build();
 
         new TestKit(system) {{
             setReply(this, THING_SUDO, sudoRetrieveThingResponse);
-            setReply(this, POLICY_SUDO, error);
+            setReply(this, POLICY_SUDO, PolicyNotAccessibleException.newBuilder(policyId).build());
 
             final ActorRef underTest = newEnforcerActor(getRef());
             underTest.tell(readCommand(), getRef());
@@ -184,11 +184,10 @@ public final class ThingCommandEnforcementTest {
         final String policyId = "not:accessible";
         final SudoRetrieveThingResponse sudoRetrieveThingResponse =
                 SudoRetrieveThingResponse.of(newThingWithPolicyId(policyId), DittoHeaders.empty());
-        final DittoRuntimeException error = PolicyNotAccessibleException.newBuilder(policyId).build();
 
         new TestKit(system) {{
             setReply(this, THING_SUDO, sudoRetrieveThingResponse);
-            setReply(this, POLICY_SUDO, error);
+            setReply(this, POLICY_SUDO, PolicyNotAccessibleException.newBuilder(policyId).build());
 
             final ActorRef underTest = newEnforcerActor(getRef());
             underTest.tell(writeCommand(), getRef());

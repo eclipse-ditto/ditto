@@ -11,18 +11,13 @@
  */
 package org.eclipse.ditto.services.authorization.starter;
 
-import java.util.Map;
-
 import org.eclipse.ditto.services.authorization.util.config.AuthorizationConfigReader;
 import org.eclipse.ditto.services.base.DittoService;
-import org.eclipse.ditto.services.base.metrics.MongoDbMetricRegistryFactory;
-import org.eclipse.ditto.services.base.metrics.StatsdMetricsReporter;
 import org.eclipse.ditto.services.base.metrics.StatsdMetricsStarter;
 import org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.codahale.metrics.MetricRegistry;
 import com.typesafe.config.Config;
 
 import akka.actor.ActorRef;
@@ -65,12 +60,6 @@ public final class AuthorizationService extends DittoService<AuthorizationConfig
     @Override
     protected void startStatsdMetricsReporter(final ActorSystem actorSystem,
             final AuthorizationConfigReader configReader) {
-
-        // TODO check if to retain MongoDB metrics.
-        // final Map.Entry<String, MetricRegistry> mongoDbMetrics =
-        //        MongoDbMetricRegistryFactory.createOrGet(actorSystem, configReader.getRawConfig());
-        // StatsdMetricsReporter.getInstance().add(mongoDbMetrics);
-
         StatsdMetricsStarter.newInstance(configReader, actorSystem, SERVICE_NAME).run();
     }
 

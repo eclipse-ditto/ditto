@@ -17,7 +17,6 @@ import java.util.Collections;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
@@ -65,7 +64,6 @@ import akka.pattern.PatternsCS;
  */
 // TODO: scrutinize CreateThing with policy ID and no inline policy
 // TODO: migrate logging
-// TODO: unit test
 interface ThingCommandEnforcement extends CommandEnforcementSelfType {
 
     /**
@@ -95,10 +93,11 @@ interface ThingCommandEnforcement extends CommandEnforcementSelfType {
     /**
      * Mixin-private method: retrieve the things-shard-region from the entity region map.
      *
-     * @return the things shard region if it exists in the entity region map, deadletters otherwise.
+     * @return the things shard region if it exists in the entity region map.
+     * @throws IllegalStateException if things shard region is not found.
      */
     default ActorRef thingsShardRegion() {
-        return entityRegionMap().lookup(ThingCommand.RESOURCE_TYPE).orElse(context().system().deadLetters());
+        return entityRegionMap().lookup(ThingCommand.RESOURCE_TYPE).orElseThrow(IllegalStateException::new);
     }
 
     /**
@@ -119,9 +118,13 @@ interface ThingCommandEnforcement extends CommandEnforcementSelfType {
             sender.tell(error, self());
         } else {
             // Without prior enforcer in cache, enforce CreateThing by self.
-            authorizeCreateThingBySelf(thingCommand)
+            final boolean authorized = authorizeCreateThingBySelf(thingCommand)
                     .map(command -> forwardToThingsShardRegion(command, sender))
-                    .orElseGet(respondWithError(thingCommand, sender));
+                    .isPresent();
+
+            if (!authorized) {
+                respondWithError(thingCommand, sender);
+            }
         }
     }
 
@@ -134,9 +137,13 @@ interface ThingCommandEnforcement extends CommandEnforcementSelfType {
      */
     default void enforceThingCommandByAclEnforcer(final ThingCommand thingCommand, final Enforcer enforcer,
             final ActorRef sender) {
-        authorizeByAcl(enforcer, thingCommand)
+        final boolean authorized = authorizeByAcl(enforcer, thingCommand)
                 .map(command -> forwardToThingsShardRegion(thingCommand, sender))
-                .orElseGet(respondWithError(thingCommand, sender));
+                .isPresent();
+
+        if (!authorized) {
+            respondWithError(thingCommand, sender);
+        }
     }
 
     /**
@@ -148,7 +155,7 @@ interface ThingCommandEnforcement extends CommandEnforcementSelfType {
      */
     default void enforceThingCommandByPolicyEnforcer(final ThingCommand thingCommand, final Enforcer enforcer,
             final ActorRef sender) {
-        authorizeByPolicy(enforcer, thingCommand)
+        final boolean authorized = authorizeByPolicy(enforcer, thingCommand)
                 .map(commandWithReadSubjects -> {
                     if (commandWithReadSubjects instanceof ThingQueryCommand) {
                         final ThingQueryCommand thingQueryCommand = (ThingQueryCommand) commandWithReadSubjects;
@@ -157,7 +164,11 @@ interface ThingCommandEnforcement extends CommandEnforcementSelfType {
                         return forwardToThingsShardRegion(commandWithReadSubjects, sender);
                     }
                 })
-                .orElseGet(respondWithError(thingCommand, sender));
+                .isPresent();
+
+        if (!authorized) {
+            respondWithError(thingCommand, sender);
+        }
     }
 
     /**
@@ -166,11 +177,11 @@ interface ThingCommandEnforcement extends CommandEnforcementSelfType {
      *
      * @param thingCommand command to forward.
      * @param sender sender of the command.
-     * @return 0 (must not be null).
+     * @return always {@code null}.
      */
-    default Integer forwardToThingsShardRegion(final ThingCommand thingCommand, final ActorRef sender) {
+    default Void forwardToThingsShardRegion(final ThingCommand thingCommand, final ActorRef sender) {
         thingsShardRegion().tell(thingCommand, sender);
-        return 0;
+        return null;
     }
 
     /**
@@ -178,13 +189,9 @@ interface ThingCommandEnforcement extends CommandEnforcementSelfType {
      *
      * @param thingCommand command that generated the error.
      * @param sender sender of the command.
-     * @return 0 (must not be null).
      */
-    default Supplier<Integer> respondWithError(final ThingCommand thingCommand, final ActorRef sender) {
-        return () -> {
-            sender.tell(errorForThingCommand(thingCommand), self());
-            return 0;
-        };
+    default void respondWithError(final ThingCommand thingCommand, final ActorRef sender) {
+        sender.tell(errorForThingCommand(thingCommand), self());
     }
 
     /**
@@ -193,9 +200,9 @@ interface ThingCommandEnforcement extends CommandEnforcementSelfType {
      * @param commandWithReadSubjects the command to ask.
      * @param enforcer enforcer to build JsonView with.
      * @param sender sender of the command.
-     * @return 0 (must not be null).
+     * @return always {@code null}.
      */
-    default Integer askThingsShardRegionAndBuildJsonView(
+    default Void askThingsShardRegionAndBuildJsonView(
             final ThingQueryCommand commandWithReadSubjects,
             final Enforcer enforcer,
             final ActorRef sender) {
@@ -217,7 +224,7 @@ interface ThingCommandEnforcement extends CommandEnforcementSelfType {
                     }
                     return null;
                 });
-        return 0;
+        return null;
     }
 
     /**
@@ -479,7 +486,7 @@ interface ThingCommandEnforcement extends CommandEnforcementSelfType {
 
     /**
      * Mixin-private: compute ACL permissions relevant for a {@code ThingModifyCommand}. The field "/acl" is handled
-     * especially with the "ADMINISTRATE" permission.
+     * specially with the "ADMINISTRATE" permission.
      *
      * @param command the command.
      * @return permissions needed to execute the command.

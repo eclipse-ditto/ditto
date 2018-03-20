@@ -11,9 +11,12 @@
  */
 package org.eclipse.ditto.services.authorization.util;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
@@ -52,6 +55,30 @@ public final class EntityRegionMap {
         return new Builder();
     }
 
+    @Override
+    public boolean equals(final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        final EntityRegionMap that = (EntityRegionMap) o;
+        return Objects.equals(rawMap, that.rawMap);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(rawMap);
+    }
+
+    @Override
+    public String toString() {
+        return this.getClass().getSimpleName() + " [" +
+                "rawMap=" + rawMap +
+                ']';
+    }
+
     /**
      * Builder of {@code EntityRegionMap}.
      */
@@ -68,6 +95,9 @@ public final class EntityRegionMap {
          * @return this builder.
          */
         public Builder put(final String resourceType, final ActorRef targetActor) {
+            requireNonNull(resourceType);
+            requireNonNull(targetActor);
+
             hashMap.put(resourceType, targetActor);
             return this;
         }

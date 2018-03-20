@@ -1078,6 +1078,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                 final DittoHeaders responseHeaders;
                 final Optional<AccessControlList> acl = newThing.getAccessControlList();
                 if (acl.isPresent()) {
+                    //TODO CR-5246: remove hack (this seems to be handled in ThingCommandEnforcement now)
                     // for newly created V1 things with default ACLs the readSubjects have to be set (cause they are not
                     // yet known in AclEnforcerActor) - in case of already existing readSubjects, they are
                     // overwritten which is okay because this actor should know better than any other
