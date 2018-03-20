@@ -65,9 +65,11 @@ public final class AuthorizationService extends DittoService<AuthorizationConfig
     @Override
     protected void startStatsdMetricsReporter(final ActorSystem actorSystem,
             final AuthorizationConfigReader configReader) {
-        final Map.Entry<String, MetricRegistry> mongoDbMetrics =
-                MongoDbMetricRegistryFactory.createOrGet(actorSystem, configReader.getRawConfig());
-        StatsdMetricsReporter.getInstance().add(mongoDbMetrics);
+
+        // TODO check if to retain MongoDB metrics.
+        // final Map.Entry<String, MetricRegistry> mongoDbMetrics =
+        //        MongoDbMetricRegistryFactory.createOrGet(actorSystem, configReader.getRawConfig());
+        // StatsdMetricsReporter.getInstance().add(mongoDbMetrics);
 
         StatsdMetricsStarter.newInstance(configReader, actorSystem, SERVICE_NAME).run();
     }
