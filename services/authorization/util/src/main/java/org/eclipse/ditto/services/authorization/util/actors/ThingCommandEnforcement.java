@@ -18,8 +18,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
-import javax.annotation.Nullable;
-
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
@@ -35,6 +33,7 @@ import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.PoliciesResourceType;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.ResourceKey;
+import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.authorization.util.cache.entry.Entry;
 import org.eclipse.ditto.services.models.authorization.EntityId;
@@ -120,7 +119,7 @@ interface ThingCommandEnforcement extends CommandEnforcementSelfType {
             // Without prior enforcer in cache, enforce CreateThing by self.
             final boolean authorized = authorizeCreateThingBySelf(thingCommand)
                     .map(command -> forwardToThingsShardRegion(command, sender))
-                    .isPresent();
+                    .orElse(false);
 
             if (!authorized) {
                 respondWithError(thingCommand, sender);
@@ -139,7 +138,7 @@ interface ThingCommandEnforcement extends CommandEnforcementSelfType {
             final ActorRef sender) {
         final boolean authorized = authorizeByAcl(enforcer, thingCommand)
                 .map(command -> forwardToThingsShardRegion(thingCommand, sender))
-                .isPresent();
+                .orElse(false);
 
         if (!authorized) {
             respondWithError(thingCommand, sender);
@@ -164,7 +163,7 @@ interface ThingCommandEnforcement extends CommandEnforcementSelfType {
                         return forwardToThingsShardRegion(commandWithReadSubjects, sender);
                     }
                 })
-                .isPresent();
+                .orElse(false);
 
         if (!authorized) {
             respondWithError(thingCommand, sender);
@@ -177,11 +176,11 @@ interface ThingCommandEnforcement extends CommandEnforcementSelfType {
      *
      * @param thingCommand command to forward.
      * @param sender sender of the command.
-     * @return always {@code null}.
+     * @return always {@code true}.
      */
-    default Void forwardToThingsShardRegion(final ThingCommand thingCommand, final ActorRef sender) {
+    default boolean forwardToThingsShardRegion(final ThingCommand thingCommand, final ActorRef sender) {
         thingsShardRegion().tell(thingCommand, sender);
-        return null;
+        return true;
     }
 
     /**
@@ -200,9 +199,9 @@ interface ThingCommandEnforcement extends CommandEnforcementSelfType {
      * @param commandWithReadSubjects the command to ask.
      * @param enforcer enforcer to build JsonView with.
      * @param sender sender of the command.
-     * @return always {@code null}.
+     * @return always {@code true}.
      */
-    default Void askThingsShardRegionAndBuildJsonView(
+    default boolean askThingsShardRegionAndBuildJsonView(
             final ThingQueryCommand commandWithReadSubjects,
             final Enforcer enforcer,
             final ActorRef sender) {
@@ -210,8 +209,7 @@ interface ThingCommandEnforcement extends CommandEnforcementSelfType {
         PatternsCS.ask(thingsShardRegion(), commandWithReadSubjects, getAskTimeout().toMillis())
                 .handleAsync((response, error) -> {
                     if (error != null) {
-                        reportUnknownErrorForThingQuery(sender, error, response,
-                                "Unexpected error before building JsonView");
+                        reportUnexpectedErrorForThingQuery(sender, error);
                     } else if (response instanceof ThingQueryCommandResponse) {
                         reportJsonViewForThingQuery(sender, (ThingQueryCommandResponse) response, enforcer);
                     } else if (response instanceof DittoRuntimeException) {
@@ -219,12 +217,11 @@ interface ThingCommandEnforcement extends CommandEnforcementSelfType {
                     } else if (response instanceof AskTimeoutException) {
                         reportTimeoutForThingQuery(sender, (AskTimeoutException) response);
                     } else {
-                        reportUnknownErrorForThingQuery(sender, null, response,
-                                "Unexpected message before building JsonView");
+                        reportUnknownResponseForThingQuery(sender, response);
                     }
                     return null;
                 });
-        return null;
+        return true;
     }
 
     /**
@@ -260,16 +257,20 @@ interface ThingCommandEnforcement extends CommandEnforcementSelfType {
     }
 
     /**
-     * Mixin-private: report unknown error processing a {@code ThingQueryCommand}.
+     * Mixin-private: report unknown error when processing a {@code ThingQueryCommand}.
      */
-    default void reportUnknownErrorForThingQuery(final ActorRef sender,
-            @Nullable final Throwable error, @Nullable final Object response,
-            final String extraInformation) {
-        if (error != null) {
-            log().error(error, extraInformation);
-        } else {
-            log().error(extraInformation + ": <{}>", response);
-        }
+    default void reportUnexpectedErrorForThingQuery(final ActorRef sender, final Throwable error) {
+        log().error(error, "Unexpected error before building JsonView");
+
+        sender.tell(GatewayInternalErrorException.newBuilder().build(), self());
+    }
+
+    /**
+     * Mixin-private: report unknown response when processing a {@code ThingQueryCommand}.
+     */
+    default void reportUnknownResponseForThingQuery(final ActorRef sender, final Object response) {
+        log().error("Unexpected response before building JsonView: <{}>", response);
+
         sender.tell(GatewayInternalErrorException.newBuilder().build(), self());
     }
 
@@ -421,21 +422,25 @@ interface ThingCommandEnforcement extends CommandEnforcementSelfType {
     static Optional<ThingCommand> authorizeCreateThingBySelf(final ThingCommand thingCommand) {
         if (thingCommand instanceof CreateThing) {
             final CreateThing createThing = (CreateThing) thingCommand;
-            if (createThing.getInitialPolicy().isPresent()) {
-                final Policy initialPolicy = PoliciesModelFactory.newPolicy(createThing.getInitialPolicy().get());
+            final Optional<JsonObject> initialPolicyOptional = createThing.getInitialPolicy();
+            if (initialPolicyOptional.isPresent()) {
+                final Policy initialPolicy = PoliciesModelFactory.newPolicy(initialPolicyOptional.get());
                 final Enforcer initialEnforcer = PolicyEnforcers.defaultEvaluator(initialPolicy);
                 return authorizeByPolicy(initialEnforcer, createThing);
-            } else if (createThing.getThing().getAccessControlList().isPresent()) {
-                final Enforcer initialEnforcer = AclEnforcer.of(createThing.getThing().getAccessControlList().get());
-                return authorizeByAcl(initialEnforcer, createThing);
             } else {
-                // Command without authorization information is authorized by default.
-                final Set<String> readSubjects = createThing.getDittoHeaders()
-                        .getAuthorizationContext()
-                        .getFirstAuthorizationSubject()
-                        .map(subject -> Collections.singleton(subject.getId()))
-                        .orElse(Collections.emptySet());
-                return Optional.of(addReadSubjectsToThingCommand(createThing, readSubjects));
+                final Optional<AccessControlList> aclOptional = createThing.getThing().getAccessControlList();
+                if (aclOptional.isPresent()) {
+                    final Enforcer initialEnforcer = AclEnforcer.of(aclOptional.get());
+                    return authorizeByAcl(initialEnforcer, createThing);
+                } else {
+                    // Command without authorization information is authorized by default.
+                    final Set<String> readSubjects = createThing.getDittoHeaders()
+                            .getAuthorizationContext()
+                            .getFirstAuthorizationSubject()
+                            .map(subject -> Collections.singleton(subject.getId()))
+                            .orElse(Collections.emptySet());
+                    return Optional.of(addReadSubjectsToThingCommand(createThing, readSubjects));
+                }
             }
         } else {
             // Other commands cannot be authorized by ACL or policy contained in self.
