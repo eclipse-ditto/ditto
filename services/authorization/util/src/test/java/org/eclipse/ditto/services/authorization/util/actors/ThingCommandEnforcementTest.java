@@ -29,6 +29,7 @@ import org.eclipse.ditto.model.policies.PoliciesResourceType;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.AclEntry;
+import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.Permission;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
@@ -43,14 +44,18 @@ import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingR
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
+import org.eclipse.ditto.signals.commands.things.exceptions.FeatureNotModifiableException;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotModifiableException;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
+import org.eclipse.ditto.signals.commands.things.modify.ModifyFeature;
+import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperty;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import akka.actor.ActorRef;
@@ -106,7 +111,7 @@ public final class ThingCommandEnforcementTest {
             expectMsgClass(ThingNotAccessibleException.class);
 
             underTest.tell(writeCommand(), getRef());
-            expectMsgClass(ThingNotModifiableException.class);
+            expectMsgClass(FeatureNotModifiableException.class);
         }};
     }
 
@@ -132,7 +137,7 @@ public final class ThingCommandEnforcementTest {
             expectMsgClass(ThingNotAccessibleException.class);
 
             underTest.tell(writeCommand(), getRef());
-            expectMsgClass(ThingNotModifiableException.class);
+            expectMsgClass(FeatureNotModifiableException.class);
         }};
     }
 
@@ -157,7 +162,7 @@ public final class ThingCommandEnforcementTest {
 
             final ActorRef underTest = newEnforcerActor(getRef());
             underTest.tell(writeCommand(), getRef());
-            expectMsgClass(ThingNotModifiableException.class);
+            expectMsgClass(FeatureNotModifiableException.class);
         }};
     }
 
@@ -312,10 +317,9 @@ public final class ThingCommandEnforcementTest {
         }};
     }
 
-    @Test
+    @Ignore("not implemented")
     public void acceptCreateByOwnPolicy() {
-        final String policyId = "good:policy";
-        final Policy policy = PoliciesModelFactory.newPolicyBuilder(policyId)
+        final Policy policy = PoliciesModelFactory.newPolicyBuilder(THING_ID)
                 .forLabel("authorize-self")
                 .setSubject(GOOGLE, SUBJECT.getId())
                 .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()), Permission.WRITE.name())
@@ -371,7 +375,7 @@ public final class ThingCommandEnforcementTest {
     }
 
     private static ThingCommand writeCommand() {
-        return ModifyThing.of(THING_ID, newThing().build(), null, headers(V_2));
+        return ModifyFeature.of(THING_ID, Feature.newBuilder().withId("x").build(), headers(V_2));
     }
 
 }

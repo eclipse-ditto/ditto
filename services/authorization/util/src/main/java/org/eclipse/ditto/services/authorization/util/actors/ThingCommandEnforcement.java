@@ -41,6 +41,7 @@ import org.eclipse.ditto.services.models.policies.Permission;
 import org.eclipse.ditto.signals.commands.base.CommandToExceptionRegistry;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayServiceTimeoutException;
+import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingCommandToAccessExceptionRegistry;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingCommandToModifyExceptionRegistry;
@@ -61,9 +62,9 @@ import akka.pattern.PatternsCS;
  * Mixin to authorize {@code ThingCommand}.
  * <p>
  */
-// TODO: scrutinize CreateThing with policy ID and no inline policy
+// TODO: handle _policy for RetrieveThing
 // TODO: migrate logging
-interface ThingCommandEnforcement extends CommandEnforcementSelfType {
+interface ThingCommandEnforcement extends CommandEnforcementSelfType, InlinePolicyHandling {
 
     /**
      * Json fields that are always shown regardless of authorization.
@@ -90,16 +91,6 @@ interface ThingCommandEnforcement extends CommandEnforcementSelfType {
     }
 
     /**
-     * Mixin-private method: retrieve the things-shard-region from the entity region map.
-     *
-     * @return the things shard region if it exists in the entity region map.
-     * @throws IllegalStateException if things shard region is not found.
-     */
-    default ActorRef thingsShardRegion() {
-        return entityRegionMap().lookup(ThingCommand.RESOURCE_TYPE).orElseThrow(IllegalStateException::new);
-    }
-
-    /**
      * Mixin-private method: authorize a thing command in the absence of an enforcer. This happens when the thing did
      * not exist or when the policy of the thing does not exist.
      *
@@ -114,11 +105,11 @@ interface ThingCommandEnforcement extends CommandEnforcementSelfType {
             final String thingId = thingCommand.getThingId();
             final String policyId = enforcerKeyEntry.getValue().getId();
             final DittoRuntimeException error = errorForExistingThingWithDeletedPolicy(thingCommand, thingId, policyId);
-            sender.tell(error, self());
+            replyToSender(error, sender);
         } else {
             // Without prior enforcer in cache, enforce CreateThing by self.
             final boolean authorized = authorizeCreateThingBySelf(thingCommand)
-                    .map(command -> forwardToThingsShardRegion(command, sender))
+                    .map(command -> handleInitialCreateThing(command, sender))
                     .orElse(false);
 
             if (!authorized) {
@@ -134,7 +125,7 @@ interface ThingCommandEnforcement extends CommandEnforcementSelfType {
      * @param enforcer the ACL enforcer.
      * @param sender sender of the command.
      */
-    default void enforceThingCommandByAclEnforcer(final ThingCommand thingCommand, final Enforcer enforcer,
+    default void enforceThingCommandByAclEnforcer(final ThingCommand<?> thingCommand, final Enforcer enforcer,
             final ActorRef sender) {
         final boolean authorized = authorizeByAcl(enforcer, thingCommand)
                 .map(command -> forwardToThingsShardRegion(thingCommand, sender))
@@ -152,7 +143,7 @@ interface ThingCommandEnforcement extends CommandEnforcementSelfType {
      * @param enforcer the policy enforcer.
      * @param sender sender of the command.
      */
-    default void enforceThingCommandByPolicyEnforcer(final ThingCommand thingCommand, final Enforcer enforcer,
+    default void enforceThingCommandByPolicyEnforcer(final ThingCommand<?> thingCommand, final Enforcer enforcer,
             final ActorRef sender) {
         final boolean authorized = authorizeByPolicy(enforcer, thingCommand)
                 .map(commandWithReadSubjects -> {
@@ -168,19 +159,6 @@ interface ThingCommandEnforcement extends CommandEnforcementSelfType {
         if (!authorized) {
             respondWithError(thingCommand, sender);
         }
-    }
-
-    /**
-     * Mixin-private method: forward a command to things-shard-region.
-     * Do not call {@code Actor.forward(Object, ActorContext)} because it is not thread-safe.
-     *
-     * @param thingCommand command to forward.
-     * @param sender sender of the command.
-     * @return always {@code true}.
-     */
-    default boolean forwardToThingsShardRegion(final ThingCommand thingCommand, final ActorRef sender) {
-        thingsShardRegion().tell(thingCommand, sender);
-        return true;
     }
 
     /**
@@ -213,7 +191,7 @@ interface ThingCommandEnforcement extends CommandEnforcementSelfType {
                     } else if (response instanceof ThingQueryCommandResponse) {
                         reportJsonViewForThingQuery(sender, (ThingQueryCommandResponse) response, enforcer);
                     } else if (response instanceof DittoRuntimeException) {
-                        sender.tell(response, self());
+                        replyToSender(response, sender);
                     } else if (response instanceof AskTimeoutException) {
                         reportTimeoutForThingQuery(sender, (AskTimeoutException) response);
                     } else {
@@ -232,7 +210,7 @@ interface ThingCommandEnforcement extends CommandEnforcementSelfType {
      */
     default void reportTimeoutForThingQuery(final ActorRef sender, final AskTimeoutException askTimeoutException) {
         log().error(askTimeoutException, "Timeout before building JsonView");
-        sender.tell(GatewayServiceTimeoutException.newBuilder().build(), self());
+        replyToSender(GatewayServiceTimeoutException.newBuilder().build(), sender);
     }
 
     /**
@@ -249,10 +227,10 @@ interface ThingCommandEnforcement extends CommandEnforcementSelfType {
         try {
             final ThingQueryCommandResponse responseWithLimitedJsonView =
                     buildJsonViewForThingQueryCommandResponse(thingQueryCommandResponse, enforcer);
-            sender.tell(responseWithLimitedJsonView, self());
+            replyToSender(responseWithLimitedJsonView, sender);
         } catch (final DittoRuntimeException e) {
             log().error(e, "Error after building JsonView");
-            sender.tell(e, self());
+            replyToSender(e, sender);
         }
     }
 
@@ -272,6 +250,23 @@ interface ThingCommandEnforcement extends CommandEnforcementSelfType {
         log().error("Unexpected response before building JsonView: <{}>", response);
 
         sender.tell(GatewayInternalErrorException.newBuilder().build(), self());
+    }
+
+    @Override
+    default boolean enforceCreateThingForNonexistentThingWithPolicyId(final CreateThing createThing,
+            final String policyId,
+            final ActorRef sender) {
+        final EntityId policyEntityId = EntityId.of(PolicyCommand.RESOURCE_TYPE, policyId);
+        caches().retrieve(policyEntityId, (policyIdEntry, policyEnforcerEntry) -> {
+            if (policyEnforcerEntry.exists()) {
+                enforceThingCommandByPolicyEnforcer(createThing, policyEnforcerEntry.getValue(), sender);
+            } else {
+                final DittoRuntimeException error =
+                        errorForExistingThingWithDeletedPolicy(createThing, createThing.getThingId(), policyId);
+                replyToSender(error, sender);
+            }
+        });
+        return true;
     }
 
     /**
@@ -322,22 +317,28 @@ interface ThingCommandEnforcement extends CommandEnforcementSelfType {
      * @param enforcer the enforcer.
      * @return the extended command.
      */
-    static ThingCommand addReadSubjectsToThingCommand(final ThingCommand thingCommand, final Enforcer enforcer) {
+    static <T extends ThingCommand> T addReadSubjectsToThingCommand(final ThingCommand<T> thingCommand,
+            final Enforcer enforcer) {
+
         return addReadSubjectsToThingCommand(thingCommand, getReadSubjects(thingCommand, enforcer));
     }
 
     /**
      * Mixin-private: extend a thing command by read-subjects header given explicitly.
      *
+     * @param <T> type of the thing command.
      * @param thingCommand the command to extend.
      * @param readSubjects explicitly-given read subjects.
      * @return the extended command.
      */
-    static ThingCommand addReadSubjectsToThingCommand(final ThingCommand thingCommand, final Set<String> readSubjects) {
+    static <T extends ThingCommand> T addReadSubjectsToThingCommand(final ThingCommand<T> thingCommand,
+            final Set<String> readSubjects) {
+
         final DittoHeaders newHeaders = thingCommand.getDittoHeaders()
                 .toBuilder()
                 .readSubjects(readSubjects)
                 .build();
+
         return thingCommand.setDittoHeaders(newHeaders);
     }
 
@@ -414,12 +415,14 @@ interface ThingCommandEnforcement extends CommandEnforcementSelfType {
 
     /**
      * Mixin-private: authorize a thing-command by authorization information contained in itself. Only {@code
-     * CreateThing} commands are authorized in this manner in the absence of an existing enforcer.
+     * CreateThing} commands are authorized in this manner in the absence of an existing enforcer. {@code
+     * ModifyThing} commands are transformed to {@code CreateThing} commands before being processed.
      *
-     * @param thingCommand the command to authorize.
+     * @param receivedThingCommand the command to authorize.
      * @return optionally the authorized command extended by  read subjects.
      */
-    static Optional<ThingCommand> authorizeCreateThingBySelf(final ThingCommand thingCommand) {
+    static Optional<CreateThing> authorizeCreateThingBySelf(final ThingCommand receivedThingCommand) {
+        final ThingCommand thingCommand = transformModifyThingToCreateThing(receivedThingCommand);
         if (thingCommand instanceof CreateThing) {
             final CreateThing createThing = (CreateThing) thingCommand;
             final Optional<JsonObject> initialPolicyOptional = createThing.getInitialPolicy();
@@ -449,13 +452,34 @@ interface ThingCommandEnforcement extends CommandEnforcementSelfType {
     }
 
     /**
+     * Mixin-private: Transform a {@code ModifyThing} command sent to nonexistent thing to {@code CreateThing}
+     * command if it is sent to a nonexistent thing.
+     *
+     * @param receivedCommand the command to transform.
+     * @return {@code CreateThing} command containing the same information if the argument is a {@code ModifyThing}
+     * command. Otherwise return the command itself.
+     */
+    static ThingCommand transformModifyThingToCreateThing(final ThingCommand receivedCommand) {
+        if (receivedCommand instanceof ModifyThing) {
+            final ModifyThing modifyThing = (ModifyThing) receivedCommand;
+            final JsonObject initialPolicy = modifyThing.getInitialPolicy().orElse(null);
+            return CreateThing.of(modifyThing.getThing(), initialPolicy, modifyThing.getDittoHeaders());
+        } else {
+            return receivedCommand;
+        }
+    }
+
+    /**
      * Mixin-private: authorize a thing-command by a policy enforcer.
      *
+     * @param <T> type of the thing-command.
      * @param policyEnforcer the policy enforcer.
      * @param command the command to authorize.
      * @return optionally the authorized command extended by read subjects.
      */
-    static Optional<ThingCommand> authorizeByPolicy(final Enforcer policyEnforcer, final ThingCommand command) {
+    static <T extends ThingCommand> Optional<T> authorizeByPolicy(final Enforcer policyEnforcer,
+            final ThingCommand<T> command) {
+
         final ResourceKey thingResourceKey = PoliciesResourceType.thingResource(command.getResourcePath());
         final AuthorizationContext authorizationContext = command.getDittoHeaders().getAuthorizationContext();
         final boolean authorized;
@@ -474,11 +498,13 @@ interface ThingCommandEnforcement extends CommandEnforcementSelfType {
     /**
      * Mixin-private: authorize a thing-command by an ACL enforcer.
      *
+     * @param <T> type of the thing-command.
      * @param aclEnforcer the ACL enforcer.
      * @param command the command to authorize.
      * @return optionally the authorized command extended by read subjects.
      */
-    static Optional<ThingCommand> authorizeByAcl(final Enforcer aclEnforcer, final ThingCommand command) {
+    static <T extends ThingCommand> Optional<T> authorizeByAcl(final Enforcer aclEnforcer,
+            final ThingCommand<T> command) {
         final ResourceKey thingResourceKey = PoliciesResourceType.thingResource(command.getResourcePath());
         final AuthorizationContext authorizationContext = command.getDittoHeaders().getAuthorizationContext();
         final Permissions permissions = command instanceof ThingModifyCommand

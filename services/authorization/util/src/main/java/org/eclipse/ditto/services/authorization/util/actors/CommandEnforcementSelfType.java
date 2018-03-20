@@ -12,15 +12,15 @@
 package org.eclipse.ditto.services.authorization.util.actors;
 
 import java.time.Duration;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
-import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.services.authorization.util.EntityRegionMap;
 import org.eclipse.ditto.services.authorization.util.cache.AuthorizationCaches;
 import org.eclipse.ditto.services.models.authorization.EntityId;
+import org.eclipse.ditto.signals.commands.things.ThingCommand;
+import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 
 import akka.actor.Actor;
+import akka.actor.ActorRef;
 import akka.event.DiagnosticLoggingAdapter;
 
 /**
@@ -68,4 +68,51 @@ public interface CommandEnforcementSelfType extends Actor {
      * @return the authorization caches.
      */
     AuthorizationCaches caches();
+
+    /**
+     * Method shared by {@code ThingCommandEnforcement} with other mixins: authorize a {@code CreateThing} command
+     * containing an explicit policy ID sent to a nonexistent thing.
+     *
+     * @param createThing the command.
+     * @param policyId policy ID contained in the command.
+     * @param sender sender of the command.
+     * @return 0 (must not be null).
+     */
+    boolean enforceCreateThingForNonexistentThingWithPolicyId(final CreateThing createThing,
+            final String policyId,
+            final ActorRef sender);
+
+    /**
+     * Convenience method: retrieve the things-shard-region from the entity region map.
+     *
+     * @return the things shard region if it exists in the entity region map, deadletters otherwise.
+     */
+    default ActorRef thingsShardRegion() {
+        return entityRegionMap().lookup(ThingCommand.RESOURCE_TYPE).orElse(context().system().deadLetters());
+    }
+
+    /**
+     * Convenience method: forward a message to things-shard-region.
+     * Do not call {@code Actor.forward(Object, ActorContext)} because it is not thread-safe.
+     *
+     * @param message message to forward.
+     * @param sender sender of the command.
+     * @return true.
+     */
+    default boolean forwardToThingsShardRegion(final Object message, final ActorRef sender) {
+        thingsShardRegion().tell(message, sender);
+        return true;
+    }
+
+    /**
+     * Convenience method: reply a message to sender.
+     *
+     * @param message message to forward.
+     * @param sender whom to reply to.
+     * @return true.
+     */
+    default boolean replyToSender(final Object message, final ActorRef sender) {
+        sender.tell(message, self());
+        return true;
+    }
 }
