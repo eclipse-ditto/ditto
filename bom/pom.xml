@@ -71,6 +71,7 @@
         <equals-verifier.version>2.3</equals-verifier.version>
         <mockito.version>2.9.0</mockito.version>
         <jsonassert.version>1.2.3</jsonassert.version>
+        <awaitility.version>3.1.0</awaitility.version>
         <akka-persistence-inmemory.version>2.5.1.1</akka-persistence-inmemory.version>
 
         <jmh.version>1.4.1</jmh.version>
@@ -597,6 +598,12 @@
                 <groupId>org.skyscreamer</groupId>
                 <artifactId>jsonassert</artifactId>
                 <version>${jsonassert.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.awaitility</groupId>
+                <artifactId>awaitility</artifactId>
+                <version>${awaitility.version}</version>
                 <scope>test</scope>
             </dependency>
 

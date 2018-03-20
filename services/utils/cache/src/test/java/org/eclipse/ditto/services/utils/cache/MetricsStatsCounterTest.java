@@ -19,8 +19,10 @@ import java.util.AbstractMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
-import org.assertj.core.data.Percentage;
+import org.awaitility.Awaitility;
+import org.awaitility.core.ThrowingRunnable;
 import org.junit.Test;
 
 import com.codahale.metrics.Gauge;
@@ -50,38 +52,41 @@ public final class MetricsStatsCounterTest {
         requestNTimes(cache, 1, requestTimes1);
 
         // THEN
-        assertThat(getGauge(registry, createMetricName(MetricsStatsCounter.MetricName.MAX_SIZE)).getValue())
-                .isEqualTo(MAXIMUM_SIZE);
-        final long expectedEstimatedSize = 2;
-        assertThat(getGauge(registry, createMetricName(MetricsStatsCounter.MetricName.ESTIMATED_SIZE)).getValue())
-                .isEqualTo(expectedEstimatedSize);
+        waitUntilAsserted(() -> {
+            assertThat(getGauge(registry, createMetricName(MetricsStatsCounter.MetricName.MAX_SIZE)).getValue())
+                    .isEqualTo(MAXIMUM_SIZE);
+            final long expectedEstimatedSize = 2;
+            assertThat(getGauge(registry, createMetricName(MetricsStatsCounter.MetricName.ESTIMATED_SIZE)).getValue())
+                    .isEqualTo(expectedEstimatedSize);
 
-        // for all keys one miss is expected for first access
-        assertThat(registry.meter(createMetricName(MetricsStatsCounter.MetricName.MISSES)).getCount())
-                .isEqualTo(expectedEstimatedSize);
-        final long expectedHits = requestTimes0 + requestTimes1 - expectedEstimatedSize;
-        assertThat(registry.meter(createMetricName(MetricsStatsCounter.MetricName.HITS)).getCount())
-                .isEqualTo(expectedHits);
+            // for all keys one miss is expected for first access
+            assertThat(registry.meter(createMetricName(MetricsStatsCounter.MetricName.MISSES)).getCount())
+                    .isEqualTo(expectedEstimatedSize);
+            final long expectedHits = requestTimes0 + requestTimes1 - expectedEstimatedSize;
+            assertThat(registry.meter(createMetricName(MetricsStatsCounter.MetricName.HITS)).getCount())
+                    .isEqualTo(expectedHits);
 
-        final Timer totalLoadTimeTimer =
-                registry.timer(createMetricName(MetricsStatsCounter.MetricName.TOTAL_LOAD_TIME));
-        assertThat(totalLoadTimeTimer.getCount())
-                .isEqualTo(expectedEstimatedSize);
-        final Duration maxExpectedLoadDuration = Duration.ofSeconds(1);
-        assertThat(totalLoadTimeTimer.getMeanRate())
-                .isLessThan(maxExpectedLoadDuration.toNanos());
-        assertThat(registry.meter(createMetricName(MetricsStatsCounter.MetricName.LOADS_SUCCESS)).getCount())
-                .isEqualTo(expectedEstimatedSize);
-        assertThat(registry.meter(createMetricName(MetricsStatsCounter.MetricName.LOADS_FAILURE)).getCount())
-                .isEqualTo(0);
+            final Timer totalLoadTimeTimer =
+                    registry.timer(createMetricName(MetricsStatsCounter.MetricName.TOTAL_LOAD_TIME));
+            assertThat(totalLoadTimeTimer.getCount())
+                    .isEqualTo(expectedEstimatedSize);
+            final Duration maxExpectedLoadDuration = Duration.ofSeconds(1);
+            assertThat(totalLoadTimeTimer.getMeanRate())
+                    .isLessThan(maxExpectedLoadDuration.toNanos());
+            assertThat(registry.meter(createMetricName(MetricsStatsCounter.MetricName.LOADS_SUCCESS)).getCount())
+                    .isEqualTo(expectedEstimatedSize);
+            assertThat(registry.meter(createMetricName(MetricsStatsCounter.MetricName.LOADS_FAILURE)).getCount())
+                    .isEqualTo(0);
 
-        assertThat(registry.meter(createMetricName(MetricsStatsCounter.MetricName.EVICTIONS)).getCount())
-                .isEqualTo(0);
-        assertThat(registry.meter(createMetricName(MetricsStatsCounter.MetricName.EVICTIONS_WEIGHT)).getCount())
-                .isEqualTo(0);
+            assertThat(registry.meter(createMetricName(MetricsStatsCounter.MetricName.EVICTIONS)).getCount())
+                    .isEqualTo(0);
+            assertThat(registry.meter(createMetricName(MetricsStatsCounter.MetricName.EVICTIONS_WEIGHT)).getCount())
+                    .isEqualTo(0);
 
-        assertThat(registry.meter(createMetricName(MetricsStatsCounter.MetricName.ESTIMATED_INVALIDATIONS)).getCount())
-                .isEqualTo(0);
+            assertThat(
+                    registry.meter(createMetricName(MetricsStatsCounter.MetricName.ESTIMATED_INVALIDATIONS)).getCount())
+                    .isEqualTo(0);
+        });
     }
 
     @Test
@@ -97,20 +102,25 @@ public final class MetricsStatsCounterTest {
         }
 
         // THEN
-        assertThat(getGauge(registry, createMetricName(MetricsStatsCounter.MetricName.MAX_SIZE)).getValue())
-                .isEqualTo(MAXIMUM_SIZE);
-        assertThat((Long) getGauge(registry, createMetricName(MetricsStatsCounter.MetricName.ESTIMATED_SIZE))
-                .getValue())
-                .isCloseTo(MAXIMUM_SIZE, Percentage.withPercentage(25));
+        /* it is not simply testable whether and when the actual size of the cache changes,
+           because Caffeine uses "Window TinyLfu" cache eviction policy,
+           see https://github.com/ben-manes/caffeine/wiki/Efficiency
+         */
+        waitUntilAsserted(() -> {
+            assertThat(registry.meter(createMetricName(MetricsStatsCounter.MetricName.EVICTIONS)).getCount())
+                    .isEqualTo(cacheExceedingElementsCount);
+            assertThat(registry.meter(createMetricName(MetricsStatsCounter.MetricName.EVICTIONS_WEIGHT)).getCount())
+                    .isEqualTo(cacheExceedingElementsCount);
 
-        assertThat(registry.meter(createMetricName(MetricsStatsCounter.MetricName.EVICTIONS)).getCount())
-                .isEqualTo(cacheExceedingElementsCount);
-        assertThat(registry.meter(createMetricName(MetricsStatsCounter.MetricName.EVICTIONS_WEIGHT)).getCount())
-                .isEqualTo(cacheExceedingElementsCount);
+            // invalidations are no evictions
+            assertThat(
+                    registry.meter(createMetricName(MetricsStatsCounter.MetricName.ESTIMATED_INVALIDATIONS)).getCount())
+                    .isEqualTo(0);
+        });
+    }
 
-        // invalidations are no evictions
-        assertThat(registry.meter(createMetricName(MetricsStatsCounter.MetricName.ESTIMATED_INVALIDATIONS)).getCount())
-                .isEqualTo(0);
+    private static void waitUntilAsserted(final ThrowingRunnable throwingRunnable) {
+        Awaitility.await().atMost(5, TimeUnit.SECONDS).untilAsserted(throwingRunnable);
     }
 
     @Test
@@ -131,14 +141,17 @@ public final class MetricsStatsCounterTest {
         cache.invalidate(nonExistingKey);
 
         // THEN
-        assertThat(registry.meter(createMetricName(MetricsStatsCounter.MetricName.ESTIMATED_INVALIDATIONS)).getCount())
-                .isEqualTo(1);
-        assertThat(getGauge(registry, createMetricName(MetricsStatsCounter.MetricName.ESTIMATED_SIZE)).getValue())
-                .isEqualTo(0L);
+        waitUntilAsserted(() -> {
+            assertThat(
+                    registry.meter(createMetricName(MetricsStatsCounter.MetricName.ESTIMATED_INVALIDATIONS)).getCount())
+                    .isEqualTo(1);
+            assertThat(getGauge(registry, createMetricName(MetricsStatsCounter.MetricName.ESTIMATED_SIZE)).getValue())
+                    .isEqualTo(0L);
 
-        // evictions are no invalidations
-        assertThat(registry.meter(createMetricName(MetricsStatsCounter.MetricName.EVICTIONS)).getCount())
-                .isEqualTo(0);
+            // evictions are no invalidations
+            assertThat(registry.meter(createMetricName(MetricsStatsCounter.MetricName.EVICTIONS)).getCount())
+                    .isEqualTo(0);
+        });
     }
 
     private CaffeineCache<Integer, Integer> createCaffeineCache(final MetricRegistry registry) {
