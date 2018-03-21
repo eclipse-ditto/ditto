@@ -23,6 +23,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
+import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.signals.commands.connectivity.TestConstants;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionNotAccessibleException;
@@ -152,7 +153,9 @@ public class JsonExamplesProducer {
         writeJson(commandsDir.resolve(Paths.get("retrieveConnectionStatus.json")), retrieveConnectionStatusResponse);
 
         final RetrieveConnectionMetricsResponse retrieveConnectionMetricsResponse =
-                RetrieveConnectionMetricsResponse.of(TestConstants.ID, ConnectionStatus.OPEN, DittoHeaders.empty());
+                RetrieveConnectionMetricsResponse.of(TestConstants.ID,
+                        ConnectivityModelFactory.newConnectionMetrics(ConnectionStatus.OPEN, "some status"),
+                        DittoHeaders.empty());
         writeJson(commandsDir.resolve(Paths.get("retrieveConnectionMetrics.json")), retrieveConnectionMetricsResponse);
     }
 

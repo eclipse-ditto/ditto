@@ -29,7 +29,8 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.connectivity.ConnectionStatus;
+import org.eclipse.ditto.model.connectivity.ConnectionMetrics;
+import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.signals.commands.base.WithEntity;
@@ -52,36 +53,36 @@ public final class RetrieveConnectionMetricsResponse
             JsonFactory.newStringFieldDefinition("connectionId", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
-    static final JsonFieldDefinition<String> JSON_CONNECTION_STATUS =
-            JsonFactory.newStringFieldDefinition("connectionStatus", FieldType.REGULAR, JsonSchemaVersion.V_1,
+    static final JsonFieldDefinition<JsonObject> JSON_CONNECTION_METRICS =
+            JsonFactory.newJsonObjectFieldDefinition("connectionMetrics", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
     private final String connectionId;
-    private final ConnectionStatus connectionStatus;
+    private final ConnectionMetrics connectionMetrics;
 
-    private RetrieveConnectionMetricsResponse(final String connectionId, final ConnectionStatus connectionStatus,
+    private RetrieveConnectionMetricsResponse(final String connectionId, final ConnectionMetrics connectionMetrics,
             final DittoHeaders dittoHeaders) {
         super(TYPE, HttpStatusCode.OK, dittoHeaders);
 
         this.connectionId = connectionId;
-        this.connectionStatus = connectionStatus;
+        this.connectionMetrics = connectionMetrics;
     }
 
     /**
      * Returns a new instance of {@code RetrieveConnectionMetricsResponse}.
      *
      * @param connectionId the identifier of the connection.
-     * @param connectionStatus the retrieved connection status.
+     * @param connectionMetrics the retrieved connection metrics.
      * @param dittoHeaders the headers of the request.
      * @return a new RetrieveConnectionMetricsResponse response.
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static RetrieveConnectionMetricsResponse of(final String connectionId,
-            final ConnectionStatus connectionStatus, final DittoHeaders dittoHeaders) {
+            final ConnectionMetrics connectionMetrics, final DittoHeaders dittoHeaders) {
         checkNotNull(connectionId, "Connection ID");
-        checkNotNull(connectionStatus, "Connection Status");
+        checkNotNull(connectionMetrics, "Connection Status");
 
-        return new RetrieveConnectionMetricsResponse(connectionId, connectionStatus, dittoHeaders);
+        return new RetrieveConnectionMetricsResponse(connectionId, connectionMetrics, dittoHeaders);
     }
 
     /**
@@ -115,21 +116,20 @@ public final class RetrieveConnectionMetricsResponse
         return new CommandResponseJsonDeserializer<RetrieveConnectionMetricsResponse>(TYPE, jsonObject).deserialize(
                 statusCode -> {
                     final String readConnectionId = jsonObject.getValueOrThrow(JSON_CONNECTION_ID);
-                    final ConnectionStatus readConnectionStatus =
-                            ConnectionStatus.forName(jsonObject.getValueOrThrow(JSON_CONNECTION_STATUS))
-                                    .orElse(ConnectionStatus.UNKNOWN);
+                    final ConnectionMetrics readConnectionMetrics = ConnectivityModelFactory.connectionMetricsFromJson(
+                            jsonObject.getValueOrThrow(JSON_CONNECTION_METRICS));
 
-                    return of(readConnectionId, readConnectionStatus, dittoHeaders);
+                    return of(readConnectionId, readConnectionMetrics, dittoHeaders);
                 });
     }
 
     /**
-     * Returns the retrieved {@code ConnectionStatus}.
+     * Returns the retrieved {@code ConnectionMetrics}.
      *
-     * @return the ConnectionStatus.
+     * @return the ConnectionMetrics.
      */
-    public ConnectionStatus getConnectionStatus() {
-        return connectionStatus;
+    public ConnectionMetrics getConnectionMetrics() {
+        return connectionMetrics;
     }
 
     @Override
@@ -137,7 +137,7 @@ public final class RetrieveConnectionMetricsResponse
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(JSON_CONNECTION_ID, connectionId, predicate);
-        jsonObjectBuilder.set(JSON_CONNECTION_STATUS, connectionStatus.getName(), predicate);
+        jsonObjectBuilder.set(JSON_CONNECTION_METRICS, connectionMetrics.toJson(), predicate);
     }
 
     @Override
@@ -147,7 +147,7 @@ public final class RetrieveConnectionMetricsResponse
 
     @Override
     public JsonValue getEntity(final JsonSchemaVersion schemaVersion) {
-        return JsonValue.of(connectionId); // TODO TJ
+        return connectionMetrics.toJson();
     }
 
     @Override
@@ -157,7 +157,7 @@ public final class RetrieveConnectionMetricsResponse
 
     @Override
     public RetrieveConnectionMetricsResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(connectionId, connectionStatus, dittoHeaders);
+        return of(connectionId, connectionMetrics, dittoHeaders);
     }
 
     @Override
@@ -172,12 +172,12 @@ public final class RetrieveConnectionMetricsResponse
         if (!super.equals(o)) {return false;}
         final RetrieveConnectionMetricsResponse that = (RetrieveConnectionMetricsResponse) o;
         return Objects.equals(connectionId, that.connectionId) &&
-                Objects.equals(connectionStatus, that.connectionStatus);
+                Objects.equals(connectionMetrics, that.connectionMetrics);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), connectionId, connectionStatus);
+        return Objects.hash(super.hashCode(), connectionId, connectionMetrics);
     }
 
     @Override
@@ -185,7 +185,7 @@ public final class RetrieveConnectionMetricsResponse
         return getClass().getSimpleName() + " [" +
                 super.toString() +
                 ", connectionId=" + connectionId +
-                ", connectionStatus=" + connectionStatus +
+                ", connectionMetrics=" + connectionMetrics +
                 "]";
     }
 

@@ -126,16 +126,16 @@ public class JMSConnectionHandlingActor extends AbstractActor {
                 log.warning("Failed to consume sources: {}.", failedSources);
                 final ConnectionFailedException failedException = ConnectionFailedException
                         .newBuilder(connection.getId())
-                        .message("\"Failed to consume sources: " + failedSources.keySet())
+                        .message("Failed to consume sources: " + failedSources.keySet())
                         .description(() -> failedSources.entrySet()
                                 .stream()
                                 .map(e -> e.getKey() + ": " + e.getValue().getMessage())
                                 .collect(Collectors.joining(", ")))
                         .build();
-                sender().tell(new AmqpClientActor.JmsFailure(connect.getOrigin(), failedException), sender());
+                getSender().tell(new AmqpClientActor.JmsFailure(connect.getOrigin(), failedException, null), sender());
             }
         } catch (final Exception e) {
-            sender().tell(new AmqpClientActor.JmsFailure(connect.getOrigin(), e), sender());
+            getSender().tell(new AmqpClientActor.JmsFailure(connect.getOrigin(), e, null), getSender());
         }
         getContext().stop(getSelf());
     }
@@ -150,7 +150,7 @@ public class JMSConnectionHandlingActor extends AbstractActor {
         } catch (final JMSException e) {
             log.debug("Connection '{}' already closed: {}", this.connection.getId(), e.getMessage());
         }
-        sender().tell(new AmqpClientActor.JmsDisconnected(disconnect.getOrigin()), sender());
+        getSender().tell(new AmqpClientActor.JmsDisconnected(disconnect.getOrigin()), getSender());
         log.info("Stop myself {}", getSelf());
         getContext().stop(getSelf());
     }

@@ -14,6 +14,7 @@ package org.eclipse.ditto.model.connectivity;
 import java.util.Map;
 import java.util.Set;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonObject;
@@ -56,6 +57,32 @@ public final class ConnectivityModelFactory {
     public static Connection connectionFromJson(final JsonObject jsonObject) {
         return ImmutableConnection.fromJson(jsonObject);
     }
+
+    /**
+     * Creates a new {@code ConnectionMetrics} object from the specified JSON object.
+     *
+     * @param jsonObject a JSON object which provides the data for the Connection to be created.
+     * @return a new ConnectionMetrics which is initialised with the extracted data from {@code jsonObject}.
+     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} is not an appropriate JSON object.
+     */
+    public static ConnectionMetrics connectionMetricsFromJson(final JsonObject jsonObject) {
+        return ImmutableConnectionMetrics.fromJson(jsonObject);
+    }
+
+    /**
+     * Retruens a new {@code ConnectionMetrics}.
+     *
+     * @param connectionStatus the ConnectionStatus of the metrics to create
+     * @param connectionStatusDetails the optional details about the connection status
+     * @return a new ConnectionMetrics which is initialised with the extracted data from {@code jsonObject}.
+     * @throws NullPointerException if {@code connectionStatus} is {@code null}.
+     */
+    public static ConnectionMetrics newConnectionMetrics(final ConnectionStatus connectionStatus,
+            final @Nullable String connectionStatusDetails) {
+        return ImmutableConnectionMetrics.of(connectionStatus, connectionStatusDetails);
+    }
+
 
     /**
      * Returns a new {@code MappingContext}.

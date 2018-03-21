@@ -153,7 +153,8 @@ public final class MessageMappingProcessorActor extends AbstractActor {
                 .match(CommandResponse.class, this::handleCommandResponse)
                 .match(Signal.class, this::handleSignal)
                 .match(DittoRuntimeException.class, this::handleDittoRuntimeException)
-                .match(Status.Failure.class, f -> log.error(f.cause(), "Got an unexpected failure."))
+                .match(Status.Failure.class, f -> log.warning("Got failure with cause {}: {}",
+                        f.cause().getClass().getSimpleName(), f.cause().getMessage()))
                 .matchAny(m -> {
                     log.debug("Unknown message: {}", m);
                     unhandled(m);

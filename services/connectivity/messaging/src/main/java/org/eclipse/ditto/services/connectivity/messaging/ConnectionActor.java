@@ -248,7 +248,8 @@ final class ConnectionActor extends AbstractPersistentActor {
                 .match(CreateConnection.class, this::createConnection)
                 .match(ConnectivityCommand.class, this::handleCommandDuringInitialization)
                 .match(Shutdown.class, shutdown -> stopSelf())
-                .match(Status.Failure.class, f -> log.error(f.cause(), "Got failure: {}", f))
+                .match(Status.Failure.class, f -> log.warning("Got failure in initial behaviour with cause {}: {}",
+                        f.cause().getClass().getSimpleName(), f.cause().getMessage()))
                 .matchAny(m -> {
                     log.warning("Unknown message: {}", m);
                     unhandled(m);
@@ -283,7 +284,8 @@ final class ConnectionActor extends AbstractPersistentActor {
                 .match(DistributedPubSubMediator.UnsubscribeAck.class, this::handleUnsubscribeAck)
                 .match(SaveSnapshotSuccess.class, this::handleSnapshotSuccess)
                 .match(Shutdown.class, shutdown -> log.debug("Dropping Shutdown in created behaviour state."))
-                .match(Status.Failure.class, f -> log.error(f.cause(), "Got failure: {}", f))
+                .match(Status.Failure.class, f -> log.warning("Got failure in connectionCreated behaviour with " +
+                                "cause {}: {}", f.cause().getClass().getSimpleName(), f.cause().getMessage()))
                 .matchAny(m -> {
                     log.warning("Unknown message: {}", m);
                     unhandled(m);
@@ -448,9 +450,8 @@ final class ConnectionActor extends AbstractPersistentActor {
         }
 
         origin.tell(dre, getSelf());
-        log.error(dre, "Operation '{}' on connection '{}' failed: {}.", action,
-                connectionId,
-                dre.getMessage());
+        log.warning("Operation <{}> on connection <{}> failed due to {}: {}.", action, connectionId,
+                dre.getClass().getSimpleName(), dre.getMessage());
     }
 
     private void retrieveConnection(final RetrieveConnection command) {

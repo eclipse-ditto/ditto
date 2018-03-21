@@ -67,12 +67,8 @@ public final class ConnectionBasedRabbitConnectionFactory extends ConnectionFact
 
             connectionFactory.setUri(dittoConnection.getUri());
 
-            if (dittoConnection.isFailoverEnabled()) {
-                connectionFactory.setAutomaticRecoveryEnabled(true);
-            } else {
-                connectionFactory.setAutomaticRecoveryEnabled(false);
-            }
-
+            // this makes no difference as the used newmotion client always sets the AutomaticRecoveryEnabled to false:
+            connectionFactory.setAutomaticRecoveryEnabled(dittoConnection.isFailoverEnabled());
 
             connectionFactory.setExceptionHandler(
                     new RabbitMQExceptionHandler(dittoConnection, createConnectionSender));

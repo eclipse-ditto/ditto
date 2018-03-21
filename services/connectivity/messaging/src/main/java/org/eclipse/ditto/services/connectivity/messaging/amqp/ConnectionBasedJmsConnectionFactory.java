@@ -86,7 +86,7 @@ public final class ConnectionBasedJmsConnectionFactory implements JmsConnectionF
 
         final String baseUri = formatUri(protocol, hostname, port);
 
-        final List<String> parameters = new ArrayList<>(getAmqpParameters());
+        final List<String> parameters = new ArrayList<>(getAmqpParameters(username == null || password == null));
         if (!connection.isValidateCertificates() && SECURE_AMQP_SCHEME.equalsIgnoreCase(protocol)) {
             // these setting can only be applied for amqps connections:
             parameters.addAll(getTransportParameters());
@@ -135,8 +135,10 @@ public final class ConnectionBasedJmsConnectionFactory implements JmsConnectionF
         return parameters;
     }
 
-    private static List<String> getAmqpParameters() {
-        return Collections.singletonList("amqp.saslMechanisms=PLAIN,ANONYMOUS");
+    private static List<String> getAmqpParameters(final boolean anonymous) {
+        return anonymous ?
+            Collections.singletonList("amqp.saslMechanisms=ANONYMOUS") :
+            Collections.singletonList("amqp.saslMechanisms=PLAIN");
     }
 
     private static List<String> getTransportParameters() {

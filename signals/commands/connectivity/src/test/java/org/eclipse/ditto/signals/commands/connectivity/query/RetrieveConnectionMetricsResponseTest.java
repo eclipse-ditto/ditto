@@ -20,7 +20,9 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.connectivity.ConnectionMetrics;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
+import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.connectivity.TestConstants;
 import org.junit.Test;
@@ -32,11 +34,13 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  */
 public final class RetrieveConnectionMetricsResponseTest {
 
+    private static final ConnectionMetrics METRICS = ConnectivityModelFactory.newConnectionMetrics(ConnectionStatus.OPEN, "some status");
+
     private static final JsonObject KNOWN_JSON = JsonObject.newBuilder()
             .set(CommandResponse.JsonFields.TYPE, RetrieveConnectionMetricsResponse.TYPE)
             .set(CommandResponse.JsonFields.STATUS, HttpStatusCode.OK.toInt())
             .set(RetrieveConnectionMetricsResponse.JSON_CONNECTION_ID, TestConstants.ID)
-            .set(RetrieveConnectionMetricsResponse.JSON_CONNECTION_STATUS, ConnectionStatus.OPEN.getName())
+            .set(RetrieveConnectionMetricsResponse.JSON_CONNECTION_METRICS, METRICS.toJson())
             .build();
 
     @Test
@@ -49,14 +53,14 @@ public final class RetrieveConnectionMetricsResponseTest {
     @Test
     public void assertImmutability() {
         assertInstancesOf(RetrieveConnectionMetricsResponse.class, areImmutable(),
-                provided(ConnectionStatus.class).isAlsoImmutable());
+                provided(ConnectionMetrics.class).isAlsoImmutable());
     }
 
     @Test
     public void retrieveInstanceWithNullConnectionId() {
         assertThatExceptionOfType(NullPointerException.class)
                 .isThrownBy(
-                        () -> RetrieveConnectionMetricsResponse.of(null, ConnectionStatus.OPEN, DittoHeaders.empty()))
+                        () -> RetrieveConnectionMetricsResponse.of(null, METRICS, DittoHeaders.empty()))
                 .withMessage("The %s must not be null!", "Connection ID")
                 .withNoCause();
     }
@@ -64,7 +68,7 @@ public final class RetrieveConnectionMetricsResponseTest {
     @Test
     public void fromJsonReturnsExpected() {
         final RetrieveConnectionMetricsResponse expected =
-                RetrieveConnectionMetricsResponse.of(TestConstants.ID, ConnectionStatus.OPEN,
+                RetrieveConnectionMetricsResponse.of(TestConstants.ID, METRICS,
                         DittoHeaders.empty());
 
         final RetrieveConnectionMetricsResponse actual =
@@ -76,7 +80,7 @@ public final class RetrieveConnectionMetricsResponseTest {
     @Test
     public void toJsonReturnsExpected() {
         final JsonObject actual =
-                RetrieveConnectionMetricsResponse.of(TestConstants.ID, ConnectionStatus.OPEN,
+                RetrieveConnectionMetricsResponse.of(TestConstants.ID, METRICS,
                         DittoHeaders.empty()).toJson();
 
         assertThat(actual).isEqualTo(KNOWN_JSON);

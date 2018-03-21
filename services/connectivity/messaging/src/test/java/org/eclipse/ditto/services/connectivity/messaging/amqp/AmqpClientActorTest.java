@@ -39,6 +39,7 @@ import org.apache.qpid.jms.JmsQueue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
+import org.eclipse.ditto.services.connectivity.messaging.BaseClientState;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
@@ -74,9 +75,8 @@ public class AmqpClientActorTest {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AmqpClientActorTest.class);
 
-    private static final Status.Success CONNECTED_SUCCESS = new Status.Success(AmqpClientActor.State.CONNECTED);
-    private static final Status.Success DISCONNECTED_SUCCESS =
-            new Status.Success(AmqpClientActor.State.DISCONNECTED);
+    private static final Status.Success CONNECTED_SUCCESS = new Status.Success(BaseClientState.CONNECTED);
+    private static final Status.Success DISCONNECTED_SUCCESS = new Status.Success(BaseClientState.DISCONNECTED);
     private static final JMSException JMS_EXCEPTION = new JMSException("FAIL");
 
     @SuppressWarnings("NullableProblems") private static ActorSystem actorSystem;
