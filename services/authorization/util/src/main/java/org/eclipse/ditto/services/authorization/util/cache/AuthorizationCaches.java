@@ -16,6 +16,7 @@ import java.util.AbstractMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.services.authorization.util.EntityRegionMap;
@@ -49,19 +50,25 @@ public final class AuthorizationCaches {
      *
      * @param cachesConfigReader config reader for authorization cache.
      * @param entityRegionMap map resource types to the shard regions of corresponding entities.
+     * @param metricsReportingConsumer a consumer of named {@link MetricRegistry}s for reporting purposes
      */
-    public AuthorizationCaches(final CachesConfigReader cachesConfigReader, final EntityRegionMap entityRegionMap) {
+    public AuthorizationCaches(final CachesConfigReader cachesConfigReader, final EntityRegionMap entityRegionMap,
+            final Consumer<AbstractMap.Entry<String, MetricRegistry>> metricsReportingConsumer) {
 
         final Duration askTimeout = cachesConfigReader.askTimeout();
 
         final EnforcerCacheLoader enforcerCacheLoader = new EnforcerCacheLoader(askTimeout, entityRegionMap);
-        enforcerCache = createCache(cachesConfigReader.enforcer(), enforcerCacheLoader,
-                new AbstractMap.SimpleImmutableEntry<>("ditto.authorization.enforcer.cache", new MetricRegistry()));
+        final AbstractMap.SimpleImmutableEntry<String, MetricRegistry> enforcerCacheMetricRegistry =
+                new AbstractMap.SimpleImmutableEntry<>("ditto.authorization.enforcer.cache", new MetricRegistry());
+        enforcerCache = createCache(cachesConfigReader.enforcer(), enforcerCacheLoader, enforcerCacheMetricRegistry);
 
         final IdCacheLoader idCacheLoader = new IdCacheLoader(askTimeout, entityRegionMap, this);
-        idCache = createCache(cachesConfigReader.id(), idCacheLoader,
-                new AbstractMap.SimpleImmutableEntry<>("ditto.authorization.entityId.cache", new MetricRegistry()));
+        final AbstractMap.SimpleImmutableEntry<String, MetricRegistry> idCacheMetricRegistry =
+                new AbstractMap.SimpleImmutableEntry<>("ditto.authorization.entityId.cache", new MetricRegistry());
+        idCache = createCache(cachesConfigReader.id(), idCacheLoader, idCacheMetricRegistry);
 
+        metricsReportingConsumer.accept(enforcerCacheMetricRegistry);
+        metricsReportingConsumer.accept(idCacheMetricRegistry);
     }
 
     /**

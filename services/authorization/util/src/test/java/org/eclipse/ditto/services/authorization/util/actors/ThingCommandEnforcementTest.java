@@ -16,6 +16,9 @@ import static org.eclipse.ditto.model.base.json.JsonSchemaVersion.V_1;
 import static org.eclipse.ditto.model.base.json.JsonSchemaVersion.V_2;
 import static org.eclipse.ditto.model.policies.SubjectIssuer.GOOGLE;
 
+import java.util.Map;
+import java.util.function.Consumer;
+
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
@@ -49,14 +52,14 @@ import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleEx
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotModifiableException;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeature;
-import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperty;
-import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+
+import com.codahale.metrics.MetricRegistry;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -345,7 +348,10 @@ public final class ThingCommandEnforcementTest {
     private ActorRef newEnforcerActor(final ActorRef testActorRef) {
         final EntityRegionMap testActorMap = MockEntityRegionMap.uniform(testActorRef);
         final EntityRegionMap mockActorMap = MockEntityRegionMap.uniform(mockEntitiesActor);
-        final AuthorizationCaches authorizationCaches = new AuthorizationCaches(CONFIG.caches(), mockActorMap);
+
+        final Consumer<Map.Entry<String, MetricRegistry>> dummyReportingConsumer = unused -> {};
+        final AuthorizationCaches authorizationCaches = new AuthorizationCaches(CONFIG.caches(), mockActorMap,
+                dummyReportingConsumer);
         final Props props = EnforcerActor.props(mockEntitiesActor, testActorMap, authorizationCaches);
         return system.actorOf(props, THING + ":" + THING_ID);
     }

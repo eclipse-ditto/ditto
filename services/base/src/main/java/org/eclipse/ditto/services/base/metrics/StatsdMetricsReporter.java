@@ -111,6 +111,8 @@ public class StatsdMetricsReporter {
      * {@link MetricRegistry}.
      */
     public synchronized void add(final Map.Entry<String, MetricRegistry> namedRegistry) {
+        requireNonNull(namedRegistry);
+
         add(namedRegistry.getKey(), namedRegistry.getValue());
     }
 

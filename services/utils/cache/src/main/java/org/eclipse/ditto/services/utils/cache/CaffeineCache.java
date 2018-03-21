@@ -63,7 +63,7 @@ public class CaffeineCache<K, V> implements Cache<K, V> {
     }
 
     /**
-     * Creates a new instance.
+     * Creates a new instance based on a {@link AsyncCacheLoader}.
      *
      * @param caffeine a (pre-configured) caffeine instance.
      * @param asyncLoader the algorithm used for loading values asynchronously.
@@ -79,7 +79,7 @@ public class CaffeineCache<K, V> implements Cache<K, V> {
     }
 
     /**
-     * Creates a new instance.
+     * Creates a new instance based on a {@link CacheLoader}.
      *
      * @param caffeine a (pre-configured) caffeine instance.
      * @param loader the algorithm used for loading values.
@@ -95,11 +95,11 @@ public class CaffeineCache<K, V> implements Cache<K, V> {
     }
 
     /**
-     * Creates a new instance.
+     * Creates a new instance based on a {@link AsyncCacheLoader} which may report metrics for cache statistics.
      *
      * @param caffeine a (pre-configured) caffeine instance.
      * @param loader the algorithm used for loading values asynchronously.
-     * @param namedMetricRegistry a named {@link MetricRegistry} for cache statistics.
+     * @param namedMetricRegistry a named {@link MetricRegistry} for cache statistics, may be {@code null}.
      * @param <K> the type of the key.
      * @param <V> the type of the value.
      * @return the created instance
@@ -113,11 +113,11 @@ public class CaffeineCache<K, V> implements Cache<K, V> {
     }
 
     /**
-     * Creates a new instance.
+     * Creates a new instance based on a {@link CacheLoader} which may report metrics for cache statistics.
      *
      * @param caffeine a (pre-configured) caffeine instance.
      * @param loader the algorithm used for loading values.
-     * @param namedMetricRegistry a named {@link MetricRegistry} for cache statistics.
+     * @param namedMetricRegistry a named {@link MetricRegistry} for cache statistics, may be {@code null}.
      * @param <K> the type of the key.
      * @param <V> the type of the value.
      * @return the created instance

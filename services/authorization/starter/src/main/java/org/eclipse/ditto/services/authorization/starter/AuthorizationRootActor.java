@@ -18,6 +18,7 @@ import org.eclipse.ditto.services.authorization.util.actors.EnforcerActor;
 import org.eclipse.ditto.services.authorization.util.cache.AuthorizationCaches;
 import org.eclipse.ditto.services.authorization.util.config.AuthorizationConfigReader;
 import org.eclipse.ditto.services.base.config.ClusterConfigReader;
+import org.eclipse.ditto.services.base.metrics.StatsdMetricsReporter;
 import org.eclipse.ditto.services.models.authorization.AuthorizationMessagingConstants;
 import org.eclipse.ditto.services.models.policies.PoliciesMessagingConstants;
 import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
@@ -53,7 +54,8 @@ public final class AuthorizationRootActor extends AbstractActor {
         final ClusterConfigReader clusterConfigReader = configReader.cluster();
 
         final EntityRegionMap entityRegionMap = buildEntityRegionMap(actorSystem, clusterConfigReader);
-        cache = new AuthorizationCaches(configReader.caches(), entityRegionMap);
+        cache = new AuthorizationCaches(configReader.caches(), entityRegionMap,
+                namedMetricRegistry -> StatsdMetricsReporter.getInstance().add(namedMetricRegistry));
 
         final Props enforcerProps = EnforcerActor.props(pubSubMediator, entityRegionMap, cache);
         enforcerShardRegion = startShardRegion(actorSystem, clusterConfigReader, enforcerProps);
