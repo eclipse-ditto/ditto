@@ -31,7 +31,7 @@ import akka.japi.pf.ReceiveBuilder;
 /**
  * Actor that enforces authorization for all commands.
  */
-public class EnforcerActor extends AbstractActor implements ThingCommandEnforcement {
+public final class EnforcerActor extends AbstractActor implements ThingCommandEnforcement, PolicyCommandEnforcement {
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
