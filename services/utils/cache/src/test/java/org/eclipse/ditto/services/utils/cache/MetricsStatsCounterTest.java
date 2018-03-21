@@ -102,15 +102,16 @@ public final class MetricsStatsCounterTest {
         }
 
         // THEN
-        /* it is not simply testable whether and when the actual size of the cache changes,
-           because Caffeine uses "Window TinyLfu" cache eviction policy,
-           see https://github.com/ben-manes/caffeine/wiki/Efficiency
-         */
         waitUntilAsserted(() -> {
+            /* It is not exactly testable whether and when the actual size of the cache changes and when evictions
+               are applied, because Caffeine uses "Window TinyLfu" cache eviction policy,
+               see https://github.com/ben-manes/caffeine/wiki/Efficiency
+            */
+
             assertThat(registry.meter(createMetricName(MetricsStatsCounter.MetricName.EVICTIONS)).getCount())
-                    .isEqualTo(cacheExceedingElementsCount);
+                    .isGreaterThan(0);
             assertThat(registry.meter(createMetricName(MetricsStatsCounter.MetricName.EVICTIONS_WEIGHT)).getCount())
-                    .isEqualTo(cacheExceedingElementsCount);
+                    .isGreaterThan(0);
 
             // invalidations are no evictions
             assertThat(
