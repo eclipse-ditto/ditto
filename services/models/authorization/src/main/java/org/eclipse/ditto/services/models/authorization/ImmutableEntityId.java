@@ -13,6 +13,7 @@ package org.eclipse.ditto.services.models.authorization;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.text.MessageFormat;
 import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
@@ -23,7 +24,7 @@ import javax.annotation.concurrent.Immutable;
 @Immutable
 final class ImmutableEntityId implements EntityId {
 
-    private static final String DELIMITER = ":";
+    static final String DELIMITER = ":";
 
     private final String resourceType;
     private final String id;
@@ -35,7 +36,7 @@ final class ImmutableEntityId implements EntityId {
      * @param id the entity id.
      * @throws IllegalArgumentException if resource type contains ':'.
      */
-    ImmutableEntityId(final String resourceType, final String id) {
+    private ImmutableEntityId(final String resourceType, final String id) {
         this.resourceType = checkNotNull(resourceType, "resourceType");
         this.id = checkNotNull(id, "id");
         if (resourceType.contains(DELIMITER)) {
@@ -44,6 +45,39 @@ final class ImmutableEntityId implements EntityId {
             throw new IllegalArgumentException(message);
         }
     }
+
+    /**
+     * Create a new entity ID from the given  {@code resourceType} and {@code id}.
+     *
+     * @param resourceType the resource type.
+     * @param id the entity ID.
+     * @return the entity ID with resource type object.
+     */
+    static EntityId of(final String resourceType, final String id) {
+        return new ImmutableEntityId(resourceType, id);
+    }
+
+    /**
+     * Deserialize entity ID with resource type from a string.
+     *
+     * @param string the string.
+     * @return the entity ID with resource type.
+     * @throws IllegalArgumentException if the string does not have the expected format.
+     */
+    static EntityId readFrom(final String string) {
+        checkNotNull(string, "string");
+
+        final int delimiterIndex = string.indexOf(DELIMITER);
+        if (delimiterIndex < 0) {
+            final String message = MessageFormat.format("Unexpected EntityId format: <{0}>", string);
+            throw new IllegalArgumentException(message);
+        } else {
+            final String id = string.substring(delimiterIndex + 1);
+            final String resourceType = string.substring(0, delimiterIndex);
+            return new ImmutableEntityId(resourceType, id);
+        }
+    }
+
 
     @Override
     public String getResourceType() {
@@ -75,15 +109,4 @@ final class ImmutableEntityId implements EntityId {
         return String.format("%s%s%s", resourceType, DELIMITER, id);
     }
 
-    static ImmutableEntityId fromString(final String string) {
-        final int delimiterIndex = string.indexOf(DELIMITER);
-        if (delimiterIndex < 0) {
-            final String message = String.format("Unexpected EntityId format: <%s>", string);
-            throw new IllegalArgumentException(message);
-        } else {
-            final String id = string.substring(delimiterIndex + 1);
-            final String resourceType = string.substring(0, delimiterIndex);
-            return new ImmutableEntityId(resourceType, id);
-        }
-    }
 }

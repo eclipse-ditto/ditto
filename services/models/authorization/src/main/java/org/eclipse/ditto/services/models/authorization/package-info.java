@@ -14,5 +14,5 @@
  * Authorization service models contain classes other services need to know in order to communicate with
  * authorization service.
  */
-@org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault
+@org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault
 package org.eclipse.ditto.services.models.authorization;

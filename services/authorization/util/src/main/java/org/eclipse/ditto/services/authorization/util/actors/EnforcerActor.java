@@ -111,7 +111,7 @@ public class EnforcerActor extends AbstractActor implements ThingCommandEnforcem
         final String name = self.path().name();
         try {
             final String typeWithPath = URLDecoder.decode(name, StandardCharsets.UTF_8.name());
-            return EntityId.fromString(typeWithPath);
+            return EntityId.readFrom(typeWithPath);
         } catch (final UnsupportedEncodingException e) {
             throw new IllegalStateException("Unsupported encoding", e);
         }

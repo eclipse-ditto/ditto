@@ -11,31 +11,17 @@
  */
 package org.eclipse.ditto.services.models.authorization;
 
+import javax.annotation.concurrent.Immutable;
+
 /**
- * Entity ID together with resource type.
+ * Creates model instances for the Authorization Service.
  */
-public interface EntityId {
+@Immutable
+public final class AuthorizationModelFactory {
 
-    /**
-     * Retrieve the resource type.
-     *
-     * @return the resource type.
-     */
-    String getResourceType();
-
-    /**
-     * Retrieve the ID.
-     *
-     * @return the ID.
-     */
-    String getId();
-
-    /**
-     * Serialize this object as string.
-     *
-     * @return serialized form of this object.
-     */
-    String toString();
+    private AuthorizationModelFactory() {
+        throw new AssertionError();
+    }
 
     /**
      * Create a new entity ID from the given  {@code resourceType} and {@code id}.
@@ -44,8 +30,8 @@ public interface EntityId {
      * @param id the entity ID.
      * @return the entity ID with resource type object.
      */
-    static EntityId of(final String resourceType, final String id) {
-        return AuthorizationModelFactory.newEntityId(resourceType, id);
+    public static EntityId newEntityId(final String resourceType, final String id) {
+        return ImmutableEntityId.of(resourceType, id);
     }
 
     /**
@@ -55,7 +41,7 @@ public interface EntityId {
      * @return the entity ID with resource type.
      * @throws IllegalArgumentException if the string does not have the expected format.
      */
-    static EntityId readFrom(final String string) {
-        return AuthorizationModelFactory.readEntityIdFrom(string);
+    public static EntityId readEntityIdFrom(final String string) {
+        return ImmutableEntityId.readFrom(string);
     }
 }

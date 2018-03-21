@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.services.models.authorization;
 
+import static org.assertj.core.api.Java6Assertions.assertThat;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
@@ -23,6 +24,11 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  */
 public class ImmutableEntityIdTest {
 
+    private static final String RESOURCE_TYPE = "resource-type";
+    private static final String ENTITY_ID_WITHOUT_TYPE = "entity:id";
+    private static final EntityId ENTITY_ID = ImmutableEntityId.of(RESOURCE_TYPE, ENTITY_ID_WITHOUT_TYPE);
+    private static final String EXPECTED_SERIALIZED_ENTITY_ID =
+            String.join(ImmutableEntityId.DELIMITER, RESOURCE_TYPE, ENTITY_ID_WITHOUT_TYPE);
     @Test
     public void assertImmutability() {
         assertInstancesOf(ImmutableEntityId.class, areImmutable());
@@ -35,6 +41,18 @@ public class ImmutableEntityIdTest {
 
     @Test
     public void testSerialization() {
-        final EntityId underTest = EntityId.of("resource-type", "entity:id");
+        // check preconditions
+        assertThat(ENTITY_ID).isNotNull();
+        assertThat(ENTITY_ID.getResourceType()).isEqualTo(RESOURCE_TYPE);
+        assertThat(ENTITY_ID.getId()).isEqualTo(ENTITY_ID_WITHOUT_TYPE);
+
+        // assert serialization
+        assertThat(ENTITY_ID.toString()).isEqualTo(EXPECTED_SERIALIZED_ENTITY_ID);
     }
+
+    @Test
+    public void testDeserialization() {
+        assertThat(ImmutableEntityId.readFrom(EXPECTED_SERIALIZED_ENTITY_ID)).isEqualTo(ENTITY_ID);
+    }
+
 }
