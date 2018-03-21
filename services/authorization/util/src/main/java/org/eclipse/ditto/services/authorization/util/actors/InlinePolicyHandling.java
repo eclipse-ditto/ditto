@@ -14,20 +14,25 @@ package org.eclipse.ditto.services.authorization.util.actors;
 import java.util.Optional;
 
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
+import org.eclipse.ditto.model.policies.PoliciesResourceType;
 import org.eclipse.ditto.model.policies.Policy;
+import org.eclipse.ditto.model.policies.Subject;
+import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.model.things.AclNotAllowedException;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.services.models.things.Permission;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyConflictException;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyNotAccessibleException;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyUnavailableException;
 import org.eclipse.ditto.signals.commands.policies.modify.CreatePolicy;
 import org.eclipse.ditto.signals.commands.policies.modify.CreatePolicyResponse;
 import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
-import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 import org.eclipse.ditto.signals.commands.things.exceptions.PolicyIdNotAllowedException;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotCreatableException;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingUnavailableException;
@@ -43,25 +48,27 @@ import akka.pattern.PatternsCS;
 // TODO: javadoc
 interface InlinePolicyHandling extends Enforcement {
 
+    String DEFAULT_POLICY_ENTRY_LABEL = "DEFAULT";
+
     default boolean handleInitialCreateThing(final CreateThing createThing, final Enforcer enforcer,
             final ActorRef sender) {
-        if (createThing.getInitialPolicy().isPresent()) {
-            final JsonObject initialPolicy = createThing.getInitialPolicy().get();
+        if (shouldCreatePolicyForCreateThing(createThing)) {
+
             checkForErrorsInCreateThingWithPolicy(createThing)
                     .map(error ->
                             replyToSender(error, sender))
                     .orElseGet(() ->
-                            createThingWithInitialPolicy(createThing, enforcer, initialPolicy, sender));
+                            createThingWithInitialPolicy(createThing, enforcer, sender));
+
         } else if (createThing.getThing().getPolicyId().isPresent()) {
+
             final String policyId = createThing.getThing().getPolicyId().get();
             checkForErrorsInCreateThingWithPolicy(createThing)
                     .map(error ->
                             replyToSender(error, sender))
                     .orElseGet(() ->
                             enforceCreateThingForNonexistentThingWithPolicyId(createThing, policyId, sender));
-        } else if (shouldCreatePolicyForCreateThing(createThing)) {
-            // TODO: handle default policy
-            return false;
+
         } else {
             // nothing to do with policy, simply forward the command
             forwardToThingsShardRegion(createThing, sender);
@@ -71,23 +78,49 @@ interface InlinePolicyHandling extends Enforcement {
 
     default boolean createThingWithInitialPolicy(final CreateThing createThing,
             final Enforcer enforcer,
-            final JsonObject initialPolicy,
             final ActorRef sender) {
+
         try {
-            final JsonObject initialPolicyWithThingId = initialPolicy.toBuilder()
-                    .set(Policy.JsonFields.ID, createThing.getThingId())
-                    .build();
-            final Policy policy = PoliciesModelFactory.newPolicy(initialPolicyWithThingId);
-            final CreatePolicy createPolicy = CreatePolicy.of(policy, createThing.getDittoHeaders());
-            final Optional<CreatePolicy> authorizedCreatePolicy = authorizePolicyCommand(createPolicy, enforcer);
-            // CreatePolicy is rejected; abort CreateThing.
-            return authorizedCreatePolicy
-                    .filter(cmd -> createPolicyAndThing(cmd, createThing, sender))
-                    .isPresent();
+            final Optional<Policy> policy =
+                    getInlinedOrDefaultPolicyForCreateThing(createThing);
+
+            if (policy.isPresent()) {
+
+                final CreatePolicy createPolicy = CreatePolicy.of(policy.get(), createThing.getDittoHeaders());
+                final Optional<CreatePolicy> authorizedCreatePolicy = authorizePolicyCommand(createPolicy, enforcer);
+                // CreatePolicy is rejected; abort CreateThing.
+                return authorizedCreatePolicy
+                        .filter(cmd -> createPolicyAndThing(cmd, createThing, sender))
+                        .isPresent();
+            } else {
+                // cannot create policy.
+                final String thingId = createThing.getThingId();
+                final String message = String.format("The Thing with ID ''%s'' could not be created with implicit " +
+                        "Policy because no authorization subject is present.", thingId);
+                final ThingNotCreatableException error =
+                        ThingNotCreatableException.newBuilderForPolicyMissing(thingId, thingId)
+                                .message(message)
+                                .description(() -> null)
+                                .build();
+                replyToSender(error, sender);
+                return true;
+            }
         } catch (DittoRuntimeException error) {
             log().error(error, "error before creating thing with initial policy");
             replyToSender(error, sender);
             return true;
+        }
+    }
+
+    static Optional<Policy> getInlinedOrDefaultPolicyForCreateThing(final CreateThing createThing) {
+        if (createThing.getInitialPolicy().isPresent()) {
+            final JsonObject policyJson = createThing.getInitialPolicy().get();
+            final JsonObject policyJsonWithThingId = policyJson.toBuilder()
+                    .set(Policy.JsonFields.ID, createThing.getThingId())
+                    .build();
+            return Optional.of(PoliciesModelFactory.newPolicy(policyJsonWithThingId));
+        } else {
+            return getDefaultPolicy(createThing.getDittoHeaders().getAuthorizationContext(), createThing.getThingId());
         }
     }
 
@@ -133,8 +166,10 @@ interface InlinePolicyHandling extends Enforcement {
     }
 
     static boolean shouldCreatePolicyForCreateThing(final CreateThing createThing) {
-        return JsonSchemaVersion.V_1 !=
+        final JsonSchemaVersion commandVersion =
                 createThing.getDittoHeaders().getSchemaVersion().orElse(JsonSchemaVersion.LATEST);
+        return createThing.getInitialPolicy().isPresent() ||
+                (JsonSchemaVersion.V_1 != commandVersion && !createThing.getThing().getPolicyId().isPresent());
     }
 
     default boolean createPolicyAndThing(final CreatePolicy createPolicy,
@@ -231,6 +266,27 @@ interface InlinePolicyHandling extends Enforcement {
                         .dittoHeaders(command.getDittoHeaders())
                         .build();
         replyToSender(error, sender);
+    }
+
+    static Optional<Policy> getDefaultPolicy(final AuthorizationContext authorizationContext,
+            final CharSequence thingId) {
+
+        final Optional<Subject> subjectOptional = authorizationContext.getFirstAuthorizationSubject()
+                .map(AuthorizationSubject::getId)
+                .map(SubjectId::newInstance)
+                .map(Subject::newInstance);
+
+        return subjectOptional.map(subject ->
+                Policy.newBuilder(thingId)
+                        .forLabel(DEFAULT_POLICY_ENTRY_LABEL)
+                        .setSubject(subject)
+                        .setGrantedPermissions(PoliciesResourceType.thingResource("/"),
+                                Permission.DEFAULT_THING_PERMISSIONS)
+                        .setGrantedPermissions(PoliciesResourceType.policyResource("/"),
+                                org.eclipse.ditto.services.models.policies.Permission.DEFAULT_POLICY_PERMISSIONS)
+                        .setGrantedPermissions(PoliciesResourceType.messageResource("/"),
+                                org.eclipse.ditto.services.models.policies.Permission.DEFAULT_POLICY_PERMISSIONS)
+                        .build());
     }
 
 }

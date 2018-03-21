@@ -367,7 +367,8 @@ interface ThingCommandEnforcement extends Enforcement, InlinePolicyHandling {
                 return authorizeByPolicy(initialEnforcer, createThing)
                         .map(command -> new CreateThingWithEnforcer(command, initialEnforcer));
             } else {
-                final Optional<AccessControlList> aclOptional = createThing.getThing().getAccessControlList();
+                final Optional<AccessControlList> aclOptional =
+                        createThing.getThing().getAccessControlList().filter(acl -> !acl.isEmpty());
                 if (aclOptional.isPresent()) {
                     final Enforcer initialEnforcer = AclEnforcer.of(aclOptional.get());
                     return authorizeByAcl(initialEnforcer, createThing)

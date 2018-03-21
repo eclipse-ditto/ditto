@@ -207,8 +207,11 @@ public final class ThingCommandEnforcementTest {
 
     @Test
     public void rejectCreateByOwnAcl() {
+        final AclEntry aclEntry =
+                AclEntry.newInstance(AuthorizationSubject.newInstance("not-subject"), Permission.ADMINISTRATE);
+
         final Thing thingWithEmptyAcl = newThing()
-                .setPermissions(AccessControlList.newBuilder().build())
+                .setPermissions(aclEntry)
                 .build();
 
         new TestKit(system) {{
