@@ -9,7 +9,7 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package org.eclipse.ditto.services.authorization.util.actors;
+package org.eclipse.ditto.services.authorization.util.enforcement;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.model.base.json.JsonSchemaVersion.V_1;

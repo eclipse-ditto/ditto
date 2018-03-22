@@ -9,7 +9,7 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package org.eclipse.ditto.services.authorization.util.actors;
+package org.eclipse.ditto.services.authorization.util.enforcement;
 
 import java.util.Collections;
 import java.util.Set;

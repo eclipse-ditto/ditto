@@ -28,7 +28,7 @@ import scala.concurrent.duration.FiniteDuration;
 
 /**
  * Actor which provides the health of multiple underlying systems, such as messaging and persistence by aggregating the
- * health by means of child actors. The child actors must answer {@link RetrieveHealth} requests with {@link StatusInfo}
+ * health by means of child actors. The child enforcement must answer {@link RetrieveHealth} requests with {@link StatusInfo}
  * answers. The composite {@link StatusInfo} contains the {@link StatusInfo} of its children in the order of the child
  * actors. The health statuses from the sub systems are retrieved in a configurable interval and cached in the meantime.
  */

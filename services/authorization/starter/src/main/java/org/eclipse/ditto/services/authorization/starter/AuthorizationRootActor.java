@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.authorization.starter;
 import java.util.Optional;
 
 import org.eclipse.ditto.services.authorization.util.EntityRegionMap;
-import org.eclipse.ditto.services.authorization.util.actors.EnforcerActor;
+import org.eclipse.ditto.services.authorization.util.enforcement.EnforcerActor;
 import org.eclipse.ditto.services.authorization.util.cache.AuthorizationCaches;
 import org.eclipse.ditto.services.authorization.util.config.AuthorizationConfigReader;
 import org.eclipse.ditto.services.authorization.util.update.CacheUpdater;
