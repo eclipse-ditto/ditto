@@ -27,8 +27,8 @@ public class AmqpTarget implements PublishTarget {
 
     private AmqpTarget(final Destination jmsDestination) {this.jmsDestination = jmsDestination;}
 
-    static AmqpTarget fromTarget(final String target) {
-        return new AmqpTarget(new JmsQueue(target));
+    static AmqpTarget fromTargetAddress(final String targetAddress) {
+        return new AmqpTarget(new JmsQueue(targetAddress));
     }
 
     Destination getJmsDestination() {

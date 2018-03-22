@@ -13,16 +13,23 @@ package org.eclipse.ditto.services.connectivity.messaging.internal;
 
 import java.util.Optional;
 
+import javax.annotation.Nullable;
+
 import akka.actor.ActorRef;
 
 /**
- * TODO TJ doc
+ * Abstract base implementation for {@link WithOrigin}.
  */
-public interface WithOrigin {
+public abstract class AbstractWithOrigin implements WithOrigin {
 
-    /**
-     *
-     * @return
-     */
-    Optional<ActorRef> getOrigin();
+    @Nullable private final ActorRef origin;
+
+    protected AbstractWithOrigin(@Nullable final ActorRef origin) {
+        this.origin = origin;
+    }
+
+    @Override
+    public Optional<ActorRef> getOrigin() {
+        return Optional.ofNullable(origin);
+    }
 }

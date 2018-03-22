@@ -13,17 +13,23 @@ package org.eclipse.ditto.model.connectivity;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
 /**
@@ -34,12 +40,20 @@ final class ImmutableConnectionMetrics implements ConnectionMetrics {
 
     private final ConnectionStatus connectionStatus;
     @Nullable private final String connectionStatusDetails;
+    private final String clientState;
+    private final List<SourceMetrics> sourcesMetrics;
+    private final List<TargetMetrics> targetsMetrics;
 
     private ImmutableConnectionMetrics(final ConnectionStatus connectionStatus,
-            @Nullable final String connectionStatusDetails) {
+            @Nullable final String connectionStatusDetails, final String clientState,
+            final List<SourceMetrics> sourcesMetrics,
+            final List<TargetMetrics> targetsMetrics) {
 
         this.connectionStatus = connectionStatus;
         this.connectionStatusDetails = connectionStatusDetails;
+        this.clientState = clientState;
+        this.sourcesMetrics = Collections.unmodifiableList(new ArrayList<>(sourcesMetrics));
+        this.targetsMetrics = Collections.unmodifiableList(new ArrayList<>(targetsMetrics));
     }
 
     /**
@@ -47,14 +61,21 @@ final class ImmutableConnectionMetrics implements ConnectionMetrics {
      *
      * @param connectionStatus the ConnectionStatus of the metrics to create
      * @param connectionStatusDetails the optional details about the connection status
+     * @param clientState the current state of the Client performing the connection
+     * @param sourcesMetrics the metrics of all sources of the Connection
+     * @param targetsMetrics the metrics of all targets of the Connection
      * @return a new instance of ConnectionMetrics.
      */
     public static ImmutableConnectionMetrics of(final ConnectionStatus connectionStatus,
-            @Nullable final String connectionStatusDetails) {
+            @Nullable final String connectionStatusDetails, final String clientState,
+            final List<SourceMetrics> sourcesMetrics, final List<TargetMetrics> targetsMetrics) {
         checkNotNull(connectionStatus, "connectionStatus");
-        checkNotNull(connectionStatusDetails, "connectionStatusDetails");
+        checkNotNull(clientState, "clientState");
+        checkNotNull(sourcesMetrics, "sourcesMetrics");
+        checkNotNull(targetsMetrics, "targetsMetrics");
 
-        return new ImmutableConnectionMetrics(connectionStatus, connectionStatusDetails);
+        return new ImmutableConnectionMetrics(connectionStatus, connectionStatusDetails, clientState, sourcesMetrics,
+                targetsMetrics);
     }
 
     /**
@@ -68,9 +89,24 @@ final class ImmutableConnectionMetrics implements ConnectionMetrics {
     public static ConnectionMetrics fromJson(final JsonObject jsonObject) {
         final ConnectionStatus readConnectionStatus = ConnectionStatus.forName(
                 jsonObject.getValueOrThrow(JsonFields.CONNECTION_STATUS)).orElse(ConnectionStatus.UNKNOWN);
-        final String readConnectionStatusDetails = jsonObject.getValueOrThrow(JsonFields.CONNECTION_STATUS_DETAILS);
+        final String readConnectionStatusDetails = jsonObject.getValue(JsonFields.CONNECTION_STATUS_DETAILS)
+                .orElse(null);
+        final String readClientState = jsonObject.getValueOrThrow(JsonFields.CLIENT_STATE);
+        final List<SourceMetrics> readSourceMetrics = jsonObject.getValueOrThrow(JsonFields.SOURCES_METRICS)
+                .stream()
+                .filter(JsonValue::isObject)
+                .map(JsonValue::asObject)
+                .map(ImmutableSourceMetrics::fromJson)
+                .collect(Collectors.toList());
+        final List<TargetMetrics> readTargetMetrics = jsonObject.getValueOrThrow(JsonFields.TARGETS_METRICS)
+                .stream()
+                .filter(JsonValue::isObject)
+                .map(JsonValue::asObject)
+                .map(ImmutableTargetMetrics::fromJson)
+                .collect(Collectors.toList());
 
-        return of(readConnectionStatus, readConnectionStatusDetails);
+        return of(readConnectionStatus, readConnectionStatusDetails, readClientState, readSourceMetrics,
+                readTargetMetrics);
     }
 
     @Override
@@ -84,6 +120,21 @@ final class ImmutableConnectionMetrics implements ConnectionMetrics {
     }
 
     @Override
+    public String getClientState() {
+        return clientState;
+    }
+
+    @Override
+    public List<SourceMetrics> getSourcesMetrics() {
+        return sourcesMetrics;
+    }
+
+    @Override
+    public List<TargetMetrics> getTargetsMetrics() {
+        return targetsMetrics;
+    }
+
+    @Override
     public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
@@ -91,6 +142,13 @@ final class ImmutableConnectionMetrics implements ConnectionMetrics {
         if (connectionStatusDetails != null) {
             jsonObjectBuilder.set(JsonFields.CONNECTION_STATUS_DETAILS, connectionStatusDetails, predicate);
         }
+        jsonObjectBuilder.set(JsonFields.CLIENT_STATE, clientState, predicate);
+        jsonObjectBuilder.set(JsonFields.SOURCES_METRICS, sourcesMetrics.stream()
+                .map(SourceMetrics::toJson)
+                .collect(JsonCollectors.valuesToArray()), predicate);
+        jsonObjectBuilder.set(JsonFields.TARGETS_METRICS, targetsMetrics.stream()
+                .map(TargetMetrics::toJson)
+                .collect(JsonCollectors.valuesToArray()), predicate);
         return jsonObjectBuilder.build();
     }
 
@@ -100,12 +158,15 @@ final class ImmutableConnectionMetrics implements ConnectionMetrics {
         if (!(o instanceof ImmutableConnectionMetrics)) {return false;}
         final ImmutableConnectionMetrics that = (ImmutableConnectionMetrics) o;
         return connectionStatus == that.connectionStatus &&
-                Objects.equals(connectionStatusDetails, that.connectionStatusDetails);
+                Objects.equals(connectionStatusDetails, that.connectionStatusDetails) &&
+                Objects.equals(clientState, that.clientState) &&
+                Objects.equals(sourcesMetrics, that.sourcesMetrics) &&
+                Objects.equals(targetsMetrics, that.targetsMetrics);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(connectionStatus, connectionStatusDetails);
+        return Objects.hash(connectionStatus, connectionStatusDetails, clientState, sourcesMetrics, targetsMetrics);
     }
 
     @Override
@@ -113,7 +174,9 @@ final class ImmutableConnectionMetrics implements ConnectionMetrics {
         return getClass().getSimpleName() + " [" +
                 "connectionStatus=" + connectionStatus +
                 ", connectionStatusDetails=" + connectionStatusDetails +
+                ", clientState=" + clientState +
+                ", sourcesMetrics=" + sourcesMetrics +
+                ", targetsMetrics=" + targetsMetrics +
                 "]";
     }
-
 }

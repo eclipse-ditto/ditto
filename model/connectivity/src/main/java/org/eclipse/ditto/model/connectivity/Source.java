@@ -25,14 +25,17 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 
+/**
+ * TODO doc
+ */
 public interface Source extends Jsonifiable.WithFieldSelectorAndPredicate<JsonField> {
 
     /**
-     * Returns the sources of this {@code Connection}.
+     * Returns the addresses of this {@code Connection}.
      *
-     * @return the sources
+     * @return the addresses
      */
-    Set<String> getSources();
+    Set<String> getAddresses();
 
     /**
      * The number of consumers (connections) that will be opened to the remote server.
@@ -60,7 +63,7 @@ public interface Source extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
      * An enumeration of the known {@code JsonField}s of a {@code Source} configuration.
      */
     @Immutable
-    final class JsonFields {
+    class JsonFields {
 
         /**
          * JSON field containing the {@code JsonSchemaVersion}.
@@ -70,10 +73,10 @@ public interface Source extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
                         JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         /**
-         * JSON field containing the {@code Connection} sources.
+         * JSON field containing the {@code Connection} addresses.
          */
-        public static final JsonFieldDefinition<JsonArray> SOURCES =
-                JsonFactory.newJsonArrayFieldDefinition("sources", FieldType.REGULAR, JsonSchemaVersion.V_1,
+        public static final JsonFieldDefinition<JsonArray> ADDRESSES =
+                JsonFactory.newJsonArrayFieldDefinition("addresses", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
         /**
@@ -84,7 +87,7 @@ public interface Source extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
                         JsonSchemaVersion.V_2);
 
 
-        private JsonFields() {
+        JsonFields() {
             throw new AssertionError();
         }
 

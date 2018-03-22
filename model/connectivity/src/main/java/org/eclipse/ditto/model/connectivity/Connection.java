@@ -201,16 +201,16 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
                         JsonSchemaVersion.V_2);
 
         /**
-         * JSON field containing the {@code Connection} consume configuration.
+         * JSON field containing the {@code Connection} sources configuration.
          */
-        public static final JsonFieldDefinition<JsonArray> CONSUME =
-                JsonFactory.newJsonArrayFieldDefinition("consume", FieldType.REGULAR, JsonSchemaVersion.V_1,
+        public static final JsonFieldDefinition<JsonArray> SOURCES =
+                JsonFactory.newJsonArrayFieldDefinition("sources", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
         /**
-         * JSON field containing the {@code Connection} publish configuration.
+         * JSON field containing the {@code Connection} targets configuration.
          */
-        public static final JsonFieldDefinition<JsonArray> PUBLISH =
-                JsonFactory.newJsonArrayFieldDefinition("publish", FieldType.REGULAR, JsonSchemaVersion.V_1,
+        public static final JsonFieldDefinition<JsonArray> TARGETS =
+                JsonFactory.newJsonArrayFieldDefinition("targets", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
         /**

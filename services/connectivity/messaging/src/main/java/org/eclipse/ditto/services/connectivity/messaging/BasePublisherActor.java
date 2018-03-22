@@ -49,7 +49,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
 
         // initialize a map with the configured topic and the targets where the messages should be sent to
         connection.getTargets().forEach(target -> {
-            final T publishTarget = toPublishTarget(target.getTarget());
+            final T publishTarget = toPublishTarget(target.getAddress());
             target.getTopics().stream()
                     .filter(TopicPathMapper.SUPPORTED_TOPICS::containsKey)
                     .forEach(topic -> destinations
@@ -76,6 +76,6 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                 ).orElse(false);
     }
 
-    protected abstract T toPublishTarget(final String target);
+    protected abstract T toPublishTarget(final String address);
 
 }

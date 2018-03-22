@@ -29,38 +29,63 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
+/**
+ * Immutable implementation of {@link Source}.
+ */
 @Immutable
 final class ImmutableSource implements Source {
 
     public static final int DEFAULT_CONSUMER_COUNT = 1;
 
-    private final Set<String> sources;
+    private final Set<String> addresses;
     private final int consumerCount;
 
-    private ImmutableSource(final Set<String> sources, final int consumerCount) {
-        this.sources = Collections.unmodifiableSet(new HashSet<>(sources));
+    private ImmutableSource(final Set<String> addresses, final int consumerCount) {
+        this.addresses = Collections.unmodifiableSet(new HashSet<>(addresses));
         this.consumerCount = consumerCount;
     }
 
-    public static ImmutableSource of(final String... sources) {
-        return new ImmutableSource(new HashSet<>(Arrays.asList(sources)), DEFAULT_CONSUMER_COUNT);
+    /**
+     * TODO doc
+     * @param addresses
+     * @return
+     */
+    public static ImmutableSource of(final String... addresses) {
+        return new ImmutableSource(new HashSet<>(Arrays.asList(addresses)), DEFAULT_CONSUMER_COUNT);
     }
 
-    public static ImmutableSource of(final Set<String> sources) {
-        return new ImmutableSource(sources, DEFAULT_CONSUMER_COUNT);
+    /**
+     * TODO doc
+     * @param addresses
+     * @return
+     */
+    public static ImmutableSource of(final Set<String> addresses) {
+        return new ImmutableSource(addresses, DEFAULT_CONSUMER_COUNT);
     }
 
-    public static ImmutableSource of(final Set<String> sources, final int consumerCount) {
-        return new ImmutableSource(sources, consumerCount);
+    /**
+     * TODO Doc
+     * @param addresses
+     * @param consumerCount
+     * @return
+     */
+    public static ImmutableSource of(final Set<String> addresses, final int consumerCount) {
+        return new ImmutableSource(addresses, consumerCount);
     }
 
-    public static ImmutableSource of(final int consumerCount, final String... sources) {
-        return new ImmutableSource(new HashSet<>(Arrays.asList(sources)), consumerCount);
+    /**
+     * TODO doc
+     * @param consumerCount
+     * @param addresses
+     * @return
+     */
+    public static ImmutableSource of(final int consumerCount, final String... addresses) {
+        return new ImmutableSource(new HashSet<>(Arrays.asList(addresses)), consumerCount);
     }
 
     @Override
-    public Set<String> getSources() {
-        return sources;
+    public Set<String> getAddresses() {
+        return addresses;
     }
 
     @Override
@@ -74,7 +99,7 @@ final class ImmutableSource implements Source {
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
 
         jsonObjectBuilder.set(Source.JsonFields.SCHEMA_VERSION, schemaVersion.toInt(), predicate);
-        jsonObjectBuilder.set(Source.JsonFields.SOURCES, sources.stream()
+        jsonObjectBuilder.set(Source.JsonFields.ADDRESSES, addresses.stream()
                 .map(JsonFactory::newValue)
                 .collect(JsonCollectors.valuesToArray()), predicate.and(Objects::nonNull));
 
@@ -91,7 +116,7 @@ final class ImmutableSource implements Source {
      * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} is not an appropriate JSON object.
      */
     public static Source fromJson(final JsonObject jsonObject) {
-        final Set<String> readSources = jsonObject.getValue(JsonFields.SOURCES)
+        final Set<String> readSources = jsonObject.getValue(JsonFields.ADDRESSES)
                 .map(array -> array.stream()
                         .map(JsonValue::asString)
                         .collect(Collectors.toSet())).orElse(Collections.emptySet());
@@ -106,19 +131,18 @@ final class ImmutableSource implements Source {
         if (o == null || getClass() != o.getClass()) return false;
         final ImmutableSource that = (ImmutableSource) o;
         return consumerCount == that.consumerCount &&
-                Objects.equals(sources, that.sources);
+                Objects.equals(addresses, that.addresses);
     }
 
     @Override
     public int hashCode() {
-
-        return Objects.hash(sources, consumerCount);
+        return Objects.hash(addresses, consumerCount);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "sources=" + sources +
+                "addresses=" + addresses +
                 ", consumerCount=" + consumerCount +
                 "]";
     }

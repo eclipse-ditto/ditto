@@ -108,7 +108,7 @@ public class AmqpClientActorTest {
 
     @Before
     public void init() throws JMSException {
-        when(mockConnection.createSession(false, Session.AUTO_ACKNOWLEDGE)).thenReturn(mockSession);
+        when(mockConnection.createSession(Session.CLIENT_ACKNOWLEDGE)).thenReturn(mockSession);
         when(mockSession.createConsumer(any(JmsQueue.class))).thenReturn(mockConsumer);
         when(mockSession.createProducer(any(Destination.class))).thenReturn(mockProducer);
         when(mockSession.createTextMessage(anyString())).thenReturn(mockTextMessage);
@@ -219,7 +219,7 @@ public class AmqpClientActorTest {
     public void testCreateSessionFails() throws JMSException {
         new TestKit(actorSystem) {{
             final String pubSubTargetPath = getRef().path().toStringWithoutAddress();
-            doThrow(JMS_EXCEPTION).when(mockConnection).createSession(false, Session.AUTO_ACKNOWLEDGE);
+            doThrow(JMS_EXCEPTION).when(mockConnection).createSession(Session.CLIENT_ACKNOWLEDGE);
             final Props props =
                     AmqpClientActor.props(connectionId, getRef(), connection, pubSubTargetPath,
                             (ac, el) -> mockConnection);
@@ -234,7 +234,7 @@ public class AmqpClientActorTest {
     public void testCreateConsumerFails() throws JMSException {
         new TestKit(actorSystem) {{
             final String pubSubTargetPath = getRef().path().toStringWithoutAddress();
-            when(mockConnection.createSession(false, Session.AUTO_ACKNOWLEDGE)).thenReturn(mockSession);
+            when(mockConnection.createSession(Session.CLIENT_ACKNOWLEDGE)).thenReturn(mockSession);
             doThrow(JMS_EXCEPTION).when(mockSession).createConsumer(any());
             final Props props =
                     AmqpClientActor.props(connectionId, getRef(), connection, pubSubTargetPath,

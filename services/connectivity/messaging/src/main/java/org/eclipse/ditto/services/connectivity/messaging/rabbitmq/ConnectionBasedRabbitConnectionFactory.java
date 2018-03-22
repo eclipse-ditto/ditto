@@ -19,11 +19,10 @@ import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.util.concurrent.TimeoutException;
 
-import javax.annotation.Nullable;
 import javax.net.ssl.SSLContext;
 
 import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
+import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,12 +44,11 @@ public final class ConnectionBasedRabbitConnectionFactory extends ConnectionFact
      * Returns an instance of {@code ConnectionBasedRabbitConnectionFactory}.
      *
      * @param dittoConnection the connection
-     * @param createConnectionSender the sender which requested creating the connection used for responding with errors
-     * to
+     * @param rabbitMQClientActor the {@link RabbitMQClientActor} to which report connection failures
      * @return the instance.
      */
     public static ConnectionFactory createConnection(final Connection dittoConnection,
-            @Nullable final ActorRef createConnectionSender) {
+            final ActorRef rabbitMQClientActor) {
         checkNotNull(dittoConnection, "Connection");
 
         try {
@@ -70,8 +68,7 @@ public final class ConnectionBasedRabbitConnectionFactory extends ConnectionFact
             // this makes no difference as the used newmotion client always sets the AutomaticRecoveryEnabled to false:
             connectionFactory.setAutomaticRecoveryEnabled(dittoConnection.isFailoverEnabled());
 
-            connectionFactory.setExceptionHandler(
-                    new RabbitMQExceptionHandler(dittoConnection, createConnectionSender));
+            connectionFactory.setExceptionHandler(new RabbitMQExceptionHandler(rabbitMQClientActor));
 
             return connectionFactory;
         } catch (final NoSuchAlgorithmException | KeyManagementException | URISyntaxException e) {
@@ -92,18 +89,14 @@ public final class ConnectionBasedRabbitConnectionFactory extends ConnectionFact
     }
 
     /**
-     * Handles exceptions by telling back the passed {@code createConnectionSender} a {@link ConnectionFailedException}
-     * with details why it failed.
+     * Handles exceptions by telling back the passed {@code rabbitMQClientActor} {@link ImmutableConnectionFailure}s.
      */
     private static class RabbitMQExceptionHandler extends DefaultExceptionHandler {
 
-        private final Connection dittoConnection;
-        @Nullable private final ActorRef createConnectionSender;
+        private final ActorRef rabbitMQClientActor;
 
-        RabbitMQExceptionHandler(final Connection dittoConnection,
-                @Nullable final ActorRef createConnectionSender) {
-            this.dittoConnection = dittoConnection;
-            this.createConnectionSender = createConnectionSender;
+        RabbitMQExceptionHandler(final ActorRef rabbitMQClientActor) {
+            this.rabbitMQClientActor = rabbitMQClientActor;
         }
 
         @Override
@@ -111,18 +104,7 @@ public final class ConnectionBasedRabbitConnectionFactory extends ConnectionFact
                 final Throwable exception) {
 
             // establishing the connection was not possible (maybe wrong host, port, credentials, ...)
-            LOGGER.warn("Got unexpected ConnectionDriver exception on connection <{}> {}: {}", dittoConnection.getId(),
-                    exception.getClass().getSimpleName(), exception.getMessage());
-            if (createConnectionSender != null) {
-                createConnectionSender.tell(
-                        ConnectionFailedException.newBuilder(dittoConnection.getId())
-                                .description("The requested Connection could not be connected due to '" +
-                                        exception.getClass().getSimpleName() + ": " + exception.getMessage() + "'")
-                                .cause(exception)
-                                .build(), null);
-            } else {
-                super.handleUnexpectedConnectionDriverException(conn, exception);
-            }
+            rabbitMQClientActor.tell(new ImmutableConnectionFailure(null, exception, null), null);
         }
     }
 }

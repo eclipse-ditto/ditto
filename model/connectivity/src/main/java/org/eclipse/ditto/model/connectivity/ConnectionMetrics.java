@@ -11,10 +11,12 @@
  */
 package org.eclipse.ditto.model.connectivity;
 
+import java.util.List;
 import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
@@ -42,6 +44,23 @@ public interface ConnectionMetrics extends Jsonifiable.WithFieldSelectorAndPredi
      */
     Optional<String> getConnectionStatusDetails();
 
+    /**
+     *
+     * @return
+     */
+    String getClientState();
+
+    /**
+     *
+     * @return
+     */
+    List<SourceMetrics> getSourcesMetrics();
+
+    /**
+     *
+     * @return
+     */
+    List<TargetMetrics> getTargetsMetrics();
 
     /**
      * Returns all non hidden marked fields of this {@code Connection}.
@@ -65,17 +84,38 @@ public interface ConnectionMetrics extends Jsonifiable.WithFieldSelectorAndPredi
     final class JsonFields {
 
         /**
-         * JSON field containing the {@code ConnectionStatus} identifier.
+         * JSON field containing the {@code ConnectionStatus} value.
          */
         public static final JsonFieldDefinition<String> CONNECTION_STATUS =
                 JsonFactory.newStringFieldDefinition("connectionStatus", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
         /**
-         * JSON field containing the {@code ConnectionStatus} identifier.
+         * JSON field containing the {@code ConnectionStatus} details.
          */
         public static final JsonFieldDefinition<String> CONNECTION_STATUS_DETAILS =
                 JsonFactory.newStringFieldDefinition("connectionStatusDetails", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing the client state.
+         */
+        public static final JsonFieldDefinition<String> CLIENT_STATE =
+                JsonFactory.newStringFieldDefinition("clientState", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing the sources metrics.
+         */
+        public static final JsonFieldDefinition<JsonArray> SOURCES_METRICS =
+                JsonFactory.newJsonArrayFieldDefinition("sourcesMetrics", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing the targets metrics.
+         */
+        public static final JsonFieldDefinition<JsonArray> TARGETS_METRICS =
+                JsonFactory.newJsonArrayFieldDefinition("targetsMetrics", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
         private JsonFields() {

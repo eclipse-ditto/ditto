@@ -32,10 +32,10 @@ import org.eclipse.ditto.services.connectivity.messaging.BaseClientState;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientConnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientDisconnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
+import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.services.models.connectivity.ConnectivityMessagingConstants;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
-import org.eclipse.ditto.signals.commands.connectivity.modify.ConnectivityModifyCommand;
 
 import com.newmotion.akka.rabbitmq.ChannelActor;
 import com.newmotion.akka.rabbitmq.ChannelCreated;
@@ -122,7 +122,11 @@ public final class RabbitMQClientActor extends BaseClientActor {
     @Override
     protected void onClientConnected(final ClientConnected clientConnected, final BaseClientData data) {
         openConnection();
-        startMessageMappingProcessor(rmqPublisherActor, data.getMappingContexts());
+        if (rmqPublisherActor != null) {
+            startMessageMappingProcessor(rmqPublisherActor, data.getMappingContexts());
+        } else {
+            log.error("RMQ publisher actor was null, so we don't start the MessageMappingActor");
+        }
     }
 
     @Override
@@ -141,6 +145,24 @@ public final class RabbitMQClientActor extends BaseClientActor {
         if (rmqPublisherActor != null) {
             stopChildActor(rmqPublisherActor);
             rmqPublisherActor = null;
+        }
+    }
+
+    @Override
+    protected void onConnectionFailure(final ConnectionFailure connectionFailure, final BaseClientData data) {
+        super.onConnectionFailure(connectionFailure, data);
+
+        final Throwable exception = connectionFailure.getFailure().cause();
+        log.warning("Got unexpected ConnectionDriver exception on connection <{}> {}: {}", connectionId(),
+                exception.getClass().getSimpleName(), exception.getMessage());
+        if (createConnectionSender != null) {
+            createConnectionSender.tell(
+                    ConnectionFailedException.newBuilder(connectionId())
+                            .description("The requested Connection could not be connected due to '" +
+                                    exception.getClass().getSimpleName() + ": " + exception.getMessage() + "'")
+                            .cause(exception)
+                            .build(), null);
+            createConnectionSender = null;
         }
     }
 
@@ -175,13 +197,13 @@ public final class RabbitMQClientActor extends BaseClientActor {
         final CompletableFuture<Status.Status> future = new CompletableFuture<>();
         if (rmqConnectionActor == null) {
             final ConnectionFactory connectionFactory =
-                    ConnectionBasedRabbitConnectionFactory.createConnection(connection, createConnectionSender);
+                    ConnectionBasedRabbitConnectionFactory.createConnection(connection, getSelf());
 
             final ActorRef self = getSelf();
             final Props props = com.newmotion.akka.rabbitmq.ConnectionActor.props(connectionFactory,
                     FiniteDuration.apply(10, TimeUnit.SECONDS), (rmqConnection, connectionActorRef) -> {
                         log.info("Established RMQ connection: {}", rmqConnection);
-                        self.tell((ClientConnected) () -> createConnectionSender, getSelf());
+                        self.tell((ClientConnected) () -> Optional.ofNullable(createConnectionSender), getSelf());
                         return null;
                     });
             rmqConnectionActor = startChildActor(RMQ_CONNECTION_PREFIX + connectionId(), props);
@@ -223,10 +245,6 @@ public final class RabbitMQClientActor extends BaseClientActor {
         }
     }
 
-    private void handleDisconnect(final ConnectivityModifyCommand<?> cmd) {
-
-    }
-
     private void stopCommandPublisher() {
         stopChildActor(RMQ_PUBLISHER_PREFIX + connectionId());
     }
@@ -258,7 +276,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
                     consumerChannelActor = null;
                 }
                 if (createConnectionSender != null) {
-                    createConnectionSender.tell(new Status.Success("connected"), getSelf());
+                    createConnectionSender.tell(new Status.Success(BaseClientState.CONNECTED), getSelf());
                     createConnectionSender = null;
                 }
                 return null;
@@ -272,24 +290,24 @@ public final class RabbitMQClientActor extends BaseClientActor {
 
         final Optional<ActorRef> messageMappingProcessor = getMessageMappingProcessor();
         if (messageMappingProcessor.isPresent()) {
-            getSourcesOrEmptySet().forEach(consumer -> {
-                consumer.getSources().forEach(source -> {
-                    for (int i = 0; i < consumer.getConsumerCount(); i++) {
-                        final ActorRef commandConsumer = startChildActor(CONSUMER_ACTOR_PREFIX + source + "-" + i,
-                                RabbitMQConsumerActor.props(messageMappingProcessor.get()));
-                        try {
-                            final String consumerTag =
-                                    channel.basicConsume(source, false,
-                                            new RabbitMQMessageConsumer(commandConsumer, channel));
-                            log.debug("Consuming queue {}, consumer tag is {}", consumer, consumerTag);
-                            consumedQueues.put(source, new QueueConsumption(consumerTag, true,
-                                    "Consumer started at " + Instant.now()));
-                        } catch (final IOException e) {
-                            log.warning("Failed to consume queue '{}': {}", consumer, e.getMessage());
+            getSourcesOrEmptySet().forEach(source ->
+                    source.getAddresses().forEach(address -> {
+                        for (int i = 0; i < source.getConsumerCount(); i++) {
+                            final ActorRef consumer = startChildActor(CONSUMER_ACTOR_PREFIX + address + "-" + i,
+                                    RabbitMQConsumerActor.props(messageMappingProcessor.get()));
+                            try {
+                                final String consumerTag =
+                                        channel.basicConsume(address, false,
+                                                new RabbitMQMessageConsumer(consumer, channel));
+                                log.debug("Consuming queue {}, consumer tag is {}", consumer, consumerTag);
+                                consumedQueues.put(address, new QueueConsumption(consumerTag, true,
+                                        "Consumer started at " + Instant.now()));
+                            } catch (final IOException e) {
+                                log.warning("Failed to consume queue '{}': {}", consumer, e.getMessage());
+                            }
                         }
-                    }
-                });
-            });
+                    })
+            );
         } else {
             log.warning("The MessageMappingProcessor was not available and therefore no consumers were started!");
         }
@@ -297,16 +315,16 @@ public final class RabbitMQClientActor extends BaseClientActor {
 
     private void ensureQueuesExist(final Channel channel) {
         final List<String> missingQueues = new ArrayList<>();
-        getSourcesOrEmptySet().forEach(consumer -> {
-            consumer.getSources().forEach(source -> {
-                try {
-                    channel.queueDeclarePassive(source);
-                } catch (final IOException e) {
-                    missingQueues.add(source);
-                    log.warning("The queue <{}> does not exist.", source);
-                }
-            });
-        });
+        getSourcesOrEmptySet().forEach(consumer ->
+                consumer.getAddresses().forEach(address -> {
+                    try {
+                        channel.queueDeclarePassive(address);
+                    } catch (final IOException e) {
+                        missingQueues.add(address);
+                        log.warning("The queue <{}> does not exist.", address);
+                    }
+                })
+        );
         if (!missingQueues.isEmpty()) {
             log.warning("Stopping RMQ client actor for connection <{}> as queues to connect to are missing: <{}>",
                     connectionId(), missingQueues);
@@ -324,26 +342,28 @@ public final class RabbitMQClientActor extends BaseClientActor {
 
     private class RabbitMQMessageConsumer extends DefaultConsumer {
 
-        private final ActorRef commandConsumer;
+        private final ActorRef consumerActor;
 
         /**
          * Constructs a new instance and records its association to the passed-in channel.
          *
+         * @param consumerActor
          * @param channel the channel to which this consumer is attached
          */
-        private RabbitMQMessageConsumer(final ActorRef commandConsumer, final Channel channel) {
+        private RabbitMQMessageConsumer(final ActorRef consumerActor, final Channel channel) {
             super(channel);
-            this.commandConsumer = commandConsumer;
+            this.consumerActor = consumerActor;
         }
 
         @Override
         public void handleDelivery(final String consumerTag, final Envelope envelope,
                 final AMQP.BasicProperties properties, final byte[] body) {
             try {
-                commandConsumer.tell(new Delivery(envelope, properties, body), RabbitMQClientActor.this.getSelf());
+                consumerActor.tell(new Delivery(envelope, properties, body), RabbitMQClientActor.this.getSelf());
             } catch (final Exception e) {
                 log.info("Failed to process delivery <{}>: {}", envelope.getDeliveryTag(), e.getMessage());
             } finally {
+                incrementConsumedMessageCounter();
                 try {
                     getChannel().basicAck(envelope.getDeliveryTag(), false);
                 } catch (final IOException e) {
@@ -370,7 +390,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
             log.warning("Consumer with tag <{}> was cancelled on connection <{}> - this can happen for example when " +
                     "the queue was deleted", consumerTag, connectionId());
 
-            getSelf().tell(new RmqFailure(ActorRef.noSender(), null,
+            getSelf().tell(new ImmutableConnectionFailure(ActorRef.noSender(), null,
                     "Consumer canceled, probably due to deleted queue"), getSelf());
 
             consumingQueueByTag(consumerTag).ifPresent(entry -> {
@@ -386,7 +406,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
             log.warning("the channel or the underlying connection has been shut down for consumer with tag <{}> " +
                     "on connection <{}>", consumerTag, connectionId());
 
-            getSelf().tell(new RmqFailure(ActorRef.noSender(), sig,
+            getSelf().tell(new ImmutableConnectionFailure(ActorRef.noSender(), sig,
                     "Channel or the underlying connection has been shut down"), getSelf());
 
             consumingQueueByTag(consumerTag).ifPresent(entry -> {
@@ -402,7 +422,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
 
             log.info("recovered OK for consumer with tag <{}> " + "on connection <{}>", consumerTag, connectionId());
 
-            getSelf().tell((ClientConnected) ActorRef::noSender, getSelf());
+            getSelf().tell((ClientConnected) Optional::empty, getSelf());
         }
 
     }
@@ -420,51 +440,4 @@ public final class RabbitMQClientActor extends BaseClientActor {
         }
     }
 
-    /**
-     * {@code Failure} message for RMQ.
-     */
-    static class RmqFailure implements ConnectionFailure {
-
-        private final ActorRef origin;
-        @Nullable private final Throwable cause;
-        @Nullable private final String description;
-        private final Instant time;
-
-        RmqFailure(final ActorRef origin, @Nullable final Throwable cause, @Nullable final String description) {
-            this.origin = origin;
-            this.cause = cause;
-            this.description = description;
-            time = Instant.now();
-        }
-
-        @Override
-        public Status.Failure getFailure() {
-            return new Status.Failure(cause);
-        }
-
-        @Override
-        public String getFailureDescription() {
-            String responseStr = "";
-            if (cause != null) {
-                if (description != null) {
-                    responseStr = description + " - cause ";
-                }
-                responseStr += cause.getClass().getSimpleName() + ": " + cause.getMessage();
-                if (cause instanceof DittoRuntimeException) {
-                    responseStr += " / " + ((DittoRuntimeException) cause).getDescription().orElse("");
-                }
-            } else if (description != null) {
-                responseStr = description;
-            } else {
-                responseStr = "unknown failure";
-            }
-            responseStr += " at " + time;
-            return responseStr;
-        }
-
-        @Override
-        public ActorRef getOrigin() {
-            return origin;
-        }
-    }
 }

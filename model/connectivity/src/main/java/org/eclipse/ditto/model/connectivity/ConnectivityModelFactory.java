@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.model.connectivity;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -71,18 +72,54 @@ public final class ConnectivityModelFactory {
     }
 
     /**
-     * Retruens a new {@code ConnectionMetrics}.
+     * Returns a new {@code ConnectionMetrics}.
      *
      * @param connectionStatus the ConnectionStatus of the metrics to create
      * @param connectionStatusDetails the optional details about the connection status
+     * @param clientState the current state of the Client performing the connection
+     * @param sourcesMetrics the metrics of all sources of the Connection
+     * @param targetsMetrics the metrics of all targets of the Connection
      * @return a new ConnectionMetrics which is initialised with the extracted data from {@code jsonObject}.
      * @throws NullPointerException if {@code connectionStatus} is {@code null}.
      */
     public static ConnectionMetrics newConnectionMetrics(final ConnectionStatus connectionStatus,
-            final @Nullable String connectionStatusDetails) {
-        return ImmutableConnectionMetrics.of(connectionStatus, connectionStatusDetails);
+            final @Nullable String connectionStatusDetails, final String clientState,
+            final List<SourceMetrics> sourcesMetrics, final List<TargetMetrics> targetsMetrics) {
+        return ImmutableConnectionMetrics.of(connectionStatus, connectionStatusDetails, clientState, sourcesMetrics,
+                targetsMetrics);
     }
 
+    /**
+     * Returns a new {@code SourceMetrics}.
+     *
+     * @param addresses the addresses of the source
+     * @param consumerCount the amount of consumers started for the source
+     * @param status the ConnectionStatus of the source metrics to create
+     * @param statusDetails the optional details about the connection status
+     * @param consumedMessages the current state of the Client performing the connection
+     * @return a new SourceMetrics which is initialised with the extracted data from {@code jsonObject}.
+     * @throws NullPointerException if {@code connectionStatus} is {@code null}.
+     */
+    public static SourceMetrics newSourceMetrics(final Set<String> addresses, final int consumerCount,
+            final ConnectionStatus status, @Nullable final String statusDetails, final long consumedMessages) {
+        return ImmutableSourceMetrics.of(addresses, consumerCount, status, statusDetails, consumedMessages);
+    }
+
+    /**
+     * Returns a new {@code TargetMetrics}.
+     *
+     * @param address the address of the target
+     * @param topics the topics of the target
+     * @param status the ConnectionStatus of the source metrics to create
+     * @param statusDetails the optional details about the connection status
+     * @param consumedMessages the current state of the Client performing the connection
+     * @return a new SourceMetrics which is initialised with the extracted data from {@code jsonObject}.
+     * @throws NullPointerException if {@code connectionStatus} is {@code null}.
+     */
+    public static TargetMetrics newTargetMetrics(final String address, final Set<String> topics,
+            final ConnectionStatus status, @Nullable final String statusDetails, final long consumedMessages) {
+        return ImmutableTargetMetrics.of(address, topics, status, statusDetails, consumedMessages);
+    }
 
     /**
      * Returns a new {@code MappingContext}.
@@ -140,20 +177,20 @@ public final class ConnectivityModelFactory {
         return new MutableExternalMessageBuilder(externalMessage);
     }
 
-    public static Source newSource(final Set<String> sources, final int consumerCount) {
-        return ImmutableSource.of(sources, consumerCount);
+    public static Source newSource(final Set<String> addresses, final int consumerCount) {
+        return ImmutableSource.of(addresses, consumerCount);
     }
 
     public static Source newSource(final int consumerCount, final String... sources) {
         return ImmutableSource.of(consumerCount, sources);
     }
 
-    public static Target newTarget(final String target, final Set<String> topics) {
-        return ImmutableTarget.of(target, topics);
+    public static Target newTarget(final String address, final Set<String> topics) {
+        return ImmutableTarget.of(address, topics);
     }
 
-    public static Target newTarget(final String target, final String requiredTopic, final String... topics) {
-        return ImmutableTarget.of(target, requiredTopic, topics);
+    public static Target newTarget(final String address, final String requiredTopic, final String... topics) {
+        return ImmutableTarget.of(address, requiredTopic, topics);
     }
 
 }

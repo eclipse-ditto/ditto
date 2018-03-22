@@ -200,7 +200,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
 
         LogUtil.enhanceLogWithCorrelationId(log, exception);
 
-        log.info( "Got DittoRuntimeException '{}' when command via AMQP was processed: {}",
+        log.info( "Got DittoRuntimeException '{}' when ExternalMessage was processed: {}",
                 exception.getErrorCode(), exception.getMessage());
 
         handleCommandResponse(errorResponse);

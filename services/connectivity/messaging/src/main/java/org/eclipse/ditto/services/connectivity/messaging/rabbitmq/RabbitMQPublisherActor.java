@@ -127,8 +127,8 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
     }
 
     @Override
-    protected RabbitMQTarget toPublishTarget(final String target) {
-        return RabbitMQTarget.fromTarget(target);
+    protected RabbitMQTarget toPublishTarget(final String address) {
+        return RabbitMQTarget.fromTargetAddress(address);
     }
 
     private void publishMessage(final RabbitMQTarget rabbitMQTarget, final ExternalMessage message) {

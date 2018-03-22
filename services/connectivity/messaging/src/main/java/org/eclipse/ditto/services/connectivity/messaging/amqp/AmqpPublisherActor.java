@@ -54,19 +54,20 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
     private final Session session;
     private final Map<Destination, MessageProducer> producerMap;
 
-    private AmqpPublisherActor(@Nullable final Session session, @Nullable final Connection connection) {
+    private AmqpPublisherActor(final Session session, final Connection connection) {
         super(connection);
         this.session = checkNotNull(session, "session");
         this.producerMap = new HashMap<>();
     }
 
     /**
-     * Creates Akka configuration object {@link Props} for this {@code CommandConsumerActor}.
+     * Creates Akka configuration object {@link Props} for this {@code AmqpPublisherActor}.
      *
-     * @param session the jms session.
+     * @param session the jms session
+     * @param connection the Ditto connection
      * @return the Akka configuration Props object.
      */
-    static Props props(@Nullable final Session session, @Nullable final Connection connection) {
+    static Props props(final Session session, final Connection connection) {
         return Props.create(AmqpPublisherActor.class, new Creator<AmqpPublisherActor>() {
             private static final long serialVersionUID = 1L;
 
@@ -87,7 +88,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
 
                     final String replyToFromHeader = response.getHeaders().get(ExternalMessage.REPLY_TO_HEADER);
                     if (replyToFromHeader != null) {
-                        final AmqpTarget amqpTarget = AmqpTarget.fromTarget(replyToFromHeader);
+                        final AmqpTarget amqpTarget = AmqpTarget.fromTargetAddress(replyToFromHeader);
                         sendMessage(amqpTarget, response);
                     } else {
                         log.debug("Response dropped, missing replyTo address.");
@@ -108,8 +109,8 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
     }
 
     @Override
-    protected AmqpTarget toPublishTarget(final String target) {
-        return AmqpTarget.fromTarget(target);
+    protected AmqpTarget toPublishTarget(final String address) {
+        return AmqpTarget.fromTargetAddress(address);
     }
 
     private void sendMessage(final AmqpTarget target, final ExternalMessage message) {

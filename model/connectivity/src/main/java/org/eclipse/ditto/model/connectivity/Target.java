@@ -25,12 +25,15 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 
+/**
+ * TODO doc
+ */
 public interface Target extends Jsonifiable.WithFieldSelectorAndPredicate<JsonField> {
 
     /**
-     * Returns the target for the configured type of signals of this {@code Connection}.
+     * Returns the address for the configured type of signals of this {@code Connection}.
      */
-    String getTarget();
+    String getAddress();
 
     /**
      * Returns set of topics that should be published via this target.
@@ -56,7 +59,7 @@ public interface Target extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
      * An enumeration of the known {@code JsonField}s of a {@code Target} configuration.
      */
     @Immutable
-    final class JsonFields {
+    class JsonFields {
 
 
         /**
@@ -67,10 +70,10 @@ public interface Target extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
                         JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         /**
-         * JSON field containing the {@code Connection} target.
+         * JSON field containing the {@code Connection} address.
          */
-        public static final JsonFieldDefinition<String> TARGET =
-                JsonFactory.newStringFieldDefinition("target", FieldType.REGULAR, JsonSchemaVersion.V_1,
+        public static final JsonFieldDefinition<String> ADDRESS =
+                JsonFactory.newStringFieldDefinition("address", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
         /**
@@ -81,7 +84,7 @@ public interface Target extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
                         JsonSchemaVersion.V_2);
 
 
-        private JsonFields() {
+        JsonFields() {
             throw new AssertionError();
         }
     }

@@ -14,7 +14,6 @@ package org.eclipse.ditto.services.connectivity.messaging.amqp;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.net.URI;
-import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
@@ -30,16 +29,15 @@ import javax.jms.Session;
 import org.apache.qpid.jms.JmsConnection;
 import org.apache.qpid.jms.JmsConnectionListener;
 import org.apache.qpid.jms.message.JmsInboundMessageDispatch;
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientData;
+import org.eclipse.ditto.services.connectivity.messaging.internal.AbstractWithOrigin;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientConnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientDisconnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectClient;
-import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.internal.DisconnectClient;
-import org.eclipse.ditto.services.connectivity.messaging.internal.WithOrigin;
+import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.services.models.connectivity.ConnectivityMessagingConstants;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
@@ -228,8 +226,13 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         final String name = AmqpPublisherActor.ACTOR_NAME;
         final Optional<ActorRef> child = getContext().findChild(name);
         if (!child.isPresent()) {
-            final Props props = AmqpPublisherActor.props(jmsSession, connection().get());
-            return startChildActor(name, props);
+            if (jmsSession != null && connection().isPresent()) {
+                final Props props = AmqpPublisherActor.props(jmsSession, connection().get());
+                return startChildActor(name, props);
+            } else {
+                throw new IllegalStateException(
+                        "Could not start AmqpPublisherActor due to missing jmsSession or connection");
+            }
         } else {
             return child.get();
         }
@@ -262,7 +265,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
      */
     static class JmsConnect extends AbstractWithOrigin implements ConnectClient {
 
-        private JmsConnect(final ActorRef origin) {
+        private JmsConnect(@Nullable final ActorRef origin) {
             super(origin);
         }
     }
@@ -274,7 +277,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
 
         private final javax.jms.Connection connection;
 
-        JmsDisconnect(final ActorRef origin, @Nullable final javax.jms.Connection connection) {
+        JmsDisconnect(@Nullable final ActorRef origin, @Nullable final javax.jms.Connection connection) {
             super(origin);
             this.connection = checkNotNull(connection, "connection");
         }
@@ -293,7 +296,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         private final Session session;
         private final Map<String, MessageConsumer> consumers;
 
-        JmsConnected(final ActorRef origin, final JmsConnection connection, final Session session,
+        JmsConnected(@Nullable final ActorRef origin, final JmsConnection connection, final Session session,
                 final Map<String, MessageConsumer> consumers) {
             super(origin);
             this.connection = connection;
@@ -319,67 +322,8 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
      */
     static class JmsDisconnected extends AbstractWithOrigin implements ClientDisconnected {
 
-        JmsDisconnected(ActorRef origin) {
+        JmsDisconnected(@Nullable final ActorRef origin) {
             super(origin);
-        }
-    }
-
-    /**
-     * {@code Failure} message for internal communication with {@link JMSConnectionHandlingActor}.
-     */
-    static class JmsFailure extends AbstractWithOrigin implements ConnectionFailure {
-
-        @Nullable private final Throwable cause;
-        @Nullable private final String description;
-        private final Instant time;
-
-        JmsFailure(final ActorRef origin, @Nullable final Throwable cause, @Nullable final String description) {
-            super(origin);
-            this.cause = cause;
-            this.description = description;
-            time = Instant.now();
-        }
-
-        @Override
-        public Status.Failure getFailure() {
-            return new Status.Failure(cause);
-        }
-
-        @Override
-        public String getFailureDescription() {
-            String responseStr = "";
-            if (cause != null) {
-                if (description != null) {
-                    responseStr = description + " - cause ";
-                }
-                responseStr += cause.getClass().getSimpleName() + ": " + cause.getMessage();
-                if (cause instanceof DittoRuntimeException) {
-                    responseStr += " / " + ((DittoRuntimeException) cause).getDescription().orElse("");
-                }
-            } else if (description != null) {
-                responseStr = description;
-            } else {
-                responseStr = "unknown failure";
-            }
-            responseStr += " at " + time;
-            return responseStr;
-        }
-    }
-
-    /**
-     * Abstract class for messages that have an original sender.
-     */
-    abstract static class AbstractWithOrigin implements WithOrigin {
-
-        private final ActorRef origin;
-
-        AbstractWithOrigin(final ActorRef origin) {
-            this.origin = origin;
-        }
-
-        @Override
-        public ActorRef getOrigin() {
-            return origin;
         }
     }
 
@@ -393,42 +337,48 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         @Override
         public void onConnectionFailure(final Throwable error) {
             log.warning("Connection Failure: {}", error.getMessage());
-            getSelf().tell(new JmsFailure(ActorRef.noSender(), error, null), getSelf());
+            getSelf().tell(new ImmutableConnectionFailure(ActorRef.noSender(), error, null), ActorRef.noSender());
         }
 
         @Override
         public void onConnectionInterrupted(final URI remoteURI) {
             log.warning("Connection interrupted: {}", remoteURI);
-            getSelf().tell(new JmsFailure(ActorRef.noSender(), null, "JMS Interrupted"), getSelf());
+            getSelf().tell(new ImmutableConnectionFailure(ActorRef.noSender(), null, "JMS Interrupted"),
+                    ActorRef.noSender());
         }
 
         @Override
         public void onConnectionRestored(final URI remoteURI) {
             log.info("Connection restored: {}", remoteURI);
-            getSelf().tell((ClientConnected) ActorRef::noSender, getSelf());
+            getSelf().tell((ClientConnected) Optional::empty, ActorRef.noSender());
         }
 
         @Override
         public void onInboundMessage(final JmsInboundMessageDispatch envelope) {
-            log.info("Inbound message: {}", envelope);
+            log.debug("Inbound message: {}", envelope);
+            incrementConsumedMessageCounter();
         }
 
         @Override
         public void onSessionClosed(final Session session, final Throwable cause) {
             log.warning("Session closed: {} - {}", session, cause.getMessage());
-            getSelf().tell(new JmsFailure(ActorRef.noSender(), cause, "JMS Session closed"), getSelf());
+            getSelf().tell(new ImmutableConnectionFailure(ActorRef.noSender(), cause, "JMS Session closed"),
+                    ActorRef.noSender());
         }
 
         @Override
         public void onConsumerClosed(final MessageConsumer consumer, final Throwable cause) {
             log.warning("Consumer closed: {} - {}", consumer, cause.getMessage());
-            getSelf().tell(new JmsFailure(ActorRef.noSender(), cause, "JMS Consumer closed"), getSelf());
+            getSelf().tell(new ImmutableConnectionFailure(ActorRef.noSender(), cause, "JMS Consumer closed"),
+                    ActorRef.noSender());
         }
 
         @Override
         public void onProducerClosed(final MessageProducer producer, final Throwable cause) {
             log.warning("Producer closed: {} - {}", producer, cause.getMessage());
-            getSelf().tell(new JmsFailure(ActorRef.noSender(), cause, "JMS Producer closed"), getSelf());
+            getSelf().tell(new ImmutableConnectionFailure(ActorRef.noSender(), cause, "JMS Producer closed"),
+                    ActorRef.noSender());
         }
     }
+
 }

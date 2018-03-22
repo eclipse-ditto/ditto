@@ -134,6 +134,13 @@ final class AmqpConsumerActor extends AbstractActor implements MessageListener {
             log.info("Got DittoRuntimeException '{}' when command was parsed: {}", e.getErrorCode(), e.getMessage());
         } catch (final Exception e) {
             log.info("Unexpected {}: {}", e.getClass().getName(), e.getMessage());
+        } finally {
+            try {
+                // we use the manual acknowledge mode so we always have to ack the message
+                message.acknowledge();
+            } catch (final JMSException e) {
+                log.error(e, "Failed to ack an AMQP message");
+            }
         }
     }
 

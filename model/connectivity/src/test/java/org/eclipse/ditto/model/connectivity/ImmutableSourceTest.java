@@ -29,7 +29,7 @@ public class ImmutableSourceTest {
 
     private static final JsonObject KNOWN_SOURCE_JSON = JsonObject
             .newBuilder()
-            .set(Source.JsonFields.SOURCES, JsonFactory.newArrayBuilder().add(AMQP_SOURCE1).build())
+            .set(Source.JsonFields.ADDRESSES, JsonFactory.newArrayBuilder().add(AMQP_SOURCE1).build())
             .set(Source.JsonFields.CONSUMER_COUNT, 2)
             .build();
 

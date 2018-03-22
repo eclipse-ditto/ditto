@@ -133,14 +133,14 @@ final class ImmutableConnection implements Connection {
                 .collect(Collectors.toList());
         final AuthorizationContext readAuthorizationContext =
                 AuthorizationModelFactory.newAuthContext(authorizationSubjects);
-        final Set<Source> readSources = jsonObject.getValue(JsonFields.CONSUME)
+        final Set<Source> readSources = jsonObject.getValue(JsonFields.SOURCES)
                 .map(array -> array.stream()
                         .filter(JsonValue::isObject)
                         .map(JsonValue::asObject)
                         .map(ImmutableSource::fromJson)
                         .collect(Collectors.toSet()))
                 .orElse(Collections.emptySet());
-        final Set<Target> readTargets = jsonObject.getValue(JsonFields.PUBLISH)
+        final Set<Target> readTargets = jsonObject.getValue(JsonFields.TARGETS)
                 .map(array -> array.stream()
                         .filter(JsonValue::isObject)
                         .map(JsonValue::asObject)
@@ -258,10 +258,10 @@ final class ImmutableConnection implements Connection {
                 .map(AuthorizationSubject::getId)
                 .map(JsonFactory::newValue)
                 .collect(JsonCollectors.valuesToArray()), predicate);
-        jsonObjectBuilder.set(JsonFields.CONSUME, sources.stream()
+        jsonObjectBuilder.set(JsonFields.SOURCES, sources.stream()
                 .map(source -> source.toJson(schemaVersion, thePredicate))
                 .collect(JsonCollectors.valuesToArray()), predicate.and(Objects::nonNull));
-        jsonObjectBuilder.set(JsonFields.PUBLISH, targets.stream()
+        jsonObjectBuilder.set(JsonFields.TARGETS, targets.stream()
                 .map(source -> source.toJson(schemaVersion, thePredicate))
                 .collect(JsonCollectors.valuesToArray()), predicate.and(Objects::nonNull));
         jsonObjectBuilder.set(JsonFields.FAILOVER_ENABLED, failoverEnabled, predicate);

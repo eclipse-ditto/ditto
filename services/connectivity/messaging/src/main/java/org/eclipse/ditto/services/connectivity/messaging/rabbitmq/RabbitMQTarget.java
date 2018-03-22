@@ -37,12 +37,12 @@ class RabbitMQTarget implements PublishTarget {
         this.routingKey = routingKey;
     }
 
-    static RabbitMQTarget fromTarget(final String target) {
+    static RabbitMQTarget fromTargetAddress(final String targetAddress) {
         final Supplier<IllegalArgumentException> exceptionSupplier =
                 () -> new IllegalArgumentException(
-                        "The target '" + target + "' must be specified in the format 'exchange[/routingKey]'.");
-        final String exchange = getExchangeFromTarget(target).orElseThrow(exceptionSupplier);
-        final String routingKey = getRoutingKeyFromTarget(target).orElse(null);
+                        "The target address '" + targetAddress + "' must be specified in the format 'exchange[/routingKey]'.");
+        final String exchange = getExchangeFromTarget(targetAddress).orElseThrow(exceptionSupplier);
+        final String routingKey = getRoutingKeyFromTarget(targetAddress).orElse(null);
         return new RabbitMQTarget(exchange, routingKey);
     }
 
