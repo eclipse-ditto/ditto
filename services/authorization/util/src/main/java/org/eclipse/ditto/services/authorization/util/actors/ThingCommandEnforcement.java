@@ -17,6 +17,7 @@ import java.util.Collections;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
@@ -24,6 +25,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.enforcers.AclEnforcer;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.enforcers.PolicyEnforcers;
@@ -40,15 +42,21 @@ import org.eclipse.ditto.services.models.policies.Permission;
 import org.eclipse.ditto.signals.commands.base.CommandToExceptionRegistry;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayServiceTimeoutException;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
+import org.eclipse.ditto.signals.commands.policies.query.RetrievePolicy;
+import org.eclipse.ditto.signals.commands.policies.query.RetrievePolicyResponse;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
+import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingCommandToAccessExceptionRegistry;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingCommandToModifyExceptionRegistry;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotModifiableException;
+import org.eclipse.ditto.signals.commands.things.exceptions.ThingUnavailableException;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteThing;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
+import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
+import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommand;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommandResponse;
 
@@ -59,7 +67,6 @@ import akka.pattern.PatternsCS;
 /**
  * Mixin to authorize {@code ThingCommand}.
  */
-// TODO: handle _policy for RetrieveThing
 // TODO: migrate logging
 interface ThingCommandEnforcement extends Enforcement, InlinePolicyHandling {
 
@@ -82,7 +89,8 @@ interface ThingCommandEnforcement extends Enforcement, InlinePolicyHandling {
             } else if (isAclEnforcer(enforcerKeyEntry)) {
                 enforceThingCommandByAclEnforcer(thingCommand, enforcerEntry.getValue(), sender);
             } else {
-                enforceThingCommandByPolicyEnforcer(thingCommand, enforcerEntry.getValue(), sender);
+                final String policyId = enforcerKeyEntry.getValue().getId();
+                enforceThingCommandByPolicyEnforcer(thingCommand, policyId, enforcerEntry.getValue(), sender);
             }
         });
     }
@@ -137,16 +145,26 @@ interface ThingCommandEnforcement extends Enforcement, InlinePolicyHandling {
      * Mixin-private method: authorize a thing command by policy enforcer with view restriction for query commands.
      *
      * @param thingCommand the thing command.
+     * @param policyId Id of the thing's policy.
      * @param enforcer the policy enforcer.
      * @param sender sender of the command.
      */
-    default void enforceThingCommandByPolicyEnforcer(final ThingCommand<?> thingCommand, final Enforcer enforcer,
+    default void enforceThingCommandByPolicyEnforcer(final ThingCommand<?> thingCommand,
+            final String policyId,
+            final Enforcer enforcer,
             final ActorRef sender) {
         final boolean authorized = authorizeByPolicy(enforcer, thingCommand)
                 .map(commandWithReadSubjects -> {
                     if (commandWithReadSubjects instanceof ThingQueryCommand) {
                         final ThingQueryCommand thingQueryCommand = (ThingQueryCommand) commandWithReadSubjects;
-                        return askThingsShardRegionAndBuildJsonView(thingQueryCommand, enforcer, sender);
+                        if (thingQueryCommand instanceof RetrieveThing &&
+                                shouldRetrievePolicyWithThing(thingQueryCommand)) {
+
+                            final RetrieveThing retrieveThing = (RetrieveThing) thingQueryCommand;
+                            return retrieveThingAndPolicy(retrieveThing, policyId, enforcer, sender);
+                        } else {
+                            return askThingsShardRegionAndBuildJsonView(thingQueryCommand, enforcer, sender);
+                        }
                     } else {
                         return forwardToThingsShardRegion(commandWithReadSubjects, sender);
                     }
@@ -169,7 +187,9 @@ interface ThingCommandEnforcement extends Enforcement, InlinePolicyHandling {
     }
 
     /**
-     * Ask things-shard-region for response of a query command and limit the response according to a policy enforcer.
+     * Retrieve for response of a query command and limit the response
+     * according to a policy
+     * enforcer.
      *
      * @param commandWithReadSubjects the command to ask.
      * @param enforcer enforcer to build JsonView with.
@@ -200,6 +220,127 @@ interface ThingCommandEnforcement extends Enforcement, InlinePolicyHandling {
     }
 
     /**
+     * Retrieve a thing and its policy and combine them into a response.
+     *
+     * @param retrieveThing the retrieve-thing command.
+     * @param policyId ID of the thing's policy.
+     * @param enforcer the enforcer for the command.
+     * @param sender sender of the command.
+     * @return always {@code true}.
+     */
+    default boolean retrieveThingAndPolicy(
+            final RetrieveThing retrieveThing,
+            final String policyId,
+            final Enforcer enforcer,
+            final ActorRef sender) {
+
+        final Optional<RetrievePolicy> retrievePolicyOptional =
+                authorizePolicyCommand(RetrievePolicy.of(policyId, retrieveThing.getDittoHeaders()), enforcer);
+
+        if (retrievePolicyOptional.isPresent()) {
+            retrieveThingBeforePolicy(retrieveThing, sender).thenAccept(thingResponse ->
+                    thingResponse.ifPresent(retrieveThingResponse -> {
+                        final RetrievePolicy retrievePolicy = retrievePolicyOptional.get();
+                        retrieveInlinedPolicyForThing(retrieveThing, retrievePolicy).thenAccept(policyResponse -> {
+                            if (policyResponse.isPresent()) {
+                                reportAggregatedThingAndPolicy(retrieveThing, retrieveThingResponse,
+                                        policyResponse.get(), enforcer, sender);
+                            } else {
+                                replyToSender(retrieveThingResponse, sender);
+                            }
+                        });
+                    }));
+            return true;
+        } else {
+            // sender is not authorized to view the policy, ignore the request to embed policy.
+            return askThingsShardRegionAndBuildJsonView(retrieveThing, enforcer, sender);
+        }
+    }
+
+    /**
+     * Retrieve a thing before retrieving its inlined policy. Report errors to sender.
+     *
+     * @param retrieveThing the command.
+     * @param sender whom to report errors to.
+     * @return future response from things-shard-region.
+     */
+    default CompletionStage<Optional<RetrieveThingResponse>> retrieveThingBeforePolicy(
+            final RetrieveThing retrieveThing,
+            final ActorRef sender) {
+
+        return PatternsCS.ask(thingsShardRegion(), retrieveThing, getAskTimeout().toMillis())
+                .handleAsync((response, error) -> {
+                    if (response instanceof RetrieveThingResponse) {
+                        return Optional.of((RetrieveThingResponse) response);
+                    } else if (response instanceof ThingErrorResponse || response instanceof DittoRuntimeException) {
+                        replyToSender(response, sender);
+                    } else if (error instanceof AskTimeoutException) {
+                        final ThingUnavailableException thingUnavailableException =
+                                ThingUnavailableException.newBuilder(retrieveThing.getThingId()).build();
+                        replyToSender(thingUnavailableException, sender);
+                    } else {
+                        reportUnexpectedErrorOrResponse("retrieving thing before inlined policy",
+                                sender, response, error);
+                    }
+                    return Optional.empty();
+                });
+    }
+
+    /**
+     * Retrieve inlined policy after retrieving a thing. Do not report errors.
+     *
+     * @param retrieveThing the original command.
+     * @param retrievePolicy the command to retrieve the thing's policy.
+     * @return future response from policies-shard-region.
+     */
+    default CompletionStage<Optional<RetrievePolicyResponse>> retrieveInlinedPolicyForThing(
+            final RetrieveThing retrieveThing,
+            final RetrievePolicy retrievePolicy) {
+
+        return PatternsCS.ask(policiesShardRegion(), retrievePolicy, getAskTimeout().toMillis())
+                .handleAsync((response, error) -> {
+                    if (response instanceof RetrievePolicyResponse) {
+                        return Optional.of((RetrievePolicyResponse) response);
+                    } else if (error != null) {
+                        log().error(error, "retrieving inlined policy after RetrieveThing");
+                    } else {
+                        log().info("No authorized response when retrieving inlined policy <{}> for thing <{}>: {}",
+                                retrievePolicy.getId(), retrieveThing.getThingId(), response);
+                    }
+                    return Optional.empty();
+                });
+    }
+
+    /**
+     * Put thing and policy together as response to the sender.
+     *
+     * @param retrieveThing the original command.
+     * @param retrieveThingResponse response from things-shard-region.
+     * @param retrievePolicyResponse response from policies-shard-region.
+     * @param enforcer enforcer to bulid the Json view.
+     * @param sender sender of the original command.
+     */
+    default void reportAggregatedThingAndPolicy(
+            final RetrieveThing retrieveThing,
+            final RetrieveThingResponse retrieveThingResponse,
+            final RetrievePolicyResponse retrievePolicyResponse,
+            final Enforcer enforcer,
+            final ActorRef sender) {
+
+        final RetrieveThingResponse limitedView =
+                buildJsonViewForThingQueryCommandResponse(retrieveThingResponse, enforcer);
+
+        final JsonObject inlinedPolicy = retrievePolicyResponse.getPolicy()
+                .toInlinedJson(retrieveThing.getImplementedSchemaVersion(), FieldType.notHidden());
+
+        final JsonObject thingWithInlinedPolicy = limitedView.getEntity().asObject().toBuilder()
+                .setAll(inlinedPolicy)
+                .build();
+
+        replyToSender(limitedView.setEntity(thingWithInlinedPolicy), sender);
+    }
+
+    /**
      * Mixin-private: report timeout of {@code ThingQueryComand}.
      *
      * @param sender sender of the command.
@@ -218,7 +359,7 @@ interface ThingCommandEnforcement extends Enforcement, InlinePolicyHandling {
      * @param enforcer the enforcer.
      */
     default void reportJsonViewForThingQuery(final ActorRef sender,
-            final ThingQueryCommandResponse thingQueryCommandResponse,
+            final ThingQueryCommandResponse<?> thingQueryCommandResponse,
             final Enforcer enforcer) {
 
         try {
@@ -238,7 +379,7 @@ interface ThingCommandEnforcement extends Enforcement, InlinePolicyHandling {
         final EntityId policyEntityId = EntityId.of(PolicyCommand.RESOURCE_TYPE, policyId);
         caches().retrieve(policyEntityId, (policyIdEntry, policyEnforcerEntry) -> {
             if (policyEnforcerEntry.exists()) {
-                enforceThingCommandByPolicyEnforcer(createThing, policyEnforcerEntry.getValue(), sender);
+                enforceThingCommandByPolicyEnforcer(createThing, policyId, policyEnforcerEntry.getValue(), sender);
             } else {
                 final DittoRuntimeException error =
                         errorForExistingThingWithDeletedPolicy(createThing, createThing.getThingId(), policyId);
@@ -255,8 +396,8 @@ interface ThingCommandEnforcement extends Enforcement, InlinePolicyHandling {
      * @param enforcer the enforcer.
      * @return response with view on entity restricted by enforcer..
      */
-    static ThingQueryCommandResponse buildJsonViewForThingQueryCommandResponse(
-            final ThingQueryCommandResponse response,
+    static <T extends ThingQueryCommandResponse> T buildJsonViewForThingQueryCommandResponse(
+            final ThingQueryCommandResponse<T> response,
             final Enforcer enforcer) {
 
         final JsonValue entity = response.getEntity();
@@ -265,7 +406,7 @@ interface ThingCommandEnforcement extends Enforcement, InlinePolicyHandling {
                     getJsonViewForThingQueryCommandResponse(entity.asObject(), response, enforcer);
             return response.setEntity(filteredView);
         } else {
-            return response;
+            return response.setEntity(entity);
         }
     }
 
@@ -505,6 +646,22 @@ interface ThingCommandEnforcement extends Enforcement, InlinePolicyHandling {
                         .filter(JsonValue::isObject)
                         .map(jsonValue -> jsonValue.asObject().contains(Thing.JsonFields.ACL.getPointer()))
                         .isPresent();
+    }
+
+    /**
+     * Check if inlined policy should be retrieved together with the thing.
+     *
+     * @param command the thing query command.
+     * @return whether it is necessary to retrieve the thing's policy.
+     */
+    static boolean shouldRetrievePolicyWithThing(final ThingQueryCommand command) {
+        final RetrieveThing retrieveThing = (RetrieveThing) command;
+        return retrieveThing.getSelectedFields().filter(selector ->
+                selector.getPointers().stream().anyMatch(jsonPointer ->
+                        jsonPointer.getRoot()
+                                .filter(jsonKey -> Policy.INLINED_FIELD_NAME.equals(jsonKey.toString()))
+                                .isPresent()))
+                .isPresent();
     }
 
     /**
