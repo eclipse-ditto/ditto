@@ -39,8 +39,12 @@ import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
 import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
+import org.eclipse.ditto.services.utils.persistence.mongo.monitoring.KamonCommandListener;
+import org.eclipse.ditto.services.utils.persistence.mongo.monitoring.KamonConnectionPoolListener;
 import org.eclipse.ditto.services.utils.persistence.mongo.streaming.MongoSearchSyncPersistence;
 
+import com.mongodb.event.CommandListener;
+import com.mongodb.event.ConnectionPoolListener;
 import com.typesafe.config.Config;
 
 import akka.actor.AbstractActor;
@@ -66,6 +70,8 @@ import akka.stream.ActorMaterializer;
  */
 public final class SearchRootActor extends AbstractActor {
 
+    private static final String KAMON_METRICS_PREFIX = "search";
+
     /**
      * The name of this Actor in the ActorSystem.
      */
@@ -77,7 +83,14 @@ public final class SearchRootActor extends AbstractActor {
 
 
     private SearchRootActor(final Config config, final ActorRef pubSubMediator, final ActorMaterializer materializer) {
-        final MongoClientWrapper mongoClientWrapper = MongoClientWrapper.newInstance(config);
+        final CommandListener kamonCommandListener = config.getBoolean(ConfigKeys.MONITORING_COMMANDS_ENABLED) ?
+                new KamonCommandListener(KAMON_METRICS_PREFIX) : null;
+        final ConnectionPoolListener kamonConnectionPoolListener =
+                config.getBoolean(ConfigKeys.MONITORING_CONNECTION_POOL_ENABLED) ?
+                        new KamonConnectionPoolListener(KAMON_METRICS_PREFIX) : null;
+
+        final MongoClientWrapper mongoClientWrapper =
+                MongoClientWrapper.newInstance(config, kamonCommandListener, kamonConnectionPoolListener);
 
         final StreamMetadataPersistence thingsSyncPersistence =
                 MongoSearchSyncPersistence.initializedInstance(THINGS_SYNC_STATE_COLLECTION_NAME, mongoClientWrapper,
