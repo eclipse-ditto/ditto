@@ -46,4 +46,14 @@ public final class AuthorizationConfigReader extends AbstractServiceConfigReader
     public CachesConfigReader caches() {
         return new CachesConfigReader(getChild(PATH_CACHES));
     }
+
+    /**
+     * Get the index of this service instance.
+     *
+     * @return the instance index.
+     */
+    public int instanceIndex() {
+        final Config rawConfig = getRawConfig();
+        return getIfPresent("ditto.cluster.instance-index", rawConfig::getInt).orElse(0);
+    }
 }

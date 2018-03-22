@@ -17,6 +17,7 @@ import org.eclipse.ditto.services.authorization.util.EntityRegionMap;
 import org.eclipse.ditto.services.authorization.util.actors.EnforcerActor;
 import org.eclipse.ditto.services.authorization.util.cache.AuthorizationCaches;
 import org.eclipse.ditto.services.authorization.util.config.AuthorizationConfigReader;
+import org.eclipse.ditto.services.authorization.util.update.CacheUpdater;
 import org.eclipse.ditto.services.base.config.ClusterConfigReader;
 import org.eclipse.ditto.services.base.metrics.StatsdMetricsReporter;
 import org.eclipse.ditto.services.models.authorization.AuthorizationMessagingConstants;
@@ -46,19 +47,22 @@ public final class AuthorizationRootActor extends AbstractActor {
      */
     public static final String ACTOR_NAME = "authorizationRoot";
 
-    private final AuthorizationCaches cache;
-    private final ActorRef enforcerShardRegion;
-
     private AuthorizationRootActor(final AuthorizationConfigReader configReader, final ActorRef pubSubMediator) {
         final ActorSystem actorSystem = getContext().getSystem();
         final ClusterConfigReader clusterConfigReader = configReader.cluster();
 
         final EntityRegionMap entityRegionMap = buildEntityRegionMap(actorSystem, clusterConfigReader);
-        cache = new AuthorizationCaches(configReader.caches(), entityRegionMap,
+        final AuthorizationCaches caches = new AuthorizationCaches(configReader.caches(), entityRegionMap,
                 namedMetricRegistry -> StatsdMetricsReporter.getInstance().add(namedMetricRegistry));
 
-        final Props enforcerProps = EnforcerActor.props(pubSubMediator, entityRegionMap, cache);
-        enforcerShardRegion = startShardRegion(actorSystem, clusterConfigReader, enforcerProps);
+        final Props enforcerProps = EnforcerActor.props(pubSubMediator, entityRegionMap, caches);
+
+        // start enforcer shard region; no need to keep the reference
+        startShardRegion(actorSystem, clusterConfigReader, enforcerProps);
+
+        // start cache updater
+        getContext().actorOf(CacheUpdater.props(pubSubMediator, caches, configReader.instanceIndex()),
+                CacheUpdater.ACTOR_NAME);
     }
 
     /**

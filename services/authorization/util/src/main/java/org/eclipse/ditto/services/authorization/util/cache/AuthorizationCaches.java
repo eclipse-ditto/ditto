@@ -121,6 +121,16 @@ public final class AuthorizationCaches {
         idCache.invalidate(resourceKey);
     }
 
+    /**
+     * Invalid a key in all caches.
+     *
+     * @param cacheKey cache key to invalidate.
+     */
+    public void invalidateAll(final EntityId cacheKey) {
+        idCache.invalidate(cacheKey);
+        enforcerCache.invalidate(cacheKey);
+    }
+
     private static <K, V> CaffeineCache<K, V> createCache(final CacheConfigReader cacheConfigReader,
             final AsyncCacheLoader<K, V> loader, Map.Entry<String, MetricRegistry> namedMetricRegistry) {
         return CaffeineCache.of(caffeine(cacheConfigReader), loader, namedMetricRegistry);
