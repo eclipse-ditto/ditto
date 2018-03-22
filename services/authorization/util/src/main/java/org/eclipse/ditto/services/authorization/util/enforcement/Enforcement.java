@@ -12,7 +12,6 @@
 package org.eclipse.ditto.services.authorization.util.enforcement;
 
 import java.time.Duration;
-import java.util.Optional;
 import java.util.Set;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -26,9 +25,7 @@ import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
-import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 
-import akka.actor.Actor;
 import akka.actor.ActorRef;
 import akka.event.DiagnosticLoggingAdapter;
 
@@ -36,128 +33,58 @@ import akka.event.DiagnosticLoggingAdapter;
  * Contains self-type requirements for aspects of enforcer actor dealing with specific commands.
  * Do NOT call the methods outside this package.
  */
-interface Enforcement extends Actor {
+public abstract class Enforcement {
+
+    private final Data data;
+
+    protected Enforcement(final Data data) {
+        this.data = data;
+    }
 
     /**
-     * Self-type requirement: It has the timeout duration for asking an entity shard region.
-     * Do not call outside of this package.
+     * Retrieve the things-shard-region from the entity region map.
      *
-     * @return the timeout duration for asking an entity shard region.
+     * @return the things shard region if it exists in the entity region map, dead letters otherwise.
      */
-    Duration getAskTimeout();
-
-    /**
-     * Self-type requirement: It has an {@code EntityRegionMap}.
-     * Do not call outside of this package.
-     *
-     * @return the entity region map.
-     */
-    EntityRegionMap entityRegionMap();
-
-    /**
-     * Self-type requirement: It has an entity ID.
-     * Do not call outside of this package.
-     *
-     * @return the entity ID.
-     */
-    EntityId entityId();
-
-    /**
-     * Self-type requirement: It has a diagnostic logging adapter.
-     * Do not call outside of this package.
-     *
-     * @return the diagnostic logging adapter.
-     */
-    DiagnosticLoggingAdapter log();
-
-    /**
-     * Self-type requirement: It has authorization caches.
-     * Do not call outside of this package.
-     *
-     * @return the authorization caches.
-     */
-    AuthorizationCaches caches();
-
-    /**
-     * Method shared by {@code ThingCommandEnforcement} with other mixins: authorize a {@code CreateThing} command
-     * containing an explicit policy ID sent to a nonexistent thing.
-     *
-     * @param createThing the command.
-     * @param policyId policy ID contained in the command.
-     * @param sender sender of the command.
-     * @return true.
-     */
-    boolean enforceCreateThingForNonexistentThingWithPolicyId(final CreateThing createThing,
-            final String policyId,
-            final ActorRef sender);
-
-    /**
-     * Method shared by {@code PolicyCommandEnforcement} with other mixins: authorize a {@code PolicyCommand} and add
-     * read subjects to it.
-     * @param command the command to authorize.
-     * @param enforcer the enforcer to carry out authorization.
-     * @param <T> type of the command.
-     * @return command with read subjects added if it is authorized, an empty optional otherwise.
-     */
-    <T extends PolicyCommand> Optional<T> authorizePolicyCommand(final PolicyCommand<T> command,
-            final Enforcer enforcer);
-
-    /**
-     * Convenience method: retrieve the things-shard-region from the entity region map.
-     *
-     * @return the things shard region if it exists in the entity region map, deadletters otherwise.
-     */
-    default ActorRef thingsShardRegion() {
+    protected ActorRef thingsShardRegion() {
         return shardRegionForResourceType(ThingCommand.RESOURCE_TYPE);
     }
 
     /**
-     * Convenience method: retrieve the policies-shard-region from the entity region map.
+     * Retrieve the policies-shard-region from the entity region map.
      *
      * @return the policies shard region if it exists in the entity region map, deadletters otherwise.
      */
-    default ActorRef policiesShardRegion() {
+    protected ActorRef policiesShardRegion() {
         return shardRegionForResourceType(PolicyCommand.RESOURCE_TYPE);
     }
 
     /**
      * Convenience method: retrieve shard region for a resource type.
+     *
      * @param resourceType the resource type.
      * @return the shard region.
      */
-    default ActorRef shardRegionForResourceType(final String resourceType) {
-        return entityRegionMap().lookup(resourceType).orElse(context().system().deadLetters());
+    protected ActorRef shardRegionForResourceType(final String resourceType) {
+        return entityRegionMap().lookup(resourceType).orElse(deadLetters());
     }
 
     /**
-     * Convenience method: forward a message to things-shard-region.
-     * Do not call {@code Actor.forward(Object, ActorContext)} because it is not thread-safe.
-     *
-     * @param message message to forward.
-     * @param sender sender of the command.
-     * @return true.
-     */
-    default boolean forwardToThingsShardRegion(final Object message, final ActorRef sender) {
-        thingsShardRegion().tell(message, sender);
-        return true;
-    }
-
-    /**
-     * Convenience method: reply a message to sender.
+     * Reply a message to sender.
      *
      * @param message message to forward.
      * @param sender whom to reply to.
      * @return true.
      */
-    default boolean replyToSender(final Object message, final ActorRef sender) {
+    protected boolean replyToSender(final Object message, final ActorRef sender) {
         sender.tell(message, self());
         return true;
     }
 
     /**
-     * Convenience method: report unexpected error or unknown response.
+     * Report unexpected error or unknown response.
      */
-    default void reportUnexpectedErrorOrResponse(final String hint,
+    protected void reportUnexpectedErrorOrResponse(final String hint,
             final ActorRef sender,
             final Object response,
             final Throwable error) {
@@ -170,45 +97,47 @@ interface Enforcement extends Actor {
     }
 
     /**
-     * Convenience method: report unknown error.
+     * Report unknown error.
      */
-    default void reportUnexpectedError(final String hint, final ActorRef sender, final Throwable error) {
+    protected void reportUnexpectedError(final String hint, final ActorRef sender, final Throwable error) {
         log().error(error, "Unexpected error {}", hint);
 
+        // TODO CR-5400: set headers.
         sender.tell(GatewayInternalErrorException.newBuilder().build(), self());
     }
 
     /**
-     * Convenience method: report unknown response.
+     * Report unknown response.
      */
-    default void reportUnknownResponse(final String hint, final ActorRef sender, final Object response) {
+    protected void reportUnknownResponse(final String hint, final ActorRef sender, final Object response) {
         log().error("Unexpected response {}: <{}>", hint, response);
 
+        // TODO CR-5400: set headers.
         sender.tell(GatewayInternalErrorException.newBuilder().build(), self());
     }
 
     /**
-     * Convenience method: extend a command by read-subjects header given by an enforcer.
+     * Extend a command by read-subjects header given by an enforcer.
      *
      * @param command the command to extend.
      * @param enforcer the enforcer.
      * @return the extended command.
      */
-    static <T extends Command> T addReadSubjectsToCommand(final Command<T> command,
+    protected static <T extends Command> T addReadSubjectsToCommand(final Command<T> command,
             final Enforcer enforcer) {
 
         return addReadSubjectsToCommand(command, getReadSubjects(command, enforcer));
     }
 
     /**
-     * Convenience method: extend a command by read-subjects header given explicitly.
+     * Extend a command by read-subjects header given explicitly.
      *
      * @param <T> type of the thing command.
      * @param command the command to extend.
      * @param readSubjects explicitly-given read subjects.
      * @return the extended command.
      */
-    static <T extends Command> T addReadSubjectsToCommand(final Command<T> command,
+    protected static <T extends Command> T addReadSubjectsToCommand(final Command<T> command,
             final Set<String> readSubjects) {
 
         final DittoHeaders newHeaders = command.getDittoHeaders()
@@ -220,15 +149,92 @@ interface Enforcement extends Actor {
     }
 
     /**
-     * Convenience method: get read subjects from an enforcer.
+     * Get read subjects from an enforcer.
      *
      * @param command the command to get read subjects for.
      * @param enforcer the enforcer.
      * @return read subjects of the command.
      */
-    static Set<String> getReadSubjects(final Command<?> command, final Enforcer enforcer) {
+    protected static Set<String> getReadSubjects(final Command<?> command, final Enforcer enforcer) {
         final ResourceKey resourceKey =
                 ResourceKey.newInstance(ThingCommand.RESOURCE_TYPE, command.getResourcePath());
         return enforcer.getSubjectIdsWithPermission(resourceKey, Permission.READ).getGranted();
+    }
+
+    /**
+     * @return Timeout duration for asking entity shard regions.
+     */
+    protected Duration getAskTimeout() {
+        return data.askTimeout;
+    }
+
+    /**
+     * @return the entity region map.
+     */
+    protected EntityRegionMap entityRegionMap() {
+        return data.entityRegionMap;
+    }
+
+    /**
+     * @return the entity ID.
+     */
+    protected EntityId entityId() {
+        return data.entityId;
+    }
+
+    /**
+     * @return the diagnostic logging adapter.
+     */
+    protected DiagnosticLoggingAdapter log() {
+        return data.log;
+    }
+
+    /**
+     * @return the authorization caches.
+     */
+    protected AuthorizationCaches caches() {
+        return data.caches;
+    }
+
+    /**
+     * @return actor reference of the enforcer actor this object belongs to.
+     */
+    protected ActorRef self() {
+        return data.self;
+    }
+
+    /**
+     * @return actor reference to send dead letters to.
+     */
+    protected ActorRef deadLetters() {
+        return data.deadLetters;
+    }
+
+    public static final class Data {
+
+        private final Duration askTimeout;
+        private final EntityRegionMap entityRegionMap;
+        private final EntityId entityId;
+        private final DiagnosticLoggingAdapter log;
+        private final AuthorizationCaches caches;
+        private final ActorRef self;
+        private final ActorRef deadLetters;
+
+        public Data(final Duration askTimeout,
+                final EntityRegionMap entityRegionMap,
+                final EntityId entityId,
+                final DiagnosticLoggingAdapter log,
+                final AuthorizationCaches caches,
+                final ActorRef self,
+                final ActorRef deadLetters) {
+
+            this.askTimeout = askTimeout;
+            this.entityRegionMap = entityRegionMap;
+            this.entityId = entityId;
+            this.log = log;
+            this.caches = caches;
+            this.self = self;
+            this.deadLetters = deadLetters;
+        }
     }
 }

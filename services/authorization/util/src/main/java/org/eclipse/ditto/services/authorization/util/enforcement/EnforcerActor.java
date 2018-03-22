@@ -31,7 +31,7 @@ import akka.japi.pf.ReceiveBuilder;
 /**
  * Actor that enforces authorization for all commands.
  */
-public final class EnforcerActor extends AbstractActor implements ThingCommandEnforcement, PolicyCommandEnforcement {
+public final class EnforcerActor extends AbstractActor {
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
@@ -40,6 +40,9 @@ public final class EnforcerActor extends AbstractActor implements ThingCommandEn
     private final AuthorizationCaches caches;
     private final EntityId entityId;
 
+    private final PolicyCommandEnforcement policyCommandEnforcement;
+    private final ThingCommandEnforcement thingCommandEnforcement;
+
     private EnforcerActor(final ActorRef pubSubMediator,
             final EntityRegionMap entityRegionMap,
             final AuthorizationCaches caches) {
@@ -47,6 +50,18 @@ public final class EnforcerActor extends AbstractActor implements ThingCommandEn
         this.entityRegionMap = entityRegionMap;
         this.caches = caches;
         this.entityId = decodeEntityId(getSelf());
+
+        final Enforcement.Data data = new Enforcement.Data(
+                Duration.ofSeconds(10), // TODO: make configurable
+                entityRegionMap,
+                entityId,
+                log,
+                caches,
+                getSelf(),
+                getContext().getSystem().deadLetters());
+
+        policyCommandEnforcement = new PolicyCommandEnforcement(data);
+        thingCommandEnforcement = new ThingCommandEnforcement(data, policyCommandEnforcement);
     }
 
     /**
@@ -72,34 +87,9 @@ public final class EnforcerActor extends AbstractActor implements ThingCommandEn
     }
 
     @Override
-    public Duration getAskTimeout() {
-        return Duration.ofSeconds(10L); // TODO: make configurable
-    }
-
-    @Override
-    public EntityRegionMap entityRegionMap() {
-        return entityRegionMap;
-    }
-
-    @Override
-    public EntityId entityId() {
-        return entityId;
-    }
-
-    @Override
-    public DiagnosticLoggingAdapter log() {
-        return log;
-    }
-
-    @Override
-    public AuthorizationCaches caches() {
-        return caches;
-    }
-
-    @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
-                .match(ThingCommand.class, this::enforceThingCommand)
+                .match(ThingCommand.class, cmd -> thingCommandEnforcement.enforceThingCommand(cmd, getSender()))
                 .matchAny(message -> {
                     log.warning("Unexpected message: <{}>", message);
                     unhandled(message);

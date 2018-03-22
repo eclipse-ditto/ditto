@@ -22,20 +22,24 @@ import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.policies.modify.PolicyModifyCommand;
 
 /**
- * Mixin to authorize {@code PolicyCommand}.
+ * Authorize {@code PolicyCommand}.
  */
-interface PolicyCommandEnforcement extends Enforcement {
+public final class PolicyCommandEnforcement extends Enforcement {
 
+
+    public PolicyCommandEnforcement(final Data data) {
+        super(data);
+    }
 
     /**
-     * Shared method: authorize a policy-command by a policy enforcer.
+     * Authorize a policy-command by a policy enforcer.
      *
      * @param <T> type of the policy-command.
      * @param enforcer the policy enforcer.
      * @param command the command to authorize.
      * @return optionally the authorized command extended by read subjects.
      */
-    default <T extends PolicyCommand> Optional<T> authorizePolicyCommand(final PolicyCommand<T> command,
+    public <T extends PolicyCommand> Optional<T> authorizePolicyCommand(final PolicyCommand<T> command,
             final Enforcer enforcer) {
 
         final ResourceKey policyResourceKey = PoliciesResourceType.policyResource(command.getResourcePath());
