@@ -164,8 +164,10 @@ public final class PoliciesRootActor extends AbstractActor {
         }
 
         final HealthCheckingActorOptions healthCheckingActorOptions = hcBuilder.build();
-        final Props healthCheckingActorProps = DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions, mongoClient);
-        final ActorRef healthCheckingActor = startChildActor(DefaultHealthCheckingActorFactory.ACTOR_NAME, healthCheckingActorProps);
+        final Props healthCheckingActorProps =
+                DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions, mongoClient);
+        final ActorRef healthCheckingActor =
+                startChildActor(DefaultHealthCheckingActorFactory.ACTOR_NAME, healthCheckingActorProps);
 
         String hostname = config.getString(ConfigKeys.HTTP_HOSTNAME);
         if (hostname.isEmpty()) {

@@ -26,9 +26,9 @@ public final class DefaultHealthCheckingActorFactory {
     }
 
     /**
-     * The (suggested) name of the Actor to be created in the ActorSystem.
+     * The actor name of the Actor to be created in the ActorSystem.
      */
-    public static final String ACTOR_NAME = "healthCheckingActor";
+    public static final String ACTOR_NAME = AbstractHealthCheckingActor.ACTOR_NAME;
 
     private static final String PERSISTENCE_LABEL = "persistence";
 

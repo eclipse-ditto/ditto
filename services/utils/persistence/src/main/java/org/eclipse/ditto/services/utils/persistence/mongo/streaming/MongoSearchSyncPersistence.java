@@ -13,6 +13,7 @@ package org.eclipse.ditto.services.utils.persistence.mongo.streaming;
 
 import java.time.Instant;
 import java.util.Date;
+import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -110,9 +111,9 @@ public final class MongoSearchSyncPersistence implements StreamMetadataPersisten
     }
 
     @Override
-    public Instant retrieveLastSuccessfulStreamEnd(final Instant defaultTimestamp) {
-        final Source<Instant, NotUsed> source = retrieveLastSuccessfulStreamEndAsync(defaultTimestamp);
-        final CompletionStage<Instant> done = source.runWith(Sink.head(), mat);
+    public Optional<Instant> retrieveLastSuccessfulStreamEnd() {
+        final Source<Optional<Instant>, NotUsed> source = retrieveLastSuccessfulStreamEndAsync();
+        final CompletionStage<Optional<Instant>> done = source.runWith(Sink.head(), mat);
         try {
             return done.toCompletableFuture().get(BLOCKING_TIMEOUT_SECS, TimeUnit.SECONDS);
         } catch (final InterruptedException | ExecutionException | TimeoutException e) {
@@ -120,16 +121,16 @@ public final class MongoSearchSyncPersistence implements StreamMetadataPersisten
         }
     }
 
-    private Source<Instant, NotUsed> retrieveLastSuccessfulStreamEndAsync(final Instant defaultTimestamp) {
+    private Source<Optional<Instant>, NotUsed> retrieveLastSuccessfulStreamEndAsync() {
         return Source.fromPublisher(lastSuccessfulSearchSyncCollection.find())
                 .limit(1)
                 .flatMapConcat(doc -> {
                     final Date date = doc.getDate(FIELD_TIMESTAMP);
                     final Instant timestamp = date.toInstant();
                     LOGGER.debug("Returning last timestamp of search synchronization: <{}>.", timestamp);
-                    return Source.single(timestamp);
+                    return Source.single(Optional.of(timestamp));
                 })
-                .orElse(Source.single(defaultTimestamp));
+                .orElse(Source.single(Optional.empty()));
     }
 
     /**

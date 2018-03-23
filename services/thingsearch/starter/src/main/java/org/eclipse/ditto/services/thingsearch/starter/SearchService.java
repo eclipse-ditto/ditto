@@ -11,15 +11,11 @@
  */
 package org.eclipse.ditto.services.thingsearch.starter;
 
-import java.util.Collection;
-import java.util.Collections;
-
 import org.eclipse.ditto.services.base.BaseConfigKey;
 import org.eclipse.ditto.services.base.BaseConfigKeys;
 import org.eclipse.ditto.services.base.DittoService;
 import org.eclipse.ditto.services.thingsearch.common.util.ConfigKeys;
 import org.eclipse.ditto.services.thingsearch.starter.actors.SearchRootActor;
-import org.eclipse.ditto.services.thingsearch.updater.actors.SearchUpdaterRootActor;
 import org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,9 +46,9 @@ public final class SearchService extends DittoService {
 
     private SearchService() {
         super(LOGGER, SERVICE_NAME, SearchRootActor.ACTOR_NAME, BaseConfigKeys.getBuilder()
-            .put(BaseConfigKey.Cluster.MAJORITY_CHECK_ENABLED, ConfigKeys.CLUSTER_MAJORITY_CHECK_ENABLED)
-            .put(BaseConfigKey.Cluster.MAJORITY_CHECK_DELAY, ConfigKeys.CLUSTER_MAJORITY_CHECK_DELAY)
-            .build());
+                .put(BaseConfigKey.Cluster.MAJORITY_CHECK_ENABLED, ConfigKeys.CLUSTER_MAJORITY_CHECK_ENABLED)
+                .put(BaseConfigKey.Cluster.MAJORITY_CHECK_DELAY, ConfigKeys.CLUSTER_MAJORITY_CHECK_DELAY)
+                .build());
     }
 
     /**
@@ -71,14 +67,4 @@ public final class SearchService extends DittoService {
 
         return SearchRootActor.props(config, pubSubMediator, materializer);
     }
-
-    @Override
-    protected Collection<DittoService.RootActorInformation> getAdditionalRootActorsInformation(final Config config,
-            final ActorRef pubSubMediator, final ActorMaterializer actorMaterializer) {
-
-        return Collections.singleton(
-                RootActorInformation.getInstance(SearchUpdaterRootActor.props(config, pubSubMediator),
-                        SearchUpdaterRootActor.ACTOR_NAME));
-    }
-
 }
