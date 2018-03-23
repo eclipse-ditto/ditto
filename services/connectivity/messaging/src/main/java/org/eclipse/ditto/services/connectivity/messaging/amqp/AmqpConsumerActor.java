@@ -32,11 +32,13 @@ import javax.jms.TextMessage;
 import org.apache.qpid.jms.message.JmsMessage;
 import org.apache.qpid.jms.message.facade.JmsMessageFacade;
 import org.apache.qpid.jms.provider.amqp.message.AmqpJmsMessageFacade;
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.model.connectivity.AddressMetric;
+import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ExternalMessage;
 import org.eclipse.ditto.model.connectivity.ExternalMessageBuilder;
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
 import akka.actor.AbstractActor;
@@ -58,13 +60,16 @@ final class AmqpConsumerActor extends AbstractActor implements MessageListener {
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
-    private final String source;
+    private final String sourceAddress;
     private final MessageConsumer messageConsumer;
     private final ActorRef messageMappingProcessor;
 
-    private AmqpConsumerActor(final String source, final MessageConsumer messageConsumer,
+    @Nullable private AddressMetric addressMetric = null;
+    private long consumedMessages = 0L;
+
+    private AmqpConsumerActor(final String sourceAddress, final MessageConsumer messageConsumer,
             final ActorRef messageMappingProcessor) {
-        this.source = checkNotNull(source, "source");
+        this.sourceAddress = checkNotNull(sourceAddress, "source");
         this.messageConsumer = checkNotNull(messageConsumer);
         this.messageMappingProcessor = checkNotNull(messageMappingProcessor, "messageMappingProcessor");
     }
@@ -93,8 +98,15 @@ final class AmqpConsumerActor extends AbstractActor implements MessageListener {
     public Receive createReceive() {
         return ReceiveBuilder.create()
                 .match(Message.class, this::handleJmsMessage)
+                .match(AddressMetric.class, this::handleAddressMetric)
+                .matchEquals("retrieve-AddressMetric", str -> {
+                    getSender().tell(ConnectivityModelFactory.newAddressMetric(
+                            addressMetric != null ? addressMetric.getStatus() : ConnectionStatus.UNKNOWN,
+                            addressMetric != null ? addressMetric.getStatusDetails().orElse(null) : null,
+                            consumedMessages), getSelf());
+                })
                 .matchAny(m -> {
-                    log.debug("Unknown message: {}", m);
+                    log.warning("Unknown message: {}", m);
                     unhandled(m);
                 }).build();
     }
@@ -108,7 +120,7 @@ final class AmqpConsumerActor extends AbstractActor implements MessageListener {
     public void postStop() throws Exception {
         super.postStop();
         try {
-            log.debug("Closing AMQP Consumer for '{}'", source);
+            log.debug("Closing AMQP Consumer for '{}'", sourceAddress);
             messageConsumer.close();
         } catch (final JMSException jmsException) {
             log.debug("Closing consumer failed (can be ignored if connection was closed already): {}",
@@ -121,7 +133,12 @@ final class AmqpConsumerActor extends AbstractActor implements MessageListener {
         getSelf().tell(message, ActorRef.noSender());
     }
 
+    private void handleAddressMetric(final AddressMetric addressMetric) {
+        this.addressMetric = addressMetric;
+    }
+
     private void handleJmsMessage(final Message message) {
+        consumedMessages++;
         try {
             final Map<String, String> headers = extractHeadersMapFromJmsMessage(message);
             final ExternalMessageBuilder builder = ConnectivityModelFactory.newExternalMessageBuilder(headers);

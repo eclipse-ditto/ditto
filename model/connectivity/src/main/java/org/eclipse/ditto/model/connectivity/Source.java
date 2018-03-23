@@ -45,7 +45,7 @@ public interface Source extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
     int getConsumerCount();
 
     /**
-     * Returns all non hidden marked fields of this {@code Connection}.
+     * Returns all non hidden marked fields of this {@code Source}.
      *
      * @return a JSON object representation of this Source including only non hidden marked fields.
      */
@@ -63,7 +63,7 @@ public interface Source extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
      * An enumeration of the known {@code JsonField}s of a {@code Source} configuration.
      */
     @Immutable
-    class JsonFields {
+    final class JsonFields {
 
         /**
          * JSON field containing the {@code JsonSchemaVersion}.

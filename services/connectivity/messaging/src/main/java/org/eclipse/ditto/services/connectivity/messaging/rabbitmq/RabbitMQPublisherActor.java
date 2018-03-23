@@ -19,7 +19,10 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.model.connectivity.AddressMetric;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectionStatus;
+import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMappers;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
@@ -75,6 +78,9 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
 
     @Nullable private ActorRef channelActor;
 
+    private long publishedMessages = 0L;
+    @Nullable private AddressMetric addressMetric = null;
+
     private RabbitMQPublisherActor(final Connection connection) {
         super(connection);
     }
@@ -120,8 +126,15 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
                     log.debug("Publishing message to {} to targets {}", message, destinationForMessage);
                     destinationForMessage.forEach(destination -> publishMessage(destination, message));
                 })
+                .match(AddressMetric.class, this::handleAddressMetric)
+                .matchEquals("retrieve-AddressMetric", str -> {
+                    getSender().tell(ConnectivityModelFactory.newAddressMetric(
+                            addressMetric != null ? addressMetric.getStatus() : ConnectionStatus.UNKNOWN,
+                            addressMetric != null ? addressMetric.getStatusDetails().orElse(null) : null,
+                            publishedMessages), getSelf());
+                })
                 .matchAny(m -> {
-                    log.debug("Unknown message: {}", m);
+                    log.warning("Unknown message: {}", m);
                     unhandled(m);
                 }).build();
     }
@@ -129,6 +142,10 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
     @Override
     protected RabbitMQTarget toPublishTarget(final String address) {
         return RabbitMQTarget.fromTargetAddress(address);
+    }
+
+    private void handleAddressMetric(final AddressMetric addressMetric) {
+        this.addressMetric = addressMetric;
     }
 
     private void publishMessage(final RabbitMQTarget rabbitMQTarget, final ExternalMessage message) {
@@ -139,8 +156,9 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
 
         if (rabbitMQTarget.getRoutingKey() == null) {
             log.debug("No routing key, dropping message.");
-
         }
+
+        publishedMessages++;
 
         final String contentType = message.getHeaders().get(ExternalMessage.CONTENT_TYPE_HEADER);
         final String correlationId = message.getHeaders().get(DittoHeaderDefinition.CORRELATION_ID.getKey());

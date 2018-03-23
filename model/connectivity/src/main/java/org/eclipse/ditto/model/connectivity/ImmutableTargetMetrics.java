@@ -12,14 +12,12 @@
 package org.eclipse.ditto.model.connectivity;
 
 import java.util.Collections;
-import java.util.HashSet;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonCollectors;
@@ -27,7 +25,6 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
 /**
@@ -36,48 +33,26 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 @Immutable
 final class ImmutableTargetMetrics implements TargetMetrics {
 
-    private final String address;
-    private final Set<String> topics;
-    private final ConnectionStatus status;
-    @Nullable private final String statusDetails;
+    private final Map<String, AddressMetric> addressMetrics;
     private final long publishedMessages;
 
 
-    private ImmutableTargetMetrics(final String address, final Set<String> topics,
-            final ConnectionStatus status, @Nullable final String statusDetails, final long publishedMessages) {
-        this.address = address;
-        this.topics = Collections.unmodifiableSet(new HashSet<>(topics));
-        this.status = status;
-        this.statusDetails = statusDetails;
+    private ImmutableTargetMetrics(final Map<String, AddressMetric> addressMetrics, final long publishedMessages) {
+        this.addressMetrics = Collections.unmodifiableMap(new HashMap<>(addressMetrics));
         this.publishedMessages = publishedMessages;
     }
 
     /**
      * TODO Doc
      */
-    public static ImmutableTargetMetrics of(final String address, final Set<String> topics,
-            final ConnectionStatus status, @Nullable final String statusDetails, final long consumedMessages) {
-        return new ImmutableTargetMetrics(address, topics, status, statusDetails, consumedMessages);
+    public static ImmutableTargetMetrics of(final Map<String, AddressMetric> addressMetrics,
+            final long consumedMessages) {
+        return new ImmutableTargetMetrics(addressMetrics, consumedMessages);
     }
 
     @Override
-    public String getAddress() {
-        return address;
-    }
-
-    @Override
-    public Set<String> getTopics() {
-        return topics;
-    }
-
-    @Override
-    public ConnectionStatus getStatus() {
-        return status;
-    }
-
-    @Override
-    public Optional<String> getStatusDetails() {
-        return Optional.ofNullable(statusDetails);
+    public Map<String, AddressMetric> getAddressMetrics() {
+        return addressMetrics;
     }
 
     @Override
@@ -91,15 +66,9 @@ final class ImmutableTargetMetrics implements TargetMetrics {
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
 
         jsonObjectBuilder.set(JsonFields.SCHEMA_VERSION, schemaVersion.toInt(), predicate);
-        jsonObjectBuilder.set(JsonFields.ADDRESS, address, predicate);
-        jsonObjectBuilder.set(JsonFields.TOPICS, topics.stream()
-                .map(JsonFactory::newValue)
-                .collect(JsonCollectors.valuesToArray()), predicate.and(Objects::nonNull));
-
-        jsonObjectBuilder.set(JsonFields.STATUS, status.name(), predicate);
-        if (statusDetails != null) {
-            jsonObjectBuilder.set(JsonFields.STATUS_DETAILS, statusDetails, predicate);
-        }
+        jsonObjectBuilder.set(JsonFields.ADDRESS_METRICS, addressMetrics.entrySet().stream()
+                .map(e -> JsonField.newInstance(e.getKey(), e.getValue().toJson()))
+                .collect(JsonCollectors.fieldsToObject()), predicate);
         jsonObjectBuilder.set(JsonFields.PUBLISHED_MESSAGES, publishedMessages, predicate);
         return jsonObjectBuilder.build();
     }
@@ -113,19 +82,14 @@ final class ImmutableTargetMetrics implements TargetMetrics {
      * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} is not an appropriate JSON object.
      */
     public static TargetMetrics fromJson(final JsonObject jsonObject) {
-        final String readAddress = jsonObject.getValueOrThrow(Target.JsonFields.ADDRESS);
-        final Set<String> readTopics = jsonObject.getValue(Target.JsonFields.TOPICS)
-                .map(array -> array.stream()
-                        .map(JsonValue::asString)
-                        .collect(Collectors.toSet()))
-                .orElse(Collections.emptySet());
-        final ConnectionStatus readConnectionStatus = ConnectionStatus.forName(
-                jsonObject.getValueOrThrow(JsonFields.STATUS)).orElse(ConnectionStatus.UNKNOWN);
-        final String readConnectionStatusDetails = jsonObject.getValue(JsonFields.STATUS_DETAILS)
-                .orElse(null);
+        final Map<String, AddressMetric> readAddressMetrics = jsonObject.getValue(JsonFields.ADDRESS_METRICS)
+                .map(obj -> obj.stream()
+                        .collect(Collectors.toMap(
+                                f -> f.getKey().toString(),
+                                f -> ConnectivityModelFactory.addressMetricFromJson(f.getValue().asObject()))))
+                .orElse(Collections.emptyMap());
         final long readConsumedMessages = jsonObject.getValueOrThrow(JsonFields.PUBLISHED_MESSAGES);
-        return ImmutableTargetMetrics.of(readAddress, readTopics, readConnectionStatus,
-                readConnectionStatusDetails, readConsumedMessages);
+        return ImmutableTargetMetrics.of(readAddressMetrics, readConsumedMessages);
     }
 
 
@@ -135,24 +99,18 @@ final class ImmutableTargetMetrics implements TargetMetrics {
         if (!(o instanceof ImmutableTargetMetrics)) {return false;}
         final ImmutableTargetMetrics that = (ImmutableTargetMetrics) o;
         return publishedMessages == that.publishedMessages &&
-                Objects.equals(address, that.address) &&
-                Objects.equals(topics, that.topics) &&
-                status == that.status &&
-                Objects.equals(statusDetails, that.statusDetails);
+                Objects.equals(addressMetrics, that.addressMetrics);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(address, topics, status, statusDetails, publishedMessages);
+        return Objects.hash(addressMetrics, publishedMessages);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "target=" + address +
-                ", topics=" + topics +
-                ", status=" + status +
-                ", statusDetails=" + statusDetails +
+                "addressMetrics=" + addressMetrics +
                 ", publishedMessages=" + publishedMessages +
                 "]";
     }

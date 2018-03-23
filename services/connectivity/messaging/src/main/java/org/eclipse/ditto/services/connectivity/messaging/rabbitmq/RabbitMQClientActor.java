@@ -13,19 +13,30 @@ package org.eclipse.ditto.services.connectivity.messaging.rabbitmq;
 
 import java.io.IOException;
 import java.time.Instant;
+import java.util.AbstractMap;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.connectivity.AddressMetric;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectionStatus;
+import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
+import org.eclipse.ditto.model.connectivity.Source;
+import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientData;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientState;
@@ -179,17 +190,46 @@ public final class RabbitMQClientActor extends BaseClientActor {
 
     }
 
+    @Override
+    protected Map<String, AddressMetric> getSourceConnectionStatus(final Source source) {
+
+        try {
+            return collectAsList(source.getAddresses().stream()
+                    .flatMap(address -> IntStream.range(0, source.getConsumerCount())
+                            .mapToObj(idx -> {
+                                final String addressWithIndex = address + "-" + idx;
+                                final String actorName = escapeActorName(CONSUMER_ACTOR_PREFIX + addressWithIndex);
+                                return retrieveAddressMetric(addressWithIndex, actorName);
+                            })
+                    ).collect(Collectors.toList()))
+                    .thenApply((entries) ->
+                            entries.stream().collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)))
+                    .get(2, TimeUnit.SECONDS);
+        } catch (final InterruptedException | ExecutionException | TimeoutException e) {
+            log.error(e, "Error while aggregating sources ConnectionStatus: {}", e.getMessage());
+            return Collections.emptyMap();
+        }
+    }
+
+    @Override
+    protected Map<String, AddressMetric> getTargetConnectionStatus(final Target target) {
+
+        final String actorName = RMQ_PUBLISHER_PREFIX + connectionId();
+        final HashMap<String, AddressMetric> targetStatus = new HashMap<>();
+        try {
+            final AbstractMap.SimpleEntry<String, AddressMetric> targetEntry =
+                    retrieveAddressMetric(target.getAddress(), actorName).get(2, TimeUnit.SECONDS);
+            targetStatus.put(targetEntry.getKey(), targetEntry.getValue());
+            return targetStatus;
+        } catch (final InterruptedException | ExecutionException | TimeoutException e) {
+            log.error(e, "Error while aggregating target ConnectionStatus: {}", e.getMessage());
+            return Collections.emptyMap();
+        }
+    }
+
     private void handleChannelCreated(final ChannelCreated channelCreated) {
         this.consumerChannelActor = channelCreated.channel();
         startCommandConsumers();
-    }
-
-    private void retrieveQueueStatus() {
-        consumedQueues.forEach((queueName, value) -> {
-            final boolean consuming = value.consuming;
-            final String details = value.details;
-            log.info("Queue <{}> is consuming: <{}>, details: <{}>", queueName, consuming, details);
-        });
     }
 
     private CompletionStage<Status.Status> connect(final Connection connection) {
@@ -299,11 +339,10 @@ public final class RabbitMQClientActor extends BaseClientActor {
                                 final String consumerTag =
                                         channel.basicConsume(address, false,
                                                 new RabbitMQMessageConsumer(consumer, channel));
-                                log.debug("Consuming queue {}, consumer tag is {}", consumer, consumerTag);
-                                consumedQueues.put(address, new QueueConsumption(consumerTag, true,
-                                        "Consumer started at " + Instant.now()));
+                                log.debug("Consuming queue {}, consumer tag is {}", address, consumerTag);
+                                consumedQueues.put(address + "-" + i, new QueueConsumption(consumerTag, consumer));
                             } catch (final IOException e) {
-                                log.warning("Failed to consume queue '{}': {}", consumer, e.getMessage());
+                                log.warning("Failed to consume queue '{}': {}", address, e.getMessage());
                             }
                         }
                     })
@@ -347,7 +386,6 @@ public final class RabbitMQClientActor extends BaseClientActor {
         /**
          * Constructs a new instance and records its association to the passed-in channel.
          *
-         * @param consumerActor
          * @param channel the channel to which this consumer is attached
          */
         private RabbitMQMessageConsumer(final ActorRef consumerActor, final Channel channel) {
@@ -376,27 +414,24 @@ public final class RabbitMQClientActor extends BaseClientActor {
         public void handleConsumeOk(final String consumerTag) {
             super.handleConsumeOk(consumerTag);
 
-            log.info("consume OK for consumer with tag <{}> " + "on connection <{}>", consumerTag, connectionId());
             consumingQueueByTag(consumerTag).ifPresent(entry -> {
                 final String queueName = entry.getKey();
-                consumedQueues.put(queueName, new QueueConsumption(entry.getValue().consumerTag, true,
-                        "Consumer started at " + Instant.now()));
+                log.info("consume OK for consumer queue <{}> " + "on connection <{}>", queueName, connectionId());
+                entry.getValue().consumerActor.tell(ConnectivityModelFactory.newAddressMetric(ConnectionStatus.OPEN,
+                        "Consumer started at " + Instant.now(), 0), null);
             });
         }
 
         @Override
         public void handleCancel(final String consumerTag) throws IOException {
             super.handleCancel(consumerTag);
-            log.warning("Consumer with tag <{}> was cancelled on connection <{}> - this can happen for example when " +
-                    "the queue was deleted", consumerTag, connectionId());
-
-            getSelf().tell(new ImmutableConnectionFailure(ActorRef.noSender(), null,
-                    "Consumer canceled, probably due to deleted queue"), getSelf());
 
             consumingQueueByTag(consumerTag).ifPresent(entry -> {
                 final String queueName = entry.getKey();
-                consumedQueues.put(queueName, new QueueConsumption(entry.getValue().consumerTag, false,
-                        "Consumer for queue cancelled at " + Instant.now()));
+                log.warning("Consumer with queue <{}> was cancelled on connection <{}> - this can happen for example when " +
+                        "the queue was deleted", queueName, connectionId());
+                entry.getValue().consumerActor.tell(ConnectivityModelFactory.newAddressMetric(ConnectionStatus.FAILED,
+                        "Consumer for queue cancelled at " + Instant.now(), 0), null);
             });
         }
 
@@ -408,12 +443,6 @@ public final class RabbitMQClientActor extends BaseClientActor {
 
             getSelf().tell(new ImmutableConnectionFailure(ActorRef.noSender(), sig,
                     "Channel or the underlying connection has been shut down"), getSelf());
-
-            consumingQueueByTag(consumerTag).ifPresent(entry -> {
-                final String queueName = entry.getKey();
-                consumedQueues.put(queueName, new QueueConsumption(entry.getValue().consumerTag, false,
-                        "Channel shutdown at " + Instant.now()));
-            });
         }
 
         @Override
@@ -430,13 +459,11 @@ public final class RabbitMQClientActor extends BaseClientActor {
     private class QueueConsumption {
 
         private final String consumerTag;
-        private final boolean consuming;
-        private final String details;
+        private final ActorRef consumerActor;
 
-        private QueueConsumption(final String consumerTag, final boolean consuming, final String details) {
+        private QueueConsumption(final String consumerTag, final ActorRef consumerActor) {
             this.consumerTag = consumerTag;
-            this.consuming = consuming;
-            this.details = details;
+            this.consumerActor = consumerActor;
         }
     }
 

@@ -11,31 +11,29 @@
  */
 package org.eclipse.ditto.model.connectivity;
 
-import java.util.Optional;
+import java.util.Map;
 
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.base.json.Jsonifiable;
 
 /**
  * TODO doc
  */
-public interface TargetMetrics extends Target {
+public interface TargetMetrics extends Jsonifiable.WithFieldSelectorAndPredicate<JsonField> {
 
     /**
      *
      * @return
      */
-    ConnectionStatus getStatus();
-
-    /**
-     *
-     * @return
-     */
-    Optional<String> getStatusDetails();
+    Map<String, AddressMetric> getAddressMetrics();
 
     /**
      *
@@ -44,23 +42,38 @@ public interface TargetMetrics extends Target {
     long getPublishedMessages();
 
     /**
+     * Returns all non hidden marked fields of this {@code TargetMetrics}.
+     *
+     * @return a JSON object representation of this TargetMetrics including only non hidden marked fields.
+     */
+    @Override
+    default JsonObject toJson() {
+        return toJson(FieldType.notHidden());
+    }
+
+    @Override
+    default JsonObject toJson(final JsonSchemaVersion schemaVersion, final JsonFieldSelector fieldSelector) {
+        return toJson(schemaVersion, FieldType.notHidden()).get(fieldSelector);
+    }
+
+    /**
      * An enumeration of the known {@code JsonField}s of a {@code TargetMetrics}.
      */
     @Immutable
-    final class JsonFields extends Target.JsonFields {
+    final class JsonFields {
 
         /**
-         * JSON field containing the {@code ConnectionStatus} value.
+         * JSON field containing the {@code JsonSchemaVersion}.
          */
-        public static final JsonFieldDefinition<String> STATUS =
-                JsonFactory.newStringFieldDefinition("status", FieldType.REGULAR, JsonSchemaVersion.V_1,
-                        JsonSchemaVersion.V_2);
+        public static final JsonFieldDefinition<Integer> SCHEMA_VERSION =
+                JsonFactory.newIntFieldDefinition(JsonSchemaVersion.getJsonKey(), FieldType.SPECIAL, FieldType.HIDDEN,
+                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         /**
-         * JSON field containing the {@code ConnectionStatus} details.
+         * JSON field containing the {@code AddressMetrics} value.
          */
-        public static final JsonFieldDefinition<String> STATUS_DETAILS =
-                JsonFactory.newStringFieldDefinition("statusDetails", FieldType.REGULAR, JsonSchemaVersion.V_1,
+        public static final JsonFieldDefinition<JsonObject> ADDRESS_METRICS =
+                JsonFactory.newJsonObjectFieldDefinition("addressMetrics", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
         /**

@@ -29,7 +29,10 @@ import javax.jms.MessageProducer;
 import javax.jms.Session;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.model.connectivity.AddressMetric;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectionStatus;
+import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -53,6 +56,10 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
 
     private final Session session;
     private final Map<Destination, MessageProducer> producerMap;
+
+    @Nullable private AddressMetric addressMetric = null;
+    private long publishedMessages = 0L;
+
 
     private AmqpPublisherActor(final Session session, final Connection connection) {
         super(connection);
@@ -102,8 +109,15 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
                     final Set<AmqpTarget> destinationForMessage = getDestinationForMessage(message);
                     destinationForMessage.forEach(amqpTarget -> sendMessage(amqpTarget, message));
                 })
+                .match(AddressMetric.class, this::handleAddressMetric)
+                .matchEquals("retrieve-AddressMetric", str -> {
+                    getSender().tell(ConnectivityModelFactory.newAddressMetric(
+                            addressMetric != null ? addressMetric.getStatus() : ConnectionStatus.UNKNOWN,
+                            addressMetric != null ? addressMetric.getStatusDetails().orElse(null) : null,
+                            publishedMessages), getSelf());
+                })
                 .matchAny(m -> {
-                    log.debug("Unknown message: {}", m);
+                    log.warning("Unknown message: {}", m);
                     unhandled(m);
                 }).build();
     }
@@ -113,12 +127,17 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
         return AmqpTarget.fromTargetAddress(address);
     }
 
+    private void handleAddressMetric(final AddressMetric addressMetric) {
+        this.addressMetric = addressMetric;
+    }
+
     private void sendMessage(final AmqpTarget target, final ExternalMessage message) {
         try {
             final MessageProducer producer = getProducer(target.getJmsDestination());
             if (producer != null) {
                 final Message jmsMessage = toJmsMessage(message);
                 producer.send(jmsMessage);
+                publishedMessages++;
             } else {
                 log.warning("No producer for destination {} available.", target);
             }

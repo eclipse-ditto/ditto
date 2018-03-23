@@ -21,20 +21,24 @@ import static org.eclipse.ditto.services.connectivity.messaging.MessageHeaderFil
 
 import java.text.MessageFormat;
 import java.time.Instant;
+import java.util.AbstractMap;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.connectivity.AddressMetric;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
@@ -76,6 +80,7 @@ import akka.cluster.pubsub.DistributedPubSub;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.FSMStateFunctionBuilder;
 import akka.japi.pf.FSMTransitionHandlerBuilder;
+import akka.pattern.PatternsCS;
 import akka.routing.DefaultResizer;
 import akka.routing.RoundRobinPool;
 import scala.concurrent.duration.Duration;
@@ -413,15 +418,65 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
     /**
      *
+     * @param source
+     * @return
      */
-    protected void incrementConsumedMessageCounter() {
+    protected abstract Map<String, AddressMetric> getSourceConnectionStatus(final Source source);
+
+    /**
+     *
+     * @param target
+     * @return
+     */
+    protected abstract Map<String, AddressMetric> getTargetConnectionStatus(final Target target);
+
+    /**
+     *
+     * @param mapKey
+     * @param actorName
+     * @return
+     */
+    protected final CompletableFuture<AbstractMap.SimpleEntry<String, AddressMetric>> retrieveAddressMetric(
+            final String mapKey, final String actorName) {
+
+        final Optional<ActorRef> consumerActor = getContext().findChild(actorName);
+        if (consumerActor.isPresent()) {
+            final ActorRef actorRef = consumerActor.get();
+            return PatternsCS.ask(actorRef, "retrieve-AddressMetric", 1000) // TODO TJ own class
+                    .handle((response, throwable) -> {
+                        if (response != null) {
+                            return new AbstractMap.SimpleEntry<>(mapKey, (AddressMetric) response);
+                        } else {
+                            return new AbstractMap.SimpleEntry<>(mapKey,
+                                    ConnectivityModelFactory.newAddressMetric(
+                                            ConnectionStatus.FAILED,
+                                            throwable.getClass().getSimpleName() + ": " +
+                                                    throwable.getMessage(),
+                                            -1));
+                        }
+                    }).toCompletableFuture();
+        } else {
+            log.warning("Consumer actor child <{}> was not found", actorName);
+            return CompletableFuture.completedFuture(
+                    new AbstractMap.SimpleEntry<>(mapKey,
+                            ConnectivityModelFactory.newAddressMetric(
+                                    ConnectionStatus.FAILED,
+                                    "child <" + actorName + "> not found",
+                                    -1)));
+        }
+    }
+
+    /**
+     *
+     */
+    protected final void incrementConsumedMessageCounter() {
         consumedMessageCounter++;
     }
 
     /**
      *
      */
-    protected void incrementPublishedMessageCounter() {
+    protected final void incrementPublishedMessageCounter() {
         publishedMessageCounter++;
     }
 
@@ -464,10 +519,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         return getSourcesOrEmptySet()
                 .stream()
                 .map(source -> ConnectivityModelFactory.newSourceMetrics(
-                        source.getAddresses(),
-                        source.getConsumerCount(),
-                        getCurrentConnectionStatus(), // TODO TJ differentiate for sources?
-                        getCurrentConnectionStatusDetails().orElse(null),
+                        getSourceConnectionStatus(source),
                         consumedMessageCounter)
                 )
                 .collect(Collectors.toList());
@@ -477,10 +529,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         return getTargetsOrEmptySet()
                 .stream()
                 .map(target -> ConnectivityModelFactory.newTargetMetrics(
-                        target.getAddress(),
-                        target.getTopics(),
-                        getCurrentConnectionStatus(), // TODO TJ differentiate for sources?
-                        getCurrentConnectionStatusDetails().orElse(null),
+                        getTargetConnectionStatus(target),
                         publishedMessageCounter)
                 )
                 .collect(Collectors.toList());
@@ -505,7 +554,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
      * @param commandProducer
      * @param mappingContexts
      */
-    protected void startMessageMappingProcessor(final ActorRef commandProducer,
+    protected final void startMessageMappingProcessor(final ActorRef commandProducer,
             final List<MappingContext> mappingContexts) {
         if (messageMappingProcessor == null) {
             if (connection().isPresent()) {
@@ -550,14 +599,14 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
      *
      * @return
      */
-    protected Optional<ActorRef> getMessageMappingProcessor() {
+    protected final Optional<ActorRef> getMessageMappingProcessor() {
         return Optional.ofNullable(messageMappingProcessor);
     }
 
     /**
      *
      */
-    protected void stopMessageMappingProcessor() {
+    protected final void stopMessageMappingProcessor() {
         if (messageMappingProcessor != null) {
             log.debug("Stopping MessageMappingProcessorActor.");
             getContext().stop(messageMappingProcessor);
@@ -596,11 +645,28 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
     /**
      *
+     * @param futures
+     * @param <T>
+     * @return
+     */
+    protected static <T> CompletableFuture<List<T>> collectAsList(final List<CompletableFuture<T>> futures) {
+        return collect(futures, Collectors.toList());
+    }
+
+    private static <T, A, R> CompletableFuture<R> collect(final List<CompletableFuture<T>> futures,
+            final Collector<T, A, R> collector) {
+
+        return CompletableFuture.allOf(futures.toArray(new CompletableFuture[futures.size()]))
+                .thenApply(v -> futures.stream().map(CompletableFuture::join).collect(collector));
+    }
+
+    /**
+     *
      * @param name
      * @param props
      * @return
      */
-    protected ActorRef startChildActor(final String name, final Props props) {
+    protected final ActorRef startChildActor(final String name, final Props props) {
         log.debug("Starting child actor '{}'", name);
         final String nameEscaped = escapeActorName(name);
         return getContext().actorOf(props, nameEscaped);
@@ -610,7 +676,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
      *
      * @param name
      */
-    protected void stopChildActor(final String name) {
+    protected final void stopChildActor(final String name) {
         final String nameEscaped = escapeActorName(name);
         final Optional<ActorRef> child = getContext().findChild(nameEscaped);
         if (child.isPresent()) {
@@ -625,7 +691,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
      *
      * @param actor
      */
-    protected void stopChildActor(final ActorRef actor) {
+    protected final void stopChildActor(final ActorRef actor) {
         log.debug("Stopping child actor '{}'", actor.path());
         getContext().stop(actor);
     }
@@ -634,7 +700,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
      *
      * @return
      */
-    protected boolean isConsuming() {
+    protected final boolean isConsuming() {
         return connection()
                 .filter(c -> !c.getSources().isEmpty())
                 .isPresent();
@@ -644,7 +710,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
      *
      * @return
      */
-    protected boolean isPublishing() {
+    protected final boolean isPublishing() {
         return connection()
                 .filter(c -> !c.getTargets().isEmpty())
                 .isPresent();
@@ -654,7 +720,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
      *
      * @return
      */
-    protected Optional<Connection> connection() {
+    protected final Optional<Connection> connection() {
         return stateData().getConnection();
     }
 
@@ -662,21 +728,21 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
      *
      * @return
      */
-    protected String connectionId() {
+    protected final String connectionId() {
         return stateData().getConnectionId();
     }
 
     /**
      * @return the sources configured for this connection or an empty set if no sources were configured.
      */
-    protected Set<Source> getSourcesOrEmptySet() {
+    protected final Set<Source> getSourcesOrEmptySet() {
         return connection().map(Connection::getSources).orElse(Collections.emptySet());
     }
 
     /**
      * @return the targets configured for this connection or an empty set if no targets were configured.
      */
-    protected Set<Target> getTargetsOrEmptySet() {
+    protected final Set<Target> getTargetsOrEmptySet() {
         return connection().map(Connection::getTargets).orElse(Collections.emptySet());
     }
 }

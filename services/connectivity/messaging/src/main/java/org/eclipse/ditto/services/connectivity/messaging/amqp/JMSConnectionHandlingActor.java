@@ -105,15 +105,17 @@ public class JMSConnectionHandlingActor extends AbstractActor {
             final Map<String, MessageConsumer> consumerMap = new HashMap<>();
             final Map<String, Exception> failedSources = new HashMap<>();
             connection.getSources().forEach(source ->
-                    source.getAddresses().forEach(jmsAddress -> {
-                        log.debug("Creating AMQP Consumer for '{}'", jmsAddress);
-                        final Destination destination = new JmsQueue(jmsAddress);
+                    source.getAddresses().forEach(sourceAddress -> {
+                        // TODO TJ what about consumerCount? should be one consumer for each count..
+                        final int consumerCount = source.getConsumerCount();
+                        log.debug("Creating AMQP Consumer for '{}'", sourceAddress);
+                        final Destination destination = new JmsQueue(sourceAddress);
                         final MessageConsumer messageConsumer;
                         try {
                             messageConsumer = jmsSession.createConsumer(destination);
-                            consumerMap.put(jmsAddress, messageConsumer);
+                            consumerMap.put(sourceAddress, messageConsumer);
                         } catch (final JMSException jmsException) {
-                            failedSources.put(jmsAddress, jmsException);
+                            failedSources.put(sourceAddress, jmsException);
                         }
                     }));
 

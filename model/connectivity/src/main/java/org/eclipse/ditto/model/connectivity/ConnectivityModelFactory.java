@@ -92,33 +92,53 @@ public final class ConnectivityModelFactory {
     /**
      * Returns a new {@code SourceMetrics}.
      *
-     * @param addresses the addresses of the source
-     * @param consumerCount the amount of consumers started for the source
-     * @param status the ConnectionStatus of the source metrics to create
-     * @param statusDetails the optional details about the connection status
-     * @param consumedMessages the current state of the Client performing the connection
+     * @param addressMetrics the AddressMetrics of all addresses in the source
+     * @param consumedMessages the amount of consumed messages
      * @return a new SourceMetrics which is initialised with the extracted data from {@code jsonObject}.
      * @throws NullPointerException if {@code connectionStatus} is {@code null}.
      */
-    public static SourceMetrics newSourceMetrics(final Set<String> addresses, final int consumerCount,
-            final ConnectionStatus status, @Nullable final String statusDetails, final long consumedMessages) {
-        return ImmutableSourceMetrics.of(addresses, consumerCount, status, statusDetails, consumedMessages);
+    public static SourceMetrics newSourceMetrics(final Map<String, AddressMetric> addressMetrics,
+            final long consumedMessages) {
+        return ImmutableSourceMetrics.of(addressMetrics, consumedMessages);
     }
 
     /**
      * Returns a new {@code TargetMetrics}.
      *
-     * @param address the address of the target
-     * @param topics the topics of the target
-     * @param status the ConnectionStatus of the source metrics to create
-     * @param statusDetails the optional details about the connection status
-     * @param consumedMessages the current state of the Client performing the connection
+     * @param addressMetrics the AddressMetrics of all addresses in the target
+     * @param consumedMessages the amount of consumed messages
      * @return a new SourceMetrics which is initialised with the extracted data from {@code jsonObject}.
      * @throws NullPointerException if {@code connectionStatus} is {@code null}.
      */
-    public static TargetMetrics newTargetMetrics(final String address, final Set<String> topics,
-            final ConnectionStatus status, @Nullable final String statusDetails, final long consumedMessages) {
-        return ImmutableTargetMetrics.of(address, topics, status, statusDetails, consumedMessages);
+    public static TargetMetrics newTargetMetrics(final Map<String, AddressMetric> addressMetrics,
+            final long consumedMessages) {
+        return ImmutableTargetMetrics.of(addressMetrics, consumedMessages);
+    }
+
+    /**
+     * Returns a new {@code AddressMetric}.
+     *
+     * @param status the ConnectionStatus of the source metrics to create
+     * @param statusDetails the optional details about the connection status
+     * @param messageCount the amount of totally consumed/published messages
+     * @return a new AddressMetric which is initialised with the extracted data from {@code jsonObject}.
+     * @throws NullPointerException if any parameter is {@code null}.
+     */
+    public static AddressMetric newAddressMetric(final ConnectionStatus status, @Nullable final String statusDetails,
+            final long messageCount) {
+        return ImmutableAddressMetric.of(status, statusDetails, messageCount);
+    }
+
+    /**
+     * Creates a new {@code AddressMetric} object from the specified JSON object.
+     *
+     * @param jsonObject a JSON object which provides the data for the Connection to be created.
+     * @return a new AddressMetric which is initialised with the extracted data from {@code jsonObject}.
+     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} is not an appropriate JSON object.
+     */
+    public static AddressMetric addressMetricFromJson(final JsonObject jsonObject) {
+        return ImmutableAddressMetric.fromJson(jsonObject);
     }
 
     /**
