@@ -43,9 +43,9 @@ import akka.pattern.AskTimeoutException;
 import akka.pattern.PatternsCS;
 
 /**
- * Authorize {@code PolicyCommand}.
+ * Authorize {@link PolicyCommand}.
  */
-public final class PolicyCommandEnforcement extends Enforcement {
+public final class PolicyCommandEnforcement extends Enforcement<PolicyCommand> {
 
     /**
      * Json fields that are always shown regardless of authorization.
@@ -53,7 +53,7 @@ public final class PolicyCommandEnforcement extends Enforcement {
     private static final JsonFieldSelector POLICY_QUERY_COMMAND_RESPONSE_WHITELIST =
             JsonFactory.newFieldSelector(Policy.JsonFields.ID);
 
-    public PolicyCommandEnforcement(final Data data) {
+    public PolicyCommandEnforcement(final Context data) {
         super(data);
     }
 
@@ -64,6 +64,7 @@ public final class PolicyCommandEnforcement extends Enforcement {
      * @param command the command to authorize.
      * @param sender sender of the command.
      */
+    @Override
     public void enforce(final PolicyCommand command, final ActorRef sender) {
         caches().retrieve(entityId(), (idEntry, enforcerEntry) -> {
             if (enforcerEntry.exists()) {

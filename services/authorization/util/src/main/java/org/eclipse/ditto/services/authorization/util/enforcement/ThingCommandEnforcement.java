@@ -81,7 +81,7 @@ import akka.pattern.PatternsCS;
  * Mixin to authorize {@code ThingCommand}.
  */
 // TODO: migrate logging
-public final class ThingCommandEnforcement extends Enforcement {
+public final class ThingCommandEnforcement extends Enforcement<ThingCommand> {
 
     /**
      * Label of default policy entry in default policy.
@@ -94,7 +94,7 @@ public final class ThingCommandEnforcement extends Enforcement {
     private static final JsonFieldSelector THING_QUERY_COMMAND_RESPONSE_WHITELIST =
             JsonFactory.newFieldSelector(Thing.JsonFields.ID);
 
-    protected ThingCommandEnforcement(final Data data) {
+    protected ThingCommandEnforcement(final Context data) {
         super(data);
     }
 
@@ -105,6 +105,7 @@ public final class ThingCommandEnforcement extends Enforcement {
      * @param thingCommand the command to authorize.
      * @param sender of the command.
      */
+    @Override
     public void enforce(final ThingCommand thingCommand, final ActorRef sender) {
         caches().retrieve(entityId(), (enforcerKeyEntry, enforcerEntry) -> {
             if (!enforcerEntry.exists()) {

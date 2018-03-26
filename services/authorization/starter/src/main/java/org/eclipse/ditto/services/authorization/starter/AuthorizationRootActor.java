@@ -22,14 +22,15 @@ import org.eclipse.ditto.services.authorization.util.cache.EnforcerCacheLoader;
 import org.eclipse.ditto.services.authorization.util.cache.ThingEnforcementIdCacheLoader;
 import org.eclipse.ditto.services.authorization.util.cache.entry.Entry;
 import org.eclipse.ditto.services.authorization.util.config.AuthorizationConfigReader;
-import org.eclipse.ditto.services.authorization.util.enforcement.EnforcerActor;
-import org.eclipse.ditto.services.authorization.util.update.CacheUpdater;
+import org.eclipse.ditto.services.authorization.util.enforcement.EnforcerActorFactory;
+import org.eclipse.ditto.services.authorization.util.update.CacheUpdaterPropsFactory;
 import org.eclipse.ditto.services.base.config.ClusterConfigReader;
 import org.eclipse.ditto.services.base.metrics.StatsdMetricsReporter;
 import org.eclipse.ditto.services.models.authorization.AuthorizationMessagingConstants;
 import org.eclipse.ditto.services.models.authorization.EntityId;
 import org.eclipse.ditto.services.models.policies.PoliciesMessagingConstants;
 import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
+import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
@@ -40,8 +41,11 @@ import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
+import akka.actor.Status;
 import akka.cluster.sharding.ClusterSharding;
 import akka.cluster.sharding.ClusterShardingSettings;
+import akka.cluster.sharding.ShardRegion;
+import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
 
 /**
@@ -50,6 +54,10 @@ import akka.japi.pf.ReceiveBuilder;
 public final class AuthorizationRootActor extends AbstractActor {
 
     // TODO: supervisory strategy, best without code duplication
+
+    private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+
+    private final ActorRef authorizationShardRegion;
 
     /**
      * Name of this actor.
@@ -86,14 +94,14 @@ public final class AuthorizationRootActor extends AbstractActor {
                 enforcementIdCacheLoaders,
                 namedMetricRegistry -> StatsdMetricsReporter.getInstance().add(namedMetricRegistry));
 
-        final Props enforcerProps = EnforcerActor.props(pubSubMediator, entityRegionMap, caches);
+        final Props enforcerProps = EnforcerActorFactory.props(entityRegionMap, caches);
 
         // start enforcer shard region; no need to keep the reference
-        startShardRegion(actorSystem, clusterConfigReader, enforcerProps);
+        authorizationShardRegion = startShardRegion(actorSystem, clusterConfigReader, enforcerProps);
 
         // start cache updater
-        getContext().actorOf(CacheUpdater.props(pubSubMediator, caches, configReader.instanceIndex()),
-                CacheUpdater.ACTOR_NAME);
+        getContext().actorOf(CacheUpdaterPropsFactory.props(pubSubMediator, caches, configReader.instanceIndex()),
+                CacheUpdaterPropsFactory.ACTOR_NAME);
     }
 
     /**
@@ -110,9 +118,14 @@ public final class AuthorizationRootActor extends AbstractActor {
 
     @Override
     public Receive createReceive() {
-        // TODO: do something.
         return ReceiveBuilder.create()
-                .build();
+                .matchEquals(ShardRegion.getShardRegionStateInstance(), getShardRegionState ->
+                        authorizationShardRegion.forward(getShardRegionState, getContext()))
+                .match(Status.Failure.class, f -> log.error(f.cause(), "Got failure <{}>!", f))
+                .matchAny(m -> {
+                    log.warning("Unknown message <{}>.", m);
+                    unhandled(m);
+                }).build();
     }
 
     private static ActorRef startProxy(final ActorSystem actorSystem,

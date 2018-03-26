@@ -33,13 +33,21 @@ import akka.event.DiagnosticLoggingAdapter;
  * Contains self-type requirements for aspects of enforcer actor dealing with specific commands.
  * Do NOT call the methods outside this package.
  */
-public abstract class Enforcement {
+public abstract class Enforcement<T extends Command> {
 
-    private final Data data;
+    private final Context context;
 
-    protected Enforcement(final Data data) {
-        this.data = data;
+    protected Enforcement(final Context context) {
+        this.context = context;
     }
+
+    /**
+     * Authorize a command.
+     *
+     * @param command the command to authorize.
+     * @param sender sender of the command.
+     */
+    public abstract void enforce(final T command, final ActorRef sender);
 
     /**
      * Retrieve the things-shard-region from the entity region map.
@@ -66,7 +74,8 @@ public abstract class Enforcement {
      * @return the shard region.
      */
     protected ActorRef shardRegionForResourceType(final String resourceType) {
-        return entityRegionMap().lookup(resourceType).orElse(deadLetters());
+        return entityRegionMap().lookup(resourceType).orElseThrow(() -> new IllegalStateException("Unknown resource " +
+                "type: " + resourceType));
     }
 
     /**
@@ -165,52 +174,45 @@ public abstract class Enforcement {
      * @return Timeout duration for asking entity shard regions.
      */
     protected Duration getAskTimeout() {
-        return data.askTimeout;
+        return context.askTimeout;
     }
 
     /**
      * @return the entity region map.
      */
     protected EntityRegionMap entityRegionMap() {
-        return data.entityRegionMap;
+        return context.entityRegionMap;
     }
 
     /**
      * @return the entity ID.
      */
     protected EntityId entityId() {
-        return data.entityId;
+        return context.entityId;
     }
 
     /**
      * @return the diagnostic logging adapter.
      */
     protected DiagnosticLoggingAdapter log() {
-        return data.log;
+        return context.log;
     }
 
     /**
      * @return the authorization caches.
      */
     protected AuthorizationCaches caches() {
-        return data.caches;
+        return context.caches;
     }
 
     /**
      * @return actor reference of the enforcer actor this object belongs to.
      */
     protected ActorRef self() {
-        return data.self;
+        return context.self;
     }
 
-    /**
-     * @return actor reference to send dead letters to.
-     */
-    protected ActorRef deadLetters() {
-        return data.deadLetters;
-    }
-
-    public static final class Data {
+    public static final class Context {
 
         private final Duration askTimeout;
         private final EntityRegionMap entityRegionMap;
@@ -218,15 +220,13 @@ public abstract class Enforcement {
         private final DiagnosticLoggingAdapter log;
         private final AuthorizationCaches caches;
         private final ActorRef self;
-        private final ActorRef deadLetters;
 
-        public Data(final Duration askTimeout,
+        public Context(final Duration askTimeout,
                 final EntityRegionMap entityRegionMap,
                 final EntityId entityId,
                 final DiagnosticLoggingAdapter log,
                 final AuthorizationCaches caches,
-                final ActorRef self,
-                final ActorRef deadLetters) {
+                final ActorRef self) {
 
             this.askTimeout = askTimeout;
             this.entityRegionMap = entityRegionMap;
@@ -234,7 +234,6 @@ public abstract class Enforcement {
             this.log = log;
             this.caches = caches;
             this.self = self;
-            this.deadLetters = deadLetters;
         }
     }
 }

@@ -11,74 +11,68 @@
  */
 package org.eclipse.ditto.services.authorization.util.enforcement;
 
+import static java.util.Objects.requireNonNull;
+
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.Set;
 
 import org.eclipse.ditto.services.authorization.util.EntityRegionMap;
 import org.eclipse.ditto.services.authorization.util.cache.AuthorizationCaches;
 import org.eclipse.ditto.services.models.authorization.EntityId;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
-import org.eclipse.ditto.signals.commands.things.ThingCommand;
+import org.eclipse.ditto.signals.commands.base.Command;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
+import akka.japi.pf.FI;
 import akka.japi.pf.ReceiveBuilder;
 
 /**
- * Actor that enforces authorization for all commands.
+ * Actor that enforces authorization.
  */
 public final class EnforcerActor extends AbstractActor {
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
-    private final ActorRef pubSubMediator;
-    private final EntityRegionMap entityRegionMap;
+    private final Enforcement.Context context;
     private final AuthorizationCaches caches;
     private final EntityId entityId;
 
-    private final PolicyCommandEnforcement policyCommandEnforcement;
-    private final ThingCommandEnforcement thingCommandEnforcement;
+    private final Set<EnforcementProvider> enforcementProviders;
 
-    private EnforcerActor(final ActorRef pubSubMediator,
-            final EntityRegionMap entityRegionMap,
-            final AuthorizationCaches caches) {
-        this.pubSubMediator = pubSubMediator;
-        this.entityRegionMap = entityRegionMap;
-        this.caches = caches;
+    private EnforcerActor(final EntityRegionMap entityRegionMap,
+            final AuthorizationCaches caches, final Set<EnforcementProvider> enforcementProviders) {
         this.entityId = decodeEntityId(getSelf());
 
-        final Enforcement.Data data = new Enforcement.Data(
+        this.caches = requireNonNull(caches);
+        this.enforcementProviders = requireNonNull(enforcementProviders);
+
+       this.context = new Enforcement.Context(
                 Duration.ofSeconds(10), // TODO: make configurable
-                entityRegionMap,
+                requireNonNull(entityRegionMap),
                 entityId,
                 log,
                 caches,
-                getSelf(),
-                getContext().getSystem().deadLetters());
-
-        policyCommandEnforcement = new PolicyCommandEnforcement(data);
-        thingCommandEnforcement = new ThingCommandEnforcement(data);
+                getSelf());
     }
 
     /**
      * Creates Akka configuration object Props for this EnforcerActor.
      *
-     * @param pubSubMediator the Pub/Sub mediator to use for subscribing for events.
      * @param entityRegionMap map from resource types to entity shard regions.
      * @param authorizationCaches cache of information relevant for authorization.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final ActorRef pubSubMediator,
-            final EntityRegionMap entityRegionMap,
-            final AuthorizationCaches authorizationCaches) {
+    public static Props props(final EntityRegionMap entityRegionMap,
+            final AuthorizationCaches authorizationCaches, final Set<EnforcementProvider> enforcementProviders) {
 
         return Props.create(EnforcerActor.class,
-                () -> new EnforcerActor(pubSubMediator, entityRegionMap, authorizationCaches));
+                () -> new EnforcerActor(entityRegionMap, authorizationCaches, enforcementProviders));
     }
 
     @Override
@@ -89,14 +83,23 @@ public final class EnforcerActor extends AbstractActor {
 
     @Override
     public Receive createReceive() {
-        return ReceiveBuilder.create()
-                .match(PolicyCommand.class, cmd -> policyCommandEnforcement.enforce(cmd, getSender()))
-                .match(ThingCommand.class, cmd -> thingCommandEnforcement.enforce(cmd, getSender()))
-                .matchAny(message -> {
-                    log.warning("Unexpected message: <{}>", message);
-                    unhandled(message);
-                })
-                .build();
+        final ReceiveBuilder receiveBuilder = ReceiveBuilder.create();
+        enforcementProviders.forEach(provider -> {
+            @SuppressWarnings("unchecked")
+            final Class<Command> commandClass = provider.getCommandClass();
+            @SuppressWarnings("unchecked")
+            final FI.UnitApply<Command> commandHandler =
+                    cmd -> provider.createEnforcement(context).enforce(cmd, getSender());
+            receiveBuilder.match(commandClass, commandHandler);
+        });
+
+        receiveBuilder.matchAny(message -> {
+            log.warning("Unexpected message: <{}>", message);
+            unhandled(message);
+        });
+
+
+        return receiveBuilder.build();
     }
 
     private static EntityId decodeEntityId(final ActorRef self) {
