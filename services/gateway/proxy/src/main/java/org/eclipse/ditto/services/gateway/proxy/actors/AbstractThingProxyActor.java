@@ -127,10 +127,7 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
                 .match(Signal.class, ProxyActor::isLiveSignal, forwardToLocalEnforcerLookup(thingEnforcerLookup))
 
                 /* Policy Commands */
-                .match(ModifyPolicy.class, command ->
-                        getContext().actorOf(ModifyPolicyHandlerActor.props(policyEnforcerShardRegion))
-                                .forward(command, getContext()))
-                .match(PolicyCommand.class, command -> policyEnforcerShardRegion.forward(command, getContext()))
+                .match(PolicyCommand.class, this::forwardToAuthorizationShardRegion)
                 .match(org.eclipse.ditto.services.models.policies.commands.sudo.SudoCommand.class, sudoCommand ->
                         policyEnforcerShardRegion.forward(sudoCommand, getContext()))
 

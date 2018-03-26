@@ -20,6 +20,7 @@ import org.eclipse.ditto.services.authorization.util.EntityRegionMap;
 import org.eclipse.ditto.services.authorization.util.cache.AuthorizationCaches;
 import org.eclipse.ditto.services.models.authorization.EntityId;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 
 import akka.actor.AbstractActor;
@@ -61,7 +62,7 @@ public final class EnforcerActor extends AbstractActor {
                 getContext().getSystem().deadLetters());
 
         policyCommandEnforcement = new PolicyCommandEnforcement(data);
-        thingCommandEnforcement = new ThingCommandEnforcement(data, policyCommandEnforcement);
+        thingCommandEnforcement = new ThingCommandEnforcement(data);
     }
 
     /**
@@ -89,7 +90,8 @@ public final class EnforcerActor extends AbstractActor {
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
-                .match(ThingCommand.class, cmd -> thingCommandEnforcement.enforceThingCommand(cmd, getSender()))
+                .match(PolicyCommand.class, cmd -> policyCommandEnforcement.enforce(cmd, getSender()))
+                .match(ThingCommand.class, cmd -> thingCommandEnforcement.enforce(cmd, getSender()))
                 .matchAny(message -> {
                     log.warning("Unexpected message: <{}>", message);
                     unhandled(message);

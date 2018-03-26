@@ -45,7 +45,6 @@ import org.eclipse.ditto.services.authorization.util.cache.entry.Entry;
 import org.eclipse.ditto.services.models.authorization.EntityId;
 import org.eclipse.ditto.services.models.policies.Permission;
 import org.eclipse.ditto.signals.commands.base.CommandToExceptionRegistry;
-import org.eclipse.ditto.signals.commands.base.exceptions.GatewayServiceTimeoutException;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyConflictException;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyNotAccessibleException;
@@ -94,11 +93,8 @@ public final class ThingCommandEnforcement extends Enforcement {
     private static final JsonFieldSelector THING_QUERY_COMMAND_RESPONSE_WHITELIST =
             JsonFactory.newFieldSelector(Thing.JsonFields.ID);
 
-    private final PolicyCommandEnforcement policyCommandEnforcement;
-
-    protected ThingCommandEnforcement(final Data data, final PolicyCommandEnforcement policyCommandEnforcement) {
+    protected ThingCommandEnforcement(final Data data) {
         super(data);
-        this.policyCommandEnforcement = policyCommandEnforcement;
     }
 
     /**
@@ -106,8 +102,9 @@ public final class ThingCommandEnforcement extends Enforcement {
      * the sender is told of an error.
      *
      * @param thingCommand the command to authorize.
+     * @param sender of the command.
      */
-    public void enforceThingCommand(final ThingCommand thingCommand, final ActorRef sender) {
+    public void enforce(final ThingCommand thingCommand, final ActorRef sender) {
         caches().retrieve(entityId(), (enforcerKeyEntry, enforcerEntry) -> {
             if (!enforcerEntry.exists()) {
                 enforceThingCommandByNonexistentEnforcer(enforcerKeyEntry, thingCommand, sender);
@@ -143,7 +140,11 @@ public final class ThingCommandEnforcement extends Enforcement {
                     .isPresent();
 
             if (!authorized) {
-                respondWithError(thingCommand, sender);
+                final DittoRuntimeException error =
+                        ThingNotAccessibleException.newBuilder(thingCommand.getThingId())
+                                .dittoHeaders(thingCommand.getDittoHeaders())
+                                .build();
+                replyToSender(error, sender);
             }
         }
     }
@@ -229,7 +230,7 @@ public final class ThingCommandEnforcement extends Enforcement {
                     } else if (response instanceof DittoRuntimeException) {
                         replyToSender(response, sender);
                     } else if (response instanceof AskTimeoutException) {
-                        reportTimeoutForThingQuery(sender, (AskTimeoutException) response);
+                        reportTimeoutForThingQuery(commandWithReadSubjects, sender, (AskTimeoutException) response);
                     } else {
                         reportUnknownResponse("before building JsonView", sender, response);
                     }
@@ -253,7 +254,7 @@ public final class ThingCommandEnforcement extends Enforcement {
             final Enforcer enforcer,
             final ActorRef sender) {
 
-        final Optional<RetrievePolicy> retrievePolicyOptional = policyCommandEnforcement.authorizePolicyCommand(
+        final Optional<RetrievePolicy> retrievePolicyOptional = PolicyCommandEnforcement.authorizePolicyCommand(
                 RetrievePolicy.of(policyId, retrieveThing.getDittoHeaders()), enforcer);
 
         if (retrievePolicyOptional.isPresent()) {
@@ -262,8 +263,11 @@ public final class ThingCommandEnforcement extends Enforcement {
                         final RetrievePolicy retrievePolicy = retrievePolicyOptional.get();
                         retrieveInlinedPolicyForThing(retrieveThing, retrievePolicy).thenAccept(policyResponse -> {
                             if (policyResponse.isPresent()) {
+                                final RetrievePolicyResponse filteredPolicyResponse =
+                                        PolicyCommandEnforcement.buildJsonViewForPolicyQueryCommandResponse(
+                                                policyResponse.get(), enforcer);
                                 reportAggregatedThingAndPolicy(retrieveThing, retrieveThingResponse,
-                                        policyResponse.get(), enforcer, sender);
+                                        filteredPolicyResponse, enforcer, sender);
                             } else {
                                 replyToSender(retrieveThingResponse, sender);
                             }
@@ -362,12 +366,18 @@ public final class ThingCommandEnforcement extends Enforcement {
     /**
      * Mixin-private: report timeout of {@code ThingQueryComand}.
      *
+     * @param command the original command.
      * @param sender sender of the command.
      * @param askTimeoutException the timeout exception.
      */
-    private void reportTimeoutForThingQuery(final ActorRef sender, final AskTimeoutException askTimeoutException) {
+    private void reportTimeoutForThingQuery(
+            final ThingQueryCommand command,
+            final ActorRef sender,
+            final AskTimeoutException askTimeoutException) {
         log().error(askTimeoutException, "Timeout before building JsonView");
-        replyToSender(GatewayServiceTimeoutException.newBuilder().build(), sender);
+        replyToSender(ThingUnavailableException.newBuilder(command.getThingId())
+                .dittoHeaders(command.getDittoHeaders())
+                .build(), sender);
     }
 
     /**
@@ -758,7 +768,7 @@ public final class ThingCommandEnforcement extends Enforcement {
 
                 final CreatePolicy createPolicy = CreatePolicy.of(policy.get(), createThing.getDittoHeaders());
                 final Optional<CreatePolicy> authorizedCreatePolicy =
-                        policyCommandEnforcement.authorizePolicyCommand(createPolicy, enforcer);
+                        PolicyCommandEnforcement.authorizePolicyCommand(createPolicy, enforcer);
 
                 // CreatePolicy is rejected; abort CreateThing.
                 return authorizedCreatePolicy
