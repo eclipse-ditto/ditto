@@ -18,6 +18,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletionStage;
+import java.util.function.BiFunction;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
@@ -135,17 +136,8 @@ public final class ThingCommandEnforcement extends Enforcement {
             replyToSender(error, sender);
         } else {
             // Without prior enforcer in cache, enforce CreateThing by self.
-            final boolean authorized = authorizeCreateThingBySelf(thingCommand)
-                    .map(pair -> handleInitialCreateThing(pair.createThing, pair.enforcer, sender))
-                    .isPresent();
-
-            if (!authorized) {
-                final DittoRuntimeException error =
-                        ThingNotAccessibleException.newBuilder(thingCommand.getThingId())
-                                .dittoHeaders(thingCommand.getDittoHeaders())
-                                .build();
-                replyToSender(error, sender);
-            }
+            enforceCreateThingBySelf(thingCommand, sender).ifPresent(pair ->
+                    handleInitialCreateThing(pair.createThing, pair.enforcer, sender));
         }
     }
 
@@ -546,8 +538,8 @@ public final class ThingCommandEnforcement extends Enforcement {
      * @param receivedThingCommand the command to authorize.
      * @return optionally the authorized command extended by  read subjects.
      */
-    private static Optional<CreateThingWithEnforcer> authorizeCreateThingBySelf(
-            final ThingCommand receivedThingCommand) {
+    private Optional<CreateThingWithEnforcer> enforceCreateThingBySelf(
+            final ThingCommand receivedThingCommand, final ActorRef sender) {
 
         final ThingCommand thingCommand = transformModifyThingToCreateThing(receivedThingCommand);
         if (thingCommand instanceof CreateThing) {
@@ -556,15 +548,15 @@ public final class ThingCommandEnforcement extends Enforcement {
             if (initialPolicyOptional.isPresent()) {
                 final Policy initialPolicy = PoliciesModelFactory.newPolicy(initialPolicyOptional.get());
                 final Enforcer initialEnforcer = PolicyEnforcers.defaultEvaluator(initialPolicy);
-                return authorizeByPolicy(initialEnforcer, createThing)
-                        .map(command -> new CreateThingWithEnforcer(command, initialEnforcer));
+                return attachEnforcerOrReplyWithError(createThing, initialEnforcer,
+                        ThingCommandEnforcement::authorizeByPolicy, sender);
             } else {
                 final Optional<AccessControlList> aclOptional =
                         createThing.getThing().getAccessControlList().filter(acl -> !acl.isEmpty());
                 if (aclOptional.isPresent()) {
                     final Enforcer initialEnforcer = AclEnforcer.of(aclOptional.get());
-                    return authorizeByAcl(initialEnforcer, createThing)
-                            .map(command -> new CreateThingWithEnforcer(command, initialEnforcer));
+                    return attachEnforcerOrReplyWithError(createThing, initialEnforcer,
+                            ThingCommandEnforcement::authorizeByAcl, sender);
                 } else {
                     // Command without authorization information is authorized by default.
                     final Set<String> authorizedSubjects = createThing.getDittoHeaders()
@@ -580,6 +572,25 @@ public final class ThingCommandEnforcement extends Enforcement {
             }
         } else {
             // Other commands cannot be authorized by ACL or policy contained in self.
+            final DittoRuntimeException error =
+                    ThingNotAccessibleException.newBuilder(thingCommand.getThingId())
+                            .dittoHeaders(thingCommand.getDittoHeaders())
+                            .build();
+            replyToSender(error, sender);
+            return Optional.empty();
+        }
+    }
+
+    private Optional<CreateThingWithEnforcer> attachEnforcerOrReplyWithError(final CreateThing command,
+            final Enforcer enforcer,
+            final BiFunction<Enforcer, ThingCommand<CreateThing>, Optional<CreateThing>> authorization,
+            final ActorRef sender) {
+
+        final Optional<CreateThing> authorizedCommand = authorization.apply(enforcer, command);
+        if (authorizedCommand.isPresent()) {
+            return authorizedCommand.map(cmd -> new CreateThingWithEnforcer(cmd, enforcer));
+        } else {
+            respondWithError(command, sender);
             return Optional.empty();
         }
     }

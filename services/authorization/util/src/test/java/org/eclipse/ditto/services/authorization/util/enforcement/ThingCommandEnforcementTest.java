@@ -165,7 +165,7 @@ public final class ThingCommandEnforcementTest {
 
             final ActorRef underTest = newEnforcerActor(getRef());
             underTest.tell(writeCommand(), getRef());
-            expectMsgClass(FeatureNotModifiableException.class);
+            expectMsgClass(ThingNotAccessibleException.class);
         }};
     }
 
