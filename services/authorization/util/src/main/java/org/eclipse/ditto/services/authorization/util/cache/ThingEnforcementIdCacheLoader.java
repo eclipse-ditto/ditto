@@ -12,9 +12,13 @@
 package org.eclipse.ditto.services.authorization.util.cache;
 
 import java.time.Duration;
-import java.util.HashMap;
+import java.util.Collections;
+import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -29,37 +33,36 @@ import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 
+import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
+
+import akka.actor.ActorRef;
+
 /**
- * Loads entity ID relation for authorization by asking entity shard regions.
- * <p>
- * TODO: make extensible.
+ * Loads entity ID relation for authorization of a thing by asking entity shard regions.
  */
 @Immutable
-public final class IdCacheLoader extends AbstractAskCacheLoader<EntityId> {
+public final class ThingEnforcementIdCacheLoader implements AsyncCacheLoader<EntityId, Entry<EntityId>> {
 
-    private final AuthorizationCaches authorizationCaches;
+    private final ActorAskCacheLoader<EntityId> delegate;
 
-    protected IdCacheLoader(final Duration askTimeout, final EntityRegionMap entityRegionMap,
-            final AuthorizationCaches authorizationCaches) {
-        super(askTimeout, entityRegionMap);
-        this.authorizationCaches = authorizationCaches;
+    public ThingEnforcementIdCacheLoader(final Duration askTimeout, final ActorRef entityRegion) {
+        final EntityRegionMap entityRegionProvider =
+                EntityRegionMap.singleton(ThingCommand.RESOURCE_TYPE, entityRegion);
+        final Map<String, Function<String, Object>> commandMap = Collections.singletonMap(ThingCommand.RESOURCE_TYPE,
+                ThingCommandFactory::sudoRetrieveThing);
+        final Map<String, Function<Object, Entry<EntityId>>> transformerMap =
+                Collections.singletonMap(ThingCommand.RESOURCE_TYPE,
+                        ThingEnforcementIdCacheLoader::handleSudoRetrieveThingResponse);
+
+        this.delegate = new ActorAskCacheLoader<>(askTimeout, entityRegionProvider, commandMap, transformerMap);
     }
 
     @Override
-    protected HashMap<String, Function<String, Object>> buildCommandMap() {
-        final HashMap<String, Function<String, Object>> hashMap = super.buildCommandMap();
-        hashMap.put(ThingCommand.RESOURCE_TYPE, AbstractAskCacheLoader::sudoRetrieveThing);
-        return hashMap;
+    public CompletableFuture<Entry<EntityId>> asyncLoad(final EntityId key, final Executor executor) {
+        return delegate.asyncLoad(key, executor);
     }
 
-    @Override
-    protected HashMap<String, Function<Object, Entry<EntityId>>> buildTransformerMap() {
-        final HashMap<String, Function<Object, Entry<EntityId>>> hashMap = super.buildTransformerMap();
-        hashMap.put(ThingCommand.RESOURCE_TYPE, this::handleSudoRetrieveThingResponse);
-        return hashMap;
-    }
-
-    private Entry<EntityId> handleSudoRetrieveThingResponse(final Object response) {
+    private static Entry<EntityId> handleSudoRetrieveThingResponse(final Object response) {
         if (response instanceof SudoRetrieveThingResponse) {
             final SudoRetrieveThingResponse sudoRetrieveThingResponse = (SudoRetrieveThingResponse) response;
             final Thing thing = sudoRetrieveThingResponse.getThing();
@@ -81,4 +84,9 @@ public final class IdCacheLoader extends AbstractAskCacheLoader<EntityId> {
             throw new IllegalStateException("expect SudoRetrieveThingResponse, got: " + response);
         }
     }
+
+    private static Supplier<RuntimeException> badThingResponse(final String message) {
+        return () -> new IllegalStateException("Bad SudoRetrieveThingResponse: " + message);
+    }
+
 }

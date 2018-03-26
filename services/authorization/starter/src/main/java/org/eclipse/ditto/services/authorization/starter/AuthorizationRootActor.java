@@ -11,21 +11,30 @@
  */
 package org.eclipse.ditto.services.authorization.starter;
 
+import java.time.Duration;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 import org.eclipse.ditto.services.authorization.util.EntityRegionMap;
-import org.eclipse.ditto.services.authorization.util.enforcement.EnforcerActor;
 import org.eclipse.ditto.services.authorization.util.cache.AuthorizationCaches;
+import org.eclipse.ditto.services.authorization.util.cache.EnforcerCacheLoader;
+import org.eclipse.ditto.services.authorization.util.cache.ThingEnforcementIdCacheLoader;
+import org.eclipse.ditto.services.authorization.util.cache.entry.Entry;
 import org.eclipse.ditto.services.authorization.util.config.AuthorizationConfigReader;
+import org.eclipse.ditto.services.authorization.util.enforcement.EnforcerActor;
 import org.eclipse.ditto.services.authorization.util.update.CacheUpdater;
 import org.eclipse.ditto.services.base.config.ClusterConfigReader;
 import org.eclipse.ditto.services.base.metrics.StatsdMetricsReporter;
 import org.eclipse.ditto.services.models.authorization.AuthorizationMessagingConstants;
+import org.eclipse.ditto.services.models.authorization.EntityId;
 import org.eclipse.ditto.services.models.policies.PoliciesMessagingConstants;
 import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
 import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
+
+import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -51,8 +60,30 @@ public final class AuthorizationRootActor extends AbstractActor {
         final ActorSystem actorSystem = getContext().getSystem();
         final ClusterConfigReader clusterConfigReader = configReader.cluster();
 
-        final EntityRegionMap entityRegionMap = buildEntityRegionMap(actorSystem, clusterConfigReader);
-        final AuthorizationCaches caches = new AuthorizationCaches(configReader.caches(), entityRegionMap,
+        final int numberOfShards = clusterConfigReader.numberOfShards();
+
+        final ActorRef policiesShardRegionProxy = startProxy(actorSystem, numberOfShards,
+                PoliciesMessagingConstants.SHARD_REGION, PoliciesMessagingConstants.CLUSTER_ROLE);
+
+        final ActorRef thingsShardRegionProxy = startProxy(actorSystem, numberOfShards,
+                ThingsMessagingConstants.SHARD_REGION, ThingsMessagingConstants.CLUSTER_ROLE);
+
+        final EntityRegionMap entityRegionMap =  EntityRegionMap.newBuilder()
+                .put(PolicyCommand.RESOURCE_TYPE, policiesShardRegionProxy)
+                .put(ThingCommand.RESOURCE_TYPE, thingsShardRegionProxy)
+                .build();
+
+        final Duration askTimeout = configReader.caches().askTimeout();
+        final Map<String, AsyncCacheLoader<EntityId, Entry<EntityId>>> enforcementIdCacheLoaders = new HashMap<>();
+        final ThingEnforcementIdCacheLoader thingEnforcerIdCacheLoader =
+                new ThingEnforcementIdCacheLoader(askTimeout, thingsShardRegionProxy);
+        enforcementIdCacheLoaders.put(ThingCommand.RESOURCE_TYPE, thingEnforcerIdCacheLoader);
+
+        final EnforcerCacheLoader enforcerCacheLoader =
+                new EnforcerCacheLoader(askTimeout, thingsShardRegionProxy, policiesShardRegionProxy);
+
+        final AuthorizationCaches caches = new AuthorizationCaches(configReader.caches(), enforcerCacheLoader,
+                enforcementIdCacheLoaders,
                 namedMetricRegistry -> StatsdMetricsReporter.getInstance().add(namedMetricRegistry));
 
         final Props enforcerProps = EnforcerActor.props(pubSubMediator, entityRegionMap, caches);
@@ -81,24 +112,6 @@ public final class AuthorizationRootActor extends AbstractActor {
     public Receive createReceive() {
         // TODO: do something.
         return ReceiveBuilder.create()
-                .build();
-    }
-
-    // TODO: turn into extension point
-    private EntityRegionMap buildEntityRegionMap(final ActorSystem actorSystem,
-            final ClusterConfigReader clusterConfigReader) {
-
-        final int numberOfShards = clusterConfigReader.numberOfShards();
-
-        final ActorRef policiesShardRegionProxy = startProxy(actorSystem, numberOfShards,
-                PoliciesMessagingConstants.SHARD_REGION, PoliciesMessagingConstants.CLUSTER_ROLE);
-
-        final ActorRef thingsShardRegionProxy = startProxy(actorSystem, numberOfShards,
-                ThingsMessagingConstants.SHARD_REGION, ThingsMessagingConstants.CLUSTER_ROLE);
-
-        return EntityRegionMap.newBuilder()
-                .put(PolicyCommand.RESOURCE_TYPE, policiesShardRegionProxy)
-                .put(ThingCommand.RESOURCE_TYPE, thingsShardRegionProxy)
                 .build();
     }
 

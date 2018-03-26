@@ -18,7 +18,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Function;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -28,12 +30,16 @@ import akka.actor.ActorRef;
  * Immutable sharable map from resource types to actor reference.
  */
 @Immutable
-public final class EntityRegionMap {
+public final class EntityRegionMap implements Function<String, ActorRef> {
 
     private final Map<String, ActorRef> rawMap;
 
+    private EntityRegionMap(final Map<String, ActorRef> rawMap) {
+        this.rawMap = Collections.unmodifiableMap(new HashMap<>(rawMap));
+    }
+
     private EntityRegionMap(final Builder builder) {
-        rawMap = Collections.unmodifiableMap(new HashMap<>(builder.hashMap));
+        this(builder.hashMap);
     }
 
     /**
@@ -43,7 +49,33 @@ public final class EntityRegionMap {
      * @return actor reference to the shard region of the entity.
      */
     public Optional<ActorRef> lookup(final String resourceType) {
-        return Optional.ofNullable(rawMap.get(resourceType));
+        requireNonNull(resourceType);
+
+        return Optional.ofNullable(findRegion(resourceType));
+    }
+
+    @Nullable
+    private ActorRef findRegion(final String resourceType) {
+        return rawMap.get(resourceType);
+    }
+
+    @Override
+    @Nullable
+    public ActorRef apply(final String resourceType) {
+        requireNonNull(resourceType);
+
+        return findRegion(resourceType);
+    }
+
+    /**
+     * Creates an {@link EntityRegionMap} with a single entry.
+     *
+     * @param resourceType the resource type.
+     * @param targetActor the actor reference.
+     * @return the created {@link EntityRegionMap}.
+     */
+    public static EntityRegionMap singleton(final String resourceType, final ActorRef targetActor) {
+        return new EntityRegionMap(Collections.singletonMap(resourceType, targetActor));
     }
 
     /**

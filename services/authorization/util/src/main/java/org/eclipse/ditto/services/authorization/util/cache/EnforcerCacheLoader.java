@@ -13,8 +13,12 @@ package org.eclipse.ditto.services.authorization.util.cache;
 
 import java.time.Duration;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -30,6 +34,7 @@ import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingRevision;
 import org.eclipse.ditto.services.authorization.util.EntityRegionMap;
 import org.eclipse.ditto.services.authorization.util.cache.entry.Entry;
+import org.eclipse.ditto.services.models.authorization.EntityId;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicy;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicyResponse;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
@@ -38,36 +43,45 @@ import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyNotAccessibl
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 
+import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
+
+import akka.actor.ActorRef;
+
 /**
  * Loads an enforcer by asking entity shard regions.
- *
- * TODO: make extensible.
  */
 @Immutable
-public final class EnforcerCacheLoader extends AbstractAskCacheLoader<Enforcer> {
+public final class EnforcerCacheLoader implements AsyncCacheLoader<EntityId, Entry<Enforcer>> {
 
-    protected EnforcerCacheLoader(final Duration askTimeout, final EntityRegionMap entityRegionMap) {
-        super(askTimeout, entityRegionMap);
+    private final ActorAskCacheLoader<Enforcer> delegate;
+
+    public EnforcerCacheLoader(final Duration askTimeout, final ActorRef thingsShardRegion,
+            final ActorRef policiesShardRegion) {
+        final EntityRegionMap entityRegionProvider =
+                EntityRegionMap.newBuilder()
+                        .put(ThingCommand.RESOURCE_TYPE, thingsShardRegion)
+                        .put(PolicyCommand.RESOURCE_TYPE, policiesShardRegion)
+                        .build();
+
+        final Map<String, Function<String, Object>> commandMap = new HashMap<>();
+        commandMap.put(ThingCommand.RESOURCE_TYPE, ThingCommandFactory::sudoRetrieveThing);
+        commandMap.put(PolicyCommand.RESOURCE_TYPE, policyId -> SudoRetrievePolicy.of(policyId, DittoHeaders.empty()));
+
+        final Map<String, Function<Object, Entry<Enforcer>>> transformerMap = new HashMap<>();
+        transformerMap.put(ThingCommand.RESOURCE_TYPE, EnforcerCacheLoader::handleSudoRetrieveThingResponse);
+        transformerMap.put(PolicyCommand.RESOURCE_TYPE, EnforcerCacheLoader::handleSudoRetrievePolicyResponse);
+
+        this.delegate = new ActorAskCacheLoader<>(askTimeout, entityRegionProvider,
+                commandMap, transformerMap);
     }
 
     @Override
-    protected HashMap<String, Function<String, Object>> buildCommandMap() {
-        final HashMap<String, Function<String, Object>> hashMap = super.buildCommandMap();
-        hashMap.put(ThingCommand.RESOURCE_TYPE, AbstractAskCacheLoader::sudoRetrieveThing);
-        hashMap.put(PolicyCommand.RESOURCE_TYPE, policyId -> SudoRetrievePolicy.of(policyId, DittoHeaders.empty()));
-        return hashMap;
-    }
-
-    @Override
-    protected HashMap<String, Function<Object, Entry<Enforcer>>> buildTransformerMap() {
-        final HashMap<String, Function<Object, Entry<Enforcer>>> hashMap = super.buildTransformerMap();
-        hashMap.put(ThingCommand.RESOURCE_TYPE, this::handleSudoRetrieveThingResponse);
-        hashMap.put(PolicyCommand.RESOURCE_TYPE, this::handleSudoRetrievePolicyResponse);
-        return hashMap;
+    public CompletableFuture<Entry<Enforcer>> asyncLoad(final EntityId key, final Executor executor) {
+        return delegate.asyncLoad(key, executor);
     }
 
     @Nullable
-    private Entry<Enforcer> handleSudoRetrieveThingResponse(final Object response) {
+    private static Entry<Enforcer> handleSudoRetrieveThingResponse(final Object response) {
         if (response instanceof SudoRetrieveThingResponse) {
             final SudoRetrieveThingResponse sudoRetrieveThingResponse = (SudoRetrieveThingResponse) response;
             final Thing thing = sudoRetrieveThingResponse.getThing();
@@ -90,7 +104,7 @@ public final class EnforcerCacheLoader extends AbstractAskCacheLoader<Enforcer> 
         }
     }
 
-    private Entry<Enforcer> handleSudoRetrievePolicyResponse(final Object response) {
+    private static Entry<Enforcer> handleSudoRetrievePolicyResponse(final Object response) {
         if (response instanceof SudoRetrievePolicyResponse) {
             final SudoRetrievePolicyResponse sudoRetrievePolicyResponse = (SudoRetrievePolicyResponse) response;
             final Policy policy = sudoRetrievePolicyResponse.getPolicy();
@@ -103,4 +117,13 @@ public final class EnforcerCacheLoader extends AbstractAskCacheLoader<Enforcer> 
             throw new IllegalStateException("expect SudoRetrievePolicyResponse, got: " + response);
         }
     }
+
+    private static Supplier<RuntimeException> badThingResponse(final String message) {
+        return () -> new IllegalStateException("Bad SudoRetrieveThingResponse: " + message);
+    }
+
+    private static Supplier<RuntimeException> badPolicyResponse(final String message) {
+        return () -> new IllegalStateException("Bad SudoRetrievePolicyResponse: " + message);
+    }
+
 }

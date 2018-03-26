@@ -16,6 +16,8 @@ import static org.eclipse.ditto.model.base.json.JsonSchemaVersion.V_1;
 import static org.eclipse.ditto.model.base.json.JsonSchemaVersion.V_2;
 import static org.eclipse.ditto.model.policies.SubjectIssuer.GOOGLE;
 
+import java.time.Duration;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 
@@ -39,9 +41,13 @@ import org.eclipse.ditto.model.things.ThingBuilder;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.authorization.util.EntityRegionMap;
 import org.eclipse.ditto.services.authorization.util.cache.AuthorizationCaches;
+import org.eclipse.ditto.services.authorization.util.cache.EnforcerCacheLoader;
+import org.eclipse.ditto.services.authorization.util.cache.ThingEnforcementIdCacheLoader;
+import org.eclipse.ditto.services.authorization.util.cache.entry.Entry;
 import org.eclipse.ditto.services.authorization.util.config.AuthorizationConfigReader;
 import org.eclipse.ditto.services.authorization.util.mock.MockEntitiesActor;
 import org.eclipse.ditto.services.authorization.util.mock.MockEntityRegionMap;
+import org.eclipse.ditto.services.models.authorization.EntityId;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicyResponse;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
@@ -60,6 +66,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import com.codahale.metrics.MetricRegistry;
+import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -350,11 +357,19 @@ public final class ThingCommandEnforcementTest {
 
     private ActorRef newEnforcerActor(final ActorRef testActorRef) {
         final EntityRegionMap testActorMap = MockEntityRegionMap.uniform(testActorRef);
-        final EntityRegionMap mockActorMap = MockEntityRegionMap.uniform(mockEntitiesActor);
 
         final Consumer<Map.Entry<String, MetricRegistry>> dummyReportingConsumer = unused -> {};
-        final AuthorizationCaches authorizationCaches = new AuthorizationCaches(CONFIG.caches(), mockActorMap,
-                dummyReportingConsumer);
+        final Duration askTimeout = CONFIG.caches().askTimeout();
+        final EnforcerCacheLoader enforcerCacheLoader =
+                new EnforcerCacheLoader(askTimeout, mockEntitiesActor, mockEntitiesActor);
+
+        final Map<String, AsyncCacheLoader<EntityId, Entry<EntityId>>> enforcementIdCacheLoaders = new HashMap<>();
+        final ThingEnforcementIdCacheLoader thingEnforcementIdCacheLoader =
+                new ThingEnforcementIdCacheLoader(askTimeout, mockEntitiesActor);
+        enforcementIdCacheLoaders.put(ThingCommand.RESOURCE_TYPE, thingEnforcementIdCacheLoader);
+
+        final AuthorizationCaches authorizationCaches = new AuthorizationCaches(CONFIG.caches(), enforcerCacheLoader,
+                enforcementIdCacheLoaders, dummyReportingConsumer);
         final Props props = EnforcerActor.props(mockEntitiesActor, testActorMap, authorizationCaches);
         return system.actorOf(props, THING + ":" + THING_ID);
     }
