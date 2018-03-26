@@ -98,7 +98,7 @@ public final class AuthorizationCaches {
         // No need to save the identity relation in entity cache and waste memory and bandwidth.
         enforcerCache.get(entityKey)
                 .thenAccept(enforcerEntry -> consumer.accept(Entry.permanent(entityKey),
-                        enforcerEntry.orElse(null)));
+                        enforcerEntry.orElse(Entry.nonexistent())));
     }
 
     private void retrievePolicyEnforcer(final EntityId entityKey,
