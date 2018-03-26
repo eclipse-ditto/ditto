@@ -12,7 +12,8 @@
 package org.eclipse.ditto.services.connectivity.messaging.internal;
 
 /**
- * TODO TJ doc
+ * Messaging internal command for connecting a
+ * {@link org.eclipse.ditto.services.connectivity.messaging.BaseClientActor Client}.
  */
 public interface ConnectClient extends WithOrigin {
 }

@@ -12,8 +12,19 @@
 package org.eclipse.ditto.services.connectivity.messaging.internal;
 
 /**
- * Messaging internal command for disconnecting a
- * {@link org.eclipse.ditto.services.connectivity.messaging.BaseClientActor Client}.
+ * Actor message marking that address metrics should be retrieved.
  */
-public interface DisconnectClient extends WithOrigin {
+public final class RetrieveAddressMetric {
+
+    private static final RetrieveAddressMetric INSTANCE = new RetrieveAddressMetric();
+
+    private RetrieveAddressMetric() {
+    }
+
+    /**
+     * @return the singleton instance of this class.
+     */
+    public static RetrieveAddressMetric getInstance() {
+        return INSTANCE;
+    }
 }

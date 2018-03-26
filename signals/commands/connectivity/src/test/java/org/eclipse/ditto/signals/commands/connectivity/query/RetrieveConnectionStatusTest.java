@@ -18,8 +18,9 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.signals.commands.connectivity.TestConstants;
 import org.eclipse.ditto.signals.commands.base.Command;
+import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
+import org.eclipse.ditto.signals.commands.connectivity.TestConstants;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -31,7 +32,7 @@ public final class RetrieveConnectionStatusTest {
 
     private static final JsonObject KNOWN_JSON = JsonObject.newBuilder()
             .set(Command.JsonFields.TYPE, RetrieveConnectionStatus.TYPE)
-            .set(RetrieveConnectionStatus.JSON_CONNECTION_ID, TestConstants.ID)
+            .set(ConnectivityCommand.JsonFields.JSON_CONNECTION_ID, TestConstants.ID)
             .build();
 
     @Test

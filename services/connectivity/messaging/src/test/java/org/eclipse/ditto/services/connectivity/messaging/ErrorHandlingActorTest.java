@@ -16,11 +16,11 @@ import static org.eclipse.ditto.services.connectivity.messaging.FaultyConnection
 import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
 
-import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
-import org.eclipse.ditto.signals.commands.connectivity.modify.ConnectivityModifyCommand;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
+import org.eclipse.ditto.signals.commands.connectivity.modify.ConnectivityModifyCommand;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CreateConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CreateConnectionResponse;
 import org.eclipse.ditto.signals.commands.connectivity.modify.DeleteConnection;
@@ -62,7 +62,8 @@ public class ErrorHandlingActorTest {
             final String connectionId = TestConstants.createRandomConnectionId();
             final Connection connection = TestConstants.createConnection(connectionId);
             final ActorRef underTest = TestConstants.createConnectionSupervisorActor(connectionId, actorSystem,
-                    pubSubMediator, (ca, con) -> FaultyConnectionActor.props(false));
+                    pubSubMediator,
+                    (con, connectionStatus) -> FaultyConnectionActor.props(false));
             watch(underTest);
 
             // create connection

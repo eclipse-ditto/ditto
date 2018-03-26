@@ -31,22 +31,22 @@ import org.eclipse.ditto.model.connectivity.MappingContext;
 public final class BaseClientData {
 
     private final String connectionId;
-    @Nullable private final Connection connection;
-    @Nullable private final ConnectionStatus connectionStatus;
+    private final Connection connection;
+    private final ConnectionStatus connectionStatus;
     @Nullable private final String connectionStatusDetails;
     private final List<MappingContext> mappingContexts;
 
     /**
-     * TODO TJ javadocs
+     * Constructs new instance of BaseClientData, the data of the {@link BaseClientActor}.
      *
-     * @param connectionId
-     * @param connection
-     * @param connectionStatus
-     * @param connectionStatusDetails
-     * @param mappingContexts
+     * @param connectionId the ID of the {@link Connection}.
+     * @param connection the optional {@link Connection}.
+     * @param connectionStatus the optional {@link ConnectionStatus} of the Connection.
+     * @param connectionStatusDetails the optional details about the ConnectionStatus.
+     * @param mappingContexts the {@link MappingContext}s to apply for the managed Connection.
      */
-    BaseClientData(final String connectionId, @Nullable final Connection connection,
-            @Nullable final ConnectionStatus connectionStatus,
+    BaseClientData(final String connectionId, final Connection connection,
+            final ConnectionStatus connectionStatus,
             @Nullable final String connectionStatusDetails, final List<MappingContext> mappingContexts) {
         this.connectionId = connectionId;
         this.connection = connection;
@@ -59,12 +59,12 @@ public final class BaseClientData {
         return connectionId;
     }
 
-    public Optional<Connection> getConnection() {
-        return Optional.ofNullable(connection);
+    public Connection getConnection() {
+        return connection;
     }
 
-    public Optional<ConnectionStatus> getConnectionStatus() {
-        return Optional.ofNullable(connectionStatus);
+    public ConnectionStatus getConnectionStatus() {
+        return connectionStatus;
     }
 
     public Optional<String> getConnectionStatusDetails() {

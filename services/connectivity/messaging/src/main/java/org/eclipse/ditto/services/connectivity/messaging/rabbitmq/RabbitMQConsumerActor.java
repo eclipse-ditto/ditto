@@ -29,6 +29,7 @@ import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ExternalMessage;
 import org.eclipse.ditto.model.connectivity.ExternalMessageBuilder;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMappers;
+import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressMetric;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
 import com.rabbitmq.client.BasicProperties;
@@ -87,7 +88,7 @@ public final class RabbitMQConsumerActor extends AbstractActor {
         return ReceiveBuilder.create()
                 .match(Delivery.class, this::handleDelivery)
                 .match(AddressMetric.class, this::handleAddressMetric)
-                .matchEquals("retrieve-AddressMetric", str -> {
+                .match(RetrieveAddressMetric.class, ram -> {
                     getSender().tell(ConnectivityModelFactory.newAddressMetric(
                             addressMetric != null ? addressMetric.getStatus() : ConnectionStatus.UNKNOWN,
                             addressMetric != null ? addressMetric.getStatusDetails().orElse(null) : null,

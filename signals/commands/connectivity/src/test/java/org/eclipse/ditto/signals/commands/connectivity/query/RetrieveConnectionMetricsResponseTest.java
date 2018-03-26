@@ -26,6 +26,7 @@ import org.eclipse.ditto.model.connectivity.ConnectionMetrics;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
+import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandResponse;
 import org.eclipse.ditto.signals.commands.connectivity.TestConstants;
 import org.junit.Test;
 
@@ -42,7 +43,7 @@ public final class RetrieveConnectionMetricsResponseTest {
     private static final JsonObject KNOWN_JSON = JsonObject.newBuilder()
             .set(CommandResponse.JsonFields.TYPE, RetrieveConnectionMetricsResponse.TYPE)
             .set(CommandResponse.JsonFields.STATUS, HttpStatusCode.OK.toInt())
-            .set(RetrieveConnectionMetricsResponse.JSON_CONNECTION_ID, TestConstants.ID)
+            .set(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID, TestConstants.ID)
             .set(RetrieveConnectionMetricsResponse.JSON_CONNECTION_METRICS, METRICS.toJson())
             .build();
 

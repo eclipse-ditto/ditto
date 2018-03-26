@@ -33,7 +33,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
 /**
- * TODO TJ doc
+ * Immutable implementation of {@link ConnectionMetrics}.
  */
 @Immutable
 final class ImmutableConnectionMetrics implements ConnectionMetrics {

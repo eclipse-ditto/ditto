@@ -213,7 +213,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         if (response.getStatusCodeValue() < HttpStatusCode.BAD_REQUEST.toInt()) {
             log.debug("Received response: {}", response);
         } else {
-            log.info("Received error response: {}", response.toJsonString());
+            log.debug("Received error response: {}", response.toJsonString());
         }
 
         handleSignal(response);

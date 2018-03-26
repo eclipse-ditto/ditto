@@ -103,6 +103,18 @@ public final class ConnectivityModelFactory {
     }
 
     /**
+     * Creates a new {@code SourceMetrics} object from the specified JSON object.
+     *
+     * @param jsonObject a JSON object which provides the data for the Connection to be created.
+     * @return a new SourceMetrics which is initialised with the extracted data from {@code jsonObject}.
+     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} is not an appropriate JSON object.
+     */
+    public static SourceMetrics sourceMetricsFromJson(final JsonObject jsonObject) {
+        return ImmutableSourceMetrics.fromJson(jsonObject);
+    }
+
+    /**
      * Returns a new {@code TargetMetrics}.
      *
      * @param addressMetrics the AddressMetrics of all addresses in the target
@@ -113,6 +125,18 @@ public final class ConnectivityModelFactory {
     public static TargetMetrics newTargetMetrics(final Map<String, AddressMetric> addressMetrics,
             final long consumedMessages) {
         return ImmutableTargetMetrics.of(addressMetrics, consumedMessages);
+    }
+
+    /**
+     * Creates a new {@code TargetMetrics} object from the specified JSON object.
+     *
+     * @param jsonObject a JSON object which provides the data for the Connection to be created.
+     * @return a new TargetMetrics which is initialised with the extracted data from {@code jsonObject}.
+     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} is not an appropriate JSON object.
+     */
+    public static TargetMetrics targetMetricsFromJson(final JsonObject jsonObject) {
+        return ImmutableTargetMetrics.fromJson(jsonObject);
     }
 
     /**

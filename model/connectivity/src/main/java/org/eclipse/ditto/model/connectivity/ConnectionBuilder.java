@@ -67,6 +67,17 @@ public interface ConnectionBuilder {
     ConnectionBuilder targets(Set<Target> targets);
 
     /**
+     * Sets how many clients on different cluster nodes should establish the {@link Connection}.
+     * <p>
+     * If greater than 1, the connection is created in a HA mode, running on at least 2 cluster nodes.
+     * </p>
+     *
+     * @param clientCount the client count to set
+     * @return this builder to allow method chaining.
+     */
+    ConnectionBuilder clientCount(int clientCount);
+
+    /**
      * Builds a new {@link Connection}.
      *
      * @return the new {@link Connection}

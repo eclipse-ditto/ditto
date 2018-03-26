@@ -14,8 +14,11 @@ package org.eclipse.ditto.services.connectivity.messaging;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.services.models.connectivity.ConnectivityMessagingConstants.CLUSTER_ROLE;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -25,6 +28,7 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
@@ -37,6 +41,8 @@ import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
+import org.eclipse.ditto.signals.commands.base.CommandResponse;
+import org.eclipse.ditto.signals.commands.connectivity.AggregatedConnectivityCommandResponse;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionConflictException;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
@@ -66,10 +72,12 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
 import com.typesafe.config.Config;
 
 import akka.ConfigurationException;
+import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Cancellable;
 import akka.actor.PoisonPill;
 import akka.actor.Props;
+import akka.actor.ReceiveTimeout;
 import akka.actor.Status;
 import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.cluster.routing.ClusterRouterPool;
@@ -285,7 +293,7 @@ final class ConnectionActor extends AbstractPersistentActor {
                 .match(SaveSnapshotSuccess.class, this::handleSnapshotSuccess)
                 .match(Shutdown.class, shutdown -> log.debug("Dropping Shutdown in created behaviour state."))
                 .match(Status.Failure.class, f -> log.warning("Got failure in connectionCreated behaviour with " +
-                                "cause {}: {}", f.cause().getClass().getSimpleName(), f.cause().getMessage()))
+                        "cause {}: {}", f.cause().getClass().getSimpleName(), f.cause().getMessage()))
                 .matchAny(m -> {
                     log.warning("Unknown message: {}", m);
                     unhandled(m);
@@ -422,20 +430,23 @@ final class ConnectionActor extends AbstractPersistentActor {
                 .map(Long::parseLong)
                 .orElse(DEFAULT_TIMEOUT_MS);
         // wrap in Broadcast message because these management messages must be delivered to each client actor
-        final Broadcast broadcastCommand = new Broadcast(cmd);
-        PatternsCS.ask(clientActor, broadcastCommand, timeout)
-                .whenComplete((response, exception) -> {
-                    log.debug("Got response to {}: {}", cmd.getType(), exception == null ? response : exception);
-                    if (exception != null) {
-                        handleException(action, origin, exception);
-                    } else if (response instanceof Status.Failure) {
-                        handleException(action, origin, ((Status.Failure) response).cause());
-                    } else if (response instanceof DittoRuntimeException) {
-                        handleException(action, origin, (DittoRuntimeException) response);
-                    } else {
-                        onSuccess.accept(response);
-                    }
-                });
+        if (clientActor != null && connection != null) {
+            final ActorRef aggregationActor = getContext().actorOf(
+                    AggregateActor.props(connectionId, clientActor, connection.getClientCount(), timeout));
+            PatternsCS.ask(aggregationActor, cmd, timeout)
+                    .whenComplete((response, exception) -> {
+                        log.debug("Got response to {}: {}", cmd.getType(), exception == null ? response : exception);
+                        if (exception != null) {
+                            handleException(action, origin, exception);
+                        } else if (response instanceof Status.Failure) {
+                            handleException(action, origin, ((Status.Failure) response).cause());
+                        } else if (response instanceof DittoRuntimeException) {
+                            handleException(action, origin, (DittoRuntimeException) response);
+                        } else {
+                            onSuccess.accept(response);
+                        }
+                    });
+        }
     }
 
     private void handleException(final String action, final ActorRef origin, final Throwable exception) {
@@ -546,13 +557,13 @@ final class ConnectionActor extends AbstractPersistentActor {
         checkNotNull(connectionId, "connectionId");
         checkNotNull(connection, "connection");
         if (clientActor == null) {
-            final int consumerCount = 2; // TODO read consumer count from source connection.getConsumerCount();
-            log.info("Starting ClientActor for connection <{}> with {} consumers.", connectionId, consumerCount);
-            final Props props = propsFactory.getActorPropsForType(getSelf(), connection);
+            final int clientCount = connection.getClientCount();
+            log.info("Starting ClientActor for connection <{}> with <{}> clients.", connectionId, clientCount);
+            final Props props = propsFactory.getActorPropsForType(connection, connectionStatus);
             final ClusterRouterPoolSettings clusterRouterPoolSettings =
-                    new ClusterRouterPoolSettings(consumerCount, 1, true,
+                    new ClusterRouterPoolSettings(clientCount, 1, true,
                             Collections.singleton(CLUSTER_ROLE));
-            final RoundRobinPool roundRobinPool = new RoundRobinPool(consumerCount);
+            final RoundRobinPool roundRobinPool = new RoundRobinPool(clientCount);
             final Props clusterRouterPoolProps =
                     new ClusterRouterPool(roundRobinPool, clusterRouterPoolSettings).props(props);
             clientActor = getContext().actorOf(clusterRouterPoolProps, "rtr-" + connectionId);
@@ -612,6 +623,105 @@ final class ConnectionActor extends AbstractPersistentActor {
             return new Shutdown();
         }
 
+    }
+
+    /**
+     * Local helper-actor which is started for aggregating several CommandResponses sent back by potentially several
+     * {@code clientActors} (behind a cluster Router running on different cluster nodes).
+     */
+    private static class AggregateActor extends AbstractActor {
+
+        private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+
+        private final List<CommandResponse<?>> aggregatedResults;
+        private final Map<String, Status.Status> aggregatedStatus;
+
+        private final String connectionId;
+        private final ActorRef clientActor;
+        private final int expectedResponses;
+        private final long timeout;
+
+        private int responseCount = 0;
+        @Nullable private ActorRef origin;
+        @Nullable private DittoHeaders originHeaders;
+
+        /**
+         * Creates Akka configuration object for this actor.
+         *
+         * @return the Akka configuration Props object
+         */
+        static Props props(final String connectionId, final ActorRef clientActor, final int expectedResponses,
+                final long timeout) {
+            return Props.create(AggregateActor.class, connectionId, clientActor, expectedResponses, timeout);
+        }
+
+        private AggregateActor(final String connectionId, final ActorRef clientActor, final int expectedResponses,
+                final long timeout) {
+            this.connectionId = connectionId;
+            this.clientActor = clientActor;
+            this.expectedResponses = expectedResponses;
+            this.timeout = timeout;
+            aggregatedResults = new ArrayList<>();
+            aggregatedStatus = new HashMap<>();
+        }
+
+        @Override
+        public Receive createReceive() {
+            return ReceiveBuilder.create()
+                    .match(Command.class, command -> {
+                        clientActor.tell(new Broadcast(command), getSelf());
+                        originHeaders = command.getDittoHeaders();
+                        origin = getSender();
+                        getContext().setReceiveTimeout(Duration.create(timeout / 2.0, TimeUnit.MILLISECONDS));
+                    })
+                    .match(ReceiveTimeout.class, timeout -> {
+                        // send back (partially) gathered responses
+                        sendBackAggregatedResults();
+                    })
+                    .matchAny(any -> {
+                        if (any instanceof CommandResponse) {
+                            aggregatedResults.add((CommandResponse<?>) any);
+                        } else if (any instanceof Status.Status) {
+                            aggregatedStatus.put(getSender().path().address().hostPort(), (Status.Status) any);
+                        } else {
+                            log.error("Could not handle non-Jsonifiable non-Status response: {}", any);
+                        }
+                        responseCount++;
+                        if (expectedResponses == responseCount) {
+                            // send back all gathered responses
+                            sendBackAggregatedResults();
+                        }
+                    })
+                    .build();
+        }
+
+        private void sendBackAggregatedResults() {
+            if (origin != null && originHeaders != null && !aggregatedResults.isEmpty()) {
+                final String responseType = aggregatedResults.get(0).getType();
+                final AggregatedConnectivityCommandResponse response =
+                        AggregatedConnectivityCommandResponse.of(connectionId, aggregatedResults, responseType,
+                                HttpStatusCode.OK, originHeaders);
+                log.debug("Aggregated response: {}", response);
+                origin.tell(response, getSelf());
+            } else if (origin != null && originHeaders != null && !aggregatedStatus.isEmpty()) {
+                log.debug("Aggregated stati: {}", this.aggregatedStatus);
+                final Optional<Status.Status> failure = this.aggregatedStatus.entrySet().stream()
+                        .filter(s -> s.getValue() instanceof Status.Failure)
+                        .map(Map.Entry::getValue)
+                        .findFirst();
+                if (failure.isPresent()) {
+                    origin.tell(failure.get(), getSelf());
+                } else {
+                    final String aggregatedStatusStr = this.aggregatedStatus.entrySet().stream()
+                            .map(Object::toString)
+                            .collect(Collectors.joining(","));
+                    origin.tell(new Status.Success(aggregatedStatusStr), getSelf());
+                }
+            } else {
+                log.warning("No origin was present or results were empty in order to send back aggregated results to");
+            }
+            getContext().stop(getSelf());
+        }
     }
 
 }

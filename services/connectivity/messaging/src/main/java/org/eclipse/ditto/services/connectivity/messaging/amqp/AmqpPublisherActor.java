@@ -15,6 +15,7 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.model.base.headers.DittoHeaderDefinition.CORRELATION_ID;
 
 import java.nio.ByteBuffer;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -35,6 +36,7 @@ import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
+import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressMetric;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
 import akka.actor.Props;
@@ -57,7 +59,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
     private final Session session;
     private final Map<Destination, MessageProducer> producerMap;
 
-    @Nullable private AddressMetric addressMetric = null;
+    private AddressMetric addressMetric;
     private long publishedMessages = 0L;
 
 
@@ -65,6 +67,8 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
         super(connection);
         this.session = checkNotNull(session, "session");
         this.producerMap = new HashMap<>();
+        addressMetric =
+                ConnectivityModelFactory.newAddressMetric(ConnectionStatus.OPEN, "Started at " + Instant.now(), 0);
     }
 
     /**
@@ -110,10 +114,10 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
                     destinationForMessage.forEach(amqpTarget -> sendMessage(amqpTarget, message));
                 })
                 .match(AddressMetric.class, this::handleAddressMetric)
-                .matchEquals("retrieve-AddressMetric", str -> {
+                .match(RetrieveAddressMetric.class, ram -> {
                     getSender().tell(ConnectivityModelFactory.newAddressMetric(
-                            addressMetric != null ? addressMetric.getStatus() : ConnectionStatus.UNKNOWN,
-                            addressMetric != null ? addressMetric.getStatusDetails().orElse(null) : null,
+                            addressMetric.getStatus(),
+                            addressMetric.getStatusDetails().orElse(null),
                             publishedMessages), getSelf());
                 })
                 .matchAny(m -> {

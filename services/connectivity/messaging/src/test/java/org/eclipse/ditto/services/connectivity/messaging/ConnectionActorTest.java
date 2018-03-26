@@ -222,7 +222,7 @@ public class ConnectionActorTest {
             final TestKit probe = new TestKit(actorSystem);
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
-                            (connectionActor, connection) -> TestActor.props(probe));
+                            (connection, connectionStatus) -> TestActor.props(probe));
             watch(underTest);
 
             // create connection

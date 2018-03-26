@@ -27,38 +27,35 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 
 /**
- * TODO TJ doc
+ * Connection Metrics represent the current (and not the persisted/desired) connection status and information of this
+ * connection like amount of consumed/published messages, etc.
  */
 @Immutable
 public interface ConnectionMetrics extends Jsonifiable.WithFieldSelectorAndPredicate<JsonField> {
 
     /**
-     *
-     * @return
+     * @return the current ConnectionStatus of the related {@link Connection}.
      */
     ConnectionStatus getConnectionStatus();
 
     /**
-     *
-     * @return
+     * @return the optional details of the ConnectionStatus of the related {@link Connection}.
      */
     Optional<String> getConnectionStatusDetails();
 
     /**
-     *
-     * @return
+     * @return in which state the client handling the {@link Connection} currently is.
      */
     String getClientState();
 
     /**
-     *
-     * @return
+     * @return the metrics of all Connection {@link Source}s.
      */
     List<SourceMetrics> getSourcesMetrics();
 
     /**
      *
-     * @return
+     * @return the metrics of all Connection {@link Target}s.
      */
     List<TargetMetrics> getTargetsMetrics();
 

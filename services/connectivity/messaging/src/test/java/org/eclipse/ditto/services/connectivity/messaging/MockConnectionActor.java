@@ -19,6 +19,7 @@ import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
 
 import akka.actor.AbstractActor;
 import akka.actor.Props;
+import akka.actor.Status;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
 
@@ -28,7 +29,7 @@ import akka.japi.Creator;
 public class MockConnectionActor extends AbstractActor {
 
     static final ConnectionActorPropsFactory mockConnectionActorPropsFactory =
-            (connectionActor, connection) -> MockConnectionActor.props();
+            (connection, connectionStatus) -> MockConnectionActor.props();
 
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
@@ -45,19 +46,19 @@ public class MockConnectionActor extends AbstractActor {
         return receiveBuilder()
                 .match(CreateConnection.class, cc -> {
                     log.info("Creating connection...");
-                    sender().tell("success", getSelf());
+                    sender().tell(new Status.Success("mock"), getSelf());
                 })
                 .match(OpenConnection.class, oc -> {
                     log.info("Opening connection...");
-                    sender().tell("success", getSelf());
+                    sender().tell(new Status.Success("mock"), getSelf());
                 })
                 .match(CloseConnection.class, cc -> {
                     log.info("Closing connection...");
-                    sender().tell("success", getSelf());
+                    sender().tell(new Status.Success("mock"), getSelf());
                 })
                 .match(DeleteConnection.class, dc -> {
                     log.info("Deleting connection...");
-                    sender().tell("success", getSelf());
+                    sender().tell(new Status.Success("mock"), getSelf());
                 })
                 .build();
     }

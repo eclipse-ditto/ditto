@@ -106,16 +106,17 @@ public class JMSConnectionHandlingActor extends AbstractActor {
             final Map<String, Exception> failedSources = new HashMap<>();
             connection.getSources().forEach(source ->
                     source.getAddresses().forEach(sourceAddress -> {
-                        // TODO TJ what about consumerCount? should be one consumer for each count..
-                        final int consumerCount = source.getConsumerCount();
-                        log.debug("Creating AMQP Consumer for '{}'", sourceAddress);
-                        final Destination destination = new JmsQueue(sourceAddress);
-                        final MessageConsumer messageConsumer;
-                        try {
-                            messageConsumer = jmsSession.createConsumer(destination);
-                            consumerMap.put(sourceAddress, messageConsumer);
-                        } catch (final JMSException jmsException) {
-                            failedSources.put(sourceAddress, jmsException);
+                        for (int i = 0; i < source.getConsumerCount(); i++) {
+                            final String addressWithIndex = sourceAddress + "-" + i;
+                            log.debug("Creating AMQP Consumer for <{}>", addressWithIndex);
+                            final Destination destination = new JmsQueue(sourceAddress);
+                            final MessageConsumer messageConsumer;
+                            try {
+                                messageConsumer = jmsSession.createConsumer(destination);
+                                consumerMap.put(addressWithIndex, messageConsumer);
+                            } catch (final JMSException jmsException) {
+                                failedSources.put(addressWithIndex, jmsException);
+                            }
                         }
                     }));
 
@@ -151,9 +152,9 @@ public class JMSConnectionHandlingActor extends AbstractActor {
             log.debug("Closing JMS connection {}", this.connection.getId());
             connection.stop();
             connection.close();
-            log.info("Connection '{}' closed.", this.connection.getId());
+            log.info("Connection <{}> closed.", this.connection.getId());
         } catch (final JMSException e) {
-            log.debug("Connection '{}' already closed: {}", this.connection.getId(), e.getMessage());
+            log.debug("Connection <{}> already closed: {}", this.connection.getId(), e.getMessage());
         }
         getSender().tell(new AmqpClientActor.JmsDisconnected(disconnect.getOrigin().orElse(null)), getSender());
         log.info("Stop myself {}", getSelf());

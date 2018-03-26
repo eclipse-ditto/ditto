@@ -12,6 +12,7 @@
 package org.eclipse.ditto.services.connectivity.messaging;
 
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.services.connectivity.messaging.amqp.AmqpClientActor;
 import org.eclipse.ditto.services.connectivity.messaging.rabbitmq.RabbitMQClientActor;
@@ -37,14 +38,13 @@ public final class DefaultConnectionActorPropsFactory implements ConnectionActor
     }
 
     @Override
-    public Props getActorPropsForType(final ActorRef connectionActor, final Connection connection) {
-        final String connectionId = connection.getId();
+    public Props getActorPropsForType(final Connection connection, final ConnectionStatus connectionStatus) {
         final ConnectionType connectionType = connection.getConnectionType();
         switch (connectionType) {
             case AMQP_091:
-                return RabbitMQClientActor.props(connectionId, connectionActor);
+                return RabbitMQClientActor.props(connection, connectionStatus);
             case AMQP_10:
-                return AmqpClientActor.props(connectionId, connectionActor);
+                return AmqpClientActor.props(connection, connectionStatus);
             default:
                 throw new IllegalArgumentException("ConnectionType <" + connectionType + "> is not supported.");
         }

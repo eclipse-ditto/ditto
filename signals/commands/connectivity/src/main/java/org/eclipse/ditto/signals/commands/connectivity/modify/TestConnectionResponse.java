@@ -5,7 +5,7 @@
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
- *  
+ *
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
@@ -30,6 +30,7 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandResponse;
 
 /**
  * Response to a {@link TestConnection} command.
@@ -42,10 +43,6 @@ public final class TestConnectionResponse extends AbstractCommandResponse<TestCo
      * Type of this response.
      */
     public static final String TYPE = TYPE_PREFIX + TestConnection.NAME;
-
-    static final JsonFieldDefinition<String> JSON_CONNECTION_ID =
-            JsonFactory.newStringFieldDefinition("connectionId", FieldType.REGULAR, JsonSchemaVersion.V_1,
-                    JsonSchemaVersion.V_2);
 
     static final JsonFieldDefinition<String> JSON_TEST_RESULT =
             JsonFactory.newStringFieldDefinition("testResult", FieldType.REGULAR, JsonSchemaVersion.V_1,
@@ -105,7 +102,8 @@ public final class TestConnectionResponse extends AbstractCommandResponse<TestCo
     public static TestConnectionResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<TestConnectionResponse>(TYPE, jsonObject).deserialize(
                 statusCode -> {
-                    final String readConnectionId = jsonObject.getValueOrThrow(JSON_CONNECTION_ID);
+                    final String readConnectionId =
+                            jsonObject.getValueOrThrow(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID);
                     final String readConnectionResult = jsonObject.getValueOrThrow(JSON_TEST_RESULT);
                     return of(readConnectionId, readConnectionResult, dittoHeaders);
                 });
@@ -124,7 +122,7 @@ public final class TestConnectionResponse extends AbstractCommandResponse<TestCo
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(JSON_CONNECTION_ID, connectionId, predicate);
+        jsonObjectBuilder.set(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID, connectionId, predicate);
         jsonObjectBuilder.set(JSON_TEST_RESULT, testResult, predicate);
     }
 

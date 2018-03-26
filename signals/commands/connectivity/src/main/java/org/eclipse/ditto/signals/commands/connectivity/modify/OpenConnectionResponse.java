@@ -21,15 +21,14 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandResponse;
 
 /**
  * Response to a {@link OpenConnection} command.
@@ -42,10 +41,6 @@ public final class OpenConnectionResponse extends AbstractCommandResponse<OpenCo
      * Type of this response.
      */
     public static final String TYPE = TYPE_PREFIX + OpenConnection.NAME;
-
-    static final JsonFieldDefinition<String> JSON_CONNECTION_ID =
-            JsonFactory.newStringFieldDefinition("connectionId", FieldType.REGULAR, JsonSchemaVersion.V_1,
-                    JsonSchemaVersion.V_2);
 
     private final String connectionId;
 
@@ -95,7 +90,8 @@ public final class OpenConnectionResponse extends AbstractCommandResponse<OpenCo
     public static OpenConnectionResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<OpenConnectionResponse>(TYPE, jsonObject).deserialize(
                 statusCode -> {
-                    final String readConnectionId = jsonObject.getValueOrThrow(JSON_CONNECTION_ID);
+                    final String readConnectionId =
+                            jsonObject.getValueOrThrow(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID);
 
                     return of(readConnectionId, dittoHeaders);
                 });
@@ -105,7 +101,7 @@ public final class OpenConnectionResponse extends AbstractCommandResponse<OpenCo
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(JSON_CONNECTION_ID, connectionId, predicate);
+        jsonObjectBuilder.set(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID, connectionId, predicate);
     }
 
     @Override

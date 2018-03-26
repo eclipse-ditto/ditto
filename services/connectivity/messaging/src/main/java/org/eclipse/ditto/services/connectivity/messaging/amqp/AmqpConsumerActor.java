@@ -15,6 +15,7 @@ import static java.util.stream.Collectors.toMap;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.nio.ByteBuffer;
+import java.time.Instant;
 import java.util.AbstractMap;
 import java.util.Collections;
 import java.util.List;
@@ -39,6 +40,7 @@ import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ExternalMessage;
 import org.eclipse.ditto.model.connectivity.ExternalMessageBuilder;
+import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressMetric;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
 import akka.actor.AbstractActor;
@@ -64,7 +66,7 @@ final class AmqpConsumerActor extends AbstractActor implements MessageListener {
     private final MessageConsumer messageConsumer;
     private final ActorRef messageMappingProcessor;
 
-    @Nullable private AddressMetric addressMetric = null;
+    private AddressMetric addressMetric;
     private long consumedMessages = 0L;
 
     private AmqpConsumerActor(final String sourceAddress, final MessageConsumer messageConsumer,
@@ -72,6 +74,8 @@ final class AmqpConsumerActor extends AbstractActor implements MessageListener {
         this.sourceAddress = checkNotNull(sourceAddress, "source");
         this.messageConsumer = checkNotNull(messageConsumer);
         this.messageMappingProcessor = checkNotNull(messageMappingProcessor, "messageMappingProcessor");
+        addressMetric =
+                ConnectivityModelFactory.newAddressMetric(ConnectionStatus.OPEN, "Started at " + Instant.now(), 0);
     }
 
     /**
@@ -99,10 +103,10 @@ final class AmqpConsumerActor extends AbstractActor implements MessageListener {
         return ReceiveBuilder.create()
                 .match(Message.class, this::handleJmsMessage)
                 .match(AddressMetric.class, this::handleAddressMetric)
-                .matchEquals("retrieve-AddressMetric", str -> {
+                .match(RetrieveAddressMetric.class, ram -> {
                     getSender().tell(ConnectivityModelFactory.newAddressMetric(
-                            addressMetric != null ? addressMetric.getStatus() : ConnectionStatus.UNKNOWN,
-                            addressMetric != null ? addressMetric.getStatusDetails().orElse(null) : null,
+                            addressMetric.getStatus(),
+                            addressMetric.getStatusDetails().orElse(null),
                             consumedMessages), getSelf());
                 })
                 .matchAny(m -> {

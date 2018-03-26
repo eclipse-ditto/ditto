@@ -23,6 +23,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
+import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandResponse;
 import org.eclipse.ditto.signals.commands.connectivity.TestConstants;
 import org.junit.Test;
 
@@ -36,7 +37,7 @@ public final class TestConnectionResponseTest {
     private static final JsonObject KNOWN_JSON = JsonObject.newBuilder()
             .set(CommandResponse.JsonFields.TYPE, TestConnectionResponse.TYPE)
             .set(CommandResponse.JsonFields.STATUS, HttpStatusCode.OK.toInt())
-            .set(TestConnectionResponse.JSON_CONNECTION_ID, TestConstants.CONNECTION.getId())
+            .set(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID, TestConstants.CONNECTION.getId())
             .set(TestConnectionResponse.JSON_TEST_RESULT, "connected")
             .build();
 

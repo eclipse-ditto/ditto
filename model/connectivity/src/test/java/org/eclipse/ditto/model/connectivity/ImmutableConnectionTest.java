@@ -77,6 +77,7 @@ public final class ImmutableConnectionTest {
                     .collect(JsonCollectors.valuesToArray()))
             .set(Connection.JsonFields.SOURCES, KNOWN_SOURCES_JSON)
             .set(Connection.JsonFields.TARGETS, KNOWN_TARGETS_JSON)
+            .set(Connection.JsonFields.CLIENT_COUNT, 2)
             .set(Connection.JsonFields.FAILOVER_ENABLED, true)
             .set(Connection.JsonFields.VALIDATE_CERTIFICATES, true)
             .set(Connection.JsonFields.THROTTLE, -1)
@@ -170,6 +171,7 @@ public final class ImmutableConnectionTest {
                 ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, URI, AUTHORIZATION_CONTEXT)
                         .sources(SOURCES)
                         .targets(TARGETS)
+                        .clientCount(2)
                         .build();
 
         final Connection actual = ImmutableConnection.fromJson(KNOWN_JSON);
@@ -196,6 +198,7 @@ public final class ImmutableConnectionTest {
                 ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, URI, AUTHORIZATION_CONTEXT)
                         .sources(SOURCES)
                         .targets(TARGETS)
+                        .clientCount(2)
                         .build()
                         .toJson();
 

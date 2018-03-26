@@ -16,13 +16,12 @@ import java.util.Optional;
 import akka.actor.ActorRef;
 
 /**
- * TODO TJ doc
+ * Messaging internal interface for all messages containing an {@link ActorRef} origin.
  */
 public interface WithOrigin {
 
     /**
-     *
-     * @return
+     * @return the optional ActorRef where this message originated from.
      */
     Optional<ActorRef> getOrigin();
 }

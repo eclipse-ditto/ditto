@@ -49,10 +49,6 @@ public final class RetrieveConnectionMetricsResponse
      */
     public static final String TYPE = ConnectivityCommandResponse.TYPE_PREFIX + RetrieveConnectionMetrics.NAME;
 
-    static final JsonFieldDefinition<String> JSON_CONNECTION_ID =
-            JsonFactory.newStringFieldDefinition("connectionId", FieldType.REGULAR, JsonSchemaVersion.V_1,
-                    JsonSchemaVersion.V_2);
-
     static final JsonFieldDefinition<JsonObject> JSON_CONNECTION_METRICS =
             JsonFactory.newJsonObjectFieldDefinition("connectionMetrics", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
@@ -115,7 +111,8 @@ public final class RetrieveConnectionMetricsResponse
             final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<RetrieveConnectionMetricsResponse>(TYPE, jsonObject).deserialize(
                 statusCode -> {
-                    final String readConnectionId = jsonObject.getValueOrThrow(JSON_CONNECTION_ID);
+                    final String readConnectionId =
+                            jsonObject.getValueOrThrow(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID);
                     final ConnectionMetrics readConnectionMetrics = ConnectivityModelFactory.connectionMetricsFromJson(
                             jsonObject.getValueOrThrow(JSON_CONNECTION_METRICS));
 
@@ -136,7 +133,7 @@ public final class RetrieveConnectionMetricsResponse
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(JSON_CONNECTION_ID, connectionId, predicate);
+        jsonObjectBuilder.set(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID, connectionId, predicate);
         jsonObjectBuilder.set(JSON_CONNECTION_METRICS, connectionMetrics.toJson(), predicate);
     }
 

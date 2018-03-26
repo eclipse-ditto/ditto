@@ -22,7 +22,7 @@ import akka.actor.ActorRef;
 import akka.actor.Status;
 
 /**
- * TODO doc
+ * Immutable implementation of {@link ConnectionFailure}.
  */
 @Immutable
 public final class ImmutableConnectionFailure extends AbstractWithOrigin implements ConnectionFailure {

@@ -14,11 +14,17 @@ package org.eclipse.ditto.services.connectivity.messaging.internal;
 import akka.actor.Status;
 
 /**
- * TODO TJ doc
+ * Messaging internal error message for when a Failure was detected on a a Connection.
  */
 public interface ConnectionFailure extends WithOrigin {
 
+    /**
+     * @return the description of the failure.
+     */
     String getFailureDescription();
 
+    /**
+     * @return the Failure containing the cause.
+     */
     Status.Failure getFailure();
 }
