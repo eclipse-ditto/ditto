@@ -11,6 +11,9 @@
  */
 package org.eclipse.ditto.services.connectivity.mapping;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+
+import java.util.Map;
 import java.util.Optional;
 
 import org.eclipse.ditto.model.connectivity.ExternalMessage;
@@ -86,4 +89,29 @@ public interface MessageMapper {
      * @throws org.eclipse.ditto.model.connectivity.MessageMappingFailedException if the given adaptable can not be mapped
      */
     Optional<ExternalMessage> map(Adaptable adaptable);
+
+    /**
+     * Finds the content-type header from the passed ExternalMessage.
+     *
+     * @param externalMessage the ExternalMessage to look for the content-type header in
+     * @return the optional content-type value
+     */
+    static Optional<String> findContentType(final ExternalMessage externalMessage) {
+        checkNotNull(externalMessage);
+        return externalMessage.findHeaderIgnoreCase(ExternalMessage.CONTENT_TYPE_HEADER);
+    }
+
+    /**
+     * Finds the content-type header from the passed Adaptable.
+     *
+     * @param adaptable the Adaptable to look for the content-type header in
+     * @return the optional content-type value
+     */
+    static Optional<String> findContentType(final Adaptable adaptable) {
+        checkNotNull(adaptable);
+        return adaptable.getHeaders().map(h -> h.entrySet().stream()
+                .filter(e -> ExternalMessage.CONTENT_TYPE_HEADER.equalsIgnoreCase(e.getKey()))
+                .findFirst()
+                .map(Map.Entry::getValue).orElse(null));
+    }
 }

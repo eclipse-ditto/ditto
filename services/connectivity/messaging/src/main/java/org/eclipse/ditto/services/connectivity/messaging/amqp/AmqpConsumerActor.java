@@ -148,8 +148,12 @@ final class AmqpConsumerActor extends AbstractActor implements MessageListener {
             final ExternalMessageBuilder builder = ConnectivityModelFactory.newExternalMessageBuilder(headers);
             extractPayloadFromMessage(message, builder);
             final ExternalMessage externalMessage = builder.build();
-            log.debug("Forwarding to processor: {}, {}", externalMessage.getHeaders(),
-                    externalMessage.getTextPayload().orElse("binary"));
+            LogUtil.enhanceLogWithCorrelationId(log, externalMessage
+                    .findHeader(DittoHeaderDefinition.CORRELATION_ID.getKey()));
+            if (log.isDebugEnabled()) {
+                log.debug("Received message from AMQP 1.0 ({}): {}", externalMessage.getHeaders(),
+                        externalMessage.getTextPayload().orElse("binary"));
+            }
             messageMappingProcessor.forward(externalMessage, getContext());
         } catch (final DittoRuntimeException e) {
             log.info("Got DittoRuntimeException '{}' when command was parsed: {}", e.getErrorCode(), e.getMessage());

@@ -13,9 +13,9 @@ package org.eclipse.ditto.services.connectivity.mapping;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
 
 import javax.annotation.Nullable;
 
@@ -82,15 +82,26 @@ final class WrappingMessageMapper implements MessageMapper {
 
     @Override
     public Optional<Adaptable> map(final ExternalMessage message) {
+        final DittoHeaders dittoHeaders = DittoHeaders.of(message.getHeaders());
+        final DittoHeaders dittoHeadersEnhanced;
 
-        final String actualContentType = findContentType(message)
-                .orElseThrow(() -> MessageMappingFailedException.newBuilder("").build());
+        // if no correlation-id was provided in the ExternalMessage, generate one here:
+        if (!dittoHeaders.getCorrelationId().isPresent()) {
+            // generate correlation-id if none was provided
+            dittoHeadersEnhanced = dittoHeaders.toBuilder().correlationId(UUID.randomUUID().toString()).build();
+        } else {
+            dittoHeadersEnhanced = dittoHeaders;
+        }
 
-        requireMatchingContentType(actualContentType);
+        final String actualContentType = MessageMapper.findContentType(message)
+                .orElseThrow(MessageMappingFailedException.newBuilder(MessageMapper.findContentType(message).orElse(""))
+                        .dittoHeaders(dittoHeadersEnhanced)::build);
+
+        requireMatchingContentType(actualContentType, dittoHeadersEnhanced);
         final Optional<Adaptable> mappedOpt = delegate.map(message);
 
         return mappedOpt.map(mapped -> {
-            final DittoHeadersBuilder headersBuilder = DittoHeaders.newBuilder(message.getHeaders());
+            final DittoHeadersBuilder headersBuilder = dittoHeadersEnhanced.toBuilder();
 
             final Optional<DittoHeaders> headersOpt = mapped.getHeaders();
             headersOpt.ifPresent(headersBuilder::putHeaders); // overwrite with mapped headers (if any)
@@ -103,10 +114,14 @@ final class WrappingMessageMapper implements MessageMapper {
 
     @Override
     public Optional<ExternalMessage> map(final Adaptable adaptable) {
-        final String actualContentType = findContentType(adaptable)
-                .orElseThrow(() -> MessageMappingFailedException.newBuilder("").build());
+        final DittoHeaders dittoHeaders = adaptable.getHeaders().orElseGet(DittoHeaders::empty);
 
-        requireMatchingContentType(actualContentType);
+        final String actualContentType = MessageMapper.findContentType(adaptable)
+                .orElseThrow(() -> MessageMappingFailedException.newBuilder(MessageMapper.findContentType(adaptable).orElse(""))
+                        .dittoHeaders(dittoHeaders)
+                        .build());
+
+        requireMatchingContentType(actualContentType, dittoHeaders);
         final Optional<ExternalMessage> mappedOpt = delegate.map(adaptable);
 
         return mappedOpt.map(mapped -> {
@@ -124,28 +139,13 @@ final class WrappingMessageMapper implements MessageMapper {
         });
     }
 
-    private void requireMatchingContentType(final String actualContentType) {
+    private void requireMatchingContentType(final String actualContentType,
+            final DittoHeaders dittoHeaders) {
 
         if (!getContentType().equalsIgnoreCase(actualContentType)) {
-            throw MessageMappingFailedException.newBuilder(actualContentType).build();
+            throw MessageMappingFailedException.newBuilder(actualContentType).dittoHeaders(dittoHeaders).build();
         }
     }
-
-
-    private static Optional<String> findContentType(final ExternalMessage internalMessage) {
-        checkNotNull(internalMessage);
-        return internalMessage.findHeaderIgnoreCase(ExternalMessage.CONTENT_TYPE_HEADER);
-    }
-
-
-    private static Optional<String> findContentType(final Adaptable adaptable) {
-        checkNotNull(adaptable);
-        return adaptable.getHeaders().map(h -> h.entrySet().stream()
-                .filter(e -> ExternalMessage.CONTENT_TYPE_HEADER.equalsIgnoreCase(e.getKey()))
-                .findFirst()
-                .map(Map.Entry::getValue).orElse(null));
-    }
-
 
     @Override
     public boolean equals(final Object o) {

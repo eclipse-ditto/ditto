@@ -165,10 +165,11 @@ public final class MessageMappingProcessorActor extends AbstractActor {
                 }).build();
     }
 
-    private void handle(final ExternalMessage m) {
-        ConditionChecker.checkNotNull(m);
-        final String correlationId = m.getHeaders().get(DittoHeaderDefinition.CORRELATION_ID.getKey());
+    private void handle(final ExternalMessage externalMessage) {
+        ConditionChecker.checkNotNull(externalMessage);
+        final String correlationId = externalMessage.getHeaders().get(DittoHeaderDefinition.CORRELATION_ID.getKey());
         LogUtil.enhanceLogWithCorrelationId(log, correlationId);
+        log.debug("Handling ExternalMessage: {}", externalMessage);
 
         final String authSubjectsArray = authorizationContext.stream()
                         .map(AuthorizationSubject::getId)
@@ -176,11 +177,12 @@ public final class MessageMappingProcessorActor extends AbstractActor {
                         .collect(JsonCollectors.valuesToArray())
                 .toString();
         final ExternalMessage messageWithAuthSubject =
-                m.withHeader(DittoHeaderDefinition.AUTHORIZATION_SUBJECTS.getKey(), authSubjectsArray);
+                externalMessage.withHeader(DittoHeaderDefinition.AUTHORIZATION_SUBJECTS.getKey(), authSubjectsArray);
 
         try {
             final Optional<Signal<?>> signalOpt = processor.process(messageWithAuthSubject);
             signalOpt.ifPresent(signal -> {
+                LogUtil.enhanceLogWithCorrelationId(log, signal);
                 final DittoHeadersBuilder adjustedHeadersBuilder = signal.getDittoHeaders().toBuilder()
                         .authorizationContext(authorizationContext);
 
@@ -208,8 +210,8 @@ public final class MessageMappingProcessorActor extends AbstractActor {
 
         LogUtil.enhanceLogWithCorrelationId(log, exception);
 
-        log.info( "Got DittoRuntimeException '{}' when ExternalMessage was processed: {}",
-                exception.getErrorCode(), exception.getMessage());
+        log.info( "Got DittoRuntimeException '{}' when ExternalMessage was processed: {} - {}",
+                exception.getErrorCode(), exception.getMessage(), exception.getDescription().orElse(""));
 
         handleCommandResponse(errorResponse);
     }
@@ -227,16 +229,18 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         handleSignal(response);
     }
 
-    private void handleSignal(final Signal<?> response) {
-        LogUtil.enhanceLogWithCorrelationId(log, response);
+    private void handleSignal(final Signal<?> signal) {
+        LogUtil.enhanceLogWithCorrelationId(log, signal);
+        log.debug("Handling signal: {}", signal);
 
         try {
-            final Optional<ExternalMessage> messageOpt = processor.process(response);
+            final Optional<ExternalMessage> messageOpt = processor.process(signal);
             messageOpt.map(headerFilter).ifPresent(message -> publisherActor.forward(message, getContext()));
         } catch (final DittoRuntimeException e) {
-            log.info("Got DittoRuntimeException during processing Signal: <{}>", e.getMessage());
+            log.info("Got DittoRuntimeException during processing Signal: {} - {}", e.getMessage(),
+                    e.getDescription().orElse(""));
         } catch (final Exception e) {
-            log.warning("Got unexpected exception during processing Signal: <{}>", e.getMessage());
+            log.warning("Got unexpected exception during processing Signal: {}", e.getMessage());
         }
     }
 
@@ -259,7 +263,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
             try {
                 finishTrace(correlationId, cause);
             } catch (final IllegalArgumentException e) {
-                log.info("Trace missing for response: '{}'", response);
+                log.debug("Trace missing for response: '{}'", response);
             }
         });
     }

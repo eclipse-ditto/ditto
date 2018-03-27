@@ -135,6 +135,7 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
     @Override
     public MessageMapperRegistry registryOf(final MappingContext defaultContext, final List<MappingContext> contexts) {
         final MessageMapper defaultMapper = mapperOf(defaultContext)
+                .map(WrappingMessageMapper::wrap)
                 .orElseThrow(() ->
                         new IllegalArgumentException("No mapper found for default context: " + defaultContext));
 

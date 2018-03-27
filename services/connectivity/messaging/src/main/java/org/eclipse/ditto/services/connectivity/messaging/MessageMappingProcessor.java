@@ -171,6 +171,7 @@ public final class MessageMappingProcessor {
             throw MessageMappingFailedException.newBuilder(message.findContentType().orElse(""))
                     .description("Could not map ExternalMessage due to unknown problem: " +
                             e.getClass().getSimpleName() + " " + e.getMessage())
+                    .dittoHeaders(DittoHeaders.of(message.getHeaders()))
                     .cause(e)
                     .build();
         }
@@ -194,12 +195,14 @@ public final class MessageMappingProcessor {
         } catch (final DittoRuntimeException e) {
             throw e;
         } catch (final Exception e) {
-            final String contentType = adaptableSupplier.get()
-                    .getHeaders()
+            final Optional<DittoHeaders> headers = adaptableSupplier.get()
+                    .getHeaders();
+            final String contentType = headers
                     .map(h -> h.get(ExternalMessage.CONTENT_TYPE_HEADER))
                     .orElse("");
             throw MessageMappingFailedException.newBuilder(contentType)
                     .description("Could not map Adaptable due to unknown problem: " + e.getMessage())
+                    .dittoHeaders(headers.orElseGet(DittoHeaders::empty))
                     .cause(e)
                     .build();
         }

@@ -104,6 +104,7 @@ public final class DittoMessageMapper implements MessageMapper {
                 MessageMappingFailedException.newBuilder(message.findContentType().orElse(""))
                         .description(
                                 "As payload was absent or empty, please make sure to send payload in your messages.")
+                        .dittoHeaders(DittoHeaders.of((message.getHeaders())))
                         .build());
     }
 

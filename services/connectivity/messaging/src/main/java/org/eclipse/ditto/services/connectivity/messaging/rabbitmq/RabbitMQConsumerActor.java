@@ -110,9 +110,15 @@ public final class RabbitMQConsumerActor extends AbstractActor {
         final BasicProperties properties = delivery.getProperties();
         final Envelope envelope = delivery.getEnvelope();
         final byte[] body = delivery.getBody();
+
+        final String correlationId = properties.getCorrelationId();
+        LogUtil.enhanceLogWithCorrelationId(log, correlationId);
+        if (log.isDebugEnabled()) {
+            log.debug("Received message from RabbitMQ ({}//{}): {}", envelope, properties,
+                    new String(delivery.getBody(), StandardCharsets.UTF_8));
+        }
+
         try {
-            final String correlationId = properties.getCorrelationId();
-            LogUtil.enhanceLogWithCorrelationId(log, correlationId);
             final Map<String, String> headers = extractHeadersFromMessage(properties, envelope);
             final ExternalMessageBuilder externalMessageBuilder =
                     ConnectivityModelFactory.newExternalMessageBuilder(headers);
@@ -124,8 +130,6 @@ public final class RabbitMQConsumerActor extends AbstractActor {
                 externalMessageBuilder.withBytes(body);
             }
             final ExternalMessage externalMessage = externalMessageBuilder.build();
-            log.debug("Received message from RabbitMQ ({}//{}): {}", envelope, properties,
-                    new String(delivery.getBody(), StandardCharsets.UTF_8));
             messageMappingProcessor.forward(externalMessage, getContext());
         } catch (final Exception e) {
             log.warning("Processing delivery {} failed: {}", envelope.getDeliveryTag(), e.getMessage(), e);
