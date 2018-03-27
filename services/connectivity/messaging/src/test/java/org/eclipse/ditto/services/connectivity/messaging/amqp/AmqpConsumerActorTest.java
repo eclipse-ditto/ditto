@@ -60,6 +60,7 @@ import akka.testkit.javadsl.TestKit;
 public class AmqpConsumerActorTest {
 
     private static final Config CONFIG = ConfigFactory.load("test");
+    private static final String CONNECTION_ID = "connection";
 
     private static ActorSystem actorSystem;
     private static ActorRef pubSubMediator;
@@ -159,7 +160,7 @@ public class AmqpConsumerActorTest {
             final Props messageMappingProcessorProps =
                     MessageMappingProcessorActor.props(pubSubMediator, targetActorPath, getRef(),
                             AuthorizationContext.newInstance(AuthorizationSubject.newInstance("foo:bar")),
-                            mappingProcessor);
+                            mappingProcessor, CONNECTION_ID);
 
             final ActorRef processor = actorSystem.actorOf(messageMappingProcessorProps,
                     MessageMappingProcessorActor.ACTOR_NAME + "-plainStringMappingTest");
@@ -210,7 +211,7 @@ public class AmqpConsumerActorTest {
         final Props messageMappingProcessorProps =
                 MessageMappingProcessorActor.props(pubSubMediator, pubSubTarget, testActor,
                         AuthorizationContext.newInstance(AuthorizationSubject.newInstance("foo:bar")),
-                        mappingProcessor);
+                        mappingProcessor, CONNECTION_ID);
 
         final DefaultResizer resizer = new DefaultResizer(1, 5);
 
