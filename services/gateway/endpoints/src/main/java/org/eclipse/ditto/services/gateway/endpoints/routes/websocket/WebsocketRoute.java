@@ -25,6 +25,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -229,15 +230,17 @@ public final class WebsocketRoute {
     private Function<String, Signal> buildSignal(final Integer version, final String connectionCorrelationId,
             final AuthorizationContext connectionAuthContext, final DittoHeaders additionalHeaders) {
         return cmdString -> {
+            final DittoHeadersBuilder dittoHeadersBuilder = DittoHeaders.newBuilder()
+                    .schemaVersion(JsonSchemaVersion.forInt(version).orElse(JsonSchemaVersion.LATEST))
+                    .authorizationContext(connectionAuthContext)
+                    .correlationId(connectionCorrelationId)
+                    .putHeader("origin", connectionCorrelationId);
+
             if (cmdString.isEmpty()) {
-                throw new IllegalArgumentException("Empty command");
+                throw new DittoJsonException(new IllegalArgumentException("Empty json."), dittoHeadersBuilder.build());
             }
 
-            final JsonObject jsonObject = wrapJsonRuntimeException(cmdString, DittoHeaders.newBuilder()
-                            .schemaVersion(JsonSchemaVersion.forInt(version).orElse(JsonSchemaVersion.LATEST))
-                            .authorizationContext(connectionAuthContext)
-                            .correlationId(connectionCorrelationId)
-                            .build(),
+            final JsonObject jsonObject = wrapJsonRuntimeException(cmdString, dittoHeadersBuilder.build(),
                     (str, headers) -> JsonFactory.readFrom(str).asObject());
             final JsonifiableAdaptable jsonifiableAdaptable = wrapJsonRuntimeException(jsonObject,
                     DittoHeaders.newBuilder()
@@ -254,8 +257,7 @@ public final class WebsocketRoute {
 
             final DittoHeaders headers = jsonifiableAdaptable.getHeaders().orElse(ProtocolFactory.emptyHeaders());
             final String wsCorrelationId = headers.getCorrelationId()
-                    .map(msgCorId -> connectionCorrelationId + ":" + msgCorId)
-                    .orElseGet(() -> connectionCorrelationId + ":" + UUID.randomUUID());
+                    .orElseGet(() -> UUID.randomUUID().toString());
 
             final JsonSchemaVersion jsonSchemaVersion = JsonSchemaVersion.forInt(version)
                     .orElseThrow(() -> CommandNotSupportedException.newBuilder(version).build());
@@ -266,6 +268,7 @@ public final class WebsocketRoute {
                     .authorizationContext(connectionAuthContext)
                     .schemaVersion(jsonSchemaVersion)
                     .correlationId(wsCorrelationId)
+                    .putHeader("origin", connectionCorrelationId)
                     .build();
 
             allHeaders.putAll(ProtocolFactory.newHeaders(adjustedHeaders));
@@ -295,12 +298,6 @@ public final class WebsocketRoute {
         final DittoHeaders dittoHeaders = ((WithDittoHeaders) jsonifiable).getDittoHeaders();
         // only choose relevant dittoHeaders for responses/events:
         final DittoHeadersBuilder dittoHeadersBuilder = DittoHeaders.newBuilder();
-        // correlationId
-        dittoHeaders.getCorrelationId()
-                .filter(cId -> cId.contains(":"))
-                .map(cId -> cId.split(":", 2))
-                .filter(cId -> cId.length > 1)
-                .ifPresent(cId -> dittoHeadersBuilder.correlationId(cId[1].replace(connectionCorrelationId + ":", "")));
         // schemaVersion
         dittoHeaders.getSchemaVersion().ifPresent(dittoHeadersBuilder::schemaVersion);
         // source
@@ -308,6 +305,7 @@ public final class WebsocketRoute {
         final DittoHeaders adjustedHeaders = dittoHeadersBuilder.build();
 
         final Map<String, String> allHeaders = new HashMap<>(adaptable.getHeaders().orElse(DittoHeaders.empty()));
+        allHeaders.remove("origin");
         allHeaders.putAll(ProtocolFactory.newHeaders(adjustedHeaders));
 
         final JsonifiableAdaptable jsonifiableAdaptable = ProtocolFactory.wrapAsJsonifiableAdaptable(adaptable);

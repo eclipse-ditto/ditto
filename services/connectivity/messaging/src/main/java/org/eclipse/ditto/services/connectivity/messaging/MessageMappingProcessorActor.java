@@ -28,6 +28,7 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.base.Signal;
@@ -177,14 +178,17 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         try {
             final Optional<Signal<?>> signalOpt = processor.process(messageWithAuthSubject);
             signalOpt.ifPresent(signal -> {
-                final DittoHeaders adjustedHeaders = signal.getDittoHeaders().toBuilder()
-                        .authorizationContext(authorizationContext)
-                        .build();
+                final DittoHeadersBuilder adjustedHeadersBuilder = signal.getDittoHeaders().toBuilder()
+                        .authorizationContext(authorizationContext);
+                if (signal.getDittoHeaders().get("origin") == null) {
+                    adjustedHeadersBuilder.putHeader("origin", "live");
+                }
+                final DittoHeaders adjustedHeaders = adjustedHeadersBuilder.build();
                 // overwrite the auth-subjects to the configured ones after mapping in order to be sure that the mapping
                 // does not choose/change the auth-subjects itself:
                 final Signal<?> adjustedSignal = signal.setDittoHeaders(adjustedHeaders);
                 startTrace(adjustedSignal);
-                log.info("Publishing '{}' to '{}'", adjustedSignal.getType(), pubSubTargetPath);
+                log.info("Sending '{}' to '{}'", adjustedSignal.getType(), pubSubTargetPath);
                 pubSubMediator.tell(new DistributedPubSubMediator.Send(pubSubTargetPath, adjustedSignal, true),
                         getSelf());
             });

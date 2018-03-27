@@ -127,12 +127,12 @@ public final class CommandSubscriber extends AbstractActorSubscriber {
                 .matchAny(any -> logger.warning("Got unknown message '{}'", any)).build();
     }
 
-    private void handleDittoRuntimeException(final ActorRef streamingSessionActor, final DittoRuntimeException cre) {
+    private void handleDittoRuntimeException(final ActorRef delegateActor, final DittoRuntimeException cre) {
         LogUtil.enhanceLogWithCorrelationId(logger, cre.getDittoHeaders().getCorrelationId());
         logger.info("Got 'DittoRuntimeException': {} {}", cre.getClass().getName(), cre.getMessage());
         cre.getDittoHeaders().getCorrelationId().ifPresent(outstandingCommandCorrelationIds::remove);
         if (cre.getDittoHeaders().isResponseRequired()) {
-            streamingSessionActor.forward(cre, getContext());
+            delegateActor.forward(cre, getContext());
         } else {
             logger.debug("Requester did not require response (via DittoHeader '{}') - not sending one",
                     DittoHeaderDefinition.RESPONSE_REQUIRED);

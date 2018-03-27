@@ -117,6 +117,15 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
                 .match(org.eclipse.ditto.services.models.policies.commands.sudo.SudoCommand.class,
                         forwardToLocalEnforcerLookup(thingEnforcerLookup))
 
+                /* Live Signal Responses - directly forward to sender */
+                .match(Signal.class, ProxyActor::isLiveSignalResponse, signal -> {
+
+                    signal.getDittoHeaders()
+                            .getCorrelationId()
+                            .map(correlationId -> new DistributedPubSubMediator.Publish(correlationId, signal, true))
+                            .ifPresent(publish -> pubSubMediator.tell(publish, getSelf()));
+                })
+
                 /* Live Signals */
                 .match(Signal.class, ProxyActor::isLiveSignal, forwardToLocalEnforcerLookup(thingEnforcerLookup))
 

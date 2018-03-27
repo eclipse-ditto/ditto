@@ -15,14 +15,11 @@ import java.util.Optional;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
-import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.gateway.streaming.Connect;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StopStreaming;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.commands.base.Command;
-import org.eclipse.ditto.signals.commands.base.CommandResponse;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -43,6 +40,11 @@ public final class StreamingActor extends AbstractActor {
      * The name of this Actor.
      */
     public static final String ACTOR_NAME = "streaming";
+
+    /**
+     * The pub sub group used to publish responses to live commands and messages.
+     */
+    public static final String LIVE_RESPONSES_PUB_SUB_GROUP = "live-responses";
 
     private final DiagnosticLoggingAdapter logger = LogUtil.obtain(this);
 
@@ -89,6 +91,7 @@ public final class StreamingActor extends AbstractActor {
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
+                // Handle internal connect/streaming commands
                 .match(Connect.class, connect -> {
                     final ActorRef eventAndResponsePublisher = connect.getEventAndResponsePublisher();
                     eventAndResponsePublisher.forward(connect, getContext());
@@ -105,26 +108,16 @@ public final class StreamingActor extends AbstractActor {
                         stopStreaming -> forwardToSessionActor(stopStreaming.getConnectionCorrelationId(),
                                 stopStreaming)
                 )
-                .match(Signal.class, signal -> isLiveSignal(signal) && !isEnrichedLiveSignal(signal), liveSignal ->
-                        proxyActor.tell(liveSignal, getSelf()) // tell ProxyActor in order to enrich with readSubjects
-                )
-                .match(Signal.class, StreamingActor::isLiveSignal, liveSignal -> {
-                    final Optional<String> correlationIdOpt = extractConnectionCorrelationId(liveSignal);
+                .match(Signal.class, signal -> {
+                    final Optional<String> correlationIdOpt = extractConnectionCorrelationId(signal);
                     if (correlationIdOpt.isPresent()) {
-                        forwardToSessionActor(correlationIdOpt.get(), liveSignal);
-                    } else {
-                        logger.warning("CorrelationId for LiveSignal in wrong format: {}",
-                                liveSignal.getDittoHeaders().getCorrelationId());
-                    }
-                })
-                .match(Command.class, command -> proxyActor.forward(command, getContext()))
-                .match(CommandResponse.class, commandResponse -> {
-                    final Optional<String> correlationIdOpt = extractConnectionCorrelationId(commandResponse);
-                    if (correlationIdOpt.isPresent()) {
-                        forwardToSessionActor(correlationIdOpt.get(), commandResponse);
+                        final ActorRef sessionActor = getContext().getChild(correlationIdOpt.get());
+                        if (sessionActor != null) {
+                            proxyActor.tell(signal, sessionActor);
+                        }
                     } else {
                         logger.warning("CorrelationId for CommandResponse in wrong format: {}",
-                                commandResponse.getDittoHeaders().getCorrelationId());
+                                signal.getDittoHeaders().getCorrelationId());
                     }
                 })
                 .match(DittoRuntimeException.class, cre -> {
@@ -139,20 +132,8 @@ public final class StreamingActor extends AbstractActor {
                 .matchAny(any -> logger.warning("Got unknown message: '{}'", any)).build();
     }
 
-    private static boolean isEnrichedLiveSignal(final Signal<?> signal) {
-        return isLiveSignal(signal) && !signal.getDittoHeaders()
-                .getReadSubjects()
-                .isEmpty(); // when readSubjects are not empty, the signal was already enriched by ProxyActor
-    }
-
-    private static boolean isLiveSignal(final WithDittoHeaders<?> signal) {
-        return signal.getDittoHeaders().getChannel().filter(TopicPath.Channel.LIVE.getName()::equals).isPresent();
-    }
-
     private static Optional<String> extractConnectionCorrelationId(final WithDittoHeaders withDittoHeaders) {
-        return withDittoHeaders.getDittoHeaders().getCorrelationId()
-                .map(cId -> cId.split(":", 2))
-                .map(cIds -> cIds[0]);
+        return Optional.ofNullable(withDittoHeaders.getDittoHeaders().get("origin"));
     }
 
     private void forwardToSessionActor(final String connectionCorrelationId, final Object object) {

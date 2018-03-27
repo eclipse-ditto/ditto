@@ -74,6 +74,14 @@ public interface ExternalMessageBuilder {
     ExternalMessageBuilder withBytes(@Nullable ByteBuffer bytes);
 
     /**
+     * Marks the message as a response message.
+     *
+     * @param isResponse whether the message is a response
+     * @return this builder in order to enable method chaining
+     */
+    ExternalMessageBuilder asResponse(boolean isResponse);
+
+    /**
      * Builds the ExternalMessage.
      *
      * @return the build message

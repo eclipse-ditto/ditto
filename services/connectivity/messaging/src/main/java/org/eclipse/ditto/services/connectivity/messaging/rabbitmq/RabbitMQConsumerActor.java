@@ -13,6 +13,7 @@ package org.eclipse.ditto.services.connectivity.messaging.rabbitmq;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -22,10 +23,10 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ExternalMessage;
 import org.eclipse.ditto.model.connectivity.ExternalMessageBuilder;
-import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMappers;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
@@ -105,7 +106,8 @@ public final class RabbitMQConsumerActor extends AbstractActor {
                 externalMessageBuilder.withBytes(body);
             }
             final ExternalMessage externalMessage = externalMessageBuilder.build();
-            log.debug("Received message from RabbitMQ ({}//{}): {}", envelope, properties);
+            log.debug("Received message from RabbitMQ ({}//{}): {}", envelope, properties,
+                    new String(delivery.getBody(), StandardCharsets.UTF_8));
             messageMappingProcessor.forward(externalMessage, getContext());
         } catch (final Exception e) {
             log.warning("Processing delivery {} failed: {}", envelope.getDeliveryTag(), e.getMessage(), e);

@@ -305,6 +305,10 @@ final class ConnectionActor extends AbstractPersistentActor {
             log.debug("Not forwarding anything.");
             return;
         }
+        if (connectionId.equals(signal.getDittoHeaders().get("origin"))) {
+            log.debug("Dropping signal, was sent by myself.");
+            return;
+        }
 
         final String topicPath = TopicPathMapper.mapSignalToTopicPath(signal);
         // forward to client actor if topic was subscribed and connection is authorized to read
@@ -494,7 +498,7 @@ final class ConnectionActor extends AbstractPersistentActor {
             final DistributedPubSubMediator.Subscribe subscribe =
                     new DistributedPubSubMediator.Subscribe(pubSubTopic, PUB_SUB_GROUP_PREFIX + connectionId,
                             getSelf());
-            log.info("Subscribing to pubsub topic {} for connection {}.", pubSubTopic, connectionId);
+            log.info("Subscribing to pubsub topic '{}' for connection '{}'.", pubSubTopic, connectionId);
             pubSubMediator.tell(subscribe, getSelf());
         });
     }

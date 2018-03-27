@@ -82,6 +82,7 @@ public final class DittoMessageMapper implements MessageMapper {
         return Optional.of(
                 ConnectivityModelFactory.newExternalMessageBuilder(headers, adaptable.getTopicPath().getPath())
                 .withText(jsonString)
+                        .asResponse(adaptable.getPayload().getStatus().isPresent())
                 .build());
     }
 

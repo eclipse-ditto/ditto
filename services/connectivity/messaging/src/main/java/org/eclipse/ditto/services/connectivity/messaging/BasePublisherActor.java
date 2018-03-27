@@ -42,11 +42,9 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
     private final Map<String, Set<T>> destinations = new HashMap<>();
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
-    private final Connection connection;
 
     protected BasePublisherActor(final Connection connection) {
-        this.connection = checkNotNull(connection, "connection");
-
+        checkNotNull(connection, "connection");
         // initialize a map with the configured topic and the targets where the messages should be sent to
         connection.getTargets().forEach(target -> {
             final T publishTarget = toPublishTarget(target.getTarget());
@@ -70,10 +68,11 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
     }
 
     protected boolean isResponseOrError(final ExternalMessage message) {
-        return message.getTopicPath()
-                .map(topic -> topic.contains(TopicPath.Criterion.ERRORS.getName())
-                        // TODO how to know it's a response?? || topic.contains(TopicPath.Criterion.ERRORS.getName())
-                ).orElse(false);
+        return (message.isResponseMessage() || message.getTopicPath()
+                .map(ProtocolFactory::newTopicPath)
+                .map(TopicPath::getCriterion)
+                .map(TopicPath.Criterion.ERRORS::equals)
+                .orElse(false));
     }
 
     protected abstract T toPublishTarget(final String target);

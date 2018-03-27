@@ -28,6 +28,7 @@ final class MutableExternalMessageBuilder implements ExternalMessageBuilder {
     private Map<String, String> headers;
     @Nullable
     private final String topicPath;
+    private boolean isResponse = false;
     private ExternalMessage.PayloadType payloadType = ExternalMessage.PayloadType.UNKNOWN;
     @Nullable
     private String textPayload;
@@ -45,6 +46,7 @@ final class MutableExternalMessageBuilder implements ExternalMessageBuilder {
         this.textPayload = message.getTextPayload().orElse(null);
         this.topicPath = message.getTopicPath().orElse(null);
         this.payloadType = message.getPayloadType();
+        this.isResponse = message.isResponseMessage();
     }
 
     /**
@@ -113,8 +115,14 @@ final class MutableExternalMessageBuilder implements ExternalMessageBuilder {
     }
 
     @Override
+    public ExternalMessageBuilder asResponse(final boolean isResponse) {
+        this.isResponse = isResponse;
+        return this;
+    }
+
+    @Override
     public ExternalMessage build() {
-        return new ImmutableExternalMessage(headers, topicPath, payloadType, textPayload, bytePayload);
+        return new ImmutableExternalMessage(headers, topicPath, isResponse, payloadType, textPayload, bytePayload);
     }
 
 }

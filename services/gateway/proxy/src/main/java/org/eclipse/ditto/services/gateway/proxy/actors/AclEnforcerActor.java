@@ -12,6 +12,9 @@
 package org.eclipse.ditto.services.gateway.proxy.actors;
 
 import static org.eclipse.ditto.services.gateway.starter.service.util.FireAndForgetMessageUtil.getResponseForFireAndForgetMessage;
+import static org.eclipse.ditto.services.gateway.streaming.StreamingType.LIVE_COMMANDS;
+import static org.eclipse.ditto.services.gateway.streaming.StreamingType.LIVE_EVENTS;
+import static org.eclipse.ditto.services.gateway.streaming.actors.StreamingActor.LIVE_RESPONSES_PUB_SUB_GROUP;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
@@ -54,6 +57,7 @@ import org.eclipse.ditto.signals.commands.messages.SendClaimMessage;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyCommandToAccessExceptionRegistry;
 import org.eclipse.ditto.signals.commands.policies.query.RetrievePolicy;
 import org.eclipse.ditto.signals.commands.policies.query.RetrievePolicyResponse;
+import org.eclipse.ditto.signals.commands.things.exceptions.EventSendNotAllowedException;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingCommandToAccessExceptionRegistry;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingCommandToModifyExceptionRegistry;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
@@ -206,11 +210,23 @@ public final class AclEnforcerActor extends AbstractActorWithStash {
                 .match(MessageCommand.class, this::isAuthorized, this::forwardMessageCommand)
                 .match(MessageCommand.class, this::unauthorized)
 
-                /* other Live Signals then messages: */
-                .match(Signal.class, AclEnforcerActor::isLiveSignal, liveSignal -> {
-                    final Signal enrichedSignal = enrichDittoHeaders(liveSignal);
-                    getSender().forward(enrichedSignal, getContext());
-                })
+                /* Thing Live Commands */
+                .match(ThingModifyCommand.class,
+                        liveModifyThing -> isLiveSignal(liveModifyThing) && isAuthorized(liveModifyThing),
+                        liveModifyThing -> publishLiveSignal(LIVE_COMMANDS.getDistributedPubSubTopic(),
+                                liveModifyThing))
+                .match(ThingModifyCommand.class, AclEnforcerActor::isLiveSignal, this::unauthorized)
+
+                .match(ThingQueryCommand.class,
+                        liveQueryThing -> isLiveSignal(liveQueryThing) && isAuthorized(liveQueryThing),
+                        liveQueryThing -> publishLiveSignal(LIVE_COMMANDS.getDistributedPubSubTopic(), liveQueryThing))
+                .match(ThingQueryCommand.class, AclEnforcerActor::isLiveSignal, this::unauthorized)
+
+                /* Thing Live Events */
+                .match(ThingEvent.class,
+                        liveEvent -> isLiveSignal(liveEvent) && isAuthorized(liveEvent),
+                        liveEvent -> publishLiveSignal(LIVE_EVENTS.getDistributedPubSubTopic(), liveEvent))
+                .match(ThingEvent.class, AclEnforcerActor::isLiveSignal, this::unauthorized)
 
                 .match(CreateThing.class, createThing -> acl == null, this::forwardModifyCommand)
                 .match(DeleteThing.class, this::isAuthorized, this::forwardModifyCommand)
@@ -439,6 +455,29 @@ public final class AclEnforcerActor extends AbstractActorWithStash {
         }
     }
 
+    private void publishLiveSignal(final String topic, final Signal<?> signal) {
+        LogUtil.enhanceLogWithCorrelationId(log, signal.getDittoHeaders().getCorrelationId());
+        final Signal<?> enrichedSignal = enrichDittoHeaders(signal);
+        log.debug("Received <{}>. Publishing to topic {}.", enrichedSignal.getName(), topic);
+        accessCounter++;
+
+        // subscribe the sender with correlationId to receive the response
+        signal.getDittoHeaders()
+                .getCorrelationId()
+                .map(correlationId -> new DistributedPubSubMediator.Subscribe(correlationId,
+                        LIVE_RESPONSES_PUB_SUB_GROUP, getSender()))
+                .map(subscribe -> {
+                    log.debug("Subscribing for response: {}", subscribe);
+                    return subscribe;
+                })
+                .ifPresent(subscribe -> pubSubMediator.tell(subscribe, getSender()));
+
+        // using pub/sub to publish the message to any interested parties (e.g. a Websocket):
+        pubSubMediator.tell(
+                new DistributedPubSubMediator.Publish(topic, enrichedSignal, true),
+                getSender());
+    }
+
     private void forwardMessageCommand(final MessageCommand<?, ?> command) {
         LogUtil.enhanceLogWithCorrelationId(log, command.getDittoHeaders().getCorrelationId());
         final MessageCommand commandWithReadSubjects = enrichDittoHeaders(command);
@@ -511,9 +550,9 @@ public final class AclEnforcerActor extends AbstractActorWithStash {
         }
     }
 
-    private void logNullAclForCommand(final Command<?> command) {
-        LogUtil.enhanceLogWithCorrelationId(log, command);
-        log.info("ACL is null, therefore command <{}> cannot be authorized.", command.getType());
+    private void logNullAclForCommand(final Signal<?> signal) {
+        LogUtil.enhanceLogWithCorrelationId(log, signal);
+        log.info("ACL is null, therefore signal <{}> cannot be authorized.", signal.getType());
     }
 
     private boolean isAuthorized(final ThingModifyCommand command) {
@@ -550,6 +589,15 @@ public final class AclEnforcerActor extends AbstractActorWithStash {
         }
     }
 
+    private boolean isAuthorized(final ThingEvent event) {
+        if (acl == null) {
+            logNullAclForCommand(event);
+            return false;
+        } else {
+            return acl.hasPermission(event.getDittoHeaders().getAuthorizationContext(), Permission.WRITE);
+        }
+    }
+
     private void unauthorized(final ThingModifyCommand command) {
         final ThingCommandToModifyExceptionRegistry registry = ThingCommandToModifyExceptionRegistry.getInstance();
         final DittoRuntimeException exception = registry.exceptionFrom(command);
@@ -573,15 +621,24 @@ public final class AclEnforcerActor extends AbstractActorWithStash {
         getSender().tell(exception, getSelf());
     }
 
-    private void logUnauthorized(final Command command, final DittoRuntimeException exception) {
-        LogUtil.enhanceLogWithCorrelationId(log, command);
-        log.info("The <{}> command was not forwarded due to insufficient rights {}: {} " +
-                        "- AuthorizationSubjects: {}", command.getType(), getSimpleClassName(exception),
+    private void unauthorized(final ThingEvent event) {
+        final EventSendNotAllowedException exception =
+                EventSendNotAllowedException.newBuilder(event.getThingId())
+                        .dittoHeaders(event.getDittoHeaders())
+                        .build();
+        logUnauthorized(event, exception);
+        getSender().tell(exception, getSelf());
+    }
+
+    private void logUnauthorized(final Signal signal, final DittoRuntimeException exception) {
+        LogUtil.enhanceLogWithCorrelationId(log, signal);
+        log.info("The <{}> signal was not forwarded due to insufficient rights {}: {} " +
+                        "- AuthorizationSubjects: {}", signal.getType(), getSimpleClassName(exception),
                 exception.getMessage(),
-                command.getDittoHeaders().getAuthorizationSubjects());
-        log.debug("The AuthorizationContext for the not allowed command '{}' was: {} - "
-                        + "the ACL was: {}", command.getType(),
-                command.getDittoHeaders().getAuthorizationContext(), acl);
+                signal.getDittoHeaders().getAuthorizationSubjects());
+        log.debug("The AuthorizationContext for the not allowed signal '{}' was: {} - "
+                        + "the ACL was: {}", signal.getType(),
+                signal.getDittoHeaders().getAuthorizationContext(), acl);
     }
 
     private void scheduleActivityCheck() {

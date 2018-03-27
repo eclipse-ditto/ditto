@@ -30,6 +30,7 @@ final class ImmutableExternalMessage implements ExternalMessage {
     private final Map<String, String> headers;
     @Nullable
     private final String topicPath;
+    private final boolean isResponse;
     private final PayloadType payloadType;
 
     @Nullable
@@ -39,12 +40,14 @@ final class ImmutableExternalMessage implements ExternalMessage {
 
     ImmutableExternalMessage(final Map<String, String> headers,
             @Nullable final String topicPath,
+            final boolean isResponse,
             final PayloadType payloadType,
             @Nullable final String textPayload,
             @Nullable final ByteBuffer bytePayload) {
 
         this.headers = Collections.unmodifiableMap(new HashMap<>(headers));
         this.topicPath = topicPath;
+        this.isResponse = isResponse;
         this.payloadType = payloadType;
         this.textPayload = textPayload;
         this.bytePayload = bytePayload;
@@ -106,6 +109,10 @@ final class ImmutableExternalMessage implements ExternalMessage {
         return payloadType;
     }
 
+    @Override
+    public boolean isResponseMessage() {
+        return isResponse;
+    }
 
     @Override
     public boolean equals(final Object o) {
@@ -120,12 +127,13 @@ final class ImmutableExternalMessage implements ExternalMessage {
                 Objects.equals(textPayload, that.textPayload) &&
                 Objects.equals(bytePayload, that.bytePayload) &&
                 Objects.equals(topicPath, that.topicPath) &&
+                Objects.equals(isResponse, that.isResponse) &&
                 payloadType == that.payloadType;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(headers, textPayload, bytePayload, payloadType, topicPath);
+        return Objects.hash(headers, textPayload, bytePayload, payloadType, isResponse, topicPath);
     }
 
     @Override
@@ -133,6 +141,7 @@ final class ImmutableExternalMessage implements ExternalMessage {
         return getClass().getSimpleName() + " [" +
                 "headers=" + headers +
                 ", topicPath=" + topicPath +
+                ", isResponseMessage=" + isResponse +
                 ", payloadType=" + payloadType +
                 ", textPayload=" + textPayload +
                 ", bytePayload=" +

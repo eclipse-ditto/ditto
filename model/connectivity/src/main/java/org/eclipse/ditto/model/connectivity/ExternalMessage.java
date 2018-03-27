@@ -107,6 +107,11 @@ public interface ExternalMessage {
     PayloadType getPayloadType();
 
     /**
+     * @return {@code true} if this message is a response
+     */
+    boolean isResponseMessage();
+
+    /**
      * The known payload types of ExternalMessages.
      */
     enum PayloadType {

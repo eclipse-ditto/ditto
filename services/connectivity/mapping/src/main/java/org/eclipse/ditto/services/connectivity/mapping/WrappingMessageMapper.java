@@ -118,7 +118,7 @@ final class WrappingMessageMapper implements MessageMapper {
             });
             messageBuilder.withAdditionalHeaders(ExternalMessage.CONTENT_TYPE_HEADER, getContentType());
 
-            // TODO add topicPath if not set??
+            messageBuilder.asResponse(adaptable.getPayload().getStatus().isPresent());
 
             return messageBuilder.build();
         });

@@ -39,8 +39,8 @@ public class TopicPathMapper {
         SUPPORTED_TOPICS = new HashMap<>();
         SUPPORTED_TOPICS.put("_/_/things/twin/events", ThingEvent.TYPE_PREFIX);
         SUPPORTED_TOPICS.put("_/_/things/live/messages", MessageCommand.TYPE_PREFIX);
-        SUPPORTED_TOPICS.put("_/_/things/live/events", ThingEvent.TYPE_PREFIX);
-        SUPPORTED_TOPICS.put("_/_/things/live/commands", ThingEvent.TYPE_PREFIX);
+        SUPPORTED_TOPICS.put("_/_/things/live/events", "things-live-events");
+        SUPPORTED_TOPICS.put("_/_/things/live/commands", "things-live-commands");
     }
 
     public static Optional<String> mapToPubSubTopic(final String topicPath) {

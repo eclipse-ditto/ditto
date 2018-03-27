@@ -139,7 +139,7 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
 
         if (rabbitMQTarget.getRoutingKey() == null) {
             log.debug("No routing key, dropping message.");
-
+            return;
         }
 
         final String contentType = message.getHeaders().get(ExternalMessage.CONTENT_TYPE_HEADER);
