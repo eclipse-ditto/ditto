@@ -16,6 +16,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.AccessControlList;
@@ -87,11 +88,13 @@ final class TestConstants {
     static final DittoHeaders DITTO_HEADERS_V_1 = DittoHeaders.newBuilder()
             .correlationId(CORRELATION_ID)
             .schemaVersion(JsonSchemaVersion.V_1)
+            .contentType(DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE)
             .build();
 
     static final DittoHeaders DITTO_HEADERS_V_2 = DittoHeaders.newBuilder()
             .correlationId(CORRELATION_ID)
             .schemaVersion(JsonSchemaVersion.V_2)
+            .contentType(DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE)
             .build();
 
     static final DittoHeaders HEADERS_V_1 = ProtocolFactory.newHeaders(DITTO_HEADERS_V_1);

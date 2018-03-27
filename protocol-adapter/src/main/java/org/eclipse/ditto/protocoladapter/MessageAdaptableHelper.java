@@ -91,7 +91,6 @@ final class MessageAdaptableHelper {
 
         final DittoHeadersBuilder allHeadersBuilder = DittoHeaders.newBuilder(messageCommandHeadersJsonObject);
         allHeadersBuilder.putHeaders(dittoHeaders);
-        allHeadersBuilder.contentType(DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
 
         final PayloadBuilder payloadBuilder = Payload.newBuilder(resourcePath);
 

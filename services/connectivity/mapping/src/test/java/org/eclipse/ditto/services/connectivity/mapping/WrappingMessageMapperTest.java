@@ -88,7 +88,7 @@ public class WrappingMessageMapperTest {
 
         final Adaptable actual = underTest.map(mockMessage).get();
         verify(mockMapper).getContentType();
-        verify(mockMessage).findHeaderIgnoreCase(anyString());
+        verify(mockMessage, VerificationModeFactory.atLeastOnce()).findHeaderIgnoreCase(anyString());
         verify(mockMapper).map(mockMessage);
     }
 
