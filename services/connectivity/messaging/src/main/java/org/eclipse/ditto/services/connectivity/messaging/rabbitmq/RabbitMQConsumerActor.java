@@ -24,10 +24,13 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.model.connectivity.AddressMetric;
+import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ExternalMessage;
 import org.eclipse.ditto.model.connectivity.ExternalMessageBuilder;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMappers;
+import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressMetric;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
 import com.rabbitmq.client.BasicProperties;
@@ -56,6 +59,9 @@ public final class RabbitMQConsumerActor extends AbstractActor {
 
     private final ActorRef messageMappingProcessor;
 
+    private long consumedMessages = 0L;
+    @Nullable private AddressMetric addressMetric = null;
+
     private RabbitMQConsumerActor(final ActorRef messageMappingProcessor) {
         this.messageMappingProcessor = checkNotNull(messageMappingProcessor, "messageMappingProcessor");
     }
@@ -82,13 +88,25 @@ public final class RabbitMQConsumerActor extends AbstractActor {
     public Receive createReceive() {
         return ReceiveBuilder.create()
                 .match(Delivery.class, this::handleDelivery)
+                .match(AddressMetric.class, this::handleAddressMetric)
+                .match(RetrieveAddressMetric.class, ram -> {
+                    getSender().tell(ConnectivityModelFactory.newAddressMetric(
+                            addressMetric != null ? addressMetric.getStatus() : ConnectionStatus.UNKNOWN,
+                            addressMetric != null ? addressMetric.getStatusDetails().orElse(null) : null,
+                            consumedMessages), getSelf());
+                })
                 .matchAny(m -> {
-                    log.debug("Unknown message: {}", m);
+                    log.warning("Unknown message: {}", m);
                     unhandled(m);
                 }).build();
     }
 
+    private void handleAddressMetric(final AddressMetric addressMetric) {
+        this.addressMetric = addressMetric;
+    }
+
     private void handleDelivery(final Delivery delivery) {
+        consumedMessages++;
         final BasicProperties properties = delivery.getProperties();
         final Envelope envelope = delivery.getEnvelope();
         final byte[] body = delivery.getBody();

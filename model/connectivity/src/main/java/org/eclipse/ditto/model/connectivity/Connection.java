@@ -67,6 +67,16 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
     Set<Target> getTargets();
 
     /**
+     * Returns how many clients on different cluster nodes should establish the {@code Connection}.
+     * <p>
+     * If greater than 1, the connection is created in a HA mode, running on at least 2 cluster nodes.
+     * </p>
+     *
+     * @return the client count.
+     */
+    int getClientCount();
+
+    /**
      * Returns whether or not failover is enabled for this {@code Connection}.
      *
      * @return {@code true} if failover is enabled, else {@code false}.
@@ -201,16 +211,23 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
                         JsonSchemaVersion.V_2);
 
         /**
-         * JSON field containing the {@code Connection} consume configuration.
+         * JSON field containing the {@code Connection} sources configuration.
          */
-        public static final JsonFieldDefinition<JsonArray> CONSUME =
-                JsonFactory.newJsonArrayFieldDefinition("consume", FieldType.REGULAR, JsonSchemaVersion.V_1,
+        public static final JsonFieldDefinition<JsonArray> SOURCES =
+                JsonFactory.newJsonArrayFieldDefinition("sources", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
         /**
-         * JSON field containing the {@code Connection} publish configuration.
+         * JSON field containing the {@code Connection} targets configuration.
          */
-        public static final JsonFieldDefinition<JsonArray> PUBLISH =
-                JsonFactory.newJsonArrayFieldDefinition("publish", FieldType.REGULAR, JsonSchemaVersion.V_1,
+        public static final JsonFieldDefinition<JsonArray> TARGETS =
+                JsonFactory.newJsonArrayFieldDefinition("targets", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing the {@code Connection} client count.
+         */
+        public static final JsonFieldDefinition<Integer> CLIENT_COUNT =
+                JsonFactory.newIntFieldDefinition("clientCount", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
         /**

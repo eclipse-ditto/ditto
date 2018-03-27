@@ -11,9 +11,25 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.internal;
 
+import java.util.Optional;
+
+import javax.annotation.Nullable;
+
+import akka.actor.ActorRef;
+
 /**
- * Messaging internal command for disconnecting a
- * {@link org.eclipse.ditto.services.connectivity.messaging.BaseClientActor Client}.
+ * Abstract base implementation for {@link WithOrigin}.
  */
-public interface DisconnectClient extends WithOrigin {
+public abstract class AbstractWithOrigin implements WithOrigin {
+
+    @Nullable private final ActorRef origin;
+
+    protected AbstractWithOrigin(@Nullable final ActorRef origin) {
+        this.origin = origin;
+    }
+
+    @Override
+    public Optional<ActorRef> getOrigin() {
+        return Optional.ofNullable(origin);
+    }
 }

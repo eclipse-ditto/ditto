@@ -5,17 +5,16 @@
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ *
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
- *
  */
 package org.eclipse.ditto.model.connectivity;
 
-import java.util.Set;
+import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
@@ -28,22 +27,30 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
 /**
  * TODO doc
  */
-public interface Target extends Jsonifiable.WithFieldSelectorAndPredicate<JsonField> {
+public interface AddressMetric extends Jsonifiable.WithFieldSelectorAndPredicate<JsonField> {
 
     /**
-     * Returns the address for the configured type of signals of this {@code Connection}.
-     */
-    String getAddress();
-
-    /**
-     * Returns set of topics that should be published via this target.
-     */
-    Set<String> getTopics();
-
-    /**
-     * Returns all non hidden marked fields of this {@code Connection}.
      *
-     * @return a JSON object representation of this Target including only non hidden marked fields.
+     * @return
+     */
+    ConnectionStatus getStatus();
+
+    /**
+     *
+     * @return
+     */
+    Optional<String> getStatusDetails();
+
+    /**
+     *
+     * @return
+     */
+    long getMessageCount();
+
+    /**
+     * Returns all non hidden marked fields of this {@code AddressMetric}.
+     *
+     * @return a JSON object representation of this Source including only non hidden marked fields.
      */
     @Override
     default JsonObject toJson() {
@@ -56,11 +63,10 @@ public interface Target extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
     }
 
     /**
-     * An enumeration of the known {@code JsonField}s of a {@code Target} configuration.
+     * An enumeration of the known {@code JsonField}s of an {@code AddressMetric}.
      */
     @Immutable
     final class JsonFields {
-
 
         /**
          * JSON field containing the {@code JsonSchemaVersion}.
@@ -70,22 +76,29 @@ public interface Target extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
                         JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         /**
-         * JSON field containing the {@code Connection} address.
+         * JSON field containing the {@code ConnectionStatus} value.
          */
-        public static final JsonFieldDefinition<String> ADDRESS =
-                JsonFactory.newStringFieldDefinition("address", FieldType.REGULAR, JsonSchemaVersion.V_1,
+        public static final JsonFieldDefinition<String> STATUS =
+                JsonFactory.newStringFieldDefinition("status", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
         /**
-         * JSON field containing the {@code Connection} topics.
+         * JSON field containing the {@code ConnectionStatus} details.
          */
-        public static final JsonFieldDefinition<JsonArray> TOPICS =
-                JsonFactory.newJsonArrayFieldDefinition("topics", FieldType.REGULAR, JsonSchemaVersion.V_1,
+        public static final JsonFieldDefinition<String> STATUS_DETAILS =
+                JsonFactory.newStringFieldDefinition("statusDetails", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
+        /**
+         * JSON field containing the amount of consumed/published messages.
+         */
+        public static final JsonFieldDefinition<Long> MESSAGE_COUNT =
+                JsonFactory.newLongFieldDefinition("messageCount", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
 
-        JsonFields() {
+        private JsonFields() {
             throw new AssertionError();
         }
+
     }
 }

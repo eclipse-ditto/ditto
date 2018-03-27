@@ -26,6 +26,7 @@ import javax.jms.Session;
 import org.apache.qpid.jms.JmsConnection;
 import org.apache.qpid.jms.JmsQueue;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
 
@@ -98,28 +99,31 @@ public class JMSConnectionHandlingActor extends AbstractActor {
             log.debug("Starting connection.");
             jmsConnection.start();
             log.debug("Connection started successfully, creating session.");
-            final Session jmsSession = jmsConnection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+            final Session jmsSession = jmsConnection.createSession(Session.CLIENT_ACKNOWLEDGE);
             log.debug("Session created.");
 
             final Map<String, MessageConsumer> consumerMap = new HashMap<>();
             final Map<String, Exception> failedSources = new HashMap<>();
-            connection.getSources().forEach(source -> {
-                source.getSources().forEach(jmsSource -> {
-                    log.debug("Creating AMQP Consumer for '{}'", jmsSource);
-                    final Destination destination = new JmsQueue(jmsSource);
-                    final MessageConsumer messageConsumer;
-                    try {
-                        messageConsumer = jmsSession.createConsumer(destination);
-                        consumerMap.put(jmsSource, messageConsumer);
-                    } catch (final JMSException jmsException) {
-                        failedSources.put(jmsSource, jmsException);
-                    }
-                });
-            });
+            connection.getSources().forEach(source ->
+                    source.getAddresses().forEach(sourceAddress -> {
+                        for (int i = 0; i < source.getConsumerCount(); i++) {
+                            final String addressWithIndex = sourceAddress + "-" + i;
+                            log.debug("Creating AMQP Consumer for <{}>", addressWithIndex);
+                            final Destination destination = new JmsQueue(sourceAddress);
+                            final MessageConsumer messageConsumer;
+                            try {
+                                messageConsumer = jmsSession.createConsumer(destination);
+                                consumerMap.put(addressWithIndex, messageConsumer);
+                            } catch (final JMSException jmsException) {
+                                failedSources.put(addressWithIndex, jmsException);
+                            }
+                        }
+                    }));
 
             if (failedSources.isEmpty()) {
                 final AmqpClientActor.JmsConnected connectedMessage =
-                        new AmqpClientActor.JmsConnected(connect.getOrigin(), jmsConnection, jmsSession, consumerMap);
+                        new AmqpClientActor.JmsConnected(connect.getOrigin().orElse(null), jmsConnection, jmsSession,
+                                consumerMap);
                 sender().tell(connectedMessage, sender());
                 log.debug("Connection <{}> established successfully, stopping myself.", connection.getId());
             } else {
@@ -132,10 +136,12 @@ public class JMSConnectionHandlingActor extends AbstractActor {
                                 .map(e -> e.getKey() + ": " + e.getValue().getMessage())
                                 .collect(Collectors.joining(", ")))
                         .build();
-                getSender().tell(new AmqpClientActor.JmsFailure(connect.getOrigin(), failedException, null), sender());
+                getSender().tell(
+                        new ImmutableConnectionFailure(connect.getOrigin().orElse(null), failedException, null),
+                        sender());
             }
         } catch (final Exception e) {
-            getSender().tell(new AmqpClientActor.JmsFailure(connect.getOrigin(), e, null), getSender());
+            getSender().tell(new ImmutableConnectionFailure(connect.getOrigin().orElse(null), e, null), getSender());
         }
         getContext().stop(getSelf());
     }
@@ -146,11 +152,11 @@ public class JMSConnectionHandlingActor extends AbstractActor {
             log.debug("Closing JMS connection {}", this.connection.getId());
             connection.stop();
             connection.close();
-            log.info("Connection '{}' closed.", this.connection.getId());
+            log.info("Connection <{}> closed.", this.connection.getId());
         } catch (final JMSException e) {
-            log.debug("Connection '{}' already closed: {}", this.connection.getId(), e.getMessage());
+            log.debug("Connection <{}> already closed: {}", this.connection.getId(), e.getMessage());
         }
-        getSender().tell(new AmqpClientActor.JmsDisconnected(disconnect.getOrigin()), getSender());
+        getSender().tell(new AmqpClientActor.JmsDisconnected(disconnect.getOrigin().orElse(null)), getSender());
         log.info("Stop myself {}", getSelf());
         getContext().stop(getSelf());
     }

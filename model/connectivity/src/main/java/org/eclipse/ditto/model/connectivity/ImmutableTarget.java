@@ -29,30 +29,46 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
+/**
+ * Immutable implementation of {@link Target}.
+ */
 @Immutable
 final class ImmutableTarget implements Target {
 
-    private final String target;
+    private final String address;
     private final Set<String> topics;
 
-    private ImmutableTarget(final String target, final Set<String> topics) {
-        this.target = target;
+    private ImmutableTarget(final String address, final Set<String> topics) {
+        this.address = address;
         this.topics = Collections.unmodifiableSet(new HashSet<>(topics));
     }
 
-    public static Target of(final String target, final Set<String> topics) {
-        return new ImmutableTarget(target, topics);
+    /**
+     * TODO doc
+     * @param address
+     * @param topics
+     * @return
+     */
+    public static Target of(final String address, final Set<String> topics) {
+        return new ImmutableTarget(address, topics);
     }
 
-    public static Target of(final String target, final String requiredTopic, final String... additionalTopics) {
-        final HashSet<String> types = new HashSet<>(Collections.singletonList(requiredTopic));
-        types.addAll(Arrays.asList(additionalTopics));
-        return new ImmutableTarget(target, types);
+    /**
+     * TODO doc
+     * @param address
+     * @param requiredTopic
+     * @param additionalTopics
+     * @return
+     */
+    public static Target of(final String address, final String requiredTopic, final String... additionalTopics) {
+        final HashSet<String> topics = new HashSet<>(Collections.singletonList(requiredTopic));
+        topics.addAll(Arrays.asList(additionalTopics));
+        return new ImmutableTarget(address, topics);
     }
 
     @Override
-    public String getTarget() {
-        return target;
+    public String getAddress() {
+        return address;
     }
 
     @Override
@@ -66,7 +82,7 @@ final class ImmutableTarget implements Target {
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
 
         jsonObjectBuilder.set(Target.JsonFields.SCHEMA_VERSION, schemaVersion.toInt(), predicate);
-        jsonObjectBuilder.set(Target.JsonFields.TARGET, target, predicate);
+        jsonObjectBuilder.set(Target.JsonFields.ADDRESS, address, predicate);
         jsonObjectBuilder.set(Target.JsonFields.TOPICS, topics.stream()
                 .map(JsonFactory::newValue)
                 .collect(JsonCollectors.valuesToArray()), predicate.and(Objects::nonNull));
@@ -83,13 +99,13 @@ final class ImmutableTarget implements Target {
      * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} is not an appropriate JSON object.
      */
     public static Target fromJson(final JsonObject jsonObject) {
-        final String readTarget = jsonObject.getValueOrThrow(Target.JsonFields.TARGET);
-        final Set<String> readTypes = jsonObject.getValue(JsonFields.TOPICS)
+        final String readAddress = jsonObject.getValueOrThrow(Target.JsonFields.ADDRESS);
+        final Set<String> readTopics = jsonObject.getValue(JsonFields.TOPICS)
                 .map(array -> array.stream()
                         .map(JsonValue::asString)
                         .collect(Collectors.toSet()))
                 .orElse(Collections.emptySet());
-        return ImmutableTarget.of(readTarget, readTypes);
+        return ImmutableTarget.of(readAddress, readTopics);
     }
 
     @Override
@@ -97,21 +113,21 @@ final class ImmutableTarget implements Target {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         final ImmutableTarget that = (ImmutableTarget) o;
-        return Objects.equals(target, that.target) &&
+        return Objects.equals(address, that.address) &&
                 Objects.equals(topics, that.topics);
     }
 
     @Override
     public int hashCode() {
 
-        return Objects.hash(target, topics);
+        return Objects.hash(address, topics);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "target=" + target +
-                ", types=" + topics +
+                "address=" + address +
+                ", topics=" + topics +
                 "]";
     }
 }

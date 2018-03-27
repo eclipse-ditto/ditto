@@ -21,16 +21,15 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.json.FieldType;
-import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
 
 /**
  * Command which retrieves the {@link ConnectionStatus} of a {@link
@@ -49,10 +48,6 @@ public final class RetrieveConnectionStatus extends AbstractCommand<RetrieveConn
      * Type of this command.
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
-
-    static final JsonFieldDefinition<String> JSON_CONNECTION_ID =
-            JsonFactory.newStringFieldDefinition("connectionId", FieldType.REGULAR, JsonSchemaVersion.V_1,
-                    JsonSchemaVersion.V_2);
 
     private final String connectionId;
 
@@ -102,7 +97,7 @@ public final class RetrieveConnectionStatus extends AbstractCommand<RetrieveConn
     public static RetrieveConnectionStatus fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<RetrieveConnectionStatus>(TYPE, jsonObject).deserialize(() -> {
-            final String readConnectionId = jsonObject.getValueOrThrow(JSON_CONNECTION_ID);
+            final String readConnectionId = jsonObject.getValueOrThrow(ConnectivityCommand.JsonFields.JSON_CONNECTION_ID);
 
             return of(readConnectionId, dittoHeaders);
         });
@@ -112,7 +107,7 @@ public final class RetrieveConnectionStatus extends AbstractCommand<RetrieveConn
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(JSON_CONNECTION_ID, connectionId, predicate);
+        jsonObjectBuilder.set(ConnectivityCommand.JsonFields.JSON_CONNECTION_ID, connectionId, predicate);
     }
 
     @Override

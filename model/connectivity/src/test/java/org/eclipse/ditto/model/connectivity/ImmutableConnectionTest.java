@@ -75,8 +75,9 @@ public final class ImmutableConnectionTest {
                     .map(AuthorizationSubject::getId)
                     .map(JsonFactory::newValue)
                     .collect(JsonCollectors.valuesToArray()))
-            .set(Connection.JsonFields.CONSUME, KNOWN_SOURCES_JSON)
-            .set(Connection.JsonFields.PUBLISH, KNOWN_TARGETS_JSON)
+            .set(Connection.JsonFields.SOURCES, KNOWN_SOURCES_JSON)
+            .set(Connection.JsonFields.TARGETS, KNOWN_TARGETS_JSON)
+            .set(Connection.JsonFields.CLIENT_COUNT, 2)
             .set(Connection.JsonFields.FAILOVER_ENABLED, true)
             .set(Connection.JsonFields.VALIDATE_CERTIFICATES, true)
             .set(Connection.JsonFields.THROTTLE, -1)
@@ -170,6 +171,7 @@ public final class ImmutableConnectionTest {
                 ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, URI, AUTHORIZATION_CONTEXT)
                         .sources(SOURCES)
                         .targets(TARGETS)
+                        .clientCount(2)
                         .build();
 
         final Connection actual = ImmutableConnection.fromJson(KNOWN_JSON);
@@ -179,8 +181,8 @@ public final class ImmutableConnectionTest {
 
     @Test
     public void fromInvalidJsonFails() {
-        final JsonObject INVALID_JSON = KNOWN_JSON.remove(Connection.JsonFields.CONSUME.getPointer())
-                .remove(Connection.JsonFields.PUBLISH.getPointer());
+        final JsonObject INVALID_JSON = KNOWN_JSON.remove(Connection.JsonFields.SOURCES.getPointer())
+                .remove(Connection.JsonFields.TARGETS.getPointer());
 
         assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
                 .isThrownBy(
@@ -196,6 +198,7 @@ public final class ImmutableConnectionTest {
                 ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, URI, AUTHORIZATION_CONTEXT)
                         .sources(SOURCES)
                         .targets(TARGETS)
+                        .clientCount(2)
                         .build()
                         .toJson();
 

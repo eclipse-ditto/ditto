@@ -32,6 +32,7 @@ class ImmutableConnectionBuilder implements ConnectionBuilder {
     boolean validateCertificate = true;
     final Set<Source> sources = new HashSet<>();
     final Set<Target> targets = new HashSet<>();
+    int clientCount = 1;
     int throttle = -1;
     int processorPoolSize = 5;
 
@@ -92,6 +93,12 @@ class ImmutableConnectionBuilder implements ConnectionBuilder {
     public ConnectionBuilder targets(final Set<Target> targets) {
         checkNotNull(targets, "Targets");
         this.targets.addAll(targets);
+        return this;
+    }
+
+    @Override
+    public ConnectionBuilder clientCount(final int clientCount) {
+        this.clientCount = checkArgument(clientCount, ps -> ps > 0, () -> "clientCount must > 0");
         return this;
     }
 

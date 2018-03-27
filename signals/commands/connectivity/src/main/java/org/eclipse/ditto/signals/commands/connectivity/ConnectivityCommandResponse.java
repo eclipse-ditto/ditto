@@ -11,7 +11,11 @@
  */
 package org.eclipse.ditto.signals.commands.connectivity;
 
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 
 /**
@@ -49,4 +53,17 @@ public interface ConnectivityCommandResponse<T extends ConnectivityCommandRespon
         return ConnectivityCommand.RESOURCE_TYPE;
     }
 
+    /**
+     * This class contains definitions for all specific fields of a {@code ConnectivityCommandResponse}'s JSON representation.
+     */
+    class JsonFields extends CommandResponse.JsonFields {
+
+        /**
+         * JSON field containing the ConnectivityCommandResponse's connectionId.
+         */
+        public static final JsonFieldDefinition<String> JSON_CONNECTION_ID =
+                JsonFactory.newStringFieldDefinition("connectionId", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
+
+    }
 }

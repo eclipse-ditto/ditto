@@ -26,14 +26,15 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.signals.commands.base.WithEntity;
+import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandResponse;
 
 /**
  * Response to a {@link RetrieveConnection} command.
@@ -46,10 +47,6 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
      * Type of this response.
      */
     public static final String TYPE = TYPE_PREFIX + RetrieveConnectionStatus.NAME;
-
-    static final JsonFieldDefinition<String> JSON_CONNECTION_ID =
-            JsonFactory.newStringFieldDefinition("connectionId", FieldType.REGULAR, JsonSchemaVersion.V_1,
-                    JsonSchemaVersion.V_2);
 
     static final JsonFieldDefinition<String> JSON_CONNECTION_STATUS =
             JsonFactory.newStringFieldDefinition("connectionStatus", FieldType.REGULAR, JsonSchemaVersion.V_1,
@@ -133,7 +130,8 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
             final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<RetrieveConnectionStatusResponse>(TYPE, jsonObject).deserialize(
                 statusCode -> {
-                    final String readConnectionId = jsonObject.getValueOrThrow(JSON_CONNECTION_ID);
+                    final String readConnectionId =
+                            jsonObject.getValueOrThrow(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID);
                     final ConnectionStatus readConnectionStatus =
                             ConnectionStatus.forName(jsonObject.getValueOrThrow(JSON_CONNECTION_STATUS))
                                     .orElse(ConnectionStatus.UNKNOWN);
@@ -167,7 +165,7 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(JSON_CONNECTION_ID, connectionId, predicate);
+        jsonObjectBuilder.set(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID, connectionId, predicate);
         jsonObjectBuilder.set(JSON_CONNECTION_STATUS, connectionStatus.getName(), predicate);
         if (connectionStatusDetails != null) {
             jsonObjectBuilder.set(JSON_CONNECTION_STATUS_DETAILS, connectionStatusDetails, predicate);

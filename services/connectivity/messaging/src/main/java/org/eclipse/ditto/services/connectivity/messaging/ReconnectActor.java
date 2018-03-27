@@ -15,8 +15,8 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Consumer;
 
-import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.MongoReconnectSnapshotAdapter;
 import org.eclipse.ditto.services.connectivity.util.ConfigKeys;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -24,11 +24,11 @@ import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandResponse;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatus;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatusResponse;
+import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.connectivity.ConnectionClosed;
 import org.eclipse.ditto.signals.events.connectivity.ConnectionCreated;
 import org.eclipse.ditto.signals.events.connectivity.ConnectionDeleted;
 import org.eclipse.ditto.signals.events.connectivity.ConnectionOpened;
-import org.eclipse.ditto.signals.events.base.Event;
 
 import com.typesafe.config.Config;
 
@@ -37,7 +37,6 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.event.DiagnosticLoggingAdapter;
-import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
 import akka.persistence.AbstractPersistentActor;
 import akka.persistence.RecoveryCompleted;
@@ -99,14 +98,7 @@ public final class ReconnectActor extends AbstractPersistentActor {
      * @return the Akka configuration Props object.
      */
     public static Props props(final ActorRef connectionShardRegion, final ActorRef pubSubMediator) {
-        return Props.create(ReconnectActor.class, new Creator<ReconnectActor>() {
-            private static final long serialVersionUID = 1L;
-
-            @Override
-            public ReconnectActor create() {
-                return new ReconnectActor(connectionShardRegion, pubSubMediator);
-            }
-        });
+        return Props.create(ReconnectActor.class, connectionShardRegion, pubSubMediator);
     }
 
     @Override

@@ -30,7 +30,7 @@ import akka.japi.Creator;
 public class FaultyConnectionActor extends AbstractActor {
 
     static final ConnectionActorPropsFactory faultyConnectionActorPropsFactory =
-            (connectionActor, connection) -> FaultyConnectionActor.props(true);
+            (connection, connectionStatus) -> FaultyConnectionActor.props(true);
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
     private boolean allowCreate;
@@ -57,7 +57,7 @@ public class FaultyConnectionActor extends AbstractActor {
                     if (allowCreate) {
                         log.info("connection created");
                         this.allowCreate = false;
-                        sender().tell("success", getSelf());
+                        sender().tell(new Status.Success("mock"), getSelf());
                     } else {
                         sender().tell(new Status.Failure(new IllegalStateException("error message")),
                                 getSelf());

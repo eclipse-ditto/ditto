@@ -12,7 +12,8 @@
 package org.eclipse.ditto.services.connectivity.messaging.internal;
 
 /**
- * TODO TJ doc
+ * Messaging internal event when a
+ * {@link org.eclipse.ditto.services.connectivity.messaging.BaseClientActor Client} disconnected.
  */
 public interface ClientDisconnected extends WithOrigin {
 }

@@ -39,11 +39,11 @@ import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnectionResp
 import org.eclipse.ditto.signals.commands.connectivity.modify.TestConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.TestConnectionResponse;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnection;
+import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetrics;
+import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetricsResponse;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionResponse;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatus;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatusResponse;
-import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetrics;
-import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetricsResponse;
 
 public class JsonExamplesProducer {
 
@@ -154,7 +154,8 @@ public class JsonExamplesProducer {
 
         final RetrieveConnectionMetricsResponse retrieveConnectionMetricsResponse =
                 RetrieveConnectionMetricsResponse.of(TestConstants.ID,
-                        ConnectivityModelFactory.newConnectionMetrics(ConnectionStatus.OPEN, "some status"),
+                        ConnectivityModelFactory.newConnectionMetrics(ConnectionStatus.OPEN, "some status",
+                                "CONNECTED", Collections.emptyList(), Collections.emptyList()),
                         DittoHeaders.empty());
         writeJson(commandsDir.resolve(Paths.get("retrieveConnectionMetrics.json")), retrieveConnectionMetricsResponse);
     }

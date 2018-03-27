@@ -24,13 +24,13 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 
 public class ImmutableTargetTest {
 
-    private static final String TARGET = "amqp/target1";
+    private static final String ADDRESS = "amqp/target1";
     private static final String THINGS_TWIN_EVENTS = "_/_/things/twin/events";
-    private static final Target EXPECTED_TARGET = ImmutableTarget.of(TARGET, THINGS_TWIN_EVENTS);
+    private static final Target EXPECTED_TARGET = ImmutableTarget.of(ADDRESS, THINGS_TWIN_EVENTS);
     private static final JsonObject KNOWN_TARGET_JSON = JsonObject
             .newBuilder()
             .set(Target.JsonFields.TOPICS, JsonFactory.newArrayBuilder().add(THINGS_TWIN_EVENTS).build())
-            .set(Target.JsonFields.TARGET, TARGET)
+            .set(Target.JsonFields.ADDRESS, ADDRESS)
             .build();
 
     @Test

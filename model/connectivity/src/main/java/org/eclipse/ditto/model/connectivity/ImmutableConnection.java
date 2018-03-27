@@ -60,6 +60,7 @@ final class ImmutableConnection implements Connection {
 
     private final Set<Source> sources;
     private final Set<Target> targets;
+    private final int clientCount;
     private final boolean failoverEnabled;
     private final boolean validateCertificate;
     private final int throttle;
@@ -73,6 +74,7 @@ final class ImmutableConnection implements Connection {
         checkSourceAndTargetAreValid(builder);
         this.sources = Collections.unmodifiableSet(new HashSet<>(builder.sources));
         this.targets = Collections.unmodifiableSet(new HashSet<>(builder.targets));
+        this.clientCount = builder.clientCount;
         this.failoverEnabled = builder.failoverEnabled;
         this.validateCertificate = builder.validateCertificate;
         this.throttle = builder.throttle;
@@ -133,14 +135,14 @@ final class ImmutableConnection implements Connection {
                 .collect(Collectors.toList());
         final AuthorizationContext readAuthorizationContext =
                 AuthorizationModelFactory.newAuthContext(authorizationSubjects);
-        final Set<Source> readSources = jsonObject.getValue(JsonFields.CONSUME)
+        final Set<Source> readSources = jsonObject.getValue(JsonFields.SOURCES)
                 .map(array -> array.stream()
                         .filter(JsonValue::isObject)
                         .map(JsonValue::asObject)
                         .map(ImmutableSource::fromJson)
                         .collect(Collectors.toSet()))
                 .orElse(Collections.emptySet());
-        final Set<Target> readTargets = jsonObject.getValue(JsonFields.PUBLISH)
+        final Set<Target> readTargets = jsonObject.getValue(JsonFields.TARGETS)
                 .map(array -> array.stream()
                         .filter(JsonValue::isObject)
                         .map(JsonValue::asObject)
@@ -148,6 +150,7 @@ final class ImmutableConnection implements Connection {
                         .collect(Collectors.toSet()))
                 .orElse(Collections.emptySet());
 
+        final Optional<Integer> readClientCount = jsonObject.getValue(JsonFields.CLIENT_COUNT);
         final Optional<Boolean> readFailoverEnabled = jsonObject.getValue(JsonFields.FAILOVER_ENABLED);
         final Optional<Boolean> readValidateCertificates = jsonObject.getValue(JsonFields.VALIDATE_CERTIFICATES);
         final Optional<Integer> readThrottle = jsonObject.getValue(JsonFields.THROTTLE);
@@ -158,6 +161,7 @@ final class ImmutableConnection implements Connection {
 
         builder.sources(readSources);
         builder.targets(readTargets);
+        readClientCount.ifPresent(builder::clientCount);
         readThrottle.ifPresent(builder::throttle);
         readFailoverEnabled.ifPresent(builder::failoverEnabled);
         readValidateCertificates.ifPresent(builder::validateCertificate);
@@ -188,6 +192,11 @@ final class ImmutableConnection implements Connection {
     @Override
     public Set<Target> getTargets() {
         return targets;
+    }
+
+    @Override
+    public int getClientCount() {
+        return clientCount;
     }
 
     @Override
@@ -258,12 +267,13 @@ final class ImmutableConnection implements Connection {
                 .map(AuthorizationSubject::getId)
                 .map(JsonFactory::newValue)
                 .collect(JsonCollectors.valuesToArray()), predicate);
-        jsonObjectBuilder.set(JsonFields.CONSUME, sources.stream()
+        jsonObjectBuilder.set(JsonFields.SOURCES, sources.stream()
                 .map(source -> source.toJson(schemaVersion, thePredicate))
                 .collect(JsonCollectors.valuesToArray()), predicate.and(Objects::nonNull));
-        jsonObjectBuilder.set(JsonFields.PUBLISH, targets.stream()
+        jsonObjectBuilder.set(JsonFields.TARGETS, targets.stream()
                 .map(source -> source.toJson(schemaVersion, thePredicate))
                 .collect(JsonCollectors.valuesToArray()), predicate.and(Objects::nonNull));
+        jsonObjectBuilder.set(JsonFields.CLIENT_COUNT, clientCount, predicate);
         jsonObjectBuilder.set(JsonFields.FAILOVER_ENABLED, failoverEnabled, predicate);
         jsonObjectBuilder.set(JsonFields.VALIDATE_CERTIFICATES, validateCertificate, predicate);
         jsonObjectBuilder.set(JsonFields.THROTTLE, throttle, predicate);
@@ -284,6 +294,7 @@ final class ImmutableConnection implements Connection {
                 Objects.equals(authorizationContext, that.authorizationContext) &&
                 Objects.equals(sources, that.sources) &&
                 Objects.equals(targets, that.targets) &&
+                Objects.equals(clientCount, that.clientCount) &&
                 Objects.equals(uri, that.uri) &&
                 Objects.equals(protocol, that.protocol) &&
                 Objects.equals(username, that.username) &&
@@ -297,7 +308,7 @@ final class ImmutableConnection implements Connection {
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, connectionType, authorizationContext, sources, targets,
+        return Objects.hash(id, connectionType, authorizationContext, sources, targets, clientCount,
                 failoverEnabled, uri, protocol, username, password, hostname, path, port, validateCertificate, throttle,
                 processorPoolSize);
     }
@@ -318,6 +329,7 @@ final class ImmutableConnection implements Connection {
                 ", path=" + path +
                 ", sources=" + sources +
                 ", targets=" + targets +
+                ", clientCount=" + clientCount +
                 ", validateCertificate=" + validateCertificate +
                 ", throttle=" + throttle +
                 ", processorPoolSize=" + processorPoolSize +

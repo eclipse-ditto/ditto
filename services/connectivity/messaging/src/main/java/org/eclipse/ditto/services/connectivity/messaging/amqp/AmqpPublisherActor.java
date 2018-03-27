@@ -15,6 +15,7 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.model.base.headers.DittoHeaderDefinition.CORRELATION_ID;
 
 import java.nio.ByteBuffer;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -29,9 +30,13 @@ import javax.jms.MessageProducer;
 import javax.jms.Session;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.model.connectivity.AddressMetric;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectionStatus;
+import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
+import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressMetric;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
 import akka.actor.Props;
@@ -54,19 +59,26 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
     private final Session session;
     private final Map<Destination, MessageProducer> producerMap;
 
-    private AmqpPublisherActor(@Nullable final Session session, @Nullable final Connection connection) {
+    private AddressMetric addressMetric;
+    private long publishedMessages = 0L;
+
+
+    private AmqpPublisherActor(final Session session, final Connection connection) {
         super(connection);
         this.session = checkNotNull(session, "session");
         this.producerMap = new HashMap<>();
+        addressMetric =
+                ConnectivityModelFactory.newAddressMetric(ConnectionStatus.OPEN, "Started at " + Instant.now(), 0);
     }
 
     /**
-     * Creates Akka configuration object {@link Props} for this {@code CommandConsumerActor}.
+     * Creates Akka configuration object {@link Props} for this {@code AmqpPublisherActor}.
      *
-     * @param session the jms session.
+     * @param session the jms session
+     * @param connection the Ditto connection
      * @return the Akka configuration Props object.
      */
-    static Props props(@Nullable final Session session, @Nullable final Connection connection) {
+    static Props props(final Session session, final Connection connection) {
         return Props.create(AmqpPublisherActor.class, new Creator<AmqpPublisherActor>() {
             private static final long serialVersionUID = 1L;
 
@@ -87,7 +99,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
 
                     final String replyToFromHeader = response.getHeaders().get(ExternalMessage.REPLY_TO_HEADER);
                     if (replyToFromHeader != null) {
-                        final AmqpTarget amqpTarget = AmqpTarget.fromTarget(replyToFromHeader);
+                        final AmqpTarget amqpTarget = AmqpTarget.fromTargetAddress(replyToFromHeader);
                         sendMessage(amqpTarget, response);
                     } else {
                         log.debug("Response dropped, missing replyTo address.");
@@ -101,15 +113,26 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
                     final Set<AmqpTarget> destinationForMessage = getDestinationForMessage(message);
                     destinationForMessage.forEach(amqpTarget -> sendMessage(amqpTarget, message));
                 })
+                .match(AddressMetric.class, this::handleAddressMetric)
+                .match(RetrieveAddressMetric.class, ram -> {
+                    getSender().tell(ConnectivityModelFactory.newAddressMetric(
+                            addressMetric.getStatus(),
+                            addressMetric.getStatusDetails().orElse(null),
+                            publishedMessages), getSelf());
+                })
                 .matchAny(m -> {
-                    log.debug("Unknown message: {}", m);
+                    log.warning("Unknown message: {}", m);
                     unhandled(m);
                 }).build();
     }
 
     @Override
-    protected AmqpTarget toPublishTarget(final String target) {
-        return AmqpTarget.fromTarget(target);
+    protected AmqpTarget toPublishTarget(final String address) {
+        return AmqpTarget.fromTargetAddress(address);
+    }
+
+    private void handleAddressMetric(final AddressMetric addressMetric) {
+        this.addressMetric = addressMetric;
     }
 
     private void sendMessage(final AmqpTarget target, final ExternalMessage message) {
@@ -118,6 +141,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
             if (producer != null) {
                 final Message jmsMessage = toJmsMessage(message);
                 producer.send(jmsMessage);
+                publishedMessages++;
             } else {
                 log.warning("No producer for destination {} available.", target);
             }

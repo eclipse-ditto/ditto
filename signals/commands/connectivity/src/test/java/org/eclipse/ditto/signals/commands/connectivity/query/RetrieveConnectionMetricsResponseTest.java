@@ -17,6 +17,8 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import java.util.Collections;
+
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -24,6 +26,7 @@ import org.eclipse.ditto.model.connectivity.ConnectionMetrics;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
+import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandResponse;
 import org.eclipse.ditto.signals.commands.connectivity.TestConstants;
 import org.junit.Test;
 
@@ -34,12 +37,13 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  */
 public final class RetrieveConnectionMetricsResponseTest {
 
-    private static final ConnectionMetrics METRICS = ConnectivityModelFactory.newConnectionMetrics(ConnectionStatus.OPEN, "some status");
+    private static final ConnectionMetrics METRICS = ConnectivityModelFactory.newConnectionMetrics(ConnectionStatus.OPEN,
+            "some status", "CONNECTED", Collections.emptyList(), Collections.emptyList());
 
     private static final JsonObject KNOWN_JSON = JsonObject.newBuilder()
             .set(CommandResponse.JsonFields.TYPE, RetrieveConnectionMetricsResponse.TYPE)
             .set(CommandResponse.JsonFields.STATUS, HttpStatusCode.OK.toInt())
-            .set(RetrieveConnectionMetricsResponse.JSON_CONNECTION_ID, TestConstants.ID)
+            .set(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID, TestConstants.ID)
             .set(RetrieveConnectionMetricsResponse.JSON_CONNECTION_METRICS, METRICS.toJson())
             .build();
 

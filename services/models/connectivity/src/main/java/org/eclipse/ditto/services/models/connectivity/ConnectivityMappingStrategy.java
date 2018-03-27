@@ -18,18 +18,19 @@ import java.util.function.BiFunction;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.services.models.things.ThingsMappingStrategy;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategiesBuilder;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
+import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandRegistry;
+import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandResponseRegistry;
+import org.eclipse.ditto.signals.commands.connectivity.ConnectivityErrorRegistry;
 import org.eclipse.ditto.signals.commands.devops.DevOpsCommandRegistry;
 import org.eclipse.ditto.signals.commands.devops.DevOpsCommandResponseRegistry;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandRegistry;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandResponseRegistry;
 import org.eclipse.ditto.signals.commands.messages.MessageErrorRegistry;
-
-import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandRegistry;
-import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandResponseRegistry;
-import org.eclipse.ditto.signals.commands.connectivity.ConnectivityErrorRegistry;
 import org.eclipse.ditto.signals.events.connectivity.ConnectivityEventRegistry;
 
 /**
@@ -64,7 +65,12 @@ public final class ConnectivityMappingStrategy implements MappingStrategy {
                 .add(ConnectivityCommandRegistry.newInstance())
                 .add(ConnectivityCommandResponseRegistry.newInstance())
                 .add(ConnectivityEventRegistry.newInstance())
-                .add(ConnectivityErrorRegistry.newInstance());
+                .add(ConnectivityErrorRegistry.newInstance())
+                .add(Connection.class, (jsonObject) ->
+                        ConnectivityModelFactory.connectionFromJson(jsonObject)) // do not replace with lambda!
+                .add("ImmutableConnection", (jsonObject) ->
+                        ConnectivityModelFactory.connectionFromJson(jsonObject)) // do not replace with lambda!
+        ;
 
         addMessagesStrategies(strategiesBuilder);
         addDevOpsStrategies(strategiesBuilder);
