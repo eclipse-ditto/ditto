@@ -59,15 +59,8 @@ final class ComparableCache<K, V extends Comparable<V>> {
     public ComparableCache(final int size, @Nullable final Map.Entry<String, MetricRegistry> namedMetricRegistry) {
         final Caffeine<Object, Object> caffeine = Caffeine.newBuilder().maximumSize(size);
 
-        final CaffeineCache<K, V> caffeineCache = CaffeineCache.of(caffeine, ComparableCache.<K, V>getTypedNullLoader(),
-                namedMetricRegistry);
+        final CaffeineCache<K, V> caffeineCache = CaffeineCache.of(caffeine, namedMetricRegistry);
         this.internalCache = caffeineCache.asMap();
-    }
-
-    private static <K,V> CacheLoader<K, V> getTypedNullLoader() {
-        @SuppressWarnings("unchecked")
-        final CacheLoader<K, V> typedNullNoader = (CacheLoader<K, V>) NULL_LOADER;
-        return typedNullNoader;
     }
 
     /**

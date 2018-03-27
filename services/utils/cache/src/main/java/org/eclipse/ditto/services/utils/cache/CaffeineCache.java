@@ -35,6 +35,8 @@ import com.github.benmanes.caffeine.cache.LoadingCache;
  */
 public class CaffeineCache<K, V> implements Cache<K, V> {
 
+    private static final AsyncCacheLoader<?, ?> NULL_CACHE_LOADER =
+            (k, executor) -> CompletableFuture.completedFuture(null);
     @Nullable
     private final MetricsStatsCounter metricStatsCounter;
     private AsyncLoadingCache<K, V> asyncLoadingCache;
@@ -92,6 +94,38 @@ public class CaffeineCache<K, V> implements Cache<K, V> {
         requireNonNull(loader);
 
         return new CaffeineCache<>(caffeine, loader, null);
+    }
+
+    /**
+     * Creates a new instance based with a Null-Cache-Loader. This is useful if the cache is populated manually.
+     *
+     * @param caffeine a (pre-configured) caffeine instance.
+     * @param <K> the type of the key.
+     * @param <V> the type of the value.
+     * @return the created instance
+     */
+    public static <K, V> CaffeineCache<K, V> of(final Caffeine<?, ?> caffeine) {
+        requireNonNull(caffeine);
+
+        final AsyncCacheLoader<K, V> cacheLoader = getTypedNullCacheLoader();
+        return new CaffeineCache<>(caffeine, cacheLoader, null);
+    }
+
+    /**
+     * Creates a new instance based with a Null-Cache-Loader. This is useful if the cache is populated manually.
+     *
+     * @param caffeine a (pre-configured) caffeine instance.
+     * @param namedMetricRegistry a named {@link MetricRegistry} for cache statistics, may be {@code null}.
+     * @param <K> the type of the key.
+     * @param <V> the type of the value.
+     * @return the created instance
+     */
+    public static <K, V> CaffeineCache<K, V> of(final Caffeine<?, ?> caffeine,
+            @Nullable final Map.Entry<String, MetricRegistry> namedMetricRegistry) {
+        requireNonNull(caffeine);
+
+        final AsyncCacheLoader<K, V> cacheLoader = getTypedNullCacheLoader();
+        return new CaffeineCache<>(caffeine, cacheLoader, namedMetricRegistry);
     }
 
     /**
@@ -159,7 +193,21 @@ public class CaffeineCache<K, V> implements Cache<K, V> {
     }
 
     @Override
+    public void put(final K key, final V value) {
+        requireNonNull(key);
+        requireNonNull(value);
+
+        synchronousCacheView.put(key, value);
+    }
+
+    @Override
     public ConcurrentMap<K, V> asMap() {
         return synchronousCacheView.asMap();
+    }
+
+    private static <K, V> AsyncCacheLoader<K, V> getTypedNullCacheLoader() {
+        @SuppressWarnings("unchecked")
+        final AsyncCacheLoader<K, V> nullCacheLoader = (AsyncCacheLoader<K, V>) NULL_CACHE_LOADER;
+        return nullCacheLoader;
     }
 }

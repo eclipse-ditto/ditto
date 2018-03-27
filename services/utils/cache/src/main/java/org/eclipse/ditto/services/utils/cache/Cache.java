@@ -51,6 +51,16 @@ public interface Cache<K, V> {
     void invalidate(K key);
 
     /**
+     * Associates the {@code value} with the {@code key} in this cache.
+     * <p>
+     * Prefer using a cache-loader instead.
+     *</p>
+     * @param key the key.
+     * @param value the value.
+     * @throws NullPointerException if either the given {@code key} or {@code value} is null.
+     */
+    void put(final K key, final V value);
+    /**
      * Returns a synchronous view of the entries stored in this cache as a (thread-safe) map.
      * Modifications directly affect the cache.
      *
