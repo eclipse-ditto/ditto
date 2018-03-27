@@ -22,6 +22,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
@@ -90,6 +91,7 @@ final class MessageAdaptableHelper {
 
         final DittoHeadersBuilder allHeadersBuilder = DittoHeaders.newBuilder(messageCommandHeadersJsonObject);
         allHeadersBuilder.putHeaders(dittoHeaders);
+        allHeadersBuilder.contentType(DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
 
         final PayloadBuilder payloadBuilder = Payload.newBuilder(resourcePath);
 
@@ -202,7 +204,8 @@ final class MessageAdaptableHelper {
     }
 
     private static boolean shouldBeInterpretedAsText(final String contentType) {
-        return isPlainText(contentType) || contentType.startsWith(APPLICATION_JSON);
+        return isPlainText(contentType) || contentType.startsWith(APPLICATION_JSON) ||
+                DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE.equalsIgnoreCase(contentType);
     }
 
     private static boolean shouldBeInterpretedAsBinary(final String contentType) {

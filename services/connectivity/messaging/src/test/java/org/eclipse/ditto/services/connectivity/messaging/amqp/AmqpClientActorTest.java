@@ -21,7 +21,6 @@ import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.Collections;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -36,6 +35,10 @@ import javax.jms.TextMessage;
 
 import org.apache.qpid.jms.JmsConnection;
 import org.apache.qpid.jms.JmsQueue;
+import org.apache.qpid.jms.message.JmsTextMessage;
+import org.apache.qpid.jms.provider.amqp.AmqpConnection;
+import org.apache.qpid.jms.provider.amqp.message.AmqpJmsTextMessageFacade;
+import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
@@ -306,13 +309,15 @@ public class AmqpClientActorTest {
     }
 
     private Message mockMessage() throws JMSException {
-        final TextMessage message = Mockito.mock(TextMessage.class);
-        when(message.getJMSCorrelationID()).thenReturn("cid");
-        when(message.getJMSReplyTo()).thenReturn(new JmsQueue("reply"));
-        when(message.getPropertyNames()).thenReturn(Collections.enumeration(Collections.singletonList("header1")));
-        when(message.getObjectProperty(anyString())).thenReturn("value");
-        when(message.getText()).thenReturn(TestConstants.modifyThing());
-        return message;
+        final AmqpJmsTextMessageFacade amqpJmsTextMessageFacade = new AmqpJmsTextMessageFacade();
+        amqpJmsTextMessageFacade.setContentType(DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
+        amqpJmsTextMessageFacade.initialize(Mockito.mock(AmqpConnection.class));
+
+        final JmsTextMessage jmsTextMessage = new JmsTextMessage(amqpJmsTextMessageFacade);
+        jmsTextMessage.setJMSCorrelationID("cid");
+        jmsTextMessage.setJMSReplyTo(new JmsQueue("reply"));
+        jmsTextMessage.setText(TestConstants.modifyThing());
+        return jmsTextMessage;
     }
 
     private <T> T waitForLatchAndReturn(final CountDownLatch latch, final T result) {
