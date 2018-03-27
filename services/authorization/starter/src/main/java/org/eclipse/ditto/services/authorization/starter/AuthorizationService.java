@@ -12,6 +12,7 @@
 package org.eclipse.ditto.services.authorization.starter;
 
 import org.eclipse.ditto.services.authorization.starter.actors.AuthorizationRootActor;
+import org.eclipse.ditto.services.authorization.starter.proxy.DefaultAuthorizationProxyPropsFactory;
 import org.eclipse.ditto.services.authorization.util.config.AuthorizationConfigReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,7 +46,7 @@ public final class AuthorizationService extends AbstractAuthorizationService {
     protected Props getMainRootActorProps(final AuthorizationConfigReader configReader, final ActorRef pubSubMediator,
             final ActorMaterializer materializer) {
 
-        return AuthorizationRootActor.props(configReader, pubSubMediator);
+        return AuthorizationRootActor.props(configReader, pubSubMediator, new DefaultAuthorizationProxyPropsFactory());
     }
 
 }

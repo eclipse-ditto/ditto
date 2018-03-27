@@ -11,31 +11,18 @@
  */
 package org.eclipse.ditto.services.authorization.starter.actors;
 
-import java.time.Duration;
-import java.util.HashMap;
-import java.util.Map;
+import static java.util.Objects.requireNonNull;
+
 import java.util.Optional;
 
-import org.eclipse.ditto.services.authorization.util.EntityRegionMap;
-import org.eclipse.ditto.services.authorization.util.cache.AuthorizationCaches;
-import org.eclipse.ditto.services.authorization.util.cache.EnforcerCacheLoader;
-import org.eclipse.ditto.services.authorization.util.cache.ThingEnforcementIdCacheLoader;
-import org.eclipse.ditto.services.authorization.util.cache.entry.Entry;
+import org.eclipse.ditto.services.authorization.starter.proxy.AuthorizationProxyPropsFactory;
 import org.eclipse.ditto.services.authorization.util.config.AuthorizationConfigReader;
-import org.eclipse.ditto.services.authorization.util.enforcement.EnforcerActorFactory;
-import org.eclipse.ditto.services.authorization.util.update.CacheUpdaterPropsFactory;
 import org.eclipse.ditto.services.base.config.ClusterConfigReader;
-import org.eclipse.ditto.services.base.metrics.StatsdMetricsReporter;
 import org.eclipse.ditto.services.models.authorization.AuthorizationMessagingConstants;
-import org.eclipse.ditto.services.models.authorization.EntityId;
 import org.eclipse.ditto.services.models.policies.PoliciesMessagingConstants;
 import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
-import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
-import org.eclipse.ditto.signals.commands.things.ThingCommand;
-
-import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -64,7 +51,12 @@ public final class AuthorizationRootActor extends AbstractActor {
      */
     public static final String ACTOR_NAME = "authorizationRoot";
 
-    private AuthorizationRootActor(final AuthorizationConfigReader configReader, final ActorRef pubSubMediator) {
+    private AuthorizationRootActor(final AuthorizationConfigReader configReader, final ActorRef pubSubMediator,
+            final AuthorizationProxyPropsFactory authorizationProxyPropsFactory) {
+        requireNonNull(configReader);
+        requireNonNull(pubSubMediator);
+        requireNonNull(authorizationProxyPropsFactory);
+
         final ActorSystem actorSystem = getContext().getSystem();
         final ClusterConfigReader clusterConfigReader = configReader.cluster();
 
@@ -76,32 +68,12 @@ public final class AuthorizationRootActor extends AbstractActor {
         final ActorRef thingsShardRegionProxy = startProxy(actorSystem, numberOfShards,
                 ThingsMessagingConstants.SHARD_REGION, ThingsMessagingConstants.CLUSTER_ROLE);
 
-        final EntityRegionMap entityRegionMap =  EntityRegionMap.newBuilder()
-                .put(PolicyCommand.RESOURCE_TYPE, policiesShardRegionProxy)
-                .put(ThingCommand.RESOURCE_TYPE, thingsShardRegionProxy)
-                .build();
-
-        final Duration askTimeout = configReader.caches().askTimeout();
-        final Map<String, AsyncCacheLoader<EntityId, Entry<EntityId>>> enforcementIdCacheLoaders = new HashMap<>();
-        final ThingEnforcementIdCacheLoader thingEnforcerIdCacheLoader =
-                new ThingEnforcementIdCacheLoader(askTimeout, thingsShardRegionProxy);
-        enforcementIdCacheLoaders.put(ThingCommand.RESOURCE_TYPE, thingEnforcerIdCacheLoader);
-
-        final EnforcerCacheLoader enforcerCacheLoader =
-                new EnforcerCacheLoader(askTimeout, thingsShardRegionProxy, policiesShardRegionProxy);
-
-        final AuthorizationCaches caches = new AuthorizationCaches(configReader.caches(), enforcerCacheLoader,
-                enforcementIdCacheLoaders,
-                namedMetricRegistry -> StatsdMetricsReporter.getInstance().add(namedMetricRegistry));
-
-        final Props enforcerProps = EnforcerActorFactory.props(entityRegionMap, caches);
+        final Props enforcerProps =
+                authorizationProxyPropsFactory.props(getContext(), configReader, pubSubMediator,
+                        policiesShardRegionProxy, thingsShardRegionProxy);
 
         // start enforcer shard region; no need to keep the reference
         authorizationShardRegion = startShardRegion(actorSystem, clusterConfigReader, enforcerProps);
-
-        // start cache updater
-        getContext().actorOf(CacheUpdaterPropsFactory.props(pubSubMediator, caches, configReader.instanceIndex()),
-                CacheUpdaterPropsFactory.ACTOR_NAME);
     }
 
     /**
@@ -109,11 +81,13 @@ public final class AuthorizationRootActor extends AbstractActor {
      *
      * @param configReader the authorization service config reader.
      * @param pubSubMediator the PubSub mediator Actor.
+     * @param authorizationProxyPropsFactory the {@link AuthorizationProxyPropsFactory}.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final AuthorizationConfigReader configReader, final ActorRef pubSubMediator) {
+    public static Props props(final AuthorizationConfigReader configReader, final ActorRef pubSubMediator,
+            final AuthorizationProxyPropsFactory authorizationProxyPropsFactory) {
         return Props.create(AuthorizationRootActor.class,
-                () -> new AuthorizationRootActor(configReader, pubSubMediator));
+                () -> new AuthorizationRootActor(configReader, pubSubMediator, authorizationProxyPropsFactory));
     }
 
     @Override
