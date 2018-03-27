@@ -20,14 +20,12 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ExternalMessage;
+import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.protocoladapter.TopicPath;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
 
 import akka.actor.AbstractActor;
-import akka.event.DiagnosticLoggingAdapter;
 
 /**
  * Base class for publisher actors. Holds the map of configured targets.
@@ -40,13 +38,17 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
     private static final String PATH_TEMPLATE = "_/_/{0}/{1}/{2}";
 
     private final Map<String, Set<T>> destinations = new HashMap<>();
-    private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
+    /**
+     * Abstract constructor for creating abstract publisher actors.
+     *
+     * @param targets the {@link Target}s to publish to
+     */
+    protected BasePublisherActor(final Set<Target> targets) {
+        checkNotNull(targets, "targets");
 
-    protected BasePublisherActor(final Connection connection) {
-        checkNotNull(connection, "connection");
         // initialize a map with the configured topic and the targets where the messages should be sent to
-        connection.getTargets().forEach(target -> {
+        targets.forEach(target -> {
             final T publishTarget = toPublishTarget(target.getAddress());
             target.getTopics().stream()
                     .filter(TopicPathMapper.SUPPORTED_TOPICS::containsKey)

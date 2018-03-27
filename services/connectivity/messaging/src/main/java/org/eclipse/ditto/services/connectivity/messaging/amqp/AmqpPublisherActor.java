@@ -31,10 +31,10 @@ import javax.jms.Session;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.connectivity.AddressMetric;
-import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ExternalMessage;
+import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
 import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressMetric;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -63,8 +63,8 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
     private long publishedMessages = 0L;
 
 
-    private AmqpPublisherActor(final Session session, final Connection connection) {
-        super(connection);
+    private AmqpPublisherActor(final Session session, final Set<Target> targets) {
+        super(targets);
         this.session = checkNotNull(session, "session");
         this.producerMap = new HashMap<>();
         addressMetric =
@@ -75,16 +75,16 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
      * Creates Akka configuration object {@link Props} for this {@code AmqpPublisherActor}.
      *
      * @param session the jms session
-     * @param connection the Ditto connection
+     * @param targets the targets to publish to
      * @return the Akka configuration Props object.
      */
-    static Props props(final Session session, final Connection connection) {
+    static Props props(final Session session, final Set<Target> targets) {
         return Props.create(AmqpPublisherActor.class, new Creator<AmqpPublisherActor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
             public AmqpPublisherActor create() {
-                return new AmqpPublisherActor(session, connection);
+                return new AmqpPublisherActor(session, targets);
             }
         });
     }
@@ -102,7 +102,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
                         final AmqpTarget amqpTarget = AmqpTarget.fromTargetAddress(replyToFromHeader);
                         sendMessage(amqpTarget, response);
                     } else {
-                        log.debug("Response dropped, missing replyTo address.");
+                        log.info("Response dropped, missing replyTo address: {}", response);
                     }
                 })
                 .match(ExternalMessage.class, message -> {

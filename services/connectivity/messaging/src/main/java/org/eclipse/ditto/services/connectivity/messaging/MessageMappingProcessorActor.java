@@ -60,13 +60,13 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     /**
      * The name of this Actor in the ActorSystem.
      */
-    public static final String ACTOR_NAME_PREFIX = "messageMappingProcessor-";
+    public static final String ACTOR_NAME = "messageMappingProcessor";
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
     private final ActorRef pubSubMediator;
     private final String pubSubTargetPath;
-    private final ActorRef commandProducer;
+    private final ActorRef publisherActor;
     private final AuthorizationContext authorizationContext;
     private final Cache<String, TraceContext> traces;
 
@@ -75,12 +75,12 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     private final String connectionId;
 
     private MessageMappingProcessorActor(final ActorRef pubSubMediator, final String pubSubTargetPath,
-            final ActorRef commandProducer, final AuthorizationContext authorizationContext,
+            final ActorRef publisherActor, final AuthorizationContext authorizationContext,
             final MessageHeaderFilter headerFilter,
             final MessageMappingProcessor processor, final String connectionId) {
         this.pubSubMediator = pubSubMediator;
         this.pubSubTargetPath = pubSubTargetPath;
-        this.commandProducer = commandProducer;
+        this.publisherActor = publisherActor;
         this.authorizationContext = authorizationContext;
         this.processor = processor;
         this.headerFilter = headerFilter;
@@ -90,8 +90,6 @@ public final class MessageMappingProcessorActor extends AbstractActor {
                 .removalListener((RemovalListener<String, TraceContext>) notification
                         -> log.debug("Trace for {} removed.", notification.getKey()))
                 .build();
-
-
 
         log.info("Configured for processing messages with the following content types: {}",
                 processor.getSupportedContentTypes());
@@ -103,7 +101,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
      *
      * @param pubSubMediator the akka pubsub mediator actor
      * @param pubSubTargetPath the target path where incoming messages are sent
-     * @param commandProducer actor that handles outgoing messages
+     * @param publisherActor actor that handles/publishes outgoing messages
      * @param authorizationContext the authorization context (authorized subjects) that are set in command headers
      * @param headerFilter the header filter used to apply on responses
      * @param processor the MessageMappingProcessor to use
@@ -111,7 +109,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
      * @return the Akka configuration Props object
      */
     public static Props props(final ActorRef pubSubMediator, final String pubSubTargetPath,
-            final ActorRef commandProducer,
+            final ActorRef publisherActor,
             final AuthorizationContext authorizationContext,
             final MessageHeaderFilter headerFilter,
             final MessageMappingProcessor processor,
@@ -122,7 +120,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
 
             @Override
             public MessageMappingProcessorActor create() {
-                return new MessageMappingProcessorActor(pubSubMediator, pubSubTargetPath, commandProducer,
+                return new MessageMappingProcessorActor(pubSubMediator, pubSubTargetPath, publisherActor,
                         authorizationContext, headerFilter, processor, connectionId);
             }
         });
@@ -133,19 +131,19 @@ public final class MessageMappingProcessorActor extends AbstractActor {
      *
      * @param pubSubMediator the akka pubsub mediator actor
      * @param pubSubTargetPath the target path where incoming messages are sent
-     * @param commandProducer actor that handles outgoing messages
+     * @param publisherActor actor that handles outgoing messages
      * @param authorizationContext the authorization context (authorized subjects) that are set in command headers
      * @param processor the MessageMappingProcessor to use
      * @param connectionId the connection id
      * @return the Akka configuration Props object
      */
     public static Props props(final ActorRef pubSubMediator, final String pubSubTargetPath,
-            final ActorRef commandProducer,
+            final ActorRef publisherActor,
             final AuthorizationContext authorizationContext,
             final MessageMappingProcessor processor,
             final String connectionId) {
 
-        return props(pubSubMediator, pubSubTargetPath, commandProducer,
+        return props(pubSubMediator, pubSubTargetPath, publisherActor,
                         authorizationContext,
                         new MessageHeaderFilter(MessageHeaderFilter.Mode.EXCLUDE, Collections.emptyList()),
                 processor, connectionId);
@@ -162,7 +160,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
                 .match(Status.Failure.class, f -> log.warning("Got failure with cause {}: {}",
                         f.cause().getClass().getSimpleName(), f.cause().getMessage()))
                 .matchAny(m -> {
-                    log.debug("Unknown message: {}", m);
+                    log.warning("Unknown message: {}", m);
                     unhandled(m);
                 }).build();
     }
@@ -234,7 +232,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
 
         try {
             final Optional<ExternalMessage> messageOpt = processor.process(response);
-            messageOpt.map(headerFilter).ifPresent(message -> commandProducer.forward(message, getContext()));
+            messageOpt.map(headerFilter).ifPresent(message -> publisherActor.forward(message, getContext()));
         } catch (final DittoRuntimeException e) {
             log.info("Got DittoRuntimeException during processing Signal: <{}>", e.getMessage());
         } catch (final Exception e) {

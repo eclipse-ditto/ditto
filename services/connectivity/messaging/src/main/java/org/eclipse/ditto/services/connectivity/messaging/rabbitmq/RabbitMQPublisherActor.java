@@ -24,6 +24,7 @@ import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ExternalMessage;
+import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMappers;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
 import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressMetric;
@@ -70,9 +71,10 @@ import akka.japi.pf.ReceiveBuilder;
 public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTarget> {
 
     /**
-     * The name prefix of this Actor in the ActorSystem.
+     * The name of this Actor in the ActorSystem.
      */
-    static final String ACTOR_NAME_PREFIX = "rmqPublisherActor-";
+    static final String ACTOR_NAME = "rmqPublisherActor";
+
     private static final String DEFAULT_EXCHANGE = "";
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
@@ -82,23 +84,23 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
     private long publishedMessages = 0L;
     @Nullable private AddressMetric addressMetric = null;
 
-    private RabbitMQPublisherActor(final Connection connection) {
-        super(connection);
+    private RabbitMQPublisherActor(final Set<Target> targets) {
+        super(targets);
     }
 
     /**
      * Creates Akka configuration object {@link Props} for this {@code RabbitMQPublisherActor}.
      *
-     * @param connection the connection configuration
+     * @param targets the targets to publish to
      * @return the Akka configuration Props object.
      */
-    static Props props(final Connection connection) {
+    static Props props(final Set<Target> targets) {
         return Props.create(RabbitMQPublisherActor.class, new Creator<RabbitMQPublisherActor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
             public RabbitMQPublisherActor create() {
-                return new RabbitMQPublisherActor(connection);
+                return new RabbitMQPublisherActor(targets);
             }
         });
     }
@@ -107,15 +109,19 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
     public Receive createReceive() {
         return ReceiveBuilder.create()
                 .match(ChannelCreated.class, channelCreated -> this.channelActor = channelCreated.channel())
-                .match(ExternalMessage.class, this::isResponseOrError, message -> {
+                .match(ExternalMessage.class, this::isResponseOrError, response -> {
                     final String correlationId =
-                            message.getHeaders().get(DittoHeaderDefinition.CORRELATION_ID.getKey());
+                            response.getHeaders().get(DittoHeaderDefinition.CORRELATION_ID.getKey());
                     LogUtil.enhanceLogWithCorrelationId(log, correlationId);
-                    log.debug("Received mapped message {} ", message);
+                    log.debug("Received mapped response {} ", response);
 
-                    final String replyTo = message.getHeaders().get(ExternalMessage.REPLY_TO_HEADER);
-                    final RabbitMQTarget replyTarget = RabbitMQTarget.of(DEFAULT_EXCHANGE, replyTo);
-                    publishMessage(replyTarget, message);
+                    final String replyTo = response.getHeaders().get(ExternalMessage.REPLY_TO_HEADER);
+                    if (replyTo != null) {
+                        final RabbitMQTarget replyTarget = RabbitMQTarget.of(DEFAULT_EXCHANGE, replyTo);
+                        publishMessage(replyTarget, response);
+                    } else {
+                        log.info("Response dropped, missing replyTo address: {}", response);
+                    }
                 })
                 .match(ExternalMessage.class, message -> {
                     final String correlationId =
@@ -156,7 +162,7 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
         }
 
         if (rabbitMQTarget.getRoutingKey() == null) {
-            log.debug("No routing key, dropping message.");
+            log.warning("No routing key, dropping message.");
             return;
         }
 

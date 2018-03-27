@@ -13,7 +13,6 @@ package org.eclipse.ditto.services.connectivity.messaging.rabbitmq;
 
 import java.io.IOException;
 import java.time.Instant;
-import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -64,6 +63,7 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.Status;
 import akka.event.DiagnosticLoggingAdapter;
+import akka.japi.Pair;
 import akka.japi.pf.FSMStateFunctionBuilder;
 import scala.Option;
 import scala.concurrent.duration.FiniteDuration;
@@ -124,18 +124,27 @@ public final class RabbitMQClientActor extends BaseClientActor {
 
     @Override
     protected void onClientConnected(final ClientConnected clientConnected, final BaseClientData data) {
-        openConnection();
-        if (rmqPublisherActor != null) {
-            startMessageMappingProcessor(rmqPublisherActor, data.getMappingContexts());
-        } else {
-            log.error("RMQ publisher actor was null, so we don't start the MessageMappingActor");
+        if (rmqConnectionActor != null) {
+            if (consumerChannelActor == null) {
+                // create a consumer channel - if source is configured
+                if (isConsuming()) {
+                    rmqConnectionActor.tell(
+                            CreateChannel.apply(
+                                    ChannelActor.props((channel, s) -> null),
+                                    Option.apply(CONSUMER_CHANNEL)), getSelf());
+                } else {
+                    log.info("Not starting channels, no sources were configured");
+                }
+            } else {
+                log.info("Consumer is already created, don't created it again..");
+            }
+            log.debug("Connection '{}' opened.", connectionId());
         }
     }
 
     @Override
     protected void onClientDisconnected(final ClientDisconnected clientDisconnected, final BaseClientData data) {
         stopCommandConsumers();
-        stopMessageMappingProcessor();
         stopCommandPublisher();
         if (consumerChannelActor != null) {
             stopChildActor(consumerChannelActor);
@@ -149,6 +158,11 @@ public final class RabbitMQClientActor extends BaseClientActor {
             stopChildActor(rmqPublisherActor);
             rmqPublisherActor = null;
         }
+    }
+
+    @Override
+    protected Optional<ActorRef> getPublisherActor() {
+        return Optional.ofNullable(rmqPublisherActor);
     }
 
     @Override
@@ -174,12 +188,13 @@ public final class RabbitMQClientActor extends BaseClientActor {
 
         createConnectionSender = getSender();
 
-        connect(connection); // TODO TJ what to do with result?
+        connect(connection)
+            .thenAccept(status -> log.info("Status of connecting in doConnectClient: {}", status));
     }
 
     @Override
     protected void doDisconnectClient(final Connection connection) {
-
+        // no-op
     }
 
     @Override
@@ -195,7 +210,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
                             })
                     ).collect(Collectors.toList()))
                     .thenApply((entries) ->
-                            entries.stream().collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)))
+                            entries.stream().collect(Collectors.toMap(Pair::first, Pair::second)))
                     .get(RETRIEVE_METRICS_TIMEOUT, TimeUnit.SECONDS);
         } catch (final InterruptedException | ExecutionException | TimeoutException e) {
             log.error(e, "Error while aggregating sources ConnectionStatus: {}", e.getMessage());
@@ -209,10 +224,10 @@ public final class RabbitMQClientActor extends BaseClientActor {
         final String actorName = RMQ_PUBLISHER_PREFIX + connectionId();
         final HashMap<String, AddressMetric> targetStatus = new HashMap<>();
         try {
-            final AbstractMap.SimpleEntry<String, AddressMetric> targetEntry =
+            final Pair<String, AddressMetric> targetEntry =
                     retrieveAddressMetric(target.getAddress(), actorName).get(RETRIEVE_METRICS_TIMEOUT,
                             TimeUnit.SECONDS);
-            targetStatus.put(targetEntry.getKey(), targetEntry.getValue());
+            targetStatus.put(targetEntry.first(), targetEntry.second());
             return targetStatus;
         } catch (final InterruptedException | ExecutionException | TimeoutException e) {
             log.error(e, "Error while aggregating target ConnectionStatus: {}", e.getMessage());
@@ -241,9 +256,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
                     });
             rmqConnectionActor = startChildActor(RMQ_CONNECTION_PREFIX + connectionId(), props);
 
-            final Props publisherProps = RabbitMQPublisherActor.props(connection);
-            rmqPublisherActor =
-                    startChildActor(RabbitMQPublisherActor.ACTOR_NAME_PREFIX + connectionId(), publisherProps);
+            rmqPublisherActor = startRmqPublisherActor().orElse(null);
 
             // create publisher channel
             rmqConnectionActor.tell(
@@ -261,20 +274,15 @@ public final class RabbitMQClientActor extends BaseClientActor {
         return future;
     }
 
-    private void openConnection() {
-        if (rmqConnectionActor != null) {
-            if (consumerChannelActor == null) {
-                // create a consumer channel - if source is configured
-                if (isConsuming()) {
-                    rmqConnectionActor.tell(
-                            CreateChannel.apply(
-                                    ChannelActor.props((channel, s) -> null),
-                                    Option.apply(CONSUMER_CHANNEL)), getSelf());
-                }
-            } else {
-                log.info("Consumer is already created, don't created it again..");
-            }
-            log.debug("Connection '{}' opened.", connectionId());
+    private Optional<ActorRef> startRmqPublisherActor() {
+        if (isPublishing()) {
+            final String name = RabbitMQPublisherActor.ACTOR_NAME;
+            return Optional.of(getContext().findChild(name).orElseGet(() -> {
+                final Props publisherProps = RabbitMQPublisherActor.props(getTargetsOrEmptySet());
+                return startChildActor(RabbitMQPublisherActor.ACTOR_NAME, publisherProps);
+            }));
+        } else {
+            return Optional.empty();
         }
     }
 
@@ -321,7 +329,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
 
     private void startConsumers(final Channel channel) {
 
-        final Optional<ActorRef> messageMappingProcessor = getMessageMappingProcessor();
+        final Optional<ActorRef> messageMappingProcessor = getMessageMappingProcessorActor();
         if (messageMappingProcessor.isPresent()) {
             getSourcesOrEmptySet().forEach(source ->
                     source.getAddresses().forEach(sourceAddress -> {

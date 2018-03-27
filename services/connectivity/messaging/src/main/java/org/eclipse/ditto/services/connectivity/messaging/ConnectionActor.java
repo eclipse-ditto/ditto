@@ -570,7 +570,7 @@ final class ConnectionActor extends AbstractPersistentActor {
             final RoundRobinPool roundRobinPool = new RoundRobinPool(clientCount);
             final Props clusterRouterPoolProps =
                     new ClusterRouterPool(roundRobinPool, clusterRouterPoolSettings).props(props);
-            clientActor = getContext().actorOf(clusterRouterPoolProps, "rtr-" + connectionId);
+            clientActor = getContext().actorOf(clusterRouterPoolProps, "client-router");
         } else {
             log.debug("ClientActor already started.");
         }
