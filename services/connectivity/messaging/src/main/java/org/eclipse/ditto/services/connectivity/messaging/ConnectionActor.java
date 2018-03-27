@@ -313,7 +313,7 @@ final class ConnectionActor extends AbstractPersistentActor {
             log.debug("Not forwarding anything.");
             return;
         }
-        if (connectionId.equals(signal.getDittoHeaders().get("origin"))) {
+        if (connectionId.equals(signal.getDittoHeaders().getOrigin().orElse(null))) {
             log.debug("Dropping signal, was sent by myself.");
             return;
         }

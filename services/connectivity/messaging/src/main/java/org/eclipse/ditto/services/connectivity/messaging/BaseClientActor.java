@@ -548,7 +548,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             final Props props =
                     MessageMappingProcessorActor.props(pubSubMediator, pubSubTargetPath, commandProducer,
                             connection.getAuthorizationContext(), new MessageHeaderFilter(EXCLUDE, headerBlacklist),
-                            processor);
+                            processor, connectionId());
             final String messageMappingProcessorName = getMessageMappingProcessorActorName(connection.getId());
 
             final DefaultResizer resizer = new DefaultResizer(1, connection.getProcessorPoolSize());

@@ -119,6 +119,14 @@ public interface DittoHeadersBuilder<B extends DittoHeadersBuilder, R extends Di
     B dryRun(boolean dryRun);
 
     /**
+     * Sets the origin value.
+     *
+     * @param origin the origin value to be set.
+     * @return this builder for Method Chaining.
+     */
+    B origin(CharSequence origin);
+
+    /**
      * Puts an arbitrary header with the specified {@code name} and String {@code value} to this builder.
      *
      * @param key the header name to use.

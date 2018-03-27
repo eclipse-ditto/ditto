@@ -88,7 +88,14 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * <p>
      * Key: {@code "channel"}, Java type: {@link String}.
      */
-    CHANNEL("channel", String.class);
+    CHANNEL("channel", String.class),
+
+    /**
+     * Header definition for origin value that is set to the id of the originating session.
+     * <p>
+     * Key: {@code "origin"}, Java type: {@link String}.
+     */
+    ORIGIN("origin", String.class);
 
     /**
      * Map to speed up lookup of header definition by key.

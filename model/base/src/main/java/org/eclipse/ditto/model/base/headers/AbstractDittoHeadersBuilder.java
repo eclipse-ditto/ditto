@@ -212,6 +212,12 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     }
 
     @Override
+    public S origin(final CharSequence origin) {
+        putCharSequence(DittoHeaderDefinition.ORIGIN, origin);
+        return myself;
+    }
+
+    @Override
     public S putHeader(final CharSequence key, final CharSequence value) {
         validateKey(key);
         checkNotNull(value, "value");

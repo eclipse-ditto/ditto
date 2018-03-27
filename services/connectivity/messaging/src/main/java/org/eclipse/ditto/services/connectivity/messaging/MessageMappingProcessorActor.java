@@ -72,18 +72,19 @@ public final class MessageMappingProcessorActor extends AbstractActor {
 
     private final MessageHeaderFilter headerFilter;
     private final MessageMappingProcessor processor;
-
+    private final String connectionId;
 
     private MessageMappingProcessorActor(final ActorRef pubSubMediator, final String pubSubTargetPath,
             final ActorRef commandProducer, final AuthorizationContext authorizationContext,
             final MessageHeaderFilter headerFilter,
-            final MessageMappingProcessor processor) {
+            final MessageMappingProcessor processor, final String connectionId) {
         this.pubSubMediator = pubSubMediator;
         this.pubSubTargetPath = pubSubTargetPath;
         this.commandProducer = commandProducer;
         this.authorizationContext = authorizationContext;
         this.processor = processor;
         this.headerFilter = headerFilter;
+        this.connectionId = connectionId;
         traces = CacheBuilder.newBuilder()
                 .expireAfterWrite(5, TimeUnit.MINUTES)
                 .removalListener((RemovalListener<String, TraceContext>) notification
@@ -106,13 +107,15 @@ public final class MessageMappingProcessorActor extends AbstractActor {
      * @param authorizationContext the authorization context (authorized subjects) that are set in command headers
      * @param headerFilter the header filter used to apply on responses
      * @param processor the MessageMappingProcessor to use
+     * @param connectionId the connection id
      * @return the Akka configuration Props object
      */
     public static Props props(final ActorRef pubSubMediator, final String pubSubTargetPath,
             final ActorRef commandProducer,
             final AuthorizationContext authorizationContext,
             final MessageHeaderFilter headerFilter,
-            final MessageMappingProcessor processor) {
+            final MessageMappingProcessor processor,
+            final String connectionId) {
 
         return Props.create(MessageMappingProcessorActor.class, new Creator<MessageMappingProcessorActor>() {
             private static final long serialVersionUID = 1L;
@@ -120,7 +123,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
             @Override
             public MessageMappingProcessorActor create() {
                 return new MessageMappingProcessorActor(pubSubMediator, pubSubTargetPath, commandProducer,
-                        authorizationContext, headerFilter, processor);
+                        authorizationContext, headerFilter, processor, connectionId);
             }
         });
     }
@@ -133,17 +136,19 @@ public final class MessageMappingProcessorActor extends AbstractActor {
      * @param commandProducer actor that handles outgoing messages
      * @param authorizationContext the authorization context (authorized subjects) that are set in command headers
      * @param processor the MessageMappingProcessor to use
+     * @param connectionId the connection id
      * @return the Akka configuration Props object
      */
     public static Props props(final ActorRef pubSubMediator, final String pubSubTargetPath,
             final ActorRef commandProducer,
             final AuthorizationContext authorizationContext,
-            final MessageMappingProcessor processor) {
+            final MessageMappingProcessor processor,
+            final String connectionId) {
 
         return props(pubSubMediator, pubSubTargetPath, commandProducer,
                         authorizationContext,
                         new MessageHeaderFilter(MessageHeaderFilter.Mode.EXCLUDE, Collections.emptyList()),
-                        processor);
+                processor, connectionId);
     }
 
 
@@ -180,8 +185,9 @@ public final class MessageMappingProcessorActor extends AbstractActor {
             signalOpt.ifPresent(signal -> {
                 final DittoHeadersBuilder adjustedHeadersBuilder = signal.getDittoHeaders().toBuilder()
                         .authorizationContext(authorizationContext);
-                if (signal.getDittoHeaders().get("origin") == null) {
-                    adjustedHeadersBuilder.putHeader("origin", "live");
+
+                if (!signal.getDittoHeaders().getOrigin().isPresent()) {
+                    adjustedHeadersBuilder.origin(connectionId);
                 }
                 final DittoHeaders adjustedHeaders = adjustedHeadersBuilder.build();
                 // overwrite the auth-subjects to the configured ones after mapping in order to be sure that the mapping

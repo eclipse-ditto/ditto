@@ -223,7 +223,7 @@ final class StreamingSessionActor extends AbstractActor {
         acknowledgeSubscriptionForSignal(signal);
 
         final DittoHeaders dittoHeaders = signal.getDittoHeaders();
-        if (connectionCorrelationId.equals(dittoHeaders.get("origin"))) {
+        if (connectionCorrelationId.equals(dittoHeaders.getOrigin().orElse(null))) {
             logger.debug("Got Signal <{}> in <{}> session, " +
                     "but this was issued by this connection itself, not telling "
                     + "eventAndResponsePublisher about it", signal.getType(), type);

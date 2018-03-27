@@ -194,4 +194,11 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
      */
     boolean isDryRun();
 
+    /**
+     * Returns the id of the orignating session (e.g. WebSocket, AMQP, ...)
+     *
+     * @return the "origin" value.
+     */
+    Optional<String> getOrigin();
+
 }

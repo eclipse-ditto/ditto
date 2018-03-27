@@ -109,9 +109,9 @@ public final class StreamingActor extends AbstractActor {
                                 stopStreaming)
                 )
                 .match(Signal.class, signal -> {
-                    final Optional<String> correlationIdOpt = extractConnectionCorrelationId(signal);
-                    if (correlationIdOpt.isPresent()) {
-                        final ActorRef sessionActor = getContext().getChild(correlationIdOpt.get());
+                    final Optional<String> origin = signal.getDittoHeaders().getOrigin();
+                    if (origin.isPresent()) {
+                        final ActorRef sessionActor = getContext().getChild(origin.get());
                         if (sessionActor != null) {
                             proxyActor.tell(signal, sessionActor);
                         }
@@ -121,7 +121,7 @@ public final class StreamingActor extends AbstractActor {
                     }
                 })
                 .match(DittoRuntimeException.class, cre -> {
-                    final Optional<String> correlationIdOpt = extractConnectionCorrelationId(cre);
+                    final Optional<String> correlationIdOpt = cre.getDittoHeaders().getOrigin();
                     if (correlationIdOpt.isPresent()) {
                         forwardToSessionActor(correlationIdOpt.get(), cre);
                     } else {
@@ -130,10 +130,6 @@ public final class StreamingActor extends AbstractActor {
                     }
                 })
                 .matchAny(any -> logger.warning("Got unknown message: '{}'", any)).build();
-    }
-
-    private static Optional<String> extractConnectionCorrelationId(final WithDittoHeaders withDittoHeaders) {
-        return Optional.ofNullable(withDittoHeaders.getDittoHeaders().get("origin"));
     }
 
     private void forwardToSessionActor(final String connectionCorrelationId, final Object object) {

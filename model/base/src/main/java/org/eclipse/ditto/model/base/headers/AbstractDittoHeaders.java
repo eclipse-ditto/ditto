@@ -144,6 +144,11 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
     }
 
     @Override
+    public Optional<String> getOrigin() {
+        return getStringForDefinition(DittoHeaderDefinition.ORIGIN);
+    }
+
+    @Override
     public JsonObject toJson() {
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
         forEach((key, value) -> {

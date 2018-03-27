@@ -234,7 +234,7 @@ public final class WebsocketRoute {
                     .schemaVersion(JsonSchemaVersion.forInt(version).orElse(JsonSchemaVersion.LATEST))
                     .authorizationContext(connectionAuthContext)
                     .correlationId(connectionCorrelationId)
-                    .putHeader("origin", connectionCorrelationId);
+                    .origin(connectionCorrelationId);
 
             if (cmdString.isEmpty()) {
                 throw new DittoJsonException(new IllegalArgumentException("Empty json."), dittoHeadersBuilder.build());
@@ -268,7 +268,7 @@ public final class WebsocketRoute {
                     .authorizationContext(connectionAuthContext)
                     .schemaVersion(jsonSchemaVersion)
                     .correlationId(wsCorrelationId)
-                    .putHeader("origin", connectionCorrelationId)
+                    .origin(connectionCorrelationId)
                     .build();
 
             allHeaders.putAll(ProtocolFactory.newHeaders(adjustedHeaders));
@@ -305,7 +305,7 @@ public final class WebsocketRoute {
         final DittoHeaders adjustedHeaders = dittoHeadersBuilder.build();
 
         final Map<String, String> allHeaders = new HashMap<>(adaptable.getHeaders().orElse(DittoHeaders.empty()));
-        allHeaders.remove("origin");
+        allHeaders.remove(DittoHeaderDefinition.ORIGIN.getKey());
         allHeaders.putAll(ProtocolFactory.newHeaders(adjustedHeaders));
 
         final JsonifiableAdaptable jsonifiableAdaptable = ProtocolFactory.wrapAsJsonifiableAdaptable(adaptable);
