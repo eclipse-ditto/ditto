@@ -9,5 +9,5 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-@org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault
+@org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault
 package org.eclipse.ditto.services.connectivity.messaging.persistence;

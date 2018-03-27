@@ -32,10 +32,11 @@ public final class ImmutableConnectionFailure extends AbstractWithOrigin impleme
     private final Instant time;
 
     /**
+     * Constructs a new ImmutableConnectionFailure.
      *
-     * @param origin
-     * @param cause
-     * @param description
+     * @param origin the origin ActorRef
+     * @param cause the cause of the Failure
+     * @param description an optional description
      */
     public ImmutableConnectionFailure(@Nullable final ActorRef origin, @Nullable final Throwable cause,
             @Nullable final String description) {

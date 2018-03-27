@@ -16,7 +16,6 @@ import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import javax.jms.MessageConsumer;
@@ -161,9 +160,9 @@ public class AmqpConsumerActorTest {
                     MessageMappingProcessorActor.props(pubSubMediator, targetActorPath, getRef(),
                             AuthorizationContext.newInstance(AuthorizationSubject.newInstance("foo:bar")),
                             mappingProcessor);
-            final String messageMappingProcessorName = MessageMappingProcessorActor.ACTOR_NAME_PREFIX + "foo";
 
-            final ActorRef processor = actorSystem.actorOf(messageMappingProcessorProps, messageMappingProcessorName);
+            final ActorRef processor = actorSystem.actorOf(messageMappingProcessorProps,
+                    MessageMappingProcessorActor.ACTOR_NAME + "-plainStringMappingTest");
 
             final ActorRef underTest = actorSystem.actorOf(
                     AmqpConsumerActor.props("foo", Mockito.mock(MessageConsumer.class), processor));
@@ -212,13 +211,12 @@ public class AmqpConsumerActorTest {
                 MessageMappingProcessorActor.props(pubSubMediator, pubSubTarget, testActor,
                         AuthorizationContext.newInstance(AuthorizationSubject.newInstance("foo:bar")),
                         mappingProcessor);
-        final String messageMappingProcessorName = MessageMappingProcessorActor.ACTOR_NAME_PREFIX + UUID.randomUUID().toString();
 
         final DefaultResizer resizer = new DefaultResizer(1, 5);
 
         return actorSystem.actorOf(new RoundRobinPool(2)
                 .withDispatcher("message-mapping-processor-dispatcher")
                 .withResizer(resizer)
-                .props(messageMappingProcessorProps), messageMappingProcessorName);
+                .props(messageMappingProcessorProps), MessageMappingProcessorActor.ACTOR_NAME + "-createWithDefaultMapperOnly");
     }
 }

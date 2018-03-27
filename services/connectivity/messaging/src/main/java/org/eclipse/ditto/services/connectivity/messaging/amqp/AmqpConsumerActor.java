@@ -56,7 +56,7 @@ import akka.japi.pf.ReceiveBuilder;
 final class AmqpConsumerActor extends AbstractActor implements MessageListener {
 
     /**
-     * The name of this Actor in the ActorSystem.
+     * The name prefix of this Actor in the ActorSystem.
      */
     static final String ACTOR_NAME_PREFIX = "amqpConsumerActor-";
 
@@ -150,7 +150,7 @@ final class AmqpConsumerActor extends AbstractActor implements MessageListener {
             final ExternalMessage externalMessage = builder.build();
             log.debug("Forwarding to processor: {}, {}", externalMessage.getHeaders(),
                     externalMessage.getTextPayload().orElse("binary"));
-            messageMappingProcessor.tell(externalMessage, getSelf());
+            messageMappingProcessor.forward(externalMessage, getContext());
         } catch (final DittoRuntimeException e) {
             log.info("Got DittoRuntimeException '{}' when command was parsed: {}", e.getErrorCode(), e.getMessage());
         } catch (final Exception e) {
