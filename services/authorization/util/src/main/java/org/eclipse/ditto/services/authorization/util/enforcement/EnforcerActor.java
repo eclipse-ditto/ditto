@@ -52,7 +52,7 @@ public final class EnforcerActor extends AbstractActor {
         this.caches = requireNonNull(caches);
         this.enforcementProviders = requireNonNull(enforcementProviders);
 
-       this.context = new Enforcement.Context(
+        this.context = new Enforcement.Context(
                 Duration.ofSeconds(10), // TODO: make configurable
                 requireNonNull(entityRegionMap),
                 entityId,
@@ -85,10 +85,8 @@ public final class EnforcerActor extends AbstractActor {
     public Receive createReceive() {
         final ReceiveBuilder receiveBuilder = ReceiveBuilder.create();
         enforcementProviders.forEach(provider -> {
-            @SuppressWarnings("unchecked")
-            final Class<Command> commandClass = provider.getCommandClass();
-            @SuppressWarnings("unchecked")
-            final FI.UnitApply<Command> commandHandler =
+            @SuppressWarnings("unchecked") final Class<Command> commandClass = provider.getCommandClass();
+            @SuppressWarnings("unchecked") final FI.UnitApply<Command> commandHandler =
                     cmd -> provider.createEnforcement(context).enforce(cmd, getSender());
             receiveBuilder.match(commandClass, commandHandler);
         });

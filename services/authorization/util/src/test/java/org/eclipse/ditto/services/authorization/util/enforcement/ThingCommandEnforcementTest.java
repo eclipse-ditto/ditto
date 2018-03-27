@@ -15,6 +15,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.model.base.json.JsonSchemaVersion.V_1;
 import static org.eclipse.ditto.model.base.json.JsonSchemaVersion.V_2;
 import static org.eclipse.ditto.model.policies.SubjectIssuer.GOOGLE;
+import static org.eclipse.ditto.model.things.Permission.ADMINISTRATE;
+import static org.eclipse.ditto.model.things.Permission.READ;
+import static org.eclipse.ditto.model.things.Permission.WRITE;
 
 import java.time.Duration;
 import java.util.HashMap;
@@ -35,7 +38,6 @@ import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.AclEntry;
 import org.eclipse.ditto.model.things.Feature;
-import org.eclipse.ditto.model.things.Permission;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
@@ -215,7 +217,8 @@ public final class ThingCommandEnforcementTest {
     @Test
     public void rejectCreateByOwnAcl() {
         final AclEntry aclEntry =
-                AclEntry.newInstance(AuthorizationSubject.newInstance("not-subject"), Permission.ADMINISTRATE);
+                AclEntry.newInstance(AuthorizationSubject.newInstance("not-subject"),
+                        READ, WRITE, ADMINISTRATE);
 
         final Thing thingWithEmptyAcl = newThing()
                 .setPermissions(aclEntry)
@@ -234,7 +237,12 @@ public final class ThingCommandEnforcementTest {
     @Test
     public void rejectCreateByOwnPolicy() {
         final String policyId = "empty:policy";
-        final Policy policy = PoliciesModelFactory.newPolicyBuilder(policyId).build();
+        final Policy policy = PoliciesModelFactory.newPolicyBuilder(policyId)
+                .forLabel("dummy")
+                .setSubject(GOOGLE, "not-subject")
+                .setGrantedPermissions(PoliciesResourceType.policyResource("/"),
+                        READ.name(), WRITE.name())
+                .build();
         final Thing thing = newThing().build();
 
         new TestKit(system) {{
@@ -252,7 +260,7 @@ public final class ThingCommandEnforcementTest {
     public void acceptByAcl() {
         final JsonObject thingWithAcl = newThing()
                 .setPermissions(
-                        AclEntry.newInstance(SUBJECT, Permission.READ, Permission.WRITE, Permission.ADMINISTRATE))
+                        AclEntry.newInstance(SUBJECT, READ, WRITE, ADMINISTRATE))
                 .build()
                 .toJson(V_1, FieldType.all());
         final SudoRetrieveThingResponse response =
@@ -282,8 +290,8 @@ public final class ThingCommandEnforcementTest {
                 .forLabel("authorize-self")
                 .setSubject(GOOGLE, SUBJECT.getId())
                 .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()),
-                        Permission.READ.name(),
-                        Permission.WRITE.name())
+                        READ.name(),
+                        WRITE.name())
                 .build()
                 .toJson(FieldType.all());
         final SudoRetrieveThingResponse sudoRetrieveThingResponse =
@@ -316,7 +324,7 @@ public final class ThingCommandEnforcementTest {
     @Test
     public void acceptCreateByOwnAcl() {
         final Thing thing = newThing()
-                .setPermissions(AclEntry.newInstance(SUBJECT, Permission.WRITE, Permission.ADMINISTRATE))
+                .setPermissions(AclEntry.newInstance(SUBJECT, READ, WRITE, ADMINISTRATE))
                 .build();
         final CreateThing createThing = CreateThing.of(thing, null, headers(V_1));
 
@@ -335,7 +343,7 @@ public final class ThingCommandEnforcementTest {
         final Policy policy = PoliciesModelFactory.newPolicyBuilder(THING_ID)
                 .forLabel("authorize-self")
                 .setSubject(GOOGLE, SUBJECT.getId())
-                .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()), Permission.WRITE.name())
+                .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()), WRITE.name())
                 .build();
         final Thing thing = newThing().build();
 

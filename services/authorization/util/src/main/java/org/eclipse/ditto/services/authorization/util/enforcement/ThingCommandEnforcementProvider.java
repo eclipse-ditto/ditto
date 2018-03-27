@@ -11,12 +11,19 @@
  */
 package org.eclipse.ditto.services.authorization.util.enforcement;
 
+import java.util.Collections;
+import java.util.List;
+
+import org.eclipse.ditto.model.policies.SubjectIssuer;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 
 /**
  * Provides {@link Enforcement} for commands of type {@link ThingCommand}.
  */
 public class ThingCommandEnforcementProvider implements EnforcementProvider {
+
+    private static final List<SubjectIssuer> SUBJECT_ISSUERS_FOR_POLICY_MIGRATION =
+            Collections.singletonList(SubjectIssuer.GOOGLE);
 
     @Override
     public Class getCommandClass() {
@@ -25,6 +32,6 @@ public class ThingCommandEnforcementProvider implements EnforcementProvider {
 
     @Override
     public Enforcement createEnforcement(final Enforcement.Context context) {
-        return new ThingCommandEnforcement(context);
+        return new ThingCommandEnforcement(context, SUBJECT_ISSUERS_FOR_POLICY_MIGRATION);
     }
 }

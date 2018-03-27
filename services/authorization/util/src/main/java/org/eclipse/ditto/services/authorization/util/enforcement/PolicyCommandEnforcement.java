@@ -160,7 +160,7 @@ public final class PolicyCommandEnforcement extends Enforcement<PolicyCommand> {
             if (authorizedCommand.isPresent()) {
                 forwardToPoliciesShardRegion(createPolicy, sender);
             } else {
-                respondWithError(createPolicy, sender);
+                respondWithError(receivedCommand, sender);
             }
         } else {
             final PolicyNotAccessibleException policyNotAccessibleException =
