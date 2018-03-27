@@ -58,7 +58,7 @@ public class WrappingMessageMapperTest {
         when(mockAdaptable.getTopicPath()).thenReturn(ProtocolFactory.emptyTopicPath());
         when(mockAdaptable.getPayload()).thenReturn(ProtocolFactory.newPayload("{\"path\":\"/\"}"));
 
-        underTest = WrappingMessageMapper.wrap(mockMapper);
+        underTest = WrappingMessageMapper.wrap(mockMapper, true);
     }
 
     @After
@@ -127,7 +127,7 @@ public class WrappingMessageMapperTest {
     }
 
     @Test
-    public void mapMessageWithoutDeviationgContentTypesFails() {
+    public void mapMessageWithoutDeviatingContentTypesFails() {
         when(mockMessage.findHeaderIgnoreCase(ExternalMessage.CONTENT_TYPE_HEADER)).thenReturn(Optional.of("a"));
         when(mockMapper.getContentType()).thenReturn("b");
 
@@ -144,7 +144,7 @@ public class WrappingMessageMapperTest {
     }
 
     @Test
-    public void mapAdaptableWithoutDeviationgContentTypesFails() {
+    public void mapAdaptableWithoutDeviatingContentTypesFails() {
         final DittoHeaders headers = DittoHeaders.of(Collections.singletonMap(ExternalMessage.CONTENT_TYPE_HEADER, "a"));
         when(mockAdaptable.getHeaders()).thenReturn(Optional.of(headers));
         when(mockMapper.getContentType()).thenReturn("b");

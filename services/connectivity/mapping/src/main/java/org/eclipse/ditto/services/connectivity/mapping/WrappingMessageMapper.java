@@ -42,21 +42,25 @@ final class WrappingMessageMapper implements MessageMapper {
     private final MessageMapper delegate;
     @Nullable
     private final String contentTypeOverride;
+    private final boolean enforceMatchingContentType;
 
-
-    private WrappingMessageMapper(final MessageMapper delegate, @Nullable final String contentTypeOverride) {
+    private WrappingMessageMapper(final MessageMapper delegate, final boolean enforceMatchingContentType,
+            @Nullable final String contentTypeOverride) {
         this.delegate = checkNotNull(delegate);
+        this.enforceMatchingContentType = enforceMatchingContentType;
         this.contentTypeOverride = contentTypeOverride;
     }
 
     /**
      * Enforces content type checking for the mapper
      *
+     * @param enforceMatchingContentType whether to only let pass ExternalMessages having a to {@link #getContentType()}
+     * matching contentType
      * @param mapper the mapper
      * @return the wrapped mapper
      */
-    public static MessageMapper wrap(final MessageMapper mapper) {
-        return new WrappingMessageMapper(mapper, null);
+    public static MessageMapper wrap(final MessageMapper mapper, final boolean enforceMatchingContentType) {
+        return new WrappingMessageMapper(mapper, enforceMatchingContentType, null);
     }
 
     /**
@@ -67,7 +71,7 @@ final class WrappingMessageMapper implements MessageMapper {
      * @return the wrapped mapper
      */
     public static MessageMapper wrap(final MessageMapper mapper, final String contentTypeOverride) {
-        return new WrappingMessageMapper(mapper, contentTypeOverride);
+        return new WrappingMessageMapper(mapper, true, contentTypeOverride);
     }
 
     @Override
@@ -142,8 +146,10 @@ final class WrappingMessageMapper implements MessageMapper {
     private void requireMatchingContentType(final String actualContentType,
             final DittoHeaders dittoHeaders) {
 
-        if (!getContentType().equalsIgnoreCase(actualContentType)) {
-            throw MessageMappingFailedException.newBuilder(actualContentType).dittoHeaders(dittoHeaders).build();
+        if (enforceMatchingContentType) {
+            if (!getContentType().equalsIgnoreCase(actualContentType)) {
+                throw MessageMappingFailedException.newBuilder(actualContentType).dittoHeaders(dittoHeaders).build();
+            }
         }
     }
 
