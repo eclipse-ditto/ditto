@@ -317,10 +317,13 @@ final class ConnectionActor extends AbstractPersistentActor {
             log.debug("Dropping signal, was sent by myself.");
             return;
         }
-
         final String topicPath = TopicPathMapper.mapSignalToTopicPath(signal);
+        if (!uniqueTopicPaths.contains(topicPath)) {
+            log.debug("Dropping signal, topic '{}' is not subscribed.", topicPath);
+            return;
+        }
         // forward to client actor if topic was subscribed and connection is authorized to read
-        if (uniqueTopicPaths.contains(topicPath) && isAuthorized(signal, connection.getAuthorizationContext())) {
+        if (isAuthorized(signal, connection.getAuthorizationContext())) {
             log.debug("Forwarding signal <{}> to client actor.", signal.getType());
             clientActor.tell(signal, getSelf());
         }

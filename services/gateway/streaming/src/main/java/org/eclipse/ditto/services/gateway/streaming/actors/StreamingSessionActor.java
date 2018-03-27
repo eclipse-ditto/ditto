@@ -217,7 +217,6 @@ final class StreamingSessionActor extends AbstractActor {
                 .build();
     }
 
-
     private void handleSignal(final Signal<?> signal) {
         LogUtil.enhanceLogWithCorrelationId(logger, signal);
         acknowledgeSubscriptionForSignal(signal);
