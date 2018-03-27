@@ -9,7 +9,7 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package org.eclipse.ditto.services.authorization.starter;
+package org.eclipse.ditto.services.authorization.starter.actors;
 
 import java.time.Duration;
 import java.util.HashMap;

@@ -11,35 +11,24 @@
  */
 package org.eclipse.ditto.services.authorization.starter;
 
+import org.eclipse.ditto.services.authorization.starter.actors.AuthorizationRootActor;
 import org.eclipse.ditto.services.authorization.util.config.AuthorizationConfigReader;
-import org.eclipse.ditto.services.base.DittoService;
-import org.eclipse.ditto.services.base.metrics.StatsdMetricsStarter;
-import org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.typesafe.config.Config;
-
 import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.stream.ActorMaterializer;
 
 /**
  * The Authorization service for Eclipse Ditto.
  */
-@AllParametersAndReturnValuesAreNonnullByDefault
-public final class AuthorizationService extends DittoService<AuthorizationConfigReader> {
-
-    /**
-     * Name for the Akka actor system of the Authorization service.
-     */
-    static final String SERVICE_NAME = "authorization";
+public final class AuthorizationService extends AbstractAuthorizationService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AuthorizationService.class);
 
     private AuthorizationService() {
-        super(LOGGER, SERVICE_NAME, AuthorizationRootActor.ACTOR_NAME, AuthorizationConfigReader.from(SERVICE_NAME));
+        super(LOGGER);
     }
 
     /**
@@ -50,17 +39,6 @@ public final class AuthorizationService extends DittoService<AuthorizationConfig
     public static void main(final String[] args) {
         final AuthorizationService authorizationService = new AuthorizationService();
         authorizationService.start();
-    }
-
-    @Override
-    protected void startDevOpsCommandsActor(final ActorSystem actorSystem, final Config config) {
-        // TODO: start DevOpsCommandsActor
-    }
-
-    @Override
-    protected void startStatsdMetricsReporter(final ActorSystem actorSystem,
-            final AuthorizationConfigReader configReader) {
-        StatsdMetricsStarter.newInstance(configReader, actorSystem, SERVICE_NAME).run();
     }
 
     @Override
