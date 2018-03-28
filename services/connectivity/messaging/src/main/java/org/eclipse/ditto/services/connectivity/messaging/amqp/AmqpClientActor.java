@@ -111,6 +111,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
      * Creates Akka configuration object for this actor.
      *
      * @param connection connection parameters
+     * @param connectionStatus the desired status of the connection
      * @param pubSubTargetPath the pub sub target path
      * @param jmsConnectionFactory the JMS connection factory
      * @return the Akka configuration Props object
@@ -118,8 +119,8 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     public static Props props(final Connection connection, final ConnectionStatus connectionStatus,
             final String pubSubTargetPath,
             final JmsConnectionFactory jmsConnectionFactory) {
-        return Props.create(AmqpClientActor.class, connection, connectionStatus,
-                pubSubTargetPath, jmsConnectionFactory);
+        return Props.create(AmqpClientActor.class, connection, connectionStatus, pubSubTargetPath,
+                jmsConnectionFactory);
     }
 
     @Override

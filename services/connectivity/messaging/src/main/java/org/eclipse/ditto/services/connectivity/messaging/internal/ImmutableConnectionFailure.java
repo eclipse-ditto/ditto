@@ -12,6 +12,7 @@
 package org.eclipse.ditto.services.connectivity.messaging.internal;
 
 import java.time.Instant;
+import java.util.Objects;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -69,5 +70,29 @@ public final class ImmutableConnectionFailure extends AbstractWithOrigin impleme
         }
         responseStr += " at " + time;
         return responseStr;
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+        if (this == o) {return true;}
+        if (!(o instanceof ImmutableConnectionFailure)) {return false;}
+        final ImmutableConnectionFailure that = (ImmutableConnectionFailure) o;
+        return Objects.equals(cause, that.cause) &&
+                Objects.equals(description, that.description) &&
+                Objects.equals(time, that.time);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(cause, description, time);
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + " [" +
+                "cause=" + cause +
+                ", description=" + description +
+                ", time=" + time +
+                "]";
     }
 }

@@ -321,12 +321,12 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                 });
     }
 
-    private State<BaseClientState, BaseClientData> handleClientConnected(final ClientConnected event,
+    private State<BaseClientState, BaseClientData> handleClientConnected(final ClientConnected clientConnected,
             final BaseClientData data) {
 
         startMessageMappingProcessor(data.getMappingContexts());
-        onClientConnected(event, data);
-        event.getOrigin().ifPresent(o -> o.tell(new Status.Success(CONNECTED), getSelf()));
+        onClientConnected(clientConnected, data);
+        clientConnected.getOrigin().ifPresent(o -> o.tell(new Status.Success(CONNECTED), getSelf()));
         return goTo(CONNECTED).using(data
                 .setConnectionStatus(ConnectionStatus.OPEN)
                 .setConnectionStatusDetails("Connected at " + Instant.now())

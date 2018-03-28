@@ -138,7 +138,7 @@ public class JMSConnectionHandlingActor extends AbstractActor {
                         .build();
                 getSender().tell(
                         new ImmutableConnectionFailure(connect.getOrigin().orElse(null), failedException, null),
-                        sender());
+                        getSender());
             }
         } catch (final Exception e) {
             getSender().tell(new ImmutableConnectionFailure(connect.getOrigin().orElse(null), e, null), getSender());

@@ -49,7 +49,6 @@ import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFail
 
 import com.newmotion.akka.rabbitmq.ChannelActor;
 import com.newmotion.akka.rabbitmq.ChannelCreated;
-import com.newmotion.akka.rabbitmq.ChannelMessage;
 import com.newmotion.akka.rabbitmq.CreateChannel;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
@@ -58,6 +57,7 @@ import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Delivery;
 import com.rabbitmq.client.Envelope;
 import com.rabbitmq.client.ShutdownSignalException;
+import com.rabbitmq.client.impl.DefaultExceptionHandler;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -80,6 +80,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
+    private final RabbitConnectionFactoryFactory rabbitConnectionFactoryFactory;
     @Nullable private ActorRef rmqConnectionActor;
     @Nullable private ActorRef consumerChannelActor;
     @Nullable private ActorRef rmqPublisherActor;
@@ -88,8 +89,17 @@ public final class RabbitMQClientActor extends BaseClientActor {
     private final Map<String, QueueConsumption> consumedQueues;
 
     private RabbitMQClientActor(final Connection connection, final ConnectionStatus connectionStatus) {
-        super(connection, connectionStatus, ConnectivityMessagingConstants.GATEWAY_PROXY_ACTOR_PATH);
+        this(connection, connectionStatus,
+                ConnectivityMessagingConstants.GATEWAY_PROXY_ACTOR_PATH,
+                ConnectionBasedRabbitConnectionFactoryFactory.getInstance());
+    }
 
+    private RabbitMQClientActor(final Connection connection, final ConnectionStatus connectionStatus,
+            final String pubSubTargetPath,
+            final RabbitConnectionFactoryFactory rabbitConnectionFactoryFactory) {
+        super(connection, connectionStatus, pubSubTargetPath);
+
+        this.rabbitConnectionFactoryFactory = rabbitConnectionFactoryFactory;
         consumedQueues = new HashMap<>();
     }
 
@@ -102,6 +112,21 @@ public final class RabbitMQClientActor extends BaseClientActor {
      */
     public static Props props(final Connection connection, final ConnectionStatus connectionStatus) {
         return Props.create(RabbitMQClientActor.class, connection, connectionStatus);
+    }
+
+    /**
+     * Creates Akka configuration object for this actor.
+     *
+     * @param connection the connection
+     * @param connectionStatus the desired status of the connection
+     * @param pubSubTargetPath the target path on distributed pub/sub to use
+     * @param rabbitConnectionFactoryFactory the ConnectionFactory Factory to use
+     * @return the Akka configuration Props object
+     */
+    public static Props props(final Connection connection, final ConnectionStatus connectionStatus,
+            final String pubSubTargetPath, final RabbitConnectionFactoryFactory rabbitConnectionFactoryFactory) {
+        return Props.create(RabbitMQClientActor.class, connection, connectionStatus, pubSubTargetPath,
+                rabbitConnectionFactoryFactory);
     }
 
     @Override
@@ -118,7 +143,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
 
         createConnectionSender = getSender();
 
-        return connect(connection);
+        return connect(connection, getSender());
     }
 
     @Override
@@ -126,7 +151,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
 
         createConnectionSender = origin;
 
-        connect(connection)
+        connect(connection, origin)
                 .thenAccept(status -> log.info("Status of connecting in doConnectClient: {}", status));
     }
 
@@ -146,9 +171,10 @@ public final class RabbitMQClientActor extends BaseClientActor {
                 if (isConsuming()) {
                     rmqConnectionActor.tell(
                             CreateChannel.apply(
-                                    ChannelActor.props((channel, s) -> {
+                                    ChannelActor.props((channel, actorRef) -> {
                                         log.info("Did set up consumer channel: {}", channel);
-                                        startCommandConsumers();
+                                        startCommandConsumers(channel);
+                                        consumerChannelActor = actorRef;
                                         return null;
                                     }),
                                     Option.apply(CONSUMER_CHANNEL)), getSelf());
@@ -240,37 +266,40 @@ public final class RabbitMQClientActor extends BaseClientActor {
     }
 
     private void handleChannelCreated(final ChannelCreated channelCreated) {
-        this.consumerChannelActor = channelCreated.channel();
-        startCommandConsumers();
+        consumerChannelActor = channelCreated.channel();
     }
 
-    private CompletionStage<Status.Status> connect(final Connection connection) {
+    private CompletionStage<Status.Status> connect(final Connection connection, @Nullable final ActorRef origin) {
 
         final CompletableFuture<Status.Status> future = new CompletableFuture<>();
         if (rmqConnectionActor == null) {
-            final ConnectionFactory connectionFactory =
-                    ConnectionBasedRabbitConnectionFactory.createConnection(connection, getSelf());
+            try {
+                final ConnectionFactory connectionFactory = rabbitConnectionFactoryFactory
+                        .createConnectionFactory(connection, new RabbitMQExceptionHandler());
 
-            final ActorRef self = getSelf();
-            final Props props = com.newmotion.akka.rabbitmq.ConnectionActor.props(connectionFactory,
-                    FiniteDuration.apply(10, TimeUnit.SECONDS), (rmqConnection, connectionActorRef) -> {
-                        log.info("Established RMQ connection: {}", rmqConnection);
-                        self.tell((ClientConnected) () -> Optional.ofNullable(createConnectionSender), getSelf());
-                        return null;
-                    });
-            rmqConnectionActor = startChildActor(RMQ_CONNECTION_ACTOR_NAME, props);
+                final ActorRef self = getSelf();
+                final Props props = com.newmotion.akka.rabbitmq.ConnectionActor.props(connectionFactory,
+                        FiniteDuration.apply(10, TimeUnit.SECONDS), (rmqConnection, connectionActorRef) -> {
+                            log.info("Established RMQ connection: {}", rmqConnection);
+                            self.tell((ClientConnected) () -> Optional.ofNullable(createConnectionSender), getSelf());
+                            return null;
+                        });
+                rmqConnectionActor = startChildActor(RMQ_CONNECTION_ACTOR_NAME, props);
 
-            rmqPublisherActor = startRmqPublisherActor().orElse(null);
+                rmqPublisherActor = startRmqPublisherActor().orElse(null);
 
-            // create publisher channel
-            rmqConnectionActor.tell(
-                    CreateChannel.apply(
-                            ChannelActor.props((channel, s) -> {
-                                log.info("Did set up publisher channel: {}", channel);
-                                future.complete(new Status.Success("channel created"));
-                                return null;
-                            }),
-                            Option.apply(PUBLISHER_CHANNEL)), rmqPublisherActor);
+                // create publisher channel
+                rmqConnectionActor.tell(
+                        CreateChannel.apply(
+                                ChannelActor.props((channel, s) -> {
+                                    log.info("Did set up publisher channel: {}", channel);
+                                    future.complete(new Status.Success("channel created"));
+                                    return null;
+                                }),
+                                Option.apply(PUBLISHER_CHANNEL)), rmqPublisherActor);
+            } catch (final Exception exception) {
+                getSelf().tell(new ImmutableConnectionFailure(origin, exception, null), getSelf());
+            }
         } else {
             log.debug("Connection '{}' is already open.", connectionId());
             future.complete(new Status.Success("already connected"));
@@ -295,38 +324,51 @@ public final class RabbitMQClientActor extends BaseClientActor {
 
     private void stopCommandConsumers() {
         getContext().getChildren().forEach(child -> {
-            if (child.path().name().startsWith(CONSUMER_ACTOR_PREFIX)) {
+            final String actorName = child.path().name();
+            if (actorName.startsWith(CONSUMER_ACTOR_PREFIX)) {
                 getContext().stop(child);
+            }
+        });
+
+        // block until all were stopped:
+        getContext().getChildren().forEach(child -> {
+            final String actorName = child.path().name();
+            if (actorName.startsWith(CONSUMER_ACTOR_PREFIX)) {
+                int counter = 5;
+                while (getContext().findChild(actorName).isPresent()) {
+                    try {
+                        Thread.sleep(10);
+                    } catch (InterruptedException e) {
+                        throw new IllegalStateException(e);
+                    }
+                    if (--counter == 0) {
+                        break;
+                    }
+                };
             }
         });
     }
 
-    private void startCommandConsumers() {
-        log.info("Channel created, start to consume queues...");
-        if (consumerChannelActor == null) {
-            log.info("No consumerChannelActor, cannot consume queues without a channel.");
-        } else {
-            final ChannelMessage channelMessage = ChannelMessage.apply(channel -> {
-                try {
-                    ensureQueuesExist(channel);
-                    startConsumers(channel);
-                } catch (final DittoRuntimeException dre) {
-                    if (createConnectionSender != null) {
-                        createConnectionSender.tell(new Status.Failure(dre), getSelf());
-                        createConnectionSender = null;
-                    }
-                    // stop consumer channel actor
-                    stopChildActor(consumerChannelActor);
-                    consumerChannelActor = null;
-                }
-                if (createConnectionSender != null) {
-                    createConnectionSender.tell(new Status.Success(BaseClientState.CONNECTED), getSelf());
-                    createConnectionSender = null;
-                }
-                return null;
-            }, false);
-
-            consumerChannelActor.tell(channelMessage, getSelf());
+    private void startCommandConsumers(final Channel channel) {
+        log.info("Starting to consume queues...");
+        try {
+            ensureQueuesExist(channel);
+            stopCommandConsumers();
+            startConsumers(channel);
+        } catch (final DittoRuntimeException dre) {
+            if (createConnectionSender != null) {
+                createConnectionSender.tell(new Status.Failure(dre), getSelf());
+                createConnectionSender = null;
+            }
+            if (consumerChannelActor != null) {
+                // stop consumer channel actor
+                stopChildActor(consumerChannelActor);
+                consumerChannelActor = null;
+            }
+        }
+        if (createConnectionSender != null) {
+            createConnectionSender.tell(new Status.Success(BaseClientState.CONNECTED), getSelf());
+            createConnectionSender = null;
         }
     }
 
@@ -339,19 +381,6 @@ public final class RabbitMQClientActor extends BaseClientActor {
                         for (int i = 0; i < source.getConsumerCount(); i++) {
                             final String addressWithIndex = sourceAddress + "-" + i;
                             final String childName = CONSUMER_ACTOR_PREFIX + addressWithIndex;
-                            if (getContext().findChild(childName).isPresent()) {
-                                log.info("Child consumer actor <{}> was already created, terminating it..", childName);
-                                stopChildActor(childName);
-                                // wait until child is gone:
-                                while (getContext().findChild(childName).isPresent()) {
-                                    try {
-                                        Thread.sleep(10);
-                                    } catch (final InterruptedException e) {
-                                        // ignore
-                                    }
-                                }
-                            }
-
                             final ActorRef consumer = startChildActor(childName,
                                     RabbitMQConsumerActor.props(messageMappingProcessor.get()));
                             try {
@@ -397,6 +426,23 @@ public final class RabbitMQClientActor extends BaseClientActor {
                 .findFirst();
     }
 
+    /**
+     * TODO TJ doc
+     */
+    private class RabbitMQExceptionHandler extends DefaultExceptionHandler {
+
+        @Override
+        public void handleUnexpectedConnectionDriverException(final com.rabbitmq.client.Connection conn,
+                final Throwable exception) {
+
+            // establishing the connection was not possible (maybe wrong host, port, credentials, ...)
+            getSelf().tell(new ImmutableConnectionFailure(null, exception, null), null);
+        }
+    }
+
+    /**
+     * TODO TJ doc
+     */
     private class RabbitMQMessageConsumer extends DefaultConsumer {
 
         private final ActorRef consumerActor;

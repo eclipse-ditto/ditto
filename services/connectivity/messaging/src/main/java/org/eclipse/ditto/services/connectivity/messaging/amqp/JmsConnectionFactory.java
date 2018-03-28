@@ -32,7 +32,7 @@ public interface JmsConnectionFactory {
      * @throws javax.jms.JMSException if the context could not be created.
      * @throws javax.naming.NamingException if the identifier of {@code connection} could not be found in the Context.
      */
-    JmsConnection createConnection(final Connection connection, ExceptionListener exceptionListener)
+    JmsConnection createConnection(Connection connection, ExceptionListener exceptionListener)
             throws JMSException, NamingException;
 
 }
