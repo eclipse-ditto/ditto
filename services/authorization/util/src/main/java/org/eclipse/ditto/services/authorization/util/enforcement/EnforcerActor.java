@@ -18,7 +18,11 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Set;
+import java.util.function.Predicate;
 
+import javax.annotation.Nullable;
+
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.services.authorization.util.EntityRegionMap;
 import org.eclipse.ditto.services.authorization.util.cache.AuthorizationCaches;
 import org.eclipse.ditto.services.models.authorization.EntityId;
@@ -44,13 +48,17 @@ public final class EnforcerActor extends AbstractActor {
     private final EntityId entityId;
 
     private final Set<EnforcementProvider> enforcementProviders;
+    @Nullable
+    private final PreEnforcementConfig preEnforcementConfig;
 
     private EnforcerActor(final EntityRegionMap entityRegionMap,
-            final AuthorizationCaches caches, final Set<EnforcementProvider> enforcementProviders) {
+            final AuthorizationCaches caches, final Set<EnforcementProvider> enforcementProviders,
+            @Nullable PreEnforcementConfig preEnforcementConfig) {
         this.entityId = decodeEntityId(getSelf());
 
         this.caches = requireNonNull(caches);
         this.enforcementProviders = requireNonNull(enforcementProviders);
+        this.preEnforcementConfig = requireNonNull(preEnforcementConfig);
 
         this.context = new Enforcement.Context(
                 Duration.ofSeconds(10), // TODO: make configurable
@@ -66,13 +74,32 @@ public final class EnforcerActor extends AbstractActor {
      *
      * @param entityRegionMap map from resource types to entity shard regions.
      * @param authorizationCaches cache of information relevant for authorization.
+     * @param enforcementProviders a set of {@link EnforcementProvider}s.
      * @return the Akka configuration Props object.
      */
     public static Props props(final EntityRegionMap entityRegionMap,
             final AuthorizationCaches authorizationCaches, final Set<EnforcementProvider> enforcementProviders) {
 
         return Props.create(EnforcerActor.class,
-                () -> new EnforcerActor(entityRegionMap, authorizationCaches, enforcementProviders));
+                () -> new EnforcerActor(entityRegionMap, authorizationCaches, enforcementProviders, null));
+    }
+
+    /**
+     * Creates Akka configuration object Props for this EnforcerActor.
+     *
+     * @param entityRegionMap map from resource types to entity shard regions.
+     * @param authorizationCaches cache of information relevant for authorization.
+     * @param enforcementProviders a set of {@link EnforcementProvider}s.
+     * @param preEnforcementConfig a {@link PreEnforcementConfig}, may be {@code null}.
+     * @return the Akka configuration Props object.
+     */
+    public static Props props(final EntityRegionMap entityRegionMap,
+            final AuthorizationCaches authorizationCaches, final Set<EnforcementProvider> enforcementProviders,
+            @Nullable PreEnforcementConfig preEnforcementConfig) {
+
+        return Props.create(EnforcerActor.class,
+                () -> new EnforcerActor(entityRegionMap, authorizationCaches, enforcementProviders,
+                        preEnforcementConfig));
     }
 
     @Override
@@ -83,6 +110,32 @@ public final class EnforcerActor extends AbstractActor {
 
     @Override
     public Receive createReceive() {
+        final Receive enforcementReceive = createEnforcementReceive();
+        final Receive preEnforcementReceive = createPreEnforcementReceive();
+        if (preEnforcementReceive == null) {
+            return enforcementReceive;
+        }
+
+        return preEnforcementReceive.orElse(enforcementReceive);
+    }
+
+    @Nullable
+    private Receive createPreEnforcementReceive() {
+        if (preEnforcementConfig == null) {
+            return null;
+        }
+
+
+        final Predicate<WithDittoHeaders> condition = preEnforcementConfig.getCondition();
+        final ActorRef forwardee = preEnforcementConfig.getForwardee();
+
+        return ReceiveBuilder.create()
+                .match(WithDittoHeaders.class, condition::test,
+                        withDittoHeaders -> forwardee.forward(withDittoHeaders, getContext()))
+                .build();
+    }
+
+    private Receive createEnforcementReceive() {
         final ReceiveBuilder receiveBuilder = ReceiveBuilder.create();
         enforcementProviders.forEach(provider -> {
             @SuppressWarnings("unchecked") final Class<Command> commandClass = provider.getCommandClass();
