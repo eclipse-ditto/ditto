@@ -157,7 +157,7 @@ public class JMSConnectionHandlingActor extends AbstractActor {
             log.debug("Connection <{}> already closed: {}", this.connection.getId(), e.getMessage());
         }
         getSender().tell(new AmqpClientActor.JmsDisconnected(disconnect.getOrigin().orElse(null)), getSender());
-        log.info("Stop myself {}", getSelf());
+        log.debug("Stopping myself {}", getSelf());
         getContext().stop(getSelf());
     }
 

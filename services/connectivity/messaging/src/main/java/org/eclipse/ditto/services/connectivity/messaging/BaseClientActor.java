@@ -121,7 +121,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         headerBlacklist = config.getStringList(ConfigKeys.Message.HEADER_BLACKLIST);
 
         startWith(DISCONNECTED, new BaseClientData(connection.getId(), connection, desiredConnectionStatus,
-                "initialized", Collections.emptyList()));
+                "initialized", Collections.emptyList(), null));
 
         when(DISCONNECTED, Duration.fromNanos(initTimeout.toNanos()),
                 inDisconnectedState(initTimeout));
@@ -175,7 +175,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     private FSMStateFunctionBuilder<BaseClientState, BaseClientData> inDisconnectedState(
             final java.time.Duration initTimeout) {
         return matchEvent(Arrays.asList(CloseConnection.class, DeleteConnection.class), BaseClientData.class,
-                (event, data) -> stay().replying(new Status.Success(DISCONNECTED))
+                (event, data) -> stay().using(data.setOrigin(getSender())).replying(new Status.Success(DISCONNECTED))
         )
                 .eventEquals(StateTimeout(), BaseClientData.class, (state, data) -> {
                     log.info("Did not receive connect command within {}, trying to go to CONNECTING",
@@ -211,23 +211,25 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                                         .setConnection(createConnection.getConnection())
                                         .setMappingContexts(createConnection.getMappingContexts())
                                         .setConnectionStatusDetails("creating connection at " + Instant.now())
+                                        .setOrigin(getSender())
                                 )
                 )
                 .event(OpenConnection.class, BaseClientData.class, (openConnection, data) ->
-                        goTo(CONNECTING).using(data)
+                        goTo(CONNECTING).using(data.setOrigin(getSender()))
                 );
     }
 
     private FSMStateFunctionBuilder<BaseClientState, BaseClientData> inConnectingState() {
         return matchEvent(
                 Arrays.asList(CreateConnection.class, OpenConnection.class), BaseClientData.class, (event, data) ->
-                        stay()
+                        stay().using(data.setOrigin(getSender()))
         )
                 .event(Arrays.asList(CloseConnection.class, DeleteConnection.class), BaseClientData.class,
                         (event, data) ->
                                 goTo(DISCONNECTING).using(data
                                         .setConnectionStatusDetails(
                                                 "closing or deleting connection at " + Instant.now())
+                                        .setOrigin(getSender())
                                 )
                 )
                 .eventEquals(StateTimeout(), BaseClientData.class, (event, data) -> {
@@ -246,10 +248,10 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     private FSMStateFunctionBuilder<BaseClientState, BaseClientData> inConnectedState() {
         return matchEvent(
                 Arrays.asList(CloseConnection.class, DeleteConnection.class), BaseClientData.class, (event, data) ->
-                        goTo(DISCONNECTING).using(data)
+                        goTo(DISCONNECTING).using(data.setOrigin(getSender()))
         )
                 .event(OpenConnection.class, BaseClientData.class, (openConnection, data) ->
-                        stay().replying(new Status.Success(CONNECTED))
+                        stay().using(data.setOrigin(getSender())).replying(new Status.Success(CONNECTED))
                 );
     }
 
@@ -263,13 +265,14 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                                 .setConnectionStatus(ConnectionStatus.OPEN)
                                 .setConnectionStatusDetails(
                                         "Disconnecting timed out, still connected at " + Instant.now())
+                                .setOrigin(getSender())
                         )
                 );
     }
 
     private FSMStateFunctionBuilder<BaseClientState, BaseClientData> inFailedState() {
         return matchEvent(OpenConnection.class, BaseClientData.class, (event, data) ->
-                goTo(CONNECTING).using(data)
+                goTo(CONNECTING).using(data.setOrigin(getSender()))
         );
     }
 
@@ -281,6 +284,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
      */
     protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> unhandledHandler(final String connectionId) {
         return matchEvent(RetrieveConnectionMetrics.class, BaseClientData.class, (command, data) -> stay()
+                .using(data.setOrigin(getSender()))
                 .replying(RetrieveConnectionMetricsResponse.of(
                         connectionId,
                         ConnectivityModelFactory.newConnectionMetrics(
@@ -292,15 +296,16 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                 )
         )
                 .event(ConnectClient.class, BaseClientData.class, (connectClient, data) -> shouldBeConnecting(data) ?
-                        goTo(CONNECTING) : goTo(DISCONNECTING))
+                        goTo(CONNECTING).using(data.setOrigin(getSender())) :
+                        goTo(DISCONNECTING).using(data.setOrigin(getSender())))
                 .event(DisconnectClient.class, BaseClientData.class,
-                        (disconnectClient, data) -> goTo(DISCONNECTING))
+                        (disconnectClient, data) -> goTo(DISCONNECTING).using(data.setOrigin(getSender())))
                 .event(ClientConnected.class, BaseClientData.class, this::handleClientConnected)
                 .event(ClientDisconnected.class, BaseClientData.class, this::handleClientDisconnected)
                 .event(ConnectionFailure.class, BaseClientData.class, this::handleConnectionFailure)
                 .event(ConnectivityModifyCommand.class, BaseClientData.class, (command, data) -> {
                     cannotHandle(command, data.getConnection());
-                    return stay();
+                    return stay().using(data.setOrigin(getSender()));
                 })
                 .event(Signal.class, BaseClientData.class, (signal, data) -> {
                     handleSignal(signal);
@@ -325,6 +330,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         return goTo(CONNECTED).using(data
                 .setConnectionStatus(ConnectionStatus.OPEN)
                 .setConnectionStatusDetails("Connected at " + Instant.now())
+                .setOrigin(getSender())
         );
     }
 
@@ -337,6 +343,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         return goTo(DISCONNECTED).using(data
                 .setConnectionStatus(ConnectionStatus.CLOSED)
                 .setConnectionStatusDetails("Disconnected at " + Instant.now())
+                .setOrigin(getSender())
         );
     }
 
@@ -346,6 +353,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         return stay().using(data
                 .setConnectionStatus(ConnectionStatus.FAILED)
                 .setConnectionStatusDetails(event.getFailureDescription())
+                .setOrigin(getSender())
         );
     }
 
@@ -363,10 +371,10 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
         switch (to) {
             case CONNECTING:
-                doConnectClient(nextStateData().getConnection());
+                doConnectClient(nextStateData().getConnection(), nextStateData().getOrigin().orElse(null));
                 break;
             case DISCONNECTING:
-                doDisconnectClient(nextStateData().getConnection());
+                doDisconnectClient(nextStateData().getConnection(), nextStateData().getOrigin().orElse(null));
                 break;
         }
     }
@@ -417,15 +425,17 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
      * Invoked when this {@code Client} should connect.
      *
      * @param connection the Connection to use for connecting
+     * @param origin the ActorRef which caused the ConnectClient command
      */
-    protected abstract void doConnectClient(final Connection connection);
+    protected abstract void doConnectClient(final Connection connection, @Nullable final ActorRef origin);
 
     /**
      * Invoked when this {@code Client} should disconnect.
      *
      * @param connection the Connection to use for disconnecting
+     * @param origin the ActorRef which caused the DisconnectClient command
      */
-    protected abstract void doDisconnectClient(final Connection connection);
+    protected abstract void doDisconnectClient(final Connection connection, @Nullable final ActorRef origin);
 
     /**
      * Retrieves the connection status of the passed {@link Source}.
@@ -682,7 +692,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             log.debug("Stopping child actor '{}'", nameEscaped);
             getContext().stop(child.get());
         } else {
-            log.debug("Cannot stop child actor '{}' because it does not exist.");
+            log.debug("Cannot stop child actor '{}' because it does not exist.", name);
         }
     }
 

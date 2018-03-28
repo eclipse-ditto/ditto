@@ -146,22 +146,22 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     }
 
     @Override
-    protected void doConnectClient(final Connection connection) {
+    protected void doConnectClient(final Connection connection, @Nullable final ActorRef origin) {
 
         // reset receive timeout when a connect command was received
         getContext().setReceiveTimeout(Duration.Undefined());
 
         // delegate to child actor because the QPID JMS client is blocking until connection is opened/closed
-        startConnectionHandlingActor("connect", connection).tell(new JmsConnect(getSender()), getSelf());
+        startConnectionHandlingActor("connect", connection).tell(new JmsConnect(origin), getSelf());
     }
 
     @Override
-    protected void doDisconnectClient(final Connection connection) {
+    protected void doDisconnectClient(final Connection connection, @Nullable final ActorRef origin) {
         stopCommandConsumers();
         stopCommandProducer();
         // delegate to child actor because the QPID JMS client is blocking until connection is opened/closed
         startConnectionHandlingActor("disconnect", connection)
-                .tell(new JmsDisconnect(getSender(), jmsConnection), getSelf());
+                .tell(new JmsDisconnect(origin, jmsConnection), getSelf());
     }
 
     @Override
@@ -207,7 +207,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     protected void onClientConnected(final ClientConnected clientConnected, final BaseClientData data) {
         if (clientConnected instanceof JmsConnected) {
             final JmsConnected c = (JmsConnected) clientConnected;
-            log.info("Received JmsConnected: {}", c);
+            log.info("Received JmsConnected");
             this.jmsConnection = c.connection;
             this.jmsConnection.addConnectionListener(connectionListener);
             this.jmsSession = c.session;
@@ -222,22 +222,17 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
 
     @Override
     protected void onClientDisconnected(final ClientDisconnected clientDisconnected, final BaseClientData data) {
-        if (clientDisconnected instanceof JmsDisconnected) {
-            final JmsDisconnected d = (JmsDisconnected) clientDisconnected;
-            log.info("Received JmsDisconnected: {}", d);
-            this.jmsSession = null;
-            if (jmsConnection != null) {
-                jmsConnection.removeConnectionListener(connectionListener);
-            }
-            this.jmsConnection = null;
-            if (amqpPublisherActor != null) {
-                stopChildActor(amqpPublisherActor);
-                amqpPublisherActor = null;
-            }
-            this.consumerMap.clear();
-        } else {
-            log.info("ClientDisconnected was not JmsDisconnected as expected, ignoring..");
+        log.info("Received ClientDisconnected");
+        this.jmsSession = null;
+        if (jmsConnection != null) {
+            jmsConnection.removeConnectionListener(connectionListener);
         }
+        this.jmsConnection = null;
+        if (amqpPublisherActor != null) {
+            stopChildActor(amqpPublisherActor);
+            amqpPublisherActor = null;
+        }
+        this.consumerMap.clear();
     }
 
     @Override
