@@ -213,7 +213,7 @@ public class MessageMapperFactoryTest {
         final List<MappingContext> contexts = Arrays.asList(fooCtx, barCtx);
         MessageMapperRegistry underTest = factory.registryOf(DittoMessageMapper.CONTEXT, contexts);
         assertThat(underTest.getMappers().size()).isEqualTo(2);
-        assertThat(underTest.getDefaultMapper().getClass()).isEqualTo(DittoMessageMapper.class);
+        assertThat(underTest.getDefaultMapper().getClass()).isEqualTo(WrappingMessageMapper.class);
         assertThat(underTest.findMapper(fooMessage)).isPresent()
                 .map(MessageMapper::getContentType)
                 .isEqualTo(Optional.of("foo"));
@@ -223,7 +223,7 @@ public class MessageMapperFactoryTest {
         assertThat(underTest.findMapper(otherMessage)).isEmpty();
 
         //select uses default mapper
-        assertThat(underTest.selectMapper(otherMessage).getClass()).isEqualTo(DittoMessageMapper.class);
+        assertThat(underTest.selectMapper(otherMessage).getClass()).isEqualTo(WrappingMessageMapper.class);
     }
 
 }

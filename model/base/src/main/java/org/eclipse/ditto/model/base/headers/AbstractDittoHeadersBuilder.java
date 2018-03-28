@@ -218,6 +218,12 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     }
 
     @Override
+    public S contentType(final CharSequence contentType) {
+        putCharSequence(DittoHeaderDefinition.CONTENT_TYPE, contentType);
+        return myself;
+    }
+
+    @Override
     public S putHeader(final CharSequence key, final CharSequence value) {
         validateKey(key);
         checkNotNull(value, "value");

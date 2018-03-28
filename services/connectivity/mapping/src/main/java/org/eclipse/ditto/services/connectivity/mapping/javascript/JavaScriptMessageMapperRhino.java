@@ -31,6 +31,7 @@ import javax.script.Bindings;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ExternalMessage;
 import org.eclipse.ditto.model.connectivity.ExternalMessageBuilder;
@@ -179,16 +180,19 @@ final class JavaScriptMessageMapperRhino implements MessageMapper {
                 });
             }));
         } catch (final RhinoException e) {
-            throw buildMessageMappingFailedException(e, message.findContentType().orElse(""));
+            throw buildMessageMappingFailedException(e, message.findContentType().orElse(""),
+                    DittoHeaders.of(message.getHeaders()));
         } catch (final Throwable e) {
             throw MessageMappingFailedException.newBuilder(message.findContentType().orElse(null))
                     .description(e.getMessage())
+                    .dittoHeaders(DittoHeaders.of(message.getHeaders()))
                     .cause(e)
                     .build();
         }
     }
 
-    private MessageMappingFailedException buildMessageMappingFailedException(final RhinoException e, final String contentType) {
+    private MessageMappingFailedException buildMessageMappingFailedException(final RhinoException e,
+            final String contentType, final DittoHeaders dittoHeaders) {
         final boolean sourceExists = e.lineSource() != null && !e.lineSource().isEmpty();
         final String lineSource = sourceExists ? (", source:\n" + e.lineSource()) : "";
         final boolean stackExists = e.getScriptStackTrace() != null && !e.getScriptStackTrace().isEmpty();
@@ -196,6 +200,7 @@ final class JavaScriptMessageMapperRhino implements MessageMapper {
         return MessageMappingFailedException.newBuilder(contentType)
                 .description(e.getMessage() + " - in line/column #" + e.lineNumber() + "/" + e.columnNumber() +
                         lineSource + scriptStackTrace)
+                .dittoHeaders(dittoHeaders)
                 .cause(e)
                 .build();
     }
@@ -252,10 +257,12 @@ final class JavaScriptMessageMapperRhino implements MessageMapper {
                 return messageBuilder.build();
             }));
         } catch (final RhinoException e) {
-            throw buildMessageMappingFailedException(e, "");
+            throw buildMessageMappingFailedException(e, MessageMapper.findContentType(adaptable).orElse(""),
+                    adaptable.getHeaders().orElseGet(DittoHeaders::empty));
         } catch (final Throwable e) {
-            throw MessageMappingFailedException.newBuilder("")
+            throw MessageMappingFailedException.newBuilder(MessageMapper.findContentType(adaptable).orElse(""))
                     .description(e.getMessage())
+                    .dittoHeaders(adaptable.getHeaders().orElseGet(DittoHeaders::empty))
                     .cause(e)
                     .build();
         }

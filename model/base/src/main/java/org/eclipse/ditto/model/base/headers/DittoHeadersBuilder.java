@@ -127,6 +127,14 @@ public interface DittoHeadersBuilder<B extends DittoHeadersBuilder, R extends Di
     B origin(CharSequence origin);
 
     /**
+     * Sets the contentType value.
+     *
+     * @param contentType the contentType value to be set.
+     * @return this builder for Method Chaining.
+     */
+    B contentType(CharSequence contentType);
+
+    /**
      * Puts an arbitrary header with the specified {@code name} and String {@code value} to this builder.
      *
      * @param key the header name to use.
