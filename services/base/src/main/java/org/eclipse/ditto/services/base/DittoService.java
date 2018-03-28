@@ -386,7 +386,7 @@ public abstract class DittoService<C extends ServiceConfigReader> {
     }
 
     /**
-     * Starts additional root actors of this service. May be overridden to change the way how additional root enforcement
+     * Starts additional root actors of this service. May be overridden to change the way how additional root actors
      * will be started.
      *
      * @param actorSystem Akka actor system for starting actors.
