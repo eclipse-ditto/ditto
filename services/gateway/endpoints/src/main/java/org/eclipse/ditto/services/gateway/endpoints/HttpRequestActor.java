@@ -51,6 +51,7 @@ import akka.actor.Cancellable;
 import akka.actor.Props;
 import akka.actor.ReceiveTimeout;
 import akka.actor.Status;
+import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.http.javadsl.model.ContentType;
 import akka.http.javadsl.model.ContentTypes;
@@ -219,6 +220,10 @@ public final class HttpRequestActor extends AbstractActor {
                             failure.cause().getMessage());
                     completeWithResult(HttpResponse.create().withStatus(HttpStatusCode.INTERNAL_SERVER_ERROR.toInt())
                     );
+                })
+                .match(DistributedPubSubMediator.SubscribeAck.class, ack -> {
+                    logger.debug("Successfully subscribed to topic '{}' in group '{}'.",
+                            ack.subscribe().topic(), ack.subscribe().group());
                 })
                 .matchEquals(ServerRequestTimeoutMessage.INSTANCE,
                         serverRequestTimeoutMessage -> handleServerRequestTimeout())

@@ -116,7 +116,7 @@ public final class StreamingActor extends AbstractActor {
                             proxyActor.tell(signal, sessionActor);
                         }
                     } else {
-                        logger.warning("CorrelationId for CommandResponse in wrong format: {}",
+                        logger.warning("Signal is missing the required origin header: {}",
                                 signal.getDittoHeaders().getCorrelationId());
                     }
                 })
