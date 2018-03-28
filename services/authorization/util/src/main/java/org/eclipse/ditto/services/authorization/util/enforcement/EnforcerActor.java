@@ -58,7 +58,7 @@ public final class EnforcerActor extends AbstractActor {
 
         this.caches = requireNonNull(caches);
         this.enforcementProviders = requireNonNull(enforcementProviders);
-        this.preEnforcementConfig = requireNonNull(preEnforcementConfig);
+        this.preEnforcementConfig = preEnforcementConfig;
 
         this.context = new Enforcement.Context(
                 Duration.ofSeconds(10), // TODO: make configurable
