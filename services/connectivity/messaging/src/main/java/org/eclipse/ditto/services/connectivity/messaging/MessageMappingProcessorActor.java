@@ -62,6 +62,11 @@ public final class MessageMappingProcessorActor extends AbstractActor {
      */
     public static final String ACTOR_NAME = "messageMappingProcessor";
 
+    /**
+     * The pub sub group used to publish responses to live commands and messages.
+     */
+    public static final String LIVE_RESPONSES_PUB_SUB_GROUP = "live-responses";
+
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
     private final ActorRef pubSubMediator;
@@ -159,6 +164,8 @@ public final class MessageMappingProcessorActor extends AbstractActor {
                 .match(DittoRuntimeException.class, this::handleDittoRuntimeException)
                 .match(Status.Failure.class, f -> log.warning("Got failure with cause {}: {}",
                         f.cause().getClass().getSimpleName(), f.cause().getMessage()))
+                .match(DistributedPubSubMediator.SubscribeAck.class, this::subscribeAck)
+                .match(DistributedPubSubMediator.UnsubscribeAck.class, this::unsubscribeAck)
                 .matchAny(m -> {
                     log.warning("Unknown message: {}", m);
                     unhandled(m);
@@ -219,6 +226,12 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     private void handleCommandResponse(final CommandResponse<?> response) {
         LogUtil.enhanceLogWithCorrelationId(log, response);
         finishTrace(response);
+
+        response.getDittoHeaders()
+                .getCorrelationId()
+                .map(correlationId -> new DistributedPubSubMediator.Unsubscribe(correlationId,
+                        LIVE_RESPONSES_PUB_SUB_GROUP, getSelf()))
+                .ifPresent(unsubscribe -> pubSubMediator.tell(unsubscribe, getSelf()));
 
         if (response.getStatusCodeValue() < HttpStatusCode.BAD_REQUEST.toInt()) {
             log.debug("Received response: {}", response);
@@ -286,5 +299,15 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         final TraceContext ctx = Kamon.tracer().newContext("roundtrip.amqp_" + type, token);
         ctx.addMetadata("command", type);
         return ctx;
+    }
+
+    private void subscribeAck(final DistributedPubSubMediator.SubscribeAck subscribeAck) {
+        log.debug("Successfully subscribed to distributed pub/sub on topic '{}' in group '{}'.",
+                subscribeAck.subscribe().topic(), subscribeAck.subscribe().group());
+    }
+
+    private void unsubscribeAck(final DistributedPubSubMediator.UnsubscribeAck unsubscribeAck) {
+        log.debug("Successfully unsubscribed to distributed pub/sub on topic '{}' in group '{}'.",
+                unsubscribeAck.unsubscribe().topic(), unsubscribeAck.unsubscribe().group());
     }
 }
