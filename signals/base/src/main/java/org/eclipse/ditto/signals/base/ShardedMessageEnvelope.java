@@ -9,7 +9,7 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package org.eclipse.ditto.services.utils.cluster;
+package org.eclipse.ditto.signals.base;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 

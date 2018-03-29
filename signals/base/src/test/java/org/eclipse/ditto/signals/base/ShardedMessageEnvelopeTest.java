@@ -9,16 +9,13 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package org.eclipse.ditto.services.utils.cluster;
+package org.eclipse.ditto.signals.base;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.json.FieldType;
-import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -29,20 +26,18 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class ShardedMessageEnvelopeTest {
 
     private static final String THING_ID = "org.eclipse.ditto.test:thingId";
-    private static final Thing THING = Thing.newBuilder().setId(THING_ID).build();
     private static final DittoHeaders DITTO_HEADERS = DittoHeaders.empty();
-    private static final CreateThing CREATE_THING = CreateThing.of(THING, null, DITTO_HEADERS);
 
     private static final String MESSAGE_ID = THING_ID;
-    private static final String TYPE = CreateThing.TYPE;
-    private static final JsonObject MESSAGE = CREATE_THING.toJson(JsonSchemaVersion.V_2, FieldType.regularOrSpecial());
+    private static final String TYPE = "message-type";
+    private static final JsonObject MESSAGE = JsonFactory.newObjectBuilder().set("hello", "world").build();
 
     private static final ShardedMessageEnvelope SHARDED_MESSAGE_ENVELOPE =
             ShardedMessageEnvelope.of(MESSAGE_ID, TYPE, MESSAGE, DITTO_HEADERS);
 
     private static final JsonObject SHARDED_MESSAGE_ENVELOPE_JSON = JsonObject.newBuilder() //
             .set(ShardedMessageEnvelope.JSON_ID, MESSAGE_ID) //
-            .set(ShardedMessageEnvelope.JSON_TYPE, CreateThing.TYPE) //
+            .set(ShardedMessageEnvelope.JSON_TYPE, TYPE) //
             .set(ShardedMessageEnvelope.JSON_MESSAGE, MESSAGE) //
             .set(ShardedMessageEnvelope.JSON_DITTO_HEADERS, DITTO_HEADERS.toJson()) //
             .build();

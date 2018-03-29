@@ -22,7 +22,7 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.services.utils.cluster.ShardedMessageEnvelope;
+import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
 import org.eclipse.ditto.services.utils.distributedcache.actors.DeleteCacheEntry;
 import org.eclipse.ditto.services.utils.distributedcache.actors.ReadConsistency;
 import org.eclipse.ditto.services.utils.distributedcache.actors.WriteConsistency;

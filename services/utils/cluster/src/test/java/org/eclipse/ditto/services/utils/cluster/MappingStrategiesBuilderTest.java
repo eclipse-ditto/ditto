@@ -27,6 +27,7 @@ import org.eclipse.ditto.services.utils.akka.SimpleCommandResponse;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamAck;
 import org.eclipse.ditto.services.utils.health.StatusInfo;
 import org.eclipse.ditto.signals.base.JsonParsableRegistry;
+import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
 import org.junit.Test;
 import org.mutabilitydetector.internal.com.google.common.collect.Sets;
 
