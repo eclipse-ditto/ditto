@@ -35,26 +35,30 @@ public final class BaseClientData {
     private final String connectionId;
     private final Connection connection;
     private final ConnectionStatus connectionStatus;
+    private final ConnectionStatus desiredConnectionStatus;
     @Nullable private final String connectionStatusDetails;
     private final List<MappingContext> mappingContexts;
     @Nullable private final ActorRef origin;
 
     /**
      * Constructs new instance of BaseClientData, the data of the {@link BaseClientActor}.
-     *  @param connectionId the ID of the {@link Connection}.
+     * @param connectionId the ID of the {@link Connection}.
      * @param connection the optional {@link Connection}.
-     * @param connectionStatus the optional {@link ConnectionStatus} of the Connection.
+     * @param connectionStatus the current {@link ConnectionStatus} of the Connection.
+     * @param desiredConnectionStatus the desired {@link ConnectionStatus} of the Connection.
      * @param connectionStatusDetails the optional details about the ConnectionStatus.
      * @param mappingContexts the {@link MappingContext}s to apply for the managed Connection.
      * @param origin the ActorRef which caused the latest state data change.
      */
     BaseClientData(final String connectionId, final Connection connection,
             final ConnectionStatus connectionStatus,
+            final ConnectionStatus desiredConnectionStatus,
             @Nullable final String connectionStatusDetails, final List<MappingContext> mappingContexts,
             @Nullable final ActorRef origin) {
         this.connectionId = connectionId;
         this.connection = connection;
         this.connectionStatus = connectionStatus;
+        this.desiredConnectionStatus = desiredConnectionStatus;
         this.connectionStatusDetails = connectionStatusDetails;
         this.mappingContexts = Collections.unmodifiableList(new ArrayList<>(mappingContexts));
         this.origin = origin;
@@ -72,6 +76,10 @@ public final class BaseClientData {
         return connectionStatus;
     }
 
+    public ConnectionStatus getDesiredConnectionStatus() {
+        return desiredConnectionStatus;
+    }
+
     public Optional<String> getConnectionStatusDetails() {
         return Optional.ofNullable(connectionStatusDetails);
     }
@@ -85,27 +93,33 @@ public final class BaseClientData {
     }
 
     public BaseClientData setConnection(final Connection connection) {
-        return new BaseClientData(connectionId, connection, connectionStatus, connectionStatusDetails, mappingContexts,
-                origin);
+        return new BaseClientData(connectionId, connection, connectionStatus, desiredConnectionStatus,
+                connectionStatusDetails, mappingContexts, origin);
     }
 
     public BaseClientData setConnectionStatus(final ConnectionStatus connectionStatus) {
-        return new BaseClientData(connectionId, connection, connectionStatus, connectionStatusDetails, mappingContexts,
-                origin);
+        return new BaseClientData(connectionId, connection, connectionStatus, desiredConnectionStatus,
+                connectionStatusDetails, mappingContexts, origin);
+    }
+
+    public BaseClientData setDesiredConnectionStatus(final ConnectionStatus desiredConnectionStatus) {
+        return new BaseClientData(connectionId, connection, connectionStatus, desiredConnectionStatus,
+                connectionStatusDetails, mappingContexts, origin);
     }
 
     public BaseClientData setConnectionStatusDetails(final String connectionStatusDetails) {
-        return new BaseClientData(connectionId, connection, connectionStatus, connectionStatusDetails, mappingContexts,
-                origin);
+        return new BaseClientData(connectionId, connection, connectionStatus, desiredConnectionStatus,
+                connectionStatusDetails, mappingContexts, origin);
     }
 
     public BaseClientData setMappingContexts(final List<MappingContext> mappingContexts) {
-        return new BaseClientData(connectionId, connection, connectionStatus, connectionStatusDetails, mappingContexts,
-                origin);
+        return new BaseClientData(connectionId, connection, connectionStatus, desiredConnectionStatus,
+                connectionStatusDetails, mappingContexts, origin);
     }
 
     public BaseClientData setOrigin(final ActorRef origin) {
-        return new BaseClientData(connectionId, connection, connectionStatus, connectionStatusDetails, mappingContexts,
+        return new BaseClientData(connectionId, connection, connectionStatus, desiredConnectionStatus,
+                connectionStatusDetails, mappingContexts,
                 origin);
     }
 
@@ -117,6 +131,7 @@ public final class BaseClientData {
         return Objects.equals(connectionId, that.connectionId) &&
                 Objects.equals(connection, that.connection) &&
                 connectionStatus == that.connectionStatus &&
+                desiredConnectionStatus == that.desiredConnectionStatus &&
                 Objects.equals(connectionStatusDetails, that.connectionStatusDetails) &&
                 Objects.equals(mappingContexts, that.mappingContexts) &&
                 Objects.equals(origin, that.origin);
@@ -124,8 +139,8 @@ public final class BaseClientData {
 
     @Override
     public int hashCode() {
-        return Objects.hash(connectionId, connection, connectionStatus, connectionStatusDetails, mappingContexts,
-                origin);
+        return Objects.hash(connectionId, connection, connectionStatus, desiredConnectionStatus,
+                connectionStatusDetails, mappingContexts, origin);
     }
 
     @Override
@@ -134,6 +149,7 @@ public final class BaseClientData {
                 "connectionId=" + connectionId +
                 ", connection=" + connection +
                 ", connectionStatus=" + connectionStatus +
+                ", desiredConnectionStatus=" + desiredConnectionStatus +
                 ", connectionStatusDetails=" + connectionStatusDetails +
                 ", mappingContexts=" + mappingContexts +
                 ", origin=" + origin +

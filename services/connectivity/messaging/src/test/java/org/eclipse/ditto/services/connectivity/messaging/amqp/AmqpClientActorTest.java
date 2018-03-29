@@ -179,9 +179,10 @@ public class AmqpClientActorTest {
             amqpClientActor.tell(CreateConnection.of(connection, DittoHeaders.empty()), getRef());
             expectMsg(CONNECTED_SUCCESS);
 
+            // trigger a reconnect:
             amqpClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
             expectMsg(CONNECTED_SUCCESS);
-            Mockito.verify(mockConnection, Mockito.times(1)).start();
+            Mockito.verify(mockConnection, Mockito.times(2)).start();
         }};
     }
 

@@ -120,8 +120,8 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         final java.time.Duration initTimeout = config.getDuration(ConfigKeys.Client.INIT_TIMEOUT);
         headerBlacklist = config.getStringList(ConfigKeys.Message.HEADER_BLACKLIST);
 
-        startWith(DISCONNECTED, new BaseClientData(connection.getId(), connection, desiredConnectionStatus,
-                "initialized", Collections.emptyList(), null));
+        startWith(DISCONNECTED, new BaseClientData(connection.getId(), connection, ConnectionStatus.UNKNOWN,
+                desiredConnectionStatus, "initialized", Collections.emptyList(), null));
 
         when(DISCONNECTED, Duration.fromNanos(initTimeout.toNanos()),
                 inDisconnectedState(initTimeout));
@@ -175,12 +175,20 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     private FSMStateFunctionBuilder<BaseClientState, BaseClientData> inDisconnectedState(
             final java.time.Duration initTimeout) {
         return matchEvent(Arrays.asList(CloseConnection.class, DeleteConnection.class), BaseClientData.class,
-                (event, data) -> stay().using(data.setOrigin(getSender())).replying(new Status.Success(DISCONNECTED))
+                (event, data) -> stay().using(data
+                        .setOrigin(getSender())
+                        .setDesiredConnectionStatus(ConnectionStatus.CLOSED)
+                ).replying(new Status.Success(DISCONNECTED))
         )
                 .eventEquals(StateTimeout(), BaseClientData.class, (state, data) -> {
-                    log.info("Did not receive connect command within {}, trying to go to CONNECTING",
-                            initTimeout);
-                    return goTo(CONNECTING);
+                    if (data.getDesiredConnectionStatus() == ConnectionStatus.OPEN) {
+                        log.info("Did not receive connect command within {}, trying to go to CONNECTING",
+                                initTimeout);
+                        return goTo(CONNECTING);
+                    } else {
+                        // desired is not OPEN, so stay:
+                        return stay();
+                    }
                 })
                 .event(TestConnection.class, BaseClientData.class, (testConnection, data) -> {
                     try {
@@ -227,6 +235,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                 .event(Arrays.asList(CloseConnection.class, DeleteConnection.class), BaseClientData.class,
                         (event, data) ->
                                 goTo(DISCONNECTING).using(data
+                                        .setDesiredConnectionStatus(ConnectionStatus.CLOSED)
                                         .setConnectionStatusDetails(
                                                 "closing or deleting connection at " + Instant.now())
                                         .setOrigin(getSender())
@@ -248,10 +257,14 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     private FSMStateFunctionBuilder<BaseClientState, BaseClientData> inConnectedState() {
         return matchEvent(
                 Arrays.asList(CloseConnection.class, DeleteConnection.class), BaseClientData.class, (event, data) ->
-                        goTo(DISCONNECTING).using(data.setOrigin(getSender()))
+                        goTo(DISCONNECTING).using(data
+                                .setOrigin(getSender())
+                                .setDesiredConnectionStatus(ConnectionStatus.CLOSED)
+                        )
         )
                 .event(OpenConnection.class, BaseClientData.class, (openConnection, data) ->
-                        stay().using(data.setOrigin(getSender())).replying(new Status.Success(CONNECTED))
+                        // interpret as reconnecting
+                        goTo(CONNECTING).using(data.setOrigin(getSender()))
                 );
     }
 
@@ -271,8 +284,13 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     }
 
     private FSMStateFunctionBuilder<BaseClientState, BaseClientData> inFailedState() {
-        return matchEvent(OpenConnection.class, BaseClientData.class, (event, data) ->
-                goTo(CONNECTING).using(data.setOrigin(getSender()))
+        return matchEvent(OpenConnection.class, BaseClientData.class, (event, data) -> {
+                    if (data.getDesiredConnectionStatus() == ConnectionStatus.OPEN) {
+                        return goTo(CONNECTING).using(data.setOrigin(getSender()));
+                    } else {
+                        return stay();
+                    }
+                }
         );
     }
 
@@ -371,7 +389,13 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
         switch (to) {
             case CONNECTING:
-                doConnectClient(nextStateData().getConnection(), nextStateData().getOrigin().orElse(null));
+                if (from == CONNECTED) {
+                    // reconnect!
+                    log.info("Triggering reconnection");
+                    doReconnectClient(nextStateData().getConnection(), nextStateData().getOrigin().orElse(null));
+                } else {
+                    doConnectClient(nextStateData().getConnection(), nextStateData().getOrigin().orElse(null));
+                }
                 break;
             case DISCONNECTING:
                 doDisconnectClient(nextStateData().getConnection(), nextStateData().getOrigin().orElse(null));
@@ -428,6 +452,14 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
      * @param origin the ActorRef which caused the ConnectClient command
      */
     protected abstract void doConnectClient(final Connection connection, @Nullable final ActorRef origin);
+
+    /**
+     * Invoked when this {@code Client} should be reconnected.
+     *
+     * @param connection the Connection to use for reconnecting
+     * @param origin the ActorRef which caused the ReconnectClient command
+     */
+    protected abstract void doReconnectClient(final Connection connection, @Nullable final ActorRef origin);
 
     /**
      * Invoked when this {@code Client} should disconnect.
@@ -642,6 +674,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
     /**
      * Escapes the passed actorName in a actorName valid way.
+     *
      * @param name the actorName to escape
      * @return the escaped name
      */
@@ -692,7 +725,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             log.debug("Stopping child actor '{}'", nameEscaped);
             getContext().stop(child.get());
         } else {
-            log.debug("Cannot stop child actor '{}' because it does not exist.", name);
+            log.debug("Cannot stop child actor '{}' because it does not exist.", nameEscaped);
         }
     }
 
@@ -714,7 +747,6 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     }
 
     /**
-     *
      * @return whether this client is publishing at all
      */
     protected final boolean isPublishing() {

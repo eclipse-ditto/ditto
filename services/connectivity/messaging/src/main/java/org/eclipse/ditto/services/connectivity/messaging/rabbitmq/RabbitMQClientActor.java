@@ -156,6 +156,24 @@ public final class RabbitMQClientActor extends BaseClientActor {
     }
 
     @Override
+    protected void doReconnectClient(final Connection connection, @Nullable final ActorRef origin) {
+
+        stopCommandConsumers();
+        stopCommandPublisher();
+
+        onClientDisconnected(Optional::empty, stateData());
+
+        createConnectionSender = origin;
+
+        // wait a little until connecting again:
+        getContext().getSystem().scheduler().scheduleOnce(FiniteDuration.apply(500, TimeUnit.MILLISECONDS),
+                () -> connect(connection, origin)
+                        .thenAccept(status -> {
+                            log.info("Reconnected successfully");
+                        }), getContext().getSystem().dispatcher());
+    }
+
+    @Override
     protected void doDisconnectClient(final Connection connection, @Nullable final ActorRef origin) {
         stopCommandConsumers();
         stopCommandPublisher();
@@ -326,7 +344,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
         getContext().getChildren().forEach(child -> {
             final String actorName = child.path().name();
             if (actorName.startsWith(CONSUMER_ACTOR_PREFIX)) {
-                getContext().stop(child);
+                stopChildActor(child);
             }
         });
 
@@ -427,7 +445,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
     }
 
     /**
-     * TODO TJ doc
+     * Custom exception handler which handles exception during connection.
      */
     private class RabbitMQExceptionHandler extends DefaultExceptionHandler {
 
@@ -441,7 +459,8 @@ public final class RabbitMQClientActor extends BaseClientActor {
     }
 
     /**
-     * TODO TJ doc
+     * Custom consumer which is notified about different events related to the connection in order to track
+     * connectivity status.
      */
     private class RabbitMQMessageConsumer extends DefaultConsumer {
 
@@ -455,6 +474,8 @@ public final class RabbitMQClientActor extends BaseClientActor {
         private RabbitMQMessageConsumer(final ActorRef consumerActor, final Channel channel) {
             super(channel);
             this.consumerActor = consumerActor;
+            consumerActor.tell(ConnectivityModelFactory.newAddressMetric(ConnectionStatus.OPEN,
+                    "Consumer initialized at " + Instant.now(), 0), null);
         }
 
         @Override
@@ -481,9 +502,10 @@ public final class RabbitMQClientActor extends BaseClientActor {
             consumingQueueByTag(consumerTag).ifPresent(entry -> {
                 final String queueName = entry.getKey();
                 log.info("consume OK for consumer queue <{}> " + "on connection <{}>", queueName, connectionId());
-                entry.getValue().consumerActor.tell(ConnectivityModelFactory.newAddressMetric(ConnectionStatus.OPEN,
-                        "Consumer started at " + Instant.now(), 0), null);
             });
+
+            consumerActor.tell(ConnectivityModelFactory.newAddressMetric(ConnectionStatus.OPEN,
+                    "Consumer started at " + Instant.now(), 0), null);
         }
 
         @Override
@@ -492,12 +514,12 @@ public final class RabbitMQClientActor extends BaseClientActor {
 
             consumingQueueByTag(consumerTag).ifPresent(entry -> {
                 final String queueName = entry.getKey();
-                log.warning(
-                        "Consumer with queue <{}> was cancelled on connection <{}> - this can happen for example when " +
-                                "the queue was deleted", queueName, connectionId());
-                entry.getValue().consumerActor.tell(ConnectivityModelFactory.newAddressMetric(ConnectionStatus.FAILED,
-                        "Consumer for queue cancelled at " + Instant.now(), 0), null);
+                log.warning("Consumer with queue <{}> was cancelled on connection <{}> - this can happen for " +
+                        "example when the queue was deleted", queueName, connectionId());
             });
+
+            consumerActor.tell(ConnectivityModelFactory.newAddressMetric(ConnectionStatus.FAILED,
+                    "Consumer for queue cancelled at " + Instant.now(), 0), null);
         }
 
         @Override
@@ -508,13 +530,10 @@ public final class RabbitMQClientActor extends BaseClientActor {
                 final String queueName = entry.getKey();
                 log.warning("Consumer with queue <{}> shutdown as the channel or the underlying connection has " +
                         "been shut down on connection <{}>", queueName, connectionId());
-
-                entry.getValue().consumerActor.tell(ConnectivityModelFactory.newAddressMetric(ConnectionStatus.FAILED,
-                        "Channel or the underlying connection has been shut down at " + Instant.now(), 0), null);
             });
 
-            getSelf().tell(new ImmutableConnectionFailure(ActorRef.noSender(), sig,
-                    "Channel or the underlying connection has been shut down"), getSelf());
+            consumerActor.tell(ConnectivityModelFactory.newAddressMetric(ConnectionStatus.FAILED,
+                    "Channel or the underlying connection has been shut down at " + Instant.now(), 0), null);
         }
 
         @Override

@@ -44,6 +44,7 @@ import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.connectivity.AggregatedConnectivityCommandResponse;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
+import org.eclipse.ditto.signals.commands.connectivity.ConnectivityErrorResponse;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionConflictException;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionNotAccessibleException;
@@ -690,6 +691,8 @@ final class ConnectionActor extends AbstractPersistentActor {
                             aggregatedResults.add((CommandResponse<?>) any);
                         } else if (any instanceof Status.Status) {
                             aggregatedStatus.put(getSender().path().address().hostPort(), (Status.Status) any);
+                        } else if (any instanceof DittoRuntimeException){
+                            aggregatedResults.add(ConnectivityErrorResponse.of((DittoRuntimeException) any));
                         } else {
                             log.error("Could not handle non-Jsonifiable non-Status response: {}", any);
                         }

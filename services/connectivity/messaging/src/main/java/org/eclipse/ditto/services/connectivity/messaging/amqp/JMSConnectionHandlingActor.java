@@ -15,8 +15,10 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import javax.annotation.Nullable;
 import javax.jms.Destination;
 import javax.jms.ExceptionListener;
 import javax.jms.JMSException;
@@ -31,9 +33,11 @@ import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
 
 import akka.actor.AbstractActor;
+import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
+import scala.concurrent.duration.FiniteDuration;
 
 /**
  * This actor executes single operation (connect/disconnect) on JMS Connection/Session. It is separated into an actor
@@ -87,13 +91,38 @@ public class JMSConnectionHandlingActor extends AbstractActor {
     public Receive createReceive() {
         return receiveBuilder()
                 .match(AmqpClientActor.JmsConnect.class, this::handleConnect)
+                .match(AmqpClientActor.JmsReconnect.class, this::handleReconnect)
                 .match(AmqpClientActor.JmsDisconnect.class, this::handleDisconnect)
                 .build();
     }
 
-    @SuppressWarnings("squid:S2095") // cannot use try-with-resources, connection has longer lifetime
     private void handleConnect(final AmqpClientActor.JmsConnect connect) {
+        doConnect(getSender(), connect.getOrigin().orElse(null));
+        getContext().stop(getSelf());
+    }
+
+    private void handleReconnect(final AmqpClientActor.JmsReconnect reconnect) {
+        final javax.jms.Connection connection = reconnect.getConnection();
+        log.info("Reconnecting");
+        doDisconnect(connection, null); // do not pass origin as only the disconnect would be acked
+
+        // wait a little until connecting again:
+        final ActorRef sender = getSender();
+        getContext().getSystem().scheduler().scheduleOnce(FiniteDuration.apply(500, TimeUnit.MILLISECONDS),
+                () -> doConnect(sender, reconnect.getOrigin().orElse(null)),
+                getContext().getSystem().dispatcher());
+    }
+
+    private void handleDisconnect(final AmqpClientActor.JmsDisconnect disconnect) {
+        final javax.jms.Connection connection = disconnect.getConnection();
+        doDisconnect(connection, disconnect.getOrigin().orElse(null));
+        log.debug("Stopping myself {}", getSelf());
+        getContext().stop(getSelf());
+    }
+
+    private void doConnect(final ActorRef sender, @Nullable final ActorRef origin) {
         try {
+
             final JmsConnection
                     jmsConnection = jmsConnectionFactory.createConnection(connection, exceptionListener);
             log.debug("Starting connection.");
@@ -122,9 +151,8 @@ public class JMSConnectionHandlingActor extends AbstractActor {
 
             if (failedSources.isEmpty()) {
                 final AmqpClientActor.JmsConnected connectedMessage =
-                        new AmqpClientActor.JmsConnected(connect.getOrigin().orElse(null), jmsConnection, jmsSession,
-                                consumerMap);
-                sender().tell(connectedMessage, sender());
+                        new AmqpClientActor.JmsConnected(origin, jmsConnection, jmsSession, consumerMap);
+                sender.tell(connectedMessage, getSelf());
                 log.debug("Connection <{}> established successfully, stopping myself.", connection.getId());
             } else {
                 log.warning("Failed to consume sources: {}.", failedSources);
@@ -136,18 +164,15 @@ public class JMSConnectionHandlingActor extends AbstractActor {
                                 .map(e -> e.getKey() + ": " + e.getValue().getMessage())
                                 .collect(Collectors.joining(", ")))
                         .build();
-                getSender().tell(
-                        new ImmutableConnectionFailure(connect.getOrigin().orElse(null), failedException, null),
-                        getSender());
+                sender.tell(
+                        new ImmutableConnectionFailure(origin, failedException, null), getSelf());
             }
         } catch (final Exception e) {
-            getSender().tell(new ImmutableConnectionFailure(connect.getOrigin().orElse(null), e, null), getSender());
+            sender.tell(new ImmutableConnectionFailure(origin, e, null), getSelf());
         }
-        getContext().stop(getSelf());
     }
 
-    private void handleDisconnect(final AmqpClientActor.JmsDisconnect disconnect) {
-        final javax.jms.Connection connection = disconnect.getConnection();
+    private void doDisconnect(final javax.jms.Connection connection, @Nullable final ActorRef origin) {
         try {
             log.debug("Closing JMS connection {}", this.connection.getId());
             connection.stop();
@@ -156,9 +181,7 @@ public class JMSConnectionHandlingActor extends AbstractActor {
         } catch (final JMSException e) {
             log.debug("Connection <{}> already closed: {}", this.connection.getId(), e.getMessage());
         }
-        getSender().tell(new AmqpClientActor.JmsDisconnected(disconnect.getOrigin().orElse(null)), getSender());
-        log.debug("Stopping myself {}", getSelf());
-        getContext().stop(getSelf());
+        getSender().tell(new AmqpClientActor.JmsDisconnected(origin), getSender());
     }
 
 }

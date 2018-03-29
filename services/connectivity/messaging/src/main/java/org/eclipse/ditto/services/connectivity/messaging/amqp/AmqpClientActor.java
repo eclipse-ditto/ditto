@@ -50,6 +50,7 @@ import org.eclipse.ditto.services.connectivity.messaging.internal.ClientDisconne
 import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectClient;
 import org.eclipse.ditto.services.connectivity.messaging.internal.DisconnectClient;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
+import org.eclipse.ditto.services.connectivity.messaging.internal.ReconnectClient;
 import org.eclipse.ditto.services.models.connectivity.ConnectivityMessagingConstants;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
@@ -61,7 +62,6 @@ import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Pair;
 import akka.pattern.PatternsCS;
 import akka.util.Timeout;
-import scala.concurrent.duration.Duration;
 
 /**
  * Actor which manages a connection to an AMQP 1.0 server using the Qpid JMS client.
@@ -149,17 +149,21 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     @Override
     protected void doConnectClient(final Connection connection, @Nullable final ActorRef origin) {
 
-        // reset receive timeout when a connect command was received
-        getContext().setReceiveTimeout(Duration.Undefined());
-
         // delegate to child actor because the QPID JMS client is blocking until connection is opened/closed
         startConnectionHandlingActor("connect", connection).tell(new JmsConnect(origin), getSelf());
     }
 
     @Override
+    protected void doReconnectClient(final Connection connection, @Nullable final ActorRef origin) {
+
+        // delegate to child actor because the QPID JMS client is blocking until connection is opened/closed
+        startConnectionHandlingActor("reconnect", connection).tell(new JmsReconnect(origin, jmsConnection),
+                getSelf());
+    }
+
+    @Override
     protected void doDisconnectClient(final Connection connection, @Nullable final ActorRef origin) {
-        stopCommandConsumers();
-        stopCommandProducer();
+
         // delegate to child actor because the QPID JMS client is blocking until connection is opened/closed
         startConnectionHandlingActor("disconnect", connection)
                 .tell(new JmsDisconnect(origin, jmsConnection), getSelf());
@@ -224,6 +228,8 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     @Override
     protected void onClientDisconnected(final ClientDisconnected clientDisconnected, final BaseClientData data) {
         log.info("Received ClientDisconnected");
+        stopCommandConsumers();
+        stopCommandProducer();
         this.jmsSession = null;
         if (jmsConnection != null) {
             jmsConnection.removeConnectionListener(connectionListener);
@@ -245,6 +251,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         final Optional<ActorRef> messageMappingProcessor = getMessageMappingProcessorActor();
         if (messageMappingProcessor.isPresent()) {
             if (isConsuming()) {
+                stopCommandConsumers();
                 consumerMap.forEach((sourceAddress, messageConsumer) ->
                         startCommandConsumer(sourceAddress, messageConsumer, messageMappingProcessor.get())
                 );
@@ -292,9 +299,12 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     }
 
     private void stopCommandConsumers() {
-        getSourcesOrEmptySet().forEach(source -> source.getAddresses().forEach(sourceAddress ->
-                stopChildActor(AmqpConsumerActor.ACTOR_NAME_PREFIX + sourceAddress)));
-        log.info("Unsubscribed Connection <{}> from sources: {}", connectionId(), getSourcesOrEmptySet());
+        getContext().getChildren().forEach(child -> {
+            final String actorName = child.path().name();
+            if (actorName.startsWith(AmqpConsumerActor.ACTOR_NAME_PREFIX)) {
+                stopChildActor(child);
+            }
+        });
     }
 
     private ActorRef startConnectionHandlingActor(final String suffix, final Connection connection) {
@@ -314,8 +324,25 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
      */
     static class JmsConnect extends AbstractWithOrigin implements ConnectClient {
 
-        private JmsConnect(@Nullable final ActorRef origin) {
+        JmsConnect(@Nullable final ActorRef origin) {
             super(origin);
+        }
+    }
+
+    /**
+     * {@code Reconnect} message for internal communication with {@link JMSConnectionHandlingActor}.
+     */
+    static class JmsReconnect extends AbstractWithOrigin implements ReconnectClient {
+
+        private final javax.jms.Connection connection;
+
+        JmsReconnect(@Nullable final ActorRef origin, @Nullable final javax.jms.Connection connection) {
+            super(origin);
+            this.connection = checkNotNull(connection, "connection");
+        }
+
+        javax.jms.Connection getConnection() {
+            return connection;
         }
     }
 
