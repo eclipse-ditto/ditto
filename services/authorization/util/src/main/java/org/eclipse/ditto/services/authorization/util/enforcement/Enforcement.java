@@ -206,6 +206,13 @@ public abstract class Enforcement<T extends Command> {
     }
 
     /**
+     * @return Akka pubsub mediator.
+     */
+    protected ActorRef pubSubMediator() {
+        return context.pubSubMediator;
+    }
+
+    /**
      * @return actor reference of the enforcer actor this object belongs to.
      */
     protected ActorRef self() {
@@ -214,6 +221,7 @@ public abstract class Enforcement<T extends Command> {
 
     public static final class Context {
 
+        private final ActorRef pubSubMediator;
         private final Duration askTimeout;
         private final EntityRegionMap entityRegionMap;
         private final EntityId entityId;
@@ -221,13 +229,16 @@ public abstract class Enforcement<T extends Command> {
         private final AuthorizationCaches caches;
         private final ActorRef self;
 
-        public Context(final Duration askTimeout,
+        public Context(
+                final ActorRef pubSubMediator,
+                final Duration askTimeout,
                 final EntityRegionMap entityRegionMap,
                 final EntityId entityId,
                 final DiagnosticLoggingAdapter log,
                 final AuthorizationCaches caches,
                 final ActorRef self) {
 
+            this.pubSubMediator = pubSubMediator;
             this.askTimeout = askTimeout;
             this.entityRegionMap = entityRegionMap;
             this.entityId = entityId;

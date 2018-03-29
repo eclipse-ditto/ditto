@@ -378,7 +378,7 @@ public final class ThingCommandEnforcementTest {
 
         final AuthorizationCaches authorizationCaches = new AuthorizationCaches(CONFIG.caches(), enforcerCacheLoader,
                 enforcementIdCacheLoaders, dummyReportingConsumer);
-        final Props props = EnforcerActorFactory.props(testActorMap, authorizationCaches);
+        final Props props = EnforcerActorFactory.props(testActorRef, testActorMap, authorizationCaches);
         return system.actorOf(props, THING + ":" + THING_ID);
     }
 

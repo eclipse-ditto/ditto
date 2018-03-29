@@ -13,14 +13,12 @@ package org.eclipse.ditto.services.gateway.proxy.actors;
 
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.services.gateway.proxy.actors.handlers.CreateThingHandlerActor;
 import org.eclipse.ditto.services.gateway.proxy.actors.handlers.ModifyThingHandlerActor;
 import org.eclipse.ditto.services.gateway.proxy.actors.handlers.RetrieveThingHandlerActor;
 import org.eclipse.ditto.services.gateway.proxy.actors.handlers.ThingHandlerCreator;
 import org.eclipse.ditto.services.models.authorization.AuthorizationEnvelope;
-import org.eclipse.ditto.services.models.authorization.EntityId;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoCommand;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThings;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingsResponse;
@@ -32,7 +30,6 @@ import org.eclipse.ditto.signals.commands.devops.DevOpsCommand;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
-import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
@@ -149,7 +146,7 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
                     }
                 })
                 .match(ThingCommand.class, this::forwardToAuthorizationShardRegion)
-                .match(MessageCommand.class, forwardToLocalEnforcerLookup(thingEnforcerLookup))
+                .match(MessageCommand.class, this::forwardToAuthorizationShardRegion)
 
                 /* Thing Events */
                 /* use MAJORITY for ThingDeleted events, because ThingsShardRegion no longer contains any
@@ -196,20 +193,7 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
 
     @Override
     protected void addErrorBehaviour(final ReceiveBuilder receiveBuilder) {
-        receiveBuilder
-                .match(LookupEnforcerResponse.class, isOfType(MessageCommand.class), response -> {
-                    final LookupContext<?> lookupContext = response.getContext();
-                    final MessageCommand messageCommand = (MessageCommand) lookupContext.getInitialCommandOrEvent();
-                    getLogger().info(
-                            "Command of type <{}> with ID <{}> could not be dispatched as no enforcer could be" +
-                                    " looked up! Answering with ThingNotAccessibleException.", messageCommand.getType(),
-                            messageCommand.getId());
-                    final ActorRef initialSender = lookupContext.getInitialSender();
-                    final Exception exception = ThingNotAccessibleException.newBuilder(messageCommand.getId())
-                            .dittoHeaders(messageCommand.getDittoHeaders())
-                            .build();
-                    initialSender.tell(exception, ActorRef.noSender());
-                });
+        // do nothing
     }
 
     @Override

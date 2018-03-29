@@ -17,12 +17,13 @@ import java.util.Set;
 import org.eclipse.ditto.services.authorization.util.EntityRegionMap;
 import org.eclipse.ditto.services.authorization.util.cache.AuthorizationCaches;
 
+import akka.actor.ActorRef;
 import akka.actor.Props;
 
 /**
  * Factory which creates Props for an {@link EnforcerActor}.
  */
-public final class EnforcerActorFactory{
+public final class EnforcerActorFactory {
 
     private EnforcerActorFactory() {
         throw new AssertionError();
@@ -31,17 +32,19 @@ public final class EnforcerActorFactory{
     /**
      * Creates Akka configuration object Props for this EnforcerActor.
      *
+     * @param pubSubMediator Akka pub sub mediator.
      * @param entityRegionMap map from resource types to entity shard regions.
      * @param authorizationCaches cache of information relevant for authorization.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final EntityRegionMap entityRegionMap,
+    public static Props props(final ActorRef pubSubMediator, final EntityRegionMap entityRegionMap,
             final AuthorizationCaches authorizationCaches) {
         final Set<EnforcementProvider> enforcementProviders = new HashSet<>();
         enforcementProviders.add(new ThingCommandEnforcementProvider());
         enforcementProviders.add(new PolicyCommandEnforcementProvider());
+        enforcementProviders.add(new MessageCommandEnforcement.Provider());
 
-        return EnforcerActor.props(entityRegionMap, authorizationCaches, enforcementProviders);
+        return EnforcerActor.props(pubSubMediator, entityRegionMap, authorizationCaches, enforcementProviders);
     }
 
 }

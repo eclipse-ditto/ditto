@@ -51,8 +51,11 @@ public final class EnforcerActor extends AbstractActor {
     @Nullable
     private final PreEnforcementConfig preEnforcementConfig;
 
-    private EnforcerActor(final EntityRegionMap entityRegionMap,
-            final AuthorizationCaches caches, final Set<EnforcementProvider> enforcementProviders,
+    private EnforcerActor(
+            final ActorRef pubSubMediator,
+            final EntityRegionMap entityRegionMap,
+            final AuthorizationCaches caches,
+            final Set<EnforcementProvider> enforcementProviders,
             @Nullable PreEnforcementConfig preEnforcementConfig) {
         this.entityId = decodeEntityId(getSelf());
 
@@ -61,6 +64,7 @@ public final class EnforcerActor extends AbstractActor {
         this.preEnforcementConfig = preEnforcementConfig;
 
         this.context = new Enforcement.Context(
+                pubSubMediator,
                 Duration.ofSeconds(10), // TODO: make configurable
                 requireNonNull(entityRegionMap),
                 entityId,
@@ -72,33 +76,36 @@ public final class EnforcerActor extends AbstractActor {
     /**
      * Creates Akka configuration object Props for this EnforcerActor.
      *
+     * @param pubSubMediator Akka pub sub mediator.
      * @param entityRegionMap map from resource types to entity shard regions.
      * @param authorizationCaches cache of information relevant for authorization.
      * @param enforcementProviders a set of {@link EnforcementProvider}s.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final EntityRegionMap entityRegionMap,
+    public static Props props(final ActorRef pubSubMediator, final EntityRegionMap entityRegionMap,
             final AuthorizationCaches authorizationCaches, final Set<EnforcementProvider> enforcementProviders) {
 
         return Props.create(EnforcerActor.class,
-                () -> new EnforcerActor(entityRegionMap, authorizationCaches, enforcementProviders, null));
+                () -> new EnforcerActor(pubSubMediator, entityRegionMap, authorizationCaches, enforcementProviders,
+                        null));
     }
 
     /**
      * Creates Akka configuration object Props for this EnforcerActor.
      *
+     * @param pubSubMediator Akka pub sub mediator.
      * @param entityRegionMap map from resource types to entity shard regions.
      * @param authorizationCaches cache of information relevant for authorization.
      * @param enforcementProviders a set of {@link EnforcementProvider}s.
      * @param preEnforcementConfig a {@link PreEnforcementConfig}, may be {@code null}.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final EntityRegionMap entityRegionMap,
+    public static Props props(final ActorRef pubSubMediator, final EntityRegionMap entityRegionMap,
             final AuthorizationCaches authorizationCaches, final Set<EnforcementProvider> enforcementProviders,
             @Nullable PreEnforcementConfig preEnforcementConfig) {
 
         return Props.create(EnforcerActor.class,
-                () -> new EnforcerActor(entityRegionMap, authorizationCaches, enforcementProviders,
+                () -> new EnforcerActor(pubSubMediator, entityRegionMap, authorizationCaches, enforcementProviders,
                         preEnforcementConfig));
     }
 

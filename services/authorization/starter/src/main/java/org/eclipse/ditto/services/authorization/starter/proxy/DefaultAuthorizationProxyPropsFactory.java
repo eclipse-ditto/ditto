@@ -43,7 +43,7 @@ public final class DefaultAuthorizationProxyPropsFactory implements Authorizatio
     public Props props(final ActorContext context, final AuthorizationConfigReader configReader,
             final ActorRef pubSubMediator, final ActorRef policiesShardRegionProxy,
             final ActorRef thingsShardRegionProxy) {
-        final EntityRegionMap entityRegionMap =  EntityRegionMap.newBuilder()
+        final EntityRegionMap entityRegionMap = EntityRegionMap.newBuilder()
                 .put(PolicyCommand.RESOURCE_TYPE, policiesShardRegionProxy)
                 .put(ThingCommand.RESOURCE_TYPE, thingsShardRegionProxy)
                 .build();
@@ -61,10 +61,11 @@ public final class DefaultAuthorizationProxyPropsFactory implements Authorizatio
                 enforcementIdCacheLoaders,
                 namedMetricRegistry -> StatsdMetricsReporter.getInstance().add(namedMetricRegistry));
 
-        final Props enforcerProps = EnforcerActorFactory.props(entityRegionMap, caches);
+        final Props enforcerProps = EnforcerActorFactory.props(pubSubMediator, entityRegionMap, caches);
 
         // start cache updater
-        final Props cacheUpdaterProps = CacheUpdaterPropsFactory.props(pubSubMediator, caches, configReader.instanceIndex());
+        final Props cacheUpdaterProps =
+                CacheUpdaterPropsFactory.props(pubSubMediator, caches, configReader.instanceIndex());
         context.actorOf(cacheUpdaterProps, CacheUpdaterPropsFactory.ACTOR_NAME);
         return enforcerProps;
     }
