@@ -119,9 +119,6 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
                 .match(org.eclipse.ditto.services.models.policies.commands.sudo.SudoCommand.class,
                         forwardToLocalEnforcerLookup(thingEnforcerLookup))
 
-                /* Live Signals */
-                .match(Signal.class, ProxyActor::isLiveSignal, forwardToLocalEnforcerLookup(thingEnforcerLookup))
-
                 /* Policy Commands */
                 .match(PolicyCommand.class, this::forwardToAuthorizationShardRegion)
                 .match(org.eclipse.ditto.services.models.policies.commands.sudo.SudoCommand.class, sudoCommand ->
@@ -164,6 +161,9 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
 
                 .match(ThingSearchSudoCommand.class, command -> pubSubMediator.tell(
                         new DistributedPubSubMediator.Send(THINGS_SEARCH_ACTOR_PATH, command), getSender()))
+
+                /* Live Signals */
+                .match(Signal.class, ProxyActor::isLiveSignal, forwardToLocalEnforcerLookup(thingEnforcerLookup))
         ;
     }
 
