@@ -23,6 +23,7 @@ import static org.mockito.Mockito.when;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
@@ -87,8 +88,8 @@ public class DefaultStreamSupervisorTest {
         forwardTo = TestProbe.apply(actorSystem);
         provider = TestProbe.apply(actorSystem);
 
-        when(searchSyncPersistence.retrieveLastSuccessfulStreamEnd(any(Instant.class)))
-                .thenAnswer(unused -> KNOWN_LAST_SYNC);
+        when(searchSyncPersistence.retrieveLastSuccessfulStreamEnd())
+                .thenAnswer(unused -> Optional.of(KNOWN_LAST_SYNC));
         when(searchSyncPersistence.updateLastSuccessfulStreamEnd(any(Instant.class)))
                 .thenReturn(Source.single(NotUsed.getInstance()));
     }
@@ -117,7 +118,7 @@ public class DefaultStreamSupervisorTest {
             expectStreamTriggerMsg(expectedQueryEnd);
 
             // verify that last query end has been retrieved from persistence
-            verify(searchSyncPersistence).retrieveLastSuccessfulStreamEnd(any(Instant.class));
+            verify(searchSyncPersistence).retrieveLastSuccessfulStreamEnd();
 
             getForwarderActor(streamSupervisor).tell(STREAM_STARTED, ActorRef.noSender());
             sendMessageToForwarderAndExpectTerminated(this, streamSupervisor, STREAM_COMPLETED);
@@ -141,7 +142,7 @@ public class DefaultStreamSupervisorTest {
             expectStreamTriggerMsg(expectedQueryEnd);
 
             // verify that last query end has been retrieved from persistence
-            verify(searchSyncPersistence).retrieveLastSuccessfulStreamEnd(any(Instant.class));
+            verify(searchSyncPersistence).retrieveLastSuccessfulStreamEnd();
 
             when(searchSyncPersistence.updateLastSuccessfulStreamEnd(any(Instant.class)))
                     .thenReturn(Source.failed(new IllegalStateException("mocked stream-metadata-persistence error")));

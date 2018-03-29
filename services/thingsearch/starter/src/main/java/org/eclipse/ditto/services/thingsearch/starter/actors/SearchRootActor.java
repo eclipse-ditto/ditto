@@ -13,14 +13,13 @@ package org.eclipse.ditto.services.thingsearch.starter.actors;
 
 import static akka.http.javadsl.server.Directives.logRequest;
 import static akka.http.javadsl.server.Directives.logResult;
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.POLICIES_SYNC_STATE_COLLECTION_NAME;
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.THINGS_SYNC_STATE_COLLECTION_NAME;
 
-import java.net.ConnectException;
-import java.time.Duration;
-import java.util.NoSuchElementException;
 import java.util.concurrent.CompletionStage;
 
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.services.thingsearch.common.util.ConfigKeys;
+import org.eclipse.ditto.services.thingsearch.common.util.RootSupervisorStrategyFactory;
 import org.eclipse.ditto.services.thingsearch.persistence.read.MongoThingsSearchPersistence;
 import org.eclipse.ditto.services.thingsearch.persistence.read.ThingsSearchPersistence;
 import org.eclipse.ditto.services.thingsearch.persistence.read.query.MongoAggregationBuilderFactory;
@@ -33,21 +32,20 @@ import org.eclipse.ditto.services.thingsearch.querymodel.expression.ThingsFieldE
 import org.eclipse.ditto.services.thingsearch.querymodel.expression.ThingsFieldExpressionFactoryImpl;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.AggregationBuilderFactory;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.QueryBuilderFactory;
+import org.eclipse.ditto.services.thingsearch.starter.actors.health.SearchHealthCheckingActorFactory;
+import org.eclipse.ditto.services.thingsearch.updater.actors.SearchUpdaterRootActor;
+import org.eclipse.ditto.services.utils.akka.streaming.StreamMetadataPersistence;
 import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
-import org.eclipse.ditto.services.utils.health.DefaultHealthCheckingActorFactory;
-import org.eclipse.ditto.services.utils.health.HealthCheckingActorOptions;
 import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
+import org.eclipse.ditto.services.utils.persistence.mongo.streaming.MongoSearchSyncPersistence;
 
 import com.typesafe.config.Config;
 
 import akka.actor.AbstractActor;
-import akka.actor.ActorKilledException;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
-import akka.actor.InvalidActorNameException;
-import akka.actor.OneForOneStrategy;
 import akka.actor.Props;
 import akka.actor.Status;
 import akka.actor.SupervisorStrategy;
@@ -60,17 +58,13 @@ import akka.http.javadsl.Http;
 import akka.http.javadsl.ServerBinding;
 import akka.http.javadsl.server.Route;
 import akka.japi.Creator;
-import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.ReceiveBuilder;
-import akka.pattern.AskTimeoutException;
 import akka.stream.ActorMaterializer;
 
 /**
  * Our "Parent" Actor which takes care of supervision of all other Actors in our system.
  */
 public final class SearchRootActor extends AbstractActor {
-
-    private static final String RESTARTING_CHILD_MESSAGE = "Restarting child...";
 
     /**
      * The name of this Actor in the ActorSystem.
@@ -79,72 +73,41 @@ public final class SearchRootActor extends AbstractActor {
 
     private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 
-    private final SupervisorStrategy strategy = new OneForOneStrategy(true, DeciderBuilder //
-            .match(NullPointerException.class, e -> {
-                log.error(e, "NullPointer in child actor: {}", e.getMessage());
-                log.info(RESTARTING_CHILD_MESSAGE);
-                return SupervisorStrategy.restart();
-            }).match(IllegalArgumentException.class, e -> {
-                log.warning("Illegal Argument in child actor: {}", e.getMessage());
-                return SupervisorStrategy.resume();
-            }).match(IllegalStateException.class, e -> {
-                log.warning("Illegal State in child actor: {}", e.getMessage());
-                return SupervisorStrategy.resume();
-            }).match(NoSuchElementException.class, e -> {
-                log.warning("NoSuchElement in child actor: {}", e.getMessage());
-                return SupervisorStrategy.resume();
-            }).match(AskTimeoutException.class, e -> {
-                log.warning("AskTimeoutException in child actor: {}", e.getMessage());
-                return SupervisorStrategy.resume();
-            }).match(ConnectException.class, e -> {
-                log.warning("ConnectException in child actor: {}", e.getMessage());
-                log.info(RESTARTING_CHILD_MESSAGE);
-                return SupervisorStrategy.restart();
-            }).match(InvalidActorNameException.class, e -> {
-                log.warning("InvalidActorNameException in child actor: {}", e.getMessage());
-                return SupervisorStrategy.resume();
-            }).match(ActorKilledException.class, e -> {
-                log.error(e, "ActorKilledException in child actor: {}", e.message());
-                log.info(RESTARTING_CHILD_MESSAGE);
-                return SupervisorStrategy.restart();
-            }).match(DittoRuntimeException.class, e -> {
-                log.error(e,
-                        "DittoRuntimeException '{}' should not be escalated to SearchRootActor. Simply resuming Actor.",
-                        e.getErrorCode());
-                return SupervisorStrategy.resume();
-            }).match(Throwable.class, e -> {
-                log.error(e, "Escalating above root actor!");
-                return SupervisorStrategy.escalate();
-            }).matchAny(e -> {
-                log.error("Unknown message:'{}'! Escalating above root actor!", e);
-                return SupervisorStrategy.escalate();
-            }).build());
+    private final SupervisorStrategy supervisorStrategy = RootSupervisorStrategyFactory.createStrategy(log);
+
 
     private SearchRootActor(final Config config, final ActorRef pubSubMediator, final ActorMaterializer materializer) {
-        final boolean healthCheckEnabled = config.getBoolean(ConfigKeys.HEALTH_CHECK_ENABLED);
-        final Duration healthCheckInterval = config.getDuration(ConfigKeys.HEALTH_CHECK_INTERVAL);
-
-        final HealthCheckingActorOptions.Builder hcBuilder =
-                HealthCheckingActorOptions.getBuilder(healthCheckEnabled, healthCheckInterval);
-        if (config.getBoolean(ConfigKeys.HEALTH_CHECK_PERSISTENCE_ENABLED)) {
-            hcBuilder.enablePersistenceCheck();
-        }
-
         final MongoClientWrapper mongoClientWrapper = MongoClientWrapper.newInstance(config);
 
-        final ActorRef mongoHealthCheckActor = startChildActor(MongoReactiveHealthCheckActor.ACTOR_NAME,
-                MongoReactiveHealthCheckActor.props(mongoClientWrapper));
+        final StreamMetadataPersistence thingsSyncPersistence =
+                MongoSearchSyncPersistence.initializedInstance(THINGS_SYNC_STATE_COLLECTION_NAME, mongoClientWrapper,
+                        materializer);
 
-        final HealthCheckingActorOptions healthCheckingActorOptions = hcBuilder.build();
-        final ActorRef healthCheckingActor = startChildActor(DefaultHealthCheckingActorFactory.ACTOR_NAME,
-                DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions, mongoHealthCheckActor));
+        final StreamMetadataPersistence policiesSyncPersistence =
+                MongoSearchSyncPersistence.initializedInstance(POLICIES_SYNC_STATE_COLLECTION_NAME, mongoClientWrapper,
+                        materializer);
 
-        final ThingsSearchPersistence searchPersistence =
+        final ActorRef searchActor = initializeSearchActor(config, pubSubMediator, mongoClientWrapper);
+
+        final ActorRef healthCheckingActor = initializeHealthCheckActor(config, mongoClientWrapper,
+                thingsSyncPersistence, policiesSyncPersistence);
+
+        pubSubMediator.tell(new DistributedPubSubMediator.Put(searchActor), getSelf());
+
+        createHealthCheckingActorHttpBinding(config, healthCheckingActor, materializer);
+
+        startChildActor(SearchUpdaterRootActor.ACTOR_NAME, SearchUpdaterRootActor.props(config, pubSubMediator,
+                materializer, thingsSyncPersistence, policiesSyncPersistence));
+    }
+
+    private ActorRef initializeSearchActor(final Config config, ActorRef pubSubMediator, final MongoClientWrapper
+            mongoClientWrapper) {
+        final ThingsSearchPersistence thingsSearchPersistence =
                 new MongoThingsSearchPersistence(mongoClientWrapper, getContext().system());
 
         final boolean indexInitializationEnabled = config.getBoolean(ConfigKeys.INDEX_INITIALIZATION_ENABLED);
         if (indexInitializationEnabled) {
-            searchPersistence.initializeIndices();
+            thingsSearchPersistence.initializeIndices();
         }
 
         final CriteriaFactory criteriaFactory = new CriteriaFactoryImpl();
@@ -156,11 +119,23 @@ public final class SearchRootActor extends AbstractActor {
         final ActorRef apiV1QueryActor = startChildActor(QueryActor.ACTOR_NAME,
                 QueryActor.props(criteriaFactory, fieldExpressionFactory, queryBuilderFactory));
 
-        final ActorRef searchActor = startChildActor(SearchActor.ACTOR_NAME,
-                SearchActor.props(pubSubMediator, aggregationQueryActor, apiV1QueryActor, searchPersistence));
+        return startChildActor(SearchActor.ACTOR_NAME,
+                SearchActor.props(pubSubMediator, aggregationQueryActor, apiV1QueryActor, thingsSearchPersistence));
+    }
 
-        pubSubMediator.tell(new DistributedPubSubMediator.Put(searchActor), getSelf());
+    private ActorRef initializeHealthCheckActor(final Config config, final MongoClientWrapper mongoClientWrapper,
+            final StreamMetadataPersistence thingsSyncPersistence,
+            final StreamMetadataPersistence policiesSyncPersistence) {
+        final ActorRef mongoHealthCheckActor = startChildActor(MongoReactiveHealthCheckActor.ACTOR_NAME,
+                MongoReactiveHealthCheckActor.props(mongoClientWrapper));
 
+        return startChildActor(SearchHealthCheckingActorFactory.ACTOR_NAME,
+                SearchHealthCheckingActorFactory.props(config, mongoHealthCheckActor, thingsSyncPersistence,
+                        policiesSyncPersistence));
+    }
+
+    private void createHealthCheckingActorHttpBinding(final Config config, final ActorRef healthCheckingActor, final
+    ActorMaterializer materializer) {
         String hostname = config.getString(ConfigKeys.HTTP_HOSTNAME);
         if (hostname.isEmpty()) {
             hostname = ConfigUtil.getLocalHostAddress();
@@ -172,6 +147,7 @@ public final class SearchRootActor extends AbstractActor {
                         createRoute(getContext().system(), healthCheckingActor).flow(getContext().system(),
                                 materializer),
                         ConnectHttp.toHost(hostname, config.getInt(ConfigKeys.HTTP_PORT)), materializer);
+
         binding.exceptionally(failure -> {
             log.error(failure, "Something very bad happened: {}", failure.getMessage());
             getContext().system().terminate();
@@ -193,7 +169,7 @@ public final class SearchRootActor extends AbstractActor {
             private static final long serialVersionUID = 1L;
 
             @Override
-            public SearchRootActor create() throws Exception {
+            public SearchRootActor create() {
                 return new SearchRootActor(config, pubSubMediator, materializer);
             }
         });
@@ -201,7 +177,7 @@ public final class SearchRootActor extends AbstractActor {
 
     @Override
     public SupervisorStrategy supervisorStrategy() {
-        return strategy;
+        return supervisorStrategy;
     }
 
     @Override

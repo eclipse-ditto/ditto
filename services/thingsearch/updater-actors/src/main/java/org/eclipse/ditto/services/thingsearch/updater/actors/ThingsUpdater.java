@@ -129,7 +129,7 @@ final class ThingsUpdater extends AbstractActor {
             private static final long serialVersionUID = 1L;
 
             @Override
-            public ThingsUpdater create() throws Exception {
+            public ThingsUpdater create() {
                 return new ThingsUpdater(numberOfShards, shardRegionFactory, searchUpdaterPersistence, circuitBreaker,
                         eventProcessingActive, thingUpdaterActivityCheckInterval, maxBulkSize, thingCacheFacade,
                         policyCacheFacade);

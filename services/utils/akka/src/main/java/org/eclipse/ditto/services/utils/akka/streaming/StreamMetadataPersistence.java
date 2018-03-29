@@ -12,6 +12,7 @@
 package org.eclipse.ditto.services.utils.akka.streaming;
 
 import java.time.Instant;
+import java.util.Optional;
 
 import akka.NotUsed;
 import akka.stream.javadsl.Source;
@@ -30,11 +31,10 @@ public interface StreamMetadataPersistence {
     Source<NotUsed, NotUsed> updateLastSuccessfulStreamEnd(Instant timestamp);
 
     /**
-     * <strong>Blocking:</strong> Retrieves the end timestamp of the last successful stream or the provided
-     * {@code defaultTimestamp}, if a timestamp has not yet been persisted.
+     * <strong>Blocking:</strong> Retrieves the end timestamp of the last successful stream.
      *
-     * @param defaultTimestamp The default timestamp to be returned if a timestamp has not yet been persisted.
-     * @return a {@link Source} holding the publisher to execute the operation.
+     * @return An {@link java.util.Optional} of the {@link Instant} of the last successful stream.
+     * Optional will be empty if a timestamp has not yet been persisted.
      */
-    Instant retrieveLastSuccessfulStreamEnd(Instant defaultTimestamp);
+    Optional<Instant> retrieveLastSuccessfulStreamEnd();
 }

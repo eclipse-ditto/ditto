@@ -56,6 +56,19 @@
             <scope>provided</scope>
             <!-- HealthRouteFunction needs akka-http .. if a service uses the class, it must provide akka-http itself -->
         </dependency>
+        <!-- for testing purpose -->
+        <dependency>
+            <groupId>com.typesafe.akka</groupId>
+            <artifactId>akka-testkit_2.12</artifactId>
+            <version>${akka.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <version>${slf4j.version}</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
 </project>
