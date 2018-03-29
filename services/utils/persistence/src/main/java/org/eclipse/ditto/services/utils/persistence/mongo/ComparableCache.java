@@ -24,7 +24,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.MetricRegistry;
-import com.github.benmanes.caffeine.cache.CacheLoader;
 import com.github.benmanes.caffeine.cache.Caffeine;
 
 /**
@@ -37,7 +36,6 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 final class ComparableCache<K, V extends Comparable<V>> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ComparableCache.class);
-    private static final CacheLoader<Object, Object> NULL_LOADER = k -> null;
 
     private final ConcurrentMap<K, V> internalCache;
 
@@ -70,7 +68,8 @@ final class ComparableCache<K, V extends Comparable<V>> {
      * @return the value which is associated with the specified key or {@code null}.
      * @throws NullPointerException if {@code key} is {@code null}.
      */
-    public @Nullable V get(final K key) {
+    @Nullable
+    public V get(final K key) {
         requireNonNull(key);
 
         return internalCache.get(key);
@@ -81,9 +80,9 @@ final class ComparableCache<K, V extends Comparable<V>> {
      *
      * @param key the key to be associated with {@code newValue}.
      * @param newValue the newValue to be associated with {@code key}.
-     * @throws NullPointerException if {@code key} or {@code newValue} is {@code null}.
      * @return {@code true}, if a value for {@code key} did not yet exist or {@code newValue} is greater than the
      * existing value.
+     * @throws NullPointerException if {@code key} or {@code newValue} is {@code null}.
      */
     public boolean updateIfNewOrGreater(final K key, final V newValue) {
         requireNonNull(key);
@@ -103,10 +102,5 @@ final class ComparableCache<K, V extends Comparable<V>> {
         final boolean result = updated.get();
         LOGGER.debug("Cache update with key <{}> and value <{}> returned: <{}>", key, newValue, result);
         return result;
-    }
-
-
-    public ConcurrentMap<K, V> asMap() {
-        return internalCache;
     }
 }
