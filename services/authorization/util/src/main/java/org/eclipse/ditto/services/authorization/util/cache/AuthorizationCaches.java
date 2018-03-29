@@ -16,7 +16,6 @@ import static java.util.Objects.requireNonNull;
 import java.util.AbstractMap;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -67,6 +66,10 @@ public final class AuthorizationCaches {
         metricsReportingConsumer.accept(namedEnforcerMetricRegistry);
 
         this.idCaches = new HashMap<>();
+
+        // policies always refer to themselves in the cache.
+        this.idCaches.put(PolicyCommand.RESOURCE_TYPE, new IdentityCache());
+
         enforcementIdCacheLoaders.forEach((resourceType, enforcementIdCacheLoader) -> {
             final String metricName = "ditto.authorization.id.cache." + resourceType;
             final AbstractMap.SimpleEntry<String, MetricRegistry> namedEnforcementIdMetricRegistry =
@@ -85,20 +88,7 @@ public final class AuthorizationCaches {
      * @param consumer handler of cache lookup results.
      */
     public void retrieve(final EntityId entityKey, final BiConsumer<Entry<EntityId>, Entry<Enforcer>> consumer) {
-        if (Objects.equals(PolicyCommand.RESOURCE_TYPE, entityKey.getResourceType())) {
-            retrievePoliciesPolicyEnforcer(entityKey, consumer);
-        } else {
-            retrievePolicyEnforcer(entityKey, consumer);
-        }
-    }
-
-    private void retrievePoliciesPolicyEnforcer(final EntityId entityKey,
-            final BiConsumer<Entry<EntityId>, Entry<Enforcer>> consumer) {
-        // Enforcer cache key of a policy is always identical to the entity cache key of the policy.
-        // No need to save the identity relation in entity cache and waste memory and bandwidth.
-        enforcerCache.get(entityKey)
-                .thenAccept(enforcerEntry -> consumer.accept(Entry.permanent(entityKey),
-                        enforcerEntry.orElse(Entry.nonexistent())));
+        retrievePolicyEnforcer(entityKey, consumer);
     }
 
     private void retrievePolicyEnforcer(final EntityId entityKey,
