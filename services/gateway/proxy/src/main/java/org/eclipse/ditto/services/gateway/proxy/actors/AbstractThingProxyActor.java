@@ -19,6 +19,7 @@ import org.eclipse.ditto.services.gateway.proxy.actors.handlers.CreateThingHandl
 import org.eclipse.ditto.services.gateway.proxy.actors.handlers.ModifyThingHandlerActor;
 import org.eclipse.ditto.services.gateway.proxy.actors.handlers.RetrieveThingHandlerActor;
 import org.eclipse.ditto.services.gateway.proxy.actors.handlers.ThingHandlerCreator;
+import org.eclipse.ditto.services.models.authorization.AuthorizationEnvelope;
 import org.eclipse.ditto.services.models.authorization.EntityId;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoCommand;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThings;
@@ -219,13 +220,7 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
     }
 
     private void forwardToAuthorizationShardRegion(final Signal<?> signal) {
-        // TODO: move envelope creation to ditto-services-models-authorization
-        final EntityId entityId = EntityId.of(signal.getResourceType(), signal.getId());
-        final ShardedMessageEnvelope message = ShardedMessageEnvelope.of(
-                entityId.toString(),
-                signal.getType(),
-                signal.toJson(signal.getImplementedSchemaVersion(), FieldType.regularOrSpecial()),
-                signal.getDittoHeaders());
+        final ShardedMessageEnvelope message = AuthorizationEnvelope.wrap(signal);
         authorizationShardRegion.forward(message, getContext());
     }
 

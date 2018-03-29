@@ -24,6 +24,17 @@
     <packaging>jar</packaging>
     <name>Eclipse Ditto :: Services :: Models :: Authorization</name>
 
+    <dependencies>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-signals-commands-messages</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-signals-commands-things</artifactId>
+        </dependency>
+    </dependencies>
+
     <build>
         <plugins>
             <plugin>
