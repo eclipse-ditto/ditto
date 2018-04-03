@@ -20,18 +20,25 @@ import org.eclipse.ditto.signals.commands.things.ThingCommand;
 /**
  * Provides {@link Enforcement} for commands of type {@link ThingCommand}.
  */
-public class ThingCommandEnforcementProvider implements EnforcementProvider {
+public final class ThingCommandEnforcementProvider implements EnforcementProvider<ThingCommand> {
 
     private static final List<SubjectIssuer> SUBJECT_ISSUERS_FOR_POLICY_MIGRATION =
             Collections.singletonList(SubjectIssuer.GOOGLE);
 
     @Override
-    public Class getCommandClass() {
+    public Class<ThingCommand> getCommandClass() {
         return ThingCommand.class;
     }
 
     @Override
-    public Enforcement createEnforcement(final Enforcement.Context context) {
+    public boolean isApplicable(final ThingCommand command) {
+        // live commands are not applicable for thing command enforcement
+        // because they should never be forwarded to things shard region
+        return !LiveSignalEnforcement.isLiveSignal(command);
+    }
+
+    @Override
+    public Enforcement<ThingCommand> createEnforcement(final Enforcement.Context context) {
         return new ThingCommandEnforcement(context, SUBJECT_ISSUERS_FOR_POLICY_MIGRATION);
     }
 }

@@ -37,16 +37,9 @@ public final class LiveSignalEnforcement extends Enforcement<Signal> {
             return Signal.class;
         }
 
-        /**
-         * Tests whether a signal is applicable for live signal enforcement.
-         *
-         * @param signal the signal to test.
-         * @return whether the signal belongs to the live channel.
-         */
         @Override
         public boolean isApplicable(final Signal signal) {
-            return !(signal instanceof MessageCommand) &&
-                    signal.getDittoHeaders().getChannel().filter(TopicPath.Channel.LIVE.getName()::equals).isPresent();
+            return isLiveSignal(signal);
         }
 
         @Override
@@ -71,5 +64,16 @@ public final class LiveSignalEnforcement extends Enforcement<Signal> {
                 replyToSender(error, sender);
             }
         });
+    }
+
+    /**
+     * Tests whether a signal is applicable for live signal enforcement.
+     *
+     * @param signal the signal to test.
+     * @return whether the signal belongs to the live channel.
+     */
+    public static boolean isLiveSignal(final Signal signal) {
+        return !(signal instanceof MessageCommand) &&
+                signal.getDittoHeaders().getChannel().filter(TopicPath.Channel.LIVE.getName()::equals).isPresent();
     }
 }
