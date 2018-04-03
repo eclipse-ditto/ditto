@@ -11,14 +11,14 @@
  */
 package org.eclipse.ditto.services.authorization.util.enforcement;
 
-import org.eclipse.ditto.signals.commands.base.Command;
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 
 /**
  * Provider interface for {@link Enforcement}.
  *
  * @param <T> the type of commands which are enforced.
  */
-public interface EnforcementProvider<T extends Command> {
+public interface EnforcementProvider<T extends WithDittoHeaders> {
 
     /**
      * The base class of the commands to which this enforcement applies.

@@ -13,7 +13,12 @@ package org.eclipse.ditto.services.authorization.util.enforcement;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.CompletionStage;
+import java.util.function.Function;
 
+import javax.annotation.Nullable;
+
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.services.authorization.util.EntityRegionMap;
 import org.eclipse.ditto.services.authorization.util.cache.AuthorizationCaches;
 
@@ -35,16 +40,33 @@ public final class EnforcerActorFactory {
      * @param pubSubMediator Akka pub sub mediator.
      * @param entityRegionMap map from resource types to entity shard regions.
      * @param authorizationCaches cache of information relevant for authorization.
+     * @param preEnforcer
      * @return the Akka configuration Props object.
      */
     public static Props props(final ActorRef pubSubMediator, final EntityRegionMap entityRegionMap,
             final AuthorizationCaches authorizationCaches) {
+        return props(pubSubMediator, entityRegionMap, authorizationCaches, null);
+    }
+
+
+    /**
+     * Creates Akka configuration object Props for this EnforcerActor.
+     *
+     * @param pubSubMediator Akka pub sub mediator.
+     * @param entityRegionMap map from resource types to entity shard regions.
+     * @param authorizationCaches cache of information relevant for authorization.
+     * @param preEnforcer a function executed as pre-enforcement, may be {@code null}.
+     * @return the Akka configuration Props object.
+     */
+    public static Props props(final ActorRef pubSubMediator, final EntityRegionMap entityRegionMap,
+            final AuthorizationCaches authorizationCaches,
+            @Nullable final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer) {
         final Set<EnforcementProvider> enforcementProviders = new HashSet<>();
         enforcementProviders.add(new ThingCommandEnforcementProvider());
         enforcementProviders.add(new PolicyCommandEnforcementProvider());
         enforcementProviders.add(new MessageCommandEnforcement.Provider());
 
-        return EnforcerActor.props(pubSubMediator, entityRegionMap, authorizationCaches, enforcementProviders);
+        return EnforcerActor.props(pubSubMediator, entityRegionMap, authorizationCaches, enforcementProviders,
+                preEnforcer);
     }
-
 }

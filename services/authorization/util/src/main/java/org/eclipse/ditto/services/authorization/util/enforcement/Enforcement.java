@@ -15,6 +15,7 @@ import java.time.Duration;
 import java.util.Set;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.services.authorization.util.EntityRegionMap;
@@ -33,7 +34,7 @@ import akka.event.DiagnosticLoggingAdapter;
  * Contains self-type requirements for aspects of enforcer actor dealing with specific commands.
  * Do NOT call the methods outside this package.
  */
-public abstract class Enforcement<T extends Command> {
+public abstract class Enforcement<T extends WithDittoHeaders> {
 
     private final Context context;
 

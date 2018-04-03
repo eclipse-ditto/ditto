@@ -18,11 +18,10 @@ import static org.eclipse.ditto.model.policies.SubjectIssuer.GOOGLE;
 import static org.eclipse.ditto.model.things.Permission.ADMINISTRATE;
 import static org.eclipse.ditto.model.things.Permission.READ;
 import static org.eclipse.ditto.model.things.Permission.WRITE;
-
-import java.time.Duration;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.function.Consumer;
+import static org.eclipse.ditto.services.authorization.util.enforcement.TestSetup.POLICY_SUDO;
+import static org.eclipse.ditto.services.authorization.util.enforcement.TestSetup.SUBJECT;
+import static org.eclipse.ditto.services.authorization.util.enforcement.TestSetup.THING_ID;
+import static org.eclipse.ditto.services.authorization.util.enforcement.TestSetup.THING_SUDO;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
@@ -41,18 +40,9 @@ import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
-import org.eclipse.ditto.services.authorization.util.EntityRegionMap;
-import org.eclipse.ditto.services.authorization.util.cache.AuthorizationCaches;
-import org.eclipse.ditto.services.authorization.util.cache.EnforcerCacheLoader;
-import org.eclipse.ditto.services.authorization.util.cache.ThingEnforcementIdCacheLoader;
-import org.eclipse.ditto.services.authorization.util.cache.entry.Entry;
-import org.eclipse.ditto.services.authorization.util.config.AuthorizationConfigReader;
 import org.eclipse.ditto.services.authorization.util.mock.MockEntitiesActor;
-import org.eclipse.ditto.services.authorization.util.mock.MockEntityRegionMap;
-import org.eclipse.ditto.services.models.authorization.EntityId;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicyResponse;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
-import org.eclipse.ditto.services.utils.config.ConfigUtil;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.exceptions.FeatureNotModifiableException;
@@ -67,27 +57,12 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import com.codahale.metrics.MetricRegistry;
-import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
-
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
-import akka.actor.Props;
 import akka.testkit.javadsl.TestKit;
 
 @SuppressWarnings({"squid:S3599", "squid:S1171"})
 public final class ThingCommandEnforcementTest {
-
-    private static final String THING = "thing";
-    private static final String THING_SUDO = "thing-sudo";
-    private static final String POLICY_SUDO = "policy-sudo";
-
-    private static final String THING_ID = "thing:id";
-    private static final AuthorizationSubject SUBJECT = AuthorizationSubject.newInstance("dummy-subject");
-
-    private static final AuthorizationConfigReader CONFIG =
-            AuthorizationConfigReader.from("authorization")
-                    .apply(ConfigUtil.determineConfig("test"));
 
     private ActorSystem system;
     private ActorRef mockEntitiesActor;
@@ -364,22 +339,7 @@ public final class ThingCommandEnforcementTest {
     }
 
     private ActorRef newEnforcerActor(final ActorRef testActorRef) {
-        final EntityRegionMap testActorMap = MockEntityRegionMap.uniform(testActorRef);
-
-        final Consumer<Map.Entry<String, MetricRegistry>> dummyReportingConsumer = unused -> {};
-        final Duration askTimeout = CONFIG.caches().askTimeout();
-        final EnforcerCacheLoader enforcerCacheLoader =
-                new EnforcerCacheLoader(askTimeout, mockEntitiesActor, mockEntitiesActor);
-
-        final Map<String, AsyncCacheLoader<EntityId, Entry<EntityId>>> enforcementIdCacheLoaders = new HashMap<>();
-        final ThingEnforcementIdCacheLoader thingEnforcementIdCacheLoader =
-                new ThingEnforcementIdCacheLoader(askTimeout, mockEntitiesActor);
-        enforcementIdCacheLoaders.put(ThingCommand.RESOURCE_TYPE, thingEnforcementIdCacheLoader);
-
-        final AuthorizationCaches authorizationCaches = new AuthorizationCaches(CONFIG.caches(), enforcerCacheLoader,
-                enforcementIdCacheLoaders, dummyReportingConsumer);
-        final Props props = EnforcerActorFactory.props(testActorRef, testActorMap, authorizationCaches);
-        return system.actorOf(props, THING + ":" + THING_ID);
+        return TestSetup.newEnforcerActor(system, testActorRef, mockEntitiesActor);
     }
 
     private static JsonObject newThingWithPolicyId(final String policyId) {

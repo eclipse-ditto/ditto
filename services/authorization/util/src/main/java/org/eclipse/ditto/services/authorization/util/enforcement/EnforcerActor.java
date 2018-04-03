@@ -18,16 +18,20 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Set;
-import java.util.function.Predicate;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.CompletionStage;
+import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.services.authorization.util.EntityRegionMap;
 import org.eclipse.ditto.services.authorization.util.cache.AuthorizationCaches;
 import org.eclipse.ditto.services.models.authorization.EntityId;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.signals.commands.base.Command;
+import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -47,25 +51,27 @@ public final class EnforcerActor extends AbstractActor {
     private final AuthorizationCaches caches;
     private final EntityId entityId;
 
+    private final Duration askTimeout = Duration.ofSeconds(10); // TODO: make configurable
+
     private final Set<EnforcementProvider> enforcementProviders;
     @Nullable
-    private final PreEnforcementConfig preEnforcementConfig;
+    private final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer;
 
     private EnforcerActor(
             final ActorRef pubSubMediator,
             final EntityRegionMap entityRegionMap,
             final AuthorizationCaches caches,
             final Set<EnforcementProvider> enforcementProviders,
-            @Nullable PreEnforcementConfig preEnforcementConfig) {
+            @Nullable Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer) {
         this.entityId = decodeEntityId(getSelf());
 
         this.caches = requireNonNull(caches);
         this.enforcementProviders = requireNonNull(enforcementProviders);
-        this.preEnforcementConfig = preEnforcementConfig;
+        this.preEnforcer = preEnforcer;
 
         this.context = new Enforcement.Context(
                 pubSubMediator,
-                Duration.ofSeconds(10), // TODO: make configurable
+                askTimeout,
                 requireNonNull(entityRegionMap),
                 entityId,
                 log,
@@ -97,16 +103,16 @@ public final class EnforcerActor extends AbstractActor {
      * @param entityRegionMap map from resource types to entity shard regions.
      * @param authorizationCaches cache of information relevant for authorization.
      * @param enforcementProviders a set of {@link EnforcementProvider}s.
-     * @param preEnforcementConfig a {@link PreEnforcementConfig}, may be {@code null}.
+     * @param preEnforcer a function executed before actual enforcement, may be {@code null}.
      * @return the Akka configuration Props object.
      */
     public static Props props(final ActorRef pubSubMediator, final EntityRegionMap entityRegionMap,
             final AuthorizationCaches authorizationCaches, final Set<EnforcementProvider> enforcementProviders,
-            @Nullable PreEnforcementConfig preEnforcementConfig) {
+            @Nullable Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer) {
 
         return Props.create(EnforcerActor.class,
                 () -> new EnforcerActor(pubSubMediator, entityRegionMap, authorizationCaches, enforcementProviders,
-                        preEnforcementConfig));
+                        preEnforcer));
     }
 
     @Override
@@ -117,37 +123,11 @@ public final class EnforcerActor extends AbstractActor {
 
     @Override
     public Receive createReceive() {
-        final Receive enforcementReceive = createEnforcementReceive();
-        final Receive preEnforcementReceive = createPreEnforcementReceive();
-        if (preEnforcementReceive == null) {
-            return enforcementReceive;
-        }
-
-        return preEnforcementReceive.orElse(enforcementReceive);
-    }
-
-    @Nullable
-    private Receive createPreEnforcementReceive() {
-        if (preEnforcementConfig == null) {
-            return null;
-        }
-
-
-        final Predicate<WithDittoHeaders> condition = preEnforcementConfig.getCondition();
-        final ActorRef forwardee = preEnforcementConfig.getForwardee();
-
-        return ReceiveBuilder.create()
-                .match(WithDittoHeaders.class, condition::test,
-                        withDittoHeaders -> forwardee.forward(withDittoHeaders, getContext()))
-                .build();
-    }
-
-    private Receive createEnforcementReceive() {
         final ReceiveBuilder receiveBuilder = ReceiveBuilder.create();
         enforcementProviders.forEach(provider -> {
-            @SuppressWarnings("unchecked") final Class<Command> commandClass = provider.getCommandClass();
-            @SuppressWarnings("unchecked") final FI.UnitApply<Command> commandHandler =
-                    cmd -> provider.createEnforcement(context).enforce(cmd, getSender());
+            @SuppressWarnings("unchecked") final Class<WithDittoHeaders> commandClass = provider.getCommandClass();
+            @SuppressWarnings("unchecked") final FI.UnitApply<WithDittoHeaders> commandHandler =
+                    createMessageHandler(provider);
             receiveBuilder.match(commandClass, commandHandler);
         });
 
@@ -156,8 +136,56 @@ public final class EnforcerActor extends AbstractActor {
             unhandled(message);
         });
 
-
         return receiveBuilder.build();
+    }
+
+    private FI.UnitApply<WithDittoHeaders> createMessageHandler(final EnforcementProvider provider) {
+        return cmd -> handleMessage(provider, cmd);
+    }
+
+    private CompletionStage<Void> handleMessage(final EnforcementProvider provider, final WithDittoHeaders message) {
+        final ActorRef sender = sender();
+        final CompletionStage<Void> cs;
+        if (preEnforcer != null) {
+            cs = preEnforcer.apply(message)
+                    .thenCompose(response -> handleEnforcement(provider, message, sender));
+        } else {
+            cs = handleEnforcement(provider, message, sender);
+        }
+
+        return cs.exceptionally(t -> {
+            final Throwable rootCause = extractRootCause(t);
+            if (rootCause instanceof DittoRuntimeException) {
+                log.debug("Got DittoRuntimeException, sending back to sender: <{}>.", rootCause);
+                sender.tell(rootCause, getSelf());
+            } else {
+                log.error(rootCause, "Got unexpected exception.");
+                final GatewayInternalErrorException responseEx =
+                        GatewayInternalErrorException.newBuilder()
+                                .dittoHeaders(message.getDittoHeaders())
+                                .cause(rootCause)
+                                .build();
+                sender.tell(responseEx, getSelf());
+            }
+            return null;
+        });
+    }
+
+    private static Throwable extractRootCause(final Throwable t) {
+        if (t instanceof CompletionException) {
+            return extractRootCause(t.getCause());
+        }
+        return t;
+    }
+
+    private CompletionStage<Void> handleEnforcement(final EnforcementProvider provider, final WithDittoHeaders message,
+            final ActorRef sender) {
+        return CompletableFuture.supplyAsync(() -> {
+            @SuppressWarnings("unchecked")
+            final Enforcement<WithDittoHeaders> enforcement = provider.createEnforcement(context);
+            enforcement.enforce(message, sender);
+            return null;
+        });
     }
 
     private static EntityId decodeEntityId(final ActorRef self) {
