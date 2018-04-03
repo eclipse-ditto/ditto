@@ -233,13 +233,19 @@ public final class MessageMappingProcessorActor extends AbstractActor {
                         LIVE_RESPONSES_PUB_SUB_GROUP, getSelf()))
                 .ifPresent(unsubscribe -> pubSubMediator.tell(unsubscribe, getSelf()));
 
-        if (response.getStatusCodeValue() < HttpStatusCode.BAD_REQUEST.toInt()) {
-            log.debug("Received response: {}", response);
-        } else {
-            log.debug("Received error response: {}", response.toJsonString());
-        }
+        if (response.getDittoHeaders().isResponseRequired()) {
 
-        handleSignal(response);
+            if (response.getStatusCodeValue() < HttpStatusCode.BAD_REQUEST.toInt()) {
+                log.debug("Received response: {}", response);
+            } else {
+                log.debug("Received error response: {}", response.toJsonString());
+            }
+
+            handleSignal(response);
+        } else {
+            log.debug("Requester did not require response (via DittoHeader '{}') - not mapping back to ExternalMessage",
+                    DittoHeaderDefinition.RESPONSE_REQUIRED);
+        }
     }
 
     private void handleSignal(final Signal<?> signal) {
