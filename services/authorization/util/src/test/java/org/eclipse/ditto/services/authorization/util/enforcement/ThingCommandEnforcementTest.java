@@ -23,6 +23,8 @@ import static org.eclipse.ditto.services.authorization.util.enforcement.TestSetu
 import static org.eclipse.ditto.services.authorization.util.enforcement.TestSetup.THING_ID;
 import static org.eclipse.ditto.services.authorization.util.enforcement.TestSetup.THING_SUDO;
 
+import java.util.UUID;
+
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
@@ -44,33 +46,39 @@ import org.eclipse.ditto.services.authorization.util.mock.MockEntitiesActor;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicyResponse;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyNotAccessibleException;
+import org.eclipse.ditto.signals.commands.policies.modify.CreatePolicyResponse;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.exceptions.FeatureNotModifiableException;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotModifiableException;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
+import org.eclipse.ditto.signals.commands.things.modify.CreateThingResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeature;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
+import akka.testkit.TestActorRef;
 import akka.testkit.javadsl.TestKit;
 
 @SuppressWarnings({"squid:S3599", "squid:S1171"})
 public final class ThingCommandEnforcementTest {
 
     private ActorSystem system;
+    private MockEntitiesActor mockEntitiesActorInstance;
     private ActorRef mockEntitiesActor;
 
     @Before
     public void init() {
         system = ActorSystem.create();
-        mockEntitiesActor = system.actorOf(MockEntitiesActor.props());
+        final TestActorRef<MockEntitiesActor> testActorRef =
+                new TestActorRef<>(system, MockEntitiesActor.props(), system.guardian(), UUID.randomUUID().toString());
+        mockEntitiesActorInstance = testActorRef.underlyingActor();
+        mockEntitiesActor = testActorRef;
     }
 
     @After
@@ -78,7 +86,6 @@ public final class ThingCommandEnforcementTest {
         if (system != null) {
             TestKit.shutdownActorSystem(system);
         }
-        mockEntitiesActor = null;
     }
 
     @Test
@@ -91,7 +98,7 @@ public final class ThingCommandEnforcementTest {
                 SudoRetrieveThingResponse.of(thingWithEmptyAcl, DittoHeaders.empty());
 
         new TestKit(system) {{
-            setReply(this, THING_SUDO, response);
+            mockEntitiesActorInstance.setReply(this, THING_SUDO, response);
 
             final ActorRef underTest = newEnforcerActor(getRef());
             underTest.tell(readCommand(), getRef());
@@ -116,8 +123,8 @@ public final class ThingCommandEnforcementTest {
                 SudoRetrievePolicyResponse.of(policyId, emptyPolicy, DittoHeaders.empty());
 
         new TestKit(system) {{
-            setReply(this, THING_SUDO, sudoRetrieveThingResponse);
-            setReply(this, POLICY_SUDO, sudoRetrievePolicyResponse);
+            mockEntitiesActorInstance.setReply(this, THING_SUDO, sudoRetrieveThingResponse);
+            mockEntitiesActorInstance.setReply(this, POLICY_SUDO, sudoRetrievePolicyResponse);
 
             final ActorRef underTest = newEnforcerActor(getRef());
             underTest.tell(readCommand(), getRef());
@@ -133,7 +140,7 @@ public final class ThingCommandEnforcementTest {
         final DittoRuntimeException error = ThingNotAccessibleException.newBuilder(THING_ID).build();
 
         new TestKit(system) {{
-            setReply(this, THING_SUDO, error);
+            mockEntitiesActorInstance.setReply(this, THING_SUDO, error);
 
             final ActorRef underTest = newEnforcerActor(getRef());
             underTest.tell(readCommand(), getRef());
@@ -145,7 +152,7 @@ public final class ThingCommandEnforcementTest {
     public void rejectUpdateByThingNotAccessibleException() {
         final DittoRuntimeException error = ThingNotAccessibleException.newBuilder(THING_ID).build();
         new TestKit(system) {{
-            setReply(this, THING_SUDO, error);
+            mockEntitiesActorInstance.setReply(this, THING_SUDO, error);
 
             final ActorRef underTest = newEnforcerActor(getRef());
             underTest.tell(writeCommand(), getRef());
@@ -160,8 +167,9 @@ public final class ThingCommandEnforcementTest {
                 SudoRetrieveThingResponse.of(newThingWithPolicyId(policyId), DittoHeaders.empty());
 
         new TestKit(system) {{
-            setReply(this, THING_SUDO, sudoRetrieveThingResponse);
-            setReply(this, POLICY_SUDO, PolicyNotAccessibleException.newBuilder(policyId).build());
+            mockEntitiesActorInstance.setReply(this, THING_SUDO, sudoRetrieveThingResponse);
+            mockEntitiesActorInstance.setReply(this, POLICY_SUDO,
+                    PolicyNotAccessibleException.newBuilder(policyId).build());
 
             final ActorRef underTest = newEnforcerActor(getRef());
             underTest.tell(readCommand(), getRef());
@@ -178,8 +186,9 @@ public final class ThingCommandEnforcementTest {
                 SudoRetrieveThingResponse.of(newThingWithPolicyId(policyId), DittoHeaders.empty());
 
         new TestKit(system) {{
-            setReply(this, THING_SUDO, sudoRetrieveThingResponse);
-            setReply(this, POLICY_SUDO, PolicyNotAccessibleException.newBuilder(policyId).build());
+            mockEntitiesActorInstance.setReply(this, THING_SUDO, sudoRetrieveThingResponse);
+            mockEntitiesActorInstance.setReply(this, POLICY_SUDO,
+                    PolicyNotAccessibleException.newBuilder(policyId).build());
 
             final ActorRef underTest = newEnforcerActor(getRef());
             underTest.tell(writeCommand(), getRef());
@@ -200,7 +209,8 @@ public final class ThingCommandEnforcementTest {
                 .build();
 
         new TestKit(system) {{
-            setReply(this, THING_SUDO, ThingNotAccessibleException.newBuilder(THING_ID).build());
+            mockEntitiesActorInstance.setReply(this, THING_SUDO,
+                    ThingNotAccessibleException.newBuilder(THING_ID).build());
 
             final ActorRef underTest = newEnforcerActor(getRef());
             final CreateThing createThing = CreateThing.of(thingWithEmptyAcl, null, headers(V_1));
@@ -221,7 +231,8 @@ public final class ThingCommandEnforcementTest {
         final Thing thing = newThing().build();
 
         new TestKit(system) {{
-            setReply(this, THING_SUDO, ThingNotAccessibleException.newBuilder(THING_ID).build());
+            mockEntitiesActorInstance.setReply(this, THING_SUDO,
+                    ThingNotAccessibleException.newBuilder(THING_ID).build());
 
             final ActorRef underTest = newEnforcerActor(getRef());
             final CreateThing createThing = CreateThing.of(thing, policy.toJson(), headers(V_2));
@@ -242,14 +253,16 @@ public final class ThingCommandEnforcementTest {
                 SudoRetrieveThingResponse.of(thingWithAcl, DittoHeaders.empty());
 
         new TestKit(system) {{
-            setReply(this, THING_SUDO, response);
+            mockEntitiesActorInstance.setReply(this, THING_SUDO, response);
 
             final ActorRef underTest = newEnforcerActor(getRef());
             final ThingCommand read = readCommand();
+            mockEntitiesActorInstance.setReply(this, read);
             underTest.tell(read, getRef());
             assertThat(expectMsgClass(read.getClass()).getId()).isEqualTo(read.getId());
 
             final ThingCommand write = writeCommand();
+            mockEntitiesActorInstance.setReply(this, write);
             underTest.tell(write, getRef());
             assertThat(expectMsgClass(write.getClass()).getId()).isEqualTo(write.getId());
         }};
@@ -275,24 +288,22 @@ public final class ThingCommandEnforcementTest {
                 SudoRetrievePolicyResponse.of(policyId, policy, DittoHeaders.empty());
 
         new TestKit(system) {{
-            setReply(this, THING_SUDO, sudoRetrieveThingResponse);
-            setReply(this, POLICY_SUDO, sudoRetrievePolicyResponse);
+            mockEntitiesActorInstance.setReply(this, THING_SUDO, sudoRetrieveThingResponse);
+            mockEntitiesActorInstance.setReply(this, POLICY_SUDO, sudoRetrievePolicyResponse);
 
             final ActorRef underTest = newEnforcerActor(getRef());
 
             final ThingCommand write = writeCommand();
+            mockEntitiesActorInstance.setReply(this, write);
             underTest.tell(write, getRef());
             assertThat(expectMsgClass(write.getClass()).getId()).isEqualTo(write.getId());
 
             final ThingCommand read = readCommand();
-            underTest.tell(read, getRef());
-            assertThat(expectMsgClass(read.getClass()).getId()).isEqualTo(read.getId());
-
-            // handle remaining messages due to JSON view building
             final RetrieveThingResponse retrieveThingResponse =
                     RetrieveThingResponse.of(THING_ID, JsonFactory.newObject(), DittoHeaders.empty());
-            getLastSender().tell(retrieveThingResponse, getRef());
-            expectMsg(retrieveThingResponse);
+            mockEntitiesActorInstance.setReply(this, retrieveThingResponse);
+            underTest.tell(read, getRef());
+            assertThat(expectMsgClass(retrieveThingResponse.getClass()).getId()).isEqualTo(read.getId());
         }};
     }
 
@@ -304,38 +315,41 @@ public final class ThingCommandEnforcementTest {
         final CreateThing createThing = CreateThing.of(thing, null, headers(V_1));
 
         new TestKit(system) {{
-            setReply(this, THING_SUDO, ThingNotAccessibleException.newBuilder(THING_ID).build());
+            mockEntitiesActorInstance.setReply(this, THING_SUDO,
+                    ThingNotAccessibleException.newBuilder(THING_ID).build());
 
             final ActorRef underTest = newEnforcerActor(getRef());
+            mockEntitiesActorInstance.setReply(this, createThing);
             underTest.tell(createThing, getRef());
             final CreateThing filteredCreateThing = expectMsgClass(CreateThing.class);
             assertThat(filteredCreateThing.getThing()).isEqualTo(thing);
         }};
     }
 
-    @Ignore("not implemented")
+    @Test
     public void acceptCreateByOwnPolicy() {
         final Policy policy = PoliciesModelFactory.newPolicyBuilder(THING_ID)
                 .forLabel("authorize-self")
                 .setSubject(GOOGLE, SUBJECT.getId())
                 .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()), WRITE.name())
+                .setGrantedPermissions(PoliciesResourceType.policyResource(JsonPointer.empty()), WRITE.name())
                 .build();
         final Thing thing = newThing().build();
 
         new TestKit(system) {{
-            setReply(this, THING_SUDO, ThingNotAccessibleException.newBuilder(THING_ID).build());
+            mockEntitiesActorInstance.setReply(this, THING_SUDO,
+                    ThingNotAccessibleException.newBuilder(THING_ID).build());
 
             final ActorRef underTest = newEnforcerActor(getRef());
             final CreateThing createThing = CreateThing.of(thing, policy.toJson(), headers(V_2));
+            mockEntitiesActorInstance.setReply(this, CreateThingResponse.of(thing, headers(V_2)));
+            mockEntitiesActorInstance.setReply(this,
+                    CreatePolicyResponse.of(THING_ID, policy, headers(V_2)));
             underTest.tell(createThing, getRef());
-            final CreateThing filteredCreateThing = expectMsgClass(CreateThing.class);
-            assertThat(filteredCreateThing.getThing()).isEqualTo(thing);
+            final CreateThingResponse expectedCreateThingResponse = expectMsgClass(CreateThingResponse.class);
+            assertThat(expectedCreateThingResponse.getThingCreated().orElse(null)).isEqualTo(thing);
         }};
 
-    }
-
-    private void setReply(final TestKit testKit, final String resourceType, final Object reply) {
-        MockEntitiesActor.set(testKit, mockEntitiesActor, resourceType, reply);
     }
 
     private ActorRef newEnforcerActor(final ActorRef testActorRef) {

@@ -11,6 +11,8 @@
  */
 package org.eclipse.ditto.services.authorization.util.enforcement;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.Optional;
 
 import org.eclipse.ditto.json.JsonFactory;
@@ -25,7 +27,10 @@ import org.eclipse.ditto.model.policies.Permissions;
 import org.eclipse.ditto.model.policies.PoliciesResourceType;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.ResourceKey;
+import org.eclipse.ditto.services.authorization.util.cache.entry.Entry;
+import org.eclipse.ditto.services.models.authorization.EntityId;
 import org.eclipse.ditto.services.models.policies.Permission;
+import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.signals.commands.base.CommandToExceptionRegistry;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyCommandToAccessExceptionRegistry;
@@ -47,14 +52,23 @@ import akka.pattern.PatternsCS;
  */
 public final class PolicyCommandEnforcement extends Enforcement<PolicyCommand> {
 
+    private final ActorRef policiesShardRegion;
+    private final EnforcerRetriever enforcerRetriever;
     /**
      * Json fields that are always shown regardless of authorization.
      */
     private static final JsonFieldSelector POLICY_QUERY_COMMAND_RESPONSE_WHITELIST =
             JsonFactory.newFieldSelector(Policy.JsonFields.ID);
 
-    public PolicyCommandEnforcement(final Context data) {
+    private PolicyCommandEnforcement(final Context data, final ActorRef policiesShardRegion,
+            final Cache<EntityId, Entry<EntityId>> policyIdCache,
+            final Cache<EntityId, Entry<Enforcer>> enforcerCache) {
+
         super(data);
+        this.policiesShardRegion = requireNonNull(policiesShardRegion);
+        requireNonNull(policyIdCache);
+        requireNonNull(enforcerCache);
+        enforcerRetriever = new EnforcerRetriever(policyIdCache, enforcerCache);
     }
 
     /**
@@ -66,13 +80,47 @@ public final class PolicyCommandEnforcement extends Enforcement<PolicyCommand> {
      */
     @Override
     public void enforce(final PolicyCommand command, final ActorRef sender) {
-        caches().retrieve(entityId(), (idEntry, enforcerEntry) -> {
+        enforcerRetriever.retrieve(entityId(), (idEntry, enforcerEntry) -> {
             if (enforcerEntry.exists()) {
                 enforcePolicyCommandByEnforcer(command, enforcerEntry.getValue(), sender);
             } else {
                 enforcePolicyCommandByNonexistentEnforcer(command, sender);
             }
         });
+    }
+
+    /**
+     * Provides {@link Enforcement} for commands of type {@link PolicyCommand}.
+     */
+    public static final class Provider implements EnforcementProvider<PolicyCommand> {
+
+        private ActorRef policiesShardRegion;
+        private final Cache<EntityId, Entry<EntityId>> policyIdCache;
+        private final Cache<EntityId, Entry<Enforcer>> enforcerCache;
+
+        /**
+         * Constructor.
+         *
+         * @param policiesShardRegion the ActorRef to the Policies shard region.
+         * @param policyIdCache the policy-id-cache.
+         * @param enforcerCache the enforcer cache.
+         */
+        public Provider(final ActorRef policiesShardRegion,
+                final Cache<EntityId, Entry<EntityId>> policyIdCache,
+                final Cache<EntityId, Entry<Enforcer>> enforcerCache) {
+            this.policiesShardRegion = requireNonNull(policiesShardRegion);
+            this.policyIdCache = requireNonNull(policyIdCache);
+            this.enforcerCache = requireNonNull(enforcerCache);
+        }
+        @Override
+        public Class<PolicyCommand> getCommandClass() {
+            return PolicyCommand.class;
+        }
+
+        @Override
+        public Enforcement<PolicyCommand> createEnforcement(final Enforcement.Context context) {
+            return new PolicyCommandEnforcement(context, policiesShardRegion, policyIdCache, enforcerCache);
+        }
     }
 
     /**
@@ -181,7 +229,7 @@ public final class PolicyCommandEnforcement extends Enforcement<PolicyCommand> {
     }
 
     private void forwardToPoliciesShardRegion(final Object message, final ActorRef sender) {
-        policiesShardRegion().tell(message, sender);
+        policiesShardRegion.tell(message, sender);
     }
 
     private void respondWithError(final PolicyCommand policyCommand, final ActorRef sender) {
@@ -207,7 +255,7 @@ public final class PolicyCommandEnforcement extends Enforcement<PolicyCommand> {
             final Enforcer enforcer,
             final ActorRef sender) {
 
-        PatternsCS.ask(policiesShardRegion(), commandWithReadSubjects, getAskTimeout().toMillis())
+        PatternsCS.ask(policiesShardRegion, commandWithReadSubjects, getAskTimeout().toMillis())
                 .handleAsync((response, error) -> {
                     if (error != null) {
                         reportUnexpectedError("before building JsonView", sender, error);

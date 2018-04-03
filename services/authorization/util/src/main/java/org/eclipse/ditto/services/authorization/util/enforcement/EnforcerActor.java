@@ -27,8 +27,6 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
-import org.eclipse.ditto.services.authorization.util.EntityRegionMap;
-import org.eclipse.ditto.services.authorization.util.cache.AuthorizationCaches;
 import org.eclipse.ditto.services.models.authorization.EntityId;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
@@ -47,8 +45,6 @@ public final class EnforcerActor extends AbstractActor {
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
     private final Enforcement.Context context;
-    private final AuthorizationCaches caches;
-    private final EntityId entityId;
 
     private final Duration askTimeout = Duration.ofSeconds(10); // TODO: make configurable
 
@@ -58,23 +54,18 @@ public final class EnforcerActor extends AbstractActor {
 
     private EnforcerActor(
             final ActorRef pubSubMediator,
-            final EntityRegionMap entityRegionMap,
-            final AuthorizationCaches caches,
             final Set<EnforcementProvider<?>> enforcementProviders,
             @Nullable Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer) {
-        this.entityId = decodeEntityId(getSelf());
+        final EntityId entityId = decodeEntityId(getSelf());
 
-        this.caches = requireNonNull(caches);
         this.enforcementProviders = requireNonNull(enforcementProviders);
         this.preEnforcer = preEnforcer;
 
         this.context = new Enforcement.Context(
                 pubSubMediator,
                 askTimeout,
-                requireNonNull(entityRegionMap),
                 entityId,
                 log,
-                caches,
                 getSelf());
     }
 
@@ -82,42 +73,29 @@ public final class EnforcerActor extends AbstractActor {
      * Creates Akka configuration object Props for this EnforcerActor.
      *
      * @param pubSubMediator Akka pub sub mediator.
-     * @param entityRegionMap map from resource types to entity shard regions.
-     * @param authorizationCaches cache of information relevant for authorization.
      * @param enforcementProviders a set of {@link EnforcementProvider}s.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final ActorRef pubSubMediator, final EntityRegionMap entityRegionMap,
-            final AuthorizationCaches authorizationCaches, final Set<EnforcementProvider<?>> enforcementProviders) {
+    public static Props props(final ActorRef pubSubMediator,
+            final Set<EnforcementProvider<?>> enforcementProviders) {
 
         return Props.create(EnforcerActor.class,
-                () -> new EnforcerActor(pubSubMediator, entityRegionMap, authorizationCaches, enforcementProviders,
-                        null));
+                () -> new EnforcerActor(pubSubMediator, enforcementProviders, null));
     }
 
     /**
      * Creates Akka configuration object Props for this EnforcerActor.
      *
      * @param pubSubMediator Akka pub sub mediator.
-     * @param entityRegionMap map from resource types to entity shard regions.
-     * @param authorizationCaches cache of information relevant for authorization.
      * @param enforcementProviders a set of {@link EnforcementProvider}s.
      * @param preEnforcer a function executed before actual enforcement, may be {@code null}.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final ActorRef pubSubMediator, final EntityRegionMap entityRegionMap,
-            final AuthorizationCaches authorizationCaches, final Set<EnforcementProvider<?>> enforcementProviders,
+    public static Props props(final ActorRef pubSubMediator, final Set<EnforcementProvider<?>> enforcementProviders,
             @Nullable Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer) {
 
         return Props.create(EnforcerActor.class,
-                () -> new EnforcerActor(pubSubMediator, entityRegionMap, authorizationCaches, enforcementProviders,
-                        preEnforcer));
-    }
-
-    @Override
-    public void postStop() {
-        // if stopped, remove self from entity ID cache.
-        caches.invalidateEntityId(entityId);
+                () -> new EnforcerActor(pubSubMediator, enforcementProviders, preEnforcer));
     }
 
     @Override

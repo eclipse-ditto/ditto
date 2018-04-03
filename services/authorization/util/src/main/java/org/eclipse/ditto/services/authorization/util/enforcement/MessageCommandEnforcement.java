@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.services.authorization.util.enforcement;
 
+import static java.util.Objects.requireNonNull;
 import static org.eclipse.ditto.services.models.policies.Permission.WRITE;
 
 import java.time.Duration;
@@ -20,6 +21,9 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.messages.MessageSendNotAllowedException;
 import org.eclipse.ditto.model.policies.PoliciesResourceType;
+import org.eclipse.ditto.services.authorization.util.cache.entry.Entry;
+import org.eclipse.ditto.services.models.authorization.EntityId;
+import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.messages.SendClaimMessage;
 import org.eclipse.ditto.signals.commands.messages.SendMessageAcceptedResponse;
@@ -33,13 +37,19 @@ import akka.cluster.pubsub.DistributedPubSubMediator;
  */
 public final class MessageCommandEnforcement extends Enforcement<MessageCommand> {
 
-    private MessageCommandEnforcement(final Context context) {
+    private final EnforcerRetriever enforcerRetriever;
+
+    private MessageCommandEnforcement(final Context context, final Cache<EntityId, Entry<EntityId>> thingIdCache,
+            final Cache<EntityId, Entry<Enforcer>> enforcerCache) {
         super(context);
+        requireNonNull(thingIdCache);
+        requireNonNull(enforcerCache);
+        enforcerRetriever = new EnforcerRetriever(thingIdCache, enforcerCache);
     }
 
     @Override
     public void enforce(final MessageCommand command, final ActorRef sender) {
-        caches().retrieve(entityId(), (idEntry, enforcerEntry) -> {
+        enforcerRetriever.retrieve(entityId(), (idEntry, enforcerEntry) -> {
             if (idEntry.exists() && command instanceof SendClaimMessage) {
                 publishMessageCommand(command, sender);
             } else if (enforcerEntry.exists()) {
@@ -51,9 +61,25 @@ public final class MessageCommandEnforcement extends Enforcement<MessageCommand>
     }
 
     /**
-     * {@code EnforcementProvider} for {@code MessageCommandEnforcement}.
+     * {@link EnforcementProvider} for {@link MessageCommandEnforcement}.
      */
     public static final class Provider implements EnforcementProvider {
+
+        private final Cache<EntityId, Entry<EntityId>> thingIdCache;
+        private final Cache<EntityId, Entry<Enforcer>> enforcerCache;
+
+        /**
+         * Constructor.
+         *
+         * @param thingIdCache the thing-id-cache.
+         * @param enforcerCache the enforcer cache.
+         */
+        public Provider(
+                final Cache<EntityId, Entry<EntityId>> thingIdCache,
+                final Cache<EntityId, Entry<Enforcer>> enforcerCache) {
+            this.thingIdCache = requireNonNull(thingIdCache);
+            this.enforcerCache = requireNonNull(enforcerCache);
+        }
 
         @Override
         public Class getCommandClass() {
@@ -62,7 +88,7 @@ public final class MessageCommandEnforcement extends Enforcement<MessageCommand>
 
         @Override
         public Enforcement createEnforcement(final Enforcement.Context context) {
-            return new MessageCommandEnforcement(context);
+            return new MessageCommandEnforcement(context, thingIdCache, enforcerCache);
         }
     }
 

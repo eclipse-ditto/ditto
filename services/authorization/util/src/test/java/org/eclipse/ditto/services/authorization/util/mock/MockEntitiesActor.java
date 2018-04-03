@@ -15,9 +15,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.base.WithResource;
 
 import akka.actor.AbstractActor;
-import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.japi.pf.ReceiveBuilder;
 import akka.testkit.javadsl.TestKit;
@@ -47,9 +47,13 @@ public final class MockEntitiesActor extends AbstractActor {
                 .build();
     }
 
-    public static void set(final TestKit testKit, final ActorRef actor, final String resourceType, final Object reply) {
+    public void setReply(final TestKit testKit, final WithResource withResource) {
+        setReply(testKit, withResource.getResourceType(), withResource);
+    }
+
+    public void setReply(final TestKit testKit, final String resourceType, final Object reply) {
         final Set set = new Set(resourceType, reply);
-        actor.tell(set, testKit.getRef());
+        getSelf().tell(set, testKit.getRef());
         testKit.expectMsg(set);
     }
 

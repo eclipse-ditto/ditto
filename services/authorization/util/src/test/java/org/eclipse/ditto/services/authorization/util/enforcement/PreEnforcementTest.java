@@ -22,6 +22,7 @@ import static org.eclipse.ditto.services.authorization.util.enforcement.TestSetu
 import static org.eclipse.ditto.services.authorization.util.enforcement.TestSetup.readCommand;
 import static org.eclipse.ditto.services.authorization.util.enforcement.TestSetup.writeCommand;
 
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
@@ -43,6 +44,7 @@ import org.junit.Test;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
+import akka.testkit.TestActorRef;
 import akka.testkit.javadsl.TestKit;
 
 @SuppressWarnings({"squid:S3599", "squid:S1171"})
@@ -50,11 +52,16 @@ public final class PreEnforcementTest {
 
     private ActorSystem system;
     private ActorRef mockEntitiesActor;
+    private MockEntitiesActor mockEntitiesActorInstance;
 
     @Before
     public void init() {
         system = ActorSystem.create();
-        mockEntitiesActor = system.actorOf(MockEntitiesActor.props());
+        final TestActorRef<MockEntitiesActor> testActorRef =
+                new TestActorRef<>(system, MockEntitiesActor.props(), system.guardian(), UUID
+                        .randomUUID().toString());
+        mockEntitiesActorInstance = testActorRef.underlyingActor();
+        mockEntitiesActor = testActorRef;
     }
 
     @After
@@ -62,7 +69,6 @@ public final class PreEnforcementTest {
         if (system != null) {
             TestKit.shutdownActorSystem(system);
         }
-        mockEntitiesActor = null;
     }
 
     @Test
@@ -76,14 +82,16 @@ public final class PreEnforcementTest {
                 SudoRetrieveThingResponse.of(thingWithAcl, DittoHeaders.empty());
 
         new TestKit(system) {{
-            setReply(this, THING_SUDO, response);
+            mockEntitiesActorInstance.setReply(this, THING_SUDO, response);
 
             final ActorRef underTest = newEnforcerActor(getRef(), CompletableFuture::completedFuture);
             final ThingCommand read = readCommand();
+            mockEntitiesActorInstance.setReply(this, read);
             underTest.tell(read, getRef());
             assertThat(expectMsgClass(read.getClass()).getId()).isEqualTo(read.getId());
 
             final ThingCommand write = writeCommand();
+            mockEntitiesActorInstance.setReply(this, write);
             underTest.tell(write, getRef());
             assertThat(expectMsgClass(write.getClass()).getId()).isEqualTo(write.getId());
         }};
@@ -100,7 +108,7 @@ public final class PreEnforcementTest {
                 SudoRetrieveThingResponse.of(thingWithAcl, DittoHeaders.empty());
 
         new TestKit(system) {{
-            setReply(this, THING_SUDO, response);
+            mockEntitiesActorInstance.setReply(this, THING_SUDO, response);
 
             final GatewayAuthenticationFailedException mockedEx =
                     GatewayAuthenticationFailedException.newBuilder("wanted exception").build();
@@ -130,7 +138,7 @@ public final class PreEnforcementTest {
                 SudoRetrieveThingResponse.of(thingWithAcl, DittoHeaders.empty());
 
         new TestKit(system) {{
-            setReply(this, THING_SUDO, response);
+            mockEntitiesActorInstance.setReply(this, THING_SUDO, response);
 
             final IllegalStateException mockedEx = new IllegalStateException("wanted exception");
 
@@ -147,10 +155,6 @@ public final class PreEnforcementTest {
             underTest.tell(write, getRef());
             expectMsgClass(unexpectedExceptionResultClass);
         }};
-    }
-
-    private void setReply(final TestKit testKit, final String resourceType, final Object reply) {
-        MockEntitiesActor.set(testKit, mockEntitiesActor, resourceType, reply);
     }
 
     private ActorRef newEnforcerActor(final ActorRef testActorRef,

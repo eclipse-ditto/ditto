@@ -15,10 +15,9 @@ import static org.eclipse.ditto.model.base.json.JsonSchemaVersion.V_2;
 import static org.eclipse.ditto.model.policies.SubjectIssuer.GOOGLE;
 
 import java.time.Duration;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.CompletionStage;
-import java.util.function.Consumer;
 import java.util.function.Function;
 
 import javax.annotation.Nullable;
@@ -27,24 +26,24 @@ import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.ThingBuilder;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
-import org.eclipse.ditto.services.authorization.util.EntityRegionMap;
-import org.eclipse.ditto.services.authorization.util.cache.AuthorizationCaches;
 import org.eclipse.ditto.services.authorization.util.cache.EnforcerCacheLoader;
+import org.eclipse.ditto.services.authorization.util.cache.IdentityCache;
 import org.eclipse.ditto.services.authorization.util.cache.ThingEnforcementIdCacheLoader;
 import org.eclipse.ditto.services.authorization.util.cache.entry.Entry;
 import org.eclipse.ditto.services.authorization.util.config.AuthorizationConfigReader;
-import org.eclipse.ditto.services.authorization.util.mock.MockEntityRegionMap;
 import org.eclipse.ditto.services.models.authorization.EntityId;
+import org.eclipse.ditto.services.utils.cache.Cache;
+import org.eclipse.ditto.services.utils.cache.CaffeineCache;
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeature;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 
-import com.codahale.metrics.MetricRegistry;
-import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
+import com.github.benmanes.caffeine.cache.Caffeine;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -73,22 +72,28 @@ public class TestSetup {
             final ActorRef mockEntitiesActor,
             @Nullable final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer) {
 
-        final EntityRegionMap testActorMap = MockEntityRegionMap.uniform(testActorRef);
-
-        final Consumer<Map.Entry<String, MetricRegistry>> dummyReportingConsumer = unused -> {};
         final Duration askTimeout = CONFIG.caches().askTimeout();
+        final ActorRef thingsShardRegion = mockEntitiesActor;
+        final ActorRef policiesShardRegion = mockEntitiesActor;
+
         final EnforcerCacheLoader enforcerCacheLoader =
-                new EnforcerCacheLoader(askTimeout, mockEntitiesActor, mockEntitiesActor);
-
-        final Map<String, AsyncCacheLoader<EntityId, Entry<EntityId>>> enforcementIdCacheLoaders = new HashMap<>();
+                new EnforcerCacheLoader(askTimeout, thingsShardRegion, policiesShardRegion);
+        final Cache<EntityId, Entry<Enforcer>> enforcerCache = CaffeineCache.of(Caffeine.newBuilder(),
+                enforcerCacheLoader);
         final ThingEnforcementIdCacheLoader thingEnforcementIdCacheLoader =
-                new ThingEnforcementIdCacheLoader(askTimeout, mockEntitiesActor);
-        enforcementIdCacheLoaders.put(ThingCommand.RESOURCE_TYPE, thingEnforcementIdCacheLoader);
+                new ThingEnforcementIdCacheLoader(askTimeout, thingsShardRegion);
+        final Cache<EntityId, Entry<EntityId>> thingIdCache =
+                CaffeineCache.of(Caffeine.newBuilder(), thingEnforcementIdCacheLoader);
 
-        final AuthorizationCaches authorizationCaches = new AuthorizationCaches(CONFIG.caches(), enforcerCacheLoader,
-                enforcementIdCacheLoaders, dummyReportingConsumer);
-        final Props props =
-                EnforcerActorFactory.props(testActorRef, testActorMap, authorizationCaches, preEnforcer);
+        final IdentityCache policyIdCache = new IdentityCache();
+
+        final Set<EnforcementProvider<?>> enforcementProviders = new HashSet<>();
+        enforcementProviders.add(new ThingCommandEnforcement.Provider(thingsShardRegion,
+                policiesShardRegion, thingIdCache, policyIdCache, enforcerCache));
+        enforcementProviders.add(new PolicyCommandEnforcement.Provider(policiesShardRegion,
+                policyIdCache, enforcerCache));
+
+        final Props props = EnforcerActor.props(testActorRef, enforcementProviders, preEnforcer);
         return system.actorOf(props, THING + ":" + THING_ID);
     }
 

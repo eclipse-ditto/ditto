@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.services.authorization.util.enforcement;
 
+import static java.util.Objects.requireNonNull;
 import static org.eclipse.ditto.model.things.Permission.ADMINISTRATE;
 import static org.eclipse.ditto.services.models.policies.Permission.MIN_REQUIRED_POLICY_PERMISSIONS;
 
@@ -57,6 +58,7 @@ import org.eclipse.ditto.services.models.policies.Permission;
 import org.eclipse.ditto.services.models.policies.PoliciesAclMigrations;
 import org.eclipse.ditto.services.models.policies.PoliciesValidator;
 import org.eclipse.ditto.services.models.policies.PolicyInvalidException;
+import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.signals.commands.base.CommandToExceptionRegistry;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyConflictException;
@@ -90,7 +92,7 @@ import akka.pattern.AskTimeoutException;
 import akka.pattern.PatternsCS;
 
 /**
- * Mixin to authorize {@code ThingCommand}.
+ * Authorize {@code ThingCommand}.
  */
 // TODO: migrate logging
 public final class ThingCommandEnforcement extends Enforcement<ThingCommand> {
@@ -107,16 +109,25 @@ public final class ThingCommandEnforcement extends Enforcement<ThingCommand> {
             JsonFactory.newFieldSelector(Thing.JsonFields.ID);
 
     private List<SubjectIssuer> subjectIssuersForPolicyMigration;
+    private ActorRef thingsShardRegion;
+    private ActorRef policiesShardRegion;
+    private final EnforcerRetriever thingEnforcerRetriever;
+    private final EnforcerRetriever policyEnforcerRetriever;
 
-    /**
-     * Create a {@code ThingCommandEnforcement} object.
-     *
-     * @param data Settings for the enforcement object.
-     * @param subjectIssuersForPolicyMigration List of subject issuers to construct policiese from access control lists.
-     */
-    public ThingCommandEnforcement(final Context data, final List<SubjectIssuer> subjectIssuersForPolicyMigration) {
+    private ThingCommandEnforcement(final Context data, final List<SubjectIssuer> subjectIssuersForPolicyMigration,
+            final ActorRef thingsShardRegion, final ActorRef policiesShardRegion,
+            final Cache<EntityId, Entry<EntityId>> thingIdCache, final Cache<EntityId, Entry<EntityId>> policyIdCache,
+            final Cache<EntityId, Entry<Enforcer>> enforcerCache ) {
+
         super(data);
-        this.subjectIssuersForPolicyMigration = subjectIssuersForPolicyMigration;
+        this.subjectIssuersForPolicyMigration = requireNonNull(subjectIssuersForPolicyMigration);
+        this.thingsShardRegion = requireNonNull(thingsShardRegion);
+        this.policiesShardRegion = requireNonNull(policiesShardRegion);
+        requireNonNull(thingIdCache);
+        requireNonNull(enforcerCache);
+        thingEnforcerRetriever = new EnforcerRetriever(thingIdCache, enforcerCache);
+        requireNonNull(policyIdCache);
+        policyEnforcerRetriever = new EnforcerRetriever(policyIdCache, enforcerCache);
     }
 
     /**
@@ -128,7 +139,7 @@ public final class ThingCommandEnforcement extends Enforcement<ThingCommand> {
      */
     @Override
     public void enforce(final ThingCommand thingCommand, final ActorRef sender) {
-        caches().retrieve(entityId(), (enforcerKeyEntry, enforcerEntry) -> {
+        thingEnforcerRetriever.retrieve(entityId(), (enforcerKeyEntry, enforcerEntry) -> {
             if (!enforcerEntry.exists()) {
                 enforceThingCommandByNonexistentEnforcer(enforcerKeyEntry, thingCommand, sender);
             } else if (isAclEnforcer(enforcerKeyEntry)) {
@@ -138,6 +149,58 @@ public final class ThingCommandEnforcement extends Enforcement<ThingCommand> {
                 enforceThingCommandByPolicyEnforcer(thingCommand, policyId, enforcerEntry.getValue(), sender);
             }
         });
+    }
+
+    /**
+     * Provides {@link Enforcement} for commands of type {@link ThingCommand}.
+     */
+    public static final class Provider implements EnforcementProvider<ThingCommand> {
+
+        private static final List<SubjectIssuer> SUBJECT_ISSUERS_FOR_POLICY_MIGRATION =
+                Collections.singletonList(SubjectIssuer.GOOGLE);
+        private final ActorRef thingsShardRegion;
+        private final ActorRef policiesShardRegion;
+        private final Cache<EntityId, Entry<EntityId>> thingIdCache;
+        private final Cache<EntityId, Entry<EntityId>> policyIdCache;
+        private final Cache<EntityId, Entry<Enforcer>> enforcerCache;
+
+        /**
+         * Constructor.
+         *
+         * @param thingsShardRegion the ActorRef to the Things shard region.
+         * @param policiesShardRegion the ActorRef to the Policies shard region.
+         * @param thingIdCache the thing-id-cache.
+         * @param policyIdCache the policy-id-cache.
+         * @param enforcerCache the enforcer cache.
+         */
+        public Provider(final ActorRef thingsShardRegion,
+                final ActorRef policiesShardRegion, final Cache<EntityId, Entry<EntityId>> thingIdCache,
+                final Cache<EntityId, Entry<EntityId>> policyIdCache,
+                final Cache<EntityId, Entry<Enforcer>> enforcerCache) {
+            this.thingsShardRegion = requireNonNull(thingsShardRegion);
+            this.policiesShardRegion = requireNonNull(policiesShardRegion);
+            this.thingIdCache = requireNonNull(thingIdCache);
+            this.policyIdCache = requireNonNull(policyIdCache);
+            this.enforcerCache = requireNonNull(enforcerCache);
+        }
+
+        @Override
+        public Class<ThingCommand> getCommandClass() {
+            return ThingCommand.class;
+        }
+
+        @Override
+        public boolean isApplicable(final ThingCommand command) {
+            // live commands are not applicable for thing command enforcement
+            // because they should never be forwarded to things shard region
+            return !LiveSignalEnforcement.isLiveSignal(command);
+        }
+
+        @Override
+        public Enforcement<ThingCommand> createEnforcement(final Enforcement.Context context) {
+            return new ThingCommandEnforcement(context, SUBJECT_ISSUERS_FOR_POLICY_MIGRATION, thingsShardRegion,
+                    policiesShardRegion, thingIdCache, policyIdCache, enforcerCache);
+        }
     }
 
     /**
@@ -202,7 +265,7 @@ public final class ThingCommandEnforcement extends Enforcement<ThingCommand> {
         final RetrieveThing retrieveThingV1 = RetrieveThing.getBuilder(retrieveThing.getThingId(), dittoHeaders)
                 .withSelectedFields(jsonFieldSelectorBuilder.build())
                 .build();
-        PatternsCS.ask(thingsShardRegion(), retrieveThingV1, getAskTimeout().toMillis())
+        PatternsCS.ask(thingsShardRegion, retrieveThingV1, getAskTimeout().toMillis())
                 .handleAsync((response, error) -> {
                     if (response instanceof RetrieveThingResponse) {
                         final RetrieveThingResponse retrieveThingResponse = (RetrieveThingResponse) response;
@@ -286,7 +349,7 @@ public final class ThingCommandEnforcement extends Enforcement<ThingCommand> {
             final Enforcer enforcer,
             final ActorRef sender) {
 
-        PatternsCS.ask(thingsShardRegion(), commandWithReadSubjects, getAskTimeout().toMillis())
+        PatternsCS.ask(thingsShardRegion, commandWithReadSubjects, getAskTimeout().toMillis())
                 .handleAsync((response, error) -> {
                     if (error != null) {
                         reportUnexpectedError("before building JsonView", sender, error);
@@ -356,7 +419,7 @@ public final class ThingCommandEnforcement extends Enforcement<ThingCommand> {
             final RetrieveThing retrieveThing,
             final ActorRef sender) {
 
-        return PatternsCS.ask(thingsShardRegion(), retrieveThing, getAskTimeout().toMillis())
+        return PatternsCS.ask(thingsShardRegion, retrieveThing, getAskTimeout().toMillis())
                 .handleAsync((response, error) -> {
                     if (response instanceof RetrieveThingResponse) {
                         return Optional.of((RetrieveThingResponse) response);
@@ -389,7 +452,7 @@ public final class ThingCommandEnforcement extends Enforcement<ThingCommand> {
             final RetrieveThing retrieveThing,
             final RetrievePolicy retrievePolicy) {
 
-        return PatternsCS.ask(policiesShardRegion(), retrievePolicy, getAskTimeout().toMillis())
+        return PatternsCS.ask(policiesShardRegion, retrievePolicy, getAskTimeout().toMillis())
                 .handleAsync((response, error) -> {
                     if (response instanceof RetrievePolicyResponse) {
                         return Optional.of((RetrievePolicyResponse) response);
@@ -444,7 +507,7 @@ public final class ThingCommandEnforcement extends Enforcement<ThingCommand> {
     }
 
     /**
-     * Mixin-private: report timeout of {@code ThingQueryComand}.
+     * Report timeout of {@code ThingQueryComand}.
      *
      * @param command the original command.
      * @param sender sender of the command.
@@ -493,7 +556,7 @@ public final class ThingCommandEnforcement extends Enforcement<ThingCommand> {
             final String policyId,
             final ActorRef sender) {
         final EntityId policyEntityId = EntityId.of(PolicyCommand.RESOURCE_TYPE, policyId);
-        caches().retrieve(policyEntityId, (policyIdEntry, policyEnforcerEntry) -> {
+        policyEnforcerRetriever.retrieve(policyEntityId, (policyIdEntry, policyEnforcerEntry) -> {
             if (policyEnforcerEntry.exists()) {
                 enforceThingCommandByPolicyEnforcer(createThing, policyId, policyEnforcerEntry.getValue(), sender);
             } else {
@@ -535,7 +598,7 @@ public final class ThingCommandEnforcement extends Enforcement<ThingCommand> {
      * @return true.
      */
     private boolean forwardToThingsShardRegion(final Object message, final ActorRef sender) {
-        thingsShardRegion().tell(message, sender);
+        thingsShardRegion.tell(message, sender);
         return true;
     }
 
@@ -1004,12 +1067,12 @@ public final class ThingCommandEnforcement extends Enforcement<ThingCommand> {
                 null,
                 createThingWithoutPolicyId.getDittoHeaders());
 
-        PatternsCS.ask(policiesShardRegion(), createPolicy, timeout).handleAsync((policyResponse, policyError) -> {
+        PatternsCS.ask(policiesShardRegion, createPolicy, timeout).handleAsync((policyResponse, policyError) -> {
 
             final Optional<CreateThing> nextStep =
                     handlePolicyResponseForCreateThing(createPolicy, createThing, policyResponse, policyError, sender);
 
-            nextStep.ifPresent(cmd -> PatternsCS.ask(thingsShardRegion(), cmd, timeout)
+            nextStep.ifPresent(cmd -> PatternsCS.ask(thingsShardRegion, cmd, timeout)
                     .handleAsync((thingResponse, thingError) ->
                             handleThingResponseForCreateThing(createThing, thingResponse, thingError, sender)));
 

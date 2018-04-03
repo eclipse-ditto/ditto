@@ -21,41 +21,37 @@ import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.event.DiagnosticLoggingAdapter;
-import akka.japi.pf.FI;
 import akka.japi.pf.ReceiveBuilder;
 
 /**
- * Listens to events, updates authorization cache.
+ * Listens to events via PubSub.
  */
-public final class CacheUpdater extends AbstractActor {
+public abstract class PubSubListenerActor extends AbstractActor {
 
     final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
     final ActorRef pubSubMediator;
-    final Set<CacheUpdateStrategy> cacheUpdateStrategies;
 
     /**
      * Creates a cache updater.
      *
-     * @param pubSubMediator Akka pub-sub mediator.
-     * @param cacheUpdateStrategies cache update strategies.
+     * @param pubSubMediator the DistributedPubSubMediator for registering for events.
+     * @param eventTopics the event topics to register for.
      * @param instanceIndex index of this service instance.
      */
-    public CacheUpdater(final ActorRef pubSubMediator,
-            final Set<CacheUpdateStrategy> cacheUpdateStrategies,
+    protected PubSubListenerActor(final ActorRef pubSubMediator,
+            final Set<String> eventTopics,
             final int instanceIndex) {
         this.pubSubMediator = requireNonNull(pubSubMediator);
-        this.cacheUpdateStrategies = requireNonNull(cacheUpdateStrategies);
+        requireNonNull(eventTopics);
 
         final String group = getSelf().path().name() + instanceIndex;
-        cacheUpdateStrategies.stream()
-                .map(CacheUpdateStrategy::getEventTopic)
-                .forEach(topic -> pubSubMediator.tell(subscribe(topic, group), getSelf()));
+        eventTopics.forEach(topic -> pubSubMediator.tell(subscribe(topic, group), getSelf()));
     }
 
     @Override
     public Receive createReceive() {
-        return handlers().orElse(ReceiveBuilder.create()
+        return handleEvents().orElse(ReceiveBuilder.create()
                 .match(DistributedPubSubMediator.SubscribeAck.class, subscribeAck ->
                         log.debug("Got SubscribeAck about topic <{}> for group <{}>",
                                 subscribeAck.subscribe().topic(),
@@ -72,17 +68,7 @@ public final class CacheUpdater extends AbstractActor {
      *
      * @return a partial function.
      */
-    protected Receive handlers() {
-        final ReceiveBuilder receiveBuilder = ReceiveBuilder.create();
-        for (final CacheUpdateStrategy strategy : cacheUpdateStrategies) {
-            @SuppressWarnings("unchecked")
-            final Class<Object> eventClass = strategy.getEventClass();
-            @SuppressWarnings("unchecked")
-            final FI.UnitApply<Object> eventHandler = strategy::handleEvent;
-            receiveBuilder.match(eventClass, eventHandler);
-        }
-        return receiveBuilder.build();
-    }
+    protected abstract Receive handleEvents();
 
     private DistributedPubSubMediator.Subscribe subscribe(final String topic, final String group) {
         return new DistributedPubSubMediator.Subscribe(topic, group, getSelf());

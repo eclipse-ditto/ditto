@@ -24,6 +24,7 @@ import java.util.function.Function;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.services.authorization.util.EntityRegionMap;
 import org.eclipse.ditto.services.authorization.util.cache.entry.Entry;
 import org.eclipse.ditto.services.models.authorization.EntityId;
 
@@ -38,14 +39,23 @@ import akka.pattern.PatternsCS;
  * @param <V> type of values in the cache entry.
  */
 @Immutable
-final class ActorAskCacheLoader<V> implements AsyncCacheLoader<EntityId, Entry<V>> {
+public final class ActorAskCacheLoader<V> implements AsyncCacheLoader<EntityId, Entry<V>> {
 
     private final long askTimeoutMillis;
-    final Function<String, ActorRef> entityRegionProvider;
+    private final Function<String, ActorRef> entityRegionProvider;
     private final Map<String, Function<String, Object>> commandMap;
     private final Map<String, Function<Object, Entry<V>>> transformerMap;
 
-    protected ActorAskCacheLoader(final Duration askTimeout,
+    /**
+     * Constructor for creating an {@link ActorAskCacheLoader} which supports multiple resource types.
+     *
+     * @param askTimeout the ask timeout.
+     * @param entityRegionProvider function providing an entity region for a resource type.
+     * @param commandMap functions per resource type for creating a load-command by an entity id (without resource
+     * type).
+     * @param transformerMap functions per resource type for mapping a load-response to an {@link Entry}.
+     */
+    public ActorAskCacheLoader(final Duration askTimeout,
             final Function<String, ActorRef> entityRegionProvider,
             final Map<String, Function<String, Object>> commandMap,
             final Map<String, Function<Object, Entry<V>>> transformerMap) {
@@ -53,6 +63,29 @@ final class ActorAskCacheLoader<V> implements AsyncCacheLoader<EntityId, Entry<V
         this.entityRegionProvider = requireNonNull(entityRegionProvider);
         this.commandMap = Collections.unmodifiableMap(new HashMap<>(requireNonNull(commandMap)));
         this.transformerMap = Collections.unmodifiableMap(new HashMap<>(requireNonNull(transformerMap)));
+    }
+
+    /**
+     * Constructor for creating an {@link ActorAskCacheLoader} which supports a single resource type.
+     *
+     * @param askTimeout the ask timeout.
+     * @param resourceType the resource type.
+     * @param entityRegion the entity region.
+     * @param command function for creating a load-command by an entity id (without resource type).
+     * @param transformer function for mapping a load-response to an {@link Entry}.
+     */
+    public ActorAskCacheLoader(final Duration askTimeout,
+            final String resourceType, final ActorRef entityRegion,
+            final Function<String, Object> command,
+            final Function<Object, Entry<V>> transformer) {
+        this.askTimeoutMillis = requireNonNull(askTimeout).toMillis();
+        requireNonNull(resourceType);
+        requireNonNull(entityRegion);
+        this.entityRegionProvider = EntityRegionMap.singleton(resourceType, entityRegion);
+        requireNonNull(command);
+        this.commandMap = Collections.singletonMap(resourceType, command);
+        requireNonNull(transformer);
+        this.transformerMap = Collections.singletonMap(resourceType, transformer);
     }
 
     @Override

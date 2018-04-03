@@ -12,8 +12,6 @@
 package org.eclipse.ditto.services.authorization.util.cache;
 
 import java.time.Duration;
-import java.util.Collections;
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
@@ -25,7 +23,6 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingRevision;
-import org.eclipse.ditto.services.authorization.util.EntityRegionMap;
 import org.eclipse.ditto.services.authorization.util.cache.entry.Entry;
 import org.eclipse.ditto.services.models.authorization.EntityId;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
@@ -46,15 +43,12 @@ public final class ThingEnforcementIdCacheLoader implements AsyncCacheLoader<Ent
     private final ActorAskCacheLoader<EntityId> delegate;
 
     public ThingEnforcementIdCacheLoader(final Duration askTimeout, final ActorRef entityRegion) {
-        final EntityRegionMap entityRegionProvider =
-                EntityRegionMap.singleton(ThingCommand.RESOURCE_TYPE, entityRegion);
-        final Map<String, Function<String, Object>> commandMap = Collections.singletonMap(ThingCommand.RESOURCE_TYPE,
-                ThingCommandFactory::sudoRetrieveThing);
-        final Map<String, Function<Object, Entry<EntityId>>> transformerMap =
-                Collections.singletonMap(ThingCommand.RESOURCE_TYPE,
-                        ThingEnforcementIdCacheLoader::handleSudoRetrieveThingResponse);
+        final Function<String, Object> command = ThingCommandFactory::sudoRetrieveThing;
+        final Function<Object, Entry<EntityId>> transformer =
+                ThingEnforcementIdCacheLoader::handleSudoRetrieveThingResponse;
 
-        this.delegate = new ActorAskCacheLoader<>(askTimeout, entityRegionProvider, commandMap, transformerMap);
+        this.delegate =
+                new ActorAskCacheLoader<>(askTimeout, ThingCommand.RESOURCE_TYPE, entityRegion, command, transformer);
     }
 
     @Override

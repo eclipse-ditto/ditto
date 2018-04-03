@@ -11,7 +11,13 @@
  */
 package org.eclipse.ditto.services.authorization.util.enforcement;
 
+import static java.util.Objects.requireNonNull;
+
+import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.protocoladapter.TopicPath;
+import org.eclipse.ditto.services.authorization.util.cache.entry.Entry;
+import org.eclipse.ditto.services.models.authorization.EntityId;
+import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
@@ -23,14 +29,36 @@ import akka.actor.ActorRef;
  */
 public final class LiveSignalEnforcement extends Enforcement<Signal> {
 
-    private LiveSignalEnforcement(final Context context) {
+    private final EnforcerRetriever enforcerRetriever;
+
+    private LiveSignalEnforcement(final Context context, final Cache<EntityId, Entry<EntityId>> thingIdCache,
+            final Cache<EntityId, Entry<Enforcer>> enforcerCache) {
         super(context);
+        requireNonNull(thingIdCache);
+        requireNonNull(enforcerCache);
+        enforcerRetriever = new EnforcerRetriever(thingIdCache, enforcerCache);
     }
 
     /**
-     * {@code EnforcementProvider} for {@code LiveSignalEnforcement}.
+     * {@link EnforcementProvider} for {@link LiveSignalEnforcement}.
      */
     public static final class Provider implements EnforcementProvider<Signal> {
+
+        private final Cache<EntityId, Entry<EntityId>> thingIdCache;
+        private final Cache<EntityId, Entry<Enforcer>> enforcerCache;
+
+        /**
+         * Constructor.
+         *
+         * @param thingIdCache the thing-id-cache.
+         * @param enforcerCache the enforcer cache.
+         */
+        public Provider(final Cache<EntityId, Entry<EntityId>> thingIdCache,
+                final Cache<EntityId, Entry<Enforcer>> enforcerCache) {
+
+            this.thingIdCache = requireNonNull(thingIdCache);
+            this.enforcerCache = requireNonNull(enforcerCache);
+        }
 
         @Override
         public Class<Signal> getCommandClass() {
@@ -44,13 +72,13 @@ public final class LiveSignalEnforcement extends Enforcement<Signal> {
 
         @Override
         public Enforcement<Signal> createEnforcement(final Context context) {
-            return new LiveSignalEnforcement(context);
+            return new LiveSignalEnforcement(context, thingIdCache, enforcerCache);
         }
     }
 
     @Override
     public void enforce(final Signal signal, final ActorRef sender) {
-        caches().retrieve(entityId(), (enforcerKeyEntry, enforcerEntry) -> {
+        enforcerRetriever.retrieve(entityId(), (enforcerKeyEntry, enforcerEntry) -> {
             if (enforcerEntry.exists()) {
                 final Signal<?> generifiedSignal = (Signal) signal;
                 final Signal<?> signalWithReadSubjects =

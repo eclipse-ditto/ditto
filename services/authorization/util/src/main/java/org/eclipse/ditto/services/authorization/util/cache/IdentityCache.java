@@ -22,7 +22,7 @@ import org.eclipse.ditto.services.utils.cache.Cache;
 /**
  * Cache that returns the key as result.
  */
-final class IdentityCache implements Cache<EntityId, Entry<EntityId>> {
+public final class IdentityCache implements Cache<EntityId, Entry<EntityId>> {
 
     @Override
     public CompletableFuture<Optional<Entry<EntityId>>> get(final EntityId key) {

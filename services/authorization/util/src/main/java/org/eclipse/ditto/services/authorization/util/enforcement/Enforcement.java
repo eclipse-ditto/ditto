@@ -18,14 +18,10 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.policies.ResourceKey;
-import org.eclipse.ditto.services.authorization.util.EntityRegionMap;
-import org.eclipse.ditto.services.authorization.util.cache.AuthorizationCaches;
 import org.eclipse.ditto.services.models.authorization.EntityId;
 import org.eclipse.ditto.services.models.policies.Permission;
 import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
-import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 
 import akka.actor.ActorRef;
@@ -50,35 +46,6 @@ public abstract class Enforcement<T extends WithDittoHeaders> {
      * @param sender sender of the command.
      */
     public abstract void enforce(final T command, final ActorRef sender);
-
-    /**
-     * Retrieve the things-shard-region from the entity region map.
-     *
-     * @return the things shard region if it exists in the entity region map, dead letters otherwise.
-     */
-    protected ActorRef thingsShardRegion() {
-        return shardRegionForResourceType(ThingCommand.RESOURCE_TYPE);
-    }
-
-    /**
-     * Retrieve the policies-shard-region from the entity region map.
-     *
-     * @return the policies shard region if it exists in the entity region map, deadletters otherwise.
-     */
-    protected ActorRef policiesShardRegion() {
-        return shardRegionForResourceType(PolicyCommand.RESOURCE_TYPE);
-    }
-
-    /**
-     * Convenience method: retrieve shard region for a resource type.
-     *
-     * @param resourceType the resource type.
-     * @return the shard region.
-     */
-    protected ActorRef shardRegionForResourceType(final String resourceType) {
-        return entityRegionMap().lookup(resourceType).orElseThrow(() -> new IllegalStateException("Unknown resource " +
-                "type: " + resourceType));
-    }
 
     /**
      * Reply a message to sender.
@@ -180,13 +147,6 @@ public abstract class Enforcement<T extends WithDittoHeaders> {
     }
 
     /**
-     * @return the entity region map.
-     */
-    protected EntityRegionMap entityRegionMap() {
-        return context.entityRegionMap;
-    }
-
-    /**
      * @return the entity ID.
      */
     protected EntityId entityId() {
@@ -198,13 +158,6 @@ public abstract class Enforcement<T extends WithDittoHeaders> {
      */
     protected DiagnosticLoggingAdapter log() {
         return context.log;
-    }
-
-    /**
-     * @return the authorization caches.
-     */
-    protected AuthorizationCaches caches() {
-        return context.caches;
     }
 
     /**
@@ -225,27 +178,21 @@ public abstract class Enforcement<T extends WithDittoHeaders> {
 
         private final ActorRef pubSubMediator;
         private final Duration askTimeout;
-        private final EntityRegionMap entityRegionMap;
         private final EntityId entityId;
         private final DiagnosticLoggingAdapter log;
-        private final AuthorizationCaches caches;
         private final ActorRef self;
 
         public Context(
                 final ActorRef pubSubMediator,
                 final Duration askTimeout,
-                final EntityRegionMap entityRegionMap,
                 final EntityId entityId,
                 final DiagnosticLoggingAdapter log,
-                final AuthorizationCaches caches,
                 final ActorRef self) {
 
             this.pubSubMediator = pubSubMediator;
             this.askTimeout = askTimeout;
-            this.entityRegionMap = entityRegionMap;
             this.entityId = entityId;
             this.log = log;
-            this.caches = caches;
             this.self = self;
         }
     }
