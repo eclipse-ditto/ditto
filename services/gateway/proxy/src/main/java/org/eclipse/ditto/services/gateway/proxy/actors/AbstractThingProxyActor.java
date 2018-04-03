@@ -163,7 +163,7 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
                         new DistributedPubSubMediator.Send(THINGS_SEARCH_ACTOR_PATH, command), getSender()))
 
                 /* Live Signals */
-                .match(Signal.class, ProxyActor::isLiveSignal, forwardToLocalEnforcerLookup(thingEnforcerLookup))
+                .match(Signal.class, ProxyActor::isLiveSignal, this::forwardToAuthorizationShardRegion)
         ;
     }
 

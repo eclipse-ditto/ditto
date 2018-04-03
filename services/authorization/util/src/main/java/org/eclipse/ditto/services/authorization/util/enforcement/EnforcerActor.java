@@ -37,7 +37,6 @@ import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
-import akka.japi.pf.FI;
 import akka.japi.pf.ReceiveBuilder;
 
 /**
@@ -53,7 +52,7 @@ public final class EnforcerActor extends AbstractActor {
 
     private final Duration askTimeout = Duration.ofSeconds(10); // TODO: make configurable
 
-    private final Set<EnforcementProvider> enforcementProviders;
+    private final Set<EnforcementProvider<?>> enforcementProviders;
     @Nullable
     private final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer;
 
@@ -61,7 +60,7 @@ public final class EnforcerActor extends AbstractActor {
             final ActorRef pubSubMediator,
             final EntityRegionMap entityRegionMap,
             final AuthorizationCaches caches,
-            final Set<EnforcementProvider> enforcementProviders,
+            final Set<EnforcementProvider<?>> enforcementProviders,
             @Nullable Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer) {
         this.entityId = decodeEntityId(getSelf());
 
@@ -89,7 +88,7 @@ public final class EnforcerActor extends AbstractActor {
      * @return the Akka configuration Props object.
      */
     public static Props props(final ActorRef pubSubMediator, final EntityRegionMap entityRegionMap,
-            final AuthorizationCaches authorizationCaches, final Set<EnforcementProvider> enforcementProviders) {
+            final AuthorizationCaches authorizationCaches, final Set<EnforcementProvider<?>> enforcementProviders) {
 
         return Props.create(EnforcerActor.class,
                 () -> new EnforcerActor(pubSubMediator, entityRegionMap, authorizationCaches, enforcementProviders,
@@ -107,7 +106,7 @@ public final class EnforcerActor extends AbstractActor {
      * @return the Akka configuration Props object.
      */
     public static Props props(final ActorRef pubSubMediator, final EntityRegionMap entityRegionMap,
-            final AuthorizationCaches authorizationCaches, final Set<EnforcementProvider> enforcementProviders,
+            final AuthorizationCaches authorizationCaches, final Set<EnforcementProvider<?>> enforcementProviders,
             @Nullable Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer) {
 
         return Props.create(EnforcerActor.class,
@@ -124,12 +123,8 @@ public final class EnforcerActor extends AbstractActor {
     @Override
     public Receive createReceive() {
         final ReceiveBuilder receiveBuilder = ReceiveBuilder.create();
-        enforcementProviders.forEach(provider -> {
-            @SuppressWarnings("unchecked") final Class<WithDittoHeaders> commandClass = provider.getCommandClass();
-            @SuppressWarnings("unchecked") final FI.UnitApply<WithDittoHeaders> commandHandler =
-                    createMessageHandler(provider);
-            receiveBuilder.match(commandClass, commandHandler);
-        });
+
+        enforcementProviders.forEach(provider -> addToReceiveBuilder(receiveBuilder, provider));
 
         receiveBuilder.matchAny(message -> {
             log.warning("Unexpected message: <{}>", message);
@@ -139,8 +134,11 @@ public final class EnforcerActor extends AbstractActor {
         return receiveBuilder.build();
     }
 
-    private FI.UnitApply<WithDittoHeaders> createMessageHandler(final EnforcementProvider provider) {
-        return cmd -> handleMessage(provider, cmd);
+    private <T extends WithDittoHeaders> void addToReceiveBuilder(
+            final ReceiveBuilder receiveBuilder,
+            final EnforcementProvider<T> provider) {
+
+        receiveBuilder.match(provider.getCommandClass(), provider::isApplicable, cmd -> handleMessage(provider, cmd));
     }
 
     private CompletionStage<Void> handleMessage(final EnforcementProvider provider, final WithDittoHeaders message) {
@@ -181,8 +179,8 @@ public final class EnforcerActor extends AbstractActor {
     private CompletionStage<Void> handleEnforcement(final EnforcementProvider provider, final WithDittoHeaders message,
             final ActorRef sender) {
         return CompletableFuture.supplyAsync(() -> {
-            @SuppressWarnings("unchecked")
-            final Enforcement<WithDittoHeaders> enforcement = provider.createEnforcement(context);
+            @SuppressWarnings("unchecked") final Enforcement<WithDittoHeaders> enforcement =
+                    provider.createEnforcement(context);
             enforcement.enforce(message, sender);
             return null;
         });

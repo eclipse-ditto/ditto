@@ -97,7 +97,7 @@ public final class PolicyCommandEnforcement extends Enforcement<PolicyCommand> {
             authorized = enforcer.hasPartialPermissions(policyResourceKey, authorizationContext, permission);
         }
         return authorized
-                ? Optional.of(Enforcement.addReadSubjectsToCommand(command, enforcer))
+                ? Optional.of(Enforcement.addReadSubjectsToSignal(command, enforcer))
                 : Optional.empty();
     }
 

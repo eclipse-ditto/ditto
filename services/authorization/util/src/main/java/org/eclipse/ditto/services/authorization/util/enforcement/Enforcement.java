@@ -22,6 +22,7 @@ import org.eclipse.ditto.services.authorization.util.EntityRegionMap;
 import org.eclipse.ditto.services.authorization.util.cache.AuthorizationCaches;
 import org.eclipse.ditto.services.models.authorization.EntityId;
 import org.eclipse.ditto.services.models.policies.Permission;
+import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
@@ -127,47 +128,47 @@ public abstract class Enforcement<T extends WithDittoHeaders> {
     }
 
     /**
-     * Extend a command by read-subjects header given by an enforcer.
+     * Extend a signal by read-subjects header given by an enforcer.
      *
-     * @param command the command to extend.
+     * @param signal the signal to extend.
      * @param enforcer the enforcer.
-     * @return the extended command.
+     * @return the extended signal.
      */
-    protected static <T extends Command> T addReadSubjectsToCommand(final Command<T> command,
+    protected static <T extends Signal> T addReadSubjectsToSignal(final Signal<T> signal,
             final Enforcer enforcer) {
 
-        return addReadSubjectsToCommand(command, getReadSubjects(command, enforcer));
+        return addReadSubjectsToSignal(signal, getReadSubjects(signal, enforcer));
     }
 
     /**
-     * Extend a command by read-subjects header given explicitly.
+     * Extend a signal by read-subjects header given explicitly.
      *
-     * @param <T> type of the thing command.
-     * @param command the command to extend.
+     * @param <T> type of the signal.
+     * @param signal the signal to extend.
      * @param readSubjects explicitly-given read subjects.
-     * @return the extended command.
+     * @return the extended signal.
      */
-    protected static <T extends Command> T addReadSubjectsToCommand(final Command<T> command,
+    protected static <T extends Signal> T addReadSubjectsToSignal(final Signal<T> signal,
             final Set<String> readSubjects) {
 
-        final DittoHeaders newHeaders = command.getDittoHeaders()
+        final DittoHeaders newHeaders = signal.getDittoHeaders()
                 .toBuilder()
                 .readSubjects(readSubjects)
                 .build();
 
-        return command.setDittoHeaders(newHeaders);
+        return signal.setDittoHeaders(newHeaders);
     }
 
     /**
      * Get read subjects from an enforcer.
      *
-     * @param command the command to get read subjects for.
+     * @param signal the signal to get read subjects for.
      * @param enforcer the enforcer.
-     * @return read subjects of the command.
+     * @return read subjects of the signal.
      */
-    protected static Set<String> getReadSubjects(final Command<?> command, final Enforcer enforcer) {
+    protected static Set<String> getReadSubjects(final Signal<?> signal, final Enforcer enforcer) {
         final ResourceKey resourceKey =
-                ResourceKey.newInstance(ThingCommand.RESOURCE_TYPE, command.getResourcePath());
+                ResourceKey.newInstance(ThingCommand.RESOURCE_TYPE, signal.getResourcePath());
         return enforcer.getSubjectIdsWithPermission(resourceKey, Permission.READ).getGranted();
     }
 

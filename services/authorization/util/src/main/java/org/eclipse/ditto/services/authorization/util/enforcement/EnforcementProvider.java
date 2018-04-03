@@ -28,6 +28,16 @@ public interface EnforcementProvider<T extends WithDittoHeaders> {
     Class<T> getCommandClass();
 
     /**
+     * Test whether this enforcement provider is applicable for the given command.
+     *
+     * @param command the command.
+     * @return whether this enforcement provider is applicable.
+     */
+    default boolean isApplicable(final T command) {
+        return true;
+    }
+
+    /**
      * Creates an {@link Enforcement} for the given {@code context}.
      * @param context the context.
      *
