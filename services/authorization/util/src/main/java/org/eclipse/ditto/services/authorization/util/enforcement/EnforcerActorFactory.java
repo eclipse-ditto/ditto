@@ -60,13 +60,22 @@ public final class EnforcerActorFactory {
     public static Props props(final ActorRef pubSubMediator, final EntityRegionMap entityRegionMap,
             final AuthorizationCaches authorizationCaches,
             @Nullable final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer) {
+
+        return EnforcerActor.props(pubSubMediator, entityRegionMap, authorizationCaches, getEnforcementProviders(),
+                preEnforcer);
+    }
+
+    /**
+     * Create a set of enforcement providers known to the enforcer actor.
+     *
+     * @return set of enforcement providers.
+     */
+    public static Set<EnforcementProvider<?>> getEnforcementProviders() {
         final Set<EnforcementProvider<?>> enforcementProviders = new HashSet<>();
         enforcementProviders.add(new ThingCommandEnforcementProvider());
         enforcementProviders.add(new PolicyCommandEnforcementProvider());
         enforcementProviders.add(new MessageCommandEnforcement.Provider());
         enforcementProviders.add(new LiveSignalEnforcement.Provider());
-
-        return EnforcerActor.props(pubSubMediator, entityRegionMap, authorizationCaches, enforcementProviders,
-                preEnforcer);
+        return enforcementProviders;
     }
 }
