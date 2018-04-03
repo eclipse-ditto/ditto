@@ -40,7 +40,6 @@ public final class EnforcerActorFactory {
      * @param pubSubMediator Akka pub sub mediator.
      * @param entityRegionMap map from resource types to entity shard regions.
      * @param authorizationCaches cache of information relevant for authorization.
-     * @param preEnforcer
      * @return the Akka configuration Props object.
      */
     public static Props props(final ActorRef pubSubMediator, final EntityRegionMap entityRegionMap,
