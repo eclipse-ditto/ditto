@@ -14,7 +14,9 @@ package org.eclipse.ditto.model.connectivity;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkArgument;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
@@ -35,6 +37,7 @@ class ImmutableConnectionBuilder implements ConnectionBuilder {
     int clientCount = 1;
     int throttle = -1;
     int processorPoolSize = 5;
+    final Map<String, String> specificConfig = new HashMap<>();
 
     private ImmutableConnectionBuilder(final String id, final ConnectionType connectionType,
             final String uri, final AuthorizationContext authorizationContext) {
@@ -99,6 +102,13 @@ class ImmutableConnectionBuilder implements ConnectionBuilder {
     @Override
     public ConnectionBuilder clientCount(final int clientCount) {
         this.clientCount = checkArgument(clientCount, ps -> ps > 0, () -> "clientCount must > 0");
+        return this;
+    }
+
+    @Override
+    public ConnectionBuilder specificConfig(final Map<String, String> specificConfig) {
+        checkNotNull(specificConfig, "Specific Config");
+        this.specificConfig.putAll(specificConfig);
         return this;
     }
 

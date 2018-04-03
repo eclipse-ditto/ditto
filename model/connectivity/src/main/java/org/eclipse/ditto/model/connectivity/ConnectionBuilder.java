@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.model.connectivity;
 
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -76,6 +77,14 @@ public interface ConnectionBuilder {
      * @return this builder to allow method chaining.
      */
     ConnectionBuilder clientCount(int clientCount);
+
+    /**
+     * Adds configuration which is only applicable for a specific {@link ConnectionType}.
+     *
+     * @param specificConfig the ConnectionType specific configuration to set
+     * @return this builder to allow method chaining.
+     */
+    ConnectionBuilder specificConfig(Map<String, String> specificConfig);
 
     /**
      * Builds a new {@link Connection}.

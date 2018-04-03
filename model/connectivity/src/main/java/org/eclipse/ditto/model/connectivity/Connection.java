@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.model.connectivity;
 
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -155,6 +156,13 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
     int getProcessorPoolSize();
 
     /**
+     * Returns configuration which is only applicable for a specific {@link ConnectionType}.
+     *
+     * @return an arbitrary map of config keys to config values.
+     */
+    Map<String, String> getSpecificConfig();
+
+    /**
      * Returns all non hidden marked fields of this {@code Connection}.
      *
      * @return a JSON object representation of this Connection including only non hidden marked fields.
@@ -256,6 +264,13 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
          */
         public static final JsonFieldDefinition<Integer> PROCESSOR_POOL_SIZE =
                 JsonFactory.newIntFieldDefinition("processorPoolSize", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing the {@code Connection} {@link ConnectionType} specific config.
+         */
+        public static final JsonFieldDefinition<JsonObject> SPECIFIC_CONFIG =
+                JsonFactory.newJsonObjectFieldDefinition("specificConfig", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
         private JsonFields() {

@@ -12,8 +12,10 @@
 package org.eclipse.ditto.model.connectivity;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -65,6 +67,7 @@ final class ImmutableConnection implements Connection {
     private final boolean validateCertificate;
     private final int throttle;
     private final int processorPoolSize;
+    private final Map<String, String> specificConfig;
 
     ImmutableConnection(final ImmutableConnectionBuilder builder) {
         this.id = builder.id;
@@ -79,6 +82,8 @@ final class ImmutableConnection implements Connection {
         this.validateCertificate = builder.validateCertificate;
         this.throttle = builder.throttle;
         this.processorPoolSize = builder.processorPoolSize;
+        this.specificConfig = Collections.unmodifiableMap(new HashMap<>(
+                builder.specificConfig));
 
         final Matcher matcher = URI_REGEX_PATTERN.matcher(uri);
 
@@ -155,6 +160,15 @@ final class ImmutableConnection implements Connection {
         final Optional<Boolean> readValidateCertificates = jsonObject.getValue(JsonFields.VALIDATE_CERTIFICATES);
         final Optional<Integer> readThrottle = jsonObject.getValue(JsonFields.THROTTLE);
         final Optional<Integer> readProcessorPoolSize = jsonObject.getValue(JsonFields.PROCESSOR_POOL_SIZE);
+        final Map<String, String> readConnectionTypeSpecificConfiguration = jsonObject
+                .getValue(JsonFields.SPECIFIC_CONFIG)
+                .filter(JsonValue::isObject)
+                .map(JsonValue::asObject)
+                .map(JsonObject::stream)
+                .map(jsonFields -> jsonFields
+                        .collect(Collectors.toMap(JsonField::getKeyName, f -> f.getValue().isString() ?
+                                f.getValue().asString() : f.getValue().toString())))
+                .orElse(Collections.emptyMap());
 
         final ConnectionBuilder builder =
                 ImmutableConnectionBuilder.of(readId, readConnectionType, readUri, readAuthorizationContext);
@@ -166,6 +180,7 @@ final class ImmutableConnection implements Connection {
         readFailoverEnabled.ifPresent(builder::failoverEnabled);
         readValidateCertificates.ifPresent(builder::validateCertificate);
         readProcessorPoolSize.ifPresent(builder::processorPoolSize);
+        builder.specificConfig(readConnectionTypeSpecificConfiguration);
         return builder.build();
     }
 
@@ -255,6 +270,11 @@ final class ImmutableConnection implements Connection {
     }
 
     @Override
+    public Map<String, String> getSpecificConfig() {
+        return specificConfig;
+    }
+
+    @Override
     public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
@@ -278,6 +298,11 @@ final class ImmutableConnection implements Connection {
         jsonObjectBuilder.set(JsonFields.VALIDATE_CERTIFICATES, validateCertificate, predicate);
         jsonObjectBuilder.set(JsonFields.THROTTLE, throttle, predicate);
         jsonObjectBuilder.set(JsonFields.PROCESSOR_POOL_SIZE, processorPoolSize, predicate);
+        if (!specificConfig.isEmpty()) {
+            jsonObjectBuilder.set(JsonFields.SPECIFIC_CONFIG, specificConfig.entrySet().stream()
+                    .map(entry -> JsonField.newInstance(entry.getKey(), JsonValue.of(entry.getValue())))
+                    .collect(JsonCollectors.fieldsToObject()), predicate);
+        }
         return jsonObjectBuilder.build();
     }
 
@@ -303,14 +328,15 @@ final class ImmutableConnection implements Connection {
                 Objects.equals(path, that.path) &&
                 Objects.equals(throttle, that.throttle) &&
                 Objects.equals(processorPoolSize, that.processorPoolSize) &&
-                Objects.equals(validateCertificate, that.validateCertificate);
+                Objects.equals(validateCertificate, that.validateCertificate) &&
+                Objects.equals(specificConfig, that.specificConfig);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(id, connectionType, authorizationContext, sources, targets, clientCount,
                 failoverEnabled, uri, protocol, username, password, hostname, path, port, validateCertificate, throttle,
-                processorPoolSize);
+                processorPoolSize, specificConfig);
     }
 
     @Override
@@ -333,6 +359,7 @@ final class ImmutableConnection implements Connection {
                 ", validateCertificate=" + validateCertificate +
                 ", throttle=" + throttle +
                 ", processorPoolSize=" + processorPoolSize +
+                ", specificConfig=" + specificConfig +
                 "]";
     }
 }

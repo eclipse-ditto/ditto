@@ -17,6 +17,8 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.TimeoutException;
 
 import javax.net.ssl.SSLContext;
@@ -74,11 +76,47 @@ public final class ConnectionBasedRabbitConnectionFactoryFactory implements Rabb
 
             connectionFactory.setExceptionHandler(exceptionHandler);
 
+            configureConnectionFactory(connectionFactory, connection.getSpecificConfig());
+
             return connectionFactory;
         } catch (final NoSuchAlgorithmException | KeyManagementException | URISyntaxException e) {
             LOGGER.warn(e.getMessage());
             throw new IllegalStateException("Failed to create RabbitMQ connection factory.", e);
         }
+    }
+
+    private void configureConnectionFactory(final ConnectionFactory connectionFactory,
+            final Map<String, String> specificConfig) {
+        Optional.ofNullable(specificConfig.get("channelRpcTimeout"))
+                .map(Integer::parseInt)
+                .ifPresent(connectionFactory::setChannelRpcTimeout);
+        Optional.ofNullable(specificConfig.get("connectionTimeout"))
+                .map(Integer::parseInt)
+                .ifPresent(connectionFactory::setConnectionTimeout);
+        Optional.ofNullable(specificConfig.get("handshakeTimeout"))
+                .map(Integer::parseInt)
+                .ifPresent(connectionFactory::setHandshakeTimeout);
+        Optional.ofNullable(specificConfig.get("channelShouldCheckRpcResponseType"))
+                .map(Boolean::parseBoolean)
+                .ifPresent(connectionFactory::setChannelShouldCheckRpcResponseType);
+        Optional.ofNullable(specificConfig.get("networkRecoveryInterval"))
+                .map(Integer::parseInt)
+                .ifPresent(connectionFactory::setNetworkRecoveryInterval);
+        Optional.ofNullable(specificConfig.get("requestedChannelMax"))
+                .map(Integer::parseInt)
+                .ifPresent(connectionFactory::setRequestedChannelMax);
+        Optional.ofNullable(specificConfig.get("requestedFrameMax"))
+                .map(Integer::parseInt)
+                .ifPresent(connectionFactory::setRequestedFrameMax);
+        Optional.ofNullable(specificConfig.get("requestedHeartbeat"))
+                .map(Integer::parseInt)
+                .ifPresent(connectionFactory::setRequestedHeartbeat);
+        Optional.ofNullable(specificConfig.get("topologyRecoveryEnabled"))
+                .map(Boolean::parseBoolean)
+                .ifPresent(connectionFactory::setTopologyRecoveryEnabled);
+        Optional.ofNullable(specificConfig.get("shutdownTimeout"))
+                .map(Integer::parseInt)
+                .ifPresent(connectionFactory::setShutdownTimeout);
     }
 
     /**
