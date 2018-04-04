@@ -12,6 +12,8 @@
 package org.eclipse.ditto.services.authorization.util.enforcement;
 
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.services.utils.akka.functional.AsyncPartial;
+import org.eclipse.ditto.services.utils.akka.functional.ImmutableActor;
 
 /**
  * Provider interface for {@link Enforcement}.
@@ -39,9 +41,26 @@ public interface EnforcementProvider<T extends WithDittoHeaders> {
 
     /**
      * Creates an {@link Enforcement} for the given {@code context}.
-     * @param context the context.
      *
+     * @param context the context.
      * @return the {@link Enforcement}.
      */
     Enforcement<T> createEnforcement(final Enforcement.Context context);
+
+    default ImmutableActor.Builder<Enforcement.Context, Object, Void> toActorBuilder() {
+        return context -> actorUtils -> {
+            final Enforcement<T> enforcement = createEnforcement(context.withActorUtils(actorUtils));
+            return sender -> {
+
+                final AsyncPartial<T, Void> messageHandler =
+                        AsyncPartial.fromTotal(message -> {
+                            enforcement.enforce(message, sender);
+                            return null;
+                        });
+
+                return messageHandler.filter(this::isApplicable)
+                        .filterBy(getCommandClass());
+            };
+        };
+    }
 }

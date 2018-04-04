@@ -11,8 +11,13 @@
  */
 package org.eclipse.ditto.services.authorization.util.enforcement;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Set;
+
+import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
@@ -20,6 +25,7 @@ import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.services.models.authorization.EntityId;
 import org.eclipse.ditto.services.models.policies.Permission;
+import org.eclipse.ditto.services.utils.akka.functional.ImmutableActor;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
@@ -178,22 +184,50 @@ public abstract class Enforcement<T extends WithDittoHeaders> {
 
         private final ActorRef pubSubMediator;
         private final Duration askTimeout;
+
+        @Nullable
         private final EntityId entityId;
+
+        @Nullable
         private final DiagnosticLoggingAdapter log;
+
+        @Nullable
         private final ActorRef self;
 
         public Context(
                 final ActorRef pubSubMediator,
+                final Duration askTimeout) {
+
+            this(pubSubMediator, askTimeout, null, null, null);
+        }
+
+        public Context(
+                final ActorRef pubSubMediator,
                 final Duration askTimeout,
-                final EntityId entityId,
-                final DiagnosticLoggingAdapter log,
-                final ActorRef self) {
+                @Nullable final EntityId entityId,
+                @Nullable final DiagnosticLoggingAdapter log,
+                @Nullable final ActorRef self) {
 
             this.pubSubMediator = pubSubMediator;
             this.askTimeout = askTimeout;
             this.entityId = entityId;
             this.log = log;
             this.self = self;
+        }
+
+        public Context withActorUtils(final ImmutableActor.ActorUtils actorUtils) {
+            final ActorRef self = actorUtils.context().self();
+            return new Context(pubSubMediator, askTimeout, decodeEntityId(self), actorUtils.log(), self);
+        }
+
+        private static EntityId decodeEntityId(final ActorRef self) {
+            final String name = self.path().name();
+            try {
+                final String typeWithPath = URLDecoder.decode(name, StandardCharsets.UTF_8.name());
+                return EntityId.readFrom(typeWithPath);
+            } catch (final UnsupportedEncodingException e) {
+                throw new IllegalStateException("Unsupported encoding", e);
+            }
         }
     }
 }
