@@ -455,6 +455,14 @@ public final class AclEnforcerActor extends AbstractActorWithStash {
         }
     }
 
+    private void forwardMessageCommand(final MessageCommand<?, ?> command) {
+        publishLiveSignal(MessageCommand.TYPE_PREFIX, command);
+
+        // answer the sender immediately for fire-and-forget message commands.
+        getResponseForFireAndForgetMessage(command)
+                .ifPresent(response -> getSender().tell(response, getSelf()));
+    }
+
     private void publishLiveSignal(final String topic, final Signal<?> signal) {
         LogUtil.enhanceLogWithCorrelationId(log, signal.getDittoHeaders().getCorrelationId());
         final Signal<?> enrichedSignal = enrichDittoHeaders(signal);
@@ -467,7 +475,7 @@ public final class AclEnforcerActor extends AbstractActorWithStash {
                 .map(correlationId -> new DistributedPubSubMediator.Subscribe(correlationId,
                         LIVE_RESPONSES_PUB_SUB_GROUP, getSender()))
                 .map(subscribe -> {
-                    log.debug("Subscribing for response: {}", subscribe);
+                    log.debug("Subscribing sender for response: {}", subscribe);
                     return subscribe;
                 })
                 .ifPresent(subscribe -> pubSubMediator.tell(subscribe, getSender()));
@@ -476,22 +484,6 @@ public final class AclEnforcerActor extends AbstractActorWithStash {
         pubSubMediator.tell(
                 new DistributedPubSubMediator.Publish(topic, enrichedSignal, true),
                 getSender());
-    }
-
-    private void forwardMessageCommand(final MessageCommand<?, ?> command) {
-        LogUtil.enhanceLogWithCorrelationId(log, command.getDittoHeaders().getCorrelationId());
-        final MessageCommand commandWithReadSubjects = enrichDittoHeaders(command);
-        log.debug("Received <{}>. Telling Messages about it.", commandWithReadSubjects.getName());
-        accessCounter++;
-
-        // using pub/sub to publish the message to any interested parties (e.g. a Websocket):
-        pubSubMediator.tell(
-                new DistributedPubSubMediator.Publish(MessageCommand.TYPE_PREFIX, commandWithReadSubjects, true),
-                getSender());
-
-        // answer the sender immediately for fire-and-forget message commands.
-        getResponseForFireAndForgetMessage(command)
-                .ifPresent(response -> getSender().tell(response, getSelf()));
     }
 
     private <T extends Signal> T enrichDittoHeaders(final Signal<T> signal) {
