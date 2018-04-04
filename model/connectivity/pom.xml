@@ -53,7 +53,7 @@
                         </goals>
                         <configuration>
                             <includes>
-                                <include>org/eclipse/ditto/model/amqpbridge/*</include>
+                                <include>org/eclipse/ditto/model/connectivity/*</include>
                             </includes>
                         </configuration>
                     </execution>

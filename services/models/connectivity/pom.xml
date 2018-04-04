@@ -82,7 +82,7 @@
                             org.eclipse.ditto.*
                         </Import-Package>
                         <Export-Package>
-                            org.eclipse.ditto.services.models.amqpbridge.*
+                            org.eclipse.ditto.services.models.connectivity.*
                         </Export-Package>
                     </instructions>
                 </configuration>

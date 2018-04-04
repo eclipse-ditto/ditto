@@ -55,8 +55,8 @@ public final class ConnectivityErrorRegistry extends AbstractErrorRegistry<Ditto
      * the user of this ConnectivityErrorRegistry can register additional parsers for his own extensions of {@link
      * org.eclipse.ditto.model.base.exceptions.DittoRuntimeException}.
      *
-     * @param additionalParseStrategies a map containing of DittoRuntimeException ERROR_CODE as amqpBridges and
-     * JsonParsable of DittoRuntimeException as values.
+     * @param additionalParseStrategies a map relating a connectivity ERROR_CODE to a specific JsonParsable of
+     * DittoRuntimeException.
      * @return the error registry.
      */
     public static ConnectivityErrorRegistry newInstance(
