@@ -39,7 +39,7 @@ public interface ExternalMessageBuilder {
     ExternalMessageBuilder withAdditionalHeaders(Map<String, String> additionalHeaders);
 
     /**
-     * Sets the message headers for this builder.
+     * Sets the message headers for this builder. Existing headers are replaced!
      *
      * @param headers the headers to set
      * @return this builder in order to enable method chaining

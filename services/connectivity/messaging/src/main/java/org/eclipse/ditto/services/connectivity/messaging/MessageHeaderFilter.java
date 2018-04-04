@@ -16,6 +16,7 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
@@ -48,7 +49,7 @@ final class MessageHeaderFilter implements Function<ExternalMessage, ExternalMes
      * @param headerNames the header names
      */
      MessageHeaderFilter(final Mode mode, final String... headerNames) {
-        this(mode, Arrays.asList(headerNames));
+         this(mode, Arrays.asList(checkNotNull(headerNames, "HeaderNames")));
     }
 
     /**
@@ -57,15 +58,14 @@ final class MessageHeaderFilter implements Function<ExternalMessage, ExternalMes
      * @param headerNames the header names
      */
      MessageHeaderFilter(final Mode mode, final Collection<String> headerNames) {
-        checkNotNull(mode);
-        this.mode = mode;
-        this.headerNames = new HashSet<>(headerNames);
+         this.mode = checkNotNull(mode, "Mode");
+         this.headerNames = Collections.unmodifiableSet(new HashSet<>(checkNotNull(headerNames, "HeaderNames")));
     }
 
     /**
      * Apply this filter to a message. This will create a copy of the message with filtered headers.
      * @param message the message
-     * @return the filtered messeage
+     * @return the filtered message
      */
     public ExternalMessage apply(final ExternalMessage message) {
         return ConnectivityModelFactory.newExternalMessageBuilder(message)
@@ -97,7 +97,6 @@ final class MessageHeaderFilter implements Function<ExternalMessage, ExternalMes
 
     @Override
     public int hashCode() {
-
         return Objects.hash(mode, headerNames);
     }
 

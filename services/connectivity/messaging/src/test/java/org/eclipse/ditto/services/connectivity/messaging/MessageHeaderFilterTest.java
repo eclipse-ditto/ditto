@@ -9,88 +9,101 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-
 package org.eclipse.ditto.services.connectivity.messaging;
 
-
-
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.eclipse.ditto.services.connectivity.messaging.MessageHeaderFilter.Mode.*;
+import static org.eclipse.ditto.services.connectivity.messaging.MessageHeaderFilter.Mode.EXCLUDE;
+import static org.eclipse.ditto.services.connectivity.messaging.MessageHeaderFilter.Mode.INCLUDE;
+import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
+import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ExternalMessage;
 import org.junit.Test;
 
+import nl.jqno.equalsverifier.EqualsVerifier;
+
 public class MessageHeaderFilterTest {
 
     private static final String[] headerNames = new String[]{"A", "B", "C"};
     private static final ExternalMessage textMessage = ConnectivityModelFactory.newExternalMessageBuilder(
-            Arrays.stream(headerNames).collect(Collectors.toMap(n -> n, n-> n))).withText("text").build();
+            Arrays.stream(headerNames).collect(Collectors.toMap(n -> n, n -> n))).withText("text").build();
     private static final ExternalMessage bytesMessage = ConnectivityModelFactory.newExternalMessageBuilder(
-            Arrays.stream(headerNames).collect(Collectors.toMap(n -> n, n-> n))).withBytes("bytes".getBytes()).build();
+            Arrays.stream(headerNames).collect(Collectors.toMap(n -> n, n -> n))).withBytes("bytes".getBytes()).build();
+    private static final MessageHeaderFilter EXCLUDE_FILTER = new MessageHeaderFilter(EXCLUDE, headerNames[0]);
+    private static final MessageHeaderFilter EMPTY_EXCLUDE_FILTER = new MessageHeaderFilter(EXCLUDE);
+    private static final MessageHeaderFilter INCLUDE_FILTER = new MessageHeaderFilter(INCLUDE, headerNames[0]);
+    private static final MessageHeaderFilter EMPTY_INCLUDE_FILTER = new MessageHeaderFilter(INCLUDE);
+
+    @Test
+    public void testHashCodeAndEquals() {
+        EqualsVerifier.forClass(MessageHeaderFilter.class)
+                .usingGetClass()
+                .verify();
+    }
+
+    @Test
+    public void assertImmutability() {
+        assertInstancesOf(MessageHeaderFilter.class, areImmutable());
+    }
+
+    @Test
+    public void emptyExcludeFilter() {
+        final ExternalMessage filtered = doFilterMessage(textMessage, EMPTY_EXCLUDE_FILTER);
+        assertExpectedHeadersArePresent(filtered, headerNames);
+    }
+
+    @Test
+    public void emptyIncludeFilter() {
+        final ExternalMessage filtered = doFilterMessage(textMessage, EMPTY_INCLUDE_FILTER);
+        assertExpectedHeadersArePresent(filtered);
+    }
 
     @Test
     public void excludeTextMessage() {
-        final MessageHeaderFilter filter = new MessageHeaderFilter(EXCLUDE, headerNames[0]);
-
-        assertThat(textMessage.findHeader(headerNames[0]).isPresent());
-        assertThat(textMessage.findHeader(headerNames[1])).isPresent();
-        assertThat(textMessage.findHeader(headerNames[2])).isPresent();
-        ExternalMessage actual = filter.apply(textMessage);
-        assertThat(actual.findHeader(headerNames[0])).isEmpty();
-        assertThat(actual.findHeader(headerNames[1])).isPresent();
-        assertThat(actual.findHeader(headerNames[2])).isPresent();
-
-        assertTypeAndPayloadAreNotModified(actual, textMessage);
+        final ExternalMessage filtered = doFilterMessage(textMessage, EXCLUDE_FILTER);
+        assertExpectedHeadersArePresent(filtered, headerNames[1], headerNames[2]);
     }
 
     @Test
     public void excludeBytesMessage() {
-        final MessageHeaderFilter filter = new MessageHeaderFilter(EXCLUDE, headerNames[0]);
-
-        assertThat(bytesMessage.findHeader(headerNames[0]).isPresent());
-        assertThat(bytesMessage.findHeader(headerNames[1])).isPresent();
-        assertThat(bytesMessage.findHeader(headerNames[2])).isPresent();
-        ExternalMessage actual = filter.apply(bytesMessage);
-        assertThat(actual.findHeader(headerNames[0])).isEmpty();
-        assertThat(actual.findHeader(headerNames[1])).isPresent();
-        assertThat(actual.findHeader(headerNames[2])).isPresent();
-
-        assertTypeAndPayloadAreNotModified(actual, bytesMessage);
+        final ExternalMessage filtered = doFilterMessage(bytesMessage, EXCLUDE_FILTER);
+        assertExpectedHeadersArePresent(filtered, headerNames[1], headerNames[2]);
     }
 
     @Test
     public void includeTextMessage() {
-        final MessageHeaderFilter filter = new MessageHeaderFilter(INCLUDE, headerNames[0]);
-
-        assertThat(textMessage.findHeader(headerNames[0]).isPresent());
-        assertThat(textMessage.findHeader(headerNames[1])).isPresent();
-        assertThat(textMessage.findHeader(headerNames[2])).isPresent();
-        ExternalMessage actual = filter.apply(textMessage);
-        assertThat(actual.findHeader(headerNames[0])).isPresent();
-        assertThat(actual.findHeader(headerNames[1])).isEmpty();
-        assertThat(actual.findHeader(headerNames[2])).isEmpty();
-
-        assertTypeAndPayloadAreNotModified(actual, textMessage);
+        final ExternalMessage filtered = doFilterMessage(textMessage, INCLUDE_FILTER);
+        assertExpectedHeadersArePresent(filtered, headerNames[0]);
     }
 
     @Test
     public void includeTextBytesMessage() {
-        final MessageHeaderFilter filter = new MessageHeaderFilter(INCLUDE, headerNames[0]);
+        final ExternalMessage filtered = doFilterMessage(bytesMessage, INCLUDE_FILTER);
+        assertExpectedHeadersArePresent(filtered, headerNames[0]);
+    }
 
-        assertThat(bytesMessage.findHeader(headerNames[0]).isPresent());
-        assertThat(bytesMessage.findHeader(headerNames[1])).isPresent();
-        assertThat(bytesMessage.findHeader(headerNames[2])).isPresent();
-        ExternalMessage actual = filter.apply(bytesMessage);
+    private ExternalMessage doFilterMessage(final ExternalMessage message, final MessageHeaderFilter filter) {
+        assertExpectedHeadersArePresent(message, headerNames);
+        final ExternalMessage actual = filter.apply(message);
+        assertTypeAndPayloadAreNotModified(actual, message);
+        return actual;
+    }
 
-        assertThat(actual.findHeader(headerNames[0])).isPresent();
-        assertThat(actual.findHeader(headerNames[1])).isEmpty();
-        assertThat(actual.findHeader(headerNames[2])).isEmpty();
-
-        assertTypeAndPayloadAreNotModified(actual, bytesMessage);
+    private void assertExpectedHeadersArePresent(final ExternalMessage message, final String... expectedHeaders) {
+        for (final String expectedHeader : expectedHeaders) {
+            assertThat(message.findHeader(expectedHeader)).isNotEmpty();
+        }
+        final Set<String> blacklistedHeaders = new HashSet<>(Arrays.asList(headerNames));
+        blacklistedHeaders.removeAll(Arrays.asList(expectedHeaders));
+        for (final String blacklisted : blacklistedHeaders) {
+            assertThat(message.findHeader(blacklisted)).isEmpty();
+        }
     }
 
     private void assertTypeAndPayloadAreNotModified(final ExternalMessage actual, final ExternalMessage expected) {
