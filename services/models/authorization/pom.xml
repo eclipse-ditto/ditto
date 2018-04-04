@@ -33,6 +33,18 @@
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-signals-commands-things</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-signals-commands-things</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-signals-commands-thingsearch</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.typesafe.akka</groupId>
+            <artifactId>akka-cluster-tools_${scala.version}</artifactId>
+        </dependency>
     </dependencies>
 
     <build>

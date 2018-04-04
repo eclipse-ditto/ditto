@@ -20,6 +20,11 @@ import javax.annotation.concurrent.Immutable;
 public final class AuthorizationMessagingConstants {
 
     /**
+     * Path of authorization dispatcher actor.
+     */
+    public static final String DISPATCHER_ACTOR_PATH = "/user/authorizationRoot/dispatcherActor";
+
+    /**
      * Name of the shard region for authorization entities.
      */
     public static final String SHARD_REGION = "authorization";

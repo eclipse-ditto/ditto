@@ -59,10 +59,10 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
     private final ActorRef aclEnforcerShardRegion;
     private final ActorRef devOpsCommandsActor;
     private final ActorRef policyEnforcerShardRegion;
-    private final ActorRef authorizationShardRegion;
     private final ActorRef thingEnforcerLookup;
     private final ActorRef thingCacheFacade;
     private final ActorRef thingsAggregator;
+    private final AuthorizationEnvelope authorizationEnvelope;
 
     protected AbstractThingProxyActor(final ActorRef pubSubMediator,
             final ActorRef devOpsCommandsActor,
@@ -77,9 +77,10 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
         this.devOpsCommandsActor = devOpsCommandsActor;
         this.policyEnforcerShardRegion = policyEnforcerShardRegion;
         this.aclEnforcerShardRegion = aclEnforcerShardRegion;
-        this.authorizationShardRegion = authorizationShardRegion;
         this.thingCacheFacade = thingCacheFacade;
         this.thingEnforcerLookup = thingEnforcerLookup;
+
+        authorizationEnvelope = new AuthorizationEnvelope(pubSubMediator, authorizationShardRegion);
 
         thingsAggregator = getContext().actorOf(FromConfig.getInstance().props(
                 ThingsAggregatorActor.props(getContext().self())), ThingsAggregatorActor.ACTOR_NAME);
@@ -120,7 +121,7 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
                         forwardToLocalEnforcerLookup(thingEnforcerLookup))
 
                 /* Policy Commands */
-                .match(PolicyCommand.class, this::forwardToAuthorizationShardRegion)
+                .match(PolicyCommand.class, this::forwardToAuthorizationService)
                 .match(org.eclipse.ditto.services.models.policies.commands.sudo.SudoCommand.class, sudoCommand ->
                         policyEnforcerShardRegion.forward(sudoCommand, getContext()))
 
@@ -142,8 +143,8 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
                         thingsAggregator.forward(command, getContext());
                     }
                 })
-                .match(ThingCommand.class, this::forwardToAuthorizationShardRegion)
-                .match(MessageCommand.class, this::forwardToAuthorizationShardRegion)
+                .match(ThingCommand.class, this::forwardToAuthorizationService)
+                .match(MessageCommand.class, this::forwardToAuthorizationService)
 
                 /* Thing Events */
                 /* use MAJORITY for ThingDeleted events, because ThingsShardRegion no longer contains any
@@ -163,7 +164,7 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
                         new DistributedPubSubMediator.Send(THINGS_SEARCH_ACTOR_PATH, command), getSender()))
 
                 /* Live Signals */
-                .match(Signal.class, ProxyActor::isLiveSignal, this::forwardToAuthorizationShardRegion)
+                .match(Signal.class, ProxyActor::isLiveSignal, this::forwardToAuthorizationService)
         ;
     }
 
@@ -203,9 +204,8 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
         }
     }
 
-    private void forwardToAuthorizationShardRegion(final Signal<?> signal) {
-        final ShardedMessageEnvelope message = AuthorizationEnvelope.wrap(signal);
-        authorizationShardRegion.forward(message, getContext());
+    private void forwardToAuthorizationService(final Signal<?> signal) {
+        authorizationEnvelope.dispatch(signal, getSender());
     }
 
     private static FI.TypedPredicate<LookupEnforcerResponse> isRetrieveThingWithAggregationNeeded() {
