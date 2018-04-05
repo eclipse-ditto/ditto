@@ -35,38 +35,31 @@ public class PolicyCacheUpdateActor extends PubSubListenerActor {
      */
     public static final String ACTOR_NAME = "policyCacheUpdater";
 
-    private final Cache<EntityId, Entry<Enforcer>> enforcerCache;
+    private final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache;
 
-    /**
-     * Constructor.
-     *
-     * @param enforcerCache the enforcer cache.
-     * @param pubSubMediator the DistributedPubSubMediator for registering for events.
-     * @param instanceIndex index of this service instance.
-     */
-    public PolicyCacheUpdateActor(final Cache<EntityId, Entry<Enforcer>> enforcerCache,
+    private PolicyCacheUpdateActor(final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache,
             final ActorRef pubSubMediator, final int instanceIndex) {
 
         super(pubSubMediator, Collections.singleton(PolicyEvent.TYPE_PREFIX), instanceIndex);
 
-        this.enforcerCache = requireNonNull(enforcerCache);
+        this.policyEnforcerCache = requireNonNull(policyEnforcerCache);
     }
 
     /**
      * Create an Akka {@code Props} object for this actor.
      *
-     * @param enforcerCache the enforcer cache.
+     * @param policyEnforcerCache the policy-enforcer cache.
      * @param pubSubMediator Akka pub-sub mediator.
      * @param instanceIndex the index of this service instance.
      * @return Akka {@code Props} object.
      */
-    public static Props props(final Cache<EntityId, Entry<Enforcer>> enforcerCache,
+    public static Props props(final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache,
             final ActorRef pubSubMediator, final int instanceIndex) {
-        requireNonNull(enforcerCache);
+        requireNonNull(policyEnforcerCache);
         requireNonNull(pubSubMediator);
 
         return Props.create(PolicyCacheUpdateActor.class,
-                () -> new PolicyCacheUpdateActor(enforcerCache, pubSubMediator, instanceIndex));
+                () -> new PolicyCacheUpdateActor(policyEnforcerCache, pubSubMediator, instanceIndex));
     }
 
     @Override
@@ -77,6 +70,6 @@ public class PolicyCacheUpdateActor extends PubSubListenerActor {
     public void handleEvent(final PolicyEvent policyEvent) {
         // TODO CR-5397: be less wasteful.
         final EntityId key = EntityId.of(PolicyCommand.RESOURCE_TYPE, policyEvent.getPolicyId());
-        enforcerCache.invalidate(key);
+        policyEnforcerCache.invalidate(key);
     }
 }

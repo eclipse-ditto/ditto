@@ -117,17 +117,20 @@ public final class ThingCommandEnforcement extends Enforcement<ThingCommand> {
     private ThingCommandEnforcement(final Context data, final List<SubjectIssuer> subjectIssuersForPolicyMigration,
             final ActorRef thingsShardRegion, final ActorRef policiesShardRegion,
             final Cache<EntityId, Entry<EntityId>> thingIdCache, final Cache<EntityId, Entry<EntityId>> policyIdCache,
-            final Cache<EntityId, Entry<Enforcer>> enforcerCache ) {
+            final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache,
+            final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache) {
 
         super(data);
         this.subjectIssuersForPolicyMigration = requireNonNull(subjectIssuersForPolicyMigration);
         this.thingsShardRegion = requireNonNull(thingsShardRegion);
         this.policiesShardRegion = requireNonNull(policiesShardRegion);
         requireNonNull(thingIdCache);
-        requireNonNull(enforcerCache);
-        thingEnforcerRetriever = new EnforcerRetriever(thingIdCache, enforcerCache);
+        requireNonNull(policyEnforcerCache);
+        requireNonNull(aclEnforcerCache);
+        thingEnforcerRetriever =
+                PolicyOrAclEnforcerRetrieverFactory.create(thingIdCache, policyEnforcerCache, aclEnforcerCache);
         requireNonNull(policyIdCache);
-        policyEnforcerRetriever = new EnforcerRetriever(policyIdCache, enforcerCache);
+        policyEnforcerRetriever = new EnforcerRetriever(policyIdCache, policyEnforcerCache);
     }
 
     /**
@@ -162,7 +165,8 @@ public final class ThingCommandEnforcement extends Enforcement<ThingCommand> {
         private final ActorRef policiesShardRegion;
         private final Cache<EntityId, Entry<EntityId>> thingIdCache;
         private final Cache<EntityId, Entry<EntityId>> policyIdCache;
-        private final Cache<EntityId, Entry<Enforcer>> enforcerCache;
+        private final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache;
+        private final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache;
 
         /**
          * Constructor.
@@ -171,17 +175,20 @@ public final class ThingCommandEnforcement extends Enforcement<ThingCommand> {
          * @param policiesShardRegion the ActorRef to the Policies shard region.
          * @param thingIdCache the thing-id-cache.
          * @param policyIdCache the policy-id-cache.
-         * @param enforcerCache the enforcer cache.
+         * @param policyEnforcerCache the policy-enforcer cache.
+         * @param aclEnforcerCache the acl-enforcer cache.
          */
         public Provider(final ActorRef thingsShardRegion,
                 final ActorRef policiesShardRegion, final Cache<EntityId, Entry<EntityId>> thingIdCache,
                 final Cache<EntityId, Entry<EntityId>> policyIdCache,
-                final Cache<EntityId, Entry<Enforcer>> enforcerCache) {
+                final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache,
+                final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache) {
             this.thingsShardRegion = requireNonNull(thingsShardRegion);
             this.policiesShardRegion = requireNonNull(policiesShardRegion);
             this.thingIdCache = requireNonNull(thingIdCache);
             this.policyIdCache = requireNonNull(policyIdCache);
-            this.enforcerCache = requireNonNull(enforcerCache);
+            this.policyEnforcerCache = requireNonNull(policyEnforcerCache);
+            this.aclEnforcerCache = requireNonNull(aclEnforcerCache);
         }
 
         @Override
@@ -199,7 +206,7 @@ public final class ThingCommandEnforcement extends Enforcement<ThingCommand> {
         @Override
         public Enforcement<ThingCommand> createEnforcement(final Enforcement.Context context) {
             return new ThingCommandEnforcement(context, SUBJECT_ISSUERS_FOR_POLICY_MIGRATION, thingsShardRegion,
-                    policiesShardRegion, thingIdCache, policyIdCache, enforcerCache);
+                    policiesShardRegion, thingIdCache, policyIdCache, policyEnforcerCache, aclEnforcerCache);
         }
     }
 

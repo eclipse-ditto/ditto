@@ -18,9 +18,10 @@ import java.util.Set;
 import java.util.function.Consumer;
 
 import org.eclipse.ditto.model.enforcers.Enforcer;
+import org.eclipse.ditto.services.authorization.util.cache.AclEnforcerCacheLoader;
 import org.eclipse.ditto.services.authorization.util.cache.CacheFactory;
-import org.eclipse.ditto.services.authorization.util.cache.EnforcerCacheLoader;
 import org.eclipse.ditto.services.authorization.util.cache.IdentityCache;
+import org.eclipse.ditto.services.authorization.util.cache.PolicyEnforcerCacheLoader;
 import org.eclipse.ditto.services.authorization.util.cache.ThingEnforcementIdCacheLoader;
 import org.eclipse.ditto.services.authorization.util.cache.entry.Entry;
 import org.eclipse.ditto.services.authorization.util.config.AuthorizationConfigReader;
@@ -48,7 +49,7 @@ import akka.actor.Props;
  */
 public final class DefaultAuthorizationProxyPropsFactory implements AuthorizationProxyPropsFactory {
 
-    private static final String ENFORCER_CACHE_METRIC_NAME = "ditto.authorization.enforcer.cache";
+    private static final String ENFORCER_CACHE_METRIC_NAME_PREFIX = "ditto.authorization.enforcer.cache.";
     private static final String ID_CACHE_METRIC_NAME_PREFIX = "ditto.authorization.id.cache.";
 
     @Override
@@ -69,30 +70,39 @@ public final class DefaultAuthorizationProxyPropsFactory implements Authorizatio
         // policies always refer to themselves in the cache.
         final Cache<EntityId, Entry<EntityId>> policyIdCache = new IdentityCache();
 
-        final EnforcerCacheLoader enforcerCacheLoader =
-                new EnforcerCacheLoader(askTimeout, thingsShardRegionProxy, policiesShardRegionProxy);
-        final Cache<EntityId, Entry<Enforcer>> enforcerCache =
-                CacheFactory.createCache(enforcerCacheLoader, configReader.caches().enforcer(),
-                        ENFORCER_CACHE_METRIC_NAME,
+        final PolicyEnforcerCacheLoader policyEnforcerCacheLoader =
+                new PolicyEnforcerCacheLoader(askTimeout, policiesShardRegionProxy);
+        final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache =
+                CacheFactory.createCache(policyEnforcerCacheLoader, configReader.caches().enforcer(),
+                        ENFORCER_CACHE_METRIC_NAME_PREFIX + "policy",
+                        metricsReportingConsumer);
+
+        final AclEnforcerCacheLoader aclEnforcerCacheLoader =
+                new AclEnforcerCacheLoader(askTimeout, thingsShardRegionProxy);
+        final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache =
+                CacheFactory.createCache(aclEnforcerCacheLoader, configReader.caches().enforcer(),
+                        ENFORCER_CACHE_METRIC_NAME_PREFIX + "acl",
                         metricsReportingConsumer);
 
         final Set<EnforcementProvider<?>> enforcementProviders = new HashSet<>();
         enforcementProviders.add(new ThingCommandEnforcement.Provider(thingsShardRegionProxy,
-                policiesShardRegionProxy, thingIdCache, policyIdCache, enforcerCache));
+                policiesShardRegionProxy, thingIdCache, policyIdCache, policyEnforcerCache, aclEnforcerCache));
         enforcementProviders.add(new PolicyCommandEnforcement.Provider(policiesShardRegionProxy,
-                policyIdCache, enforcerCache));
-        enforcementProviders.add(new MessageCommandEnforcement.Provider(thingIdCache, enforcerCache));
-        enforcementProviders.add(new LiveSignalEnforcement.Provider(thingIdCache, enforcerCache));
+                policyIdCache, policyEnforcerCache));
+        enforcementProviders.add(new MessageCommandEnforcement.Provider(thingIdCache, policyEnforcerCache,
+                aclEnforcerCache));
+        enforcementProviders.add(new LiveSignalEnforcement.Provider(thingIdCache, policyEnforcerCache,
+                aclEnforcerCache));
 
         final Props enforcerProps = EnforcerActor.props(pubSubMediator, enforcementProviders);
 
         // start cache updaters
         final int instanceIndex = configReader.instanceIndex();
         final Props thingCacheUpdateActorProps =
-                ThingCacheUpdateActor.props(enforcerCache, thingIdCache, pubSubMediator, instanceIndex);
+                ThingCacheUpdateActor.props(aclEnforcerCache, thingIdCache, pubSubMediator, instanceIndex);
         context.actorOf(thingCacheUpdateActorProps, ThingCacheUpdateActor.ACTOR_NAME);
         final Props policyCacheUpdateActorProps =
-                PolicyCacheUpdateActor.props(enforcerCache, pubSubMediator, instanceIndex);
+                PolicyCacheUpdateActor.props(policyEnforcerCache, pubSubMediator, instanceIndex);
         context.actorOf(policyCacheUpdateActorProps, PolicyCacheUpdateActor.ACTOR_NAME);
 
         return enforcerProps;

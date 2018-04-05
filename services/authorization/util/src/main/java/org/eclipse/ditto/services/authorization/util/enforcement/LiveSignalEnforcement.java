@@ -32,11 +32,15 @@ public final class LiveSignalEnforcement extends Enforcement<Signal> {
     private final EnforcerRetriever enforcerRetriever;
 
     private LiveSignalEnforcement(final Context context, final Cache<EntityId, Entry<EntityId>> thingIdCache,
-            final Cache<EntityId, Entry<Enforcer>> enforcerCache) {
+            final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache,
+            final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache) {
+
         super(context);
         requireNonNull(thingIdCache);
-        requireNonNull(enforcerCache);
-        enforcerRetriever = new EnforcerRetriever(thingIdCache, enforcerCache);
+        requireNonNull(policyEnforcerCache);
+        requireNonNull(aclEnforcerCache);
+        enforcerRetriever =
+                PolicyOrAclEnforcerRetrieverFactory.create(thingIdCache, policyEnforcerCache, aclEnforcerCache);
     }
 
     /**
@@ -45,19 +49,23 @@ public final class LiveSignalEnforcement extends Enforcement<Signal> {
     public static final class Provider implements EnforcementProvider<Signal> {
 
         private final Cache<EntityId, Entry<EntityId>> thingIdCache;
-        private final Cache<EntityId, Entry<Enforcer>> enforcerCache;
+        private final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache;
+        private final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache;
 
         /**
          * Constructor.
          *
          * @param thingIdCache the thing-id-cache.
-         * @param enforcerCache the enforcer cache.
+         * @param policyEnforcerCache the policy-enforcer cache.
+         * @param aclEnforcerCache the acl-enforcer cache.
          */
         public Provider(final Cache<EntityId, Entry<EntityId>> thingIdCache,
-                final Cache<EntityId, Entry<Enforcer>> enforcerCache) {
+                final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache,
+                final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache) {
 
             this.thingIdCache = requireNonNull(thingIdCache);
-            this.enforcerCache = requireNonNull(enforcerCache);
+            this.policyEnforcerCache = requireNonNull(policyEnforcerCache);
+            this.aclEnforcerCache = requireNonNull(aclEnforcerCache);
         }
 
         @Override
@@ -72,7 +80,7 @@ public final class LiveSignalEnforcement extends Enforcement<Signal> {
 
         @Override
         public Enforcement<Signal> createEnforcement(final Context context) {
-            return new LiveSignalEnforcement(context, thingIdCache, enforcerCache);
+            return new LiveSignalEnforcement(context, thingIdCache, policyEnforcerCache, aclEnforcerCache);
         }
     }
 

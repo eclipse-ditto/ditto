@@ -13,7 +13,9 @@ package org.eclipse.ditto.services.authorization.util.enforcement;
 
 import static java.util.Objects.requireNonNull;
 
+import java.util.Map;
 import java.util.function.BiConsumer;
+import java.util.function.Function;
 
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.services.authorization.util.cache.entry.Entry;
@@ -29,7 +31,20 @@ public final class EnforcerRetriever {
     private static final Logger LOGGER = LoggerFactory.getLogger(EnforcerRetriever.class);
 
     private final Cache<EntityId, Entry<EntityId>> idCache;
-    private final Cache<EntityId, Entry<Enforcer>> enforcerCache;
+    private final Function<String, Cache<EntityId, Entry<Enforcer>>> enforcerCacheFunction;
+
+    /**
+     * Constructor.
+     *
+     * @param idCache the ID Cache.
+     * @param enforcerCacheFunction a function to determine a Enforcer Cache for a resource type.
+     */
+    public EnforcerRetriever(
+            final Cache<EntityId, Entry<EntityId>> idCache,
+            final Function<String, Cache<EntityId, Entry<Enforcer>>> enforcerCacheFunction) {
+        this.idCache = requireNonNull(idCache);
+        this.enforcerCacheFunction = requireNonNull(enforcerCacheFunction);
+    }
 
     /**
      * Constructor.
@@ -40,8 +55,19 @@ public final class EnforcerRetriever {
     public EnforcerRetriever(
             final Cache<EntityId, Entry<EntityId>> idCache,
             final Cache<EntityId, Entry<Enforcer>> enforcerCache) {
-        this.idCache = requireNonNull(idCache);
-        this.enforcerCache = requireNonNull(enforcerCache);
+        this(idCache, resourceType -> requireNonNull(enforcerCache));
+    }
+
+    /**
+     * Constructor.
+     *
+     * @param idCache the ID Cache.
+     * @param enforcerCaches the Enforcer Caches per resource type.
+     */
+    public EnforcerRetriever(
+            final Cache<EntityId, Entry<EntityId>> idCache,
+            final Map<String, Cache<EntityId, Entry<Enforcer>>> enforcerCaches) {
+        this(idCache, enforcerCaches::get);
     }
 
     /**
@@ -59,6 +85,12 @@ public final class EnforcerRetriever {
                 final Entry<EntityId> enforcerKeyEntry = enforcerKeyEntryOptional.get();
                 if (enforcerKeyEntry.exists()) {
                     final EntityId enforcerKey = enforcerKeyEntry.getValue();
+                    final String resourceType = enforcerKey.getResourceType();
+                    final Cache<EntityId, Entry<Enforcer>> enforcerCache =
+                            enforcerCacheFunction.apply(resourceType);
+                    if (enforcerCache == null) {
+                        throw new IllegalStateException("No enforcerCache for resource type: " + resourceType);
+                    }
                     enforcerCache.get(enforcerKey)
                             .thenAccept(enforcerEntryOptional -> {
                                 if (!enforcerEntryOptional.isPresent()) {

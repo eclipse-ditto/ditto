@@ -30,8 +30,9 @@ import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.ThingBuilder;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
-import org.eclipse.ditto.services.authorization.util.cache.EnforcerCacheLoader;
+import org.eclipse.ditto.services.authorization.util.cache.AclEnforcerCacheLoader;
 import org.eclipse.ditto.services.authorization.util.cache.IdentityCache;
+import org.eclipse.ditto.services.authorization.util.cache.PolicyEnforcerCacheLoader;
 import org.eclipse.ditto.services.authorization.util.cache.ThingEnforcementIdCacheLoader;
 import org.eclipse.ditto.services.authorization.util.cache.entry.Entry;
 import org.eclipse.ditto.services.authorization.util.config.AuthorizationConfigReader;
@@ -76,10 +77,14 @@ public class TestSetup {
         final ActorRef thingsShardRegion = mockEntitiesActor;
         final ActorRef policiesShardRegion = mockEntitiesActor;
 
-        final EnforcerCacheLoader enforcerCacheLoader =
-                new EnforcerCacheLoader(askTimeout, thingsShardRegion, policiesShardRegion);
-        final Cache<EntityId, Entry<Enforcer>> enforcerCache = CaffeineCache.of(Caffeine.newBuilder(),
-                enforcerCacheLoader);
+        final PolicyEnforcerCacheLoader policyEnforcerCacheLoader =
+                new PolicyEnforcerCacheLoader(askTimeout, policiesShardRegion);
+        final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache = CaffeineCache.of(Caffeine.newBuilder(),
+                policyEnforcerCacheLoader);
+        final AclEnforcerCacheLoader aclEnforcerCacheLoader =
+                new AclEnforcerCacheLoader(askTimeout, thingsShardRegion);
+        final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache = CaffeineCache.of(Caffeine.newBuilder(),
+                aclEnforcerCacheLoader);
         final ThingEnforcementIdCacheLoader thingEnforcementIdCacheLoader =
                 new ThingEnforcementIdCacheLoader(askTimeout, thingsShardRegion);
         final Cache<EntityId, Entry<EntityId>> thingIdCache =
@@ -89,9 +94,9 @@ public class TestSetup {
 
         final Set<EnforcementProvider<?>> enforcementProviders = new HashSet<>();
         enforcementProviders.add(new ThingCommandEnforcement.Provider(thingsShardRegion,
-                policiesShardRegion, thingIdCache, policyIdCache, enforcerCache));
+                policiesShardRegion, thingIdCache, policyIdCache, policyEnforcerCache, aclEnforcerCache));
         enforcementProviders.add(new PolicyCommandEnforcement.Provider(policiesShardRegion,
-                policyIdCache, enforcerCache));
+                policyIdCache, policyEnforcerCache));
 
         final Props props = EnforcerActor.props(testActorRef, enforcementProviders, preEnforcer);
         return system.actorOf(props, THING + ":" + THING_ID);

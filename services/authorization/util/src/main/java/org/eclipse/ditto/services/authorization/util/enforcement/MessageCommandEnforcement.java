@@ -40,11 +40,14 @@ public final class MessageCommandEnforcement extends Enforcement<MessageCommand>
     private final EnforcerRetriever enforcerRetriever;
 
     private MessageCommandEnforcement(final Context context, final Cache<EntityId, Entry<EntityId>> thingIdCache,
-            final Cache<EntityId, Entry<Enforcer>> enforcerCache) {
+            final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache,
+            final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache) {
         super(context);
         requireNonNull(thingIdCache);
-        requireNonNull(enforcerCache);
-        enforcerRetriever = new EnforcerRetriever(thingIdCache, enforcerCache);
+        requireNonNull(policyEnforcerCache);
+        requireNonNull(aclEnforcerCache);
+        enforcerRetriever =
+                PolicyOrAclEnforcerRetrieverFactory.create(thingIdCache, policyEnforcerCache, aclEnforcerCache);
     }
 
     @Override
@@ -66,19 +69,23 @@ public final class MessageCommandEnforcement extends Enforcement<MessageCommand>
     public static final class Provider implements EnforcementProvider {
 
         private final Cache<EntityId, Entry<EntityId>> thingIdCache;
-        private final Cache<EntityId, Entry<Enforcer>> enforcerCache;
+        private final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache;
+        private final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache;
 
         /**
          * Constructor.
          *
          * @param thingIdCache the thing-id-cache.
-         * @param enforcerCache the enforcer cache.
+         * @param policyEnforcerCache the policy-enforcer cache.
+         * @param aclEnforcerCache the acl-enforcer cache.
          */
         public Provider(
                 final Cache<EntityId, Entry<EntityId>> thingIdCache,
-                final Cache<EntityId, Entry<Enforcer>> enforcerCache) {
+                final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache,
+                final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache) {
             this.thingIdCache = requireNonNull(thingIdCache);
-            this.enforcerCache = requireNonNull(enforcerCache);
+            this.policyEnforcerCache = requireNonNull(policyEnforcerCache);
+            this.aclEnforcerCache = requireNonNull(aclEnforcerCache);
         }
 
         @Override
@@ -88,7 +95,7 @@ public final class MessageCommandEnforcement extends Enforcement<MessageCommand>
 
         @Override
         public Enforcement createEnforcement(final Enforcement.Context context) {
-            return new MessageCommandEnforcement(context, thingIdCache, enforcerCache);
+            return new MessageCommandEnforcement(context, thingIdCache, policyEnforcerCache, aclEnforcerCache);
         }
     }
 

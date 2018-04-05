@@ -35,44 +35,37 @@ public class ThingCacheUpdateActor extends PubSubListenerActor {
      */
     public static final String ACTOR_NAME = "thingCacheUpdater";
 
-    private final Cache<EntityId, Entry<Enforcer>> enforcerCache;
+    private final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache;
     private final Cache<EntityId, Entry<EntityId>> thingIdCache;
 
-    /**
-     * Constructor.
-     *
-     * @param enforcerCache the enforcer cache.
-     * @param thingIdCache the thing-id-cache.
-     * @param pubSubMediator the DistributedPubSubMediator for registering for events.
-     * @param instanceIndex index of this service instance.
-     */
-    public ThingCacheUpdateActor(final Cache<EntityId, Entry<Enforcer>> enforcerCache,
+    private ThingCacheUpdateActor(final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache,
             final Cache<EntityId, Entry<EntityId>> thingIdCache, final ActorRef pubSubMediator,
             final int instanceIndex) {
 
         super(pubSubMediator, Collections.singleton(ThingEvent.TYPE_PREFIX), instanceIndex);
 
-        this.enforcerCache = requireNonNull(enforcerCache);
+        this.aclEnforcerCache = requireNonNull(aclEnforcerCache);
         this.thingIdCache = requireNonNull(thingIdCache);
     }
 
     /**
      * Create an Akka {@code Props} object for this actor.
      *
-     * @param enforcerCache the enforcer cache.
+     * @param aclEnforcerCache the acl-enforcer cache.
      * @param thingIdCache the thing-id cache.
      * @param pubSubMediator Akka pub-sub mediator.
      * @param instanceIndex the index of this service instance.
      * @return Akka {@code Props} object.
      */
-    public static Props props(final Cache<EntityId, Entry<Enforcer>> enforcerCache,
+    public static Props props(final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache,
             final Cache<EntityId, Entry<EntityId>> thingIdCache,
             final ActorRef pubSubMediator, final int instanceIndex) {
-        requireNonNull(enforcerCache);
+        requireNonNull(aclEnforcerCache);
+        requireNonNull(thingIdCache);
         requireNonNull(pubSubMediator);
 
         return Props.create(ThingCacheUpdateActor.class,
-                () -> new ThingCacheUpdateActor(enforcerCache, thingIdCache, pubSubMediator, instanceIndex));
+                () -> new ThingCacheUpdateActor(aclEnforcerCache, thingIdCache, pubSubMediator, instanceIndex));
     }
 
     @Override
@@ -86,7 +79,6 @@ public class ThingCacheUpdateActor extends PubSubListenerActor {
 
         thingIdCache.invalidate(key);
 
-        // invalidate acl enforcers
-        enforcerCache.invalidate(key);
+        aclEnforcerCache.invalidate(key);
     }
 }
