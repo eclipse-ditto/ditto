@@ -12,8 +12,15 @@
 package org.eclipse.ditto.services.authorization.util.enforcement;
 
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
-import org.eclipse.ditto.services.utils.akka.functional.AsyncPartial;
-import org.eclipse.ditto.services.utils.akka.functional.ImmutableActor;
+import org.eclipse.ditto.services.utils.akka.controlflow.Filter;
+import org.eclipse.ditto.services.utils.akka.controlflow.WithSender;
+
+import akka.NotUsed;
+import akka.stream.FanOutShape2;
+import akka.stream.FlowShape;
+import akka.stream.Graph;
+import akka.stream.SinkShape;
+import akka.stream.javadsl.GraphDSL;
 
 /**
  * Provider interface for {@link Enforcement}.
@@ -47,20 +54,19 @@ public interface EnforcementProvider<T extends WithDittoHeaders> {
      */
     Enforcement<T> createEnforcement(final Enforcement.Context context);
 
-    default ImmutableActor.Builder<Enforcement.Context, Object, Void> toActorBuilder() {
-        return context -> actorUtils -> {
-            final Enforcement<T> enforcement = createEnforcement(context.withActorUtils(actorUtils));
-            return sender -> {
+    default Graph<FlowShape<WithSender, WithSender>, NotUsed> toGraph(
+            final Enforcement.Context context) {
 
-                final AsyncPartial<T, Void> messageHandler =
-                        AsyncPartial.fromTotal(message -> {
-                            enforcement.enforce(message, sender);
-                            return null;
-                        });
+        return GraphDSL.create(builder -> {
+            final FanOutShape2<WithSender, WithSender<T>, WithSender> filter =
+                    builder.add(Filter.of(getCommandClass(), this::isApplicable));
 
-                return messageHandler.filter(this::isApplicable)
-                        .filterBy(getCommandClass());
-            };
-        };
+            final SinkShape<WithSender<T>> enforcement =
+                    builder.add(createEnforcement(context).toGraph());
+
+            builder.from(filter.out0()).toInlet(enforcement.in());
+
+            return FlowShape.of(filter.in(), filter.out1());
+        });
     }
 }

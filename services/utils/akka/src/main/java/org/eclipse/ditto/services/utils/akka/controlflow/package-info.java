@@ -11,7 +11,7 @@
  */
 
 /**
- * Functional actor composition.
+ * Encode control flow as data flow through akka streams for modular actor decomposition.
  */
 @org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault
-package org.eclipse.ditto.services.utils.akka.functional;
+package org.eclipse.ditto.services.utils.akka.controlflow;

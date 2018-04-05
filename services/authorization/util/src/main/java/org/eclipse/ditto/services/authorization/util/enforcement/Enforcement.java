@@ -25,13 +25,22 @@ import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.services.models.authorization.EntityId;
 import org.eclipse.ditto.services.models.policies.Permission;
-import org.eclipse.ditto.services.utils.akka.functional.ImmutableActor;
+import org.eclipse.ditto.services.utils.akka.controlflow.ControlFlowLogic;
+import org.eclipse.ditto.services.utils.akka.controlflow.WithSender;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 
+import akka.NotUsed;
+import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
-import akka.event.DiagnosticLoggingAdapter;
+import akka.event.LoggingAdapter;
+import akka.stream.Attributes;
+import akka.stream.Graph;
+import akka.stream.Inlet;
+import akka.stream.SinkShape;
+import akka.stream.stage.GraphStage;
+import akka.stream.stage.GraphStageLogic;
 
 /**
  * Contains self-type requirements for aspects of enforcer actor dealing with specific commands.
@@ -52,6 +61,10 @@ public abstract class Enforcement<T extends WithDittoHeaders> {
      * @param sender sender of the command.
      */
     public abstract void enforce(final T command, final ActorRef sender);
+
+    public Graph<SinkShape<WithSender<T>>, NotUsed> toGraph() {
+        return new EnforcementGraphStage();
+    }
 
     /**
      * Reply a message to sender.
@@ -162,7 +175,7 @@ public abstract class Enforcement<T extends WithDittoHeaders> {
     /**
      * @return the diagnostic logging adapter.
      */
-    protected DiagnosticLoggingAdapter log() {
+    protected LoggingAdapter log() {
         return context.log;
     }
 
@@ -189,7 +202,7 @@ public abstract class Enforcement<T extends WithDittoHeaders> {
         private final EntityId entityId;
 
         @Nullable
-        private final DiagnosticLoggingAdapter log;
+        private final LoggingAdapter log;
 
         @Nullable
         private final ActorRef self;
@@ -205,7 +218,7 @@ public abstract class Enforcement<T extends WithDittoHeaders> {
                 final ActorRef pubSubMediator,
                 final Duration askTimeout,
                 @Nullable final EntityId entityId,
-                @Nullable final DiagnosticLoggingAdapter log,
+                @Nullable final LoggingAdapter log,
                 @Nullable final ActorRef self) {
 
             this.pubSubMediator = pubSubMediator;
@@ -215,9 +228,9 @@ public abstract class Enforcement<T extends WithDittoHeaders> {
             this.self = self;
         }
 
-        public Context withActorUtils(final ImmutableActor.ActorUtils actorUtils) {
-            final ActorRef self = actorUtils.context().self();
-            return new Context(pubSubMediator, askTimeout, decodeEntityId(self), actorUtils.log(), self);
+        public Context with(final AbstractActor.ActorContext actorContext, final LoggingAdapter log) {
+            final ActorRef self = actorContext.self();
+            return new Context(pubSubMediator, askTimeout, decodeEntityId(self), log, self);
         }
 
         private static EntityId decodeEntityId(final ActorRef self) {
@@ -228,6 +241,26 @@ public abstract class Enforcement<T extends WithDittoHeaders> {
             } catch (final UnsupportedEncodingException e) {
                 throw new IllegalStateException("Unsupported encoding", e);
             }
+        }
+    }
+
+    private final class EnforcementGraphStage extends GraphStage<SinkShape<WithSender<T>>> {
+
+        private final SinkShape<WithSender<T>> shape = SinkShape.of(Inlet.create("input"));
+
+        @Override
+        public SinkShape<WithSender<T>> shape() {
+            return shape;
+        }
+
+        @Override
+        public GraphStageLogic createLogic(final Attributes inheritedAttributes) {
+            return new ControlFlowLogic(shape) {
+                {
+                    initOutlets(shape);
+                    when(shape.in(), wrapped -> enforce(wrapped.message(), wrapped.sender()));
+                }
+            };
         }
     }
 }
