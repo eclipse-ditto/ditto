@@ -42,6 +42,7 @@ final class TraceUriGenerator implements Function<String, String> {
     private static final Logger LOGGER = LoggerFactory.getLogger(TraceUriGenerator.class);
 
     static final String SHORTENED_PATH_SUFFIX = "/x";
+    static final String MESSAGES_PATH_SUFFIX = "/messages";
     static final String FALLBACK_PATH = "/other";
 
     private static final String SLASH = "/";
@@ -58,6 +59,7 @@ final class TraceUriGenerator implements Function<String, String> {
     private static final List<String> PATHS_EXACT = Arrays.asList("status", "status/health");
     private static final String PATHS_EXACT_REGEX_TEMPLATE = "(?<" + PATHS_EXACT_LENGTH_GROUP + ">^/({0}))/?$";
     private static final Pattern DUPLICATE_SLASH_PATTERN = Pattern.compile("\\/+");
+    private static final Pattern messagePattern = Pattern.compile("(.*/messages/.*)|(.*/claim)");
 
     @Nullable private static TraceUriGenerator instance = null;
 
@@ -121,14 +123,19 @@ final class TraceUriGenerator implements Function<String, String> {
 
     private String generateTraceUri(final String path) {
         final String normalizedPath = normalizePath(path);
-
+        final Matcher messageMatcher = messagePattern.matcher(normalizedPath);
         final Matcher matcher = pathPattern.matcher(normalizedPath);
+
         if (matcher.matches()) {
             final String traceUri;
 
             final String pathToShorten = matcher.group(PATHS_TO_SHORTEN_GROUP);
             if (pathToShorten != null) {
-                traceUri = pathToShorten + SHORTENED_PATH_SUFFIX;
+                if (messageMatcher.matches()) {
+                    traceUri = pathToShorten + MESSAGES_PATH_SUFFIX;
+                } else {
+                    traceUri = pathToShorten + SHORTENED_PATH_SUFFIX;
+                }
             } else {
                 final String pathFullLength = matcher.group(PATHS_EXACT_LENGTH_GROUP);
                 if (pathFullLength != null) {
