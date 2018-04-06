@@ -204,7 +204,7 @@ final class ConnectionActor extends AbstractPersistentActor {
                     log.info("Received SnapshotOffer containing connectionStatus: <{}>", fromSnapshotStore);
                     if (fromSnapshotStore != null) {
                         connection = fromSnapshotStore.getConnection();
-                        mappingContext = fromSnapshotStore.getMappingContext();
+                        mappingContext = fromSnapshotStore.getMappingContext().orElse(null);
                         connectionStatus = fromSnapshotStore.getConnectionStatus();
                     }
                     lastSnapshotSequenceNr = ss.metadata().sequenceNr();
@@ -545,7 +545,7 @@ final class ConnectionActor extends AbstractPersistentActor {
     private void doSaveSnapshot() {
         if (snapshotInProgress) {
             log.debug("Already requested taking a Snapshot - not doing it again");
-        } else if (connection != null && mappingContext != null) {
+        } else if (connection != null) {
             snapshotInProgress = true;
             final ConnectionData connectionData = new ConnectionData(connection, connectionStatus, mappingContext);
             log.info("Attempting to save Snapshot for '{}' ..", connectionData);

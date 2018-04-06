@@ -12,7 +12,10 @@
 package org.eclipse.ditto.services.connectivity.messaging.persistence;
 
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Predicate;
+
+import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
@@ -49,7 +52,7 @@ public final class ConnectionData implements Jsonifiable.WithFieldSelectorAndPre
 
     private final Connection connection;
     private final ConnectionStatus connectionStatus;
-    private final MappingContext mappingContext;
+    @Nullable private final MappingContext mappingContext;
 
     /**
      * Constructs a new connection data instance.
@@ -58,7 +61,7 @@ public final class ConnectionData implements Jsonifiable.WithFieldSelectorAndPre
      * @param mappingContext the mapping context
      */
     public ConnectionData(final Connection connection, final ConnectionStatus connectionStatus,
-            final MappingContext mappingContext) {
+            @Nullable final MappingContext mappingContext) {
 
         this.connection = connection;
         this.connectionStatus = connectionStatus;
@@ -82,8 +85,8 @@ public final class ConnectionData implements Jsonifiable.WithFieldSelectorAndPre
     /**
      * @return the mapping context configured for this connection.
      */
-    public MappingContext getMappingContext() {
-        return mappingContext;
+    public Optional<MappingContext> getMappingContext() {
+        return Optional.ofNullable(mappingContext);
     }
 
     /**
@@ -105,8 +108,9 @@ public final class ConnectionData implements Jsonifiable.WithFieldSelectorAndPre
                         .message("Could not create ConnectionStatus from: " + jsonObject)
                         .build());
 
-        final JsonObject readMappingContext = jsonObject.getValueOrThrow(MAPPING_CONTEXT);
-        final MappingContext mappingContext = ConnectivityModelFactory.mappingContextFromJson(readMappingContext);
+        final JsonObject readMappingContext = jsonObject.getValue(MAPPING_CONTEXT).orElse(null);
+        final MappingContext mappingContext = readMappingContext != null ?
+                ConnectivityModelFactory.mappingContextFromJson(readMappingContext) : null;
 
         return new ConnectionData(connection, connectionStatus, mappingContext);
     }
@@ -124,7 +128,9 @@ public final class ConnectionData implements Jsonifiable.WithFieldSelectorAndPre
 
         jsonObjectBuilder.set(CONNECTION, connection.toJson(schemaVersion, thePredicate), predicate);
         jsonObjectBuilder.set(CONNECTION_STATUS, connectionStatus.getName(), predicate);
-        jsonObjectBuilder.set(MAPPING_CONTEXT, mappingContext.toJson(schemaVersion, thePredicate), predicate);
+        if (mappingContext != null) {
+            jsonObjectBuilder.set(MAPPING_CONTEXT, mappingContext.toJson(schemaVersion, thePredicate), predicate);
+        }
 
         return jsonObjectBuilder.build();
     }

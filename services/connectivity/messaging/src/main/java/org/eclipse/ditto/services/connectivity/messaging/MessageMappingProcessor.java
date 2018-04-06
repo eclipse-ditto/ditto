@@ -209,8 +209,8 @@ public final class MessageMappingProcessor {
         }
 
         return registry.getMapper().orElseGet(() -> {
-            log.info(
-                    "Falling back to Default MessageMapper for mapping ExternalMessage as no MessageMapper was present");
+            log.debug("Falling back to Default MessageMapper for mapping ExternalMessage " +
+                            "as no MessageMapper was present: {}", message);
             return registry.getDefaultMapper();
         });
 
@@ -220,7 +220,8 @@ public final class MessageMappingProcessor {
 
         doUpdateCorrelationId(adaptable);
         return registry.getMapper().orElseGet(() -> {
-            log.info("Falling back to Default MessageMapper for mapping Adaptable as no MessageMapper was present");
+            log.debug("Falling back to Default MessageMapper for mapping Adaptable as no MessageMapper was present: {}",
+                    adaptable);
             return registry.getDefaultMapper();
         });
     }

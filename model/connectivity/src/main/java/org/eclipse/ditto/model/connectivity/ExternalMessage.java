@@ -91,7 +91,7 @@ public interface ExternalMessage {
     Optional<ByteBuffer> getBytePayload();
 
     /**
-     * @return the MessageType of this ExternalMessage, only makes sense for outgoing messages where the type was
+     * @return the TopicPath of this ExternalMessage, only makes sense for outgoing messages where the path was
      * already known.
      */
     Optional<String> getTopicPath();
@@ -104,7 +104,7 @@ public interface ExternalMessage {
     /**
      * @return {@code true} if this message is a response
      */
-    boolean isResponseMessage();
+    boolean isResponse();
 
     /**
      * The known payload types of ExternalMessages.

@@ -76,10 +76,10 @@ public interface ExternalMessageBuilder {
     /**
      * Marks the message as a response message.
      *
-     * @param isResponse whether the message is a response
+     * @param response whether the message is a response
      * @return this builder in order to enable method chaining
      */
-    ExternalMessageBuilder asResponse(boolean isResponse);
+    ExternalMessageBuilder asResponse(boolean response);
 
     /**
      * Builds the ExternalMessage.

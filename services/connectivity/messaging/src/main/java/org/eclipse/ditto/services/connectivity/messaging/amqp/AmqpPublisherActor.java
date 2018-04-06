@@ -29,6 +29,9 @@ import javax.jms.Message;
 import javax.jms.MessageProducer;
 import javax.jms.Session;
 
+import org.apache.qpid.jms.message.JmsMessage;
+import org.apache.qpid.jms.message.facade.JmsMessageFacade;
+import org.apache.qpid.jms.provider.amqp.message.AmqpJmsMessageFacade;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.connectivity.AddressMetric;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
@@ -160,6 +163,20 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
             message = bytesMessage;
         } else {
             message = session.createMessage();
+        }
+        if (message instanceof JmsMessage) {
+            final JmsMessageFacade facade = ((JmsMessage) message).getFacade();
+            if (facade instanceof AmqpJmsMessageFacade) {
+                final AmqpJmsMessageFacade amqpJmsMessageFacade = (AmqpJmsMessageFacade) facade;
+                externalMessage.getHeaders()
+                        .forEach((key, value) -> {
+                            try {
+                                amqpJmsMessageFacade.setApplicationProperty(key, value);
+                            } catch (final JMSException e) {
+                                log.warning("Could not set application-property <{}>", key);
+                            }
+                        });
+            }
         }
         message.setJMSCorrelationID(externalMessage.getHeaders().get(DittoHeaderDefinition.CORRELATION_ID.getKey()));
         return message;

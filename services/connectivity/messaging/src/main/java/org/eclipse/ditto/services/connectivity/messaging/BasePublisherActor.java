@@ -70,7 +70,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
     }
 
     protected boolean isResponseOrError(final ExternalMessage message) {
-        return (message.isResponseMessage() || message.getTopicPath()
+        return (message.isResponse() || message.getTopicPath()
                 .map(ProtocolFactory::newTopicPath)
                 .map(TopicPath::getCriterion)
                 .map(TopicPath.Criterion.ERRORS::equals)
