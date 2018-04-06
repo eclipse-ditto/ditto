@@ -17,18 +17,16 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.signals.commands.connectivity.TestConstants;
+import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
+import org.eclipse.ditto.signals.commands.connectivity.TestConstants;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
-
-import org.eclipse.ditto.model.connectivity.Connection;
 
 /**
  * Unit test for {@link RetrieveConnectionResponse}.
@@ -39,7 +37,6 @@ public final class RetrieveConnectionResponseTest {
             .set(CommandResponse.JsonFields.TYPE, RetrieveConnectionResponse.TYPE)
             .set(CommandResponse.JsonFields.STATUS, HttpStatusCode.OK.toInt())
             .set(RetrieveConnectionResponse.JSON_CONNECTION, TestConstants.CONNECTION.toJson())
-            .set(RetrieveConnectionResponse.JSON_MAPPING_CONTEXTS, JsonArray.newBuilder().build())
             .build();
 
     @Test

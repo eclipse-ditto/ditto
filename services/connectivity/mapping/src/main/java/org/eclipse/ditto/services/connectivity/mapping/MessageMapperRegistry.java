@@ -11,7 +11,6 @@
  */
 package org.eclipse.ditto.services.connectivity.mapping;
 
-import java.util.Collection;
 import java.util.Optional;
 
 /**
@@ -26,26 +25,9 @@ public interface MessageMapperRegistry {
     MessageMapper getDefaultMapper();
 
     /**
-     * Returns a list of all available mappers excluding the default mapper
-     * @return the mappers
+     * Returns the mapper to use for mapping.
+     * @return the mapper
      */
-    Collection<MessageMapper> getMappers();
+    Optional<MessageMapper> getMapper();
 
-    /**
-     * Searches a mapper for a specific content type.
-     *
-     * @param contentType the content type
-     * @return the mapper if found
-     */
-    Optional<MessageMapper> findMapper(final String contentType);
-
-    /**
-     * Searches a mapper for a specific content type and returns the default mapper if none was found.
-     *
-     * @param contentType the content type
-     * @return the selected mapper
-     */
-    default MessageMapper selectMapper(final String contentType) {
-        return findMapper(contentType).orElse(getDefaultMapper());
-    }
 }

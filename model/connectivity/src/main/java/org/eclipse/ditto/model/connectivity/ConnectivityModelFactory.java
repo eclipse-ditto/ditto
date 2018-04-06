@@ -171,9 +171,8 @@ public final class ConnectivityModelFactory {
      * @return the created MappingContext.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static MappingContext newMappingContext(final String contentType, final String mappingEngine,
-            final Map<String, String> options) {
-        return ImmutableMappingContext.of(contentType, mappingEngine, options);
+    public static MappingContext newMappingContext(final String mappingEngine, final Map<String, String> options) {
+        return ImmutableMappingContext.of(mappingEngine, options);
     }
 
     /**

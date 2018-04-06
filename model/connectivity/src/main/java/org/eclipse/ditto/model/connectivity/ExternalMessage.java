@@ -29,11 +29,6 @@ public interface ExternalMessage {
     String CONTENT_TYPE_HEADER = DittoHeaderDefinition.CONTENT_TYPE.getKey();
 
     /**
-     * Message header for the Accept - meaning which Content-Type does a sender accept/expect to get back.
-     */
-    String ACCEPT_HEADER = "accept";
-
-    /**
      * Message header for the reply to address.
      */
     String REPLY_TO_HEADER = "replyTo";

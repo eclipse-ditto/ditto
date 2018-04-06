@@ -125,7 +125,7 @@ final class ConnectionActor extends AbstractPersistentActor {
 
     @Nullable private ActorRef clientActor;
     @Nullable private Connection connection;
-    @Nullable private List<MappingContext> mappingContexts;
+    @Nullable private MappingContext mappingContext;
 
     @Nullable private Cancellable shutdownCancellable;
 
@@ -149,7 +149,6 @@ final class ConnectionActor extends AbstractPersistentActor {
         snapshotAdapter = new ConnectionMongoSnapshotAdapter();
 
         connectionStatus = ConnectionStatus.CLOSED;
-        mappingContexts = Collections.emptyList();
 
         connectionCreatedBehaviour = createConnectionCreatedBehaviour();
     }
@@ -205,21 +204,21 @@ final class ConnectionActor extends AbstractPersistentActor {
                     log.info("Received SnapshotOffer containing connectionStatus: <{}>", fromSnapshotStore);
                     if (fromSnapshotStore != null) {
                         connection = fromSnapshotStore.getConnection();
-                        mappingContexts = fromSnapshotStore.getMappingContexts();
+                        mappingContext = fromSnapshotStore.getMappingContext();
                         connectionStatus = fromSnapshotStore.getConnectionStatus();
                     }
                     lastSnapshotSequenceNr = ss.metadata().sequenceNr();
                 })
                 .match(ConnectionCreated.class, event -> {
                     connection = event.getConnection();
-                    mappingContexts = event.getMappingContexts();
+                    mappingContext = event.getMappingContext().orElse(null);
                     connectionStatus = ConnectionStatus.OPEN;
                 })
                 .match(ConnectionOpened.class, event -> connectionStatus = ConnectionStatus.OPEN)
                 .match(ConnectionClosed.class, event -> connectionStatus = ConnectionStatus.CLOSED)
                 .match(ConnectionDeleted.class, event -> {
                     connection = null;
-                    mappingContexts = Collections.emptyList();
+                    mappingContext = null;
                     connectionStatus = ConnectionStatus.CLOSED;
                 })
                 .match(RecoveryCompleted.class, rc -> {
@@ -229,8 +228,8 @@ final class ConnectionActor extends AbstractPersistentActor {
                             log.debug("Opening connection {} after recovery.", connectionId);
 
                             final CreateConnection connect;
-                            if (mappingContexts != null) {
-                                connect = CreateConnection.of(connection, mappingContexts, DittoHeaders.empty());
+                            if (mappingContext != null) {
+                                connect = CreateConnection.of(connection, mappingContext, DittoHeaders.empty());
                             } else {
                                 connect = CreateConnection.of(connection, DittoHeaders.empty());
                             }
@@ -341,7 +340,7 @@ final class ConnectionActor extends AbstractPersistentActor {
         final ActorRef origin = getSender();
 
         connection = command.getConnection();
-        mappingContexts = command.getMappingContexts();
+        mappingContext = command.getMappingContext().orElse(null);
 
         askClientActor("test", command, origin, response -> {
             origin.tell(
@@ -359,20 +358,20 @@ final class ConnectionActor extends AbstractPersistentActor {
     private void createConnection(final CreateConnection command) {
 
         final ConnectionCreated connectionCreated =
-                ConnectionCreated.of(command.getConnection(), command.getMappingContexts(),
+                ConnectionCreated.of(command.getConnection(), command.getMappingContext().orElse(null),
                         command.getDittoHeaders());
         final ActorRef origin = getSender();
 
         persistEvent(connectionCreated, persistedEvent -> {
             connection = persistedEvent.getConnection();
-            mappingContexts = persistedEvent.getMappingContexts();
+            mappingContext = persistedEvent.getMappingContext().orElse(null);
             connectionStatus = ConnectionStatus.OPEN;
 
             askClientActor("connect", command, origin, response -> {
                 getContext().become(connectionCreatedBehaviour);
                 subscribeForEvents();
                 origin.tell(
-                        CreateConnectionResponse.of(connection, mappingContexts, command.getDittoHeaders()),
+                        CreateConnectionResponse.of(connection, mappingContext, command.getDittoHeaders()),
                         getSelf());
                 getContext().getParent().tell(ConnectionSupervisorActor.ManualReset.getInstance(), getSelf());
             });
@@ -475,21 +474,18 @@ final class ConnectionActor extends AbstractPersistentActor {
 
     private void retrieveConnection(final RetrieveConnection command) {
         checkNotNull(connection, "Connection");
-        checkNotNull(mappingContexts, "MappingContexts");
-        getSender().tell(RetrieveConnectionResponse.of(connection, mappingContexts, command.getDittoHeaders()),
+        getSender().tell(RetrieveConnectionResponse.of(connection, mappingContext, command.getDittoHeaders()),
                 getSelf());
     }
 
     private void retrieveConnectionStatus(final RetrieveConnectionStatus command) {
         checkNotNull(connection, "Connection");
-        checkNotNull(mappingContexts, "MappingContexts");
         getSender().tell(RetrieveConnectionStatusResponse.of(connectionId, connectionStatus,
                 "the status as persisted / desired status", command.getDittoHeaders()), getSelf());
     }
 
     private void retrieveConnectionMetrics(final RetrieveConnectionMetrics command) {
         checkNotNull(connection, "Connection");
-        checkNotNull(mappingContexts, "MappingContexts");
 
         final ActorRef origin = getSender();
         askClientActor("retrieve-metrics", command, origin, response -> {
@@ -549,9 +545,9 @@ final class ConnectionActor extends AbstractPersistentActor {
     private void doSaveSnapshot() {
         if (snapshotInProgress) {
             log.debug("Already requested taking a Snapshot - not doing it again");
-        } else if (connection != null && mappingContexts != null) {
+        } else if (connection != null && mappingContext != null) {
             snapshotInProgress = true;
-            final ConnectionData connectionData = new ConnectionData(connection, connectionStatus, mappingContexts);
+            final ConnectionData connectionData = new ConnectionData(connection, connectionStatus, mappingContext);
             log.info("Attempting to save Snapshot for '{}' ..", connectionData);
             // save a snapshot
             final Object snapshotToStore = snapshotAdapter.toSnapshotStore(connectionData);

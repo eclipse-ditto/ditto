@@ -90,11 +90,11 @@ public class JavaScriptMessageMapperRhinoSandboxingTest {
 
     private MessageMapper createMapper(final String maliciousStuff) {
         final MessageMapper mapper = MessageMappers.createJavaScriptMessageMapper();
-        mapper.configureWithValidation(
+        mapper.configure(
                 JavaScriptMessageMapperFactory
                         .createJavaScriptMessageMapperConfigurationBuilder(Collections.emptyMap())
                         .contentType("text/plain")
-                        .incomingMappingScript(getMappingWrapperScript(maliciousStuff))
+                        .incomingScript(getMappingWrapperScript(maliciousStuff))
                         .build()
         );
 

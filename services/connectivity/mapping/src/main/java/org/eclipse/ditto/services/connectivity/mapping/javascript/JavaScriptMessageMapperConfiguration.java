@@ -26,17 +26,17 @@ public interface JavaScriptMessageMapperConfiguration extends MessageMapperConfi
     /**
      * @return the mappingScript responsible for mapping incoming messages.
      */
-    default Optional<String> getIncomingMappingScript() {
+    default Optional<String> getIncomingScript() {
         return Optional.ofNullable(
-                getProperties().get(JavaScriptMessageMapperConfigurationProperties.INCOMING_MAPPING_SCRIPT));
+                getProperties().get(JavaScriptMessageMapperConfigurationProperties.INCOMING_SCRIPT));
     }
 
     /**
      * @return the mappingScript responsible for mapping outgoing messages.
      */
-    default Optional<String> getOutgoingMappingScript() {
+    default Optional<String> getOutgoingScript() {
         return Optional.ofNullable(
-                getProperties().get(JavaScriptMessageMapperConfigurationProperties.OUTGOING_MAPPING_SCRIPT));
+                getProperties().get(JavaScriptMessageMapperConfigurationProperties.OUTGOING_SCRIPT));
     }
 
     /**
@@ -107,12 +107,12 @@ public interface JavaScriptMessageMapperConfiguration extends MessageMapperConfi
          * @param mappingScript the incoming mapping script
          * @return this builder for chaining
          */
-        default Builder incomingMappingScript(@Nullable String mappingScript) {
+        default Builder incomingScript(@Nullable String mappingScript) {
             if (mappingScript != null) {
-                getProperties().put(JavaScriptMessageMapperConfigurationProperties.INCOMING_MAPPING_SCRIPT,
+                getProperties().put(JavaScriptMessageMapperConfigurationProperties.INCOMING_SCRIPT,
                         mappingScript);
             } else {
-                getProperties().remove(JavaScriptMessageMapperConfigurationProperties.INCOMING_MAPPING_SCRIPT);
+                getProperties().remove(JavaScriptMessageMapperConfigurationProperties.INCOMING_SCRIPT);
             }
             return this;
         }
@@ -123,12 +123,12 @@ public interface JavaScriptMessageMapperConfiguration extends MessageMapperConfi
          * @param mappingScript the outgoing mapping script
          * @return this builder for chaining
          */
-        default Builder outgoingMappingScript(@Nullable String mappingScript) {
+        default Builder outgoingScript(@Nullable String mappingScript) {
             if (mappingScript != null) {
-                getProperties().put(JavaScriptMessageMapperConfigurationProperties.OUTGOING_MAPPING_SCRIPT,
+                getProperties().put(JavaScriptMessageMapperConfigurationProperties.OUTGOING_SCRIPT,
                         mappingScript);
             } else {
-                getProperties().remove(JavaScriptMessageMapperConfigurationProperties.OUTGOING_MAPPING_SCRIPT);
+                getProperties().remove(JavaScriptMessageMapperConfigurationProperties.OUTGOING_SCRIPT);
             }
             return this;
         }

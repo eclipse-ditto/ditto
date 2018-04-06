@@ -138,11 +138,11 @@ public class Test3FormatJsonPayloadToDitto implements MapToDittoProtocolScenario
     @Override
     public MessageMapper getMessageMapper() {
         final MessageMapper javaScriptRhinoMapperPlain = MessageMappers.createJavaScriptMessageMapper();
-        javaScriptRhinoMapperPlain.configureWithValidation(
+        javaScriptRhinoMapperPlain.configure(
                 JavaScriptMessageMapperFactory
                         .createJavaScriptMessageMapperConfigurationBuilder(Collections.emptyMap())
                         .contentType(CONTENT_TYPE)
-                        .incomingMappingScript(MAPPING_INCOMING_PLAIN)
+                        .incomingScript(MAPPING_INCOMING_PLAIN)
                         .build()
         );
         return javaScriptRhinoMapperPlain;

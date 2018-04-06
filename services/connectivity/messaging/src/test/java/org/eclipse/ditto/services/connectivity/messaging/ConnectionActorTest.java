@@ -80,7 +80,7 @@ public class ConnectionActorTest {
         createConnection = CreateConnection.of(connection, DittoHeaders.empty());
         deleteConnection = DeleteConnection.of(connectionId, DittoHeaders.empty());
         createConnectionResponse =
-                CreateConnectionResponse.of(connection, Collections.emptyList(), DittoHeaders.empty());
+                CreateConnectionResponse.of(connection, null, DittoHeaders.empty());
         closeConnection = CloseConnection.of(connectionId, DittoHeaders.empty());
         closeConnectionResponse = CloseConnectionResponse.of(connectionId, DittoHeaders.empty());
         deleteConnectionResponse = DeleteConnectionResponse.of(connectionId, DittoHeaders.empty());

@@ -17,22 +17,18 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
-import javax.annotation.Nullable;
-
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ExternalMessage;
 import org.eclipse.ditto.model.connectivity.ExternalMessageBuilder;
-import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 
 /**
- * Does wrap any {@link MessageMapper} and adds content type checks
- * to mapping methods. It allows to override the mappers content type by any content type.
+ * Does wrap any {@link MessageMapper}.
  * <p>
- * Also adds headers to ExternalMessage and Adaptable in mappings even when the wrapped {@link MessageMapper} does
+ * adds headers to ExternalMessage and Adaptable in mappings even when the wrapped {@link MessageMapper} does
  * forget to do so by himself.
  * </p>
  */
@@ -40,43 +36,26 @@ final class WrappingMessageMapper implements MessageMapper {
 
 
     private final MessageMapper delegate;
-    @Nullable
-    private final String contentTypeOverride;
-    private final boolean enforceMatchingContentType;
 
-    private WrappingMessageMapper(final MessageMapper delegate, final boolean enforceMatchingContentType,
-            @Nullable final String contentTypeOverride) {
+    private WrappingMessageMapper(final MessageMapper delegate) {
         this.delegate = checkNotNull(delegate);
-        this.enforceMatchingContentType = enforceMatchingContentType;
-        this.contentTypeOverride = contentTypeOverride;
     }
 
     /**
      * Enforces content type checking for the mapper
      *
-     * @param enforceMatchingContentType whether to only let pass ExternalMessages having a to {@link #getContentType()}
-     * matching contentType
      * @param mapper the mapper
      * @return the wrapped mapper
      */
-    public static MessageMapper wrap(final MessageMapper mapper, final boolean enforceMatchingContentType) {
-        return new WrappingMessageMapper(mapper, enforceMatchingContentType, null);
+    public static MessageMapper wrap(final MessageMapper mapper) {
+        return new WrappingMessageMapper(mapper);
     }
 
     /**
-     * Enforces content type checking for the mapper and overrides the content type.
-     *
-     * @param mapper the mapper
-     * @param contentTypeOverride the content type substitution
-     * @return the wrapped mapper
+     * @return the MessageMapper delegate this instance wraps.
      */
-    public static MessageMapper wrap(final MessageMapper mapper, final String contentTypeOverride) {
-        return new WrappingMessageMapper(mapper, true, contentTypeOverride);
-    }
-
-    @Override
-    public String getContentType() {
-        return Objects.nonNull(contentTypeOverride) ? contentTypeOverride : delegate.getContentType();
+    public MessageMapper getDelegate() {
+        return delegate;
     }
 
     @Override
@@ -97,14 +76,6 @@ final class WrappingMessageMapper implements MessageMapper {
             dittoHeadersEnhanced = dittoHeaders;
         }
 
-        if (enforceMatchingContentType) {
-            final String actualContentType = MessageMapper.findContentType(message)
-                    .orElseThrow(MessageMappingFailedException
-                            .newBuilder(MessageMapper.findContentType(message).orElse(""))
-                            .dittoHeaders(dittoHeadersEnhanced)::build);
-
-            requireMatchingContentType(actualContentType, dittoHeadersEnhanced);
-        }
         final Optional<Adaptable> mappedOpt = delegate.map(message);
 
         return mappedOpt.map(mapped -> {
@@ -121,17 +92,7 @@ final class WrappingMessageMapper implements MessageMapper {
 
     @Override
     public Optional<ExternalMessage> map(final Adaptable adaptable) {
-        final DittoHeaders dittoHeaders = adaptable.getHeaders().orElseGet(DittoHeaders::empty);
 
-        if (enforceMatchingContentType) {
-            final String actualContentType = MessageMapper.findContentType(adaptable)
-                    .orElseThrow(() -> MessageMappingFailedException
-                            .newBuilder(MessageMapper.findContentType(adaptable).orElse(""))
-                            .dittoHeaders(dittoHeaders)
-                            .build());
-
-            requireMatchingContentType(actualContentType, dittoHeaders);
-        }
         final Optional<ExternalMessage> mappedOpt = delegate.map(adaptable);
 
         return mappedOpt.map(mapped -> {
@@ -141,20 +102,11 @@ final class WrappingMessageMapper implements MessageMapper {
                 messageBuilder.withAdditionalHeaders(adaptableHeaders);
                 messageBuilder.withAdditionalHeaders(mapped.getHeaders());
             });
-            messageBuilder.withAdditionalHeaders(ExternalMessage.CONTENT_TYPE_HEADER, getContentType());
 
             messageBuilder.asResponse(adaptable.getPayload().getStatus().isPresent());
 
             return messageBuilder.build();
         });
-    }
-
-    private void requireMatchingContentType(final String actualContentType,
-            final DittoHeaders dittoHeaders) {
-
-        if (!getContentType().equalsIgnoreCase(actualContentType)) {
-            throw MessageMappingFailedException.newBuilder(actualContentType).dittoHeaders(dittoHeaders).build();
-        }
     }
 
     @Override
@@ -166,20 +118,18 @@ final class WrappingMessageMapper implements MessageMapper {
             return false;
         }
         final WrappingMessageMapper that = (WrappingMessageMapper) o;
-        return Objects.equals(delegate, that.delegate) &&
-                Objects.equals(contentTypeOverride, that.contentTypeOverride);
+        return Objects.equals(delegate, that.delegate);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(delegate, contentTypeOverride);
+        return Objects.hash(delegate);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "delegate=" + delegate +
-                ", contentTypeOverride=" + contentTypeOverride +
                 "]";
     }
 }

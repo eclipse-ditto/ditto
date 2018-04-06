@@ -236,32 +236,32 @@ public class JavaScriptMessageMapperRhinoTest {
     @BeforeClass
     public static void setup() {
         javaScriptRhinoMapperPlain = MessageMappers.createJavaScriptMessageMapper();
-        javaScriptRhinoMapperPlain.configureWithValidation(
+        javaScriptRhinoMapperPlain.configure(
                 JavaScriptMessageMapperFactory
                         .createJavaScriptMessageMapperConfigurationBuilder(Collections.emptyMap())
                         .contentType(CONTENT_TYPE_PLAIN)
-                        .incomingMappingScript(MAPPING_INCOMING_PLAIN)
-                        .outgoingMappingScript(MAPPING_OUTGOING_PLAIN)
+                        .incomingScript(MAPPING_INCOMING_PLAIN)
+                        .outgoingScript(MAPPING_OUTGOING_PLAIN)
                         .build()
         );
 
         javaScriptRhinoMapperEmpty = MessageMappers.createJavaScriptMessageMapper();
-        javaScriptRhinoMapperEmpty.configureWithValidation(
+        javaScriptRhinoMapperEmpty.configure(
                 JavaScriptMessageMapperFactory
                         .createJavaScriptMessageMapperConfigurationBuilder(Collections.emptyMap())
                         .contentType(CONTENT_TYPE_PLAIN)
-                        .incomingMappingScript(MAPPING_INCOMING_EMPTY)
-                        .outgoingMappingScript(MAPPING_OUTGOING_EMPTY)
+                        .incomingScript(MAPPING_INCOMING_EMPTY)
+                        .outgoingScript(MAPPING_OUTGOING_EMPTY)
                         .build()
         );
 
         javaScriptRhinoMapperBinary = MessageMappers.createJavaScriptMessageMapper();
-        javaScriptRhinoMapperBinary.configureWithValidation(
+        javaScriptRhinoMapperBinary.configure(
                 JavaScriptMessageMapperFactory
                         .createJavaScriptMessageMapperConfigurationBuilder(Collections.emptyMap())
                         .contentType(CONTENT_TYPE_BINARY)
-                        .incomingMappingScript(MAPPING_INCOMING_BINARY)
-                        .outgoingMappingScript(MAPPING_OUTGOING_BINARY)
+                        .incomingScript(MAPPING_INCOMING_BINARY)
+                        .outgoingScript(MAPPING_OUTGOING_BINARY)
                         .build()
         );
     }

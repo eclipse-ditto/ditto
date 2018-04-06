@@ -20,6 +20,8 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
@@ -157,13 +159,13 @@ public class MessageMappingProcessorActorTest {
                 pubSubTargetPath,
                 ref,
                 AUTHORIZATION_CONTEXT,
-                getMessageMappingProcessor(Collections.emptyList()),
+                getMessageMappingProcessor(null),
                 CONNECTION_ID);
         return actorSystem.actorOf(props);
     }
 
-    private MessageMappingProcessor getMessageMappingProcessor(final List<MappingContext> mappingContexts) {
-        return MessageMappingProcessor.of(mappingContexts, ((ExtendedActorSystem) actorSystem).dynamicAccess(),
+    private MessageMappingProcessor getMessageMappingProcessor(@Nullable final MappingContext mappingContext) {
+        return MessageMappingProcessor.of(mappingContext, ((ExtendedActorSystem) actorSystem).dynamicAccess(),
                 Mockito.mock(DiagnosticLoggingAdapter.class));
     }
 

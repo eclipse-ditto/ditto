@@ -36,7 +36,6 @@ import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ExternalMessage;
 import org.eclipse.ditto.model.connectivity.ExternalMessageBuilder;
 import org.eclipse.ditto.model.connectivity.MessageMapperConfigurationFailedException;
-import org.eclipse.ditto.model.connectivity.MessageMapperConfigurationInvalidException;
 import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
@@ -89,21 +88,12 @@ final class JavaScriptMessageMapperRhino implements MessageMapper {
     }
 
     @Override
-    public String getContentType() {
-        return Optional.ofNullable(configuration)
-                .flatMap(MessageMapperConfiguration::findContentType)
-                .orElseThrow(() -> MessageMapperConfigurationInvalidException
-                        .newBuilder(ExternalMessage.CONTENT_TYPE_HEADER)
-                        .build());
-    }
-
-    @Override
     public void configure(final MessageMapperConfiguration options) {
         this.configuration = new ImmutableJavaScriptMessageMapperConfiguration.Builder(options.getProperties()).build();
 
         final int maxScriptSizeBytes = configuration.getMaxScriptSizeBytes();
-        final Integer incomingScriptSize = configuration.getIncomingMappingScript().map(String::length).orElse(0);
-        final Integer outgoingScriptSize = configuration.getOutgoingMappingScript().map(String::length).orElse(0);
+        final Integer incomingScriptSize = configuration.getIncomingScript().map(String::length).orElse(0);
+        final Integer outgoingScriptSize = configuration.getOutgoingScript().map(String::length).orElse(0);
 
         if (incomingScriptSize > maxScriptSizeBytes || outgoingScriptSize > maxScriptSizeBytes) {
             throw MessageMapperConfigurationFailedException
@@ -287,13 +277,13 @@ final class JavaScriptMessageMapperRhino implements MessageMapper {
                 OUTGOING_SCRIPT);
 
         cx.evaluateString(scope,
-                    getConfiguration().flatMap(JavaScriptMessageMapperConfiguration::getIncomingMappingScript)
+                    getConfiguration().flatMap(JavaScriptMessageMapperConfiguration::getIncomingScript)
                             .orElse(""),
-                JavaScriptMessageMapperConfigurationProperties.INCOMING_MAPPING_SCRIPT, 1, null);
+                JavaScriptMessageMapperConfigurationProperties.INCOMING_SCRIPT, 1, null);
         cx.evaluateString(scope,
-                    getConfiguration().flatMap(JavaScriptMessageMapperConfiguration::getOutgoingMappingScript)
+                    getConfiguration().flatMap(JavaScriptMessageMapperConfiguration::getOutgoingScript)
                             .orElse(""),
-                JavaScriptMessageMapperConfigurationProperties.OUTGOING_MAPPING_SCRIPT, 1, null);
+                JavaScriptMessageMapperConfigurationProperties.OUTGOING_SCRIPT, 1, null);
     }
 
     private Optional<JavaScriptMessageMapperConfiguration> getConfiguration() {
