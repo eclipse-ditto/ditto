@@ -240,7 +240,7 @@ public class DittoProtocolAdapter implements ProtocolAdapter {
 
         return Adaptable.newBuilder(topicPathBuildable.build())
                 .withPayload(payload) //
-                .withHeaders(ProtocolFactory.newHeaders(thingErrorResponse.getDittoHeaders())) //
+                .withHeaders(ProtocolFactory.newHeadersWithDittoContentType(thingErrorResponse.getDittoHeaders())) //
                 .build();
     }
 

@@ -211,7 +211,7 @@ public final class ProtocolFactory {
      * @param headers the headers map.
      * @return the headers.
      */
-    public static DittoHeaders newHeaders(final Map<String, String> headers) {
+    public static DittoHeaders newHeadersWithDittoContentType(final Map<String, String> headers) {
         return DittoHeaders.of(headers).toBuilder().contentType(DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE).build();
     }
 

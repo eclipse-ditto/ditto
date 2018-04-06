@@ -156,7 +156,7 @@ public final class ThingModifyCommandResponseAdapterTest {
                 .build();
 
         final CreateThingResponse createThingResponse =
-                CreateThingResponse.of(TestConstants.THING, TestConstants.DITTO_HEADERS_V_2);
+                CreateThingResponse.of(TestConstants.THING, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(createThingResponse);
 
         assertThat(actual).isEqualTo(expected);
@@ -232,7 +232,7 @@ public final class ThingModifyCommandResponseAdapterTest {
                 .build();
 
         final ModifyThingResponse modifyThingResponseModified =
-                ModifyThingResponse.modified(TestConstants.THING_ID, TestConstants.DITTO_HEADERS_V_2);
+                ModifyThingResponse.modified(TestConstants.THING_ID, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actualModified = underTest.toAdaptable(modifyThingResponseModified);
 
         assertThat(actualModified).isEqualTo(expectedModified);
@@ -280,7 +280,7 @@ public final class ThingModifyCommandResponseAdapterTest {
                 .build();
 
         final DeleteThingResponse deleteThingResponse =
-                DeleteThingResponse.of(TestConstants.THING_ID, TestConstants.DITTO_HEADERS_V_2);
+                DeleteThingResponse.of(TestConstants.THING_ID, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(deleteThingResponse);
 
         assertThat(actual).isEqualTo(expected);
@@ -330,7 +330,7 @@ public final class ThingModifyCommandResponseAdapterTest {
 
         final ModifyAclResponse modifyAclResponse =
                 ModifyAclResponse.modified(TestConstants.THING_ID, TestConstants.ACL,
-                        TestConstants.DITTO_HEADERS_V_1);
+                        TestConstants.HEADERS_V_1_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(modifyAclResponse);
 
         assertThat(actual).isEqualTo(expected);
@@ -411,7 +411,7 @@ public final class ThingModifyCommandResponseAdapterTest {
 
         final ModifyAclEntryResponse modifyAclEntryResponseModified =
                 ModifyAclEntryResponse.modified(TestConstants.THING_ID, TestConstants.ACL_ENTRY,
-                        TestConstants.DITTO_HEADERS_V_1);
+                        TestConstants.HEADERS_V_1_NO_CONTENT_TYPE);
         final Adaptable actualModified = underTest.toAdaptable(modifyAclEntryResponseModified);
 
         assertThat(actualModified).isEqualTo(expectedModified);
@@ -461,7 +461,7 @@ public final class ThingModifyCommandResponseAdapterTest {
 
         final DeleteAclEntryResponse deleteAclEntryResponse =
                 DeleteAclEntryResponse.of(TestConstants.THING_ID, TestConstants.AUTHORIZATION_SUBJECT,
-                        TestConstants.DITTO_HEADERS_V_1);
+                        TestConstants.HEADERS_V_1_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(deleteAclEntryResponse);
 
         assertThat(actual).isEqualTo(expected);
@@ -540,7 +540,7 @@ public final class ThingModifyCommandResponseAdapterTest {
                 .build();
 
         final ModifyAttributesResponse modifyAttributesResponseModified =
-                ModifyAttributesResponse.modified(TestConstants.THING_ID, TestConstants.DITTO_HEADERS_V_2);
+                ModifyAttributesResponse.modified(TestConstants.THING_ID, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actualModified = underTest.toAdaptable(modifyAttributesResponseModified);
 
         assertThat(actualModified).isEqualTo(expectedModified);
@@ -588,7 +588,7 @@ public final class ThingModifyCommandResponseAdapterTest {
                 .build();
 
         final DeleteAttributesResponse deleteAttributesResponse =
-                DeleteAttributesResponse.of(TestConstants.THING_ID, TestConstants.DITTO_HEADERS_V_2);
+                DeleteAttributesResponse.of(TestConstants.THING_ID, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(deleteAttributesResponse);
 
         assertThat(actual).isEqualTo(expected);
@@ -668,7 +668,7 @@ public final class ThingModifyCommandResponseAdapterTest {
 
         final ModifyAttributeResponse modifyAttributeResponseModified =
                 ModifyAttributeResponse.modified(TestConstants.THING_ID, TestConstants.ATTRIBUTE_POINTER,
-                        TestConstants.DITTO_HEADERS_V_2);
+                        TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actualModified = underTest.toAdaptable(modifyAttributeResponseModified);
 
         assertThat(actualModified).isEqualTo(expectedModified);
@@ -718,7 +718,7 @@ public final class ThingModifyCommandResponseAdapterTest {
 
         final DeleteAttributeResponse deleteAttributeResponse =
                 DeleteAttributeResponse.of(TestConstants.THING_ID, TestConstants.ATTRIBUTE_POINTER,
-                        TestConstants.DITTO_HEADERS_V_2);
+                        TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(deleteAttributeResponse);
 
         assertThat(actual).isEqualTo(expected);
@@ -797,7 +797,7 @@ public final class ThingModifyCommandResponseAdapterTest {
                 .build();
 
         final ModifyFeaturesResponse modifyFeaturesResponseModified =
-                ModifyFeaturesResponse.modified(TestConstants.THING_ID, TestConstants.DITTO_HEADERS_V_2);
+                ModifyFeaturesResponse.modified(TestConstants.THING_ID, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actualModified = underTest.toAdaptable(modifyFeaturesResponseModified);
 
         assertThat(actualModified).isEqualTo(expectedModified);
@@ -845,7 +845,7 @@ public final class ThingModifyCommandResponseAdapterTest {
                 .build();
 
         final DeleteFeaturesResponse deleteFeaturesResponse =
-                DeleteFeaturesResponse.of(TestConstants.THING_ID, TestConstants.DITTO_HEADERS_V_2);
+                DeleteFeaturesResponse.of(TestConstants.THING_ID, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(deleteFeaturesResponse);
 
         assertThat(actual).isEqualTo(expected);
@@ -926,7 +926,7 @@ public final class ThingModifyCommandResponseAdapterTest {
 
         final ModifyFeatureResponse modifyFeatureResponseModified =
                 ModifyFeatureResponse.modified(TestConstants.THING_ID, TestConstants.FEATURE_ID,
-                        TestConstants.DITTO_HEADERS_V_2);
+                        TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actualModified = underTest.toAdaptable(modifyFeatureResponseModified);
 
         assertThat(actualModified).isEqualTo(expectedModified);
@@ -976,7 +976,7 @@ public final class ThingModifyCommandResponseAdapterTest {
 
         final DeleteFeatureResponse deleteFeatureResponse =
                 DeleteFeatureResponse.of(TestConstants.THING_ID, TestConstants.FEATURE_ID,
-                        TestConstants.DITTO_HEADERS_V_2);
+                        TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(deleteFeatureResponse);
 
         assertThat(actual).isEqualTo(expected);
@@ -1056,7 +1056,7 @@ public final class ThingModifyCommandResponseAdapterTest {
 
         final ModifyFeatureDefinitionResponse modifyFeatureDefinitionResponseModified =
                 ModifyFeatureDefinitionResponse.modified(TestConstants.THING_ID, TestConstants.FEATURE_ID,
-                        TestConstants.DITTO_HEADERS_V_2);
+                        TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actualModified = underTest.toAdaptable(modifyFeatureDefinitionResponseModified);
 
         assertThat(actualModified).isEqualTo(expectedModified);
@@ -1106,7 +1106,7 @@ public final class ThingModifyCommandResponseAdapterTest {
 
         final DeleteFeatureDefinitionResponse deleteFeatureDefinitionResponse =
                 DeleteFeatureDefinitionResponse.of(TestConstants.THING_ID, TestConstants.FEATURE_ID,
-                        TestConstants.DITTO_HEADERS_V_2);
+                        TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(deleteFeatureDefinitionResponse);
 
         assertThat(actual).isEqualTo(expected);
@@ -1186,7 +1186,7 @@ public final class ThingModifyCommandResponseAdapterTest {
 
         final ModifyFeaturePropertiesResponse modifyFeaturePropertiesResponseModified =
                 ModifyFeaturePropertiesResponse.modified(TestConstants.THING_ID, TestConstants.FEATURE_ID,
-                        TestConstants.DITTO_HEADERS_V_2);
+                        TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actualModified = underTest.toAdaptable(modifyFeaturePropertiesResponseModified);
 
         assertThat(actualModified).isEqualTo(expectedModified);
@@ -1236,7 +1236,7 @@ public final class ThingModifyCommandResponseAdapterTest {
 
         final DeleteFeaturePropertiesResponse deleteFeaturePropertiesResponse =
                 DeleteFeaturePropertiesResponse.of(TestConstants.THING_ID, TestConstants.FEATURE_ID,
-                        TestConstants.DITTO_HEADERS_V_2);
+                        TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(deleteFeaturePropertiesResponse);
 
         assertThat(actual).isEqualTo(expected);
@@ -1321,7 +1321,7 @@ public final class ThingModifyCommandResponseAdapterTest {
         final ModifyFeaturePropertyResponse modifyFeaturePropertyResponseModified =
                 ModifyFeaturePropertyResponse.modified(TestConstants.THING_ID, TestConstants.FEATURE_ID,
                         TestConstants.FEATURE_PROPERTY_POINTER,
-                        TestConstants.DITTO_HEADERS_V_2);
+                        TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actualModified = underTest.toAdaptable(modifyFeaturePropertyResponseModified);
 
         assertThat(actualModified).isEqualTo(expectedModified);
@@ -1373,7 +1373,7 @@ public final class ThingModifyCommandResponseAdapterTest {
 
         final DeleteFeaturePropertyResponse deleteFeaturePropertyResponse = DeleteFeaturePropertyResponse
                 .of(TestConstants.THING_ID, TestConstants.FEATURE_ID, TestConstants.FEATURE_PROPERTY_POINTER,
-                        TestConstants.DITTO_HEADERS_V_2);
+                        TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(deleteFeaturePropertyResponse);
 
         assertThat(actual).isEqualTo(expected);

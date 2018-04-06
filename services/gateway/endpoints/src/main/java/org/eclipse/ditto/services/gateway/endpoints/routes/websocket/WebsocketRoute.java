@@ -223,7 +223,7 @@ public final class WebsocketRoute {
                     streamingActor.tell(new Connect(actorRef, connectionCorrelationId, STREAMING_TYPE_WS), null);
                     return NotUsed.getInstance();
                 })
-                .map(jsonifiable -> jsonifiableToString(connectionCorrelationId, jsonifiable))
+                .map(this::jsonifiableToString)
                 .map(TextMessage::create);
     }
 
@@ -271,19 +271,18 @@ public final class WebsocketRoute {
                     .origin(connectionCorrelationId)
                     .build();
 
-            allHeaders.putAll(ProtocolFactory.newHeaders(adjustedHeaders));
+            allHeaders.putAll(DittoHeaders.of(adjustedHeaders));
             allHeaders.putAll(additionalHeaders);
 
             final AdaptableBuilder adaptableBuilder = ProtocolFactory.newAdaptableBuilder(jsonifiableAdaptable)
-                    .withHeaders(ProtocolFactory.newHeaders(allHeaders))
+                    .withHeaders(DittoHeaders.of(allHeaders))
                     .withPayload(jsonifiableAdaptable.getPayload());
 
             return protocolAdapter.fromAdaptable(adaptableBuilder.build());
         };
     }
 
-    private String jsonifiableToString(final String connectionCorrelationId,
-            final Jsonifiable.WithPredicate<JsonObject, JsonField> jsonifiable) {
+    private String jsonifiableToString(final Jsonifiable.WithPredicate<JsonObject, JsonField> jsonifiable) {
         if (jsonifiable instanceof StreamingAck) {
             return streamingAckToString((StreamingAck) jsonifiable);
         }
@@ -306,10 +305,10 @@ public final class WebsocketRoute {
 
         final Map<String, String> allHeaders = new HashMap<>(adaptable.getHeaders().orElse(DittoHeaders.empty()));
         allHeaders.remove(DittoHeaderDefinition.ORIGIN.getKey());
-        allHeaders.putAll(ProtocolFactory.newHeaders(adjustedHeaders));
+        allHeaders.putAll(DittoHeaders.of(adjustedHeaders));
 
         final JsonifiableAdaptable jsonifiableAdaptable = ProtocolFactory.wrapAsJsonifiableAdaptable(adaptable);
-        final JsonObject jsonObject = jsonifiableAdaptable.toJson(ProtocolFactory.newHeaders(allHeaders));
+        final JsonObject jsonObject = jsonifiableAdaptable.toJson(DittoHeaders.of(allHeaders));
         return jsonObject.toString();
     }
 

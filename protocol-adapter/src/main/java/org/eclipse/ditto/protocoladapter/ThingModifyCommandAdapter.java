@@ -155,7 +155,7 @@ final class ThingModifyCommandAdapter extends AbstractAdapter<ThingModifyCommand
 
         return Adaptable.newBuilder(commandsTopicPathBuilder.build())
                 .withPayload(payloadBuilder.build())
-                .withHeaders(ProtocolFactory.newHeaders(command.getDittoHeaders()))
+                .withHeaders(ProtocolFactory.newHeadersWithDittoContentType(command.getDittoHeaders()))
                 .build();
     }
 

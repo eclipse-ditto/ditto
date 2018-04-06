@@ -18,7 +18,6 @@ import static akka.http.javadsl.server.Directives.parameterOptional;
 import static akka.http.javadsl.server.Directives.pathEndOrSingleSlash;
 import static akka.http.javadsl.server.Directives.post;
 import static akka.http.javadsl.server.Directives.rawPathPrefix;
-import static akka.http.javadsl.server.Directives.route;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.CustomPathMatchers.mergeDoubleSlashes;
 
 import java.nio.ByteBuffer;

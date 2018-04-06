@@ -93,7 +93,8 @@ public final class ThingQueryCommandAdapterTest {
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
 
-        final RetrieveThing retrieveThing = RetrieveThing.of(TestConstants.THING_ID, TestConstants.DITTO_HEADERS_V_2);
+        final RetrieveThing retrieveThing =
+                RetrieveThing.of(TestConstants.THING_ID, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(retrieveThing);
 
         final JsonifiableAdaptable jsonifiableAdaptable = ProtocolFactory.wrapAsJsonifiableAdaptable(actual);
@@ -145,7 +146,7 @@ public final class ThingQueryCommandAdapterTest {
                 .build();
 
         final RetrieveThing retrieveThing =
-                RetrieveThing.getBuilder(TestConstants.THING_ID, TestConstants.DITTO_HEADERS_V_2)
+                RetrieveThing.getBuilder(TestConstants.THING_ID, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE)
                 .withSelectedFields(selectedFields)
                 .build();
         final Adaptable actual = underTest.toAdaptable(retrieveThing);
@@ -189,7 +190,8 @@ public final class ThingQueryCommandAdapterTest {
                 .withHeaders(TestConstants.HEADERS_V_1)
                 .build();
 
-        final RetrieveAcl retrieveAcl = RetrieveAcl.of(TestConstants.THING_ID, TestConstants.DITTO_HEADERS_V_1);
+        final RetrieveAcl retrieveAcl =
+                RetrieveAcl.of(TestConstants.THING_ID, TestConstants.HEADERS_V_1_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(retrieveAcl);
 
         assertThat(actual).isEqualTo(expected);
@@ -234,7 +236,7 @@ public final class ThingQueryCommandAdapterTest {
 
         final RetrieveAclEntry retrieveAclEntry =
                 RetrieveAclEntry.of(TestConstants.THING_ID, TestConstants.AUTHORIZATION_SUBJECT,
-                        TestConstants.DITTO_HEADERS_V_1);
+                        TestConstants.HEADERS_V_1_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(retrieveAclEntry);
 
         assertThat(actual).isEqualTo(expected);
@@ -282,7 +284,7 @@ public final class ThingQueryCommandAdapterTest {
 
         final RetrieveAclEntry retrieveAclEntry =
                 RetrieveAclEntry.of(TestConstants.THING_ID, TestConstants.AUTHORIZATION_SUBJECT, selectedFields,
-                        TestConstants.DITTO_HEADERS_V_1);
+                        TestConstants.HEADERS_V_1_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(retrieveAclEntry);
 
         assertThat(actual).isEqualTo(expected);
@@ -326,7 +328,7 @@ public final class ThingQueryCommandAdapterTest {
                 .build();
 
         final RetrieveAttributes retrieveAttributes =
-                RetrieveAttributes.of(TestConstants.THING_ID, TestConstants.DITTO_HEADERS_V_2);
+                RetrieveAttributes.of(TestConstants.THING_ID, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(retrieveAttributes);
 
         assertThat(actual).isEqualTo(expected);
@@ -371,7 +373,8 @@ public final class ThingQueryCommandAdapterTest {
                 .build();
 
         final RetrieveAttributes retrieveAttributes =
-                RetrieveAttributes.of(TestConstants.THING_ID, selectedFields, TestConstants.DITTO_HEADERS_V_2);
+                RetrieveAttributes.of(TestConstants.THING_ID, selectedFields,
+                        TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(retrieveAttributes);
 
         assertThat(actual).isEqualTo(expected);
@@ -416,7 +419,7 @@ public final class ThingQueryCommandAdapterTest {
 
         final RetrieveAttribute retrieveAttribute =
                 RetrieveAttribute.of(TestConstants.THING_ID, TestConstants.ATTRIBUTE_POINTER,
-                        TestConstants.DITTO_HEADERS_V_2);
+                        TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(retrieveAttribute);
 
         assertThat(actual).isEqualTo(expected);
@@ -460,7 +463,7 @@ public final class ThingQueryCommandAdapterTest {
                 .build();
 
         final RetrieveFeatures retrieveFeatures =
-                RetrieveFeatures.of(TestConstants.THING_ID, TestConstants.DITTO_HEADERS_V_2);
+                RetrieveFeatures.of(TestConstants.THING_ID, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(retrieveFeatures);
 
         assertThat(actual).isEqualTo(expected);
@@ -505,7 +508,7 @@ public final class ThingQueryCommandAdapterTest {
                 .build();
 
         final RetrieveFeatures retrieveFeatures =
-                RetrieveFeatures.of(TestConstants.THING_ID, selectedFields, TestConstants.DITTO_HEADERS_V_2);
+                RetrieveFeatures.of(TestConstants.THING_ID, selectedFields, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(retrieveFeatures);
 
         assertThat(actual).isEqualTo(expected);
@@ -549,7 +552,8 @@ public final class ThingQueryCommandAdapterTest {
                 .build();
 
         final RetrieveFeature retrieveFeature =
-                RetrieveFeature.of(TestConstants.THING_ID, TestConstants.FEATURE_ID, TestConstants.DITTO_HEADERS_V_2);
+                RetrieveFeature.of(TestConstants.THING_ID, TestConstants.FEATURE_ID,
+                        TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(retrieveFeature);
 
         assertThat(actual).isEqualTo(expected);
@@ -595,7 +599,7 @@ public final class ThingQueryCommandAdapterTest {
 
         final RetrieveFeatureDefinition retrieveFeatureDefinition =
                 RetrieveFeatureDefinition.of(TestConstants.THING_ID, TestConstants.FEATURE_ID,
-                        TestConstants.DITTO_HEADERS_V_2);
+                        TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(retrieveFeatureDefinition);
 
         assertThat(actual).isEqualTo(expected);
@@ -641,7 +645,7 @@ public final class ThingQueryCommandAdapterTest {
 
         final RetrieveFeatureProperties retrieveFeatureProperties =
                 RetrieveFeatureProperties.of(TestConstants.THING_ID, TestConstants.FEATURE_ID,
-                        TestConstants.DITTO_HEADERS_V_2);
+                        TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(retrieveFeatureProperties);
 
         assertThat(actual).isEqualTo(expected);
@@ -688,7 +692,7 @@ public final class ThingQueryCommandAdapterTest {
 
         final RetrieveFeatureProperties retrieveFeatureProperties = RetrieveFeatureProperties
                 .of(TestConstants.THING_ID, TestConstants.FEATURE_ID, selectedFields,
-                        TestConstants.DITTO_HEADERS_V_2);
+                        TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(retrieveFeatureProperties);
 
         assertThat(actual).isEqualTo(expected);
@@ -737,7 +741,7 @@ public final class ThingQueryCommandAdapterTest {
 
         final RetrieveFeatureProperty retrieveFeatureProperty =
                 RetrieveFeatureProperty.of(TestConstants.THING_ID, TestConstants.FEATURE_ID,
-                        TestConstants.FEATURE_PROPERTY_POINTER, TestConstants.DITTO_HEADERS_V_2);
+                        TestConstants.FEATURE_PROPERTY_POINTER, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(retrieveFeatureProperty);
 
         assertThat(actual).isEqualTo(expected);
@@ -812,7 +816,7 @@ public final class ThingQueryCommandAdapterTest {
         final RetrieveThings retrieveThings =
                 RetrieveThings.getBuilder(
                         Arrays.asList("org.eclipse.ditto.example:id1", "org.eclipse.ditto.example:id2"))
-                        .dittoHeaders(TestConstants.DITTO_HEADERS_V_2)
+                        .dittoHeaders(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE)
                         .namespace(namespace)
                         .build();
 
