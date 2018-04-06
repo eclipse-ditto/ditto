@@ -25,6 +25,7 @@ import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.services.models.authorization.EntityId;
 import org.eclipse.ditto.services.models.policies.Permission;
+import org.eclipse.ditto.services.utils.akka.controlflow.Consume;
 import org.eclipse.ditto.services.utils.akka.controlflow.ControlFlowLogic;
 import org.eclipse.ditto.services.utils.akka.controlflow.WithSender;
 import org.eclipse.ditto.signals.base.Signal;
@@ -63,7 +64,7 @@ public abstract class Enforcement<T extends WithDittoHeaders> {
     public abstract void enforce(final T command, final ActorRef sender);
 
     public Graph<SinkShape<WithSender<T>>, NotUsed> toGraph() {
-        return new EnforcementGraphStage();
+        return Consume.of(this::enforce);
     }
 
     /**
@@ -241,26 +242,6 @@ public abstract class Enforcement<T extends WithDittoHeaders> {
             } catch (final UnsupportedEncodingException e) {
                 throw new IllegalStateException("Unsupported encoding", e);
             }
-        }
-    }
-
-    private final class EnforcementGraphStage extends GraphStage<SinkShape<WithSender<T>>> {
-
-        private final SinkShape<WithSender<T>> shape = SinkShape.of(Inlet.create("input"));
-
-        @Override
-        public SinkShape<WithSender<T>> shape() {
-            return shape;
-        }
-
-        @Override
-        public GraphStageLogic createLogic(final Attributes inheritedAttributes) {
-            return new ControlFlowLogic(shape) {
-                {
-                    initOutlets(shape);
-                    when(shape.in(), wrapped -> enforce(wrapped.message(), wrapped.sender()));
-                }
-            };
         }
     }
 }

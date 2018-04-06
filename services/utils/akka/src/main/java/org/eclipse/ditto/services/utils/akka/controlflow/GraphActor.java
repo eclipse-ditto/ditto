@@ -22,17 +22,13 @@ import akka.actor.Props;
 import akka.event.LoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
 import akka.stream.ActorMaterializer;
-import akka.stream.Attributes;
 import akka.stream.FlowShape;
 import akka.stream.Graph;
-import akka.stream.Inlet;
 import akka.stream.SinkShape;
-import akka.stream.javadsl.GraphDSL;
 import akka.stream.javadsl.MergeHub;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 import akka.stream.stage.GraphStage;
-import akka.stream.stage.GraphStageLogic;
 
 /**
  * Actor whose behavior is defined entirely by an Akka stream graph.
@@ -73,15 +69,9 @@ public final class GraphActor extends AbstractActor {
     public static Props partial(
             final Function<ActorContext, Graph<FlowShape<WithSender, WithSender>, NotUsed>> partialCreator) {
 
-        return Props.create(GraphActor.class, () -> new GraphActor(actorContext ->
-                GraphDSL.create(builder -> {
-                    final FlowShape<WithSender, WithSender> flow = builder.add(partialCreator.apply(actorContext));
-                    final SinkShape<WithSender> sink = builder.add(new Unhandled());
-
-                    builder.from(flow.out()).to(sink);
-
-                    return SinkShape.of(flow.in());
-                })));
+        return Props.create(GraphActor.class,
+                () -> new GraphActor(actorContext ->
+                        Pipe.joinSink(partialCreator.apply(actorContext), unhandled())));
     }
 
     /**
@@ -95,16 +85,18 @@ public final class GraphActor extends AbstractActor {
             final BiFunction<ActorContext, LoggingAdapter, Graph<FlowShape<WithSender, WithSender>, NotUsed>>
                     partialCreator) {
 
-        return Props.create(GraphActor.class, () -> new GraphActor((actorContext, log) ->
-                GraphDSL.create(builder -> {
-                    final FlowShape<WithSender, WithSender> flow =
-                            builder.add(partialCreator.apply(actorContext, log));
-                    final SinkShape<WithSender> sink = builder.add(new Unhandled());
+        return Props.create(GraphActor.class,
+                () -> new GraphActor((actorContext, log) ->
+                        Pipe.joinSink(partialCreator.apply(actorContext, log), unhandled())));
+    }
 
-                    builder.from(flow.out()).to(sink);
-
-                    return SinkShape.of(flow.in());
-                })));
+    /**
+     * @return Graph stage to log unhandled messages at level WARNING.
+     */
+    public static GraphStage<SinkShape<WithSender>> unhandled() {
+        return Consume.untypedWithLogger((wrapped, log) -> {
+            log.warning("Unexpected message <{}> from <{}>", wrapped.message(), wrapped.sender());
+        });
     }
 
     @Override
@@ -115,29 +107,5 @@ public final class GraphActor extends AbstractActor {
                     Source.single(wrapped).runWith(messageHandler, materializer);
                 })
                 .build();
-    }
-
-    /**
-     * Log unhandled messages.
-     */
-    public static final class Unhandled extends GraphStage<SinkShape<WithSender>> {
-
-        private final SinkShape<WithSender> shape = SinkShape.of(Inlet.create("input"));
-
-        @Override
-        public SinkShape<WithSender> shape() {
-            return shape;
-        }
-
-        @Override
-        public GraphStageLogic createLogic(final Attributes inheritedAttributes) {
-            return new ControlFlowLogic(shape) {
-                {
-                    when(shape.in(), wrapped ->
-                            log().warning("Unexpected message <{}> from <{}>",
-                                    wrapped.message(), wrapped.sender()));
-                }
-            };
-        }
     }
 }

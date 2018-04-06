@@ -21,7 +21,6 @@ import akka.stream.stage.GraphStageLogicWithLogging;
  * <pre>
  * {@code
  * class Example extends GraphStage<SHAPE> {
- *     @Override
  *     public GraphStageLogic createLogic(final Attributes inheritedAttributes) {
  *         return new ControlFlowLogic(shape) {
  *             {
@@ -39,6 +38,7 @@ import akka.stream.stage.GraphStageLogicWithLogging;
  *             }
  *         }
  *     }
+ * }
  * }
  * </pre>
  */

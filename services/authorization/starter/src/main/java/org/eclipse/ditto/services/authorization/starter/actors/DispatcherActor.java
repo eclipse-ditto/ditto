@@ -11,28 +11,36 @@
  */
 package org.eclipse.ditto.services.authorization.starter.actors;
 
-import static akka.cluster.pubsub.DistributedPubSubMediator.Send;
 import static akka.cluster.pubsub.DistributedPubSubMediator.Put;
+import static akka.cluster.pubsub.DistributedPubSubMediator.Send;
 import static org.eclipse.ditto.services.models.authorization.AuthorizationMessagingConstants.DISPATCHER_ACTOR_PATH;
 
 import java.util.Objects;
-import java.util.concurrent.CompletionStage;
-import java.util.function.Function;
 
-import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.models.thingsearch.commands.sudo.ThingSearchSudoCommand;
+import org.eclipse.ditto.services.utils.akka.controlflow.Consume;
+import org.eclipse.ditto.services.utils.akka.controlflow.FanIn;
+import org.eclipse.ditto.services.utils.akka.controlflow.Filter;
+import org.eclipse.ditto.services.utils.akka.controlflow.GraphActor;
+import org.eclipse.ditto.services.utils.akka.controlflow.Pipe;
+import org.eclipse.ditto.services.utils.akka.controlflow.WithSender;
 import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
 
+import akka.NotUsed;
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import akka.event.DiagnosticLoggingAdapter;
-import akka.japi.pf.ReceiveBuilder;
+import akka.stream.FanInShape2;
+import akka.stream.FlowShape;
+import akka.stream.Graph;
+import akka.stream.SinkShape;
+import akka.stream.javadsl.GraphDSL;
+import akka.stream.stage.GraphStage;
 
 /**
  * Actor that dispatches commands not authorized by any entity.
  */
-public final class DispatcherActor extends AbstractActor {
+public final class DispatcherActor {
 
     /**
      * The name of this actor.
@@ -44,50 +52,89 @@ public final class DispatcherActor extends AbstractActor {
      */
     private static final String THINGS_SEARCH_ACTOR_PATH = "/user/thingsSearchRoot/thingsSearch";
 
-    private final ActorRef pubSubMediator;
-    private final ActorRef enforcerShardRegion;
-    private final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer;
-    private final DiagnosticLoggingAdapter log;
-
-    private DispatcherActor(final ActorRef pubSubMediator, final ActorRef enforcerShardRegion,
-            final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer) {
-        this.pubSubMediator = pubSubMediator;
-        this.enforcerShardRegion = enforcerShardRegion;
-        this.preEnforcer = preEnforcer;
-        log = LogUtil.obtain(this);
-    }
-
     public static Props props(final ActorRef pubSubMediator,
             final ActorRef enforcerShardRegion,
-            final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer) {
+            final GraphStage<FlowShape<WithSender, WithSender>> preEnforcer) {
 
-        return Props.create(DispatcherActor.class,
-                () -> new DispatcherActor(pubSubMediator, enforcerShardRegion, preEnforcer));
+        return GraphActor.partial(actorContext -> {
+            sanityCheck(actorContext.self());
+            putSelfToPubSubMediator(actorContext.self(), pubSubMediator);
+            return Pipe.joinFlow(preEnforcer, dispatchGraph(actorContext, pubSubMediator, enforcerShardRegion));
+        });
     }
 
-    @Override
-    public void preStart() throws Exception {
-        super.preStart();
-        sanityCheck(getSelf());
-        putSelfToPubSubMediator(getSelf(), pubSubMediator);
+    /**
+     * Create an Akka stream graph to dispatch {@code RetrieveThings} and {@code ThingSearchCommand}.
+     *
+     * @param actorContext context of this actor.
+     * @param pubSubMediator Akka pub-sub mediator.
+     * @param enforcerShardRegion shard region of enforcer actors.
+     * @return Akka stream graph to dispatch {@code RetrieveThings} and {@code ThingSearchCommand}.
+     */
+    public static Graph<FlowShape<WithSender, WithSender>, NotUsed> dispatchGraph(
+            final AbstractActor.ActorContext actorContext,
+            final ActorRef pubSubMediator,
+            final ActorRef enforcerShardRegion) {
+
+        // TODO: handle RetireveThings
+        return dispatchSearchCommands(pubSubMediator);
     }
 
-    @Override
-    public Receive createReceive() {
+    /**
+     * Create a graph to dispatch search commands and sudo search commands.
+     * <pre>
+     * {@code
+     *              +-----------------------+ output       +-----+
+     * input +----->+searchCommandFilter    +------------->+     |
+     *              +-----------+-----------+          in0 |     |
+     *                          |                          |     |
+     *                          | unhandled                |     | out       +--------------------+
+     *       +------------------+                          |fanIn+---------->+forwardToSearchActor|
+     *       |                                             |     |           +--------------------+
+     *       |                                             |     |
+     *       |      +-----------------------+ output       |     |
+     *       +----->+sudoSearchCommandFilter+------------->+     |
+     *       input  +-----------+-----------+          in1 +-----+
+     *                          |
+     *                          | unhandled
+     *                          |
+     *                          v
+     * }
+     * </pre>
+     *
+     * @param pubSubMediator Akka pub-sub mediator.
+     * @return graph of
+     */
+    public static Graph<FlowShape<WithSender, WithSender>, NotUsed> dispatchSearchCommands(
+            final ActorRef pubSubMediator) {
 
-        return ReceiveBuilder.create()
-                // TODO: handle RetrieveThings
-                .match(ThingSearchCommand.class, command -> forwardToThingSearchActor(command, getSender()))
-                .matchAny(message -> {
-                    log.warning("unknown message: <{}>", message);
-                    unhandled(message);
-                })
-                .build();
+        return GraphDSL.create(builder -> {
+            final Filter<ThingSearchCommand> searchCommandFilter = Filter.of(ThingSearchCommand.class);
+            final Filter<ThingSearchSudoCommand> sudoSearchCommandFilter = Filter.of(ThingSearchSudoCommand.class);
+            builder.add(searchCommandFilter);
+            builder.add(sudoSearchCommandFilter);
+
+            final FanInShape2<WithSender<ThingSearchCommand>,
+                    WithSender<ThingSearchSudoCommand>,
+                    WithSender<Object>> fanIn = builder.add(FanIn.of2());
+
+            final SinkShape<WithSender<Object>> forwardToSearchActor =
+                    builder.add(forwardToThingSearchActor(pubSubMediator));
+
+            builder.from(searchCommandFilter.output).toInlet(fanIn.in0());
+            builder.from(searchCommandFilter.unhandled).toInlet(sudoSearchCommandFilter.input);
+            builder.from(sudoSearchCommandFilter.output).toInlet(fanIn.in1());
+            builder.from(fanIn.out()).to(forwardToSearchActor);
+
+            return FlowShape.of(searchCommandFilter.input, sudoSearchCommandFilter.unhandled);
+        });
     }
 
-    private void forwardToThingSearchActor(final ThingSearchCommand command, final ActorRef sender) {
-        final Send wrappedCommand = new Send(THINGS_SEARCH_ACTOR_PATH, command);
-        pubSubMediator.tell(wrappedCommand, sender);
+    private static Consume<Object> forwardToThingSearchActor(final ActorRef pubSubMediator) {
+        return Consume.of((message, sender) -> {
+            final Send wrappedCommand = new Send(THINGS_SEARCH_ACTOR_PATH, message);
+            pubSubMediator.tell(wrappedCommand, sender);
+        });
     }
 
     /**

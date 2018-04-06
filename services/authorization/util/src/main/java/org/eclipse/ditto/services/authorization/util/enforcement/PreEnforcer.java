@@ -24,6 +24,7 @@ import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.services.utils.akka.controlflow.ControlFlowLogic;
 import org.eclipse.ditto.services.utils.akka.controlflow.Filter;
 import org.eclipse.ditto.services.utils.akka.controlflow.GraphActor;
+import org.eclipse.ditto.services.utils.akka.controlflow.Pipe;
 import org.eclipse.ditto.services.utils.akka.controlflow.WithSender;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
 
@@ -31,37 +32,34 @@ import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.event.LoggingAdapter;
 import akka.stream.Attributes;
-import akka.stream.FanOutShape2;
 import akka.stream.FlowShape;
 import akka.stream.Graph;
 import akka.stream.Inlet;
 import akka.stream.Outlet;
-import akka.stream.SinkShape;
-import akka.stream.javadsl.GraphDSL;
 import akka.stream.stage.GraphStage;
 import akka.stream.stage.GraphStageLogic;
 
+/**
+ * Create processing units of Akka stream graph before enforcement from an asynchronous function that may abort
+ * enforcement by throwing exceptions.
+ */
 public final class PreEnforcer {
 
     private PreEnforcer() {}
 
+    /**
+     * Create a processing unit from a function.
+     *
+     * @param self reference to the actor carrying the pre-enforcement.
+     * @param processor function to call.
+     */
     public static Graph<FlowShape<WithSender, WithSender>, NotUsed> fromFunction(
             final ActorRef self,
             final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> processor) {
-        return GraphDSL.create(builder -> {
-            final FanOutShape2<WithSender, WithSender<WithDittoHeaders>, WithSender> filter =
-                    builder.add(Filter.of(WithDittoHeaders.class));
 
-            final FlowShape<WithSender<WithDittoHeaders>, WithSender> flow =
-                    builder.add(new TransformStage(self, processor));
-
-            final SinkShape<WithSender> unhandled = builder.add(new GraphActor.Unhandled());
-
-            builder.from(filter.out0()).toInlet(flow.in());
-            builder.from(filter.out1()).to(unhandled);
-
-            return FlowShape.of(filter.in(), flow.out());
-        });
+        return Pipe.joinFilteredSink(
+                Pipe.joinFilteredFlow(Filter.of(WithDittoHeaders.class), new TransformStage(self, processor)),
+                GraphActor.unhandled());
     }
 
 

@@ -12,8 +12,6 @@
 package org.eclipse.ditto.services.authorization.util.enforcement;
 
 import java.time.Duration;
-import java.util.Collection;
-import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -24,12 +22,10 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.services.utils.akka.controlflow.GraphActor;
-import org.eclipse.ditto.services.utils.akka.controlflow.WithSender;
+import org.eclipse.ditto.services.utils.akka.controlflow.Pipe;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import akka.stream.FlowShape;
-import akka.stream.javadsl.GraphDSL;
 
 /**
  * Utility class to create actors that enforce authorization.
@@ -63,38 +59,18 @@ public final class EnforcerActor {
             final Set<EnforcementProvider<?>> enforcementProviders,
             @Nullable Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer) {
 
-        final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> processor =
+        final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcerFunction =
                 preEnforcer != null ? preEnforcer : CompletableFuture::completedFuture;
 
-        return GraphActor.partialWithLog((actorContext, log) -> GraphDSL.create(builder -> {
-            final Enforcement.Context context =
+        return GraphActor.partialWithLog((actorContext, log) -> {
+            final Enforcement.Context enforcementContext =
                     new Enforcement.Context(pubSubMediator, askTimeout).with(actorContext, log);
 
-            final FlowShape<WithSender, WithSender> preEnforceFlow =
-                    builder.add(PreEnforcer.fromFunction(actorContext.self(), processor));
-
-            final List<FlowShape<WithSender, WithSender>> enforcementFlows = enforcementProviders.stream()
-                    .map(provider -> builder.add(provider.toGraph(context)))
-                    .collect(Collectors.toList());
-
-            return chainFlows(builder, preEnforceFlow, enforcementFlows);
-        }));
-    }
-
-    private static <T> FlowShape<T, T> chainFlows(
-            final GraphDSL.Builder<?> builder,
-            final FlowShape<T, T> first,
-            final Collection<FlowShape<T, T>> flows) {
-
-        if (flows.isEmpty()) {
-            return first;
-        } else {
-            FlowShape<T, T> pointer = first;
-            for (FlowShape<T, T> flow : flows) {
-                builder.from(pointer.out()).toInlet(flow.in());
-                pointer = flow;
-            }
-            return FlowShape.of(first.in(), pointer.out());
-        }
+            return Pipe.joinFlow(
+                    PreEnforcer.fromFunction(actorContext.self(), preEnforcerFunction),
+                    Pipe.joinFlows(enforcementProviders.stream()
+                            .map(provider -> provider.toGraph(enforcementContext))
+                            .collect(Collectors.toList())));
+        });
     }
 }
