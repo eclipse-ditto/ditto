@@ -97,11 +97,14 @@ final class WrappingMessageMapper implements MessageMapper {
             dittoHeadersEnhanced = dittoHeaders;
         }
 
-        final String actualContentType = MessageMapper.findContentType(message)
-                .orElseThrow(MessageMappingFailedException.newBuilder(MessageMapper.findContentType(message).orElse(""))
-                        .dittoHeaders(dittoHeadersEnhanced)::build);
+        if (enforceMatchingContentType) {
+            final String actualContentType = MessageMapper.findContentType(message)
+                    .orElseThrow(MessageMappingFailedException
+                            .newBuilder(MessageMapper.findContentType(message).orElse(""))
+                            .dittoHeaders(dittoHeadersEnhanced)::build);
 
-        requireMatchingContentType(actualContentType, dittoHeadersEnhanced);
+            requireMatchingContentType(actualContentType, dittoHeadersEnhanced);
+        }
         final Optional<Adaptable> mappedOpt = delegate.map(message);
 
         return mappedOpt.map(mapped -> {
@@ -120,12 +123,15 @@ final class WrappingMessageMapper implements MessageMapper {
     public Optional<ExternalMessage> map(final Adaptable adaptable) {
         final DittoHeaders dittoHeaders = adaptable.getHeaders().orElseGet(DittoHeaders::empty);
 
-        final String actualContentType = MessageMapper.findContentType(adaptable)
-                .orElseThrow(() -> MessageMappingFailedException.newBuilder(MessageMapper.findContentType(adaptable).orElse(""))
-                        .dittoHeaders(dittoHeaders)
-                        .build());
+        if (enforceMatchingContentType) {
+            final String actualContentType = MessageMapper.findContentType(adaptable)
+                    .orElseThrow(() -> MessageMappingFailedException
+                            .newBuilder(MessageMapper.findContentType(adaptable).orElse(""))
+                            .dittoHeaders(dittoHeaders)
+                            .build());
 
-        requireMatchingContentType(actualContentType, dittoHeaders);
+            requireMatchingContentType(actualContentType, dittoHeaders);
+        }
         final Optional<ExternalMessage> mappedOpt = delegate.map(adaptable);
 
         return mappedOpt.map(mapped -> {
@@ -146,10 +152,8 @@ final class WrappingMessageMapper implements MessageMapper {
     private void requireMatchingContentType(final String actualContentType,
             final DittoHeaders dittoHeaders) {
 
-        if (enforceMatchingContentType) {
-            if (!getContentType().equalsIgnoreCase(actualContentType)) {
-                throw MessageMappingFailedException.newBuilder(actualContentType).dittoHeaders(dittoHeaders).build();
-            }
+        if (!getContentType().equalsIgnoreCase(actualContentType)) {
+            throw MessageMappingFailedException.newBuilder(actualContentType).dittoHeaders(dittoHeaders).build();
         }
     }
 
