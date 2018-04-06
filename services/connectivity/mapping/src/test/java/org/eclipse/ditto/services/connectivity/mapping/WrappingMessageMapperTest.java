@@ -12,6 +12,7 @@
 
 package org.eclipse.ditto.services.connectivity.mapping;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -47,7 +48,7 @@ public class WrappingMessageMapperTest {
         mockMessage = mock(ExternalMessage.class);
         mockAdaptable = mock(Adaptable.class);
 
-        when(mockMapper.map(mockMessage)).thenReturn(Optional.of(mockAdaptable));
+        when(mockMapper.map(any(ExternalMessage.class))).thenReturn(Optional.of(mockAdaptable));
         when(mockMapper.map(mockAdaptable)).thenReturn(Optional.of(mockMessage));
         when(mockAdaptable.getTopicPath()).thenReturn(ProtocolFactory.emptyTopicPath());
         when(mockAdaptable.getPayload()).thenReturn(ProtocolFactory.newPayload("{\"path\":\"/\"}"));
@@ -72,7 +73,7 @@ public class WrappingMessageMapperTest {
     public void mapMessage() {
 
         final Adaptable actual = underTest.map(mockMessage).get();
-        verify(mockMapper).map(mockMessage);
+        verify(mockMapper).map(any(ExternalMessage.class));
     }
 
     @Test
