@@ -24,13 +24,12 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
-import org.eclipse.ditto.model.connectivity.ExternalMessage;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 
 /**
- * A filter implementation to remove headers of a {@link org.eclipse.ditto.model.connectivity.ExternalMessage}
+ * A filter implementation to remove headers from existing {@link DittoHeaders}.
  */
-final class MessageHeaderFilter implements Function<ExternalMessage, ExternalMessage> {
+final class DittoHeadersFilter implements Function<DittoHeaders, DittoHeaders> {
 
     /**
      * A simple enum describing the filter mode
@@ -48,7 +47,7 @@ final class MessageHeaderFilter implements Function<ExternalMessage, ExternalMes
      * @param mode the filter mode
      * @param headerNames the header names
      */
-     MessageHeaderFilter(final Mode mode, final String... headerNames) {
+    DittoHeadersFilter(final Mode mode, final String... headerNames) {
          this(mode, Arrays.asList(checkNotNull(headerNames, "HeaderNames")));
     }
 
@@ -57,22 +56,20 @@ final class MessageHeaderFilter implements Function<ExternalMessage, ExternalMes
      * @param mode the filter mode
      * @param headerNames the header names
      */
-     MessageHeaderFilter(final Mode mode, final Collection<String> headerNames) {
+    DittoHeadersFilter(final Mode mode, final Collection<String> headerNames) {
          this.mode = checkNotNull(mode, "Mode");
          this.headerNames = Collections.unmodifiableSet(new HashSet<>(checkNotNull(headerNames, "HeaderNames")));
     }
 
     /**
-     * Apply this filter to a message. This will create a copy of the message with filtered headers.
-     * @param message the message
-     * @return the filtered message
+     * Apply this filter to {@link DittoHeaders}. This will create a copy of the headers .
+     * @param dittoHeaders the ditto headers that should be filtered
+     * @return the filtered ditto headers
      */
-    public ExternalMessage apply(final ExternalMessage message) {
-        return ConnectivityModelFactory.newExternalMessageBuilder(message)
-                .withHeaders(message.getHeaders().entrySet().stream()
-                        .filter(e -> filterPredicate(e.getKey()))
-                        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)))
-                .build();
+    public DittoHeaders apply(final DittoHeaders dittoHeaders) {
+        return DittoHeaders.of(dittoHeaders.entrySet().stream()
+                .filter(e -> filterPredicate(e.getKey()))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
     }
 
     private boolean filterPredicate(final String headerName) {
@@ -82,7 +79,7 @@ final class MessageHeaderFilter implements Function<ExternalMessage, ExternalMes
             case INCLUDE:
                 return headerNames.contains(headerName);
             default:
-                return true; // don't know what to do, so assume it's ok to keep the header.
+                throw new IllegalStateException("Mode '" + mode + "' not supported.");
         }
     }
 
@@ -90,7 +87,7 @@ final class MessageHeaderFilter implements Function<ExternalMessage, ExternalMes
     public boolean equals(final Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        final MessageHeaderFilter that = (MessageHeaderFilter) o;
+        final DittoHeadersFilter that = (DittoHeadersFilter) o;
         return mode == that.mode &&
                 Objects.equals(headerNames, that.headerNames);
     }
@@ -99,7 +96,6 @@ final class MessageHeaderFilter implements Function<ExternalMessage, ExternalMes
     public int hashCode() {
         return Objects.hash(mode, headerNames);
     }
-
 
     @Override
     public String toString() {

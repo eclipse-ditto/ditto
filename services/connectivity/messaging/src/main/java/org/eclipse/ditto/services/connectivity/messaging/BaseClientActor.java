@@ -17,7 +17,7 @@ import static org.eclipse.ditto.services.connectivity.messaging.BaseClientState.
 import static org.eclipse.ditto.services.connectivity.messaging.BaseClientState.DISCONNECTED;
 import static org.eclipse.ditto.services.connectivity.messaging.BaseClientState.DISCONNECTING;
 import static org.eclipse.ditto.services.connectivity.messaging.BaseClientState.FAILED;
-import static org.eclipse.ditto.services.connectivity.messaging.MessageHeaderFilter.Mode.EXCLUDE;
+import static org.eclipse.ditto.services.connectivity.messaging.DittoHeadersFilter.Mode.EXCLUDE;
 
 import java.text.MessageFormat;
 import java.time.Instant;
@@ -628,7 +628,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                     connection.getProcessorPoolSize());
             final Props props =
                     MessageMappingProcessorActor.props(pubSubMediator, pubSubTargetPath, getSelf(),
-                            connection.getAuthorizationContext(), new MessageHeaderFilter(EXCLUDE, headerBlacklist),
+                            connection.getAuthorizationContext(), new DittoHeadersFilter(EXCLUDE, headerBlacklist),
                             processor, connectionId());
 
             final DefaultResizer resizer = new DefaultResizer(1, connection.getProcessorPoolSize());

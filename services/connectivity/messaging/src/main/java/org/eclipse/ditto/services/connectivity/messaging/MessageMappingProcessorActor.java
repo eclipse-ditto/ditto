@@ -65,7 +65,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     /**
      * The pub sub group used to publish responses to live commands and messages.
      */
-    public static final String LIVE_RESPONSES_PUB_SUB_GROUP = "live-responses";
+    private static final String LIVE_RESPONSES_PUB_SUB_GROUP = "live-responses";
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
@@ -75,13 +75,13 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     private final AuthorizationContext authorizationContext;
     private final Cache<String, TraceContext> traces;
 
-    private final MessageHeaderFilter headerFilter;
+    private final DittoHeadersFilter headerFilter;
     private final MessageMappingProcessor processor;
     private final String connectionId;
 
     private MessageMappingProcessorActor(final ActorRef pubSubMediator, final String pubSubTargetPath,
             final ActorRef publisherActor, final AuthorizationContext authorizationContext,
-            final MessageHeaderFilter headerFilter,
+            final DittoHeadersFilter headerFilter,
             final MessageMappingProcessor processor, final String connectionId) {
         this.pubSubMediator = pubSubMediator;
         this.pubSubTargetPath = pubSubTargetPath;
@@ -116,7 +116,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     public static Props props(final ActorRef pubSubMediator, final String pubSubTargetPath,
             final ActorRef publisherActor,
             final AuthorizationContext authorizationContext,
-            final MessageHeaderFilter headerFilter,
+            final DittoHeadersFilter headerFilter,
             final MessageMappingProcessor processor,
             final String connectionId) {
 
@@ -150,7 +150,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
 
         return props(pubSubMediator, pubSubTargetPath, publisherActor,
                         authorizationContext,
-                        new MessageHeaderFilter(MessageHeaderFilter.Mode.EXCLUDE, Collections.emptyList()),
+                new DittoHeadersFilter(DittoHeadersFilter.Mode.EXCLUDE, Collections.emptyList()),
                 processor, connectionId);
     }
 
@@ -253,8 +253,10 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         log.debug("Handling signal: {}", signal);
 
         try {
-            final Optional<ExternalMessage> messageOpt = processor.process(signal);
-            messageOpt.map(headerFilter).ifPresent(message -> publisherActor.forward(message, getContext()));
+            final DittoHeaders filteredDittoHeaders = headerFilter.apply(signal.getDittoHeaders());
+            final Signal signalWithFilteredHeaders = signal.setDittoHeaders(filteredDittoHeaders);
+            processor.process(signalWithFilteredHeaders)
+                    .ifPresent(message -> publisherActor.forward(message, getContext()));
         } catch (final DittoRuntimeException e) {
             log.info("Got DittoRuntimeException during processing Signal: {} - {}", e.getMessage(),
                     e.getDescription().orElse(""));
