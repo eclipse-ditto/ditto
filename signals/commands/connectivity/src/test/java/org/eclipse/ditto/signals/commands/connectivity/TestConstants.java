@@ -55,9 +55,9 @@ public final class TestConstants {
                     .targets(TARGETS)
                     .build();
 
-    public static MappingContext MAPPING_CONTEXT = ConnectivityModelFactory.newMappingContext("text/plain",
+    public static MappingContext MAPPING_CONTEXT = ConnectivityModelFactory.newMappingContext(
             "JavaScript",
-            Collections.singletonMap("incomingMappingScript",
+            Collections.singletonMap("incomingScript",
                     "ditto_protocolJson.topic = 'org.eclipse.ditto/foo-bar/things/twin/commands/create';" +
                     "ditto_protocolJson.path = '/';" +
                     "ditto_protocolJson.headers = {};" +

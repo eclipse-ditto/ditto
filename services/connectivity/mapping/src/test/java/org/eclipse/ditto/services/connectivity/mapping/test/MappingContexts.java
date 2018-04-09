@@ -15,29 +15,27 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
-import org.eclipse.ditto.model.connectivity.ExternalMessage;
 import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapper;
 
 public class MappingContexts {
 
-    public static MappingContext mock(final String contentType, final String engine, Map<String, String> options)
+    public static MappingContext mock(final String engine, Map<String, String> options)
     {
         final Map<String, String> opts = new HashMap<>(options);
-        opts.put(ExternalMessage.CONTENT_TYPE_HEADER, contentType);
-        return ConnectivityModelFactory.newMappingContext(contentType, engine, opts);
+        return ConnectivityModelFactory.newMappingContext(engine, opts);
     }
 
-    public static MappingContext mock(final String contentType, final Class<? extends MessageMapper> messageMapperClass,
+    public static MappingContext mock(final Class<? extends MessageMapper> messageMapperClass,
             Map<String, String> opts)
     {
-        return mock(contentType, messageMapperClass.getCanonicalName(), opts);
+        return mock(messageMapperClass.getCanonicalName(), opts);
     }
 
-    public static MappingContext mock(final String contentType, final boolean isValid)
+    public static MappingContext mock(final boolean isValid)
     {
         final Map<String, String> opts = new HashMap<>();
         opts.put(MockMapper.OPT_IS_VALID, String.valueOf(isValid));
-        return mock(contentType, MockMapper.class, opts);
+        return mock(MockMapper.class, opts);
     }
 }

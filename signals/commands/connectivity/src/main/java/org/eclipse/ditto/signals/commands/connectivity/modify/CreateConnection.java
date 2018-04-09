@@ -13,24 +13,18 @@ package org.eclipse.ditto.signals.commands.connectivity.modify;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonArray;
-import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -61,18 +55,18 @@ public final class CreateConnection extends AbstractCommand<CreateConnection>
             JsonFactory.newJsonObjectFieldDefinition("connection", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
-    static final JsonFieldDefinition<JsonArray> JSON_MAPPING_CONTEXTS =
-            JsonFactory.newJsonArrayFieldDefinition("mappingContexts", FieldType.REGULAR, JsonSchemaVersion.V_1,
+    static final JsonFieldDefinition<JsonObject> JSON_MAPPING_CONTEXT =
+            JsonFactory.newJsonObjectFieldDefinition("mappingContext", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
     private final Connection connection;
-    private final List<MappingContext> mappingContexts;
+    @Nullable private final MappingContext mappingContext;
 
-    private CreateConnection(final Connection connection, final List<MappingContext> mappingContexts,
+    private CreateConnection(final Connection connection, @Nullable final MappingContext mappingContext,
             final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
         this.connection = connection;
-        this.mappingContexts = Collections.unmodifiableList(new ArrayList<>(mappingContexts));
+        this.mappingContext = mappingContext;
     }
 
     /**
@@ -84,23 +78,22 @@ public final class CreateConnection extends AbstractCommand<CreateConnection>
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static CreateConnection of(final Connection connection, final DittoHeaders dittoHeaders) {
-        return of(connection, Collections.emptyList(), dittoHeaders);
+        return of(connection, null, dittoHeaders);
     }
 
     /**
      * Returns a new instance of {@code CreateConnection}.
      *
      * @param connection the connection to be created.
-     * @param mappingContexts the mapping contexts to apply for different content-types.
+     * @param mappingContext the mapping context to apply.
      * @param dittoHeaders the headers of the request.
      * @return a new CreateConnection command.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static CreateConnection of(final Connection connection, final List<MappingContext> mappingContexts,
+    public static CreateConnection of(final Connection connection, @Nullable final MappingContext mappingContext,
             final DittoHeaders dittoHeaders) {
         checkNotNull(connection, "Connection");
-        checkNotNull(mappingContexts, "mapping Contexts");
-        return new CreateConnection(connection, mappingContexts, dittoHeaders);
+        return new CreateConnection(connection, mappingContext, dittoHeaders);
     }
 
     /**
@@ -132,15 +125,11 @@ public final class CreateConnection extends AbstractCommand<CreateConnection>
         return new CommandJsonDeserializer<CreateConnection>(TYPE, jsonObject).deserialize(() -> {
             final JsonObject jsonConnection = jsonObject.getValueOrThrow(JSON_CONNECTION);
             final Connection readConnection = ConnectivityModelFactory.connectionFromJson(jsonConnection);
-            final JsonArray mappingContexts = jsonObject.getValue(JSON_MAPPING_CONTEXTS)
-                    .orElse(JsonFactory.newArray());
-            final List<MappingContext> readMappingContexts = mappingContexts.stream()
-                    .filter(JsonValue::isObject)
-                    .map(JsonValue::asObject)
-                    .map(ConnectivityModelFactory::mappingContextFromJson)
-                    .collect(Collectors.toList());
+            final JsonObject readMappingContext = jsonObject.getValue(JSON_MAPPING_CONTEXT).orElse(null);
+            final MappingContext mappingContext = readMappingContext != null ?
+                    ConnectivityModelFactory.mappingContextFromJson(readMappingContext) : null;
 
-            return of(readConnection, readMappingContexts, dittoHeaders);
+            return of(readConnection, mappingContext, dittoHeaders);
         });
     }
 
@@ -152,10 +141,10 @@ public final class CreateConnection extends AbstractCommand<CreateConnection>
     }
 
     /**
-     * @return the configured {@link MappingContext}s of the connection to be created.
+     * @return the configured {@link MappingContext} of the connection to be created.
      */
-    public List<MappingContext> getMappingContexts() {
-        return mappingContexts;
+    public Optional<MappingContext> getMappingContext() {
+        return Optional.ofNullable(mappingContext);
     }
 
     @Override
@@ -163,9 +152,9 @@ public final class CreateConnection extends AbstractCommand<CreateConnection>
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(JSON_CONNECTION, connection.toJson(schemaVersion, thePredicate), predicate);
-        jsonObjectBuilder.set(JSON_MAPPING_CONTEXTS, mappingContexts.stream()
-                        .map(ms -> ms.toJson(schemaVersion, thePredicate))
-                        .collect(JsonCollectors.valuesToArray()), predicate);
+        if (mappingContext != null) {
+            jsonObjectBuilder.set(JSON_MAPPING_CONTEXT, mappingContext.toJson(schemaVersion, thePredicate), predicate);
+        }
     }
 
     @Override
@@ -175,7 +164,7 @@ public final class CreateConnection extends AbstractCommand<CreateConnection>
 
     @Override
     public CreateConnection setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(connection, mappingContexts, dittoHeaders);
+        return of(connection, mappingContext, dittoHeaders);
     }
 
     @Override
@@ -196,12 +185,12 @@ public final class CreateConnection extends AbstractCommand<CreateConnection>
         }
         final CreateConnection that = (CreateConnection) o;
         return Objects.equals(connection, that.connection) && Objects.equals(
-                mappingContexts, that.mappingContexts);
+                mappingContext, that.mappingContext);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), connection, mappingContexts);
+        return Objects.hash(super.hashCode(), connection, mappingContext);
     }
 
     @Override
@@ -209,7 +198,7 @@ public final class CreateConnection extends AbstractCommand<CreateConnection>
         return getClass().getSimpleName() + " [" +
                 super.toString() +
                 ", connection=" + connection +
-                ", mappingContexts=" + mappingContexts +
+                ", mappingContext=" + mappingContext +
                 "]";
     }
 

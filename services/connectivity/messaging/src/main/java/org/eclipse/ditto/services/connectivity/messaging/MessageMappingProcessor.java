@@ -14,21 +14,19 @@ package org.eclipse.ditto.services.connectivity.messaging;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotEmpty;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
-import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.connectivity.ExternalMessage;
-import org.eclipse.ditto.model.connectivity.MappingContext;
-import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
+import org.eclipse.ditto.model.connectivity.ExternalMessage;
+import org.eclipse.ditto.model.connectivity.MappingContext;
+import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.services.connectivity.mapping.DefaultMessageMapperFactory;
@@ -71,43 +69,30 @@ public final class MessageMappingProcessor {
     }
 
     /**
-     * Initializes a new command processor with mappers defined in mapping contexts. The dynamic access is needed
+     * Initializes a new command processor with mappers defined in mapping mappingContext. The dynamic access is needed
      * to instantiate message mappers for an actor system
      *
-     * @param contexts the mapping contexts
+     * @param mappingContext the mapping Context
      * @param access the dynamic access used for message mapper instantiation
      * @param log the log adapter
      * @return the processor instance
      * @throws org.eclipse.ditto.model.connectivity.MessageMapperConfigurationInvalidException if the configuration of
-     * one of the {@code contexts} is invalid
+     * one of the {@code mappingContext} is invalid
      * @throws org.eclipse.ditto.model.connectivity.MessageMapperConfigurationFailedException if the configuration of
-     * one of the {@code contexts} failed for a mapper specific reason
+     * one of the {@code mappingContext} failed for a mapper specific reason
      */
-    public static MessageMappingProcessor of(final List<MappingContext> contexts, final DynamicAccess access,
+    public static MessageMappingProcessor of(@Nullable final MappingContext mappingContext, final DynamicAccess access,
             final DiagnosticLoggingAdapter log) {
         final MessageMapperRegistry registry = DefaultMessageMapperFactory.of(access, MessageMappers.class, log)
-                .registryOf(DittoMessageMapper.CONTEXT, contexts);
+                .registryOf(DittoMessageMapper.CONTEXT, mappingContext);
         return new MessageMappingProcessor(registry, log);
     }
 
     /**
-     * Returns all supported content types of the processor
-     *
-     * @return the content types
+     * @return the message mapper registry to use for mapping messages.
      */
-    public List<String> getSupportedContentTypes() {
-        return registry.getMappers().stream()
-                .map(MessageMapper::getContentType)
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * Returns the content type of the default mapper.
-     *
-     * @return the default content type
-     */
-    public String getDefaultContentType() {
-        return registry.getDefaultMapper().getContentType();
+    MessageMapperRegistry getRegistry() {
+        return registry;
     }
 
     /**
@@ -210,36 +195,35 @@ public final class MessageMappingProcessor {
 
     private MessageMapper getMapper(final ExternalMessage message) {
 
+        LogUtil.enhanceLogWithCorrelationId(log, message.getHeaders().get("correlation-id"));
+
         final Optional<String> contentTypeOpt = message.findContentType();
         if (contentTypeOpt.isPresent()) {
             final String contentType = contentTypeOpt.get();
-            return registry.selectMapper(contentType);
-        } else {
-            return registry.getDefaultMapper();
+            log.debug("ExternalMessage to be mapped has content-type <{}>", contentType);
+            if (registry.getDefaultMapper().getContentType().filter(contentType::equals).isPresent()) {
+                log.info("Selected Default MessageMapper for mapping ExternalMessage as content-type matched <{}>",
+                        contentType);
+                return registry.getDefaultMapper();
+            }
         }
+
+        return registry.getMapper().orElseGet(() -> {
+            log.debug("Falling back to Default MessageMapper for mapping ExternalMessage " +
+                            "as no MessageMapper was present: {}", message);
+            return registry.getDefaultMapper();
+        });
+
     }
 
     private MessageMapper getMapper(final Adaptable adaptable) {
 
-        final Optional<String> acceptHeaderOpt = adaptable.getHeaders()
-                .map(m -> m.get(ExternalMessage.ACCEPT_HEADER));
-        final Optional<String> contentTypeOpt = adaptable.getHeaders()
-                .map(m -> m.get(ExternalMessage.CONTENT_TYPE_HEADER));
-        if (acceptHeaderOpt.isPresent()) {
-            final String acceptHeader = acceptHeaderOpt.get();
-            log.debug("Selecting MessageMapper based on <{}> header <{}> for mapping back Adaptable on " +
-                    "topic <{}>", ExternalMessage.ACCEPT_HEADER, acceptHeader, adaptable.getTopicPath().getPath());
-            return registry.selectMapper(acceptHeader);
-        } else if (contentTypeOpt.isPresent()) {
-            final String contentType = contentTypeOpt.get();
-            log.debug("Selecting MessageMapper based on <{}> header <{}> for mapping back Adaptable on " +
-                    "topic <{}>", ExternalMessage.CONTENT_TYPE_HEADER, contentType, adaptable.getTopicPath().getPath());
-            return registry.selectMapper(contentType);
-        } else {
-            log.debug("No header <{}> was set, so using the default MessageMapper for mapping back Adaptable on " +
-                            "topic <{}>", ExternalMessage.ACCEPT_HEADER, adaptable.getTopicPath().getPath());
+        doUpdateCorrelationId(adaptable);
+        return registry.getMapper().orElseGet(() -> {
+            log.debug("Falling back to Default MessageMapper for mapping Adaptable as no MessageMapper was present: {}",
+                    adaptable);
             return registry.getDefaultMapper();
-        }
+        });
     }
 
     private void doUpdateCorrelationId(final Adaptable adaptable) {

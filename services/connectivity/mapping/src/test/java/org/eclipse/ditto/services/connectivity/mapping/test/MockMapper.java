@@ -26,20 +26,11 @@ public class MockMapper implements MessageMapper {
 
     public static final String OPT_IS_VALID = "Mock";
 
-    private String contentType;
-
     public MockMapper() {
     }
 
     @Override
-    @Nonnull
-    public String getContentType() {
-        return contentType;
-    }
-
-    @Override
     public void configure(@Nonnull final MessageMapperConfiguration configuration) {
-        configuration.findContentType().ifPresent(s -> contentType = s);
         configuration.findProperty(OPT_IS_VALID).map(Boolean::valueOf).filter(Boolean.TRUE::equals).orElseThrow
                 (() -> MessageMapperConfigurationInvalidException.newBuilder(OPT_IS_VALID).build());
     }

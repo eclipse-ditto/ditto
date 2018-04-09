@@ -17,10 +17,10 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.util.AbstractMap;
-import java.util.Collections;
-import java.util.List;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 import javax.annotation.Nullable;
 import javax.jms.BytesMessage;
@@ -101,7 +101,7 @@ final class AmqpConsumerActor extends AbstractActor implements MessageListener {
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
-                .match(Message.class, this::handleJmsMessage)
+                .match(JmsMessage.class, this::handleJmsMessage)
                 .match(AddressMetric.class, this::handleAddressMetric)
                 .match(RetrieveAddressMetric.class, ram -> {
                     getSender().tell(ConnectivityModelFactory.newAddressMetric(
@@ -141,7 +141,7 @@ final class AmqpConsumerActor extends AbstractActor implements MessageListener {
         this.addressMetric = addressMetric;
     }
 
-    private void handleJmsMessage(final Message message) {
+    private void handleJmsMessage(final JmsMessage message) {
         consumedMessages++;
         try {
             final Map<String, String> headers = extractHeadersMapFromJmsMessage(message);
@@ -190,12 +190,25 @@ final class AmqpConsumerActor extends AbstractActor implements MessageListener {
         }
     }
 
-    private Map<String, String> extractHeadersMapFromJmsMessage(final Message message) throws JMSException {
-        @SuppressWarnings("unchecked") final List<String> names = Collections.list(message.getPropertyNames());
-        final Map<String, String> headersFromJmsProperties = names.stream()
-                .map(key -> getPropertyAsEntry(message, key))
-                .filter(Objects::nonNull)
-                .collect(toMap(Map.Entry::getKey, Map.Entry::getValue));
+    private Map<String, String> extractHeadersMapFromJmsMessage(final JmsMessage message) throws JMSException {
+
+        final Map<String, String> headersFromJmsProperties;
+
+        final JmsMessageFacade facade = message.getFacade();
+        if (facade instanceof AmqpJmsMessageFacade) {
+            final AmqpJmsMessageFacade amqpJmsMessageFacade = (AmqpJmsMessageFacade) facade;
+            final Set<String> names =
+                    amqpJmsMessageFacade.getApplicationPropertyNames(amqpJmsMessageFacade.getPropertyNames());
+            headersFromJmsProperties = new HashMap<>(names.stream()
+                    .map(key -> getPropertyAsEntry(amqpJmsMessageFacade, key))
+                    .filter(Objects::nonNull)
+                    .collect(toMap(Map.Entry::getKey, Map.Entry::getValue)));
+
+            final String contentType = amqpJmsMessageFacade.getContentType();
+            headersFromJmsProperties.put(ExternalMessage.CONTENT_TYPE_HEADER, contentType);
+        } else {
+            throw new JMSException("Message facade was not of type AmqpJmsMessageFacade");
+        }
 
         final String replyTo = message.getJMSReplyTo() != null ? String.valueOf(message.getJMSReplyTo()) : null;
         if (replyTo != null) {
@@ -208,23 +221,13 @@ final class AmqpConsumerActor extends AbstractActor implements MessageListener {
             headersFromJmsProperties.put(DittoHeaderDefinition.CORRELATION_ID.getKey(), jmsCorrelationId);
         }
 
-        if (message instanceof JmsMessage) {
-            final JmsMessage jmsMessage = (JmsMessage) message;
-            final JmsMessageFacade facade = jmsMessage.getFacade();
-            if (facade instanceof AmqpJmsMessageFacade) {
-                final String contentType = ((AmqpJmsMessageFacade) facade).getContentType();
-                headersFromJmsProperties.put(ExternalMessage.CONTENT_TYPE_HEADER, contentType);
-            }
-
-        }
-
         return headersFromJmsProperties;
     }
 
     @Nullable
-    private Map.Entry<String, String> getPropertyAsEntry(final Message message, final String key) {
+    private Map.Entry<String, String> getPropertyAsEntry(final AmqpJmsMessageFacade message, final String key) {
         try {
-            return new AbstractMap.SimpleImmutableEntry<>(key, message.getObjectProperty(key).toString());
+            return new AbstractMap.SimpleImmutableEntry<>(key, message.getApplicationProperty(key).toString());
         } catch (final JMSException e) {
             log.debug("Property '{}' could not be read, dropping...", key);
             return null;

@@ -28,26 +28,23 @@ import javax.annotation.concurrent.Immutable;
 final class ImmutableExternalMessage implements ExternalMessage {
 
     private final Map<String, String> headers;
-    @Nullable
-    private final String topicPath;
-    private final boolean isResponse;
+    @Nullable private final String topicPath;
+    private final boolean response;
     private final PayloadType payloadType;
 
-    @Nullable
-    private final String textPayload;
-    @Nullable
-    private final ByteBuffer bytePayload;
+    @Nullable private final String textPayload;
+    @Nullable private final ByteBuffer bytePayload;
 
     ImmutableExternalMessage(final Map<String, String> headers,
             @Nullable final String topicPath,
-            final boolean isResponse,
+            final boolean response,
             final PayloadType payloadType,
             @Nullable final String textPayload,
             @Nullable final ByteBuffer bytePayload) {
 
         this.headers = Collections.unmodifiableMap(new HashMap<>(headers));
         this.topicPath = topicPath;
-        this.isResponse = isResponse;
+        this.response = response;
         this.payloadType = payloadType;
         this.textPayload = textPayload;
         this.bytePayload = bytePayload;
@@ -110,8 +107,8 @@ final class ImmutableExternalMessage implements ExternalMessage {
     }
 
     @Override
-    public boolean isResponseMessage() {
-        return isResponse;
+    public boolean isResponse() {
+        return response;
     }
 
     @Override
@@ -127,13 +124,13 @@ final class ImmutableExternalMessage implements ExternalMessage {
                 Objects.equals(textPayload, that.textPayload) &&
                 Objects.equals(bytePayload, that.bytePayload) &&
                 Objects.equals(topicPath, that.topicPath) &&
-                Objects.equals(isResponse, that.isResponse) &&
+                Objects.equals(response, that.response) &&
                 payloadType == that.payloadType;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(headers, textPayload, bytePayload, payloadType, isResponse, topicPath);
+        return Objects.hash(headers, textPayload, bytePayload, payloadType, response, topicPath);
     }
 
     @Override
@@ -141,7 +138,7 @@ final class ImmutableExternalMessage implements ExternalMessage {
         return getClass().getSimpleName() + " [" +
                 "headers=" + headers +
                 ", topicPath=" + topicPath +
-                ", isResponseMessage=" + isResponse +
+                ", response=" + response +
                 ", payloadType=" + payloadType +
                 ", textPayload=" + textPayload +
                 ", bytePayload=" +

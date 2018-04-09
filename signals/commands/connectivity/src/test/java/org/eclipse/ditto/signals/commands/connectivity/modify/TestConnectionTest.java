@@ -17,7 +17,6 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
@@ -36,7 +35,6 @@ public final class TestConnectionTest {
     private static final JsonObject KNOWN_JSON = JsonObject.newBuilder()
             .set(Command.JsonFields.TYPE, TestConnection.TYPE)
             .set(TestConnection.JSON_CONNECTION, TestConstants.CONNECTION.toJson())
-            .set(TestConnection.JSON_MAPPING_CONTEXTS, JsonArray.newBuilder().build())
             .build();
 
     @Test

@@ -77,11 +77,11 @@ public class JsonExamplesProducer {
         Files.createDirectories(commandsDir);
 
         final TestConnection testConnection =
-                TestConnection.of(TestConstants.CONNECTION, Collections.singletonList(TestConstants.MAPPING_CONTEXT), DittoHeaders.empty());
+                TestConnection.of(TestConstants.CONNECTION, TestConstants.MAPPING_CONTEXT, DittoHeaders.empty());
         writeJson(commandsDir.resolve(Paths.get("testConnection.json")), testConnection);
 
         final CreateConnection createConnection =
-                CreateConnection.of(TestConstants.CONNECTION, Collections.singletonList(TestConstants.MAPPING_CONTEXT), DittoHeaders.empty());
+                CreateConnection.of(TestConstants.CONNECTION, TestConstants.MAPPING_CONTEXT, DittoHeaders.empty());
         writeJson(commandsDir.resolve(Paths.get("createConnection.json")), createConnection);
 
         final DeleteConnection deleteConnection =
@@ -106,7 +106,7 @@ public class JsonExamplesProducer {
         writeJson(commandsDir.resolve(Paths.get("testConnectionResponse.json")), testConnectionResponse);
 
         final CreateConnectionResponse createConnectionResponse =
-                CreateConnectionResponse.of(TestConstants.CONNECTION, Collections.singletonList(TestConstants.MAPPING_CONTEXT), DittoHeaders.empty());
+                CreateConnectionResponse.of(TestConstants.CONNECTION, TestConstants.MAPPING_CONTEXT, DittoHeaders.empty());
         writeJson(commandsDir.resolve(Paths.get("createConnection.json")), createConnectionResponse);
 
         final DeleteConnectionResponse deleteConnectionResponse =
@@ -145,7 +145,7 @@ public class JsonExamplesProducer {
         Files.createDirectories(commandsDir);
 
         final RetrieveConnectionResponse retrieveConnectionResponse =
-                RetrieveConnectionResponse.of(TestConstants.CONNECTION, Collections.singletonList(TestConstants.MAPPING_CONTEXT), DittoHeaders.empty());
+                RetrieveConnectionResponse.of(TestConstants.CONNECTION, TestConstants.MAPPING_CONTEXT, DittoHeaders.empty());
         writeJson(commandsDir.resolve(Paths.get("retrieveConnection.json")), retrieveConnectionResponse);
 
         final RetrieveConnectionStatusResponse retrieveConnectionStatusResponse =

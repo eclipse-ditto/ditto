@@ -32,35 +32,6 @@ import org.eclipse.ditto.protocoladapter.Adaptable;
 public interface MessageMapper {
 
     /**
-     * Returns the content type of this mapper. This can be used as a hint for mapper selection.
-     *
-     * @return the content type
-     */
-    String getContentType();
-
-    /**
-     * Applies configuration for this MessageMapper by first validating for required configuration items.
-     * <p>
-     * Overwrite this method if you want to apply further configuration validation but think about calling
-     * super.configureWithValidation() as this one validates the existence of the Content-Type which is a mandatory
-     * configuration property.
-     * </p>
-     *
-     * @param configuration the configuration to apply and validate
-     * @throws MessageMapperConfigurationInvalidException if configuration is invalid
-     * @throws org.eclipse.ditto.model.connectivity.MessageMapperConfigurationFailedException if the configuration failed
-     * for a mapper specific reason
-     */
-    default void configureWithValidation(final MessageMapperConfiguration configuration) {
-        if (!configuration.findContentType().isPresent()) {
-            throw MessageMapperConfigurationInvalidException
-                    .newBuilder(ExternalMessage.CONTENT_TYPE_HEADER)
-                    .build();
-        }
-        configure(configuration);
-    }
-
-    /**
      * Applies configuration for this MessageMapper.
      *
      * @param configuration the configuration to apply
@@ -69,6 +40,15 @@ public interface MessageMapper {
      * for a mapper specific reason
      */
     void configure(MessageMapperConfiguration configuration);
+
+    /**
+     * Returns the content type of this mapper. This can be used as a hint for mapper selection.
+     *
+     * @return the content type
+     */
+    default Optional<String> getContentType() {
+        return Optional.empty();
+    }
 
     /**
      * Maps an {@link org.eclipse.ditto.model.connectivity.ExternalMessage} to an {@link org.eclipse.ditto.protocoladapter.Adaptable}

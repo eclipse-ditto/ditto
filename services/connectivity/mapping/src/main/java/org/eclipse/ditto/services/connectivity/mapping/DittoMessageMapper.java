@@ -42,22 +42,19 @@ public final class DittoMessageMapper implements MessageMapper {
      * The context representing this mapper
      */
     public static final MappingContext CONTEXT = ConnectivityModelFactory.newMappingContext(
-            DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE,
             DittoMessageMapper.class.getCanonicalName(),
             Collections.emptyMap()
     );
-
-    @Override
-    public String getContentType() {
-        return DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE;
-    }
-
 
     @Override
     public void configure(final MessageMapperConfiguration configuration) {
         // no op
     }
 
+    @Override
+    public Optional<String> getContentType() {
+        return Optional.of(DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
+    }
 
     @Override
     public Optional<Adaptable> map(final ExternalMessage message) {
@@ -75,7 +72,6 @@ public final class DittoMessageMapper implements MessageMapper {
     @Override
     public Optional<ExternalMessage> map(final Adaptable adaptable) {
         final Map<String, String> headers = new LinkedHashMap<>(adaptable.getHeaders().orElse(DittoHeaders.empty()));
-        headers.put(ExternalMessage.CONTENT_TYPE_HEADER, getContentType());
 
         final String jsonString = ProtocolFactory.wrapAsJsonifiableAdaptable(adaptable).toJsonString();
 

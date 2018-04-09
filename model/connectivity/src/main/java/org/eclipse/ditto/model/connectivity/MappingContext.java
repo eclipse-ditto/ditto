@@ -31,11 +31,6 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
 public interface MappingContext extends Jsonifiable.WithFieldSelectorAndPredicate<JsonField> {
 
     /**
-     * @return the content-type of the payloads to map with an instantiated mapping engine.
-     */
-    String getContentType();
-
-    /**
      * Fully qualified classname of a mapping engine which can map messages of the contexts content-type or one of the
      * supported built-in mapping-engines aliases.
      * E.g.:
@@ -73,13 +68,6 @@ public interface MappingContext extends Jsonifiable.WithFieldSelectorAndPredicat
      */
     @Immutable
     final class JsonFields {
-
-        /**
-         * JSON field containing the {@code content-type} of message for which to apply the mapping.
-         */
-        public static final JsonFieldDefinition<String> CONTENT_TYPE =
-                JsonFactory.newStringFieldDefinition("contentType", FieldType.REGULAR,
-                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code mappingEngine} to use in order to map messages.

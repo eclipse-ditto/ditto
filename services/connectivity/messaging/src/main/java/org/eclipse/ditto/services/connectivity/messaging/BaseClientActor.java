@@ -121,7 +121,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         headerBlacklist = config.getStringList(ConfigKeys.Message.HEADER_BLACKLIST);
 
         startWith(DISCONNECTED, new BaseClientData(connection.getId(), connection, ConnectionStatus.UNKNOWN,
-                desiredConnectionStatus, "initialized", Collections.emptyList(), null));
+                desiredConnectionStatus, "initialized", null, null));
 
         when(DISCONNECTED, Duration.fromNanos(initTimeout.toNanos()),
                 inDisconnectedState(initTimeout));
@@ -195,7 +195,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                         final CompletionStage<Status.Status> connectionStatus =
                                 doTestConnection(testConnection.getConnection());
                         final CompletionStage<Status.Status> mappingStatus =
-                                testMessageMappingProcessor(testConnection.getMappingContexts());
+                                testMessageMappingProcessor(testConnection.getMappingContext().orElse(null));
 
                         final ActorRef sender = getSender();
                         connectionStatus.toCompletableFuture()
@@ -217,7 +217,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                         goTo(CONNECTING)
                                 .using(data
                                         .setConnection(createConnection.getConnection())
-                                        .setMappingContexts(createConnection.getMappingContexts())
+                                        .setMappingContext(createConnection.getMappingContext().orElse(null))
                                         .setConnectionStatusDetails("creating connection at " + Instant.now())
                                         .setOrigin(getSender())
                                 )
@@ -342,7 +342,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     private State<BaseClientState, BaseClientData> handleClientConnected(final ClientConnected clientConnected,
             final BaseClientData data) {
 
-        startMessageMappingProcessor(data.getMappingContexts());
+        startMessageMappingProcessor(data.getMappingContext().orElse(null));
         onClientConnected(clientConnected, data);
         clientConnected.getOrigin().ifPresent(o -> o.tell(new Status.Success(CONNECTED), getSelf()));
         return goTo(CONNECTED).using(data
@@ -585,10 +585,10 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                 .collect(Collectors.toList());
     }
 
-    private CompletionStage<Status.Status> testMessageMappingProcessor(final List<MappingContext> mappingContexts) {
+    private CompletionStage<Status.Status> testMessageMappingProcessor(@Nullable final MappingContext mappingContext) {
         try {
             // this one throws DittoRuntimeExceptions when the mapper could not be configured
-            MessageMappingProcessor.of(mappingContexts, getDynamicAccess(), log);
+            MessageMappingProcessor.of(mappingContext, getDynamicAccess(), log);
             return CompletableFuture.completedFuture(new Status.Success("mapping"));
         } catch (final DittoRuntimeException dre) {
             log.info("Got DittoRuntimeException during initialization of MessageMappingProcessor: {} {} - desc: {}",
@@ -602,16 +602,16 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
      * Starts the {@link MessageMappingProcessorActor} responsible for payload transformation/mapping as child actor
      * behind a (cluster node local) RoundRobin pool and a dynamic resizer.
      *
-     * @param mappingContexts the MappingContexts containing information about how to map external messages
+     * @param mappingContext the MappingContext containing information about how to map external messages
      */
-    private void startMessageMappingProcessor(final List<MappingContext> mappingContexts) {
+    private void startMessageMappingProcessor(final MappingContext mappingContext) {
         if (!getMessageMappingProcessorActor().isPresent()) {
             final Connection connection = connection();
 
             final MessageMappingProcessor processor;
             try {
                 // this one throws DittoRuntimeExceptions when the mapper could not be configured
-                processor = MessageMappingProcessor.of(mappingContexts, getDynamicAccess(), log);
+                processor = MessageMappingProcessor.of(mappingContext, getDynamicAccess(), log);
             } catch (final DittoRuntimeException dre) {
                 log.info(
                         "Got DittoRuntimeException during initialization of MessageMappingProcessor: {} {} - desc: {}",
@@ -620,9 +620,8 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                 return;
             }
 
-            log.info("Configured for processing messages with the following content types: <{}>",
-                    processor.getSupportedContentTypes());
-            log.info("Interpreting messages with missing content type as <{}>", processor.getDefaultContentType());
+            log.info("Configured for processing messages with the following MessageMapperRegistry: <{}>",
+                    processor.getRegistry());
 
             log.debug("Starting MessageMappingProcessorActor with pool size of <{}>.",
                     connection.getProcessorPoolSize());

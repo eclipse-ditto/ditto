@@ -23,12 +23,12 @@ final class JavaScriptMessageMapperConfigurationProperties {
     /**
      * Configuration key for the incoming MappingScript.
      */
-    static final String INCOMING_MAPPING_SCRIPT = "incomingMappingScript";
+    static final String INCOMING_SCRIPT = "incomingScript";
 
     /**
      * Configuration key for the outgoing MappingScript.
      */
-    static final String OUTGOING_MAPPING_SCRIPT = "outgoingMappingScript";
+    static final String OUTGOING_SCRIPT = "outgoingScript";
 
     /**
      * Configuration key for loading the "bytebuffer.js" library.

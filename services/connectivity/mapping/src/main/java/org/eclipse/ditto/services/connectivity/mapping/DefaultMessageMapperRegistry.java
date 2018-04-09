@@ -13,34 +13,22 @@ package org.eclipse.ditto.services.connectivity.mapping;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.Function;
-import java.util.stream.Collectors;
+
+import javax.annotation.Nullable;
 
 /**
  * The default implementation of a {@link MessageMapperRegistry}.
  */
 public final class DefaultMessageMapperRegistry implements MessageMapperRegistry {
 
-    private final Map<String, MessageMapper> mappers;
     private final MessageMapper defaultMapper;
+    @Nullable private final MessageMapper mapper;
 
-    private DefaultMessageMapperRegistry(final MessageMapper defaultMapper, final Collection<MessageMapper> mappers) {
+    private DefaultMessageMapperRegistry(final MessageMapper defaultMapper, @Nullable final MessageMapper mapper) {
         this.defaultMapper = checkNotNull(defaultMapper);
-        this.mappers = Collections.unmodifiableMap(
-                mappers.stream()
-                        .collect(Collectors.toMap(MessageMapper::getContentType, Function.identity()))
-        );
-    }
-
-    @Override
-    public Collection<MessageMapper> getMappers() {
-        return Collections.unmodifiableSet(new HashSet<>(mappers.values()));
+        this.mapper = mapper;
     }
 
     @Override
@@ -49,19 +37,18 @@ public final class DefaultMessageMapperRegistry implements MessageMapperRegistry
     }
 
     @Override
-    public Optional<MessageMapper> findMapper(final String contentType) {
-        return Optional.ofNullable(mappers.get(contentType));
+    public Optional<MessageMapper> getMapper() {
+        return Optional.ofNullable(mapper);
     }
 
     /**
      * Creates a new registry of the parameter values.
      *
      * @param defaultMapper the default mapper
-     * @param mappers the mappers
+     * @param mapper the mapper
      */
-    public static DefaultMessageMapperRegistry of(final MessageMapper defaultMapper,
-            final Collection<MessageMapper> mappers) {
-        return new DefaultMessageMapperRegistry(defaultMapper, mappers);
+    public static DefaultMessageMapperRegistry of(final MessageMapper defaultMapper, @Nullable final MessageMapper mapper) {
+        return new DefaultMessageMapperRegistry(defaultMapper, mapper);
     }
 
     @Override
@@ -73,21 +60,21 @@ public final class DefaultMessageMapperRegistry implements MessageMapperRegistry
             return false;
         }
         final DefaultMessageMapperRegistry that = (DefaultMessageMapperRegistry) o;
-        return Objects.equals(mappers, that.mappers) &&
+        return Objects.equals(mapper, that.mapper) &&
                 Objects.equals(defaultMapper, that.defaultMapper);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(mappers, defaultMapper);
+        return Objects.hash(mapper, defaultMapper);
     }
 
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "mappers=" + mappers +
-                ", defaultMapper=" + defaultMapper +
+                "defaultMapper=" + defaultMapper +
+                ", mapper=" + mapper +
                 "]";
     }
 }

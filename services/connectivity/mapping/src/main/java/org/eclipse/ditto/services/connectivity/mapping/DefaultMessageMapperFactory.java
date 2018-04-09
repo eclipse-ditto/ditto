@@ -20,8 +20,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.connectivity.MappingContext;
@@ -119,34 +119,21 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
         return mapper.map(m -> configureInstance(m, options) ? m : null);
     }
 
-
     @Override
-    public List<MessageMapper> mappersOf(final List<MappingContext> contexts) {
-        checkNotNull(contexts);
-
-        return contexts.stream().filter(Objects::nonNull)
-                .map(this::mapperOf)
-                .map(m -> m.orElse(null))
-                .filter(Objects::nonNull)
-                .peek(m -> log.debug("MessageMapper loaded: <{}>", m))
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public MessageMapperRegistry registryOf(final MappingContext defaultContext, final List<MappingContext> contexts) {
+    public MessageMapperRegistry registryOf(final MappingContext defaultContext, @Nullable final MappingContext context) {
         final MessageMapper defaultMapper = mapperOf(defaultContext)
-                .map(mapper -> WrappingMessageMapper.wrap(mapper, false))
+                .map(WrappingMessageMapper::wrap)
                 .orElseThrow(() ->
                         new IllegalArgumentException("No mapper found for default context: " + defaultContext));
 
-        final List<MessageMapper> mappers = contexts.stream()
-                .filter(Objects::nonNull)
-                .map(ctx -> mapperOf(ctx)
-                        .map(m -> WrappingMessageMapper.wrap(m, ctx.getContentType()))
-                        .orElse(null))
-                .peek(m -> log.debug("MessageMapper loaded: <{}>", m))
-                .collect(Collectors.toList());
-        return DefaultMessageMapperRegistry.of(defaultMapper, mappers);
+        final MessageMapper messageMapper;
+        if (context != null) {
+            messageMapper = mapperOf(context)
+                    .map(WrappingMessageMapper::wrap).orElse(null);
+        } else {
+            messageMapper = null;
+        }
+        return DefaultMessageMapperRegistry.of(defaultMapper, messageMapper);
     }
 
     /**
@@ -192,7 +179,7 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
 
     private boolean configureInstance(final MessageMapper mapper, final DefaultMessageMapperConfiguration options) {
         try {
-            mapper.configureWithValidation(options);
+            mapper.configure(options);
             return true;
         } catch (final MessageMapperConfigurationInvalidException e) {
             log.warning("Failed to apply configuration <{}> to mapper instance <{}>: {}", options, mapper,

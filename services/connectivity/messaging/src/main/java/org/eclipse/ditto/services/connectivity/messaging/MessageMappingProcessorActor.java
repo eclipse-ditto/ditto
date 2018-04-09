@@ -95,10 +95,6 @@ public final class MessageMappingProcessorActor extends AbstractActor {
                 .removalListener((RemovalListener<String, TraceContext>) notification
                         -> log.debug("Trace for {} removed.", notification.getKey()))
                 .build();
-
-        log.info("Configured for processing messages with the following content types: {}",
-                processor.getSupportedContentTypes());
-        log.info("Interpreting messages with missing content type as '{}'", processor.getDefaultContentType());
     }
 
     /**

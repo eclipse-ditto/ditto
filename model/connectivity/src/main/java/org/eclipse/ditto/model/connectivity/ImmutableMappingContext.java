@@ -14,7 +14,6 @@ package org.eclipse.ditto.model.connectivity;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Predicate;
@@ -36,39 +35,29 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 @Immutable
 final class ImmutableMappingContext implements MappingContext {
 
-    private final String contentType;
     private final String mappingEngine;
     private final Map<String, String> options;
 
 
-    private ImmutableMappingContext(final String contentType, final String mappingEngine,
-            final Map<String, String> options) {
+    private ImmutableMappingContext(final String mappingEngine, final Map<String, String> options) {
 
-        this.contentType = contentType;
         this.mappingEngine = mappingEngine;
-        final HashMap<String, String> adjustedMap = new HashMap<>(options);
-        if (!adjustedMap.containsKey(ExternalMessage.CONTENT_TYPE_HEADER)) {
-            adjustedMap.put(ExternalMessage.CONTENT_TYPE_HEADER, contentType);
-        }
-        this.options = Collections.unmodifiableMap(adjustedMap);
+        this.options = Collections.unmodifiableMap(options);
     }
 
     /**
      * Creates a new {@code ImmutableMappingContext} instance.
      *
-     * @param contentType the Content-Type this MappingContext can map.
      * @param mappingEngine the mapping engine to use as fully qualified classname of an implementation of
      * {@code MessageMapper} interface.
      * @param options the mapping engine specific options to apply.
      * @return a new instance of ImmutableMappingContext.
      */
-    public static ImmutableMappingContext of(final String contentType, final String mappingEngine,
-            final Map<String, String> options) {
-        checkNotNull(contentType, "content-type");
+    public static ImmutableMappingContext of(final String mappingEngine, final Map<String, String> options) {
         checkNotNull(mappingEngine, "mapping Engine");
         checkNotNull(options, "options");
 
-        return new ImmutableMappingContext(contentType, mappingEngine, options);
+        return new ImmutableMappingContext(mappingEngine, options);
     }
 
     /**
@@ -80,7 +69,6 @@ final class ImmutableMappingContext implements MappingContext {
      * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} is not an appropriate JSON object.
      */
     public static MappingContext fromJson(final JsonObject jsonObject) {
-        final String contentType = jsonObject.getValueOrThrow(JsonFields.CONTENT_TYPE);
         final String mappingEngine = jsonObject.getValueOrThrow(JsonFields.MAPPING_ENGINE);
         final Map<String, String> options = jsonObject.getValueOrThrow(JsonFields.OPTIONS).stream()
                 .collect(Collectors.toMap(
@@ -88,7 +76,7 @@ final class ImmutableMappingContext implements MappingContext {
                         e -> e.getValue().isString() ? e.getValue().asString() : e.getValue().toString())
                 );
 
-        return of(contentType, mappingEngine, options);
+        return of(mappingEngine, options);
     }
 
     @Override
@@ -96,18 +84,12 @@ final class ImmutableMappingContext implements MappingContext {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
 
-        jsonObjectBuilder.set(JsonFields.CONTENT_TYPE, contentType, predicate);
         jsonObjectBuilder.set(JsonFields.MAPPING_ENGINE, mappingEngine, predicate);
         jsonObjectBuilder.set(JsonFields.OPTIONS, options.entrySet().stream()
                 .map(e -> JsonField.newInstance(e.getKey(), JsonValue.of(e.getValue())))
                 .collect(JsonCollectors.fieldsToObject()), predicate);
 
         return jsonObjectBuilder.build();
-    }
-
-    @Override
-    public String getContentType() {
-        return contentType;
     }
 
     @Override
@@ -129,21 +111,19 @@ final class ImmutableMappingContext implements MappingContext {
             return false;
         }
         final ImmutableMappingContext that = (ImmutableMappingContext) o;
-        return Objects.equals(contentType, that.contentType) &&
-                Objects.equals(mappingEngine, that.mappingEngine) &&
+        return Objects.equals(mappingEngine, that.mappingEngine) &&
                 Objects.equals(options, that.options);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(contentType, mappingEngine, options);
+        return Objects.hash(mappingEngine, options);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "contentType=" + contentType +
-                ", mappingEngine=" + mappingEngine +
+                "mappingEngine=" + mappingEngine +
                 ", options=" + options +
                 "]";
     }

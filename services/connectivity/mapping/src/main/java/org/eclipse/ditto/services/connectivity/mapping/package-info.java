@@ -17,5 +17,5 @@
  * This allows transformation of unknown paylaod (e.g. sensor data) to a structured format understood by Ditto.
  * </p>
  */
-@org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault
+@org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault
 package org.eclipse.ditto.services.connectivity.mapping;

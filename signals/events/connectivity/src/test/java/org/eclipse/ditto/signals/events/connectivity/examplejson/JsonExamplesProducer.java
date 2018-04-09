@@ -56,9 +56,9 @@ public class JsonExamplesProducer {
     private static final Set<Target> TARGETS = new HashSet<>(
             Collections.singletonList(ConnectivityModelFactory.newTarget("eventQueue", "_/_/things/twin/events")));
 
-    public static MappingContext MAPPING_CONTEXT = ConnectivityModelFactory.newMappingContext("text/plain",
+    public static MappingContext MAPPING_CONTEXT = ConnectivityModelFactory.newMappingContext(
             "JavaScript",
-            Collections.singletonMap("incomingMappingScript",
+            Collections.singletonMap("incomingScript",
                     "ditto_protocolJson.topic = 'org.eclipse.ditto/foo-bar/things/twin/commands/create';" +
                             "ditto_protocolJson.path = '/';" +
                             "ditto_protocolJson.headers = {};" +
@@ -97,8 +97,7 @@ public class JsonExamplesProducer {
                         .build();
         final DittoHeaders headers = DittoHeaders.empty();
 
-        final ConnectionCreated connectionCreated = ConnectionCreated.of(connection,
-                Collections.singletonList(MAPPING_CONTEXT), headers);
+        final ConnectionCreated connectionCreated = ConnectionCreated.of(connection,MAPPING_CONTEXT, headers);
         writeJson(eventsDir.resolve(Paths.get("connectionCreated.json")), connectionCreated);
 
         final ConnectionOpened connectionOpened = ConnectionOpened.of(ID, headers);

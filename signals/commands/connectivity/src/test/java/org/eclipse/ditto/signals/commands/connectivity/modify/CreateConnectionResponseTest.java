@@ -17,16 +17,13 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import java.util.Collections;
-
-import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.signals.commands.connectivity.TestConstants;
+import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
+import org.eclipse.ditto.signals.commands.connectivity.TestConstants;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -40,7 +37,6 @@ public final class CreateConnectionResponseTest {
             .set(CommandResponse.JsonFields.TYPE, CreateConnectionResponse.TYPE)
             .set(CommandResponse.JsonFields.STATUS, HttpStatusCode.CREATED.toInt())
             .set(CreateConnectionResponse.JSON_CONNECTION, TestConstants.CONNECTION.toJson())
-            .set(CreateConnectionResponse.JSON_MAPPING_CONTEXTS, JsonArray.newBuilder().build())
             .build();
 
     @Test
@@ -60,7 +56,7 @@ public final class CreateConnectionResponseTest {
     @Test
     public void createInstanceWithNullConnection() {
         assertThatExceptionOfType(NullPointerException.class)
-                .isThrownBy(() -> CreateConnectionResponse.of(null, Collections.emptyList(), DittoHeaders.empty()))
+                .isThrownBy(() -> CreateConnectionResponse.of(null, null, DittoHeaders.empty()))
                 .withMessage("The %s must not be null!", "Connection")
                 .withNoCause();
     }
@@ -68,7 +64,7 @@ public final class CreateConnectionResponseTest {
     @Test
     public void fromJsonReturnsExpected() {
         final CreateConnectionResponse expected =
-                CreateConnectionResponse.of(TestConstants.CONNECTION, Collections.emptyList(), DittoHeaders.empty());
+                CreateConnectionResponse.of(TestConstants.CONNECTION, null, DittoHeaders.empty());
 
         final CreateConnectionResponse actual =
                 CreateConnectionResponse.fromJson(KNOWN_JSON, DittoHeaders.empty());
@@ -79,7 +75,7 @@ public final class CreateConnectionResponseTest {
     @Test
     public void toJsonReturnsExpected() {
         final JsonObject actual =
-                CreateConnectionResponse.of(TestConstants.CONNECTION, Collections.emptyList(), DittoHeaders.empty()).toJson();
+                CreateConnectionResponse.of(TestConstants.CONNECTION, null, DittoHeaders.empty()).toJson();
 
         assertThat(actual).isEqualTo(KNOWN_JSON);
     }
