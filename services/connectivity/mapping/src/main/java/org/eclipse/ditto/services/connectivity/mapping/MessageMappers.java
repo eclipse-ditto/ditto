@@ -35,34 +35,6 @@ public final class MessageMappers {
         throw new AssertionError();
     }
 
-//    /**
-//     * Determines the MessageType based on the passed in Ditto Protocol Adaptable.
-//     *
-//     * @param adaptable the Adaptable to determine the message type from
-//     * @return the message type
-//     * @throws IllegalArgumentException if the Adaptable contained an unknown MessageType
-//     */
-//    public static ExternalMessage.MessageType determineMessageType(final Adaptable adaptable) {
-//        final TopicPath.Criterion criterion = adaptable.getTopicPath().getCriterion();
-//        switch (criterion) {
-//            case COMMANDS:
-//                if (adaptable.getPayload().getStatus().isPresent()) {
-//                    return ExternalMessage.MessageType.RESPONSE;
-//                } else {
-//                    return ExternalMessage.MessageType.COMMAND;
-//                }
-//            case EVENTS:
-//                return ExternalMessage.MessageType.EVENT;
-//            case MESSAGES:
-//                return ExternalMessage.MessageType.MESSAGE;
-//            case ERRORS:
-//                return ExternalMessage.MessageType.ERRORS;
-//            default:
-//                throw new IllegalArgumentException(MessageFormat.format("Cannot map ''{0}'' message.",
-//                        criterion.getName()));
-//        }
-//    }
-
     /**
      * Determines the charset from the passed {@code contentType}, falls back to UTF-8 if no specific one was present
      * in contentType.

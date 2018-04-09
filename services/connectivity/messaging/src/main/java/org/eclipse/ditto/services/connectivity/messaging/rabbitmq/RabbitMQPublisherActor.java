@@ -42,30 +42,15 @@ import akka.japi.pf.ReceiveBuilder;
 
 /**
  * Responsible for publishing {@link ExternalMessage}s into RabbitMQ / AMQP 0.9.1.
- * The behaviour how the events and responses are published can be controlled by the configuration settings
- * {@code eventTarget} and {@code replyTarget}.
- * <p>
- * The {@code eventTarget} from the {@link Connection} is interpreted as follows:
+ * <br/>
+ * To receive responses the {@code replyTo} header must be set. Responses are sent to the default exchange with
+ * the {@code replyTo} header as routing key.
+ * <br/>
+ * The {@code address} of the {@code targets} from the {@link Connection} are interpreted as follows:
  * </p>
  * <ul>
- *     <li>{@code eventTarget} undefined: thing events are not published at all</li>
- *     <li>{@code eventTarget="target"}: thing events are published to exchange
- *         {@code target} with default routing key {@code thingEvent}</li>
- *     <li>{@code eventTarget="target/routingKey"}: thing events are published to exchange
- *         {@code target} with routing key {@code routingKey}</li>
- * </ul>
- * The {@code replyTarget} together with the {@code replyTo} header is interpreted as follows:
- * <ul>
- *     <li>{@code replyTarget} and {@code replyTo} header undefined: the response is dropped</li>
- *     <li>{@code replyTarget="target"} and {@code replyTo} undefined: the response is dropped</li>
- *     <li>{@code replyTarget} undefined and header {@code replyTo="replyKey"}: the response is sent to the
- *         default exchange ({@code ""}) with routing key {@code replyKey}</li>
- *     <li>{@code replyTarget="target"} and header {@code replyTo="replyKey"}, the response is sent to the
- *         exchange {@code target} with routing key {@code replyKey}</li>
- *     <li>{@code replyTarget="target/replyKey"} and {@code replyTo} header undefined: the response is sent to the exchange {@code target} with routing key
- *         {@code replyKey}</li>
- *     <li>{@code replyTarget="target/replyKey"} and header {@code replyTo="replyKeyFromHeader"}: the response is sent to the exchange {@code target} with routing key
- *         {@code replyKeyFromHeader}. Note: This means the {@code replyTo} header takes precedence over the configured routing key.</li>
+ * <li>no {@code targets} defined: signals are not published at all</li>
+ * <li>{@code address="target/routingKey"}: signals are published to exchange {@code target} with routing key {@code routingKey}</li>
  * </ul>
  */
 public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTarget> {

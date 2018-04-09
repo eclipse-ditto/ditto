@@ -356,7 +356,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
                 while (getContext().findChild(actorName).isPresent()) {
                     try {
                         Thread.sleep(10);
-                    } catch (InterruptedException e) {
+                    } catch (final InterruptedException e) {
                         throw new IllegalStateException(e);
                     }
                     if (--counter == 0) {
