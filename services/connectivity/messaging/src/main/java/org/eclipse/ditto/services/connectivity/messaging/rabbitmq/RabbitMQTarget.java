@@ -18,6 +18,8 @@ import java.util.function.Supplier;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.common.ConditionChecker;
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.services.connectivity.messaging.PublishTarget;
 
 /**
@@ -38,11 +40,13 @@ class RabbitMQTarget implements PublishTarget {
     }
 
     static RabbitMQTarget fromTargetAddress(final String targetAddress) {
-        final Supplier<IllegalArgumentException> exceptionSupplier =
-                () -> new IllegalArgumentException(
-                        "The target address '" + targetAddress + "' must be specified in the format 'exchange[/routingKey]'.");
+        final Supplier<DittoRuntimeException> exceptionSupplier =
+                () -> ConnectionConfigurationInvalidException.newBuilder(
+                        "The target address '" + targetAddress + "' must be specified " +
+                                "in the format 'exchange/routingKey'.")
+                        .build();
         final String exchange = getExchangeFromTarget(targetAddress).orElseThrow(exceptionSupplier);
-        final String routingKey = getRoutingKeyFromTarget(targetAddress).orElse(null);
+        final String routingKey = getRoutingKeyFromTarget(targetAddress).orElseThrow(exceptionSupplier);
         return new RabbitMQTarget(exchange, routingKey);
     }
 

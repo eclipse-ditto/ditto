@@ -48,16 +48,17 @@ import akka.actor.Props;
 
 public class TestConstants {
 
-    private static final ConnectionType TYPE = ConnectionType.AMQP_10;
-    private static final String URI = "amqps://username:password@my.endpoint:443";
+    static final ConnectionType TYPE = ConnectionType.AMQP_10;
+    public static final String URI = "amqps://username:password@my.endpoint:443";
     public static final String SUBJECT_ID = "mySolutionId:mySubject";
-    private static final AuthorizationContext AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(
+    public static final AuthorizationContext AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(
             AuthorizationSubject.newInstance(SUBJECT_ID));
     private static final Set<Source> SOURCES = new HashSet<>(
             Arrays.asList(ConnectivityModelFactory.newSource(2, "amqp/source1"),
                     ConnectivityModelFactory.newSource(2, "amqp/source2")));
     private static final Set<Target> TARGETS = new HashSet<>(
-            Collections.singletonList(ConnectivityModelFactory.newTarget("eventQueue", "_/_/things/twin/events")));
+            Collections.singletonList(ConnectivityModelFactory.newTarget("twinEventExchange/twinEventRoutingKey",
+                    "_/_/things/twin/events")));
     public static final Config CONFIG = ConfigFactory.load("test");
     public static final String THING_ID = "ditto:thing";
     private static final Thing THING = Thing.newBuilder().setId(THING_ID).build();

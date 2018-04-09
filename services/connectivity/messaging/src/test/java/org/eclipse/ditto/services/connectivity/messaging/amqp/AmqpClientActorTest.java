@@ -14,6 +14,8 @@ package org.eclipse.ditto.services.connectivity.messaging.amqp;
 
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.createRandomConnectionId;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
@@ -21,8 +23,11 @@ import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 
 import javax.jms.Destination;
 import javax.jms.JMSException;
@@ -38,10 +43,14 @@ import org.apache.qpid.jms.JmsQueue;
 import org.apache.qpid.jms.message.JmsTextMessage;
 import org.apache.qpid.jms.provider.amqp.AmqpConnection;
 import org.apache.qpid.jms.provider.amqp.message.AmqpJmsTextMessageFacade;
+import org.assertj.core.api.ThrowableAssert;
 import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
+import org.eclipse.ditto.model.connectivity.ConnectionType;
+import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientState;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -86,6 +95,7 @@ public class AmqpClientActorTest {
 
     @Mock
     private JmsConnection mockConnection = Mockito.mock(JmsConnection.class);
+    private final JmsConnectionFactory jmsConnectionFactory = (connection1, exceptionListener) -> mockConnection;
     @Mock
     private Session mockSession = Mockito.mock(Session.class);
     @Mock
@@ -112,6 +122,27 @@ public class AmqpClientActorTest {
         when(mockSession.createConsumer(any(JmsQueue.class))).thenReturn(mockConsumer);
         when(mockSession.createProducer(any(Destination.class))).thenReturn(mockProducer);
         when(mockSession.createTextMessage(anyString())).thenReturn(mockTextMessage);
+    }
+
+    @Test
+    public void invalidSpecificOptionsThrowConnectionConfigurationInvalidException() {
+        final HashMap<String, String> specificOptions = new HashMap<>();
+        specificOptions.put("failover.unknown.option", "100");
+        specificOptions.put("failover.nested.amqp.vhost", "ditto");
+        final Connection connection = ConnectivityModelFactory.newConnectionBuilder(createRandomConnectionId(),
+                ConnectionType.AMQP_10, TestConstants.URI, TestConstants.AUTHORIZATION_CONTEXT)
+                .specificConfig(specificOptions)
+                .sources(Collections.singleton(ConnectivityModelFactory.newSource(1, "source1")))
+                .build();
+
+        final ThrowableAssert.ThrowingCallable props1 = () -> AmqpClientActor.props(connection, connectionStatus);
+        final ThrowableAssert.ThrowingCallable props2 =
+                () -> AmqpClientActor.props(connection, connectionStatus, "target", jmsConnectionFactory);
+
+        Stream.of(props1, props2).forEach(throwingCallable ->
+                assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
+                        .isThrownBy(throwingCallable)
+                        .withMessageContaining("unknown.option"));
     }
 
     @Test

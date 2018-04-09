@@ -16,6 +16,7 @@ import java.util.Objects;
 import javax.jms.Destination;
 
 import org.apache.qpid.jms.JmsQueue;
+import org.apache.qpid.jms.JmsTopic;
 import org.eclipse.ditto.services.connectivity.messaging.PublishTarget;
 
 /**
@@ -23,12 +24,23 @@ import org.eclipse.ditto.services.connectivity.messaging.PublishTarget;
  */
 public class AmqpTarget implements PublishTarget {
 
+    private static final String TOPIC_PREFIX = "topic://";
+    private static final String QUEUE_PREFIX = "queue://";
+    private static final String EMPTY_STRING = "";
     private final Destination jmsDestination;
 
     private AmqpTarget(final Destination jmsDestination) {this.jmsDestination = jmsDestination;}
 
     static AmqpTarget fromTargetAddress(final String targetAddress) {
-        return new AmqpTarget(new JmsQueue(targetAddress));
+        final Destination destination;
+        if (targetAddress.startsWith(TOPIC_PREFIX)) {
+            destination = new JmsTopic(targetAddress.replace(TOPIC_PREFIX, EMPTY_STRING));
+        } else if (targetAddress.startsWith(QUEUE_PREFIX)) {
+            destination = new JmsQueue(targetAddress.replace(QUEUE_PREFIX, EMPTY_STRING));
+        } else {
+            destination = new JmsQueue(targetAddress);
+        }
+        return new AmqpTarget(destination);
     }
 
     Destination getJmsDestination() {

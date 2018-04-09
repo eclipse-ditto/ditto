@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.connectivity.messaging.amqp;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.net.URI;
+import java.text.MessageFormat;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.HashMap;
@@ -36,8 +37,10 @@ import javax.jms.Session;
 import org.apache.qpid.jms.JmsConnection;
 import org.apache.qpid.jms.JmsConnectionListener;
 import org.apache.qpid.jms.message.JmsInboundMessageDispatch;
+import org.apache.qpid.jms.provider.ProviderFactory;
 import org.eclipse.ditto.model.connectivity.AddressMetric;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Source;
@@ -82,12 +85,6 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     @Nullable private Session jmsSession;
     @Nullable private ActorRef amqpPublisherActor;
 
-    private AmqpClientActor(final Connection connection, final ConnectionStatus connectionStatus) {
-        this(connection, connectionStatus,
-                ConnectivityMessagingConstants.GATEWAY_PROXY_ACTOR_PATH,
-                ConnectionBasedJmsConnectionFactory.getInstance());
-    }
-
     private AmqpClientActor(final Connection connection, final ConnectionStatus connectionStatus,
             final String pubSubTargetPath, final JmsConnectionFactory jmsConnectionFactory) {
         super(connection, connectionStatus, pubSubTargetPath);
@@ -104,7 +101,9 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
      * @return the Akka configuration Props object
      */
     public static Props props(final Connection connection, final ConnectionStatus connectionStatus) {
-        return Props.create(AmqpClientActor.class, connection, connectionStatus);
+        return Props.create(AmqpClientActor.class, validateConnection(connection), connectionStatus,
+                ConnectivityMessagingConstants.GATEWAY_PROXY_ACTOR_PATH,
+                ConnectionBasedJmsConnectionFactory.getInstance());
     }
 
     /**
@@ -119,13 +118,30 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     public static Props props(final Connection connection, final ConnectionStatus connectionStatus,
             final String pubSubTargetPath,
             final JmsConnectionFactory jmsConnectionFactory) {
-        return Props.create(AmqpClientActor.class, connection, connectionStatus, pubSubTargetPath,
+        return Props.create(AmqpClientActor.class, validateConnection(connection), connectionStatus, pubSubTargetPath,
                 jmsConnectionFactory);
+    }
+
+    private static Connection validateConnection(final Connection connection) {
+        try {
+            final URI uri =
+                    URI.create(ConnectionBasedJmsConnectionFactory.buildAmqpConnectionUriFromConnection(connection));
+            ProviderFactory.create(uri);
+            return connection;
+        } catch (final Exception e) {
+            final String errorMessageTemplate =
+                    "Failed to instantiate an amqp provider from the given configuration: {0}";
+            final String errorMessage = MessageFormat.format(errorMessageTemplate, e.getMessage());
+            throw ConnectionConfigurationInvalidException
+                    .newBuilder(errorMessage)
+                    .description(e.getMessage())
+                    .cause(e)
+                    .build();
+        }
     }
 
     @Override
     protected CompletionStage<Status.Status> doTestConnection(final Connection connection) {
-
         // delegate to child actor because the QPID JMS client is blocking until connection is opened/closed
         return PatternsCS.ask(startConnectionHandlingActor("test", connection),
                 new JmsConnect(getSender()), Timeout.apply(TEST_CONNECTION_TIMEOUT, TimeUnit.SECONDS))

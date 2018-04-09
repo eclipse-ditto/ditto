@@ -336,7 +336,6 @@ final class ConnectionActor extends AbstractPersistentActor {
     }
 
     private void testConnection(final TestConnection command) {
-
         final ActorRef origin = getSender();
 
         connection = command.getConnection();
@@ -356,11 +355,17 @@ final class ConnectionActor extends AbstractPersistentActor {
     }
 
     private void createConnection(final CreateConnection command) {
+        final ActorRef origin = getSender();
+        try {
+            // try to create actor props before persisting the connection to fail early
+            propsFactory.getActorPropsForType(command.getConnection(), connectionStatus);
+        } catch (final Exception e) {
+            handleException("connect", origin, e);
+        }
 
         final ConnectionCreated connectionCreated =
                 ConnectionCreated.of(command.getConnection(), command.getMappingContext().orElse(null),
                         command.getDittoHeaders());
-        final ActorRef origin = getSender();
 
         persistEvent(connectionCreated, persistedEvent -> {
             connection = persistedEvent.getConnection();

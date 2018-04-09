@@ -19,12 +19,12 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -78,6 +78,15 @@ public final class ConnectionBasedJmsConnectionFactory implements JmsConnectionF
     }
 
     private Context createContext(final Connection connection) throws NamingException {
+        final String connectionUri = buildAmqpConnectionUriFromConnection(connection);
+        @SuppressWarnings("squid:S1149") final Hashtable<Object, Object> env = new Hashtable<>();
+        env.put(Context.INITIAL_CONTEXT_FACTORY, "org.apache.qpid.jms.jndi.JmsInitialContextFactory");
+        env.put("connectionfactory." + connection.getId(), connectionUri);
+
+        return new InitialContext(env);
+    }
+
+    public static String buildAmqpConnectionUriFromConnection(final Connection connection) {
         final String id = connection.getId();
         final String username = connection.getUsername().orElse(null);
         final String password = connection.getPassword().orElse(null);
@@ -108,11 +117,7 @@ public final class ConnectionBasedJmsConnectionFactory implements JmsConnectionF
             connectionUri = nestedUri + globalParameters.stream().collect(Collectors.joining("&", "&", ""));
         }
         LOGGER.debug("[{}] URI: {}", id, connectionUri);
-        @SuppressWarnings("squid:S1149") final Hashtable<Object, Object> env = new Hashtable<>();
-        env.put(Context.INITIAL_CONTEXT_FACTORY, "org.apache.qpid.jms.jndi.JmsInitialContextFactory");
-        env.put("connectionfactory." + connection.getId(), connectionUri);
-
-        return new InitialContext(env);
+        return connectionUri;
     }
 
     private static String formatUri(final String protocol, final String hostname, final int port) {
@@ -186,13 +191,13 @@ public final class ConnectionBasedJmsConnectionFactory implements JmsConnectionF
                 .collect(Collectors.toList());
 
         final List<String> defaultFailoverParams =
-                Arrays.asList(FAILOVER_OPTION_PREFIX + "initialReconnectDelay=" + TimeUnit.SECONDS.toMillis(10),
+                Stream.of(FAILOVER_OPTION_PREFIX + "initialReconnectDelay=" + TimeUnit.SECONDS.toMillis(10),
                         FAILOVER_OPTION_PREFIX + "startupMaxReconnectAttempts=1",
                         // important, we cannot interrupt connection initiation
                         FAILOVER_OPTION_PREFIX + "reconnectDelay=" + TimeUnit.SECONDS.toMillis(1),
                         FAILOVER_OPTION_PREFIX + "maxReconnectDelay=" + TimeUnit.MINUTES.toMillis(60),
                         FAILOVER_OPTION_PREFIX + "useReconnectBackOff=true",
-                        FAILOVER_OPTION_PREFIX + "reconnectBackOffMultiplier=1.0");
+                        FAILOVER_OPTION_PREFIX + "reconnectBackOffMultiplier=1.0").collect(Collectors.toList());
 
         defaultFailoverParams.addAll(failoverParams);
         return defaultFailoverParams;

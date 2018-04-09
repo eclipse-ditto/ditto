@@ -5,24 +5,31 @@
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
- *  
+ *
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
 
 package org.eclipse.ditto.services.connectivity.messaging.rabbitmq;
 
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.Stream;
 
+import org.assertj.core.api.ThrowableAssert;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
+import org.eclipse.ditto.model.connectivity.ConnectionType;
+import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientState;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
@@ -62,10 +69,15 @@ public class RabbitMQClientActorTest {
     private final ConnectionStatus connectionStatus = ConnectionStatus.OPEN;
 
     @Mock
+    @SuppressWarnings("FieldMayBeFinal")
     private ConnectionFactory mockConnectionFactory = Mockito.mock(ConnectionFactory.class);
+    private final RabbitConnectionFactoryFactory
+            rabbitConnectionFactoryFactory = (con, exHandler) -> mockConnectionFactory;
     @Mock
+    @SuppressWarnings("FieldMayBeFinal")
     private com.rabbitmq.client.Connection mockConnection = Mockito.mock(com.rabbitmq.client.Connection.class);
     @Mock
+    @SuppressWarnings("FieldMayBeFinal")
     private Channel mockChannel = Mockito.mock(Channel.class);
 
     @BeforeClass
@@ -83,6 +95,25 @@ public class RabbitMQClientActorTest {
     public void init() throws IOException, TimeoutException {
         when(mockConnectionFactory.newConnection()).thenReturn(mockConnection);
         when(mockConnection.createChannel()).thenReturn(mockChannel);
+    }
+
+    @Test
+    public void invalidTargetFormatThrowsConnectionConfigurationInvalidException() {
+        final Connection connection = ConnectivityModelFactory.newConnectionBuilder("ditto", ConnectionType.AMQP_091,
+                TestConstants.URI, TestConstants.AUTHORIZATION_CONTEXT)
+                .targets(Collections.singleton(ConnectivityModelFactory.newTarget("exchangeOnly", "topic1")))
+                .build();
+
+        final ThrowableAssert.ThrowingCallable props1 = () -> RabbitMQClientActor.props(connection, connectionStatus);
+        final ThrowableAssert.ThrowingCallable props2 =
+                () -> RabbitMQClientActor.props(connection, connectionStatus, "target", rabbitConnectionFactoryFactory);
+        Stream.of(props1, props2)
+                .forEach(throwingCallable ->
+                        assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
+                                .isThrownBy(throwingCallable)
+                                .withMessageContaining("exchangeOnly")
+                                .withNoCause()
+                );
     }
 
     @Test

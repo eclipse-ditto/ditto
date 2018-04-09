@@ -88,12 +88,6 @@ public final class RabbitMQClientActor extends BaseClientActor {
 
     private final Map<String, QueueConsumption> consumedQueues;
 
-    private RabbitMQClientActor(final Connection connection, final ConnectionStatus connectionStatus) {
-        this(connection, connectionStatus,
-                ConnectivityMessagingConstants.GATEWAY_PROXY_ACTOR_PATH,
-                ConnectionBasedRabbitConnectionFactoryFactory.getInstance());
-    }
-
     private RabbitMQClientActor(final Connection connection, final ConnectionStatus connectionStatus,
             final String pubSubTargetPath,
             final RabbitConnectionFactoryFactory rabbitConnectionFactoryFactory) {
@@ -111,7 +105,9 @@ public final class RabbitMQClientActor extends BaseClientActor {
      * @return the Akka configuration Props object
      */
     public static Props props(final Connection connection, final ConnectionStatus connectionStatus) {
-        return Props.create(RabbitMQClientActor.class, connection, connectionStatus);
+        return Props.create(RabbitMQClientActor.class, validateConnection(connection), connectionStatus,
+                ConnectivityMessagingConstants.GATEWAY_PROXY_ACTOR_PATH,
+                ConnectionBasedRabbitConnectionFactoryFactory.getInstance());
     }
 
     /**
@@ -125,8 +121,17 @@ public final class RabbitMQClientActor extends BaseClientActor {
      */
     public static Props props(final Connection connection, final ConnectionStatus connectionStatus,
             final String pubSubTargetPath, final RabbitConnectionFactoryFactory rabbitConnectionFactoryFactory) {
-        return Props.create(RabbitMQClientActor.class, connection, connectionStatus, pubSubTargetPath,
-                rabbitConnectionFactoryFactory);
+        return Props.create(RabbitMQClientActor.class, validateConnection(connection), connectionStatus,
+                pubSubTargetPath, rabbitConnectionFactoryFactory);
+    }
+
+    private static Connection validateConnection(final Connection connection) {
+        // the target addresses must have the format exchange/routingKey for RabbitMQ
+        connection.getTargets()
+                .stream()
+                .map(Target::getAddress)
+                .forEach(RabbitMQTarget::fromTargetAddress);
+        return connection;
     }
 
     @Override
@@ -140,24 +145,19 @@ public final class RabbitMQClientActor extends BaseClientActor {
 
     @Override
     protected CompletionStage<Status.Status> doTestConnection(final Connection connection) {
-
         createConnectionSender = getSender();
-
         return connect(connection, getSender());
     }
 
     @Override
     protected void doConnectClient(final Connection connection, @Nullable final ActorRef origin) {
-
         createConnectionSender = origin;
-
         connect(connection, origin)
                 .thenAccept(status -> log.info("Status of connecting in doConnectClient: {}", status));
     }
 
     @Override
     protected void doReconnectClient(final Connection connection, @Nullable final ActorRef origin) {
-
         stopCommandConsumers();
         stopCommandPublisher();
 
@@ -248,7 +248,6 @@ public final class RabbitMQClientActor extends BaseClientActor {
 
     @Override
     protected Map<String, AddressMetric> getSourceConnectionStatus(final Source source) {
-
         try {
             return collectAsList(source.getAddresses().stream()
                     .flatMap(address -> IntStream.range(0, source.getConsumerCount())
@@ -269,7 +268,6 @@ public final class RabbitMQClientActor extends BaseClientActor {
 
     @Override
     protected Map<String, AddressMetric> getTargetConnectionStatus(final Target target) {
-
         final HashMap<String, AddressMetric> targetStatus = new HashMap<>();
         try {
             final Pair<String, AddressMetric> targetEntry =
@@ -288,7 +286,6 @@ public final class RabbitMQClientActor extends BaseClientActor {
     }
 
     private CompletionStage<Status.Status> connect(final Connection connection, @Nullable final ActorRef origin) {
-
         final CompletableFuture<Status.Status> future = new CompletableFuture<>();
         if (rmqConnectionActor == null) {
             try {
@@ -362,7 +359,8 @@ public final class RabbitMQClientActor extends BaseClientActor {
                     if (--counter == 0) {
                         break;
                     }
-                };
+                }
+                ;
             }
         });
     }
@@ -391,7 +389,6 @@ public final class RabbitMQClientActor extends BaseClientActor {
     }
 
     private void startConsumers(final Channel channel) {
-
         final Optional<ActorRef> messageMappingProcessor = getMessageMappingProcessorActor();
         if (messageMappingProcessor.isPresent()) {
             getSourcesOrEmptySet().forEach(source ->
