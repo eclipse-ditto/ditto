@@ -62,7 +62,6 @@ import com.rabbitmq.client.impl.DefaultExceptionHandler;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.Status;
-import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Pair;
 import akka.japi.pf.FSMStateFunctionBuilder;
 import scala.Option;
@@ -78,15 +77,13 @@ public final class RabbitMQClientActor extends BaseClientActor {
     private static final String PUBLISHER_CHANNEL = "publisher-channel";
     private static final String CONSUMER_ACTOR_PREFIX = "consumer-";
 
-    private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
-
     private final RabbitConnectionFactoryFactory rabbitConnectionFactoryFactory;
     @Nullable private ActorRef rmqConnectionActor;
     @Nullable private ActorRef consumerChannelActor;
     @Nullable private ActorRef rmqPublisherActor;
     @Nullable private ActorRef createConnectionSender;
 
-    private final Map<String, QueueConsumption> consumedQueues;
+    private final Map<String, String> consumedTagsToAddresses;
 
     private RabbitMQClientActor(final Connection connection, final ConnectionStatus connectionStatus,
             final String pubSubTargetPath,
@@ -94,7 +91,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
         super(connection, connectionStatus, pubSubTargetPath);
 
         this.rabbitConnectionFactoryFactory = rabbitConnectionFactoryFactory;
-        consumedQueues = new HashMap<>();
+        consumedTagsToAddresses = new HashMap<>();
     }
 
     /**
@@ -233,6 +230,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
         super.onConnectionFailure(connectionFailure, data);
 
         final Throwable exception = connectionFailure.getFailure().cause();
+        LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId());
         log.warning("Got unexpected ConnectionDriver exception on connection <{}> {}: {}", connectionId(),
                 exception.getClass().getSimpleName(), exception.getMessage());
         if (createConnectionSender != null) {
@@ -402,7 +400,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
                                 final String consumerTag = channel.basicConsume(sourceAddress, false,
                                         new RabbitMQMessageConsumer(consumer, channel));
                                 log.debug("Consuming queue <{}>, consumer tag is <{}>", addressWithIndex, consumerTag);
-                                consumedQueues.put(addressWithIndex, new QueueConsumption(consumerTag, consumer));
+                                consumedTagsToAddresses.put(consumerTag, addressWithIndex);
                             } catch (final IOException e) {
                                 log.warning("Failed to consume queue <{}>: <{}>", addressWithIndex, e.getMessage());
                             }
@@ -435,10 +433,8 @@ public final class RabbitMQClientActor extends BaseClientActor {
         }
     }
 
-    private Optional<Map.Entry<String, QueueConsumption>> consumingQueueByTag(final String consumerTag) {
-        return consumedQueues.entrySet().stream()
-                .filter(e -> consumerTag.equalsIgnoreCase(e.getValue().consumerTag))
-                .findFirst();
+    private Optional<String> consumingQueueByTag(final String consumerTag) {
+        return Optional.ofNullable(consumedTagsToAddresses.get(consumerTag));
     }
 
     /**
@@ -478,6 +474,8 @@ public final class RabbitMQClientActor extends BaseClientActor {
         @Override
         public void handleDelivery(final String consumerTag, final Envelope envelope,
                 final AMQP.BasicProperties properties, final byte[] body) {
+
+            LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId());
             try {
                 consumerActor.tell(new Delivery(envelope, properties, body), RabbitMQClientActor.this.getSelf());
             } catch (final Exception e) {
@@ -495,9 +493,9 @@ public final class RabbitMQClientActor extends BaseClientActor {
         @Override
         public void handleConsumeOk(final String consumerTag) {
             super.handleConsumeOk(consumerTag);
+            LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId());
 
-            consumingQueueByTag(consumerTag).ifPresent(entry -> {
-                final String queueName = entry.getKey();
+            consumingQueueByTag(consumerTag).ifPresent(queueName -> {
                 log.info("consume OK for consumer queue <{}> " + "on connection <{}>", queueName, connectionId());
             });
 
@@ -508,9 +506,9 @@ public final class RabbitMQClientActor extends BaseClientActor {
         @Override
         public void handleCancel(final String consumerTag) throws IOException {
             super.handleCancel(consumerTag);
+            LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId());
 
-            consumingQueueByTag(consumerTag).ifPresent(entry -> {
-                final String queueName = entry.getKey();
+            consumingQueueByTag(consumerTag).ifPresent(queueName -> {
                 log.warning("Consumer with queue <{}> was cancelled on connection <{}> - this can happen for " +
                         "example when the queue was deleted", queueName, connectionId());
             });
@@ -522,9 +520,9 @@ public final class RabbitMQClientActor extends BaseClientActor {
         @Override
         public void handleShutdownSignal(final String consumerTag, final ShutdownSignalException sig) {
             super.handleShutdownSignal(consumerTag, sig);
+            LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId());
 
-            consumingQueueByTag(consumerTag).ifPresent(entry -> {
-                final String queueName = entry.getKey();
+            consumingQueueByTag(consumerTag).ifPresent(queueName -> {
                 log.warning("Consumer with queue <{}> shutdown as the channel or the underlying connection has " +
                         "been shut down on connection <{}>", queueName, connectionId());
             });
@@ -536,23 +534,13 @@ public final class RabbitMQClientActor extends BaseClientActor {
         @Override
         public void handleRecoverOk(final String consumerTag) {
             super.handleRecoverOk(consumerTag);
+            LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId());
 
             log.info("recovered OK for consumer with tag <{}> " + "on connection <{}>", consumerTag, connectionId());
 
             getSelf().tell((ClientConnected) Optional::empty, getSelf());
         }
 
-    }
-
-    private class QueueConsumption {
-
-        private final String consumerTag;
-        private final ActorRef consumerActor;
-
-        private QueueConsumption(final String consumerTag, final ActorRef consumerActor) {
-            this.consumerTag = consumerTag;
-            this.consumerActor = consumerActor;
-        }
     }
 
 }

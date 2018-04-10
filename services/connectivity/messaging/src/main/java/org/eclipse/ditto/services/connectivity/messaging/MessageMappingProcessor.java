@@ -58,12 +58,16 @@ public final class MessageMappingProcessor {
 
     private static final DittoProtocolAdapter PROTOCOL_ADAPTER = DittoProtocolAdapter.newInstance();
 
+
+    private final String connectionId;
     private final MessageMapperRegistry registry;
 
     private final DiagnosticLoggingAdapter log;
 
 
-    private MessageMappingProcessor(final MessageMapperRegistry registry, final DiagnosticLoggingAdapter log) {
+    private MessageMappingProcessor(final String connectionId, final MessageMapperRegistry registry,
+            final DiagnosticLoggingAdapter log) {
+        this.connectionId = connectionId;
         this.registry = registry;
         this.log = log;
     }
@@ -81,11 +85,11 @@ public final class MessageMappingProcessor {
      * @throws org.eclipse.ditto.model.connectivity.MessageMapperConfigurationFailedException if the configuration of
      * one of the {@code mappingContext} failed for a mapper specific reason
      */
-    public static MessageMappingProcessor of(@Nullable final MappingContext mappingContext, final DynamicAccess access,
+    public static MessageMappingProcessor of(final String connectionId, @Nullable final MappingContext mappingContext, final DynamicAccess access,
             final DiagnosticLoggingAdapter log) {
         final MessageMapperRegistry registry = DefaultMessageMapperFactory.of(access, MessageMappers.class, log)
                 .registryOf(DittoMessageMapper.CONTEXT, mappingContext);
-        return new MessageMappingProcessor(registry, log);
+        return new MessageMappingProcessor(connectionId, registry, log);
     }
 
     /**
@@ -196,6 +200,7 @@ public final class MessageMappingProcessor {
     private MessageMapper getMapper(final ExternalMessage message) {
 
         LogUtil.enhanceLogWithCorrelationId(log, message.getHeaders().get("correlation-id"));
+        LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId);
 
         final Optional<String> contentTypeOpt = message.findContentType();
         if (contentTypeOpt.isPresent()) {
@@ -229,6 +234,7 @@ public final class MessageMappingProcessor {
     private void doUpdateCorrelationId(final Adaptable adaptable) {
         adaptable.getHeaders().flatMap(DittoHeaders::getCorrelationId)
                 .ifPresent(s -> LogUtil.enhanceLogWithCorrelationId(log, s));
+        LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId);
     }
 
     private Segment createSegment(final TraceContext ctx, final String name, final boolean isReverse) {

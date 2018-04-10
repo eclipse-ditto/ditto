@@ -29,6 +29,11 @@ import akka.actor.ActorRef;
 @Immutable
 public final class BaseClientData {
 
+    /**
+     * MDC (logging) field name for the connection ID.
+     */
+    public static final String MDC_CONNECTION_ID = "connection-id";
+
     private final String connectionId;
     private final Connection connection;
     private final ConnectionStatus connectionStatus;
