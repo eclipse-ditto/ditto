@@ -30,7 +30,7 @@ import org.eclipse.ditto.services.gateway.proxy.actors.ThingEnforcerLookupFuncti
 import org.eclipse.ditto.services.gateway.starter.service.util.ConfigKeys;
 import org.eclipse.ditto.services.gateway.starter.service.util.HttpClientFacade;
 import org.eclipse.ditto.services.gateway.streaming.actors.StreamingActor;
-import org.eclipse.ditto.services.models.authorization.AuthorizationMessagingConstants;
+import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
 import org.eclipse.ditto.services.models.policies.PoliciesMessagingConstants;
 import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
 import org.eclipse.ditto.services.models.thingsearch.ThingsSearchConstants;
@@ -141,9 +141,9 @@ final class GatewayRootActor extends AbstractActor {
 
         final int numberOfShards = config.getInt(ConfigKeys.CLUSTER_NUMBER_OF_SHARDS);
         final ActorSystem actorSystem = context().system();
-        final ActorRef authorizationShardRegionProxy = ClusterSharding.get(actorSystem)
-                .startProxy(AuthorizationMessagingConstants.SHARD_REGION,
-                        Optional.of(AuthorizationMessagingConstants.CLUSTER_ROLE),
+        final ActorRef conciergeShardRegionProxy = ClusterSharding.get(actorSystem)
+                .startProxy(ConciergeMessagingConstants.SHARD_REGION,
+                        Optional.of(ConciergeMessagingConstants.CLUSTER_ROLE),
                         ShardRegionExtractor.of(numberOfShards, getContext().getSystem()));
         final ActorRef policiesShardRegionProxy = ClusterSharding.get(actorSystem)
                 .startProxy(PoliciesMessagingConstants.SHARD_REGION,
@@ -202,13 +202,13 @@ final class GatewayRootActor extends AbstractActor {
 
         final ActorRef proxyActor = startChildActor(ProxyActor.ACTOR_NAME,
                 ProxyActor.props(pubSubMediator, devOpsCommandsActor, aclEnforcerShardRegion, policyEnforcerShardRegion,
-                        authorizationShardRegionProxy, thingEnforcerLookupActor, thingCacheFacade));
+                        conciergeShardRegionProxy, thingEnforcerLookupActor, thingCacheFacade));
 
         pubSubMediator.tell(new DistributedPubSubMediator.Put(getSelf()), getSelf());
         pubSubMediator.tell(new DistributedPubSubMediator.Put(proxyActor), getSelf());
 
         final ActorRef streamingActor = startChildActor(StreamingActor.ACTOR_NAME,
-                StreamingActor.props(pubSubMediator, authorizationShardRegionProxy));
+                StreamingActor.props(pubSubMediator, conciergeShardRegionProxy));
 
         final ActorRef healthCheckActor = createHealthCheckActor(config);
 

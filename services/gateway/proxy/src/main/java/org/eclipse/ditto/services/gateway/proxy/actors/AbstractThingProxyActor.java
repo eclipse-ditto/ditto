@@ -18,13 +18,12 @@ import org.eclipse.ditto.services.gateway.proxy.actors.handlers.CreateThingHandl
 import org.eclipse.ditto.services.gateway.proxy.actors.handlers.ModifyThingHandlerActor;
 import org.eclipse.ditto.services.gateway.proxy.actors.handlers.RetrieveThingHandlerActor;
 import org.eclipse.ditto.services.gateway.proxy.actors.handlers.ThingHandlerCreator;
-import org.eclipse.ditto.services.models.authorization.AuthorizationEnvelope;
+import org.eclipse.ditto.services.models.concierge.ConciergeEnvelope;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoCommand;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThings;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingsResponse;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.ThingSearchSudoCommand;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.devops.DevOpsCommand;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
@@ -62,13 +61,13 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
     private final ActorRef thingEnforcerLookup;
     private final ActorRef thingCacheFacade;
     private final ActorRef thingsAggregator;
-    private final AuthorizationEnvelope authorizationEnvelope;
+    private final ConciergeEnvelope conciergeEnvelope;
 
     protected AbstractThingProxyActor(final ActorRef pubSubMediator,
             final ActorRef devOpsCommandsActor,
             final ActorRef aclEnforcerShardRegion,
             final ActorRef policyEnforcerShardRegion,
-            final ActorRef authorizationShardRegion,
+            final ActorRef conciergeShardRegion,
             final ActorRef thingEnforcerLookup,
             final ActorRef thingCacheFacade) {
         super(pubSubMediator);
@@ -80,7 +79,7 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
         this.thingCacheFacade = thingCacheFacade;
         this.thingEnforcerLookup = thingEnforcerLookup;
 
-        authorizationEnvelope = new AuthorizationEnvelope(pubSubMediator, authorizationShardRegion);
+        conciergeEnvelope = new ConciergeEnvelope(pubSubMediator, conciergeShardRegion);
 
         thingsAggregator = getContext().actorOf(FromConfig.getInstance().props(
                 ThingsAggregatorActor.props(getContext().self())), ThingsAggregatorActor.ACTOR_NAME);
@@ -205,7 +204,7 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
     }
 
     private void forwardToAuthorizationService(final Signal<?> signal) {
-        authorizationEnvelope.dispatch(signal, getSender());
+        conciergeEnvelope.dispatch(signal, getSender());
     }
 
     private static FI.TypedPredicate<LookupEnforcerResponse> isRetrieveThingWithAggregationNeeded() {

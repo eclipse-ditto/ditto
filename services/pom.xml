@@ -28,7 +28,7 @@
     <modules>
         <module>amqp-bridge</module>
         <module>base</module>
-        <module>authorization</module>
+        <module>concierge</module>
         <module>gateway</module>
         <module>models</module>
         <module>policies</module>
@@ -54,7 +54,7 @@
         <things.docker.image.name>ditto-things</things.docker.image.name>
         <things-search.docker.image.name>ditto-things-search</things-search.docker.image.name>
         <gateway.docker.image.name>ditto-gateway</gateway.docker.image.name>
-        <authorization.docker.image.name>ditto-authorization</authorization.docker.image.name>
+        <concierge.docker.image.name>ditto-concierge</concierge.docker.image.name>
         <amqp-bridge.docker.image.name>ditto-amqp-bridge</amqp-bridge.docker.image.name>
     </properties>
 

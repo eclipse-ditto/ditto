@@ -524,7 +524,7 @@
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-services-models-authorization</artifactId>
+                <artifactId>ditto-services-models-concierge</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

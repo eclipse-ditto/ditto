@@ -9,6 +9,7 @@ and the actual services:
 * **things** - persistence of `Things` and `Features`
 * **thingsearch** - tracking changes to `Things`, `Features`, `Policies` and updating an optimized
 search index + executes queries on this search index
-* **gateway** - provides HTTP and WebSocket API and orchestrates the backing persistence services 
+* **gateway** - provides HTTP and WebSocket API
+* **concierge** - orchestrates the backing persistence services (including authorization) 
 * **amqp-bridge** - connects to an AMQP 1.0 endpoint (e.g. [Eclipse Hono](https://eclipse.org/hono/)) 
 and consumes messages in Ditto Protocol from it
