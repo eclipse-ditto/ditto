@@ -606,7 +606,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
      *
      * @param mappingContext the MappingContext containing information about how to map external messages
      */
-    private void startMessageMappingProcessor(final MappingContext mappingContext) {
+    private void startMessageMappingProcessor(@Nullable final MappingContext mappingContext) {
         if (!getMessageMappingProcessorActor().isPresent()) {
             final Connection connection = connection();
 

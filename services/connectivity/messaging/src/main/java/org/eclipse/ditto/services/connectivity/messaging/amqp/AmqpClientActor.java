@@ -367,15 +367,15 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
      */
     static class JmsDisconnect extends AbstractWithOrigin implements DisconnectClient {
 
-        private final javax.jms.Connection connection;
+        @Nullable private final javax.jms.Connection connection;
 
         JmsDisconnect(@Nullable final ActorRef origin, @Nullable final javax.jms.Connection connection) {
             super(origin);
-            this.connection = checkNotNull(connection, "connection");
+            this.connection = connection;
         }
 
-        javax.jms.Connection getConnection() {
-            return connection;
+        Optional<javax.jms.Connection> getConnection() {
+            return Optional.ofNullable(connection);
         }
     }
 

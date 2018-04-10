@@ -15,6 +15,7 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -114,8 +115,8 @@ public class JMSConnectionHandlingActor extends AbstractActor {
     }
 
     private void handleDisconnect(final AmqpClientActor.JmsDisconnect disconnect) {
-        final javax.jms.Connection connection = disconnect.getConnection();
-        doDisconnect(connection, disconnect.getOrigin().orElse(null));
+        final Optional<javax.jms.Connection> connection = disconnect.getConnection();
+        connection.ifPresent(con -> doDisconnect(con, disconnect.getOrigin().orElse(null)));
         log.debug("Stopping myself {}", getSelf());
         getContext().stop(getSelf());
     }
