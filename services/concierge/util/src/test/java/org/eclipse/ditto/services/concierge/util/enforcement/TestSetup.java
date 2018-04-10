@@ -60,7 +60,7 @@ public class TestSetup {
     public static final AuthorizationSubject SUBJECT = AuthorizationSubject.newInstance("dummy-subject");
 
     public static final ConciergeConfigReader CONFIG =
-            ConciergeConfigReader.from("authorization")
+            ConciergeConfigReader.from("concierge")
                     .apply(ConfigUtil.determineConfig("test"));
 
     public static ActorRef newEnforcerActor(final ActorSystem system, final ActorRef testActorRef,
