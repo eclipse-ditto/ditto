@@ -42,12 +42,11 @@ import akka.japi.pf.ReceiveBuilder;
 
 /**
  * Responsible for publishing {@link ExternalMessage}s into RabbitMQ / AMQP 0.9.1.
- * <br/>
+ * <p>
  * To receive responses the {@code replyTo} header must be set. Responses are sent to the default exchange with
  * the {@code replyTo} header as routing key.
- * <br/>
- * The {@code address} of the {@code targets} from the {@link Connection} are interpreted as follows:
  * </p>
+ * The {@code address} of the {@code targets} from the {@link Connection} are interpreted as follows:
  * <ul>
  * <li>no {@code targets} defined: signals are not published at all</li>
  * <li>{@code address="target/routingKey"}: signals are published to exchange {@code target} with routing key {@code routingKey}</li>

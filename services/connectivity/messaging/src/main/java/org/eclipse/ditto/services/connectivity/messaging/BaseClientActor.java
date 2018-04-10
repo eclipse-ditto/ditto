@@ -299,6 +299,8 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
      * <p>
      * Overwrite and extend by additional matchers.
      * </p>
+     * @param connectionId the connection ID
+     * @return an FSM function builder
      */
     protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> unhandledHandler(final String connectionId) {
         return matchEvent(RetrieveConnectionMetrics.class, BaseClientData.class, (command, data) -> stay()
