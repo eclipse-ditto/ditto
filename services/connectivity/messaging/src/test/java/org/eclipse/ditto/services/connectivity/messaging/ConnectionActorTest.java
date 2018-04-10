@@ -15,9 +15,12 @@ import java.util.Collections;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.model.connectivity.ConnectionStatus;
+import org.assertj.core.api.Assertions;
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
+import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionNotAccessibleException;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnectionResponse;
@@ -202,6 +205,27 @@ public class ConnectionActorTest {
             // retrieve connection status
             underTest.tell(retrieveConnectionStatus, getRef());
             expectMsg(connectionNotAccessibleException);
+        }};
+    }
+
+    @Test
+    public void exceptionDuringClientActorPropsCreation() {
+        new TestKit(actorSystem) {{
+
+            final Props connectionActorProps =
+                    ConnectionActor.props(TestConstants.createRandomConnectionId(), pubSubMediator,
+                            (connection, connectionStatus) -> {
+                                throw ConnectionConfigurationInvalidException.newBuilder("validation failed...")
+                                        .build();
+                            });
+            final ActorRef connectionActorRef = watch(actorSystem.actorOf(connectionActorProps, connectionId));
+
+            // create connection
+            connectionActorRef.tell(createConnection, getRef());
+            final DittoRuntimeException dittoRuntimeException = expectMsgClass(DittoRuntimeException.class);
+            Assertions.assertThat(dittoRuntimeException).hasMessageContaining("validation failed...");
+
+            expectTerminated(connectionActorRef);
         }};
     }
 

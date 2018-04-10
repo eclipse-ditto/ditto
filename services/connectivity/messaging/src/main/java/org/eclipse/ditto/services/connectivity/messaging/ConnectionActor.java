@@ -357,6 +357,8 @@ final class ConnectionActor extends AbstractPersistentActor {
             propsFactory.getActorPropsForType(command.getConnection(), connectionStatus);
         } catch (final Exception e) {
             handleException("connect", origin, e);
+            stopSelf();
+            return;
         }
 
         final ConnectionCreated connectionCreated =

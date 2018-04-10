@@ -17,18 +17,19 @@ import java.util.Map;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.model.connectivity.ConnectionUriInvalidException;
 import org.eclipse.ditto.model.connectivity.MessageMapperConfigurationFailedException;
 import org.eclipse.ditto.model.connectivity.MessageMapperConfigurationInvalidException;
 import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.signals.base.AbstractErrorRegistry;
 import org.eclipse.ditto.signals.base.JsonParsable;
+import org.eclipse.ditto.signals.commands.base.CommonErrorRegistry;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionConflictException;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionNotAccessibleException;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionUnavailableException;
-import org.eclipse.ditto.signals.commands.base.CommonErrorRegistry;
 
 /**
  * A {@link org.eclipse.ditto.signals.base.ErrorRegistry} aware of all
@@ -67,6 +68,8 @@ public final class ConnectivityErrorRegistry extends AbstractErrorRegistry<Ditto
         final CommonErrorRegistry commonErrorRegistry = CommonErrorRegistry.newInstance();
         commonErrorRegistry.getTypes().forEach(type -> parseStrategies.put(type, commonErrorRegistry));
 
+        parseStrategies.put(ConnectionConfigurationInvalidException.ERROR_CODE,
+                ConnectionConfigurationInvalidException::fromJson);
         parseStrategies.put(ConnectionUriInvalidException.ERROR_CODE, ConnectionUriInvalidException::fromJson);
         parseStrategies.put(MessageMappingFailedException.ERROR_CODE, MessageMappingFailedException::fromJson);
         parseStrategies.put(MessageMapperConfigurationInvalidException.ERROR_CODE,
