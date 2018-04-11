@@ -128,6 +128,8 @@ public final class ConciergeRootActor extends AbstractActor {
                         policiesShardRegionProxy, thingsShardRegionProxy);
 
         conciergeShardRegion = startShardRegion(actorSystem, clusterConfigReader, enforcerProps);
+
+        getContext().actorOf(DispatcherActor.props(pubSubMediator, conciergeShardRegion), DispatcherActor.ACTOR_NAME);
     }
 
     /**

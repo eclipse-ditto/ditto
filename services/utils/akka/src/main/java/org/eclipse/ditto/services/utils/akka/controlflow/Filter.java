@@ -44,23 +44,8 @@ import akka.stream.stage.GraphStageLogic;
  */
 public final class Filter<T> extends GraphStage<FanOutShape2<WithSender, WithSender<T>, WithSender>> {
 
-    /**
-     * The inlet "input".
-     */
-    public final Inlet<WithSender> input = Inlet.create("input");
-
-    /**
-     * The outlet "output".
-     */
-    public final Outlet<WithSender<T>> output = Outlet.create("output");
-
-    /**
-     * The outlet "unhandled".
-     */
-    public final Outlet<WithSender> unhandled = Outlet.create("unhandled");
-
     private final FanOutShape2<WithSender, WithSender<T>, WithSender> shape =
-            new FanOutShape2<>(input, output, unhandled);
+            new FanOutShape2<>(Inlet.create("input"), Outlet.create("output"), Outlet.create("unhandled"));
 
     private final Class<T> clazz;
     private final Predicate<T> predicate;
@@ -105,16 +90,16 @@ public final class Filter<T> extends GraphStage<FanOutShape2<WithSender, WithSen
             {
                 initOutlets(shape);
 
-                when(input, wrapped -> {
+                when(shape.in(), wrapped -> {
                     if (clazz.isInstance(wrapped.message())) {
                         final T message = clazz.cast(wrapped.message());
                         if (predicate.test(message)) {
-                            emit(output, WithSender.of(message, wrapped.sender()));
+                            emit(shape.out0(), WithSender.of(message, wrapped.sender()));
                         } else {
-                            emit(unhandled, wrapped);
+                            emit(shape.out1(), wrapped);
                         }
                     } else {
-                        emit(unhandled, wrapped);
+                        emit(shape.out1(), wrapped);
                     }
                 });
             }

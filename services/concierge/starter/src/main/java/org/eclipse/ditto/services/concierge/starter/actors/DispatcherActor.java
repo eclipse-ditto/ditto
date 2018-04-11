@@ -30,6 +30,7 @@ import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.stream.FanInShape2;
+import akka.stream.FanOutShape2;
 import akka.stream.FlowShape;
 import akka.stream.Graph;
 import akka.stream.SinkShape;
@@ -51,6 +52,22 @@ public final class DispatcherActor {
      * Path of {@code SearchActor}.
      */
     private static final String THINGS_SEARCH_ACTOR_PATH = "/user/thingsSearchRoot/thingsSearch";
+
+    /**
+     * Create Akka actor configuration Props object without pre-enforcer.
+     *
+     * @param pubSubMediator Akka pub-sub mediator.
+     * @param enforcerShardRegion shard region of enforcer actors.
+     */
+    public static Props props(final ActorRef pubSubMediator,
+            final ActorRef enforcerShardRegion) {
+
+        return GraphActor.partial(actorContext -> {
+            sanityCheck(actorContext.self());
+            putSelfToPubSubMediator(actorContext.self(), pubSubMediator);
+            return dispatchGraph(actorContext, pubSubMediator, enforcerShardRegion);
+        });
+    }
 
     public static Props props(final ActorRef pubSubMediator,
             final ActorRef enforcerShardRegion,
@@ -111,10 +128,10 @@ public final class DispatcherActor {
             final ActorRef pubSubMediator) {
 
         return GraphDSL.create(builder -> {
-            final Filter<ThingSearchCommand> searchCommandFilter = Filter.of(ThingSearchCommand.class);
-            final Filter<ThingSearchSudoCommand> sudoSearchCommandFilter = Filter.of(ThingSearchSudoCommand.class);
-            builder.add(searchCommandFilter);
-            builder.add(sudoSearchCommandFilter);
+            final FanOutShape2<WithSender, WithSender<ThingSearchCommand>, WithSender> searchFilter =
+                    builder.add(Filter.of(ThingSearchCommand.class));
+            final FanOutShape2<WithSender, WithSender<ThingSearchSudoCommand>, WithSender> sudoSearchFilter =
+                    builder.add(Filter.of(ThingSearchSudoCommand.class));
 
             final FanInShape2<WithSender<ThingSearchCommand>,
                     WithSender<ThingSearchSudoCommand>,
@@ -123,12 +140,12 @@ public final class DispatcherActor {
             final SinkShape<WithSender<Object>> forwardToSearchActor =
                     builder.add(forwardToThingSearchActor(pubSubMediator));
 
-            builder.from(searchCommandFilter.output).toInlet(fanIn.in0());
-            builder.from(searchCommandFilter.unhandled).toInlet(sudoSearchCommandFilter.input);
-            builder.from(sudoSearchCommandFilter.output).toInlet(fanIn.in1());
+            builder.from(searchFilter.out0()).toInlet(fanIn.in0());
+            builder.from(searchFilter.out1()).toInlet(sudoSearchFilter.in());
+            builder.from(sudoSearchFilter.out0()).toInlet(fanIn.in1());
             builder.from(fanIn.out()).to(forwardToSearchActor);
 
-            return FlowShape.of(searchCommandFilter.input, sudoSearchCommandFilter.unhandled);
+            return FlowShape.of(searchFilter.in(), sudoSearchFilter.out1());
         });
     }
 
