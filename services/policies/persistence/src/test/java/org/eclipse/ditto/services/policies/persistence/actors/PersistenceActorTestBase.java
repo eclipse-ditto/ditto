@@ -43,8 +43,6 @@ import org.eclipse.ditto.model.policies.SubjectIssuer;
 import org.eclipse.ditto.model.policies.Subjects;
 import org.eclipse.ditto.services.models.policies.Permission;
 import org.eclipse.ditto.services.policies.persistence.TestConstants;
-import org.eclipse.ditto.services.utils.distributedcache.actors.CacheFacadeActor;
-import org.eclipse.ditto.services.utils.distributedcache.actors.CacheRole;
 import org.junit.After;
 
 import com.typesafe.config.Config;
@@ -60,10 +58,6 @@ import akka.testkit.JavaTestKit;
  */
 public abstract class PersistenceActorTestBase {
 
-    private static final SubjectIssuer ISSUER_GOOGLE = SubjectIssuer.GOOGLE;
-
-    protected static final String AUTH_SUBJECT = ISSUER_GOOGLE + ":allowedId";
-    protected static final String UNAUTH_SUBJECT = ISSUER_GOOGLE + ":denied";
     protected static final String POLICY_ID = "org.eclipse.ditto:myPolicy";
     protected static final PolicyLifecycle POLICY_LIFECYCLE = PolicyLifecycle.ACTIVE;
     protected static final JsonPointer POLICY_RESOURCE_PATH = JsonPointer.empty();
@@ -75,6 +69,7 @@ public abstract class PersistenceActorTestBase {
             Resource.newInstance(PoliciesResourceType.policyResource(POLICY_RESOURCE_PATH),
                     EffectedPermissions.newInstance(Permissions.newInstance(Permission.READ),
                             PoliciesModelFactory.noPermissions()));
+    private static final SubjectIssuer ISSUER_GOOGLE = SubjectIssuer.GOOGLE;
     protected static final SubjectId POLICY_SUBJECT_ID =
             SubjectId.newInstance(ISSUER_GOOGLE, "allowedId");
     protected static final Subject POLICY_SUBJECT =
@@ -84,6 +79,10 @@ public abstract class PersistenceActorTestBase {
     protected static final Subjects POLICY_SUBJECTS = Subjects.newInstance(POLICY_SUBJECT);
     protected static final Label POLICY_LABEL = Label.of("all");
     protected static final Label ANOTHER_POLICY_LABEL = Label.of("another");
+
+    protected static final String AUTH_SUBJECT = ISSUER_GOOGLE + ":allowedId";
+    protected static final String UNAUTH_SUBJECT = ISSUER_GOOGLE + ":denied";
+
     private static final PolicyEntry POLICY_ENTRY =
             PoliciesModelFactory.newPolicyEntry(POLICY_LABEL, POLICY_SUBJECTS, POLICY_RESOURCES_ALL);
     private static final PolicyEntry ANOTHER_POLICY_ENTRY =
@@ -91,21 +90,8 @@ public abstract class PersistenceActorTestBase {
     private static final long POLICY_REVISION = 0;
     protected ActorSystem actorSystem = null;
     protected ActorRef pubSubMediator = null;
-    protected ActorRef policyCacheFacade;
-    private DittoHeaders dittoHeadersMockV1;
     protected DittoHeaders dittoHeadersMockV2;
-
-    protected void setup(final Config customConfig) {
-        requireNonNull(customConfig, "Consider to use ConfigFactory.empty()");
-        final Config config = customConfig.withFallback(ConfigFactory.load("test"));
-
-        actorSystem = ActorSystem.create("AkkaTestSystem", config);
-        pubSubMediator = DistributedPubSub.get(actorSystem).mediator();
-        policyCacheFacade = actorSystem.actorOf(CacheFacadeActor.props(CacheRole.POLICY,
-                actorSystem.settings().config()), CacheFacadeActor.actorNameFor(CacheRole.POLICY));
-        dittoHeadersMockV1 = createDittoHeadersMock(JsonSchemaVersion.V_1, AUTH_SUBJECT);
-        dittoHeadersMockV2 = createDittoHeadersMock(JsonSchemaVersion.V_2, AUTH_SUBJECT);
-    }
+    private DittoHeaders dittoHeadersMockV1;
 
     protected static DittoHeaders createDittoHeadersMock(final JsonSchemaVersion schemaVersion,
             final String... authSubjects) {
@@ -137,12 +123,20 @@ public abstract class PersistenceActorTestBase {
                 .build();
     }
 
+    protected void setup(final Config customConfig) {
+        requireNonNull(customConfig, "Consider to use ConfigFactory.empty()");
+        final Config config = customConfig.withFallback(ConfigFactory.load("test"));
+
+        actorSystem = ActorSystem.create("AkkaTestSystem", config);
+        pubSubMediator = DistributedPubSub.get(actorSystem).mediator();
+        dittoHeadersMockV1 = createDittoHeadersMock(JsonSchemaVersion.V_1, AUTH_SUBJECT);
+        dittoHeadersMockV2 = createDittoHeadersMock(JsonSchemaVersion.V_2, AUTH_SUBJECT);
+    }
+
     public void setUpBase() {
         final Config config = ConfigFactory.load("test");
         actorSystem = ActorSystem.create("AkkaTestSystem", config);
         pubSubMediator = DistributedPubSub.get(actorSystem).mediator();
-        policyCacheFacade = actorSystem.actorOf(CacheFacadeActor.props(CacheRole.POLICY,
-                actorSystem.settings().config()), CacheFacadeActor.actorNameFor(CacheRole.POLICY));
         dittoHeadersMockV1 = createDittoHeadersMock(JsonSchemaVersion.V_1, AUTH_SUBJECT);
         dittoHeadersMockV2 = createDittoHeadersMock(JsonSchemaVersion.V_2, AUTH_SUBJECT);
     }

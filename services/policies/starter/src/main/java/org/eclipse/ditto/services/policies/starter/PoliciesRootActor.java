@@ -29,8 +29,6 @@ import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
 import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
-import org.eclipse.ditto.services.utils.distributedcache.actors.CacheFacadeActor;
-import org.eclipse.ditto.services.utils.distributedcache.actors.CacheRole;
 import org.eclipse.ditto.services.utils.health.DefaultHealthCheckingActorFactory;
 import org.eclipse.ditto.services.utils.health.HealthCheckingActorOptions;
 import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
@@ -127,9 +125,6 @@ public final class PoliciesRootActor extends AbstractActor {
             final ActorMaterializer materializer) {
         final int numberOfShards = config.getInt(ConfigKeys.Cluster.NUMBER_OF_SHARDS);
 
-        final ActorRef policyCacheFacade = startChildActor(CacheFacadeActor.actorNameFor(CacheRole.POLICY),
-                CacheFacadeActor.props(CacheRole.POLICY, config));
-
         final ClusterShardingSettings shardingSettings =
                 ClusterShardingSettings.create(getContext().system()).withRole(PoliciesMessagingConstants.CLUSTER_ROLE);
 
@@ -137,7 +132,7 @@ public final class PoliciesRootActor extends AbstractActor {
         final Duration maxBackoff = config.getDuration(ConfigKeys.Policy.SUPERVISOR_EXPONENTIAL_BACKOFF_MAX);
         final double randomFactor = config.getDouble(ConfigKeys.Policy.SUPERVISOR_EXPONENTIAL_BACKOFF_RANDOM_FACTOR);
         final Props policySupervisorProps = PolicySupervisorActor.props(pubSubMediator, minBackoff, maxBackoff,
-                randomFactor, policyCacheFacade, snapshotAdapter);
+                randomFactor, snapshotAdapter);
 
         final int tagsStreamingCacheSize = config.getInt(ConfigKeys.POLICIES_TAGS_STREAMING_CACHE_SIZE);
         final ActorRef persistenceStreamingActor = startChildActor(PoliciesPersistenceStreamingActorCreator.ACTOR_NAME,
@@ -164,8 +159,10 @@ public final class PoliciesRootActor extends AbstractActor {
         }
 
         final HealthCheckingActorOptions healthCheckingActorOptions = hcBuilder.build();
-        final Props healthCheckingActorProps = DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions, mongoClient);
-        final ActorRef healthCheckingActor = startChildActor(DefaultHealthCheckingActorFactory.ACTOR_NAME, healthCheckingActorProps);
+        final Props healthCheckingActorProps =
+                DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions, mongoClient);
+        final ActorRef healthCheckingActor =
+                startChildActor(DefaultHealthCheckingActorFactory.ACTOR_NAME, healthCheckingActorProps);
 
         String hostname = config.getString(ConfigKeys.HTTP_HOSTNAME);
         if (hostname.isEmpty()) {
@@ -209,6 +206,13 @@ public final class PoliciesRootActor extends AbstractActor {
         });
     }
 
+    private static Route createRoute(final ActorSystem actorSystem, final ActorRef healthCheckingActor) {
+        final StatusRoute statusRoute = new StatusRoute(new ClusterStatusSupplier(Cluster.get(actorSystem)),
+                healthCheckingActor, actorSystem);
+
+        return logRequest("http-request", () -> logResult("http-response", statusRoute::buildStatusRoute));
+    }
+
     @Override
     public SupervisorStrategy supervisorStrategy() {
         return strategy;
@@ -229,13 +233,6 @@ public final class PoliciesRootActor extends AbstractActor {
     private ActorRef startChildActor(final String actorName, final Props props) {
         log.info("Starting child actor '{}'", actorName);
         return getContext().actorOf(props, actorName);
-    }
-
-    private static Route createRoute(final ActorSystem actorSystem, final ActorRef healthCheckingActor) {
-        final StatusRoute statusRoute = new StatusRoute(new ClusterStatusSupplier(Cluster.get(actorSystem)),
-                healthCheckingActor, actorSystem);
-
-        return logRequest("http-request", () -> logResult("http-response", statusRoute::buildStatusRoute));
     }
 
     private void logServerBinding(final ServerBinding serverBinding) {

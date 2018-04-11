@@ -32,8 +32,6 @@ import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
-import org.eclipse.ditto.services.utils.distributedcache.actors.CacheFacadeActor;
-import org.eclipse.ditto.services.utils.distributedcache.actors.CacheRole;
 import org.junit.After;
 
 import com.typesafe.config.Config;
@@ -69,7 +67,6 @@ public abstract class PersistenceActorTestBase {
     protected ActorRef pubSubMediator = null;
     protected DittoHeaders dittoHeadersV1;
     protected DittoHeaders dittoHeadersV2;
-    protected ActorRef thingCacheFacade;
 
     protected static DittoHeaders createDittoHeadersMock(final JsonSchemaVersion schemaVersion,
             final String... authSubjects) {
@@ -109,15 +106,24 @@ public abstract class PersistenceActorTestBase {
                 .setPermissions(AUTHORIZED_SUBJECT, AccessControlListModelFactory.allPermissions()).build();
     }
 
+    protected static void waitSecs(final long secs) {
+        waitMillis(secs * 1000);
+    }
+
+    protected static void waitMillis(final long millis) {
+        try {
+            TimeUnit.MILLISECONDS.sleep(millis);
+        } catch (final InterruptedException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
     protected void setup(final Config customConfig) {
         requireNonNull(customConfig, "Consider to use ConfigFactory.empty()");
         final Config config = customConfig.withFallback(ConfigFactory.load("test"));
 
         actorSystem = ActorSystem.create("AkkaTestSystem", config);
         pubSubMediator = DistributedPubSub.get(actorSystem).mediator();
-
-        thingCacheFacade = actorSystem.actorOf(CacheFacadeActor.props(CacheRole.THING,
-                actorSystem.settings().config()), CacheFacadeActor.actorNameFor(CacheRole.THING));
 
         dittoHeadersV1 = createDittoHeadersMock(JsonSchemaVersion.V_1, AUTH_SUBJECT);
         dittoHeadersV2 = createDittoHeadersMock(JsonSchemaVersion.V_2, AUTH_SUBJECT);
@@ -132,6 +138,7 @@ public abstract class PersistenceActorTestBase {
     protected ActorRef createPersistenceActorFor(final String thingId) {
         return createPersistenceActorWithPubSubFor(thingId, pubSubMediator);
     }
+
     protected ActorRef createPersistenceActorWithPubSubFor(final String thingId, final ActorRef pubSubMediator) {
         return actorSystem.actorOf(getPropsOfThingPersistenceActor(thingId, pubSubMediator));
     }
@@ -139,8 +146,9 @@ public abstract class PersistenceActorTestBase {
     private Props getPropsOfThingPersistenceActor(final String thingId) {
         return getPropsOfThingPersistenceActor(thingId, pubSubMediator);
     }
+
     private Props getPropsOfThingPersistenceActor(final String thingId, final ActorRef pubSubMediator) {
-        return ThingPersistenceActor.props(thingId, pubSubMediator, thingCacheFacade);
+        return ThingPersistenceActor.props(thingId, pubSubMediator);
     }
 
     protected ActorRef createSupervisorActorFor(final String thingId) {
@@ -152,18 +160,6 @@ public abstract class PersistenceActorTestBase {
                 this::getPropsOfThingPersistenceActor);
 
         return actorSystem.actorOf(props, thingId);
-    }
-
-    protected static void waitSecs(final long secs) {
-        waitMillis(secs * 1000);
-    }
-
-    protected static void waitMillis(final long millis) {
-        try {
-            TimeUnit.MILLISECONDS.sleep(millis);
-        } catch (final InterruptedException e) {
-            throw new IllegalStateException(e);
-        }
     }
 
 }

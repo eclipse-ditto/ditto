@@ -25,7 +25,6 @@ import org.eclipse.ditto.services.models.things.ThingsMappingStrategy;
 import org.eclipse.ditto.services.models.thingsearch.ThingSearchMappingStrategy;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategiesBuilder;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
-import org.eclipse.ditto.services.utils.distributedcache.model.BaseCacheEntry;
 import org.eclipse.ditto.signals.commands.devops.DevOpsCommandRegistry;
 import org.eclipse.ditto.signals.commands.devops.DevOpsCommandResponseRegistry;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandRegistry;
@@ -52,6 +51,17 @@ public final class GatewayMappingStrategy implements MappingStrategy {
         thingSearchMappingStrategy = new ThingSearchMappingStrategy();
     }
 
+    private static void addMessagesStrategies(final MappingStrategiesBuilder builder) {
+        builder.add(MessageCommandRegistry.newInstance());
+        builder.add(MessageCommandResponseRegistry.newInstance());
+        builder.add(MessageErrorRegistry.newInstance());
+    }
+
+    private static void addDevOpsStrategies(final MappingStrategiesBuilder builder) {
+        builder.add(DevOpsCommandRegistry.newInstance());
+        builder.add(DevOpsCommandResponseRegistry.newInstance());
+    }
+
     @Override
     public Map<String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>> determineStrategy() {
         final Map<String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>> combinedStrategy = new HashMap<>();
@@ -62,9 +72,6 @@ public final class GatewayMappingStrategy implements MappingStrategy {
 
         final MappingStrategiesBuilder builder = MappingStrategiesBuilder.newInstance();
 
-        builder.add(BaseCacheEntry.class,
-                jsonObject -> BaseCacheEntry.fromJson(jsonObject)); // do not replace with lambda!
-
         builder.add(StreamingAck.class,
                 jsonObject -> StreamingAck.fromJson(jsonObject)); // do not replace with lambda!
 
@@ -73,17 +80,6 @@ public final class GatewayMappingStrategy implements MappingStrategy {
 
         combinedStrategy.putAll(builder.build());
         return combinedStrategy;
-    }
-
-    private static void addMessagesStrategies(final MappingStrategiesBuilder builder) {
-        builder.add(MessageCommandRegistry.newInstance());
-        builder.add(MessageCommandResponseRegistry.newInstance());
-        builder.add(MessageErrorRegistry.newInstance());
-    }
-
-    private static void addDevOpsStrategies(final MappingStrategiesBuilder builder) {
-        builder.add(DevOpsCommandRegistry.newInstance());
-        builder.add(DevOpsCommandResponseRegistry.newInstance());
     }
 
 }

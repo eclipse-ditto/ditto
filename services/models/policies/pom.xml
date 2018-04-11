@@ -50,12 +50,14 @@
 
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-utils-cluster</artifactId>
+            <artifactId>ditto-services-models-streaming</artifactId>
         </dependency>
+
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-utils-distributed-cache-model</artifactId>
+            <artifactId>ditto-services-utils-cluster</artifactId>
         </dependency>
+
     </dependencies>
 
     <build>

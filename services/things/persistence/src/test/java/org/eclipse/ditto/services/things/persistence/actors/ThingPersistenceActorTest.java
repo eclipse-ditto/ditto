@@ -119,6 +119,23 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
     private static final JsonParseOptions JSON_PARSE_OPTIONS =
             JsonFactory.newParseOptionsBuilder().withoutUrlDecoding().build();
 
+    private static void assertThingInResponse(final Thing actualThing, final Thing expectedThing) {
+        // Policy entries are ignored by things-persistence.
+        assertThat(actualThing).hasEqualJson(expectedThing, FieldType.notHidden()
+                .and(IS_MODIFIED.negate()));
+
+        assertThat(actualThing.getModified()).isPresent(); // we cannot check exact timestamp
+    }
+
+    private static void assertThingInResponseV2(final Thing actualThing, final Thing expectedThing) {
+        // Policy entries are ignored by things-persistence.
+        final Thing expectedThingWithoutPolicyEntries = expectedThing.setPolicyId(expectedThing.getId().get());
+        assertThat(actualThing).hasEqualJson(expectedThingWithoutPolicyEntries, FieldType.notHidden()
+                .and(IS_MODIFIED.negate()));
+
+        assertThat(actualThing.getModified()).isPresent(); // we cannot check exact timestamp
+    }
+
     /** */
     @Before
     public void setUp() {
@@ -227,7 +244,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         final Thing thing = createThingV2WithRandomId();
         final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV2);
 
-        final Props props = ThingPersistenceActor.props(thingIdOfActor, pubSubMediator, thingCacheFacade);
+        final Props props = ThingPersistenceActor.props(thingIdOfActor, pubSubMediator);
         final TestActorRef<ThingPersistenceActor> underTest = TestActorRef.create(actorSystem, props);
         final ThingPersistenceActor thingPersistenceActor = underTest.underlyingActor();
         final PartialFunction<Object, BoxedUnit> receiveCommand = thingPersistenceActor.receiveCommand();
@@ -699,7 +716,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 assertThingInResponse(createThingResponse.getThingCreated().orElse(null), thingV1);
 
                 final AccessControlList acl = ThingsModelFactory.newAcl(newAclEntry(AUTHORIZED_SUBJECT, PERMISSIONS),
-                                newAclEntry(AUTHORIZATION_SUBJECT, PERMISSIONS));
+                        newAclEntry(AUTHORIZATION_SUBJECT, PERMISSIONS));
                 final ModifyAcl modifyAcl = ModifyAcl.of(thingV1.getId().orElse(null), acl, dittoHeadersV1);
                 thingPersistenceActor.tell(modifyAcl, getRef());
                 expectMsgEquals(ModifyAclResponse.modified(thingV1.getId().orElse(null), acl, dittoHeadersV1));
@@ -1203,7 +1220,6 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         }};
     }
 
-
     /**
      */
     @Test
@@ -1221,7 +1237,8 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                             thingV2WithoutPolicyId,
                             JsonSchemaVersion.V_2,
                             this,
-                            modifyThing -> PolicyIdMissingException.fromThingId(thingId, modifyThing.getDittoHeaders()));
+                            modifyThing -> PolicyIdMissingException.fromThingId(thingId,
+                                    modifyThing.getDittoHeaders()));
             expectNoMsg();
         }};
     }
@@ -1371,7 +1388,6 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         }
     }
 
-
     private CreateThing createThing(final Thing thing, final JsonSchemaVersion version) {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                 .schemaVersion(version)
@@ -1390,23 +1406,6 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 thing,
                 null,
                 dittoHeaders);
-    }
-
-    private static void assertThingInResponse(final Thing actualThing, final Thing expectedThing) {
-        // Policy entries are ignored by things-persistence.
-        assertThat(actualThing).hasEqualJson(expectedThing, FieldType.notHidden()
-                .and(IS_MODIFIED.negate()));
-
-        assertThat(actualThing.getModified()).isPresent(); // we cannot check exact timestamp
-    }
-
-    private static void assertThingInResponseV2(final Thing actualThing, final Thing expectedThing) {
-        // Policy entries are ignored by things-persistence.
-        final Thing expectedThingWithoutPolicyEntries = expectedThing.setPolicyId(expectedThing.getId().get());
-        assertThat(actualThing).hasEqualJson(expectedThingWithoutPolicyEntries, FieldType.notHidden()
-                .and(IS_MODIFIED.negate()));
-
-        assertThat(actualThing.getModified()).isPresent(); // we cannot check exact timestamp
     }
 
     private ActorRef createPersistenceActorFor(final Thing thing) {

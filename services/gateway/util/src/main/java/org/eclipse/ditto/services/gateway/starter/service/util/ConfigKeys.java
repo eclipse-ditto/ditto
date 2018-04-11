@@ -226,19 +226,6 @@ public final class ConfigKeys {
      */
     public static final String CACHE_PUBLIC_KEYS_EXPIRY = CACHE_PREFIX + "publickeys.expiry";
 
-
-    private static final String ENFORCER_PREFIX = GATEWAY_PREFIX + "enforcer.";
-    /**
-     * Key of the PolicyEnforcer cache interval.
-     */
-    public static final String ENFORCER_CACHE_INTERVAL = ENFORCER_PREFIX + "cache.interval";
-
-    /**
-     * Key of the PolicyEnforcer internal ask timeout.
-     */
-    public static final String ENFORCER_INTERNAL_ASK_TIMEOUT = ENFORCER_PREFIX + "internal.ask.timeout";
-
-
     private static final String SECRETS_PREFIX = "secrets.";
     /**
      * Key of the gateway devops password.

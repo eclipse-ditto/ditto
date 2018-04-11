@@ -125,15 +125,6 @@
             <artifactId>ditto-services-utils-persistence</artifactId>
         </dependency>
 
-        <dependency>
-            <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-utils-distributed-cache-model</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-utils-distributed-cache-actors</artifactId>
-        </dependency>
-
         <!-- ### Akka ### -->
         <dependency>
             <groupId>com.typesafe.akka</groupId>

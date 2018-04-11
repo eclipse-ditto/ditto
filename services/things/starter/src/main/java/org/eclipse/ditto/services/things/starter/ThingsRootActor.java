@@ -18,18 +18,17 @@ import java.net.ConnectException;
 import java.time.Duration;
 import java.util.NoSuchElementException;
 import java.util.concurrent.CompletionStage;
-import java.util.function.Function;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
+import org.eclipse.ditto.services.things.persistence.actors.ThingSupervisorActor;
 import org.eclipse.ditto.services.things.persistence.actors.ThingsPersistenceStreamingActorCreator;
+import org.eclipse.ditto.services.things.persistence.snapshotting.ThingSnapshotter;
 import org.eclipse.ditto.services.things.starter.util.ConfigKeys;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
 import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
-import org.eclipse.ditto.services.utils.distributedcache.actors.CacheFacadeActor;
-import org.eclipse.ditto.services.utils.distributedcache.actors.CacheRole;
 import org.eclipse.ditto.services.utils.health.DefaultHealthCheckingActorFactory;
 import org.eclipse.ditto.services.utils.health.HealthCheckingActorOptions;
 import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
@@ -133,14 +132,11 @@ final class ThingsRootActor extends AbstractActor {
     private ThingsRootActor(final Config config,
             final ActorRef pubSubMediator,
             final ActorMaterializer materializer,
-            final Function<ActorRef, Props> supervisorActorPropsFactory) {
+            final ThingSnapshotter.Create thingSnapshotterCreate) {
 
         final int numberOfShards = config.getInt(ConfigKeys.Cluster.NUMBER_OF_SHARDS);
 
-        final ActorRef thingCacheFacade = startChildActor(CacheFacadeActor.actorNameFor(CacheRole.THING),
-                CacheFacadeActor.props(CacheRole.THING, config));
-
-        final Props thingSupervisorProps = supervisorActorPropsFactory.apply(thingCacheFacade);
+        final Props thingSupervisorProps = getThingSupervisorActorProps(config, pubSubMediator, thingSnapshotterCreate);
 
         final ClusterShardingSettings shardingSettings =
                 ClusterShardingSettings.create(getContext().system())
@@ -199,23 +195,29 @@ final class ThingsRootActor extends AbstractActor {
      *
      * @param config the configuration settings of the Things Service.
      * @param pubSubMediator the PubSub mediator Actor.
-     * @param materializer the materializer for the akka actor system.
-     * @param supervisorActorPropsFactory factory for creating actor Props of the {@code ThingSupervisorActor}.
+     * @param materializer the materializer for the akka actor system
      * @return the Akka configuration Props object.
      */
     static Props props(final Config config,
             final ActorRef pubSubMediator,
             final ActorMaterializer materializer,
-            final Function<ActorRef, Props> supervisorActorPropsFactory) {
+            final ThingSnapshotter.Create thingSnapshotterCreate) {
 
         return Props.create(ThingsRootActor.class, new Creator<ThingsRootActor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
             public ThingsRootActor create() throws Exception {
-                return new ThingsRootActor(config, pubSubMediator, materializer, supervisorActorPropsFactory);
+                return new ThingsRootActor(config, pubSubMediator, materializer, thingSnapshotterCreate);
             }
         });
+    }
+
+    private static Route createRoute(final ActorSystem actorSystem, final ActorRef healthCheckingActor) {
+        final StatusRoute statusRoute = new StatusRoute(new ClusterStatusSupplier(Cluster.get(actorSystem)),
+                healthCheckingActor, actorSystem);
+
+        return logRequest("http-request", () -> logResult("http-response", statusRoute::buildStatusRoute));
     }
 
     @Override
@@ -240,15 +242,18 @@ final class ThingsRootActor extends AbstractActor {
         return getContext().actorOf(props, actorName);
     }
 
-    private static Route createRoute(final ActorSystem actorSystem, final ActorRef healthCheckingActor) {
-        final StatusRoute statusRoute = new StatusRoute(new ClusterStatusSupplier(Cluster.get(actorSystem)),
-                healthCheckingActor, actorSystem);
-
-        return logRequest("http-request", () -> logResult("http-response", statusRoute::buildStatusRoute));
-    }
-
     private void logServerBinding(final ServerBinding serverBinding) {
         log.info("Bound to address {}:{}", serverBinding.localAddress().getHostString(),
                 serverBinding.localAddress().getPort());
+    }
+
+    private Props getThingSupervisorActorProps(final Config config, final ActorRef pubSubMediator,
+            final ThingSnapshotter.Create thingSnapshotterCreate) {
+        final Duration minBackOff = config.getDuration(ConfigKeys.Thing.SUPERVISOR_EXPONENTIAL_BACKOFF_MIN);
+        final Duration maxBackOff = config.getDuration(ConfigKeys.Thing.SUPERVISOR_EXPONENTIAL_BACKOFF_MAX);
+        final double randomFactor = config.getDouble(ConfigKeys.Thing.SUPERVISOR_EXPONENTIAL_BACKOFF_RANDOM_FACTOR);
+
+        return ThingSupervisorActor.props(minBackOff, maxBackOff, randomFactor,
+                ThingPersistenceActorPropsFactory.getInstance(pubSubMediator, thingSnapshotterCreate));
     }
 }

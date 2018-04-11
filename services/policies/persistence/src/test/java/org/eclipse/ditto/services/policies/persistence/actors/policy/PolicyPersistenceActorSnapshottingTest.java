@@ -73,6 +73,10 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
     private static final Duration VERY_LONG_DURATION = Duration.ofDays(100);
     private static final int PERSISTENCE_ASSERT_RETRY_COUNT = 3;
     private static final long PERSISTENCE_ASSERT_RETRY_DELAY_MS = 500;
+    private PolicyMongoEventAdapter eventAdapter;
+    private PoliciesJournalTestHelper<Event> journalTestHelper;
+    private PoliciesSnapshotTestHelper<Policy> snapshotTestHelper;
+    private Map<Class<? extends Command>, BiFunction<Command, Long, Event>> commandToEventMapperRegistry;
 
     private static Config createNewDefaultTestConfig() {
         return ConfigFactory.empty()
@@ -82,10 +86,65 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
                 .withValue(ConfigKeys.Policy.SNAPSHOT_INTERVAL, ConfigValueFactory.fromAnyRef(VERY_LONG_DURATION));
     }
 
-    private PolicyMongoEventAdapter eventAdapter;
-    private PoliciesJournalTestHelper<Event> journalTestHelper;
-    private PoliciesSnapshotTestHelper<Policy> snapshotTestHelper;
-    private Map<Class<? extends Command>, BiFunction<Command, Long, Event>> commandToEventMapperRegistry;
+    private static void assertPolicyInSnapshot(final Policy actualPolicy, final Policy expectedPolicy) {
+        assertPolicyInResponse(actualPolicy, expectedPolicy, expectedPolicy.getRevision().map(PolicyRevision::toLong)
+                .orElseThrow(IllegalArgumentException::new));
+    }
+
+    protected static void assertPolicyInJournal(final Policy actualPolicy, Policy expectedPolicy) {
+        final PolicyBuilder expectedPolicyBuilder = PoliciesModelFactory.newPolicyBuilder(expectedPolicy);
+        expectedPolicy = expectedPolicyBuilder.build();
+
+        assertEqualJson(actualPolicy, expectedPolicy);
+
+        assertThat(actualPolicy.getModified()).isEmpty(); // is not required in journal entry
+    }
+
+    protected static void assertPolicyInResponse(final Policy actualPolicy, Policy expectedPolicy,
+            final long expectedRevision) {
+        final PolicyBuilder expectedPolicyBuilder = PoliciesModelFactory.newPolicyBuilder(expectedPolicy);
+        expectedPolicyBuilder.setRevision(expectedRevision);
+        expectedPolicy = expectedPolicyBuilder.build();
+
+        assertEqualJson(actualPolicy, expectedPolicy);
+
+        //assertThat(actualPolicy.getModified()).isPresent(); // we cannot check exact timestamp
+    }
+
+    private static void assertEqualJson(final Policy actualPolicy, final Policy expectedPolicy) {
+        assertThat(actualPolicy.toJson()).isEqualTo(expectedPolicy.toJson());
+    }
+
+    private static Policy toDeletedPolicy(final Policy policy, final int newRevision) {
+        return policy.toBuilder().setRevision(newRevision).setLifecycle(PolicyLifecycle.DELETED).build();
+    }
+
+    private static void retryOnAssertionError(final Runnable r) {
+        Assertions.retryOnAssertionError(r, PERSISTENCE_ASSERT_RETRY_COUNT, PERSISTENCE_ASSERT_RETRY_DELAY_MS);
+    }
+
+    private static void waitSecs(final long secs) {
+        try {
+            Thread.sleep(secs * 1000);
+        } catch (final InterruptedException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    private static Policy convertSnapshotDataToPolicy(final DBObject dbObject, final long sequenceNumber) {
+        final DittoBsonJson dittoBsonJson = DittoBsonJson.getInstance();
+        final JsonObject json = dittoBsonJson.serialize(dbObject).asObject();
+
+        final Policy policy = PoliciesModelFactory.newPolicy(json);
+
+        assertThat(policy.getRevision().map(PolicyRevision::toLong).orElse(null)).isEqualTo(sequenceNumber);
+
+        return policy;
+    }
+
+    private static String convertDomainIdToPersistenceId(final String domainId) {
+        return PolicyPersistenceActor.PERSISTENCE_ID_PREFIX + domainId;
+    }
 
     @Override
     protected void setup(final Config customConfig) {
@@ -94,7 +153,8 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
 
         journalTestHelper = new PoliciesJournalTestHelper<>(actorSystem, this::convertJournalEntryToEvent,
                 PolicyPersistenceActorSnapshottingTest::convertDomainIdToPersistenceId);
-        snapshotTestHelper = new PoliciesSnapshotTestHelper<Policy>(actorSystem, PolicyPersistenceActorSnapshottingTest::convertSnapshotDataToPolicy,
+        snapshotTestHelper = new PoliciesSnapshotTestHelper<Policy>(actorSystem,
+                PolicyPersistenceActorSnapshottingTest::convertSnapshotDataToPolicy,
                 PolicyPersistenceActorSnapshottingTest::convertDomainIdToPersistenceId);
 
 
@@ -368,35 +428,6 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
         };
     }
 
-    private static void assertPolicyInSnapshot(final Policy actualPolicy, final Policy expectedPolicy) {
-        assertPolicyInResponse(actualPolicy, expectedPolicy, expectedPolicy.getRevision().map(PolicyRevision::toLong)
-                .orElseThrow(IllegalArgumentException::new));
-    }
-
-    protected static void assertPolicyInJournal(final Policy actualPolicy, Policy expectedPolicy) {
-        final PolicyBuilder expectedPolicyBuilder = PoliciesModelFactory.newPolicyBuilder(expectedPolicy);
-        expectedPolicy = expectedPolicyBuilder.build();
-
-        assertEqualJson(actualPolicy, expectedPolicy);
-
-        assertThat(actualPolicy.getModified()).isEmpty(); // is not required in journal entry
-    }
-
-    protected static void assertPolicyInResponse(final Policy actualPolicy, Policy expectedPolicy,
-            final long expectedRevision) {
-        final PolicyBuilder expectedPolicyBuilder = PoliciesModelFactory.newPolicyBuilder(expectedPolicy);
-        expectedPolicyBuilder.setRevision(expectedRevision);
-        expectedPolicy = expectedPolicyBuilder.build();
-
-        assertEqualJson(actualPolicy, expectedPolicy);
-
-        //assertThat(actualPolicy.getModified()).isPresent(); // we cannot check exact timestamp
-    }
-
-    private static void assertEqualJson(final Policy actualPolicy, final Policy expectedPolicy) {
-        assertThat(actualPolicy.toJson()).isEqualTo(expectedPolicy.toJson());
-    }
-
     private void assertSnapshotsEmpty(final String policyId) {
         assertSnapshots(policyId, Collections.emptyList());
     }
@@ -423,16 +454,11 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
         });
     }
 
-    private static Policy toDeletedPolicy(final Policy policy, final int newRevision) {
-        return policy.toBuilder().setRevision(newRevision).setLifecycle(PolicyLifecycle.DELETED).build();
-    }
-
     protected ActorRef createPersistenceActorFor(final String policyId) {
         final PolicyMongoSnapshotAdapter snapshotAdapter = new PolicyMongoSnapshotAdapter();
-        final Props props = PolicyPersistenceActor.props(policyId, snapshotAdapter, pubSubMediator, policyCacheFacade);
+        final Props props = PolicyPersistenceActor.props(policyId, snapshotAdapter, pubSubMediator);
         return actorSystem.actorOf(props);
     }
-
 
     private Event toEvent(final Command command, final long revision) {
         final Class<? extends Command> clazz = command.getClass();
@@ -452,35 +478,8 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
         });
     }
 
-    private static void retryOnAssertionError(final Runnable r) {
-        Assertions.retryOnAssertionError(r, PERSISTENCE_ASSERT_RETRY_COUNT, PERSISTENCE_ASSERT_RETRY_DELAY_MS);
-    }
-
-    private static void waitSecs(final long secs) {
-        try {
-            Thread.sleep(secs * 1000);
-        } catch (final InterruptedException e) {
-            throw new IllegalStateException(e);
-        }
-    }
-
     private Event convertJournalEntryToEvent(final DBObject dbObject, final long sequenceNumber) {
         return ((Event) eventAdapter.fromJournal(dbObject, null).events().head()).setRevision(sequenceNumber);
-    }
-
-    private static Policy convertSnapshotDataToPolicy(final DBObject dbObject, final long sequenceNumber) {
-        final DittoBsonJson dittoBsonJson = DittoBsonJson.getInstance();
-        final JsonObject json = dittoBsonJson.serialize(dbObject).asObject();
-
-        final Policy policy = PoliciesModelFactory.newPolicy(json);
-
-        assertThat(policy.getRevision().map(PolicyRevision::toLong).orElse(null)).isEqualTo(sequenceNumber);
-
-        return policy;
-    }
-
-    private static String convertDomainIdToPersistenceId(final String domainId) {
-        return PolicyPersistenceActor.PERSISTENCE_ID_PREFIX + domainId;
     }
 
 }

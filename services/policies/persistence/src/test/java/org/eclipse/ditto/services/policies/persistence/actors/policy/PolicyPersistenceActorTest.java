@@ -83,10 +83,10 @@ import scala.runtime.BoxedUnit;
 public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
 
     @Before
-    public void setup()
-    {
+    public void setup() {
         setUpBase();
     }
+
     /** */
     @Test
     public void tryToRetrievePolicyWhichWasNotYetCreated() {
@@ -113,8 +113,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
         final CreatePolicy createPolicyCommand = CreatePolicy.of(policy, dittoHeadersMockV2);
 
         final PolicyMongoSnapshotAdapter snapshotAdapter = new PolicyMongoSnapshotAdapter();
-        final Props props = PolicyPersistenceActor.props(policyIdOfActor, snapshotAdapter, pubSubMediator,
-                policyCacheFacade);
+        final Props props = PolicyPersistenceActor.props(policyIdOfActor, snapshotAdapter, pubSubMediator);
         final TestActorRef<PolicyPersistenceActor> underTest = TestActorRef.create(actorSystem, props);
         final PolicyPersistenceActor policyPersistenceActor = underTest.underlyingActor();
         final PartialFunction<Object, BoxedUnit> receiveCommand = policyPersistenceActor.receiveCommand();
@@ -895,7 +894,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
 
     private ActorRef createPersistenceActorFor(final String policyId) {
         final PolicyMongoSnapshotAdapter snapshotAdapter = new PolicyMongoSnapshotAdapter();
-        final Props props = PolicyPersistenceActor.props(policyId, snapshotAdapter, pubSubMediator, policyCacheFacade);
+        final Props props = PolicyPersistenceActor.props(policyId, snapshotAdapter, pubSubMediator);
         return actorSystem.actorOf(props);
     }
 }
