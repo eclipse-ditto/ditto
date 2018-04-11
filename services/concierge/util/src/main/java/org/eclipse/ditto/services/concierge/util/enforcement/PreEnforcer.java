@@ -57,7 +57,7 @@ public final class PreEnforcer {
             final ActorRef self,
             final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> processor) {
 
-        return Pipe.joinFilteredSink(
+        return Pipe.joinUnhandledSink(
                 Pipe.joinFilteredFlow(Filter.of(WithDittoHeaders.class), new TransformStage(self, processor)),
                 GraphActor.unhandled());
     }

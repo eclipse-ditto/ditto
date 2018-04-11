@@ -23,9 +23,11 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.services.utils.akka.controlflow.GraphActor;
 import org.eclipse.ditto.services.utils.akka.controlflow.Pipe;
+import org.eclipse.ditto.services.utils.akka.controlflow.WithSender;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.stream.javadsl.Flow;
 
 /**
  * Utility class to create actors that enforce authorization.
@@ -66,9 +68,9 @@ public final class EnforcerActor {
             final Enforcement.Context enforcementContext =
                     new Enforcement.Context(pubSubMediator, askTimeout).with(actorContext, log);
 
-            return Pipe.joinFlow(
-                    PreEnforcer.fromFunction(actorContext.self(), preEnforcerFunction),
-                    Pipe.joinFlows(enforcementProviders.stream()
+            return Flow.<WithSender>create()
+                    .via(PreEnforcer.fromFunction(actorContext.self(), preEnforcerFunction))
+                    .via(Pipe.joinFlows(enforcementProviders.stream()
                             .map(provider -> provider.toGraph(enforcementContext))
                             .collect(Collectors.toList())));
         });

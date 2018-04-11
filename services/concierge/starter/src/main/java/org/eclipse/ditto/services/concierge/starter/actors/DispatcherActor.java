@@ -22,7 +22,6 @@ import org.eclipse.ditto.services.utils.akka.controlflow.Consume;
 import org.eclipse.ditto.services.utils.akka.controlflow.FanIn;
 import org.eclipse.ditto.services.utils.akka.controlflow.Filter;
 import org.eclipse.ditto.services.utils.akka.controlflow.GraphActor;
-import org.eclipse.ditto.services.utils.akka.controlflow.Pipe;
 import org.eclipse.ditto.services.utils.akka.controlflow.WithSender;
 import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
 
@@ -34,6 +33,7 @@ import akka.stream.FanInShape2;
 import akka.stream.FlowShape;
 import akka.stream.Graph;
 import akka.stream.SinkShape;
+import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.GraphDSL;
 import akka.stream.stage.GraphStage;
 
@@ -59,7 +59,9 @@ public final class DispatcherActor {
         return GraphActor.partial(actorContext -> {
             sanityCheck(actorContext.self());
             putSelfToPubSubMediator(actorContext.self(), pubSubMediator);
-            return Pipe.joinFlow(preEnforcer, dispatchGraph(actorContext, pubSubMediator, enforcerShardRegion));
+            return Flow.<WithSender>create()
+                    .via(preEnforcer)
+                    .via(dispatchGraph(actorContext, pubSubMediator, enforcerShardRegion));
         });
     }
 

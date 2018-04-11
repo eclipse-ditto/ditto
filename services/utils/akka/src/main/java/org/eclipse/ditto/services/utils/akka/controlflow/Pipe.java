@@ -12,7 +12,6 @@
 package org.eclipse.ditto.services.utils.akka.controlflow;
 
 import java.util.Collection;
-import java.util.Iterator;
 
 import akka.NotUsed;
 import akka.stream.FanOutShape2;
@@ -92,6 +91,27 @@ public class Pipe {
     }
 
     /**
+     * Attach a sink to the unhandled port of a filter.
+     *
+     * @param filter the filter.
+     * @param unhandled the sink.
+     * @param <A> type of incoming messages.
+     * @param <B> type of messages that pass through the filter.
+     * @return joined flow.
+     */
+    public static <A, B> Graph<FlowShape<A, B>, NotUsed> joinUnhandledSink(
+            final Graph<FanOutShape2<A, B, A>, NotUsed> filter,
+            final Graph<SinkShape<A>, NotUsed> unhandled) {
+
+        return GraphDSL.create(builder -> {
+            final FanOutShape2<A, B, A> filterShape = builder.add(filter);
+            final SinkShape<A> sinkShape = builder.add(unhandled);
+            builder.from(filterShape.out1()).to(sinkShape);
+            return FlowShape.of(filterShape.in(), filterShape.out0());
+        });
+    }
+
+    /**
      * Attach a flow into the output port of a filter.
      *
      * @param filter the filter.
@@ -123,21 +143,12 @@ public class Pipe {
     public static <A> Graph<FlowShape<A, A>, NotUsed> joinFlows(
             final Collection<Graph<FlowShape<A, A>, NotUsed>> flows) {
 
-        final Iterator<Graph<FlowShape<A, A>, NotUsed>> iterator = flows.iterator();
+        Flow<A, A, NotUsed> overallFlow = Flow.create();
 
-        if (iterator.hasNext()) {
-            return GraphDSL.create(builder -> {
-                final FlowShape<A, A> first = builder.add(iterator.next());
-                FlowShape<A, A> pointer = first;
-                while (iterator.hasNext()) {
-                    final FlowShape<A, A> next = builder.add(iterator.next());
-                    builder.from(pointer.out()).toInlet(next.in());
-                    pointer = next;
-                }
-                return FlowShape.of(first.in(), pointer.out());
-            });
-        } else {
-            return Flow.create();
+        for (Graph<FlowShape<A, A>, NotUsed> flow : flows) {
+            overallFlow = overallFlow.via(flow);
         }
+
+        return overallFlow;
     }
 }
