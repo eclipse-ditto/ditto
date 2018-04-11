@@ -15,8 +15,11 @@ import static java.util.Objects.requireNonNull;
 import static org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants.CLUSTER_ROLE;
 import static org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants.SHARD_REGION;
 
+import java.net.ConnectException;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.services.base.config.ClusterConfigReader;
 import org.eclipse.ditto.services.concierge.starter.proxy.AuthorizationProxyPropsFactory;
 import org.eclipse.ditto.services.concierge.util.config.ConciergeConfigReader;
@@ -26,26 +29,77 @@ import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
 
 import akka.actor.AbstractActor;
+import akka.actor.ActorInitializationException;
+import akka.actor.ActorKilledException;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
+import akka.actor.InvalidActorNameException;
+import akka.actor.OneForOneStrategy;
 import akka.actor.Props;
 import akka.actor.Status;
+import akka.actor.SupervisorStrategy;
 import akka.cluster.sharding.ClusterSharding;
 import akka.cluster.sharding.ClusterShardingSettings;
 import akka.cluster.sharding.ShardRegion;
 import akka.event.DiagnosticLoggingAdapter;
+import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.ReceiveBuilder;
+import akka.pattern.AskTimeoutException;
 
 /**
  * The root actor of the concierge service.
  */
 public final class ConciergeRootActor extends AbstractActor {
 
-    // TODO: supervisory strategy, best without code duplication
+    private static final String RESTARTING_CHILD_MSG = "Restarting child...";
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
     private final ActorRef conciergeShardRegion;
+
+    private final SupervisorStrategy supervisorStrategy = new OneForOneStrategy(true, DeciderBuilder
+            .match(NullPointerException.class, e -> {
+                log.error(e, "NullPointer in child actor: {}", e.getMessage());
+                log.info(RESTARTING_CHILD_MSG);
+                return SupervisorStrategy.restart();
+            }).match(IllegalArgumentException.class, e -> {
+                log.warning("Illegal Argument in child actor: {}", e.getMessage());
+                return SupervisorStrategy.resume();
+            }).match(IllegalStateException.class, e -> {
+                log.warning("Illegal State in child actor: {}", e.getMessage());
+                return SupervisorStrategy.resume();
+            }).match(NoSuchElementException.class, e -> {
+                log.warning("NoSuchElement in child actor: {}", e.getMessage());
+                return SupervisorStrategy.resume();
+            }).match(AskTimeoutException.class, e -> {
+                log.warning("AskTimeoutException in child actor: {}", e.getMessage());
+                return SupervisorStrategy.resume();
+            }).match(ConnectException.class, e -> {
+                log.warning("ConnectException in child actor: {}", e.getMessage());
+                log.info(RESTARTING_CHILD_MSG);
+                return SupervisorStrategy.restart();
+            }).match(InvalidActorNameException.class, e -> {
+                log.warning("InvalidActorNameException in child actor: {}", e.getMessage());
+                return SupervisorStrategy.resume();
+            }).match(ActorInitializationException.class, e -> {
+                log.error(e, "ActorInitializationException in child actor: {}", e.getMessage());
+                return SupervisorStrategy.stop();
+            }).match(ActorKilledException.class, e -> {
+                log.error(e, "ActorKilledException in child actor: {}", e.message());
+                log.info(RESTARTING_CHILD_MSG);
+                return SupervisorStrategy.restart();
+            }).match(DittoRuntimeException.class, e -> {
+                log.error(e,
+                        "DittoRuntimeException '{}' should not be escalated to RootActor. Simply resuming Actor.",
+                        e.getErrorCode());
+                return SupervisorStrategy.resume();
+            }).match(Throwable.class, e -> {
+                log.error(e, "Escalating above root actor!");
+                return SupervisorStrategy.escalate();
+            }).matchAny(e -> {
+                log.error("Unknown message:'{}'! Escalating above root actor!", e);
+                return SupervisorStrategy.escalate();
+            }).build());
 
     /**
      * Name of this actor.
@@ -91,6 +145,11 @@ public final class ConciergeRootActor extends AbstractActor {
     }
 
     @Override
+    public SupervisorStrategy supervisorStrategy() {
+        return supervisorStrategy;
+    }
+
+    @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
                 .matchEquals(ShardRegion.getShardRegionStateInstance(), getShardRegionState ->
@@ -117,14 +176,12 @@ public final class ConciergeRootActor extends AbstractActor {
             final ClusterConfigReader clusterConfigReader,
             final Props props) {
 
-        final String shardName = SHARD_REGION;
-
         final ClusterShardingSettings settings = ClusterShardingSettings.create(actorSystem)
                 .withRole(CLUSTER_ROLE);
 
         final ShardRegionExtractor extractor =
                 ShardRegionExtractor.of(clusterConfigReader.numberOfShards(), actorSystem);
 
-        return ClusterSharding.get(actorSystem).start(shardName, props, settings, extractor);
+        return ClusterSharding.get(actorSystem).start(SHARD_REGION, props, settings, extractor);
     }
 }
