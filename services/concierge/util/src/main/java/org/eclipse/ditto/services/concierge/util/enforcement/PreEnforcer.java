@@ -11,17 +11,13 @@
  */
 package org.eclipse.ditto.services.concierge.util.enforcement;
 
-import java.util.Optional;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
-import javax.annotation.Nullable;
-
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
-import org.eclipse.ditto.services.utils.akka.controlflow.ControlFlowLogic;
 import org.eclipse.ditto.services.utils.akka.controlflow.Filter;
 import org.eclipse.ditto.services.utils.akka.controlflow.GraphActor;
 import org.eclipse.ditto.services.utils.akka.controlflow.Pipe;
@@ -30,20 +26,25 @@ import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorEx
 
 import akka.NotUsed;
 import akka.actor.ActorRef;
-import akka.event.LoggingAdapter;
+import akka.event.Logging;
 import akka.stream.Attributes;
 import akka.stream.FlowShape;
 import akka.stream.Graph;
-import akka.stream.Inlet;
-import akka.stream.Outlet;
-import akka.stream.stage.GraphStage;
-import akka.stream.stage.GraphStageLogic;
+import akka.stream.SourceShape;
+import akka.stream.javadsl.Flow;
+import akka.stream.javadsl.Source;
 
 /**
  * Create processing units of Akka stream graph before enforcement from an asynchronous function that may abort
  * enforcement by throwing exceptions.
  */
 public final class PreEnforcer {
+
+    private static final Attributes INFO_LEVEL =
+            Attributes.createLogLevels(Logging.InfoLevel(), Logging.DebugLevel(), Logging.ErrorLevel());
+
+    private static final Attributes ERROR_LEVEL =
+            Attributes.createLogLevels(Logging.ErrorLevel(), Logging.DebugLevel(), Logging.ErrorLevel());
 
     private PreEnforcer() {}
 
@@ -57,81 +58,66 @@ public final class PreEnforcer {
             final ActorRef self,
             final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> processor) {
 
+        final Attributes logLevels =
+                Attributes.createLogLevels(Logging.DebugLevel(), Logging.DebugLevel(), Logging.ErrorLevel());
+
+        final Flow<WithSender<WithDittoHeaders>, WithSender, NotUsed> flow =
+                Flow.<WithSender<WithDittoHeaders>>create()
+                        .mapAsync(1, wrapped ->
+                                processor.apply(wrapped.message())
+                                        .<Object>thenApply(result -> WithSender.of(result, wrapped.sender()))
+                                        .exceptionally(error -> handleError(error, wrapped, self)))
+                        .log("PreEnforcer")
+                        .withAttributes(logLevels)
+                        .flatMapConcat(PreEnforcer::keepResultAndLogErrors);
+
         return Pipe.joinUnhandledSink(
-                Pipe.joinFilteredFlow(Filter.of(WithDittoHeaders.class), new TransformStage(self, processor)),
+                Pipe.joinFilteredFlow(Filter.of(WithDittoHeaders.class), flow),
                 GraphActor.unhandled());
     }
 
+    private static Graph<SourceShape<WithSender>, NotUsed> keepResultAndLogErrors(final Object result) {
+        if (result instanceof WithSender) {
+            return Source.single((WithSender) result);
+        } else if (result instanceof DittoRuntimeException) {
+            return Source.single(result)
+                    .log("PreEnforcer replied DittoRuntimeException")
+                    .withAttributes(INFO_LEVEL)
+                    .flatMapConcat(x -> Source.empty());
+        } else {
+            return Source.single(result)
+                    .log("PreEnforcer encountered unexpected exception")
+                    .withAttributes(ERROR_LEVEL)
+                    .flatMapConcat(x -> Source.empty());
+        }
+    }
 
-    private static final class TransformStage extends GraphStage<FlowShape<WithSender<WithDittoHeaders>, WithSender>> {
+    private static Object handleError(final Throwable error,
+            final WithSender<WithDittoHeaders> wrapped,
+            final ActorRef self) {
 
-        private final ActorRef self;
-        private final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> processor;
+        final Throwable rootCause = extractRootCause(error);
+        final ActorRef sender = wrapped.sender();
+        final DittoHeaders dittoHeaders = wrapped.message().getDittoHeaders();
 
-        private TransformStage(final ActorRef self,
-                final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> processor) {
-            this.self = self;
-            this.processor = processor;
+        if (rootCause instanceof DittoRuntimeException) {
+            sender.tell(rootCause, self);
+        } else {
+            final GatewayInternalErrorException responseEx =
+                    GatewayInternalErrorException.newBuilder()
+                            .dittoHeaders(dittoHeaders)
+                            .cause(rootCause)
+                            .build();
+            sender.tell(responseEx, self);
         }
 
-        private final FlowShape<WithSender<WithDittoHeaders>, WithSender> shape =
-                FlowShape.of(Inlet.create("input"), Outlet.create("output"));
+        return rootCause;
+    }
 
-        @Override
-        public FlowShape<WithSender<WithDittoHeaders>, WithSender> shape() {
-            return shape;
+    private static Throwable extractRootCause(final Throwable t) {
+        if (t instanceof CompletionException) {
+            return extractRootCause(t.getCause());
         }
-
-        @Override
-        public GraphStageLogic createLogic(final Attributes inheritedAttributes) {
-            return new ControlFlowLogic(shape) {
-                {
-                    initOutlets(shape);
-                    when(shape.in(), wrapped -> {
-
-                        final Optional<WithDittoHeaders> result =
-                                Optional.ofNullable(processor.apply(wrapped.message())
-                                        .exceptionally(t -> handleError(t, log(), wrapped))
-                                        .toCompletableFuture()
-                                        .get());
-
-                        result.ifPresent(processedMessage ->
-                                emit(shape.out(), wrapped.withMessage(processedMessage)));
-                    });
-                }
-            };
-        }
-
-        @Nullable
-        private WithDittoHeaders handleError(final Throwable error, final LoggingAdapter log,
-                final WithSender<WithDittoHeaders> wrapped) {
-
-            final Throwable rootCause = extractRootCause(error);
-            final ActorRef sender = wrapped.sender();
-            final DittoHeaders dittoHeaders = wrapped.message().getDittoHeaders();
-
-            if (rootCause instanceof DittoRuntimeException) {
-                log.debug("Got DittoRuntimeException, sending back to sender: <{}>.",
-                        rootCause);
-                sender.tell(rootCause, self);
-            } else {
-                log.error(rootCause, "Got unexpected exception.");
-                final GatewayInternalErrorException responseEx =
-                        GatewayInternalErrorException.newBuilder()
-                                .dittoHeaders(dittoHeaders)
-                                .cause(rootCause)
-                                .build();
-                sender.tell(responseEx, self);
-            }
-
-            return null;
-        }
-
-        private static Throwable extractRootCause(final Throwable t) {
-            if (t instanceof CompletionException) {
-                return extractRootCause(t.getCause());
-            }
-            return t;
-        }
+        return t;
     }
 }
