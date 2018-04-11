@@ -13,36 +13,20 @@ package org.eclipse.ditto.services.gateway.proxy.actors;
 
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.model.policies.Policy;
-import org.eclipse.ditto.services.gateway.proxy.actors.handlers.CreateThingHandlerActor;
-import org.eclipse.ditto.services.gateway.proxy.actors.handlers.ModifyThingHandlerActor;
-import org.eclipse.ditto.services.gateway.proxy.actors.handlers.RetrieveThingHandlerActor;
-import org.eclipse.ditto.services.gateway.proxy.actors.handlers.ThingHandlerCreator;
 import org.eclipse.ditto.services.models.concierge.ConciergeEnvelope;
-import org.eclipse.ditto.services.models.things.commands.sudo.SudoCommand;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThings;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingsResponse;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.ThingSearchSudoCommand;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.devops.DevOpsCommand;
-import org.eclipse.ditto.signals.commands.messages.MessageCommand;
-import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
-import org.eclipse.ditto.signals.commands.things.ThingCommand;
-import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
-import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingsResponse;
 import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
-import org.eclipse.ditto.signals.events.policies.PolicyEvent;
-import org.eclipse.ditto.signals.events.things.ThingDeleted;
-import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 import akka.actor.ActorRef;
-import akka.actor.Props;
 import akka.cluster.pubsub.DistributedPubSubMediator;
-import akka.japi.pf.FI;
 import akka.japi.pf.ReceiveBuilder;
 import akka.routing.FromConfig;
 
@@ -55,41 +39,22 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
     private static final String THINGS_SEARCH_ACTOR_PATH = "/user/thingsSearchRoot/thingsSearch";
 
     private final ActorRef pubSubMediator;
-    private final ActorRef aclEnforcerShardRegion;
     private final ActorRef devOpsCommandsActor;
-    private final ActorRef policyEnforcerShardRegion;
-    private final ActorRef thingEnforcerLookup;
-    private final ActorRef thingCacheFacade;
     private final ActorRef thingsAggregator;
     private final ConciergeEnvelope conciergeEnvelope;
 
     protected AbstractThingProxyActor(final ActorRef pubSubMediator,
             final ActorRef devOpsCommandsActor,
-            final ActorRef aclEnforcerShardRegion,
-            final ActorRef policyEnforcerShardRegion,
-            final ActorRef conciergeShardRegion,
-            final ActorRef thingEnforcerLookup,
-            final ActorRef thingCacheFacade) {
+            final ActorRef conciergeShardRegion) {
         super(pubSubMediator);
 
         this.pubSubMediator = pubSubMediator;
         this.devOpsCommandsActor = devOpsCommandsActor;
-        this.policyEnforcerShardRegion = policyEnforcerShardRegion;
-        this.aclEnforcerShardRegion = aclEnforcerShardRegion;
-        this.thingCacheFacade = thingCacheFacade;
-        this.thingEnforcerLookup = thingEnforcerLookup;
 
         conciergeEnvelope = new ConciergeEnvelope(pubSubMediator, conciergeShardRegion);
 
         thingsAggregator = getContext().actorOf(FromConfig.getInstance().props(
                 ThingsAggregatorActor.props(getContext().self())), ThingsAggregatorActor.ACTOR_NAME);
-
-        pubSubMediator.tell(
-                new DistributedPubSubMediator.Subscribe(PolicyEvent.TYPE_PREFIX, PUB_SUB_GROUP_NAME, getSelf()),
-                getSelf());
-        pubSubMediator.tell(
-                new DistributedPubSubMediator.Subscribe(ThingEvent.TYPE_PREFIX, PUB_SUB_GROUP_NAME, getSelf()),
-                getSelf());
     }
 
     @Override
@@ -115,22 +80,8 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
                         thingsAggregator.forward(command, getContext());
                     }
                 })
-                .match(SudoCommand.class, forwardToLocalEnforcerLookup(thingEnforcerLookup))
-                .match(org.eclipse.ditto.services.models.policies.commands.sudo.SudoCommand.class,
-                        forwardToLocalEnforcerLookup(thingEnforcerLookup))
 
-                /* Policy Commands */
-                .match(PolicyCommand.class, this::forwardToAuthorizationService)
-                .match(org.eclipse.ditto.services.models.policies.commands.sudo.SudoCommand.class, sudoCommand ->
-                        policyEnforcerShardRegion.forward(sudoCommand, getContext()))
-
-                /* Policy Events */
-                .match(PolicyEvent.class, event -> {
-                    LogUtil.enhanceLogWithCorrelationId(getLogger(), event);
-                    getLogger().debug("Got '{}' message, forwarding to the Enforcer", event.getType());
-                    policyEnforcerShardRegion.tell(event, getSender());
-                })
-
+                // TODO CR-5434
                 /* Thing Commands */
                 .match(RetrieveThings.class, command -> {
                     if (command.getThingIds().isEmpty()) {
@@ -142,18 +93,6 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
                         thingsAggregator.forward(command, getContext());
                     }
                 })
-                .match(ThingCommand.class, this::forwardToAuthorizationService)
-                .match(MessageCommand.class, this::forwardToAuthorizationService)
-
-                /* Thing Events */
-                /* use MAJORITY for ThingDeleted events, because ThingsShardRegion no longer contains any
-                   information regarding the authorization of this event (because the Thing is deleted.
-                 */
-                .match(ThingDeleted.class, forwardToMajorityEnforcerLookup(thingEnforcerLookup))
-                /* other events are dispatched according to the local cache because enforcer-lookup-function
-                   will be able to retrieve the current state of the thing in case of cache miss.
-                */
-                .match(ThingEvent.class, forwardToLocalEnforcerLookup(thingEnforcerLookup))
 
                 /* Search Commands */
                 .match(ThingSearchCommand.class, command -> pubSubMediator.tell(
@@ -162,33 +101,17 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
                 .match(ThingSearchSudoCommand.class, command -> pubSubMediator.tell(
                         new DistributedPubSubMediator.Send(THINGS_SEARCH_ACTOR_PATH, command), getSender()))
 
+                /* send all other Commands to Concierge Service */
+                .match(Command.class, this::forwardToConciergeService)
+
                 /* Live Signals */
-                .match(Signal.class, ProxyActor::isLiveSignal, this::forwardToAuthorizationService)
+                .match(Signal.class, ProxyActor::isLiveSignal, this::forwardToConciergeService)
         ;
     }
 
     @Override
     protected void addResponseBehaviour(final ReceiveBuilder receiveBuilder) {
-        receiveBuilder
-                .match(LookupEnforcerResponse.class, isOfType(CreateThing.TYPE), response -> {
-                    final LookupContext<?> lookupContext = response.getContext();
-                    final ActorRef actor = getThingHandlerActor(response, CreateThingHandlerActor::props);
-                    actor.tell(getSignal(response), lookupContext.getInitialSender());
-                })
-                .match(LookupEnforcerResponse.class, isOfType(ModifyThing.TYPE), response -> {
-                    final LookupContext<?> lookupContext = response.getContext();
-                    final ActorRef actor = getThingHandlerActor(response, ModifyThingHandlerActor::props);
-                    actor.tell(getSignal(response), lookupContext.getInitialSender());
-                })
-                .match(LookupEnforcerResponse.class, isRetrieveThingWithAggregationNeeded(), response -> {
-                    final LookupContext<?> lookupContext = response.getContext();
-                    final RetrieveThing retrieveThing = (RetrieveThing) lookupContext.getInitialCommandOrEvent();
-                    getLogger().debug("Got 'RetrieveThing' message with a '{}' lookup: {}",
-                            Policy.INLINED_FIELD_NAME,
-                            retrieveThing);
-                    final ActorRef actor = getThingHandlerActor(response, RetrieveThingHandlerActor::props);
-                    actor.tell(getSignal(response), lookupContext.getInitialSender());
-                });
+
     }
 
     @Override
@@ -196,39 +119,8 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
         // do nothing
     }
 
-    @Override
-    protected void deleteCacheEntry(final LookupEnforcerResponse response) {
-        if (isOfType(ThingDeleted.TYPE).defined(response)) {
-            deleteEntryFromCache(response, thingCacheFacade);
-        }
-    }
-
-    private void forwardToAuthorizationService(final Signal<?> signal) {
+    protected void forwardToConciergeService(final Signal<?> signal) {
         conciergeEnvelope.dispatch(signal, getSender());
-    }
-
-    private static FI.TypedPredicate<LookupEnforcerResponse> isRetrieveThingWithAggregationNeeded() {
-        return lookupEnforcerResponse -> {
-            final FI.TypedPredicate<LookupEnforcerResponse> isOfTypePredicate = isOfType(RetrieveThing.TYPE);
-            if (isOfTypePredicate.defined(lookupEnforcerResponse)) {
-                final LookupContext<?> lookupContext = lookupEnforcerResponse.getContext();
-                final RetrieveThing retrieveThing = (RetrieveThing) lookupContext.getInitialCommandOrEvent();
-                return RetrieveThingHandlerActor.checkIfAggregationIsNeeded(retrieveThing);
-            }
-            return false;
-        };
-    }
-
-    private ActorRef getThingHandlerActor(final LookupEnforcerResponse lookupEnforcerResponse,
-            final ThingHandlerCreator thingHandlerCreator) {
-
-        final ActorRef enforcerShard = lookupEnforcerResponse.getEnforcerRef().orElse(null);
-        final String enforcerShardId = lookupEnforcerResponse.getShardId().orElse(null);
-
-        final Props props = thingHandlerCreator.props(enforcerShard, enforcerShardId, aclEnforcerShardRegion,
-                policyEnforcerShardRegion);
-
-        return getContext().actorOf(props);
     }
 
 }

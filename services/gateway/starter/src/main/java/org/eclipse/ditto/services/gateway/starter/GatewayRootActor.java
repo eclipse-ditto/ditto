@@ -13,26 +13,18 @@ package org.eclipse.ditto.services.gateway.starter;
 
 import java.net.ConnectException;
 import java.time.Duration;
-import java.util.Collections;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.model.policies.SubjectIssuer;
 import org.eclipse.ditto.services.gateway.endpoints.routes.RootRoute;
-import org.eclipse.ditto.services.gateway.proxy.actors.AclEnforcerActor;
-import org.eclipse.ditto.services.gateway.proxy.actors.EnforcerLookupActor;
-import org.eclipse.ditto.services.gateway.proxy.actors.PolicyEnforcerActor;
 import org.eclipse.ditto.services.gateway.proxy.actors.ProxyActor;
-import org.eclipse.ditto.services.gateway.proxy.actors.ThingEnforcerLookupFunction;
 import org.eclipse.ditto.services.gateway.starter.service.util.ConfigKeys;
 import org.eclipse.ditto.services.gateway.starter.service.util.HttpClientFacade;
 import org.eclipse.ditto.services.gateway.streaming.actors.StreamingActor;
 import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
-import org.eclipse.ditto.services.models.policies.PoliciesMessagingConstants;
-import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
 import org.eclipse.ditto.services.models.thingsearch.ThingsSearchConstants;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
@@ -40,8 +32,6 @@ import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
 import org.eclipse.ditto.services.utils.devops.DevOpsCommandsActor;
 import org.eclipse.ditto.services.utils.devops.LogbackLoggingFacade;
-import org.eclipse.ditto.services.utils.distributedcache.actors.CacheFacadeActor;
-import org.eclipse.ditto.services.utils.distributedcache.actors.CacheRole;
 import org.eclipse.ditto.services.utils.health.DefaultHealthCheckingActorFactory;
 import org.eclipse.ditto.services.utils.health.HealthCheckingActorOptions;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientActor;
@@ -60,9 +50,7 @@ import akka.actor.SupervisorStrategy;
 import akka.cluster.Cluster;
 import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.cluster.sharding.ClusterSharding;
-import akka.cluster.sharding.ClusterShardingSettings;
 import akka.cluster.sharding.ShardRegion;
-import akka.dispatch.MessageDispatcher;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.http.javadsl.ConnectHttp;
 import akka.http.javadsl.Http;
@@ -85,10 +73,6 @@ final class GatewayRootActor extends AbstractActor {
      */
     static final String ACTOR_NAME = "gatewayRoot";
 
-    private static final String GATEWAY_CLUSTER_ROLE = "gateway";
-
-    private static final String ACL_ENFORCER_SHARD_REGION = "aclEnforcer";
-    private static final String POLICY_ENFORCER_SHARD_REGION = "policyEnforcer";
     private static final String CHILD_RESTART_INFO_MSG = "Restarting child...";
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
@@ -134,9 +118,6 @@ final class GatewayRootActor extends AbstractActor {
                 return SupervisorStrategy.escalate();
             }).build());
 
-    private final ActorRef policyEnforcerShardRegion;
-    private final ActorRef aclEnforcerShardRegion;
-
     private GatewayRootActor(final Config config, final ActorRef pubSubMediator, final ActorMaterializer materializer) {
 
         final int numberOfShards = config.getInt(ConfigKeys.CLUSTER_NUMBER_OF_SHARDS);
@@ -145,64 +126,17 @@ final class GatewayRootActor extends AbstractActor {
                 .startProxy(ConciergeMessagingConstants.SHARD_REGION,
                         Optional.of(ConciergeMessagingConstants.CLUSTER_ROLE),
                         ShardRegionExtractor.of(numberOfShards, getContext().getSystem()));
-        final ActorRef policiesShardRegionProxy = ClusterSharding.get(actorSystem)
-                .startProxy(PoliciesMessagingConstants.SHARD_REGION,
-                        Optional.of(PoliciesMessagingConstants.CLUSTER_ROLE), ShardRegionExtractor.of(numberOfShards,
-                                getContext().getSystem()));
-        final ActorRef thingsShardRegionProxy = ClusterSharding.get(actorSystem)
-                .startProxy(ThingsMessagingConstants.SHARD_REGION,
-                        Optional.of(ThingsMessagingConstants.CLUSTER_ROLE), ShardRegionExtractor.of(numberOfShards,
-                                getContext().getSystem()));
 
         ClusterSharding.get(actorSystem)
                 .startProxy(ThingsSearchConstants.SHARD_REGION, Optional.of(ThingsSearchConstants.CLUSTER_ROLE),
                         ShardRegionExtractor.of(numberOfShards, getContext().getSystem()));
-
-        final FiniteDuration enforcerCacheInterval = toFiniteDuration(config.getDuration(ConfigKeys
-                .ENFORCER_CACHE_INTERVAL));
-        final FiniteDuration enforcerInternalAskTimeout = toFiniteDuration(config.getDuration(ConfigKeys
-                .ENFORCER_INTERNAL_ASK_TIMEOUT));
-
-        final ClusterShardingSettings shardingSettings =
-                ClusterShardingSettings.create(actorSystem).withRole(GATEWAY_CLUSTER_ROLE);
-
-        final ActorRef thingCacheFacade = startChildActor(CacheFacadeActor.actorNameFor(CacheRole.THING),
-                CacheFacadeActor.props(CacheRole.THING, config));
-
-        final Props aclEnforcerProps =
-                AclEnforcerActor.props(pubSubMediator, thingsShardRegionProxy, policiesShardRegionProxy,
-                        thingCacheFacade, enforcerCacheInterval, enforcerInternalAskTimeout,
-                        Collections.singletonList(SubjectIssuer.GOOGLE));
-        aclEnforcerShardRegion = ClusterSharding.get(actorSystem)
-                .start(ACL_ENFORCER_SHARD_REGION, aclEnforcerProps, shardingSettings,
-                        ShardRegionExtractor.of(numberOfShards, getContext().getSystem()));
-
-        final ActorRef policyCacheFacade = startChildActor(CacheFacadeActor.actorNameFor(CacheRole.POLICY),
-                CacheFacadeActor.props(CacheRole.POLICY, config));
-        final Props policyEnforcerProps =
-                PolicyEnforcerActor.props(pubSubMediator, policiesShardRegionProxy, thingsShardRegionProxy,
-                        policyCacheFacade, enforcerCacheInterval, enforcerInternalAskTimeout);
-        policyEnforcerShardRegion = ClusterSharding.get(actorSystem)
-                .start(POLICY_ENFORCER_SHARD_REGION, policyEnforcerProps, shardingSettings,
-                        ShardRegionExtractor.of(numberOfShards, getContext().getSystem()));
-
-        final MessageDispatcher lookupDispatcher =
-                actorSystem.dispatchers().lookup("enforcer-lookup-dispatcher");
-
-        final ThingEnforcerLookupFunction thingEnforcerLookupFunction =
-                ThingEnforcerLookupFunction.of(thingsShardRegionProxy, aclEnforcerShardRegion,
-                        policyEnforcerShardRegion, lookupDispatcher);
-        final ActorRef thingEnforcerLookupActor = startChildActor(EnforcerLookupActor.actorNameFor(CacheRole.THING),
-                EnforcerLookupActor.props(aclEnforcerShardRegion, policyEnforcerShardRegion, thingCacheFacade,
-                        thingEnforcerLookupFunction));
 
         final ActorRef devOpsCommandsActor = startChildActor(DevOpsCommandsActor.ACTOR_NAME,
                 DevOpsCommandsActor.props(LogbackLoggingFacade.newInstance(), GatewayService.SERVICE_NAME,
                         ConfigUtil.instanceIndex()));
 
         final ActorRef proxyActor = startChildActor(ProxyActor.ACTOR_NAME,
-                ProxyActor.props(pubSubMediator, devOpsCommandsActor, aclEnforcerShardRegion, policyEnforcerShardRegion,
-                        conciergeShardRegionProxy, thingEnforcerLookupActor, thingCacheFacade));
+                ProxyActor.props(pubSubMediator, devOpsCommandsActor, conciergeShardRegionProxy));
 
         pubSubMediator.tell(new DistributedPubSubMediator.Put(getSelf()), getSelf());
         pubSubMediator.tell(new DistributedPubSubMediator.Put(proxyActor), getSelf());
@@ -257,10 +191,6 @@ final class GatewayRootActor extends AbstractActor {
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
-                .matchEquals(ShardRegion.getShardRegionStateInstance(), getShardRegionState -> {
-                    aclEnforcerShardRegion.forward(getShardRegionState, getContext());
-                    policyEnforcerShardRegion.forward(getShardRegionState, getContext());
-                })
                 .match(Status.Failure.class, f -> log.error(f.cause(), "Got failure: {}", f))
                 .matchAny(m -> {
                     log.warning("Unknown message: {}", m);
@@ -305,10 +235,6 @@ final class GatewayRootActor extends AbstractActor {
         final HealthCheckingActorOptions healthCheckingActorOptions = hcBuilder.build();
         return startChildActor(DefaultHealthCheckingActorFactory.ACTOR_NAME,
                 DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions, mongoClient));
-    }
-
-    private FiniteDuration toFiniteDuration(final Duration duration) {
-        return scala.concurrent.duration.FiniteDuration.apply(duration.toMillis(), TimeUnit.MILLISECONDS);
     }
 
 }
