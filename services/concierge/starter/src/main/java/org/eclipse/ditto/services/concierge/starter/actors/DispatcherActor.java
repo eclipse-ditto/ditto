@@ -36,7 +36,6 @@ import akka.stream.Graph;
 import akka.stream.SinkShape;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.GraphDSL;
-import akka.stream.stage.GraphStage;
 
 /**
  * Actor that dispatches commands not authorized by any entity.
@@ -58,6 +57,7 @@ public final class DispatcherActor {
      *
      * @param pubSubMediator Akka pub-sub mediator.
      * @param enforcerShardRegion shard region of enforcer actors.
+     * @return the Props object.
      */
     public static Props props(final ActorRef pubSubMediator,
             final ActorRef enforcerShardRegion) {
@@ -69,9 +69,17 @@ public final class DispatcherActor {
         });
     }
 
+    /**
+     * Create Akka actor configuration Props object with pre-enforcer.
+     *
+     * @param pubSubMediator Akka pub-sub mediator.
+     * @param enforcerShardRegion shard region of enforcer actors.
+     * @param preEnforcer the pre-enforcer as graph.
+     * @return the Props object.
+     */
     public static Props props(final ActorRef pubSubMediator,
             final ActorRef enforcerShardRegion,
-            final GraphStage<FlowShape<WithSender, WithSender>> preEnforcer) {
+            final Graph<FlowShape<WithSender, WithSender>, NotUsed> preEnforcer) {
 
         return GraphActor.partial(actorContext -> {
             sanityCheck(actorContext.self());

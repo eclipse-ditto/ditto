@@ -18,6 +18,8 @@ import java.util.Set;
 import java.util.function.Consumer;
 
 import org.eclipse.ditto.model.enforcers.Enforcer;
+import org.eclipse.ditto.services.base.metrics.StatsdMetricsReporter;
+import org.eclipse.ditto.services.concierge.starter.actors.DispatcherActor;
 import org.eclipse.ditto.services.concierge.util.cache.AclEnforcerCacheLoader;
 import org.eclipse.ditto.services.concierge.util.cache.CacheFactory;
 import org.eclipse.ditto.services.concierge.util.cache.IdentityCache;
@@ -33,8 +35,9 @@ import org.eclipse.ditto.services.concierge.util.enforcement.PolicyCommandEnforc
 import org.eclipse.ditto.services.concierge.util.enforcement.ThingCommandEnforcement;
 import org.eclipse.ditto.services.concierge.util.update.PolicyCacheUpdateActor;
 import org.eclipse.ditto.services.concierge.util.update.ThingCacheUpdateActor;
-import org.eclipse.ditto.services.base.metrics.StatsdMetricsReporter;
 import org.eclipse.ditto.services.models.concierge.EntityId;
+import org.eclipse.ditto.services.models.policies.PoliciesMessagingConstants;
+import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 
@@ -47,18 +50,24 @@ import akka.actor.Props;
 /**
  * Ditto default implementation of {@link AuthorizationProxyPropsFactory}.
  */
-public final class DefaultAuthorizationProxyPropsFactory implements AuthorizationProxyPropsFactory {
+public final class DefaultAuthorizationProxyPropsFactory extends AuthorizationProxyPropsFactory {
 
     private static final String ENFORCER_CACHE_METRIC_NAME_PREFIX = "ditto.authorization.enforcer.cache.";
     private static final String ID_CACHE_METRIC_NAME_PREFIX = "ditto.authorization.id.cache.";
 
     @Override
-    public Props props(final ActorContext context, final ConciergeConfigReader configReader,
-            final ActorRef pubSubMediator, final ActorRef policiesShardRegionProxy,
-            final ActorRef thingsShardRegionProxy) {
+    public ActorRef startActors(final ActorContext context, final ConciergeConfigReader configReader,
+            final ActorRef pubSubMediator) {
         final Consumer<Map.Entry<String, MetricRegistry>> metricsReportingConsumer =
                 namedMetricRegistry -> StatsdMetricsReporter.getInstance().add(namedMetricRegistry);
         final Duration askTimeout = configReader.caches().askTimeout();
+
+
+        final ActorRef policiesShardRegionProxy = startProxy(context.system(), configReader.cluster().numberOfShards(),
+                PoliciesMessagingConstants.SHARD_REGION, PoliciesMessagingConstants.CLUSTER_ROLE);
+
+        final ActorRef thingsShardRegionProxy = startProxy(context.system(), configReader.cluster().numberOfShards(),
+                ThingsMessagingConstants.SHARD_REGION, ThingsMessagingConstants.CLUSTER_ROLE);
 
         final ThingEnforcementIdCacheLoader thingEnforcerIdCacheLoader =
                 new ThingEnforcementIdCacheLoader(askTimeout, thingsShardRegionProxy);
@@ -95,6 +104,7 @@ public final class DefaultAuthorizationProxyPropsFactory implements Authorizatio
                 aclEnforcerCache));
 
         final Props enforcerProps = EnforcerActor.props(pubSubMediator, enforcementProviders);
+        final ActorRef enforcerShardRegion = startShardRegion(context.system(), configReader.cluster(), enforcerProps);
 
         // start cache updaters
         final int instanceIndex = configReader.instanceIndex();
@@ -105,6 +115,8 @@ public final class DefaultAuthorizationProxyPropsFactory implements Authorizatio
                 PolicyCacheUpdateActor.props(policyEnforcerCache, pubSubMediator, instanceIndex);
         context.actorOf(policyCacheUpdateActorProps, PolicyCacheUpdateActor.ACTOR_NAME);
 
-        return enforcerProps;
+        context.actorOf(DispatcherActor.props(pubSubMediator, enforcerShardRegion), DispatcherActor.ACTOR_NAME);
+
+        return enforcerShardRegion;
     }
 }

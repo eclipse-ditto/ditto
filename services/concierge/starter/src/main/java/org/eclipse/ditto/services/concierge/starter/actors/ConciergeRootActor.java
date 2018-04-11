@@ -12,34 +12,24 @@
 package org.eclipse.ditto.services.concierge.starter.actors;
 
 import static java.util.Objects.requireNonNull;
-import static org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants.CLUSTER_ROLE;
-import static org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants.SHARD_REGION;
 
 import java.net.ConnectException;
 import java.util.NoSuchElementException;
-import java.util.Optional;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.services.base.config.ClusterConfigReader;
 import org.eclipse.ditto.services.concierge.starter.proxy.AuthorizationProxyPropsFactory;
 import org.eclipse.ditto.services.concierge.util.config.ConciergeConfigReader;
-import org.eclipse.ditto.services.models.policies.PoliciesMessagingConstants;
-import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorInitializationException;
 import akka.actor.ActorKilledException;
 import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
 import akka.actor.InvalidActorNameException;
 import akka.actor.OneForOneStrategy;
 import akka.actor.Props;
 import akka.actor.Status;
 import akka.actor.SupervisorStrategy;
-import akka.cluster.sharding.ClusterSharding;
-import akka.cluster.sharding.ClusterShardingSettings;
 import akka.cluster.sharding.ShardRegion;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.DeciderBuilder;
@@ -112,24 +102,7 @@ public final class ConciergeRootActor extends AbstractActor {
         requireNonNull(pubSubMediator);
         requireNonNull(authorizationProxyPropsFactory);
 
-        final ActorSystem actorSystem = getContext().getSystem();
-        final ClusterConfigReader clusterConfigReader = configReader.cluster();
-
-        final int numberOfShards = clusterConfigReader.numberOfShards();
-
-        final ActorRef policiesShardRegionProxy = startProxy(actorSystem, numberOfShards,
-                PoliciesMessagingConstants.SHARD_REGION, PoliciesMessagingConstants.CLUSTER_ROLE);
-
-        final ActorRef thingsShardRegionProxy = startProxy(actorSystem, numberOfShards,
-                ThingsMessagingConstants.SHARD_REGION, ThingsMessagingConstants.CLUSTER_ROLE);
-
-        final Props enforcerProps =
-                authorizationProxyPropsFactory.props(getContext(), configReader, pubSubMediator,
-                        policiesShardRegionProxy, thingsShardRegionProxy);
-
-        conciergeShardRegion = startShardRegion(actorSystem, clusterConfigReader, enforcerProps);
-
-        getContext().actorOf(DispatcherActor.props(pubSubMediator, conciergeShardRegion), DispatcherActor.ACTOR_NAME);
+        conciergeShardRegion = authorizationProxyPropsFactory.startActors(getContext(), configReader, pubSubMediator);
     }
 
     /**
@@ -161,29 +134,5 @@ public final class ConciergeRootActor extends AbstractActor {
                     log.warning("Unknown message <{}>.", m);
                     unhandled(m);
                 }).build();
-    }
-
-    private static ActorRef startProxy(final ActorSystem actorSystem,
-            final int numberOfShards,
-            final String shardRegionName,
-            final String clusterRole) {
-
-        final ShardRegionExtractor shardRegionExtractor = ShardRegionExtractor.of(numberOfShards, actorSystem);
-
-        return ClusterSharding.get(actorSystem)
-                .startProxy(shardRegionName, Optional.of(clusterRole), shardRegionExtractor);
-    }
-
-    private static ActorRef startShardRegion(final ActorSystem actorSystem,
-            final ClusterConfigReader clusterConfigReader,
-            final Props props) {
-
-        final ClusterShardingSettings settings = ClusterShardingSettings.create(actorSystem)
-                .withRole(CLUSTER_ROLE);
-
-        final ShardRegionExtractor extractor =
-                ShardRegionExtractor.of(clusterConfigReader.numberOfShards(), actorSystem);
-
-        return ClusterSharding.get(actorSystem).start(SHARD_REGION, props, settings, extractor);
     }
 }
