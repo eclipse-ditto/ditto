@@ -11,30 +11,47 @@
  */
 package org.eclipse.ditto.services.concierge.starter.actors;
 
+import static akka.http.javadsl.server.Directives.logRequest;
+import static akka.http.javadsl.server.Directives.logResult;
 import static java.util.Objects.requireNonNull;
 
 import java.net.ConnectException;
 import java.util.NoSuchElementException;
+import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.services.base.config.HealthConfigReader;
+import org.eclipse.ditto.services.base.config.HttpConfigReader;
 import org.eclipse.ditto.services.concierge.starter.proxy.AuthorizationProxyPropsFactory;
 import org.eclipse.ditto.services.concierge.util.config.ConciergeConfigReader;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
+import org.eclipse.ditto.services.utils.config.ConfigUtil;
+import org.eclipse.ditto.services.utils.health.DefaultHealthCheckingActorFactory;
+import org.eclipse.ditto.services.utils.health.HealthCheckingActorOptions;
+import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorInitializationException;
 import akka.actor.ActorKilledException;
 import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
 import akka.actor.InvalidActorNameException;
 import akka.actor.OneForOneStrategy;
 import akka.actor.Props;
 import akka.actor.Status;
 import akka.actor.SupervisorStrategy;
+import akka.cluster.Cluster;
 import akka.cluster.sharding.ShardRegion;
 import akka.event.DiagnosticLoggingAdapter;
+import akka.http.javadsl.ConnectHttp;
+import akka.http.javadsl.Http;
+import akka.http.javadsl.ServerBinding;
+import akka.http.javadsl.server.Route;
 import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.AskTimeoutException;
+import akka.stream.ActorMaterializer;
 
 /**
  * The root actor of the concierge service.
@@ -97,12 +114,21 @@ public final class ConciergeRootActor extends AbstractActor {
     public static final String ACTOR_NAME = "conciergeRoot";
 
     private ConciergeRootActor(final ConciergeConfigReader configReader, final ActorRef pubSubMediator,
-            final AuthorizationProxyPropsFactory authorizationProxyPropsFactory) {
+            final AuthorizationProxyPropsFactory authorizationProxyPropsFactory,
+            final ActorMaterializer materializer) {
+
         requireNonNull(configReader);
         requireNonNull(pubSubMediator);
         requireNonNull(authorizationProxyPropsFactory);
+        requireNonNull(materializer);
 
         conciergeShardRegion = authorizationProxyPropsFactory.startActors(getContext(), configReader, pubSubMediator);
+
+        final ActorRef healthCheckingActor = startHealthCheckingActor(configReader.health());
+
+        final HttpConfigReader httpConfig = configReader.http();
+
+        bindHttpStatusRoute(healthCheckingActor, httpConfig, materializer);
     }
 
     /**
@@ -111,12 +137,16 @@ public final class ConciergeRootActor extends AbstractActor {
      * @param configReader the config reader.
      * @param pubSubMediator the PubSub mediator Actor.
      * @param authorizationProxyPropsFactory the {@link AuthorizationProxyPropsFactory}.
+     * @param materializer the materializer for the Akka actor system.
      * @return the Akka configuration Props object.
      */
     public static Props props(final ConciergeConfigReader configReader, final ActorRef pubSubMediator,
-            final AuthorizationProxyPropsFactory authorizationProxyPropsFactory) {
+            final AuthorizationProxyPropsFactory authorizationProxyPropsFactory,
+            final ActorMaterializer materializer) {
+
         return Props.create(ConciergeRootActor.class,
-                () -> new ConciergeRootActor(configReader, pubSubMediator, authorizationProxyPropsFactory));
+                () -> new ConciergeRootActor(configReader, pubSubMediator, authorizationProxyPropsFactory,
+                        materializer));
     }
 
     @Override
@@ -134,5 +164,53 @@ public final class ConciergeRootActor extends AbstractActor {
                     log.warning("Unknown message <{}>.", m);
                     unhandled(m);
                 }).build();
+    }
+
+    private ActorRef startChildActor(final String actorName, final Props props) {
+        log.info("Starting child actor '{}'", actorName);
+        return getContext().actorOf(props, actorName);
+    }
+
+    private ActorRef startHealthCheckingActor(final HealthConfigReader healthConfig) {
+        final HealthCheckingActorOptions.Builder hcBuilder = HealthCheckingActorOptions
+                .getBuilder(healthConfig.enabled(),
+                        healthConfig.getInterval());
+
+        final HealthCheckingActorOptions healthCheckingActorOptions = hcBuilder.build();
+        return startChildActor(DefaultHealthCheckingActorFactory.ACTOR_NAME,
+                DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions, null));
+    }
+
+    private void bindHttpStatusRoute(final ActorRef healthCheckingActor, final HttpConfigReader httpConfig,
+            final ActorMaterializer materializer) {
+        String hostname = httpConfig.getHostname();
+        if (hostname.isEmpty()) {
+            hostname = ConfigUtil.getLocalHostAddress();
+            log.info("No explicit hostname configured, using HTTP hostname: {}", hostname);
+        }
+
+        final CompletionStage<ServerBinding> binding = Http.get(getContext().system())
+                .bindAndHandle(createRoute(getContext().system(), healthCheckingActor).flow(getContext().system(),
+                        materializer), ConnectHttp.toHost(hostname, httpConfig.getPort()), materializer);
+
+        binding.thenAccept(this::logServerBinding)
+                .exceptionally(failure -> {
+                    log.error(failure, "Something very bad happened: {}", failure.getMessage());
+                    getContext().system().terminate();
+                    return null;
+                });
+    }
+
+    private static Route createRoute(final ActorSystem actorSystem, final ActorRef healthCheckingActor) {
+        final StatusRoute statusRoute = new StatusRoute(new ClusterStatusSupplier(Cluster.get(actorSystem)),
+                healthCheckingActor, actorSystem);
+
+        return logRequest("http-request", () ->
+                logResult("http-response", statusRoute::buildStatusRoute));
+    }
+
+    private void logServerBinding(final ServerBinding serverBinding) {
+        log.info("Bound to address {}:{}", serverBinding.localAddress().getHostString(),
+                serverBinding.localAddress().getPort());
     }
 }

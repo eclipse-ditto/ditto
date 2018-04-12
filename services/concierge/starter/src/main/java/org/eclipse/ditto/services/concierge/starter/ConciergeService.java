@@ -46,7 +46,8 @@ public final class ConciergeService extends AbstractConciergeService {
     protected Props getMainRootActorProps(final ConciergeConfigReader configReader, final ActorRef pubSubMediator,
             final ActorMaterializer materializer) {
 
-        return ConciergeRootActor.props(configReader, pubSubMediator, new DefaultAuthorizationProxyPropsFactory());
+        return ConciergeRootActor.props(configReader, pubSubMediator, new DefaultAuthorizationProxyPropsFactory(),
+                materializer);
     }
 
 }
