@@ -19,16 +19,30 @@ import com.typesafe.config.Config;
 public interface ServiceConfigReader {
 
     /**
-     * Retrieve cluster configuration reader.
+     * Retrieve a cluster configuration reader.
      *
-     * @return cluster configuration of the service.
+     * @return the cluster configuration of the service.
      */
     ClusterConfigReader cluster();
 
     /**
-     * Retrieve statsd configuration reader.
+     * Retrieve a health configuration reader.
      *
-     * @return statsd configuration of the service.
+     * @return the health configuration of the service.
+     */
+    HealthConfigReader health();
+
+    /**
+     * Retrieve a HTTP-service configuration reader.
+     *
+     * @return the HTTP-service configuration of the service.
+     */
+    HttpConfigReader http();
+
+    /**
+     * Retrieve a statsd configuration reader.
+     *
+     * @return the statsd configuration of the service.
      */
     StatsdConfigReader statsd();
 

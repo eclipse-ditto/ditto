@@ -18,6 +18,8 @@ public class AbstractServiceConfigReader extends AbstractConfigReader implements
 
     private static final String DEFAULT_CONFIG_PREFIX = "ditto";
     private static final String PATH_CLUSTER = "cluster";
+    private static final String PATH_HEALTH_CHECK = "health-check";
+    private static final String PATH_HTTP = "http";
     private static final String PATH_STATSD = "statsd";
 
     private final Config rawConfig;
@@ -52,6 +54,16 @@ public class AbstractServiceConfigReader extends AbstractConfigReader implements
     @Override
     public ClusterConfigReader cluster() {
         return new ClusterConfigReader(getChildOrEmpty(PATH_CLUSTER));
+    }
+
+    @Override
+    public HealthConfigReader health() {
+        return new HealthConfigReader(getChildOrEmpty(PATH_HEALTH_CHECK));
+    }
+
+    @Override
+    public HttpConfigReader http() {
+        return new HttpConfigReader(getChildOrEmpty(PATH_HTTP));
     }
 
     @Override
