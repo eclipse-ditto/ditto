@@ -19,7 +19,7 @@ import com.typesafe.config.Config;
 public final class HttpConfigReader extends AbstractConfigReader {
 
     private static final String PATH_HOSTNAME =  "hostname";
-    private static final String PATH_INTERVAL = "interval";
+    private static final String PATH_PORT = "port";
 
     HttpConfigReader(final Config config) {
         super(config);
@@ -41,7 +41,7 @@ public final class HttpConfigReader extends AbstractConfigReader {
      * @throws com.typesafe.config.ConfigException.Missing if the port number is missing.
      */
     public int getPort() {
-        return config.getInt(PATH_INTERVAL);
+        return config.getInt(PATH_PORT);
     }
 
 
