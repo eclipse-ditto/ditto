@@ -20,6 +20,7 @@ import java.util.NoSuchElementException;
 import java.util.concurrent.TimeUnit;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.services.base.config.ServiceConfigReader;
 import org.eclipse.ditto.services.thingsearch.common.util.ConfigKeys;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.thingsearch.persistence.write.impl.MongoEventToPersistenceStrategyFactory;
@@ -110,8 +111,10 @@ public final class SearchUpdaterRootActor extends AbstractActor {
 
     private final ActorRef thingsUpdaterActor;
 
-    private SearchUpdaterRootActor(final Config config, final ActorRef pubSubMediator) {
-        final int numberOfShards = config.getInt(ConfigKeys.CLUSTER_NUMBER_OF_SHARDS);
+    private SearchUpdaterRootActor(final ServiceConfigReader configReader, final ActorRef pubSubMediator) {
+        final int numberOfShards = configReader.cluster().numberOfShards();
+
+        final Config config = configReader.getRawConfig();
 
         final MongoClientWrapper mongoClientWrapper = MongoClientWrapper.newInstance(config);
         final ThingsSearchUpdaterPersistence searchUpdaterPersistence =
@@ -210,17 +213,17 @@ public final class SearchUpdaterRootActor extends AbstractActor {
     /**
      * Creates Akka configuration object Props for this SearchUpdaterRootActor.
      *
-     * @param config the configuration settings of the Search Updater Service.
+     * @param configReader the configuration reader of this service.
      * @param pubSubMediator the PubSub mediator Actor.
      * @return a Props object to create this actor.
      */
-    public static Props props(final Config config, final ActorRef pubSubMediator) {
+    public static Props props(final ServiceConfigReader configReader, final ActorRef pubSubMediator) {
         return Props.create(SearchUpdaterRootActor.class, new Creator<SearchUpdaterRootActor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
-            public SearchUpdaterRootActor create() throws Exception {
-                return new SearchUpdaterRootActor(config, pubSubMediator);
+            public SearchUpdaterRootActor create() {
+                return new SearchUpdaterRootActor(configReader, pubSubMediator);
             }
         });
     }

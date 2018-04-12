@@ -16,16 +16,15 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import java.util.Map;
 
 import org.eclipse.ditto.services.base.DittoService;
+import org.eclipse.ditto.services.base.config.DittoServiceConfigReader;
+import org.eclipse.ditto.services.base.config.ServiceConfigReader;
 import org.eclipse.ditto.services.base.metrics.MongoDbMetricRegistryFactory;
 import org.eclipse.ditto.services.base.metrics.StatsdMetricsReporter;
 import org.eclipse.ditto.services.base.metrics.StatsdMetricsStarter;
-import org.eclipse.ditto.services.base.config.DittoServiceConfigReader;
-import org.eclipse.ditto.services.base.config.ServiceConfigReader;
 import org.eclipse.ditto.services.things.persistence.snapshotting.ThingSnapshotter;
 import org.slf4j.Logger;
 
 import com.codahale.metrics.MetricRegistry;
-import com.typesafe.config.Config;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -47,7 +46,6 @@ public abstract class AbstractThingsService extends DittoService<ServiceConfigRe
      */
     private static final String SERVICE_NAME = "things";
 
-    private final Logger logger;
     private final ThingSnapshotter.Create thingSnapshotterCreate;
 
     /**
@@ -60,7 +58,6 @@ public abstract class AbstractThingsService extends DittoService<ServiceConfigRe
     protected AbstractThingsService(final Logger logger, final ThingSnapshotter.Create thingSnapshotterCreate) {
         super(logger, SERVICE_NAME, ThingsRootActor.ACTOR_NAME, DittoServiceConfigReader.from(SERVICE_NAME));
 
-        this.logger = logger;
         this.thingSnapshotterCreate = checkNotNull(thingSnapshotterCreate);
     }
 
@@ -77,8 +74,7 @@ public abstract class AbstractThingsService extends DittoService<ServiceConfigRe
     protected Props getMainRootActorProps(final ServiceConfigReader configReader, final ActorRef pubSubMediator,
             final ActorMaterializer materializer) {
 
-        final Config config = configReader.getRawConfig();
-        return ThingsRootActor.props(config, pubSubMediator, materializer, thingSnapshotterCreate);
+        return ThingsRootActor.props(configReader, pubSubMediator, materializer, thingSnapshotterCreate);
     }
 
 }

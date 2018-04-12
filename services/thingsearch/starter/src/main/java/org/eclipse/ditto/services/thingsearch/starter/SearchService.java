@@ -62,16 +62,16 @@ public final class SearchService extends DittoService<ServiceConfigReader> {
     protected Props getMainRootActorProps(final ServiceConfigReader configReader, final ActorRef pubSubMediator,
             final ActorMaterializer materializer) {
 
-        return SearchRootActor.props(configReader.getRawConfig(), pubSubMediator, materializer);
+        return SearchRootActor.props(configReader, pubSubMediator, materializer);
     }
 
     @Override
-    protected Collection<DittoService.RootActorInformation> getAdditionalRootActorsInformation(
+    protected Collection<RootActorInformation> getAdditionalRootActorsInformation(
             final ServiceConfigReader configReader,
             final ActorRef pubSubMediator, final ActorMaterializer actorMaterializer) {
 
         return Collections.singleton(
-                RootActorInformation.getInstance(SearchUpdaterRootActor.props(configReader.getRawConfig(), pubSubMediator),
+                RootActorInformation.getInstance(SearchUpdaterRootActor.props(configReader, pubSubMediator),
                         SearchUpdaterRootActor.ACTOR_NAME));
     }
 

@@ -29,6 +29,9 @@ import org.eclipse.ditto.services.amqpbridge.messaging.AmqpConnectionBasedJmsCon
 import org.eclipse.ditto.services.amqpbridge.messaging.ConnectionSupervisorActor;
 import org.eclipse.ditto.services.amqpbridge.messaging.ReconnectActor;
 import org.eclipse.ditto.services.amqpbridge.util.ConfigKeys;
+import org.eclipse.ditto.services.base.config.HealthConfigReader;
+import org.eclipse.ditto.services.base.config.HttpConfigReader;
+import org.eclipse.ditto.services.base.config.ServiceConfigReader;
 import org.eclipse.ditto.services.models.amqpbridge.AmqpBridgeMessagingConstants;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
@@ -136,20 +139,21 @@ public final class AmqpBridgeRootActor extends AbstractActor {
                 return SupervisorStrategy.escalate();
             }).build());
 
-    private AmqpBridgeRootActor(final Config config, final ActorRef pubSubMediator,
+    private AmqpBridgeRootActor(final ServiceConfigReader configReader, final ActorRef pubSubMediator,
             final ActorMaterializer materializer) {
-        final boolean healthCheckEnabled = config.getBoolean(ConfigKeys.HealthCheck.ENABLED);
-        final Duration healthCheckInterval = config.getDuration(ConfigKeys.HealthCheck.INTERVAL);
 
+        final Config config = configReader.getRawConfig();
+
+        final HealthConfigReader healthConfig = configReader.health();
         final HealthCheckingActorOptions.Builder hcBuilder =
-                HealthCheckingActorOptions.getBuilder(healthCheckEnabled, healthCheckInterval);
-        if (config.getBoolean(ConfigKeys.HealthCheck.PERSISTENCE_ENABLED)) {
+                HealthCheckingActorOptions.getBuilder(healthConfig.enabled(), healthConfig.getInterval());
+        if (healthConfig.persistenceEnabled()) {
             hcBuilder.enablePersistenceCheck();
         }
 
         final ActorRef mongoClient = startChildActor(MongoClientActor.ACTOR_NAME, MongoClientActor
                 .props(config.getString(ConfigKeys.MONGO_URI),
-                        config.getDuration(ConfigKeys.HealthCheck.PERSISTENCE_TIMEOUT)));
+                        healthConfig.getPersistenceTimeout()));
 
         final HealthCheckingActorOptions healthCheckingActorOptions = hcBuilder.build();
         final ActorRef healthCheckingActor = startChildActor(DefaultHealthCheckingActorFactory.ACTOR_NAME,
@@ -163,7 +167,7 @@ public final class AmqpBridgeRootActor extends AbstractActor {
                 ConnectionSupervisorActor.props(minBackoff, maxBackoff, randomFactor, pubSubMediator,
                         PROXY_ACTOR_PATH, AmqpConnectionBasedJmsConnectionFactory.getInstance());
 
-        final int numberOfShards = config.getInt(ConfigKeys.Cluster.NUMBER_OF_SHARDS);
+        final int numberOfShards = configReader.cluster().numberOfShards();
         final ClusterShardingSettings shardingSettings =
                 ClusterShardingSettings.create(this.getContext().system())
                         .withRole(AmqpBridgeMessagingConstants.CLUSTER_ROLE);
@@ -177,7 +181,8 @@ public final class AmqpBridgeRootActor extends AbstractActor {
         startClusterSingletonActor(ReconnectActor.ACTOR_NAME,
                 ReconnectActor.props(connectionShardRegion, pubSubMediator));
 
-        String hostname = config.getString(ConfigKeys.Http.HOSTNAME);
+        final HttpConfigReader httpConfig = configReader.http();
+        String hostname = httpConfig.getHostname();
         if (hostname.isEmpty()) {
             hostname = ConfigUtil.getLocalHostAddress();
             log.info("No explicit hostname configured, using HTTP hostname: {}", hostname);
@@ -185,7 +190,7 @@ public final class AmqpBridgeRootActor extends AbstractActor {
 
         final CompletionStage<ServerBinding> binding = Http.get(getContext().system()).bindAndHandle( //
                 createRoute(getContext().system(), healthCheckingActor).flow(getContext().system(), materializer),
-                ConnectHttp.toHost(hostname, config.getInt(ConfigKeys.Http.PORT)),
+                ConnectHttp.toHost(hostname, httpConfig.getPort()),
                 materializer);
 
         binding.exceptionally(failure ->
@@ -199,19 +204,20 @@ public final class AmqpBridgeRootActor extends AbstractActor {
     /**
      * Creates Akka configuration object Props for this AmqpBridgeRootActor.
      *
-     * @param config the configuration settings of the Things Service.
+     * @param configReader the configuration reader of this service.
      * @param pubSubMediator the PubSub mediator Actor.
      * @param materializer the materializer for the akka actor system.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final Config config, final ActorRef pubSubMediator,
+    public static Props props(final ServiceConfigReader configReader, final ActorRef pubSubMediator,
             final ActorMaterializer materializer) {
+
         return Props.create(AmqpBridgeRootActor.class, new Creator<AmqpBridgeRootActor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
             public AmqpBridgeRootActor create() {
-                return new AmqpBridgeRootActor(config, pubSubMediator, materializer);
+                return new AmqpBridgeRootActor(configReader, pubSubMediator, materializer);
             }
         });
     }

@@ -76,7 +76,7 @@ public final class GatewayService extends DittoService {
     protected Props getMainRootActorProps(final ServiceConfigReader configReader, final ActorRef pubSubMediator,
             final ActorMaterializer materializer) {
 
-        return GatewayRootActor.props(configReader.getRawConfig(), pubSubMediator, materializer);
+        return GatewayRootActor.props(configReader, pubSubMediator, materializer);
     }
 
 }

@@ -15,11 +15,13 @@ import static akka.http.javadsl.server.Directives.logRequest;
 import static akka.http.javadsl.server.Directives.logResult;
 
 import java.net.ConnectException;
-import java.time.Duration;
 import java.util.NoSuchElementException;
 import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.services.base.config.HealthConfigReader;
+import org.eclipse.ditto.services.base.config.HttpConfigReader;
+import org.eclipse.ditto.services.base.config.ServiceConfigReader;
 import org.eclipse.ditto.services.thingsearch.common.util.ConfigKeys;
 import org.eclipse.ditto.services.thingsearch.persistence.read.MongoThingsSearchPersistence;
 import org.eclipse.ditto.services.thingsearch.persistence.read.ThingsSearchPersistence;
@@ -120,17 +122,19 @@ public final class SearchRootActor extends AbstractActor {
                 return SupervisorStrategy.escalate();
             }).build());
 
-    private SearchRootActor(final Config config, final ActorRef pubSubMediator, final ActorMaterializer materializer) {
-        final boolean healthCheckEnabled = config.getBoolean(ConfigKeys.HEALTH_CHECK_ENABLED);
-        final Duration healthCheckInterval = config.getDuration(ConfigKeys.HEALTH_CHECK_INTERVAL);
+    private SearchRootActor(final ServiceConfigReader configReader, final ActorRef pubSubMediator,
+            final ActorMaterializer materializer) {
+
+        final HealthConfigReader healthConfig = configReader.health();
 
         final HealthCheckingActorOptions.Builder hcBuilder =
-                HealthCheckingActorOptions.getBuilder(healthCheckEnabled, healthCheckInterval);
-        if (config.getBoolean(ConfigKeys.HEALTH_CHECK_PERSISTENCE_ENABLED)) {
+                HealthCheckingActorOptions.getBuilder(healthConfig.enabled(), healthConfig.getInterval());
+        if (healthConfig.persistenceEnabled()) {
             hcBuilder.enablePersistenceCheck();
         }
 
-        final MongoClientWrapper mongoClientWrapper = MongoClientWrapper.newInstance(config);
+        final Config rawConfig = configReader.getRawConfig();
+        final MongoClientWrapper mongoClientWrapper = MongoClientWrapper.newInstance(rawConfig);
 
         final ActorRef mongoHealthCheckActor = startChildActor(MongoReactiveHealthCheckActor.ACTOR_NAME,
                 MongoReactiveHealthCheckActor.props(mongoClientWrapper));
@@ -142,7 +146,7 @@ public final class SearchRootActor extends AbstractActor {
         final ThingsSearchPersistence searchPersistence =
                 new MongoThingsSearchPersistence(mongoClientWrapper, getContext().system());
 
-        final boolean indexInitializationEnabled = config.getBoolean(ConfigKeys.INDEX_INITIALIZATION_ENABLED);
+        final boolean indexInitializationEnabled = rawConfig.getBoolean(ConfigKeys.INDEX_INITIALIZATION_ENABLED);
         if (indexInitializationEnabled) {
             searchPersistence.initializeIndices();
         }
@@ -161,7 +165,8 @@ public final class SearchRootActor extends AbstractActor {
 
         pubSubMediator.tell(new DistributedPubSubMediator.Put(searchActor), getSelf());
 
-        String hostname = config.getString(ConfigKeys.HTTP_HOSTNAME);
+        final HttpConfigReader httpConfig = configReader.http();
+        String hostname = httpConfig.getHostname();
         if (hostname.isEmpty()) {
             hostname = ConfigUtil.getLocalHostAddress();
             log.info("No explicit hostname configured, using HTTP hostname: {}", hostname);
@@ -171,7 +176,7 @@ public final class SearchRootActor extends AbstractActor {
                 .bindAndHandle(
                         createRoute(getContext().system(), healthCheckingActor).flow(getContext().system(),
                                 materializer),
-                        ConnectHttp.toHost(hostname, config.getInt(ConfigKeys.HTTP_PORT)), materializer);
+                        ConnectHttp.toHost(hostname, httpConfig.getPort()), materializer);
         binding.exceptionally(failure -> {
             log.error(failure, "Something very bad happened: {}", failure.getMessage());
             getContext().system().terminate();
@@ -182,19 +187,20 @@ public final class SearchRootActor extends AbstractActor {
     /**
      * Creates Akka configuration object Props for this SearchRootActor.
      *
-     * @param config the configuration settings of the Search Service.
+     * @param configReader the configuration reader of this service.
      * @param pubSubMediator the PubSub mediator Actor.
      * @param materializer the materializer for the akka actor system.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final Config config, final ActorRef pubSubMediator,
+    public static Props props(final ServiceConfigReader configReader, final ActorRef pubSubMediator,
             final ActorMaterializer materializer) {
+
         return Props.create(SearchRootActor.class, new Creator<SearchRootActor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
             public SearchRootActor create() {
-                return new SearchRootActor(config, pubSubMediator, materializer);
+                return new SearchRootActor(configReader, pubSubMediator, materializer);
             }
         });
     }

@@ -16,8 +16,6 @@ import org.eclipse.ditto.services.policies.persistence.serializer.PolicyMongoSna
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.typesafe.config.Config;
-
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.stream.ActorMaterializer;
@@ -46,8 +44,8 @@ public final class PoliciesService extends AbstractPoliciesService {
     @Override
     protected Props getMainRootActorProps(final ServiceConfigReader configReader, final ActorRef pubSubMediator,
             final ActorMaterializer materializer) {
-        final Config config = configReader.getRawConfig();
-        return PoliciesRootActor.props(config, new PolicyMongoSnapshotAdapter(), pubSubMediator, materializer);
+
+        return PoliciesRootActor.props(configReader, new PolicyMongoSnapshotAdapter(), pubSubMediator, materializer);
     }
 
 }

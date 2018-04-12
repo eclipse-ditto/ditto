@@ -21,6 +21,9 @@ import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.policies.Policy;
+import org.eclipse.ditto.services.base.config.HealthConfigReader;
+import org.eclipse.ditto.services.base.config.HttpConfigReader;
+import org.eclipse.ditto.services.base.config.ServiceConfigReader;
 import org.eclipse.ditto.services.models.policies.PoliciesMessagingConstants;
 import org.eclipse.ditto.services.policies.persistence.actors.policies.PoliciesPersistenceStreamingActorCreator;
 import org.eclipse.ditto.services.policies.persistence.actors.policy.PolicySupervisorActor;
@@ -119,11 +122,12 @@ public final class PoliciesRootActor extends AbstractActor {
 
     private final ActorRef policiesShardRegion;
 
-    private PoliciesRootActor(final Config config,
+    private PoliciesRootActor(final ServiceConfigReader configReader,
             final SnapshotAdapter<Policy> snapshotAdapter,
             final ActorRef pubSubMediator,
             final ActorMaterializer materializer) {
-        final int numberOfShards = config.getInt(ConfigKeys.Cluster.NUMBER_OF_SHARDS);
+        final int numberOfShards = configReader.cluster().numberOfShards();
+        final Config config = configReader.getRawConfig();
 
         final ClusterShardingSettings shardingSettings =
                 ClusterShardingSettings.create(getContext().system()).withRole(PoliciesMessagingConstants.CLUSTER_ROLE);
@@ -145,16 +149,18 @@ public final class PoliciesRootActor extends AbstractActor {
                 .start(PoliciesMessagingConstants.SHARD_REGION, policySupervisorProps, shardingSettings,
                         ShardRegionExtractor.of(numberOfShards, getContext().getSystem()));
 
+        final HealthConfigReader healthConfig = configReader.health();
+
         final ActorRef mongoClient = startChildActor(MongoClientActor.ACTOR_NAME, MongoClientActor
                 .props(config.getString(ConfigKeys.MONGO_URI),
-                        config.getDuration(ConfigKeys.HealthCheck.PERSISTENCE_TIMEOUT)));
+                        healthConfig.getPersistenceTimeout()));
 
-        final boolean healthCheckEnabled = config.getBoolean(ConfigKeys.HealthCheck.ENABLED);
-        final Duration healthCheckInterval = config.getDuration(ConfigKeys.HealthCheck.CHECK_INTERVAL);
+        final boolean healthCheckEnabled = healthConfig.enabled();
+        final Duration healthCheckInterval = healthConfig.getInterval();
 
         final HealthCheckingActorOptions.Builder hcBuilder =
                 HealthCheckingActorOptions.getBuilder(healthCheckEnabled, healthCheckInterval);
-        if (config.getBoolean(ConfigKeys.HealthCheck.PERSISTENCE_ENABLED)) {
+        if (healthConfig.persistenceEnabled()) {
             hcBuilder.enablePersistenceCheck();
         }
 
@@ -164,16 +170,16 @@ public final class PoliciesRootActor extends AbstractActor {
         final ActorRef healthCheckingActor =
                 startChildActor(DefaultHealthCheckingActorFactory.ACTOR_NAME, healthCheckingActorProps);
 
-        String hostname = config.getString(ConfigKeys.HTTP_HOSTNAME);
+        final HttpConfigReader httpConfig = configReader.http();
+        String hostname = httpConfig.getHostname();
         if (hostname.isEmpty()) {
             hostname = ConfigUtil.getLocalHostAddress();
             log.info("No explicit hostname configured, using HTTP hostname: {}", hostname);
         }
 
-        final CompletionStage<ServerBinding> binding = Http.get(getContext().system()).bindAndHandle( //
-                createRoute(getContext().system(), healthCheckingActor).flow(getContext().system(), materializer),
-                ConnectHttp.toHost(hostname, config.getInt(ConfigKeys.HTTP_PORT)),
-                materializer);
+        final CompletionStage<ServerBinding> binding = Http.get(getContext().system())
+                .bindAndHandle(createRoute(getContext().system(), healthCheckingActor).flow(getContext().system(),
+                        materializer), ConnectHttp.toHost(hostname, httpConfig.getPort()), materializer);
 
         binding.thenAccept(this::logServerBinding)
                 .exceptionally(failure -> {
@@ -186,31 +192,25 @@ public final class PoliciesRootActor extends AbstractActor {
     /**
      * Creates Akka configuration object Props for this PoliciesRootActor.
      *
-     * @param config the configuration settings of the Things Service.
+     * @param configReader the configuration reader of this service.
      * @param snapshotAdapter serializer and deserializer of the Policies snapshot store.
      * @param pubSubMediator the PubSub mediator Actor.
      * @param materializer the materializer for the akka actor system.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final Config config,
+    public static Props props(final ServiceConfigReader configReader,
             final SnapshotAdapter<Policy> snapshotAdapter,
             final ActorRef pubSubMediator,
             final ActorMaterializer materializer) {
+
         return Props.create(PoliciesRootActor.class, new Creator<PoliciesRootActor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
-            public PoliciesRootActor create() throws Exception {
-                return new PoliciesRootActor(config, snapshotAdapter, pubSubMediator, materializer);
+            public PoliciesRootActor create() {
+                return new PoliciesRootActor(configReader, snapshotAdapter, pubSubMediator, materializer);
             }
         });
-    }
-
-    private static Route createRoute(final ActorSystem actorSystem, final ActorRef healthCheckingActor) {
-        final StatusRoute statusRoute = new StatusRoute(new ClusterStatusSupplier(Cluster.get(actorSystem)),
-                healthCheckingActor, actorSystem);
-
-        return logRequest("http-request", () -> logResult("http-response", statusRoute::buildStatusRoute));
     }
 
     @Override
@@ -233,6 +233,13 @@ public final class PoliciesRootActor extends AbstractActor {
     private ActorRef startChildActor(final String actorName, final Props props) {
         log.info("Starting child actor '{}'", actorName);
         return getContext().actorOf(props, actorName);
+    }
+
+    private static Route createRoute(final ActorSystem actorSystem, final ActorRef healthCheckingActor) {
+        final StatusRoute statusRoute = new StatusRoute(new ClusterStatusSupplier(Cluster.get(actorSystem)),
+                healthCheckingActor, actorSystem);
+
+        return logRequest("http-request", () -> logResult("http-response", statusRoute::buildStatusRoute));
     }
 
     private void logServerBinding(final ServerBinding serverBinding) {

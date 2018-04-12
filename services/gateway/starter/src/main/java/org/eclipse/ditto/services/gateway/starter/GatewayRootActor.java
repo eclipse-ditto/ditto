@@ -12,13 +12,14 @@
 package org.eclipse.ditto.services.gateway.starter;
 
 import java.net.ConnectException;
-import java.time.Duration;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.TimeUnit;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.services.base.config.HealthConfigReader;
+import org.eclipse.ditto.services.base.config.HttpConfigReader;
+import org.eclipse.ditto.services.base.config.ServiceConfigReader;
 import org.eclipse.ditto.services.gateway.endpoints.routes.RootRoute;
 import org.eclipse.ditto.services.gateway.proxy.actors.ProxyActor;
 import org.eclipse.ditto.services.gateway.starter.service.util.ConfigKeys;
@@ -50,7 +51,6 @@ import akka.actor.SupervisorStrategy;
 import akka.cluster.Cluster;
 import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.cluster.sharding.ClusterSharding;
-import akka.cluster.sharding.ShardRegion;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.http.javadsl.ConnectHttp;
 import akka.http.javadsl.Http;
@@ -61,7 +61,6 @@ import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.AskTimeoutException;
 import akka.stream.ActorMaterializer;
-import scala.concurrent.duration.FiniteDuration;
 
 /**
  * The Root Actor of the API Gateway's Akka ActorSystem.
@@ -118,9 +117,12 @@ final class GatewayRootActor extends AbstractActor {
                 return SupervisorStrategy.escalate();
             }).build());
 
-    private GatewayRootActor(final Config config, final ActorRef pubSubMediator, final ActorMaterializer materializer) {
+    private GatewayRootActor(final ServiceConfigReader configReader, final ActorRef pubSubMediator,
+            final ActorMaterializer materializer) {
 
-        final int numberOfShards = config.getInt(ConfigKeys.CLUSTER_NUMBER_OF_SHARDS);
+        final int numberOfShards = configReader.cluster().numberOfShards();
+        final Config config = configReader.getRawConfig();
+
         final ActorSystem actorSystem = context().system();
         final ActorRef conciergeShardRegionProxy = ClusterSharding.get(actorSystem)
                 .startProxy(ConciergeMessagingConstants.SHARD_REGION,
@@ -144,9 +146,12 @@ final class GatewayRootActor extends AbstractActor {
         final ActorRef streamingActor = startChildActor(StreamingActor.ACTOR_NAME,
                 StreamingActor.props(pubSubMediator, conciergeShardRegionProxy));
 
-        final ActorRef healthCheckActor = createHealthCheckActor(config);
+        final HealthConfigReader healthConfig = configReader.health();
+        final String mongoUri = config.getString(ConfigKeys.MONGO_URI);
+        final ActorRef healthCheckActor = createHealthCheckActor(healthConfig, mongoUri);
 
-        String hostname = config.getString(ConfigKeys.HTTP_HOSTNAME);
+        final HttpConfigReader httpConfig = configReader.http();
+        String hostname = httpConfig.getHostname();
         if (hostname.isEmpty()) {
             hostname = ConfigUtil.getLocalHostAddress();
             log.info("No explicit hostname configured, using HTTP hostname: {}", hostname);
@@ -155,7 +160,7 @@ final class GatewayRootActor extends AbstractActor {
         final CompletionStage<ServerBinding> binding = Http.get(actorSystem)
                 .bindAndHandle(createRoute(actorSystem, config, proxyActor, streamingActor, healthCheckActor)
                                 .flow(actorSystem, materializer),
-                        ConnectHttp.toHost(hostname, config.getInt(ConfigKeys.HTTP_PORT)), materializer);
+                        ConnectHttp.toHost(hostname, httpConfig.getPort()), materializer);
 
         binding.exceptionally(failure -> {
             log.error(failure, "Something very bad happened: {}", failure.getMessage());
@@ -167,18 +172,19 @@ final class GatewayRootActor extends AbstractActor {
     /**
      * Creates Akka configuration object Props for this actor.
      *
-     * @param config the configuration settings of the API Gateway.
+     * @param configReader the configuration reader of this service.
      * @param pubSubMediator the pub-sub mediator.
      * @param materializer the materializer for the akka actor system.
      * @return the Akka configuration Props object.
      */
-    static Props props(final Config config, final ActorRef pubSubMediator, final ActorMaterializer materializer) {
+    static Props props(final ServiceConfigReader configReader, final ActorRef pubSubMediator,
+            final ActorMaterializer materializer) {
         return Props.create(GatewayRootActor.class, new Creator<GatewayRootActor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
-            public GatewayRootActor create() throws Exception {
-                return new GatewayRootActor(config, pubSubMediator, materializer);
+            public GatewayRootActor create() {
+                return new GatewayRootActor(configReader, pubSubMediator, materializer);
             }
         });
     }
@@ -219,18 +225,17 @@ final class GatewayRootActor extends AbstractActor {
         return rootRoute.buildRoute();
     }
 
-    private ActorRef createHealthCheckActor(final Config config) {
+    private ActorRef createHealthCheckActor(final HealthConfigReader healthConfig, final String mongoUri) {
         final HealthCheckingActorOptions.Builder hcBuilder = HealthCheckingActorOptions
-                .getBuilder(config.getBoolean(ConfigKeys.HEALTH_CHECK_ENABLED),
-                        config.getDuration(ConfigKeys.HEALTH_CHECK_INTERVAL));
+                .getBuilder(healthConfig.enabled(),
+                        healthConfig.getInterval());
 
-        if (config.getBoolean(ConfigKeys.HEALTH_CHECK_PERSISTENCE_ENABLED)) {
+        if (healthConfig.persistenceEnabled()) {
             hcBuilder.enablePersistenceCheck();
         }
 
         final ActorRef mongoClient = startChildActor(MongoClientActor.ACTOR_NAME, MongoClientActor
-                .props(config.getString(ConfigKeys.MONGO_URI),
-                        config.getDuration(ConfigKeys.HEALTH_CHECK_PERSISTENCE_TIMEOUT)));
+                .props(mongoUri, healthConfig.getPersistenceTimeout()));
 
         final HealthCheckingActorOptions healthCheckingActorOptions = hcBuilder.build();
         return startChildActor(DefaultHealthCheckingActorFactory.ACTOR_NAME,
