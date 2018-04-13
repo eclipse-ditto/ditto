@@ -15,6 +15,8 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
@@ -49,13 +51,26 @@ public final class PreEnforcer {
     private PreEnforcer() {}
 
     /**
+     * Create a processing unit from a function without reply address for errors.
+     *
+     * @param processor function to call.
+     * @return Akka stream graph.
+     */
+    public static Graph<FlowShape<WithSender, WithSender>, NotUsed> fromFunction(
+            final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> processor) {
+
+        return fromFunction(ActorRef.noSender(), processor);
+    }
+
+    /**
      * Create a processing unit from a function.
      *
      * @param self reference to the actor carrying the pre-enforcement.
      * @param processor function to call.
+     * @return Akka stream graph.
      */
     public static Graph<FlowShape<WithSender, WithSender>, NotUsed> fromFunction(
-            final ActorRef self,
+            @Nullable final ActorRef self,
             final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> processor) {
 
         final Attributes logLevels =
@@ -94,7 +109,7 @@ public final class PreEnforcer {
 
     private static Object handleError(final Throwable error,
             final WithSender<WithDittoHeaders> wrapped,
-            final ActorRef self) {
+            @Nullable final ActorRef self) {
 
         final Throwable rootCause = extractRootCause(error);
         final ActorRef sender = wrapped.sender();

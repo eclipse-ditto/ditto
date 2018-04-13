@@ -44,7 +44,7 @@ public final class ConciergeEnvelope {
     }
 
     public void dispatch(final Signal<?> signal, final ActorRef sender) {
-        if (signal instanceof ThingSearchCommand || signal instanceof RetrieveThings) {
+        if (signal.getId().isEmpty()) {
             pubSubMediator.tell(wrapForPubSub(signal), sender);
         } else {
             enforcerShardRegion.tell(wrapForEnforcer(signal), sender);
