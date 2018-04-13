@@ -16,7 +16,6 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.assertj.core.api.Assertions;
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
@@ -211,18 +210,19 @@ public class ConnectionActorTest {
     @Test
     public void exceptionDuringClientActorPropsCreation() {
         new TestKit(actorSystem) {{
-
             final Props connectionActorProps =
                     ConnectionActor.props(TestConstants.createRandomConnectionId(), pubSubMediator,
                             (connection, connectionStatus) -> {
                                 throw ConnectionConfigurationInvalidException.newBuilder("validation failed...")
                                         .build();
                             });
-            final ActorRef connectionActorRef = watch(actorSystem.actorOf(connectionActorProps, connectionId));
+            final ActorRef connectionActorRef = watch(childActorOf(connectionActorProps));
 
             // create connection
             connectionActorRef.tell(createConnection, getRef());
-            final DittoRuntimeException dittoRuntimeException = expectMsgClass(DittoRuntimeException.class);
+            expectMsgClass(ConnectionSupervisorActor.ManualReset.class); // is sent after "empty" recovery
+
+            final Exception dittoRuntimeException = expectMsgClass(Exception.class);
             Assertions.assertThat(dittoRuntimeException).hasMessageContaining("validation failed...");
 
             expectTerminated(connectionActorRef);
