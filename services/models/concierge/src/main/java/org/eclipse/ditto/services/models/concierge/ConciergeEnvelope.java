@@ -57,7 +57,7 @@ public final class ConciergeEnvelope {
      * @param signal the signal to wrap.
      * @return the sharded message envelope.
      */
-    private static ShardedMessageEnvelope wrapForEnforcer(final Signal<?> signal) {
+    public static ShardedMessageEnvelope wrapForEnforcer(final Signal<?> signal) {
         final EntityId entityId;
         if (signal instanceof MessageCommand) {
             entityId = EntityId.of(ThingCommand.RESOURCE_TYPE, signal.getId());
