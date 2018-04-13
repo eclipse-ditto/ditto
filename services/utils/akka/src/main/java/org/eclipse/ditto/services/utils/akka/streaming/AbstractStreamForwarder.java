@@ -29,6 +29,7 @@ import java.util.concurrent.TimeUnit;
 import org.eclipse.ditto.services.models.streaming.BatchedEntityIdWithRevisions;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
+import akka.NotUsed;
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Cancellable;
@@ -125,7 +126,7 @@ public abstract class AbstractStreamForwarder<E> extends AbstractActor {
      * @param element The stream element.
      * @return A source of messages.
      */
-    protected abstract Source<?, ?> mapEntity(final E element);
+    protected abstract Source<Object, NotUsed> mapEntity(final E element);
 
     private Receive initialBehavior() {
         return ReceiveBuilder.create()

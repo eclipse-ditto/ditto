@@ -23,6 +23,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import com.mongodb.DBObject;
+import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -66,7 +67,7 @@ public final class ThingsSnapshotTestHelper<S> {
         this.domainIdToPersistenceId = requireNonNull(domainIdToPersistenceId);
 
         snapshotPlugin =
-                Persistence.get(actorSystem).snapshotStoreFor(SNAPSHOT_PLUGIN_ID);
+                Persistence.get(actorSystem).snapshotStoreFor(SNAPSHOT_PLUGIN_ID, ConfigFactory.empty());
     }
 
 
