@@ -29,6 +29,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.base.Signal;
@@ -172,6 +173,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         ConditionChecker.checkNotNull(externalMessage);
         final String correlationId = externalMessage.getHeaders().get(DittoHeaderDefinition.CORRELATION_ID.getKey());
         LogUtil.enhanceLogWithCorrelationId(log, correlationId);
+        LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId);
         log.debug("Handling ExternalMessage: {}", externalMessage);
 
         final String authSubjectsArray = authorizationContext.stream()
@@ -185,7 +187,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         try {
             final Optional<Signal<?>> signalOpt = processor.process(messageWithAuthSubject);
             signalOpt.ifPresent(signal -> {
-                LogUtil.enhanceLogWithCorrelationId(log, signal);
+                enhanceLogUtil(signal);
                 final DittoHeadersBuilder adjustedHeadersBuilder = signal.getDittoHeaders().toBuilder()
                         .authorizationContext(authorizationContext);
 
@@ -208,10 +210,15 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         }
     }
 
+    private void enhanceLogUtil(final WithDittoHeaders<?> signal) {
+        LogUtil.enhanceLogWithCorrelationId(log, signal);
+        LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId);
+    }
+
     private void handleDittoRuntimeException(final DittoRuntimeException exception) {
         final ThingErrorResponse errorResponse = ThingErrorResponse.of(exception);
 
-        LogUtil.enhanceLogWithCorrelationId(log, exception);
+        enhanceLogUtil(exception);
 
         log.info( "Got DittoRuntimeException '{}' when ExternalMessage was processed: {} - {}",
                 exception.getErrorCode(), exception.getMessage(), exception.getDescription().orElse(""));
@@ -220,7 +227,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     }
 
     private void handleCommandResponse(final CommandResponse<?> response) {
-        LogUtil.enhanceLogWithCorrelationId(log, response);
+        enhanceLogUtil(response);
         finishTrace(response);
 
         response.getDittoHeaders()
@@ -245,7 +252,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     }
 
     private void handleSignal(final Signal<?> signal) {
-        LogUtil.enhanceLogWithCorrelationId(log, signal);
+        enhanceLogUtil(signal);
         log.debug("Handling signal: {}", signal);
 
         try {

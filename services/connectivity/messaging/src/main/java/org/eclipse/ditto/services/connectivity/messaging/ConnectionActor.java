@@ -31,6 +31,7 @@ import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.MappingContext;
@@ -269,7 +270,7 @@ final class ConnectionActor extends AbstractPersistentActor {
                                         testConnection.getDittoHeaders()),
                                 getSelf()))
                 .match(CreateConnection.class, createConnection -> {
-                    LogUtil.enhanceLogWithCorrelationId(log, createConnection);
+                    enhanceLogUtil(createConnection);
                     log.info("Connection <{}> already exists, responding with conflict", createConnection.getId());
                     final ConnectionConflictException conflictException =
                             ConnectionConflictException.newBuilder(createConnection.getId())
@@ -296,7 +297,13 @@ final class ConnectionActor extends AbstractPersistentActor {
                 }).build();
     }
 
+    private void enhanceLogUtil(final WithDittoHeaders<?> createConnection) {
+        LogUtil.enhanceLogWithCorrelationId(log, createConnection);
+        LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId);
+    }
+
     private void handleSignal(final Signal<?> signal) {
+        enhanceLogUtil(signal);
         if (clientActor == null) {
             log.debug("Cannot forward thing event, client actor not ready.");
             return;

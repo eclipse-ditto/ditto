@@ -36,6 +36,7 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.AddressMetric;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
@@ -98,7 +99,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     private static final int CONNECTING_TIMEOUT = 10;
     protected static final int RETRIEVE_METRICS_TIMEOUT = 2;
 
-    private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+    protected final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
     private final List<String> headerBlacklist;
 
     private final ActorRef pubSubMediator;
@@ -344,6 +345,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     private State<BaseClientState, BaseClientData> handleClientConnected(final ClientConnected clientConnected,
             final BaseClientData data) {
 
+        LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId());
         startMessageMappingProcessor(data.getMappingContext().orElse(null));
         onClientConnected(clientConnected, data);
         clientConnected.getOrigin().ifPresent(o -> o.tell(new Status.Success(CONNECTED), getSelf()));
@@ -357,6 +359,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     private State<BaseClientState, BaseClientData> handleClientDisconnected(final ClientDisconnected event,
             final BaseClientData data) {
 
+        LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId());
         stopMessageMappingProcessorActor();
         onClientDisconnected(event, data);
         event.getOrigin().ifPresent(o -> o.tell(new Status.Success(DISCONNECTED), getSelf()));
@@ -369,6 +372,8 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
     private State<BaseClientState, BaseClientData> handleConnectionFailure(final ConnectionFailure event,
             final BaseClientData data) {
+
+        LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId());
         onConnectionFailure(event, data);
         return stay().using(data
                 .setConnectionStatus(ConnectionStatus.FAILED)
@@ -387,6 +392,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
      * @param to the next State
      */
     protected void onTransition(final BaseClientState from, final BaseClientState to) {
+        LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId());
         log.info("Transition: {} -> {}", from, to);
 
         switch (to) {
@@ -544,12 +550,17 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     }
 
     private void handleSignal(final Signal<?> signal) {
-        LogUtil.enhanceLogWithCorrelationId(log, signal);
+        enhanceLogUtil(signal);
         if (messageMappingProcessorActor != null) {
             messageMappingProcessorActor.tell(signal, getSelf());
         } else {
             log.info("Cannot handle <{}> signal, no MessageMappingProcessor available.", signal.getType());
         }
+    }
+
+    private void enhanceLogUtil(final WithDittoHeaders<?> signal) {
+        LogUtil.enhanceLogWithCorrelationId(log, signal);
+        LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId());
     }
 
     private void handleExternalMessage(final ExternalMessage externalMessage) {
@@ -590,7 +601,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     private CompletionStage<Status.Status> testMessageMappingProcessor(@Nullable final MappingContext mappingContext) {
         try {
             // this one throws DittoRuntimeExceptions when the mapper could not be configured
-            MessageMappingProcessor.of(mappingContext, getDynamicAccess(), log);
+            MessageMappingProcessor.of(connectionId(), mappingContext, getDynamicAccess(), log);
             return CompletableFuture.completedFuture(new Status.Success("mapping"));
         } catch (final DittoRuntimeException dre) {
             log.info("Got DittoRuntimeException during initialization of MessageMappingProcessor: {} {} - desc: {}",
@@ -613,7 +624,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             final MessageMappingProcessor processor;
             try {
                 // this one throws DittoRuntimeExceptions when the mapper could not be configured
-                processor = MessageMappingProcessor.of(mappingContext, getDynamicAccess(), log);
+                processor = MessageMappingProcessor.of(connectionId(), mappingContext, getDynamicAccess(), log);
             } catch (final DittoRuntimeException dre) {
                 log.info(
                         "Got DittoRuntimeException during initialization of MessageMappingProcessor: {} {} - desc: {}",
@@ -658,7 +669,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     }
 
     private void cannotHandle(final Command<?> command, @Nullable final Connection connection) {
-        LogUtil.enhanceLogWithCorrelationId(log, command);
+        enhanceLogUtil(command);
         log.info("Command <{}> cannot be handled in current state <{}>.", command.getType(), stateName());
         final String message =
                 MessageFormat.format("Cannot execute command <{0}> in current state <{1}>.", command.getType(),
