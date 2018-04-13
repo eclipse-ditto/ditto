@@ -145,6 +145,7 @@ final class AmqpConsumerActor extends AbstractActor implements MessageListener {
         consumedMessages++;
         try {
             final Map<String, String> headers = extractHeadersMapFromJmsMessage(message);
+            headers.put(DittoHeaderDefinition.SOURCE.getKey(), sourceAddress);
             final ExternalMessageBuilder builder = ConnectivityModelFactory.newExternalMessageBuilder(headers);
             extractPayloadFromMessage(message, builder);
             final ExternalMessage externalMessage = builder.build();

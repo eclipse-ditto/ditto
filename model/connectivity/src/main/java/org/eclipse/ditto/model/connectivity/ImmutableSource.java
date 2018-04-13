@@ -46,38 +46,42 @@ final class ImmutableSource implements Source {
     }
 
     /**
-     * TODO doc
-     * @param addresses
-     * @return
+     * Creates a new {@code ImmutableSource} instance with a default consumer count of {@value #DEFAULT_CONSUMER_COUNT}.
+     *
+     * @param addresses the addresses of this source
+     * @return a new instance of ImmutableSource
      */
     public static ImmutableSource of(final String... addresses) {
         return new ImmutableSource(new HashSet<>(Arrays.asList(addresses)), DEFAULT_CONSUMER_COUNT);
     }
 
     /**
-     * TODO doc
-     * @param addresses
-     * @return
+     * Creates a new {@code ImmutableSource} instance with a default consumer count of {@value #DEFAULT_CONSUMER_COUNT}.
+     *
+     * @param addresses the addresses of this source
+     * @return a new instance of ImmutableSource
      */
     public static ImmutableSource of(final Set<String> addresses) {
         return new ImmutableSource(addresses, DEFAULT_CONSUMER_COUNT);
     }
 
     /**
-     * TODO Doc
-     * @param addresses
-     * @param consumerCount
-     * @return
+     * Creates a new {@code ImmutableSource} instance.
+     *
+     * @param addresses the addresses of this source
+     * @param consumerCount number of consumers (connections) that will be opened to the remote server
+     * @return a new instance of ImmutableSource
      */
     public static ImmutableSource of(final Set<String> addresses, final int consumerCount) {
         return new ImmutableSource(addresses, consumerCount);
     }
 
     /**
-     * TODO doc
-     * @param consumerCount
-     * @param addresses
-     * @return
+     * Creates a new {@code ImmutableSource} instance.
+     *
+     * @param addresses the addresses of this source
+     * @param consumerCount number of consumers (connections) that will be opened to the remote server
+     * @return a new instance of ImmutableSource
      */
     public static ImmutableSource of(final int consumerCount, final String... addresses) {
         return new ImmutableSource(new HashSet<>(Arrays.asList(addresses)), consumerCount);

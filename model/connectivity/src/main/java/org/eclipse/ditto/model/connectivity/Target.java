@@ -26,24 +26,25 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 
 /**
- * TODO doc
+ * A {@link Connection} target contains one address to publish to and several topics of Ditto signals for which to
+ * subscribe in the Ditto cluster.
  */
 public interface Target extends Jsonifiable.WithFieldSelectorAndPredicate<JsonField> {
 
     /**
-     * Returns the address for the configured type of signals of this {@code Connection}.
+     * @return the address for the configured type of signals of this target
      */
     String getAddress();
 
     /**
-     * Returns set of topics that should be published via this target.
+     * @return set of topics that should be published via this target
      */
     Set<String> getTopics();
 
     /**
      * Returns all non hidden marked fields of this {@code Connection}.
      *
-     * @return a JSON object representation of this Target including only non hidden marked fields.
+     * @return a JSON object representation of this Target including only non hidden marked fields
      */
     @Override
     default JsonObject toJson() {

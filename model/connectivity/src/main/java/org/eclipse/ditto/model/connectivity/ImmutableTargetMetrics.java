@@ -43,11 +43,15 @@ final class ImmutableTargetMetrics implements TargetMetrics {
     }
 
     /**
-     * TODO Doc
+     * Creates a new {@code ImmutableTargetMetrics} instance.
+     *
+     * @param addressMetrics the AddressMetrics for each target
+     * @param publishedMessages the total count of published messages on this source
+     * @return a new instance of ImmutableTargetMetrics
      */
     public static ImmutableTargetMetrics of(final Map<String, AddressMetric> addressMetrics,
-            final long consumedMessages) {
-        return new ImmutableTargetMetrics(addressMetrics, consumedMessages);
+            final long publishedMessages) {
+        return new ImmutableTargetMetrics(addressMetrics, publishedMessages);
     }
 
     @Override
@@ -88,8 +92,8 @@ final class ImmutableTargetMetrics implements TargetMetrics {
                                 f -> f.getKey().toString(),
                                 f -> ConnectivityModelFactory.addressMetricFromJson(f.getValue().asObject()))))
                 .orElse(Collections.emptyMap());
-        final long readConsumedMessages = jsonObject.getValueOrThrow(JsonFields.PUBLISHED_MESSAGES);
-        return ImmutableTargetMetrics.of(readAddressMetrics, readConsumedMessages);
+        final long readPublishedMessages = jsonObject.getValueOrThrow(JsonFields.PUBLISHED_MESSAGES);
+        return ImmutableTargetMetrics.of(readAddressMetrics, readPublishedMessages);
     }
 
 

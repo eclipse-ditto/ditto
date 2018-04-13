@@ -25,19 +25,17 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 
 /**
- * TODO doc
+ * Contains metrics about a single {@link Source}.
  */
 public interface SourceMetrics extends Jsonifiable.WithFieldSelectorAndPredicate<JsonField> {
 
     /**
-     *
-     * @return
+     * @return the AddressMetrics for each source
      */
     Map<String, AddressMetric> getAddressMetrics();
 
     /**
-     *
-     * @return
+     * @return the total count of consumed messages on this source
      */
     long getConsumedMessages();
 

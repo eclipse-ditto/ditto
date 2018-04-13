@@ -26,21 +26,17 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 
 /**
- * TODO doc
+ * A {@link Connection} source contains several addresses to consume external messages from.
  */
 public interface Source extends Jsonifiable.WithFieldSelectorAndPredicate<JsonField> {
 
     /**
-     * Returns the addresses of this {@code Connection}.
-     *
-     * @return the addresses
+     * @return the addresses of this source
      */
     Set<String> getAddresses();
 
     /**
-     * The number of consumers (connections) that will be opened to the remote server.
-     *
-     * @return number of connections that will be opened, default is {@code 1}
+     * @return number of consumers (connections) that will be opened to the remote server, default is {@code 1}
      */
     int getConsumerCount();
 

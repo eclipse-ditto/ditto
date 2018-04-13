@@ -205,7 +205,6 @@ public final class MessageMappingProcessor {
         final Optional<String> contentTypeOpt = message.findContentType();
         if (contentTypeOpt.isPresent()) {
             final String contentType = contentTypeOpt.get();
-            log.debug("ExternalMessage to be mapped has content-type <{}>", contentType);
             if (registry.getDefaultMapper().getContentType().filter(contentType::equals).isPresent()) {
                 log.info("Selected Default MessageMapper for mapping ExternalMessage as content-type matched <{}>",
                         contentType);

@@ -42,7 +42,12 @@ final class ImmutableAddressMetric implements AddressMetric {
     }
 
     /**
-     * TODO Doc
+     * Creates a new {@code ImmutableAddressMetric} instance.
+     *
+     * @param status the current status of the connection
+     * @param statusDetails the optional status details
+     * @param consumedMessages the current message count
+     * @return a new instance of ImmutableAddressMetric
      */
     public static ImmutableAddressMetric of(final ConnectionStatus status, @Nullable final String statusDetails,
             final long consumedMessages) {

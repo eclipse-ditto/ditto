@@ -25,25 +25,23 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 
 /**
- * TODO doc
+ * Contains the {@link ConnectionStatus} and its details plus a message count related to a {@link Source}/{@link Target}
+ * address.
  */
 public interface AddressMetric extends Jsonifiable.WithFieldSelectorAndPredicate<JsonField> {
 
     /**
-     *
-     * @return
+     * @return the current status of the connection
      */
     ConnectionStatus getStatus();
 
     /**
-     *
-     * @return
+     * @return the optional status details
      */
     Optional<String> getStatusDetails();
 
     /**
-     *
-     * @return
+     * @return the current message count
      */
     long getMessageCount();
 

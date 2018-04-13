@@ -25,19 +25,17 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 
 /**
- * TODO doc
+ * Contains metrics about a single {@link Target}.
  */
 public interface TargetMetrics extends Jsonifiable.WithFieldSelectorAndPredicate<JsonField> {
 
     /**
-     *
-     * @return
+     * @return the AddressMetrics for each target
      */
     Map<String, AddressMetric> getAddressMetrics();
 
     /**
-     *
-     * @return
+     * @return the total count of published messages on this target
      */
     long getPublishedMessages();
 

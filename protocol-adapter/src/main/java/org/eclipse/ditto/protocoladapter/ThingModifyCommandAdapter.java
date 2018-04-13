@@ -162,14 +162,14 @@ final class ThingModifyCommandAdapter extends AbstractAdapter<ThingModifyCommand
     private static JsonObject initialPolicyForCreateThingFrom(final Adaptable adaptable) {
         return adaptable.getPayload().getValue()
                 .map(JsonValue::asObject)
-                .map(o -> o.getValue(CreateThing.JSON_INITIAL_POLICY).map(JsonValue::asObject).orElse(null))
+                .map(o -> o.getValue(CreateThing.JSON_INLINE_POLICY).map(JsonValue::asObject).orElse(null))
                 .orElse(null);
     }
 
     private static JsonObject initialPolicyForModifyThingFrom(final Adaptable adaptable) {
         return adaptable.getPayload().getValue()
                 .map(JsonValue::asObject)
-                .map(o -> o.getValue(ModifyThing.JSON_INITIAL_POLICY).map(JsonValue::asObject).orElse(null))
+                .map(o -> o.getValue(ModifyThing.JSON_INLINE_POLICY).map(JsonValue::asObject).orElse(null))
                 .orElse(null);
     }
 

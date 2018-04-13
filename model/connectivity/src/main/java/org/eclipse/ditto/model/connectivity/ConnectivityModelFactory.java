@@ -118,13 +118,13 @@ public final class ConnectivityModelFactory {
      * Returns a new {@code TargetMetrics}.
      *
      * @param addressMetrics the AddressMetrics of all addresses in the target
-     * @param consumedMessages the amount of consumed messages
+     * @param publishedMessages the amount of published messages
      * @return a new SourceMetrics which is initialised with the extracted data from {@code jsonObject}.
      * @throws NullPointerException if {@code connectionStatus} is {@code null}.
      */
     public static TargetMetrics newTargetMetrics(final Map<String, AddressMetric> addressMetrics,
-            final long consumedMessages) {
-        return ImmutableTargetMetrics.of(addressMetrics, consumedMessages);
+            final long publishedMessages) {
+        return ImmutableTargetMetrics.of(addressMetrics, publishedMessages);
     }
 
     /**

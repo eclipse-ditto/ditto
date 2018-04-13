@@ -57,29 +57,32 @@ public final class RabbitMQConsumerActor extends AbstractActor {
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
+    private final String sourceAddress;
     private final ActorRef messageMappingProcessor;
 
     private long consumedMessages = 0L;
     @Nullable private AddressMetric addressMetric = null;
 
-    private RabbitMQConsumerActor(final ActorRef messageMappingProcessor) {
+    private RabbitMQConsumerActor(final String sourceAddress, final ActorRef messageMappingProcessor) {
+        this.sourceAddress = checkNotNull(sourceAddress, "source");
         this.messageMappingProcessor = checkNotNull(messageMappingProcessor, "messageMappingProcessor");
     }
 
     /**
      * Creates Akka configuration object {@link Props} for this {@code RabbitMQConsumerActor}.
      *
+     * @param source the source of messages
      * @param messageMappingProcessor the message mapping processor where received messages are forwarded to
      * @return the Akka configuration Props object.
      */
-    static Props props(final ActorRef messageMappingProcessor) {
+    static Props props(final String source, final ActorRef messageMappingProcessor) {
         return Props.create(
                 RabbitMQConsumerActor.class, new Creator<RabbitMQConsumerActor>() {
                     private static final long serialVersionUID = 1L;
 
                     @Override
                     public RabbitMQConsumerActor create() {
-                        return new RabbitMQConsumerActor(messageMappingProcessor);
+                        return new RabbitMQConsumerActor(source, messageMappingProcessor);
                     }
                 });
     }
@@ -120,6 +123,7 @@ public final class RabbitMQConsumerActor extends AbstractActor {
 
         try {
             final Map<String, String> headers = extractHeadersFromMessage(properties, envelope);
+            headers.put(DittoHeaderDefinition.SOURCE.getKey(), sourceAddress);
             final ExternalMessageBuilder externalMessageBuilder =
                     ConnectivityModelFactory.newExternalMessageBuilder(headers);
             final String contentType = properties.getContentType();

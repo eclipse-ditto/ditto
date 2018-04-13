@@ -44,23 +44,26 @@ final class ImmutableTarget implements Target {
     }
 
     /**
-     * TODO doc
-     * @param address
-     * @param topics
-     * @return
+     * Creates a new {@code ImmutableTarget} instance.
+     *
+     * @param address the address of this target
+     * @param topics set of topics that should be published via this target
+     * @return a new instance of ImmutableTarget
      */
-    public static Target of(final String address, final Set<String> topics) {
+    public static ImmutableTarget of(final String address, final Set<String> topics) {
         return new ImmutableTarget(address, topics);
     }
 
     /**
-     * TODO doc
-     * @param address
-     * @param requiredTopic
-     * @param additionalTopics
-     * @return
+     * Creates a new {@code ImmutableTarget} instance.
+     *
+     * @param address the address of this target
+     * @param requiredTopic the required topic that should be published via this target
+     * @param additionalTopics additional set of topics that should be published via this target
+     * @return a new instance of ImmutableTarget
      */
-    public static Target of(final String address, final String requiredTopic, final String... additionalTopics) {
+    public static ImmutableTarget of(final String address, final String requiredTopic,
+            final String... additionalTopics) {
         final HashSet<String> topics = new HashSet<>(Collections.singletonList(requiredTopic));
         topics.addAll(Arrays.asList(additionalTopics));
         return new ImmutableTarget(address, topics);

@@ -395,7 +395,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
                             final String addressWithIndex = sourceAddress + "-" + i;
                             final String childName = CONSUMER_ACTOR_PREFIX + addressWithIndex;
                             final ActorRef consumer = startChildActor(childName,
-                                    RabbitMQConsumerActor.props(messageMappingProcessor.get()));
+                                    RabbitMQConsumerActor.props(sourceAddress, messageMappingProcessor.get()));
                             try {
                                 final String consumerTag = channel.basicConsume(sourceAddress, false,
                                         new RabbitMQMessageConsumer(consumer, channel));

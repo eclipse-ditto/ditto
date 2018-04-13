@@ -42,7 +42,11 @@ final class ImmutableSourceMetrics implements SourceMetrics {
     }
 
     /**
-     * TODO Doc
+     * Creates a new {@code ImmutableSourceMetrics} instance.
+     *
+     * @param addressMetrics the AddressMetrics for each source
+     * @param consumedMessages the total count of consumed messages on this source
+     * @return a new instance of ImmutableSourceMetrics
      */
     public static ImmutableSourceMetrics of(final Map<String, AddressMetric> addressMetrics,
             final long consumedMessages) {
