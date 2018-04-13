@@ -9,7 +9,7 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package org.eclipse.ditto.services.gateway.proxy.actors;
+package org.eclipse.ditto.services.concierge.starter.actors;
 
 import static java.util.stream.Collectors.toList;
 
@@ -26,12 +26,14 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.services.models.concierge.ConciergeEnvelope;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoCommand;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThings;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingsResponse;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.base.WithEntity;
@@ -150,7 +152,7 @@ public final class ThingsAggregatorActor extends AbstractActor {
         final Option<String> token =
                 dittoHeaders.getCorrelationId()
                         .map(cId -> (Option<String>) Some.apply(cId))
-                        .orElse(Option.<String>empty());
+                        .orElse(Option.empty());
         final TraceContext traceContext = Kamon.tracer().newContext(TRACE_AGGREGATOR_RETRIEVE_THINGS, token);
 
         final List<Future<Object>> futures = thingIds.stream() //
@@ -172,7 +174,7 @@ public final class ThingsAggregatorActor extends AbstractActor {
                 }) //
                 .collect(toList());
 
-        final Future<Iterable<Object>> iterableFuture = Futures.<Object>sequence(futures, aggregatorDispatcher);
+        final Future<Iterable<Object>> iterableFuture = Futures.sequence(futures, aggregatorDispatcher);
 
         final Comparator<WithEntity> comparator;
 
@@ -224,7 +226,8 @@ public final class ThingsAggregatorActor extends AbstractActor {
     }
 
     private Future<Object> askTargetActor(final Command command) {
-        return Patterns.ask(targetActor, command, RETRIEVE_TIMEOUT);
+        final ShardedMessageEnvelope envelope = ConciergeEnvelope.wrapForEnforcer(command);
+        return Patterns.ask(targetActor, envelope, RETRIEVE_TIMEOUT);
     }
 
 }

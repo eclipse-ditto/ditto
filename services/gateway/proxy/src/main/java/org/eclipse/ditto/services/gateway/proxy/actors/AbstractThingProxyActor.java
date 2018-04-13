@@ -11,24 +11,18 @@
  */
 package org.eclipse.ditto.services.gateway.proxy.actors;
 
-import org.eclipse.ditto.json.JsonArray;
-import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.services.models.concierge.ConciergeEnvelope;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThings;
-import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingsResponse;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.ThingSearchSudoCommand;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.devops.DevOpsCommand;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveThingsResponse;
 import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
 
 import akka.actor.ActorRef;
-import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.japi.pf.ReceiveBuilder;
-import akka.routing.FromConfig;
 
 /**
  * Abstract implementation of {@link AbstractProxyActor} for all {@link org.eclipse.ditto.signals.commands.base.Command}s
@@ -38,9 +32,7 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
 
     private static final String THINGS_SEARCH_ACTOR_PATH = "/user/thingsSearchRoot/thingsSearch";
 
-    private final ActorRef pubSubMediator;
     private final ActorRef devOpsCommandsActor;
-    private final ActorRef thingsAggregator;
     private final ConciergeEnvelope conciergeEnvelope;
 
     protected AbstractThingProxyActor(final ActorRef pubSubMediator,
@@ -48,13 +40,9 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
             final ActorRef conciergeShardRegion) {
         super(pubSubMediator);
 
-        this.pubSubMediator = pubSubMediator;
         this.devOpsCommandsActor = devOpsCommandsActor;
 
         conciergeEnvelope = new ConciergeEnvelope(pubSubMediator, conciergeShardRegion);
-
-        thingsAggregator = getContext().actorOf(FromConfig.getInstance().props(
-                ThingsAggregatorActor.props(getContext().self())), ThingsAggregatorActor.ACTOR_NAME);
     }
 
     @Override
@@ -69,37 +57,15 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
                 })
 
                 /* Sudo Commands */
-                .match(SudoRetrieveThings.class, command -> {
-                    getLogger().debug("Got 'SudoRetrieveThings' message, forwarding to the Things Aggregator");
-                    if (command.getThingIds().isEmpty()) {
-                        getLogger().debug("Got 'SudoRetrieveThings' message with no ThingIds");
-                        notifySender(SudoRetrieveThingsResponse.of(JsonArray.newBuilder().build(),
-                                command.getDittoHeaders()));
-                    } else {
-                        getLogger().debug("Got 'SudoRetrieveThings' message, forwarding to the Things Aggregator");
-                        thingsAggregator.forward(command, getContext());
-                    }
-                })
+                .match(SudoRetrieveThings.class, this::forwardToConciergeService)
 
-                // TODO CR-5434
                 /* Thing Commands */
-                .match(RetrieveThings.class, command -> {
-                    if (command.getThingIds().isEmpty()) {
-                        getLogger().debug("Got 'RetrieveThings' message with no ThingIds");
-                        notifySender(RetrieveThingsResponse.of(JsonFactory.newArray(),
-                                command.getNamespace().orElse(null), command.getDittoHeaders()));
-                    } else {
-                        getLogger().debug("Got 'RetrieveThings' message, forwarding to the Things Aggregator");
-                        thingsAggregator.forward(command, getContext());
-                    }
-                })
+                .match(RetrieveThings.class, this::forwardToConciergeService)
 
                 /* Search Commands */
-                .match(ThingSearchCommand.class, command -> pubSubMediator.tell(
-                        new DistributedPubSubMediator.Send(THINGS_SEARCH_ACTOR_PATH, command), getSender()))
+                .match(ThingSearchCommand.class, this::forwardToConciergeService)
 
-                .match(ThingSearchSudoCommand.class, command -> pubSubMediator.tell(
-                        new DistributedPubSubMediator.Send(THINGS_SEARCH_ACTOR_PATH, command), getSender()))
+                .match(ThingSearchSudoCommand.class, this::forwardToConciergeService)
 
                 /* send all other Commands to Concierge Service */
                 .match(Command.class, this::forwardToConciergeService)

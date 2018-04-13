@@ -27,28 +27,6 @@ import akka.stream.javadsl.GraphDSL;
 public class Pipe {
 
     /**
-     * Join 2 flows.
-     *
-     * @param step1 first flow.
-     * @param step2 second flow.
-     * @param <A> type of input.
-     * @param <B> type of intermediate messages.
-     * @param <C> type of output.
-     * @return joined flow.
-     */
-    public static <A, B, C> Graph<FlowShape<A, C>, NotUsed> joinFlow(
-            final Graph<FlowShape<A, B>, NotUsed> step1,
-            final Graph<FlowShape<B, C>, NotUsed> step2) {
-
-        return GraphDSL.create(builder -> {
-            final FlowShape<A, B> shape1 = builder.add(step1);
-            final FlowShape<B, C> shape2 = builder.add(step2);
-            builder.from(shape1.out()).toInlet(shape2.in());
-            return FlowShape.of(shape1.in(), shape2.out());
-        });
-    }
-
-    /**
      * Join a flow into a sink.
      *
      * @param step1 the flow.

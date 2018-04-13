@@ -17,16 +17,19 @@ import static org.eclipse.ditto.services.models.concierge.ConciergeMessagingCons
 
 import java.util.Objects;
 
+import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThings;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.ThingSearchSudoCommand;
 import org.eclipse.ditto.services.utils.akka.controlflow.Consume;
 import org.eclipse.ditto.services.utils.akka.controlflow.FanIn;
 import org.eclipse.ditto.services.utils.akka.controlflow.Filter;
 import org.eclipse.ditto.services.utils.akka.controlflow.GraphActor;
 import org.eclipse.ditto.services.utils.akka.controlflow.WithSender;
+import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
 import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
 
 import akka.NotUsed;
 import akka.actor.AbstractActor;
+import akka.actor.ActorContext;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.stream.FanInShape2;
@@ -63,8 +66,7 @@ public final class DispatcherActor {
             final ActorRef enforcerShardRegion) {
 
         return GraphActor.partial(actorContext -> {
-            sanityCheck(actorContext.self());
-            putSelfToPubSubMediator(actorContext.self(), pubSubMediator);
+            initActor(actorContext.self(), pubSubMediator);
             return dispatchGraph(actorContext, pubSubMediator, enforcerShardRegion);
         });
     }
@@ -82,8 +84,7 @@ public final class DispatcherActor {
             final Graph<FlowShape<WithSender, WithSender>, NotUsed> preEnforcer) {
 
         return GraphActor.partial(actorContext -> {
-            sanityCheck(actorContext.self());
-            putSelfToPubSubMediator(actorContext.self(), pubSubMediator);
+            initActor(actorContext.self(), pubSubMediator);
             return Flow.<WithSender>create()
                     .via(preEnforcer)
                     .via(dispatchGraph(actorContext, pubSubMediator, enforcerShardRegion));
@@ -103,8 +104,9 @@ public final class DispatcherActor {
             final ActorRef pubSubMediator,
             final ActorRef enforcerShardRegion) {
 
-        // TODO: handle RetireveThings
-        return dispatchSearchCommands(pubSubMediator);
+        return Flow.<WithSender>create()
+                .via(dispatchSearchCommands(pubSubMediator))
+                .via(dispatchRetrieveThings(actorContext, enforcerShardRegion));
     }
 
     /**
@@ -130,7 +132,7 @@ public final class DispatcherActor {
      * </pre>
      *
      * @param pubSubMediator Akka pub-sub mediator.
-     * @return graph of
+     * @return Akka stream graph that forwards relevant commands to the search actor.
      */
     public static Graph<FlowShape<WithSender, WithSender>, NotUsed> dispatchSearchCommands(
             final ActorRef pubSubMediator) {
@@ -145,15 +147,52 @@ public final class DispatcherActor {
                     WithSender<ThingSearchSudoCommand>,
                     WithSender<Object>> fanIn = builder.add(FanIn.of2());
 
-            final SinkShape<WithSender<Object>> forwardToSearchActor =
+            final SinkShape<WithSender<Object>> sinkToSearchActor =
                     builder.add(forwardToThingSearchActor(pubSubMediator));
 
             builder.from(searchFilter.out0()).toInlet(fanIn.in0());
             builder.from(searchFilter.out1()).toInlet(sudoSearchFilter.in());
             builder.from(sudoSearchFilter.out0()).toInlet(fanIn.in1());
-            builder.from(fanIn.out()).to(forwardToSearchActor);
+            builder.from(fanIn.out()).to(sinkToSearchActor);
 
             return FlowShape.of(searchFilter.in(), sudoSearchFilter.out1());
+        });
+    }
+
+    /**
+     * Create a {@code ThingsAggregatorActor} and a graph to dispatch {@code RetrieveThings} and {@code
+     * SudoRetrieveThings}.
+     *
+     * @param actorContext context of the dispatcher actor.
+     * @param enforcerShardRegion shard region of enforcer actors.
+     * @return Akka stream graph that forwards relevant commands to the enforcer shard region.
+     */
+    public static Graph<FlowShape<WithSender, WithSender>, NotUsed> dispatchRetrieveThings(
+            final ActorContext actorContext,
+            final ActorRef enforcerShardRegion) {
+
+        final Props props = ThingsAggregatorActor.props(enforcerShardRegion);
+        final ActorRef thingsAggregatorActor = actorContext.actorOf(props, ThingsAggregatorActor.ACTOR_NAME);
+
+        return GraphDSL.create(builder -> {
+            final FanOutShape2<WithSender, WithSender<RetrieveThings>, WithSender> retrieveThingsFilter =
+                    builder.add(Filter.of(RetrieveThings.class));
+            final FanOutShape2<WithSender, WithSender<SudoRetrieveThings>, WithSender> sudoRetrieveThingsFilter =
+                    builder.add(Filter.of(SudoRetrieveThings.class));
+
+            final FanInShape2<WithSender<RetrieveThings>,
+                    WithSender<SudoRetrieveThings>,
+                    WithSender<Object>> fanIn = builder.add(FanIn.of2());
+
+            final SinkShape<WithSender<Object>> sinkToThingsAggregator =
+                    builder.add(Consume.of(thingsAggregatorActor::tell));
+
+            builder.from(retrieveThingsFilter.out0()).toInlet(fanIn.in0());
+            builder.from(retrieveThingsFilter.out1()).toInlet(sudoRetrieveThingsFilter.in());
+            builder.from(sudoRetrieveThingsFilter.out0()).toInlet(fanIn.in1());
+            builder.from(fanIn.out()).to(sinkToThingsAggregator);
+
+            return FlowShape.of(retrieveThingsFilter.in(), sudoRetrieveThingsFilter.out1());
         });
     }
 
@@ -162,6 +201,11 @@ public final class DispatcherActor {
             final Send wrappedCommand = new Send(THINGS_SEARCH_ACTOR_PATH, message);
             pubSubMediator.tell(wrappedCommand, sender);
         });
+    }
+
+    private static void initActor(final ActorRef self, final ActorRef pubSubMediator) {
+        sanityCheck(self);
+        putSelfToPubSubMediator(self, pubSubMediator);
     }
 
     /**
