@@ -481,7 +481,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
      */
     @Test
     public void snapshotIsCreatedAfterSnapshotIntervalHasPassed() {
-        final int snapshotIntervalSecs = 3;
+        final int snapshotIntervalSecs = 5;
         final Config customConfig = createNewDefaultTestConfig().
                 withValue(ConfigKeys.Thing.SNAPSHOT_THRESHOLD, ConfigValueFactory.fromAnyRef(Long.MAX_VALUE)).
                 withValue(ConfigKeys.Thing.SNAPSHOT_INTERVAL,
