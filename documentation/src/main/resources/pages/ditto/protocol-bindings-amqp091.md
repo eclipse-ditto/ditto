@@ -1,8 +1,8 @@
 ---
-title: AMQP 1.0 protocol binding
+title: AMQP 0.9.1 protocol binding
 keywords: binding, protocol, amqp, amqp10
 tags: [protocol]
-permalink: protocol-bindings-amqp10.html
+permalink: protocol-bindings-amqp091.html
 ---
 
 The Ditto Protocol message can be sent *as is* as **AMQP 1.0** message.

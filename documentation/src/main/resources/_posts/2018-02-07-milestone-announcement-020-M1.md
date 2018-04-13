@@ -32,7 +32,7 @@ The Docker images have been pushed to Docker Hub:
 * [eclipse/ditto-things](https://hub.docker.com/r/eclipse/ditto-things/)
 * [eclipse/ditto-things-search](https://hub.docker.com/r/eclipse/ditto-things-search/)
 * [eclipse/ditto-gateway](https://hub.docker.com/r/eclipse/ditto-gateway/)
-* [eclipse/ditto-amqp-bridge](https://hub.docker.com/r/eclipse/ditto-amqp-bridge/)
+* [eclipse/ditto-connectivity](https://hub.docker.com/r/eclipse/ditto-connectivity/)
 
 
 ## Virtual IoT Meetup

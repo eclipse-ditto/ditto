@@ -1,0 +1,122 @@
+{
+  "type": "object",
+  "properties": {
+    "id": {
+      "$id": "/properties/id",
+      "type": "string",
+      "title": "Connection ID",
+      "description": "The unique identifier of the connection",
+      "examples": [
+        "myConnection"
+      ]
+    },
+    "connectionType": {
+      "$id": "/properties/connectionType",
+      "type": "string",
+      "enum": [ "amqp-091", "amqp-10" ],
+      "title": "Connection Type",
+      "description": "The type is used to determine the connection's underlying transport protocol",
+      "examples": [
+        "amqp-091"
+      ]
+    },
+    "uri": {
+      "$id": "/properties/uri",
+      "type": "string",
+      "format": "uri",
+      "title": "Connection URI ",
+      "description": "The URI defining the connections remote endpoint",
+      "examples": [
+        "amqps://user:password@localhost:5671"
+      ]
+    },
+    "authorizationContext": {
+      "$id": "/properties/authorizationContext",
+      "type": "array",
+      "items": {
+        "$id": "/properties/authorizationContext/items",
+        "type": "string",
+        "title": "Authorization Subject",
+        "description": "An authorization subject associated with this connection",
+        "examples": [
+          "myAuthorizationSubject"
+        ]
+      }
+    },
+    "sources": {
+      "$id": "/properties/sources",
+      "type": "array",
+      "items": {
+        "$id": "/properties/sources/items",
+        "type": "string",
+        "title": "Source",
+        "default": "",
+        "examples": [
+          "sdfghjgklhoiziut"
+        ]
+      }
+    },
+    "targets": {
+      "$id": "/properties/targets",
+      "type": "array",
+      "items": {
+        "$id": "/properties/targets/items",
+        "type": "string",
+        "title": "Target",
+        "default": "",
+        "examples": [
+          "sdfghjgklhoiziut"
+        ]
+      }
+    },
+    "clientCount": {
+      "$id": "/properties/clientCount",
+      "type": "integer",
+      "title": "The Clientcount Schema ",
+      "default": 1,
+      "examples": [
+        1337
+      ]
+    },
+    "failoverEnabled": {
+      "$id": "/properties/failoverEnabled",
+      "type": "boolean",
+      "title": "The Failoverenabled Schema ",
+      "default": false,
+      "examples": [
+        true
+      ]
+    },
+    "validateCertificates": {
+      "$id": "/properties/validateCertificates",
+      "type": "boolean",
+      "title": "The Validatecertificates Schema ",
+      "default": false,
+      "examples": [
+        false
+      ]
+    },
+    "throttle": {
+      "$id": "/properties/throttle",
+      "type": "integer",
+      "title": "The Throttle Schema ",
+      "default": 0,
+      "examples": [
+        1337
+      ]
+    },
+    "processorPoolSize": {
+      "$id": "/properties/processorPoolSize",
+      "type": "integer",
+      "title": "The Processorpoolsize Schema ",
+      "default": 0,
+      "examples": [
+        1337
+      ]
+    },
+    "specificConfig": {
+      "$id": "/properties/specificConfig",
+      "type": "object"
+    }
+  }
+}

@@ -21,7 +21,7 @@ The components have the following tasks:
 * [Things-Search](architecture-services-things-search.html): tracking changes to `Things`, `Features`, `Policies` and 
   updating an optimized search index + executes queries on this search index
 * [Gateway](architecture-services-gateway.html): provides HTTP and WebSocket API and orchestrates the backing persistence services
-* [AMQP-Bridge](architecture-services-amqp-bridge.html): connects to an AMQP 1.0 endpoint (e.g. [Eclipse Hono](https://eclipse.org/hono/)) 
+* [Connectivity](architecture-services-connectivity.html): connects to an AMQP 1.0 endpoint (e.g. [Eclipse Hono](https://eclipse.org/hono/)) 
   and consumes messages in [Ditto Protocol](protocol-overview.html) from it
 
 ## Components

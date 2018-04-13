@@ -10,6 +10,8 @@ A protocol binding defines how the Ditto protocol messages are transported using
 The binding defines a set of rules how Ditto protocol messages are mapped to network protocol messages and back.
 
 Currently the following protocol bindings are supported:
+
+
 * [WebSocket Binding](protocol-bindings-websocket.html)
 * [AMQP 1.0 Binding](protocol-bindings-amqp10.html)
 

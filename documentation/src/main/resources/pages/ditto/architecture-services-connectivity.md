@@ -1,0 +1,57 @@
+---
+title: Connectivity service
+keywords: architecture, service, connectivity, amqp, hono
+tags: [architecture]
+permalink: architecture-services-connectivity.html
+---
+
+
+  {%
+    include note.html content="In Ditto 0.1.0-M2 the AMQP-Bridge service was added with the goal to be able to establish connections to 
+                                [Eclipse Hono](https://eclipse.org/hono/) as well as other [AMQP 1.0] endpoints. 
+                                With Ditto [TODO: release tag] the AMQP-Bridge architecture became more modular and extensible to support additional 
+                                protocols beside [AMQP 1.0]. Therefore it was renamed to connectivity service."
+  %}
+
+The "connectivity" service enables Ditto to establish and manage client-side connections to external service endpoints.
+ You can communicate with your connected things/twins over those connections via [Ditto Protocol] messages. The 
+ connectivity service supports varying transport protocols, which are bound to the [Ditto Protocol] via specific 
+ [Protocol Bindings].
+
+## Model
+
+The model of the connectivity service is defined around the entity `Connection`:
+
+
+* [model](https://github.com/eclipse/ditto/tree/master/model/connectivity/src/main/java/org/eclipse/ditto/model/connectivity)
+
+## Signals
+
+Other services can communicate with the connectivity service via:
+
+* [commands](https://github.com/eclipse/ditto/tree/master/signals/commands/connectivity/src/main/java/org/eclipse/ditto/signals/commands/connectivity):
+  containing commands and command responses which are processed by this service
+* [events](https://github.com/eclipse/ditto/tree/master/signals/events/connectivity/src/main/java/org/eclipse/ditto/signals/events/connectivity):
+  containing events which are emitted when entities managed by this service were modified
+
+## Persistence
+
+The connectivity service uses [Akka persistence](https://doc.akka.io/docs/akka/current/persistence.html?language=java) and 
+with that [Event sourcing](http://localhost:4000/basic-signals.html#architectural-style) in order to persist changes 
+and restore persisted entities.
+
+## Tasks
+
+* create/remove connections (by persisting them)
+* connect/disconnect to endpoints
+* restore existing connections upon restart/failover
+* translate incoming [Ditto Protocol] messages to [commands](basic-signals-command.html)
+  and translate [command responses](basic-signals-commandresponse.html) back to [Ditto Protocol] response messages
+
+
+
+
+  
+[AMQP 1.0]: protocol-bindings-amqp10.html
+[Ditto Protocol]: protocol-overview.html
+[Protocol Bindings]: protocol-bindings.html

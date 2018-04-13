@@ -31,7 +31,7 @@ There, everyone with a Google account can try out the HTTP API by using the inte
 
 Try it out and share your experience.
 
-The sandbox does not yet start the new AMQP-bridge in order to connect to Hono; we will work on that soon.
+The sandbox does not yet start the new Connectivity in order to connect to Hono; we will work on that soon.
 
 
 ## Artifacts
@@ -44,7 +44,7 @@ The Docker images have been pushed to Docker Hub:
 * [eclipse/ditto-things](https://hub.docker.com/r/eclipse/ditto-things/)
 * [eclipse/ditto-things-search](https://hub.docker.com/r/eclipse/ditto-things-search/)
 * [eclipse/ditto-gateway](https://hub.docker.com/r/eclipse/ditto-gateway/)
-* [eclipse/ditto-amqp-bridge](https://hub.docker.com/r/eclipse/ditto-amqp-bridge/)
+* [eclipse/ditto-connectivity](https://hub.docker.com/r/eclipse/ditto-connectivity/)
 
 {% include image.html file="ditto.svg" alt="Ditto" max-width=500 %}
 --<br/>

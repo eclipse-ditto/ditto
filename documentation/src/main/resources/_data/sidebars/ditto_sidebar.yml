@@ -134,8 +134,8 @@ entries:
           - title: Gateway
             url: /architecture-services-gateway.html
             output: web
-          - title: AMQP-Bridge
-            url: /architecture-services-amqp-bridge.html
+          - title: Connectivity
+            url: /architecture-services-connectivity.html
             output: web
 
   - title: HTTP API
@@ -208,16 +208,19 @@ entries:
           url: /protocol-specification-things-messages.html
           output: web
 
-
     - title: Bindings
       url: /protocol-bindings.html
       output: web
-    - title: Websocket Binding
+    - title: → Websocket Binding
       url: /protocol-bindings-websocket.html
       output: web
-    - title: AMQP 1.0 Binding
+    - title: → AMQP 0.9.1 Binding
+      url: /protocol-bindings-amqp091.html
+      output: web
+    - title: → AMQP 1.0 Binding
       url: /protocol-bindings-amqp10.html
       output: web
+
     - title: Examples
       url: /protocol-examples.html
       output: web

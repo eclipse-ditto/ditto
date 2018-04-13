@@ -14,6 +14,7 @@ The Ditto Protocol JSON must be sent as `UTF-8` encoded String payload.
 The WebSocket provides an alternative to the [HTTP API](httpapi-overview.html) in order to manage your Digital Twins.
 
 The benefits of the WebSocket compared to HTTP are multiple ones:
+
 * a single connection (socket like) is established and for commands to Digital Twins no further HTTP overhead 
   (e.g. HTTP headers, HTTP connection establishment) is produced which means you can get more commands/seconds 
   through the WebSocket compared to the HTTP endpoint
@@ -79,6 +80,7 @@ See [Authenticate](basic-auth.html) for more details.
 
 As defined in the [Protocol specification](protocol-specification.html) a Ditto Protocol message consists of different
 information. This information is combined into a single JSON message for the WebSocket endpoint:
+
 * [topic](protocol-specification.html#topic): JSON string with key `topic`
 * [headers](protocol-specification.html#headers): JSON object with key `headers`
 * [path](protocol-specification.html#path): JSON string with key `path`
