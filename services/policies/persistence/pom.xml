@@ -120,6 +120,11 @@
             <artifactId>akka-persistence-inmemory_${scala.version}</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.awaitility</groupId>
+            <artifactId>awaitility</artifactId>
+            <scope>test</scope>
+        </dependency>
 
         <!-- Test Dependencies -->
         <dependency>

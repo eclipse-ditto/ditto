@@ -50,8 +50,8 @@ import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
-import akka.cluster.pubsub.DistributedPubSub;
 import akka.testkit.JavaTestKit;
+import akka.testkit.TestProbe;
 
 /**
  * Base test class for testing persistence actors of the policies persistence.
@@ -91,7 +91,6 @@ public abstract class PersistenceActorTestBase {
     protected ActorSystem actorSystem = null;
     protected ActorRef pubSubMediator = null;
     protected DittoHeaders dittoHeadersMockV2;
-    private DittoHeaders dittoHeadersMockV1;
 
     protected static DittoHeaders createDittoHeadersMock(final JsonSchemaVersion schemaVersion,
             final String... authSubjects) {
@@ -127,17 +126,18 @@ public abstract class PersistenceActorTestBase {
         requireNonNull(customConfig, "Consider to use ConfigFactory.empty()");
         final Config config = customConfig.withFallback(ConfigFactory.load("test"));
 
-        actorSystem = ActorSystem.create("AkkaTestSystem", config);
-        pubSubMediator = DistributedPubSub.get(actorSystem).mediator();
-        dittoHeadersMockV1 = createDittoHeadersMock(JsonSchemaVersion.V_1, AUTH_SUBJECT);
-        dittoHeadersMockV2 = createDittoHeadersMock(JsonSchemaVersion.V_2, AUTH_SUBJECT);
+        init(config);
     }
 
     public void setUpBase() {
         final Config config = ConfigFactory.load("test");
+
+        init(config);
+    }
+
+    private void init(final Config config) {
         actorSystem = ActorSystem.create("AkkaTestSystem", config);
-        pubSubMediator = DistributedPubSub.get(actorSystem).mediator();
-        dittoHeadersMockV1 = createDittoHeadersMock(JsonSchemaVersion.V_1, AUTH_SUBJECT);
+        pubSubMediator = new TestProbe(actorSystem, "mock-pubSub-mediator").ref();
         dittoHeadersMockV2 = createDittoHeadersMock(JsonSchemaVersion.V_2, AUTH_SUBJECT);
     }
 

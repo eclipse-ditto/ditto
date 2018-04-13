@@ -36,8 +36,8 @@ final class ThingPersistenceActorPropsFactory implements Function<String, Props>
     private ThingPersistenceActorPropsFactory(final ActorRef pubSubMediator,
             final ThingSnapshotter.Create thingSnapshotterCreate) {
 
-        this.pubSubMediator = checkNotNull(pubSubMediator, "distributed pub-sub mediator actor");
-        this.thingSnapshotterCreate = checkNotNull(thingSnapshotterCreate, "creation function for ThingSnapshotter");
+        this.pubSubMediator = checkNotNull(pubSubMediator);
+        this.thingSnapshotterCreate = checkNotNull(thingSnapshotterCreate);
     }
 
     /**

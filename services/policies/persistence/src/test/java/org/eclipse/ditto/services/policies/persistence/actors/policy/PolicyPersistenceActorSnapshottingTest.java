@@ -12,6 +12,7 @@
 package org.eclipse.ditto.services.policies.persistence.actors.policy;
 
 import static org.eclipse.ditto.model.policies.assertions.DittoPolicyAssertions.assertThat;
+import static org.junit.Assert.assertTrue;
 
 import java.time.Duration;
 import java.util.Arrays;
@@ -19,6 +20,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 
 import org.eclipse.ditto.json.JsonObject;
@@ -62,7 +64,7 @@ import akka.actor.ActorRef;
 import akka.actor.ExtendedActorSystem;
 import akka.actor.PoisonPill;
 import akka.actor.Props;
-import akka.testkit.JavaTestKit;
+import akka.testkit.javadsl.TestKit;
 
 /**
  * Unit test for the snapshotting functionality of {@link PolicyPersistenceActor}.
@@ -71,7 +73,7 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
 
     private static final int DEFAULT_TEST_SNAPSHOT_THRESHOLD = 2;
     private static final Duration VERY_LONG_DURATION = Duration.ofDays(100);
-    private static final int PERSISTENCE_ASSERT_RETRY_COUNT = 3;
+    private static final int PERSISTENCE_ASSERT_WAIT_AT_MOST_MS = 3000;
     private static final long PERSISTENCE_ASSERT_RETRY_DELAY_MS = 500;
     private PolicyMongoEventAdapter eventAdapter;
     private PoliciesJournalTestHelper<Event> journalTestHelper;
@@ -120,12 +122,12 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
     }
 
     private static void retryOnAssertionError(final Runnable r) {
-        Assertions.retryOnAssertionError(r, PERSISTENCE_ASSERT_RETRY_COUNT, PERSISTENCE_ASSERT_RETRY_DELAY_MS);
+        Assertions.retryOnAssertionError(r, PERSISTENCE_ASSERT_WAIT_AT_MOST_MS, PERSISTENCE_ASSERT_RETRY_DELAY_MS);
     }
 
     private static void waitSecs(final long secs) {
         try {
-            Thread.sleep(secs * 1000);
+            TimeUnit.SECONDS.sleep(secs);
         } catch (final InterruptedException e) {
             throw new IllegalStateException(e);
         }
@@ -153,7 +155,7 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
 
         journalTestHelper = new PoliciesJournalTestHelper<>(actorSystem, this::convertJournalEntryToEvent,
                 PolicyPersistenceActorSnapshottingTest::convertDomainIdToPersistenceId);
-        snapshotTestHelper = new PoliciesSnapshotTestHelper<Policy>(actorSystem,
+        snapshotTestHelper = new PoliciesSnapshotTestHelper<>(actorSystem,
                 PolicyPersistenceActorSnapshottingTest::convertSnapshotDataToPolicy,
                 PolicyPersistenceActorSnapshottingTest::convertDomainIdToPersistenceId);
 
@@ -181,10 +183,10 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
     public void deletedPolicyIsSnapshottedWithCorrectDataAndCanBeRecreated() {
         setup(createNewDefaultTestConfig());
 
-        new JavaTestKit(actorSystem) {
+        new TestKit(actorSystem) {
             {
                 final Policy policy = createPolicyWithRandomId();
-                final String policyId = policy.getId().orElse(null);
+                final String policyId = policy.getId().orElseThrow(IllegalStateException::new);
 
                 ActorRef underTest = createPersistenceActorFor(policyId);
 
@@ -192,7 +194,8 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
                 underTest.tell(createPolicy, getRef());
 
                 final CreatePolicyResponse createPolicyResponse = expectMsgClass(CreatePolicyResponse.class);
-                final Policy policyCreated = createPolicyResponse.getPolicyCreated().orElse(null);
+                final Policy policyCreated = createPolicyResponse.getPolicyCreated()
+                        .orElseThrow(IllegalStateException::new);
                 assertPolicyInResponse(policyCreated, policy, 1);
 
                 final Event expectedCreatedEvent = toEvent(createPolicy, 1);
@@ -249,10 +252,10 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
     public void policyInArbitraryStateIsSnapshottedCorrectly() {
         setup(createNewDefaultTestConfig());
 
-        new JavaTestKit(actorSystem) {
+        new TestKit(actorSystem) {
             {
                 final Policy policy = createPolicyWithRandomId();
-                final String policyId = policy.getId().orElse(null);
+                final String policyId = policy.getId().orElseThrow(IllegalStateException::new);
 
                 ActorRef underTest = createPersistenceActorFor(policyId);
 
@@ -260,7 +263,8 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
                 underTest.tell(createPolicy, getRef());
 
                 final CreatePolicyResponse createPolicyResponse = expectMsgClass(CreatePolicyResponse.class);
-                assertPolicyInResponse(createPolicyResponse.getPolicyCreated().orElse(null), policy, 1);
+                assertPolicyInResponse(createPolicyResponse.getPolicyCreated().orElseThrow(IllegalStateException::new),
+                        policy, 1);
 
                 final Event expectedCreatedEvent = toEvent(createPolicy, 1);
                 assertJournal(policyId, Collections.singletonList(expectedCreatedEvent));
@@ -315,10 +319,10 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
                         ConfigValueFactory.fromAnyRef(Duration.ofSeconds(snapshotIntervalSecs)));
         setup(customConfig);
 
-        new JavaTestKit(actorSystem) {
+        new TestKit(actorSystem) {
             {
                 final Policy policy = createPolicyWithRandomId();
-                final String policyId = policy.getId().orElse(null);
+                final String policyId = policy.getId().orElseThrow(IllegalStateException::new);
 
                 final ActorRef underTest = createPersistenceActorFor(policyId);
 
@@ -373,10 +377,10 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
                         ConfigValueFactory.fromAnyRef(Duration.ofSeconds(snapshotIntervalSecs)));
         setup(customConfig);
 
-        new JavaTestKit(actorSystem) {
+        new TestKit(actorSystem) {
             {
                 final Policy policy = createPolicyWithRandomId();
-                final String policyId = policy.getId().orElse(null);
+                final String policyId = policy.getId().orElseThrow(IllegalStateException::new);
 
                 final ActorRef underTest = createPersistenceActorFor(policyId);
 
@@ -419,7 +423,7 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
                 withValue(ConfigKeys.Policy.SNAPSHOT_THRESHOLD, ConfigValueFactory.fromAnyRef(-1));
         setup(customConfig);
 
-        new JavaTestKit(actorSystem) {
+        new TestKit(actorSystem) {
             {
                 final ActorRef underTest = createPersistenceActorFor("fail");
                 watch(underTest);
@@ -447,6 +451,7 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
                     assertPolicyInJournal(((PolicyCreated) actual).getPolicy(), ((PolicyCreated) expected).getPolicy());
                 } else if (actual instanceof PolicyDeleted) {
                     // no special check
+                    assertTrue(true);
                 } else {
                     throw new UnsupportedOperationException("No check for: " + actual.getClass());
                 }

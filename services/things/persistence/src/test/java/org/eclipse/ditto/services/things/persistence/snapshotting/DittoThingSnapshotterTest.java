@@ -25,16 +25,13 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.junit.MockitoJUnitRunner;
 
 /**
  * Unit test for {@link DittoThingSnapshotter}.
  */
 @RunWith(MockitoJUnitRunner.class)
 public final class DittoThingSnapshotterTest {
-
-    private static final ThingWithSnapshotTag THING_WITH_SNAPSHOT_TAG =
-            ThingWithSnapshotTag.newInstance(THING_V1, SnapshotTag.PROTECTED);
 
     @Mock
     private ThingPersistenceActorInterface persistenceActorMock;

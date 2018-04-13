@@ -353,7 +353,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             private static final long serialVersionUID = 1L;
 
             @Override
-            public PolicyPersistenceActor create() throws Exception {
+            public PolicyPersistenceActor create() {
                 return new PolicyPersistenceActor(policyId, snapshotAdapter, pubSubMediator);
             }
         });
@@ -388,7 +388,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
         // send a message to ourselft:
         snapshotter = getContext().system().scheduler()
                 .scheduleOnce(Duration.apply(intervalInSeconds, TimeUnit.SECONDS), getSelf(),
-                        new TakeSnapshotInternal(),
+                        TakeSnapshotInternal.INSTANCE,
                         getContext().dispatcher(), null);
     }
 
@@ -747,6 +747,13 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
      * Message the PolicyPersistenceActor can send to itself to take a Snapshot if the Policy was modified.
      */
     private static final class TakeSnapshotInternal {
+
+        /**
+         * The single instance of this message.
+         */
+        public static final TakeSnapshotInternal INSTANCE = new TakeSnapshotInternal();
+
+        private TakeSnapshotInternal() {}
     }
 
     /**

@@ -40,7 +40,7 @@ import com.typesafe.config.ConfigFactory;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
-import akka.cluster.pubsub.DistributedPubSub;
+import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 
 /**
@@ -123,7 +123,7 @@ public abstract class PersistenceActorTestBase {
         final Config config = customConfig.withFallback(ConfigFactory.load("test"));
 
         actorSystem = ActorSystem.create("AkkaTestSystem", config);
-        pubSubMediator = DistributedPubSub.get(actorSystem).mediator();
+        pubSubMediator = new TestProbe(actorSystem, "mock-pubSub-mediator").ref();
 
         dittoHeadersV1 = createDittoHeadersMock(JsonSchemaVersion.V_1, AUTH_SUBJECT);
         dittoHeadersV2 = createDittoHeadersMock(JsonSchemaVersion.V_2, AUTH_SUBJECT);
