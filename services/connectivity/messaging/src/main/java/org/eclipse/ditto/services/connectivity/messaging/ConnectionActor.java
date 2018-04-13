@@ -69,7 +69,6 @@ import org.eclipse.ditto.signals.events.connectivity.ConnectionClosed;
 import org.eclipse.ditto.signals.events.connectivity.ConnectionCreated;
 import org.eclipse.ditto.signals.events.connectivity.ConnectionDeleted;
 import org.eclipse.ditto.signals.events.connectivity.ConnectionOpened;
-import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 import com.typesafe.config.Config;
 
@@ -133,7 +132,7 @@ final class ConnectionActor extends AbstractPersistentActor {
     private long lastSnapshotSequenceNr = -1L;
     private boolean snapshotInProgress = false;
 
-    private Set<String> uniqueTopicPaths;
+    private Set<String> uniqueTopicPaths = Collections.emptySet();
 
     private ConnectionActor(final String connectionId, final ActorRef pubSubMediator,
             final ConnectionActorPropsFactory propsFactory) {
@@ -509,25 +508,31 @@ final class ConnectionActor extends AbstractPersistentActor {
                 .flatMap(target -> target.getTopics().stream())
                 .collect(Collectors.toSet());
 
-        final Set<String> pubSubTopics = uniqueTopicPaths.stream()
-                .map(TopicPathMapper::mapToPubSubTopic)
-                .filter(Optional::isPresent)
-                .map(Optional::get)
-                .collect(Collectors.toSet());
-
-        pubSubTopics.forEach(pubSubTopic -> {
+        forEachPubSubTopicDo(pubSubTopic -> {
             final DistributedPubSubMediator.Subscribe subscribe =
                     new DistributedPubSubMediator.Subscribe(pubSubTopic, PUB_SUB_GROUP_PREFIX + connectionId,
                             getSelf());
-            log.info("Subscribing to pubsub topic '{}' for connection '{}'.", pubSubTopic, connectionId);
+            log.debug("Subscribing to pubsub topic '{}' for connection '{}'.", pubSubTopic, connectionId);
             pubSubMediator.tell(subscribe, getSelf());
         });
     }
 
     private void unsubscribeFromEvents() {
-        pubSubMediator.tell(
-                new DistributedPubSubMediator.Unsubscribe(ThingEvent.TYPE_PREFIX, PUB_SUB_GROUP_PREFIX + connectionId,
-                        getSelf()), getSelf());
+        forEachPubSubTopicDo(pubSubTopic -> {
+            log.debug("Unsubscribing from pubsub topic '{}' for connection '{}'.", pubSubTopic, connectionId);
+            final DistributedPubSubMediator.Unsubscribe unsubscribe =
+                    new DistributedPubSubMediator.Unsubscribe(pubSubTopic, PUB_SUB_GROUP_PREFIX + connectionId,
+                            getSelf());
+            pubSubMediator.tell(unsubscribe, getSelf());
+        });
+    }
+
+    private void forEachPubSubTopicDo(final Consumer<String> topicConsumer) {
+        uniqueTopicPaths.stream()
+                .map(TopicPathMapper::mapToPubSubTopic)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .forEach(topicConsumer);
     }
 
     private void handleCommandDuringInitialization(final ConnectivityCommand command) {
@@ -697,7 +702,7 @@ final class ConnectionActor extends AbstractPersistentActor {
                             aggregatedResults.add((CommandResponse<?>) any);
                         } else if (any instanceof Status.Status) {
                             aggregatedStatus.put(getSender().path().address().hostPort(), (Status.Status) any);
-                        } else if (any instanceof DittoRuntimeException){
+                        } else if (any instanceof DittoRuntimeException) {
                             aggregatedResults.add(ConnectivityErrorResponse.of((DittoRuntimeException) any));
                         } else {
                             log.error("Could not handle non-Jsonifiable non-Status response: {}", any);
