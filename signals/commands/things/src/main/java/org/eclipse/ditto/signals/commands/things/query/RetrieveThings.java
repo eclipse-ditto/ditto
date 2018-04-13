@@ -216,7 +216,7 @@ public final class RetrieveThings extends AbstractCommand<RetrieveThings>
 
     @Override
     public String getThingId() {
-        return ":_";
+        return "";
     }
 
     @Override
