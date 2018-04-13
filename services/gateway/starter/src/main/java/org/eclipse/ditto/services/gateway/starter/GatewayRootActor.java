@@ -141,7 +141,6 @@ final class GatewayRootActor extends AbstractActor {
                 ProxyActor.props(pubSubMediator, devOpsCommandsActor, conciergeShardRegionProxy));
 
         pubSubMediator.tell(new DistributedPubSubMediator.Put(getSelf()), getSelf());
-        pubSubMediator.tell(new DistributedPubSubMediator.Put(proxyActor), getSelf());
 
         final ActorRef streamingActor = startChildActor(StreamingActor.ACTOR_NAME,
                 StreamingActor.props(pubSubMediator, conciergeShardRegionProxy));
