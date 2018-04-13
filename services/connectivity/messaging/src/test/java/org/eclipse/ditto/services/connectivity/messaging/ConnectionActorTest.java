@@ -11,11 +11,12 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import java.util.Collections;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
@@ -216,14 +217,17 @@ public class ConnectionActorTest {
                                 throw ConnectionConfigurationInvalidException.newBuilder("validation failed...")
                                         .build();
                             });
-            final ActorRef connectionActorRef = watch(childActorOf(connectionActorProps));
+            // create another actor because this it is stopped and we want to test if the child is terminated
+            final TestKit parent = new TestKit(actorSystem);
+            final ActorRef connectionActorRef = watch(parent.childActorOf(connectionActorProps));
 
             // create connection
-            connectionActorRef.tell(createConnection, getRef());
-            expectMsgClass(ConnectionSupervisorActor.ManualReset.class); // is sent after "empty" recovery
+            connectionActorRef.tell(createConnection, parent.getRef());
+            parent.expectMsgClass(ConnectionSupervisorActor.ManualReset.class); // is sent after "empty" recovery
 
-            final Exception dittoRuntimeException = expectMsgClass(Exception.class);
-            Assertions.assertThat(dittoRuntimeException).hasMessageContaining("validation failed...");
+            // expect ConnectionConfigurationInvalidException sent to parent
+            final Exception exception = parent.expectMsgClass(ConnectionConfigurationInvalidException.class);
+            assertThat(exception).hasMessageContaining("validation failed...");
 
             expectTerminated(connectionActorRef);
         }};
