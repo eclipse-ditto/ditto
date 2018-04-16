@@ -11,7 +11,7 @@
  */
 package org.eclipse.ditto.services.gateway.proxy.actors;
 
-import org.eclipse.ditto.services.models.concierge.ConciergeEnvelope;
+import org.eclipse.ditto.services.models.concierge.ConciergeForwarder;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThings;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.ThingSearchSudoCommand;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -30,10 +30,8 @@ import akka.japi.pf.ReceiveBuilder;
  */
 public abstract class AbstractThingProxyActor extends AbstractProxyActor {
 
-    private static final String THINGS_SEARCH_ACTOR_PATH = "/user/thingsSearchRoot/thingsSearch";
-
     private final ActorRef devOpsCommandsActor;
-    private final ConciergeEnvelope conciergeEnvelope;
+    private final ConciergeForwarder conciergeForwarder;
 
     protected AbstractThingProxyActor(final ActorRef pubSubMediator,
             final ActorRef devOpsCommandsActor,
@@ -42,7 +40,7 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
 
         this.devOpsCommandsActor = devOpsCommandsActor;
 
-        conciergeEnvelope = new ConciergeEnvelope(pubSubMediator, conciergeShardRegion);
+        conciergeForwarder = new ConciergeForwarder(pubSubMediator, conciergeShardRegion);
     }
 
     @Override
@@ -76,7 +74,7 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
 
     @Override
     protected void addResponseBehaviour(final ReceiveBuilder receiveBuilder) {
-
+        // do nothing
     }
 
     @Override
@@ -85,7 +83,7 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
     }
 
     protected void forwardToConciergeService(final Signal<?> signal) {
-        conciergeEnvelope.dispatch(signal, getSender());
+        conciergeForwarder.forward(signal, getSender());
     }
 
 }
