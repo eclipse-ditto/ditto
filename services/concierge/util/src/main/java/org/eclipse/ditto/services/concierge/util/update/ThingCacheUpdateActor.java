@@ -20,7 +20,15 @@ import org.eclipse.ditto.services.concierge.util.cache.entry.Entry;
 import org.eclipse.ditto.services.models.concierge.EntityId;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
+import org.eclipse.ditto.signals.events.things.AclEntryCreated;
+import org.eclipse.ditto.signals.events.things.AclEntryDeleted;
+import org.eclipse.ditto.signals.events.things.AclEntryModified;
+import org.eclipse.ditto.signals.events.things.AclModified;
+import org.eclipse.ditto.signals.events.things.PolicyIdModified;
+import org.eclipse.ditto.signals.events.things.ThingCreated;
+import org.eclipse.ditto.signals.events.things.ThingDeleted;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
+import org.eclipse.ditto.signals.events.things.ThingModified;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -73,12 +81,37 @@ public class ThingCacheUpdateActor extends PubSubListenerActor {
         return receiveBuilder().match(ThingEvent.class, this::handleEvent).build();
     }
 
-    public void handleEvent(final ThingEvent thingEvent) {
-        // TODO CR-5397: be less wasteful.
-        final EntityId key = EntityId.of(ThingCommand.RESOURCE_TYPE, thingEvent.getThingId());
+    public void handleEvent(final ThingEvent event) {
+        final EntityId key = EntityId.of(ThingCommand.RESOURCE_TYPE, event.getThingId());
 
-        thingIdCache.invalidate(key);
+        if (isAclAffected(event)) {
+            aclEnforcerCache.invalidate(key);
+        }
 
-        aclEnforcerCache.invalidate(key);
+        if (isEnforcerIdAffected(event)) {
+            thingIdCache.invalidate(key);
+        }
+    }
+
+    private static boolean isEnforcerIdAffected(final ThingEvent event) {
+        return isCompleteThingChanged(event) || isPolicyIdModified(event);
+    }
+
+    private static boolean isPolicyIdModified(final ThingEvent event) {
+        // the policyId changes or is set initially (when converting a v1 to a v2 thing)
+        return event instanceof PolicyIdModified;
+    }
+
+    private static boolean isAclAffected(final ThingEvent event) {
+        return isCompleteThingChanged(event) || isAclChanged(event) || isPolicyIdModified(event);
+    }
+
+    private static boolean isAclChanged(final ThingEvent event) {
+        return event instanceof AclModified || event instanceof AclEntryCreated || event instanceof AclEntryModified ||
+                event instanceof AclEntryDeleted;
+    }
+
+    private static boolean isCompleteThingChanged(final ThingEvent event) {
+        return event instanceof ThingCreated || event instanceof ThingModified || event instanceof ThingDeleted;
     }
 }
