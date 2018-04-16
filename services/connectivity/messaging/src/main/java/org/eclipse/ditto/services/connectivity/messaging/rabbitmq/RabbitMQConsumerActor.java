@@ -151,10 +151,6 @@ public final class RabbitMQConsumerActor extends AbstractActor {
                         .map(this::setToStringStringMap).orElseGet(HashMap::new);
 
         // set headers specific to rmq messages
-        // TODO DG is this still required?
-        if (envelope.getExchange() != null) {
-            headersFromProperties.put(EXCHANGE_HEADER, envelope.getExchange());
-        }
         if (properties.getReplyTo() != null) {
             headersFromProperties.put(ExternalMessage.REPLY_TO_HEADER, properties.getReplyTo());
         }

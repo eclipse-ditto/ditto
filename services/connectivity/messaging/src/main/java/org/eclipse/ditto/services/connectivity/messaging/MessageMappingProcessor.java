@@ -50,20 +50,16 @@ import scala.Option;
  */
 public final class MessageMappingProcessor {
 
-    private static final String CONTEXT_NAME = MessageMappingProcessor.class.getSimpleName();
-
+    private static final String INBOUND_MAPPING_TRACE_SUFFIX = ".inbound";
+    private static final String OUTBOUND_MAPPING_TRACE_SUFFIX = ".outbound";
     private static final String SEGMENT_CATEGORY = "payload-mapping";
     private static final String MAPPING_SEGMENT_NAME = "mapping";
-    private static final String PROTOCOL_SEGMENT_NAME = "protocoladapter";
-
+    private static final String PROTOCOL_SEGMENT_NAME = "protocol";
     private static final DittoProtocolAdapter PROTOCOL_ADAPTER = DittoProtocolAdapter.newInstance();
-
 
     private final String connectionId;
     private final MessageMapperRegistry registry;
-
     private final DiagnosticLoggingAdapter log;
-
 
     private MessageMappingProcessor(final String connectionId, final MessageMapperRegistry registry,
             final DiagnosticLoggingAdapter log) {
@@ -85,8 +81,8 @@ public final class MessageMappingProcessor {
      * @throws org.eclipse.ditto.model.connectivity.MessageMapperConfigurationFailedException if the configuration of
      * one of the {@code mappingContext} failed for a mapper specific reason
      */
-    public static MessageMappingProcessor of(final String connectionId, @Nullable final MappingContext mappingContext, final DynamicAccess access,
-            final DiagnosticLoggingAdapter log) {
+    public static MessageMappingProcessor of(final String connectionId, @Nullable final MappingContext mappingContext,
+            final DynamicAccess access, final DiagnosticLoggingAdapter log) {
         final MessageMapperRegistry registry = DefaultMessageMapperFactory.of(access, MessageMappers.class, log)
                 .registryOf(DittoMessageMapper.CONTEXT, mappingContext);
         return new MessageMappingProcessor(connectionId, registry, log);
@@ -111,7 +107,7 @@ public final class MessageMappingProcessor {
         final String correlationId = DittoHeaders.of(message.getHeaders()).getCorrelationId()
                 .orElse("no-correlation-id");
         return doApplyTraced(
-                () -> createProcessingContext(CONTEXT_NAME, correlationId),
+                () -> createProcessingContext(connectionId + INBOUND_MAPPING_TRACE_SUFFIX, correlationId),
                 ctx -> convertMessage(message, ctx));
     }
 
@@ -126,7 +122,7 @@ public final class MessageMappingProcessor {
 
         final String correlationId = signal.getDittoHeaders().getCorrelationId().orElse("no-correlation-id");
         return doApplyTraced(
-                () -> createProcessingContext(CONTEXT_NAME, correlationId),
+                () -> createProcessingContext(connectionId + OUTBOUND_MAPPING_TRACE_SUFFIX, correlationId),
                 ctx -> convertToExternalMessage(() -> PROTOCOL_ADAPTER.toAdaptable(signal), ctx));
     }
 
@@ -136,7 +132,7 @@ public final class MessageMappingProcessor {
 
         try {
             final Optional<Adaptable> adaptableOpt = doApplyTracedSegment(
-                    () -> createSegment(ctx, MAPPING_SEGMENT_NAME, false),
+                    () -> createSegment(ctx, MAPPING_SEGMENT_NAME),
                     () -> getMapper(message).map(message)
             );
 
@@ -144,7 +140,7 @@ public final class MessageMappingProcessor {
                 doUpdateCorrelationId(adaptable);
 
                 return doApplyTracedSegment(
-                        () -> createSegment(ctx, PROTOCOL_SEGMENT_NAME, false),
+                        () -> createSegment(ctx, PROTOCOL_SEGMENT_NAME),
                         () -> {
                             final Signal<?> signal = PROTOCOL_ADAPTER.fromAdaptable(adaptable);
                             final DittoHeadersBuilder dittoHeadersBuilder =
@@ -173,12 +169,12 @@ public final class MessageMappingProcessor {
 
         try {
             final Adaptable adaptable = doApplyTracedSegment(
-                    () -> createSegment(ctx, PROTOCOL_SEGMENT_NAME, true), adaptableSupplier);
+                    () -> createSegment(ctx, PROTOCOL_SEGMENT_NAME), adaptableSupplier);
 
             doUpdateCorrelationId(adaptable);
 
             return doApplyTracedSegment(
-                    () -> createSegment(ctx, MAPPING_SEGMENT_NAME, true),
+                    () -> createSegment(ctx, MAPPING_SEGMENT_NAME),
                     () -> getMapper(adaptable).map(adaptable)
             );
         } catch (final DittoRuntimeException e) {
@@ -214,7 +210,7 @@ public final class MessageMappingProcessor {
 
         return registry.getMapper().orElseGet(() -> {
             log.debug("Falling back to Default MessageMapper for mapping ExternalMessage " +
-                            "as no MessageMapper was present: {}", message);
+                    "as no MessageMapper was present: {}", message);
             return registry.getDefaultMapper();
         });
 
@@ -236,10 +232,8 @@ public final class MessageMappingProcessor {
         LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId);
     }
 
-    private Segment createSegment(final TraceContext ctx, final String name, final boolean isReverse) {
-        final String segmentName = isReverse ? name.concat("-reverse") : name;
-        final String library = isReverse ? CONTEXT_NAME.concat("Reverse") : CONTEXT_NAME;
-        return ctx.startSegment(segmentName, SEGMENT_CATEGORY, library);
+    private Segment createSegment(final TraceContext ctx, final String segmentName) {
+        return ctx.startSegment(segmentName, SEGMENT_CATEGORY, SEGMENT_CATEGORY);
     }
 
     private static TraceContext createProcessingContext(final String name, @Nullable final String correlationId) {

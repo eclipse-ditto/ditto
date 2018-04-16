@@ -50,8 +50,7 @@ public class TopicPathMapper {
     public static String mapSignalToTopicPath(final Signal<?> signal) {
         // only things as group supported
         final String group = signal instanceof WithThingId ? TopicPath.Group.THINGS.getName() : "unsupported";
-        // TODO default is twin?
-        final String channel = signal.getDittoHeaders().getChannel().orElse("twin");
+        final String channel = signal.getDittoHeaders().getChannel().orElse(TopicPath.Channel.TWIN.getName());
         final String criterion;
         if (signal instanceof MessageCommand || signal instanceof MessageCommandResponse) {
             criterion = TopicPath.Criterion.MESSAGES.getName();
