@@ -81,7 +81,7 @@ public class ThingCacheUpdateActor extends PubSubListenerActor {
         return receiveBuilder().match(ThingEvent.class, this::handleEvent).build();
     }
 
-    public void handleEvent(final ThingEvent event) {
+    private void handleEvent(final ThingEvent event) {
         final EntityId key = EntityId.of(ThingCommand.RESOURCE_TYPE, event.getThingId());
 
         if (isAclAffected(event)) {

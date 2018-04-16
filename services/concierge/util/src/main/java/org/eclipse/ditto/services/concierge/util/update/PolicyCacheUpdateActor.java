@@ -67,9 +67,8 @@ public class PolicyCacheUpdateActor extends PubSubListenerActor {
         return receiveBuilder().match(PolicyEvent.class, this::handleEvent).build();
     }
 
-    public void handleEvent(final PolicyEvent policyEvent) {
-        // TODO CR-5397: be less wasteful.
-        final EntityId key = EntityId.of(PolicyCommand.RESOURCE_TYPE, policyEvent.getPolicyId());
+    private void handleEvent(final PolicyEvent policyEvent) {
+        final EntityId key = EntityId.of(PolicyCommand.RESOURCE_TYPE, policyEvent.getId());
         policyEnforcerCache.invalidate(key);
     }
 }

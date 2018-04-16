@@ -35,8 +35,9 @@ import org.eclipse.ditto.signals.events.things.PolicyIdModified;
 import org.eclipse.ditto.signals.events.things.ThingCreated;
 import org.eclipse.ditto.signals.events.things.ThingDeleted;
 import org.eclipse.ditto.signals.events.things.ThingModified;
-import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import akka.actor.ActorRef;
@@ -62,14 +63,25 @@ public final class ThingCacheUpdateActorTest {
     private static final DittoHeaders DITTO_HEADERS = DittoHeaders.empty();
     private static final int REVISION = 1;
 
+    private static ActorSystem system;
 
     private Cache<EntityId, Entry<Enforcer>> mockAclEnforcerCache;
     private Cache<EntityId, Entry<EntityId>> mockIdCache;
 
-    private ActorSystem system;
     private ActorRef updateActor;
     private TestKit testKit;
 
+    @BeforeClass
+    public static void beforeClass() {
+        system = ActorSystem.create();
+    }
+
+    @AfterClass
+    public static void shutdown() {
+        if (system != null) {
+            TestKit.shutdownActorSystem(system);
+        }
+    }
 
     @Before
     @SuppressWarnings("unchecked")
@@ -77,7 +89,6 @@ public final class ThingCacheUpdateActorTest {
         mockAclEnforcerCache = mock(Cache.class);
         mockIdCache = mock(Cache.class);
 
-        system = ActorSystem.create();
         final TestProbe pubSubMediatorProbe = new TestProbe(system, "mockPubSubMediator");
 
         final Props props = ThingCacheUpdateActor.props(mockAclEnforcerCache, mockIdCache,
@@ -85,13 +96,6 @@ public final class ThingCacheUpdateActorTest {
         updateActor = system.actorOf(props);
 
         testKit = new TestKit(system);
-    }
-
-    @After
-    public void shutdown() {
-        if (system != null) {
-            TestKit.shutdownActorSystem(system);
-        }
     }
 
     @Test
