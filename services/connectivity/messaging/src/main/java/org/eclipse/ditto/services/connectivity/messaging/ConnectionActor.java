@@ -333,6 +333,9 @@ final class ConnectionActor extends AbstractPersistentActor {
 
     private void testConnection(final TestConnection command) {
         final ActorRef origin = getSender();
+        if (!isConnectionConfigurationValid(command.getConnection(), origin)) {
+            return;
+        }
 
         connection = command.getConnection();
 
@@ -351,12 +354,7 @@ final class ConnectionActor extends AbstractPersistentActor {
 
     private void createConnection(final CreateConnection command) {
         final ActorRef origin = getSender();
-        try {
-            // try to create actor props before persisting the connection to fail early
-            propsFactory.getActorPropsForType(command.getConnection(), connectionStatus);
-        } catch (final Exception e) {
-            handleException("connect", origin, e);
-            stopSelf();
+        if (!isConnectionConfigurationValid(command.getConnection(), origin)) {
             return;
         }
 
@@ -376,6 +374,18 @@ final class ConnectionActor extends AbstractPersistentActor {
                 getContext().getParent().tell(ConnectionSupervisorActor.ManualReset.getInstance(), getSelf());
             });
         });
+    }
+
+    private boolean isConnectionConfigurationValid(final Connection connection, final ActorRef origin) {
+        try {
+            // try to create actor props before persisting the connection to fail early
+            propsFactory.getActorPropsForType(connection, connectionStatus);
+            return true;
+        } catch (final Exception e) {
+            handleException("connect", origin, e);
+            stopSelf();
+            return false;
+        }
     }
 
     private void openConnection(final OpenConnection command) {
