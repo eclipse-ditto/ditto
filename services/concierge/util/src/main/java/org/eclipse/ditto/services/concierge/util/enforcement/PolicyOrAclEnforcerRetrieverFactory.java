@@ -23,7 +23,15 @@ import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 
-public final class PolicyOrAclEnforcerRetrieverFactory {
+/**
+ * Creates an {@link EnforcerRetriever} which retrieves an enforcer by using an acl- or policy-enforcer-cache depending
+ * on the {@code resourceType} of the requested {@code entityId}.
+ */
+final class PolicyOrAclEnforcerRetrieverFactory {
+
+    private PolicyOrAclEnforcerRetrieverFactory() {
+        throw new AssertionError();
+    }
 
     public static EnforcerRetriever create(
             final Cache<EntityId, Entry<EntityId>> idCache,
