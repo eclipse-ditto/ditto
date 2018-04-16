@@ -89,7 +89,7 @@ public final class PolicyCacheUpdateActorTest {
 
         sendEvent(arbitraryPolicyEvent);
 
-        assertInvalidation( true);
+        assertInvalidation(true);
     }
 
     @Test
@@ -99,7 +99,7 @@ public final class PolicyCacheUpdateActorTest {
                         REVISION, DITTO_HEADERS);
         sendEvent(irrelevantEvent);
 
-        assertInvalidation( false);
+        assertInvalidation(false);
     }
 
     private void sendEvent(final Object message) {

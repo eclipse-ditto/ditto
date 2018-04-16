@@ -102,63 +102,63 @@ public final class ThingCacheUpdateActorTest {
     public void aclModifiedTriggersEnforcerInvalidation() {
         sendEvent(AclModified.of(ID, ACL, REVISION, DITTO_HEADERS));
 
-        assertInvalidation(false,  true);
+        assertInvalidation(false,true);
     }
 
     @Test
     public void aclEntryCreatedTriggersEnforcerInvalidation() {
         sendEvent(AclEntryCreated.of(ID, ACL_ENTRY, REVISION, DITTO_HEADERS));
 
-        assertInvalidation(false,  true);
+        assertInvalidation(false, true);
     }
 
     @Test
     public void aclEntryModifiedTriggersEnforcerInvalidation() {
         sendEvent(AclEntryModified.of(ID, ACL_ENTRY, REVISION, DITTO_HEADERS));
 
-        assertInvalidation(false,  true);
+        assertInvalidation(false, true);
     }
 
     @Test
     public void aclEntryDeletedTriggersEnforcerInvalidation() {
         sendEvent(AclEntryDeleted.of(ID, AUTH_SUBJECT, REVISION, DITTO_HEADERS));
 
-        assertInvalidation(false,  true);
+        assertInvalidation(false, true);
     }
 
     @Test
     public void policyModifiedTriggersIdAndEnforcerInvalidation() {
         sendEvent(PolicyIdModified.of(ID, POLICY_ID, REVISION, DITTO_HEADERS));
 
-        assertInvalidation(true,  true);
+        assertInvalidation(true, true);
     }
 
     @Test
     public void thingCreatedTriggersIdAndEnforcerInvalidation() {
         sendEvent(ThingCreated.of(THING, REVISION, DITTO_HEADERS));
 
-        assertInvalidation(true,  true);
+        assertInvalidation(true, true);
     }
 
     @Test
     public void thingModifiedTriggersIdAndEnforcerInvalidation() {
         sendEvent(ThingModified.of(THING, REVISION, DITTO_HEADERS));
 
-        assertInvalidation(true,  true);
+        assertInvalidation(true, true);
     }
 
     @Test
     public void thingDeletedTriggersIdAndEnforcerInvalidation() {
         sendEvent(ThingDeleted.of(ID, REVISION, DITTO_HEADERS));
 
-        assertInvalidation(true,  true);
+        assertInvalidation(true, true);
     }
 
     @Test
     public void irrelevantEventDoesNotTriggersAnyInvalidation() {
         sendEvent(ThingDeleted.of(ID, REVISION, DITTO_HEADERS));
 
-        assertInvalidation(false,  false);
+        assertInvalidation(false, false);
     }
 
     private void sendEvent(final Object message) {
