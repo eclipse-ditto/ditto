@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.services.concierge.util.update;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
@@ -34,6 +35,7 @@ import org.junit.Test;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
+import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 
@@ -54,7 +56,7 @@ public final class PolicyCacheUpdateActorTest {
 
     private ActorRef updateActor;
     private TestKit testKit;
-
+    private TestProbe pubSubMediatorProbe;
 
     @BeforeClass
     public static void beforeClass() {
@@ -73,12 +75,20 @@ public final class PolicyCacheUpdateActorTest {
     public void init() {
         mockEnforcerCache = mock(Cache.class);
 
-        final TestProbe pubSubMediatorProbe = new TestProbe(system, "mockPubSubMediator");
+        pubSubMediatorProbe = new TestProbe(system, "mockPubSubMediator");
 
         final Props props = PolicyCacheUpdateActor.props(mockEnforcerCache, pubSubMediatorProbe.ref(), INSTANCE_INDEX);
         updateActor = system.actorOf(props);
 
         testKit = new TestKit(system);
+    }
+
+    @Test
+    public void actorSubscribesViaPubSub() {
+        final DistributedPubSubMediator.Subscribe subscribe =
+                pubSubMediatorProbe.expectMsgClass(DistributedPubSubMediator.Subscribe.class);
+        assertThat(subscribe.topic()).isEqualTo(PolicyEvent.TYPE_PREFIX);
+        assertThat(subscribe.ref()).isEqualTo(updateActor);
     }
 
     @Test
