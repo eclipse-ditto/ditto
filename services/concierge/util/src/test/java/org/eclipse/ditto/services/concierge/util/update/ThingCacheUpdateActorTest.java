@@ -17,6 +17,8 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 
 import java.util.Collections;
 
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.enforcers.Enforcer;
@@ -31,6 +33,7 @@ import org.eclipse.ditto.signals.events.things.AclEntryCreated;
 import org.eclipse.ditto.signals.events.things.AclEntryDeleted;
 import org.eclipse.ditto.signals.events.things.AclEntryModified;
 import org.eclipse.ditto.signals.events.things.AclModified;
+import org.eclipse.ditto.signals.events.things.AttributeModified;
 import org.eclipse.ditto.signals.events.things.PolicyIdModified;
 import org.eclipse.ditto.signals.events.things.ThingCreated;
 import org.eclipse.ditto.signals.events.things.ThingDeleted;
@@ -155,8 +158,11 @@ public final class ThingCacheUpdateActorTest {
     }
 
     @Test
-    public void irrelevantEventDoesNotTriggersAnyInvalidation() {
-        sendEvent(ThingDeleted.of(ID, REVISION, DITTO_HEADERS));
+    public void irrelevantEventDoesNotTriggerAnyInvalidation() {
+        final AttributeModified irrelevantEvent =
+                AttributeModified.of(ID, JsonPointer.of("foo"), JsonValue.of("bar"),
+                        REVISION, DITTO_HEADERS);
+        sendEvent(irrelevantEvent);
 
         assertInvalidation(false, false);
     }

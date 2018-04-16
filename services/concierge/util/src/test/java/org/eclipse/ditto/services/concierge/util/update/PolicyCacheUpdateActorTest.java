@@ -93,7 +93,7 @@ public final class PolicyCacheUpdateActorTest {
     }
 
     @Test
-    public void irrelevantEventsDoNotTriggerInvalidation() {
+    public void irrelevantEventDoesNotTriggerAnyInvalidation() {
         final AttributeModified irrelevantEvent =
                 AttributeModified.of("my.namespace:thing_id", JsonPointer.of("foo"), JsonValue.of("bar"),
                         REVISION, DITTO_HEADERS);
