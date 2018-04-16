@@ -33,7 +33,6 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
-import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
 
 /**
@@ -57,48 +56,39 @@ public final class ConnectionCreated extends AbstractConnectivityEvent<Connectio
             JsonFactory.newJsonObjectFieldDefinition("connection", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
-    static final JsonFieldDefinition<JsonObject> JSON_MAPPING_CONTEXT =
-            JsonFactory.newJsonObjectFieldDefinition("mappingContext", FieldType.REGULAR, JsonSchemaVersion.V_1,
-                    JsonSchemaVersion.V_2);
-
     private final Connection connection;
-    @Nullable private final MappingContext mappingContext;
 
-    private ConnectionCreated(final Connection connection, @Nullable final MappingContext mappingContext,
-            @Nullable final Instant timestamp, final DittoHeaders dittoHeaders) {
+    private ConnectionCreated(final Connection connection, @Nullable final Instant timestamp,
+            final DittoHeaders dittoHeaders) {
         super(TYPE, connection.getId(), timestamp, dittoHeaders);
         this.connection = connection;
-        this.mappingContext = mappingContext;
     }
 
     /**
      * Returns a new {@code ConnectionCreated} event.
      *
      * @param connection the created Connection.
-     * @param mappingContext the mapping context to apply.
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the event.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static ConnectionCreated of(final Connection connection, @Nullable final MappingContext mappingContext,
-            final DittoHeaders dittoHeaders) {
-        return of(connection, mappingContext,null, dittoHeaders);
+    public static ConnectionCreated of(final Connection connection, final DittoHeaders dittoHeaders) {
+        return of(connection,null, dittoHeaders);
     }
 
     /**
      * Returns a new {@code ConnectionCreated} event.
      *
      * @param connection the created Connection.
-     * @param mappingContext the mapping context to apply.
      * @param timestamp the timestamp of this event.
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the event.
      * @throws NullPointerException if {@code connection} or {@code dittoHeaders} are {@code null}.
      */
-    public static ConnectionCreated of(final Connection connection, @Nullable final MappingContext mappingContext,
-            @Nullable final Instant timestamp, final DittoHeaders dittoHeaders) {
+    public static ConnectionCreated of(final Connection connection, @Nullable final Instant timestamp,
+            final DittoHeaders dittoHeaders) {
         checkNotNull(connection, "Connection");
-        return new ConnectionCreated(connection, mappingContext, timestamp, dittoHeaders);
+        return new ConnectionCreated(connection, timestamp, dittoHeaders);
     }
 
     /**
@@ -131,11 +121,7 @@ public final class ConnectionCreated extends AbstractConnectivityEvent<Connectio
                     final JsonObject connectionJsonObject = jsonObject.getValueOrThrow(JSON_CONNECTION);
                     final Connection readConnection = ConnectivityModelFactory.connectionFromJson(connectionJsonObject);
 
-                    final JsonObject readMappingContext = jsonObject.getValue(JSON_MAPPING_CONTEXT).orElse(null);
-                    final MappingContext mappingContext = readMappingContext != null ?
-                            ConnectivityModelFactory.mappingContextFromJson(readMappingContext) : null;
-
-                    return of(readConnection, mappingContext, timestamp, dittoHeaders);
+                    return of(readConnection, timestamp, dittoHeaders);
                 });
     }
 
@@ -146,13 +132,6 @@ public final class ConnectionCreated extends AbstractConnectivityEvent<Connectio
      */
     public Connection getConnection() {
         return connection;
-    }
-
-    /**
-     * @return the configured {@link MappingContext} of the created connection.
-     */
-    public Optional<MappingContext> getMappingContext() {
-        return Optional.ofNullable(mappingContext);
     }
 
     @Override
@@ -167,7 +146,7 @@ public final class ConnectionCreated extends AbstractConnectivityEvent<Connectio
 
     @Override
     public ConnectionCreated setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(connection, mappingContext, getTimestamp().orElse(null), dittoHeaders);
+        return of(connection, getTimestamp().orElse(null), dittoHeaders);
     }
 
     @Override
@@ -175,9 +154,6 @@ public final class ConnectionCreated extends AbstractConnectivityEvent<Connectio
             final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(JSON_CONNECTION, connection.toJson(schemaVersion, thePredicate), predicate);
-        if (mappingContext != null) {
-            jsonObjectBuilder.set(JSON_MAPPING_CONTEXT, mappingContext.toJson(schemaVersion, thePredicate), predicate);
-        }
     }
 
     @Override
@@ -197,20 +173,18 @@ public final class ConnectionCreated extends AbstractConnectivityEvent<Connectio
             return false;
         }
         final ConnectionCreated that = (ConnectionCreated) o;
-        return Objects.equals(connection, that.connection) &&
-                Objects.equals(mappingContext, that.mappingContext);
+        return Objects.equals(connection, that.connection);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), connection, mappingContext);
+        return Objects.hash(super.hashCode(), connection);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "connection=" + connection +
-                ", mappingContext=" + mappingContext +
                 "]";
     }
 }

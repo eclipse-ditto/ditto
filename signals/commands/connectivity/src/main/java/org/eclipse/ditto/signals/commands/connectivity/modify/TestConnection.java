@@ -14,7 +14,6 @@ package org.eclipse.ditto.signals.commands.connectivity.modify;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Objects;
-import java.util.Optional;
 import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
@@ -30,7 +29,6 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
-import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 
@@ -56,18 +54,11 @@ public final class TestConnection extends AbstractCommand<TestConnection>
             JsonFactory.newJsonObjectFieldDefinition("connection", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
-    static final JsonFieldDefinition<JsonObject> JSON_MAPPING_CONTEXT =
-            JsonFactory.newJsonObjectFieldDefinition("mappingContext", FieldType.REGULAR, JsonSchemaVersion.V_1,
-                    JsonSchemaVersion.V_2);
-
     private final Connection connection;
-    @Nullable private final MappingContext mappingContext;
 
-    private TestConnection(final Connection connection, @Nullable final MappingContext mappingContext,
-            final DittoHeaders dittoHeaders) {
+    private TestConnection(final Connection connection, final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
         this.connection = connection;
-        this.mappingContext = mappingContext;
     }
 
     /**
@@ -79,22 +70,8 @@ public final class TestConnection extends AbstractCommand<TestConnection>
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static TestConnection of(final Connection connection, final DittoHeaders dittoHeaders) {
-        return of(connection, null, dittoHeaders);
-    }
-
-    /**
-     * Returns a new instance of {@code TestConnection}.
-     *
-     * @param connection the connection to be created.
-     * @param mappingContext the mapping context to apply.
-     * @param dittoHeaders the headers of the request.
-     * @return a new TestConnection command.
-     * @throws NullPointerException if any argument is {@code null}.
-     */
-    public static TestConnection of(final Connection connection, @Nullable final MappingContext mappingContext,
-            final DittoHeaders dittoHeaders) {
         checkNotNull(connection, "Connection");
-        return new TestConnection(connection, mappingContext, dittoHeaders);
+        return new TestConnection(connection, dittoHeaders);
     }
 
     /**
@@ -127,11 +104,7 @@ public final class TestConnection extends AbstractCommand<TestConnection>
             final JsonObject jsonConnection = jsonObject.getValueOrThrow(JSON_CONNECTION);
             final Connection readConnection = ConnectivityModelFactory.connectionFromJson(jsonConnection);
 
-            final JsonObject readMappingContext = jsonObject.getValue(JSON_MAPPING_CONTEXT).orElse(null);
-            final MappingContext mappingContext = readMappingContext != null ?
-                    ConnectivityModelFactory.mappingContextFromJson(readMappingContext) : null;
-
-            return of(readConnection, mappingContext, dittoHeaders);
+            return of(readConnection, dittoHeaders);
         });
     }
 
@@ -142,21 +115,11 @@ public final class TestConnection extends AbstractCommand<TestConnection>
         return connection;
     }
 
-    /**
-     * @return the configured {@link MappingContext} of the connection to be tested.
-     */
-    public Optional<MappingContext> getMappingContext() {
-        return Optional.ofNullable(mappingContext);
-    }
-
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(JSON_CONNECTION, connection.toJson(schemaVersion, thePredicate), predicate);
-        if (mappingContext != null) {
-            jsonObjectBuilder.set(JSON_MAPPING_CONTEXT, mappingContext.toJson(schemaVersion, thePredicate), predicate);
-        }
     }
 
     @Override
@@ -166,7 +129,7 @@ public final class TestConnection extends AbstractCommand<TestConnection>
 
     @Override
     public TestConnection setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(connection, mappingContext, dittoHeaders);
+        return of(connection, dittoHeaders);
     }
 
     @Override
@@ -186,13 +149,12 @@ public final class TestConnection extends AbstractCommand<TestConnection>
             return false;
         }
         final TestConnection that = (TestConnection) o;
-        return Objects.equals(connection, that.connection) && Objects.equals(
-                mappingContext, that.mappingContext);
+        return Objects.equals(connection, that.connection);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), connection, mappingContext);
+        return Objects.hash(super.hashCode(), connection);
     }
 
     @Override
@@ -200,7 +162,6 @@ public final class TestConnection extends AbstractCommand<TestConnection>
         return getClass().getSimpleName() + " [" +
                 super.toString() +
                 ", connection=" + connection +
-                ", mappingContext=" + mappingContext +
                 "]";
     }
 

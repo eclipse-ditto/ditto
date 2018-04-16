@@ -18,6 +18,7 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -67,6 +68,42 @@ public final class ImmutableConnectionTest {
     private static final JsonArray KNOWN_TARGETS_JSON =
             TARGETS.stream().map(Target::toJson).collect(JsonCollectors.valuesToArray());
 
+    private static MappingContext KNOWN_MAPPING_CONTEXT = ConnectivityModelFactory.newMappingContext(
+            "JavaScript",
+            Collections.singletonMap("incomingScript",
+                    "function mapToDittoProtocolMsg(\n" +
+                            "    headers,\n" +
+                            "    textPayload,\n" +
+                            "    bytePayload,\n" +
+                            "    contentType\n" +
+                            ") {\n" +
+                            "\n" +
+                            "    // ###\n" +
+                            "    // Insert your mapping logic here\n" +
+                            "    let namespace = \"org.eclipse.ditto\";\n" +
+                            "    let id = \"foo-bar\";\n" +
+                            "    let group = \"things\";\n" +
+                            "    let channel = \"twin\";\n" +
+                            "    let criterion = \"commands\";\n" +
+                            "    let action = \"modify\";\n" +
+                            "    let path = \"/attributes/foo\";\n" +
+                            "    let dittoHeaders = headers;\n" +
+                            "    let value = textPayload;\n" +
+                            "    // ###\n" +
+                            "\n" +
+                            "    return Ditto.buildDittoProtocolMsg(\n" +
+                            "        namespace,\n" +
+                            "        id,\n" +
+                            "        group,\n" +
+                            "        channel,\n" +
+                            "        criterion,\n" +
+                            "        action,\n" +
+                            "        path,\n" +
+                            "        dittoHeaders,\n" +
+                            "        value\n" +
+                            "    );\n" +
+                            "}"));
+
     private static final JsonObject KNOWN_JSON = JsonObject.newBuilder()
             .set(Connection.JsonFields.ID, ID)
             .set(Connection.JsonFields.CONNECTION_TYPE, TYPE.getName())
@@ -80,8 +117,8 @@ public final class ImmutableConnectionTest {
             .set(Connection.JsonFields.CLIENT_COUNT, 2)
             .set(Connection.JsonFields.FAILOVER_ENABLED, true)
             .set(Connection.JsonFields.VALIDATE_CERTIFICATES, true)
-            .set(Connection.JsonFields.THROTTLE, -1)
             .set(Connection.JsonFields.PROCESSOR_POOL_SIZE, 5)
+            .set(Connection.JsonFields.MAPPING_CONTEXT, KNOWN_MAPPING_CONTEXT.toJson())
             .build();
 
     @Test
@@ -94,7 +131,7 @@ public final class ImmutableConnectionTest {
     @Test
     public void assertImmutability() {
         assertInstancesOf(ImmutableConnection.class, areImmutable(),
-                provided(AuthorizationContext.class, Source.class, Target.class).isAlsoImmutable());
+                provided(AuthorizationContext.class, Source.class, Target.class, MappingContext.class).isAlsoImmutable());
     }
 
     @Test
@@ -172,6 +209,7 @@ public final class ImmutableConnectionTest {
                         .sources(SOURCES)
                         .targets(TARGETS)
                         .clientCount(2)
+                        .mappingContext(KNOWN_MAPPING_CONTEXT)
                         .build();
 
         final Connection actual = ImmutableConnection.fromJson(KNOWN_JSON);
@@ -199,6 +237,7 @@ public final class ImmutableConnectionTest {
                         .sources(SOURCES)
                         .targets(TARGETS)
                         .clientCount(2)
+                        .mappingContext(KNOWN_MAPPING_CONTEXT)
                         .build()
                         .toJson();
 

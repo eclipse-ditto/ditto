@@ -133,14 +133,6 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
      */
     String getPath();
 
-
-    /**
-     * Maximum number of messages per second processed by the bridge. 0 (default) means no limit.
-     *
-     * @return number of messages that are processed per second at most.
-     */
-    int getThrottle();
-
     /**
      * Whether to validate server certificates on connection establishment,
      *
@@ -158,9 +150,17 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
     /**
      * Returns configuration which is only applicable for a specific {@link ConnectionType}.
      *
-     * @return an arbitrary map of config keys to config values.
+     * @return an arbitrary map of config keys to config values
      */
     Map<String, String> getSpecificConfig();
+
+    /**
+     * Returns the MappingContext to apply in this connection containing either JavaScript scripts or a custom
+     * implementation in Java mapping from external messages to internal Ditto Protocol messages.
+     *
+     * @return the MappingContext to apply for this connection
+     */
+    Optional<MappingContext> getMappingContext();
 
     /**
      * Returns all non hidden marked fields of this {@code Connection}.
@@ -253,13 +253,6 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
                         JsonSchemaVersion.V_2);
 
         /**
-         * JSON field containing the {@code Connection} throttle.
-         */
-        public static final JsonFieldDefinition<Integer> THROTTLE =
-                JsonFactory.newIntFieldDefinition("throttle", FieldType.REGULAR, JsonSchemaVersion.V_1,
-                        JsonSchemaVersion.V_2);
-
-        /**
          * JSON field containing the {@code Connection} processor pool size.
          */
         public static final JsonFieldDefinition<Integer> PROCESSOR_POOL_SIZE =
@@ -271,6 +264,13 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
          */
         public static final JsonFieldDefinition<JsonObject> SPECIFIC_CONFIG =
                 JsonFactory.newJsonObjectFieldDefinition("specificConfig", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing the {@code Connection} {@link MappingContext} to apply.
+         */
+        public static final JsonFieldDefinition<JsonObject> MAPPING_CONTEXT =
+                JsonFactory.newJsonObjectFieldDefinition("mappingContext", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
         private JsonFields() {

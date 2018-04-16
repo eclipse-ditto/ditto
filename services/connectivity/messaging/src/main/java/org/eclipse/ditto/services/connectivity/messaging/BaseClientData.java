@@ -19,7 +19,6 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
-import org.eclipse.ditto.model.connectivity.MappingContext;
 
 import akka.actor.ActorRef;
 
@@ -39,7 +38,6 @@ public final class BaseClientData {
     private final ConnectionStatus connectionStatus;
     private final ConnectionStatus desiredConnectionStatus;
     @Nullable private final String connectionStatusDetails;
-    @Nullable private final MappingContext mappingContext;
     @Nullable private final ActorRef origin;
 
     /**
@@ -49,21 +47,18 @@ public final class BaseClientData {
      * @param connectionStatus the current {@link ConnectionStatus} of the Connection.
      * @param desiredConnectionStatus the desired {@link ConnectionStatus} of the Connection.
      * @param connectionStatusDetails the optional details about the ConnectionStatus.
-     * @param mappingContext the {@link MappingContext} to apply for the managed Connection.
      * @param origin the ActorRef which caused the latest state data change.
      */
     BaseClientData(final String connectionId, final Connection connection,
             final ConnectionStatus connectionStatus,
             final ConnectionStatus desiredConnectionStatus,
             @Nullable final String connectionStatusDetails,
-            @Nullable final MappingContext mappingContext,
             @Nullable final ActorRef origin) {
         this.connectionId = connectionId;
         this.connection = connection;
         this.connectionStatus = connectionStatus;
         this.desiredConnectionStatus = desiredConnectionStatus;
         this.connectionStatusDetails = connectionStatusDetails;
-        this.mappingContext = mappingContext;
         this.origin = origin;
     }
 
@@ -87,42 +82,33 @@ public final class BaseClientData {
         return Optional.ofNullable(connectionStatusDetails);
     }
 
-    public Optional<MappingContext> getMappingContext() {
-        return Optional.ofNullable(mappingContext);
-    }
-
     public Optional<ActorRef> getOrigin() {
         return Optional.ofNullable(origin);
     }
 
     public BaseClientData setConnection(final Connection connection) {
         return new BaseClientData(connectionId, connection, connectionStatus, desiredConnectionStatus,
-                connectionStatusDetails, mappingContext, origin);
+                connectionStatusDetails, origin);
     }
 
     public BaseClientData setConnectionStatus(final ConnectionStatus connectionStatus) {
         return new BaseClientData(connectionId, connection, connectionStatus, desiredConnectionStatus,
-                connectionStatusDetails, mappingContext, origin);
+                connectionStatusDetails, origin);
     }
 
     public BaseClientData setDesiredConnectionStatus(final ConnectionStatus desiredConnectionStatus) {
         return new BaseClientData(connectionId, connection, connectionStatus, desiredConnectionStatus,
-                connectionStatusDetails, mappingContext, origin);
+                connectionStatusDetails, origin);
     }
 
     public BaseClientData setConnectionStatusDetails(@Nullable final String connectionStatusDetails) {
         return new BaseClientData(connectionId, connection, connectionStatus, desiredConnectionStatus,
-                connectionStatusDetails, mappingContext, origin);
-    }
-
-    public BaseClientData setMappingContext(@Nullable final MappingContext mappingContext) {
-        return new BaseClientData(connectionId, connection, connectionStatus, desiredConnectionStatus,
-                connectionStatusDetails, mappingContext, origin);
+                connectionStatusDetails, origin);
     }
 
     public BaseClientData setOrigin(@Nullable final ActorRef origin) {
         return new BaseClientData(connectionId, connection, connectionStatus, desiredConnectionStatus,
-                connectionStatusDetails, mappingContext, origin);
+                connectionStatusDetails, origin);
     }
 
     @Override
@@ -135,14 +121,13 @@ public final class BaseClientData {
                 connectionStatus == that.connectionStatus &&
                 desiredConnectionStatus == that.desiredConnectionStatus &&
                 Objects.equals(connectionStatusDetails, that.connectionStatusDetails) &&
-                Objects.equals(mappingContext, that.mappingContext) &&
                 Objects.equals(origin, that.origin);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(connectionId, connection, connectionStatus, desiredConnectionStatus,
-                connectionStatusDetails, mappingContext, origin);
+                connectionStatusDetails, origin);
     }
 
     @Override
@@ -153,7 +138,6 @@ public final class BaseClientData {
                 ", connectionStatus=" + connectionStatus +
                 ", desiredConnectionStatus=" + desiredConnectionStatus +
                 ", connectionStatusDetails=" + connectionStatusDetails +
-                ", mappingContext=" + mappingContext +
                 ", origin=" + origin +
                 "]";
     }

@@ -19,6 +19,8 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 
 /**
@@ -35,9 +37,9 @@ class ImmutableConnectionBuilder implements ConnectionBuilder {
     final Set<Source> sources = new HashSet<>();
     final Set<Target> targets = new HashSet<>();
     int clientCount = 1;
-    int throttle = -1;
     int processorPoolSize = 5;
     final Map<String, String> specificConfig = new HashMap<>();
+    @Nullable MappingContext mappingContext = null;
 
     private ImmutableConnectionBuilder(final String id, final ConnectionType connectionType,
             final String uri, final AuthorizationContext authorizationContext) {
@@ -74,12 +76,6 @@ class ImmutableConnectionBuilder implements ConnectionBuilder {
     }
 
     @Override
-    public ConnectionBuilder throttle(final int throttle) {
-        this.throttle = throttle;
-        return this;
-    }
-
-    @Override
     public ConnectionBuilder processorPoolSize(final int processorPoolSize) {
         this.processorPoolSize = checkArgument(processorPoolSize, ps -> ps > 0, () -> "consumerCount must be positive");
         return this;
@@ -109,6 +105,12 @@ class ImmutableConnectionBuilder implements ConnectionBuilder {
     public ConnectionBuilder specificConfig(final Map<String, String> specificConfig) {
         checkNotNull(specificConfig, "Specific Config");
         this.specificConfig.putAll(specificConfig);
+        return this;
+    }
+
+    @Override
+    public ConnectionBuilder mappingContext(@Nullable final MappingContext mappingContext) {
+        this.mappingContext = mappingContext;
         return this;
     }
 

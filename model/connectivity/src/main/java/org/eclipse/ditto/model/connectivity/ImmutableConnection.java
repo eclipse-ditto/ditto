@@ -65,9 +65,9 @@ final class ImmutableConnection implements Connection {
     private final int clientCount;
     private final boolean failoverEnabled;
     private final boolean validateCertificate;
-    private final int throttle;
     private final int processorPoolSize;
     private final Map<String, String> specificConfig;
+    @Nullable private final MappingContext mappingContext;
 
     ImmutableConnection(final ImmutableConnectionBuilder builder) {
         this.id = builder.id;
@@ -80,10 +80,10 @@ final class ImmutableConnection implements Connection {
         this.clientCount = builder.clientCount;
         this.failoverEnabled = builder.failoverEnabled;
         this.validateCertificate = builder.validateCertificate;
-        this.throttle = builder.throttle;
         this.processorPoolSize = builder.processorPoolSize;
         this.specificConfig = Collections.unmodifiableMap(new HashMap<>(
                 builder.specificConfig));
+        this.mappingContext = builder.mappingContext;
 
         final Matcher matcher = URI_REGEX_PATTERN.matcher(uri);
 
@@ -158,7 +158,6 @@ final class ImmutableConnection implements Connection {
         final Optional<Integer> readClientCount = jsonObject.getValue(JsonFields.CLIENT_COUNT);
         final Optional<Boolean> readFailoverEnabled = jsonObject.getValue(JsonFields.FAILOVER_ENABLED);
         final Optional<Boolean> readValidateCertificates = jsonObject.getValue(JsonFields.VALIDATE_CERTIFICATES);
-        final Optional<Integer> readThrottle = jsonObject.getValue(JsonFields.THROTTLE);
         final Optional<Integer> readProcessorPoolSize = jsonObject.getValue(JsonFields.PROCESSOR_POOL_SIZE);
         final Map<String, String> readConnectionTypeSpecificConfiguration = jsonObject
                 .getValue(JsonFields.SPECIFIC_CONFIG)
@@ -170,17 +169,22 @@ final class ImmutableConnection implements Connection {
                                 f.getValue().asString() : f.getValue().toString())))
                 .orElse(Collections.emptyMap());
 
+        final MappingContext readMappingContext = jsonObject
+                .getValue(JsonFields.MAPPING_CONTEXT)
+                .map(ConnectivityModelFactory::mappingContextFromJson)
+                .orElse(null);
+
         final ConnectionBuilder builder =
                 ImmutableConnectionBuilder.of(readId, readConnectionType, readUri, readAuthorizationContext);
 
         builder.sources(readSources);
         builder.targets(readTargets);
         readClientCount.ifPresent(builder::clientCount);
-        readThrottle.ifPresent(builder::throttle);
         readFailoverEnabled.ifPresent(builder::failoverEnabled);
         readValidateCertificates.ifPresent(builder::validateCertificate);
         readProcessorPoolSize.ifPresent(builder::processorPoolSize);
         builder.specificConfig(readConnectionTypeSpecificConfiguration);
+        builder.mappingContext(readMappingContext);
         return builder.build();
     }
 
@@ -255,11 +259,6 @@ final class ImmutableConnection implements Connection {
     }
 
     @Override
-    public int getThrottle() {
-        return throttle;
-    }
-
-    @Override
     public boolean isValidateCertificates() {
         return validateCertificate;
     }
@@ -272,6 +271,11 @@ final class ImmutableConnection implements Connection {
     @Override
     public Map<String, String> getSpecificConfig() {
         return specificConfig;
+    }
+
+    @Override
+    public Optional<MappingContext> getMappingContext() {
+        return Optional.ofNullable(mappingContext);
     }
 
     @Override
@@ -296,12 +300,15 @@ final class ImmutableConnection implements Connection {
         jsonObjectBuilder.set(JsonFields.CLIENT_COUNT, clientCount, predicate);
         jsonObjectBuilder.set(JsonFields.FAILOVER_ENABLED, failoverEnabled, predicate);
         jsonObjectBuilder.set(JsonFields.VALIDATE_CERTIFICATES, validateCertificate, predicate);
-        jsonObjectBuilder.set(JsonFields.THROTTLE, throttle, predicate);
         jsonObjectBuilder.set(JsonFields.PROCESSOR_POOL_SIZE, processorPoolSize, predicate);
         if (!specificConfig.isEmpty()) {
             jsonObjectBuilder.set(JsonFields.SPECIFIC_CONFIG, specificConfig.entrySet().stream()
                     .map(entry -> JsonField.newInstance(entry.getKey(), JsonValue.of(entry.getValue())))
                     .collect(JsonCollectors.fieldsToObject()), predicate);
+        }
+        if (mappingContext != null) {
+            jsonObjectBuilder.set(JsonFields.MAPPING_CONTEXT, mappingContext.toJson(schemaVersion, thePredicate),
+                    predicate);
         }
         return jsonObjectBuilder.build();
     }
@@ -326,17 +333,17 @@ final class ImmutableConnection implements Connection {
                 Objects.equals(password, that.password) &&
                 Objects.equals(hostname, that.hostname) &&
                 Objects.equals(path, that.path) &&
-                Objects.equals(throttle, that.throttle) &&
                 Objects.equals(processorPoolSize, that.processorPoolSize) &&
                 Objects.equals(validateCertificate, that.validateCertificate) &&
-                Objects.equals(specificConfig, that.specificConfig);
+                Objects.equals(specificConfig, that.specificConfig) &&
+                Objects.equals(mappingContext, that.mappingContext);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(id, connectionType, authorizationContext, sources, targets, clientCount,
-                failoverEnabled, uri, protocol, username, password, hostname, path, port, validateCertificate, throttle,
-                processorPoolSize, specificConfig);
+                failoverEnabled, uri, protocol, username, password, hostname, path, port, validateCertificate,
+                processorPoolSize, specificConfig, mappingContext);
     }
 
     @Override
@@ -357,9 +364,9 @@ final class ImmutableConnection implements Connection {
                 ", targets=" + targets +
                 ", clientCount=" + clientCount +
                 ", validateCertificate=" + validateCertificate +
-                ", throttle=" + throttle +
                 ", processorPoolSize=" + processorPoolSize +
                 ", specificConfig=" + specificConfig +
+                ", mappingContext=" + mappingContext +
                 "]";
     }
 }

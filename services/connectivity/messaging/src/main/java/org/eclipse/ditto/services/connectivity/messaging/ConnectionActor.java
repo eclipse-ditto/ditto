@@ -34,7 +34,6 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
-import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionData;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionMongoSnapshotAdapter;
 import org.eclipse.ditto.services.connectivity.util.ConfigKeys;
@@ -125,7 +124,6 @@ final class ConnectionActor extends AbstractPersistentActor {
 
     @Nullable private ActorRef clientActor;
     @Nullable private Connection connection;
-    @Nullable private MappingContext mappingContext;
 
     @Nullable private Cancellable shutdownCancellable;
 
@@ -204,21 +202,18 @@ final class ConnectionActor extends AbstractPersistentActor {
                     log.info("Received SnapshotOffer containing connectionStatus: <{}>", fromSnapshotStore);
                     if (fromSnapshotStore != null) {
                         connection = fromSnapshotStore.getConnection();
-                        mappingContext = fromSnapshotStore.getMappingContext().orElse(null);
                         connectionStatus = fromSnapshotStore.getConnectionStatus();
                     }
                     lastSnapshotSequenceNr = ss.metadata().sequenceNr();
                 })
                 .match(ConnectionCreated.class, event -> {
                     connection = event.getConnection();
-                    mappingContext = event.getMappingContext().orElse(null);
                     connectionStatus = ConnectionStatus.OPEN;
                 })
                 .match(ConnectionOpened.class, event -> connectionStatus = ConnectionStatus.OPEN)
                 .match(ConnectionClosed.class, event -> connectionStatus = ConnectionStatus.CLOSED)
                 .match(ConnectionDeleted.class, event -> {
                     connection = null;
-                    mappingContext = null;
                     connectionStatus = ConnectionStatus.CLOSED;
                 })
                 .match(RecoveryCompleted.class, rc -> {
@@ -227,8 +222,7 @@ final class ConnectionActor extends AbstractPersistentActor {
                         if (ConnectionStatus.OPEN.equals(connectionStatus)) {
                             log.debug("Opening connection {} after recovery.", connectionId);
 
-                            final CreateConnection connect =
-                                    CreateConnection.of(connection, mappingContext, DittoHeaders.empty());
+                            final CreateConnection connect = CreateConnection.of(connection, DittoHeaders.empty());
 
                             final ActorRef origin = getSender();
                             askClientActor("recovery-connect", connect, origin,
@@ -341,7 +335,6 @@ final class ConnectionActor extends AbstractPersistentActor {
         final ActorRef origin = getSender();
 
         connection = command.getConnection();
-        mappingContext = command.getMappingContext().orElse(null);
 
         askClientActor("test", command, origin, response -> {
             origin.tell(
@@ -368,19 +361,17 @@ final class ConnectionActor extends AbstractPersistentActor {
         }
 
         final ConnectionCreated connectionCreated =
-                ConnectionCreated.of(command.getConnection(), command.getMappingContext().orElse(null),
-                        command.getDittoHeaders());
+                ConnectionCreated.of(command.getConnection(), command.getDittoHeaders());
 
         persistEvent(connectionCreated, persistedEvent -> {
             connection = persistedEvent.getConnection();
-            mappingContext = persistedEvent.getMappingContext().orElse(null);
             connectionStatus = ConnectionStatus.OPEN;
 
             askClientActor("connect", command, origin, response -> {
                 getContext().become(connectionCreatedBehaviour);
                 subscribeForEvents();
                 origin.tell(
-                        CreateConnectionResponse.of(connection, mappingContext, command.getDittoHeaders()),
+                        CreateConnectionResponse.of(connection, command.getDittoHeaders()),
                         getSelf());
                 getContext().getParent().tell(ConnectionSupervisorActor.ManualReset.getInstance(), getSelf());
             });
@@ -483,8 +474,7 @@ final class ConnectionActor extends AbstractPersistentActor {
 
     private void retrieveConnection(final RetrieveConnection command) {
         checkNotNull(connection, "Connection");
-        getSender().tell(RetrieveConnectionResponse.of(connection, mappingContext, command.getDittoHeaders()),
-                getSelf());
+        getSender().tell(RetrieveConnectionResponse.of(connection, command.getDittoHeaders()), getSelf());
     }
 
     private void retrieveConnectionStatus(final RetrieveConnectionStatus command) {
@@ -562,7 +552,7 @@ final class ConnectionActor extends AbstractPersistentActor {
             log.debug("Already requested taking a Snapshot - not doing it again");
         } else if (connection != null) {
             snapshotInProgress = true;
-            final ConnectionData connectionData = new ConnectionData(connection, connectionStatus, mappingContext);
+            final ConnectionData connectionData = new ConnectionData(connection, connectionStatus);
             log.info("Attempting to save Snapshot for '{}' ..", connectionData);
             // save a snapshot
             final Object snapshotToStore = snapshotAdapter.toSnapshotStore(connectionData);

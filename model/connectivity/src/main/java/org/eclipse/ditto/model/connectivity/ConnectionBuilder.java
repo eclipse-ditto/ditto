@@ -14,6 +14,8 @@ package org.eclipse.ditto.model.connectivity;
 import java.util.Map;
 import java.util.Set;
 
+import javax.annotation.Nullable;
+
 /**
  * A mutable builder for a {@link Connection} with a fluent API.
  */
@@ -34,14 +36,6 @@ public interface ConnectionBuilder {
      * @return this builder to allow method chaining.
      */
     ConnectionBuilder validateCertificate(boolean validateCertificate);
-
-    /**
-     * Set the throttling rate for the {@link Connection}.
-     *
-     * @param throttle the throttling rate per second (default {@code 0}, disabled)
-     * @return this builder to allow method chaining.
-     */
-    ConnectionBuilder throttle(int throttle);
 
     /**
      * Set the command processor pool size for the {@link Connection}.
@@ -85,6 +79,15 @@ public interface ConnectionBuilder {
      * @return this builder to allow method chaining.
      */
     ConnectionBuilder specificConfig(Map<String, String> specificConfig);
+
+    /**
+     * Sets the MappingContext to apply for the connection containing either JavaScript scripts or a custom
+     * implementation in Java mapping from external messages to internal Ditto Protocol messages.
+     *
+     * @param mappingContext the MappingContext to apply for the connection
+     * @return this builder to allow method chaining.
+     */
+    ConnectionBuilder mappingContext(@Nullable MappingContext mappingContext);
 
     /**
      * Builds a new {@link Connection}.

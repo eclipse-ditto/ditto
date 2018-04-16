@@ -114,7 +114,7 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
                     log.debug("Received mapped message {} ", message);
 
                     final Set<RabbitMQTarget> destinationForMessage = getDestinationForMessage(message);
-                    log.debug("Publishing message to {} to targets {}", message, destinationForMessage);
+                    log.debug("Publishing message to targets <{}>: {} ", destinationForMessage, message);
                     destinationForMessage.forEach(destination -> publishMessage(destination, message));
                 })
                 .match(AddressMetric.class, this::handleAddressMetric)
@@ -177,6 +177,8 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
 
         final ChannelMessage channelMessage = ChannelMessage.apply(channel -> {
             try {
+                log.debug("Publishing to exchange <{}> and routing key <{}>: {}", rabbitMQTarget.getExchange(),
+                        rabbitMQTarget.getRoutingKey(), basicProperties);
                 channel.basicPublish(rabbitMQTarget.getExchange(), rabbitMQTarget.getRoutingKey(), basicProperties,
                         body);
             } catch (final Exception e) {

@@ -82,8 +82,7 @@ public class ConnectionActorTest {
         final Connection connection = TestConstants.createConnection(connectionId);
         createConnection = CreateConnection.of(connection, DittoHeaders.empty());
         deleteConnection = DeleteConnection.of(connectionId, DittoHeaders.empty());
-        createConnectionResponse =
-                CreateConnectionResponse.of(connection, null, DittoHeaders.empty());
+        createConnectionResponse = CreateConnectionResponse.of(connection, DittoHeaders.empty());
         closeConnection = CloseConnection.of(connectionId, DittoHeaders.empty());
         closeConnectionResponse = CloseConnectionResponse.of(connectionId, DittoHeaders.empty());
         deleteConnectionResponse = DeleteConnectionResponse.of(connectionId, DittoHeaders.empty());

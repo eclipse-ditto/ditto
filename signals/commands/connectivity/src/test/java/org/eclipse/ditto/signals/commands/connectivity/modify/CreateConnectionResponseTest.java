@@ -56,7 +56,7 @@ public final class CreateConnectionResponseTest {
     @Test
     public void createInstanceWithNullConnection() {
         assertThatExceptionOfType(NullPointerException.class)
-                .isThrownBy(() -> CreateConnectionResponse.of(null, null, DittoHeaders.empty()))
+                .isThrownBy(() -> CreateConnectionResponse.of(null, DittoHeaders.empty()))
                 .withMessage("The %s must not be null!", "Connection")
                 .withNoCause();
     }
@@ -64,7 +64,7 @@ public final class CreateConnectionResponseTest {
     @Test
     public void fromJsonReturnsExpected() {
         final CreateConnectionResponse expected =
-                CreateConnectionResponse.of(TestConstants.CONNECTION, null, DittoHeaders.empty());
+                CreateConnectionResponse.of(TestConstants.CONNECTION, DittoHeaders.empty());
 
         final CreateConnectionResponse actual =
                 CreateConnectionResponse.fromJson(KNOWN_JSON, DittoHeaders.empty());
@@ -75,7 +75,7 @@ public final class CreateConnectionResponseTest {
     @Test
     public void toJsonReturnsExpected() {
         final JsonObject actual =
-                CreateConnectionResponse.of(TestConstants.CONNECTION, null, DittoHeaders.empty()).toJson();
+                CreateConnectionResponse.of(TestConstants.CONNECTION, DittoHeaders.empty()).toJson();
 
         assertThat(actual).isEqualTo(KNOWN_JSON);
     }

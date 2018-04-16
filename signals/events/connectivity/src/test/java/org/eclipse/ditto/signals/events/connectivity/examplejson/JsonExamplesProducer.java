@@ -59,11 +59,38 @@ public class JsonExamplesProducer {
     public static MappingContext MAPPING_CONTEXT = ConnectivityModelFactory.newMappingContext(
             "JavaScript",
             Collections.singletonMap("incomingScript",
-                    "ditto_protocolJson.topic = 'org.eclipse.ditto/foo-bar/things/twin/commands/create';" +
-                            "ditto_protocolJson.path = '/';" +
-                            "ditto_protocolJson.headers = {};" +
-                            "ditto_protocolJson.headers['correlation-id'] = ditto_mappingHeaders['correlation-id'];" +
-                            "ditto_protocolJson.value = ditto_mappingString;"));
+                    "function mapToDittoProtocolMsg(\n" +
+                            "    headers,\n" +
+                            "    textPayload,\n" +
+                            "    bytePayload,\n" +
+                            "    contentType\n" +
+                            ") {\n" +
+                            "\n" +
+                            "    // ###\n" +
+                            "    // Insert your mapping logic here\n" +
+                            "    let namespace = \"org.eclipse.ditto\";\n" +
+                            "    let id = \"foo-bar\";\n" +
+                            "    let group = \"things\";\n" +
+                            "    let channel = \"twin\";\n" +
+                            "    let criterion = \"commands\";\n" +
+                            "    let action = \"modify\";\n" +
+                            "    let path = \"/attributes/foo\";\n" +
+                            "    let dittoHeaders = headers;\n" +
+                            "    let value = textPayload;\n" +
+                            "    // ###\n" +
+                            "\n" +
+                            "    return Ditto.buildDittoProtocolMsg(\n" +
+                            "        namespace,\n" +
+                            "        id,\n" +
+                            "        group,\n" +
+                            "        channel,\n" +
+                            "        criterion,\n" +
+                            "        action,\n" +
+                            "        path,\n" +
+                            "        dittoHeaders,\n" +
+                            "        value\n" +
+                            "    );\n" +
+                            "}"));
 
     public static void main(final String... args) throws IOException {
         run(args, new JsonExamplesProducer());
@@ -94,10 +121,11 @@ public class JsonExamplesProducer {
                 ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, URI, AUTHORIZATION_CONTEXT)
                         .sources(SOURCES)
                         .targets(TARGETS)
+                        .mappingContext(MAPPING_CONTEXT)
                         .build();
         final DittoHeaders headers = DittoHeaders.empty();
 
-        final ConnectionCreated connectionCreated = ConnectionCreated.of(connection,MAPPING_CONTEXT, headers);
+        final ConnectionCreated connectionCreated = ConnectionCreated.of(connection, headers);
         writeJson(eventsDir.resolve(Paths.get("connectionCreated.json")), connectionCreated);
 
         final ConnectionOpened connectionOpened = ConnectionOpened.of(ID, headers);

@@ -104,7 +104,7 @@ public class ErrorHandlingActorTest {
             final CreateConnection createConnection = CreateConnection.of(connection, DittoHeaders.empty());
             underTest.tell(createConnection, getRef());
             final CreateConnectionResponse createConnectionResponse =
-                    CreateConnectionResponse.of(connection, null, DittoHeaders.empty());
+                    CreateConnectionResponse.of(connection, DittoHeaders.empty());
             expectMsg(createConnectionResponse);
 
             // modify connection

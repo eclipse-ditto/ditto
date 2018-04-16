@@ -122,7 +122,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         headerBlacklist = config.getStringList(ConfigKeys.Message.HEADER_BLACKLIST);
 
         startWith(DISCONNECTED, new BaseClientData(connection.getId(), connection, ConnectionStatus.UNKNOWN,
-                desiredConnectionStatus, "initialized", null, null));
+                desiredConnectionStatus, "initialized", null));
 
         when(DISCONNECTED, Duration.fromNanos(initTimeout.toNanos()),
                 inDisconnectedState(initTimeout));
@@ -196,7 +196,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                         final CompletionStage<Status.Status> connectionStatus =
                                 doTestConnection(testConnection.getConnection());
                         final CompletionStage<Status.Status> mappingStatus =
-                                testMessageMappingProcessor(testConnection.getMappingContext().orElse(null));
+                                testMessageMappingProcessor(testConnection.getConnection().getMappingContext().orElse(null));
 
                         final ActorRef sender = getSender();
                         connectionStatus.toCompletableFuture()
@@ -218,7 +218,6 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                         goTo(CONNECTING)
                                 .using(data
                                         .setConnection(createConnection.getConnection())
-                                        .setMappingContext(createConnection.getMappingContext().orElse(null))
                                         .setConnectionStatusDetails("creating connection at " + Instant.now())
                                         .setOrigin(getSender())
                                 )
@@ -346,7 +345,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             final BaseClientData data) {
 
         LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId());
-        startMessageMappingProcessor(data.getMappingContext().orElse(null));
+        startMessageMappingProcessor(data.getConnection().getMappingContext().orElse(null));
         onClientConnected(clientConnected, data);
         clientConnected.getOrigin().ifPresent(o -> o.tell(new Status.Success(CONNECTED), getSelf()));
         return goTo(CONNECTED).using(data

@@ -12,10 +12,7 @@
 package org.eclipse.ditto.services.connectivity.messaging.persistence;
 
 import java.util.Objects;
-import java.util.Optional;
 import java.util.function.Predicate;
-
-import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
@@ -30,7 +27,6 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
-import org.eclipse.ditto.model.connectivity.MappingContext;
 
 /**
  * Data representing the state of a Connection which is used in order to persist snapshot state into MongoDB.
@@ -45,27 +41,18 @@ public final class ConnectionData implements Jsonifiable.WithFieldSelectorAndPre
             JsonFactory.newStringFieldDefinition("connectionStatus", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
-    private static final JsonFieldDefinition<JsonObject> MAPPING_CONTEXT =
-            JsonFactory.newJsonObjectFieldDefinition("mappingContext", FieldType.REGULAR, JsonSchemaVersion.V_1,
-                    JsonSchemaVersion.V_2);
-
-
     private final Connection connection;
     private final ConnectionStatus connectionStatus;
-    @Nullable private final MappingContext mappingContext;
 
     /**
      * Constructs a new connection data instance.
      * @param connection Connection information of the connection data.
      * @param connectionStatus ConnectionStatus information of the connection data.
-     * @param mappingContext the mapping context
      */
-    public ConnectionData(final Connection connection, final ConnectionStatus connectionStatus,
-            @Nullable final MappingContext mappingContext) {
+    public ConnectionData(final Connection connection, final ConnectionStatus connectionStatus) {
 
         this.connection = connection;
         this.connectionStatus = connectionStatus;
-        this.mappingContext = mappingContext;
     }
 
     /**
@@ -80,13 +67,6 @@ public final class ConnectionData implements Jsonifiable.WithFieldSelectorAndPre
      */
     public ConnectionStatus getConnectionStatus() {
         return connectionStatus;
-    }
-
-    /**
-     * @return the mapping context configured for this connection.
-     */
-    public Optional<MappingContext> getMappingContext() {
-        return Optional.ofNullable(mappingContext);
     }
 
     /**
@@ -108,11 +88,7 @@ public final class ConnectionData implements Jsonifiable.WithFieldSelectorAndPre
                         .message("Could not create ConnectionStatus from: " + jsonObject)
                         .build());
 
-        final JsonObject readMappingContext = jsonObject.getValue(MAPPING_CONTEXT).orElse(null);
-        final MappingContext mappingContext = readMappingContext != null ?
-                ConnectivityModelFactory.mappingContextFromJson(readMappingContext) : null;
-
-        return new ConnectionData(connection, connectionStatus, mappingContext);
+        return new ConnectionData(connection, connectionStatus);
     }
 
     @Override
@@ -128,9 +104,6 @@ public final class ConnectionData implements Jsonifiable.WithFieldSelectorAndPre
 
         jsonObjectBuilder.set(CONNECTION, connection.toJson(schemaVersion, thePredicate), predicate);
         jsonObjectBuilder.set(CONNECTION_STATUS, connectionStatus.getName(), predicate);
-        if (mappingContext != null) {
-            jsonObjectBuilder.set(MAPPING_CONTEXT, mappingContext.toJson(schemaVersion, thePredicate), predicate);
-        }
 
         return jsonObjectBuilder.build();
     }
@@ -150,13 +123,12 @@ public final class ConnectionData implements Jsonifiable.WithFieldSelectorAndPre
         }
         final ConnectionData that = (ConnectionData) o;
         return Objects.equals(connection, that.connection) &&
-                connectionStatus == that.connectionStatus &&
-                Objects.equals(mappingContext, that.mappingContext);
+                connectionStatus == that.connectionStatus;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(connection, connectionStatus, mappingContext);
+        return Objects.hash(connection, connectionStatus);
     }
 
     @Override
@@ -164,7 +136,6 @@ public final class ConnectionData implements Jsonifiable.WithFieldSelectorAndPre
         return getClass().getSimpleName() + " [" +
                 "connection=" + connection +
                 ", connectionStatus=" + connectionStatus +
-                ", mappingContext=" + mappingContext +
                 "]";
     }
 }
