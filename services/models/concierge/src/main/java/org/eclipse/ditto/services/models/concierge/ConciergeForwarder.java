@@ -19,31 +19,29 @@ import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
-import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
 
 import akka.actor.ActorRef;
 
 /**
- * Wrap messages and send them to concierge service.
+ * Wrap messages and forward them to the concierge service.
  */
-public final class ConciergeEnvelope {
+public final class ConciergeForwarder {
 
     private final ActorRef pubSubMediator;
     private final ActorRef enforcerShardRegion;
 
     /**
-     * Create an object to dispatch messages to concierge service.
+     * Create an object to forward messages to concierge service.
      *
      * @param pubSubMediator Akka pub-sub mediator.
      * @param enforcerShardRegion shard region of enforcer actors.
      */
-    public ConciergeEnvelope(final ActorRef pubSubMediator, final ActorRef enforcerShardRegion) {
+    public ConciergeForwarder(final ActorRef pubSubMediator, final ActorRef enforcerShardRegion) {
         this.pubSubMediator = pubSubMediator;
         this.enforcerShardRegion = enforcerShardRegion;
     }
 
-    public void dispatch(final Signal<?> signal, final ActorRef sender) {
+    public void forward(final Signal<?> signal, final ActorRef sender) {
         if (signal.getId().isEmpty()) {
             pubSubMediator.tell(wrapForPubSub(signal), sender);
         } else {

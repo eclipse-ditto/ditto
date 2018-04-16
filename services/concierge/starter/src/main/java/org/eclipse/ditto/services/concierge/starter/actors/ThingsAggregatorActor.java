@@ -26,7 +26,7 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.services.models.concierge.ConciergeEnvelope;
+import org.eclipse.ditto.services.models.concierge.ConciergeForwarder;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoCommand;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
@@ -226,7 +226,7 @@ public final class ThingsAggregatorActor extends AbstractActor {
     }
 
     private Future<Object> askTargetActor(final Command command) {
-        final ShardedMessageEnvelope envelope = ConciergeEnvelope.wrapForEnforcer(command);
+        final ShardedMessageEnvelope envelope = ConciergeForwarder.wrapForEnforcer(command);
         return Patterns.ask(targetActor, envelope, RETRIEVE_TIMEOUT);
     }
 
