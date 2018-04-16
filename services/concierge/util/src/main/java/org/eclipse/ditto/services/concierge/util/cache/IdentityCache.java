@@ -24,6 +24,15 @@ import org.eclipse.ditto.services.utils.cache.Cache;
  */
 public final class IdentityCache implements Cache<EntityId, Entry<EntityId>> {
 
+    /**
+     * The single instance of this cache.
+     */
+    public static final IdentityCache INSTANCE = new IdentityCache();
+
+    private IdentityCache() {
+
+    }
+
     @Override
     public CompletableFuture<Optional<Entry<EntityId>>> get(final EntityId key) {
         return CompletableFuture.completedFuture(getBlocking(key));

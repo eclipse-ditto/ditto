@@ -31,7 +31,6 @@ import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.ThingBuilder;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.concierge.util.cache.AclEnforcerCacheLoader;
-import org.eclipse.ditto.services.concierge.util.cache.IdentityCache;
 import org.eclipse.ditto.services.concierge.util.cache.PolicyEnforcerCacheLoader;
 import org.eclipse.ditto.services.concierge.util.cache.ThingEnforcementIdCacheLoader;
 import org.eclipse.ditto.services.concierge.util.cache.entry.Entry;
@@ -90,13 +89,10 @@ public class TestSetup {
         final Cache<EntityId, Entry<EntityId>> thingIdCache =
                 CaffeineCache.of(Caffeine.newBuilder(), thingEnforcementIdCacheLoader);
 
-        final IdentityCache policyIdCache = new IdentityCache();
-
         final Set<EnforcementProvider<?>> enforcementProviders = new HashSet<>();
         enforcementProviders.add(new ThingCommandEnforcement.Provider(thingsShardRegion,
-                policiesShardRegion, thingIdCache, policyIdCache, policyEnforcerCache, aclEnforcerCache));
-        enforcementProviders.add(new PolicyCommandEnforcement.Provider(policiesShardRegion,
-                policyIdCache, policyEnforcerCache));
+                policiesShardRegion, thingIdCache, policyEnforcerCache, aclEnforcerCache));
+        enforcementProviders.add(new PolicyCommandEnforcement.Provider(policiesShardRegion, policyEnforcerCache));
 
         final Props props = EnforcerActor.props(testActorRef, enforcementProviders, preEnforcer);
         return system.actorOf(props, THING + ":" + THING_ID);

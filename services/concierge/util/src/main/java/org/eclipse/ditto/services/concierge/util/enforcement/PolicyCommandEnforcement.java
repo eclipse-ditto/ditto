@@ -27,6 +27,7 @@ import org.eclipse.ditto.model.policies.Permissions;
 import org.eclipse.ditto.model.policies.PoliciesResourceType;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.ResourceKey;
+import org.eclipse.ditto.services.concierge.util.cache.IdentityCache;
 import org.eclipse.ditto.services.concierge.util.cache.entry.Entry;
 import org.eclipse.ditto.services.models.concierge.EntityId;
 import org.eclipse.ditto.services.models.policies.Permission;
@@ -61,14 +62,12 @@ public final class PolicyCommandEnforcement extends Enforcement<PolicyCommand> {
             JsonFactory.newFieldSelector(Policy.JsonFields.ID);
 
     private PolicyCommandEnforcement(final Context data, final ActorRef policiesShardRegion,
-            final Cache<EntityId, Entry<EntityId>> policyIdCache,
             final Cache<EntityId, Entry<Enforcer>> enforcerCache) {
 
         super(data);
         this.policiesShardRegion = requireNonNull(policiesShardRegion);
-        requireNonNull(policyIdCache);
         requireNonNull(enforcerCache);
-        enforcerRetriever = new EnforcerRetriever(policyIdCache, enforcerCache);
+        enforcerRetriever = new EnforcerRetriever(IdentityCache.INSTANCE, enforcerCache);
     }
 
     /**
@@ -95,21 +94,17 @@ public final class PolicyCommandEnforcement extends Enforcement<PolicyCommand> {
     public static final class Provider implements EnforcementProvider<PolicyCommand> {
 
         private ActorRef policiesShardRegion;
-        private final Cache<EntityId, Entry<EntityId>> policyIdCache;
         private final Cache<EntityId, Entry<Enforcer>> enforcerCache;
 
         /**
          * Constructor.
          *
          * @param policiesShardRegion the ActorRef to the Policies shard region.
-         * @param policyIdCache the policy-id-cache.
          * @param enforcerCache the enforcer cache.
          */
         public Provider(final ActorRef policiesShardRegion,
-                final Cache<EntityId, Entry<EntityId>> policyIdCache,
                 final Cache<EntityId, Entry<Enforcer>> enforcerCache) {
             this.policiesShardRegion = requireNonNull(policiesShardRegion);
-            this.policyIdCache = requireNonNull(policyIdCache);
             this.enforcerCache = requireNonNull(enforcerCache);
         }
         @Override
@@ -119,19 +114,19 @@ public final class PolicyCommandEnforcement extends Enforcement<PolicyCommand> {
 
         @Override
         public Enforcement<PolicyCommand> createEnforcement(final Enforcement.Context context) {
-            return new PolicyCommandEnforcement(context, policiesShardRegion, policyIdCache, enforcerCache);
+            return new PolicyCommandEnforcement(context, policiesShardRegion, enforcerCache);
         }
     }
 
     /**
-     * Authorize a policy-command by a policy enforcer and attack read-subjects to it.
+     * Authorize a policy-command by a policy enforcer.
      *
      * @param <T> type of the policy-command.
      * @param enforcer the policy enforcer.
      * @param command the command to authorize.
-     * @return optionally the authorized command extended by read subjects.
+     * @return optionally the authorized command.
      */
-    public static <T extends PolicyCommand> Optional<T> authorizePolicyCommand(final PolicyCommand<T> command,
+    public static <T extends PolicyCommand> Optional<T> authorizePolicyCommand(final T command,
             final Enforcer enforcer) {
 
         final ResourceKey policyResourceKey = PoliciesResourceType.policyResource(command.getResourcePath());
@@ -144,8 +139,9 @@ public final class PolicyCommandEnforcement extends Enforcement<PolicyCommand> {
             final String permission = Permission.READ;
             authorized = enforcer.hasPartialPermissions(policyResourceKey, authorizationContext, permission);
         }
+
         return authorized
-                ? Optional.of(Enforcement.addReadSubjectsToSignal(command, enforcer))
+                ? Optional.of(command)
                 : Optional.empty();
     }
 
@@ -185,14 +181,14 @@ public final class PolicyCommandEnforcement extends Enforcement<PolicyCommand> {
 
     private void enforcePolicyCommandByEnforcer(final PolicyCommand<?> policyCommand, final Enforcer enforcer,
             final ActorRef sender) {
-        final Optional<? extends PolicyCommand> authorizedCommand = authorizePolicyCommand(policyCommand, enforcer);
-        if (authorizedCommand.isPresent()) {
-            final PolicyCommand commandWithReadSubjects = authorizedCommand.get();
-            if (commandWithReadSubjects instanceof PolicyQueryCommand) {
-                final PolicyQueryCommand policyQueryCommand = (PolicyQueryCommand) commandWithReadSubjects;
-                askPolicysShardRegionAndBuildJsonView(policyQueryCommand, enforcer, sender);
+        final Optional<? extends PolicyCommand> authorizedCommandOpt = authorizePolicyCommand(policyCommand, enforcer);
+        if (authorizedCommandOpt.isPresent()) {
+            final PolicyCommand authorizedCommand = authorizedCommandOpt.get();
+            if (authorizedCommand instanceof PolicyQueryCommand) {
+                final PolicyQueryCommand policyQueryCommand = (PolicyQueryCommand) authorizedCommand;
+                askPoliciesShardRegionAndBuildJsonView(policyQueryCommand, enforcer, sender);
             } else {
-                forwardToPoliciesShardRegion(commandWithReadSubjects, sender);
+                forwardToPoliciesShardRegion(authorizedCommand, sender);
             }
         } else {
             respondWithError(policyCommand, sender);
@@ -250,7 +246,7 @@ public final class PolicyCommandEnforcement extends Enforcement<PolicyCommand> {
         return registry.exceptionFrom(policyCommand);
     }
 
-    private void askPolicysShardRegionAndBuildJsonView(
+    private void askPoliciesShardRegionAndBuildJsonView(
             final PolicyQueryCommand commandWithReadSubjects,
             final Enforcer enforcer,
             final ActorRef sender) {

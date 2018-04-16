@@ -22,7 +22,6 @@ import org.eclipse.ditto.services.base.metrics.StatsdMetricsReporter;
 import org.eclipse.ditto.services.concierge.starter.actors.DispatcherActor;
 import org.eclipse.ditto.services.concierge.util.cache.AclEnforcerCacheLoader;
 import org.eclipse.ditto.services.concierge.util.cache.CacheFactory;
-import org.eclipse.ditto.services.concierge.util.cache.IdentityCache;
 import org.eclipse.ditto.services.concierge.util.cache.PolicyEnforcerCacheLoader;
 import org.eclipse.ditto.services.concierge.util.cache.ThingEnforcementIdCacheLoader;
 import org.eclipse.ditto.services.concierge.util.cache.entry.Entry;
@@ -76,9 +75,6 @@ public final class DefaultAuthorizationProxyPropsFactory extends AuthorizationPr
                         ID_CACHE_METRIC_NAME_PREFIX + ThingCommand.RESOURCE_TYPE,
                         metricsReportingConsumer);
 
-        // policies always refer to themselves in the cache.
-        final Cache<EntityId, Entry<EntityId>> policyIdCache = new IdentityCache();
-
         final PolicyEnforcerCacheLoader policyEnforcerCacheLoader =
                 new PolicyEnforcerCacheLoader(askTimeout, policiesShardRegionProxy);
         final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache =
@@ -95,9 +91,8 @@ public final class DefaultAuthorizationProxyPropsFactory extends AuthorizationPr
 
         final Set<EnforcementProvider<?>> enforcementProviders = new HashSet<>();
         enforcementProviders.add(new ThingCommandEnforcement.Provider(thingsShardRegionProxy,
-                policiesShardRegionProxy, thingIdCache, policyIdCache, policyEnforcerCache, aclEnforcerCache));
-        enforcementProviders.add(new PolicyCommandEnforcement.Provider(policiesShardRegionProxy,
-                policyIdCache, policyEnforcerCache));
+                policiesShardRegionProxy, thingIdCache, policyEnforcerCache, aclEnforcerCache));
+        enforcementProviders.add(new PolicyCommandEnforcement.Provider(policiesShardRegionProxy, policyEnforcerCache));
         enforcementProviders.add(new MessageCommandEnforcement.Provider(thingIdCache, policyEnforcerCache,
                 aclEnforcerCache));
         enforcementProviders.add(new LiveSignalEnforcement.Provider(thingIdCache, policyEnforcerCache,
