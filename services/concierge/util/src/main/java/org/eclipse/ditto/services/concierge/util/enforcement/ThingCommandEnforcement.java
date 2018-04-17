@@ -109,22 +109,23 @@ public final class ThingCommandEnforcement extends Enforcement<ThingCommand> {
     private static final JsonFieldSelector THING_QUERY_COMMAND_RESPONSE_WHITELIST =
             JsonFactory.newFieldSelector(Thing.JsonFields.ID);
 
-    private List<SubjectIssuer> subjectIssuersForPolicyMigration;
-    private ActorRef thingsShardRegion;
-    private ActorRef policiesShardRegion;
+    private final List<SubjectIssuer> subjectIssuersForPolicyMigration;
+    private final ActorRef thingsShardRegion;
+    private final ActorRef policiesShardRegion;
     private final EnforcerRetriever thingEnforcerRetriever;
     private final EnforcerRetriever policyEnforcerRetriever;
 
-    private ThingCommandEnforcement(final Context data, final List<SubjectIssuer> subjectIssuersForPolicyMigration,
-            final ActorRef thingsShardRegion, final ActorRef policiesShardRegion,
-            final Cache<EntityId, Entry<EntityId>> thingIdCache,
+    private ThingCommandEnforcement(final Context data, final ActorRef thingsShardRegion,
+            final ActorRef policiesShardRegion, final Cache<EntityId, Entry<EntityId>> thingIdCache,
             final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache,
-            final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache) {
+            final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache,
+            final List<SubjectIssuer> subjectIssuersForPolicyMigration) {
 
         super(data);
-        this.subjectIssuersForPolicyMigration = requireNonNull(subjectIssuersForPolicyMigration);
         this.thingsShardRegion = requireNonNull(thingsShardRegion);
         this.policiesShardRegion = requireNonNull(policiesShardRegion);
+        this.subjectIssuersForPolicyMigration = requireNonNull(subjectIssuersForPolicyMigration);
+
         requireNonNull(thingIdCache);
         requireNonNull(policyEnforcerCache);
         requireNonNull(aclEnforcerCache);
@@ -159,13 +160,14 @@ public final class ThingCommandEnforcement extends Enforcement<ThingCommand> {
      */
     public static final class Provider implements EnforcementProvider<ThingCommand> {
 
-        private static final List<SubjectIssuer> SUBJECT_ISSUERS_FOR_POLICY_MIGRATION =
+        private static final List<SubjectIssuer> DEFAULT_SUBJECT_ISSUERS_FOR_POLICY_MIGRATION =
                 Collections.singletonList(SubjectIssuer.GOOGLE);
         private final ActorRef thingsShardRegion;
         private final ActorRef policiesShardRegion;
         private final Cache<EntityId, Entry<EntityId>> thingIdCache;
         private final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache;
         private final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache;
+        private final List<SubjectIssuer> subjectIssuersForPolicyMigration;
 
         /**
          * Constructor.
@@ -180,11 +182,33 @@ public final class ThingCommandEnforcement extends Enforcement<ThingCommand> {
                 final ActorRef policiesShardRegion, final Cache<EntityId, Entry<EntityId>> thingIdCache,
                 final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache,
                 final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache) {
+            this(thingsShardRegion, policiesShardRegion, thingIdCache, policyEnforcerCache, aclEnforcerCache,
+                    DEFAULT_SUBJECT_ISSUERS_FOR_POLICY_MIGRATION);
+        }
+
+        /**
+         * Constructor.
+         *
+         * @param thingsShardRegion the ActorRef to the Things shard region.
+         * @param policiesShardRegion the ActorRef to the Policies shard region.
+         * @param thingIdCache the thing-id-cache.
+         * @param policyEnforcerCache the policy-enforcer cache.
+         * @param aclEnforcerCache the acl-enforcer cache.
+         * @param subjectIssuersForPolicyMigration a list of {@link SubjectIssuer}s for which a {@link Subject} will
+         * be created per ACL SID. E.g. when {@link SubjectIssuer#GOOGLE} is specified, for the ACL SID "123", a
+         * {@link Subject} "google:123" will be created.
+         */
+        public Provider(final ActorRef thingsShardRegion,
+                final ActorRef policiesShardRegion, final Cache<EntityId, Entry<EntityId>> thingIdCache,
+                final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache,
+                final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache,
+                final List<SubjectIssuer> subjectIssuersForPolicyMigration) {
             this.thingsShardRegion = requireNonNull(thingsShardRegion);
             this.policiesShardRegion = requireNonNull(policiesShardRegion);
             this.thingIdCache = requireNonNull(thingIdCache);
             this.policyEnforcerCache = requireNonNull(policyEnforcerCache);
             this.aclEnforcerCache = requireNonNull(aclEnforcerCache);
+            this.subjectIssuersForPolicyMigration = requireNonNull(subjectIssuersForPolicyMigration);
         }
 
         @Override
@@ -201,8 +225,9 @@ public final class ThingCommandEnforcement extends Enforcement<ThingCommand> {
 
         @Override
         public Enforcement<ThingCommand> createEnforcement(final Enforcement.Context context) {
-            return new ThingCommandEnforcement(context, SUBJECT_ISSUERS_FOR_POLICY_MIGRATION, thingsShardRegion,
-                    policiesShardRegion, thingIdCache, policyEnforcerCache, aclEnforcerCache);
+            return new ThingCommandEnforcement(context, thingsShardRegion, policiesShardRegion, thingIdCache,
+                    policyEnforcerCache, aclEnforcerCache, subjectIssuersForPolicyMigration
+            );
         }
     }
 
