@@ -147,8 +147,7 @@ public final class ThingsRoute extends AbstractRoute {
                                 parameter(ThingsParameter.IDS.toString(), idsString ->
                                         parameterOptional(ThingsParameter.FIELDS.toString(), fieldsString ->
                                                 handlePerRequest(ctx, RetrieveThings
-                                                        .getBuilder(idsString.isEmpty() ? null :
-                                                                idsString.split(","))
+                                                        .getBuilder(idsString.split(","))
                                                         .selectedFields(calculateSelectedFields(fieldsString))
                                                         .dittoHeaders(dittoHeaders).build())
                                         )
