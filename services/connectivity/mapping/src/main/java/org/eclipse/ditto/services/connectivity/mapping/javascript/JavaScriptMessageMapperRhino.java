@@ -46,13 +46,12 @@ import org.mozilla.javascript.Callable;
 import org.mozilla.javascript.Context;
 import org.mozilla.javascript.ContextFactory;
 import org.mozilla.javascript.Function;
-import org.mozilla.javascript.NativeArray;
 import org.mozilla.javascript.NativeJSON;
 import org.mozilla.javascript.NativeObject;
 import org.mozilla.javascript.RhinoException;
 import org.mozilla.javascript.Scriptable;
-import org.mozilla.javascript.ScriptableObject;
 import org.mozilla.javascript.Undefined;
+import org.mozilla.javascript.typedarrays.NativeArrayBuffer;
 
 /**
  * This mapper executes its mapping methods on the <b>current thread</b>. The caller should be aware of that.
@@ -61,7 +60,7 @@ final class JavaScriptMessageMapperRhino implements MessageMapper {
 
     private static final String WEBJARS_PATH = "/META-INF/resources/webjars";
 
-    private static final String WEBJARS_BYTEBUFFER = WEBJARS_PATH + "/bytebuffer/5.0.0/dist/bytebuffer.min.js";
+    private static final String WEBJARS_BYTEBUFFER = WEBJARS_PATH + "/bytebuffer/5.0.0/dist/bytebuffer.js";
     private static final String WEBJARS_LONG = WEBJARS_PATH + "/long/3.2.0/dist/long.min.js";
 
     private static final String DITTO_SCOPE_SCRIPT = "/javascript/ditto-scope.js";
@@ -109,7 +108,8 @@ final class JavaScriptMessageMapperRhino implements MessageMapper {
         try {
             // create scope once and load the required libraries in order to get best performance:
             scope = (Scriptable) contextFactory.call(cx -> {
-                final Scriptable scope = cx.initSafeStandardObjects();
+//                final Scriptable scope = cx.initSafeStandardObjects(); // that one disables "print, exit, quit", etc.
+                final Scriptable scope = cx.initStandardObjects(); // that one allows those functions
                 initLibraries(cx, scope);
                 return scope;
             });
@@ -133,13 +133,13 @@ final class JavaScriptMessageMapperRhino implements MessageMapper {
                 final NativeObject headersObj = new NativeObject();
                 message.getHeaders().forEach((key, value) -> headersObj.put(key, headersObj, value));
 
-                final NativeArray bytePayload;
+                final NativeArrayBuffer bytePayload;
                 if (message.getBytePayload().isPresent()) {
                     final ByteBuffer byteBuffer = message.getBytePayload().get();
                     final byte[] array = byteBuffer.array();
-                    bytePayload = new NativeArray(array.length);
+                    bytePayload = new NativeArrayBuffer(array.length);
                     for (int a = 0; a < array.length; a++) {
-                        ScriptableObject.putProperty(bytePayload, a, array[a]);
+                        bytePayload.getBuffer()[a] = array[a];
                     }
                 } else {
                     bytePayload = null;
@@ -260,13 +260,13 @@ final class JavaScriptMessageMapperRhino implements MessageMapper {
 
 
     private void initLibraries(final Context cx, final Scriptable scope) {
-        if (getConfiguration().map(JavaScriptMessageMapperConfiguration::isLoadBytebufferJS).orElse(false)) {
-            loadJavascriptLibrary(cx, scope, new InputStreamReader(getClass().getResourceAsStream(WEBJARS_BYTEBUFFER)),
-                    WEBJARS_BYTEBUFFER);
-        }
         if (getConfiguration().map(JavaScriptMessageMapperConfiguration::isLoadLongJS).orElse(false)) {
             loadJavascriptLibrary(cx, scope, new InputStreamReader(getClass().getResourceAsStream(WEBJARS_LONG)),
                     WEBJARS_LONG);
+        }
+        if (getConfiguration().map(JavaScriptMessageMapperConfiguration::isLoadBytebufferJS).orElse(false)) {
+            loadJavascriptLibrary(cx, scope, new InputStreamReader(getClass().getResourceAsStream(WEBJARS_BYTEBUFFER)),
+                    WEBJARS_BYTEBUFFER);
         }
 
         loadJavascriptLibrary(cx, scope, new InputStreamReader(getClass().getResourceAsStream(DITTO_SCOPE_SCRIPT)),
@@ -301,7 +301,9 @@ final class JavaScriptMessageMapperRhino implements MessageMapper {
     }
 
     private static Optional<ByteBuffer> convertToByteBuffer(final Object obj) {
-        if (obj instanceof Bindings) {
+        if (obj instanceof NativeArrayBuffer) {
+            return Optional.of(ByteBuffer.wrap(((NativeArrayBuffer) obj).getBuffer()));
+        } else if (obj instanceof Bindings) {
             try {
                 final Class<?> cls = Class.forName("jdk.nashorn.api.scripting.ScriptObjectMirror");
                 if (cls.isAssignableFrom(obj.getClass())) {
@@ -322,8 +324,7 @@ final class JavaScriptMessageMapperRhino implements MessageMapper {
                     | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
                 throw new IllegalStateException("Could not retrieve array values", e);
             }
-        }
-        if (obj instanceof List<?>) {
+        } else if (obj instanceof List<?>) {
             final List<?> list = (List<?>) obj;
             final ByteArrayOutputStream baos = new ByteArrayOutputStream();
             list.forEach(e -> baos.write(((Number) e).intValue()));

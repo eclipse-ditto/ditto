@@ -131,8 +131,6 @@ public class AmqpConsumerActorTest {
                                     "    value\n" +
                                     ") {\n" +
                                     "\n" +
-                                    "    let externalMsg = {};\n" +
-                                    "\n" +
                                     "    // ###\n" +
                                     "    // Insert your mapping logic here\n" +
                                     "    let headers = {};\n" +
@@ -144,7 +142,7 @@ public class AmqpConsumerActorTest {
                                     "     return Ditto.buildExternalMsg(\n" +
                                     "        headers,\n" +
                                     "        textPayload,\n" +
-                                    "        bytePayload,\n" +
+                                    "        null,\n" +
                                     "        contentType\n" +
                                     "    );" +
                                     "}")

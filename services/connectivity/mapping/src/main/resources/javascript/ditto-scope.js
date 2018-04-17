@@ -12,7 +12,7 @@
  * @typedef {Object} ExternalMessage
  * @property {Object.<string, string>} headers - The external headers
  * @property {string} [textPayload] - The String to be mapped
- * @property {Array<byte>} [bytePayload] - The bytes to be mapped
+ * @property {ArrayBuffer} [bytePayload] - The bytes to be mapped as ArrayBuffer
  * @property {string} contentType - The external Content-Type, e.g. "application/json"
  */
 
@@ -50,7 +50,7 @@ let Ditto = (function () {
      * Builds an external message from the passed parameters.
      * @param {Object.<string, string>} headers - The external headers Object containing header values
      * @param {string} [textPayload] - The external mapped String
-     * @param {string} [bytePayload] - The external mapped byte[]
+     * @param {ArrayBuffer} [bytePayload] - The external mapped bytes as ArrayBuffer
      * @param {string} contentType - The returned Content-Type
      * @returns {ExternalMessage} externalMessage - the mapped external message or <code>null</code> if the
      * message could/should not be mapped
@@ -65,8 +65,51 @@ let Ditto = (function () {
         return externalMsg;
     };
 
+    /**
+     * Transforms the passed ArrayBuffer to a String interpreting the content of the passed arrayBuffer as unsigned 8
+     * bit integers.
+     *
+     * @param {ArrayBuffer} arrayBuffer the ArrayBuffer to transform to a String
+     * @returns {String} the transformed String
+     */
+    let arrayBufferToString = function(arrayBuffer) {
+
+        return String.fromCharCode.apply(null, new Uint8Array(arrayBuffer));
+    };
+
+    /**
+     * Transforms the passed String to an ArrayBuffer using unsigned 8 bit integers.
+     *
+     * @param {String} string the String to transform to an ArrayBuffer
+     * @returns {ArrayBuffer} the transformed ArrayBuffer
+     */
+    let stringToArrayBuffer = function(string) {
+
+        let buf = new ArrayBuffer(string.length);
+        let bufView = new Uint8Array(buf);
+        for (let i=0, strLen=string.length; i<strLen; i++) {
+            bufView[i] = string.charCodeAt(i);
+        }
+        return buf;
+    };
+
+    /**
+     * Transforms the passed ArrayBuffer to a {ByteBuffer} (from bytebuffer.js library which needs to be loaded).
+     *
+     * @param {ArrayBuffer} arrayBuffer the ArrayBuffer to transform
+     * @returns {ByteBuffer} the transformed ByteBuffer
+     */
+    let asByteBuffer = function(arrayBuffer) {
+        let byteBuffer = new ArrayBuffer(arrayBuffer.byteLength);
+        new Uint8Array(byteBuffer).set(new Uint8Array(arrayBuffer));
+        return dcodeIO.ByteBuffer.wrap(byteBuffer);
+    };
+
     return {
         buildDittoProtocolMsg: buildDittoProtocolMsg,
-        buildExternalMsg: buildExternalMsg
+        buildExternalMsg: buildExternalMsg,
+        arrayBufferToString: arrayBufferToString,
+        stringToArrayBuffer: stringToArrayBuffer,
+        asByteBuffer: asByteBuffer
     }
 })();

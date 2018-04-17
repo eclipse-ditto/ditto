@@ -180,7 +180,7 @@ public class JavaScriptMessageMapperRhinoTest {
                     "    let path = \"" + MAPPING_INCOMING_PATH + "\";\n" +
                     "    let dittoHeaders = {};\n" +
                     "    dittoHeaders[\"correlation-id\"] = headers[\"correlation-id\"];\n" +
-                    "    let value = String.fromCharCode.apply(null, bytePayload);\n" +
+                    "    let value = Ditto.arrayBufferToString(bytePayload);\n" +
                     "    // ###\n" +
                     "\n" +
                     "    return Ditto.buildDittoProtocolMsg(\n" +
@@ -213,11 +213,8 @@ public class JavaScriptMessageMapperRhinoTest {
             "    let headers = {};\n" +
             "    headers['correlation-id'] = dittoHeaders['correlation-id'];\n" +
             "    let textPayload = null;\n" +
-            "    let bytePayload = [];\n" +
             "    let thingId = namespace + \":\" + id;\n" +
-            "    for (var i = 0; i < thingId.length; i++){\n" +
-            "       bytePayload.push(thingId.charCodeAt(i));\n" +
-            "    }" +
+            "    let bytePayload = Ditto.stringToArrayBuffer(thingId);\n" +
             "    let contentType = \"" + CONTENT_TYPE_BINARY + "\";\n" +
             "    // ###\n" +
             "\n" +

@@ -2,7 +2,7 @@
  * Maps the passed parameters to a Ditto Protocol message.
  * @param {Object.<string, string>} headers - The headers Object containing all received header values
  * @param {string} [textPayload] - The String to be mapped
- * @param {Array<byte>} [bytePayload] - The bytes to be mapped
+ * @param {ArrayBuffer} [bytePayload] - The bytes to be mapped as ArrayBuffer
  * @param {string} contentType - The received Content-Type, e.g. "application/json"
  * @returns {DittoProtocolMessage} dittoProtocolMessage - the mapped Ditto Protocol message or <code>null</code> if the
  * message could/should not be mapped

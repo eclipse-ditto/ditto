@@ -46,7 +46,7 @@ public class JavaScriptMessageMapperRhinoBenchmarkTest {
         System.out.println(adaptable);
 
         assertDefaults(adaptable);
-        assertThat(adaptable.getPayload().getValue()).contains(JsonFactory.readFrom("{\"a\":11,\"b\":10,\"c\":99}"));
+        assertThat(adaptable.getPayload().getValue()).contains(JsonFactory.readFrom("{\"a\":11,\"b\":8,\"c\":99}"));
     }
 
     @Test

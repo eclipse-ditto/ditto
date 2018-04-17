@@ -28,7 +28,7 @@ import org.openjdk.jmh.annotations.State;
 @State(Scope.Benchmark)
 public class Test1DecodeBinaryPayloadToDitto implements MapToDittoProtocolScenario {
 
-    private static final String MAPPING_BYTES = "1234567890ab1234567890ab";
+    private static final String MAPPING_BYTES = "27408B";
     private static final String CONTENT_TYPE = "application/octet-stream";
 
     private static final String MAPPING_INCOMING_PLAIN =
@@ -41,15 +41,9 @@ public class Test1DecodeBinaryPayloadToDitto implements MapToDittoProtocolScenar
                     "\n" +
                     "    // ###\n" +
                     "    // Insert your mapping logic here\n" +
-                    "    function intFromBytes( x ){\n" +
-                    "       let val = 0;\n" +
-                    "       for (var i = 0; i < x.length; ++i) {\n" +
-                    "           val += x[i];        \n" +
-                    "           if (i < x.length-1) {\n" +
-                    "               val = val << 8;\n" +
-                    "           }\n" +
-                    "       }\n" +
-                    "       return val;\n" +
+                    "    function intFromBytes(arrayBuffer){\n" +
+                    "       let byteBuf = Ditto.asByteBuffer(arrayBuffer);\n" +
+                    "       return parseInt(byteBuf.toHex(), 16);\n" +
                     "    };\n" +
                     "    let namespace = \"org.eclipse.ditto\";\n" +
                     "    let id = \"jmh-test\";\n" +
@@ -88,8 +82,12 @@ public class Test1DecodeBinaryPayloadToDitto implements MapToDittoProtocolScenar
         final Map<String, String> headers = new HashMap<>();
         headers.put("correlation-id", correlationId);
         headers.put(ExternalMessage.CONTENT_TYPE_HEADER, CONTENT_TYPE);
+        final BigInteger bigInteger = new BigInteger(MAPPING_BYTES, 16);
+        System.out.println(bigInteger);
+        final byte[] bytes = bigInteger.toByteArray();
+        System.out.println("bytes length: " + bytes.length);
         externalMessage = ConnectivityModelFactory.newExternalMessageBuilder(headers)
-                .withBytes(new BigInteger(MAPPING_BYTES, 16).toByteArray())
+                .withBytes(bytes)
                 .build();
     }
 
@@ -101,6 +99,7 @@ public class Test1DecodeBinaryPayloadToDitto implements MapToDittoProtocolScenar
                         .createJavaScriptMessageMapperConfigurationBuilder(Collections.emptyMap())
                         .contentType(CONTENT_TYPE)
                         .incomingScript(MAPPING_INCOMING_PLAIN)
+                        .loadBytebufferJS(true)
                         .build()
         );
         return javaScriptRhinoMapperPlain;
