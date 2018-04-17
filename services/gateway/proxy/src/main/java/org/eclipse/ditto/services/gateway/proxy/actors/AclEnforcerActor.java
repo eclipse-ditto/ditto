@@ -472,6 +472,7 @@ public final class AclEnforcerActor extends AbstractActorWithStash {
         // subscribe the sender with correlationId to receive the response
         signal.getDittoHeaders()
                 .getCorrelationId()
+                .filter(correlationId -> signal.getDittoHeaders().isResponseRequired())
                 .map(correlationId -> new DistributedPubSubMediator.Subscribe(correlationId,
                         LIVE_RESPONSES_PUB_SUB_GROUP, getSender()))
                 .map(subscribe -> {

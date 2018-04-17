@@ -237,9 +237,10 @@ public abstract class AbstractPolicyEnforcerActor extends AbstractActorWithStash
         log.debug("Publishing signal <{}> to topic <{}>.", signal.getName(), topic);
         accessCounter++;
 
-        // subscribe the sender with correlationId to receive the response
+        // subscribe the sender with correlationId to receive the response, if a response is required
         signal.getDittoHeaders()
                 .getCorrelationId()
+                .filter(correlationId -> signal.getDittoHeaders().isResponseRequired())
                 .map(correlationId -> new DistributedPubSubMediator.Subscribe(correlationId,
                         LIVE_RESPONSES_PUB_SUB_GROUP, getSender()))
                 .map(subscribe -> {

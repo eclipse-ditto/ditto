@@ -66,7 +66,7 @@ public final class StreamingActor extends AbstractActor {
     }
 
     /**
-     * Creates Akka configuration object Props for this StreamingSessionActor.
+     * Creates Akka configuration object Props for this StreamingActor.
      *
      * @param pubSubMediator the PubSub mediator actor
      * @param proxyActor the proxy actor which delegates commands.
@@ -77,7 +77,7 @@ public final class StreamingActor extends AbstractActor {
             private static final long serialVersionUID = 1L;
 
             @Override
-            public StreamingActor create() throws Exception {
+            public StreamingActor create() {
                 return new StreamingActor(pubSubMediator, proxyActor);
             }
         });
@@ -141,5 +141,4 @@ public final class StreamingActor extends AbstractActor {
         logger.debug("Forwarding to session actor '{}': {}", connectionCorrelationId, object);
         getContext().actorSelection(connectionCorrelationId).forward(object, getContext());
     }
-
 }
