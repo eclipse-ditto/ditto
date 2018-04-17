@@ -80,7 +80,7 @@ changes.
 
 Following DevOps commands are supported:
 * dynamically retrieve and change log levels
-* create new AMQP Bridge connections during runtime
+* create new connectivity service connections during runtime
 
 
 ### Dynamically adjust log levels
@@ -178,7 +178,11 @@ Example request payload to change the log level of logger `org.eclipse.ditto` in
 }
 ```
 
-### Create a new AMQP connection in Connectivity service
+### Connectivity service commands
+
+The following sections define the available commands for the connectivity service. 
+
+#### Create a new AMQP 1.0 connection
 
 Example request payload to create a new AMQP 1.0 connection:<br/>
 `POST /devops/piggyback/connectivity`
@@ -191,18 +195,32 @@ Example request payload to create a new AMQP 1.0 connection:<br/>
         "type": "connectivity.commands:createConnection",
         "connection": {
             "id": "hono-example-connection-123",
+            "connectionType": "amqp-10",
             "authorizationSubject": "<<<my-subject-id-included-in-policy-or-acl>>>",
-            "failoverEnabled": false,
+            "failoverEnabled": true,
             "uri": "amqps://user:password@hono.eclipse.org:5671",
-            "sources": [
-              "telemetry/DEFAULT_TENANT"
-            ]
+            "sources": [{
+                "addresses": ["telemetry/FOO"]
+            }],
+            "targets": [{
+                "address": "events/twin",
+                "topics": ["_/_/things/twin/events"]
+            }],
+            "mappingContext": {
+                "mappingEngine": "JavaScript",
+                "options": {
+                    "incomingScript": "..",
+                    "outgoingScript": ".."
+                }
+            }
         }
     }
 }
 ```
 
 The `id` of the connection may be any string.
+
+The `connectionType` currently may be either `amqp-10` or `amqp-091`.
 
 The `authorizationSubject` is the subject (e.g. user-id) to use for [authorization](basic-auth.html#authorization) of 
 all messages originating from the created connection. This subject is required to have WRITE permission on a `Thing` 
@@ -212,4 +230,43 @@ The `failoverEnabled` property defines whether failover is enabled or not.
 
 The `uri` defines the endpoint including username and password to connect to.
 
-The `sources` defines a string array of sources (e.g. hono's [Telemetry API](https://www.eclipse.org/hono/api/telemetry-api)) to consume messages from.
+The `sources` defines an array of sources (e.g. Hono's [Telemetry API](https://www.eclipse.org/hono/api/telemetry-api)) to consume messages from.
+
+The `targets` defines an array of targets to publish messages to.
+
+
+#### Create a new AMQP 0.9.1 connection
+
+Example request payload to create a new AMQP 0.9.1 connection (e.g. in order to connect to a RabbitMQ):<br/>
+`POST /devops/piggyback/connectivity`
+
+```json
+{
+    "targetActorSelection": "/system/sharding/connection",
+    "headers": {},
+    "piggybackCommand": {
+        "type": "connectivity.commands:createConnection",
+        "connection": {
+            "id": "rabbit-example-connection-123",
+            "connectionType": "amqp-091",
+            "authorizationSubject": "<<<my-subject-id-included-in-policy-or-acl>>>",
+            "failoverEnabled": true,
+            "uri": "amqp://user:password@localhost:5672",
+            "sources": [{
+                "addresses": ["queueName"]
+            }],
+            "targets": [{
+                "address": "exchangeName/routingKey",
+                "topics": ["_/_/things/twin/events","_/_/things/live/messages"]
+            }],
+            "mappingContext": {
+                "mappingEngine": "JavaScript",
+                "options": {
+                    "incomingScript": "..",
+                    "outgoingScript": ".."
+                }
+            }
+        }
+    }
+}
+```
