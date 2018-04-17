@@ -82,16 +82,16 @@ public final class PreEnforcementTest {
                 SudoRetrieveThingResponse.of(thingWithAcl, DittoHeaders.empty());
 
         new TestKit(system) {{
-            mockEntitiesActorInstance.setReply(this, THING_SUDO, response);
+            mockEntitiesActorInstance.setReply(THING_SUDO, response);
 
             final ActorRef underTest = newEnforcerActor(getRef(), CompletableFuture::completedFuture);
             final ThingCommand read = readCommand();
-            mockEntitiesActorInstance.setReply(this, read);
+            mockEntitiesActorInstance.setReply(read);
             underTest.tell(read, getRef());
             assertThat(expectMsgClass(read.getClass()).getId()).isEqualTo(read.getId());
 
             final ThingCommand write = writeCommand();
-            mockEntitiesActorInstance.setReply(this, write);
+            mockEntitiesActorInstance.setReply(write);
             underTest.tell(write, getRef());
             assertThat(expectMsgClass(write.getClass()).getId()).isEqualTo(write.getId());
         }};
@@ -108,7 +108,7 @@ public final class PreEnforcementTest {
                 SudoRetrieveThingResponse.of(thingWithAcl, DittoHeaders.empty());
 
         new TestKit(system) {{
-            mockEntitiesActorInstance.setReply(this, THING_SUDO, response);
+            mockEntitiesActorInstance.setReply(THING_SUDO, response);
 
             final GatewayAuthenticationFailedException mockedEx =
                     GatewayAuthenticationFailedException.newBuilder("wanted exception").build();
@@ -138,7 +138,7 @@ public final class PreEnforcementTest {
                 SudoRetrieveThingResponse.of(thingWithAcl, DittoHeaders.empty());
 
         new TestKit(system) {{
-            mockEntitiesActorInstance.setReply(this, THING_SUDO, response);
+            mockEntitiesActorInstance.setReply(THING_SUDO, response);
 
             final IllegalStateException mockedEx = new IllegalStateException("wanted exception");
 

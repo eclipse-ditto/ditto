@@ -313,7 +313,7 @@ public final class ThingCommandEnforcement extends Enforcement<ThingCommand> {
                     } else if (response instanceof WithDittoHeaders) {
                         final WithDittoHeaders withDittoHeaders = (WithDittoHeaders) response;
                         replyToSender(withDittoHeaders.setDittoHeaders(retrieveThing.getDittoHeaders()), sender);
-                    } else if (error instanceof AskTimeoutException) {
+                    } else if (isAskTimeoutException(response, error)) {
                         reportThingUnavailable(retrieveThing.getThingId(), retrieveThing.getDittoHeaders(), sender);
                     } else {
                         reportUnexpectedErrorOrResponse("retrieving thing for ACL migration",
@@ -379,15 +379,18 @@ public final class ThingCommandEnforcement extends Enforcement<ThingCommand> {
 
         PatternsCS.ask(thingsShardRegion, commandWithReadSubjects, getAskTimeout().toMillis())
                 .handleAsync((response, error) -> {
-                    if (error != null) {
-                        reportUnexpectedError("before building JsonView", sender, error,
-                                commandWithReadSubjects.getDittoHeaders());
-                    } else if (response instanceof ThingQueryCommandResponse) {
+                    if (response instanceof ThingQueryCommandResponse) {
                         reportJsonViewForThingQuery(sender, (ThingQueryCommandResponse) response, enforcer);
                     } else if (response instanceof DittoRuntimeException) {
                         replyToSender(response, sender);
-                    } else if (response instanceof AskTimeoutException) {
-                        reportTimeoutForThingQuery(commandWithReadSubjects, sender, (AskTimeoutException) response);
+                    } else if (isAskTimeoutException(response, error)) {
+                        final AskTimeoutException askTimeoutException = error instanceof AskTimeoutException
+                                ? (AskTimeoutException) error
+                                : (AskTimeoutException) response;
+                        reportTimeoutForThingQuery(commandWithReadSubjects, sender, askTimeoutException);
+                    } else if (error != null) {
+                        reportUnexpectedError("before building JsonView", sender, error,
+                                commandWithReadSubjects.getDittoHeaders());
                     } else {
                         reportUnknownResponse("before building JsonView", sender, response,
                                 commandWithReadSubjects.getDittoHeaders());
@@ -455,7 +458,7 @@ public final class ThingCommandEnforcement extends Enforcement<ThingCommand> {
                         return Optional.of((RetrieveThingResponse) response);
                     } else if (response instanceof ThingErrorResponse || response instanceof DittoRuntimeException) {
                         replyToSender(response, sender);
-                    } else if (error instanceof AskTimeoutException) {
+                    } else if (isAskTimeoutException(response, error)) {
                         reportThingUnavailable(retrieveThing.getThingId(), retrieveThing.getDittoHeaders(), sender);
                     } else {
                         reportUnexpectedErrorOrResponse("retrieving thing before inlined policy",
@@ -993,8 +996,14 @@ public final class ThingCommandEnforcement extends Enforcement<ThingCommand> {
                         PolicyCommandEnforcement.authorizePolicyCommand(createPolicy, enforcer);
 
                 // CreatePolicy is rejected; abort CreateThing.
-                authorizedCreatePolicy.ifPresent(
-                        cmd -> createPolicyAndThing(cmd, createThing, sender));
+                final boolean created = authorizedCreatePolicy
+                        .filter(cmd -> createPolicyAndThing(cmd, createThing, sender))
+                        .isPresent();
+
+                if (!created) {
+                    final DittoRuntimeException error = errorForThingCommand(createThing);
+                    replyToSender(error, sender);
+                }
             } else {
                 // cannot create policy.
                 final String thingId = createThing.getThingId();
@@ -1121,7 +1130,7 @@ public final class ThingCommandEnforcement extends Enforcement<ThingCommand> {
 
             reportInitialPolicyCreationFailure(createPolicy.getId(), createThing, sender);
 
-        } else if (policyError instanceof AskTimeoutException) {
+        } else if (isAskTimeoutException(policyResponse, policyError)) {
 
             replyToSender(PolicyUnavailableException.newBuilder(createThing.getThingId())
                     .dittoHeaders(createThing.getDittoHeaders())
@@ -1148,7 +1157,7 @@ public final class ThingCommandEnforcement extends Enforcement<ThingCommand> {
 
             replyToSender(thingResponse, sender);
 
-        } else if (thingError instanceof AskTimeoutException) {
+        } else if (isAskTimeoutException(thingResponse, thingError)) {
 
             replyToSender(ThingUnavailableException.newBuilder(createThing.getThingId())
                     .dittoHeaders(createThing.getDittoHeaders())

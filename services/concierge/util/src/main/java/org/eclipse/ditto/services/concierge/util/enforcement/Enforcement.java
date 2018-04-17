@@ -35,6 +35,7 @@ import akka.NotUsed;
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.event.LoggingAdapter;
+import akka.pattern.AskTimeoutException;
 import akka.stream.Graph;
 import akka.stream.SinkShape;
 
@@ -153,6 +154,17 @@ public abstract class Enforcement<T extends WithDittoHeaders> {
         final ResourceKey resourceKey =
                 ResourceKey.newInstance(ThingCommand.RESOURCE_TYPE, signal.getResourcePath());
         return enforcer.getSubjectIdsWithPermission(resourceKey, Permission.READ).getGranted();
+    }
+
+    /**
+     * Check whether response or error from a future is {@code AskTimeoutException}.
+     *
+     * @param response response from a future.
+     * @param error error thrown in a future.
+     * @return whether either is {@code AskTimeoutException}.
+     */
+    protected static boolean isAskTimeoutException(final Object response, final Throwable error) {
+        return error instanceof AskTimeoutException || response instanceof AskTimeoutException;
     }
 
     /**

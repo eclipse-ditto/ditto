@@ -72,9 +72,14 @@ public class TestSetup {
             final ActorRef mockEntitiesActor,
             @Nullable final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer) {
 
+        return newEnforcerActor(system, testActorRef, mockEntitiesActor, mockEntitiesActor, preEnforcer);
+    }
+
+    public static ActorRef newEnforcerActor(final ActorSystem system, final ActorRef testActorRef,
+            final ActorRef thingsShardRegion, final ActorRef policiesShardRegion,
+            @Nullable final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer) {
+
         final Duration askTimeout = CONFIG.caches().askTimeout();
-        final ActorRef thingsShardRegion = mockEntitiesActor;
-        final ActorRef policiesShardRegion = mockEntitiesActor;
 
         final PolicyEnforcerCacheLoader policyEnforcerCacheLoader =
                 new PolicyEnforcerCacheLoader(askTimeout, policiesShardRegion);

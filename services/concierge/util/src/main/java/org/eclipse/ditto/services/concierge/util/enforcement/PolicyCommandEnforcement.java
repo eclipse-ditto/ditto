@@ -107,6 +107,7 @@ public final class PolicyCommandEnforcement extends Enforcement<PolicyCommand> {
             this.policiesShardRegion = requireNonNull(policiesShardRegion);
             this.enforcerCache = requireNonNull(enforcerCache);
         }
+
         @Override
         public Class<PolicyCommand> getCommandClass() {
             return PolicyCommand.class;
@@ -260,7 +261,7 @@ public final class PolicyCommandEnforcement extends Enforcement<PolicyCommand> {
                         reportJsonViewForPolicyQuery(sender, (PolicyQueryCommandResponse) response, enforcer);
                     } else if (response instanceof DittoRuntimeException) {
                         replyToSender(response, sender);
-                    } else if (response instanceof AskTimeoutException) {
+                    } else if (isAskTimeoutException(response, error)) {
                         reportTimeoutForPolicyQuery(commandWithReadSubjects, sender, (AskTimeoutException) response);
                     } else {
                         reportUnknownResponse("before building JsonView", sender, response,
